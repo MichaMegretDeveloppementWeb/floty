@@ -71,7 +71,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Politique de mot de passe Floty (cf. ADR-0011) : longueur 12 minimum,
+     * Politique de mot de passe Floty (cf. ADR-0011) : longueur 8 minimum,
      * pas de complexité imposée. Alignement sur NIST SP 800-63B 2024 qui
      * privilégie la longueur au forçage de caractères spéciaux.
      *
@@ -82,7 +82,7 @@ class AppServiceProvider extends ServiceProvider
     {
         Password::defaults(
             fn (): ?Password => $this->app->isProduction()
-                ? Password::min(12)->uncompromised()
+                ? Password::min(8)->uncompromised()
                 : null,
         );
     }

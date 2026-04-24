@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Enums\Vehicle;
+
+/**
+ * Statut courant d'un véhicule (colonne `vehicles.current_status`).
+ *
+ * Invariants (validés en applicatif, cf. 01-schema-metier.md § 2) :
+ *   - Si `vehicles.exit_date IS NULL` → statut ∈ { Active, Maintenance }
+ *   - Si `vehicles.exit_date IS NOT NULL` → statut ∈ { Sold, Destroyed, Other }
+ */
+enum VehicleStatus: string
+{
+    case Active = 'active';
+    case Maintenance = 'maintenance';
+    case Sold = 'sold';
+    case Destroyed = 'destroyed';
+    case Other = 'other';
+}

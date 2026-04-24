@@ -10,6 +10,49 @@
 
 ---
 
+## 2026-04-24 (soir — suite 2)
+
+### Phase 01.bis — Schéma global V1 (enums + migrations + modèles)
+
+Avant d'attaquer phase 03 (auth), décision de poser **toute** la structure de données V1 d'un bloc. La doc `modele-de-donnees/` est mature, les FKs croisent les domaines, et l'approche évite les coordinations chronologiques des migrations par phase.
+
+**15 enums PHP backed** :
+- `Vehicle/` : `ReceptionCategory`, `VehicleUserType`, `BodyType`, `EnergySource`, `UnderlyingCombustionEngineType`, `EuroStandard`, `PollutantCategory`, `HomologationMethod`, `FiscalCharacteristicsChangeReason`, `VehicleStatus`, `VehicleExitReason`.
+- `Unavailability/UnavailabilityType` (helper `hasFiscalImpact()` = pound).
+- `Declaration/DeclarationStatus`, `Declaration/InvalidationReason`.
+- `Company/CompanyColor` (aligné sur les 8 couleurs du design system — jumeau du type TS).
+- `EnergySource::requiresUnderlyingCombustionEngine()` pour l'invariant hybride.
+- `EuroStandard::isEuro5OrAbove()` pour R-2024-013.
+
+**13 migrations MySQL** :
+- users amendée (`first_name`/`last_name` split, `must_change_password`, `last_login_at`, `deleted_at`)
+- companies, drivers, vehicles, vehicle_fiscal_characteristics, assignments, unavailabilities, declarations, declaration_pdfs, fiscal_rules
+- Migration dédiée triggers MySQL (anti-chevauchement `vehicle_fiscal_characteristics`)
+- Colonnes générées virtuelles pour émuler les index partiels MySQL (UNIQUE filtré par soft delete : `license_plate_active`, `vin_active`, `short_code_active`, `siren_active`, `vehicle_date_active`, `is_current`)
+- ~20 CHECK constraints via `ALTER TABLE ADD CONSTRAINT` (driver-gated MySQL only — SQLite interdit cette syntaxe)
+- FKs cross-domaines câblées avec `ON DELETE RESTRICT` (sauf `status_changed_by`/`generated_by` → `SET NULL`)
+
+**10 modèles Eloquent** :
+- User (amendé : SoftDeletes + full_name attribute + relations audit)
+- Company, Driver, Vehicle, VehicleFiscalCharacteristics, Assignment, Unavailability, Declaration, DeclarationPdf, FiscalRule
+- `#[Fillable]` attribute explicite (pas de `$guarded`)
+- `$casts` avec enums typés strict (round-trip PHP ↔ DB)
+- Relations typées (`BelongsTo<T, $this>` / `HasMany<T, $this>` avec types génériques)
+- DocBlocks `@property` pour l'IDE autocomplete et phpstan
+
+**Tests & outillage** :
+- `SchemaSmokeTest` (3 tests, 55 assertions) : graphe complet Company→Driver→Vehicle→VFC→Assignment→Unavailability→Declaration→DeclarationPdf→FiscalRule ; trigger anti-chevauchement testé ; réutilisation de license_plate après soft delete testée.
+- `php artisan test` : 14/14 passed (Feature + Unit).
+- `phpunit.xml` : CACHE_STORE=array, DB_CONNECTION=mysql (DB `floty_testing` dédiée) — tests sur le même driver qu'en prod pour valider triggers, CHECK, JSON, colonnes générées.
+- UserFactory refondue avec first_name/last_name + state `mustChangePassword()`.
+- Pint passed, vue-tsc clean.
+
+**Remises en question de la doc** (avec amendements) :
+- **ADR-0009** (versioning règles) révisé **entièrement** sur décision client : plus aucune notion de version interne. Corrections directes en code, rule_code stable, invalidation par hash. Table `fiscal_rules` sans colonne `version_internal`.
+- **02-schema-fiscal.md** aligné : suppression de `version_internal`, reformulation du § 6 « Cas-limite : correction d'une règle ».
+- **01-schema-metier.md** nettoyé des E1 résiduels : `drivers.nom`→`last_name`, FKs `entreprise_id`/`conducteur_id`→`company_id`/`driver_id` dans assignments, diagramme relations § 8 en anglais, colonnes `companies.color` hex → enum `CompanyColor` aligné UI Kit, `users` : ajout `must_change_password` et `last_login_at` au tableau.
+- **ADR-0012** (auth) révisé : `users.deleted_at` conservé (contra décision initiale « pas de soft-delete »). Motif : un gestionnaire quitte la société → soft delete permet de conserver les traces historiques (`declarations.status_changed_by`) sans forcer un hard-delete.
+
 ## 2026-04-24 (soir — suite)
 
 ### Phase 01 — fondations backend complétée

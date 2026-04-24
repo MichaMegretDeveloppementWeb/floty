@@ -149,7 +149,7 @@ L'effort est estimé **entre 2 et 4 jours** pour la migration complète + tests,
 
 ## 1. `users` — Comptes applicatifs
 
-Conformément à ADR-0007, pas de rôles en V1, pas de libre-service. Seeders uniquement.
+Conformément à ADR-0007, pas de rôles en V1, pas de libre-service. Création par commande Artisan uniquement (cf. ADR-0012).
 
 | Colonne | Type | Nullable | Défaut | Commentaire |
 |---|---|---|---|---|
@@ -159,10 +159,12 @@ Conformément à ADR-0007, pas de rôles en V1, pas de libre-service. Seeders un
 | `first_name` | VARCHAR(100) | NON | — | Prénom |
 | `last_name` | VARCHAR(100) | NON | — | Nom |
 | `email_verified_at` | TIMESTAMPTZ | OUI | NULL | Pour la compatibilité Laravel (non utilisé en V1) |
-| `remember_token` | VARCHAR(100) | OUI | NULL | Pour la compatibilité Laravel |
+| `must_change_password` | BOOLEAN | NON | `false` | Force le changement de mot de passe au prochain login (cf. ADR-0012 — création par Artisan) |
+| `last_login_at` | TIMESTAMPTZ | OUI | NULL | Horodatage de la dernière connexion réussie (audit + UX « dernière activité ») |
+| `remember_token` | VARCHAR(100) | OUI | NULL | Pour la compatibilité Laravel (non utilisé V1, cf. ADR-0012) |
 | `created_at` | TIMESTAMPTZ | NON | NOW() | |
 | `updated_at` | TIMESTAMPTZ | NON | NOW() | |
-| `deleted_at` | TIMESTAMPTZ | OUI | NULL | Soft delete |
+| `deleted_at` | TIMESTAMPTZ | OUI | NULL | Soft delete (un gestionnaire peut quitter la société ; son historique est conservé) |
 
 **Index** :
 - `UNIQUE (email)`
@@ -303,7 +305,7 @@ Ce choix est exposé à l'utilisateur par un **toggle dans le formulaire** : « 
 | `contact_email` | VARCHAR(255) | OUI | NULL | |
 | `contact_phone` | VARCHAR(30) | OUI | NULL | |
 | `short_code` | VARCHAR(5) | NON | — | 2-3 lettres (ex. AC pour ACME), saisie rapide tableur |
-| `color` | CHAR(7) | NON | — | Hex code RGB (`#RRGGBB`) pour la timeline véhicule |
+| `color` | VARCHAR(10) | NON | — | Énum (`CompanyColor`) : `indigo`, `emerald`, `amber`, `rose`, `violet`, `teal`, `orange`, `cyan`. Contraint aux 8 couleurs du design system (cf. UI Kit `company-chip`). |
 | `is_active` | BOOLEAN | NON | `true` | Flag de désactivation fonctionnelle (distinct du soft delete) |
 | `deactivated_at` | TIMESTAMPTZ | OUI | NULL | Date de désactivation |
 | `created_at` | TIMESTAMPTZ | NON | NOW() | |
@@ -311,7 +313,7 @@ Ce choix est exposé à l'utilisateur par un **toggle dans le formulaire** : « 
 | `deleted_at` | TIMESTAMPTZ | OUI | NULL | Soft delete (distinct de `is_active`) |
 
 **Index** :
-- `UNIQUE (code_court) WHERE deleted_at IS NULL` — le code court sert à la saisie rapide, doit être unique parmi les entreprises actives
+- `UNIQUE (short_code) WHERE deleted_at IS NULL` — le code court sert à la saisie rapide, doit être unique parmi les entreprises actives
 - `UNIQUE (siren) WHERE siren IS NOT NULL AND deleted_at IS NULL`
 - `INDEX (is_active, deleted_at)`
 
@@ -326,9 +328,9 @@ Ce choix est exposé à l'utilisateur par un **toggle dans le formulaire** : « 
 | Colonne | Type | Nullable | Défaut | Commentaire |
 |---|---|---|---|---|
 | `id` | BIGINT | NON | auto | PK |
-| `company_id` | BIGINT | NON | — | FK → `entreprises_utilisatrices.id` ; un conducteur est lié à une seule entreprise |
+| `company_id` | BIGINT | NON | — | FK → `companies.id` ; un conducteur est lié à une seule entreprise |
 | `first_name` | VARCHAR(100) | NON | — | |
-| `nom` | VARCHAR(100) | NON | — | |
+| `last_name` | VARCHAR(100) | NON | — | |
 | `is_active` | BOOLEAN | NON | `true` | Actif / inactif |
 | `deactivated_at` | TIMESTAMPTZ | OUI | NULL | |
 | `created_at` | TIMESTAMPTZ | NON | NOW() | |
@@ -336,13 +338,13 @@ Ce choix est exposé à l'utilisateur par un **toggle dans le formulaire** : « 
 | `deleted_at` | TIMESTAMPTZ | OUI | NULL | Soft delete |
 
 **Index** :
-- `INDEX (entreprise_id, is_active)`
+- `INDEX (company_id, is_active)`
 - `INDEX (deleted_at)`
 
 **Contraintes** :
-- `FOREIGN KEY (entreprise_id) REFERENCES entreprises_utilisatrices(id) ON DELETE RESTRICT`
+- `FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT`
 
-**Fonctionnalité « Remplacer par… »** (CDC § 2.3) : pas de structure dédiée en base. Opération applicative qui exécute un `UPDATE attributions SET conducteur_id = nouveau WHERE conducteur_id = ancien AND date >= date_pivot`. Les attributions passées restent rattachées à l'ancien conducteur.
+**Fonctionnalité « Remplacer par… »** (CDC § 2.3) : pas de structure dédiée en base. Opération applicative qui exécute un `UPDATE assignments SET driver_id = nouveau WHERE driver_id = ancien AND date >= date_pivot`. Les attributions passées restent rattachées à l'ancien conducteur.
 
 ---
 
@@ -364,16 +366,16 @@ Conformément à ADR-0005 : **une ligne par (véhicule, date)**. Granularité jo
 **Contraintes et index** :
 - `UNIQUE (vehicle_id, date) WHERE deleted_at IS NULL` — **contrainte critique** : un véhicule = une seule entreprise par jour (CDC § 2.4).
 - `FOREIGN KEY (vehicle_id) REFERENCES vehicles(id) ON DELETE RESTRICT`
-- `FOREIGN KEY (entreprise_id) REFERENCES entreprises_utilisatrices(id) ON DELETE RESTRICT`
-- `FOREIGN KEY (conducteur_id) REFERENCES conducteurs(id) ON DELETE RESTRICT`
-- `INDEX (entreprise_id, date)` — vue par entreprise
+- `FOREIGN KEY (company_id) REFERENCES companies(id) ON DELETE RESTRICT`
+- `FOREIGN KEY (driver_id) REFERENCES drivers(id) ON DELETE RESTRICT`
+- `INDEX (company_id, date)` — vue par entreprise
 - `INDEX (vehicle_id, date)` — vue par véhicule
 - `INDEX (date)` — heatmap annuelle
-- `INDEX (vehicle_id, entreprise_id, EXTRACT(YEAR FROM date))` — cumul LCD par couple (support du compteur temps réel)
+- `INDEX (vehicle_id, company_id, EXTRACT(YEAR FROM date))` — cumul LCD par couple (support du compteur temps réel)
 
 **Invariants applicatifs** :
 - `driver_id` (si renseigné) doit appartenir à `company_id` (CHECK cross-table non trivial, vérifié en applicatif).
-- `date` doit tomber dans une plage où le véhicule est actif : `date >= vehicles.date_acquisition AND (vehicles.date_exit IS NULL OR date <= vehicles.date_exit)`.
+- `date` doit tomber dans une plage où le véhicule est actif : `date >= vehicles.acquisition_date AND (vehicles.exit_date IS NULL OR date <= vehicles.exit_date)`.
 - Une attribution ne peut pas recouvrir un jour d'indisponibilité du véhicule (sauf si l'indisponibilité est postérieurement modifiée).
 
 **Audit trail V2** : hors périmètre V1 (cf. ADR-0007). En V1, les timestamps `created_at`/`updated_at` et `deleted_at` donnent un audit partiel. Les snapshots PDF (ADR-0003) donnent une forme de « figement » par déclaration.
@@ -425,10 +427,10 @@ vehicles ──1─────N── vehicle_fiscal_characteristics (historisa
    │
    │ 1
    │
-   └──N── attributions ──N──1── entreprises_utilisatrices ──1──N── conducteurs
-   │                          (conducteur_id → N──1 conducteurs, optionnel)
+   └──N── assignments ──N──1── companies ──1──N── drivers
+   │                         (driver_id → N──1 drivers, optionnel)
    │
-   └──N── indisponibilites
+   └──N── unavailabilities
 ```
 
 ---

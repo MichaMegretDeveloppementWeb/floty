@@ -1,93 +1,110 @@
-# ADR-0009 — Versioning des règles fiscales
+# ADR-0009 — Identité et correction des règles fiscales
 
 > **Statut** : Acceptée
 > **Date** : 24 avril 2026
 > **Auteur** : Micha MEGRET (prestataire)
+> **Révision 2026-04-24** : suppression de toute notion de versioning numérique.
 
 ---
 
 ## Contexte
 
-Les ADRs 0002 (règles non éditables en V1), 0003 (PDF et snapshots immuables) et 0006 (architecture du moteur de règles) supposent implicitement que chaque règle fiscale est identifiée de manière stable et comparable dans le temps. Trois besoins concrets en découlent :
+Les ADRs 0002 (règles non éditables en V1), 0003 (PDF et snapshots immuables) et 0006 (architecture du moteur de règles) supposent implicitement que chaque règle fiscale est identifiée de manière stable et que ses corrections suivent un processus clair. Cet ADR formalise les deux points :
 
-1. Un snapshot de déclaration (ADR-0003) doit mémoriser **exactement quelle version** de chaque règle a été appliquée au moment de la génération, pour rejouer un calcul 10 ans plus tard.
-2. Le moteur de règles (ADR-0006) doit, au démarrage, refuser de tourner si deux règles publient la même identité « type de règle × année », ou si une règle critique est manquante.
-3. L'invalidation par marquage (ADR-0004) se base sur un hash du snapshot qui inclut les identités de règles ; toute modification non-maîtrisée du schéma d'identité casserait la compatibilité avec l'historique.
-
-La convention d'identité a été laissée implicite jusqu'ici (`R-2024-001` à `R-2024-024` dans `taxes-rules/2024.md`). Cet ADR la formalise.
+1. Le **format d'identité** d'une règle (rule code).
+2. La **politique de correction** quand une règle s'avère erronée.
 
 ---
 
 ## Décision
 
-### Format canonique d'identité d'une règle
+### Format canonique d'identité
 
-Chaque règle fiscale publiée dans `taxes-rules/{year}.md` porte un identifiant composite de forme :
+Chaque règle publiée dans `taxes-rules/{year}.md` porte un identifiant composite :
 
 ```
 R-{fiscalYear}-{nnn}
 ```
 
-- `fiscalYear` : année fiscale à laquelle la règle s'applique (4 chiffres, ex. `2024`).
-- `nnn` : numéro séquentiel à 3 chiffres, attribué dans l'ordre de première publication dans `taxes-rules/{year}.md`, jamais réattribué.
+- `fiscalYear` : année fiscale (4 chiffres, ex. `2024`).
+- `nnn` : numéro séquentiel à 3 chiffres dans l'ordre de première publication, jamais réattribué.
 
 Exemple : `R-2024-010` = barème WLTP 2024.
 
-### Immuabilité post-seed
+L'identifiant **est immuable** : on ne renumérote jamais une règle. C'est la seule contrainte d'immuabilité.
 
-Une fois qu'une règle est **seed-able** (fichier `RuleSeeder` committé, première phase de prod atteinte), son identifiant est **gelé à vie** :
+### Pas de versioning numérique des règles
 
-- Ni le numéro, ni l'année ne sont jamais modifiés.
-- Si un texte BOFiP modifie le comportement d'une règle existante, on publie une **nouvelle règle** (`R-2024-025` par ex.) qui supplante l'ancienne, et on marque l'ancienne `isActive = false` (mais on la conserve pour rejouer les calculs antérieurs).
-- Une correction d'erreur de transcription (ex. P0.1 du rapport-001) est autorisée **tant que le seeder n'a pas été déployé** en prod sur la première année. Après déploiement, toute correction passe par une nouvelle règle datée.
+V1 fait le choix délibéré de **ne pas versionner les règles** (ni SemVer, ni `version_internal` incrémenté, ni hash de contenu) :
 
-### Version interne d'une règle — non-utilisée en V1
+- Si une règle présente une erreur de calcul, on **corrige directement** le code de la règle. Le `rule_code` reste stable, l'entrée en base reste la même, le code change.
+- À partir du commit de correction, **toute exécution future** du moteur applique la version corrigée.
+- Les snapshots PDF antérieurs (ADR-0003) **conservent leur valeur juridique** : ils témoignent du calcul transmis à l'administration à la date de la déclaration. Ils ne sont jamais modifiés.
+- L'invalidation par marquage (ADR-0004) opère sa magie : si une règle change, le hash recalculé sur les données courantes diverge du hash stocké → la déclaration est marquée `is_invalidated`, badge UI affiché. L'utilisateur décide s'il régénère (et donc remplace la pièce justificative) ou pas.
 
-Le besoin d'un `rule.version` incrémenté à chaque révision a été évalué et **écarté pour V1** : l'immuabilité + publication d'une nouvelle règle couvre tous les cas. Une règle Floty n'a donc **pas de version numérique** — son identité est le tuple `(id, isActive, publishedAt)`.
+Toute notion de version est gérée **hors application** :
 
-### Schéma minimal d'une règle en base (ou en code constantes)
+- L'historique des corrections vit dans `git log` des fichiers `app/Fiscal/Rules/{year}/...` et de `taxes-rules/{year}.md`.
+- Les changements significatifs sont documentés dans une section « Révisions » du `taxes-rules/{year}.md` au-dessus de la règle concernée.
+- Aucune table SQL `rule_versions`, aucun champ `version_internal`, aucune duplication de classes Rule.
 
-Quelle que soit l'option tranchée pour le stockage des barèmes (PHP code vs BDD — cf. P0.10 du rapport-001), chaque règle expose au minimum :
+### Désactivation d'une règle
+
+Une règle peut être **désactivée** (`is_active = false`) si elle devient sans objet (ex. exonération métier que le client ne souhaite plus appliquer). C'est une opération rare, prise au cas par cas par seeder. Désactiver n'est pas la même chose qu'amender — c'est retirer la règle du pipeline pour les calculs futurs.
+
+### Schéma minimal d'une règle en base
 
 | Champ | Type | Rôle |
 |---|---|---|
-| `id` | `string` | `R-{year}-{nnn}` (cf. format canonique) |
-| `fiscalYear` | `int` | Année fiscale |
-| `ruleType` | `enum RuleType` | Voir ADR-0006 (Tariff / Exemption / ScaleSelection…) |
-| `isActive` | `bool` | Permet de retirer une règle supplantée sans casser les snapshots historiques |
-| `publishedAt` | `datetime` | Date de première publication (= date du commit qui l'a introduite ; informatif) |
-| `description` | `string` | Libellé fonctionnel |
+| `rule_code` | `string` (PK métier) | `R-{year}-{nnn}` |
+| `fiscal_year` | `int` | Année fiscale |
+| `rule_type` | `enum RuleType` | Voir ADR-0006 |
+| `taxes_concerned` | `JSON` | `["co2"]`, `["pollutants"]`, ou les deux |
+| `is_active` | `bool` | Désactivation (rare, métier) |
+| `name` | `string` | Libellé court |
+| `description` | `text` | Description française |
+| `legal_basis` | `JSON` | Articles CIBS / BOFiP référencés |
+| `code_reference` | `string` | Chemin vers la classe PHP |
+| `display_order` | `smallint` | Ordre d'affichage page consultation |
 
-### Référencement dans un snapshot de déclaration
+**Pas** de `version_internal`, **pas** de `published_at` (l'info se lit dans `git log` ou dans le seeder), **pas** de `is_active_history`.
 
-Le snapshot JSON (ADR-0003, format détaillé dans `docs/declaration-snapshot-format.md`) contient, pour chaque véhicule et chaque ligne de calcul :
+### Référencement dans un snapshot
+
+Les snapshots JSON (ADR-0003) référencent les règles par `rule_code` uniquement :
 
 ```json
 {
   "appliedRules": [
-    { "id": "R-2024-005", "outcome": "WLTP" },
-    { "id": "R-2024-010", "computedAmount": 144.64 }
+    { "ruleCode": "R-2024-005", "outcome": "WLTP" },
+    { "ruleCode": "R-2024-010", "computedAmount": 144.64 }
   ]
 }
 ```
 
-Les règles sont désignées **par leur id uniquement**. La sémantique complète est reconstituée à partir du catalogue figé de l'année concernée. Cela garantit que rejouer une déclaration 2024 depuis un snapshot 2024 en 2030 donnera exactement le même résultat, à condition que le catalogue `taxes-rules/2024.md` soit resté figé.
+Pas de version, pas de hash de règle. Le `snapshot_sha256` global capture l'ensemble des données utilisées (et indirectement, par la valeur des `computedAmount`, le comportement de la règle au moment du calcul).
 
 ---
 
 ## Alternatives écartées
 
-1. **Versioning SemVer par règle** (`R-2024-010@1.0.0`) — complexifie la table, invite à « bumper » plutôt que publier une nouvelle règle, et crée un gradient de variantes qui complique la reproductibilité. Immuabilité + supplantation est plus clair.
-2. **Hash de contenu de la règle comme id** — stable vis-à-vis du contenu mais illisible humainement dans les logs et les snapshots. Refusé.
-3. **Id numérique simple croissant** (`1, 2, 3, …`) — perte de l'information d'année fiscale dans l'id. Refusé.
+1. **`version_internal` incrémenté à chaque correction** — proposition initiale 02-schema-fiscal.md v1.0. Écartée : duplique l'info disponible dans git, complique la table sans gain pour l'utilisateur final qui ne consulte jamais les versions internes.
+2. **Versioning SemVer par règle** (`R-2024-010@1.0.0`) — complexifie l'UI consultation, invite à « bumper » au lieu de simplement corriger. Refusé.
+3. **Supplantation par publication d'une nouvelle règle** (`R-2024-025` remplace `R-2024-010` corrigée) — raisonnement défendable mais sur-engineering pour le contexte Floty (règles peu nombreuses, prestataire unique qui maîtrise le catalogue, corrections rares post-prod).
+4. **Hash de contenu de la règle comme id** — stable vis-à-vis du contenu mais illisible humainement dans les logs et snapshots. Refusé.
 
 ---
 
 ## Conséquences
 
-- Le seeder initial des règles 2024 fixe définitivement le format `R-2024-xxx` pour l'ensemble du catalogue.
-- Un PR qui modifie une règle déjà seedée en prod doit systématiquement publier une nouvelle règle + désactiver l'ancienne ; un CI check « pas de modification d'une règle dont `publishedAt` est antérieur à la date de prod » est à prévoir en phase 13.
-- La documentation `taxes-rules/{year}.md` conserve l'historique des corrections intra-cycle (avant prod) en section « Révisions » au fil des règles concernées, tel que pratiqué par exemple sur R-2024-010 (P0.1 du rapport-001).
+- La table `fiscal_rules` n'a **pas** de colonne `version_internal` (cf. amendement 02-schema-fiscal.md). Si on en avait, l'invalidation par hash deviendrait deux fois moins puissante (les snapshots porteraient la version, mais la version augmenterait à chaque correction et le seul moyen de re-vérifier reste de comparer le hash global, donc autant ne rien stocker).
+- Les snapshots JSON portent `ruleCode` seulement — pas de version.
+- Une correction de règle déclenche automatiquement l'invalidation de toutes les déclarations dont le hash diffère désormais (ADR-0004). C'est l'effet recherché.
+- Le PR qui corrige une règle doit :
+  1. Ajouter une entrée dans la section « Révisions » de `taxes-rules/{year}.md` au-dessus de la règle concernée (date, motif, ancienne valeur → nouvelle valeur).
+  2. Modifier la classe PHP de la règle.
+  3. Modifier les seeders si la `description` ou `legal_basis` changent.
+  4. Lancer les golden tests fiscaux pour s'assurer qu'aucun cas attendu n'est cassé.
 
 ---
 
@@ -95,6 +112,8 @@ Les règles sont désignées **par leur id uniquement**. La sémantique complèt
 
 - ADR-0002 (règles non éditables en V1)
 - ADR-0003 (PDF et snapshots immuables)
+- ADR-0004 (invalidation par marquage)
 - ADR-0006 (architecture du moteur de règles)
 - `taxes-rules/2024.md` (catalogue R-2024-001 à R-2024-024)
-- `rapport-001.md` P1.1 (justification de cet ADR)
+- `rapport-001.md` P1.1 (déclencheur initial de l'ADR)
+- Décision client 2026-04-24 : pas de versioning, correction directe en code (révision majeure de cet ADR)

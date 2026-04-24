@@ -81,23 +81,28 @@ Pas de préférences UI, pas de langue (app FR), pas de timezone (Europe/Paris f
 
 ### 9. Modèle `User`
 
-Schéma minimal (scaffold Laravel 13 + ajouts Floty) :
+Schéma minimal (scaffold Laravel 13 + ajouts Floty + 01-schema-metier.md § 1) :
 
 ```php
 users (
   id bigint PK,
   email varchar UNIQUE,
   email_verified_at datetime NULL,  // présente mais non utilisée V1
-  name varchar,
-  password varchar,  // bcrypt
+  first_name varchar(100),           // séparé (vs `name` unique du starter)
+  last_name varchar(100),
+  password varchar,                  // bcrypt
   must_change_password boolean DEFAULT false,
   last_login_at datetime NULL,
-  remember_token varchar NULL,  // non utilisé V1
-  created_at, updated_at
+  remember_token varchar NULL,       // non utilisé V1
+  created_at, updated_at,
+  deleted_at datetime NULL           // soft delete
 )
 ```
 
-Pas de soft-delete V1 (cohérent ADR-0010 pour la conservation 10 ans : un utilisateur désactivé reste en base avec un flag `is_active = false` à ajouter si V2 introduit la désactivation).
+**Soft-delete conservé V1** — amendement de la décision initiale :
+- Un gestionnaire flotte quitte la société de location → on le soft-delete. Son nom reste sur les historiques (`declarations.status_changed_by`), sa session est invalidée, il ne peut plus se connecter (middleware auth bloque les users soft-deleted).
+- Hard-delete reste prohibé tant que l'utilisateur a des traces historiques (cf. `ON DELETE SET NULL` sur `declarations.status_changed_by` mais RESTRICT sur `declaration_pdfs.generated_by`).
+- Le coût d'une colonne `deleted_at` nullable est nul ; la flexibilité gagnée est réelle.
 
 ### 10. Policy et rôles
 

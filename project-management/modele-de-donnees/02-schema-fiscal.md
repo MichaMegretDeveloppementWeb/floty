@@ -41,14 +41,13 @@ Identique en MySQL et PostgreSQL. Aucune adaptation nécessaire. La colonne `pdf
 
 Les 3 tables (`fiscal_rules`, `declarations`, `declaration_pdfs`) **n'ont pas** de colonne `deleted_at` (cf. justifications dans le schéma agnostique : table d'index, données fiscales persistantes, immuabilité PDF). MySQL n'introduit aucune complication ici.
 
-### 0.4 `version_internal` et numérotation séquentielle
+### 0.4 Numérotation séquentielle `declaration_pdfs.version_number`
 
-`fiscal_rules.version_internal` (incrémenté à chaque correction de seeder) et `declaration_pdfs.version_number` (séquentiel par déclaration) sont gérés **applicativement** :
-
-- `fiscal_rules.version_internal` : incrémenté manuellement dans le seeder lors de la mise à jour d'une règle. Pas de mécanisme BDD.
-- `declaration_pdfs.version_number` : calculé applicativement (`$declaration->pdfs()->count() + 1`) **dans une transaction** pour garantir l'unicité (sinon race condition si deux générations PDF concurrentes). Cf. `architecture-solid.md` § 4 GenerateDeclarationPdfAction.
+`declaration_pdfs.version_number` (séquentiel par déclaration) est calculé applicativement (`$declaration->pdfs()->count() + 1`) **dans une transaction** pour garantir l'unicité (sinon race condition si deux générations PDF concurrentes). Cf. `architecture-solid.md` § 4 GenerateDeclarationPdfAction.
 
 L'`UNIQUE (declaration_id, version_number)` au niveau index garantit que même en cas de bug applicatif, MySQL refuse les doublons.
+
+> **Note ADR-0009** : `fiscal_rules` **n'a pas** de colonne `version_internal`. Si une règle présente une erreur, on corrige directement son code (classe PHP) — le `rule_code` en base reste stable, le comportement change pour tous les calculs futurs. L'invalidation par marquage (ADR-0004) détecte la divergence via le hash du snapshot. Tracer les corrections se fait via `git log` et la section « Révisions » des fichiers `taxes-rules/{year}.md`.
 
 ### 0.5 Filesystem PDF — chemin relatif
 
@@ -98,9 +97,10 @@ Alimentée exclusivement par seeders (ADR-0002). Une ligne par (règle × année
 | `code_reference` | VARCHAR(500) | NON | — | Chemin dans le repo : `rules/2024/exonerations/lcd_cumul_couple.php` |
 | `display_order` | SMALLINT | NON | — | Ordre d'affichage dans la page de consultation |
 | `is_active` | BOOLEAN | NON | `true` | Permet de désactiver une règle sans la supprimer (ex. exonération que le client ne veut plus appliquer) |
-| `version_internal` | INTEGER | NON | `1` | Incrémenté à chaque correction de la logique de la règle (ADR-0006 § 5) |
 | `created_at` | TIMESTAMPTZ | NON | NOW() | |
 | `updated_at` | TIMESTAMPTZ | NON | NOW() | |
+
+**Pas de colonne de version** (cf. ADR-0009) : les corrections de règles se font directement dans le code PHP, le `rule_code` en base reste stable. L'historique des corrections vit dans `git log` et dans la section « Révisions » des fichiers `taxes-rules/{year}.md`.
 
 **Index** :
 - `UNIQUE (rule_code, fiscal_year)` — un rule_code par année, une seule fois
@@ -316,16 +316,18 @@ Cette règle vaut symétriquement pour les véhicules, les conducteurs, et les u
 
 ## 6. Cas-limite : correction d'une règle fiscale déjà appliquée
 
-Scénario : on découvre qu'une règle (ex. R-2024-021) a un bug. Le seeder est corrigé, `version_internal` passe de 7 à 8.
+Scénario : on découvre qu'une règle (ex. R-2024-021) a un bug de calcul. On **corrige directement** le code PHP de la règle (cf. ADR-0009).
 
 Comportement attendu :
 
-1. Les snapshots PDF existants conservent la référence `{"rule_code": "R-2024-021", "version_internal": 7}`.
-2. Le hash recalculé sur les données courantes utilisera la version 8 et divergera du hash stocké.
-3. Les déclarations concernées passent `is_invalidated = true` avec `invalidation_reason = 'rule_version_changed'`.
-4. L'utilisateur voit les badges d'alerte et décide de régénérer ou non (ADR-0004).
+1. Les snapshots PDF existants restent **strictement inchangés** — ils référencent `"ruleCode": "R-2024-021"` et contiennent les montants calculés à l'époque.
+2. Au prochain calcul (lecture d'une déclaration déjà générée), le moteur exécute la version corrigée sur les données courantes.
+3. Le `snapshot_sha256` recalculé diverge du `snapshot_sha256` stocké → `declarations.is_invalidated = true` avec `invalidation_reason = 'rule_version_changed'`.
+4. L'utilisateur voit les badges d'alerte et décide de régénérer un nouveau PDF ou pas (ADR-0004).
 
-**Les PDF anciens restent valides et accessibles en l'état** — ils témoignent de ce qui a été transmis à l'administration à la date de la déclaration, ce qui a une valeur juridique.
+**Les PDF anciens restent valides et accessibles en l'état** — ils témoignent de ce qui a été transmis à l'administration à la date de la déclaration, ce qui a une valeur juridique. La régénération produit un nouveau PDF (`version_number` incrémenté) qui coexiste avec les précédents.
+
+La traçabilité de la correction vit dans `git log` de la classe PHP modifiée + dans la section « Révisions » du catalogue `taxes-rules/{year}.md`. Aucune métadonnée SQL n'est nécessaire.
 
 ---
 
