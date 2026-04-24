@@ -12,6 +12,15 @@
 
 ## 2026-04-24
 
+### Fin d'après-midi (24/04 J+1) — Phase B : création du plan-implementation/
+
+- Structure complète créée : `plan-implementation/README.md` (index) + `tasks/` organisé en 14 phases + `docs/` (fiches projet spécifiques Floty).
+- **14 README de phase rédigés** (00-init à 13-livraison) avec pour chacune : objectif, dépendances, liste des tâches à faire, critère de complétion, docs liées, références. Vue d'ensemble complète de l'implémentation V1.
+- **Phase 00 détaillée intégralement** : 11 tâches atomiques (cleanup starter, install Spatie Data, install Vitest, verify Wayfinder, configure Pint, TS strict, ESLint/Prettier, pre-commit hooks, CI GitHub Actions, deploy Hostinger préparation, initial check).
+- **3 fiches `docs/` rédigées** pour la phase 00 : `starter-kit-cleanup.md`, `spatie-data-configuration.md`, `vitest-configuration.md`.
+- État : 25 fichiers tasks/ + 3 docs/ + 1 README racine. Les phases 01-13 ont leur README listant les tâches mais les détails de chaque tâche restent à rédiger au fur et à mesure de l'avancement (sur demande ou en début de phase).
+- Prochaine étape : le client lance l'implémentation phase 00, je détaille les tâches des phases suivantes quand il y arrivera.
+
 ### Après-midi (24/04 J+1) — Étape 5.8 : intégration Wayfinder + outils Laravel Boost
 
 - Préparation client : il a anticipé en copiant les règles Laravel Boost dans `CLAUDE.md` avant installation Laravel. Cela a révélé plusieurs packages à intégrer : **Wayfinder** (routes TS typées, remplace Ziggy), **Pint** (formatter), **Pail** (tail logs dev), **Boost + MCP** (assist Claude Code), **Sail** (exclu). PHP confirmé 8.5.
