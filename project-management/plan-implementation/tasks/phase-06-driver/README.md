@@ -21,8 +21,9 @@ Phase 05 terminée.
 | 06.07 | [Exceptions `DriverNotFoundException`, `DriverReplacementException`](07-exceptions-driver.md) | À faire |
 | 06.08 | [Controller `User/Driver/DriverController`](08-controller-driver.md) | À faire |
 | 06.09 | [Policy `DriverPolicy`](09-policy-driver.md) | À faire |
-| 06.10 | [Pages Vue `Pages/User/Drivers/Show/` + `Edit/` + partial `DriverReplacementWizard.vue`](10-pages-drivers.md) | À faire |
-| 06.11 | [Tests Feature + Unit (notamment ReplaceDriverAction)](11-tests-driver.md) | À faire |
+| 06.10 | [Pages Vue `Pages/User/Drivers/Create/`, `Show/`, `Edit/` + composant `Components/Domain/Driver/DriverSelector.vue` + partial `DriverReplacementWizard.vue`](10-pages-drivers.md) | À faire |
+| 06.11 | [`DriverFactory` + `DemoDriversSeeder` (~3 conducteurs par company de la seed demo)](11-factory-seeder-driver.md) | À faire |
+| 06.12 | [Tests Feature + Unit (notamment ReplaceDriverAction)](12-tests-driver.md) | À faire |
 
 ## Critère de complétion
 

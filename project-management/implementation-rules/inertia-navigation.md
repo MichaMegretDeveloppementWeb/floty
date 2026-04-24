@@ -163,14 +163,15 @@ Alternative : certaines variantes Wayfinder exposent `.form()` qui retourne un o
 ```vue
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
 </script>
 
 <template>
   <Link
-    :href="route('user.vehicles.show', { vehicle: vehicle.id })"
+    :href="VehicleController.show({ vehicle: vehicle.id })"
     class="text-primary-600 hover:underline"
   >
-    {{ vehicle.immatriculation }}
+    {{ vehicle.licensePlate }}
   </Link>
 </template>
 ```
@@ -208,9 +209,10 @@ import { Link } from '@inertiajs/vue3'
 
 ```ts
 import { router } from '@inertiajs/vue3'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
 
 const handleArchive = (vehicleId: number): void => {
-  router.delete(route('user.vehicles.destroy', { vehicle: vehicleId }), {
+  router.delete(VehicleController.destroy({ vehicle: vehicleId }).url, {
     preserveScroll: true,
     onBefore: () => confirm('Confirmer la suppression ?'),
     onSuccess: () => pushToast({ variant: 'success', message: 'Véhicule supprimé.' }),
@@ -236,13 +238,14 @@ const handleArchive = (vehicleId: number): void => {
 
 ```ts
 import { router } from '@inertiajs/vue3'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
 
 let activeRequest: { cancel: () => void } | null = null
 
 const search = (query: string): void => {
   activeRequest?.cancel()
 
-  router.get(route('user.vehicles.index'), { search: query }, {
+  router.get(VehicleController.index().url, { search: query }, {
     preserveScroll: true,
     preserveState: true,
     only: ['vehicles'],
@@ -265,6 +268,26 @@ router.cancelAll() // équivalent v2 : router.cancel()
 ```
 
 > Le rename `cancel` → `cancelAll` fait partie des breaking changes Inertia v3 (cf. doc audit versions).
+
+### `useHttp` — requêtes JSON hors Inertia (Inertia v3)
+
+Inertia v3 a retiré axios du cœur. Pour les appels qui **ne doivent pas déclencher** un changement de page Inertia (autocomplétion, polling léger, validation asynchrone de formulaire, endpoints JSON dédiés), utiliser le hook `useHttp`.
+
+```ts
+import { useHttp } from '@inertiajs/vue3'
+import SirenController from '@/actions/App/Http/Controllers/User/SirenController'
+
+const { get } = useHttp()
+
+const lookupSiren = async (siren: string): Promise<SirenLookupResponse> => {
+  const response = await get(SirenController.lookup({ siren }).url)
+  return response.data as SirenLookupResponse
+}
+```
+
+**Règle Floty** : `useHttp` reste **minoritaire** — toute mutation qui modifie l'UI doit passer par `useForm` ou `router.post/put/delete` (pour que flash messages + invalidations serveur fonctionnent). `useHttp` est réservé aux lookups stateless.
+
+> Si besoin de configuration avancée (interceptors, retries), installer axios côté front en paquet séparé. Inertia ne s'en mêle plus.
 
 ---
 
@@ -292,20 +315,22 @@ const props = defineProps<{
 
 const isEditing = computed(() => props.vehicle !== undefined)
 
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
 const form = useForm<VehicleFormFields>({
-  immatriculation: props.vehicle?.immatriculation ?? '',
-  marque: props.vehicle?.marque ?? '',
-  modele: props.vehicle?.modele ?? '',
+  licensePlate: props.vehicle?.licensePlate ?? '',
+  brand: props.vehicle?.brand ?? '',
+  model: props.vehicle?.model ?? '',
   // ... tous les champs initialisés
 })
 
 const submit = (): void => {
   if (isEditing.value) {
-    form.put(route('user.vehicles.update', { vehicle: props.vehicle!.id }), {
+    form.submit(VehicleController.update({ vehicle: props.vehicle!.id }), {
       preserveScroll: true,
     })
   } else {
-    form.post(route('user.vehicles.store'), {
+    form.submit(VehicleController.store(), {
       preserveScroll: true,
       onSuccess: () => form.reset(),
     })
@@ -317,21 +342,21 @@ const submit = (): void => {
   <form @submit.prevent="submit" class="space-y-4">
     <div>
       <TextInput
-        v-model="form.immatriculation"
+        v-model="form.licensePlate"
         label="Immatriculation"
-        :invalid="!!form.errors.immatriculation"
+        :invalid="!!form.errors.licensePlate"
       />
-      <InputError :message="form.errors.immatriculation" />
+      <InputError :message="form.errors.licensePlate" />
     </div>
 
     <div>
-      <TextInput v-model="form.marque" label="Marque" :invalid="!!form.errors.marque" />
-      <InputError :message="form.errors.marque" />
+      <TextInput v-model="form.brand" label="Marque" :invalid="!!form.errors.brand" />
+      <InputError :message="form.errors.brand" />
     </div>
 
     <div>
-      <TextInput v-model="form.modele" label="Modèle" :invalid="!!form.errors.modele" />
-      <InputError :message="form.errors.modele" />
+      <TextInput v-model="form.model" label="Modèle" :invalid="!!form.errors.model" />
+      <InputError :message="form.errors.model" />
     </div>
 
     <div class="flex justify-end gap-3">
@@ -393,7 +418,9 @@ Inertia permet de re-fetch **seulement certaines props** d'une page sans tout re
 ### Pattern Floty — recharger les filtres sans recharger les véhicules
 
 ```ts
-router.get(route('user.vehicles.index'), { search: query }, {
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
+router.get(VehicleController.index().url, { search: query }, {
   preserveState: true,
   preserveScroll: true,
   only: ['vehicles'], // re-fetch UNIQUEMENT cette prop
@@ -403,7 +430,9 @@ router.get(route('user.vehicles.index'), { search: query }, {
 ### Combinaison avec `useForm` (méthode `transform`)
 
 ```ts
-form.get(route('user.vehicles.index'), {
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
+form.get(VehicleController.index().url, {
   preserveState: true,
   only: ['vehicles', 'filters'],
 })
@@ -603,9 +632,10 @@ Pour les états qui méritent d'être **partageables par URL** (filtres, paginat
 
 ```ts
 import { router } from '@inertiajs/vue3'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
 
 const updateFilters = (newFilters: { search?: string; type?: string }): void => {
-  router.get(route('user.vehicles.index'), newFilters, {
+  router.get(VehicleController.index().url, newFilters, {
     preserveState: true,
     preserveScroll: true,
     only: ['vehicles', 'pagination'],
@@ -629,8 +659,10 @@ const updateFilters = (newFilters: { search?: string; type?: string }): void => 
 
 ```ts
 // ❌ MAUVAIS — chaque keystroke déclenche une nav, elles s'empilent
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
 const onSearch = (query: string): void => {
-  router.get(route('vehicles.index'), { search: query }, {
+  router.get(VehicleController.index().url, { search: query }, {
     only: ['vehicles'],
   })
 }
@@ -639,9 +671,10 @@ const onSearch = (query: string): void => {
 ```ts
 // ✅ BON — debounce + cancellation
 import { useDebounceFn } from '@vueuse/core'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
 
 const onSearch = useDebounceFn((query: string): void => {
-  router.get(route('vehicles.index'), { search: query }, {
+  router.get(VehicleController.index().url, { search: query }, {
     only: ['vehicles'],
     preserveState: true,
     preserveScroll: true,
@@ -669,12 +702,16 @@ const onSearch = useDebounceFn((query: string): void => {
 
 ```ts
 // ❌ MAUVAIS — après submit, le composant est recréé, le scroll est perdu
-form.post(route('user.vehicles.store'))
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
+form.submit(VehicleController.store())
 ```
 
 ```ts
 // ✅ BON — préserver scroll
-form.post(route('user.vehicles.store'), {
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
+form.submit(VehicleController.store(), {
   preserveScroll: true,
   onSuccess: () => form.reset(),
 })
@@ -684,8 +721,10 @@ form.post(route('user.vehicles.store'), {
 
 ```ts
 // ❌ MAUVAIS — navigation déclenchée pendant onMounted, race conditions
+import DashboardController from '@/actions/App/Http/Controllers/User/DashboardController'
+
 onMounted(() => {
-  router.visit(route('user.dashboard'))
+  router.visit(DashboardController.index())
 })
 ```
 
@@ -708,12 +747,12 @@ onMounted(() => {
 
 ```ts
 // ❌ MAUVAIS — l'utilisateur change de page, mais le composant est préservé → refs anciennes restent
-<Link :href="route('vehicles.index', { page: 2 })" preserve-state>
+<Link :href="VehicleController.index({ page: 2 })" preserve-state>
 ```
 
 ```ts
 // ✅ BON — preserveState seulement quand l'état UI doit explicitement persister
-<Link :href="route('vehicles.index', { page: 2 })">
+<Link :href="VehicleController.index({ page: 2 })">
 ```
 
 ### Piège 7 — `usePage` destructuré
@@ -748,7 +787,9 @@ router.reload()
 `form.errors` est alimenté automatiquement par `useForm`. Le composant les affiche via slots.
 
 ```ts
-form.post(route('user.vehicles.store'), {
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
+form.submit(VehicleController.store(), {
   preserveScroll: true,
   onError: (errors) => {
     // errors est { field: 'message' }
@@ -802,8 +843,14 @@ router.on('navigate', (event) => {
   // Successfully navigated to a new page
 })
 
-router.on('exception', (event) => {
-  // Erreur non gérée
+// Inertia v3 — renommages d'événements
+router.on('httpException', (event) => {
+  // Réponses HTTP non-Inertia (ex. redirections externes, 4xx/5xx non-JSON).
+  // Remplace 'invalid' des versions antérieures.
+})
+
+router.on('networkError', (event) => {
+  // Panne réseau (offline, timeout). Remplace 'exception' des versions antérieures.
 })
 ```
 
@@ -830,8 +877,10 @@ const form = useForm({ /* tous les champs des 3 étapes */ })
 const next = (): void => { step.value = (step.value + 1) as 1 | 2 | 3 }
 const previous = (): void => { step.value = (step.value - 1) as 1 | 2 | 3 }
 
+import AssignmentController from '@/actions/App/Http/Controllers/User/AssignmentController'
+
 const submit = (): void => {
-  form.post(route('user.assignments.store'))
+  form.submit(AssignmentController.store())
 }
 </script>
 ```

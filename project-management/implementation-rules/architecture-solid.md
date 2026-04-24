@@ -115,9 +115,10 @@ La chaîne complète des couches, en **descente** (de l'utilisateur vers la base
 <!-- resources/js/Pages/Vehicles/Index.vue -->
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
 import type { VehicleListItemData } from '@/types/generated'
 import VehicleCard from '@/Components/Vehicle/VehicleCard.vue'
-import PageLayout from '@/Layouts/PageLayout.vue'
+import PageLayout from '@/Components/Layouts/PageLayout.vue'
 
 const props = defineProps<{
   vehicles: VehicleListItemData[]
@@ -125,7 +126,7 @@ const props = defineProps<{
 }>()
 
 const goToVehicle = (vehicleId: number): void => {
-  router.visit(route('vehicles.show', { vehicle: vehicleId }))
+  router.visit(VehicleController.show({ vehicle: vehicleId }))
 }
 </script>
 
@@ -174,15 +175,17 @@ import type { VehicleFormData } from '@/types/generated'
 
 const props = defineProps<{ vehicle?: VehicleFormData }>()
 
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
 const form = useForm({
-  immatriculation: props.vehicle?.immatriculation ?? '',
-  marque: props.vehicle?.marque ?? '',
-  modele: props.vehicle?.modele ?? '',
+  licensePlate: props.vehicle?.licensePlate ?? '',
+  brand: props.vehicle?.brand ?? '',
+  model: props.vehicle?.model ?? '',
   // ... autres champs typés
 })
 
 const submit = (): void => {
-  form.post(route('vehicles.store'), {
+  form.submit(VehicleController.store(), {
     preserveScroll: true,
     onSuccess: () => form.reset(),
   })

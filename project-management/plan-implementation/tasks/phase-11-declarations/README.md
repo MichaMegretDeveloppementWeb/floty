@@ -33,6 +33,7 @@ Phase 10 (moteur fiscal) terminée.
 | 11.10 | [Action `CalculateDeclarationAction`](10-action-calculate-declaration.md) | À faire |
 | 11.11 | [Action `ChangeDeclarationStatusAction`](11-action-change-declaration-status.md) | À faire |
 | 11.12 | [Action `DetectDeclarationInvalidationAction` (lance pour une déclaration ou un batch)](12-action-detect-declaration-invalidation.md) | À faire |
+| 11.12a | [Listeners `InvalidateDeclarationsOnAssignmentChanged` + `InvalidateDeclarationsOnPoundUnavailabilityChanged` (branchés sur les events émis en phase 07.13 et 08.09 — appelle `DetectDeclarationInvalidationAction`)](12a-listeners-invalidation-events.md) | À faire |
 
 ### 11.C — Repositories
 

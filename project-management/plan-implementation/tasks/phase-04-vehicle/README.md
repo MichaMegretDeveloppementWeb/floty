@@ -82,7 +82,14 @@ Phase 01 + 02 + 03 terminées.
 | 04.29 | [`Pages/User/Vehicles/Edit/Edit.vue` + Partials (VehicleForm partagé)](29-page-vehicles-edit.md) | À faire |
 | 04.30 | [Composant `Components/Domain/Vehicle/VehicleCard.vue` + `VehicleStatusBadge.vue`](30-components-domain-vehicle.md) | À faire |
 
-### 04.H — Tests
+### 04.H — Factory & Seeder de démo
+
+| N° | Tâche | Statut |
+|---|---|---|
+| 04.35 | [`VehicleFactory` + `VehicleFiscalCharacteristicsFactory` (variantes réalistes : VP essence Euro 6, VU diesel Euro 5, hybride, électrique)](35-factory-vehicle.md) | À faire |
+| 04.36 | [`DemoVehiclesSeeder` — ~15 véhicules de référence (flotte mixte, couvre tous les enums)](36-seeder-demo-vehicles.md) | À faire |
+
+### 04.I — Tests
 
 | N° | Tâche | Statut |
 |---|---|---|

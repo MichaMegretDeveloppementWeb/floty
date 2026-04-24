@@ -177,8 +177,8 @@ const todayDate = new Date()
 Préférer **les types union de strings** (TypeScript idiomatique 2026) plutôt que les `enum` natifs (qui ont des problèmes connus de tree-shaking, runtime overhead, semantics étranges).
 
 ```ts
-// Préféré
-type DeclarationStatus = 'brouillon' | 'verifiee' | 'generee' | 'envoyee'
+// Préféré — valeurs en anglais (convention E1 strict)
+type DeclarationStatus = 'draft' | 'verified' | 'generated' | 'sent'
 
 // Évité (sauf cas justifiés)
 enum DeclarationStatus { ... }

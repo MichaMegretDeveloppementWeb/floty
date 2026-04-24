@@ -76,13 +76,6 @@ import { config } from '@vue/test-utils'
 import { createTestingPinia } from '@pinia/testing'
 import { vi } from 'vitest'
 
-// Mock global de la fonction Laravel route() (Ziggy)
-// @ts-expect-error - mock Laravel/Ziggy
-global.route = vi.fn((name: string, params?: Record<string, unknown>) => {
-  if (params) return `/${name}/${JSON.stringify(params)}`
-  return `/${name}`
-})
-
 // Pinia testing par défaut
 config.global.plugins = [createTestingPinia({ stubActions: false })]
 
@@ -90,6 +83,18 @@ config.global.plugins = [createTestingPinia({ stubActions: false })]
 config.global.stubs = {
   Link: { template: '<a><slot /></a>' },
 }
+
+// Mock des modules Wayfinder générés — voir docs/vitest-configuration.md
+// pour la liste complète des mocks par controller.
+vi.mock('@/actions/App/Http/Controllers/User/VehicleController', () => ({
+  default: {
+    index: () => ({ url: '/app/vehicles', method: 'get' }),
+    show: (params: { vehicle: number }) => ({ url: `/app/vehicles/${params.vehicle}`, method: 'get' }),
+    store: () => ({ url: '/app/vehicles', method: 'post' }),
+    update: (params: { vehicle: number }) => ({ url: `/app/vehicles/${params.vehicle}`, method: 'put' }),
+    destroy: (params: { vehicle: number }) => ({ url: `/app/vehicles/${params.vehicle}`, method: 'delete' }),
+  },
+}), { virtual: true })
 ```
 
 ---
@@ -153,7 +158,6 @@ describe('NomDuModule', () => {
 |---|---|---|
 | **Util pur** (`format`, `validate`, `parse`) | **Oui** systématiquement | Couverture quasi 100 % (faciles, donnent confiance) |
 | **Composable** | **Oui** (logique réactive) | Cas nominaux + edge cases + cleanup |
-| **Service frontend** | **Oui** (logique + état) | Cas nominaux + erreurs + race conditions |
 | **Store Pinia** | **Oui** (state, getters, actions) | State initial, actions principales, getters dérivés |
 | **Composant UI Kit** (`Components/Ui/`) | **Oui** (rendu, accessibilité, interactions) | Variantes, props, emits, slots, a11y |
 | **Composant Domain** (`Components/Domain/`) | **Oui** si logique non triviale | Cas nominaux, props, interactions |
@@ -608,11 +612,11 @@ import type { VehicleData, VehicleListItemData } from '@/types'
 export function makeVehicleListItem(overrides: Partial<VehicleListItemData> = {}): VehicleListItemData {
   return {
     id: 1,
-    immatriculation: 'AB-123-CD',
-    marque: 'Renault',
-    modele: 'Clio',
+    licensePlate: 'AB-123-CD',
+    brand: 'Renault',
+    model: 'Clio',
     vehicleUserType: 'VP',
-    energySource: 'essence',
+    energySource: 'gasoline',
     photoUrl: null,
     isActive: true,
     ...overrides,
@@ -622,9 +626,9 @@ export function makeVehicleListItem(overrides: Partial<VehicleListItemData> = {}
 export function makeVehicle(overrides: Partial<VehicleData> = {}): VehicleData {
   return {
     id: 1,
-    immatriculation: 'AB-123-CD',
-    marque: 'Renault',
-    modele: 'Clio',
+    licensePlate: 'AB-123-CD',
+    brand: 'Renault',
+    model: 'Clio',
     vehicleUserType: 'VP',
     bodyType: 'CI',
     seatsCount: 5,
@@ -634,10 +638,10 @@ export function makeVehicle(overrides: Partial<VehicleData> = {}): VehicleData {
     acquisitionDate: '2020-02-01',
     exitDate: null,
     exitReason: null,
-    currentStatus: 'actif',
+    currentStatus: 'active',
     mileageCurrent: 45000,
     vin: null,
-    couleur: null,
+    color: null,
     photoUrl: null,
     notes: null,
     currentFiscalCharacteristics: makeVehicleFiscalCharacteristics(),
@@ -695,14 +699,14 @@ resources/js/
 |---|---|---|
 | Appels Inertia (`router.get`, `useForm.post`) | **Oui** | Pas d'appel réseau en test unitaire |
 | `usePage()` Inertia | **Oui** | Contrôler les props pour scénarios de test |
-| `route()` (Ziggy) | **Oui** (global setup) | Pas de runtime Ziggy en test |
+| Modules Wayfinder (`@/actions/...`) | **Oui** (global setup) | Fichiers générés — absents de l'environnement test tant que `php artisan wayfinder:generate` n'est pas lancé |
 | Fonctions du DOM (rare) | **Au cas par cas** | `happy-dom` couvre la plupart |
 | Composants enfants | **Rarement** (`shallowMount` si besoin) | Préférer mount complet pour tester l'intégration |
 | Composables internes au projet | **Non** | Tester avec leur vraie implémentation |
 
-### Pattern — mock global de `route()`
+### Pattern — mock global des actions Wayfinder
 
-Déjà fait dans `test-setup.ts` (cf. plus haut). Tous les tests héritent.
+Déjà fait dans `test-setup.ts` (cf. plus haut). Tous les tests héritent. Chaque controller utilisé par le front doit être mocké une fois (liste complète maintenue dans `docs/vitest-configuration.md`).
 
 ### Pattern — mock ponctuel d'Inertia
 

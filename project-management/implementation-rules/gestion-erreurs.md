@@ -378,14 +378,16 @@ import TextInput from '@/Components/Ui/Input/TextInput.vue'
 import InputError from '@/Components/Ui/Input/InputError.vue'
 import Button from '@/Components/Ui/Button/Button.vue'
 
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+
 const form = useForm({
-  immatriculation: '',
-  marque: '',
-  modele: '',
+  licensePlate: '',
+  brand: '',
+  model: '',
 })
 
 const submit = (): void => {
-  form.post(route('user.vehicles.store'), {
+  form.submit(VehicleController.store(), {
     preserveScroll: true,
     onSuccess: () => form.reset(),
   })
@@ -396,20 +398,20 @@ const submit = (): void => {
   <form @submit.prevent="submit" class="space-y-4">
     <div>
       <TextInput
-        v-model="form.immatriculation"
+        v-model="form.licensePlate"
         label="Immatriculation"
-        :invalid="!!form.errors.immatriculation"
+        :invalid="!!form.errors.licensePlate"
       />
-      <InputError :message="form.errors.immatriculation" />
+      <InputError :message="form.errors.licensePlate" />
     </div>
 
     <div>
       <TextInput
-        v-model="form.marque"
+        v-model="form.brand"
         label="Marque"
-        :invalid="!!form.errors.marque"
+        :invalid="!!form.errors.brand"
       />
-      <InputError :message="form.errors.marque" />
+      <InputError :message="form.errors.brand" />
     </div>
 
     <Button type="submit" :disabled="form.processing">

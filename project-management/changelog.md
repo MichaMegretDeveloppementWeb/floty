@@ -12,6 +12,45 @@
 
 ## 2026-04-24
 
+### Soirée (24/04 J+1) — Traitement de l'audit rapport-001
+
+Application complète des corrections prioritaires issues de l'audit `rapport-001.md` du dossier `project-management/`.
+
+**P0 — bloquants avant code**, tous appliqués :
+- **P0.1** Correction arithmétique dans `taxes-rules/2024.md` R-2024-010. Les tests 175 g/km, 176 g/km, 200 g/km étaient faux. Recalcul triangulé avec R-2024-022 (qui donne bien 200 → 4 258 €). Nouveaux tests : 155 → 1 433, 175 → 2 633, 176 → 2 698, 200 → 4 258.
+- **P0.2** Exemple E polluants (BMW Série 5 Diesel 30 j) était contradictoire avec R-2024-021 LCD post-Z-2024-002. Reformulé en 60 jours pour un calcul non-ambigu (500 × 60/366 = 81,97 €).
+- **P0.3** Passe Wayfinder : migration des exemples `route('user.xxx.yyy', …)` → `XxxController.yyy({…})` dans `inertia-navigation.md`, `vue-composants.md`, `gestion-erreurs.md`, `composables-services-utils.md`, `architecture-solid.md`, `structure-fichiers.md`, `tests-frontend.md`. Backend `->route(...)` en PHP conservé (convention Laravel). Ajout d'un mock Wayfinder standard dans `tests-frontend.md`.
+- **P0.4** Alignement E1 strict sur 3 emplacements : `conventions-nommage.md` l. 181 (`DeclarationStatus` → `draft|verified|generated|sent`), `tests-frontend.md` fixtures (`energySource: 'gasoline'`, `currentStatus: 'active'`, `licensePlate`, `brand`, `model`, `color`).
+- **P0.5** Ligne « Service frontend » supprimée de la matrice de `tests-frontend.md` (couche déjà retirée dans `composables-services-utils.md` v1.1).
+- **P0.6** Résolu dépendance inversée Events ↔ Invalidation : tâches 07.13 (AssignmentChanged) et 08.09 (UnavailabilityChanged) reformulées pour **émettre** l'event uniquement. Les **listeners** qui branchent `DeclarationInvalidationDetector` (phase 11.09) sont ajoutés en phase 11.12a. Le service et les listeners coexistent désormais dans la même phase.
+- **P0.7** Remonté la configuration cache driver `database` + tags émulés de phase 13.09 vers phase **01.10** (nécessaire dès phase 07 qui consomme des cache tags).
+- **P0.8** Uniformisé le chemin Layouts vers `resources/js/Components/Layouts/` dans `structure-fichiers.md` (arborescence explicite Ui/Layouts/Domain).
+- **P0.9** ADR-0003 référence désormais ADR-0008 pour le stockage PDF (filesystem local + chemin en base).
+
+**P0.10 — questions client** documentées dans `project-management/questions-ouvertes-client.md` (création) avec recommandations :
+- Q1 Exercice fiscal cible V1 (2024 / 2025 / 2026) — impact scope majeur
+- Q2 Colonnes BDD FR vs EN strict (recommandation E1 strict)
+- Q3 Barèmes fiscaux en PHP code vs BDD (recommandation PHP)
+- Q4 Format snapshot JSON (structure proposée à valider)
+
+**P1.1 — 4 ADRs prioritaires rédigés** (~2 pages chacun) :
+- **ADR-0009** Versioning des règles fiscales (format `R-{year}-{nnn}`, immuabilité post-seed, supplantation)
+- **ADR-0010** RGPD et conservation (rôles RT/ST, durées par catégorie, purge 10 ans, DPA Hostinger)
+- **ADR-0011** Sécurité applicative minimum (HTTPS, sessions, throttle login, CSRF, headers, CSP, audit dépendances)
+- **ADR-0012** Auth et gestion comptes (création Artisan, reset self-service, pas de 2FA V1, rôle unique)
+
+**P1.3 — ajouts au plan** :
+- Tâche **01.09** locale `fr` + timezone `Europe/Paris`
+- Tâche **01.10** cache driver `database` (cf. P0.7)
+- Tâches **Factory + DemoSeeder** dans chaque phase 04 à 08 (sinon heatmap vide 9 phases durant)
+- Tâche **05.12** util `isValidSiren` (PHP + TS jumeau)
+- Tâche **02.16** `DropdownMenu`, **02.17** `Tooltip`, **02.18** gouvernance `YearSelector`
+- Tâche 02.04 `WebLayout` marquée annulée (décision client 2026-04-24)
+
+**P1.4 — Inertia v3 compléments** dans `inertia-navigation.md` : section `useHttp`, renommages d'événements (`exception` → `httpException`, ajout `networkError`).
+
+**Note sur P2** : volontairement différés (sur-ingénierie documentaire, error boundaries Vue, audit log actions user, validation front Zod). À réévaluer après phase 04 avec retour d'expérience code réel.
+
 ### Fin d'après-midi (24/04 J+1) — Phase B : création du plan-implementation/
 
 - Structure complète créée : `plan-implementation/README.md` (index) + `tasks/` organisé en 14 phases + `docs/` (fiches projet spécifiques Floty).

@@ -20,6 +20,8 @@ Phase 00 terminée.
 | 01.06 | [Définir la segmentation routes (`routes/web.php`, `auth.php`, `user.php`) + middleware groups](06-routes-segmentation.md) | À faire |
 | 01.07 | [Créer `app/Http/Middleware/HandleInertiaRequests.php` — shared props Floty (flash + auth.user + appName)](07-handle-inertia-requests.md) | À faire |
 | 01.08 | [Créer `resources/js/types/inertia.d.ts` (déclare PageProps Floty)](08-inertia-types.md) | À faire |
+| 01.09 | [Configurer `config/app.php` : `locale = 'fr'`, `faker_locale = 'fr_FR'`, `timezone = 'Europe/Paris'`. Vérifier que Carbon (date formatting) et Spatie Data (`date_format = DATE_ATOM`) respectent bien ce timezone.](09-locale-timezone-fr.md) | À faire |
+| 01.10 | [Configurer cache driver `database` + émulation des tags (colonne `tags` JSON + invalidation par préfixe). Nécessaire dès la phase 07 qui utilise des cache tags pour l'invalidation — ne peut donc pas être repoussé en phase 13.](10-cache-driver-database.md) | À faire |
 
 ## Critère de complétion de la phase
 
@@ -28,6 +30,8 @@ Phase 00 terminée.
 - `RepositoryServiceProvider` enregistré dans `bootstrap/providers.php`.
 - Routes segmentées : `/` (Web), `/login` (Auth), `/app/*` (User) — squelettes vides mais groupe de middleware corrects.
 - `Inertia::render` d'une page vide de test fonctionne avec flash messages et auth.user typés côté TS.
+- Locale `fr` + timezone `Europe/Paris` actifs (vérifiable via `Carbon::now()->format('Y-m-d H:i:s')` et Spatie Data qui émet les dates en ISO 8601 avec le bon offset).
+- Cache driver `database` configuré avec émulation des tags (disponible dès la phase 07).
 
 ## Documents liés
 

@@ -20,17 +20,18 @@ Phase 04 (Vehicle) + 07 (Assignment pour le listener d'invalidation) terminées.
 | 08.06 | [Service `UnavailabilityService` (gestion has_fiscal_impact dénormalisé, validation plages, détection overlap existant)](06-service-unavailability.md) | À faire |
 | 08.07 | [Actions `CreateUnavailabilityAction`, `UpdateUnavailabilityAction`, `CloseUnavailabilityAction` (ajoute end_date)](07-actions-unavailability.md) | À faire |
 | 08.08 | [Exceptions `UnavailabilityOverlapException`](08-exceptions-unavailability.md) | À faire |
-| 08.09 | [Observer + event `UnavailabilityChanged` (invalide cache + déclenche détection invalidation si type = `pound`)](09-observer-unavailability.md) | À faire |
+| 08.09 | [Observer + event `UnavailabilityChanged` (invalide cache ; le listener qui déclenche la détection d'invalidation pour les indispos `pound` est branché en phase 11 après la création de `DeclarationInvalidationDetector`)](09-observer-unavailability.md) | À faire |
 | 08.10 | [Controller `User/Unavailability/UnavailabilityController`](10-controller-unavailability.md) | À faire |
 | 08.11 | [Pages Vue (formulaire de saisie indispo depuis la fiche véhicule)](11-pages-unavailability.md) | À faire |
-| 08.12 | [Tests Feature + Unit (cohérence has_fiscal_impact, validation overlap)](12-tests-unavailability.md) | À faire |
+| 08.12 | [`UnavailabilityFactory` + `DemoUnavailabilitiesSeeder` (~1-2 indispos par véhicule demo, dont au moins une fourrière pour tester l'impact fiscal)](12-factory-seeder-unavailability.md) | À faire |
+| 08.13 | [Tests Feature + Unit (cohérence has_fiscal_impact, validation overlap)](13-tests-unavailability.md) | À faire |
 
 ## Critère de complétion
 
 - CRUD Unavailability fonctionnel.
 - Le CHECK constraint MySQL rejette une insertion où `has_fiscal_impact` ne correspond pas à `type = 'pound'`.
 - Visuellement dans le formulaire : le type sélectionné affiche en temps réel si l'indisponibilité aura un impact fiscal (CDC § 2.5).
-- Création d'une indispo `pound` déclenche l'invalidation des déclarations couvrant la période.
+- Création d'une indispo `pound` émet `UnavailabilityChanged` correctement (le branchement du listener qui invalide les déclarations se fait en phase 11).
 
 ## Documents liés
 

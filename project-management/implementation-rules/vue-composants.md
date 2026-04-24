@@ -288,8 +288,9 @@ Le composant émet, le parent décide. Le composant ne **calcule pas** ce que le
 <!-- ❌ MAUVAIS — VehicleCard "sait" qu'on doit naviguer vers la fiche -->
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
 const handleClick = (): void => {
-  router.visit(route('user.vehicles.show', { vehicle: props.vehicle.id }))
+  router.visit(VehicleController.show({ vehicle: props.vehicle.id }))
 }
 </script>
 
@@ -302,12 +303,19 @@ const handleClick = (): void => emit('click', props.vehicle.id)
 
 ```vue
 <!-- Parent -->
-<VehicleCard
-  v-for="v in vehicles"
-  :key="v.id"
-  :vehicle="v"
-  @click="(id) => router.visit(route('user.vehicles.show', { vehicle: id }))"
-/>
+<script setup lang="ts">
+import { router } from '@inertiajs/vue3'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
+</script>
+
+<template>
+  <VehicleCard
+    v-for="v in vehicles"
+    :key="v.id"
+    :vehicle="v"
+    @click="(id) => router.visit(VehicleController.show({ vehicle: id }))"
+  />
+</template>
 ```
 
 > Cette discipline rend `VehicleCard` réutilisable dans des contextes différents (modal de sélection, liste, dashboard, etc.) sans modification.

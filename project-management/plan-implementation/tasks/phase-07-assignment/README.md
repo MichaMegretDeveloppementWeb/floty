@@ -30,9 +30,10 @@ Phase 04 + 05 + 06 terminées.
 | 07.10 | [Actions `CreateAssignmentAction`, `UpdateAssignmentAction`, `DeleteAssignmentAction`, `BulkSaveWeeklyAssignmentsAction`](10-actions-assignment.md) | À faire |
 | 07.11 | [Exceptions `AssignmentConflictException`, `AssignmentListException`, `AssignmentBatchException`](11-exceptions-assignment.md) | À faire |
 | 07.12 | [Observer `AssignmentObserver` (invalide cache tags sur create/update/delete)](12-observer-assignment.md) | À faire |
-| 07.13 | [Event `AssignmentChanged` + Listeners (trigger invalidation déclarations dépendantes — ADR-0004)](13-event-assignment-changed.md) | À faire |
+| 07.13 | [Event `AssignmentChanged` (émission uniquement — les listeners qui déclenchent l'invalidation des déclarations sont branchés en phase 11 après la création du service `DeclarationInvalidationDetector`)](13-event-assignment-changed.md) | À faire |
 | 07.14 | [Controller `User/Assignment/AssignmentController`](14-controller-assignment.md) | À faire |
-| 07.15 | [Tests Feature + Unit (notamment conflits, bulk, cumul LCD)](15-tests-assignment.md) | À faire |
+| 07.15 | [`AssignmentFactory` + `DemoAssignmentsSeeder` (~6 mois d'assignments répartis sur la flotte demo, mix LCD/LLD)](15-factory-seeder-assignment.md) | À faire |
+| 07.16 | [Tests Feature + Unit (notamment conflits, bulk, cumul LCD)](16-tests-assignment.md) | À faire |
 
 ## Critère de complétion
 
@@ -40,7 +41,7 @@ Phase 04 + 05 + 06 terminées.
 - `LcdCumulCalculationService` retourne le bon cumul pour un couple (véhicule, company) sur une année donnée, en prenant en compte les indispos `pound` (fourrière) qui ne comptent pas.
 - Bulk save de 50+ assignments en une transaction atomique.
 - Cache tags invalidés correctement après chaque mutation.
-- Events `AssignmentChanged` bien émis et listeners qui déclenchent la détection d'invalidation.
+- Event `AssignmentChanged` bien émis (le listener d'invalidation des déclarations est branché en phase 11 pour éviter une dépendance circulaire avec `DeclarationInvalidationDetector`).
 
 ## Documents liés
 

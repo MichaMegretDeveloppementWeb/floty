@@ -23,7 +23,9 @@ Phase 04 terminée (pour hériter du pattern).
 | 05.09 | [Policy `CompanyPolicy`](09-policy-company.md) | À faire |
 | 05.10 | [Pages Vue `Pages/User/Companies/Index/` + `Show/` + `Create/` + `Edit/` (avec partials)](10-pages-companies.md) | À faire |
 | 05.11 | [Composants `Components/Domain/Company/CompanyBadge.vue` (code court coloré), `CompanySelector.vue`](11-components-domain-company.md) | À faire |
-| 05.12 | [Tests Feature CompanyController + Unit CompanyCreationService](12-tests-company.md) | À faire |
+| 05.12 | [Util `isValidSiren(siren: string): boolean` (algorithme Luhn) dans `app/Support/Validation/FrenchIdentifiers.php` + double TS dans `resources/js/Utils/validation/frenchSiren.ts`](12-util-is-valid-siren.md) | À faire |
+| 05.13 | [`CompanyFactory` + `DemoCompaniesSeeder` (~8 entreprises réalistes — couleurs variées, SIREN valides)](13-factory-seeder-company.md) | À faire |
+| 05.14 | [Tests Feature CompanyController + Unit CompanyCreationService + `isValidSiren`](14-tests-company.md) | À faire |
 
 ## Critère de complétion
 

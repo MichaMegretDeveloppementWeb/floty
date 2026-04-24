@@ -52,10 +52,12 @@ floty/
 │   ├── js/
 │   │   ├── Pages/          ← pages Inertia (correspondance 1:1 avec Inertia::render)
 │   │   ├── Components/     ← composants réutilisables hors page
+│   │   │   ├── Ui/         ← UI Kit générique (Button, Card, Modal…)
+│   │   │   ├── Layouts/    ← layouts Inertia (WebLayout, UserLayout + partials)
+│   │   │   └── Domain/     ← composants métier (VehicleCard, CompanyTag…)
 │   │   ├── Composables/    ← logique réactive partagée
 │   │   ├── Stores/         ← Pinia
 │   │   ├── Utils/          ← fonctions pures
-│   │   ├── Layouts/        ← layouts Inertia
 │   │   ├── types/          ← types TS (générés + manuels)
 │   │   └── app.ts          ← entrée Vite/Inertia
 │   └── css/
@@ -132,7 +134,7 @@ routes/
 **Règles** :
 
 - Le préfixe URL `/app` (ou autre) délimite la zone connectée. Convention exacte à acter à l'implémentation.
-- Le préfixe de nom `user.` permet d'éviter les collisions et de filtrer aisément les routes par espace dans `route('user.vehicles.show', ...)`.
+- Le préfixe de nom `user.` permet d'éviter les collisions et de filtrer aisément les routes par espace (`php artisan route:list --name=user`). Côté frontend, les routes sont générées automatiquement par Wayfinder (`VehicleController.show({ vehicle: id })`), pas d'appel `route(...)` en dur.
 - Les middlewares (`auth`, `verified` si activé V2, etc.) sont définis au niveau du groupe, pas par route.
 
 ### Pattern Controller invocable vs Resource controller

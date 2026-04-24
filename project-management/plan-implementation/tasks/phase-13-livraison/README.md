@@ -27,7 +27,7 @@ Phases 00 à 12 terminées.
 |---|---|---|
 | 13.07 | [Gestion 419 CSRF (handler `bootstrap/app.php` qui redirige avec toast-warning — cf. gestion-erreurs.md)](07-csrf-419-handler.md) | À faire |
 | 13.08 | [Canaux de log thématiques Floty (config/logging.php : auth, vehicles, assignments, fiscal, declarations, pdf, cache)](08-log-channels.md) | À faire |
-| 13.09 | [Configuration cache driver `database` + tags émulés](09-cache-driver-database.md) | À faire |
+| 13.09 | ~~Configuration cache driver `database` + tags émulés~~ — **remontée en phase 01.10** (nécessaire dès la phase 07 qui utilise des cache tags). | Déplacé |
 
 ### 13.C — Audit qualité
 

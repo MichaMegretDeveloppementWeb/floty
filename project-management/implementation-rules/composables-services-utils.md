@@ -49,6 +49,7 @@ Un composable est une **fonction** qui :
 // resources/js/Composables/User/useFiscalYear.ts
 import { computed, type ComputedRef } from 'vue'
 import { router, usePage } from '@inertiajs/vue3'
+import DashboardController from '@/actions/App/Http/Controllers/User/DashboardController'
 
 export type UseFiscalYearReturn = {
   year: ComputedRef<number>
@@ -67,7 +68,7 @@ export function useFiscalYear(): UseFiscalYearReturn {
   const isCurrentYear = computed(() => year.value === new Date().getFullYear())
 
   const setYear = (newYear: number): void => {
-    router.get(route('user.dashboard'), { fiscalYear: newYear }, {
+    router.get(DashboardController.index().url, { fiscalYear: newYear }, {
       preserveScroll: true,
       preserveState: true,
       only: ['fiscalYear', 'vehicles', 'declarations'],
@@ -345,6 +346,7 @@ Un composable peut **composer** des utils. C'est le pattern naturel.
 import { ref, computed } from 'vue'
 import { useDebounceFn } from '@vueuse/core'
 import { router } from '@inertiajs/vue3'
+import VehicleController from '@/actions/App/Http/Controllers/User/VehicleController'
 import { normalizeFrenchPlate } from '@/Utils/validation/frenchPlate'
 
 export function useVehicleSearch() {
@@ -353,7 +355,7 @@ export function useVehicleSearch() {
   const normalizedQuery = computed(() => normalizeFrenchPlate(query.value))
 
   const search = useDebounceFn((q: string): void => {
-    router.get(route('user.vehicles.index'), { search: q }, {
+    router.get(VehicleController.index().url, { search: q }, {
       preserveState: true,
       preserveScroll: true,
       only: ['vehicles'],

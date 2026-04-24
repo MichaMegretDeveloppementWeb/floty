@@ -267,13 +267,15 @@ fonction categorie_polluants(vehicule) :
 - Tarif annuel plein : 500 €
 - **Taxe polluants = 500 × 1 = 500,00 €**
 
-### Exemple E — Véhicules les plus polluants, affectation très partielle
+### Exemple E — Véhicules les plus polluants, affectation partielle
+
+> **Correction du 2026-04-24 suite à l'audit rapport-001** : la version initiale de cet exemple utilisait 30 jours d'affectation, ce qui entraînait l'exonération LCD automatique après la résolution de Z-2024-002 (cf. R-2024-021, cumul annuel par couple ≤ 30 jours). L'exemple est désormais reformulé avec 60 jours pour éviter toute ambiguïté avec le seuil LCD.
 
 - Véhicule : BMW Série 5 Diesel Euro 6 (M1)
-- Affectation : 15/06/2024 → 14/07/2024 = 30 jours (LLD, et non LCD : durée d'affectation à l'entreprise utilisatrice ≥ 31 jours non atteinte ici, mais cas pédagogique — on suppose pour l'exemple que le contrat est qualifié de LLD comme dans le modèle Floty)
-- Prorata : 30 / 366 ≈ 0,08197
+- Affectation : 15/06/2024 → 13/08/2024 = 60 jours (cumul annuel > 30 jours → exonération LCD R-2024-021 non applicable → couple taxable)
+- Prorata : 60 / 366 ≈ 0,16393
 - Tarif annuel plein : 500 €
-- **Taxe polluants = 500 × 30/366 = 40,9836… € ≈ 40,98 € (avant arrondi total final)**
+- **Taxe polluants = 500 × 60/366 = 81,9672… € ≈ 81,97 € (avant arrondi total final)**
 
 ### Exemple F — Combinaison taxe polluants + taxe CO₂ pour un véhicule
 

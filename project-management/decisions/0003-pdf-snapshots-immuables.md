@@ -102,7 +102,7 @@ Approche où l'on conserve les PDF historiques mais sans capturer le snapshot de
 
 - Une table `declaration_pdfs` (ou équivalent) stocke les PDF historiques avec leur date de génération et leur snapshot JSON.
 - Le schéma JSON du snapshot doit être stable et versionné (son évolution doit permettre de lire les snapshots anciens).
-- Les PDF sont stockés soit en base (colonnes binaires), soit sur filesystem/stockage objet avec un pointeur en base. À trancher en phase de modèle de données.
+- Les PDF sont stockés sur filesystem local (disk `local` de Laravel, chemin dans `storage/app/private/declarations/...`) avec un pointeur stocké en base dans `declaration_pdfs.file_path`. **Décision tranchée par ADR-0008** (stack technique V1, hébergement Hostinger mutualisé sans stockage objet disponible).
 - Un effort modéré de stockage : pour une flotte de 100 véhicules et 30 entreprises, une déclaration annuelle pèse probablement quelques centaines de Ko ; multiplié par le nombre de régénérations et d'années, cela reste gérable.
 
 ### Conséquences produit
