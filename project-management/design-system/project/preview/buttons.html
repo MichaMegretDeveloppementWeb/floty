@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Floty — Buttons</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;background:#fff;font-family:var(--font-sans);}
+  .frame{padding:24px 28px;display:grid;grid-template-columns:120px 1fr;gap:16px 22px;align-items:center;}
+  .label{font-family:var(--font-mono);font-size:10px;color:var(--slate-500);letter-spacing:.04em;}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:default;border:1px solid transparent;line-height:1;font-family:var(--font-sans);transition:background .12s,border-color .12s;}
+  .btn svg{stroke-width:1.75;width:14px;height:14px;}
+  .primary{background:var(--slate-900);color:#fff;}
+  .primary:hover{background:var(--slate-800);}
+  .secondary{background:#fff;color:var(--slate-700);border-color:var(--slate-200);}
+  .secondary:hover{background:var(--slate-50);border-color:var(--slate-300);}
+  .ghost{background:transparent;color:var(--slate-600);}
+  .ghost:hover{background:var(--slate-100);color:var(--slate-900);}
+  .dest-soft{background:var(--rose-50);color:var(--rose-700);border:1px solid var(--rose-200);}
+  .dest-hard{background:var(--rose-600);color:#fff;}
+  .disabled{background:var(--slate-100);color:var(--slate-400);cursor:not-allowed;}
+  .small{padding:6px 10px;font-size:12px;}
+  .iconbtn{width:30px;height:30px;padding:0;border-radius:8px;background:#fff;border:1px solid var(--slate-200);color:var(--slate-600);}
+  .iconbtn:hover{background:var(--slate-50);color:var(--slate-900);}
+  .cap{font-family:var(--font-mono);font-size:10px;color:var(--slate-400);margin-left:4px;}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <div class="label">Primary</div>
+  <div class="row">
+    <button class="btn primary">Nouvelle attribution</button>
+    <button class="btn primary"><i data-lucide="plus"></i>Ajouter un véhicule</button>
+    <button class="btn primary small">Continuer</button>
+  </div>
+
+  <div class="label">Secondary</div>
+  <div class="row">
+    <button class="btn secondary">Exporter</button>
+    <button class="btn secondary"><i data-lucide="download"></i>Exporter CSV</button>
+    <button class="btn secondary"><i data-lucide="filter"></i>Filtrer</button>
+    <button class="btn secondary small">Annuler</button>
+  </div>
+
+  <div class="label">Ghost</div>
+  <div class="row">
+    <button class="btn ghost">Retour</button>
+    <button class="btn ghost small">Tout voir</button>
+  </div>
+
+  <div class="label">Destructive</div>
+  <div class="row">
+    <button class="btn dest-soft">Supprimer</button>
+    <button class="btn dest-hard">Confirmer la suppression</button>
+  </div>
+
+  <div class="label">Disabled</div>
+  <div class="row">
+    <button class="btn disabled">Valider</button>
+    <button class="btn disabled small">Retour</button>
+  </div>
+
+  <div class="label">Icon only</div>
+  <div class="row">
+    <button class="btn iconbtn" title="Plus d'actions"><i data-lucide="more-horizontal"></i></button>
+    <button class="btn iconbtn" title="Modifier"><i data-lucide="pencil"></i></button>
+    <button class="btn iconbtn" title="Supprimer"><i data-lucide="trash-2"></i></button>
+    <span class="cap">32 × 32 · pair avec title</span>
+  </div>
+
+</div>
+<script>lucide.createIcons({ attrs: { 'stroke-width': 1.75, width: 14, height: 14 } });</script>
+</body>
+</html>

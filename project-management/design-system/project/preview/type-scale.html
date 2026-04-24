@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Floty — Type scale</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:#fff;font-family:var(--font-sans);}
+  .frame{padding:22px 28px;display:grid;grid-template-columns:repeat(4,1fr);gap:20px 28px;}
+  .cell{display:flex;flex-direction:column;gap:6px;}
+  .glyph{color:var(--slate-900);line-height:1;}
+  .meta{font-family:var(--font-mono);font-size:10px;color:var(--slate-500);letter-spacing:.04em;}
+  .label{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--slate-400);}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="cell"><div class="label">H1 view</div><div class="glyph" style="font-size:28px;font-weight:600;letter-spacing:-.01em;">Aa</div><div class="meta">28 / 600 / −1%</div></div>
+  <div class="cell"><div class="label">H1 small</div><div class="glyph" style="font-size:26px;font-weight:600;letter-spacing:-.01em;">Aa</div><div class="meta">26 / 600 / −1%</div></div>
+  <div class="cell"><div class="label">KPI</div><div class="glyph" style="font-size:22px;font-weight:600;letter-spacing:-.01em;">Aa</div><div class="meta">22 / 600</div></div>
+  <div class="cell"><div class="label">H2 card</div><div class="glyph" style="font-size:15px;font-weight:600;">Aa</div><div class="meta">15 / 600</div></div>
+  <div class="cell"><div class="label">Body+</div><div class="glyph" style="font-size:13.5px;font-weight:400;">Aa</div><div class="meta">13.5 / 400</div></div>
+  <div class="cell"><div class="label">Body</div><div class="glyph" style="font-size:13px;font-weight:400;">Aa</div><div class="meta">13 / 400</div></div>
+  <div class="cell"><div class="label">Meta</div><div class="glyph" style="font-size:12px;font-weight:400;color:var(--slate-500);">Aa</div><div class="meta">12 / 400</div></div>
+  <div class="cell"><div class="label">Eyebrow</div><div class="glyph" style="font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--slate-500);">LABEL</div><div class="meta">11 / 600 / +8%</div></div>
+</div>
+</body>
+</html>

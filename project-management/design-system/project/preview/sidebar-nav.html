@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Floty — Sidebar nav</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;background:#fff;font-family:var(--font-sans);}
+  .frame{display:flex;height:520px;}
+  aside{width:240px;background:#fff;border-right:1px solid var(--slate-200);display:flex;flex-direction:column;}
+  .brand{padding:20px 24px;border-bottom:1px solid var(--slate-100);display:flex;align-items:center;gap:10px;}
+  .bt{font-size:15px;font-weight:600;color:var(--slate-900);line-height:1.1;}
+  .bs{font-size:11px;color:var(--slate-500);line-height:1.1;}
+  nav{flex:1;padding:16px 0;overflow:auto;}
+  .section{margin-bottom:20px;}
+  .shead{padding:0 24px 6px;font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--slate-400);}
+  .item{display:flex;align-items:center;gap:12px;padding:8px 24px;font-size:13.5px;color:var(--slate-600);cursor:pointer;transition:color .12s,background .12s;}
+  .item:hover{color:var(--slate-900);background:rgba(248,250,252,.6);}
+  .item.active{color:var(--slate-900);font-weight:500;background:var(--slate-50);padding-left:22px;border-left:2px solid var(--slate-900);}
+  .item svg{width:16px;height:16px;stroke-width:1.75;flex-shrink:0;}
+  .foot{padding:14px 24px;border-top:1px solid var(--slate-100);display:flex;gap:12px;align-items:center;}
+  .ava{width:32px;height:32px;border-radius:50%;background:var(--slate-200);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:var(--slate-700);}
+  .un{font-size:13px;font-weight:500;color:var(--slate-900);}
+  .ul{font-size:11px;color:var(--slate-500);}
+</style>
+</head>
+<body>
+<div class="frame">
+  <aside>
+    <div class="brand">
+      <img src="../assets/floty-mark.svg" style="width:32px;height:32px;">
+      <div><div class="bt">Floty</div><div class="bs">Flotte partagée</div></div>
+    </div>
+    <nav>
+      <div class="section">
+        <div class="shead">VUE D'ENSEMBLE</div>
+        <div class="item active"><i data-lucide="layout-dashboard"></i>Dashboard</div>
+      </div>
+      <div class="section">
+        <div class="shead">PLANNING</div>
+        <div class="item"><i data-lucide="calendar-range"></i>Vue globale</div>
+        <div class="item"><i data-lucide="building-2"></i>Par entreprise</div>
+        <div class="item"><i data-lucide="car"></i>Par véhicule</div>
+        <div class="item"><i data-lucide="calendar-check"></i>Saisie hebdo</div>
+      </div>
+      <div class="section">
+        <div class="shead">DONNÉES</div>
+        <div class="item"><i data-lucide="table-2"></i>Flotte</div>
+        <div class="item"><i data-lucide="users"></i>Entreprises &amp; conducteurs</div>
+      </div>
+      <div class="section">
+        <div class="shead">FISCALITÉ</div>
+        <div class="item"><i data-lucide="receipt"></i>Déclarations</div>
+        <div class="item"><i data-lucide="bar-chart-3"></i>Analytics</div>
+      </div>
+    </nav>
+    <div class="foot"><div class="ava">RM</div><div><div class="un">R. Martin</div><div class="ul">Gestionnaire flotte</div></div></div>
+  </aside>
+</div>
+<script>lucide.createIcons({ attrs: { 'stroke-width': 1.75, width: 16, height: 16 } });</script>
+</body>
+</html>

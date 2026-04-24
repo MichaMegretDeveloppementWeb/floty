@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Floty — Cards</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<style>
+  html,body{margin:0;padding:0;background:#f8fafc;font-family:var(--font-sans);}
+  .frame{padding:22px;display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  .card{background:#fff;border:1px solid var(--border-1);border-radius:12px;padding:20px;}
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+  .co{display:flex;align-items:center;gap:12px;}
+  .dot{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:12px;}
+  .nm{font-size:14px;font-weight:600;color:var(--slate-900);}
+  .sub{font-size:11px;color:var(--slate-500);font-family:var(--font-mono);}
+  .status{display:inline-block;padding:2px 9px;border-radius:9999px;border:1px solid;font-size:10.5px;font-weight:500;}
+  .s-draft{background:var(--amber-50);color:var(--amber-700);border-color:var(--amber-200);}
+  .s-ready{background:var(--blue-50);color:var(--blue-700);border-color:var(--blue-200);}
+  .foot{padding-top:14px;border-top:1px solid var(--slate-100);display:flex;justify-content:space-between;align-items:flex-end;}
+  .lbl{font-size:10px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--slate-500);}
+  .val{font-size:22px;font-weight:600;color:var(--slate-900);line-height:1;margin-top:4px;}
+  .meta{text-align:right;font-size:11px;color:var(--slate-500);line-height:1.5;}
+</style>
+</head>
+<body>
+<div class="frame">
+  <div class="card">
+    <div class="hdr">
+      <div class="co"><div class="dot" style="background:#4f46e5">AC</div><div><div class="nm">ACME Industries</div><div class="sub">SIREN 123 456 789</div></div></div>
+      <span class="status s-draft">Brouillon</span>
+    </div>
+    <div class="foot">
+      <div><div class="lbl">Taxes 2025</div><div class="val">12 480 €</div></div>
+      <div class="meta">8 véhicules<br>412 jours cumulés</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="hdr">
+      <div class="co"><div class="dot" style="background:#059669">NW</div><div><div class="nm">Nordwell Logistique</div><div class="sub">SIREN 234 567 890</div></div></div>
+      <span class="status s-ready">Prête</span>
+    </div>
+    <div class="foot">
+      <div><div class="lbl">Taxes 2025</div><div class="val">8 240 €</div></div>
+      <div class="meta">5 véhicules<br>287 jours cumulés</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

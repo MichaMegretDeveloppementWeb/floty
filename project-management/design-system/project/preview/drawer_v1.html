@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Floty — Drawer / Modal</title>
+<link rel="stylesheet" href="../colors_and_type.css">
+<script src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
+<style>
+  html,body{margin:0;padding:0;background:#fff;font-family:var(--font-sans);color:var(--slate-900);}
+  .frame{height:460px;position:relative;overflow:hidden;display:grid;grid-template-columns:1fr 380px;}
+
+  /* ── faux-app background, behind the overlay ── */
+  .app{padding:24px 28px;background:#f8fafc;display:flex;flex-direction:column;gap:14px;}
+  .app .bar{height:40px;background:#fff;border:1px solid var(--slate-200);border-radius:8px;display:flex;align-items:center;gap:10px;padding:0 14px;color:var(--slate-500);font-size:12.5px;}
+  .app .bar svg{stroke-width:1.75;width:14px;height:14px;}
+  .app .grid{flex:1;display:grid;grid-template-rows:repeat(5,1fr);gap:8px;}
+  .app .row{display:grid;grid-template-columns:120px 1fr;gap:8px;align-items:center;}
+  .app .plate{font-family:var(--font-mono);font-size:12px;color:var(--slate-600);}
+  .app .cells{display:grid;grid-template-columns:repeat(14,1fr);gap:3px;}
+  .app .c{height:20px;border-radius:3px;}
+
+  /* ── the overlay system ── */
+  .backdrop{position:absolute;inset:0;background:rgba(15,23,42,.32);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:1;}
+  .drawer{position:relative;z-index:2;background:#fff;border-left:1px solid var(--slate-200);box-shadow:0 16px 28px -10px rgba(15,23,42,.22),0 6px 12px -6px rgba(15,23,42,.10);padding:22px;overflow:hidden;display:flex;flex-direction:column;}
+
+  .hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:22px;}
+  .eb{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--slate-500);}
+  .tt{font-size:17px;font-weight:600;color:var(--slate-900);margin-top:4px;}
+  .st{font-size:12px;color:var(--slate-500);margin-top:2px;}
+  .x{width:28px;height:28px;border-radius:6px;background:var(--slate-100);display:flex;align-items:center;justify-content:center;color:var(--slate-500);cursor:pointer;}
+  .x svg{stroke-width:1.75;width:14px;height:14px;}
+
+  .lbl{font-size:10px;font-weight:600;letter-spacing:.08em;color:var(--slate-500);margin:0 0 10px;}
+  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+  .dd{text-align:center;}
+  .dhead{font-size:10px;font-weight:600;color:var(--slate-500);letter-spacing:.06em;margin-bottom:4px;}
+  .slot{height:60px;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:9.5px;padding:4px;}
+  .slot .co{font-family:var(--font-mono);font-size:9px;opacity:.85;letter-spacing:.06em;}
+  .slot .nm{margin-top:3px;font-size:10px;}
+  .empty{border:1.5px dashed var(--slate-200);background:#fff;color:var(--slate-300);display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .cbtn{margin-top:auto;background:var(--slate-900);color:#fff;padding:10px;border-radius:8px;font-size:13px;font-weight:500;text-align:center;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;}
+  .cbtn svg{stroke-width:1.75;width:14px;height:14px;}
+  .cap{margin-top:10px;font-size:11px;color:var(--slate-400);display:flex;align-items:center;gap:8px;}
+  .cap::before{content:'';width:10px;height:10px;border:1px solid rgba(15,23,42,.3);background:rgba(15,23,42,.32);border-radius:2px;backdrop-filter:blur(1px);}
+</style>
+</head>
+<body>
+<div class="frame">
+
+  <!-- behind: faux planning view, blurred by the backdrop -->
+  <div class="app">
+    <div class="bar"><i data-lucide="search"></i>Rechercher un véhicule…</div>
+    <div class="grid" id="appgrid"></div>
+  </div>
+
+  <!-- overlay + drawer -->
+  <div class="backdrop"></div>
+
+  <div class="drawer">
+    <div class="hdr">
+      <div>
+        <div class="eb">SEMAINE 17 · 2026</div>
+        <div class="tt">EH-142-AZ</div>
+        <div class="st">Peugeot 308 · Essence · 112 g CO₂/km</div>
+      </div>
+      <div class="x"><i data-lucide="x"></i></div>
+    </div>
+
+    <div class="lbl">DÉTAIL JOURNALIER · 5 / 7 jours</div>
+    <div class="days">
+      <div class="dd"><div class="dhead">LUN</div><div class="slot" style="background:#4f46e5;"><div class="co">AC</div><div class="nm">Dubois</div></div></div>
+      <div class="dd"><div class="dhead">MAR</div><div class="slot" style="background:#4f46e5;"><div class="co">AC</div><div class="nm">Dubois</div></div></div>
+      <div class="dd"><div class="dhead">MER</div><div class="slot" style="background:#4f46e5;"><div class="co">AC</div><div class="nm">Lefèvre</div></div></div>
+      <div class="dd"><div class="dhead">JEU</div><div class="slot" style="background:#059669;"><div class="co">NW</div><div class="nm">Morel</div></div></div>
+      <div class="dd"><div class="dhead">VEN</div><div class="slot" style="background:#059669;"><div class="co">NW</div><div class="nm">Morel</div></div></div>
+      <div class="dd"><div class="dhead">SAM</div><div class="slot empty">+</div></div>
+      <div class="dd"><div class="dhead">DIM</div><div class="slot empty">+</div></div>
+    </div>
+
+    <div class="cbtn"><i data-lucide="plus"></i>Attribuer des jours libres</div>
+    <div class="cap">Fond flouté &amp; opacifié (slate-900 / 32 % + blur 3 px) · shadow 2xl sur le panneau</div>
+  </div>
+</div>
+<script>
+  // Build the faux app grid so the blur has something meaningful to obscure
+  const blues=['#eff6ff','#dbeafe','#bfdbfe','#93c5fd','#3b82f6','#1d4ed8','#fff'];
+  const g=document.getElementById('appgrid');
+  const plates=['EH-142-AZ','EL-887-KB','FA-221-MX','EN-554-PQ','GM-718-RT'];
+  plates.forEach((p,ri)=>{
+    const r=document.createElement('div');r.className='row';
+    r.innerHTML=`<div class="plate">${p}</div><div class="cells"></div>`;
+    const c=r.querySelector('.cells');
+    for(let i=0;i<14;i++){
+      const v=(ri*3+i*2+ri)%7;
+      const d=document.createElement('div');d.className='c';
+      d.style.background=blues[v];
+      if(v===6) d.style.border='1px solid #e2e8f0';
+      c.appendChild(d);
+    }
+    g.appendChild(r);
+  });
+  lucide.createIcons({ attrs:{ 'stroke-width':1.75, width:14, height:14 } });
+</script>
+</body>
+</html>
