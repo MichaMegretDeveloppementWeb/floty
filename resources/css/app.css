@@ -14,6 +14,7 @@
 @import '@fontsource/dm-mono/400.css';
 @import '@fontsource/dm-mono/500.css';
 
+
 /* ============================================================
    Sources Tailwind (inclusions additionnelles au scan content)
    ============================================================ */
@@ -62,11 +63,12 @@
     --text-4xl--line-height: 1.1;
 
     /* ---------- BREAKPOINTS ---------- */
-    /* Breakpoint maison pour la sidebar pinnée/collapsée. Au-delà de
-       1500px on a assez de largeur pour afficher la sidebar ouverte en
-       permanence ; en-dessous on passe en mode icon-only avec expansion
-       au hover (cf. Components/Layouts/UserLayout/SidebarNav.vue). */
-    --breakpoint-wide: 1500px;
+    /* Breakpoint maison `wide` = 1500px (= 93.75rem) pour la sidebar
+       pinnée/collapsée. Déclaré en rem plutôt qu'en px pour que
+       Tailwind 4 le trie correctement entre xl (80rem) et 2xl (96rem)
+       dans la cascade CSS — le tri se fait sur la chaîne littérale, et
+       "1500px" se range avant "40rem" alphabétiquement. */
+    --breakpoint-wide: 93.75rem;
 
     /* ---------- TRACKING ---------- */
     --tracking-tight: -0.01em;
