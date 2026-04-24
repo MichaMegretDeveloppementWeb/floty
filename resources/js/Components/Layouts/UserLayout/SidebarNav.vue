@@ -28,6 +28,8 @@ defineProps<{
     activePath?: string;
 }>();
 
+const open = defineModel<boolean>('open', { default: false });
+
 const sections: NavSection[] = [
     {
         title: "Vue d'ensemble",
@@ -88,22 +90,40 @@ const sections: NavSection[] = [
         ],
     },
 ];
+
+const closeDrawer = (): void => {
+    open.value = false;
+};
 </script>
 
 <template>
+    <div
+        v-if="open"
+        class="fixed inset-0 z-20 bg-slate-900/40 md:hidden"
+        aria-hidden="true"
+        @click="closeDrawer"
+    />
+
     <aside
-        class="flex w-60 shrink-0 flex-col border-r border-slate-200 bg-white"
+        :class="[
+            'group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-hidden border-r border-slate-200 bg-white',
+            'transition-[transform,width] duration-200 ease-out',
+            'w-60',
+            open ? 'translate-x-0' : '-translate-x-full',
+            'md:translate-x-0 md:w-16 md:hover:w-60',
+            'wide:w-60',
+        ]"
     >
         <div
-            class="flex items-center gap-3 border-b border-slate-100 px-6 py-5"
+            class="flex items-center gap-3 border-b border-slate-100 py-5 pl-[18px]"
         >
             <div
-                class="flex size-8 items-center justify-center rounded-lg bg-slate-900 font-semibold text-white"
+                class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 font-semibold text-white"
                 aria-hidden="true"
             >
                 F
             </div>
-            <div class="flex flex-col leading-tight">
+            <div class="flex flex-col leading-tight whitespace-nowrap">
                 <p class="text-base font-semibold text-slate-900">
                     Floty
                 </p>
@@ -117,7 +137,9 @@ const sections: NavSection[] = [
                 :key="section.title"
                 class="mb-5"
             >
-                <p class="eyebrow px-6 pb-1.5 text-slate-400">
+                <p
+                    class="eyebrow mb-1.5 px-[18px] whitespace-nowrap text-slate-400 transition-opacity duration-150 ease-out md:opacity-0 md:group-hover/sidebar:opacity-100 wide:opacity-100"
+                >
                     {{ section.title }}
                 </p>
                 <ul class="flex flex-col">
@@ -126,11 +148,12 @@ const sections: NavSection[] = [
                             :href="item.href"
                             :aria-current="item.active ? 'page' : undefined"
                             :class="[
-                                'flex items-center gap-3 px-6 py-2 text-base transition-colors duration-[120ms] ease-out',
+                                'flex items-center gap-3 py-2 pl-[22px] text-base transition-colors duration-[120ms] ease-out',
                                 item.active
-                                    ? 'border-l-2 border-slate-900 bg-slate-50 pl-[22px] font-medium text-slate-900'
-                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                                    ? 'border-l-2 border-slate-900 bg-slate-50 font-medium text-slate-900'
+                                    : 'border-l-2 border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                             ]"
+                            @click="closeDrawer"
                         >
                             <component
                                 :is="item.icon"
@@ -139,7 +162,9 @@ const sections: NavSection[] = [
                                 class="shrink-0"
                                 aria-hidden="true"
                             />
-                            <span>{{ item.label }}</span>
+                            <span class="whitespace-nowrap">
+                                {{ item.label }}
+                            </span>
                         </a>
                     </li>
                 </ul>
@@ -147,15 +172,15 @@ const sections: NavSection[] = [
         </nav>
 
         <div
-            class="flex items-center gap-3 border-t border-slate-100 px-6 py-4"
+            class="flex items-center gap-3 border-t border-slate-100 py-4 pl-[18px]"
         >
             <div
-                class="flex size-8 items-center justify-center rounded-full bg-slate-200 font-mono text-xs font-semibold text-slate-700"
+                class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 font-mono text-xs font-semibold text-slate-700"
                 aria-hidden="true"
             >
                 RM
             </div>
-            <div class="flex flex-col leading-tight">
+            <div class="flex flex-col leading-tight whitespace-nowrap">
                 <p class="text-base font-medium text-slate-900">
                     R. Martin
                 </p>

@@ -2,7 +2,8 @@
 import SidebarNav from '@/Components/Layouts/UserLayout/SidebarNav.vue';
 import TopBar from '@/Components/Layouts/UserLayout/TopBar.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer/ToastContainer.vue';
-import { ref } from 'vue';
+import { useMediaQuery } from '@vueuse/core';
+import { ref, watch } from 'vue';
 
 withDefaults(
     defineProps<{
@@ -11,21 +12,37 @@ withDefaults(
     {},
 );
 
-const year = defineModel<number>('year', { default: 2026 });
 const internalYear = ref<number>(2026);
+
+const isMobile = useMediaQuery('(max-width: 767px)');
+const sidebarOpen = ref<boolean>(false);
+
+watch(isMobile, (mobile) => {
+    if (!mobile) sidebarOpen.value = false;
+});
 </script>
 
 <template>
-    <div class="flex min-h-screen bg-slate-50">
-        <SidebarNav :active-path="activePath" />
-        <div class="flex min-w-0 flex-1 flex-col">
-            <TopBar v-model:year="internalYear" />
-            <main class="flex-1 overflow-y-auto">
-                <div class="mx-auto max-w-[1400px] px-8 py-8">
+    <div class="min-h-screen bg-slate-50">
+        <SidebarNav
+            v-model:open="sidebarOpen"
+            :active-path="activePath"
+        />
+
+        <div
+            class="flex min-h-screen flex-col md:pl-16 wide:pl-60"
+        >
+            <TopBar
+                v-model:year="internalYear"
+                @toggle-sidebar="sidebarOpen = !sidebarOpen"
+            />
+            <main class="flex-1">
+                <div class="mx-auto max-w-[1400px] px-4 py-6 md:px-8 md:py-8">
                     <slot :year="internalYear" />
                 </div>
             </main>
         </div>
+
         <ToastContainer />
     </div>
 </template>

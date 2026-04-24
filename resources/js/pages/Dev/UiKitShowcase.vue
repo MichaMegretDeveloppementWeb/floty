@@ -185,12 +185,12 @@ const companyChips: Swatch[] = [
 <template>
     <Head title="UI Kit — Showcase" />
 
-    <div class="min-h-screen bg-slate-50 py-12">
-        <div class="mx-auto max-w-[1400px] px-8">
-            <header class="mb-12">
+    <div class="min-h-screen bg-slate-50 py-6 md:py-12">
+        <div class="mx-auto max-w-[1400px] px-4 md:px-8">
+            <header class="mb-8 md:mb-12">
                 <p class="eyebrow mb-3">Design system · Floty</p>
                 <h1
-                    class="text-4xl font-semibold tracking-tight text-slate-900"
+                    class="text-2xl font-semibold tracking-tight text-slate-900 md:text-4xl"
                 >
                     UI Kit — Showcase
                 </h1>

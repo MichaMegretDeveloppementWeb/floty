@@ -61,6 +61,13 @@
     --text-4xl: 28px;
     --text-4xl--line-height: 1.1;
 
+    /* ---------- BREAKPOINTS ---------- */
+    /* Breakpoint maison pour la sidebar pinnée/collapsée. Au-delà de
+       1500px on a assez de largeur pour afficher la sidebar ouverte en
+       permanence ; en-dessous on passe en mode icon-only avec expansion
+       au hover (cf. Components/Layouts/UserLayout/SidebarNav.vue). */
+    --breakpoint-wide: 1500px;
+
     /* ---------- TRACKING ---------- */
     --tracking-tight: -0.01em;
     --tracking-wide: 0.04em;

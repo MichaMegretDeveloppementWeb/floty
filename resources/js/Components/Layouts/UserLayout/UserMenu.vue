@@ -33,7 +33,8 @@ onKeyStroke('Escape', () => {
             type="button"
             :aria-expanded="open"
             aria-haspopup="menu"
-            class="inline-flex items-center gap-2 rounded-lg px-2 py-1.5 text-slate-700 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-100"
+            :aria-label="`Menu de ${name}`"
+            class="inline-flex items-center gap-2 rounded-lg p-1.5 text-slate-700 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-100 sm:px-2"
             @click="toggle"
         >
             <span
@@ -42,11 +43,13 @@ onKeyStroke('Escape', () => {
             >
                 {{ initials }}
             </span>
-            <span class="text-base font-medium">{{ name }}</span>
+            <span class="hidden text-base font-medium sm:inline">
+                {{ name }}
+            </span>
             <ChevronDown
                 :size="14"
                 :stroke-width="1.75"
-                class="text-slate-400"
+                class="hidden text-slate-400 sm:block"
                 aria-hidden="true"
             />
         </button>
