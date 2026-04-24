@@ -23,14 +23,14 @@ watch(isMobile, (mobile) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-slate-50">
+    <div class="min-h-screen bg-slate-50 wide:flex">
         <SidebarNav
             v-model:open="sidebarOpen"
             :active-path="activePath"
         />
 
         <div
-            class="flex min-h-screen flex-col md:pl-16 wide:pl-60"
+            class="flex min-h-screen min-w-0 flex-1 flex-col md:pl-16 wide:pl-0"
         >
             <TopBar
                 v-model:year="internalYear"

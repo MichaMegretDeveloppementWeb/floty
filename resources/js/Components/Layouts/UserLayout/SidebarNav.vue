@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import FlotyMark from '@/Components/Brand/FlotyMark.vue';
 import {
     BarChart3,
     Building2,
@@ -94,6 +95,9 @@ const sections: NavSection[] = [
 const closeDrawer = (): void => {
     open.value = false;
 };
+
+const labelClass =
+    'whitespace-nowrap overflow-hidden opacity-100 max-w-[160px] md:opacity-0 md:max-w-0 md:group-hover/sidebar:opacity-100 md:group-hover/sidebar:max-w-[160px] wide:opacity-100 wide:max-w-[160px] transition-[opacity,max-width] duration-200 ease-out';
 </script>
 
 <template>
@@ -111,19 +115,14 @@ const closeDrawer = (): void => {
             'w-60',
             open ? 'translate-x-0' : '-translate-x-full',
             'md:translate-x-0 md:w-16 md:hover:w-60',
-            'wide:w-60',
+            'wide:static wide:inset-auto wide:translate-x-0 wide:w-60 wide:shrink-0',
         ]"
     >
         <div
-            class="flex items-center gap-3 border-b border-slate-100 py-5 pl-[18px]"
+            class="flex items-center gap-3 border-b border-slate-100 py-5 pl-4 text-slate-900"
         >
-            <div
-                class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 font-semibold text-white"
-                aria-hidden="true"
-            >
-                F
-            </div>
-            <div class="flex flex-col leading-tight whitespace-nowrap">
+            <FlotyMark :size="32" class="shrink-0" />
+            <div :class="['flex flex-col leading-tight', labelClass]">
                 <p class="text-base font-semibold text-slate-900">
                     Floty
                 </p>
@@ -138,7 +137,7 @@ const closeDrawer = (): void => {
                 class="mb-5"
             >
                 <p
-                    class="eyebrow mb-1.5 px-[18px] whitespace-nowrap text-slate-400 transition-opacity duration-150 ease-out md:opacity-0 md:group-hover/sidebar:opacity-100 wide:opacity-100"
+                    class="eyebrow mb-1.5 overflow-hidden px-6 whitespace-nowrap text-slate-400 opacity-100 transition-opacity duration-200 ease-out md:opacity-0 md:group-hover/sidebar:opacity-100 wide:opacity-100"
                 >
                     {{ section.title }}
                 </p>
@@ -148,13 +147,18 @@ const closeDrawer = (): void => {
                             :href="item.href"
                             :aria-current="item.active ? 'page' : undefined"
                             :class="[
-                                'flex items-center gap-3 py-2 pl-[22px] text-base transition-colors duration-[120ms] ease-out',
+                                'relative flex items-center gap-3 px-6 py-2 text-base transition-colors duration-[120ms] ease-out',
                                 item.active
-                                    ? 'border-l-2 border-slate-900 bg-slate-50 font-medium text-slate-900'
-                                    : 'border-l-2 border-transparent text-slate-600 hover:bg-slate-50 hover:text-slate-900',
+                                    ? 'bg-slate-50 font-medium text-slate-900'
+                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                             ]"
                             @click="closeDrawer"
                         >
+                            <span
+                                v-if="item.active"
+                                aria-hidden="true"
+                                class="absolute top-0 bottom-0 left-0 w-0.5 bg-slate-900"
+                            />
                             <component
                                 :is="item.icon"
                                 :size="16"
@@ -162,9 +166,7 @@ const closeDrawer = (): void => {
                                 class="shrink-0"
                                 aria-hidden="true"
                             />
-                            <span class="whitespace-nowrap">
-                                {{ item.label }}
-                            </span>
+                            <span :class="labelClass">{{ item.label }}</span>
                         </a>
                     </li>
                 </ul>
@@ -172,7 +174,7 @@ const closeDrawer = (): void => {
         </nav>
 
         <div
-            class="flex items-center gap-3 border-t border-slate-100 py-4 pl-[18px]"
+            class="flex items-center gap-3 border-t border-slate-100 py-4 pl-4"
         >
             <div
                 class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 font-mono text-xs font-semibold text-slate-700"
@@ -180,7 +182,7 @@ const closeDrawer = (): void => {
             >
                 RM
             </div>
-            <div class="flex flex-col leading-tight whitespace-nowrap">
+            <div :class="['flex flex-col leading-tight', labelClass]">
                 <p class="text-base font-medium text-slate-900">
                     R. Martin
                 </p>

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import FlotyMark from '@/Components/Brand/FlotyMark.vue';
+import FlotyWordmark from '@/Components/Brand/FlotyWordmark.vue';
 import AlertRow from '@/Components/Ui/AlertRow/AlertRow.vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
@@ -201,6 +203,49 @@ const companyChips: Swatch[] = [
                     validation avant d'être utilisé dans l'application.
                 </p>
             </header>
+
+            <section class="mb-10">
+                <p class="eyebrow mb-4">Identité de marque</p>
+                <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
+                    <div
+                        class="grid grid-cols-1 gap-6 md:grid-cols-3 md:gap-x-8"
+                    >
+                        <div class="flex flex-col gap-3">
+                            <p class="eyebrow">Mark</p>
+                            <div
+                                class="flex h-24 items-center justify-center rounded-lg bg-slate-50 text-slate-900"
+                            >
+                                <FlotyMark :size="48" />
+                            </div>
+                            <p class="font-mono text-[10px] text-slate-500">
+                                32 × 32 — 3 pastilles + anneau
+                            </p>
+                        </div>
+                        <div class="flex flex-col gap-3">
+                            <p class="eyebrow">Wordmark</p>
+                            <div
+                                class="flex h-24 items-center justify-center rounded-lg bg-slate-50 text-slate-900"
+                            >
+                                <FlotyWordmark :height="36" />
+                            </div>
+                            <p class="font-mono text-[10px] text-slate-500">
+                                Mark + « Floty » DM Sans 600
+                            </p>
+                        </div>
+                        <div class="flex flex-col gap-3">
+                            <p class="eyebrow">Mark on dark</p>
+                            <div
+                                class="flex h-24 items-center justify-center rounded-lg bg-slate-900 text-white"
+                            >
+                                <FlotyMark :size="48" />
+                            </div>
+                            <p class="font-mono text-[10px] text-slate-500">
+                                `currentColor` adapte au contexte
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
             <section class="mb-10">
                 <p class="eyebrow mb-4">Fondations</p>
