@@ -52,10 +52,10 @@ return new class extends Migration
 
             // UNIQUE filtrés par soft delete — via colonnes générées virtuelles.
             $table->string('license_plate_active', 20)
-                ->virtualAs('CASE WHEN deleted_at IS NULL THEN license_plate END')
+                ->virtualAs('IF(deleted_at IS NULL, license_plate, NULL)')
                 ->nullable();
             $table->string('vin_active', 20)
-                ->virtualAs('CASE WHEN deleted_at IS NULL AND vin IS NOT NULL THEN vin END')
+                ->virtualAs('IF(deleted_at IS NULL AND vin IS NOT NULL, vin, NULL)')
                 ->nullable();
 
             $table->unique('license_plate_active');

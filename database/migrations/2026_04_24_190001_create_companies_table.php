@@ -57,10 +57,10 @@ return new class extends Migration
             // Colonnes générées pour les UNIQUE filtrés par soft delete
             // (cf. 01-schema-metier.md § 0.2).
             $table->string('short_code_active', 5)
-                ->virtualAs('CASE WHEN deleted_at IS NULL THEN short_code END')
+                ->virtualAs('IF(deleted_at IS NULL, short_code, NULL)')
                 ->nullable();
             $table->char('siren_active', 9)
-                ->virtualAs('CASE WHEN deleted_at IS NULL AND siren IS NOT NULL THEN siren END')
+                ->virtualAs('IF(deleted_at IS NULL AND siren IS NOT NULL, siren, NULL)')
                 ->nullable();
 
             $table->unique('short_code_active');

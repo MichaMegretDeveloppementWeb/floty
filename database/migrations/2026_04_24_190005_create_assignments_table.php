@@ -54,7 +54,7 @@ return new class extends Migration
             // via colonne générée qui vaut NULL pour les soft-deleted
             // (les NULL ne violent pas l'UNIQUE en MySQL).
             $table->string('vehicle_date_active', 30)
-                ->virtualAs("CASE WHEN deleted_at IS NULL THEN CONCAT(vehicle_id, ':', `date`) END")
+                ->virtualAs("IF(deleted_at IS NULL, CONCAT(vehicle_id, ':', `date`), NULL)")
                 ->nullable();
             $table->unique('vehicle_date_active');
         });

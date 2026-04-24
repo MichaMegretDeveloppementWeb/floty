@@ -78,7 +78,7 @@ return new class extends Migration
             // sur les versions courantes (`effective_to IS NULL`).
             // Valeur 1 quand courant, NULL sinon → seuls les non-NULL sont indexés.
             $table->unsignedTinyInteger('is_current')
-                ->virtualAs('CASE WHEN effective_to IS NULL THEN 1 END')
+                ->virtualAs('IF(effective_to IS NULL, 1, NULL)')
                 ->nullable();
             $table->index(['vehicle_id', 'is_current']);
         });
