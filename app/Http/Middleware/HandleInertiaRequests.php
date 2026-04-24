@@ -18,8 +18,8 @@ use Inertia\Middleware;
  *     déploiement.
  *   - `auth.user` : `null` tant qu'aucun utilisateur n'est authentifié,
  *     sinon un {@see CurrentUserData} (prévu en phase 03).
- *     En phase 01 on expose juste l'identifiant et le nom — suffisant pour
- *     tester la chaîne bout-en-bout sans avoir à attendre la DTO auth.
+ *     En MVP on expose `{id, firstName, lastName, fullName, email}` —
+ *     suffisant pour l'avatar, le menu user et les besoins UI courants.
  *   - `flash.*` : quatre canaux indépendants correspondants aux quatre
  *     tons de Toast du design system (success / error / warning / info).
  *     Le controller alimente via `->with('toast-success', 'Message')` et
@@ -54,6 +54,15 @@ final class HandleInertiaRequests extends Middleware
                 'warning' => fn () => $request->session()->get('toast-warning'),
                 'info' => fn () => $request->session()->get('toast-info'),
             ],
+
+            // Source de vérité unique pour l'année fiscale sélectionnée dans
+            // la TopBar. Le MVP ne porte que 2024 (seule année codée dans
+            // `taxes-rules/`) ; le sélecteur est mécaniquement bloqué quand
+            // `availableYears` ne contient qu'une entrée.
+            'fiscal' => [
+                'currentYear' => 2024,
+                'availableYears' => [2024],
+            ],
         ];
     }
 
@@ -62,7 +71,7 @@ final class HandleInertiaRequests extends Middleware
      * Inertia. Remplacée en phase 03 par un DTO {@see CurrentUserData}
      * dès que ce dernier existe.
      *
-     * @return array{id: int, name: string, email: string}|null
+     * @return array{id: int, firstName: string, lastName: string, fullName: string, email: string}|null
      */
     private function resolveAuthenticatedUser(Request $request): ?array
     {
@@ -74,7 +83,9 @@ final class HandleInertiaRequests extends Middleware
 
         return [
             'id' => $user->getKey(),
-            'name' => $user->name,
+            'firstName' => $user->first_name,
+            'lastName' => $user->last_name,
+            'fullName' => $user->full_name,
             'email' => $user->email,
         ];
     }

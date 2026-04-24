@@ -1,5 +1,11 @@
 <?php
 
+use App\Http\Controllers\User\Assignment\AssignmentController;
+use App\Http\Controllers\User\Company\CompanyController;
+use App\Http\Controllers\User\Dashboard\DashboardController;
+use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
+use App\Http\Controllers\User\Planning\PlanningController;
+use App\Http\Controllers\User\Vehicle\VehicleController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -7,30 +13,37 @@ use Illuminate\Support\Facades\Route;
 | Routes User — zone connectée
 |--------------------------------------------------------------------------
 |
-| Surfaces de la zone connectée Floty : dashboard, flotte, planning,
-| déclarations, etc. Toutes les routes de ce groupe sont préfixées
-| `/app` et protégées par `auth` au niveau du groupe (pas par route,
-| pour garantir qu'aucun oubli de middleware ne laisse passer une
-| page sensible).
-|
-| Les noms de routes sont préfixés `user.` pour faciliter le filtrage
-| (`php artisan route:list --name=user`).
-|
-| Les controllers vivront dans `app/Http/Controllers/User/{Domaine}/`.
-|
+| Préfixe URL `/app`, middleware `auth` au niveau du groupe, noms de
+| routes préfixés `user.`.
 */
 
 Route::middleware('auth')
     ->prefix('app')
     ->name('user.')
     ->group(function (): void {
-        // Phase 03 — ajouter la redirection après login :
-        // Route::get('/dashboard', [DashboardController::class, '__invoke'])->name('dashboard');
-        //
-        // Phase 04-11 — resources CRUD par domaine :
-        // Route::resource('vehicles', VehicleController::class);
-        // Route::resource('companies', CompanyController::class);
-        // Route::resource('drivers', DriverController::class);
-        // Route::resource('assignments', AssignmentController::class);
-        // Route::resource('declarations', DeclarationController::class)->only(['index', 'show', 'update']);
+        Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+        // Companies
+        Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
+        Route::get('/companies/create', [CompanyController::class, 'create'])->name('companies.create');
+        Route::post('/companies', [CompanyController::class, 'store'])->name('companies.store');
+
+        // Vehicles
+        Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
+        Route::get('/vehicles/create', [VehicleController::class, 'create'])->name('vehicles.create');
+        Route::post('/vehicles', [VehicleController::class, 'store'])->name('vehicles.store');
+
+        // Assignments — « Attribution rapide » plein écran (sans POST dédié :
+        // utilise l'endpoint /app/planning/assignments pour créer en masse)
+        Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+        Route::get('/assignments/vehicle-dates', [AssignmentController::class, 'vehicleDates'])->name('assignments.vehicle-dates');
+
+        // Planning global (heatmap annuelle) — vue d'ensemble maîtresse
+        Route::get('/planning', [PlanningController::class, 'index'])->name('planning.index');
+        Route::get('/planning/week', [PlanningController::class, 'week'])->name('planning.week');
+        Route::post('/planning/preview-taxes', [PlanningController::class, 'previewTaxes'])->name('planning.preview-taxes');
+        Route::post('/planning/assignments', [PlanningController::class, 'storeBulk'])->name('planning.assignments.store-bulk');
+
+        // Fiscal rules — consultation only
+        Route::get('/fiscal-rules', [FiscalRuleController::class, 'index'])->name('fiscal-rules.index');
     });

@@ -15,4 +15,13 @@ enum UnderlyingCombustionEngineType: string
     case Gasoline = 'gasoline';
     case Diesel = 'diesel';
     case NotApplicable = 'not_applicable';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Gasoline => 'Essence',
+            self::Diesel => 'Diesel',
+            self::NotApplicable => 'Sans objet',
+        };
+    }
 }

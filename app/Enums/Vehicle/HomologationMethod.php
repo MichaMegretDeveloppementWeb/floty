@@ -19,4 +19,13 @@ enum HomologationMethod: string
     case Wltp = 'WLTP';
     case Nedc = 'NEDC';
     case Pa = 'PA';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Wltp => 'WLTP (immatriculation ≥ 01/03/2020)',
+            self::Nedc => 'NEDC (immatriculation 2004-2020)',
+            self::Pa => 'Puissance administrative (données CO₂ indisponibles)',
+        };
+    }
 }

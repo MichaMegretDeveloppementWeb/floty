@@ -10,6 +10,79 @@
 
 ---
 
+## 2026-04-24 (soir — suite 6)
+
+### MVP démo client — itération 2 (dashboard + tableaux agrégés)
+
+Trois ajustements supplémentaires demandés par Renaud :
+
+1. **Dashboard** : KPIs alignés sur l'année sélectionnée (2024 en MVP). Remplacement de "Règles fiscales" par "Taxes dues 2024" (plus parlant). Nouveau KPI rempli via `FiscalCalculator` appliqué à chaque couple (véhicule, entreprise) — somme totale affichée en €.
+2. **Table Flotte** : suppression de la colonne Statut — représenté par une pastille de couleur (emerald/amber/rose/slate) à gauche de l'immatriculation avec tooltip. Ajout des colonnes "1ʳᵉ immat." et "Taxe 2024" (montant annuel CO₂+polluants cumulé pour le véhicule). Formatage dates en dd/mm/yyyy et montants en € avec séparateur insécable.
+3. **Table Entreprises** : même principe — pastille (active/inactive) à gauche du `CompanyTag`, suppression de la colonne Statut. Ajout des colonnes "Jours 2024" (cumul d'utilisation véhicule toutes flottes) et "Taxe 2024" (somme des taxes dues par cette entreprise sur l'année). Les contrôleurs `VehicleController::index` et `CompanyController::index` agrègent ces données via le `FiscalCalculator`.
+
+Vérifié dans le navigateur : total dashboard (6 911 €) = somme par véhicule = somme par entreprise (1 751 + 2 004 + 582 + 1 438 + 1 135 ≈ 6 910 €, écart d'arrondi cumulé).
+
+## 2026-04-24 (soir — suite 5)
+
+### MVP démo client — itération post-revue (4 points UX)
+
+Remarques client après première revue, implémentées :
+
+1. **Heatmap layout sticky** : max-width passé de 1400 → 1600 px. Découpage en 3 zones : colonne gauche (mini-fiche véhicule) et colonne droite (taxe annuelle + jours) sticky, seule la bande centrale (52 semaines) scrolle horizontalement sous la limite de largeur.
+2. **Drawer bidirectionnel** :
+   - La semaine couverte par le drawer est surlignée dans le calendrier (ring-1 blue-400 sur les 7 dates correspondantes) → l'utilisateur sait toujours où il est.
+   - Les 7 slots Lun→Dim de la grille de semaine sont désormais `<button>` cliquables : toggle la date dans `selectedDates` pour les jours libres, désactivés pour les jours déjà attribués.
+   - Les deux vues partagent le même modèle `selected` → sélection propagée dans les deux sens.
+3. **Année fiscale comme source de vérité** :
+   - `HandleInertiaRequests` expose désormais `fiscal.currentYear` + `fiscal.availableYears` en shared props.
+   - `UserLayout` lit ces valeurs (plus de `ref` local fantôme à 2026).
+   - `TopBar` passe min/max au `YearSelector` → flèches désactivées tant qu'il n'y a qu'une seule année disponible (2024 en MVP). Le blocage est mécanique, pas en dur.
+   - Type TS `PageProps.fiscal` ajouté pour autocomplétion.
+4. **Page Attributions refondue** : disparition de la DataTable « une ligne par jour » (redondante avec la heatmap). Devient un formulaire plein écran « Attribution rapide » : sélecteur véhicule + sélecteur entreprise + `MultiDatePicker` + récapitulatif + preview fiscal + bouton `Créer N attributions`. Réutilise l'endpoint `/app/planning/assignments` pour la création en masse. Nouveau endpoint `GET /app/assignments/vehicle-dates` pour récupérer les dates occupées d'un véhicule (grisage calendrier) et les dates déjà attribuées au couple courant (mise en évidence bleu clair). À la création, redirection automatique vers la vue d'ensemble pour visualiser l'impact.
+
+Suppression de `StoreAssignmentRequest` et de la route `POST /app/assignments` (inutilisées).
+
+## 2026-04-24 (soir — suite 4)
+
+### MVP démo client — Vue d'ensemble + moteur fiscal + calendrier multi-dates
+
+Ajout des 3 éléments critiques demandés par Renaud pour la démo :
+
+- **Page Règles de calcul refondue en 2 onglets pédagogiques** (cf. prompt client « on ne comprend rien ») :
+  - *Calcul des taxes* — formule générale en bandeau + 4 sections (aiguillage du barème, barèmes avec tables de tranches WLTP/NEDC/PA/polluants, exonérations applicables avec blocs Si/Alors, exonérations non applicables repliées). Contenu enrichi dans `resources/js/data/fiscalRulesContent.ts` (titres humains, tranches tabulées, exemples chiffrés, conditions d'application) — cohérent ADR-0006 « logique en code, métadonnées en base ».
+  - *Cadre & fonctionnement* — règles implicites/évidences, gestion d'évènements véhicule, fonctionnement interne.
+  - Nouveau composant `Components/Ui/Tabs/Tabs.vue` (segmented control).
+- **Moteur fiscal MVP** dans `app/Services/Fiscal/` : `FiscalCalculator` orchestrateur + `BracketsCatalog2024` (WLTP/NEDC/PA/polluants) + DTO `FiscalBreakdown`. Règles implémentées : R-2024-002 prorata, R-2024-003 arrondi half-up, R-2024-005/006 aiguillage CO₂, R-2024-010/011/012/014 barèmes, R-2024-015 handicap, R-2024-016 électrique, R-2024-021 LCD 30 j. Test unitaire `BracketsCatalog2024Test` (21/21 passed) calé sur les valeurs de référence BOFiP et les tests du cahier (WLTP 100 → 173 €, PA 7 CV → 15 000 €, NEDC 130 → 1 282 €, WLTP 200 → 4 258 €). Raccourcis MVP (reportés) : pas de R-2024-017 hybride conditionnelle, pas de conversion NEDC→WLTP, catégorie polluants lue depuis le champ DB (seeder la produit correctement).
+- **DemoSeeder** : 5 entreprises (couleurs design system), 10 véhicules diversifiés (WLTP/NEDC/PA, Euro 5+/autres, électrique/Diesel/hybride/handicap), ~2 364 attributions 2024 étalées pour produire plusieurs couples sous/au-dessus du seuil LCD. Taxes totales 2024 seedées = 6 911 €. Lançable ponctuellement : `php artisan db:seed --class=DemoSeeder`.
+- **Vue d'ensemble § 3.3** (`PlanningController::index` + `pages/User/Planning/Index.vue`) : heatmap matricielle véhicules × 52 semaines, densité colorée sur l'échelle blue-scale (0→7 jours), mini-fiche véhicule à gauche (badge VP/VU, plaque monospace, marque/modèle), taxe annuelle cumulée à droite, labels mensuels, légende de densité. Composant réutilisable `Components/Features/Planning/Heatmap.vue`.
+- **Drawer § 3.7** (`WeekDrawer.vue`) avec au clic cellule : en-tête semaine + véhicule, grille 7 slots Lun→Dim avec CompanyTag ou « libre », liste des entreprises présentes sur la semaine, **formulaire d'attribution** : sélection entreprise + calendrier multi-dates + **encart « Taxes induites par cette attribution » avec calcul temps réel** via endpoint `POST /app/planning/preview-taxes`. L'encart affiche : nouveaux jours pour le couple, cumul futur, exonérations applicables avec base légale (ex. « ✓ Exonération LCD — cumul annuel 20 j ≤ 30 j (CIBS L. 421-129 / L. 421-141) »), taxe CO₂ + méthode, taxe polluants, total annuel du couple, incrément induit par la sélection.
+- **Calendrier multi-dates custom** (`MultiDatePicker.vue`) : shift+clic pour plage continue, ctrl+clic pour dates non-successives, jours déjà attribués grisés/non-cliquables, récap live du nombre de jours sélectionnés, bouton « Effacer ». Ancre conservée pour shift+clic successifs.
+- **Création en masse** : endpoint `POST /app/planning/assignments` qui insère N attributions en une passe (`INSERT IGNORE` pour tolérer les doublons). Au retour, `router.reload({ only: ['vehicles'] })` pour recalculer densités + taxes annuelles sans rechargement complet.
+- **Helper HTTP** : `resources/js/lib/http.ts` — `getJson` / `postJson` avec cookie XSRF automatique (Inertia v3 a retiré axios, usage `fetch` natif).
+- **Route racine** `/` redirige maintenant selon l'état d'auth.
+- **Sidebar** : nouvelle entrée « Vue d'ensemble » en tête de la section Planning (icône `CalendarDays`).
+
+## 2026-04-24 (soir — suite 3)
+
+### MVP démo client — auth + CRUD minimal
+
+Arbitrage du client : montrer quelque chose de fonctionnel ce soir quitte à court-circuiter certains layers (pas d'Actions/Services/Repositories, pas de DTOs Spatie Data, pas de Policies, pas de tests). Les tests et abstractions seront ajoutés dans une seconde passe. Livré :
+
+- **Auth login/logout** : `LoginController` invokable, `LoginRequest` avec rate limiting (5 tentatives / 15 min, IP-based), messages d'erreur génériques (OWASP/ADR-0011), `last_login_at` mis à jour à chaque succès, regénération session. Pas de forgot/reset/change-password pour le MVP (reporté post-démo).
+- **Route racine `/`** : redirige vers `/app/dashboard` si authentifié, `/login` sinon.
+- **Dashboard** : 4 KPI cards (véhicules, entreprises, attributions année courante, règles fiscales) + liens d'action rapide vers les sous-sections.
+- **Companies CRUD** : `index` (DataTable avec CompanyTag), `create` (form identité + adresse + contact), `store` (FormRequest avec validation SIREN 9 digits, SIRET 14 digits, short_code unique via colonne générée `short_code_active`, color Enum `CompanyColor`).
+- **Vehicles CRUD** : `index` (DataTable avec Plate + StatusPill), `create` (form dense : identité, dates d'immatriculation, caractéristiques fiscales avec sélecteur de méthode d'homologation WLTP/NEDC/PA et champs CO₂ conditionnels), `store` via `DB::transaction` créant Vehicle + VehicleFiscalCharacteristics initiales.
+- **Assignments** : `index` (form inline en haut + DataTable des 100 dernières) ; `store` avec catch d'`UniqueConstraintViolationException` sur (vehicle, date).
+- **Fiscal rules (consultation)** : `index` lecture seule, liste des 24 règles `R-2024-NNN` avec badges (type + taxes) et basis légale formatée. Contrôleur par défaut sur l'année max seedée (évite l'empty state quand la date courante n'a pas encore de règles).
+- **FiscalRulesSeeder** : les 24 règles de `taxes-rules/2024.md` (R-2024-001 → 024), via `updateOrCreate(rule_code)`. Rules 018/019/022 marquées `is_active = false`.
+- **UserSeeder** : admin@floty.test / password (first_name=Renaud, last_name=Nicolas).
+- **Shared props Inertia** mis à jour : `auth.user = {id, firstName, lastName, fullName, email}` (type TS `CurrentUser` aligné).
+- **Sidebar** : URLs réelles, état actif calculé depuis `page.url` (Inertia `usePage()`).
+- **TopBar** : avatar + nom dérivés de `auth.user` (usePage) ; menu Déconnexion via `router.post('/logout')`.
+
+Fumigation end-to-end validée : GET /, POST /login (avec CSRF), GET /app/dashboard (auth.user hydraté), GET /app/fiscal-rules (24 règles pour 2024 par défaut).
+
 ## 2026-04-24 (soir — suite 2)
 
 ### Phase 01.bis — Schéma global V1 (enums + migrations + modèles)

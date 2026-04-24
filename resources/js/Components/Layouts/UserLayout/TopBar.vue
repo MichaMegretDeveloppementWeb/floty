@@ -1,17 +1,40 @@
 <script setup lang="ts">
-import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import UserMenu from '@/Components/Layouts/UserLayout/UserMenu.vue';
 import YearSelector from '@/Components/Layouts/UserLayout/YearSelector.vue';
+import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
+import { usePage } from '@inertiajs/vue3';
 import { Menu } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 const year = defineModel<number>('year', { required: true });
+
+defineProps<{
+    minYear: number;
+    maxYear: number;
+}>();
 
 const emit = defineEmits<{
     'toggle-sidebar': [];
 }>();
 
 const search = ref<string>('');
+
+const page = usePage();
+const authUser = computed(() => page.props.auth?.user ?? null);
+
+const fullName = computed((): string => {
+    const user = authUser.value;
+    if (!user) return 'Invité';
+    return user.fullName || 'Utilisateur';
+});
+
+const initials = computed((): string => {
+    const user = authUser.value;
+    if (!user) return '?';
+    const first = user.firstName?.[0] ?? '';
+    const last = user.lastName?.[0] ?? '';
+    return (first + last).toUpperCase() || '?';
+});
 </script>
 
 <template>
@@ -36,7 +59,11 @@ const search = ref<string>('');
             />
         </div>
 
-        <YearSelector v-model="year" />
+        <YearSelector
+            v-model="year"
+            :min="minYear"
+            :max="maxYear"
+        />
 
         <div
             class="hidden h-8 w-px bg-slate-200 md:block"
@@ -44,8 +71,8 @@ const search = ref<string>('');
         />
 
         <UserMenu
-            name="R. Martin"
-            initials="RM"
+            :name="fullName"
+            :initials="initials"
             role="Gestionnaire flotte"
         />
     </header>

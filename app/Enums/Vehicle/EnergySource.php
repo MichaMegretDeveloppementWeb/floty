@@ -36,4 +36,20 @@ enum EnergySource: string
             default => false,
         };
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Gasoline => 'Essence',
+            self::Diesel => 'Diesel',
+            self::Electric => 'Électrique',
+            self::Hydrogen => 'Hydrogène',
+            self::PluginHybrid => 'Hybride rechargeable',
+            self::NonPluginHybrid => 'Hybride non rechargeable',
+            self::Lpg => 'GPL',
+            self::Cng => 'Gaz naturel (GNV)',
+            self::E85 => 'Superéthanol E85',
+            self::ElectricHydrogen => 'Électrique + hydrogène',
+        };
+    }
 }

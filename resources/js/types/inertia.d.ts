@@ -15,6 +15,10 @@ declare module '@inertiajs/core' {
         appName: string;
         auth: Auth;
         flash: Flash;
+        fiscal: {
+            currentYear: number;
+            availableYears: number[];
+        };
     }
 }
 

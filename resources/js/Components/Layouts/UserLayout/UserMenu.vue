@@ -1,6 +1,7 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import { onClickOutside, onKeyStroke } from '@vueuse/core';
-import { ChevronDown, LogOut, Settings } from 'lucide-vue-next';
+import { ChevronDown, LogOut } from 'lucide-vue-next';
 import { ref, useTemplateRef } from 'vue';
 
 defineProps<{
@@ -18,6 +19,11 @@ const close = (): void => {
 
 const toggle = (): void => {
     open.value = !open.value;
+};
+
+const logout = (): void => {
+    close();
+    router.post('/logout');
 };
 
 onClickOutside(rootRef, close);
@@ -68,27 +74,11 @@ onKeyStroke('Escape', () => {
             </div>
             <ul class="py-1.5">
                 <li>
-                    <a
-                        href="#settings"
+                    <button
+                        type="button"
                         role="menuitem"
-                        class="flex items-center gap-2.5 px-4 py-2 text-base text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                        @click="close"
-                    >
-                        <Settings
-                            :size="14"
-                            :stroke-width="1.75"
-                            class="text-slate-400"
-                            aria-hidden="true"
-                        />
-                        Paramètres
-                    </a>
-                </li>
-                <li>
-                    <a
-                        href="#logout"
-                        role="menuitem"
-                        class="flex items-center gap-2.5 px-4 py-2 text-base text-slate-700 hover:bg-slate-50 hover:text-slate-900"
-                        @click="close"
+                        class="flex w-full items-center gap-2.5 px-4 py-2 text-left text-base text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                        @click="logout"
                     >
                         <LogOut
                             :size="14"
@@ -97,7 +87,7 @@ onKeyStroke('Escape', () => {
                             aria-hidden="true"
                         />
                         Déconnexion
-                    </a>
+                    </button>
                 </li>
             </ul>
         </div>

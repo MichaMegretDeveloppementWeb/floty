@@ -1,11 +1,13 @@
 /**
  * Utilisateur connecté — shape minimal exposé par le middleware
- * `HandleInertiaRequests` en phase 01. Sera remplacé en phase 03 par
- * un DTO généré `CurrentUserData` (Spatie Laravel Data → TS Transformer).
+ * `HandleInertiaRequests` en MVP. Sera remplacé post-MVP par un DTO
+ * généré `CurrentUserData` (Spatie Laravel Data → TS Transformer).
  */
 export type CurrentUser = {
     id: number;
-    name: string;
+    firstName: string;
+    lastName: string;
+    fullName: string;
     email: string;
 };
 

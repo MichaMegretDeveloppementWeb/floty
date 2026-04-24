@@ -37,4 +37,24 @@ enum EuroStandard: string
             default => true,
         };
     }
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Euro1 => 'Euro 1',
+            self::Euro2 => 'Euro 2',
+            self::Euro3 => 'Euro 3',
+            self::Euro4 => 'Euro 4',
+            self::Euro5 => 'Euro 5',
+            self::Euro5a => 'Euro 5a',
+            self::Euro5b => 'Euro 5b',
+            self::Euro6 => 'Euro 6',
+            self::Euro6b => 'Euro 6b',
+            self::Euro6c => 'Euro 6c',
+            self::Euro6dTemp => 'Euro 6d-Temp',
+            self::Euro6d => 'Euro 6d',
+            self::Euro6dIsc => 'Euro 6d-ISC',
+            self::Euro6dIscFcm => 'Euro 6d-ISC-FCM',
+        };
+    }
 }

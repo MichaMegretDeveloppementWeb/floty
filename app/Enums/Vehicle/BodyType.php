@@ -19,4 +19,15 @@ enum BodyType: string
     case LightTruck = 'CTTE';
     case Pickup = 'BE';
     case Handicap = 'HB';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::InteriorDriving => 'Conduite intérieure (berline, monospace)',
+            self::StationWagon => 'Break',
+            self::LightTruck => 'Camionnette',
+            self::Pickup => 'Pick-up',
+            self::Handicap => 'Véhicule aménagé handicap',
+        };
+    }
 }

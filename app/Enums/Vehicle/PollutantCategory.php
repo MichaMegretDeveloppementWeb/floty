@@ -18,4 +18,13 @@ enum PollutantCategory: string
     case E = 'e';
     case Category1 = 'category_1';
     case MostPolluting = 'most_polluting';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::E => 'E — Électrique / hydrogène (0 €)',
+            self::Category1 => '1 — Essence ou gaz Euro 5/6 (100 €)',
+            self::MostPolluting => 'Véhicules les plus polluants (500 €)',
+        };
+    }
 }

@@ -1,23 +1,21 @@
 <script setup lang="ts">
 import FlotyMark from '@/Components/Brand/FlotyMark.vue';
+import { usePage } from '@inertiajs/vue3';
 import {
-    BarChart3,
     Building2,
     CalendarCheck,
-    CalendarRange,
+    CalendarDays,
     Car,
     LayoutDashboard,
     Receipt,
-    Table2,
-    Users,
     type LucideIcon,
 } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 type NavItem = {
     label: string;
     icon: LucideIcon;
     href: string;
-    active?: boolean;
 };
 
 type NavSection = {
@@ -38,8 +36,7 @@ const sections: NavSection[] = [
             {
                 label: 'Dashboard',
                 icon: LayoutDashboard,
-                href: '#dashboard',
-                active: true,
+                href: '/app/dashboard',
             },
         ],
     },
@@ -47,35 +44,25 @@ const sections: NavSection[] = [
         title: 'Planning',
         items: [
             {
-                label: 'Vue globale',
-                icon: CalendarRange,
-                href: '#planning-global',
+                label: 'Vue d\'ensemble',
+                icon: CalendarDays,
+                href: '/app/planning',
             },
             {
-                label: 'Par entreprise',
-                icon: Building2,
-                href: '#planning-companies',
-            },
-            {
-                label: 'Par véhicule',
-                icon: Car,
-                href: '#planning-vehicles',
-            },
-            {
-                label: 'Saisie hebdo',
+                label: 'Attributions',
                 icon: CalendarCheck,
-                href: '#planning-weekly',
+                href: '/app/assignments',
             },
         ],
     },
     {
         title: 'Données',
         items: [
-            { label: 'Flotte', icon: Table2, href: '#fleet' },
+            { label: 'Flotte', icon: Car, href: '/app/vehicles' },
             {
-                label: 'Entreprises & conducteurs',
-                icon: Users,
-                href: '#companies',
+                label: 'Entreprises',
+                icon: Building2,
+                href: '/app/companies',
             },
         ],
     },
@@ -83,14 +70,21 @@ const sections: NavSection[] = [
         title: 'Fiscalité',
         items: [
             {
-                label: 'Déclarations',
+                label: 'Règles de calcul',
                 icon: Receipt,
-                href: '#declarations',
+                href: '/app/fiscal-rules',
             },
-            { label: 'Analytics', icon: BarChart3, href: '#analytics' },
         ],
     },
 ];
+
+const page = usePage();
+const currentPath = computed((): string => {
+    const url = page.url;
+    return typeof url === 'string' ? url : '';
+});
+
+const isActive = (href: string): boolean => currentPath.value.startsWith(href);
 
 const closeDrawer = (): void => {
     open.value = false;
@@ -110,12 +104,12 @@ const labelClass =
 
     <aside
         :class="[
-            'group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-hidden border-r border-slate-200 bg-white',
+            'group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-y-auto overflow-x-hidden border-r border-slate-200 bg-white',
             'transition-[transform,width] duration-200 ease-out',
             'w-60',
             open ? 'translate-x-0' : '-translate-x-full',
             'md:translate-x-0 md:w-16 md:hover:w-60',
-            'wide:static wide:inset-auto wide:translate-x-0 wide:w-60 wide:shrink-0',
+            'wide:w-60',
         ]"
     >
         <div
@@ -145,17 +139,17 @@ const labelClass =
                     <li v-for="item in section.items" :key="item.label">
                         <a
                             :href="item.href"
-                            :aria-current="item.active ? 'page' : undefined"
+                            :aria-current="isActive(item.href) ? 'page' : undefined"
                             :class="[
                                 'relative flex items-center gap-3 px-6 py-2 text-base transition-colors duration-[120ms] ease-out',
-                                item.active
+                                isActive(item.href)
                                     ? 'bg-slate-50 font-medium text-slate-900'
                                     : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                             ]"
                             @click="closeDrawer"
                         >
                             <span
-                                v-if="item.active"
+                                v-if="isActive(item.href)"
                                 aria-hidden="true"
                                 class="absolute top-0 bottom-0 left-0 w-0.5 bg-slate-900"
                             />

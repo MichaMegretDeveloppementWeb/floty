@@ -16,4 +16,12 @@ enum ReceptionCategory: string
 {
     case M1 = 'M1';
     case N1 = 'N1';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::M1 => 'M1 — Voiture particulière (≤ 8 places)',
+            self::N1 => 'N1 — Camionnette (PTAC ≤ 3,5 t)',
+        };
+    }
 }

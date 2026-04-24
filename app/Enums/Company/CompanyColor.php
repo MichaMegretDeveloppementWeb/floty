@@ -23,4 +23,18 @@ enum CompanyColor: string
     case Teal = 'teal';
     case Orange = 'orange';
     case Cyan = 'cyan';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Indigo => 'Indigo',
+            self::Emerald => 'Émeraude',
+            self::Amber => 'Ambre',
+            self::Rose => 'Rose',
+            self::Violet => 'Violet',
+            self::Teal => 'Turquoise',
+            self::Orange => 'Orange',
+            self::Cyan => 'Cyan',
+        };
+    }
 }
