@@ -10,6 +10,40 @@
 
 ---
 
+## 2026-04-24 (soir — suite)
+
+### Phase 01 — fondations backend complétée
+
+Les 10 tâches du README `tasks/phase-01-fondations-backend/README.md` sont livrées :
+
+- **01.01** Arborescence `app/` documentée (`docs/app-structure.md`) avec exemples concrets par domaine. Création JIT — aucun dossier vide avec `.gitkeep`.
+- **01.02** `BaseAppException` abstraite (`app/Exceptions/`) avec séparation stricte `technicalMessage` (logs) / `userMessage` (utilisateur FR).
+- **01.03** `RepositoryServiceProvider` scaffold (bindings `$singletons` vides à peupler au fur et à mesure des phases 04-11), enregistré dans `bootstrap/providers.php`.
+- **01.04** `AppServiceProvider` durci : `CarbonImmutable` partout, locale Carbon propagée depuis `config/app.php`, `Model::shouldBeStrict()` en non-production, `DB::prohibitDestructiveCommands()` en prod, `Password::defaults()` aligné ADR-0011 (min 12, pas de complexité forcée).
+- **01.05** Enums transverses `App\Enums\Fiscal\{RuleType, TaxType}` — cinq sous-types ADR-0006 + deux taxes CIBS.
+- **01.06** Segmentation routes : `routes/auth.php` (groupes `guest` + `auth`) et `routes/user.php` (prefix `app`, middleware `auth`, noms préfixés `user.`). Branchés dans `bootstrap/app.php` via `->withRouting(then: ...)`.
+- **01.07** `HandleInertiaRequests` refondu avec shared props Floty : `appName`, `auth.user` (shape minimal en attendant `CurrentUserData` phase 03), quatre canaux `flash.{success,error,warning,info}` alignés sur les variantes Toast.
+- **01.08** Typage TS `@inertiajs/core` — création `resources/js/types/inertia.d.ts` avec extension `PageProps`, nettoyage du bloc `InertiaConfig` parasite du starter dans `global.d.ts`.
+- **01.09** Locale/timezone FR effectifs — `config/app.php` (`locale = 'fr'`, `faker_locale = 'fr_FR'`, `timezone = 'Europe/Paris'`), `.env.example` + `.env` mis à jour. Carbon formate désormais en FR (`vendredi 24 avril 2026`).
+- **01.10** Cache driver `database` + émulation tags : service `App\Services\Shared\Cache\CacheTagsManager` avec `key(...)` et `invalidateByPrefix($p)` — supprime la clé exacte + tous les descendants `{p}:*`, préserve les préfixes voisins (`vehicle:42` n'invalide pas `vehicle:420`). Métacaractères LIKE échappés. 9 tests Feature / 20 assertions, tous verts.
+
+### Incidents résolus pendant la phase
+
+- **MyISAM par défaut** sur le serveur MySQL 8.2 local (Herd) causait `SQLSTATE 1071: Key too long` dès `users.email varchar(255) unique` en utf8mb4. Correction : `config/database.php` force désormais `engine = env('DB_ENGINE', 'InnoDB')` pour la connexion MySQL — InnoDB supporte 3072 bytes d'index prefix vs 1000 pour MyISAM.
+- Base `floty` MySQL provisionnée via PDO (mysql CLI absente du PATH Herd).
+
+### Outillage vérifié
+
+- `php artisan test` : 11/11 passent (ExampleTest + 9 CacheTagsManagerTest).
+- `vendor/bin/pint --dirty --format agent` : passed.
+- `npx vue-tsc --noEmit` : clean.
+- `npm run build` : 945 ms, aucun warning.
+- `php artisan route:list` : 7 routes (home, dev/ui-kit, dev/ui-kit/layout-user, storage.local.*, up, boost.browser-logs) — auth.php et user.php présents mais encore vides en attendant phase 03+.
+
+### Divers
+
+- `app.ts` aligné Floty : titre des pages au format `"Title · Floty"`, couleur de la progress bar Inertia en `slate-900`.
+
 ## 2026-04-24
 
 ### Soirée (24/04 J+1) — Traitement de l'audit rapport-001

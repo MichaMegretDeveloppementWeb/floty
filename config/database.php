@@ -58,7 +58,12 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'strict' => true,
-            'engine' => null,
+            // Floty impose InnoDB explicitement (transactions, FK, row format
+            // DYNAMIC, index prefix limit 3072 bytes). Sans cela, un serveur
+            // MySQL configuré avec default_storage_engine = MyISAM produit
+            // un `Key too long: 1000` dès qu'une colonne varchar(255) unique
+            // est définie en utf8mb4 (4 × 255 = 1020 > 1000 MyISAM).
+            'engine' => env('DB_ENGINE', 'InnoDB'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
             ]) : [],
