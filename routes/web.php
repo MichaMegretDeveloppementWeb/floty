@@ -3,14 +3,9 @@
 use App\Http\Controllers\Web\Dev\UiKitShowcaseController;
 use App\Http\Controllers\Web\Dev\UiKitUserLayoutController;
 use Illuminate\Support\Facades\App;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', static function () {
-    return Auth::check()
-        ? redirect()->route('user.dashboard')
-        : redirect()->route('login');
-})->name('home');
+Route::inertia('/', 'Welcome')->name('home');
 
 /*
 |--------------------------------------------------------------------------
