@@ -30,7 +30,7 @@ final class StoreVehicleRequest extends FormRequest
                 'required',
                 'string',
                 'max:20',
-                Rule::unique('vehicles', 'license_plate_active'),
+                Rule::unique('vehicles', 'license_plate')->whereNull('deleted_at'),
             ],
             'brand' => ['required', 'string', 'max:80'],
             'model' => ['required', 'string', 'max:120'],

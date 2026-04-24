@@ -73,14 +73,11 @@ return new class extends Migration
             $table->timestamps();
 
             $table->index(['vehicle_id', 'effective_from']);
-
-            // Colonne générée : flag `is_current` pour INDEX partiel émulé
-            // sur les versions courantes (`effective_to IS NULL`).
-            // Valeur 1 quand courant, NULL sinon → seuls les non-NULL sont indexés.
-            $table->unsignedTinyInteger('is_current')
-                ->virtualAs('IF(effective_to IS NULL, 1, NULL)')
-                ->nullable();
-            $table->index(['vehicle_id', 'is_current']);
+            // Index sur effective_to pour accélérer la recherche de la version
+            // courante (effective_to IS NULL). La colonne générée is_current
+            // initialement prévue est retirée en MVP — Hostinger refuse les
+            // expressions conditionnelles dans GENERATED ALWAYS AS.
+            $table->index(['vehicle_id', 'effective_to']);
         });
 
         // CHECK constraints — filet SQL défensif, MySQL uniquement

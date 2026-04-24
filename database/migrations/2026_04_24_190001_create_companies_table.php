@@ -54,17 +54,14 @@ return new class extends Migration
 
             $table->index(['is_active', 'deleted_at']);
 
-            // Colonnes générées pour les UNIQUE filtrés par soft delete
-            // (cf. 01-schema-metier.md § 0.2).
-            $table->string('short_code_active', 5)
-                ->virtualAs('IF(deleted_at IS NULL, short_code, NULL)')
-                ->nullable();
-            $table->char('siren_active', 9)
-                ->virtualAs('IF(deleted_at IS NULL AND siren IS NOT NULL, siren, NULL)')
-                ->nullable();
-
-            $table->unique('short_code_active');
-            $table->unique('siren_active');
+            // UNIQUE directs sur short_code et siren — fallback MVP sans
+            // colonnes générées (Hostinger refuse les expressions
+            // conditionnelles dans GENERATED ALWAYS AS). Conséquence : un
+            // short_code / siren d'une entreprise soft-deletée ne peut
+            // pas être réutilisé. Acceptable en démo ; à revoir en V1
+            // via triggers BEFORE INSERT/UPDATE.
+            $table->unique('short_code');
+            $table->unique('siren');
         });
 
         // CHECK constraints — filet SQL défensif, ajouté via ALTER TABLE qui

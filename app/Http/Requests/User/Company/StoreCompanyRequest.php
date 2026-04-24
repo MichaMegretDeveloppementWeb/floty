@@ -25,7 +25,7 @@ final class StoreCompanyRequest extends FormRequest
                 'required',
                 'string',
                 'max:5',
-                Rule::unique('companies', 'short_code_active'),
+                Rule::unique('companies', 'short_code')->whereNull('deleted_at'),
             ],
             'color' => ['required', 'string', new Enum(CompanyColor::class)],
             'siren' => ['nullable', 'string', 'size:9', 'regex:/^\d{9}$/'],

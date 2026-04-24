@@ -50,13 +50,11 @@ return new class extends Migration
                 ->storedAs('YEAR(`date`)');
             $table->index(['vehicle_id', 'company_id', 'date_year']);
 
-            // UNIQUE (vehicle_id, date) filtré par soft delete — émulation
-            // via colonne générée qui vaut NULL pour les soft-deleted
-            // (les NULL ne violent pas l'UNIQUE en MySQL).
-            $table->string('vehicle_date_active', 30)
-                ->virtualAs("IF(deleted_at IS NULL, CONCAT(vehicle_id, ':', `date`), NULL)")
-                ->nullable();
-            $table->unique('vehicle_date_active');
+            // UNIQUE (vehicle_id, date) direct — fallback MVP sans colonne
+            // générée filtrée par soft delete. Conséquence : une attribution
+            // soft-deletée verrouille le slot (vehicle_id, date) et empêche
+            // la re-création. À revoir en V1 via triggers.
+            $table->unique(['vehicle_id', 'date']);
         });
     }
 

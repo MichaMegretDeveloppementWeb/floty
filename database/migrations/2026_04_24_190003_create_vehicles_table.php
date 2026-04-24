@@ -50,16 +50,12 @@ return new class extends Migration
 
             $table->index('exit_date');
 
-            // UNIQUE filtrés par soft delete — via colonnes générées virtuelles.
-            $table->string('license_plate_active', 20)
-                ->virtualAs('IF(deleted_at IS NULL, license_plate, NULL)')
-                ->nullable();
-            $table->string('vin_active', 20)
-                ->virtualAs('IF(deleted_at IS NULL AND vin IS NOT NULL, vin, NULL)')
-                ->nullable();
-
-            $table->unique('license_plate_active');
-            $table->unique('vin_active');
+            // UNIQUE directs sur license_plate et vin — fallback MVP sans
+            // colonnes générées (cf. note similaire dans la migration
+            // companies). Conséquence : plaque/VIN d'un véhicule soft-
+            // deleté non réutilisable. À revoir en V1 via triggers.
+            $table->unique('license_plate');
+            $table->unique('vin');
         });
 
         // CHECK constraints — filet SQL défensif, MySQL uniquement
