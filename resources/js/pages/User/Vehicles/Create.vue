@@ -8,18 +8,8 @@ import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
-type EnumOption = { value: string; label: string };
-
 const props = defineProps<{
-    enums: {
-        receptionCategories: EnumOption[];
-        vehicleUserTypes: EnumOption[];
-        bodyTypes: EnumOption[];
-        energySources: EnumOption[];
-        euroStandards: EnumOption[];
-        homologationMethods: EnumOption[];
-        pollutantCategories: EnumOption[];
-    };
+    options: App.Data.User.Vehicle.VehicleFormOptionsData;
 }>();
 
 const form = useForm({
@@ -166,21 +156,21 @@ const submit = (): void => {
                         <SelectInput
                             v-model="form.reception_category"
                             label="Catégorie réception"
-                            :options="props.enums.receptionCategories"
+                            :options="props.options.receptionCategories"
                             :error="form.errors.reception_category"
                             required
                         />
                         <SelectInput
                             v-model="form.vehicle_user_type"
                             label="Type utilisateur"
-                            :options="props.enums.vehicleUserTypes"
+                            :options="props.options.vehicleUserTypes"
                             :error="form.errors.vehicle_user_type"
                             required
                         />
                         <SelectInput
                             v-model="form.body_type"
                             label="Carrosserie"
-                            :options="props.enums.bodyTypes"
+                            :options="props.options.bodyTypes"
                             :error="form.errors.body_type"
                             required
                         />
@@ -197,14 +187,14 @@ const submit = (): void => {
                         <SelectInput
                             v-model="form.energy_source"
                             label="Source d'énergie"
-                            :options="props.enums.energySources"
+                            :options="props.options.energySources"
                             :error="form.errors.energy_source"
                             required
                         />
                         <SelectInput
                             v-model="form.euro_standard"
                             label="Norme Euro"
-                            :options="props.enums.euroStandards"
+                            :options="props.options.euroStandards"
                             :error="form.errors.euro_standard"
                         />
                     </div>
@@ -212,14 +202,14 @@ const submit = (): void => {
                         <SelectInput
                             v-model="form.pollutant_category"
                             label="Catégorie polluants"
-                            :options="props.enums.pollutantCategories"
+                            :options="props.options.pollutantCategories"
                             :error="form.errors.pollutant_category"
                             required
                         />
                         <SelectInput
                             v-model="form.homologation_method"
                             label="Méthode d'homologation"
-                            :options="props.enums.homologationMethods"
+                            :options="props.options.homologationMethods"
                             :error="form.errors.homologation_method"
                             required
                         />

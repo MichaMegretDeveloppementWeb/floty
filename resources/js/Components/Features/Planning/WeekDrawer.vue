@@ -13,65 +13,14 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import { postJson } from '@/lib/http';
-import type { CompanyColor } from '@/types/ui';
 import { daysInYear } from '@/Utils/date/daysInYear';
 import { X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import MultiDatePicker from './MultiDatePicker.vue';
 
-type Company = {
-    id: number;
-    shortCode: string;
-    legalName: string;
-    color: CompanyColor;
-};
-
-type DaySlot = {
-    date: string;
-    dayLabel: string;
-    assignment: {
-        id: number;
-        company: Company;
-    } | null;
-};
-
-type WeekData = {
-    weekNumber: number;
-    weekStart: string;
-    weekEnd: string;
-    vehicleId: number;
-    licensePlate: string;
-    days: DaySlot[];
-    companiesOnWeek: Array<{
-        company: Company;
-        days: number;
-    }>;
-};
-
-type FiscalPreview = {
-    fiscalYear: number;
-    newDaysCount: number;
-    existingCumul: number;
-    futureCumul: number;
-    before: {
-        totalDue: number;
-        lcdExempt: boolean;
-    } | null;
-    after: {
-        totalDue: number;
-        lcdExempt: boolean;
-        electricExempt: boolean;
-        handicapExempt: boolean;
-        co2Method: string;
-        co2FullYearTariff: number;
-        co2Due: number;
-        pollutantCategory: string;
-        pollutantsFullYearTariff: number;
-        pollutantsDue: number;
-        exemptionReasons: string[];
-    };
-    incrementalDue: number;
-};
+type Company = App.Data.User.Company.CompanyOptionData;
+type WeekData = App.Data.User.Planning.PlanningWeekData;
+type FiscalPreview = App.Data.User.Fiscal.FiscalPreviewData;
 
 const props = defineProps<{
     open: boolean;

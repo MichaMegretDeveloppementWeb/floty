@@ -10,17 +10,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Car, Plus } from 'lucide-vue-next';
 import { computed } from 'vue';
 
-type VehicleRow = {
-    id: number;
-    licensePlate: string;
-    brand: string;
-    model: string;
-    currentStatus: string;
-    firstFrenchRegistrationDate: string;
-    acquisitionDate: string;
-    exitDate: string | null;
-    annualTaxDue: number;
-};
+type VehicleRow = App.Data.User.Vehicle.VehicleListItemData;
 
 const props = defineProps<{
     vehicles: VehicleRow[];

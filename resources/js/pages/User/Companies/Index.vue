@@ -5,22 +5,12 @@ import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
-import type { CompanyColor, DataTableColumn } from '@/types/ui';
+import type { DataTableColumn } from '@/types/ui';
 import { Head, Link } from '@inertiajs/vue3';
 import { Building2, Plus } from 'lucide-vue-next';
 import { computed } from 'vue';
 
-type CompanyRow = {
-    id: number;
-    legalName: string;
-    shortCode: string;
-    color: CompanyColor;
-    siren: string | null;
-    city: string | null;
-    isActive: boolean;
-    daysUsed: number;
-    annualTaxDue: number;
-};
+type CompanyRow = App.Data.User.Company.CompanyListItemData;
 
 const props = defineProps<{
     companies: CompanyRow[];

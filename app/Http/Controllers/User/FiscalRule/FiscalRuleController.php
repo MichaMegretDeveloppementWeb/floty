@@ -2,11 +2,13 @@
 
 namespace App\Http\Controllers\User\FiscalRule;
 
+use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Http\Controllers\Controller;
 use App\Models\FiscalRule;
 use Database\Seeders\FiscalRulesSeeder;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\LaravelData\DataCollection;
 
 /**
  * Page consultation « Règles de calcul » — lecture seule.
@@ -30,19 +32,21 @@ final class FiscalRuleController extends Controller
             ->where('fiscal_year', $year)
             ->orderBy('display_order')
             ->get()
-            ->map(static fn (FiscalRule $r) => [
-                'id' => $r->id,
-                'ruleCode' => $r->rule_code,
-                'name' => $r->name,
-                'description' => $r->description,
-                'ruleType' => $r->rule_type->value,
-                'taxesConcerned' => $r->taxes_concerned,
-                'legalBasis' => $r->legal_basis,
-                'isActive' => $r->is_active,
-            ]);
+            ->map(static fn (FiscalRule $r): FiscalRuleListItemData => new FiscalRuleListItemData(
+                id: $r->id,
+                ruleCode: $r->rule_code,
+                name: $r->name,
+                description: $r->description,
+                ruleType: $r->rule_type,
+                taxesConcerned: $r->taxes_concerned,
+                legalBasis: $r->legal_basis,
+                isActive: $r->is_active,
+            ))
+            ->values()
+            ->all();
 
         return Inertia::render('User/FiscalRules/Index', [
-            'rules' => $rules,
+            'rules' => FiscalRuleListItemData::collect($rules, DataCollection::class),
         ]);
     }
 }

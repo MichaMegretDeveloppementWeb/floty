@@ -14,13 +14,7 @@ import {
 } from 'lucide-vue-next';
 
 defineProps<{
-    stats: {
-        vehiclesCount: number;
-        companiesCount: number;
-        assignmentsYear: number;
-        fiscalRulesCount: number;
-        totalTaxDue: number;
-    };
+    stats: App.Data.User.Dashboard.DashboardStatsData;
 }>();
 
 const { currentYear: fiscalYear } = useFiscalYear();

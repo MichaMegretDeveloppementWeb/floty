@@ -1,24 +1,20 @@
-import type { Auth, Flash } from '@/types/auth';
+import '@/types/generated/generated';
 
 /**
  * PageProps Floty — shared props exposées par `HandleInertiaRequests`
- * à chaque page Inertia, typées strictement.
- *
- * Sont ajoutés ici :
- *   - au fur et à mesure des phases (ex. `fiscalYear` en phase 02.18) ;
- *   - les props spécifiques qui deviennent communes à plusieurs pages.
+ * à chaque page Inertia, typées strictement via les DTOs Spatie Data
+ * générés automatiquement (cf. `@/types/generated/generated.d.ts`).
  *
  * Côté Vue on consomme via `usePage().props.xxx` avec autocomplétion.
  */
 declare module '@inertiajs/core' {
     interface PageProps {
         appName: string;
-        auth: Auth;
-        flash: Flash;
-        fiscal: {
-            currentYear: number;
-            availableYears: number[];
+        auth: {
+            user: App.Data.Auth.CurrentUserData | null;
         };
+        flash: App.Data.Shared.FlashData;
+        fiscal: App.Data.Shared.FiscalSharedData;
     }
 }
 

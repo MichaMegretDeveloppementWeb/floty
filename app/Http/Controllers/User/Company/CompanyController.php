@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\User\Company;
 
+use App\Data\User\Company\CompanyColorOptionData;
+use App\Data\User\Company\CompanyListItemData;
+use App\Data\User\Company\StoreCompanyData;
 use App\Enums\Company\CompanyColor;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\User\Company\StoreCompanyRequest;
 use App\Models\Assignment;
 use App\Models\Company;
 use App\Models\Vehicle;
@@ -12,6 +14,7 @@ use App\Services\Fiscal\FiscalCalculator;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\LaravelData\DataCollection;
 
 final class CompanyController extends Controller
 {
@@ -50,39 +53,43 @@ final class CompanyController extends Controller
         $companies = Company::query()
             ->orderBy('legal_name')
             ->get()
-            ->map(static fn (Company $c) => [
-                'id' => $c->id,
-                'legalName' => $c->legal_name,
-                'shortCode' => $c->short_code,
-                'color' => $c->color->value,
-                'siren' => $c->siren,
-                'city' => $c->city,
-                'isActive' => $c->is_active,
-                'daysUsed' => $daysByCompany[(string) $c->id] ?? 0,
-                'annualTaxDue' => round($taxByCompany[(string) $c->id] ?? 0.0, 2),
-            ]);
+            ->map(static fn (Company $c): CompanyListItemData => new CompanyListItemData(
+                id: $c->id,
+                legalName: $c->legal_name,
+                shortCode: $c->short_code,
+                color: $c->color,
+                siren: $c->siren,
+                city: $c->city,
+                isActive: $c->is_active,
+                daysUsed: $daysByCompany[(string) $c->id] ?? 0,
+                annualTaxDue: round($taxByCompany[(string) $c->id] ?? 0.0, 2),
+            ))
+            ->values()
+            ->all();
 
         return Inertia::render('User/Companies/Index', [
-            'companies' => $companies,
+            'companies' => CompanyListItemData::collect($companies, DataCollection::class),
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('User/Companies/Create', [
-            'colors' => array_map(
-                static fn (CompanyColor $c): array => [
-                    'value' => $c->value,
-                    'label' => $c->label(),
-                ],
-                CompanyColor::cases(),
+        $colors = array_map(
+            static fn (CompanyColor $c): CompanyColorOptionData => new CompanyColorOptionData(
+                value: $c->value,
+                label: $c->label(),
             ),
+            CompanyColor::cases(),
+        );
+
+        return Inertia::render('User/Companies/Create', [
+            'colors' => CompanyColorOptionData::collect($colors, DataCollection::class),
         ]);
     }
 
-    public function store(StoreCompanyRequest $request): RedirectResponse
+    public function store(StoreCompanyData $data): RedirectResponse
     {
-        Company::create($request->validated());
+        Company::create($data->all());
 
         return redirect()
             ->route('user.companies.index')

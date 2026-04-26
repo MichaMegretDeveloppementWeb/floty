@@ -2,6 +2,17 @@
 
 namespace App\Http\Controllers\User\Planning;
 
+use App\Data\User\Assignment\BulkCreateResultData;
+use App\Data\User\Company\CompanyOptionData;
+use App\Data\User\Fiscal\FiscalBreakdownData;
+use App\Data\User\Fiscal\FiscalPreviewData;
+use App\Data\User\Planning\BulkCreateAssignmentsInputData;
+use App\Data\User\Planning\PlanningHeatmapVehicleData;
+use App\Data\User\Planning\PlanningWeekData;
+use App\Data\User\Planning\PreviewTaxesInputData;
+use App\Data\User\Planning\WeekCompanyPresenceData;
+use App\Data\User\Planning\WeekDayAssignmentData;
+use App\Data\User\Planning\WeekDaySlotData;
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\Company;
@@ -13,6 +24,7 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\LaravelData\DataCollection;
 
 /**
  * Planning — vue d'ensemble heatmap annuelle (CDC § 3.3).
@@ -94,30 +106,35 @@ final class PlanningController extends Controller
                 $totalDue += $breakdown->totalDue;
             }
 
-            $vehiclesPayload[] = [
-                'id' => $vehicle->id,
-                'licensePlate' => $vehicle->license_plate,
-                'brand' => $vehicle->brand,
-                'model' => $vehicle->model,
-                'userType' => $fiscal->vehicle_user_type->value, // VP / VU
-                'energy' => $fiscal->energy_source->value,
-                'co2Method' => $fiscal->homologation_method->value,
-                'co2Value' => $fiscal->co2_wltp ?? $fiscal->co2_nedc,
-                'taxableHorsepower' => $fiscal->taxable_horsepower,
-                'weeks' => $weeks,
-                'daysTotal' => array_sum($weeks),
-                'annualTaxDue' => round($totalDue, 2),
-            ];
+            $vehiclesPayload[] = new PlanningHeatmapVehicleData(
+                id: $vehicle->id,
+                licensePlate: $vehicle->license_plate,
+                brand: $vehicle->brand,
+                model: $vehicle->model,
+                userType: $fiscal->vehicle_user_type,
+                energy: $fiscal->energy_source,
+                co2Method: $fiscal->homologation_method,
+                co2Value: $fiscal->co2_wltp ?? $fiscal->co2_nedc,
+                taxableHorsepower: $fiscal->taxable_horsepower,
+                weeks: $weeks,
+                daysTotal: array_sum($weeks),
+                annualTaxDue: round($totalDue, 2),
+            );
         }
 
+        $companiesPayload = $companies
+            ->map(static fn (Company $c): CompanyOptionData => new CompanyOptionData(
+                id: $c->id,
+                shortCode: $c->short_code,
+                legalName: $c->legal_name,
+                color: $c->color,
+            ))
+            ->values()
+            ->all();
+
         return Inertia::render('User/Planning/Index', [
-            'vehicles' => $vehiclesPayload,
-            'companies' => $companies->map(fn ($c) => [
-                'id' => $c->id,
-                'shortCode' => $c->short_code,
-                'legalName' => $c->legal_name,
-                'color' => $c->color->value,
-            ])->values(),
+            'vehicles' => PlanningHeatmapVehicleData::collect($vehiclesPayload, DataCollection::class),
+            'companies' => CompanyOptionData::collect($companiesPayload, DataCollection::class),
         ]);
     }
 
@@ -157,43 +174,47 @@ final class PlanningController extends Controller
         while ($cursor->lte($end)) {
             $iso = $cursor->toDateString();
             $assignment = $dayAssignments->get($iso);
-            $days[] = [
-                'date' => $iso,
-                'dayLabel' => $cursor->translatedFormat('D d'),
-                'assignment' => $assignment ? [
-                    'id' => $assignment->id,
-                    'company' => [
-                        'id' => $assignment->company->id,
-                        'shortCode' => $assignment->company->short_code,
-                        'legalName' => $assignment->company->legal_name,
-                        'color' => $assignment->company->color->value,
-                    ],
-                ] : null,
-            ];
+            $days[] = new WeekDaySlotData(
+                date: $iso,
+                dayLabel: $cursor->translatedFormat('D d'),
+                assignment: $assignment ? new WeekDayAssignmentData(
+                    id: $assignment->id,
+                    company: new CompanyOptionData(
+                        id: $assignment->company->id,
+                        shortCode: $assignment->company->short_code,
+                        legalName: $assignment->company->legal_name,
+                        color: $assignment->company->color,
+                    ),
+                ) : null,
+            );
             $cursor->addDay();
         }
 
         // Agrégat des entreprises présentes sur cette semaine.
         $byCompany = $dayAssignments->groupBy('company_id')
-            ->map(fn ($group, $companyId) => [
-                'company' => [
-                    'id' => (int) $companyId,
-                    'shortCode' => $group->first()->company->short_code,
-                    'legalName' => $group->first()->company->legal_name,
-                    'color' => $group->first()->company->color->value,
-                ],
-                'days' => $group->count(),
-            ])->values();
+            ->map(static fn ($group, $companyId): WeekCompanyPresenceData => new WeekCompanyPresenceData(
+                company: new CompanyOptionData(
+                    id: (int) $companyId,
+                    shortCode: $group->first()->company->short_code,
+                    legalName: $group->first()->company->legal_name,
+                    color: $group->first()->company->color,
+                ),
+                days: $group->count(),
+            ))
+            ->values()
+            ->all();
 
-        return response()->json([
-            'weekNumber' => $weekNumber,
-            'weekStart' => $start->toDateString(),
-            'weekEnd' => $end->toDateString(),
-            'vehicleId' => $vehicle->id,
-            'licensePlate' => $vehicle->license_plate,
-            'days' => $days,
-            'companiesOnWeek' => $byCompany,
-        ]);
+        $payload = new PlanningWeekData(
+            weekNumber: $weekNumber,
+            weekStart: $start->toDateString(),
+            weekEnd: $end->toDateString(),
+            vehicleId: $vehicle->id,
+            licensePlate: $vehicle->license_plate,
+            days: $days,
+            companiesOnWeek: $byCompany,
+        );
+
+        return response()->json($payload);
     }
 
     /**
@@ -203,31 +224,21 @@ final class PlanningController extends Controller
      * POST /app/planning/preview-taxes
      * Body: { vehicleId, companyId, dates: ["2024-01-05", "2024-01-06", ...] }
      */
-    public function previewTaxes(Request $request): JsonResponse
+    public function previewTaxes(PreviewTaxesInputData $input): JsonResponse
     {
-        $data = $request->validate([
-            'vehicleId' => 'required|integer|exists:vehicles,id',
-            'companyId' => 'required|integer|exists:companies,id',
-            'dates' => 'required|array|min:1',
-            'dates.*' => 'required|date_format:Y-m-d',
-        ]);
-
         $year = (int) config('floty.fiscal.current_year');
         $yearPrefix = $year.'-';
 
         // Ne compter que les jours dans l'année fiscale courante.
         $newDates = array_values(array_filter(
-            $data['dates'],
+            $input->dates,
             static fn (string $d) => str_starts_with($d, $yearPrefix),
         ));
 
-        // Dates déjà occupées par ce véhicule (sauf celles qu'on propose) —
-        // filtrage pour ne pas double-compter si la date existe déjà pour
-        // cette entreprise.
         $alreadyAssignedForPair = Assignment::query()
             ->whereYear('date', $year)
-            ->where('vehicle_id', $data['vehicleId'])
-            ->where('company_id', $data['companyId'])
+            ->where('vehicle_id', $input->vehicleId)
+            ->where('company_id', $input->companyId)
             ->pluck('date')
             ->map(fn ($d) => Carbon::parse($d)->toDateString())
             ->all();
@@ -238,27 +249,26 @@ final class PlanningController extends Controller
         $existingCumul = count($alreadyAssignedForPair);
         $futureCumul = $existingCumul + $newDaysCount;
 
-        $vehicle = Vehicle::findOrFail($data['vehicleId']);
+        $vehicle = Vehicle::findOrFail($input->vehicleId);
 
-        // Cumul AVANT la nouvelle attribution.
         $before = $existingCumul > 0
             ? $this->calculator->calculate($vehicle, $existingCumul, $existingCumul, $year)
             : null;
-
-        // Cumul APRÈS (ce qui sera dû au total par ce couple).
         $after = $this->calculator->calculate($vehicle, $futureCumul, $futureCumul, $year);
 
         $incrementalDue = $after->totalDue - ($before?->totalDue ?? 0.0);
 
-        return response()->json([
-            'fiscalYear' => $year,
-            'newDaysCount' => $newDaysCount,
-            'existingCumul' => $existingCumul,
-            'futureCumul' => $futureCumul,
-            'before' => $before?->toArray(),
-            'after' => $after->toArray(),
-            'incrementalDue' => round($incrementalDue, 2),
-        ]);
+        $payload = new FiscalPreviewData(
+            fiscalYear: $year,
+            newDaysCount: $newDaysCount,
+            existingCumul: $existingCumul,
+            futureCumul: $futureCumul,
+            before: $before !== null ? FiscalBreakdownData::from($before) : null,
+            after: FiscalBreakdownData::from($after),
+            incrementalDue: round($incrementalDue, 2),
+        );
+
+        return response()->json($payload);
     }
 
     /**
@@ -267,21 +277,14 @@ final class PlanningController extends Controller
      * POST /app/planning/assignments
      * Body: { vehicleId, companyId, dates: ["2024-..."] }
      */
-    public function storeBulk(Request $request): JsonResponse
+    public function storeBulk(BulkCreateAssignmentsInputData $input): JsonResponse
     {
-        $data = $request->validate([
-            'vehicleId' => 'required|integer|exists:vehicles,id',
-            'companyId' => 'required|integer|exists:companies,id',
-            'dates' => 'required|array|min:1',
-            'dates.*' => 'required|date_format:Y-m-d',
-        ]);
-
         $rows = [];
         $now = now();
-        foreach ($data['dates'] as $date) {
+        foreach ($input->dates as $date) {
             $rows[] = [
-                'vehicle_id' => $data['vehicleId'],
-                'company_id' => $data['companyId'],
+                'vehicle_id' => $input->vehicleId,
+                'company_id' => $input->companyId,
                 'driver_id' => null,
                 'date' => $date,
                 'created_at' => $now,
@@ -290,11 +293,14 @@ final class PlanningController extends Controller
         }
 
         $inserted = DB::table('assignments')->insertOrIgnore($rows);
+        $requested = count($input->dates);
 
-        return response()->json([
-            'requested' => count($data['dates']),
-            'inserted' => $inserted,
-            'skipped' => count($data['dates']) - $inserted,
-        ]);
+        $payload = new BulkCreateResultData(
+            requested: $requested,
+            inserted: $inserted,
+            skipped: $requested - $inserted,
+        );
+
+        return response()->json($payload);
     }
 }

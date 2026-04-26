@@ -13,20 +13,7 @@
  */
 import { computed } from 'vue';
 
-type Vehicle = {
-    id: number;
-    licensePlate: string;
-    brand: string;
-    model: string;
-    userType: string; // VP | VU
-    energy: string;
-    co2Method: string;
-    co2Value: number | null;
-    taxableHorsepower: number | null;
-    weeks: number[]; // 52 densités
-    daysTotal: number;
-    annualTaxDue: number;
-};
+type Vehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
 
 const props = defineProps<{
     vehicles: Vehicle[];

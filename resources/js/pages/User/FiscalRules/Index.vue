@@ -19,23 +19,7 @@ import {
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 
-type LegalReference = {
-    type: string;
-    article?: string;
-    reference?: string;
-    paragraph?: string;
-};
-
-type Rule = {
-    id: number;
-    ruleCode: string;
-    name: string;
-    description: string;
-    ruleType: string;
-    taxesConcerned: string[];
-    legalBasis: LegalReference[];
-    isActive: boolean;
-};
+type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
 
 const props = defineProps<{
     rules: Rule[];
@@ -92,11 +76,11 @@ const taxLabel: Record<string, string> = {
 
 const { resolveAll: resolveLegalLinks } = useOfficialLegalLinks();
 
-const legalLinksFor = (refs: LegalReference[]) =>
-    resolveLegalLinks(refs as LegalRef[]);
+const legalLinksFor = (refs: Rule['legalBasis']) =>
+    resolveLegalLinks(refs as unknown as LegalRef[]);
 
 const taxBadgeTone = (
-    taxes: string[],
+    taxes: Rule['taxesConcerned'],
 ): 'slate' | 'blue' | 'emerald' | 'amber' | 'rose' => {
     if (taxes.includes('co2') && taxes.includes('pollutants')) return 'blue';
     if (taxes.includes('co2')) return 'blue';

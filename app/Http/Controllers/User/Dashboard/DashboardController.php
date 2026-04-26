@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\User\Dashboard;
 
+use App\Data\User\Dashboard\DashboardStatsData;
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
 use App\Models\Company;
@@ -43,21 +44,19 @@ final class DashboardController extends Controller
             $totalDue += $breakdown->totalDue;
         }
 
+        $stats = new DashboardStatsData(
+            vehiclesCount: Vehicle::query()->whereNull('exit_date')->count(),
+            companiesCount: Company::query()->where('is_active', true)->count(),
+            assignmentsYear: $assignments->count(),
+            fiscalRulesCount: FiscalRule::query()
+                ->where('fiscal_year', $year)
+                ->where('is_active', true)
+                ->count(),
+            totalTaxDue: round($totalDue, 2),
+        );
+
         return Inertia::render('User/Dashboard/Index', [
-            'stats' => [
-                'vehiclesCount' => Vehicle::query()
-                    ->whereNull('exit_date')
-                    ->count(),
-                'companiesCount' => Company::query()
-                    ->where('is_active', true)
-                    ->count(),
-                'assignmentsYear' => $assignments->count(),
-                'fiscalRulesCount' => FiscalRule::query()
-                    ->where('fiscal_year', $year)
-                    ->where('is_active', true)
-                    ->count(),
-                'totalTaxDue' => round($totalDue, 2),
-            ],
+            'stats' => $stats,
         ]);
     }
 }

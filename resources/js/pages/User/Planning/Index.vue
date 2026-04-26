@@ -4,51 +4,12 @@ import Heatmap from '@/Components/Features/Planning/Heatmap.vue';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { getJson } from '@/lib/http';
-import type { CompanyColor } from '@/types/ui';
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
-type Vehicle = {
-    id: number;
-    licensePlate: string;
-    brand: string;
-    model: string;
-    userType: string;
-    energy: string;
-    co2Method: string;
-    co2Value: number | null;
-    taxableHorsepower: number | null;
-    weeks: number[];
-    daysTotal: number;
-    annualTaxDue: number;
-};
-
-type Company = {
-    id: number;
-    shortCode: string;
-    legalName: string;
-    color: CompanyColor;
-};
-
-type WeekData = {
-    weekNumber: number;
-    weekStart: string;
-    weekEnd: string;
-    vehicleId: number;
-    licensePlate: string;
-    days: Array<{
-        date: string;
-        dayLabel: string;
-        assignment: {
-            id: number;
-            company: Company;
-        } | null;
-    }>;
-    companiesOnWeek: Array<{
-        company: Company;
-        days: number;
-    }>;
-};
+type Vehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
+type Company = App.Data.User.Company.CompanyOptionData;
+type WeekData = App.Data.User.Planning.PlanningWeekData;
 
 defineProps<{
     vehicles: Vehicle[];

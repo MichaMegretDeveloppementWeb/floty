@@ -3,14 +3,15 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "build": "vite build",
-        "build:ssr": "vite build && vite build --ssr",
+        "build": "npm run types:generate && vite build",
+        "build:ssr": "npm run types:generate && vite build && vite build --ssr",
         "dev": "vite",
         "format": "prettier --write resources/",
         "format:check": "prettier --check resources/",
         "lint": "eslint . --fix",
         "lint:check": "eslint .",
-        "types:check": "vue-tsc --noEmit"
+        "types:check": "vue-tsc --noEmit",
+        "types:generate": "php artisan typescript:transform"
     },
     "devDependencies": {
         "@eslint/js": "^9.19.0",

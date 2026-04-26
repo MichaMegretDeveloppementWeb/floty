@@ -5,22 +5,11 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { getJson, postJson } from '@/lib/http';
-import type { CompanyColor } from '@/types/ui';
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
-type VehicleOption = {
-    id: number;
-    licensePlate: string;
-    label: string;
-};
-
-type CompanyOption = {
-    id: number;
-    shortCode: string;
-    legalName: string;
-    color: CompanyColor;
-};
+type VehicleOption = App.Data.User.Vehicle.VehicleOptionData;
+type CompanyOption = App.Data.User.Company.CompanyOptionData;
 
 const props = defineProps<{
     vehicles: VehicleOption[];
@@ -38,23 +27,7 @@ const selectedDates = ref<string[]>([]);
 const busyDatesForVehicle = ref<string[]>([]);
 const pairDatesForCouple = ref<string[]>([]);
 
-type FiscalPreview = {
-    fiscalYear: number;
-    newDaysCount: number;
-    existingCumul: number;
-    futureCumul: number;
-    after: {
-        totalDue: number;
-        lcdExempt: boolean;
-        electricExempt: boolean;
-        handicapExempt: boolean;
-        co2Method: string;
-        co2Due: number;
-        pollutantsDue: number;
-        exemptionReasons: string[];
-    };
-    incrementalDue: number;
-};
+type FiscalPreview = App.Data.User.Fiscal.FiscalPreviewData;
 
 const preview = ref<FiscalPreview | null>(null);
 const previewLoading = ref(false);

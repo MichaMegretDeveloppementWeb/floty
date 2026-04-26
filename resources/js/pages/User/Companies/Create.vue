@@ -5,10 +5,8 @@ import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
 
-type ColorOption = { value: string; label: string };
-
 defineProps<{
-    colors: ColorOption[];
+    colors: App.Data.User.Company.CompanyColorOptionData[];
 }>();
 
 const form = useForm({
