@@ -84,7 +84,6 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 php artisan event:cache
-php artisan icons:cache
 
 # 10. Permissions
 echo "→ Correction des permissions..."
