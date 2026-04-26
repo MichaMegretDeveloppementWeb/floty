@@ -3,26 +3,30 @@
  * (CIBS sur Légifrance, doctrine BOFiP-Impôts) à partir des références
  * structurées portées par chaque règle fiscale.
  *
- * Stratégie d'URL :
- *  - **CIBS** : chaque article CIBS a un identifiant LEGIARTI propre à
- *    une **version** de l'article (Légifrance distingue les versions
- *    modifiées par les lois successives). On stocke ici un mapping
- *    article → LEGIARTI **applicable à l'année fiscale courante**.
- *    L'URL `https://www.legifrance.gouv.fr/codes/article_lc/{LEGIARTI}`
- *    ouvre directement la bonne version sans paramètre de date.
+ * **Stratégie d'URL CIBS** : un LEGIARTI Légifrance représente une
+ * **version** d'un article (chaque modification législative en crée une
+ * nouvelle), mais Légifrance accepte aussi une URL datée qui résout
+ * automatiquement la version applicable à cette date :
  *
- *    Les LEGIARTI ont été collectés depuis Légifrance pour la version
- *    en vigueur au 01/01/2024. Pour les articles non modifiés depuis
- *    leur création (2022), le LEGIARTI v0 reste applicable.
+ *     /codes/article_lc/{LEGIARTI}/{YYYY-MM-DD}
  *
- *  - **BOFiP** : `bofip.impots.gouv.fr/bofip/{IDENTIFIANT}` redirige
- *    vers la doctrine cible. Le paragraphe `§ N` n'est pas accessible
- *    en ancre URL — on le garde en libellé pour aider la lecture.
- *  - **CGI** : pour le Code général des impôts, on pointe vers la
- *    table des matières (CGI a un autre LEGITEXT et notre seeder ne
- *    le référence pas pour 2024).
- *  - **NOTICE DGFiP** : recherche sur impots.gouv.fr.
+ * On utilise systématiquement le format daté avec le 1er juin de
+ * l'année fiscale courante (milieu d'année — sécurise les transitions
+ * de barème au 01/01). Sans date, Légifrance ouvre la dernière version
+ * (peut être 2026+ alors qu'on parle de la fiscalité 2024).
+ *
+ * **BOFiP** : `bofip.impots.gouv.fr/bofip/{IDENTIFIANT}` → la doctrine
+ * porte sa propre date dans son identifiant (ex: …-20240710), pas de
+ * versionnage à gérer côté URL.
+ *
+ * **CGI** : table des matières (le seeder ne référence pas le CGI en
+ * 2024).
+ *
+ * **NOTICE DGFiP** : recherche sur impots.gouv.fr.
  */
+
+import { useFiscalYear } from '@/composables/useFiscalYear';
+import { computed, type ComputedRef } from 'vue';
 
 export type LegalReference = {
     type: 'CIBS' | 'BOFIP' | 'CGI' | 'NOTICE' | string;
@@ -43,20 +47,18 @@ const BOFIP_BASE = 'https://bofip.impots.gouv.fr/bofip';
 const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
 
 /**
- * Mapping article CIBS → LEGIARTI applicable au 01/01/2024.
+ * Mapping article CIBS → LEGIARTI.
+ *
+ * Chaque LEGIARTI ci-dessous est un identifiant **stable d'article**
+ * (pas de version). Légifrance résout la version applicable à la date
+ * passée en URL — on combine ces LEGIARTI avec une date dérivée de
+ * l'année fiscale courante (cf. `articleUrlForYear`).
  *
  * Source : Légifrance, sections du Code des impositions sur les biens
- * et services (LEGITEXT000044595989) consultées le 26/04/2026 pour la
- * date d'entrée en vigueur 01/01/2024 :
- *   - Paragraphe 3 « Tarifs CO₂ » LEGISCTA000044599231 → L. 421-119 à L. 421-132
- *   - Paragraphe 4 « Tarifs polluants » LEGISCTA000044599273 → L. 421-133 à L. 421-144
- *
- * Les barèmes WLTP/NEDC/PA (L. 421-120/121/122) ont été modifiés par
- * la LF 2024 (LOI n° 2023-1322 art. 97), d'où des LEGIARTI distincts
- * de la version originale 2022. Les exonérations n'ont pas été
- * touchées en 2024, leur LEGIARTI v0 reste applicable.
+ * et services (LEGITEXT000044595989) — paragraphes 3 et 4 (taxes CO₂
+ * et polluants), articles L. 421-2 et L. 421-93 à L. 421-167.
  */
-const CIBS_ARTICLE_LEGIARTI_2024: Record<string, string> = {
+const CIBS_ARTICLE_LEGIARTI: Record<string, string> = {
     'L. 421-2': 'LEGIARTI000048844510',
     'L. 421-119': 'LEGIARTI000048802414',
     'L. 421-120': 'LEGIARTI000048844602',
@@ -88,15 +90,21 @@ const CIBS_ARTICLE_LEGIARTI_2024: Record<string, string> = {
 const CIBS_LEGITEXT = 'LEGITEXT000044595989';
 const CGI_LEGITEXT = 'LEGITEXT000006069577';
 
-function cibsUrl(article: string): string {
+/**
+ * Date pivot pour résoudre la version d'un article : 1er juin de
+ * l'année fiscale courante. On évite le 01/01 (jour exact des
+ * transitions législatives) pour rester dans une fenêtre stable.
+ */
+function pivotDateFor(year: number): string {
+    return `${year}-06-01`;
+}
+
+function cibsUrlFor(article: string, year: number): string {
     const normalized = article.replace(/\s+/g, ' ').trim();
-    const legiarti = CIBS_ARTICLE_LEGIARTI_2024[normalized];
+    const legiarti = CIBS_ARTICLE_LEGIARTI[normalized];
     if (legiarti) {
-        return `${LEGIFRANCE_BASE}/codes/article_lc/${legiarti}`;
+        return `${LEGIFRANCE_BASE}/codes/article_lc/${legiarti}/${pivotDateFor(year)}`;
     }
-    // Fallback : page d'accueil du CIBS (rare — uniquement si un
-    // nouvel article apparaît dans le seeder sans avoir été ajouté
-    // dans le mapping ci-dessus).
     return `${LEGIFRANCE_BASE}/codes/texte_lc/${CIBS_LEGITEXT}`;
 }
 
@@ -104,14 +112,15 @@ function cgiUrl(): string {
     return `${LEGIFRANCE_BASE}/codes/texte_lc/${CGI_LEGITEXT}`;
 }
 
-export function resolveLegalLink(
+function resolveLegalLinkFor(
     ref: LegalReference,
+    year: number,
 ): ResolvedLegalLink | null {
     if (ref.type === 'CIBS' && ref.article) {
         return {
             label: `CIBS ${ref.article}`,
-            url: cibsUrl(ref.article),
-            title: `Article ${ref.article} du Code des impositions sur les biens et services — version applicable au 01/01/2024 (Légifrance)`,
+            url: cibsUrlFor(ref.article, year),
+            title: `Article ${ref.article} du Code des impositions sur les biens et services — version applicable au 01/01/${year} (Légifrance)`,
         };
     }
 
@@ -150,14 +159,30 @@ export function resolveLegalLink(
     };
 }
 
-export function useOfficialLegalLinks(): {
-    resolveLegalLink: typeof resolveLegalLink;
+export type UseOfficialLegalLinksReturn = {
+    /** Année fiscale courante effectivement utilisée pour résoudre les versions. */
+    fiscalYear: ComputedRef<number>;
+    /** Résout une référence vers son lien officiel (utilise l'année courante). */
+    resolveLegalLink: (ref: LegalReference) => ResolvedLegalLink | null;
+    /** Résout un tableau de références. */
     resolveAll: (refs: LegalReference[]) => ResolvedLegalLink[];
-} {
+};
+
+export function useOfficialLegalLinks(): UseOfficialLegalLinksReturn {
+    const { currentYear } = useFiscalYear();
+
+    const resolveLegalLink = (
+        ref: LegalReference,
+    ): ResolvedLegalLink | null => resolveLegalLinkFor(ref, currentYear.value);
+
     const resolveAll = (refs: LegalReference[]): ResolvedLegalLink[] =>
         refs
             .map((r) => resolveLegalLink(r))
             .filter((l): l is ResolvedLegalLink => l !== null);
 
-    return { resolveLegalLink, resolveAll };
+    return {
+        fiscalYear: computed(() => currentYear.value),
+        resolveLegalLink,
+        resolveAll,
+    };
 }
