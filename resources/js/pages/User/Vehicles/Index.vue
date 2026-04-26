@@ -4,9 +4,11 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
+import { useFiscalYear } from '@/composables/useFiscalYear';
 import type { DataTableColumn } from '@/types/ui';
 import { Head, Link } from '@inertiajs/vue3';
 import { Car, Plus } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 type VehicleRow = {
     id: number;
@@ -22,16 +24,17 @@ type VehicleRow = {
 
 const props = defineProps<{
     vehicles: VehicleRow[];
-    fiscalYear: number;
 }>();
 
-const columns: readonly DataTableColumn<VehicleRow>[] = [
+const { currentYear: fiscalYear } = useFiscalYear();
+
+const columns = computed<readonly DataTableColumn<VehicleRow>[]>(() => [
     { key: 'licensePlate', label: 'Immatriculation' },
     { key: 'brand', label: 'Marque' },
     { key: 'model', label: 'Modèle' },
     { key: 'firstFrenchRegistrationDate', label: '1ʳᵉ immat.', mono: true },
-    { key: 'annualTaxDue', label: 'Taxe ' + props.fiscalYear },
-];
+    { key: 'annualTaxDue', label: `Taxe ${fiscalYear.value}` },
+]);
 
 const statusLabel: Record<string, string> = {
     active: 'Active',

@@ -3,9 +3,10 @@ import MultiDatePicker from '@/Components/Features/Planning/MultiDatePicker.vue'
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
+import { useFiscalYear } from '@/composables/useFiscalYear';
 import { getJson, postJson } from '@/lib/http';
 import type { CompanyColor } from '@/types/ui';
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 
 type VehicleOption = {
@@ -26,8 +27,7 @@ const props = defineProps<{
     companies: CompanyOption[];
 }>();
 
-const page = usePage();
-const fiscalYear = computed((): number => page.props.fiscal.currentYear);
+const { currentYear: fiscalYear } = useFiscalYear();
 
 const selectedVehicleId = ref<number | null>(null);
 const selectedCompanyId = ref<number | null>(null);

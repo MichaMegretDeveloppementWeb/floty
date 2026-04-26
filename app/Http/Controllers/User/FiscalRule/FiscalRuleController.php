@@ -13,21 +13,18 @@ use Inertia\Response;
  *
  * Le contenu de la table `fiscal_rules` est peuplé par seeder
  * ({@see FiscalRulesSeeder}, ADR-0002).
+ *
+ * L'année affichée suit toujours `config('floty.fiscal.current_year')`
+ * (= shared props `fiscal.currentYear` côté front). Aucun fallback sur
+ * `now()->year` : la cohérence visuelle entre toutes les pages prime
+ * sur l'année calendaire réelle tant qu'une seule année de règles est
+ * codée dans le projet.
  */
 final class FiscalRuleController extends Controller
 {
     public function index(): Response
     {
-        $availableYears = FiscalRule::query()
-            ->distinct()
-            ->orderByDesc('fiscal_year')
-            ->pluck('fiscal_year')
-            ->all();
-
-        $requestedYear = request()->query('year');
-        $year = $requestedYear !== null
-            ? (int) $requestedYear
-            : ($availableYears[0] ?? now()->year);
+        $year = (int) config('floty.fiscal.current_year');
 
         $rules = FiscalRule::query()
             ->where('fiscal_year', $year)
@@ -45,9 +42,7 @@ final class FiscalRuleController extends Controller
             ]);
 
         return Inertia::render('User/FiscalRules/Index', [
-            'fiscalYear' => $year,
             'rules' => $rules,
-            'availableYears' => $availableYears,
         ]);
     }
 }

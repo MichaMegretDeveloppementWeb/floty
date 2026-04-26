@@ -4,9 +4,11 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
+import { useFiscalYear } from '@/composables/useFiscalYear';
 import type { CompanyColor, DataTableColumn } from '@/types/ui';
 import { Head, Link } from '@inertiajs/vue3';
 import { Building2, Plus } from 'lucide-vue-next';
+import { computed } from 'vue';
 
 type CompanyRow = {
     id: number;
@@ -22,16 +24,17 @@ type CompanyRow = {
 
 const props = defineProps<{
     companies: CompanyRow[];
-    fiscalYear: number;
 }>();
 
-const columns: readonly DataTableColumn<CompanyRow>[] = [
+const { currentYear: fiscalYear } = useFiscalYear();
+
+const columns = computed<readonly DataTableColumn<CompanyRow>[]>(() => [
     { key: 'company', label: 'Entreprise' },
     { key: 'siren', label: 'SIREN', mono: true },
     { key: 'city', label: 'Ville' },
-    { key: 'daysUsed', label: 'Jours ' + props.fiscalYear, mono: true },
-    { key: 'annualTaxDue', label: 'Taxe ' + props.fiscalYear },
-];
+    { key: 'daysUsed', label: `Jours ${fiscalYear.value}`, mono: true },
+    { key: 'annualTaxDue', label: `Taxe ${fiscalYear.value}` },
+]);
 
 const formatEur = (value: number): string =>
     new Intl.NumberFormat('fr-FR', {

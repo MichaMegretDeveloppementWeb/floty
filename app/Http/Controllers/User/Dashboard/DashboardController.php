@@ -17,10 +17,9 @@ final class DashboardController extends Controller
 
     public function __invoke(): Response
     {
-        // L'année fiscale affichée suit celle choisie dans la TopBar —
-        // source de vérité = shared props Inertia (`fiscal.currentYear`).
-        // MVP figé à 2024, mais le code suit la valeur partagée.
-        $year = 2024;
+        // Année fiscale = source unique `config('floty.fiscal.current_year')`,
+        // également exposée en shared props Inertia (`fiscal.currentYear`).
+        $year = (int) config('floty.fiscal.current_year');
 
         $assignments = Assignment::query()
             ->whereYear('date', $year)
@@ -45,7 +44,6 @@ final class DashboardController extends Controller
         }
 
         return Inertia::render('User/Dashboard/Index', [
-            'fiscalYear' => $year,
             'stats' => [
                 'vehiclesCount' => Vehicle::query()
                     ->whereNull('exit_date')

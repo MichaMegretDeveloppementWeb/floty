@@ -55,13 +55,16 @@ final class HandleInertiaRequests extends Middleware
                 'info' => fn () => $request->session()->get('toast-info'),
             ],
 
-            // Source de vérité unique pour l'année fiscale sélectionnée dans
-            // la TopBar. Le MVP ne porte que 2024 (seule année codée dans
-            // `taxes-rules/`) ; le sélecteur est mécaniquement bloqué quand
-            // `availableYears` ne contient qu'une entrée.
+            // Année fiscale — propagée depuis `config/floty.php` (source de
+            // vérité unique). Aucun controller, page ou composant ne doit
+            // rehardcoder une année : tous lisent ces shared props (front)
+            // ou `config('floty.fiscal.current_year')` (backend).
             'fiscal' => [
-                'currentYear' => 2024,
-                'availableYears' => [2024],
+                'currentYear' => (int) config('floty.fiscal.current_year'),
+                'availableYears' => array_map(
+                    'intval',
+                    config('floty.fiscal.available_years', []),
+                ),
             ],
         ];
     }

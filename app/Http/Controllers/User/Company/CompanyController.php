@@ -19,7 +19,7 @@ final class CompanyController extends Controller
 
     public function index(): Response
     {
-        $year = 2024;
+        $year = (int) config('floty.fiscal.current_year');
 
         // Agrégat annuel : pour chaque couple (vehicle, company), le cumul
         // de jours utilisés — puis par entreprise, somme des jours et des
@@ -64,7 +64,6 @@ final class CompanyController extends Controller
 
         return Inertia::render('User/Companies/Index', [
             'companies' => $companies,
-            'fiscalYear' => $year,
         ]);
     }
 

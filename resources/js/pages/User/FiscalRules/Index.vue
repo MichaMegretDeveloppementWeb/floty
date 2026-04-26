@@ -3,6 +3,11 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import Tabs from '@/Components/Ui/Tabs/Tabs.vue';
+import { useFiscalYear } from '@/composables/useFiscalYear';
+import {
+    useOfficialLegalLinks,
+    type LegalReference as LegalRef,
+} from '@/composables/useOfficialLegalLinks';
 import {
     cadreSectionsOrder,
     calculSectionsOrder,
@@ -33,9 +38,10 @@ type Rule = {
 };
 
 const props = defineProps<{
-    fiscalYear: number;
     rules: Rule[];
 }>();
+
+const { currentYear: fiscalYear } = useFiscalYear();
 
 const activeTab = ref<RuleTab>('calcul');
 
@@ -83,16 +89,10 @@ const taxLabel: Record<string, string> = {
     pollutants: 'Polluants',
 };
 
-const formatLegalBasis = (refs: LegalReference[]): string =>
-    refs
-        .map((r) => {
-            if (r.type === 'CIBS') return `CIBS ${r.article ?? ''}`.trim();
-            if (r.type === 'BOFIP')
-                return [r.reference, r.paragraph].filter(Boolean).join(' ');
-            return r.article ?? r.reference ?? '';
-        })
-        .filter(Boolean)
-        .join(' · ');
+const { resolveAll: resolveLegalLinks } = useOfficialLegalLinks();
+
+const legalLinksFor = (refs: LegalReference[]) =>
+    resolveLegalLinks(refs as LegalRef[]);
 
 const taxBadgeTone = (
     taxes: string[],
@@ -108,7 +108,7 @@ const taxBadgeTone = (
     <Head title="Règles de calcul" />
 
     <UserLayout>
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-12">
             <header>
                 <p class="eyebrow mb-1">Fiscalité</p>
                 <h1
@@ -151,7 +151,7 @@ const taxBadgeTone = (
                 <section
                     v-for="group in currentGroups"
                     :key="group.section"
-                    class="flex flex-col gap-5"
+                    class="flex flex-col gap-12"
                 >
                     <header>
                         <h2
@@ -164,7 +164,7 @@ const taxBadgeTone = (
                         </p>
                     </header>
 
-                    <ul class="flex flex-col gap-5">
+                    <ul class="flex flex-col gap-12">
                         <li
                             v-for="code in group.codes"
                             :key="code"
@@ -405,15 +405,44 @@ const taxBadgeTone = (
                                 </p>
                             </div>
 
-                            <!-- Base légale -->
+                            <!-- Base légale — liens vers les textes officiels -->
                             <p
                                 v-if="
                                     rulesByCode[code] &&
                                     rulesByCode[code].legalBasis.length > 0
                                 "
-                                class="mt-3 font-mono text-xs text-slate-500"
+                                class="mt-3 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs text-slate-500"
                             >
-                                {{ formatLegalBasis(rulesByCode[code].legalBasis) }}
+                                <template
+                                    v-for="(link, idx) in legalLinksFor(
+                                        rulesByCode[code].legalBasis,
+                                    )"
+                                    :key="idx"
+                                >
+                                    <a
+                                        v-if="link.url"
+                                        :href="link.url"
+                                        :title="link.title"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-slate-600 underline decoration-slate-300 underline-offset-2 transition-colors duration-[120ms] ease-out hover:text-slate-900 hover:decoration-slate-600"
+                                    >
+                                        {{ link.label }}
+                                    </a>
+                                    <span v-else>{{ link.label }}</span>
+                                    <span
+                                        v-if="
+                                            idx <
+                                            legalLinksFor(rulesByCode[code].legalBasis)
+                                                .length -
+                                                1
+                                        "
+                                        class="text-slate-300"
+                                        aria-hidden="true"
+                                    >
+                                        ·
+                                    </span>
+                                </template>
                             </p>
                         </li>
                     </ul>

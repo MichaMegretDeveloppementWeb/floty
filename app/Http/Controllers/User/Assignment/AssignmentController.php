@@ -62,12 +62,18 @@ final class AssignmentController extends Controller
      *   - `pairDates` : map companyId → list<dates> permettant au front de
      *     mettre en évidence les dates du couple courant sans les griser
      *
-     * GET /app/assignments/vehicle-dates?vehicleId=X&year=2024
+     * GET /app/assignments/vehicle-dates?vehicleId=X&year=YYYY
+     *
+     * Le paramètre `year` est optionnel — fallback sur
+     * `config('floty.fiscal.current_year')` côté serveur.
      */
     public function vehicleDates(Request $request): JsonResponse
     {
         $vehicleId = (int) $request->query('vehicleId');
-        $year = (int) $request->query('year', '2024');
+        $year = (int) $request->query(
+            'year',
+            (string) config('floty.fiscal.current_year'),
+        );
         if ($vehicleId <= 0) {
             abort(400, 'vehicleId requis.');
         }

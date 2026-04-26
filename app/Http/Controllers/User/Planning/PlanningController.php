@@ -28,7 +28,7 @@ final class PlanningController extends Controller
 
     public function index(Request $request): Response
     {
-        $year = 2024; // MVP — figé pour la démo
+        $year = (int) config('floty.fiscal.current_year');
 
         $vehicles = Vehicle::query()
             ->with([
@@ -111,7 +111,6 @@ final class PlanningController extends Controller
         }
 
         return Inertia::render('User/Planning/Index', [
-            'fiscalYear' => $year,
             'vehicles' => $vehiclesPayload,
             'companies' => $companies->map(fn ($c) => [
                 'id' => $c->id,
@@ -129,7 +128,7 @@ final class PlanningController extends Controller
      */
     public function week(Request $request): JsonResponse
     {
-        $year = 2024;
+        $year = (int) config('floty.fiscal.current_year');
         $vehicleId = (int) $request->query('vehicleId');
         $weekNumber = (int) $request->query('week');
 
@@ -213,12 +212,13 @@ final class PlanningController extends Controller
             'dates.*' => 'required|date_format:Y-m-d',
         ]);
 
-        $year = 2024;
+        $year = (int) config('floty.fiscal.current_year');
+        $yearPrefix = $year.'-';
 
-        // Ne compter que les jours en 2024 (MVP).
+        // Ne compter que les jours dans l'année fiscale courante.
         $newDates = array_values(array_filter(
             $data['dates'],
-            fn (string $d) => str_starts_with($d, '2024-'),
+            static fn (string $d) => str_starts_with($d, $yearPrefix),
         ));
 
         // Dates déjà occupées par ce véhicule (sauf celles qu'on propose) —

@@ -28,7 +28,7 @@ final class VehicleController extends Controller
 
     public function index(): Response
     {
-        $year = 2024;
+        $year = (int) config('floty.fiscal.current_year');
 
         $cumulByPair = [];
         Assignment::query()
@@ -69,7 +69,6 @@ final class VehicleController extends Controller
 
         return Inertia::render('User/Vehicles/Index', [
             'vehicles' => $rows,
-            'fiscalYear' => $year,
         ]);
     }
 

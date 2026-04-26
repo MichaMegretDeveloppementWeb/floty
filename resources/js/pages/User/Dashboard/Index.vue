@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import KpiCard from '@/Components/Ui/KpiCard/KpiCard.vue';
+import { useFiscalYear } from '@/composables/useFiscalYear';
 import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowUpRight,
@@ -13,7 +14,6 @@ import {
 } from 'lucide-vue-next';
 
 defineProps<{
-    fiscalYear: number;
     stats: {
         vehiclesCount: number;
         companiesCount: number;
@@ -22,6 +22,8 @@ defineProps<{
         totalTaxDue: number;
     };
 }>();
+
+const { currentYear: fiscalYear } = useFiscalYear();
 
 const formatEur = (value: number): string =>
     new Intl.NumberFormat('fr-FR', {
