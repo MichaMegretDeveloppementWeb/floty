@@ -4,7 +4,7 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
-import { useFiscalYear } from '@/composables/useFiscalYear';
+import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import type { CompanyColor, DataTableColumn } from '@/types/ui';
 import { Head, Link } from '@inertiajs/vue3';
 import { Building2, Plus } from 'lucide-vue-next';

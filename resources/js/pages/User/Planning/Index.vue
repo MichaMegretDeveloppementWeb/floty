@@ -2,7 +2,7 @@
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Heatmap from '@/Components/Features/Planning/Heatmap.vue';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer.vue';
-import { useFiscalYear } from '@/composables/useFiscalYear';
+import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { getJson } from '@/lib/http';
 import type { CompanyColor } from '@/types/ui';
 import { Head, router } from '@inertiajs/vue3';

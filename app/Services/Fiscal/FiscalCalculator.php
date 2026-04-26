@@ -8,13 +8,14 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\Dto\FiscalBreakdown;
+use App\Services\Shared\Fiscal\FiscalYearContext;
 use InvalidArgumentException;
 
 /**
  * Moteur fiscal Floty — version MVP pour la démo client.
  *
  * Règles implémentées (cf. `taxes-rules/2024.md`) :
- * - R-2024-002 Prorata journalier (366 j en 2024)
+ * - R-2024-002 Prorata journalier (jours dynamiques via FiscalYearContext)
  * - R-2024-003 Arrondi half-up au centime
  * - R-2024-005/006 Choix du barème CO₂ (WLTP/NEDC/PA)
  * - R-2024-010/011/012 Barèmes CO₂ progressifs
@@ -38,6 +39,10 @@ final class FiscalCalculator
      */
     public const int LCD_THRESHOLD_DAYS = 30;
 
+    public function __construct(
+        private readonly FiscalYearContext $yearContext,
+    ) {}
+
     /**
      * Calcule la taxe due par une entreprise utilisatrice pour un véhicule
      * sur un nombre de jours donné, en tenant compte du cumul annuel du
@@ -49,10 +54,12 @@ final class FiscalCalculator
         int $cumulativeDaysForPair,
         int $fiscalYear,
     ): FiscalBreakdown {
-        if ($fiscalYear !== 2024) {
-            throw new InvalidArgumentException(
-                'Seule l\'année fiscale 2024 est supportée par le MVP.',
-            );
+        if (! $this->yearContext->isSupported($fiscalYear)) {
+            throw new InvalidArgumentException(sprintf(
+                "L'année fiscale %d n'est pas supportée par cette version "
+                .'du moteur (cf. config/floty.php available_years).',
+                $fiscalYear,
+            ));
         }
         if ($daysAssignedToCompany < 0) {
             throw new InvalidArgumentException('Nombre de jours négatif.');
@@ -64,7 +71,7 @@ final class FiscalCalculator
             );
         }
 
-        $daysInYear = $this->daysInYear($fiscalYear);
+        $daysInYear = $this->yearContext->daysInYear($fiscalYear);
         $fiscal = $this->currentFiscalCharacteristics($vehicle);
 
         // 1. Exonération handicap (les deux taxes à 0, peu importe le reste)
@@ -215,12 +222,6 @@ final class FiscalCalculator
             EnergySource::ElectricHydrogen => true,
             default => false,
         };
-    }
-
-    private function daysInYear(int $year): int
-    {
-        return (new \DateTimeImmutable("$year-01-01"))
-            ->format('L') === '1' ? 366 : 365;
     }
 
     /**

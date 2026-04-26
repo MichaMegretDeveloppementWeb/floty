@@ -3,7 +3,7 @@ import MultiDatePicker from '@/Components/Features/Planning/MultiDatePicker.vue'
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
-import { useFiscalYear } from '@/composables/useFiscalYear';
+import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { getJson, postJson } from '@/lib/http';
 import type { CompanyColor } from '@/types/ui';
 import { Head, router } from '@inertiajs/vue3';
@@ -27,7 +27,8 @@ const props = defineProps<{
     companies: CompanyOption[];
 }>();
 
-const { currentYear: fiscalYear } = useFiscalYear();
+const { currentYear: fiscalYear, daysInYear: daysInFiscalYear } =
+    useFiscalYear();
 
 const selectedVehicleId = ref<number | null>(null);
 const selectedCompanyId = ref<number | null>(null);
@@ -340,7 +341,7 @@ const canSubmit = computed(
                             <div class="flex justify-between">
                                 <span class="text-slate-600">Cumul futur</span>
                                 <span class="font-mono text-slate-900">
-                                    {{ preview.futureCumul }} j / 366
+                                    {{ preview.futureCumul }} j / {{ daysInFiscalYear }}
                                 </span>
                             </div>
                             <div

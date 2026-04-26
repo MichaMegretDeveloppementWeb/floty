@@ -1,0 +1,439 @@
+<?php
+
+namespace Tests\Unit\Fiscal;
+
+use App\Enums\Vehicle\BodyType;
+use App\Enums\Vehicle\EnergySource;
+use App\Enums\Vehicle\EuroStandard;
+use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
+use App\Enums\Vehicle\HomologationMethod;
+use App\Enums\Vehicle\PollutantCategory;
+use App\Enums\Vehicle\ReceptionCategory;
+use App\Enums\Vehicle\VehicleStatus;
+use App\Enums\Vehicle\VehicleUserType;
+use App\Models\Vehicle;
+use App\Models\VehicleFiscalCharacteristics;
+use App\Services\Fiscal\Dto\FiscalBreakdown;
+use App\Services\Fiscal\FiscalCalculator;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
+use InvalidArgumentException;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+/**
+ * Filet de sécurité pour `FiscalCalculator::calculate` avant la refonte
+ * de la phase 5 (moteur fiscal complet).
+ *
+ * Couvre les branches principales : barèmes WLTP/NEDC/PA, exonérations
+ * LCD/électrique/handicap, fallback méthode CO₂, validation des entrées,
+ * et structure du DTO retourné.
+ *
+ * Les valeurs attendues sont calculées à partir des barèmes 2024 testés
+ * dans `BracketsCatalog2024Test`. Tout changement de barème casse aussi
+ * ce test — c'est voulu.
+ */
+final class FiscalCalculatorTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private FiscalCalculator $calculator;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->calculator = $this->app->make(FiscalCalculator::class);
+    }
+
+    #[Test]
+    public function vp_wltp_100_g_120_jours_calcule_le_bon_montant(): void
+    {
+        // Tarif WLTP plein 100 g/km = 0+41+16+96+20 = 173 €
+        // Polluants cat 1 = 100 €
+        // Prorata 120/366 → CO₂ 56,72 € + polluants 32,79 € = 89,51 €
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+
+        $r = $this->calculator->calculate($vehicle, 120, 120, 2024);
+
+        $this->assertSame(HomologationMethod::Wltp, $r->co2Method);
+        $this->assertSame(173.0, $r->co2FullYearTariff);
+        $this->assertSame(56.72, $r->co2Due);
+        $this->assertSame(100.0, $r->pollutantsFullYearTariff);
+        $this->assertSame(32.79, $r->pollutantsDue);
+        $this->assertSame(89.51, $r->totalDue);
+        $this->assertFalse($r->lcdExempt);
+        $this->assertFalse($r->electricExempt);
+        $this->assertFalse($r->handicapExempt);
+        $this->assertSame([], $r->exemptionReasons);
+    }
+
+    #[Test]
+    public function vp_nedc_130_g_250_jours_calcule_le_bon_montant(): void
+    {
+        // Tarif NEDC plein 130 g/km = 33+14+81+64+170+800+120 = 1 282 €
+        $vehicle = $this->makeVehicleNedc(co2: 130);
+
+        $r = $this->calculator->calculate($vehicle, 250, 250, 2024);
+
+        $this->assertSame(HomologationMethod::Nedc, $r->co2Method);
+        $this->assertSame(1282.0, $r->co2FullYearTariff);
+        $this->assertSame(875.68, $r->co2Due);
+        $this->assertSame(68.31, $r->pollutantsDue);
+        $this->assertSame(943.99, $r->totalDue);
+    }
+
+    #[Test]
+    public function vu_pa_7_cv_pleine_annee_calcule_le_bon_montant(): void
+    {
+        // Tarif PA plein 7 CV = 4500+6750+3750 = 15 000 €
+        // Polluants "plus polluants" = 500 €
+        $vehicle = $this->makeVehiclePa(cv: 7, pollutant: PollutantCategory::MostPolluting);
+
+        $r = $this->calculator->calculate($vehicle, 366, 366, 2024);
+
+        $this->assertSame(HomologationMethod::Pa, $r->co2Method);
+        $this->assertSame(15000.0, $r->co2FullYearTariff);
+        $this->assertSame(15000.0, $r->co2Due);
+        $this->assertSame(500.0, $r->pollutantsDue);
+        $this->assertSame(15500.0, $r->totalDue);
+    }
+
+    #[Test]
+    public function lcd_30_jours_donne_exoneration_totale(): void
+    {
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+
+        $r = $this->calculator->calculate($vehicle, 30, 30, 2024);
+
+        $this->assertTrue($r->lcdExempt);
+        $this->assertSame(0.0, $r->co2Due);
+        $this->assertSame(0.0, $r->pollutantsDue);
+        $this->assertSame(0.0, $r->totalDue);
+        $this->assertCount(1, $r->exemptionReasons);
+        $this->assertStringContainsString('LCD', $r->exemptionReasons[0]);
+        $this->assertStringContainsString('30 j', $r->exemptionReasons[0]);
+    }
+
+    #[Test]
+    public function lcd_31_jours_ne_donne_pas_exoneration(): void
+    {
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+
+        $r = $this->calculator->calculate($vehicle, 31, 31, 2024);
+
+        $this->assertFalse($r->lcdExempt);
+        // 173 × 31/366 = 14,6530... → 14,65 ; 100 × 31/366 = 8,4699... → 8,47
+        $this->assertSame(14.65, $r->co2Due);
+        $this->assertSame(8.47, $r->pollutantsDue);
+        $this->assertSame(23.12, $r->totalDue);
+        $this->assertSame([], $r->exemptionReasons);
+    }
+
+    #[Test]
+    public function vehicule_electrique_exonere_de_la_taxe_co2(): void
+    {
+        $vehicle = $this->makeVehicleElectric();
+
+        $r = $this->calculator->calculate($vehicle, 200, 200, 2024);
+
+        $this->assertTrue($r->electricExempt);
+        $this->assertSame(0.0, $r->co2FullYearTariff);
+        $this->assertSame(0.0, $r->co2Due);
+        // Polluants cat E = 0 € (effet du barème, pas exonération)
+        $this->assertSame(0.0, $r->pollutantsDue);
+        $this->assertSame(0.0, $r->totalDue);
+        $this->assertCount(1, $r->exemptionReasons);
+        $this->assertStringContainsString('électrique', $r->exemptionReasons[0]);
+    }
+
+    #[Test]
+    public function vehicule_handicap_court_circuite_tout_le_calcul(): void
+    {
+        // Même un véhicule "plus polluant" Diesel WLTP haut CO₂ doit
+        // être totalement exonéré si handicap_access = true.
+        $vehicle = $this->makeVehicleWltp(
+            co2: 200,
+            energy: EnergySource::Diesel,
+            pollutant: PollutantCategory::MostPolluting,
+            handicapAccess: true,
+        );
+
+        $r = $this->calculator->calculate($vehicle, 300, 300, 2024);
+
+        $this->assertTrue($r->handicapExempt);
+        $this->assertFalse($r->lcdExempt);
+        $this->assertFalse($r->electricExempt);
+        $this->assertSame(0.0, $r->co2Due);
+        $this->assertSame(0.0, $r->pollutantsDue);
+        $this->assertSame(0.0, $r->totalDue);
+        $this->assertCount(1, $r->exemptionReasons);
+        $this->assertStringContainsString('handicap', $r->exemptionReasons[0]);
+    }
+
+    #[Test]
+    public function methode_pa_sur_vehicule_ancien_sans_co2(): void
+    {
+        // Cas réaliste : véhicule pré-2004 ou import sans donnée CO₂,
+        // déclaré directement PA dès la création (R-2024-005). La garde
+        // DB `chk_vfc_homologation_implies_measurement` empêche WLTP/NEDC
+        // sans la mesure correspondante — bascule applicative vers PA.
+        $vehicle = $this->makeVehiclePa(cv: 5, pollutant: PollutantCategory::Category1);
+
+        $r = $this->calculator->calculate($vehicle, 100, 100, 2024);
+
+        $this->assertSame(HomologationMethod::Pa, $r->co2Method);
+        // 5 CV → 1500*3 + 2250*2 = 4500 + 4500 = 9000 €
+        $this->assertSame(9000.0, $r->co2FullYearTariff);
+        // 9000 × 100/366 = 2459,0163… → 2459,02
+        $this->assertSame(2459.02, $r->co2Due);
+    }
+
+    #[Test]
+    public function annee_non_supportee_leve_invalid_argument(): void
+    {
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage("n'est pas supportée");
+
+        $this->calculator->calculate($vehicle, 100, 100, 2099);
+    }
+
+    #[Test]
+    public function jours_negatifs_levent_invalid_argument(): void
+    {
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('négatif');
+
+        $this->calculator->calculate($vehicle, -1, 0, 2024);
+    }
+
+    #[Test]
+    public function cumul_inferieur_aux_jours_attribues_leve_invalid_argument(): void
+    {
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+
+        $this->expectException(InvalidArgumentException::class);
+
+        $this->calculator->calculate($vehicle, 100, 50, 2024);
+    }
+
+    #[Test]
+    public function vehicule_sans_caracteristiques_courantes_leve_invalid_argument(): void
+    {
+        $vehicle = Vehicle::create([
+            'license_plate' => 'XX-999-XX',
+            'brand' => 'Test',
+            'model' => 'NoFiscal',
+            'first_french_registration_date' => Carbon::parse('2022-01-01'),
+            'first_origin_registration_date' => Carbon::parse('2022-01-01'),
+            'first_economic_use_date' => Carbon::parse('2022-01-01'),
+            'acquisition_date' => Carbon::parse('2022-01-01'),
+            'current_status' => VehicleStatus::Active,
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('caractéristiques');
+
+        $this->calculator->calculate($vehicle, 100, 100, 2024);
+    }
+
+    #[Test]
+    public function to_array_expose_toutes_les_cles_camel_case(): void
+    {
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+
+        $r = $this->calculator->calculate($vehicle, 50, 50, 2024);
+        $payload = $r->toArray();
+
+        $expectedKeys = [
+            'daysAssigned',
+            'cumulativeDaysForPair',
+            'daysInYear',
+            'lcdExempt',
+            'electricExempt',
+            'handicapExempt',
+            'co2Method',
+            'co2FullYearTariff',
+            'co2Due',
+            'pollutantCategory',
+            'pollutantsFullYearTariff',
+            'pollutantsDue',
+            'totalDue',
+            'exemptionReasons',
+        ];
+        foreach ($expectedKeys as $key) {
+            $this->assertArrayHasKey($key, $payload, "Clé `{$key}` absente du toArray()");
+        }
+        $this->assertSame('WLTP', $payload['co2Method']);
+        $this->assertIsArray($payload['exemptionReasons']);
+    }
+
+    #[Test]
+    public function days_in_year_2024_vaut_366_jours_bissextiles(): void
+    {
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+
+        $r = $this->calculator->calculate($vehicle, 100, 100, 2024);
+
+        $this->assertSame(366, $r->daysInYear);
+    }
+
+    #[Test]
+    public function fiscal_breakdown_est_immuable_readonly(): void
+    {
+        $r = new FiscalBreakdown(
+            daysAssigned: 100,
+            cumulativeDaysForPair: 100,
+            daysInYear: 366,
+            lcdExempt: false,
+            electricExempt: false,
+            handicapExempt: false,
+            co2Method: HomologationMethod::Wltp,
+            co2FullYearTariff: 173.0,
+            co2Due: 47.27,
+            pollutantCategory: PollutantCategory::Category1,
+            pollutantsFullYearTariff: 100.0,
+            pollutantsDue: 27.32,
+            totalDue: 74.59,
+            exemptionReasons: [],
+        );
+
+        // Toutes les propriétés sont readonly — on vérifie via reflection.
+        $reflection = new \ReflectionClass($r);
+        foreach ($reflection->getProperties() as $property) {
+            $this->assertTrue(
+                $property->isReadOnly(),
+                "Propriété {$property->getName()} devrait être readonly",
+            );
+        }
+    }
+
+    // ─── Helpers de fabrication ──────────────────────────────────────
+
+    private static int $plateCounter = 0;
+
+    private function nextPlate(): string
+    {
+        $n = ++self::$plateCounter;
+
+        return sprintf('TT-%03d-TT', $n);
+    }
+
+    private function makeVehicleWltp(
+        int $co2,
+        EnergySource $energy = EnergySource::Gasoline,
+        PollutantCategory $pollutant = PollutantCategory::Category1,
+        bool $handicapAccess = false,
+    ): Vehicle {
+        $vehicle = $this->makeBaseVehicle();
+        VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::parse('2024-01-01'),
+            'effective_to' => null,
+            'reception_category' => ReceptionCategory::M1,
+            'vehicle_user_type' => VehicleUserType::PassengerCar,
+            'body_type' => $handicapAccess ? BodyType::Handicap : BodyType::InteriorDriving,
+            'seats_count' => 5,
+            'energy_source' => $energy,
+            'euro_standard' => EuroStandard::Euro6d,
+            'pollutant_category' => $pollutant,
+            'homologation_method' => HomologationMethod::Wltp,
+            'co2_wltp' => $co2,
+            'taxable_horsepower' => 6,
+            'handicap_access' => $handicapAccess,
+            'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
+        ]);
+
+        return $vehicle->fresh();
+    }
+
+    private function makeVehicleNedc(int $co2): Vehicle
+    {
+        $vehicle = $this->makeBaseVehicle();
+        VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::parse('2024-01-01'),
+            'effective_to' => null,
+            'reception_category' => ReceptionCategory::M1,
+            'vehicle_user_type' => VehicleUserType::PassengerCar,
+            'body_type' => BodyType::InteriorDriving,
+            'seats_count' => 5,
+            'energy_source' => EnergySource::Gasoline,
+            'euro_standard' => EuroStandard::Euro5,
+            'pollutant_category' => PollutantCategory::Category1,
+            'homologation_method' => HomologationMethod::Nedc,
+            'co2_nedc' => $co2,
+            'taxable_horsepower' => 5,
+            'handicap_access' => false,
+            'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
+        ]);
+
+        return $vehicle->fresh();
+    }
+
+    private function makeVehiclePa(int $cv, PollutantCategory $pollutant): Vehicle
+    {
+        $vehicle = $this->makeBaseVehicle();
+        VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::parse('2024-01-01'),
+            'effective_to' => null,
+            'reception_category' => ReceptionCategory::N1,
+            'vehicle_user_type' => VehicleUserType::CommercialVehicle,
+            'body_type' => BodyType::LightTruck,
+            'seats_count' => 3,
+            'energy_source' => EnergySource::Diesel,
+            'euro_standard' => EuroStandard::Euro6,
+            'pollutant_category' => $pollutant,
+            'homologation_method' => HomologationMethod::Pa,
+            'taxable_horsepower' => $cv,
+            'handicap_access' => false,
+            'n1_passenger_transport' => true,
+            'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
+        ]);
+
+        return $vehicle->fresh();
+    }
+
+    private function makeVehicleElectric(): Vehicle
+    {
+        $vehicle = $this->makeBaseVehicle();
+        VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::parse('2024-01-01'),
+            'effective_to' => null,
+            'reception_category' => ReceptionCategory::M1,
+            'vehicle_user_type' => VehicleUserType::PassengerCar,
+            'body_type' => BodyType::InteriorDriving,
+            'seats_count' => 5,
+            'energy_source' => EnergySource::Electric,
+            'pollutant_category' => PollutantCategory::E,
+            'homologation_method' => HomologationMethod::Wltp,
+            'co2_wltp' => 0,
+            'taxable_horsepower' => 9,
+            'handicap_access' => false,
+            'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
+        ]);
+
+        return $vehicle->fresh();
+    }
+
+    private function makeBaseVehicle(): Vehicle
+    {
+        $plate = $this->nextPlate();
+
+        return Vehicle::create([
+            'license_plate' => $plate,
+            'brand' => 'TestBrand',
+            'model' => 'TestModel',
+            'first_french_registration_date' => Carbon::parse('2022-06-15'),
+            'first_origin_registration_date' => Carbon::parse('2022-06-15'),
+            'first_economic_use_date' => Carbon::parse('2022-06-15'),
+            'acquisition_date' => Carbon::parse('2022-06-15'),
+            'current_status' => VehicleStatus::Active,
+        ]);
+    }
+}

@@ -3,11 +3,11 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import Tabs from '@/Components/Ui/Tabs/Tabs.vue';
-import { useFiscalYear } from '@/composables/useFiscalYear';
+import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import {
     useOfficialLegalLinks,
     type LegalReference as LegalRef,
-} from '@/composables/useOfficialLegalLinks';
+} from '@/Composables/Shared/useOfficialLegalLinks';
 import {
     cadreSectionsOrder,
     calculSectionsOrder,
@@ -41,7 +41,8 @@ const props = defineProps<{
     rules: Rule[];
 }>();
 
-const { currentYear: fiscalYear } = useFiscalYear();
+const { currentYear: fiscalYear, daysInYear: daysInFiscalYear } =
+    useFiscalYear();
 
 const activeTab = ref<RuleTab>('calcul');
 
@@ -133,7 +134,7 @@ const taxBadgeTone = (
                     =
                     <span class="text-blue-700">(Tarif CO₂ + Tarif polluants)</span>
                     ×
-                    <span class="text-slate-700">(jours utilisés / 366)</span>
+                    <span class="text-slate-700">(jours utilisés / {{ daysInFiscalYear }})</span>
                     ×
                     <span class="text-emerald-700">(1 − exonérations)</span>
                 </p>

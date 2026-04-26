@@ -14,6 +14,7 @@ import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import { postJson } from '@/lib/http';
 import type { CompanyColor } from '@/types/ui';
+import { daysInYear } from '@/Utils/date/daysInYear';
 import { X } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
 import MultiDatePicker from './MultiDatePicker.vue';
@@ -429,7 +430,7 @@ const dayLongLabels = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
                             <div class="flex justify-between">
                                 <span class="text-slate-600">Cumul futur</span>
                                 <span class="font-mono text-slate-900">
-                                    {{ preview.futureCumul }} j / 366
+                                    {{ preview.futureCumul }} j / {{ daysInYear(fiscalYear) }}
                                 </span>
                             </div>
                             <div

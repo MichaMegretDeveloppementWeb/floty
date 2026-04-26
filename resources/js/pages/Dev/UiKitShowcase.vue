@@ -24,7 +24,7 @@ import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import Toast from '@/Components/Ui/Toast/Toast.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer/ToastContainer.vue';
-import { useToasts } from '@/composables/useToasts';
+import { useToasts } from '@/Composables/Shared/useToasts';
 import type { DataTableColumn } from '@/types/ui';
 import { Head } from '@inertiajs/vue3';
 import {

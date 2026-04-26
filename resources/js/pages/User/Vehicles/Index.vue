@@ -4,7 +4,7 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
-import { useFiscalYear } from '@/composables/useFiscalYear';
+import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import type { DataTableColumn } from '@/types/ui';
 import { Head, Link } from '@inertiajs/vue3';
 import { Car, Plus } from 'lucide-vue-next';
