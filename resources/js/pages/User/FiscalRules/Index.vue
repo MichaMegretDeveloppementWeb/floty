@@ -117,8 +117,8 @@ const taxBadgeTone = (
                     Règles de calcul · {{ fiscalYear }}
                 </h1>
                 <p class="mt-1 text-base text-slate-600">
-                    Comment Floty calcule les taxes CO₂ et polluants pour
-                    chaque attribution de véhicule. Lisez l'onglet
+                    Comment l'application calcule les taxes CO₂ et polluants
+                    pour chaque attribution de véhicule. Lisez l'onglet
                     « Calcul des taxes » pour reproduire un montant à la main.
                 </p>
             </header>
@@ -214,7 +214,7 @@ const taxBadgeTone = (
                                     "
                                     tone="slate"
                                 >
-                                    Non applicable dans Floty
+                                    Non applicable dans l'application
                                 </StatusPill>
                             </div>
 

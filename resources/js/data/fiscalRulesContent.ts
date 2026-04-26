@@ -90,13 +90,13 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     //  ONGLET 1 — CALCUL DES TAXES
     // ─────────────────────────────────────────────────────────────
 
-    // A. Aiguillage — comment Floty choisit le barème applicable ───
+    // A. Aiguillage — comment l'application choisit le barème applicable ───
     'R-2024-004': {
         tab: 'calcul',
         section: 'aiguillage',
         title: 'Étape 1 — Le véhicule est-il taxable ?',
         pitch: "Seuls les véhicules de catégorie M1 (tourisme) et certains N1 (transport de personnes) sont assujettis aux deux taxes.",
-        body: "Floty qualifie automatiquement chaque véhicule à partir de sa catégorie de réception européenne (M1/N1), de sa carrosserie et du nombre de places. Les vrais utilitaires de transport de marchandises (N1 type fourgon, camionnette à 1 rang) sont hors du champ des taxes.",
+        body: "L'application qualifie automatiquement chaque véhicule à partir de sa catégorie de réception européenne (M1/N1), de sa carrosserie et du nombre de places. Les vrais utilitaires de transport de marchandises (N1 type fourgon, camionnette à 1 rang) sont hors du champ des taxes.",
         example: "Renault Master N1 fourgon de marchandises → hors taxes. Peugeot Partner N1 « camionnette 2 rangs » → taxable.",
     },
     'R-2024-005': {
@@ -240,7 +240,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-020': {
         tab: 'calcul',
         section: 'exoneration',
-        title: 'Exonération loueur (fondement du modèle Floty)',
+        title: "Exonération loueur (fondement du modèle de l'application)",
         pitch: 'La société de location ne paie aucune taxe sur ses véhicules en stock. Seule la part louée à une entreprise utilisatrice déclenche une taxe.',
         appliesWhen: "Le véhicule est détenu par une société dont l'activité est la location. Exonération applicable sur les jours où le véhicule n'est attribué à aucune entreprise utilisatrice.",
         effect:
@@ -253,7 +253,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         section: 'exoneration',
         title: 'Exonération location courte durée (LCD) — seuil 30 jours',
         pitch: 'Tant qu’une entreprise ne cumule pas plus de 30 jours sur un même véhicule dans l’année, ses deux taxes sont à zéro pour ce couple.',
-        body: "Règle clé du modèle Floty : si une entreprise répartit ses besoins sur plusieurs véhicules différents (chaque couple ≤ 30 j), elle peut atteindre une exonération totale. Dès que le cumul annuel d'un couple (véhicule × entreprise) dépasse 30 jours, l'exonération tombe intégralement (et pas seulement au-delà de 30 j) : la taxe est due au prorata du cumul complet.",
+        body: "Règle clé du modèle de l'application : si une entreprise répartit ses besoins sur plusieurs véhicules différents (chaque couple ≤ 30 j), elle peut atteindre une exonération totale. Dès que le cumul annuel d'un couple (véhicule × entreprise) dépasse 30 jours, l'exonération tombe intégralement (et pas seulement au-delà de 30 j) : la taxe est due au prorata du cumul complet.",
         appliesWhen:
             'Pour chaque couple (véhicule, entreprise utilisatrice) : cumul annuel des jours d’utilisation ≤ 30.',
         effect:
@@ -268,21 +268,21 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         section: 'exoneration-inactive',
         title: 'Exonération organisme d’intérêt général',
         pitch: 'Véhicules détenus par une association 1901, fondation, etc., affectés exclusivement à l’activité non lucrative.',
-        body: 'Modélisée en base mais inactive par défaut : aucune entreprise utilisatrice de la flotte Floty n’est un organisme d’intérêt général. Activable manuellement si le périmètre évolue.',
+        body: "Modélisée en base mais inactive par défaut : aucune entreprise utilisatrice de la flotte n'est un organisme d'intérêt général. Activable manuellement si le périmètre évolue.",
     },
     'R-2024-019': {
         tab: 'calcul',
         section: 'exoneration-inactive',
         title: 'Exonération entreprise individuelle',
         pitch: 'Véhicules détenus par une personne physique exerçant en nom propre (BIC/BNC).',
-        body: 'Inactive par défaut : les entreprises utilisatrices Floty sont des sociétés, jamais des personnes physiques en nom propre.',
+        body: 'Inactive par défaut : les entreprises utilisatrices sont des sociétés, jamais des personnes physiques en nom propre.',
     },
     'R-2024-022': {
         tab: 'calcul',
         section: 'exoneration-inactive',
         title: 'Exonérations liées à l’activité (transport public, agricole, etc.)',
         pitch: 'Transport public de personnes, activités agricoles ou forestières, enseignement de la conduite, compétitions sportives.',
-        body: 'Quatre dispositifs prévus par le CIBS, modélisés mais inactifs par défaut : aucune entreprise utilisatrice Floty n’exerce l’une de ces activités exonérées.',
+        body: "Quatre dispositifs prévus par le CIBS, modélisés mais inactifs par défaut : aucune entreprise utilisatrice n'exerce l'une de ces activités exonérées.",
     },
 
     // ─────────────────────────────────────────────────────────────
@@ -338,7 +338,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         tab: 'cadre',
         section: 'cadre-evenement',
         title: 'Bascule automatique sur barème PA',
-        pitch: 'Quand la donnée CO₂ attendue est manquante, Floty bascule automatiquement sur le barème Puissance Administrative.',
+        pitch: "Quand la donnée CO₂ attendue est manquante, l'application bascule automatiquement sur le barème Puissance Administrative.",
         body: 'Complémentaire de R-005 : si un véhicule post-2020 devrait relever du WLTP mais n’a pas de CO₂ WLTP saisi, le calcul se rabat sur les CV. Un indicateur UI signale ces véhicules pour incitation à compléter les données.',
     },
 
@@ -355,7 +355,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         section: 'cadre-interne',
         title: 'Garde-fou Crit’Air',
         pitch: 'Alerte UI non bloquante quand la vignette Crit’Air saisie ne correspond pas à la catégorie polluants calculée.',
-        body: 'Contrôle de cohérence entre la vignette Crit’Air et la catégorie calculée à partir de motorisation + norme Euro. Une divergence déclenche une alerte mais n’empêche pas le calcul : Floty utilise la catégorie calculée, sauf modification manuelle.',
+        body: "Contrôle de cohérence entre la vignette Crit'Air et la catégorie calculée à partir de motorisation + norme Euro. Une divergence déclenche une alerte mais n'empêche pas le calcul : l'application utilise la catégorie calculée, sauf modification manuelle.",
     },
 };
 
@@ -380,7 +380,7 @@ export const cadreSectionsOrder: RuleSection[] = [
  */
 export const sectionTitles: Record<RuleSection, { title: string; subtitle: string }> = {
     aiguillage: {
-        title: 'Comment Floty choisit le bon barème pour chaque véhicule',
+        title: "Comment l'application choisit le bon barème pour chaque véhicule",
         subtitle: 'Trois étapes d’aiguillage : taxable ou non, quel barème CO₂, quelle catégorie polluants.',
     },
     bareme: {
@@ -388,11 +388,11 @@ export const sectionTitles: Record<RuleSection, { title: string; subtitle: strin
         subtitle: 'Chiffres bruts utilisés pour calculer le tarif annuel plein de chaque taxe.',
     },
     exoneration: {
-        title: 'Exonérations applicables dans Floty',
+        title: "Exonérations applicables dans l'application",
         subtitle: 'Règles qui annulent ou réduisent le montant dû pour une attribution donnée.',
     },
     'exoneration-inactive': {
-        title: 'Exonérations prévues par la loi mais non applicables dans Floty',
+        title: "Exonérations prévues par la loi mais non applicables dans l'application",
         subtitle: 'Modélisées en base pour évolution future, inactives par défaut en 2024.',
     },
     'cadre-implicite': {
@@ -401,10 +401,10 @@ export const sectionTitles: Record<RuleSection, { title: string; subtitle: strin
     },
     'cadre-evenement': {
         title: 'Règles de gestion des évènements véhicule',
-        subtitle: 'Comment Floty traite les indisponibilités, sorties de flotte et données manquantes.',
+        subtitle: "Comment l'application traite les indisponibilités, sorties de flotte et données manquantes.",
     },
     'cadre-interne': {
-        title: 'Règles de fonctionnement interne Floty',
+        title: "Règles de fonctionnement interne de l'application",
         subtitle: "Mécanismes de validation et d'audit transparents pour l'utilisateur.",
     },
 };
