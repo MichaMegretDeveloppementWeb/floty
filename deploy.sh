@@ -112,14 +112,6 @@ fi
 echo "→ Exécution des migrations..."
 "$PHP_BIN" artisan migrate --force
 
-# 6.bis Réseed du catalogue fiscal (idempotent — updateOrCreate sur
-# rule_code). Garantit que la table fiscal_rules contient toujours les
-# 24 règles + leur base légale, sinon la page « Règles de calcul »
-# masque les liens vers Légifrance.
-# UserSeeder et DemoSeeder NE sont PAS lancés ici — appel manuel uniquement.
-echo "→ Seed des règles fiscales (idempotent)..."
-"$PHP_BIN" artisan db:seed --class=FiscalRulesSeeder --force
-
 # 7. Lien symbolique storage
 echo "→ Vérification du lien storage..."
 "$PHP_BIN" artisan storage:link 2>/dev/null || true
