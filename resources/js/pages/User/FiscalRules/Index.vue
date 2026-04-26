@@ -223,7 +223,7 @@ const taxBadgeTone = (
                             >
                                 {{ fiscalRulesContent2024[code]?.title }}
                             </h3>
-                            <p class="mt-1 text-sm leading-relaxed text-slate-700">
+                            <p class="mt-1 text-base leading-relaxed text-slate-700">
                                 {{ fiscalRulesContent2024[code]?.pitch }}
                             </p>
 
@@ -233,7 +233,7 @@ const taxBadgeTone = (
                                     fiscalRulesContent2024[code]?.appliesWhen ||
                                     fiscalRulesContent2024[code]?.effect
                                 "
-                                class="mt-3 flex flex-col gap-2 rounded-lg bg-slate-50 p-3 text-sm"
+                                class="mt-3 flex flex-col gap-2 rounded-lg bg-slate-50 p-3 text-base"
                             >
                                 <div
                                     v-if="fiscalRulesContent2024[code]?.appliesWhen"
@@ -264,7 +264,7 @@ const taxBadgeTone = (
                             <!-- Body (explication longue) -->
                             <p
                                 v-if="fiscalRulesContent2024[code]?.body"
-                                class="mt-3 text-sm leading-relaxed text-slate-600"
+                                class="mt-3 text-base leading-relaxed text-slate-600"
                             >
                                 {{ fiscalRulesContent2024[code]!.body }}
                             </p>
@@ -285,7 +285,7 @@ const taxBadgeTone = (
                                     }}
                                 </p>
                                 <table
-                                    class="w-full overflow-hidden rounded-lg border border-slate-200 text-sm"
+                                    class="w-full overflow-hidden rounded-lg border border-slate-200 text-base"
                                 >
                                     <thead class="bg-slate-50">
                                         <tr>
@@ -338,7 +338,7 @@ const taxBadgeTone = (
                                 class="mt-4"
                             >
                                 <table
-                                    class="w-full overflow-hidden rounded-lg border border-slate-200 text-sm"
+                                    class="w-full overflow-hidden rounded-lg border border-slate-200 text-base"
                                 >
                                     <thead class="bg-slate-50">
                                         <tr>
@@ -400,7 +400,7 @@ const taxBadgeTone = (
                                 >
                                     Exemple chiffré
                                 </p>
-                                <p class="text-sm leading-relaxed text-slate-700">
+                                <p class="text-base leading-relaxed text-slate-700">
                                     {{ fiscalRulesContent2024[code]!.example }}
                                 </p>
                             </div>

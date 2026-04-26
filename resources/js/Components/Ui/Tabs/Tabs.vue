@@ -17,7 +17,7 @@ const active = defineModel<T>({ required: true });
     <div
         role="tablist"
         :aria-label="ariaLabel"
-        class="inline-flex gap-0.5 rounded-lg bg-slate-100 p-0.5"
+        class="inline-flex gap-0.5 rounded-lg bg-slate-100 p-0.5 w-max"
     >
         <button
             v-for="tab in tabs"

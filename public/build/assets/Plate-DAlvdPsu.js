@@ -1,1 +1,0 @@
-import{$ as e,_ as t,k as n,x as r}from"./app-DVAaYyb7.js";var i={class:`font-mono font-medium tracking-[0.02em] text-slate-900 uppercase`},a=r({__name:`Plate`,props:{value:{}},setup(r){return(a,o)=>(n(),t(`span`,i,e(r.value),1))}});export{a as t};

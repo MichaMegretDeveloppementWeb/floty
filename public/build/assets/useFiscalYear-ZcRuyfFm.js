@@ -1,0 +1,1 @@
+import{i as e,p as t}from"./app-CKG35FNs.js";function n(){let n=e(),r=t(()=>n.props.fiscal.currentYear),i=t(()=>n.props.fiscal.availableYears);return{currentYear:r,availableYears:i,isLocked:t(()=>i.value.length<=1)}}export{n as t};
