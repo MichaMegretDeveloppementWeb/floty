@@ -40,7 +40,7 @@ final class AssignmentControllerTest extends TestCase
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
-        $year = (int) config('floty.fiscal.current_year');
+        $year = (int) config('floty.fiscal.available_years')[0];
 
         Assignment::factory()->create([
             'vehicle_id' => $vehicle->id,

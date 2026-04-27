@@ -4,15 +4,25 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal;
 
-use App\Services\Fiscal\BracketsCatalog2024;
+use App\Fiscal\ValueObjects\ProgressiveScale;
+use App\Fiscal\Year2024\Pricing\R2024_010_WltpProgressive;
+use App\Fiscal\Year2024\Pricing\R2024_011_NedcProgressive;
+use App\Fiscal\Year2024\Pricing\R2024_012_PaProgressive;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
 
 /**
  * Non-régression sur les barèmes 2024 (R-2024-010/011/012/014).
  *
  * Les valeurs attendues sont issues de `taxes-rules/2024.md` — sections
  * « Tests unitaires de référence » et exemples BOFiP officiels.
+ *
+ * Depuis la phase 1.8, les barèmes vivent à l'intérieur des classes
+ * règles `R2024_010_*`, `R2024_011_*`, `R2024_012_*`. On les extrait
+ * via reflection pour tester directement le `ProgressiveScale`
+ * encapsulé — c'est délibéré : ce test est un **filet de sécurité**
+ * qui valide les valeurs publiées DGFiP, pas l'API publique.
  */
 final class BracketsCatalog2024Test extends TestCase
 {
@@ -52,14 +62,17 @@ final class BracketsCatalog2024Test extends TestCase
         int $value,
         float $expected,
     ): void {
-        $brackets = match ($scale) {
-            'wltp' => BracketsCatalog2024::wltp(),
-            'nedc' => BracketsCatalog2024::nedc(),
-            'pa' => BracketsCatalog2024::pa(),
+        $rule = match ($scale) {
+            'wltp' => new R2024_010_WltpProgressive,
+            'nedc' => new R2024_011_NedcProgressive,
+            'pa' => new R2024_012_PaProgressive,
         };
 
-        $actual = BracketsCatalog2024::applyProgressive($brackets, $value);
-        $this->assertSame(
+        $progressive = (new ReflectionClass($rule))->getProperty('scale')->getValue($rule);
+        self::assertInstanceOf(ProgressiveScale::class, $progressive);
+        $actual = $progressive->apply($value);
+
+        self::assertSame(
             $expected,
             $actual,
             "Attendu {$expected} pour {$scale}({$value}), obtenu {$actual}",

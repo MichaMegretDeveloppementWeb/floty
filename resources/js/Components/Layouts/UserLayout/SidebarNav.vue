@@ -169,20 +169,5 @@ const labelClass =
                 </ul>
             </div>
         </nav>
-
-        <div
-            class="flex items-center gap-3 border-t border-slate-100 py-4 pl-4"
-        >
-            <div
-                class="flex size-8 shrink-0 items-center justify-center rounded-full bg-slate-200 font-mono text-xs font-semibold text-slate-700"
-                aria-hidden="true"
-            >
-                RM
-            </div>
-            <div :class="['flex flex-col leading-tight', labelClass]">
-                <p class="text-base font-medium text-slate-900">R. Martin</p>
-                <p class="text-xs text-slate-500">Gestionnaire flotte</p>
-            </div>
-        </div>
     </aside>
 </template>

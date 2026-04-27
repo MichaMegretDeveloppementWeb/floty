@@ -14,6 +14,7 @@ use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Services\Vehicle\VehicleQueryService;
 use App\Support\EnumOptions;
@@ -26,14 +27,13 @@ final class VehicleController extends Controller
     public function __construct(
         private readonly VehicleQueryService $vehicles,
         private readonly VehicleWriteRepositoryInterface $vehicleWrite,
+        private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
     public function index(): Response
     {
         return Inertia::render('User/Vehicles/Index/Index', [
-            'vehicles' => $this->vehicles->listForFleetView(
-                (int) config('floty.fiscal.current_year'),
-            ),
+            'vehicles' => $this->vehicles->listForFleetView($this->fiscalYear->resolve()),
         ]);
     }
 

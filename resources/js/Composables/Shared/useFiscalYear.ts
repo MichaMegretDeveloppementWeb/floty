@@ -8,7 +8,8 @@ import { daysInYear as daysInYearOf } from '@/Utils/date/daysInYear';
  *
  * Lit `usePage().props.fiscal.currentYear` exposé par
  * `HandleInertiaRequests`, lui-même alimenté par
- * `config('floty.fiscal.current_year')` côté Laravel.
+ * `App\Fiscal\Resolver\FiscalYearResolver` (session utilisateur,
+ * fallback `config('floty.fiscal.available_years')[0]`).
  *
  * Aucune page, composant ou composable ne doit lire l'année autrement
  * (ni `new Date().getFullYear()`, ni prop locale `fiscalYear`, ni valeur

@@ -33,7 +33,7 @@ final class CompanyQueryServiceTest extends TestCase
     #[Test]
     public function list_for_fleet_view_aggrege_jours_et_taxe_par_entreprise(): void
     {
-        $year = (int) config('floty.fiscal.current_year');
+        $year = (int) config('floty.fiscal.available_years')[0];
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();

@@ -6,23 +6,24 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Année fiscale active
+    | Années fiscales disponibles
     |--------------------------------------------------------------------------
     |
-    | Source de vérité unique pour l'année fiscale du MVP. Tant qu'une
-    | seule année de règles fiscales est codée (2024), cette valeur est
-    | figée et propagée :
-    |   - dans `HandleInertiaRequests` → shared props `fiscal.currentYear`
-    |   - dans tous les controllers via `config('floty.fiscal.current_year')`
-    |   - dans le YearSelector côté front (min = max → flèches désactivées)
+    | Liste statique, définie par déploiement, des années fiscales pour
+    | lesquelles le moteur fiscal est implémenté (ie. dont les règles sont
+    | enregistrées dans le `FiscalRuleRegistry` via `FiscalServiceProvider`).
     |
-    | Quand une nouvelle année de règles sera ajoutée, on basculera ici
-    | sur un tableau d'années disponibles et on permettra la sélection
-    | depuis la TopBar.
+    | L'année **active** côté utilisateur est portée par la session via
+    | `App\Fiscal\Resolver\FiscalYearResolver` — pas par cette config,
+    | qui était partagée entre tous les utilisateurs (effet de bord
+    | global lors d'un changement d'année).
+    |
+    | Convention : la première année du tableau est la valeur de
+    | fallback quand aucune année n'est posée en session (cas typique
+    | du premier accès à l'application).
     */
 
     'fiscal' => [
-        'current_year' => 2024,
         'available_years' => [2024],
     ],
 

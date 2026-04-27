@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Assignment\AssignmentWriteRepositoryInterfac
 use App\Data\User\Planning\BulkCreateAssignmentsInputData;
 use App\Data\User\Planning\PreviewTaxesInputData;
 use App\Exceptions\Http\InvalidQueryParameterException;
+use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Services\Planning\PlanningHeatmapService;
 use App\Services\Planning\WeekDetailService;
@@ -26,13 +27,14 @@ final class PlanningController extends Controller
         private readonly PlanningHeatmapService $heatmap,
         private readonly WeekDetailService $weekDetail,
         private readonly AssignmentWriteRepositoryInterface $assignmentWrite,
+        private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
     public function index(): Response
     {
         return Inertia::render(
             'User/Planning/Index/Index',
-            $this->heatmap->buildHeatmap((int) config('floty.fiscal.current_year')),
+            $this->heatmap->buildHeatmap($this->fiscalYear->resolve()),
         );
     }
 
@@ -52,11 +54,7 @@ final class PlanningController extends Controller
         }
 
         return response()->json(
-            $this->weekDetail->buildWeek(
-                $vehicleId,
-                $weekNumber,
-                (int) config('floty.fiscal.current_year'),
-            ),
+            $this->weekDetail->buildWeek($vehicleId, $weekNumber, $this->fiscalYear->resolve()),
         );
     }
 
@@ -66,10 +64,7 @@ final class PlanningController extends Controller
     public function previewTaxes(PreviewTaxesInputData $input): JsonResponse
     {
         return response()->json(
-            $this->weekDetail->previewTaxes(
-                $input,
-                (int) config('floty.fiscal.current_year'),
-            ),
+            $this->weekDetail->previewTaxes($input, $this->fiscalYear->resolve()),
         );
     }
 

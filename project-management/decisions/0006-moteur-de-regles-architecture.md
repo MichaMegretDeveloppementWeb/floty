@@ -110,9 +110,9 @@ La validation de cohérence du pipeline est effectuée au démarrage de l'applic
 
 **Logique en code** :
 
-- Chaque règle est une classe (TypeScript / PHP / … selon la stack à venir), versionnée dans le repository git.
+- Chaque règle est une classe PHP `final readonly`, versionnée dans le repository git.
 - Le code contient la logique d'évaluation, les paramètres (tranches, seuils, tarifs), et la méthode `describeForUI()`.
-- Organisation par dossier : `rules/2024/co2/wltp.ts`, `rules/2024/exonerations/lcd.ts`, etc.
+- Organisation par dossier : `app/Fiscal/Year2024/Pricing/R2024_010_WltpProgressive.php`, `app/Fiscal/Year2024/Exemption/R2024_021_LowDayCount.php`, etc.
 
 **Métadonnées en base** (table `fiscal_rules`) :
 
@@ -148,13 +148,13 @@ Le même moteur (mêmes règles, même pipeline) supporte trois modes d'invocati
 Conformément à l'ADR-0003 (PDF immuables) et à l'ADR-0004 (invalidation par marquage) :
 
 - À chaque génération PDF, un **snapshot JSON** est persisté avec le PDF. Il capture :
-  - Les règles appliquées (id + version)
+  - Les règles appliquées (`rule_code` uniquement, cf. ADR-0009)
   - Les attributions du couple
   - Les caractéristiques véhicule à la date du calcul
   - Les données de l'entreprise utilisatrice
   - Les résultats intermédiaires et finaux
-- Les règles portent un **numéro de version interne**. Quand une règle est corrigée par seeder, sa version est incrémentée. Les snapshots historiques référencent la version qui était en vigueur au moment de leur génération.
-- La détection d'invalidation (ADR-0004) compare un hash du snapshot avec un hash de l'état courant. Si divergence → marquage.
+- **Pas de versioning des règles** (cf. ADR-0009). Quand une règle est corrigée, le code change, le `rule_code` reste stable, les snapshots historiques restent intacts.
+- La détection d'invalidation (ADR-0004) compare un hash du snapshot avec un hash de l'état courant recalculé. Si divergence → marquage.
 
 ---
 

@@ -64,7 +64,7 @@ final class PlanningControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
 
-        $year = (int) config('floty.fiscal.current_year');
+        $year = (int) config('floty.fiscal.available_years')[0];
 
         $this->actingAs($user)
             ->postJson('/app/planning/preview-taxes', [
@@ -89,7 +89,7 @@ final class PlanningControllerTest extends TestCase
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
-        $year = (int) config('floty.fiscal.current_year');
+        $year = (int) config('floty.fiscal.available_years')[0];
 
         $this->actingAs($user)
             ->postJson('/app/planning/assignments', [

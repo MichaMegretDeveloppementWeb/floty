@@ -55,13 +55,29 @@ const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
  * passée en URL — on combine ces LEGIARTI avec une date dérivée de
  * l'année fiscale courante (cf. `articleUrlForYear`).
  *
- * Source : Légifrance, sections du Code des impositions sur les biens
- * et services (LEGITEXT000044595989) — paragraphes 3 et 4 (taxes CO₂
- * et polluants), articles L. 421-2 et L. 421-93 à L. 421-167.
+ * Source : Légifrance, Code des impositions sur les biens et services
+ * (LEGITEXT000044595989). Articles couverts :
+ * — L. 131-1 (règle d'arrondi half-up, livre I) ;
+ * — L. 421-2 (définition véhicule de tourisme M1/N1) ;
+ * — L. 421-94 à L. 421-95, L. 421-99, L. 421-104, L. 421-110, L. 421-111
+ *   (assujettissement, fait générateur, prorata, coefficient pondérateur,
+ *   minoration 15 000 €) ;
+ * — L. 421-119 et L. 421-119-1 (règle générale tarifs CO₂ et bascule
+ *   WLTP/NEDC/PA) ;
+ * — L. 421-120 à L. 421-144 (tarifs et exonérations CO₂ + polluants) ;
+ * — L. 421-164 (état récapitulatif annuel).
  */
 const CIBS_ARTICLE_LEGIARTI: Record<string, string> = {
+    'L. 131-1': 'LEGIARTI000044604185',
     'L. 421-2': 'LEGIARTI000048844510',
-    'L. 421-119': 'LEGIARTI000048802414',
+    'L. 421-94': 'LEGIARTI000051214931',
+    'L. 421-95': 'LEGIARTI000051214924',
+    'L. 421-99': 'LEGIARTI000044603043',
+    'L. 421-104': 'LEGIARTI000044603029',
+    'L. 421-110': 'LEGIARTI000046196651',
+    'L. 421-111': 'LEGIARTI000044603007',
+    'L. 421-119': 'LEGIARTI000044602987',
+    'L. 421-119-1': 'LEGIARTI000048802414',
     'L. 421-120': 'LEGIARTI000048844602',
     'L. 421-121': 'LEGIARTI000048844592',
     'L. 421-122': 'LEGIARTI000048844579',
@@ -86,6 +102,7 @@ const CIBS_ARTICLE_LEGIARTI: Record<string, string> = {
     'L. 421-142': 'LEGIARTI000044602915',
     'L. 421-143': 'LEGIARTI000044602913',
     'L. 421-144': 'LEGIARTI000044602911',
+    'L. 421-164': 'LEGIARTI000051214908',
 };
 
 const CIBS_LEGITEXT = 'LEGITEXT000044595989';

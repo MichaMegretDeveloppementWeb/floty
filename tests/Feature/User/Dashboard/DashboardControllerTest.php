@@ -30,7 +30,7 @@ final class DashboardControllerTest extends TestCase
         Assignment::factory()->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'date' => now()->setYear((int) config('floty.fiscal.current_year'))->format('Y-m-d'),
+            'date' => now()->setYear((int) config('floty.fiscal.available_years')[0])->format('Y-m-d'),
         ]);
 
         $this->actingAs($user)

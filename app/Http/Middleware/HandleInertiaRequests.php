@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Data\Auth\CurrentUserData;
 use App\Data\Shared\FiscalSharedData;
 use App\Data\Shared\FlashData;
+use App\Fiscal\Resolver\FiscalYearResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -32,6 +33,10 @@ use Inertia\Middleware;
 final class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
+
+    public function __construct(
+        private readonly FiscalYearResolver $fiscalYearResolver,
+    ) {}
 
     public function version(Request $request): ?string
     {
@@ -60,7 +65,7 @@ final class HandleInertiaRequests extends Middleware
             ),
 
             'fiscal' => fn (): FiscalSharedData => new FiscalSharedData(
-                currentYear: (int) config('floty.fiscal.current_year'),
+                currentYear: $this->fiscalYearResolver->resolve(),
                 availableYears: array_map(
                     'intval',
                     config('floty.fiscal.available_years', []),

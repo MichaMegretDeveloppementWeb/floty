@@ -18,7 +18,7 @@ final class FiscalRuleFactory extends Factory
      */
     public function definition(): array
     {
-        $year = (int) config('floty.fiscal.current_year');
+        $year = (int) (config('floty.fiscal.available_years', [2024])[0] ?? 2024);
 
         return [
             'rule_code' => fake()->unique()->regexify('R-[0-9]{4}-[0-9]{3}'),

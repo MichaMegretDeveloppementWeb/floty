@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal;
 
+use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -14,7 +15,11 @@ use PHPUnit\Framework\TestCase;
  * Tests purs (sans bootstrap Laravel) du contexte d'année fiscale.
  *
  * Couvre la logique bissextile (cas limite 1900/2000/2100/2400) et la
- * lecture de configuration via un `Repository` stub.
+ * lecture des années disponibles via un `Repository` stub.
+ *
+ * Note V1.8 : `currentYear()` a été retirée du contexte — la résolution
+ * de l'année active vit désormais dans
+ * {@see FiscalYearResolver} (qui a son propre test).
  */
 final class FiscalYearContextTest extends TestCase
 {
@@ -39,36 +44,15 @@ final class FiscalYearContextTest extends TestCase
         int $year,
         int $expected,
     ): void {
-        $context = $this->makeContext(currentYear: 2024);
+        $context = $this->makeContext();
 
         $this->assertSame($expected, $context->daysInYear($year));
     }
 
     #[Test]
-    public function current_year_lit_la_config(): void
-    {
-        $context = $this->makeContext(currentYear: 2024);
-
-        $this->assertSame(2024, $context->currentYear());
-    }
-
-    #[Test]
-    public function days_in_current_year_combine_les_deux(): void
-    {
-        $context = $this->makeContext(currentYear: 2024);
-        $this->assertSame(366, $context->daysInCurrentYear());
-
-        $context = $this->makeContext(currentYear: 2025);
-        $this->assertSame(365, $context->daysInCurrentYear());
-    }
-
-    #[Test]
     public function available_years_normalise_en_int_list(): void
     {
-        $context = $this->makeContext(
-            currentYear: 2024,
-            availableYears: ['2024', 2025, '2026'],
-        );
+        $context = $this->makeContext(availableYears: ['2024', 2025, '2026']);
 
         $this->assertSame([2024, 2025, 2026], $context->availableYears());
     }
@@ -76,10 +60,7 @@ final class FiscalYearContextTest extends TestCase
     #[Test]
     public function is_supported_verifie_la_liste(): void
     {
-        $context = $this->makeContext(
-            currentYear: 2024,
-            availableYears: [2024, 2025],
-        );
+        $context = $this->makeContext(availableYears: [2024, 2025]);
 
         $this->assertTrue($context->isSupported(2024));
         $this->assertTrue($context->isSupported(2025));
@@ -89,14 +70,11 @@ final class FiscalYearContextTest extends TestCase
     /**
      * @param  array<int, int|string>  $availableYears
      */
-    private function makeContext(
-        int $currentYear,
-        array $availableYears = [2024],
-    ): FiscalYearContext {
+    private function makeContext(array $availableYears = [2024]): FiscalYearContext
+    {
         $config = new Repository([
             'floty' => [
                 'fiscal' => [
-                    'current_year' => $currentYear,
                     'available_years' => $availableYears,
                 ],
             ],

@@ -6,6 +6,7 @@ namespace App\Http\Controllers\User\Company;
 
 use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
 use App\Data\User\Company\StoreCompanyData;
+use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Services\Company\CompanyQueryService;
 use Illuminate\Http\RedirectResponse;
@@ -17,14 +18,13 @@ final class CompanyController extends Controller
     public function __construct(
         private readonly CompanyQueryService $companies,
         private readonly CompanyWriteRepositoryInterface $companyWrite,
+        private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
     public function index(): Response
     {
         return Inertia::render('User/Companies/Index/Index', [
-            'companies' => $this->companies->listForFleetView(
-                (int) config('floty.fiscal.current_year'),
-            ),
+            'companies' => $this->companies->listForFleetView($this->fiscalYear->resolve()),
         ]);
     }
 

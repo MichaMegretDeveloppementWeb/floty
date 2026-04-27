@@ -55,7 +55,10 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => "Définit qui est redevable de la taxe (entreprise utilisatrice) et le fait générateur (affectation d'un véhicule à des fins économiques).",
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
-                'legal_basis' => $cibs('L. 421-119'),
+                'legal_basis' => [
+                    ['type' => 'CIBS', 'article' => 'L. 421-94'],
+                    ['type' => 'CIBS', 'article' => 'L. 421-99'],
+                ],
                 'display_order' => 1,
             ],
             [
@@ -64,7 +67,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => 'Mécanique du prorata journalier : tarif annuel plein × (jours affectés / 366) en 2024.',
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
-                'legal_basis' => $cibs('L. 421-119'),
+                'legal_basis' => $cibs('L. 421-104'),
                 'display_order' => 2,
             ],
             [
@@ -73,7 +76,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => 'Arrondi au centime commercial sur le montant total final du redevable, pas par calcul intermédiaire.',
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
-                'legal_basis' => $cibs('L. 421-119'),
+                'legal_basis' => $cibs('L. 131-1'),
                 'display_order' => 3,
             ],
             [
@@ -91,7 +94,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => 'Détermine le barème applicable (WLTP / NEDC / PA) à partir des caractéristiques véhicule.',
                 'rule_type' => RuleType::Classification,
                 'taxes_concerned' => $co2,
-                'legal_basis' => $cibs('L. 421-121'),
+                'legal_basis' => $cibs('L. 421-119-1'),
                 'display_order' => 5,
             ],
             [
@@ -100,7 +103,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => 'Fallback vers le barème Puissance Administrative si la donnée CO₂ est manquante.',
                 'rule_type' => RuleType::Classification,
                 'taxes_concerned' => $co2,
-                'legal_basis' => $cibs('L. 421-122'),
+                'legal_basis' => $cibs('L. 421-119-1'),
                 'display_order' => 6,
             ],
             [
@@ -109,7 +112,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => "Application de la version effective des caractéristiques fiscales à chaque jour d'affectation.",
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
-                'legal_basis' => $cibs('L. 421-119'),
+                'legal_basis' => $cibs('L. 421-164'),
                 'display_order' => 7,
             ],
             [
@@ -118,7 +121,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => "Les jours d'indisponibilité fourrière sont déduits du numérateur du prorata (BOFiP § 190).",
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
-                'legal_basis' => $cibs('L. 421-119'),
+                'legal_basis' => $cibs('L. 421-104'),
                 'display_order' => 8,
             ],
             [
@@ -127,7 +130,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => "Gestion des véhicules sortis de flotte (vente, destruction) — prorata jusqu'à la date de sortie.",
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
-                'legal_basis' => $cibs('L. 421-119'),
+                'legal_basis' => $cibs('L. 421-104'),
                 'display_order' => 9,
             ],
             [
@@ -145,7 +148,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => 'Tarif progressif par tranches sur les émissions CO₂ NEDC (véhicules antérieurs à WLTP).',
                 'rule_type' => RuleType::Tariff,
                 'taxes_concerned' => $co2,
-                'legal_basis' => $cibs('L. 421-120'),
+                'legal_basis' => $cibs('L. 421-121'),
                 'display_order' => 11,
             ],
             [
@@ -262,8 +265,12 @@ final class FiscalRulesSeeder extends Seeder
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
+                    ['type' => 'CIBS', 'article' => 'L. 421-130'],
                     ['type' => 'CIBS', 'article' => 'L. 421-131'],
+                    ['type' => 'CIBS', 'article' => 'L. 421-132'],
+                    ['type' => 'CIBS', 'article' => 'L. 421-142'],
                     ['type' => 'CIBS', 'article' => 'L. 421-143'],
+                    ['type' => 'CIBS', 'article' => 'L. 421-144'],
                 ],
                 'display_order' => 22,
                 'is_active' => false,
@@ -274,7 +281,7 @@ final class FiscalRulesSeeder extends Seeder
                 'description' => "2024 : aucun abattement isolé (ex. E85) applicable. Placeholder pour 2025+ où l'abattement E85 pourrait apparaître.",
                 'rule_type' => RuleType::Abatement,
                 'taxes_concerned' => $both,
-                'legal_basis' => $cibs('L. 421-130'),
+                'legal_basis' => $cibs('L. 421-111'),
                 'display_order' => 23,
             ],
             [

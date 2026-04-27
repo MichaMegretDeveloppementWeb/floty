@@ -4,38 +4,31 @@ declare(strict_types=1);
 
 namespace App\Services\Shared\Fiscal;
 
+use App\Fiscal\Resolver\FiscalYearResolver;
 use Illuminate\Contracts\Config\Repository;
 
 /**
- * Petit contexte de référence pour l'année fiscale active et les
- * propriétés calendaires associées (jours dans l'année, années
- * disponibles, etc.).
+ * Petit contexte de référence pour les propriétés calendaires d'une
+ * année fiscale (jours dans l'année, années disponibles, support).
  *
- * **Pourquoi un service** : centraliser la lecture de
- * `config('floty.fiscal.*')` et les calculs bissextiles évite que
- * chaque controller / service / job ne re-fasse la conversion à la
- * main. Le seul endroit qui hardcodait `366` (FiscalCalculator) ou
- * comparait `$year === 2024` peut maintenant interroger ce contexte.
+ * **Note V1.8** : ce contexte ne porte plus la notion d'« année
+ * courante ». L'année active côté utilisateur est désormais résolue
+ * par {@see FiscalYearResolver} (lecture session).
+ * Cette classe reste utilisée pour les opérations purement calendaires
+ * (`daysInYear`) et pour valider qu'une année est supportée par
+ * l'installation.
  *
- * **Stateless / immuable** : pas de propriété mutable, peut être
- * partagé en singleton via le container Laravel sans précaution.
+ * **Stateless / immuable** : pas de propriété mutable, partageable en
+ * singleton via le container Laravel sans précaution.
  *
- * **Pas de couplage Laravel `app()`** : on lit la config par
- * injection (`Repository`) pour rester testable hors framework.
+ * **Pas de couplage Laravel `app()`** : on lit la config par injection
+ * (`Repository`) pour rester testable hors framework.
  */
 final class FiscalYearContext
 {
     public function __construct(
         private readonly Repository $config,
     ) {}
-
-    /**
-     * Année fiscale courante exposée par `config/floty.php`.
-     */
-    public function currentYear(): int
-    {
-        return (int) $this->config->get('floty.fiscal.current_year');
-    }
 
     /**
      * @return list<int>
@@ -58,14 +51,6 @@ final class FiscalYearContext
     public function daysInYear(int $year): int
     {
         return $this->isLeapYear($year) ? 366 : 365;
-    }
-
-    /**
-     * Raccourci pratique : nombre de jours dans l'année fiscale courante.
-     */
-    public function daysInCurrentYear(): int
-    {
-        return $this->daysInYear($this->currentYear());
     }
 
     /**

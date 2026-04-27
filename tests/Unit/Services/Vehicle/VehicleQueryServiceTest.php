@@ -35,7 +35,7 @@ final class VehicleQueryServiceTest extends TestCase
     #[Test]
     public function list_for_fleet_view_renvoie_un_dto_par_vehicule_avec_taxe_annuelle(): void
     {
-        $year = (int) config('floty.fiscal.current_year');
+        $year = (int) config('floty.fiscal.available_years')[0];
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();

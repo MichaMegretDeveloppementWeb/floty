@@ -45,4 +45,68 @@ final class FiscalCalculationException extends BaseAppException
             userMessage: "Le véhicule sélectionné n'a pas de caractéristiques fiscales actives. Vérifiez sa fiche ou contactez le support.",
         );
     }
+
+    public static function noYearsConfigured(): self
+    {
+        return new self(
+            technicalMessage: 'No fiscal years configured (config/floty.php available_years is empty).',
+            userMessage: "Aucune année fiscale n'est configurée pour cette installation. Contactez le support.",
+        );
+    }
+
+    public static function invalidBracket(int $lower, int $upper): self
+    {
+        return new self(
+            technicalMessage: "Invalid bracket range: upperInclusive ({$upper}) must be strictly greater than lowerExclusive ({$lower}).",
+            userMessage: 'Erreur interne du barème fiscal. Contactez le support.',
+        );
+    }
+
+    public static function negativeBracketRate(float $rate): self
+    {
+        return new self(
+            technicalMessage: "Bracket marginal rate must be >= 0.0, got {$rate}.",
+            userMessage: 'Erreur interne du barème fiscal. Contactez le support.',
+        );
+    }
+
+    public static function emptyScale(): self
+    {
+        return new self(
+            technicalMessage: 'A ProgressiveScale must contain at least one bracket.',
+            userMessage: 'Erreur interne du barème fiscal. Contactez le support.',
+        );
+    }
+
+    public static function scaleDiscontinuity(int $index, int $expectedLower, int $actualLower): self
+    {
+        return new self(
+            technicalMessage: "ProgressiveScale discontinuity at bracket #{$index}: expected lowerExclusive={$expectedLower}, got {$actualLower}.",
+            userMessage: 'Erreur interne du barème fiscal. Contactez le support.',
+        );
+    }
+
+    public static function scaleOpenBracketNotLast(int $index): self
+    {
+        return new self(
+            technicalMessage: "ProgressiveScale: only the last bracket may be open-ended (null upperInclusive); bracket #{$index} is open but not last.",
+            userMessage: 'Erreur interne du barème fiscal. Contactez le support.',
+        );
+    }
+
+    public static function pollutantTariffMissingCategory(string $category): self
+    {
+        return new self(
+            technicalMessage: "PollutantTariff is missing tariff for category '{$category}'.",
+            userMessage: 'Erreur interne du barème polluants. Contactez le support.',
+        );
+    }
+
+    public static function pollutantTariffNegative(string $category, float $value): self
+    {
+        return new self(
+            technicalMessage: "PollutantTariff for category '{$category}' must be >= 0.0, got {$value}.",
+            userMessage: 'Erreur interne du barème polluants. Contactez le support.',
+        );
+    }
 }
