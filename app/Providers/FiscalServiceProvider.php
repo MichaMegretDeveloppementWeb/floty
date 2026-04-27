@@ -29,9 +29,11 @@ use Illuminate\Support\ServiceProvider;
  * Enregistre le {@see FiscalRuleRegistry} en singleton et y déclare les
  * classes règles applicables par année.
  *
- * Pour ajouter une année (2025, 2026…) : créer les classes sous
- * `app/Fiscal/Year{YYYY}/...` et appeler `$registry->register({YYYY}, [...])`
- * dans cette méthode.
+ * **Pour ajouter une nouvelle année** : créer les classes sous
+ * `app/Fiscal/Year{YYYY}/...`, ajouter une méthode privée
+ * `registerYear{YYYY}()`, et l'appeler depuis {@see register()}.
+ * Procédure complète documentée dans
+ * `project-management/taxes-rules/_adding-a-new-year.md`.
  *
  * Note : certaines règles du catalogue 2024 ne sont **pas** enregistrées
  * ici car elles vivent hors pipeline (cf. ADR-0006 § 2) :
@@ -54,26 +56,42 @@ final class FiscalServiceProvider extends ServiceProvider
     {
         $this->app->singleton(FiscalRuleRegistry::class, function ($app): FiscalRuleRegistry {
             $registry = new FiscalRuleRegistry($app);
-            $registry->register(2024, [
-                R2024_004_FiscalTypeQualification::class,
-                R2024_005_Co2MethodSelection::class,
-                R2024_013_PollutantCategoryAssignment::class,
-                R2024_015_HandicapAccess::class,
-                R2024_016_ElectricHydrogen::class,
-                R2024_017_ConditionalHybridExemption::class,
-                R2024_018_OigExemption::class,
-                R2024_019_IndividualBusinessExemption::class,
-                R2024_021_LowDayCount::class,
-                R2024_022_ActivityBasedExemption::class,
-                R2024_010_WltpProgressive::class,
-                R2024_011_NedcProgressive::class,
-                R2024_012_PaProgressive::class,
-                R2024_014_PollutantsFlat::class,
-                R2024_002_DailyProrata::class,
-                R2024_003_FinalRounding::class,
-            ]);
+
+            $this->registerYear2024($registry);
+            // Ajouter une année future ici :
+            // $this->registerYear2025($registry);
 
             return $registry;
         });
+    }
+
+    /**
+     * Catalogue des règles fiscales 2024 (cf.
+     * `project-management/taxes-rules/2024.md`).
+     */
+    private function registerYear2024(FiscalRuleRegistry $registry): void
+    {
+        $registry->register(2024, [
+            // Classification
+            R2024_004_FiscalTypeQualification::class,
+            R2024_005_Co2MethodSelection::class,
+            R2024_013_PollutantCategoryAssignment::class,
+            // Exemption
+            R2024_015_HandicapAccess::class,
+            R2024_016_ElectricHydrogen::class,
+            R2024_017_ConditionalHybridExemption::class,
+            R2024_018_OigExemption::class,
+            R2024_019_IndividualBusinessExemption::class,
+            R2024_021_LowDayCount::class,
+            R2024_022_ActivityBasedExemption::class,
+            // Pricing
+            R2024_010_WltpProgressive::class,
+            R2024_011_NedcProgressive::class,
+            R2024_012_PaProgressive::class,
+            R2024_014_PollutantsFlat::class,
+            // Transversal
+            R2024_002_DailyProrata::class,
+            R2024_003_FinalRounding::class,
+        ]);
     }
 }

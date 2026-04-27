@@ -196,6 +196,20 @@ Conformément à l'ADR-0002, la page « Fiscalité → Règles de calcul » (cah
 
 ---
 
+### 6.bis — Procédure d'ajout d'une nouvelle année
+
+L'extensibilité du registry est validée par
+`tests/Feature/Fiscal/FiscalRegistryExtensibilityTest.php` (phase
+1.10). Pour ouvrir une année fiscale future (2025, 2026…), suivre la
+checklist : `project-management/taxes-rules/_adding-a-new-year.md`.
+
+L'opération est purement additive : aucun fichier `Year2024/` ne doit
+être touché. Le `FiscalServiceProvider` expose une méthode privée par
+année (`registerYear2024()`, `registerYear2025()`, etc.) — ajouter une
+ligne dans `register()` suffit pour activer le nouveau catalogue.
+
+---
+
 ### 7. Temporalité — trois temps distincts
 
 Le moteur gère explicitement trois temporalités :
