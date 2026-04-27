@@ -56,7 +56,7 @@ use Illuminate\Support\Carbon;
     'mileage_current',
     'notes',
 ])]
-class Vehicle extends Model
+final class Vehicle extends Model
 {
     use HasFactory, SoftDeletes;
 

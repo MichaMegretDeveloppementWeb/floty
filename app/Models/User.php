@@ -42,7 +42,7 @@ use Illuminate\Support\Carbon;
     'last_login_at',
 ])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable
+final class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasFactory, Notifiable, SoftDeletes;

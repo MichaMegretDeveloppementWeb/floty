@@ -53,7 +53,7 @@ use Illuminate\Support\Carbon;
     'generated_by',
     'version_number',
 ])]
-class DeclarationPdf extends Model
+final class DeclarationPdf extends Model
 {
     use HasFactory;
 

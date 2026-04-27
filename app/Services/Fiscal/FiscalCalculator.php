@@ -4,14 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal;
 
+use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\DTO\Fiscal\FiscalBreakdown;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
-use InvalidArgumentException;
 
 /**
  * Moteur fiscal Floty — version MVP pour la démo client.
@@ -43,6 +44,7 @@ final class FiscalCalculator
 
     public function __construct(
         private readonly FiscalYearContext $yearContext,
+        private readonly VehicleFiscalCharacteristicsReadRepositoryInterface $fiscalCharacteristics,
     ) {}
 
     /**
@@ -57,19 +59,15 @@ final class FiscalCalculator
         int $fiscalYear,
     ): FiscalBreakdown {
         if (! $this->yearContext->isSupported($fiscalYear)) {
-            throw new InvalidArgumentException(sprintf(
-                "L'année fiscale %d n'est pas supportée par cette version "
-                .'du moteur (cf. config/floty.php available_years).',
-                $fiscalYear,
-            ));
+            throw FiscalCalculationException::yearNotSupported($fiscalYear);
         }
         if ($daysAssignedToCompany < 0) {
-            throw new InvalidArgumentException('Nombre de jours négatif.');
+            throw FiscalCalculationException::negativeDays($daysAssignedToCompany);
         }
         if ($cumulativeDaysForPair < $daysAssignedToCompany) {
-            throw new InvalidArgumentException(
-                'Le cumul annuel du couple ne peut pas être inférieur '
-                .'au nombre de jours de l\'attribution calculée.',
+            throw FiscalCalculationException::cumulInferiorToAssigned(
+                $cumulativeDaysForPair,
+                $daysAssignedToCompany,
             );
         }
 
@@ -152,20 +150,15 @@ final class FiscalCalculator
     }
 
     /**
-     * Caractéristiques fiscales courantes (effective_to IS NULL).
+     * Caractéristiques fiscales courantes (effective_to IS NULL),
+     * via le repository.
      */
     private function currentFiscalCharacteristics(Vehicle $vehicle): VehicleFiscalCharacteristics
     {
-        $current = $vehicle->fiscalCharacteristics()
-            ->whereNull('effective_to')
-            ->latest('effective_from')
-            ->first();
+        $current = $this->fiscalCharacteristics->findCurrentForVehicle($vehicle);
 
         if ($current === null) {
-            throw new InvalidArgumentException(
-                "Le véhicule #{$vehicle->id} n'a pas de caractéristiques "
-                .'fiscales courantes.',
-            );
+            throw FiscalCalculationException::missingFiscalCharacteristics($vehicle->id);
         }
 
         return $current;

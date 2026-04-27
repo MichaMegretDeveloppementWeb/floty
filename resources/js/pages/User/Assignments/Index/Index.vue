@@ -1,62 +1,20 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, watch } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import { useAssignmentForm } from '@/Composables/Assignment/useAssignmentForm';
-import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
-import { useVehicleAvailability } from '@/Composables/Planning/useVehicleAvailability';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import { useAssignmentPageLogic } from '@/Composables/Assignment/useAssignmentPageLogic';
 import { index as planningIndexRoute } from '@/routes/user/planning';
 import AssignmentForm from './partials/AssignmentForm.vue';
 import FiscalRecapCard from './partials/FiscalRecapCard.vue';
 
-defineProps<{
+const props = defineProps<{
     vehicles: App.Data.User.Vehicle.VehicleOptionData[];
     companies: App.Data.User.Company.CompanyOptionData[];
 }>();
 
-const { currentYear: fiscalYear } = useFiscalYear();
-
-const form = useAssignmentForm();
-const availability = useVehicleAvailability();
-const fiscalPreview = useFiscalPreview();
-
-// Charge l'occupation du véhicule à chaque sélection.
-watch(form.vehicleId, async (vehicleId) => {
-    form.dates.value = [];
-    fiscalPreview.reset();
-    availability.reset();
-
-    if (vehicleId === null) {
-        return;
-    }
-
-    await availability.load(vehicleId, fiscalYear.value);
-});
-
-// Re-déclenche le preview à chaque changement de couple ou dates.
-watch(
-    () => [form.vehicleId.value, form.companyId.value, form.dates.value] as const,
-    ([vehicleId, companyId, dates]) => {
-        fiscalPreview.fetch({ vehicleId, companyId, dates });
-    },
-    { deep: true },
-);
-
-// Calendrier : on grise les jours occupés SAUF ceux déjà attribués au
-// couple courant (on les ré-affiche dans un état « existant »).
-const disabledDates = computed((): string[] => {
-    const pairSet = new Set(availability.pairDatesFor(form.companyId.value));
-
-    return availability.busyDates.value.filter((d) => !pairSet.has(d));
-});
-
-const pairDatesForCouple = computed((): string[] =>
-    availability.pairDatesFor(form.companyId.value),
-);
+const logic = useAssignmentPageLogic(props.vehicles, props.companies);
 
 async function handleSubmit(): Promise<void> {
-    const ok = await form.submit();
+    const ok = await logic.submit();
 
     if (ok) {
         router.visit(planningIndexRoute.url());
@@ -72,7 +30,7 @@ async function handleSubmit(): Promise<void> {
             <header>
                 <p class="eyebrow mb-1">Planning</p>
                 <h1 class="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
-                    Attribution rapide · {{ fiscalYear }}
+                    Attribution rapide · {{ logic.fiscalYear.value }}
                 </h1>
                 <p class="mt-1 text-base text-slate-600">
                     Un véhicule, une entreprise, un ou plusieurs jours — tout en
@@ -86,26 +44,24 @@ async function handleSubmit(): Promise<void> {
                 <AssignmentForm
                     :vehicles="vehicles"
                     :companies="companies"
-                    :fiscal-year="fiscalYear"
-                    :selected-vehicle-id="form.vehicleId.value"
-                    :selected-company-id="form.companyId.value"
-                    :selected-dates="form.dates.value"
-                    :disabled-dates="disabledDates"
-                    :pair-dates="pairDatesForCouple"
-                    @update:selected-vehicle-id="form.vehicleId.value = $event"
-                    @update:selected-company-id="form.companyId.value = $event"
-                    @update:selected-dates="form.dates.value = $event"
+                    :fiscal-year="logic.fiscalYear.value"
+                    :selected-vehicle-id="logic.vehicleId.value"
+                    :selected-company-id="logic.companyId.value"
+                    :selected-dates="logic.dates.value"
+                    :disabled-dates="logic.disabledDates.value"
+                    :pair-dates="logic.pairDatesForCouple.value"
+                    @update:selected-vehicle-id="logic.vehicleId.value = $event"
+                    @update:selected-company-id="logic.companyId.value = $event"
+                    @update:selected-dates="logic.dates.value = $event"
                 />
                 <FiscalRecapCard
-                    :vehicles="vehicles"
-                    :companies="companies"
-                    :selected-vehicle-id="form.vehicleId.value"
-                    :selected-company-id="form.companyId.value"
-                    :selected-dates="form.dates.value"
-                    :preview="fiscalPreview.preview.value"
-                    :preview-loading="fiscalPreview.loading.value"
-                    :submitting="form.submitting.value"
-                    :can-submit="form.canSubmit.value"
+                    :selected-vehicle-label="logic.selectedVehicleLabel.value"
+                    :selected-company-label="logic.selectedCompanyLabel.value"
+                    :selected-dates="logic.dates.value"
+                    :preview="logic.preview.value"
+                    :preview-loading="logic.previewLoading.value"
+                    :submitting="logic.submitting.value"
+                    :can-submit="logic.canSubmit.value"
                     @submit="handleSubmit"
                 />
             </div>

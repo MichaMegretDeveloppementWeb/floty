@@ -859,6 +859,10 @@ final class StoreVehicleRequest extends FormRequest
 ```
 app/Exceptions/
 ├── BaseAppException.php                                           ← classe abstraite de base
+├── Cache/
+│   └── CacheTagsException.php                                     ← erreur de configuration / usage du CacheTagsManager
+├── Http/
+│   └── InvalidQueryParameterException.php                         ← paramètre query manquant ou hors plage (remplace abort(400, …))
 ├── Vehicle/
 │   ├── VehicleCreationException.php
 │   ├── VehicleUpdateException.php
@@ -882,9 +886,12 @@ app/Exceptions/
 │   ├── DeclarationPdfGenerationException.php
 │   └── DeclarationStatusTransitionException.php
 └── Fiscal/
+    ├── FiscalCalculationException.php                             ← entrées invalides / caractéristiques fiscales manquantes
     ├── FiscalRulePipelineException.php
     └── FiscalRuleNotFoundException.php
 ```
+
+> **Note V1.7.5** : seules `Cache/CacheTagsException`, `Http/InvalidQueryParameterException` et `Fiscal/FiscalCalculationException` sont créées à ce stade. Les autres entrées (Vehicle, Company, Driver, Assignment, Unavailability, Declaration) seront ajoutées au fil des phases métier 04-11 quand on en aura l'usage concret. **Ne pas anticiper** d'exceptions futures sans cas d'appel correspondant.
 
 ---
 

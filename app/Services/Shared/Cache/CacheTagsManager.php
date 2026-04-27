@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Services\Shared\Cache;
 
+use App\Exceptions\Cache\CacheTagsException;
 use Illuminate\Cache\CacheManager;
 use Illuminate\Cache\DatabaseStore;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
-use LogicException;
 
 /**
  * Gestion des tags de cache émulée au-dessus du driver `database`.
@@ -77,7 +77,7 @@ final class CacheTagsManager
     public function key(string|int ...$parts): string
     {
         if ($parts === []) {
-            throw new LogicException('CacheTagsManager::key() requires at least one segment.');
+            throw CacheTagsException::keyRequiresAtLeastOneSegment();
         }
 
         return implode(':', array_map(static fn (string|int $part) => (string) $part, $parts));
@@ -119,9 +119,7 @@ final class CacheTagsManager
         $store = $this->cache->store(self::DEFAULT_STORE)->getStore();
 
         if (! $store instanceof DatabaseStore) {
-            throw new LogicException(
-                'CacheTagsManager requires the `database` cache store; got '.$store::class.'.'
-            );
+            throw CacheTagsException::nonDatabaseStore($store::class);
         }
 
         return $store;

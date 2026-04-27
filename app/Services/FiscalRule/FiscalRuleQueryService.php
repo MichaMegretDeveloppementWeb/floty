@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\FiscalRule;
 
+use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Models\FiscalRule;
 use Spatie\LaravelData\DataCollection;
@@ -13,6 +14,10 @@ use Spatie\LaravelData\DataCollection;
  */
 final class FiscalRuleQueryService
 {
+    public function __construct(
+        private readonly FiscalRuleReadRepositoryInterface $fiscalRules,
+    ) {}
+
     /**
      * Liste affichable des règles fiscales pour une année donnée.
      *
@@ -20,10 +25,7 @@ final class FiscalRuleQueryService
      */
     public function listForYear(int $year): DataCollection
     {
-        $rows = FiscalRule::query()
-            ->where('fiscal_year', $year)
-            ->orderBy('display_order')
-            ->get()
+        $rows = $this->fiscalRules->findAllForYear($year)
             ->map(static fn (FiscalRule $r): FiscalRuleListItemData => new FiscalRuleListItemData(
                 id: $r->id,
                 ruleCode: $r->rule_code,

@@ -11,12 +11,15 @@ use Spatie\LaravelData\Attributes\Validation\IntegerType;
 use Spatie\LaravelData\Attributes\Validation\Min;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Payload de l'endpoint `POST /app/planning/assignments` — création en
  * masse d'attributions pour un couple (véhicule, entreprise) sur une
- * liste de dates ISO.
+ * liste de dates ISO. Marqueur `#[TypeScript]` pour exposer le type
+ * côté front.
  */
+#[TypeScript]
 final class BulkCreateAssignmentsInputData extends Data
 {
     /**

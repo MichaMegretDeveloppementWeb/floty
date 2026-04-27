@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Company;
 
+use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
 use App\Data\User\Company\StoreCompanyData;
 use App\Http\Controllers\Controller;
 use App\Services\Company\CompanyQueryService;
@@ -13,7 +14,10 @@ use Inertia\Response;
 
 final class CompanyController extends Controller
 {
-    public function __construct(private readonly CompanyQueryService $companies) {}
+    public function __construct(
+        private readonly CompanyQueryService $companies,
+        private readonly CompanyWriteRepositoryInterface $companyWrite,
+    ) {}
 
     public function index(): Response
     {
@@ -33,7 +37,7 @@ final class CompanyController extends Controller
 
     public function store(StoreCompanyData $data): RedirectResponse
     {
-        $this->companies->create($data);
+        $this->companyWrite->create($data);
 
         return redirect()
             ->route('user.companies.index')

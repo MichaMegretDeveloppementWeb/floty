@@ -58,7 +58,7 @@ use Illuminate\Support\Carbon;
     'display_order',
     'is_active',
 ])]
-class FiscalRule extends Model
+final class FiscalRule extends Model
 {
     use HasFactory;
 

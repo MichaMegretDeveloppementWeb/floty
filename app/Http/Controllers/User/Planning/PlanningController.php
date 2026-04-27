@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Planning;
 
+use App\Contracts\Repositories\User\Assignment\AssignmentWriteRepositoryInterface;
 use App\Data\User\Planning\BulkCreateAssignmentsInputData;
 use App\Data\User\Planning\PreviewTaxesInputData;
+use App\Exceptions\Http\InvalidQueryParameterException;
 use App\Http\Controllers\Controller;
-use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Planning\PlanningHeatmapService;
 use App\Services\Planning\WeekDetailService;
 use Illuminate\Http\JsonResponse;
@@ -24,7 +25,7 @@ final class PlanningController extends Controller
     public function __construct(
         private readonly PlanningHeatmapService $heatmap,
         private readonly WeekDetailService $weekDetail,
-        private readonly AssignmentQueryService $assignments,
+        private readonly AssignmentWriteRepositoryInterface $assignmentWrite,
     ) {}
 
     public function index(): Response
@@ -43,8 +44,11 @@ final class PlanningController extends Controller
         $vehicleId = (int) $request->query('vehicleId');
         $weekNumber = (int) $request->query('week');
 
-        if ($vehicleId <= 0 || $weekNumber < 1 || $weekNumber > 53) {
-            abort(400, 'Paramètres vehicleId et week requis.');
+        if ($vehicleId <= 0) {
+            throw InvalidQueryParameterException::missing('vehicleId');
+        }
+        if ($weekNumber < 1 || $weekNumber > 53) {
+            throw InvalidQueryParameterException::outOfRange('week', $weekNumber, '1..53');
         }
 
         return response()->json(
@@ -75,7 +79,7 @@ final class PlanningController extends Controller
     public function storeBulk(BulkCreateAssignmentsInputData $input): JsonResponse
     {
         return response()->json(
-            $this->assignments->createBulk(
+            $this->assignmentWrite->createBulk(
                 $input->vehicleId,
                 $input->companyId,
                 $input->dates,

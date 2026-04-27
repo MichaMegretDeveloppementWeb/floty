@@ -37,7 +37,7 @@ use Illuminate\Support\Carbon;
     'driver_id',
     'date',
 ])]
-class Assignment extends Model
+final class Assignment extends Model
 {
     use HasFactory, SoftDeletes;
 

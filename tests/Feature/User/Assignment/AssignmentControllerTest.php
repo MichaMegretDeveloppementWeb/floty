@@ -62,6 +62,8 @@ final class AssignmentControllerTest extends TestCase
 
         $this->actingAs($user)
             ->getJson('/app/assignments/vehicle-dates?vehicleId=0')
-            ->assertStatus(400);
+            ->assertStatus(422)
+            ->assertJsonStructure(['message', 'code'])
+            ->assertJsonPath('code', 'InvalidQueryParameterException');
     }
 }

@@ -54,7 +54,7 @@ use Illuminate\Support\Carbon;
     'is_active',
     'deactivated_at',
 ])]
-class Company extends Model
+final class Company extends Model
 {
     use HasFactory, SoftDeletes;
 

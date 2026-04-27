@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Planning;
 
+use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Fiscal\FiscalBreakdownData;
 use App\Data\User\Fiscal\FiscalPreviewData;
@@ -13,7 +15,6 @@ use App\Data\User\Planning\WeekCompanyPresenceData;
 use App\Data\User\Planning\WeekDayAssignmentData;
 use App\Data\User\Planning\WeekDaySlotData;
 use App\Models\Assignment;
-use App\Models\Vehicle;
 use App\Services\Fiscal\FiscalCalculator;
 use Illuminate\Support\Carbon;
 
@@ -23,26 +24,24 @@ use Illuminate\Support\Carbon;
  */
 final class WeekDetailService
 {
-    public function __construct(private readonly FiscalCalculator $calculator) {}
+    public function __construct(
+        private readonly VehicleReadRepositoryInterface $vehicles,
+        private readonly AssignmentReadRepositoryInterface $assignments,
+        private readonly FiscalCalculator $calculator,
+    ) {}
 
     /**
      * Construit le payload du drawer pour une semaine donnée d'un véhicule.
      */
     public function buildWeek(int $vehicleId, int $weekNumber, int $year): PlanningWeekData
     {
-        $vehicle = Vehicle::query()
-            ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
-            ->findOrFail($vehicleId);
+        $vehicle = $this->vehicles->findOrFailWithFiscal($vehicleId);
 
         $start = Carbon::now()->setISODate($year, $weekNumber)->startOfWeek();
         $end = $start->copy()->endOfWeek();
 
-        $dayAssignments = Assignment::query()
-            ->with('company:id,short_code,legal_name,color')
-            ->whereYear('date', $year)
-            ->where('vehicle_id', $vehicleId)
-            ->whereBetween('date', [$start->toDateString(), $end->toDateString()])
-            ->get()
+        $dayAssignments = $this->assignments
+            ->findWeekAssignments($vehicleId, $start, $end)
             ->keyBy(static fn (Assignment $a): string => Carbon::parse($a->date)->toDateString());
 
         $days = [];
@@ -105,13 +104,11 @@ final class WeekDetailService
             static fn (string $d): bool => str_starts_with($d, $yearPrefix),
         ));
 
-        $alreadyAssignedForPair = Assignment::query()
-            ->whereYear('date', $year)
-            ->where('vehicle_id', $input->vehicleId)
-            ->where('company_id', $input->companyId)
-            ->pluck('date')
-            ->map(static fn ($d): string => Carbon::parse($d)->toDateString())
-            ->all();
+        $alreadyAssignedForPair = $this->assignments->findDatesForPair(
+            $input->vehicleId,
+            $input->companyId,
+            $year,
+        );
 
         $newForPair = array_values(array_diff($newDates, $alreadyAssignedForPair));
         $newDaysCount = count($newForPair);
@@ -119,9 +116,7 @@ final class WeekDetailService
         $existingCumul = count($alreadyAssignedForPair);
         $futureCumul = $existingCumul + $newDaysCount;
 
-        $vehicle = Vehicle::query()
-            ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
-            ->findOrFail($input->vehicleId);
+        $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
 
         $before = $existingCumul > 0
             ? $this->calculator->calculate($vehicle, $existingCumul, $existingCumul, $year)

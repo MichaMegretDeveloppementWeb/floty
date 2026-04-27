@@ -4,24 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services\Vehicle;
 
+use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Vehicle\VehicleListItemData;
 use App\Data\User\Vehicle\VehicleOptionData;
 use App\Models\Vehicle;
-use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Requêtes lecture sur le domaine Vehicle.
+ * Orchestration des lectures du domaine Vehicle vers les DTOs exposés.
  *
- * Tous les `Vehicle::query()` du projet vivent ici. Eager-loading
- * systématique des `fiscalCharacteristics` actives pour éviter tout
- * N+1 dans les agrégations fiscales.
+ * Aucune query Eloquent ici — toutes les lectures passent par les
+ * repositories. Le service combine repository + aggregator fiscal +
+ * mapping DTO (R3 d'ADR-0013).
  */
 final class VehicleQueryService
 {
     public function __construct(
-        private readonly AssignmentQueryService $assignments,
+        private readonly VehicleReadRepositoryInterface $vehicles,
+        private readonly AssignmentReadRepositoryInterface $assignments,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 
@@ -35,12 +37,7 @@ final class VehicleQueryService
     {
         $cumul = $this->assignments->loadAnnualCumul($year);
 
-        $vehicles = Vehicle::query()
-            ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
-            ->orderByDesc('acquisition_date')
-            ->get();
-
-        $rows = $vehicles
+        $rows = $this->vehicles->findAllForFleetView()
             ->map(fn (Vehicle $v): VehicleListItemData => new VehicleListItemData(
                 id: $v->id,
                 licensePlate: $v->license_plate,
@@ -66,10 +63,7 @@ final class VehicleQueryService
      */
     public function listForOptions(): DataCollection
     {
-        $rows = Vehicle::query()
-            ->whereNull('exit_date')
-            ->orderBy('license_plate')
-            ->get(['id', 'license_plate', 'brand', 'model'])
+        $rows = $this->vehicles->findAllForOptions()
             ->map(static fn (Vehicle $v): VehicleOptionData => new VehicleOptionData(
                 id: $v->id,
                 licensePlate: $v->license_plate,

@@ -6,6 +6,8 @@ import { useToasts } from '@/Composables/Shared/useToasts';
  *
  * Différences avec l'ancien `lib/http.ts` :
  *   - toast erreur automatique sur 4xx/5xx (`useToasts.push({ tone: 'error' })`)
+ *   - extrait `{ message }` JSON du backend si présent (cas des
+ *     `BaseAppException` traitées par le handler `bootstrap/app.php`)
  *   - throw conservé : l'appelant peut try/catch pour gérer un état
  *     local (`previewLoading = false`, reset UI, etc.)
  *   - URLs typées : on appelle systématiquement `route.url()` depuis
@@ -34,14 +36,71 @@ const baseHeaders: HeadersInit = {
     'X-Requested-With': 'XMLHttpRequest',
 };
 
+function defaultMessageFor(status?: number): string {
+    if (status === undefined) {
+        return 'Vérifiez votre connexion réseau et réessayez.';
+    }
+
+    if (status >= 500) {
+        return "Une erreur serveur s'est produite. Veuillez réessayer ; si le problème persiste, contactez le support.";
+    }
+
+    if (status === 419) {
+        return 'Votre session a expiré. Rechargez la page et réessayez.';
+    }
+
+    if (status === 403) {
+        return "Vous n'avez pas l'autorisation d'effectuer cette action.";
+    }
+
+    if (status === 404) {
+        return 'La ressource demandée est introuvable.';
+    }
+
+    return `Le serveur a renvoyé une erreur ${status}.`;
+}
+
 /**
- * Construit le toast d'erreur affiché à l'utilisateur en cas d'échec
- * réseau ou HTTP.
+ * Tente d'extraire le `message` français d'une réponse JSON serveur
+ * (renvoyée par le handler `bootstrap/app.php` pour `BaseAppException`).
+ * En l'absence, fallback sur le message générique pour le statut.
  */
-function toastError(toasts: ReturnType<typeof useToasts>, status?: number): void {
-    const description = status !== undefined
-        ? `Le serveur a renvoyé une erreur ${status}.`
-        : 'Vérifiez votre connexion réseau et réessayez.';
+async function extractServerMessage(
+    response: Response,
+    fallback: string,
+): Promise<string> {
+    const body = await response
+        .clone()
+        .json()
+        .catch(() => null);
+
+    if (body !== null && typeof body === 'object' && 'message' in body) {
+        const value = (body as { message: unknown }).message;
+
+        if (typeof value === 'string' && value.length > 0) {
+            return value;
+        }
+    }
+
+    return fallback;
+}
+
+function pushNetworkError(toasts: ReturnType<typeof useToasts>): void {
+    toasts.push({
+        tone: 'error',
+        title: 'Échec de la requête',
+        description: defaultMessageFor(undefined),
+    });
+}
+
+async function pushHttpError(
+    toasts: ReturnType<typeof useToasts>,
+    response: Response,
+): Promise<void> {
+    const description = await extractServerMessage(
+        response,
+        defaultMessageFor(response.status),
+    );
 
     toasts.push({
         tone: 'error',
@@ -74,13 +133,13 @@ export function useApi(): UseApiReturn {
                     headers: baseHeaders,
                 });
             } catch (e) {
-                toastError(toasts);
+                pushNetworkError(toasts);
 
                 throw e;
             }
 
             if (!response.ok) {
-                toastError(toasts, response.status);
+                await pushHttpError(toasts, response);
 
                 throw new Error(
                     `GET ${url} → ${response.status} ${response.statusText}`,
@@ -108,13 +167,13 @@ export function useApi(): UseApiReturn {
                     body: JSON.stringify(body),
                 });
             } catch (e) {
-                toastError(toasts);
+                pushNetworkError(toasts);
 
                 throw e;
             }
 
             if (!response.ok) {
-                toastError(toasts, response.status);
+                await pushHttpError(toasts, response);
 
                 throw new Error(
                     `POST ${url} → ${response.status} ${response.statusText}`,

@@ -244,13 +244,15 @@ Si une règle s'applique, on la respecte. Si on doit déroger,
 ```
 Pas d'exception "parce que c'était plus simple".
 
-### R15 — Application progressive pour l'existant
-- Phase 0-1.5 (livré) : on **garde tel quel**. La nouvelle
-  convention Action/Repository s'applique à partir de Phase 04
-  (premier domaine métier réel : Vehicle complet).
-- Cela évite un méga-refactor immédiat. Les services existants
-  resteront mais seront **complétés** par des Repositories quand
-  on touchera à leur logique.
+### ~~R15 — Application progressive pour l'existant~~ (RETIRÉE en 1.7)
+
+**Retrait** : R15 a servi de porte de sortie pour différer la
+création des Repositories sur l'existant des phases 0-1.5. C'est
+en contradiction directe avec P1 (« Strictness > ça dépend ») et
+avec le principe « irréprochable senior » exigé par le client.
+Les règles s'appliquent immédiatement et partout, y compris à
+l'existant. Le chantier 1.7 a appliqué R3-bis/R4 à tous les
+services existants.
 
 ---
 

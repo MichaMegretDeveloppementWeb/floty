@@ -36,7 +36,7 @@ use Illuminate\Support\Carbon;
     'is_active',
     'deactivated_at',
 ])]
-class Driver extends Model
+final class Driver extends Model
 {
     use HasFactory, SoftDeletes;
 

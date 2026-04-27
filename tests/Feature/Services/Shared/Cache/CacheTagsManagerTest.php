@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Services\Shared\Cache;
 
+use App\Exceptions\Cache\CacheTagsException;
 use App\Services\Shared\Cache\CacheTagsManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
-use LogicException;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -42,7 +42,7 @@ final class CacheTagsManagerTest extends TestCase
     #[Test]
     public function key_throws_when_no_segment_provided(): void
     {
-        $this->expectException(LogicException::class);
+        $this->expectException(CacheTagsException::class);
         $this->manager->key();
     }
 

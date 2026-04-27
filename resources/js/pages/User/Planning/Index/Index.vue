@@ -7,6 +7,10 @@ import { useWeekDetail } from '@/Composables/Planning/useWeekDetail';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import PageHeader from './partials/PageHeader.vue';
 
+// R14 (ADR-0013) : `Heatmap` et `WeekDrawer` sont des Features
+// réutilisables (`Components/Features/Planning/`), pas des partials de
+// page. La page n'a donc qu'un seul partial réel (`PageHeader`).
+
 defineProps<{
     vehicles: App.Data.User.Planning.PlanningHeatmapVehicleData[];
     companies: App.Data.User.Company.CompanyOptionData[];

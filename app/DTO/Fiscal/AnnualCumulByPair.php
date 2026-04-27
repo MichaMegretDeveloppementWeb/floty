@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace App\DTO\Fiscal;
 
-use App\Services\Assignment\AssignmentQueryService;
+use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
 
 /**
  * Cumul annuel des jours d'attribution par couple (véhicule, entreprise).
  *
  * Construit en une seule requête SQL agrégée par
- * {@see AssignmentQueryService::loadAnnualCumul()},
+ * {@see AssignmentReadRepositoryInterface::loadAnnualCumul()},
  * puis passé aux agrégateurs fiscaux. Les controllers ne le manipulent
  * jamais directement.
  *

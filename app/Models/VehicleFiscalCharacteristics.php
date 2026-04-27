@@ -81,7 +81,7 @@ use Illuminate\Support\Carbon;
     'change_reason',
     'change_note',
 ])]
-class VehicleFiscalCharacteristics extends Model
+final class VehicleFiscalCharacteristics extends Model
 {
     use HasFactory;
 

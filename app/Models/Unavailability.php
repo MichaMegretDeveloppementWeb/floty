@@ -41,7 +41,7 @@ use Illuminate\Support\Carbon;
     'end_date',
     'description',
 ])]
-class Unavailability extends Model
+final class Unavailability extends Model
 {
     use HasFactory, SoftDeletes;
 

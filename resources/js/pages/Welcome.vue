@@ -3,6 +3,7 @@ import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import FlotyMark from '@/Components/Brand/FlotyMark.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
+import { login as loginRoute } from '@/routes';
 import { dashboard as dashboardRoute } from '@/routes/user';
 
 const page = usePage();
@@ -37,7 +38,7 @@ const isAuthenticated = computed(() => page.props.auth?.user !== null);
                 <Link v-if="isAuthenticated" :href="dashboardRoute.url()">
                     <Button>Accéder au tableau de bord</Button>
                 </Link>
-                <Link v-else href="/login">
+                <Link v-else :href="loginRoute.url()">
                     <Button>Se connecter</Button>
                 </Link>
             </div>

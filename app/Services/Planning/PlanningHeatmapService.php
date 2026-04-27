@@ -4,25 +4,25 @@ declare(strict_types=1);
 
 namespace App\Services\Planning;
 
+use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
+use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Planning\PlanningHeatmapVehicleData;
 use App\Models\Company;
-use App\Models\Vehicle;
-use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Spatie\LaravelData\DataCollection;
 
 /**
  * Construction de la matrice véhicules × 52 semaines pour la page
  * « Vue d'ensemble » (planning).
- *
- * Une seule charge `Vehicle` (avec eager-load `fiscalCharacteristics`
- * actives) + une seule charge `Company` actives. Aucun N+1.
  */
 final class PlanningHeatmapService
 {
     public function __construct(
-        private readonly AssignmentQueryService $assignments,
+        private readonly VehicleReadRepositoryInterface $vehicles,
+        private readonly CompanyReadRepositoryInterface $companies,
+        private readonly AssignmentReadRepositoryInterface $assignments,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 
@@ -34,14 +34,8 @@ final class PlanningHeatmapService
         $cumul = $this->assignments->loadAnnualCumul($year);
         $weekDensity = $this->assignments->loadWeekDensity($year);
 
-        $vehicles = Vehicle::query()
-            ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
-            ->whereNull('deleted_at')
-            ->orderBy('license_plate')
-            ->get();
-
         $vehicleRows = [];
-        foreach ($vehicles as $vehicle) {
+        foreach ($this->vehicles->findAllForHeatmap() as $vehicle) {
             $fiscal = $vehicle->fiscalCharacteristics->first();
             if ($fiscal === null) {
                 continue;
@@ -68,10 +62,7 @@ final class PlanningHeatmapService
             );
         }
 
-        $companyRows = Company::query()
-            ->where('is_active', true)
-            ->orderBy('short_code')
-            ->get(['id', 'short_code', 'legal_name', 'color'])
+        $companyRows = $this->companies->findAllForHeatmap()
             ->map(static fn (Company $c): CompanyOptionData => new CompanyOptionData(
                 id: $c->id,
                 shortCode: $c->short_code,

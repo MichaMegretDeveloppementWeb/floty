@@ -129,6 +129,85 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        /*
+        |----------------------------------------------------------------------
+        | Canaux thématiques Floty
+        |----------------------------------------------------------------------
+        |
+        | Cf. project-management/implementation-rules/gestion-erreurs.md
+        | § « Canaux thématiques Floty ». Rétention par criticité :
+        |
+        | - 365 j  declarations  (pièces justificatives officielles)
+        | -  90 j  fiscal        (audit du moteur fiscal)
+        | -  30 j  auth, pdf     (sécurité + diagnostic spécifique)
+        | -  14 j  vehicles, companies, assignments (opérations courantes)
+        | -   7 j  cache         (très volumineux, peu utile au-delà)
+        */
+
+        'auth' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/auth.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
+        'vehicles' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/vehicles.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
+        'companies' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/companies.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
+        'assignments' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/assignments.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 14,
+            'replace_placeholders' => true,
+        ],
+
+        'fiscal' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/fiscal.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 90,
+            'replace_placeholders' => true,
+        ],
+
+        'declarations' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/declarations.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 365,
+            'replace_placeholders' => true,
+        ],
+
+        'pdf' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/pdf.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
+        'cache' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/cache.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 7,
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

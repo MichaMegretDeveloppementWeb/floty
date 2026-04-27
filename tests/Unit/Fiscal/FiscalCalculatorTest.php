@@ -15,12 +15,12 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FiscalCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
-use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -192,39 +192,39 @@ final class FiscalCalculatorTest extends TestCase
     }
 
     #[Test]
-    public function annee_non_supportee_leve_invalid_argument(): void
+    public function annee_non_supportee_leve_fiscal_calculation_exception(): void
     {
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage("n'est pas supportée");
+        $this->expectException(FiscalCalculationException::class);
+        $this->expectExceptionMessage('not supported');
 
         $this->calculator->calculate($vehicle, 100, 100, 2099);
     }
 
     #[Test]
-    public function jours_negatifs_levent_invalid_argument(): void
+    public function jours_negatifs_levent_fiscal_calculation_exception(): void
     {
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('négatif');
+        $this->expectException(FiscalCalculationException::class);
+        $this->expectExceptionMessage('must be >= 0');
 
         $this->calculator->calculate($vehicle, -1, 0, 2024);
     }
 
     #[Test]
-    public function cumul_inferieur_aux_jours_attribues_leve_invalid_argument(): void
+    public function cumul_inferieur_aux_jours_attribues_leve_fiscal_calculation_exception(): void
     {
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $this->expectException(InvalidArgumentException::class);
+        $this->expectException(FiscalCalculationException::class);
 
         $this->calculator->calculate($vehicle, 100, 50, 2024);
     }
 
     #[Test]
-    public function vehicule_sans_caracteristiques_courantes_leve_invalid_argument(): void
+    public function vehicule_sans_caracteristiques_courantes_leve_fiscal_calculation_exception(): void
     {
         $vehicle = Vehicle::create([
             'license_plate' => 'XX-999-XX',
@@ -237,8 +237,8 @@ final class FiscalCalculatorTest extends TestCase
             'current_status' => VehicleStatus::Active,
         ]);
 
-        $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('caractéristiques');
+        $this->expectException(FiscalCalculationException::class);
+        $this->expectExceptionMessage('no current fiscal characteristics');
 
         $this->calculator->calculate($vehicle, 100, 100, 2024);
     }

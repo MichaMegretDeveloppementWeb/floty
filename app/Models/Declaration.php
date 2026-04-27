@@ -55,7 +55,7 @@ use Illuminate\Support\Carbon;
     'invalidation_reason',
     'notes',
 ])]
-class Declaration extends Model
+final class Declaration extends Model
 {
     use HasFactory;
 

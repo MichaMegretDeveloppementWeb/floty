@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { onClickOutside, onKeyStroke } from '@vueuse/core';
 import { ChevronDown, LogOut } from 'lucide-vue-next';
 import { ref, useTemplateRef } from 'vue';
+import { logout as logoutRoute } from '@/routes';
 
 defineProps<{
     name: string;
@@ -23,7 +24,7 @@ const toggle = (): void => {
 
 const logout = (): void => {
     close();
-    router.post('/logout');
+    router.post(logoutRoute.url());
 };
 
 onClickOutside(rootRef, close);

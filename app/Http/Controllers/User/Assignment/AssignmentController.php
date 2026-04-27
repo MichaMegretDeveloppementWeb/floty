@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Assignment;
 
+use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
+use App\Exceptions\Http\InvalidQueryParameterException;
 use App\Http\Controllers\Controller;
-use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Http\JsonResponse;
@@ -23,7 +24,7 @@ final class AssignmentController extends Controller
     public function __construct(
         private readonly VehicleQueryService $vehicles,
         private readonly CompanyQueryService $companies,
-        private readonly AssignmentQueryService $assignments,
+        private readonly AssignmentReadRepositoryInterface $assignments,
     ) {}
 
     public function index(): Response
@@ -45,11 +46,11 @@ final class AssignmentController extends Controller
             (string) config('floty.fiscal.current_year'),
         );
         if ($vehicleId <= 0) {
-            abort(400, 'vehicleId requis.');
+            throw InvalidQueryParameterException::missing('vehicleId');
         }
 
         return response()->json(
-            $this->assignments->vehicleDates($vehicleId, $year),
+            $this->assignments->findVehicleDates($vehicleId, $year),
         );
     }
 }

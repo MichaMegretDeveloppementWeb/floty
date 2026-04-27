@@ -1,18 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { formatEur } from '@/Utils/format/formatEur';
 
-type CompanyOption = App.Data.User.Company.CompanyOptionData;
-type VehicleOption = App.Data.User.Vehicle.VehicleOptionData;
 type FiscalPreview = App.Data.User.Fiscal.FiscalPreviewData;
 
-const props = defineProps<{
-    vehicles: VehicleOption[];
-    companies: CompanyOption[];
-    selectedVehicleId: number | null;
-    selectedCompanyId: number | null;
+defineProps<{
+    selectedVehicleLabel: string | null;
+    selectedCompanyLabel: string | null;
     selectedDates: string[];
     preview: FiscalPreview | null;
     previewLoading: boolean;
@@ -25,28 +20,6 @@ defineEmits<{
 }>();
 
 const { daysInYear: daysInFiscalYear } = useFiscalYear();
-
-const selectedVehicleLabel = computed((): string | null => {
-    if (props.selectedVehicleId === null) {
-        return null;
-    }
-
-    return (
-        props.vehicles.find((v) => v.id === props.selectedVehicleId)?.label ??
-        null
-    );
-});
-
-const selectedCompanyLabel = computed((): string | null => {
-    if (props.selectedCompanyId === null) {
-        return null;
-    }
-
-    return (
-        props.companies.find((c) => c.id === props.selectedCompanyId)?.legalName ??
-        null
-    );
-});
 </script>
 
 <template>

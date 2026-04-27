@@ -4,28 +4,29 @@ declare(strict_types=1);
 
 namespace App\Services\Company;
 
+use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
+use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyColorOptionData;
 use App\Data\User\Company\CompanyListItemData;
 use App\Data\User\Company\CompanyOptionData;
-use App\Data\User\Company\StoreCompanyData;
 use App\Enums\Company\CompanyColor;
 use App\Models\Company;
-use App\Models\Vehicle;
-use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Requêtes lecture + créations sur le domaine Company.
+ * Orchestration des lectures du domaine Company vers les DTOs exposés.
  *
- * Précharge en une seule requête tous les véhicules concernés par
- * les attributions de l'année afin d'éviter tout N+1 dans le calcul
- * d'agrégats fiscaux par entreprise.
+ * Pré-charge en bulk les véhicules concernés via le repository pour
+ * éviter tout N+1 dans le calcul d'agrégats fiscaux par entreprise.
  */
 final class CompanyQueryService
 {
     public function __construct(
-        private readonly AssignmentQueryService $assignments,
+        private readonly CompanyReadRepositoryInterface $companies,
+        private readonly VehicleReadRepositoryInterface $vehicles,
+        private readonly AssignmentReadRepositoryInterface $assignments,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 
@@ -39,20 +40,13 @@ final class CompanyQueryService
     {
         $cumul = $this->assignments->loadAnnualCumul($year);
 
-        // Pré-chargement bulk de tous les véhicules concernés.
         $vehicleIds = [];
         foreach ($cumul->vehicleCompanyPairs() as $pair) {
             $vehicleIds[$pair['vehicleId']] = true;
         }
-        $vehiclesById = Vehicle::query()
-            ->whereIn('id', array_keys($vehicleIds))
-            ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
-            ->get()
-            ->keyBy('id');
+        $vehiclesById = $this->vehicles->findByIdsIndexed(array_keys($vehicleIds));
 
-        $companies = Company::query()->orderBy('legal_name')->get();
-
-        $rows = $companies
+        $rows = $this->companies->findAllOrderedByName()
             ->map(fn (Company $c): CompanyListItemData => new CompanyListItemData(
                 id: $c->id,
                 legalName: $c->legal_name,
@@ -77,10 +71,7 @@ final class CompanyQueryService
      */
     public function listForOptions(): DataCollection
     {
-        $rows = Company::query()
-            ->where('is_active', true)
-            ->orderBy('legal_name')
-            ->get(['id', 'legal_name', 'short_code', 'color'])
+        $rows = $this->companies->findAllForOptions()
             ->map(static fn (Company $c): CompanyOptionData => new CompanyOptionData(
                 id: $c->id,
                 shortCode: $c->short_code,
@@ -95,6 +86,7 @@ final class CompanyQueryService
 
     /**
      * Couleurs disponibles pour un `<SelectInput>` (formulaire create).
+     * Pas d'accès BDD : énumère un enum applicatif.
      *
      * @return DataCollection<int, CompanyColorOptionData>
      */
@@ -109,32 +101,5 @@ final class CompanyQueryService
         );
 
         return CompanyColorOptionData::collect($rows, DataCollection::class);
-    }
-
-    /**
-     * Création d'une entreprise — wrapper trivial pour ne pas laisser
-     * `Company::create()` dans le controller. Mapping explicite
-     * camelCase → snake_case pour matcher les `Fillable` du modèle
-     * (Spatie Data n'expose `MapInputName` que pour la désérialisation
-     * entrante, pas pour `->all()`).
-     */
-    public function create(StoreCompanyData $data): Company
-    {
-        return Company::create([
-            'legal_name' => $data->legalName,
-            'short_code' => $data->shortCode,
-            'color' => $data->color,
-            'siren' => $data->siren,
-            'siret' => $data->siret,
-            'address_line_1' => $data->addressLine1,
-            'address_line_2' => $data->addressLine2,
-            'postal_code' => $data->postalCode,
-            'city' => $data->city,
-            'country' => $data->country,
-            'contact_name' => $data->contactName,
-            'contact_email' => $data->contactEmail,
-            'contact_phone' => $data->contactPhone,
-            'is_active' => $data->isActive,
-        ]);
     }
 }
