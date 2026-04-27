@@ -25,7 +25,7 @@ final class CompanyControllerTest extends TestCase
             ->get('/app/companies')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Companies/Index')
+                ->component('User/Companies/Index/Index')
                 ->has('companies', 3),
             );
     }
@@ -39,7 +39,7 @@ final class CompanyControllerTest extends TestCase
             ->get('/app/companies/create')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Companies/Create')
+                ->component('User/Companies/Create/Index')
                 ->has('colors'),
             );
     }

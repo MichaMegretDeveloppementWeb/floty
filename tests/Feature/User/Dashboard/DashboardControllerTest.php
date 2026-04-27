@@ -37,7 +37,7 @@ final class DashboardControllerTest extends TestCase
             ->get('/app/dashboard')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Dashboard/Index')
+                ->component('User/Dashboard/Index/Index')
                 ->has('stats', fn (AssertableInertia $s) => $s
                     ->where('vehiclesCount', 1)
                     ->where('companiesCount', 1)

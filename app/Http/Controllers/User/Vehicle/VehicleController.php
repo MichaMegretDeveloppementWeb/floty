@@ -30,7 +30,7 @@ final class VehicleController extends Controller
 
     public function index(): Response
     {
-        return Inertia::render('User/Vehicles/Index', [
+        return Inertia::render('User/Vehicles/Index/Index', [
             'vehicles' => $this->vehicles->listForFleetView(
                 (int) config('floty.fiscal.current_year'),
             ),
@@ -49,7 +49,7 @@ final class VehicleController extends Controller
             pollutantCategories: EnumOptions::fromCases(PollutantCategory::cases()),
         );
 
-        return Inertia::render('User/Vehicles/Create', [
+        return Inertia::render('User/Vehicles/Create/Index', [
             'options' => $options,
         ]);
     }

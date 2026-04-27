@@ -17,7 +17,7 @@ final class CompanyController extends Controller
 
     public function index(): Response
     {
-        return Inertia::render('User/Companies/Index', [
+        return Inertia::render('User/Companies/Index/Index', [
             'companies' => $this->companies->listForFleetView(
                 (int) config('floty.fiscal.current_year'),
             ),
@@ -26,7 +26,7 @@ final class CompanyController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('User/Companies/Create', [
+        return Inertia::render('User/Companies/Create/Index', [
             'colors' => $this->companies->colorOptions(),
         ]);
     }

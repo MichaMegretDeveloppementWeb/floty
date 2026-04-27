@@ -27,7 +27,7 @@ final class VehicleControllerTest extends TestCase
             ->get('/app/vehicles')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Vehicles/Index')
+                ->component('User/Vehicles/Index/Index')
                 ->has('vehicles', 1, fn (AssertableInertia $v) => $v
                     ->where('id', $vehicle->id)
                     ->where('licensePlate', $vehicle->license_plate)
@@ -45,7 +45,7 @@ final class VehicleControllerTest extends TestCase
             ->get('/app/vehicles/create')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Vehicles/Create')
+                ->component('User/Vehicles/Create/Index')
                 ->has('options', fn (AssertableInertia $o) => $o
                     ->has('receptionCategories')
                     ->has('vehicleUserTypes')

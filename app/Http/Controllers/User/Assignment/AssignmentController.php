@@ -28,7 +28,7 @@ final class AssignmentController extends Controller
 
     public function index(): Response
     {
-        return Inertia::render('User/Assignments/Index', [
+        return Inertia::render('User/Assignments/Index/Index', [
             'vehicles' => $this->vehicles->listForOptions(),
             'companies' => $this->companies->listForOptions(),
         ]);

@@ -22,7 +22,7 @@ final class FiscalRuleController extends Controller
 
     public function index(): Response
     {
-        return Inertia::render('User/FiscalRules/Index', [
+        return Inertia::render('User/FiscalRules/Index/Index', [
             'rules' => $this->rules->listForYear(
                 (int) config('floty.fiscal.current_year'),
             ),

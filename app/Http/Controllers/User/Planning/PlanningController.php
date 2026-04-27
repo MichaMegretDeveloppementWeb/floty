@@ -30,7 +30,7 @@ final class PlanningController extends Controller
     public function index(): Response
     {
         return Inertia::render(
-            'User/Planning/Index',
+            'User/Planning/Index/Index',
             $this->heatmap->buildHeatmap((int) config('floty.fiscal.current_year')),
         );
     }

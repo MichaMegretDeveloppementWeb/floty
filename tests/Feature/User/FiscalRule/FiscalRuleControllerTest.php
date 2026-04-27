@@ -29,7 +29,7 @@ final class FiscalRuleControllerTest extends TestCase
             ->get('/app/fiscal-rules')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/FiscalRules/Index')
+                ->component('User/FiscalRules/Index/Index')
                 ->has('rules', 3),
             );
     }

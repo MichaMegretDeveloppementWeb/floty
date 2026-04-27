@@ -29,7 +29,7 @@ final class PlanningControllerTest extends TestCase
             ->get('/app/planning')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Planning/Index')
+                ->component('User/Planning/Index/Index')
                 ->has('vehicles', 1)
                 ->has('companies', 1),
             );

@@ -15,7 +15,7 @@ final class DashboardController extends Controller
 
     public function __invoke(): Response
     {
-        return Inertia::render('User/Dashboard/Index', [
+        return Inertia::render('User/Dashboard/Index/Index', [
             'stats' => $this->stats->computeStats(
                 (int) config('floty.fiscal.current_year'),
             ),

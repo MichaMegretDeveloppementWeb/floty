@@ -28,7 +28,7 @@ final class AssignmentControllerTest extends TestCase
             ->get('/app/assignments')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Assignments/Index')
+                ->component('User/Assignments/Index/Index')
                 ->has('vehicles', 2)
                 ->has('companies', 3),
             );

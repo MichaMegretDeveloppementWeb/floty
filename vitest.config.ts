@@ -20,7 +20,9 @@ export default defineConfig({
     test: {
         environment: 'happy-dom',
         globals: true,
-        include: ['resources/js/**/*.{test,spec}.ts'],
+        // Tests sous tests/js/ (séparé du source, miroir resources/js/)
+        // — cohérence avec PHPUnit + lisibilité de la couverture (ADR-0013 R13).
+        include: ['tests/js/**/*.{test,spec}.ts'],
         css: false,
     },
 });
