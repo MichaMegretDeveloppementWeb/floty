@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Http\Requests\Auth;
 
 use App\Models\User;
@@ -42,14 +44,16 @@ final class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         if (! Auth::attempt($this->only('email', 'password'), false)) {
-            RateLimiter::hit($this->throttleKey(), decaySeconds: 900);
+            RateLimiter::hit($this->emailThrottleKey(), decaySeconds: 900);
+            RateLimiter::hit($this->ipThrottleKey(), decaySeconds: 900);
 
             throw ValidationException::withMessages([
                 'email' => 'Identifiants invalides.',
             ]);
         }
 
-        RateLimiter::clear($this->throttleKey());
+        RateLimiter::clear($this->emailThrottleKey());
+        RateLimiter::clear($this->ipThrottleKey());
 
         // Trace de la dernière connexion (colonne users.last_login_at).
         /** @var User $user */
@@ -58,30 +62,49 @@ final class LoginRequest extends FormRequest
     }
 
     /**
-     * Lève si la limite de tentatives (5 / 15 min) est atteinte.
+     * Double protection rate-limit :
+     *   - 5 tentatives / 15 min par couple email+IP — anti bruteforce ciblé.
+     *   - 50 tentatives / 15 min par IP seule — anti attaques distribuées
+     *     (un attaquant avec N IPs ne peut pas faire 5×N tentatives par
+     *     email).
      */
     private function ensureIsNotRateLimited(): void
     {
-        if (! RateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
-            return;
+        $emailKey = $this->emailThrottleKey();
+        $ipKey = $this->ipThrottleKey();
+
+        if (RateLimiter::tooManyAttempts($emailKey, 5)) {
+            event(new Lockout($this));
+
+            throw ValidationException::withMessages([
+                'email' => sprintf(
+                    'Trop de tentatives. Réessayez dans %d secondes.',
+                    RateLimiter::availableIn($emailKey),
+                ),
+            ]);
         }
 
-        event(new Lockout($this));
+        if (RateLimiter::tooManyAttempts($ipKey, 50)) {
+            event(new Lockout($this));
 
-        $seconds = RateLimiter::availableIn($this->throttleKey());
-
-        throw ValidationException::withMessages([
-            'email' => sprintf(
-                'Trop de tentatives. Réessayez dans %d secondes.',
-                $seconds,
-            ),
-        ]);
+            throw ValidationException::withMessages([
+                'email' => sprintf(
+                    'Trop de tentatives depuis cette IP. Réessayez dans %d secondes.',
+                    RateLimiter::availableIn($ipKey),
+                ),
+            ]);
+        }
     }
 
-    private function throttleKey(): string
+    private function emailThrottleKey(): string
     {
         return Str::transliterate(
-            Str::lower((string) $this->string('email')).'|'.$this->ip()
+            'login:email:'.Str::lower((string) $this->string('email')).'|'.$this->ip(),
         );
+    }
+
+    private function ipThrottleKey(): string
+    {
+        return 'login:ip:'.$this->ip();
     }
 }

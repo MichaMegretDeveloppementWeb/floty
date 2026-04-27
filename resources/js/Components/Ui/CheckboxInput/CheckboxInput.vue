@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import InputError from '@/Components/Ui/InputError/InputError.vue';
 import { Check } from 'lucide-vue-next';
 import { computed, useId } from 'vue';
+import InputError from '@/Components/Ui/InputError/InputError.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -25,8 +25,15 @@ const hintId = computed<string>(() => `${inputId.value}-hint`);
 
 const describedBy = computed<string | undefined>(() => {
     const ids: string[] = [];
-    if (props.hint) ids.push(hintId.value);
-    if (props.error) ids.push(errorId.value);
+
+    if (props.hint) {
+ids.push(hintId.value);
+}
+
+    if (props.error) {
+ids.push(errorId.value);
+}
+
     return ids.length ? ids.join(' ') : undefined;
 });
 </script>

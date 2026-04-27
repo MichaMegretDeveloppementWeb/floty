@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import SidebarNav from '@/Components/Layouts/UserLayout/SidebarNav.vue';
-import TopBar from '@/Components/Layouts/UserLayout/TopBar.vue';
-import ToastContainer from '@/Components/Ui/ToastContainer/ToastContainer.vue';
 import { usePage } from '@inertiajs/vue3';
 import { useMediaQuery } from '@vueuse/core';
 import { computed, ref, watch } from 'vue';
+import SidebarNav from '@/Components/Layouts/UserLayout/SidebarNav.vue';
+import TopBar from '@/Components/Layouts/UserLayout/TopBar.vue';
+import ToastContainer from '@/Components/Ui/ToastContainer/ToastContainer.vue';
 
 withDefaults(
     defineProps<{
@@ -19,7 +19,9 @@ const page = usePage();
 // Tant qu'une seule année de règles est codée (2024), la sélection reste
 // mécaniquement bloquée : min = max = currentYear → flèches désactivées.
 const currentYear = computed((): number => page.props.fiscal.currentYear);
-const availableYears = computed((): number[] => page.props.fiscal.availableYears);
+const availableYears = computed(
+    (): number[] => page.props.fiscal.availableYears,
+);
 const minYear = computed((): number => Math.min(...availableYears.value));
 const maxYear = computed((): number => Math.max(...availableYears.value));
 
@@ -35,20 +37,17 @@ const isMobile = useMediaQuery('(max-width: 767px)');
 const sidebarOpen = ref<boolean>(false);
 
 watch(isMobile, (mobile) => {
-    if (!mobile) sidebarOpen.value = false;
+    if (!mobile) {
+        sidebarOpen.value = false;
+    }
 });
 </script>
 
 <template>
     <div class="min-h-screen bg-slate-50">
-        <SidebarNav
-            v-model:open="sidebarOpen"
-            :active-path="activePath"
-        />
+        <SidebarNav v-model:open="sidebarOpen" :active-path="activePath" />
 
-        <div
-            class="flex min-h-screen min-w-0 flex-col md:pl-16 wide:pl-60"
-        >
+        <div class="flex min-h-screen min-w-0 flex-col md:pl-16 wide:pl-60">
             <TopBar
                 v-model:year="selectedYear"
                 :min-year="minYear"

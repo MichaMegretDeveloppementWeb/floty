@@ -29,7 +29,9 @@ const logout = (): void => {
 onClickOutside(rootRef, close);
 
 onKeyStroke('Escape', () => {
-    if (open.value) close();
+    if (open.value) {
+        close();
+    }
 });
 </script>
 
@@ -40,7 +42,7 @@ onKeyStroke('Escape', () => {
             :aria-expanded="open"
             aria-haspopup="menu"
             :aria-label="`Menu de ${name}`"
-            class="inline-flex items-center gap-2 rounded-lg p-1.5 text-slate-700 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-100 sm:px-2"
+            class="inline-flex items-center gap-2 rounded-lg p-1.5 text-slate-700 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-slate-100 focus-visible:outline-none sm:px-2"
             @click="toggle"
         >
             <span

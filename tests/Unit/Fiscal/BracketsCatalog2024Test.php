@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Fiscal;
 
 use App\Services\Fiscal\BracketsCatalog2024;

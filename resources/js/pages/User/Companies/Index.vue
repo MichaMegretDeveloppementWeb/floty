@@ -1,14 +1,16 @@
 <script setup lang="ts">
+import { Head, Link } from '@inertiajs/vue3';
+import { Building2, Plus } from 'lucide-vue-next';
+import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import { create as companiesCreateRoute } from '@/routes/user/companies';
 import type { DataTableColumn } from '@/types/ui';
-import { Head, Link } from '@inertiajs/vue3';
-import { Building2, Plus } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { formatEur } from '@/Utils/format/formatEur';
 
 type CompanyRow = App.Data.User.Company.CompanyListItemData;
 
@@ -26,14 +28,6 @@ const columns = computed<readonly DataTableColumn<CompanyRow>[]>(() => [
     { key: 'annualTaxDue', label: `Taxe ${fiscalYear.value}` },
 ]);
 
-const formatEur = (value: number): string =>
-    new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR',
-        maximumFractionDigits: 0,
-    })
-        .format(value)
-        .replace(/ | /g, ' ');
 </script>
 
 <template>
@@ -50,10 +44,11 @@ const formatEur = (value: number): string =>
                         Entreprises utilisatrices
                     </h1>
                     <p class="mt-1 text-base text-slate-600">
-                        Clients utilisateurs de la flotte et taxes {{ fiscalYear }}.
+                        Clients utilisateurs de la flotte et taxes
+                        {{ fiscalYear }}.
                     </p>
                 </div>
-                <Link href="/app/companies/create">
+                <Link :href="companiesCreateRoute.url()">
                     <Button>
                         <template #icon-left>
                             <Plus :size="14" :stroke-width="1.75" />
@@ -72,7 +67,7 @@ const formatEur = (value: number): string =>
                     <Building2 :size="20" :stroke-width="1.75" />
                 </template>
                 <template #actions>
-                    <Link href="/app/companies/create">
+                    <Link :href="companiesCreateRoute.url()">
                         <Button>
                             <template #icon-left>
                                 <Plus :size="14" :stroke-width="1.75" />

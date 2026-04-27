@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 use App\Http\Controllers\Web\Dev\UiKitShowcaseController;
 use App\Http\Controllers\Web\Dev\UiKitUserLayoutController;
 use Illuminate\Support\Facades\App;

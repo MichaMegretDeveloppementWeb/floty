@@ -1,4 +1,21 @@
 <script setup lang="ts">
+import { Head } from '@inertiajs/vue3';
+import {
+    AlertTriangle,
+    CheckCircle2,
+    Car,
+    Clock,
+    Download,
+    FileClock,
+    Filter,
+    MoreHorizontal,
+    Pencil,
+    Plus,
+    Send,
+    Trash2,
+    TrendingUp,
+} from 'lucide-vue-next';
+import { ref } from 'vue';
 import FlotyMark from '@/Components/Brand/FlotyMark.vue';
 import FlotyWordmark from '@/Components/Brand/FlotyWordmark.vue';
 import AlertRow from '@/Components/Ui/AlertRow/AlertRow.vue';
@@ -26,23 +43,6 @@ import Toast from '@/Components/Ui/Toast/Toast.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer/ToastContainer.vue';
 import { useToasts } from '@/Composables/Shared/useToasts';
 import type { DataTableColumn } from '@/types/ui';
-import { Head } from '@inertiajs/vue3';
-import {
-    AlertTriangle,
-    CheckCircle2,
-    Car,
-    Clock,
-    Download,
-    FileClock,
-    Filter,
-    MoreHorizontal,
-    Pencil,
-    Plus,
-    Send,
-    Trash2,
-    TrendingUp,
-} from 'lucide-vue-next';
-import { ref } from 'vue';
 
 const toasts = useToasts();
 
@@ -197,8 +197,8 @@ const companyChips: Swatch[] = [
                     UI Kit — Showcase
                 </h1>
                 <p class="mt-2 max-w-2xl text-base text-slate-600">
-                    Page de validation visuelle des composants du design
-                    system. Accessible uniquement en environnement local. Chaque
+                    Page de validation visuelle des composants du design system.
+                    Accessible uniquement en environnement local. Chaque
                     composant produit est ajouté ici au fur et à mesure pour
                     validation avant d'être utilisé dans l'application.
                 </p>
@@ -512,10 +512,7 @@ const companyChips: Swatch[] = [
                                 <StatusPill tone="blue">Prête</StatusPill>
                                 <StatusPill tone="emerald">
                                     <template #icon>
-                                        <Send
-                                            :size="12"
-                                            :stroke-width="1.75"
-                                        />
+                                        <Send :size="12" :stroke-width="1.75" />
                                     </template>
                                     Envoyée
                                 </StatusPill>
@@ -658,9 +655,8 @@ const companyChips: Swatch[] = [
                                     Flotte 2026
                                 </h3>
                                 <p class="text-sm text-slate-600">
-                                    Classe CSS <code class="font-mono">
-                                        .eyebrow
-                                    </code>
+                                    Classe CSS
+                                    <code class="font-mono"> .eyebrow </code>
                                     — pas de composant dédié.
                                 </p>
                             </div>
@@ -902,7 +898,9 @@ const companyChips: Swatch[] = [
 
                             <Card>
                                 <template #header>
-                                    <div class="flex items-center justify-between">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
                                         <p
                                             class="text-base font-semibold text-slate-900"
                                         >
@@ -1135,10 +1133,7 @@ const companyChips: Swatch[] = [
                                         label="Début"
                                         required
                                     />
-                                    <DateInput
-                                        v-model="demoDate"
-                                        label="Fin"
-                                    />
+                                    <DateInput v-model="demoDate" label="Fin" />
                                 </div>
                             </div>
                             <template #footer>
@@ -1192,9 +1187,7 @@ const companyChips: Swatch[] = [
                                 >
                                     Fermer
                                 </Button>
-                                <Button data-autofocus>
-                                    Enregistrer
-                                </Button>
+                                <Button data-autofocus> Enregistrer </Button>
                             </template>
                         </Drawer>
 
@@ -1303,10 +1296,10 @@ const companyChips: Swatch[] = [
                         Zone connectée
                     </p>
                     <p class="text-sm text-slate-600">
-                        Sidebar 240 px fixe avec navigation hiérarchisée
-                        (Vue d'ensemble / Planning / Données / Fiscalité),
-                        TopBar 64 px collante avec recherche globale,
-                        sélecteur d'année fiscale et menu utilisateur.
+                        Sidebar 240 px fixe avec navigation hiérarchisée (Vue
+                        d'ensemble / Planning / Données / Fiscalité), TopBar 64
+                        px collante avec recherche globale, sélecteur d'année
+                        fiscale et menu utilisateur.
                     </p>
                     <span
                         class="mt-2 inline-flex items-center gap-1 text-sm font-medium text-slate-900 group-hover:underline"

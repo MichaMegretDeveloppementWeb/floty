@@ -30,6 +30,7 @@ const trendClasses = computed<string>(() => {
             return 'text-slate-500';
         default: {
             const _exhaustive: never = props.trendDirection;
+
             throw new Error(
                 `Direction de tendance non gérée : ${_exhaustive as string}`,
             );

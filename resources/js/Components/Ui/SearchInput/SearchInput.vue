@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import Kbd from '@/Components/Ui/Kbd/Kbd.vue';
 import { Search } from 'lucide-vue-next';
 import { computed, useId } from 'vue';
+import Kbd from '@/Components/Ui/Kbd/Kbd.vue';
 
 const props = withDefaults(
     defineProps<{

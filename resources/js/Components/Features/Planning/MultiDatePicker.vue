@@ -40,6 +40,7 @@ const anchorDate = ref<string | null>(null);
 
 const monthLabel = computed((): string => {
     const date = new Date(props.year, currentMonth.value - 1, 1);
+
     return date.toLocaleDateString('fr-FR', {
         month: 'long',
         year: 'numeric',
@@ -72,8 +73,10 @@ const weeks = computed((): DayCell[][] => {
 
     const gridStart = new Date(year, month, 1 - leading);
     const rows: DayCell[][] = [];
+
     for (let row = 0; row < 6; row++) {
         const week: DayCell[] = [];
+
         for (let col = 0; col < 7; col++) {
             const d = new Date(
                 gridStart.getFullYear(),
@@ -92,10 +95,15 @@ const weeks = computed((): DayCell[][] => {
                 highlighted: highlightSet.value.has(iso),
             });
         }
+
         rows.push(week);
         const last = week[6]!.iso;
-        if (new Date(last).getMonth() !== month && row >= 4) break;
+
+        if (new Date(last).getMonth() !== month && row >= 4) {
+            break;
+        }
     }
+
     return rows;
 });
 
@@ -103,19 +111,26 @@ function formatIso(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
+
     return `${y}-${m}-${day}`;
 }
 
 function gotoPrevMonth(): void {
-    if (currentMonth.value > 1) currentMonth.value -= 1;
+    if (currentMonth.value > 1) {
+        currentMonth.value -= 1;
+    }
 }
 
 function gotoNextMonth(): void {
-    if (currentMonth.value < 12) currentMonth.value += 1;
+    if (currentMonth.value < 12) {
+        currentMonth.value += 1;
+    }
 }
 
 function onDayClick(cell: DayCell, event: MouseEvent): void {
-    if (cell.disabled) return;
+    if (cell.disabled) {
+        return;
+    }
 
     const iso = cell.iso;
 
@@ -126,17 +141,20 @@ function onDayClick(cell: DayCell, event: MouseEvent): void {
         );
         const merged = new Set<string>([...selected.value, ...range]);
         selected.value = [...merged].sort();
+
         return;
     }
 
     // Ctrl/Cmd+clic → toggle sans reset.
     if (event.ctrlKey || event.metaKey) {
         anchorDate.value = iso;
+
         if (selectedSet.value.has(iso)) {
             selected.value = selected.value.filter((d) => d !== iso);
         } else {
             selected.value = [...selected.value, iso].sort();
         }
+
         return;
     }
 
@@ -152,10 +170,12 @@ function buildRange(startIso: string, endIso: string): string[] {
     const end = a <= b ? b : a;
     const result: string[] = [];
     const cur = new Date(start);
+
     while (cur <= end) {
         result.push(formatIso(cur));
         cur.setDate(cur.getDate() + 1);
     }
+
     return result;
 }
 
@@ -178,7 +198,7 @@ function clearSelection(): void {
             >
                 <ChevronLeft :size="16" :stroke-width="1.75" />
             </button>
-            <p class="text-sm font-medium capitalize text-slate-900">
+            <p class="text-sm font-medium text-slate-900 capitalize">
                 {{ monthLabel }}
             </p>
             <button
@@ -193,7 +213,9 @@ function clearSelection(): void {
         </div>
 
         <!-- Jours de la semaine -->
-        <div class="grid grid-cols-7 gap-0.5 text-center text-[10px] font-medium uppercase text-slate-500">
+        <div
+            class="grid grid-cols-7 gap-0.5 text-center text-[10px] font-medium text-slate-500 uppercase"
+        >
             <span>Lun</span>
             <span>Mar</span>
             <span>Mer</span>
@@ -244,9 +266,10 @@ function clearSelection(): void {
         >
             <p class="text-slate-500">
                 <span class="font-medium text-slate-900"
-                    >{{ selected.length }} jour{{ selected.length > 1 ? 's' : '' }} sélectionné{{
+                    >{{ selected.length }} jour{{
                         selected.length > 1 ? 's' : ''
-                    }}</span
+                    }}
+                    sélectionné{{ selected.length > 1 ? 's' : '' }}</span
                 >
                 · Shift+clic plage · Ctrl+clic non-successifs
             </p>

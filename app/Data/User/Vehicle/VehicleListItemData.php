@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Data\User\Vehicle;
 
 use App\Enums\Vehicle\VehicleStatus;

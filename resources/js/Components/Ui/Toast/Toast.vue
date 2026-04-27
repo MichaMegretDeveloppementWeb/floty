@@ -39,6 +39,7 @@ const chipClasses = computed<string>(() => {
             return 'bg-blue-50 text-blue-700';
         default: {
             const _exhaustive: never = props.tone;
+
             throw new Error(`Tonalité non gérée : ${_exhaustive as string}`);
         }
     }
@@ -54,6 +55,11 @@ const toneIcon = computed(() => {
             return AlertTriangle;
         case 'info':
             return Info;
+        default: {
+            const _exhaustive: never = props.tone;
+
+            throw new Error(`Tonalité non gérée : ${_exhaustive as string}`);
+        }
     }
 });
 

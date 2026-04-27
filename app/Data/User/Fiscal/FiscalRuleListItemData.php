@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Data\User\Fiscal;
 
 use App\Enums\Fiscal\RuleType;

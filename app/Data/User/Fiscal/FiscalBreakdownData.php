@@ -1,19 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Data\User\Fiscal;
 
+use App\DTO\Fiscal\FiscalBreakdown;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Résultat détaillé d'un calcul fiscal pour un couple (véhicule,
- * entreprise utilisatrice) sur un nombre de jours donné.
+ * Pendant Spatie Data, exposé front, du DTO interne
+ * {@see FiscalBreakdown}.
  *
- * Supplante le DTO non-Data `App\Services\Fiscal\Dto\FiscalBreakdown`
- * — le Calculator l'expose désormais directement (la conversion
- * `toArray()` est gérée par Spatie Data).
+ * Conversion explicite via {@see self::fromBreakdown()} — pas de
+ * conversion magique par réflexion.
  */
 #[TypeScript]
 final class FiscalBreakdownData extends Data
@@ -37,4 +39,28 @@ final class FiscalBreakdownData extends Data
         public float $totalDue,
         public array $exemptionReasons,
     ) {}
+
+    /**
+     * Construit le DTO exposé à partir du DTO interne. Garantit le
+     * mapping 1:1 typé entre les deux représentations.
+     */
+    public static function fromBreakdown(FiscalBreakdown $breakdown): self
+    {
+        return new self(
+            daysAssigned: $breakdown->daysAssigned,
+            cumulativeDaysForPair: $breakdown->cumulativeDaysForPair,
+            daysInYear: $breakdown->daysInYear,
+            lcdExempt: $breakdown->lcdExempt,
+            electricExempt: $breakdown->electricExempt,
+            handicapExempt: $breakdown->handicapExempt,
+            co2Method: $breakdown->co2Method,
+            co2FullYearTariff: $breakdown->co2FullYearTariff,
+            co2Due: $breakdown->co2Due,
+            pollutantCategory: $breakdown->pollutantCategory,
+            pollutantsFullYearTariff: $breakdown->pollutantsFullYearTariff,
+            pollutantsDue: $breakdown->pollutantsDue,
+            totalDue: $breakdown->totalDue,
+            exemptionReasons: $breakdown->exemptionReasons,
+        );
+    }
 }

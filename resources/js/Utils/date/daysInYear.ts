@@ -11,7 +11,5 @@
  * @returns 366 si bissextile, 365 sinon
  */
 export function daysInYear(year: number): 365 | 366 {
-    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0
-        ? 366
-        : 365;
+    return (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0 ? 366 : 365;
 }

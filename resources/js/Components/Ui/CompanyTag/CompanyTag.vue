@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import type { CompanyColor } from '@/types/ui';
 import { computed } from 'vue';
+
+type CompanyColor = App.Enums.Company.CompanyColor;
 
 const props = withDefaults(
     defineProps<{
@@ -33,6 +34,7 @@ const dotClasses = computed<string>(() => {
             return 'bg-company-cyan';
         default: {
             const _exhaustive: never = props.color;
+
             throw new Error(`Couleur non gérée : ${_exhaustive as string}`);
         }
     }

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import UserMenu from '@/Components/Layouts/UserLayout/UserMenu.vue';
-import YearSelector from '@/Components/Layouts/UserLayout/YearSelector.vue';
-import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import { usePage } from '@inertiajs/vue3';
 import { Menu } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import UserMenu from '@/Components/Layouts/UserLayout/UserMenu.vue';
+import YearSelector from '@/Components/Layouts/UserLayout/YearSelector.vue';
+import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 
 const year = defineModel<number>('year', { required: true });
 
@@ -24,15 +24,24 @@ const authUser = computed(() => page.props.auth?.user ?? null);
 
 const fullName = computed((): string => {
     const user = authUser.value;
-    if (!user) return 'Invité';
+
+    if (!user) {
+        return 'Invité';
+    }
+
     return user.fullName || 'Utilisateur';
 });
 
 const initials = computed((): string => {
     const user = authUser.value;
-    if (!user) return '?';
+
+    if (!user) {
+        return '?';
+    }
+
     const first = user.firstName?.[0] ?? '';
     const last = user.lastName?.[0] ?? '';
+
     return (first + last).toUpperCase() || '?';
 });
 </script>
@@ -44,7 +53,7 @@ const initials = computed((): string => {
         <button
             type="button"
             aria-label="Ouvrir la navigation"
-            class="flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-100 md:hidden"
+            class="flex size-9 shrink-0 items-center justify-center rounded-lg text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-2 focus-visible:ring-slate-100 focus-visible:outline-none md:hidden"
             @click="emit('toggle-sidebar')"
         >
             <Menu :size="18" :stroke-width="1.75" />
@@ -59,16 +68,9 @@ const initials = computed((): string => {
             />
         </div>
 
-        <YearSelector
-            v-model="year"
-            :min="minYear"
-            :max="maxYear"
-        />
+        <YearSelector v-model="year" :min="minYear" :max="maxYear" />
 
-        <div
-            class="hidden h-8 w-px bg-slate-200 md:block"
-            aria-hidden="true"
-        />
+        <div class="hidden h-8 w-px bg-slate-200 md:block" aria-hidden="true" />
 
         <UserMenu
             :name="fullName"

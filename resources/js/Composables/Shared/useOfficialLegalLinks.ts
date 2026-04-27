@@ -25,8 +25,9 @@
  * **NOTICE DGFiP** : recherche sur impots.gouv.fr.
  */
 
+import { computed } from 'vue';
+import type { ComputedRef } from 'vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
-import { computed, type ComputedRef } from 'vue';
 
 export type LegalReference = {
     type: 'CIBS' | 'BOFIP' | 'CGI' | 'NOTICE' | string;
@@ -102,9 +103,11 @@ function pivotDateFor(year: number): string {
 function cibsUrlFor(article: string, year: number): string {
     const normalized = article.replace(/\s+/g, ' ').trim();
     const legiarti = CIBS_ARTICLE_LEGIARTI[normalized];
+
     if (legiarti) {
         return `${LEGIFRANCE_BASE}/codes/article_lc/${legiarti}/${pivotDateFor(year)}`;
     }
+
     return `${LEGIFRANCE_BASE}/codes/texte_lc/${CIBS_LEGITEXT}`;
 }
 
@@ -134,6 +137,7 @@ function resolveLegalLinkFor(
 
     if (ref.type === 'BOFIP' && ref.reference) {
         const para = ref.paragraph ? ` ${ref.paragraph}` : '';
+
         return {
             label: `${ref.reference}${para}`,
             url: `${BOFIP_BASE}/${encodeURIComponent(ref.reference)}`,
@@ -143,6 +147,7 @@ function resolveLegalLinkFor(
 
     if (ref.type === 'NOTICE' && ref.reference) {
         const params = new URLSearchParams({ q: ref.reference });
+
         return {
             label: `Notice ${ref.reference}`,
             url: `${IMPOTS_SEARCH}?${params.toString()}`,
@@ -151,7 +156,11 @@ function resolveLegalLinkFor(
     }
 
     const fallbackLabel = ref.article ?? ref.reference ?? ref.type ?? '';
-    if (!fallbackLabel) return null;
+
+    if (!fallbackLabel) {
+        return null;
+    }
+
     return {
         label: fallbackLabel,
         url: '',
@@ -171,9 +180,8 @@ export type UseOfficialLegalLinksReturn = {
 export function useOfficialLegalLinks(): UseOfficialLegalLinksReturn {
     const { currentYear } = useFiscalYear();
 
-    const resolveLegalLink = (
-        ref: LegalReference,
-    ): ResolvedLegalLink | null => resolveLegalLinkFor(ref, currentYear.value);
+    const resolveLegalLink = (ref: LegalReference): ResolvedLegalLink | null =>
+        resolveLegalLinkFor(ref, currentYear.value);
 
     const resolveAll = (refs: LegalReference[]): ResolvedLegalLink[] =>
         refs

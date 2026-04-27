@@ -1,7 +1,11 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Unit\Fiscal;
 
+use App\Data\User\Fiscal\FiscalBreakdownData;
+use App\DTO\Fiscal\FiscalBreakdown;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -13,7 +17,6 @@ use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
-use App\Services\Fiscal\Dto\FiscalBreakdown;
 use App\Services\Fiscal\FiscalCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -241,34 +244,34 @@ final class FiscalCalculatorTest extends TestCase
     }
 
     #[Test]
-    public function to_array_expose_toutes_les_cles_camel_case(): void
+    public function from_breakdown_mapping_complet_vers_dto_spatie(): void
     {
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $r = $this->calculator->calculate($vehicle, 50, 50, 2024);
-        $payload = $r->toArray();
+        $breakdown = $this->calculator->calculate($vehicle, 50, 50, 2024);
+        $data = FiscalBreakdownData::fromBreakdown($breakdown);
 
-        $expectedKeys = [
-            'daysAssigned',
-            'cumulativeDaysForPair',
-            'daysInYear',
-            'lcdExempt',
-            'electricExempt',
-            'handicapExempt',
-            'co2Method',
-            'co2FullYearTariff',
-            'co2Due',
-            'pollutantCategory',
-            'pollutantsFullYearTariff',
-            'pollutantsDue',
-            'totalDue',
-            'exemptionReasons',
-        ];
-        foreach ($expectedKeys as $key) {
-            $this->assertArrayHasKey($key, $payload, "Clé `{$key}` absente du toArray()");
-        }
+        // Conversion 1:1 vérifiée champ par champ
+        $this->assertSame($breakdown->daysAssigned, $data->daysAssigned);
+        $this->assertSame($breakdown->cumulativeDaysForPair, $data->cumulativeDaysForPair);
+        $this->assertSame($breakdown->daysInYear, $data->daysInYear);
+        $this->assertSame($breakdown->lcdExempt, $data->lcdExempt);
+        $this->assertSame($breakdown->electricExempt, $data->electricExempt);
+        $this->assertSame($breakdown->handicapExempt, $data->handicapExempt);
+        $this->assertSame($breakdown->co2Method, $data->co2Method);
+        $this->assertSame($breakdown->co2FullYearTariff, $data->co2FullYearTariff);
+        $this->assertSame($breakdown->co2Due, $data->co2Due);
+        $this->assertSame($breakdown->pollutantCategory, $data->pollutantCategory);
+        $this->assertSame($breakdown->pollutantsFullYearTariff, $data->pollutantsFullYearTariff);
+        $this->assertSame($breakdown->pollutantsDue, $data->pollutantsDue);
+        $this->assertSame($breakdown->totalDue, $data->totalDue);
+        $this->assertSame($breakdown->exemptionReasons, $data->exemptionReasons);
+
+        // Sérialisation Spatie expose les bons noms (camelCase)
+        $payload = $data->toArray();
+        $this->assertArrayHasKey('daysAssigned', $payload);
+        $this->assertArrayHasKey('co2Method', $payload);
         $this->assertSame('WLTP', $payload['co2Method']);
-        $this->assertIsArray($payload['exemptionReasons']);
     }
 
     #[Test]

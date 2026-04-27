@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import Heatmap from '@/Components/Features/Planning/Heatmap.vue';
-import WeekDrawer from '@/Components/Features/Planning/WeekDrawer.vue';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
-import { getJson } from '@/lib/http';
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import Heatmap from '@/Components/Features/Planning/Heatmap/Heatmap.vue';
+import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue';
+import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import { useApi } from '@/Composables/Shared/useApi';
+import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import { week as planningWeekRoute } from '@/routes/user/planning';
 
 type Vehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
 type Company = App.Data.User.Company.CompanyOptionData;
@@ -18,6 +19,7 @@ defineProps<{
 
 const { currentYear: fiscalYear } = useFiscalYear();
 
+const api = useApi();
 const drawerOpen = ref(false);
 const weekData = ref<WeekData | null>(null);
 const loadingWeek = ref(false);
@@ -27,12 +29,15 @@ async function openWeek(payload: {
     week: number;
 }): Promise<void> {
     loadingWeek.value = true;
+
     try {
-        weekData.value = await getJson<WeekData>('/app/planning/week', {
+        weekData.value = await api.get<WeekData>(planningWeekRoute.url(), {
             vehicleId: payload.vehicleId,
             week: payload.week,
         });
         drawerOpen.value = true;
+    } catch {
+        // Toast erreur déjà affiché par useApi
     } finally {
         loadingWeek.value = false;
     }

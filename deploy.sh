@@ -49,6 +49,14 @@ fi
 PHP_VERSION=$("$PHP_BIN" -r 'echo PHP_VERSION;')
 echo "→ PHP utilisé : $PHP_BIN ($PHP_VERSION)"
 
+# Validation stricte : PHP 8.5+ requis (pas de fallback silencieux sur 8.4)
+PHP_MAJOR_MINOR=$("$PHP_BIN" -r 'echo PHP_MAJOR_VERSION.".".PHP_MINOR_VERSION;')
+if [ "$(printf '%s\n' "8.5" "$PHP_MAJOR_MINOR" | sort -V | head -n1)" != "8.5" ]; then
+    echo "✗ PHP 8.5+ requis, trouvé $PHP_VERSION." >&2
+    echo "  Définir PHP_BIN=/chemin/vers/php8.5 puis relancer." >&2
+    exit 1
+fi
+
 # Composer doit utiliser le même PHP que la CLI
 COMPOSER_RUNNER=("$PHP_BIN")
 if command -v composer &>/dev/null; then
@@ -98,15 +106,15 @@ git reset --hard origin/main
 echo "→ Installation des dépendances PHP..."
 "${COMPOSER_RUNNER[@]}" install --no-dev --optimize-autoloader --no-interaction
 
-# 5. Compiler les assets si npm est disponible (optionnel)
-if command -v npm &>/dev/null; then
-    echo "→ Installation des dépendances Node..."
-    npm ci --production=false
-    echo "→ Compilation des assets (Vite)..."
-    npm run build
-else
-    echo "→ npm non disponible, les assets commités seront utilisés."
+# 5. Vérifier que les assets sont compilés (refus de build serveur)
+echo "→ Vérification des assets compilés..."
+if [ ! -f "public/build/manifest.json" ]; then
+    echo "✗ public/build/manifest.json absent." >&2
+    echo "  Les assets DOIVENT être compilés en local via 'npm run build'" >&2
+    echo "  et commités avant le déploiement. Le serveur ne compile pas." >&2
+    exit 1
 fi
+echo "→ Assets trouvés (commit $(git rev-parse --short HEAD))."
 
 # 6. Exécuter les migrations
 echo "→ Exécution des migrations..."

@@ -1,6 +1,7 @@
-import { daysInYear as daysInYearOf } from '@/Utils/date/daysInYear';
 import { usePage } from '@inertiajs/vue3';
-import { computed, type ComputedRef } from 'vue';
+import { computed } from 'vue';
+import type { ComputedRef } from 'vue';
+import { daysInYear as daysInYearOf } from '@/Utils/date/daysInYear';
 
 /**
  * Source de vérité unique pour l'année fiscale côté front.
@@ -32,17 +33,13 @@ export type UseFiscalYearReturn = {
 export function useFiscalYear(): UseFiscalYearReturn {
     const page = usePage();
 
-    const currentYear = computed<number>(
-        () => page.props.fiscal.currentYear,
-    );
+    const currentYear = computed<number>(() => page.props.fiscal.currentYear);
     const availableYears = computed<number[]>(
         () => page.props.fiscal.availableYears,
     );
-    const isLocked = computed<boolean>(
-        () => availableYears.value.length <= 1,
-    );
-    const daysInYear = computed<365 | 366>(
-        () => daysInYearOf(currentYear.value),
+    const isLocked = computed<boolean>(() => availableYears.value.length <= 1);
+    const daysInYear = computed<365 | 366>(() =>
+        daysInYearOf(currentYear.value),
     );
 
     return { currentYear, availableYears, isLocked, daysInYear };

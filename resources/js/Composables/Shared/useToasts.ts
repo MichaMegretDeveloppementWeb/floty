@@ -1,4 +1,5 @@
-import { reactive, readonly, type DeepReadonly } from 'vue';
+import { reactive, readonly } from 'vue';
+import type { DeepReadonly } from 'vue';
 
 /**
  * Pile globale de toasts éphémères affichée par `ToastContainer`.
@@ -55,9 +56,14 @@ const generateId = (): string =>
 
 const dismiss = (id: string): void => {
     const index = toasts.findIndex((item) => item.id === id);
-    if (index === -1) return;
+
+    if (index === -1) {
+        return;
+    }
+
     toasts.splice(index, 1);
     const timer = timers.get(id);
+
     if (timer) {
         clearTimeout(timer);
         timers.delete(id);
@@ -74,17 +80,22 @@ const push = (input: ToastInput): string => {
         description: input.description,
         duration,
     });
+
     if (duration > 0) {
         timers.set(
             id,
             setTimeout(() => dismiss(id), duration),
         );
     }
+
     return id;
 };
 
 const clear = (): void => {
-    for (const timer of timers.values()) clearTimeout(timer);
+    for (const timer of timers.values()) {
+        clearTimeout(timer);
+    }
+
     timers.clear();
     toasts.splice(0, toasts.length);
 };

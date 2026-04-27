@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import { Head, useForm } from '@inertiajs/vue3';
 import FlotyMark from '@/Components/Brand/FlotyMark.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
-import { Head, useForm } from '@inertiajs/vue3';
 
 const form = useForm({
     email: '',
@@ -54,11 +54,7 @@ const submit = (): void => {
                     required
                 />
 
-                <Button
-                    type="submit"
-                    block
-                    :loading="form.processing"
-                >
+                <Button type="submit" block :loading="form.processing">
                     Se connecter
                 </Button>
             </form>

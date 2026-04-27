@@ -1,9 +1,9 @@
 <script setup lang="ts" generic="T extends Record<string, unknown>">
+import { useSlots } from 'vue';
 import type {
     DataTableColumn,
     DataTableColumnAlign,
 } from '@/types/ui';
-import { useSlots } from 'vue';
 
 withDefaults(
     defineProps<{
@@ -26,7 +26,10 @@ const emit = defineEmits<{
 const slots = useSlots();
 
 const cellValue = (row: T, column: DataTableColumn<T>): unknown => {
-    if (column.accessor) return column.accessor(row);
+    if (column.accessor) {
+return column.accessor(row);
+}
+
     return row[column.key];
 };
 

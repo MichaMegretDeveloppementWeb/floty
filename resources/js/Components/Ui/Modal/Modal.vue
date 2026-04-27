@@ -33,7 +33,10 @@ const close = (): void => {
 };
 
 onKeyStroke('Escape', (event) => {
-    if (!open.value) return;
+    if (!open.value) {
+return;
+}
+
     event.preventDefault();
     close();
 });
@@ -42,6 +45,7 @@ watch(
     () => open.value,
     async (value) => {
         bodyScrollLock.value = value;
+
         if (value) {
             await nextTick();
             const target = panel.value?.querySelector<HTMLElement>(
@@ -61,7 +65,9 @@ const sizeClass = ref({
 });
 
 const handleBackdropClick = (): void => {
-    if (props.closeOnBackdrop) close();
+    if (props.closeOnBackdrop) {
+close();
+}
 };
 </script>
 

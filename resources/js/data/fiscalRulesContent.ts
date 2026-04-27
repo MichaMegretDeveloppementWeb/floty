@@ -95,9 +95,10 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         tab: 'calcul',
         section: 'aiguillage',
         title: 'Étape 1 — Le véhicule est-il taxable ?',
-        pitch: "Seuls les véhicules de catégorie M1 (tourisme) et certains N1 (transport de personnes) sont assujettis aux deux taxes.",
+        pitch: 'Seuls les véhicules de catégorie M1 (tourisme) et certains N1 (transport de personnes) sont assujettis aux deux taxes.',
         body: "L'application qualifie automatiquement chaque véhicule à partir de sa catégorie de réception européenne (M1/N1), de sa carrosserie et du nombre de places. Les vrais utilitaires de transport de marchandises (N1 type fourgon, camionnette à 1 rang) sont hors du champ des taxes.",
-        example: "Renault Master N1 fourgon de marchandises → hors taxes. Peugeot Partner N1 « camionnette 2 rangs » → taxable.",
+        example:
+            'Renault Master N1 fourgon de marchandises → hors taxes. Peugeot Partner N1 « camionnette 2 rangs » → taxable.',
     },
     'R-2024-005': {
         tab: 'calcul',
@@ -105,15 +106,17 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         title: 'Étape 2 — Quel barème CO₂ appliquer ?',
         pitch: 'WLTP, NEDC ou Puissance Administrative — choix automatique selon la date de première immatriculation et les données disponibles.',
         body: "L'aiguillage suit cet arbre : (1) véhicule immatriculé en France à partir du 01/03/2020 et CO₂ WLTP connu → barème WLTP. (2) Véhicule immatriculé entre le 01/06/2004 et 29/02/2020 avec CO₂ NEDC connu → barème NEDC. (3) Dans tous les autres cas (ancien véhicule, données manquantes) → barème Puissance Administrative (CV).",
-        example: 'Peugeot 308 immat. 15/06/2022 avec CO₂ WLTP 100 g/km → WLTP. Peugeot 207 immat. 2010 avec NEDC 130 g/km → NEDC. Renault 21 immat. 2002, 7 CV → PA.',
+        example:
+            'Peugeot 308 immat. 15/06/2022 avec CO₂ WLTP 100 g/km → WLTP. Peugeot 207 immat. 2010 avec NEDC 130 g/km → NEDC. Renault 21 immat. 2002, 7 CV → PA.',
     },
     'R-2024-013': {
         tab: 'calcul',
         section: 'aiguillage',
         title: 'Étape 3 — Quelle catégorie polluants ?',
-        pitch: "Trois catégories : E (électrique/hydrogène), 1 (essence ou gaz Euro 5/6), « plus polluants » (tous les autres, dont Diesel).",
+        pitch: 'Trois catégories : E (électrique/hydrogène), 1 (essence ou gaz Euro 5/6), « plus polluants » (tous les autres, dont Diesel).',
         body: 'Catégorie E = électrique exclusif, hydrogène exclusif, ou combinaison des deux. Catégorie 1 = véhicules à allumage commandé (essence, GPL, GNV, E85, ou hybride essence) respectant Euro 5 ou Euro 6. Catégorie « véhicules les plus polluants » = tous les autres, notamment tous les Diesel (même Euro 6), les essence pré-Euro 5, et les véhicules sans norme Euro renseignée.',
-        example: 'Tesla Model 3 électrique → E. Peugeot 308 essence Euro 6 → 1. Renault Trafic Diesel Euro 6 → plus polluants.',
+        example:
+            'Tesla Model 3 électrique → E. Peugeot 308 essence Euro 6 → 1. Renault Trafic Diesel Euro 6 → plus polluants.',
     },
 
     // B. Barèmes de taxes ─────────────────────────────────────────
@@ -139,7 +142,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
             ],
         },
         example:
-            "Peugeot 308 WLTP 100 g/km, utilisée 306 jours par ACME en 2024 : tarif plein = 14×0 + 41×1 + 8×2 + 32×3 + 5×4 = 173 €. Taxe due = 173 × 306/366 = 144,64 €.",
+            'Peugeot 308 WLTP 100 g/km, utilisée 306 jours par ACME en 2024 : tarif plein = 14×0 + 41×1 + 8×2 + 32×3 + 5×4 = 173 €. Taxe due = 173 × 306/366 = 144,64 €.',
     },
     'R-2024-011': {
         tab: 'calcul',
@@ -190,13 +193,21 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         section: 'bareme',
         title: 'Barème polluants — tarif forfaitaire par catégorie',
         pitch: 'Tarif annuel forfaitaire selon la catégorie polluants du véhicule (déterminée à l’étape 3 ci-dessus).',
-        body: "Le tarif annuel plein ne dépend ni de l’émission réelle ni de la cylindrée — c’est un forfait par catégorie. Il est multiplié par le prorata jours utilisés / 366.",
+        body: 'Le tarif annuel plein ne dépend ni de l’émission réelle ni de la cylindrée — c’est un forfait par catégorie. Il est multiplié par le prorata jours utilisés / 366.',
         flatBrackets: {
             header: ['Catégorie polluants', 'Tarif annuel 2024'],
             rows: [
-                { category: 'E — électrique / hydrogène', amount: '0 €', note: 'Effet du barème, pas une exonération.' },
+                {
+                    category: 'E — électrique / hydrogène',
+                    amount: '0 €',
+                    note: 'Effet du barème, pas une exonération.',
+                },
                 { category: '1 — essence/gaz Euro 5 ou 6', amount: '100 €' },
-                { category: 'Véhicules les plus polluants', amount: '500 €', note: 'Inclut tous les Diesel.' },
+                {
+                    category: 'Véhicules les plus polluants',
+                    amount: '500 €',
+                    note: 'Inclut tous les Diesel.',
+                },
             ],
         },
         example:
@@ -211,7 +222,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         pitch: 'Véhicules M1 accessibles en fauteuil roulant ou aménagés pour conduite par personne handicapée : exonération totale des deux taxes.',
         appliesWhen:
             "Le véhicule est catégorie M1 ET porte mention d'accessibilité fauteuil roulant ou d'aménagement handicap au certificat d'immatriculation (rubrique J.3).",
-        effect: "Taxe CO₂ = 0 € ET taxe polluants = 0 €. L’exonération est attachée au véhicule, pas à l’usage : pas de prorata, même pour une utilisation partielle.",
+        effect: 'Taxe CO₂ = 0 € ET taxe polluants = 0 €. L’exonération est attachée au véhicule, pas à l’usage : pas de prorata, même pour une utilisation partielle.',
         example:
             'Renault Kangoo M1 accessible fauteuil roulant, Diesel Euro 6, utilisé 274 jours : sans exonération on paierait ~375 € de polluants + taxe CO₂. Avec exonération : 0,00 €.',
     },
@@ -222,9 +233,9 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         pitch: 'Véhicules 100 % électriques ou hydrogène : exonération totale de la taxe CO₂.',
         appliesWhen:
             "La source d'énergie est exclusivement électrique, hydrogène, ou une combinaison des deux. Toute source complémentaire (essence, gaz…) sortirait du champ.",
-        effect:
-            "Taxe CO₂ = 0 € au titre de l'article L. 421-124. Pour les polluants, le véhicule est catégorie E → 0 € par effet du barème (voir R-2024-014).",
-        example: 'Tesla Model 3 électrique, utilisée 366/366 jours par ACME : taxe CO₂ 0 € + taxe polluants 0 € = total 0,00 €.',
+        effect: "Taxe CO₂ = 0 € au titre de l'article L. 421-124. Pour les polluants, le véhicule est catégorie E → 0 € par effet du barème (voir R-2024-014).",
+        example:
+            'Tesla Model 3 électrique, utilisée 366/366 jours par ACME : taxe CO₂ 0 € + taxe polluants 0 € = total 0,00 €.',
     },
     'R-2024-017': {
         tab: 'calcul',
@@ -235,18 +246,18 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
             "La combinaison de sources d'énergie doit être l'une des suivantes : électrique/hydrogène + gaz/GPL/essence/E85, OU gaz naturel/GPL + essence/E85. Les hybrides Diesel-électrique ne sont PAS éligibles. ET les émissions doivent respecter un seuil : ≤ 60 g/km WLTP (ou ≤ 120 si véhicule < 3 ans au 01/01/2024).",
         effect: 'Taxe CO₂ = 0 € si les deux conditions sont remplies. La taxe polluants reste due selon la catégorie.',
         example:
-            "Captur E-Tech hybride essence+électrique, WLTP 32 g/km, immat. 2022 (< 3 ans → seuil 120) : 32 ≤ 120 ✓ → exonéré. Classe E 300de hybride Diesel+électrique, WLTP 38 g/km : combinaison Diesel non listée → PAS exonéré.",
+            'Captur E-Tech hybride essence+électrique, WLTP 32 g/km, immat. 2022 (< 3 ans → seuil 120) : 32 ≤ 120 ✓ → exonéré. Classe E 300de hybride Diesel+électrique, WLTP 38 g/km : combinaison Diesel non listée → PAS exonéré.',
     },
     'R-2024-020': {
         tab: 'calcul',
         section: 'exoneration',
         title: "Exonération loueur (fondement du modèle de l'application)",
         pitch: 'La société de location ne paie aucune taxe sur ses véhicules en stock. Seule la part louée à une entreprise utilisatrice déclenche une taxe.',
-        appliesWhen: "Le véhicule est détenu par une société dont l'activité est la location. Exonération applicable sur les jours où le véhicule n'est attribué à aucune entreprise utilisatrice.",
-        effect:
-            "Aucune ligne fiscale n'est produite pour le bailleur. Les entreprises utilisatrices paient au prorata de leur usage effectif : si un véhicule est utilisé 350 jours/366 en cumul, il reste 16 jours non taxés (stock bailleur).",
+        appliesWhen:
+            "Le véhicule est détenu par une société dont l'activité est la location. Exonération applicable sur les jours où le véhicule n'est attribué à aucune entreprise utilisatrice.",
+        effect: "Aucune ligne fiscale n'est produite pour le bailleur. Les entreprises utilisatrices paient au prorata de leur usage effectif : si un véhicule est utilisé 350 jours/366 en cumul, il reste 16 jours non taxés (stock bailleur).",
         example:
-            "Peugeot 308 propriété de la société Renaud, 2024 : A 200 j, B 100 j, C 50 j, 16 j en stock. Tarif plein (CO₂ 173 + polluants 100) = 273 €. A paie 149,18 €, B 74,59 €, C 37,30 € ; bailleur 0 €.",
+            'Peugeot 308 propriété de la société Renaud, 2024 : A 200 j, B 100 j, C 50 j, 16 j en stock. Tarif plein (CO₂ 173 + polluants 100) = 273 €. A paie 149,18 €, B 74,59 €, C 37,30 € ; bailleur 0 €.',
     },
     'R-2024-021': {
         tab: 'calcul',
@@ -256,8 +267,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         body: "Règle clé du modèle de l'application : si une entreprise répartit ses besoins sur plusieurs véhicules différents (chaque couple ≤ 30 j), elle peut atteindre une exonération totale. Dès que le cumul annuel d'un couple (véhicule × entreprise) dépasse 30 jours, l'exonération tombe intégralement (et pas seulement au-delà de 30 j) : la taxe est due au prorata du cumul complet.",
         appliesWhen:
             'Pour chaque couple (véhicule, entreprise utilisatrice) : cumul annuel des jours d’utilisation ≤ 30.',
-        effect:
-            'Si cumul ≤ 30 j : taxe CO₂ = 0 € ET taxe polluants = 0 € pour ce couple. Si cumul > 30 j : les deux taxes sont dues au prorata (cumul / 366) du tarif annuel plein.',
+        effect: 'Si cumul ≤ 30 j : taxe CO₂ = 0 € ET taxe polluants = 0 € pour ce couple. Si cumul > 30 j : les deux taxes sont dues au prorata (cumul / 366) du tarif annuel plein.',
         example:
             'Entreprise A utilise le véhicule X 10 j en mars + 15 j en septembre = 25 j → 0,00 €. Si elle cumule 35 j : 173 × 35/366 + 100 × 35/366 ≈ 26,11 €. À l’inverse, 10 véhicules différents × 10 j chacun = 100 j d’usage total, 0 € de taxe.',
     },
@@ -378,33 +388,42 @@ export const cadreSectionsOrder: RuleSection[] = [
 /**
  * Titres des sections pour l'affichage.
  */
-export const sectionTitles: Record<RuleSection, { title: string; subtitle: string }> = {
+export const sectionTitles: Record<
+    RuleSection,
+    { title: string; subtitle: string }
+> = {
     aiguillage: {
         title: "Comment l'application choisit le bon barème pour chaque véhicule",
-        subtitle: 'Trois étapes d’aiguillage : taxable ou non, quel barème CO₂, quelle catégorie polluants.',
+        subtitle:
+            'Trois étapes d’aiguillage : taxable ou non, quel barème CO₂, quelle catégorie polluants.',
     },
     bareme: {
         title: 'Barèmes et tarifs applicables',
-        subtitle: 'Chiffres bruts utilisés pour calculer le tarif annuel plein de chaque taxe.',
+        subtitle:
+            'Chiffres bruts utilisés pour calculer le tarif annuel plein de chaque taxe.',
     },
     exoneration: {
         title: "Exonérations applicables dans l'application",
-        subtitle: 'Règles qui annulent ou réduisent le montant dû pour une attribution donnée.',
+        subtitle:
+            'Règles qui annulent ou réduisent le montant dû pour une attribution donnée.',
     },
     'exoneration-inactive': {
         title: "Exonérations prévues par la loi mais non applicables dans l'application",
-        subtitle: 'Modélisées en base pour évolution future, inactives par défaut en 2024.',
+        subtitle:
+            'Modélisées en base pour évolution future, inactives par défaut en 2024.',
     },
     'cadre-implicite': {
         title: 'Règles implicites du calcul',
-        subtitle: "Évidences du mécanisme fiscal — énoncées ici pour mémoire.",
+        subtitle: 'Évidences du mécanisme fiscal — énoncées ici pour mémoire.',
     },
     'cadre-evenement': {
         title: 'Règles de gestion des évènements véhicule',
-        subtitle: "Comment l'application traite les indisponibilités, sorties de flotte et données manquantes.",
+        subtitle:
+            "Comment l'application traite les indisponibilités, sorties de flotte et données manquantes.",
     },
     'cadre-interne': {
         title: "Règles de fonctionnement interne de l'application",
-        subtitle: "Mécanismes de validation et d'audit transparents pour l'utilisateur.",
+        subtitle:
+            "Mécanismes de validation et d'audit transparents pour l'utilisateur.",
     },
 };

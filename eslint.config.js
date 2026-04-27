@@ -39,7 +39,7 @@ export default defineConfigWithVueTs(
         },
         rules: {
             'vue/multi-word-component-names': 'off',
-            '@typescript-eslint/no-explicit-any': 'off',
+            '@typescript-eslint/no-explicit-any': 'error',
             '@typescript-eslint/consistent-type-imports': [
                 'error',
                 {
@@ -83,11 +83,25 @@ export default defineConfigWithVueTs(
             'bootstrap/ssr',
             'tailwind.config.js',
             'vite.config.ts',
+            'vitest.config.ts',
             'resources/js/actions/**',
             'resources/js/components/ui/*',
             'resources/js/routes/**',
             'resources/js/wayfinder/**',
+            'resources/js/types/generated/**',
         ],
+    },
+    {
+        // Les partials de formulaire reçoivent l'objet `form` Inertia
+        // en prop et le mutent via `v-model="form.X"` — c'est l'usage
+        // idiomatique d'InertiaForm (la mutation est intentionnelle et
+        // gérée par le wrapper Spatie Data côté backend).
+        files: [
+            'resources/js/pages/**/partials/*Section.vue',
+        ],
+        rules: {
+            'vue/no-mutating-props': 'off',
+        },
     },
     prettier, // Turn off all rules that might conflict with Prettier
     {

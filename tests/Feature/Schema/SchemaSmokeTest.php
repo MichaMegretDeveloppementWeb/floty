@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Tests\Feature\Schema;
 
 use App\Enums\Company\CompanyColor;

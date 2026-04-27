@@ -32,13 +32,17 @@ const toneClasses = computed<string>(() => {
             return 'bg-rose-50 text-rose-700';
         default: {
             const _exhaustive: never = props.tone;
+
             throw new Error(`Tonalité non gérée : ${_exhaustive as string}`);
         }
     }
 });
 
 const tag = computed<'a' | 'button' | 'div'>(() => {
-    if (props.href) return 'a';
+    if (props.href) {
+return 'a';
+}
+
     return 'button';
 });
 

@@ -1,12 +1,4 @@
 <script setup lang="ts">
-import AlertRow from '@/Components/Ui/AlertRow/AlertRow.vue';
-import Badge from '@/Components/Ui/Badge/Badge.vue';
-import Button from '@/Components/Ui/Button/Button.vue';
-import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
-import KpiCard from '@/Components/Ui/KpiCard/KpiCard.vue';
-import Plate from '@/Components/Ui/Plate/Plate.vue';
-import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import type { DataTableColumn } from '@/types/ui';
 import { Head } from '@inertiajs/vue3';
 import {
     AlertTriangle,
@@ -15,6 +7,14 @@ import {
     Plus,
     TrendingUp,
 } from 'lucide-vue-next';
+import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import AlertRow from '@/Components/Ui/AlertRow/AlertRow.vue';
+import Badge from '@/Components/Ui/Badge/Badge.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
+import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
+import KpiCard from '@/Components/Ui/KpiCard/KpiCard.vue';
+import Plate from '@/Components/Ui/Plate/Plate.vue';
+import type { DataTableColumn } from '@/types/ui';
 
 type VehicleRow = {
     id: number;
@@ -83,9 +83,9 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                         Aperçu flotte {{ year }}
                     </h1>
                     <p class="mt-1 text-base text-slate-600">
-                        Démo du layout authentifié Floty — sidebar fixe,
-                        topbar collante avec recherche, sélecteur d'année et
-                        menu utilisateur.
+                        Démo du layout authentifié Floty — sidebar fixe, topbar
+                        collante avec recherche, sélecteur d'année et menu
+                        utilisateur.
                     </p>
                 </header>
 
@@ -120,17 +120,13 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                     />
                 </div>
 
-                <section
-                    class="rounded-xl border border-slate-200 bg-white"
-                >
+                <section class="rounded-xl border border-slate-200 bg-white">
                     <header
                         class="flex items-center justify-between border-b border-slate-200 px-6 py-4"
                     >
                         <div>
                             <p class="eyebrow mb-1">Section</p>
-                            <h2
-                                class="text-xl font-semibold text-slate-900"
-                            >
+                            <h2 class="text-xl font-semibold text-slate-900">
                                 Flotte récente
                             </h2>
                         </div>
@@ -150,9 +146,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                             <Plate :value="String(value)" />
                         </template>
                         <template #cell-type="{ value }">
-                            <Badge
-                                :tone="value === 'VU' ? 'amber' : 'slate'"
-                            >
+                            <Badge :tone="value === 'VU' ? 'amber' : 'slate'">
                                 {{ value }}
                             </Badge>
                         </template>
@@ -160,9 +154,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                             {{ value }} g/km
                         </template>
                         <template #cell-occupancy="{ value }">
-                            <div
-                                class="flex items-center justify-end gap-2"
-                            >
+                            <div class="flex items-center justify-end gap-2">
                                 <div
                                     class="h-[5px] w-[72px] overflow-hidden rounded-full bg-slate-100"
                                 >
@@ -206,10 +198,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                             description="7/7 jours sur ses 2 véhicules habituels"
                         >
                             <template #icon>
-                                <TrendingUp
-                                    :size="15"
-                                    :stroke-width="1.75"
-                                />
+                                <TrendingUp :size="15" :stroke-width="1.75" />
                             </template>
                         </AlertRow>
                         <AlertRow
@@ -217,10 +206,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                             title="Déclarations 2025 — 4 en attente"
                         >
                             <template #icon>
-                                <FileClock
-                                    :size="15"
-                                    :stroke-width="1.75"
-                                />
+                                <FileClock :size="15" :stroke-width="1.75" />
                             </template>
                         </AlertRow>
                         <AlertRow
@@ -228,10 +214,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                             title="Tesla Model 3 — exonération confirmée"
                         >
                             <template #icon>
-                                <CheckCircle2
-                                    :size="15"
-                                    :stroke-width="1.75"
-                                />
+                                <CheckCircle2 :size="15" :stroke-width="1.75" />
                             </template>
                         </AlertRow>
                     </div>

@@ -1,14 +1,17 @@
 <script setup lang="ts">
+import { Head, Link } from '@inertiajs/vue3';
+import { Car, Plus } from 'lucide-vue-next';
+import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import { create as vehiclesCreateRoute } from '@/routes/user/vehicles';
 import type { DataTableColumn } from '@/types/ui';
-import { Head, Link } from '@inertiajs/vue3';
-import { Car, Plus } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { formatEur } from '@/Utils/format/formatEur';
 
 type VehicleRow = App.Data.User.Vehicle.VehicleListItemData;
 
@@ -42,19 +45,6 @@ const statusDotClass: Record<string, string> = {
     other: 'bg-slate-400',
 };
 
-const formatEur = (value: number): string =>
-    new Intl.NumberFormat('fr-FR', {
-        style: 'currency',
-        currency: 'EUR',
-        maximumFractionDigits: 0,
-    })
-        .format(value)
-        .replace(/ | /g, ' ');
-
-const formatDateFr = (iso: string): string => {
-    const [y, m, d] = iso.split('-');
-    return `${d}/${m}/${y}`;
-};
 </script>
 
 <template>
@@ -71,10 +61,11 @@ const formatDateFr = (iso: string): string => {
                         Flotte
                     </h1>
                     <p class="mt-1 text-base text-slate-600">
-                        Véhicules enregistrés et taxes annuelles {{ fiscalYear }}.
+                        Véhicules enregistrés et taxes annuelles
+                        {{ fiscalYear }}.
                     </p>
                 </div>
-                <Link href="/app/vehicles/create">
+                <Link :href="vehiclesCreateRoute.url()">
                     <Button>
                         <template #icon-left>
                             <Plus :size="14" :stroke-width="1.75" />
@@ -93,7 +84,7 @@ const formatDateFr = (iso: string): string => {
                     <Car :size="20" :stroke-width="1.75" />
                 </template>
                 <template #actions>
-                    <Link href="/app/vehicles/create">
+                    <Link :href="vehiclesCreateRoute.url()">
                         <Button>
                             <template #icon-left>
                                 <Plus :size="14" :stroke-width="1.75" />
@@ -115,9 +106,13 @@ const formatDateFr = (iso: string): string => {
                         <span
                             :class="[
                                 'inline-block h-2 w-2 shrink-0 rounded-full',
-                                statusDotClass[row.currentStatus] ?? 'bg-slate-400',
+                                statusDotClass[row.currentStatus] ??
+                                    'bg-slate-400',
                             ]"
-                            :title="statusLabel[row.currentStatus] ?? row.currentStatus"
+                            :title="
+                                statusLabel[row.currentStatus] ??
+                                row.currentStatus
+                            "
                             aria-hidden="true"
                         />
                         <Plate :value="row.licensePlate" />

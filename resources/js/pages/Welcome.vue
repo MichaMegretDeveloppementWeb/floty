@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import FlotyMark from '@/Components/Brand/FlotyMark.vue';
-import Button from '@/Components/Ui/Button/Button.vue';
 import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import FlotyMark from '@/Components/Brand/FlotyMark.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
+import { dashboard as dashboardRoute } from '@/routes/user';
 
 const page = usePage();
 const isAuthenticated = computed(() => page.props.auth?.user !== null);
@@ -29,12 +30,11 @@ const isAuthenticated = computed(() => page.props.auth?.user !== null);
             <p class="text-base leading-relaxed text-slate-600">
                 Application de gestion d'une flotte de véhicules mutualisée
                 entre plusieurs entreprises utilisatrices, avec calcul
-                automatique des taxes CO₂ et polluants au prorata
-                d'utilisation.
+                automatique des taxes CO₂ et polluants au prorata d'utilisation.
             </p>
 
             <div class="flex flex-col gap-2">
-                <Link v-if="isAuthenticated" href="/app/dashboard">
+                <Link v-if="isAuthenticated" :href="dashboardRoute.url()">
                     <Button>Accéder au tableau de bord</Button>
                 </Link>
                 <Link v-else href="/login">

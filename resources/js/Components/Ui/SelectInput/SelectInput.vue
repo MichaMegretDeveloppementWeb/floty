@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
-import InputError from '@/Components/Ui/InputError/InputError.vue';
 import { ChevronDown } from 'lucide-vue-next';
 import { computed, useId } from 'vue';
+import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
+import InputError from '@/Components/Ui/InputError/InputError.vue';
 
 type SelectOption = {
     value: string | number;
@@ -35,8 +35,15 @@ const hintId = computed<string>(() => `${inputId.value}-hint`);
 
 const describedBy = computed<string | undefined>(() => {
     const ids: string[] = [];
-    if (props.hint) ids.push(hintId.value);
-    if (props.error) ids.push(errorId.value);
+
+    if (props.hint) {
+ids.push(hintId.value);
+}
+
+    if (props.error) {
+ids.push(errorId.value);
+}
+
     return ids.length ? ids.join(' ') : undefined;
 });
 
@@ -44,9 +51,11 @@ const selectStateClasses = computed<string>(() => {
     if (props.error) {
         return 'border-rose-600 text-rose-700 focus-visible:shadow-[0_0_0_3px_var(--color-rose-50)]';
     }
+
     if (props.disabled) {
         return 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed';
     }
+
     return 'border-slate-200 text-slate-900 focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]';
 });
 </script>

@@ -1,1 +1,0 @@
-import{i as e,p as t}from"./app-xpbZj0Pj.js";function n(e){return e%4==0&&e%100!=0||e%400==0?366:365}function r(){let r=e(),i=t(()=>r.props.fiscal.currentYear),a=t(()=>r.props.fiscal.availableYears);return{currentYear:i,availableYears:a,isLocked:t(()=>a.value.length<=1),daysInYear:t(()=>n(i.value))}}export{n,r as t};

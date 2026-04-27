@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
-import { computed } from 'vue';
 
 type ConfirmTone = 'default' | 'danger';
 

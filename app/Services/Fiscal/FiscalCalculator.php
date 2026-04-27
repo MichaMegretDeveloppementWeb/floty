@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Fiscal;
 
+use App\DTO\Fiscal\FiscalBreakdown;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
-use App\Services\Fiscal\Dto\FiscalBreakdown;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use InvalidArgumentException;
 

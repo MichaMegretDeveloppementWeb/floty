@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import FlotyMark from '@/Components/Brand/FlotyMark.vue';
 import { usePage } from '@inertiajs/vue3';
 import {
     Building2,
@@ -8,9 +7,16 @@ import {
     Car,
     LayoutDashboard,
     Receipt,
-    type LucideIcon,
 } from 'lucide-vue-next';
+import type { LucideIcon } from 'lucide-vue-next';
 import { computed } from 'vue';
+import FlotyMark from '@/Components/Brand/FlotyMark.vue';
+import { dashboard as dashboardRoute } from '@/routes/user';
+import { index as assignmentsIndexRoute } from '@/routes/user/assignments';
+import { index as companiesIndexRoute } from '@/routes/user/companies';
+import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
+import { index as planningIndexRoute } from '@/routes/user/planning';
+import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 
 type NavItem = {
     label: string;
@@ -36,7 +42,7 @@ const sections: NavSection[] = [
             {
                 label: 'Dashboard',
                 icon: LayoutDashboard,
-                href: '/app/dashboard',
+                href: dashboardRoute.url(),
             },
         ],
     },
@@ -44,25 +50,25 @@ const sections: NavSection[] = [
         title: 'Planning',
         items: [
             {
-                label: 'Vue d\'ensemble',
+                label: "Vue d'ensemble",
                 icon: CalendarDays,
-                href: '/app/planning',
+                href: planningIndexRoute.url(),
             },
             {
                 label: 'Attributions',
                 icon: CalendarCheck,
-                href: '/app/assignments',
+                href: assignmentsIndexRoute.url(),
             },
         ],
     },
     {
         title: 'Données',
         items: [
-            { label: 'Flotte', icon: Car, href: '/app/vehicles' },
+            { label: 'Flotte', icon: Car, href: vehiclesIndexRoute.url() },
             {
                 label: 'Entreprises',
                 icon: Building2,
-                href: '/app/companies',
+                href: companiesIndexRoute.url(),
             },
         ],
     },
@@ -72,7 +78,7 @@ const sections: NavSection[] = [
             {
                 label: 'Règles de calcul',
                 icon: Receipt,
-                href: '/app/fiscal-rules',
+                href: fiscalRulesIndexRoute.url(),
             },
         ],
     },
@@ -81,6 +87,7 @@ const sections: NavSection[] = [
 const page = usePage();
 const currentPath = computed((): string => {
     const url = page.url;
+
     return typeof url === 'string' ? url : '';
 });
 
@@ -104,11 +111,11 @@ const labelClass =
 
     <aside
         :class="[
-            'group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-y-auto overflow-x-hidden border-r border-slate-200 bg-white',
+            'group/sidebar fixed inset-y-0 left-0 z-30 flex flex-col overflow-x-hidden overflow-y-auto border-r border-slate-200 bg-white',
             'transition-[transform,width] duration-200 ease-out',
             'w-60',
             open ? 'translate-x-0' : '-translate-x-full',
-            'md:translate-x-0 md:w-16 md:hover:w-60',
+            'md:w-16 md:translate-x-0 md:hover:w-60',
             'wide:w-60',
         ]"
     >
@@ -117,19 +124,13 @@ const labelClass =
         >
             <FlotyMark :size="32" class="shrink-0" />
             <div :class="['flex flex-col leading-tight', labelClass]">
-                <p class="text-base font-semibold text-slate-900">
-                    Floty
-                </p>
+                <p class="text-base font-semibold text-slate-900">Floty</p>
                 <p class="text-xs text-slate-500">Flotte partagée</p>
             </div>
         </div>
 
         <nav class="flex-1 overflow-y-auto py-4">
-            <div
-                v-for="section in sections"
-                :key="section.title"
-                class="mb-5"
-            >
+            <div v-for="section in sections" :key="section.title" class="mb-5">
                 <p
                     class="eyebrow mb-1.5 overflow-hidden px-6 whitespace-nowrap text-slate-400 opacity-100 transition-opacity duration-200 ease-out md:opacity-0 md:group-hover/sidebar:opacity-100 wide:opacity-100"
                 >
@@ -139,7 +140,9 @@ const labelClass =
                     <li v-for="item in section.items" :key="item.label">
                         <a
                             :href="item.href"
-                            :aria-current="isActive(item.href) ? 'page' : undefined"
+                            :aria-current="
+                                isActive(item.href) ? 'page' : undefined
+                            "
                             :class="[
                                 'relative flex items-center gap-3 px-6 py-2 text-base transition-colors duration-[120ms] ease-out',
                                 isActive(item.href)
@@ -177,9 +180,7 @@ const labelClass =
                 RM
             </div>
             <div :class="['flex flex-col leading-tight', labelClass]">
-                <p class="text-base font-medium text-slate-900">
-                    R. Martin
-                </p>
+                <p class="text-base font-medium text-slate-900">R. Martin</p>
                 <p class="text-xs text-slate-500">Gestionnaire flotte</p>
             </div>
         </div>

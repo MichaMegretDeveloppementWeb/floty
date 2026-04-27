@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { StatusTone } from '@/types/ui';
 import { computed } from 'vue';
+import type { StatusTone } from '@/types/ui';
 
 const props = withDefaults(
     defineProps<{
@@ -25,6 +25,7 @@ const toneClasses = computed<string>(() => {
             return 'bg-rose-50 text-rose-700 border-rose-200';
         default: {
             const _exhaustive: never = props.tone;
+
             throw new Error(`Tone non géré : ${_exhaustive as string}`);
         }
     }

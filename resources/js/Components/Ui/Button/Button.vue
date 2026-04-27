@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ButtonSize, ButtonVariant } from '@/types/ui';
 import { computed } from 'vue';
+import type { ButtonSize, ButtonVariant } from '@/types/ui';
 
 const props = withDefaults(
     defineProps<{
@@ -32,6 +32,7 @@ const variantClasses = computed<string>(() => {
         if (props.variant === 'ghost') {
             return 'bg-transparent text-slate-300 border-transparent cursor-not-allowed';
         }
+
         return 'bg-slate-100 text-slate-400 border-transparent cursor-not-allowed';
     }
 
@@ -48,6 +49,7 @@ const variantClasses = computed<string>(() => {
             return 'bg-rose-600 text-white border-transparent hover:bg-rose-700';
         default: {
             const _exhaustive: never = props.variant;
+
             throw new Error(`Variant non géré : ${_exhaustive as string}`);
         }
     }
@@ -63,13 +65,17 @@ const sizeClasses = computed<string>(() => {
             return 'h-[30px] w-[30px] p-0 justify-center';
         default: {
             const _exhaustive: never = props.size;
+
             throw new Error(`Size non géré : ${_exhaustive as string}`);
         }
     }
 });
 
 const handleClick = (event: MouseEvent): void => {
-    if (isInert.value) return;
+    if (isInert.value) {
+return;
+}
+
     emit('click', event);
 };
 </script>

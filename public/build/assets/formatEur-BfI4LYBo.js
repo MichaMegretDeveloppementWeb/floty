@@ -1,0 +1,1 @@
+function e(e,t=0){return new Intl.NumberFormat(`fr-FR`,{style:`currency`,currency:`EUR`,minimumFractionDigits:t,maximumFractionDigits:t}).format(e).replace(/[  ]/g,` `)}export{e as t};
