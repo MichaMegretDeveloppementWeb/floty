@@ -20,8 +20,25 @@ final class AssignmentReadRepository implements AssignmentReadRepositoryInterfac
 {
     public function loadAnnualCumul(int $year): AnnualCumulByPair
     {
+        // R-2024-008 : les jours d'indisponibilité fiscale (fourrière)
+        // sont **déduits** du numérateur du prorata. Un NOT EXISTS
+        // filtre les `assignments` dont la date tombe dans une période
+        // d'indisponibilité fiscale du même véhicule.
         $rows = Assignment::query()
             ->whereYear('date', $year)
+            ->whereNotExists(function ($query): void {
+                $query
+                    ->from('unavailabilities')
+                    ->whereColumn('unavailabilities.vehicle_id', 'assignments.vehicle_id')
+                    ->where('unavailabilities.has_fiscal_impact', true)
+                    ->whereNull('unavailabilities.deleted_at')
+                    ->whereColumn('assignments.date', '>=', 'unavailabilities.start_date')
+                    ->where(function ($subquery): void {
+                        $subquery
+                            ->whereColumn('assignments.date', '<=', 'unavailabilities.end_date')
+                            ->orWhereNull('unavailabilities.end_date');
+                    });
+            })
             ->select('vehicle_id', 'company_id', DB::raw('COUNT(*) as days'))
             ->groupBy('vehicle_id', 'company_id')
             ->get();

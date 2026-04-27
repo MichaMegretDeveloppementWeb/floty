@@ -50,7 +50,6 @@ final readonly class R2024_005_Co2MethodSelection implements ClassificationRule
 
         return $context
             ->withResolvedCo2Method($method)
-            ->withResolvedPollutantCategory($fiscal->pollutant_category)
             ->withAppliedRule($this->ruleCode());
     }
 

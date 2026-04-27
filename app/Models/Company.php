@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Company\CompanyColor;
+use App\Enums\Company\ExemptedActivity;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -32,6 +33,9 @@ use Illuminate\Support\Carbon;
  * @property string $short_code
  * @property CompanyColor $color
  * @property bool $is_active
+ * @property bool $is_oig
+ * @property bool $is_individual_business
+ * @property ExemptedActivity $exempted_activity
  * @property Carbon|null $deactivated_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -52,6 +56,9 @@ use Illuminate\Support\Carbon;
     'short_code',
     'color',
     'is_active',
+    'is_oig',
+    'is_individual_business',
+    'exempted_activity',
     'deactivated_at',
 ])]
 final class Company extends Model
@@ -66,6 +73,9 @@ final class Company extends Model
         return [
             'color' => CompanyColor::class,
             'is_active' => 'boolean',
+            'is_oig' => 'boolean',
+            'is_individual_business' => 'boolean',
+            'exempted_activity' => ExemptedActivity::class,
             'deactivated_at' => 'datetime',
         ];
     }

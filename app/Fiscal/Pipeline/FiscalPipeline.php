@@ -58,6 +58,13 @@ final class FiscalPipeline
             $context = $rule->classify($context);
         }
 
+        // Court-circuit R-2024-004 : véhicule hors champ → toutes les
+        // taxes à 0, on saute exonérations / abatements / pricing /
+        // transversal.
+        if ($context->isFiscallyTaxable === false) {
+            return $this->buildResult($context);
+        }
+
         // Étape 4 — Exonérations (collecte des verdicts)
         foreach ($this->filterByType($rules, ExemptionRule::class) as $rule) {
             $verdict = $rule->evaluate($context);
@@ -199,11 +206,20 @@ final class FiscalPipeline
             }
         }
 
-        $totalDue = round(
-            ($context->co2Due ?? 0.0) + ($context->pollutantsDue ?? 0.0),
-            2,
-            PHP_ROUND_HALF_UP,
-        );
+        // Valeurs RAW : ce que R-2024-002 (DailyProrata) a posé sur le
+        // contexte, **avant** arrondi par couple. Servent à
+        // l'agrégation par redevable dans `FleetFiscalAggregator`
+        // (R-2024-003 sémantique BOFiP : un seul arrondi par
+        // entreprise).
+        $co2DueRaw = $context->co2Due ?? 0.0;
+        $pollutantsDueRaw = $context->pollutantsDue ?? 0.0;
+
+        // Valeurs ARRONDIES : pour l'affichage par ligne du PDF /
+        // drawer planning. Sémantique 1.8 préservée pour les
+        // consommateurs existants (`FiscalCalculator::calculate()`).
+        $co2Due = round($co2DueRaw, 2, PHP_ROUND_HALF_UP);
+        $pollutantsDue = round($pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+        $totalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);
 
         return new PipelineResult(
             daysAssigned: $context->daysAssignedToCompany,
@@ -214,10 +230,12 @@ final class FiscalPipeline
             handicapExempt: $handicapExempt,
             co2Method: $context->resolvedCo2Method ?? HomologationMethod::Pa,
             co2FullYearTariff: $context->co2FullYearTariff ?? 0.0,
-            co2Due: $context->co2Due ?? 0.0,
+            co2Due: $co2Due,
+            co2DueRaw: $co2DueRaw,
             pollutantCategory: $context->resolvedPollutantCategory ?? PollutantCategory::MostPolluting,
             pollutantsFullYearTariff: $context->pollutantsFullYearTariff ?? 0.0,
-            pollutantsDue: $context->pollutantsDue ?? 0.0,
+            pollutantsDue: $pollutantsDue,
+            pollutantsDueRaw: $pollutantsDueRaw,
             totalDue: $totalDue,
             exemptionReasons: $reasons,
             appliedRuleCodes: $context->appliedRuleCodes,

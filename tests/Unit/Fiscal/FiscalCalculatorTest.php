@@ -13,6 +13,7 @@ use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
+use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
@@ -285,6 +286,98 @@ final class FiscalCalculatorTest extends TestCase
     }
 
     #[Test]
+    public function vehicule_m1_corbillard_n_est_pas_taxable_r004(): void
+    {
+        $vehicle = $this->makeBaseVehicle();
+        VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::parse('2024-01-01'),
+            'effective_to' => null,
+            'reception_category' => ReceptionCategory::M1,
+            'vehicle_user_type' => VehicleUserType::PassengerCar,
+            'body_type' => BodyType::InteriorDriving,
+            'seats_count' => 5,
+            'energy_source' => EnergySource::Diesel,
+            'euro_standard' => EuroStandard::Euro6,
+            'pollutant_category' => PollutantCategory::MostPolluting,
+            'homologation_method' => HomologationMethod::Wltp,
+            'co2_wltp' => 200,
+            'taxable_horsepower' => 8,
+            'handicap_access' => false,
+            'm1_special_use' => true, // ← R-2024-004 : usage spécial → hors champ
+            'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
+        ]);
+        $vehicle = $vehicle->fresh();
+
+        $r = $this->calculator->calculate($vehicle, 200, 200, 2024);
+
+        // R-2024-004 court-circuite : tous les montants à zéro
+        $this->assertSame(0.0, $r->co2FullYearTariff);
+        $this->assertSame(0.0, $r->co2Due);
+        $this->assertSame(0.0, $r->pollutantsDue);
+        $this->assertSame(0.0, $r->totalDue);
+    }
+
+    #[Test]
+    public function diesel_euro6_est_categorise_most_polluting_r013(): void
+    {
+        // R-2024-013 : Diesel Euro 6 → Most polluting (la motorisation
+        // Diesel n'est pas allumage commandé, donc pas catégorie 1)
+        $vehicle = $this->makeVehicleWltp(
+            co2: 100,
+            energy: EnergySource::Diesel,
+            pollutant: PollutantCategory::Category1, // ← stocké à tort, doit être ignoré
+        );
+
+        $r = $this->calculator->calculate($vehicle, 366, 366, 2024);
+
+        // R-013 doit déterminer Most polluting depuis les enums, pas
+        // lire la valeur stockée à tort.
+        $this->assertSame(PollutantCategory::MostPolluting, $r->pollutantCategory);
+        $this->assertSame(500.0, $r->pollutantsFullYearTariff);
+    }
+
+    #[Test]
+    public function hybride_essence_recent_120g_est_exonere_co2_r017(): void
+    {
+        // Hybride essence + électrique, ancienneté < 3 ans au 01/01/2024,
+        // CO₂ WLTP 120 g/km → régime aménagé seuil 120 → exonéré CO₂
+        $vehicle = $this->makeBaseVehicle();
+        $vehicle->first_origin_registration_date = Carbon::parse('2022-06-01');
+        $vehicle->save();
+        VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::parse('2024-01-01'),
+            'effective_to' => null,
+            'reception_category' => ReceptionCategory::M1,
+            'vehicle_user_type' => VehicleUserType::PassengerCar,
+            'body_type' => BodyType::InteriorDriving,
+            'seats_count' => 5,
+            'energy_source' => EnergySource::PluginHybrid,
+            'underlying_combustion_engine_type' => UnderlyingCombustionEngineType::Gasoline,
+            'euro_standard' => EuroStandard::Euro6dIscFcm,
+            'pollutant_category' => PollutantCategory::Category1,
+            'homologation_method' => HomologationMethod::Wltp,
+            'co2_wltp' => 120,
+            'taxable_horsepower' => 7,
+            'handicap_access' => false,
+            'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
+        ]);
+        $vehicle = $vehicle->fresh();
+
+        $r = $this->calculator->calculate($vehicle, 366, 366, 2024);
+
+        $this->assertTrue($r->electricExempt); // mécanique scope=Co2Only
+        $this->assertSame(0.0, $r->co2FullYearTariff);
+        $this->assertSame(0.0, $r->co2Due);
+        // Polluants Category 1 toujours dus (R-017 = Co2Only)
+        $this->assertSame(100.0, $r->pollutantsFullYearTariff);
+        $this->assertSame(100.0, $r->pollutantsDue);
+        $this->assertCount(1, $r->exemptionReasons);
+        $this->assertStringContainsString('hybride', $r->exemptionReasons[0]);
+    }
+
+    #[Test]
     public function fiscal_breakdown_est_immuable_readonly(): void
     {
         $r = new FiscalBreakdown(
@@ -387,13 +480,16 @@ final class FiscalCalculatorTest extends TestCase
             'reception_category' => ReceptionCategory::N1,
             'vehicle_user_type' => VehicleUserType::CommercialVehicle,
             'body_type' => BodyType::LightTruck,
-            'seats_count' => 3,
+            'seats_count' => 5,
             'energy_source' => EnergySource::Diesel,
             'euro_standard' => EuroStandard::Euro6,
             'pollutant_category' => $pollutant,
             'homologation_method' => HomologationMethod::Pa,
             'taxable_horsepower' => $cv,
             'handicap_access' => false,
+            // R-2024-004 : N1 LightTruck taxable seulement si banquette
+            // amovible 2 rangs ET affectation transport personnes
+            'n1_removable_second_row_seat' => true,
             'n1_passenger_transport' => true,
             'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
         ]);

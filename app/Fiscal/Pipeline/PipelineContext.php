@@ -21,8 +21,6 @@ use App\Models\VehicleFiscalCharacteristics;
  * fil du pipeline. Un champ encore `null` à l'étape de tarification
  * indique soit qu'il n'y a pas eu de classification (cas dégénéré),
  * soit que la règle correspondante n'est pas encore exécutée.
- *
- * @phpstan-import-type FiscalRuleCode from \App\Fiscal\Pipeline\PipelineResult
  */
 final readonly class PipelineContext
 {
@@ -37,6 +35,7 @@ final readonly class PipelineContext
         public int $daysAssignedToCompany,
         public int $cumulativeDaysForPair,
         public ?VehicleFiscalCharacteristics $currentFiscalCharacteristics = null,
+        public ?bool $isFiscallyTaxable = null,
         public ?HomologationMethod $resolvedCo2Method = null,
         public ?PollutantCategory $resolvedPollutantCategory = null,
         public ?float $co2FullYearTariff = null,
@@ -49,161 +48,82 @@ final readonly class PipelineContext
 
     public function withCurrentFiscalCharacteristics(VehicleFiscalCharacteristics $vfc): self
     {
-        return new self(
-            vehicle: $this->vehicle,
-            fiscalYear: $this->fiscalYear,
-            daysInYear: $this->daysInYear,
-            daysAssignedToCompany: $this->daysAssignedToCompany,
-            cumulativeDaysForPair: $this->cumulativeDaysForPair,
-            currentFiscalCharacteristics: $vfc,
-            resolvedCo2Method: $this->resolvedCo2Method,
-            resolvedPollutantCategory: $this->resolvedPollutantCategory,
-            co2FullYearTariff: $this->co2FullYearTariff,
-            pollutantsFullYearTariff: $this->pollutantsFullYearTariff,
-            co2Due: $this->co2Due,
-            pollutantsDue: $this->pollutantsDue,
-            exemptionVerdicts: $this->exemptionVerdicts,
-            appliedRuleCodes: $this->appliedRuleCodes,
-        );
+        return $this->copyWith(['currentFiscalCharacteristics' => $vfc]);
+    }
+
+    public function withIsFiscallyTaxable(bool $taxable): self
+    {
+        return $this->copyWith(['isFiscallyTaxable' => $taxable]);
     }
 
     public function withResolvedCo2Method(HomologationMethod $method): self
     {
-        return new self(
-            vehicle: $this->vehicle,
-            fiscalYear: $this->fiscalYear,
-            daysInYear: $this->daysInYear,
-            daysAssignedToCompany: $this->daysAssignedToCompany,
-            cumulativeDaysForPair: $this->cumulativeDaysForPair,
-            currentFiscalCharacteristics: $this->currentFiscalCharacteristics,
-            resolvedCo2Method: $method,
-            resolvedPollutantCategory: $this->resolvedPollutantCategory,
-            co2FullYearTariff: $this->co2FullYearTariff,
-            pollutantsFullYearTariff: $this->pollutantsFullYearTariff,
-            co2Due: $this->co2Due,
-            pollutantsDue: $this->pollutantsDue,
-            exemptionVerdicts: $this->exemptionVerdicts,
-            appliedRuleCodes: $this->appliedRuleCodes,
-        );
+        return $this->copyWith(['resolvedCo2Method' => $method]);
     }
 
     public function withResolvedPollutantCategory(PollutantCategory $category): self
     {
-        return new self(
-            vehicle: $this->vehicle,
-            fiscalYear: $this->fiscalYear,
-            daysInYear: $this->daysInYear,
-            daysAssignedToCompany: $this->daysAssignedToCompany,
-            cumulativeDaysForPair: $this->cumulativeDaysForPair,
-            currentFiscalCharacteristics: $this->currentFiscalCharacteristics,
-            resolvedCo2Method: $this->resolvedCo2Method,
-            resolvedPollutantCategory: $category,
-            co2FullYearTariff: $this->co2FullYearTariff,
-            pollutantsFullYearTariff: $this->pollutantsFullYearTariff,
-            co2Due: $this->co2Due,
-            pollutantsDue: $this->pollutantsDue,
-            exemptionVerdicts: $this->exemptionVerdicts,
-            appliedRuleCodes: $this->appliedRuleCodes,
-        );
+        return $this->copyWith(['resolvedPollutantCategory' => $category]);
     }
 
     public function withCo2FullYearTariff(float $tariff): self
     {
-        return new self(
-            vehicle: $this->vehicle,
-            fiscalYear: $this->fiscalYear,
-            daysInYear: $this->daysInYear,
-            daysAssignedToCompany: $this->daysAssignedToCompany,
-            cumulativeDaysForPair: $this->cumulativeDaysForPair,
-            currentFiscalCharacteristics: $this->currentFiscalCharacteristics,
-            resolvedCo2Method: $this->resolvedCo2Method,
-            resolvedPollutantCategory: $this->resolvedPollutantCategory,
-            co2FullYearTariff: $tariff,
-            pollutantsFullYearTariff: $this->pollutantsFullYearTariff,
-            co2Due: $this->co2Due,
-            pollutantsDue: $this->pollutantsDue,
-            exemptionVerdicts: $this->exemptionVerdicts,
-            appliedRuleCodes: $this->appliedRuleCodes,
-        );
+        return $this->copyWith(['co2FullYearTariff' => $tariff]);
     }
 
     public function withPollutantsFullYearTariff(float $tariff): self
     {
-        return new self(
-            vehicle: $this->vehicle,
-            fiscalYear: $this->fiscalYear,
-            daysInYear: $this->daysInYear,
-            daysAssignedToCompany: $this->daysAssignedToCompany,
-            cumulativeDaysForPair: $this->cumulativeDaysForPair,
-            currentFiscalCharacteristics: $this->currentFiscalCharacteristics,
-            resolvedCo2Method: $this->resolvedCo2Method,
-            resolvedPollutantCategory: $this->resolvedPollutantCategory,
-            co2FullYearTariff: $this->co2FullYearTariff,
-            pollutantsFullYearTariff: $tariff,
-            co2Due: $this->co2Due,
-            pollutantsDue: $this->pollutantsDue,
-            exemptionVerdicts: $this->exemptionVerdicts,
-            appliedRuleCodes: $this->appliedRuleCodes,
-        );
+        return $this->copyWith(['pollutantsFullYearTariff' => $tariff]);
     }
 
     public function withDueAmounts(float $co2Due, float $pollutantsDue): self
     {
-        return new self(
-            vehicle: $this->vehicle,
-            fiscalYear: $this->fiscalYear,
-            daysInYear: $this->daysInYear,
-            daysAssignedToCompany: $this->daysAssignedToCompany,
-            cumulativeDaysForPair: $this->cumulativeDaysForPair,
-            currentFiscalCharacteristics: $this->currentFiscalCharacteristics,
-            resolvedCo2Method: $this->resolvedCo2Method,
-            resolvedPollutantCategory: $this->resolvedPollutantCategory,
-            co2FullYearTariff: $this->co2FullYearTariff,
-            pollutantsFullYearTariff: $this->pollutantsFullYearTariff,
-            co2Due: $co2Due,
-            pollutantsDue: $pollutantsDue,
-            exemptionVerdicts: $this->exemptionVerdicts,
-            appliedRuleCodes: $this->appliedRuleCodes,
-        );
+        return $this->copyWith(['co2Due' => $co2Due, 'pollutantsDue' => $pollutantsDue]);
     }
 
     public function withExemptionVerdict(ExemptionVerdict $verdict): self
     {
-        return new self(
-            vehicle: $this->vehicle,
-            fiscalYear: $this->fiscalYear,
-            daysInYear: $this->daysInYear,
-            daysAssignedToCompany: $this->daysAssignedToCompany,
-            cumulativeDaysForPair: $this->cumulativeDaysForPair,
-            currentFiscalCharacteristics: $this->currentFiscalCharacteristics,
-            resolvedCo2Method: $this->resolvedCo2Method,
-            resolvedPollutantCategory: $this->resolvedPollutantCategory,
-            co2FullYearTariff: $this->co2FullYearTariff,
-            pollutantsFullYearTariff: $this->pollutantsFullYearTariff,
-            co2Due: $this->co2Due,
-            pollutantsDue: $this->pollutantsDue,
-            exemptionVerdicts: [...$this->exemptionVerdicts, $verdict],
-            appliedRuleCodes: $this->appliedRuleCodes,
-        );
+        return $this->copyWith(['exemptionVerdicts' => [...$this->exemptionVerdicts, $verdict]]);
     }
 
     public function withAppliedRule(string $ruleCode): self
     {
+        return $this->copyWith(['appliedRuleCodes' => [...$this->appliedRuleCodes, $ruleCode]]);
+    }
+
+    /**
+     * Helper interne qui clone l'instance en remplaçant les champs
+     * fournis. Évite la répétition des 14+ champs à chaque méthode
+     * `with*()`. Un nouveau champ ajouté au constructeur ne nécessite
+     * aucune modification ici.
+     *
+     * Utilise `array_key_exists` (pas `??`) pour autoriser les valeurs
+     * falsy intentionnelles (`false`, `0`, `null`).
+     *
+     * @param  array<string, mixed>  $overrides
+     */
+    private function copyWith(array $overrides): self
+    {
+        $pick = fn (string $key, mixed $current): mixed => array_key_exists($key, $overrides)
+            ? $overrides[$key]
+            : $current;
+
         return new self(
-            vehicle: $this->vehicle,
-            fiscalYear: $this->fiscalYear,
-            daysInYear: $this->daysInYear,
-            daysAssignedToCompany: $this->daysAssignedToCompany,
-            cumulativeDaysForPair: $this->cumulativeDaysForPair,
-            currentFiscalCharacteristics: $this->currentFiscalCharacteristics,
-            resolvedCo2Method: $this->resolvedCo2Method,
-            resolvedPollutantCategory: $this->resolvedPollutantCategory,
-            co2FullYearTariff: $this->co2FullYearTariff,
-            pollutantsFullYearTariff: $this->pollutantsFullYearTariff,
-            co2Due: $this->co2Due,
-            pollutantsDue: $this->pollutantsDue,
-            exemptionVerdicts: $this->exemptionVerdicts,
-            appliedRuleCodes: [...$this->appliedRuleCodes, $ruleCode],
+            vehicle: $pick('vehicle', $this->vehicle),
+            fiscalYear: $pick('fiscalYear', $this->fiscalYear),
+            daysInYear: $pick('daysInYear', $this->daysInYear),
+            daysAssignedToCompany: $pick('daysAssignedToCompany', $this->daysAssignedToCompany),
+            cumulativeDaysForPair: $pick('cumulativeDaysForPair', $this->cumulativeDaysForPair),
+            currentFiscalCharacteristics: $pick('currentFiscalCharacteristics', $this->currentFiscalCharacteristics),
+            isFiscallyTaxable: $pick('isFiscallyTaxable', $this->isFiscallyTaxable),
+            resolvedCo2Method: $pick('resolvedCo2Method', $this->resolvedCo2Method),
+            resolvedPollutantCategory: $pick('resolvedPollutantCategory', $this->resolvedPollutantCategory),
+            co2FullYearTariff: $pick('co2FullYearTariff', $this->co2FullYearTariff),
+            pollutantsFullYearTariff: $pick('pollutantsFullYearTariff', $this->pollutantsFullYearTariff),
+            co2Due: $pick('co2Due', $this->co2Due),
+            pollutantsDue: $pick('pollutantsDue', $this->pollutantsDue),
+            exemptionVerdicts: $pick('exemptionVerdicts', $this->exemptionVerdicts),
+            appliedRuleCodes: $pick('appliedRuleCodes', $this->appliedRuleCodes),
         );
     }
 }

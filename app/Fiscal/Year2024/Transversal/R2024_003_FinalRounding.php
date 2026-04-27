@@ -7,16 +7,23 @@ namespace App\Fiscal\Year2024\Transversal;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
  * R-2024-003 — Arrondi half-up commercial (CIBS L. 131-1).
  *
- * V1 — sémantique préservée pour compat goldens : on arrondit chaque
- * montant intermédiaire (CO₂ et Polluants) à 2 décimales. La règle
- * stricte BOFiP est « un seul arrondi en fin de calcul par redevable »
- * (sur la somme totale par entreprise), à l'euro près. Le fix complet
- * sera traité en phase 1.9 quand l'agrégation par redevable sera
- * implémentée côté Action de déclaration (phase 11).
+ * **Sémantique BOFiP** : « le montant total à payer par chaque
+ * redevable est arrondi à l'euro le plus proche, sans arrondi
+ * intermédiaire ». L'arrondi par redevable s'opère donc dans
+ * {@see FleetFiscalAggregator::companyAnnualTax()},
+ * qui somme les `co2DueRaw` + `pollutantsDueRaw` de tous les véhicules
+ * d'une entreprise et arrondit **une seule fois**.
+ *
+ * Cette classe règle est conservée comme **marqueur** dans le pipeline
+ * (apparaît dans `appliedRuleCodes` du snapshot, page « Règles de
+ * calcul »). Elle ne modifie pas les montants — l'arrondi par couple
+ * (utile pour l'affichage par ligne du PDF / drawer planning) est
+ * appliqué par le pipeline lui-même dans `buildResult()`.
  */
 final readonly class R2024_003_FinalRounding implements TransversalRule
 {
@@ -35,16 +42,6 @@ final readonly class R2024_003_FinalRounding implements TransversalRule
 
     public function apply(PipelineContext $context): PipelineContext
     {
-        $co2 = $this->roundHalfUp($context->co2Due ?? 0.0);
-        $pollutants = $this->roundHalfUp($context->pollutantsDue ?? 0.0);
-
-        return $context
-            ->withDueAmounts($co2, $pollutants)
-            ->withAppliedRule($this->ruleCode());
-    }
-
-    private function roundHalfUp(float $value): float
-    {
-        return round($value, 2, PHP_ROUND_HALF_UP);
+        return $context->withAppliedRule($this->ruleCode());
     }
 }

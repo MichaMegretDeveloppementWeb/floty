@@ -100,7 +100,34 @@ Caractéristiques du pipeline :
 
 - **Ordre fixe** en V1 (pas de moteur de dépendances dynamique).
 - **Court-circuit sur exonération totale** pour éviter les calculs inutiles.
+- **Court-circuit sur véhicule non taxable** (R-2024-004) après l'étape 2 — saute exonérations / abatements / pricing / transversal.
 - **Trace complète** en sortie, pour audit et PDF.
+
+**Note importante — règles hors pipeline** : certaines règles du catalogue
+ne sont pas implémentées comme classes du pipeline car elles vivent
+ailleurs dans l'architecture :
+- **R-2024-001** (redevable / fait générateur) — règle architecturale,
+  documentée dans le code des controllers / actions
+- **R-2024-007** (historisation des caractéristiques) — gérée par
+  `VehicleFiscalCharacteristicsReadRepository::findCurrentForVehicle()`
+- **R-2024-008** (indisponibilités fourrière) — appliquée dans
+  `AssignmentReadRepository::loadAnnualCumul()` au niveau du décompte
+  des jours (NOT EXISTS sur `unavailabilities.has_fiscal_impact`)
+- **R-2024-009** (mise hors-service véhicule) — UX produit côté
+  formulaire véhicule (clôture automatique des attributions ouvertes
+  au-delà de la date de sortie)
+- **R-2024-020** (loueur) — architecture Floty par construction (le
+  bailleur n'est jamais redevable car il n'apparaît pas comme entreprise
+  utilisatrice dans le pipeline)
+- **R-2024-023** (abattements 2024) — placeholder vide ; aucun
+  abattement n'est applicable en 2024
+- **R-2024-024** (garde-fou Crit'Air) — composable de validation Vue
+  (`useCritAirCheck.ts`), alerte non bloquante au formulaire véhicule
+
+Ces règles **restent seedées** dans `fiscal_rules` (page « Règles de
+calcul ») mais leur `code_reference` pointe vers le code applicatif
+qui les porte (repository, controller, composable Vue, ou tout
+simplement vide pour les règles purement documentaires).
 
 La validation de cohérence du pipeline est effectuée au démarrage de l'application : pour chaque règle, toute caractéristique déclarée comme `vehicleCharacteristicsConsumed` doit être soit présente sur le schéma véhicule, soit produite par une règle s'exécutant avant dans le pipeline.
 

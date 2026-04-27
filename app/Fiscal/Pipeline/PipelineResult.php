@@ -6,6 +6,7 @@ namespace App\Fiscal\Pipeline;
 
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
  * Sortie structurée d'un calcul fiscal complet (cf. ADR-0006 § 2 étape 8).
@@ -24,6 +25,13 @@ use App\Enums\Vehicle\PollutantCategory;
 final readonly class PipelineResult
 {
     /**
+     * `co2Due`, `pollutantsDue`, `totalDue` sont **arrondis half-up à
+     * 2 décimales** pour l'affichage par couple (PDF ligne véhicule,
+     * drawer planning). Les `*Raw` portent la valeur **avant arrondi**
+     * — utilisés par le {@see FleetFiscalAggregator}
+     * pour appliquer R-2024-003 (un seul arrondi par redevable au
+     * niveau entreprise).
+     *
      * @param  list<string>  $exemptionReasons
      * @param  list<string>  $appliedRuleCodes
      */
@@ -37,9 +45,11 @@ final readonly class PipelineResult
         public HomologationMethod $co2Method,
         public float $co2FullYearTariff,
         public float $co2Due,
+        public float $co2DueRaw,
         public PollutantCategory $pollutantCategory,
         public float $pollutantsFullYearTariff,
         public float $pollutantsDue,
+        public float $pollutantsDueRaw,
         public float $totalDue,
         public array $exemptionReasons,
         public array $appliedRuleCodes,
