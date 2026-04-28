@@ -7,6 +7,7 @@ use App\Http\Controllers\User\Company\CompanyController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Planning\PlanningController;
+use App\Http\Controllers\User\Unavailability\UnavailabilityController;
 use App\Http\Controllers\User\Vehicle\VehicleController;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +42,19 @@ Route::middleware('auth')
         Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])
             ->whereNumber('vehicle')
             ->name('vehicles.show');
+
+        // Unavailabilities — CRUD opéré depuis la page Show véhicule
+        Route::post('/unavailabilities', [UnavailabilityController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('unavailabilities.store');
+        Route::patch('/unavailabilities/{unavailability}', [UnavailabilityController::class, 'update'])
+            ->whereNumber('unavailability')
+            ->middleware('throttle:60,1')
+            ->name('unavailabilities.update');
+        Route::delete('/unavailabilities/{unavailability}', [UnavailabilityController::class, 'destroy'])
+            ->whereNumber('unavailability')
+            ->middleware('throttle:60,1')
+            ->name('unavailabilities.destroy');
 
         // Assignments — « Attribution rapide » plein écran (sans POST dédié :
         // utilise l'endpoint /app/planning/assignments pour créer en masse)

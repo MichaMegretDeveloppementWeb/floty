@@ -49,7 +49,7 @@ const actualTaxCaption = computed<string>(() => {
             tone="slate"
             :value="formatEur(props.stats.fullYearTax)"
             :label="`Coût plein ${props.stats.fiscalYear}`"
-            :caption="`${formatEur(props.stats.dailyTaxRate)} / jour`"
+            :caption="`${formatEur(props.stats.dailyTaxRate, 2)} / jour`"
         >
             <template #icon>
                 <Coins :size="18" :stroke-width="1.75" />

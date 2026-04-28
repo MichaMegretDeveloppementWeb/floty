@@ -6,9 +6,12 @@ namespace App\Services\Fiscal;
 
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\DTO\Fiscal\AnnualCumulByPair;
+use App\Enums\Vehicle\HomologationMethod;
+use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Models\Vehicle;
+use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Support\Collection;
 
@@ -127,14 +130,65 @@ final readonly class FleetFiscalAggregator
         $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
         $pollutantsTariff = round($result->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
 
+        $vfc = $vehicle->fiscalCharacteristics->firstWhere(
+            static fn ($v): bool => $v->effective_to === null,
+        );
+
         return new VehicleFullYearTaxBreakdownData(
             co2Method: $result->co2Method,
             co2FullYearTariff: $co2Tariff,
+            co2Explanation: $this->buildCo2Explanation($vfc, $result->co2Method, $co2Tariff, $year),
             pollutantCategory: $result->pollutantCategory,
             pollutantsFullYearTariff: $pollutantsTariff,
+            pollutantsExplanation: $this->buildPollutantsExplanation($vfc, $result->pollutantCategory, $pollutantsTariff),
             exemptionReasons: $result->exemptionReasons,
             appliedRuleCodes: $result->appliedRuleCodes,
             total: round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP),
+        );
+    }
+
+    private function buildCo2Explanation(
+        ?VehicleFiscalCharacteristics $vfc,
+        HomologationMethod $method,
+        float $tariff,
+        int $year,
+    ): string {
+        if ($vfc === null) {
+            return 'Tarif annuel CO₂ calculé sans caractéristiques fiscales actives.';
+        }
+
+        $value = match ($method) {
+            HomologationMethod::Wltp => $vfc->co2_wltp !== null ? "{$vfc->co2_wltp} g/km (WLTP)" : 'WLTP',
+            HomologationMethod::Nedc => $vfc->co2_nedc !== null ? "{$vfc->co2_nedc} g/km (NEDC)" : 'NEDC',
+            HomologationMethod::Pa => $vfc->taxable_horsepower !== null ? "{$vfc->taxable_horsepower} CV (puissance administrative)" : 'PA',
+        };
+
+        return sprintf(
+            '%s × barème CO₂ %d → tarif annuel %s',
+            $value,
+            $year,
+            number_format($tariff, 2, ',', ' ').' €',
+        );
+    }
+
+    private function buildPollutantsExplanation(
+        ?VehicleFiscalCharacteristics $vfc,
+        PollutantCategory $category,
+        float $tariff,
+    ): string {
+        if ($vfc === null) {
+            return 'Tarif polluants calculé sans caractéristiques fiscales actives.';
+        }
+
+        $energy = $vfc->energy_source->label();
+        $euro = $vfc->euro_standard?->label() ?? 'sans norme Euro renseignée';
+
+        return sprintf(
+            '%s · %s → catégorie %s → tarif fixe annuel %s',
+            $energy,
+            $euro,
+            $category->value,
+            number_format($tariff, 2, ',', ' ').' €',
         );
     }
 

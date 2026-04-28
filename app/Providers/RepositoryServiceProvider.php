@@ -9,6 +9,8 @@ use App\Contracts\Repositories\User\Assignment\AssignmentWriteRepositoryInterfac
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
+use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
+use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
@@ -18,6 +20,8 @@ use App\Repositories\User\Assignment\AssignmentWriteRepository;
 use App\Repositories\User\Company\CompanyReadRepository;
 use App\Repositories\User\Company\CompanyWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
+use App\Repositories\User\Unavailability\UnavailabilityReadRepository;
+use App\Repositories\User\Unavailability\UnavailabilityWriteRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepository;
 use App\Repositories\User\Vehicle\VehicleReadRepository;
@@ -60,6 +64,10 @@ final class RepositoryServiceProvider extends ServiceProvider
 
         // FiscalRule
         FiscalRuleReadRepositoryInterface::class => FiscalRuleReadRepository::class,
+
+        // Unavailability
+        UnavailabilityReadRepositoryInterface::class => UnavailabilityReadRepository::class,
+        UnavailabilityWriteRepositoryInterface::class => UnavailabilityWriteRepository::class,
     ];
 
     /**

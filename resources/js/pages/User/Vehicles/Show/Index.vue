@@ -5,6 +5,7 @@ import CompanyFiscalBreakdownTable from './partials/CompanyFiscalBreakdownTable.
 import CurrentFiscalCharacteristicsCard from './partials/CurrentFiscalCharacteristicsCard.vue';
 import FiscalHistoryTimeline from './partials/FiscalHistoryTimeline.vue';
 import FullYearTaxBreakdownPanel from './partials/FullYearTaxBreakdownPanel.vue';
+import UnavailabilitiesCard from './partials/UnavailabilitiesCard.vue';
 import VehicleHeader from './partials/VehicleHeader.vue';
 import VehicleKpiCards from './partials/VehicleKpiCards.vue';
 import VehicleYearlyUsageTimeline from './partials/VehicleYearlyUsageTimeline.vue';
@@ -30,6 +31,10 @@ const props = defineProps<{
                     />
                     <VehicleYearlyUsageTimeline :stats="props.vehicle.usageStats" />
                     <CompanyFiscalBreakdownTable :stats="props.vehicle.usageStats" />
+                    <UnavailabilitiesCard
+                        :vehicle-id="props.vehicle.id"
+                        :unavailabilities="props.vehicle.unavailabilities"
+                    />
                     <FiscalHistoryTimeline
                         :history="props.vehicle.fiscalCharacteristicsHistory"
                     />

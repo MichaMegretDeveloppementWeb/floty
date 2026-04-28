@@ -104,11 +104,14 @@ final class VehicleControllerTest extends TestCase
                         ->has('fullYearTaxBreakdown', fn (AssertableInertia $b) => $b
                             ->has('co2Method')
                             ->has('co2FullYearTariff')
+                            ->has('co2Explanation')
                             ->has('pollutantCategory')
                             ->has('pollutantsFullYearTariff')
+                            ->has('pollutantsExplanation')
                             ->has('exemptionReasons')
                             ->has('appliedRuleCodes')
-                            ->has('total')))
+                            ->has('total'))
+                        ->has('unavailabilityWeeks'))
                     ->etc()),
             );
     }
@@ -162,7 +165,8 @@ final class VehicleControllerTest extends TestCase
                     ->where('companies.1.shortCode', 'ALPH')
                     ->where('companies.1.daysUsed', 5)
                     ->has('weeklyBreakdown')
-                    ->has('fullYearTaxBreakdown')),
+                    ->has('fullYearTaxBreakdown')
+                    ->has('unavailabilityWeeks')),
             );
     }
 

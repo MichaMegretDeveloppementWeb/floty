@@ -44,6 +44,9 @@ const breakdown = computed(() => props.stats.fullYearTaxBreakdown);
                 <p class="font-mono text-base font-semibold text-slate-900">
                     {{ formatEur(breakdown.co2FullYearTariff) }}
                 </p>
+                <p class="text-xs leading-relaxed text-slate-500">
+                    {{ breakdown.co2Explanation }}
+                </p>
             </section>
 
             <!-- Section Polluants -->
@@ -60,6 +63,9 @@ const breakdown = computed(() => props.stats.fullYearTaxBreakdown);
                 </div>
                 <p class="font-mono text-base font-semibold text-slate-900">
                     {{ formatEur(breakdown.pollutantsFullYearTariff) }}
+                </p>
+                <p class="text-xs leading-relaxed text-slate-500">
+                    {{ breakdown.pollutantsExplanation }}
                 </p>
             </section>
 

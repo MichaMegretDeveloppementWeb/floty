@@ -83,7 +83,7 @@ const handleRowClick = (row: VehicleRow): void => {
                     {{ formatEur(row.fullYearTax) }}
                 </span>
                 <span class="text-xs text-slate-400">
-                    {{ formatEur(row.dailyTaxRate) }} / jour
+                    {{ formatEur(row.dailyTaxRate, 2) }} / jour
                 </span>
             </div>
         </template>

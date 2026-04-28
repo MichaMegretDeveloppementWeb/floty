@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Vehicle;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
 use App\Data\User\Vehicle\VehicleData;
@@ -18,6 +19,7 @@ use App\Models\Vehicle;
 use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Shared\Fiscal\FiscalYearContext;
+use App\Services\Unavailability\UnavailabilityQueryService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Spatie\LaravelData\DataCollection;
@@ -37,6 +39,8 @@ final class VehicleQueryService
         private readonly AssignmentQueryService $assignments,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly FiscalYearContext $yearContext,
+        private readonly UnavailabilityQueryService $unavailabilities,
+        private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
     ) {}
 
     /**
@@ -86,7 +90,11 @@ final class VehicleQueryService
     {
         $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
 
-        return VehicleData::fromModel($vehicle, $this->buildUsageStats($vehicle, $year));
+        return VehicleData::fromModel(
+            $vehicle,
+            $this->buildUsageStats($vehicle, $year),
+            $this->unavailabilities->findForVehicle($vehicle->id),
+        );
     }
 
     /**
@@ -164,6 +172,7 @@ final class VehicleQueryService
             companies: $companies,
             weeklyBreakdown: $this->buildWeeklyBreakdown($weeklyMap, $companiesById, $year),
             fullYearTaxBreakdown: $fullYearBreakdown,
+            unavailabilityWeeks: $this->unavailabilityRepo->findOverlappingWeeksForVehicle($vehicle->id, $year),
         );
     }
 

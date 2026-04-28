@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Data\User\Vehicle;
 
 use App\Actions\Vehicle\CreateVehicleAction;
+use App\Data\User\Unavailability\UnavailabilityData;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Models\Vehicle;
@@ -27,6 +28,7 @@ final class VehicleData extends Data
 {
     /**
      * @param  list<VehicleFiscalCharacteristicsData>  $fiscalCharacteristicsHistory
+     * @param  list<UnavailabilityData>  $unavailabilities
      */
     public function __construct(
         public int $id,
@@ -49,6 +51,8 @@ final class VehicleData extends Data
         #[DataCollectionOf(VehicleFiscalCharacteristicsData::class)]
         public array $fiscalCharacteristicsHistory,
         public VehicleUsageStatsData $usageStats,
+        #[DataCollectionOf(UnavailabilityData::class)]
+        public array $unavailabilities,
     ) {}
 
     /**
@@ -60,8 +64,14 @@ final class VehicleData extends Data
      * (ORDER BY effective_from DESC). La version courante est extraite
      * depuis cet historique, sans requête supplémentaire.
      */
-    public static function fromModel(Vehicle $vehicle, VehicleUsageStatsData $usageStats): self
-    {
+    /**
+     * @param  list<UnavailabilityData>  $unavailabilities
+     */
+    public static function fromModel(
+        Vehicle $vehicle,
+        VehicleUsageStatsData $usageStats,
+        array $unavailabilities,
+    ): self {
         $history = $vehicle->fiscalCharacteristics
             ->map(static fn ($vfc): VehicleFiscalCharacteristicsData => VehicleFiscalCharacteristicsData::fromModel($vfc))
             ->values()
@@ -92,6 +102,7 @@ final class VehicleData extends Data
                 : null,
             fiscalCharacteristicsHistory: $history,
             usageStats: $usageStats,
+            unavailabilities: $unavailabilities,
         );
     }
 }

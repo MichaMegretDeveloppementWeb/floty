@@ -37,8 +37,10 @@ final class VehicleFullYearTaxBreakdownData extends Data
     public function __construct(
         public HomologationMethod $co2Method,
         public float $co2FullYearTariff,
+        public string $co2Explanation,
         public PollutantCategory $pollutantCategory,
         public float $pollutantsFullYearTariff,
+        public string $pollutantsExplanation,
         public array $exemptionReasons,
         public array $appliedRuleCodes,
         public float $total,

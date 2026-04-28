@@ -34,6 +34,12 @@ const totalVehicleDays = computed<number>(() =>
 const heightFor = (segment: Segment): string =>
     `${(segment.days / 7) * 100}%`;
 
+const unavailableSet = computed<Set<number>>(
+    () => new Set(props.stats.unavailabilityWeeks),
+);
+
+const isUnavailable = (week: number): boolean => unavailableSet.value.has(week);
+
 // Légende = liste des entreprises ayant utilisé le véhicule sur l'année,
 // triée par jours décroissants (réutilise le tri du breakdown global).
 const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
@@ -63,7 +69,7 @@ const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
                         <div
                             v-for="month in monthLabels"
                             :key="month.name"
-                            :style="{ width: `${month.weeks * 22}px` }"
+                            :style="{ width: `${month.weeks * 16}px` }"
                             class="text-xs font-medium text-slate-500"
                         >
                             {{ month.name }}
@@ -78,7 +84,7 @@ const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
                         >
                             <div
                                 :class="[
-                                    'flex h-10 w-[22px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
+                                    'relative flex h-10 w-[16px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
                                     week.totalDays === 0 ? 'bg-slate-100' : '',
                                 ]"
                             >
@@ -88,6 +94,20 @@ const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
                                     :class="companyColorBgClass(segment.color)"
                                     :style="{ height: heightFor(segment) }"
                                 />
+                                <!-- Overlay croix rouge si indispo sur la semaine -->
+                                <svg
+                                    v-if="isUnavailable(week.weekNumber)"
+                                    class="pointer-events-none absolute inset-0 h-full w-full text-rose-500/70"
+                                    viewBox="0 0 16 40"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    aria-hidden="true"
+                                >
+                                    <line x1="3" y1="8" x2="13" y2="32" />
+                                    <line x1="13" y1="8" x2="3" y2="32" />
+                                </svg>
                             </div>
 
                             <template #content>

@@ -127,7 +127,7 @@ const advancedFlags = computed<string[]>(() => {
 
         <div
             v-else
-            class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+            class="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4"
         >
             <div
                 v-for="stat in stats"

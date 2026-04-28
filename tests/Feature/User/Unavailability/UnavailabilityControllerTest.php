@@ -1,0 +1,133 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Tests\Feature\User\Unavailability;
+
+use App\Enums\Unavailability\UnavailabilityType;
+use App\Models\Unavailability;
+use App\Models\User;
+use App\Models\Vehicle;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
+use Tests\TestCase;
+
+final class UnavailabilityControllerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    #[Test]
+    public function store_cree_une_indisponibilite_avec_impact_fiscal_si_fourriere(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/unavailabilities', [
+                'vehicle_id' => $vehicle->id,
+                'type' => 'pound',
+                'start_date' => '2024-03-01',
+                'end_date' => '2024-03-15',
+                'description' => 'Mise en fourrière suite à infraction stationnement',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('unavailabilities', [
+            'vehicle_id' => $vehicle->id,
+            'type' => 'pound',
+            'has_fiscal_impact' => true,
+        ]);
+    }
+
+    #[Test]
+    public function store_ne_definit_pas_l_impact_fiscal_pour_les_autres_types(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/unavailabilities', [
+                'vehicle_id' => $vehicle->id,
+                'type' => 'maintenance',
+                'start_date' => '2024-04-01',
+                'end_date' => '2024-04-03',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('unavailabilities', [
+            'vehicle_id' => $vehicle->id,
+            'type' => 'maintenance',
+            'has_fiscal_impact' => false,
+        ]);
+    }
+
+    #[Test]
+    public function update_modifie_une_indisponibilite_existante(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $u = Unavailability::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'type' => UnavailabilityType::Maintenance,
+            'has_fiscal_impact' => false,
+            'start_date' => '2024-05-01',
+            'end_date' => '2024-05-10',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/unavailabilities/{$u->id}", [
+                'type' => 'maintenance',
+                'start_date' => '2024-05-01',
+                'end_date' => '2024-05-20',
+                'description' => 'Prolongée',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('unavailabilities', [
+            'id' => $u->id,
+            'end_date' => '2024-05-20',
+            'description' => 'Prolongée',
+        ]);
+    }
+
+    #[Test]
+    public function update_recalcule_l_impact_fiscal_si_type_change(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $u = Unavailability::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'type' => UnavailabilityType::Maintenance,
+            'has_fiscal_impact' => false,
+            'start_date' => '2024-06-01',
+            'end_date' => '2024-06-05',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/unavailabilities/{$u->id}", [
+                'type' => 'pound',
+                'start_date' => '2024-06-01',
+                'end_date' => '2024-06-05',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('unavailabilities', [
+            'id' => $u->id,
+            'type' => 'pound',
+            'has_fiscal_impact' => true,
+        ]);
+    }
+
+    #[Test]
+    public function destroy_soft_delete_une_indisponibilite(): void
+    {
+        $user = User::factory()->create();
+        $u = Unavailability::factory()->create();
+
+        $this->actingAs($user)
+            ->delete("/app/unavailabilities/{$u->id}")
+            ->assertRedirect();
+
+        $this->assertSoftDeleted('unavailabilities', ['id' => $u->id]);
+    }
+}
