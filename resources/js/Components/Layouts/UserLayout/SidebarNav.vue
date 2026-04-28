@@ -4,13 +4,13 @@ import {
     Building2,
     CalendarCheck,
     CalendarDays,
-    Car,
     LayoutDashboard,
     Receipt,
 } from 'lucide-vue-next';
-import type { LucideIcon } from 'lucide-vue-next';
+import type { Component } from 'vue';
 import { computed } from 'vue';
 import FlotyMark from '@/Components/Brand/FlotyMark.vue';
+import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { dashboard as dashboardRoute } from '@/routes/user';
 import { index as assignmentsIndexRoute } from '@/routes/user/assignments';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
@@ -20,7 +20,7 @@ import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 
 type NavItem = {
     label: string;
-    icon: LucideIcon;
+    icon: Component;
     href: string;
 };
 
@@ -64,7 +64,7 @@ const sections: NavSection[] = [
     {
         title: 'Données',
         items: [
-            { label: 'Flotte', icon: Car, href: vehiclesIndexRoute.url() },
+            { label: 'Flotte', icon: CarIcon, href: vehiclesIndexRoute.url() },
             {
                 label: 'Entreprises',
                 icon: Building2,

@@ -25,8 +25,8 @@ export const energySourceLabel: Record<App.Enums.Vehicle.EnergySource, string> =
 };
 
 export const receptionCategoryLabel: Record<App.Enums.Vehicle.ReceptionCategory, string> = {
-    M1: 'M1 — Voiture particulière',
-    N1: 'N1 — Camionnette',
+    M1: 'M1 - Voiture particulière',
+    N1: 'N1 - Camionnette',
 };
 
 export const vehicleUserTypeLabel: Record<App.Enums.Vehicle.VehicleUserType, string> = {

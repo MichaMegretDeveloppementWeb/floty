@@ -45,7 +45,7 @@ const secondaryInfo = computed<string[]>(() => {
 </script>
 
 <template>
-    <div class="flex flex-col gap-3">
+    <div class="flex flex-col gap-6">
         <Link
             :href="vehiclesIndexRoute.url()"
             class="inline-flex w-fit items-center gap-1 text-sm text-slate-500 hover:text-slate-700"
