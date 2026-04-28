@@ -1,0 +1,1 @@
+function e(e){let[t,n,r]=e.split(`-`);return`${r}/${n}/${t}`}export{e as t};

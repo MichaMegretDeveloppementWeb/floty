@@ -49,6 +49,13 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ->findOrFail($id);
     }
 
+    public function findByIdWithFiscalHistory(int $id): Vehicle
+    {
+        return Vehicle::query()
+            ->with(['fiscalCharacteristics' => fn ($q) => $q->orderByDesc('effective_from')])
+            ->findOrFail($id);
+    }
+
     public function findAllForHeatmap(): Collection
     {
         return Vehicle::query()

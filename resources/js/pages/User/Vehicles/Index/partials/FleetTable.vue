@@ -1,7 +1,9 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
+import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -56,7 +58,12 @@ const statusDotClass: Record<string, string> = {
                     "
                     aria-hidden="true"
                 />
-                <Plate :value="row.licensePlate" />
+                <Link
+                    :href="vehiclesShowRoute.url({ vehicle: row.id })"
+                    class="rounded-sm hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+                >
+                    <Plate :value="row.licensePlate" />
+                </Link>
             </div>
         </template>
         <template #cell-firstFrenchRegistrationDate="{ value }">

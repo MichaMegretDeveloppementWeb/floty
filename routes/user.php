@@ -38,6 +38,9 @@ Route::middleware('auth')
         Route::post('/vehicles', [VehicleController::class, 'store'])
             ->middleware('throttle:60,1')
             ->name('vehicles.store');
+        Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])
+            ->whereNumber('vehicle')
+            ->name('vehicles.show');
 
         // Assignments — « Attribution rapide » plein écran (sans POST dédié :
         // utilise l'endpoint /app/planning/assignments pour créer en masse)

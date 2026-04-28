@@ -58,6 +58,91 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
+    public function show_renvoie_la_vue_du_vehicule_avec_caracteristiques_fiscales_courantes(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create([
+            'license_plate' => 'AB-456-CD',
+            'brand' => 'Renault',
+            'model' => 'Megane',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Vehicles/Show/Index')
+                ->has('vehicle', fn (AssertableInertia $v) => $v
+                    ->where('id', $vehicle->id)
+                    ->where('licensePlate', 'AB-456-CD')
+                    ->where('brand', 'Renault')
+                    ->where('model', 'Megane')
+                    ->has('currentFiscalCharacteristics', fn (AssertableInertia $f) => $f
+                        ->where('id', $current->id)
+                        ->where('isCurrent', true)
+                        ->where('effectiveFrom', '2024-01-01')
+                        ->where('effectiveTo', null)
+                        ->etc())
+                    ->has('fiscalCharacteristicsHistory', 1)
+                    ->etc()),
+            );
+    }
+
+    #[Test]
+    public function show_inclut_l_historique_complet_des_periodes_fiscales(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        // 3 versions historisées : la plus récente est courante.
+        $oldest = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2022-01-01',
+            'effective_to' => '2022-12-31',
+        ]);
+        $middle = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-01-01',
+            'effective_to' => '2023-12-31',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Vehicles/Show/Index')
+                ->has('vehicle.fiscalCharacteristicsHistory', 3)
+                // Tri antéchronologique : la version courante en premier.
+                ->where('vehicle.fiscalCharacteristicsHistory.0.id', $current->id)
+                ->where('vehicle.fiscalCharacteristicsHistory.0.isCurrent', true)
+                ->where('vehicle.fiscalCharacteristicsHistory.1.id', $middle->id)
+                ->where('vehicle.fiscalCharacteristicsHistory.1.isCurrent', false)
+                ->where('vehicle.fiscalCharacteristicsHistory.2.id', $oldest->id)
+                ->where('vehicle.fiscalCharacteristicsHistory.2.isCurrent', false),
+            );
+    }
+
+    #[Test]
+    public function show_renvoie_404_si_vehicule_inexistant(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/vehicles/999999')
+            ->assertNotFound();
+    }
+
+    #[Test]
     public function store_cree_un_vehicule_et_ses_caracteristiques_fiscales(): void
     {
         $user = User::factory()->create();

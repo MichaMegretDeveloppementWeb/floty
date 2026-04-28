@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Vehicle;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Data\User\Vehicle\VehicleData;
 use App\Data\User\Vehicle\VehicleListItemData;
 use App\Data\User\Vehicle\VehicleOptionData;
 use App\Models\Vehicle;
@@ -53,6 +54,21 @@ final class VehicleQueryService
             ->all();
 
         return VehicleListItemData::collect($rows, DataCollection::class);
+    }
+
+    /**
+     * Représentation complète d'un véhicule pour la page Show :
+     * identité + caractéristiques fiscales actives + historique
+     * antéchronologique des versions VFC.
+     *
+     * Lève `ModelNotFoundException` (rendu 404 par Laravel) si l'id
+     * n'existe pas.
+     */
+    public function findVehicleData(int $id): VehicleData
+    {
+        return VehicleData::fromModel(
+            $this->vehicles->findByIdWithFiscalHistory($id),
+        );
     }
 
     /**

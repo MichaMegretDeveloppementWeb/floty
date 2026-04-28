@@ -50,6 +50,16 @@ interface VehicleReadRepositoryInterface
     public function findOrFailWithFiscal(int $id): Vehicle;
 
     /**
+     * Lookup unitaire avec eager-loading de **toutes** les versions
+     * fiscales du véhicule (historique complet, ordonné `effective_from
+     * DESC`). Échoue avec 404 si l'id n'existe pas.
+     *
+     * Utilisé par la page Show pour composer `VehicleData` avec à la
+     * fois la version courante et la timeline historique.
+     */
+    public function findByIdWithFiscalHistory(int $id): Vehicle;
+
+    /**
      * Liste des véhicules pour la heatmap planning : actifs (non
      * supprimés), eager-loading des caractéristiques fiscales actives,
      * triés par plaque.
