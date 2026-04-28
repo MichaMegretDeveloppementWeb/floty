@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import Badge from '@/Components/Ui/Badge/Badge.vue';
-import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { useFiscalHistoryTimeline } from '@/Composables/Vehicle/Show/useFiscalHistoryTimeline';
 import {
     energySourceLabel,
     fiscalCharacteristicsChangeReasonLabel,
@@ -12,17 +12,7 @@ const props = defineProps<{
     history: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData[];
 }>();
 
-const formatPeriod = (
-    item: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData,
-): string => {
-    const from = formatDateFr(item.effectiveFrom);
-
-    if (item.effectiveTo === null) {
-        return `du ${from} — en cours`;
-    }
-
-    return `du ${from} au ${formatDateFr(item.effectiveTo)}`;
-};
+const { formatPeriod } = useFiscalHistoryTimeline();
 </script>
 
 <template>

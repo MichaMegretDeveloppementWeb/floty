@@ -1,50 +1,25 @@
 <script setup lang="ts">
 import { Download } from 'lucide-vue-next';
-import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
-import type { DataTableColumn } from '@/types/ui';
+import { useCompanyFiscalBreakdownTable } from '@/Composables/Vehicle/Show/useCompanyFiscalBreakdownTable';
 import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;
 }>();
 
-type Row = App.Data.User.Vehicle.VehicleCompanyUsageData;
-
-const columns: readonly DataTableColumn<Row>[] = [
-    { key: 'shortCode', label: 'Entreprise' },
-    { key: 'daysUsed', label: 'Jours', align: 'right', mono: true },
-    { key: 'proratoPercent', label: 'Prorata', align: 'right', mono: true },
-    { key: 'taxCo2', label: 'Taxe CO₂', align: 'right', mono: true },
-    { key: 'taxPollutants', label: 'Taxe polluant', align: 'right', mono: true },
-    { key: 'taxTotal', label: 'Total', align: 'right', mono: true },
-];
-
-const totalDays = computed<number>(() =>
-    props.stats.companies.reduce((sum, c) => sum + c.daysUsed, 0),
-);
-
-const totalProrato = computed<number>(() =>
-    props.stats.companies.reduce((sum, c) => sum + c.proratoPercent, 0),
-);
-
-const totalCo2 = computed<number>(() =>
-    props.stats.companies.reduce((sum, c) => sum + c.taxCo2, 0),
-);
-
-const totalPollutants = computed<number>(() =>
-    props.stats.companies.reduce((sum, c) => sum + c.taxPollutants, 0),
-);
-
-const totalAll = computed<number>(() =>
-    props.stats.companies.reduce((sum, c) => sum + c.taxTotal, 0),
-);
-
-const initialsOf = (shortCode: string): string =>
-    shortCode.slice(0, 2).toUpperCase();
+const {
+    columns,
+    totalDays,
+    totalProrato,
+    totalCo2,
+    totalPollutants,
+    totalAll,
+    initialsOf,
+} = useCompanyFiscalBreakdownTable(props);
 </script>
 
 <template>

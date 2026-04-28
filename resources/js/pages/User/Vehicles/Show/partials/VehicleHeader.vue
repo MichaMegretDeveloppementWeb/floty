@@ -1,47 +1,17 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { ChevronLeft } from 'lucide-vue-next';
-import { computed } from 'vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
+import { useVehicleHeader } from '@/Composables/Vehicle/Show/useVehicleHeader';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
-import type { StatusTone } from '@/types/ui';
-import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { vehicleStatusLabel } from '@/Utils/labels/vehicleEnumLabels';
 
 const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
 }>();
 
-const statusTone: Record<App.Enums.Vehicle.VehicleStatus, StatusTone> = {
-    active: 'emerald',
-    maintenance: 'amber',
-    sold: 'slate',
-    destroyed: 'rose',
-    other: 'slate',
-};
-
-const secondaryInfo = computed<string[]>(() => {
-    const v = props.vehicle;
-    const parts: string[] = [
-        `Acquis le ${formatDateFr(v.acquisitionDate)}`,
-        `1ʳᵉ immat. FR ${formatDateFr(v.firstFrenchRegistrationDate)}`,
-    ];
-
-    if (v.vin) {
-        parts.push(`VIN ${v.vin}`);
-    }
-
-    if (v.color) {
-        parts.push(v.color);
-    }
-
-    if (v.mileageCurrent !== null) {
-        parts.push(`${v.mileageCurrent.toLocaleString('fr-FR')} km`);
-    }
-
-    return parts;
-});
+const { statusTone, secondaryInfo } = useVehicleHeader(props);
 </script>
 
 <template>

@@ -35,7 +35,7 @@ const props = defineProps<{
 
                 <!-- Colonne aside (sticky en lg+) -->
                 <aside class="xl:col-span-1">
-                    <div class="flex flex-col gap-6 lg:top-6">
+                    <div class="flex flex-col lg:flex-row xl:flex-col gap-6 lg:top-6">
                         <FullYearTaxBreakdownPanel :stats="props.vehicle.usageStats" />
                         <UnavailabilitiesCard
                             :vehicle-id="props.vehicle.id"

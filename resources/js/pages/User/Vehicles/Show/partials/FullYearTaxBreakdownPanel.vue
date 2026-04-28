@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
+import { useFullYearTaxBreakdownPanel } from '@/Composables/Vehicle/Show/useFullYearTaxBreakdownPanel';
 import RuleCard from '@/pages/User/FiscalRules/Index/partials/RuleCard.vue';
 import { formatEur } from '@/Utils/format/formatEur';
 import {
@@ -10,45 +10,12 @@ import {
     pollutantCategoryLabel,
 } from '@/Utils/labels/vehicleEnumLabels';
 
-type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
-
 const props = defineProps<{
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;
 }>();
 
-const breakdown = computed(() => props.stats.fullYearTaxBreakdown);
-
-const rulesByCode = computed<Record<string, Rule>>(() => {
-    const map: Record<string, Rule> = {};
-
-    for (const rule of breakdown.value.appliedRules) {
-        map[rule.ruleCode] = rule;
-    }
-
-    return map;
-});
-
-const selectedCode = ref<string | null>(null);
-const selectedRule = computed<Rule | null>(() => {
-    if (selectedCode.value === null) {
-        return null;
-    }
-
-    return rulesByCode.value[selectedCode.value] ?? null;
-});
-
-const modalOpen = computed<boolean>({
-    get: () => selectedCode.value !== null,
-    set: (value) => {
-        if (!value) {
-            selectedCode.value = null;
-        }
-    },
-});
-
-const openRule = (code: string): void => {
-    selectedCode.value = code;
-};
+const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
+    useFullYearTaxBreakdownPanel(props);
 </script>
 
 <template>

@@ -5,10 +5,10 @@ import {
     Building2,
     CalendarCheck,
     CalendarDays,
-    Car,
     Receipt,
 } from 'lucide-vue-next';
-import type { LucideIcon } from 'lucide-vue-next';
+import type { Component } from 'vue';
+import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { index as assignmentsIndexRoute } from '@/routes/user/assignments';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
@@ -19,7 +19,7 @@ type QuickLink = {
     label: string;
     description: string;
     href: string;
-    icon: LucideIcon;
+    icon: Component;
     featured?: boolean;
 };
 
@@ -44,7 +44,7 @@ const quickLinks: QuickLink[] = [
         description:
             'Véhicules enregistrés, caractéristiques fiscales et taxes annuelles.',
         href: vehiclesIndexRoute.url(),
-        icon: Car,
+        icon: CarIcon,
     },
     {
         label: 'Entreprises',

@@ -1,13 +1,10 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import { Pencil, Plus, Trash2 } from 'lucide-vue-next';
-import { ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
-import { destroy as unavailabilitiesDestroyRoute } from '@/routes/user/unavailabilities';
-import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { useUnavailabilitiesCard } from '@/Composables/Vehicle/Show/useUnavailabilitiesCard';
 import { unavailabilityTypeLabel } from '@/Utils/labels/unavailabilityEnumLabels';
 import UnavailabilityFormModal from './UnavailabilityFormModal.vue';
 
@@ -20,55 +17,16 @@ const props = defineProps<{
     busyDates: string[];
 }>();
 
-const formOpen = ref<boolean>(false);
-const editing = ref<Unavailability | null>(null);
-
-const confirmOpen = ref<boolean>(false);
-const deleting = ref<Unavailability | null>(null);
-
-const openCreate = (): void => {
-    editing.value = null;
-    formOpen.value = true;
-};
-
-const openEdit = (item: Unavailability): void => {
-    editing.value = item;
-    formOpen.value = true;
-};
-
-const askDelete = (item: Unavailability): void => {
-    deleting.value = item;
-    confirmOpen.value = true;
-};
-
-const confirmDelete = (): void => {
-    if (!deleting.value) {
-        return;
-    }
-
-    router.delete(
-        unavailabilitiesDestroyRoute.url({ unavailability: deleting.value.id }),
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                confirmOpen.value = false;
-                deleting.value = null;
-            },
-        },
-    );
-};
-
-const formatPeriod = (item: Unavailability): string => {
-    const start = formatDateFr(item.startDate);
-
-    if (item.endDate === null) {
-        return `Depuis le ${start} (en cours)`;
-    }
-
-    const end = formatDateFr(item.endDate);
-
-    return `Du ${start} au ${end}`;
-};
+const {
+    formOpen,
+    editing,
+    confirmOpen,
+    openCreate,
+    openEdit,
+    askDelete,
+    confirmDelete,
+    formatPeriod,
+} = useUnavailabilitiesCard();
 </script>
 
 <template>

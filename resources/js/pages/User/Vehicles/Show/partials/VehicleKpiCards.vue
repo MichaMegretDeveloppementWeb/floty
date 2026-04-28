@@ -1,24 +1,14 @@
 <script setup lang="ts">
 import { Calendar, Coins, Receipt } from 'lucide-vue-next';
-import { computed } from 'vue';
 import StatCard from '@/Components/Ui/StatCard/StatCard.vue';
+import { useVehicleKpiCards } from '@/Composables/Vehicle/Show/useVehicleKpiCards';
 import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;
 }>();
 
-const actualTaxCaption = computed<string>(() => {
-    if (props.stats.daysUsedThisYear === 0 || props.stats.daysInYear === 0) {
-        return "Pas encore d'utilisation";
-    }
-
-    const percent = Math.round(
-        (props.stats.daysUsedThisYear / props.stats.daysInYear) * 100,
-    );
-
-    return `${percent}% d'utilisation`;
-});
+const { actualTaxCaption } = useVehicleKpiCards(props);
 </script>
 
 <template>

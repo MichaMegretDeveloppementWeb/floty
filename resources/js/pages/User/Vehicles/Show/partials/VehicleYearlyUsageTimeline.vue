@@ -1,44 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
+import { useVehicleYearlyUsageTimeline } from '@/Composables/Vehicle/Show/useVehicleYearlyUsageTimeline';
 import { companyColorBgClass } from '@/Utils/colors/companyColor';
 
 const props = defineProps<{
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;
 }>();
 
-type Segment = App.Data.User.Vehicle.VehicleWeekSegmentData;
-
-// Convention design system : 12 mois → 4-4-5-4-4-5-4-4-5-4-4-5 = 52
-// (cohérent avec le composant Heatmap planning).
-const monthLabels = [
-    { name: 'Jan', weeks: 4 },
-    { name: 'Fév', weeks: 4 },
-    { name: 'Mar', weeks: 5 },
-    { name: 'Avr', weeks: 4 },
-    { name: 'Mai', weeks: 4 },
-    { name: 'Juin', weeks: 5 },
-    { name: 'Juil', weeks: 4 },
-    { name: 'Août', weeks: 4 },
-    { name: 'Sept', weeks: 5 },
-    { name: 'Oct', weeks: 4 },
-    { name: 'Nov', weeks: 4 },
-    { name: 'Déc', weeks: 5 },
-];
-
-const totalVehicleDays = computed<number>(() =>
-    props.stats.weeklyBreakdown.reduce((sum, w) => sum + w.totalDays, 0),
-);
-
-const heightForDays = (days: number): string => `${(days / 7) * 100}%`;
-const heightFor = (segment: Segment): string => heightForDays(segment.days);
-
-// Légende = liste des entreprises ayant utilisé le véhicule sur l'année,
-// triée par jours décroissants (réutilise le tri du breakdown global).
-const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
-    () => props.stats.companies,
-);
+const {
+    monthLabels,
+    totalVehicleDays,
+    legendEntries,
+    heightForDays,
+    heightFor,
+} = useVehicleYearlyUsageTimeline(props);
 </script>
 
 <template>
