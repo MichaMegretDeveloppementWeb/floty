@@ -118,4 +118,40 @@ final class AssignmentQueryServiceTest extends TestCase
 
         self::assertSame(['2024-04-15'], $dates);
     }
+
+    #[Test]
+    public function load_vehicle_weekly_breakdown_compte_les_jours_par_semaine_iso_et_company(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+
+        // Semaine ISO 1 (2024-01-01 = lundi) :
+        //   - 2 jours pour A (lun + mar)
+        //   - 1 jour pour B (mer)
+        Assignment::factory()->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $companyA->id, 'date' => '2024-01-01',
+        ]);
+        Assignment::factory()->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $companyA->id, 'date' => '2024-01-02',
+        ]);
+        Assignment::factory()->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $companyB->id, 'date' => '2024-01-03',
+        ]);
+        // Semaine ISO 2 (2024-01-08 = lundi) :
+        //   - 2 jours pour B (lun + mar)
+        Assignment::factory()->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $companyB->id, 'date' => '2024-01-08',
+        ]);
+        Assignment::factory()->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $companyB->id, 'date' => '2024-01-09',
+        ]);
+
+        $breakdown = $this->service->loadVehicleWeeklyBreakdown($vehicle->id, self::YEAR);
+
+        self::assertSame(2, $breakdown[1][$companyA->id]);
+        self::assertSame(1, $breakdown[1][$companyB->id]);
+        self::assertSame(2, $breakdown[2][$companyB->id]);
+        self::assertArrayNotHasKey(3, $breakdown, 'Aucune attribution semaine 3 → entrée absente.');
+    }
 }

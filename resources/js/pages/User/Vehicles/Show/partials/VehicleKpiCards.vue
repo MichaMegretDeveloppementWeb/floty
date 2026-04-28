@@ -35,7 +35,7 @@ const actualTaxCaption = computed<string>(() => {
         </StatCard>
 
         <StatCard
-            tone="blue"
+            tone="slate"
             :value="`${props.stats.daysUsedThisYear} j`"
             :label="`Jours d'utilisation ${props.stats.fiscalYear}`"
             :caption="`sur ${props.stats.daysInYear} jours`"

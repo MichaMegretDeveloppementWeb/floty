@@ -10,7 +10,8 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Agrégat statistiques d'utilisation d'un véhicule pour l'année active —
- * affiché dans les KPI cards + le breakdown de la page Show.
+ * affiché dans les KPI cards + la timeline 52 semaines + le tableau
+ * breakdown sur la page Show.
  *
  *   - actualTaxThisYear  : ce qui est effectivement dû compte tenu des
  *                          attributions réelles (somme par couple,
@@ -18,14 +19,19 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - fullYearTax        : maximum théorique annuel (1 véhicule
  *                          attribué 100 % à 1 entreprise, sans LCD).
  *   - dailyTaxRate       : `fullYearTax / daysInYear`.
- *   - companies          : 1 entrée par entreprise utilisatrice,
- *                          triée par jours décroissants.
+ *   - companies          : 1 entrée par entreprise utilisatrice (avec
+ *                          détail co2/polluants/total), triée par
+ *                          jours décroissants.
+ *   - weeklyBreakdown    : 1 entrée par semaine ISO de l'année (52-53
+ *                          entrées, semaines vides incluses) pour la
+ *                          timeline visuelle.
  */
 #[TypeScript]
 final class VehicleUsageStatsData extends Data
 {
     /**
      * @param  list<VehicleCompanyUsageData>  $companies
+     * @param  list<VehicleWeekUsageData>  $weeklyBreakdown
      */
     public function __construct(
         public int $fiscalYear,
@@ -36,5 +42,7 @@ final class VehicleUsageStatsData extends Data
         public float $dailyTaxRate,
         #[DataCollectionOf(VehicleCompanyUsageData::class)]
         public array $companies,
+        #[DataCollectionOf(VehicleWeekUsageData::class)]
+        public array $weeklyBreakdown,
     ) {}
 }

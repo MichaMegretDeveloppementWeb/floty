@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import CompanyUsageBreakdown from './partials/CompanyUsageBreakdown.vue';
+import CompanyFiscalBreakdownTable from './partials/CompanyFiscalBreakdownTable.vue';
 import CurrentFiscalCharacteristicsCard from './partials/CurrentFiscalCharacteristicsCard.vue';
 import FiscalHistoryTimeline from './partials/FiscalHistoryTimeline.vue';
 import VehicleHeader from './partials/VehicleHeader.vue';
 import VehicleKpiCards from './partials/VehicleKpiCards.vue';
+import VehicleYearlyUsageTimeline from './partials/VehicleYearlyUsageTimeline.vue';
 
 const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
@@ -22,7 +23,8 @@ const props = defineProps<{
             <CurrentFiscalCharacteristicsCard
                 :fiscal="props.vehicle.currentFiscalCharacteristics"
             />
-            <CompanyUsageBreakdown :stats="props.vehicle.usageStats" />
+            <VehicleYearlyUsageTimeline :stats="props.vehicle.usageStats" />
+            <CompanyFiscalBreakdownTable :stats="props.vehicle.usageStats" />
             <FiscalHistoryTimeline
                 :history="props.vehicle.fiscalCharacteristicsHistory"
             />

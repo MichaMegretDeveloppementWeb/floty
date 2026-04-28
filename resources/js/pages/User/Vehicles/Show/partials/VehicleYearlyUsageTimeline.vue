@@ -1,0 +1,132 @@
+<script setup lang="ts">
+import { computed } from 'vue';
+import Card from '@/Components/Ui/Card/Card.vue';
+import { companyColorBgClass } from '@/Utils/colors/companyColor';
+
+const props = defineProps<{
+    stats: App.Data.User.Vehicle.VehicleUsageStatsData;
+}>();
+
+type Week = App.Data.User.Vehicle.VehicleWeekUsageData;
+type Segment = App.Data.User.Vehicle.VehicleWeekSegmentData;
+
+// Convention design system : 12 mois → 4-4-5-4-4-5-4-4-5-4-4-5 = 52
+// (cohérent avec le composant Heatmap planning).
+const monthLabels = [
+    { name: 'Jan', weeks: 4 },
+    { name: 'Fév', weeks: 4 },
+    { name: 'Mar', weeks: 5 },
+    { name: 'Avr', weeks: 4 },
+    { name: 'Mai', weeks: 4 },
+    { name: 'Juin', weeks: 5 },
+    { name: 'Juil', weeks: 4 },
+    { name: 'Août', weeks: 4 },
+    { name: 'Sept', weeks: 5 },
+    { name: 'Oct', weeks: 4 },
+    { name: 'Nov', weeks: 4 },
+    { name: 'Déc', weeks: 5 },
+];
+
+const totalVehicleDays = computed<number>(() =>
+    props.stats.weeklyBreakdown.reduce((sum, w) => sum + w.totalDays, 0),
+);
+
+const tooltipFor = (week: Week): string => {
+    if (week.segments.length === 0) {
+        return `S${week.weekNumber} · pas d'utilisation`;
+    }
+
+    const parts = week.segments.map(
+        (s) => `${s.shortCode} ${s.days}j`,
+    );
+
+    return `S${week.weekNumber} · ${parts.join(' · ')}`;
+};
+
+const heightFor = (segment: Segment): string =>
+    `${(segment.days / 7) * 100}%`;
+
+// Légende = liste des entreprises ayant utilisé le véhicule sur l'année,
+// triée par jours décroissants (réutilise le tri du breakdown global).
+const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
+    () => props.stats.companies,
+);
+</script>
+
+<template>
+    <Card>
+        <template #header>
+            <div>
+                <h2 class="text-base font-semibold text-slate-900">
+                    Utilisation annuelle
+                </h2>
+                <p class="mt-0.5 text-xs text-slate-500">
+                    Répartition par entreprise · {{ totalVehicleDays }}
+                    jour{{ totalVehicleDays > 1 ? 's' : '' }}-véhicule
+                </p>
+            </div>
+        </template>
+
+        <div class="flex flex-col gap-3">
+            <div class="overflow-x-auto">
+                <div class="inline-flex min-w-full flex-col">
+                    <!-- Labels mensuels alignés sur les groupes de semaines -->
+                    <div class="mb-2 flex h-4">
+                        <div
+                            v-for="month in monthLabels"
+                            :key="month.name"
+                            :style="{ width: `${month.weeks * 22}px` }"
+                            class="text-xs font-medium text-slate-500"
+                        >
+                            {{ month.name }}
+                        </div>
+                    </div>
+
+                    <!-- Timeline 52 cellules -->
+                    <div class="flex h-10">
+                        <div
+                            v-for="week in props.stats.weeklyBreakdown"
+                            :key="week.weekNumber"
+                            :title="tooltipFor(week)"
+                            :class="[
+                                'flex h-full w-[22px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
+                                week.totalDays === 0 ? 'bg-slate-100' : '',
+                            ]"
+                        >
+                            <div
+                                v-for="segment in week.segments"
+                                :key="segment.companyId"
+                                :class="companyColorBgClass(segment.color)"
+                                :style="{ height: heightFor(segment) }"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Légende : pastilles couleur + nom + jours, tri par jours desc -->
+            <ul
+                v-if="legendEntries.length > 0"
+                class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3"
+            >
+                <li
+                    v-for="entry in legendEntries"
+                    :key="entry.companyId"
+                    class="flex items-center gap-2 text-sm"
+                >
+                    <span
+                        :class="[
+                            'inline-block h-2.5 w-2.5 shrink-0 rounded-sm',
+                            companyColorBgClass(entry.color),
+                        ]"
+                        aria-hidden="true"
+                    />
+                    <span class="text-slate-700">{{ entry.legalName }}</span>
+                    <span class="font-mono text-xs text-slate-500">
+                        {{ entry.daysUsed }}j
+                    </span>
+                </li>
+            </ul>
+        </div>
+    </Card>
+</template>

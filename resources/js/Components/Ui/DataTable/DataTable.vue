@@ -114,6 +114,11 @@ const alignClass = (align: DataTableColumnAlign | undefined): string => {
                         </td>
                     </tr>
                 </tbody>
+                <tfoot v-if="slots['footer-row']" class="bg-slate-50">
+                    <tr class="border-t border-slate-200">
+                        <slot name="footer-row" :columns="columns" />
+                    </tr>
+                </tfoot>
             </table>
         </div>
     </div>

@@ -11,10 +11,15 @@ use App\Data\User\Vehicle\VehicleData;
 use App\Data\User\Vehicle\VehicleListItemData;
 use App\Data\User\Vehicle\VehicleOptionData;
 use App\Data\User\Vehicle\VehicleUsageStatsData;
+use App\Data\User\Vehicle\VehicleWeekSegmentData;
+use App\Data\User\Vehicle\VehicleWeekUsageData;
+use App\Models\Company;
 use App\Models\Vehicle;
 use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Shared\Fiscal\FiscalYearContext;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Spatie\LaravelData\DataCollection;
 
 /**
@@ -108,10 +113,11 @@ final class VehicleQueryService
     {
         $daysInYear = $this->yearContext->daysInYear($year);
         $cumul = $this->assignments->loadAnnualCumul($year);
+        $weeklyMap = $this->assignments->loadVehicleWeeklyBreakdown($vehicle->id, $year);
 
         $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany($vehicle, $cumul, $year);
 
-        $companyIds = array_map(static fn (array $row): int => $row['companyId'], $breakdown);
+        $companyIds = $this->collectCompanyIds($breakdown, $weeklyMap);
         $companiesById = $this->companies->findByIdsIndexed($companyIds);
 
         usort(
@@ -127,16 +133,23 @@ final class VehicleQueryService
             if ($company === null) {
                 continue;
             }
+            $proratoPercent = $daysInYear > 0
+                ? round($row['days'] / $daysInYear * 100, 1)
+                : 0.0;
+
             $companies[] = new VehicleCompanyUsageData(
                 companyId: $company->id,
                 shortCode: $company->short_code,
                 legalName: $company->legal_name,
                 color: $company->color,
                 daysUsed: $row['days'],
-                taxDue: $row['taxDue'],
+                proratoPercent: $proratoPercent,
+                taxCo2: $row['taxCo2'],
+                taxPollutants: $row['taxPollutants'],
+                taxTotal: $row['taxTotal'],
             );
             $totalDays += $row['days'];
-            $totalTax += $row['taxDue'];
+            $totalTax += $row['taxTotal'];
         }
 
         $fullYearTax = $this->aggregator->vehicleFullYearTax($vehicle, $year);
@@ -149,6 +162,81 @@ final class VehicleQueryService
             fullYearTax: $fullYearTax,
             dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
             companies: $companies,
+            weeklyBreakdown: $this->buildWeeklyBreakdown($weeklyMap, $companiesById, $year),
         );
+    }
+
+    /**
+     * Collecte tous les companyIds référencés par le breakdown
+     * fiscal et la timeline hebdo. Garantit qu'aucune lookup
+     * Eloquent n'est manquante (ex. semaine seedée mais 0 jour
+     * cumul filtré par fourrière).
+     *
+     * @param  list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>  $breakdown
+     * @param  array<int, array<int, int>>  $weeklyMap
+     * @return list<int>
+     */
+    private function collectCompanyIds(array $breakdown, array $weeklyMap): array
+    {
+        $ids = [];
+        foreach ($breakdown as $row) {
+            $ids[$row['companyId']] = true;
+        }
+        foreach ($weeklyMap as $companies) {
+            foreach (array_keys($companies) as $companyId) {
+                $ids[$companyId] = true;
+            }
+        }
+
+        return array_values(array_keys($ids));
+    }
+
+    /**
+     * Compose la liste des 52-53 entrées weekly (1 par semaine ISO
+     * de l'année) pour la timeline visuelle. Les semaines vides
+     * sont matérialisées avec `segments = []` et `totalDays = 0`.
+     *
+     * @param  array<int, array<int, int>>  $weeklyMap  weekNumber → companyId → days
+     * @param  Collection<int, Company>  $companiesById
+     * @return list<VehicleWeekUsageData>
+     */
+    private function buildWeeklyBreakdown(
+        array $weeklyMap,
+        Collection $companiesById,
+        int $year,
+    ): array {
+        $weeksInYear = (int) Carbon::create($year, 12, 28)->isoWeeksInYear;
+
+        $rows = [];
+        for ($week = 1; $week <= $weeksInYear; $week++) {
+            $segments = [];
+            $totalDays = 0;
+            foreach (($weeklyMap[$week] ?? []) as $companyId => $days) {
+                $company = $companiesById->get($companyId);
+                if ($company === null) {
+                    continue;
+                }
+                $segments[] = new VehicleWeekSegmentData(
+                    companyId: $company->id,
+                    shortCode: $company->short_code,
+                    color: $company->color,
+                    days: $days,
+                );
+                $totalDays += $days;
+            }
+            // Tri stable par companyId pour rendu déterministe
+            usort(
+                $segments,
+                static fn (VehicleWeekSegmentData $a, VehicleWeekSegmentData $b): int => $a->companyId <=> $b->companyId,
+            );
+
+            $rows[] = new VehicleWeekUsageData(
+                weekNumber: $week,
+                segments: $segments,
+                totalDays: $totalDays,
+            );
+        }
+
+        return $rows;
     }
 }

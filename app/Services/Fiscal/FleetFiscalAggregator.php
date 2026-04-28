@@ -109,10 +109,11 @@ final readonly class FleetFiscalAggregator
 
     /**
      * Détail du coût annuel d'un véhicule réparti par entreprise
-     * utilisatrice. Une entrée par entreprise effectivement attributaire,
-     * non triée (tri par jours décroissants à la charge du consommateur).
+     * utilisatrice avec **séparation CO₂ / polluants / total**. Une
+     * entrée par entreprise effectivement attributaire, non triée
+     * (tri par jours décroissants à la charge du consommateur).
      *
-     * @return list<array{companyId: int, days: int, taxDue: float}>
+     * @return list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
      */
     public function vehicleAnnualTaxBreakdownByCompany(
         Vehicle $vehicle,
@@ -124,14 +125,16 @@ final readonly class FleetFiscalAggregator
             $result = $this->pipeline->execute(
                 $this->buildContext($vehicle, $days, $days, $year),
             );
+
+            $taxCo2 = round($result->co2DueRaw, 2, PHP_ROUND_HALF_UP);
+            $taxPollutants = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+
             $rows[] = [
                 'companyId' => $companyId,
                 'days' => $days,
-                'taxDue' => round(
-                    $result->co2DueRaw + $result->pollutantsDueRaw,
-                    2,
-                    PHP_ROUND_HALF_UP,
-                ),
+                'taxCo2' => $taxCo2,
+                'taxPollutants' => $taxPollutants,
+                'taxTotal' => round($taxCo2 + $taxPollutants, 2, PHP_ROUND_HALF_UP),
             ];
         }
 

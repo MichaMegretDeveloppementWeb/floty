@@ -99,7 +99,8 @@ final class VehicleControllerTest extends TestCase
                         ->where('actualTaxThisYear', 0)
                         ->has('fullYearTax')
                         ->has('dailyTaxRate')
-                        ->has('companies', 0))
+                        ->has('companies', 0)
+                        ->has('weeklyBreakdown'))
                     ->etc()),
             );
     }
@@ -146,8 +147,13 @@ final class VehicleControllerTest extends TestCase
                     ->has('companies', 2)
                     ->where('companies.0.shortCode', 'BETA')
                     ->where('companies.0.daysUsed', 10)
+                    ->has('companies.0.proratoPercent')
+                    ->has('companies.0.taxCo2')
+                    ->has('companies.0.taxPollutants')
+                    ->has('companies.0.taxTotal')
                     ->where('companies.1.shortCode', 'ALPH')
-                    ->where('companies.1.daysUsed', 5)),
+                    ->where('companies.1.daysUsed', 5)
+                    ->has('weeklyBreakdown')),
             );
     }
 

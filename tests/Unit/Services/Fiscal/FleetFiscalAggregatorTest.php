@@ -63,13 +63,19 @@ final class FleetFiscalAggregatorTest extends TestCase
         $byCompany = collect($breakdown)->keyBy('companyId');
 
         self::assertSame(100, $byCompany[10]['days']);
-        self::assertGreaterThan(0.0, $byCompany[10]['taxDue']);
+        self::assertGreaterThan(0.0, $byCompany[10]['taxCo2']);
+        self::assertGreaterThan(0.0, $byCompany[10]['taxPollutants']);
+        self::assertEqualsWithDelta(
+            $byCompany[10]['taxCo2'] + $byCompany[10]['taxPollutants'],
+            $byCompany[10]['taxTotal'],
+            0.01,
+        );
 
         self::assertSame(200, $byCompany[20]['days']);
         self::assertGreaterThan(
-            $byCompany[10]['taxDue'],
-            $byCompany[20]['taxDue'],
-            'Plus de jours = plus de taxe (prorata).',
+            $byCompany[10]['taxTotal'],
+            $byCompany[20]['taxTotal'],
+            'Plus de jours = plus de taxe totale (prorata).',
         );
     }
 

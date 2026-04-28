@@ -82,6 +82,31 @@ final readonly class AssignmentQueryService
     }
 
     /**
+     * Détail hebdomadaire de l'utilisation d'un véhicule pour
+     * l'année : pour chaque semaine ISO renseignée, le nombre de
+     * jours par entreprise utilisatrice.
+     *
+     * Les semaines sans aucune attribution n'apparaissent pas dans
+     * la map (elles sont matérialisées en aval par le service
+     * Vehicle pour produire les 52-53 entrées de la timeline).
+     *
+     * @return array<int, array<int, int>> weekNumber → companyId → days
+     */
+    public function loadVehicleWeeklyBreakdown(int $vehicleId, int $year): array
+    {
+        $byWeek = [];
+
+        foreach ($this->repository->findAssignmentsForVehicle($vehicleId, $year) as $assignment) {
+            $week = (int) Carbon::parse($assignment->date)->isoWeek;
+            $companyId = $assignment->company_id;
+            $byWeek[$week] ??= [];
+            $byWeek[$week][$companyId] = ($byWeek[$week][$companyId] ?? 0) + 1;
+        }
+
+        return $byWeek;
+    }
+
+    /**
      * Dates ISO (Y-m-d) déjà attribuées au couple (vehicle, company)
      * sur l'année. Utilisé par le preview taxes.
      *

@@ -98,7 +98,6 @@ const advancedFlags = computed<string[]>(() => {
                         {{ formatDateFr(props.fiscal.effectiveFrom) }}
                     </p>
                 </div>
-                <Badge v-if="props.fiscal" tone="emerald">Courante</Badge>
             </div>
         </template>
 
