@@ -32,8 +32,6 @@ final class LoginController extends Controller
                 ip: (string) $request->ip(),
             );
         } catch (InvalidCredentialsException|TooManyLoginAttemptsException $e) {
-            // Traduit en erreur de champ pour affichage sous l'input email
-            // (UX form-level cohérente avec le reste de l'app).
             throw ValidationException::withMessages([
                 'email' => $e->getUserMessage(),
             ]);

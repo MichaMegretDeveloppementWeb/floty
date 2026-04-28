@@ -32,7 +32,7 @@ final class LoginAttemptService
 
     public const int MAX_ATTEMPTS_PER_IP = 50;
 
-    public const int DECAY_SECONDS = 900;
+    public const int DECAY_SECONDS = 60;
 
     public function __construct(
         private readonly Dispatcher $events,
