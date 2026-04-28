@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
 import { companyColorBgClass } from '@/Utils/colors/companyColor';
 
 const props = defineProps<{
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;
 }>();
 
-type Week = App.Data.User.Vehicle.VehicleWeekUsageData;
 type Segment = App.Data.User.Vehicle.VehicleWeekSegmentData;
 
 // Convention design system : 12 mois → 4-4-5-4-4-5-4-4-5-4-4-5 = 52
@@ -30,18 +30,6 @@ const monthLabels = [
 const totalVehicleDays = computed<number>(() =>
     props.stats.weeklyBreakdown.reduce((sum, w) => sum + w.totalDays, 0),
 );
-
-const tooltipFor = (week: Week): string => {
-    if (week.segments.length === 0) {
-        return `S${week.weekNumber} · pas d'utilisation`;
-    }
-
-    const parts = week.segments.map(
-        (s) => `${s.shortCode} ${s.days}j`,
-    );
-
-    return `S${week.weekNumber} · ${parts.join(' · ')}`;
-};
 
 const heightFor = (segment: Segment): string =>
     `${(segment.days / 7) * 100}%`;
@@ -82,24 +70,59 @@ const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
                         </div>
                     </div>
 
-                    <!-- Timeline 52 cellules -->
+                    <!-- Timeline 52 cellules avec tooltip custom -->
                     <div class="flex h-10">
-                        <div
+                        <Tooltip
                             v-for="week in props.stats.weeklyBreakdown"
                             :key="week.weekNumber"
-                            :title="tooltipFor(week)"
-                            :class="[
-                                'flex h-full w-[22px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
-                                week.totalDays === 0 ? 'bg-slate-100' : '',
-                            ]"
                         >
                             <div
-                                v-for="segment in week.segments"
-                                :key="segment.companyId"
-                                :class="companyColorBgClass(segment.color)"
-                                :style="{ height: heightFor(segment) }"
-                            />
-                        </div>
+                                :class="[
+                                    'flex h-10 w-[22px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
+                                    week.totalDays === 0 ? 'bg-slate-100' : '',
+                                ]"
+                            >
+                                <div
+                                    v-for="segment in week.segments"
+                                    :key="segment.companyId"
+                                    :class="companyColorBgClass(segment.color)"
+                                    :style="{ height: heightFor(segment) }"
+                                />
+                            </div>
+
+                            <template #content>
+                                <p class="font-semibold text-slate-200">
+                                    Semaine {{ week.weekNumber }}
+                                </p>
+                                <p
+                                    v-if="week.segments.length === 0"
+                                    class="text-slate-300"
+                                >
+                                    Pas d'utilisation
+                                </p>
+                                <ul v-else class="mt-1 flex flex-col gap-1">
+                                    <li
+                                        v-for="segment in week.segments"
+                                        :key="segment.companyId"
+                                        class="flex items-center gap-2"
+                                    >
+                                        <span
+                                            :class="[
+                                                'inline-block h-2 w-2 shrink-0 rounded-sm',
+                                                companyColorBgClass(segment.color),
+                                            ]"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="font-medium">
+                                            {{ segment.shortCode }}
+                                        </span>
+                                        <span class="text-slate-300">
+                                            {{ segment.days }}j
+                                        </span>
+                                    </li>
+                                </ul>
+                            </template>
+                        </Tooltip>
                     </div>
                 </div>
             </div>

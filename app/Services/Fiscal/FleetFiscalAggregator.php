@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal;
 
+use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\DTO\Fiscal\AnnualCumulByPair;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
@@ -94,7 +95,9 @@ final readonly class FleetFiscalAggregator
      *
      * Utilisé en colonne Flotte (comparaison inter-véhicules
      * indépendamment de leur taux d'utilisation réel) et en KPI sur
-     * la page Show.
+     * la page Show. Pour le détail de calcul (méthode CO₂, catégorie
+     * polluants, exonérations, codes règles), utiliser
+     * {@see vehicleFullYearTaxBreakdown()}.
      */
     public function vehicleFullYearTax(Vehicle $vehicle, int $year): float
     {
@@ -105,6 +108,34 @@ final readonly class FleetFiscalAggregator
         );
 
         return round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+    }
+
+    /**
+     * Détail complet du calcul du coût plein année d'un véhicule —
+     * affiché dans la sidebar de la page Show pour expliquer comment
+     * le total a été obtenu (méthode CO₂, catégorie polluants,
+     * exonérations appliquées, codes règles).
+     */
+    public function vehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
+    {
+        $daysInYear = $this->yearContext->daysInYear($year);
+
+        $result = $this->pipeline->execute(
+            $this->buildContext($vehicle, $daysInYear, $daysInYear, $year),
+        );
+
+        $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
+        $pollutantsTariff = round($result->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
+
+        return new VehicleFullYearTaxBreakdownData(
+            co2Method: $result->co2Method,
+            co2FullYearTariff: $co2Tariff,
+            pollutantCategory: $result->pollutantCategory,
+            pollutantsFullYearTariff: $pollutantsTariff,
+            exemptionReasons: $result->exemptionReasons,
+            appliedRuleCodes: $result->appliedRuleCodes,
+            total: round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP),
+        );
     }
 
     /**

@@ -48,6 +48,7 @@ const handleRowClick = (row: VehicleRow): void => {
         :columns="columns"
         :rows="vehicles"
         :row-key="(row) => row.id"
+        clickable
         @row-click="handleRowClick"
     >
         <template #cell-licensePlate="{ row }">
@@ -78,7 +79,7 @@ const handleRowClick = (row: VehicleRow): void => {
         </template>
         <template #cell-fullYearTax="{ row }">
             <div class="flex flex-col items-end leading-tight">
-                <span class="font-mono font-semibold text-slate-900">
+                <span class="font-mono font-normal text-slate-900">
                     {{ formatEur(row.fullYearTax) }}
                 </span>
                 <span class="text-xs text-slate-400">

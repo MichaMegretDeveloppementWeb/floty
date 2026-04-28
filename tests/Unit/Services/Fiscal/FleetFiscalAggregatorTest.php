@@ -93,6 +93,23 @@ final class FleetFiscalAggregatorTest extends TestCase
         self::assertSame([], $breakdown);
     }
 
+    #[Test]
+    public function vehicle_full_year_tax_breakdown_renvoie_le_detail_du_calcul(): void
+    {
+        $vehicle = $this->makeVehicleWltp100Essence();
+
+        $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, self::YEAR);
+
+        // WLTP 100 essence M1 cat 1 = 173 € CO₂ + 100 € polluants = 273 €
+        self::assertSame(173.0, $breakdown->co2FullYearTariff);
+        self::assertSame(100.0, $breakdown->pollutantsFullYearTariff);
+        self::assertSame(273.0, $breakdown->total);
+
+        self::assertSame('WLTP', $breakdown->co2Method->value);
+        self::assertSame('category_1', $breakdown->pollutantCategory->value);
+        self::assertNotEmpty($breakdown->appliedRuleCodes);
+    }
+
     private function makeVehicleWltp100Essence(): Vehicle
     {
         $vehicle = Vehicle::factory()->create();

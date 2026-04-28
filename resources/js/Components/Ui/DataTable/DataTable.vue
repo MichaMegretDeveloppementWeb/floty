@@ -12,10 +12,12 @@ withDefaults(
         rowKey: (row: T) => string | number;
         sticky?: boolean;
         dense?: boolean;
+        clickable?: boolean;
     }>(),
     {
         sticky: false,
         dense: false,
+        clickable: false,
     },
 );
 
@@ -88,7 +90,7 @@ const alignClass = (align: DataTableColumnAlign | undefined): string => {
                         :key="rowKey(row)"
                         :class="[
                             'border-b border-slate-100 last:border-b-0 transition-colors duration-[120ms] ease-out',
-                            slots['row-actions'] || $attrs.onRowClick
+                            clickable || slots['row-actions']
                                 ? 'cursor-pointer hover:bg-slate-50'
                                 : '',
                         ]"

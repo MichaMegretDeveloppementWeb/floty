@@ -44,5 +44,6 @@ final class VehicleUsageStatsData extends Data
         public array $companies,
         #[DataCollectionOf(VehicleWeekUsageData::class)]
         public array $weeklyBreakdown,
+        public VehicleFullYearTaxBreakdownData $fullYearTaxBreakdown,
     ) {}
 }

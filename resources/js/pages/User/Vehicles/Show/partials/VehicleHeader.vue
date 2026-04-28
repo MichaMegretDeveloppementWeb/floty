@@ -7,18 +7,11 @@ import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 import type { StatusTone } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { vehicleStatusLabel } from '@/Utils/labels/vehicleEnumLabels';
 
 const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
 }>();
-
-const statusLabel: Record<App.Enums.Vehicle.VehicleStatus, string> = {
-    active: 'Actif',
-    maintenance: 'Maintenance',
-    sold: 'Vendu',
-    destroyed: 'Détruit',
-    other: 'Autre',
-};
 
 const statusTone: Record<App.Enums.Vehicle.VehicleStatus, StatusTone> = {
     active: 'emerald',
@@ -65,7 +58,7 @@ const secondaryInfo = computed<string[]>(() => {
             <div class="flex flex-wrap items-center gap-3">
                 <Plate :value="props.vehicle.licensePlate" />
                 <StatusPill :tone="statusTone[props.vehicle.currentStatus]">
-                    {{ statusLabel[props.vehicle.currentStatus] }}
+                    {{ vehicleStatusLabel[props.vehicle.currentStatus] }}
                 </StatusPill>
             </div>
             <h1

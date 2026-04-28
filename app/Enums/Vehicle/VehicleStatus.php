@@ -18,4 +18,15 @@ enum VehicleStatus: string
     case Sold = 'sold';
     case Destroyed = 'destroyed';
     case Other = 'other';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Active => 'Actif',
+            self::Maintenance => 'Maintenance',
+            self::Sold => 'Vendu',
+            self::Destroyed => 'Détruit',
+            self::Other => 'Autre',
+        };
+    }
 }

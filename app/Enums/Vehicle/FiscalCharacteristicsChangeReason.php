@@ -21,4 +21,13 @@ enum FiscalCharacteristicsChangeReason: string
     case InitialCreation = 'initial_creation';
     case EffectiveChange = 'effective_change';
     case InputCorrection = 'input_correction';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::InitialCreation => 'Création initiale',
+            self::EffectiveChange => 'Changement effectif',
+            self::InputCorrection => 'Correction de saisie',
+        };
+    }
 }

@@ -16,4 +16,14 @@ enum VehicleExitReason: string
     case Destroyed = 'destroyed';
     case Transferred = 'transferred';
     case Other = 'other';
+
+    public function label(): string
+    {
+        return match ($this) {
+            self::Sold => 'Vendu',
+            self::Destroyed => 'Détruit',
+            self::Transferred => 'Transféré',
+            self::Other => 'Autre',
+        };
+    }
 }

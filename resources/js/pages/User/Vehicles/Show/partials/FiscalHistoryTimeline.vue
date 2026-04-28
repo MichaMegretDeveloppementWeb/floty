@@ -2,16 +2,16 @@
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
+import {
+    energySourceLabel,
+    fiscalCharacteristicsChangeReasonLabel,
+    homologationMethodLabel,
+    pollutantCategoryLabel,
+} from '@/Utils/labels/vehicleEnumLabels';
 
 const props = defineProps<{
     history: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData[];
 }>();
-
-const reasonLabel: Record<App.Enums.Vehicle.FiscalCharacteristicsChangeReason, string> = {
-    initial_creation: 'Création initiale',
-    effective_change: 'Changement effectif',
-    input_correction: 'Correction de saisie',
-};
 
 const formatPeriod = (
     item: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData,
@@ -65,7 +65,7 @@ const formatPeriod = (
                     </span>
                     <Badge v-if="item.isCurrent" tone="emerald">Courante</Badge>
                     <Badge tone="slate">
-                        {{ reasonLabel[item.changeReason] ?? item.changeReason }}
+                        {{ fiscalCharacteristicsChangeReasonLabel[item.changeReason] }}
                     </Badge>
                 </div>
                 <p
@@ -79,11 +79,15 @@ const formatPeriod = (
                 >
                     <div>
                         <dt class="text-slate-400">Énergie</dt>
-                        <dd class="text-slate-700">{{ item.energySource }}</dd>
+                        <dd class="text-slate-700">
+                            {{ energySourceLabel[item.energySource] }}
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-slate-400">Méthode</dt>
-                        <dd class="text-slate-700">{{ item.homologationMethod }}</dd>
+                        <dd class="text-slate-700">
+                            {{ homologationMethodLabel[item.homologationMethod] }}
+                        </dd>
                     </div>
                     <div>
                         <dt class="text-slate-400">CO₂ / PA</dt>
@@ -99,7 +103,7 @@ const formatPeriod = (
                     <div>
                         <dt class="text-slate-400">Polluants</dt>
                         <dd class="text-slate-700">
-                            {{ item.pollutantCategory }}
+                            {{ pollutantCategoryLabel[item.pollutantCategory] }}
                         </dd>
                     </div>
                 </dl>

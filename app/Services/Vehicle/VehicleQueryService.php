@@ -152,17 +152,18 @@ final class VehicleQueryService
             $totalTax += $row['taxTotal'];
         }
 
-        $fullYearTax = $this->aggregator->vehicleFullYearTax($vehicle, $year);
+        $fullYearBreakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
 
         return new VehicleUsageStatsData(
             fiscalYear: $year,
             daysInYear: $daysInYear,
             daysUsedThisYear: $totalDays,
             actualTaxThisYear: round($totalTax, 2, PHP_ROUND_HALF_UP),
-            fullYearTax: $fullYearTax,
-            dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
+            fullYearTax: $fullYearBreakdown->total,
+            dailyTaxRate: round($fullYearBreakdown->total / $daysInYear, 2, PHP_ROUND_HALF_UP),
             companies: $companies,
             weeklyBreakdown: $this->buildWeeklyBreakdown($weeklyMap, $companiesById, $year),
+            fullYearTaxBreakdown: $fullYearBreakdown,
         );
     }
 

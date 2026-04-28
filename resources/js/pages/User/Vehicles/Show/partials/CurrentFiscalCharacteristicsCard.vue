@@ -3,6 +3,16 @@ import { computed } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
+import {
+    bodyTypeLabel,
+    energySourceLabel,
+    euroStandardLabel,
+    homologationMethodLabel,
+    pollutantCategoryLabel,
+    receptionCategoryLabel,
+    underlyingCombustionEngineTypeLabel,
+    vehicleUserTypeLabel,
+} from '@/Utils/labels/vehicleEnumLabels';
 
 const props = defineProps<{
     fiscal: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData | null;
@@ -38,17 +48,17 @@ const stats = computed<{ value: string; label: string }[]>(() => {
     }
 
     const items: { value: string; label: string }[] = [
-        { value: f.receptionCategory, label: 'Catégorie réception' },
-        { value: f.vehicleUserType, label: "Type d'usage" },
-        { value: f.bodyType, label: 'Carrosserie' },
-        { value: f.energySource, label: 'Énergie' },
-        { value: f.homologationMethod, label: 'Méthode homologation' },
-        { value: f.pollutantCategory, label: 'Catégorie polluants' },
+        { value: receptionCategoryLabel[f.receptionCategory], label: 'Catégorie réception' },
+        { value: vehicleUserTypeLabel[f.vehicleUserType], label: "Type d'usage" },
+        { value: bodyTypeLabel[f.bodyType], label: 'Carrosserie' },
+        { value: energySourceLabel[f.energySource], label: 'Énergie' },
+        { value: homologationMethodLabel[f.homologationMethod], label: 'Méthode homologation' },
+        { value: pollutantCategoryLabel[f.pollutantCategory], label: 'Catégorie polluants' },
         { value: `${f.seatsCount}`, label: 'Places assises' },
     ];
 
     if (f.euroStandard) {
-        items.push({ value: f.euroStandard, label: 'Norme Euro' });
+        items.push({ value: euroStandardLabel[f.euroStandard], label: 'Norme Euro' });
     }
 
     if (co2Display.value) {
@@ -57,6 +67,13 @@ const stats = computed<{ value: string; label: string }[]>(() => {
 
     if (f.kerbMass !== null) {
         items.push({ value: `${f.kerbMass} kg`, label: 'Masse à vide' });
+    }
+
+    if (f.underlyingCombustionEngineType) {
+        items.push({
+            value: underlyingCombustionEngineTypeLabel[f.underlyingCombustionEngineType],
+            label: 'Moteur thermique sous-jacent',
+        });
     }
 
     return items;
