@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\Vehicle;
 
+use App\Actions\Vehicle\CreateVehicleAction;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Models\Vehicle;
 
 /**
- * Écritures sur le domaine Vehicle.
+ * Écritures sur l'entité Vehicle stricto sensu.
  *
- * Encapsule la création transactionnelle d'un véhicule + sa première
- * période de caractéristiques fiscales (R4 d'ADR-0013 : repositories
- * possèdent les transactions liées à leurs entités).
+ * Ne porte plus la transaction « Vehicle + caractéristiques fiscales »
+ * — l'orchestration multi-entités est désormais à la charge de
+ * {@see CreateVehicleAction} (ADR-0013 R3 :
+ * tout enchaînement de plusieurs services/repositories autour d'une
+ * décision métier appartient à la couche Action).
  */
 interface VehicleWriteRepositoryInterface
 {
     /**
-     * Crée le véhicule + ses caractéristiques fiscales initiales dans
-     * une transaction atomique. Retourne l'instance créée.
+     * Persiste un véhicule sans toucher à son historique fiscal.
      */
-    public function createWithInitialFiscalCharacteristics(StoreVehicleData $data): Vehicle;
+    public function create(StoreVehicleData $data): Vehicle;
 }

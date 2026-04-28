@@ -10,6 +10,7 @@ use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Repositories\User\Assignment\AssignmentReadRepository;
@@ -18,6 +19,7 @@ use App\Repositories\User\Company\CompanyReadRepository;
 use App\Repositories\User\Company\CompanyWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
+use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepository;
 use App\Repositories\User\Vehicle\VehicleReadRepository;
 use App\Repositories\User\Vehicle\VehicleWriteRepository;
 use Illuminate\Support\ServiceProvider;
@@ -46,6 +48,7 @@ final class RepositoryServiceProvider extends ServiceProvider
         VehicleReadRepositoryInterface::class => VehicleReadRepository::class,
         VehicleWriteRepositoryInterface::class => VehicleWriteRepository::class,
         VehicleFiscalCharacteristicsReadRepositoryInterface::class => VehicleFiscalCharacteristicsReadRepository::class,
+        VehicleFiscalCharacteristicsWriteRepositoryInterface::class => VehicleFiscalCharacteristicsWriteRepository::class,
 
         // Company
         CompanyReadRepositoryInterface::class => CompanyReadRepository::class,

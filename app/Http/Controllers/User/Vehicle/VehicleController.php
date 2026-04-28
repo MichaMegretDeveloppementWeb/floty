@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Vehicle;
 
-use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
+use App\Actions\Vehicle\CreateVehicleAction;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Data\User\Vehicle\VehicleFormOptionsData;
 use App\Enums\Vehicle\BodyType;
@@ -26,7 +26,7 @@ final class VehicleController extends Controller
 {
     public function __construct(
         private readonly VehicleQueryService $vehicles,
-        private readonly VehicleWriteRepositoryInterface $vehicleWrite,
+        private readonly CreateVehicleAction $createVehicle,
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
@@ -56,7 +56,7 @@ final class VehicleController extends Controller
 
     public function store(StoreVehicleData $data): RedirectResponse
     {
-        $this->vehicleWrite->createWithInitialFiscalCharacteristics($data);
+        $this->createVehicle->execute($data);
 
         return redirect()
             ->route('user.vehicles.index')
