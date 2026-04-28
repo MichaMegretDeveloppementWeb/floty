@@ -10,6 +10,125 @@
 
 ---
 
+## 2026-04-28
+
+### Phase 03 — Authentification custom complétée + chantier de durcissement applicatif
+
+Trois passes successives sur le code existant pour le mettre au standard architecture stricte avant d'attaquer le développement métier (phase 04+) :
+
+**Phase 03.bis — Refonte Auth ADR-0013** (commit `bf44eb3`).
+La logique métier de l'authentification (rate-limit double couche, tentative `Auth::attempt`, mise à jour `last_login_at`) vivait dans `LoginRequest::authenticate()`. Extraction en :
+
+- `LoginAttemptService` (`app/Services/Auth/`) — gestion isolée des compteurs RateLimiter (5 tentatives/email+IP/15 min, 50 tentatives/IP/15 min). Testable sans HTTP.
+- `LoginAction` (`app/Actions/Auth/`) — orchestration pure : ensureNotRateLimited → Auth::attempt → trace last_login_at. `final readonly`.
+- `InvalidCredentialsException` + `TooManyLoginAttemptsException` (`app/Exceptions/Auth/`) — typées `BaseAppException`, factories statiques + messages français.
+- `LoginRequest` réduit à `authorize()` + `rules()`. `LoginController::store` injecte l'Action et catch les exceptions métier en `ValidationException` pour préserver l'UX field-level (erreur sous l'input email plutôt qu'en toast).
+- Page Login extraction `Partials/LoginForm.vue` (cohérence pattern autres pages).
+- 17 tests nouveaux (7 Feature LoginFlow + 4 Unit Service + 6 Unit Action). Aucune régression sécurité — la double protection ADR-0011 est préservée à l'identique.
+
+**Phase 03.ter — Extraction CreateVehicleAction** (commit `ef8e75e`).
+Audit déclenché par une remarque client : `app/Actions/` ne contenait que `Auth/`, ce qui interrogeait la cohérence du pattern. Audit complet a confirmé que la majorité des controllers/services étaient déjà conformes, mais identifié un cas non-conforme : `VehicleWriteRepository::createWithInitialFiscalCharacteristics()` orchestrait Vehicle + VehicleFiscalCharacteristics dans une transaction **dans la couche Repository**.
+
+Refonte :
+- Création `VehicleFiscalCharacteristicsWriteRepository` (interface + impl) avec méthode unique `createInitialVersion()`.
+- `VehicleWriteRepository::create()` slim à la persistence Vehicle seule.
+- Nouvelle `CreateVehicleAction` (`app/Actions/Vehicle/`) — `DB::transaction` qui enchaîne les 2 repos, avec `effective_from = vehicle.acquisition_date` et `change_reason = InitialCreation`. La règle métier « toute création de véhicule entraîne la création de la première version fiscale » remonte de la couche Repository à la couche Action.
+- 4 tests Unit (création atomique, alignement effective_from, uppercase plaque, rollback transactionnel via mock).
+
+**Phase 03.quater — Conformité chaîne stricte Controller→Action→Service→Repository** (commit `6901a29`).
+Le client a explicitement formalisé 3 règles d'or après deux audits où des fuites architecturales avaient été ratées :
+
+- **R1** — Sens unique vers le bas : une couche ne peut JAMAIS contenir le rôle d'une couche au-dessus.
+- **R2** — Skip vers le bas si l'intermédiaire est un passe-plat.
+- **R3** — Orchestrer dès qu'il y a plusieurs appels coordonnés (transaction, dépendance, agrégation). La composition de payload Inertia simple `['key1' => $service1->get(), 'key2' => $service2->get()]` reste de la présentation HTTP (rôle controller, pas orchestration).
+
+Audit déclenché : 3 catégories de violations identifiées et corrigées sur tout le code existant.
+
+- **Bloc 1 — Slim AssignmentReadRepository + AssignmentQueryService** : le repo composait 4 DTOs (AnnualCumulByPair, weekDensity, VehicleDatesData, dates strings) avec calculs Carbon et agrégations par clé composite. Tout migré dans le nouveau Service. Repo retourne maintenant uniquement des Collections / raw rows. 5 consommateurs mis à jour (controller + 4 services).
+- **Bloc 2 — BulkCreateAssignmentsAction + slim Write repo** : le repo shape les rows (driver_id=null par défaut, timestamps unifiés) — décisions métier remontées dans une Action. Repo réduit à `insertManyRows(array)`. PlanningController::storeBulk injecte l'Action.
+- **Bloc 3 — Normalisation licensePlate déplacée** : `mb_strtoupper` du repo Vehicle vers `StoreVehicleData::prepareForPipeline()`. Sécurise l'unicité (Rule::unique testée sur la valeur normalisée).
+- **Bloc 4 — Query DTOs Spatie Data** : `VehicleDatesQueryData` + `WeekQueryData` remplacent la validation manuelle de query params dans `AssignmentController::vehicleDates` et `PlanningController::week`. Validation auto + types TS générés.
+
+11 tests nouveaux (4 service + 3 action + 4 data) — **165/165 PHP, 21/21 Vitest, build OK**. 0 régression fonctionnelle, 0 changement BDD. ADR-0013 à mettre à jour pour refléter le durcissement (R3-bis abrogée + ajout principe P4).
+
+État final des couches après chantier :
+
+- **Actions** : `Auth/LoginAction`, `Vehicle/CreateVehicleAction`, `Assignment/BulkCreateAssignmentsAction`
+- **Services Query** : 12 services, tous purs composition/transformation, ZÉRO SQL direct
+- **Repositories** : tous slim, ZÉRO transformation, ZÉRO décision métier
+
+Décisions client documentées en mémoire (pour persistance inter-sessions) :
+
+- **Vue planning par entreprise** (phase 05) : heatmap dédiée à chaque entreprise + wizard pré-sélectionné verrouillé.
+- **Attribution conducteur unifiée** (phase 06) : intégration cohérente aux 3 modes d'attribution existants (rapide, wizard global, wizard par entreprise).
+
+## 2026-04-27
+
+### Phases 1.8 → 1.10.bis — Refonte moteur fiscal V1 + complétion 2024 + future-proofing 2025
+
+**Phase 1.8 — Refonte moteur fiscal V1 (architecture ADR-0006)** (commit `94731d8`).
+Le `FiscalCalculator` MVP démo était monolithique : un service unique qui contenait toutes les règles 2024 hard-codées. Refonte alignée sur ADR-0006 (« logique en code, métadonnées en base ») :
+
+- 5 sous-types de règles (`ClassificationRule`, `PricingRule`, `ExemptionRule`, `AbatementRule`, `TransversalRule`) — interfaces dans `app/Fiscal/Contracts/`.
+- `FiscalPipeline` à 8 étapes (validate → load fiscal characteristics → classify → exempt → abate → price → apply exemptions to tariffs → transversal → build result). Pipeline pur, immuable, contexte transmis via `PipelineContext::copyWith()`.
+- `FiscalRuleRegistry` (singleton) avec mapping `year → list<class-string<FiscalRule>>`. Container Laravel résout chaque classe en instance.
+- `FiscalYearResolver` — résolution de l'année active **par session** (plus de config partagée entre tous les utilisateurs, qui produisait un effet de bord global lors d'un changement d'année).
+- `FleetFiscalAggregator` — séparation calcul individuel (FiscalPipeline) vs aggrégation flotte (somme par redevable, arrondi R-2024-003 au niveau redevable).
+- `FiscalCalculator` legacy conservée comme **façade** pour limiter le rayon de blast — les consommateurs historiques (WeekDetailService, FleetFiscalAggregator) gardent leur API existante, l'exécution réelle passe par le nouveau pipeline.
+
+**Phase 1.9 — Complétion 2024 + fix R-003** (commit `9112835`).
+Ajout des règles 2024 manquantes (16 classes au total) + fix sémantique critique :
+
+- Anciennement : l'arrondi half-up était appliqué **par couple (véhicule × entreprise)** dans le `FiscalCalculator`. R-2024-003 BOFiP exige un arrondi **par redevable** (cumul de tous les véhicules d'une entreprise puis arrondi unique).
+- Refonte : `FleetFiscalAggregator::companyAnnualTax()` cumule les montants raw (`co2DueRaw` + `pollutantsDueRaw`) sur tous les couples, puis arrondit. Le `PipelineResult` expose désormais à la fois `co2DueRaw`/`co2Due` et `pollutantsDueRaw`/`pollutantsDue` pour permettre cette double sémantique selon le consommateur.
+- 7 règles structurelles (R-001 validation entrée, R-002 prorata, R-003 arrondi, R-004 totaux, R-005/006 aiguillage CO₂, R-008 fourrière) explicitement documentées.
+
+**Phase 1.10 — Future-proofing extensibilité registry** (commit `83b175d`).
+Validation que le `FiscalRuleRegistry` accepte n'importe quelle année future sans toucher au code Year2024 :
+
+- Refactor `FiscalServiceProvider` : extraction `registerYear2024()` pour rendre l'ajout d'une année future plus lisible (1 ligne à ajouter dans `register()`).
+- Test Feature `FiscalRegistryExtensibilityTest` : prouve sans toucher au code de production que le registry accepte une année arbitraire (2099 utilisée comme fake), que le pipeline tourne avec, et que le resolver peut basculer en session.
+- Documentation procédurale : `taxes-rules/_adding-a-new-year.md` — checklist concrète d'ajout d'une nouvelle année fiscale.
+- Validation manuelle hors commit : Year2025 créé temporairement, testé via `tinker`, supprimé. Le registry est prêt à recevoir 2025/2026/etc. sans toucher à un seul fichier Year2024.
+
+**Phase 1.10.bis — Validations finales E2E BOFiP** (commit `bfc5a87`).
+Cas BOFiP référencés implémentés en tests bout-en-bout pour prouver que les montants produits par le pipeline complet correspondent **strictement** aux exemples publiés par l'administration :
+
+- BOFiP § 230 ex. 2 : véhicule M1 essence Euro 6 WLTP 100 g/km, 306 jours → 144,64 € (cité explicitement).
+- R-2024-002 Skoda 183 j → polluants 50,00 € (prorata exact 0,5).
+- R-2024-021 LCD 30 j strict → exonération totale ; cas frontière 31 j → plus exonéré.
+- R-2024-003 ACME 2 véhicules → 303 € à l'euro (302,84 € à 2 décimales côté Aggregator, 303 € côté action de déclaration phase 11+).
+
+133/133 tests verts à la fin du chantier.
+
+## 2026-04-26
+
+### Phases 1.7 + 1.7.5 — Conformité 100% ADR-0013 + gestion d'erreurs systématique
+
+**Phase 1.7 — Conformité 100% ADR-0013** (commit `6fa474b`).
+Audit ADR-0013 sur tout le code existant : 100% conforme côté Repositories (toutes les requêtes Eloquent non-triviales étaient déjà extraites). Corrections frontend identifiées et appliquées :
+
+- Refactor des composables qui contenaient encore de la logique de fetch directe.
+- Pages Vue purifiées (zéro logique réactive non triviale, délégation systématique aux composables).
+- Sweep Wayfinder : suppression des dernières URLs hardcodées.
+
+**Phase 1.7.5 — Gestion d'erreurs systématique**.
+- Création `BaseAppException` racine avec séparation `getMessage()` (technique anglais → logs) vs `getUserMessage()` (français → flash/toast).
+- Migration des exceptions existantes vers le pattern factory statique (`yearNotSupported(int $year)` au lieu d'instanciation directe).
+- Handler global dans `bootstrap/app.php` : render JSON 422 pour requêtes Ajax (`message` + `code`), back() avec flash `toast-error` pour visites Inertia.
+- Pages d'erreur Inertia (404/500/503) en non-local et non-testing — Whoops conservé en local pour le debug.
+
+## 2026-04-25
+
+### Phase 1.6 — Consolidation architecture senior (ADR-0013 + 7 corrections)
+
+**Phase 1.6** (commit antérieur).
+- Rédaction de l'ADR-0013 (architecture applicative — règles strictes V1) après le chantier 1.5 de durcissement initial. Formalisation de R1 à R14 (Controller minimal, Action vs Service, Repository obligatoire, DTOs exposés vs internes, etc.).
+- 7 corrections d'écarts identifiés à l'audit : extraction des derniers controllers qui contenaient de la logique métier, slim des services qui faisaient des `Inertia::render` (interdit hors controller), etc.
+- Mise en place du `RepositoryServiceProvider` pour le binding Contract → Implémentation systématique.
+
+---
+
 ## 2026-04-24 (soir — suite 6)
 
 ### MVP démo client — itération 2 (dashboard + tableaux agrégés)

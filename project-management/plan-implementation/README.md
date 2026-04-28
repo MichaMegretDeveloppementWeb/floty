@@ -73,22 +73,24 @@ Liens ADR, règles, fiches.
 
 ## Les 14 phases
 
-| # | Phase | Objet | Dépendances |
-|---|---|---|---|
-| **00** | [`phase-00-init`](tasks/phase-00-init/) | Installation Laravel 13 + Vue Starter Kit, configuration tooling (Pint, Pail, Boost, Wayfinder, Vitest, Spatie Data, TS Transformer), dépôt Git, pipeline CI/CD | — |
-| **01** | [`phase-01-fondations-backend`](tasks/phase-01-fondations-backend/) | Structure dossiers `app/` (Actions, Services, Repositories, Data, Contracts, Enums, Exceptions), `BaseAppException`, `RepositoryServiceProvider`, conventions Eloquent, Laravel Pint config | 00 |
-| **02** | [`phase-02-design-system-ui-kit`](tasks/phase-02-design-system-ui-kit/) | Traduction du `design-system/` en tokens Tailwind 4 (`@theme`), Layouts `WebLayout`/`UserLayout`, UI Kit custom (Button, Input, Modal, Drawer, Toast, Badge, Card, Table, DataTable), composables `useToast` | 01 |
-| **03** | [`phase-03-auth`](tasks/phase-03-auth/) | Migration `users`, `LoginController`/`LoginAction`, `StoreLoginRequest`, Page Login Vue, middleware `auth`, seeder `DemoUserSeeder` | 01, 02 |
-| **04** | [`phase-04-vehicle`](tasks/phase-04-vehicle/) | Migrations `vehicles` + `vehicle_fiscal_characteristics` (avec triggers MySQL anti-chevauchement), Models, Enums Vehicle (`VehicleUserType`, `EnergySource`, `HomologationMethod`, etc.), Data DTO (4 variantes), Actions / Services / Repositories, FormRequests, Controller, Policy, Pages Index/Show/Create/Edit avec Partials | 01, 02, 03 |
-| **05** | [`phase-05-company`](tasks/phase-05-company/) | Migration `companies`, Model, Data, Actions (Create/Update/Deactivate), Service, Controller, Pages CRUD | 04 |
-| **06** | [`phase-06-driver`](tasks/phase-06-driver/) | Migration `drivers`, Model, Data, Actions (incluant `ReplaceDriverAction`), Services, Controller, Pages | 05 |
-| **07** | [`phase-07-assignment`](tasks/phase-07-assignment/) | Migration `assignments` avec colonne générée pour `UNIQUE(vehicle_id, date) WHERE deleted_at IS NULL`, Model, Data, Actions (incluant `BulkSaveWeeklyAssignmentsAction`), `LcdCumulReadRepository`, `LcdCumulCalculationService`, Controller | 04, 05, 06 |
-| **08** | [`phase-08-unavailability`](tasks/phase-08-unavailability/) | Migration `unavailabilities` avec CHECK `has_fiscal_impact = (type = 'pound')`, Model, Data, Actions, Services, Controller, Pages | 04, 07 |
-| **09** | [`phase-09-planning`](tasks/phase-09-planning/) | Vue `Planning/Heatmap` (100 × 52 cellules, `shallowRef`, `v-memo`), `WeeklyEntry` (saisie tableur multi-cellules), `ByCompany` avec compteur LCD temps réel, `ByVehicle` (timeline 52 semaines colorées), Wizard attribution rapide (3 étapes) | 07, 08 |
-| **10** | [`phase-10-fiscal-engine`](tasks/phase-10-fiscal-engine/) | Migration `fiscal_rules`, interface `FiscalRule` + 5 sous-types (`ClassificationRule`, `TarificationRule`, `ExonerationRule`, `AbatementRule`, `TransversalRule`), `FiscalRulePipeline` (8 étapes), `FiscalRuleEngine`, `FiscalRuleRegistry`, seeder des 24 règles 2024 (`Rules2024Seeder`), tests unitaires par règle | 04, 07 |
-| **11** | [`phase-11-declarations`](tasks/phase-11-declarations/) | Migrations `declarations` + `declaration_pdfs`, Actions (`CalculateDeclarationAction`, `ChangeDeclarationStatusAction`, `DetectDeclarationInvalidationAction`), `DeclarationInvalidationDetector`, Controllers, Pages `Declarations/Index` et `Show` (avec historique PDF + badge invalidation), page `FiscalRules` lecture-seule | 10 |
-| **12** | [`phase-12-pdf`](tasks/phase-12-pdf/) | `DeclarationPdfRenderer` (wrapper DomPDF), template HTML/CSS compatible DomPDF (sans flex/grid), `DeclarationSnapshotService`, `DeclarationPdfStorage` (filesystem local), hash SHA-256 snapshot + PDF, `GenerateDeclarationPdfAction` avec transaction Laravel | 11 |
-| **13** | [`phase-13-livraison`](tasks/phase-13-livraison/) | Dashboard KPI, barre de recherche globale, pages publiques (`Home`, `MentionsLegales`), pages d'erreur Inertia (404, 500, 503), audit Lighthouse + correctifs, checklist livraison client, déploiement Hostinger Business + pipeline CI/CD effectif | 11, 12 |
+> **État au 28/04/2026** : phases 00 → 03 livrées et conformes ADR-0013 (chantier de durcissement architectural 1.6 → 03.quater inclus). Phase 10 (moteur fiscal) anticipée et livrée hors séquence dans le cadre du MVP démo client (1.8 → 1.10.bis). Phase 04 démarrant.
+
+| # | Phase | Objet | Dépendances | Statut |
+|---|---|---|---|---|
+| **00** | [`phase-00-init`](tasks/phase-00-init/) | Installation Laravel 13 + Vue Starter Kit, configuration tooling (Pint, Pail, Boost, Wayfinder, Vitest, Spatie Data, TS Transformer), dépôt Git, pipeline CI/CD | — | ✅ Terminée |
+| **01** | [`phase-01-fondations-backend`](tasks/phase-01-fondations-backend/) | Structure dossiers `app/` (Actions, Services, Repositories, Data, Contracts, Enums, Exceptions), `BaseAppException`, `RepositoryServiceProvider`, conventions Eloquent, Laravel Pint config | 00 | ✅ Terminée |
+| **02** | [`phase-02-design-system-ui-kit`](tasks/phase-02-design-system-ui-kit/) | Traduction du `design-system/` en tokens Tailwind 4 (`@theme`), Layouts `WebLayout`/`UserLayout`, UI Kit custom (Button, Input, Modal, Drawer, Toast, Badge, Card, Table, DataTable), composables `useToast` | 01 | ✅ Terminée |
+| **03** | [`phase-03-auth`](tasks/phase-03-auth/) | Migration `users`, `LoginController`/`LoginAction`, `LoginRequest`, Page Login Vue, middleware `auth`, seeder `UserSeeder`, tests Feature/Unit | 01, 02 | ✅ Terminée le 28/04/2026 |
+| **04** | [`phase-04-vehicle`](tasks/phase-04-vehicle/) | Migrations + Models + Enums + DTOs + Actions Create/Update/Delete + historisation fiscale (CreateNewEffectiveVersion + CorrectExistingVersion) + invariants service + Pages Index/Show/Create/Edit + Policy + tests | 01, 02, 03 | 🚧 En cours (5 sous-blocs A→E) |
+| **05** | [`phase-05-company`](tasks/phase-05-company/) | CRUD complet + **vue planning par entreprise** (heatmap dédiée + wizard pré-sélectionné verrouillé) | 04 | À faire |
+| **06** | [`phase-06-driver`](tasks/phase-06-driver/) | CRUD + **attribution conducteur unifiée** (intégration cohérente aux 3 modes existants : rapide, wizard global, wizard par entreprise) | 05 | À faire |
+| **07** | [`phase-07-assignment`](tasks/phase-07-assignment/) | Compléter le domaine Assignment (déjà partiellement livré en MVP démo) — slim cumul LCD via `LcdCumulCalculationService` | 04, 05, 06 | Partiellement (MVP démo) |
+| **08** | [`phase-08-unavailability`](tasks/phase-08-unavailability/) | CRUD Unavailability + intégration heatmap | 04, 07 | À faire |
+| **09** | [`phase-09-planning`](tasks/phase-09-planning/) | Vues Planning Heatmap (livré MVP démo) + `ByCompany` + `ByVehicle` + Wizard attribution rapide | 07, 08 | Partiellement (MVP démo + chantier 03.quater) |
+| **10** | [`phase-10-fiscal-engine`](tasks/phase-10-fiscal-engine/) | Moteur de règles ADR-0006 complet (5 sous-types, FiscalPipeline 8 étapes, FiscalRuleRegistry, 16 règles 2024) + extensibilité multi-années + validations BOFiP | 04, 07 | ✅ Anticipée — livrée 1.8 → 1.10.bis |
+| **11** | [`phase-11-declarations`](tasks/phase-11-declarations/) | Migrations `declarations` + `declaration_pdfs`, Actions (`CalculateDeclarationAction`, `ChangeDeclarationStatusAction`, `DetectDeclarationInvalidationAction`), `DeclarationInvalidationDetector`, Controllers, Pages `Declarations/Index` et `Show` (avec historique PDF + badge invalidation), page `FiscalRules` lecture-seule | 10 | À faire |
+| **12** | [`phase-12-pdf`](tasks/phase-12-pdf/) | `DeclarationPdfRenderer` (wrapper DomPDF), template HTML/CSS compatible DomPDF (sans flex/grid), `DeclarationSnapshotService`, `DeclarationPdfStorage` (filesystem local), hash SHA-256 snapshot + PDF, `GenerateDeclarationPdfAction` avec transaction Laravel | 11 | À faire |
+| **13** | [`phase-13-livraison`](tasks/phase-13-livraison/) | Dashboard KPI, barre de recherche globale, pages publiques (`Home`, `MentionsLegales`), pages d'erreur Inertia (404, 500, 503), audit Lighthouse + correctifs, checklist livraison client, déploiement Hostinger Business + pipeline CI/CD effectif | 11, 12 | À faire |
 
 ---
 

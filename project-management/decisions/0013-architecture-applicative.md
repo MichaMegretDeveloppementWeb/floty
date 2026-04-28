@@ -1,6 +1,7 @@
 # ADR-0013 — Architecture applicative (règles strictes V1)
 
 **Statut** : Acceptée le 2026-04-27 (après chantier de durcissement 1.5).
+**Durcissement** : 2026-04-28 — abrogation R3-bis (les services ne font plus jamais de SQL) + ajout du principe **P4 — Chaîne stricte des couches** avec règles d'orchestration O1/O2/O3 (cf. chantier 03.quater).
 
 **Contexte** : suite à la livraison du MVP démo + au chantier
 1.5 (durcissement architecture vers V1), un audit a révélé
@@ -45,6 +46,37 @@ une feature.
 | Repository (queries) | useApi / composable de fetch |
 | DTO (Data + DTO) | Type généré (App.Data.*) |
 
+### P4 — Chaîne stricte des couches (ajouté en 03.quater)
+
+Pile descendante stricte : **Controller (1) → Action (2) → Service (3) → Repository (4)**.
+
+Trois règles d'orchestration encadrent les transitions entre couches :
+
+#### O1 — Sens unique vers le bas
+Une couche ne peut **jamais** contenir le rôle d'une couche au-dessus.
+
+- Repository ne décide rien, ne transforme rien (zéro `array_map`/composition de DTO complexe), n'orchestre rien.
+- Service n'orchestre pas (au sens « plusieurs appels coordonnés avec décision »).
+- Action ne fait pas d'HTTP (`Inertia::render`, `response()->json`).
+
+#### O2 — Skip vers le bas si l'intermédiaire est un passe-plat
+Si une couche intermédiaire n'apporterait strictement rien (juste `return $next->call()`), on la saute.
+
+- Controller peut appeler directement un Repo si le repo fait le travail tout seul, sans transformation ni orchestration (ex. `CompanyController::store → CompanyWriteRepository::create`).
+- Controller peut appeler directement un Service quand l'Action serait juste `return $service->...()`.
+- Action peut appeler directement un Repo quand le Service serait juste `return $repo->...()`.
+
+#### O3 — Orchestrer dès qu'il y a plusieurs appels coordonnés
+Dès qu'on enchaîne plusieurs appels (services, repos, ou mix) avec **coordination** (transaction, dépendance entre les retours, décision conditionnelle, agrégation), on passe par une Action.
+
+**Exception pragmatique** : la composition de payload Inertia type `['key1' => $service1->get(), 'key2' => $service2->get()]` reste de la présentation HTTP — c'est le rôle du controller, pas une orchestration métier (ex. `AssignmentController::index` qui charge en parallèle vehicles + companies options).
+
+#### Conséquences
+
+- R3-bis (« Service trivial » avec query Eloquent) est **abrogée** : les services ne contiennent plus jamais de SQL, période. Toute requête BDD vit dans un Repository.
+- Tout enchaînement multi-services ou multi-repos passe par une Action explicite (ex. `LoginAction`, `CreateVehicleAction`, `BulkCreateAssignmentsAction`).
+- Les Query Services restent justifiés dès qu'il y a composition de DTO (mapping `Collection<Model> → DataCollection<DTO>`) ou calcul (groupBy applicatif, density, etc.).
+
 ---
 
 ## Règles backend
@@ -68,32 +100,30 @@ une feature.
 ### R3 — Service = logique métier pure d'un domaine
 - Méthodes liées à un domaine cohérent (ex.
   `VehicleQueryService::listForFleetView`,
+  `AssignmentQueryService::loadAnnualCumul`,
   `FiscalCalculator::calculate`)
-- **Pas de query BDD** (sauf trivial — voir R3-bis)
+- **Aucune query BDD** (durcissement 03.quater — voir P4)
 - Pas d'orchestration multi-domaines (c'est le rôle de
   l'Action)
+- Toute requête Eloquent passe par un Repository, sans exception
 
-### R3-bis — Exception « Service trivial »
-Un service peut contenir une requête Eloquent **uniquement
-si TOUTES** ces 5 conditions sont remplies :
+### ~~R3-bis — Exception « Service trivial »~~ (ABROGÉE en 03.quater)
 
-1. **Une seule requête** (pas de query composées)
-2. **Pas de joins** (`->with()` simple OK, mais pas
-   `whereHas`, pas de subquery, pas d'eager-load conditionnel)
-3. **Pas d'agrégation** (`groupBy`, `selectRaw COUNT/SUM`,
-   `having`)
-4. **Pas de eager-loading conditionnel** (`with(['rel' => fn
-   ($q) => $q->where(...)])` interdit ici)
-5. **Mapping DTO direct** sans transformation conditionnelle
-   (juste `->map(fn (X $x) => new XData(...))`)
+**Abrogation** : R3-bis autorisait une requête Eloquent dans un
+Service sous 5 conditions cumulatives. La règle créait une zone
+grise propice aux mauvaises interprétations (« est-ce qu'un
+`whereNull('effective_to')` compte comme eager-load conditionnel ? »).
 
-Si **une seule** condition tombe → **Repository obligatoire**.
+Le principe **P4** (chaîne stricte des couches, ajouté en 03.quater)
+tranche : un Service ne contient **plus jamais** de SQL, point final.
+Toute requête BDD vit dans un Repository, et le Service consomme la
+Collection / les modèles bruts retournés pour composer son DTO.
 
-Exemples :
-- ✅ OK dans le service :
-  `FiscalRule::query()->where('fiscal_year', $year)->orderBy('display_order')->get()->map(fn (...) => new XxxData(...))`
-- ❌ Repository obligatoire :
-  `Vehicle::query()->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])->whereIn('id', $ids)->get()->keyBy('id')`
+Conséquence pratique : l'exemple historiquement cité comme « OK dans
+le service » (`FiscalRule::query()->where('fiscal_year', $year)->orderBy('display_order')->get()->map(fn (...) => new XxxData(...))`)
+est désormais **interdit** dans un Service. La requête doit vivre
+dans un Repository, le Service consomme la Collection brute pour
+produire le DTO.
 
 ### R4 — Repository = queries BDD
 - Toutes les requêtes Eloquent non-triviales (R3-bis)
@@ -291,6 +321,33 @@ ces règles à l'existant :
 
 Tous les checks doivent rester verts (Pint, ESLint, vue-tsc,
 PHPUnit 85/85, Vitest 19/19, build).
+
+## Validation par le chantier 03.quater (durcissement P4)
+
+Le chantier 03.quater (28/04/2026) applique le principe **P4 — Chaîne
+stricte des couches** à l'ensemble du code existant :
+
+- Slim de `AssignmentReadRepository` : composition de DTOs
+  (`AnnualCumulByPair`, `weekDensity`, `VehicleDatesData`) extraite
+  vers `AssignmentQueryService`.
+- Création `BulkCreateAssignmentsAction` : décisions métier
+  (`driver_id` par défaut, timestamps unifiés) extraites du repo
+  Write, qui ne fait plus que `insertManyRows(array)`.
+- Normalisation `licensePlate` déplacée du repo vers
+  `StoreVehicleData::prepareForPipeline()` (avant validation, ce qui
+  sécurise l'unicité applicative).
+- Query DTOs Spatie Data (`VehicleDatesQueryData`, `WeekQueryData`)
+  remplacent la validation manuelle de query params dans 2 controllers.
+
+État final :
+- **Actions** : `Auth/LoginAction`, `Vehicle/CreateVehicleAction`,
+  `Assignment/BulkCreateAssignmentsAction`.
+- **12 Services** : tous purs composition/transformation, ZÉRO SQL
+  direct.
+- **Repositories** : tous slim, ZÉRO transformation, ZÉRO décision
+  métier.
+
+Tous les checks restent verts : 165/165 PHP, 21/21 Vitest, build OK.
 
 ---
 

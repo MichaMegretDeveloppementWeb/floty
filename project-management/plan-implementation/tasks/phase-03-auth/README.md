@@ -1,5 +1,9 @@
 # Phase 03 — Authentification custom
 
+> **Statut** : ✅ Terminée le 28/04/2026
+> **Commits** : `bf44eb3` (refonte ADR-0013) + `ef8e75e` (CreateVehicleAction extraction) + `6901a29` (chaîne stricte O1/O2/O3)
+> **Couverture tests** : 165/165 PHP, 21/21 Vitest
+
 ## Objectif de la phase
 
 Implémenter l'authentification Floty V1 **sans starter kit auth** (cf. ADR-0008 : pas de Breeze, pas de Jetstream). Login simple email + mot de passe, pas de rôles V1, pas de reset libre-service, création de comptes uniquement par seeders.
@@ -12,19 +16,19 @@ Phase 01 + 02 terminées.
 
 | N° | Tâche | Statut |
 |---|---|---|
-| 03.01 | [Migration `users` (email, password, first_name, last_name, email_verified_at, remember_token, created_at/updated_at/deleted_at)](01-migration-users.md) | À faire |
-| 03.02 | [Model `User` (HasApiTokens non nécessaire V1, SoftDeletes, hidden password)](02-user-model.md) | À faire |
-| 03.03 | [DTO `CurrentUserData` (Spatie Data, id + first_name + last_name + email)](03-current-user-data.md) | À faire |
-| 03.04 | [FormRequest `LoginRequest` (validation email/password)](04-login-request.md) | À faire |
-| 03.05 | [Action `LoginAction` (tentative auth, rate limit, throw `InvalidCredentialsException`)](05-login-action.md) | À faire |
-| 03.06 | [Service `LoginAttemptService` (gestion des tentatives + rate limiting)](06-login-attempt-service.md) | À faire |
-| 03.07 | [Exception `InvalidCredentialsException` (message français)](07-invalid-credentials-exception.md) | À faire |
-| 03.08 | [Controller `Web/Auth/LoginController` (show, store, destroy)](08-login-controller.md) | À faire |
-| 03.09 | [Page Inertia `Pages/Web/Auth/Login/Login.vue` + Partials (formulaire)](09-login-page.md) | À faire |
-| 03.10 | [Routes `routes/auth.php` (GET /login, POST /login, POST /logout)](10-auth-routes.md) | À faire |
-| 03.11 | [Middleware groups + redirection par défaut post-login (/app/dashboard)](11-auth-middleware.md) | À faire |
-| 03.12 | [Seeder `DemoUserSeeder` (crée un user admin pour tester)](12-demo-user-seeder.md) | À faire |
-| 03.13 | [Tests Feature (login réussi, login échoué, logout, redirection)](13-auth-tests.md) | À faire |
+| 03.01 | Migration `users` (email, password, first_name, last_name, email_verified_at, remember_token, created_at/updated_at/deleted_at + extras `must_change_password`, `last_login_at`) | ✅ Phase 1.bis |
+| 03.02 | Model `User` (SoftDeletes, hidden password, accessor `fullName`) | ✅ Phase 1.bis |
+| 03.03 | DTO `CurrentUserData` (Spatie Data, id + firstName + lastName + fullName + email) | ✅ Phase 1.2 |
+| 03.04 | FormRequest `LoginRequest` (slim — validation email/password uniquement) | ✅ 03.bis |
+| 03.05 | Action `LoginAction` (rate-limit → Auth::attempt → trace last_login_at, throw `InvalidCredentialsException` ou `TooManyLoginAttemptsException`) | ✅ 03.bis |
+| 03.06 | Service `LoginAttemptService` (double rate-limit ADR-0011, 5/email+IP/15min, 50/IP/15min) | ✅ 03.bis |
+| 03.07 | Exception `InvalidCredentialsException` + `TooManyLoginAttemptsException` (typées `BaseAppException`, factories statiques, messages français) | ✅ 03.bis |
+| 03.08 | Controller `Auth/LoginController` (show, store, destroy) — DI Action + try/catch en `ValidationException` pour UX field-level | ✅ 03.bis |
+| 03.09 | Page Inertia `Pages/Auth/Login/Index.vue` + `Partials/LoginForm.vue` | ✅ 03.bis |
+| 03.10 | Routes `routes/auth.php` (GET /login, POST /login, POST /logout) | ✅ MVP démo |
+| 03.11 | Middleware groups (auth/guest correctement séparés) + redirect post-login `/app/dashboard` | ✅ MVP démo |
+| 03.12 | Seeder `UserSeeder` (admin@floty.test pour tests/démo) | ✅ MVP démo |
+| 03.13 | Tests Feature (LoginFlowTest 7 tests : login OK, login KO, rate-limit email, rate-limit IP, logout, middleware guest, last_login_at) + Unit (LoginAttemptServiceTest 4 tests + LoginActionTest 6 tests) | ✅ 03.bis |
 
 ## Critère de complétion de la phase
 
