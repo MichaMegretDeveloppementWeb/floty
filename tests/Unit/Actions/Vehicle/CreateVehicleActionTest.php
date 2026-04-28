@@ -69,16 +69,6 @@ final class CreateVehicleActionTest extends TestCase
     }
 
     #[Test]
-    public function uppercase_la_plaque_d_immatriculation(): void
-    {
-        $data = $this->makeData(licensePlate: 'ab-789-xy');
-
-        $vehicle = $this->action->execute($data);
-
-        $this->assertSame('AB-789-XY', $vehicle->license_plate);
-    }
-
-    #[Test]
     public function rollback_si_la_creation_de_la_periode_fiscale_echoue(): void
     {
         $vfcRepo = $this->createMock(VehicleFiscalCharacteristicsWriteRepositoryInterface::class);

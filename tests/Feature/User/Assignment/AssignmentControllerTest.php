@@ -59,11 +59,23 @@ final class AssignmentControllerTest extends TestCase
     public function vehicle_dates_rejette_un_id_invalide(): void
     {
         $user = User::factory()->create();
+        $year = (int) config('floty.fiscal.available_years')[0];
 
         $this->actingAs($user)
-            ->getJson('/app/assignments/vehicle-dates?vehicleId=0')
+            ->getJson("/app/assignments/vehicle-dates?vehicleId=0&year={$year}")
             ->assertStatus(422)
-            ->assertJsonStructure(['message', 'code'])
-            ->assertJsonPath('code', 'InvalidQueryParameterException');
+            ->assertJsonValidationErrors(['vehicleId']);
+    }
+
+    #[Test]
+    public function vehicle_dates_rejette_une_annee_manquante(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->getJson("/app/assignments/vehicle-dates?vehicleId={$vehicle->id}")
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['year']);
     }
 }

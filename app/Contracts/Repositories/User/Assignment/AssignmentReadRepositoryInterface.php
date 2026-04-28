@@ -4,43 +4,55 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\Assignment;
 
-use App\Data\User\Assignment\VehicleDatesData;
-use App\DTO\Fiscal\AnnualCumulByPair;
 use App\Models\Assignment;
+use App\Services\Assignment\AssignmentQueryService;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 /**
  * Lectures sur le domaine Assignment.
  *
- * Centralise tous les accès Eloquent autour des attributions, y compris
- * les agrégations (`GROUP BY`) consommées par le moteur fiscal.
+ * Conforme à la règle stricte des couches (mémoire architecture
+ * `architecture_layered_strict.md`) : aucune transformation, aucune
+ * composition de DTO complexe, aucune décision métier ici. Le repo
+ * retourne des Collections / Models bruts, et la composition vit dans
+ * {@see AssignmentQueryService}.
+ *
+ * Le filtre métier R-2024-008 (déduction des jours fourrière du
+ * numérateur du prorata) reste exprimé dans la requête SQL agrégée
+ * de {@see loadAnnualCumulRows()} — c'est de la **donnée filtrée**,
+ * pas de la transformation post-fetch.
  */
 interface AssignmentReadRepositoryInterface
 {
     /**
-     * Cumul annuel des jours par couple (vehicle, company), agrégé en
-     * une seule requête SQL `GROUP BY`.
-     */
-    public function loadAnnualCumul(int $year): AnnualCumulByPair;
-
-    /**
-     * Densité hebdomadaire (vehicleId × week_number → nb jours) pour
-     * la heatmap planning.
+     * Cumul annuel agrégé en SQL `GROUP BY` (vehicle_id, company_id).
+     * Filtre les jours d'indisponibilité fiscale (fourrière, R-2024-008).
      *
-     * @return array<string, int> Clés "vehicleId|weekNumber" → jours
+     * @return Collection<int, object{vehicle_id: int, company_id: int, days: int}>
      */
-    public function loadWeekDensity(int $year): array;
+    public function loadAnnualCumulRows(int $year): Collection;
 
     /**
-     * Dates occupées d'un véhicule sur l'année + map companyId →
-     * dates pour ce véhicule.
+     * Toutes les attributions de l'année (cols minimales) pour le
+     * calcul de densité hebdomadaire.
+     *
+     * @return Collection<int, Assignment>
      */
-    public function findVehicleDates(int $vehicleId, int $year): VehicleDatesData;
+    public function findAssignmentsForYear(int $year): Collection;
+
+    /**
+     * Toutes les attributions d'un véhicule sur l'année (cols
+     * minimales : company_id, date).
+     *
+     * @return Collection<int, Assignment>
+     */
+    public function findAssignmentsForVehicle(int $vehicleId, int $year): Collection;
 
     /**
      * Attributions d'un véhicule sur la fenêtre [start, end], avec
-     * eager-loading de la company (cols minimales).
+     * eager-loading de la company (cols minimales) — la composition
+     * du payload est faite par le service consommateur.
      *
      * @return Collection<int, Assignment>
      */
@@ -51,12 +63,13 @@ interface AssignmentReadRepositoryInterface
     ): Collection;
 
     /**
-     * Liste des dates ISO (Y-m-d) déjà attribuées au couple (vehicle,
-     * company) sur l'année donnée. Utilisé par le preview taxes.
+     * Dates brutes des attributions du couple (vehicle, company)
+     * sur l'année. La conversion en strings ISO est faite par le
+     * service consommateur.
      *
-     * @return list<string>
+     * @return Collection<int, CarbonInterface>
      */
-    public function findDatesForPair(int $vehicleId, int $companyId, int $year): array;
+    public function findDatesForPair(int $vehicleId, int $companyId, int $year): Collection;
 
     /**
      * Compte les attributions de l'année (hors soft-deleted).

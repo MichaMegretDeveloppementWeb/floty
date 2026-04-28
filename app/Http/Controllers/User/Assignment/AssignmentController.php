@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Assignment;
 
-use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
-use App\Exceptions\Http\InvalidQueryParameterException;
-use App\Fiscal\Resolver\FiscalYearResolver;
+use App\Data\User\Assignment\VehicleDatesQueryData;
 use App\Http\Controllers\Controller;
+use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -25,8 +23,7 @@ final class AssignmentController extends Controller
     public function __construct(
         private readonly VehicleQueryService $vehicles,
         private readonly CompanyQueryService $companies,
-        private readonly AssignmentReadRepositoryInterface $assignments,
-        private readonly FiscalYearResolver $fiscalYear,
+        private readonly AssignmentQueryService $assignments,
     ) {}
 
     public function index(): Response
@@ -40,16 +37,10 @@ final class AssignmentController extends Controller
     /**
      * GET /app/assignments/vehicle-dates?vehicleId=X&year=YYYY
      */
-    public function vehicleDates(Request $request): JsonResponse
+    public function vehicleDates(VehicleDatesQueryData $query): JsonResponse
     {
-        $vehicleId = (int) $request->query('vehicleId');
-        $year = (int) $request->query('year', (string) $this->fiscalYear->resolve());
-        if ($vehicleId <= 0) {
-            throw InvalidQueryParameterException::missing('vehicleId');
-        }
-
         return response()->json(
-            $this->assignments->findVehicleDates($vehicleId, $year),
+            $this->assignments->findVehicleDates($query->vehicleId, $query->year),
         );
     }
 }

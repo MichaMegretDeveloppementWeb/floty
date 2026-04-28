@@ -22,7 +22,7 @@ final class VehicleWriteRepository implements VehicleWriteRepositoryInterface
     public function create(StoreVehicleData $data): Vehicle
     {
         return Vehicle::create([
-            'license_plate' => mb_strtoupper($data->licensePlate),
+            'license_plate' => $data->licensePlate,
             'brand' => $data->brand,
             'model' => $data->model,
             'vin' => $data->vin,

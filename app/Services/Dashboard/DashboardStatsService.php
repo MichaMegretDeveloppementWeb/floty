@@ -9,6 +9,7 @@ use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Dashboard\DashboardStatsData;
+use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
@@ -23,14 +24,15 @@ final class DashboardStatsService
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
-        private readonly AssignmentReadRepositoryInterface $assignments,
+        private readonly AssignmentReadRepositoryInterface $assignmentRepo,
+        private readonly AssignmentQueryService $assignmentQuery,
         private readonly FiscalRuleReadRepositoryInterface $fiscalRules,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 
     public function computeStats(int $year): DashboardStatsData
     {
-        $cumul = $this->assignments->loadAnnualCumul($year);
+        $cumul = $this->assignmentQuery->loadAnnualCumul($year);
 
         $vehicleIds = [];
         foreach ($cumul->vehicleCompanyPairs() as $pair) {
@@ -41,7 +43,7 @@ final class DashboardStatsService
         return new DashboardStatsData(
             vehiclesCount: $this->vehicles->countActive(),
             companiesCount: $this->companies->countActive(),
-            assignmentsYear: $this->assignments->countForYear($year),
+            assignmentsYear: $this->assignmentRepo->countForYear($year),
             fiscalRulesCount: $this->fiscalRules->countActiveForYear($year),
             totalTaxDue: $this->aggregator->fleetAnnualTax($vehiclesById, $cumul, $year),
         );

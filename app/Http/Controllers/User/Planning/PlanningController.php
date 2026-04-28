@@ -4,16 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Planning;
 
-use App\Contracts\Repositories\User\Assignment\AssignmentWriteRepositoryInterface;
+use App\Actions\Assignment\BulkCreateAssignmentsAction;
 use App\Data\User\Planning\BulkCreateAssignmentsInputData;
 use App\Data\User\Planning\PreviewTaxesInputData;
-use App\Exceptions\Http\InvalidQueryParameterException;
+use App\Data\User\Planning\WeekQueryData;
 use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Services\Planning\PlanningHeatmapService;
 use App\Services\Planning\WeekDetailService;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -26,7 +25,7 @@ final class PlanningController extends Controller
     public function __construct(
         private readonly PlanningHeatmapService $heatmap,
         private readonly WeekDetailService $weekDetail,
-        private readonly AssignmentWriteRepositoryInterface $assignmentWrite,
+        private readonly BulkCreateAssignmentsAction $bulkCreate,
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
@@ -41,20 +40,10 @@ final class PlanningController extends Controller
     /**
      * GET /app/planning/week?vehicleId=X&week=N
      */
-    public function week(Request $request): JsonResponse
+    public function week(WeekQueryData $query): JsonResponse
     {
-        $vehicleId = (int) $request->query('vehicleId');
-        $weekNumber = (int) $request->query('week');
-
-        if ($vehicleId <= 0) {
-            throw InvalidQueryParameterException::missing('vehicleId');
-        }
-        if ($weekNumber < 1 || $weekNumber > 53) {
-            throw InvalidQueryParameterException::outOfRange('week', $weekNumber, '1..53');
-        }
-
         return response()->json(
-            $this->weekDetail->buildWeek($vehicleId, $weekNumber, $this->fiscalYear->resolve()),
+            $this->weekDetail->buildWeek($query->vehicleId, $query->week, $this->fiscalYear->resolve()),
         );
     }
 
@@ -74,11 +63,7 @@ final class PlanningController extends Controller
     public function storeBulk(BulkCreateAssignmentsInputData $input): JsonResponse
     {
         return response()->json(
-            $this->assignmentWrite->createBulk(
-                $input->vehicleId,
-                $input->companyId,
-                $input->dates,
-            ),
+            $this->bulkCreate->execute($input->vehicleId, $input->companyId, $input->dates),
         );
     }
 }

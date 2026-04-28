@@ -15,6 +15,7 @@ use App\Data\User\Planning\WeekCompanyPresenceData;
 use App\Data\User\Planning\WeekDayAssignmentData;
 use App\Data\User\Planning\WeekDaySlotData;
 use App\Models\Assignment;
+use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FiscalCalculator;
 use Illuminate\Support\Carbon;
 
@@ -26,7 +27,8 @@ final class WeekDetailService
 {
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
-        private readonly AssignmentReadRepositoryInterface $assignments,
+        private readonly AssignmentReadRepositoryInterface $assignmentRepo,
+        private readonly AssignmentQueryService $assignmentQuery,
         private readonly FiscalCalculator $calculator,
     ) {}
 
@@ -40,7 +42,7 @@ final class WeekDetailService
         $start = Carbon::now()->setISODate($year, $weekNumber)->startOfWeek();
         $end = $start->copy()->endOfWeek();
 
-        $dayAssignments = $this->assignments
+        $dayAssignments = $this->assignmentRepo
             ->findWeekAssignments($vehicleId, $start, $end)
             ->keyBy(static fn (Assignment $a): string => Carbon::parse($a->date)->toDateString());
 
@@ -104,7 +106,7 @@ final class WeekDetailService
             static fn (string $d): bool => str_starts_with($d, $yearPrefix),
         ));
 
-        $alreadyAssignedForPair = $this->assignments->findDatesForPair(
+        $alreadyAssignedForPair = $this->assignmentQuery->findDatesForPair(
             $input->vehicleId,
             $input->companyId,
             $year,

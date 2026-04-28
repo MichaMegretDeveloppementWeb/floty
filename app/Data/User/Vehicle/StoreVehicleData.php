@@ -133,6 +133,26 @@ final class StoreVehicleData extends Data
     }
 
     /**
+     * Normalisation appliquée AVANT validation : la plaque est toujours
+     * stockée en majuscules. Effectuer la transformation ici (et pas
+     * dans le repository) garantit que la règle d'unicité
+     * (`Rule::unique('vehicles', 'license_plate')`) est testée sur la
+     * valeur normalisée — un user ne peut donc pas contourner l'unique
+     * en envoyant une casse différente.
+     *
+     * @param  array<string, mixed>  $properties
+     * @return array<string, mixed>
+     */
+    public static function prepareForPipeline(array $properties): array
+    {
+        if (isset($properties['license_plate']) && is_string($properties['license_plate'])) {
+            $properties['license_plate'] = mb_strtoupper($properties['license_plate']);
+        }
+
+        return $properties;
+    }
+
+    /**
      * @return array<string, string>
      */
     public static function messages(): array

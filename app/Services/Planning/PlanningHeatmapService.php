@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Planning;
 
-use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Planning\PlanningHeatmapVehicleData;
 use App\Models\Company;
+use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Spatie\LaravelData\DataCollection;
 
@@ -22,7 +22,7 @@ final class PlanningHeatmapService
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
-        private readonly AssignmentReadRepositoryInterface $assignments,
+        private readonly AssignmentQueryService $assignments,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 

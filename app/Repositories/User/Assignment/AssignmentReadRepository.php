@@ -5,26 +5,27 @@ declare(strict_types=1);
 namespace App\Repositories\User\Assignment;
 
 use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
-use App\Data\User\Assignment\VehicleDatesData;
-use App\DTO\Fiscal\AnnualCumulByPair;
 use App\Models\Assignment;
+use App\Services\Assignment\AssignmentQueryService;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Implémentation Eloquent des lectures Assignment.
+ * Implémentation Eloquent des lectures Assignment — pure récupération.
+ *
+ * Toute la composition de DTO et le calcul d'agrégats vit dans
+ * {@see AssignmentQueryService}.
  */
 final class AssignmentReadRepository implements AssignmentReadRepositoryInterface
 {
-    public function loadAnnualCumul(int $year): AnnualCumulByPair
+    public function loadAnnualCumulRows(int $year): Collection
     {
         // R-2024-008 : les jours d'indisponibilité fiscale (fourrière)
         // sont **déduits** du numérateur du prorata. Un NOT EXISTS
         // filtre les `assignments` dont la date tombe dans une période
         // d'indisponibilité fiscale du même véhicule.
-        $rows = Assignment::query()
+        return Assignment::query()
             ->whereYear('date', $year)
             ->whereNotExists(function ($query): void {
                 $query
@@ -42,51 +43,21 @@ final class AssignmentReadRepository implements AssignmentReadRepositoryInterfac
             ->select('vehicle_id', 'company_id', DB::raw('COUNT(*) as days'))
             ->groupBy('vehicle_id', 'company_id')
             ->get();
-
-        $byPair = [];
-        foreach ($rows as $row) {
-            $byPair[$row->vehicle_id.'|'.$row->company_id] = (int) $row->days;
-        }
-
-        return new AnnualCumulByPair($byPair);
     }
 
-    public function loadWeekDensity(int $year): array
+    public function findAssignmentsForYear(int $year): Collection
     {
-        $assignments = Assignment::query()
+        return Assignment::query()
             ->whereYear('date', $year)
             ->get(['vehicle_id', 'date']);
-
-        $density = [];
-        foreach ($assignments as $a) {
-            $week = (int) Carbon::parse($a->date)->isoWeek;
-            $key = $a->vehicle_id.'|'.$week;
-            $density[$key] = ($density[$key] ?? 0) + 1;
-        }
-
-        return $density;
     }
 
-    public function findVehicleDates(int $vehicleId, int $year): VehicleDatesData
+    public function findAssignmentsForVehicle(int $vehicleId, int $year): Collection
     {
-        $assignments = Assignment::query()
+        return Assignment::query()
             ->whereYear('date', $year)
             ->where('vehicle_id', $vehicleId)
             ->get(['company_id', 'date']);
-
-        $busy = [];
-        $byCompany = [];
-        foreach ($assignments as $a) {
-            $iso = $a->date->toDateString();
-            $busy[] = $iso;
-            $byCompany[(string) $a->company_id] ??= [];
-            $byCompany[(string) $a->company_id][] = $iso;
-        }
-
-        return new VehicleDatesData(
-            vehicleBusyDates: array_values(array_unique($busy)),
-            pairDates: $byCompany,
-        );
     }
 
     public function findWeekAssignments(
@@ -101,15 +72,13 @@ final class AssignmentReadRepository implements AssignmentReadRepositoryInterfac
             ->get();
     }
 
-    public function findDatesForPair(int $vehicleId, int $companyId, int $year): array
+    public function findDatesForPair(int $vehicleId, int $companyId, int $year): Collection
     {
         return Assignment::query()
             ->whereYear('date', $year)
             ->where('vehicle_id', $vehicleId)
             ->where('company_id', $companyId)
-            ->pluck('date')
-            ->map(static fn ($d): string => Carbon::parse($d)->toDateString())
-            ->all();
+            ->pluck('date');
     }
 
     public function countForYear(int $year): int

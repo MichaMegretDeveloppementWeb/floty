@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Vehicle;
 
-use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Vehicle\VehicleListItemData;
 use App\Data\User\Vehicle\VehicleOptionData;
 use App\Models\Vehicle;
+use App\Services\Assignment\AssignmentQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Spatie\LaravelData\DataCollection;
 
@@ -23,7 +23,7 @@ final class VehicleQueryService
 {
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
-        private readonly AssignmentReadRepositoryInterface $assignments,
+        private readonly AssignmentQueryService $assignments,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 
