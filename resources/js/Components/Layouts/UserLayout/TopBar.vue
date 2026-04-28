@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { usePage } from '@inertiajs/vue3';
 import { Menu } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
 import UserMenu from '@/Components/Layouts/UserLayout/UserMenu.vue';
 import YearSelector from '@/Components/Layouts/UserLayout/YearSelector.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
+import { useTopBar } from '@/Composables/Layout/UserLayout/useTopBar';
 
 const year = defineModel<number>('year', { required: true });
 
@@ -17,33 +16,7 @@ const emit = defineEmits<{
     'toggle-sidebar': [];
 }>();
 
-const search = ref<string>('');
-
-const page = usePage();
-const authUser = computed(() => page.props.auth?.user ?? null);
-
-const fullName = computed((): string => {
-    const user = authUser.value;
-
-    if (!user) {
-        return 'Invité';
-    }
-
-    return user.fullName || 'Utilisateur';
-});
-
-const initials = computed((): string => {
-    const user = authUser.value;
-
-    if (!user) {
-        return '?';
-    }
-
-    const first = user.firstName?.[0] ?? '';
-    const last = user.lastName?.[0] ?? '';
-
-    return (first + last).toUpperCase() || '?';
-});
+const { search, fullName, initials } = useTopBar();
 </script>
 
 <template>

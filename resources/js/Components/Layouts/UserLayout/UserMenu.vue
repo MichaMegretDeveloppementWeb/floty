@@ -1,9 +1,7 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
-import { onClickOutside, onKeyStroke } from '@vueuse/core';
 import { ChevronDown, LogOut } from 'lucide-vue-next';
-import { ref, useTemplateRef } from 'vue';
-import { logout as logoutRoute } from '@/routes';
+import { useTemplateRef } from 'vue';
+import { useUserMenu } from '@/Composables/Layout/UserLayout/useUserMenu';
 
 defineProps<{
     name: string;
@@ -11,29 +9,8 @@ defineProps<{
     role?: string;
 }>();
 
-const open = ref<boolean>(false);
 const rootRef = useTemplateRef<HTMLDivElement>('rootRef');
-
-const close = (): void => {
-    open.value = false;
-};
-
-const toggle = (): void => {
-    open.value = !open.value;
-};
-
-const logout = (): void => {
-    close();
-    router.post(logoutRoute.url());
-};
-
-onClickOutside(rootRef, close);
-
-onKeyStroke('Escape', () => {
-    if (open.value) {
-        close();
-    }
-});
+const { open, toggle, logout } = useUserMenu(rootRef);
 </script>
 
 <template>

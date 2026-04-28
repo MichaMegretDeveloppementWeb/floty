@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { useYearSelector } from '@/Composables/Layout/UserLayout/useYearSelector';
 
 const props = withDefaults(
     defineProps<{
@@ -15,20 +15,10 @@ const props = withDefaults(
 
 const year = defineModel<number>({ required: true });
 
-const canPrev = computed<boolean>(() => year.value > props.min);
-const canNext = computed<boolean>(() => year.value < props.max);
-
-const prev = (): void => {
-    if (canPrev.value) {
-        year.value = year.value - 1;
-    }
-};
-
-const next = (): void => {
-    if (canNext.value) {
-        year.value = year.value + 1;
-    }
-};
+const { canPrev, canNext, prev, next } = useYearSelector(year, {
+    min: props.min,
+    max: props.max,
+});
 </script>
 
 <template>
