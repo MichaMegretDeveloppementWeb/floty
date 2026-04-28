@@ -38,4 +38,16 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
     {
         return Company::query()->where('is_active', true)->count();
     }
+
+    public function findByIdsIndexed(array $ids): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return Company::query()
+            ->whereIn('id', $ids)
+            ->get(['id', 'short_code', 'legal_name', 'color'])
+            ->keyBy('id');
+    }
 }

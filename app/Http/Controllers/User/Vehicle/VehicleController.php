@@ -40,7 +40,7 @@ final class VehicleController extends Controller
     public function show(int $vehicle): Response
     {
         return Inertia::render('User/Vehicles/Show/Index', [
-            'vehicle' => $this->vehicles->findVehicleData($vehicle),
+            'vehicle' => $this->vehicles->findVehicleData($vehicle, $this->fiscalYear->resolve()),
         ]);
     }
 

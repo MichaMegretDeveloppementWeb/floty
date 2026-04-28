@@ -88,6 +88,57 @@ final readonly class FleetFiscalAggregator
     }
 
     /**
+     * **Coût plein année théorique** d'un véhicule : ce qu'il
+     * coûterait s'il était attribué 100 % du temps à une seule
+     * entreprise (sans LCD, prorata = 1.0).
+     *
+     * Utilisé en colonne Flotte (comparaison inter-véhicules
+     * indépendamment de leur taux d'utilisation réel) et en KPI sur
+     * la page Show.
+     */
+    public function vehicleFullYearTax(Vehicle $vehicle, int $year): float
+    {
+        $daysInYear = $this->yearContext->daysInYear($year);
+
+        $result = $this->pipeline->execute(
+            $this->buildContext($vehicle, $daysInYear, $daysInYear, $year),
+        );
+
+        return round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+    }
+
+    /**
+     * Détail du coût annuel d'un véhicule réparti par entreprise
+     * utilisatrice. Une entrée par entreprise effectivement attributaire,
+     * non triée (tri par jours décroissants à la charge du consommateur).
+     *
+     * @return list<array{companyId: int, days: int, taxDue: float}>
+     */
+    public function vehicleAnnualTaxBreakdownByCompany(
+        Vehicle $vehicle,
+        AnnualCumulByPair $cumul,
+        int $year,
+    ): array {
+        $rows = [];
+        foreach ($cumul->pairsForVehicle($vehicle->id) as $companyId => $days) {
+            $result = $this->pipeline->execute(
+                $this->buildContext($vehicle, $days, $days, $year),
+            );
+            $rows[] = [
+                'companyId' => $companyId,
+                'days' => $days,
+                'taxDue' => round(
+                    $result->co2DueRaw + $result->pollutantsDueRaw,
+                    2,
+                    PHP_ROUND_HALF_UP,
+                ),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
      * Total fiscal annuel sommé sur toute la flotte (tous couples
      * véhicule × entreprise confondus). Affiché côté Dashboard ;
      * agrégat informatif (pas un montant déclaratif).

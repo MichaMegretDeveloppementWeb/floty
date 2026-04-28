@@ -75,7 +75,7 @@ const formatPeriod = (
                     {{ item.changeNote }}
                 </p>
                 <dl
-                    class="mt-2 grid grid-cols-2 gap-x-6 gap-y-1 text-xs text-slate-500 sm:grid-cols-4"
+                    class="mt-2 grid grid-cols-2 gap-x-6 gap-y-4 text-xs text-slate-500 sm:grid-cols-4"
                 >
                     <div>
                         <dt class="text-slate-400">Énergie</dt>

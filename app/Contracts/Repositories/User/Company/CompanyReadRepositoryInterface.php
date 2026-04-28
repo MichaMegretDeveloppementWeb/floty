@@ -44,4 +44,14 @@ interface CompanyReadRepositoryInterface
      * Compte les entreprises actives.
      */
     public function countActive(): int;
+
+    /**
+     * Précharge en bulk un ensemble d'entreprises par ids, indexées par
+     * id. Inclut les colonnes nécessaires à l'affichage (raison sociale,
+     * code court, couleur). Renvoie une collection vide si `$ids` l'est.
+     *
+     * @param  list<int>  $ids
+     * @return Collection<int, Company>
+     */
+    public function findByIdsIndexed(array $ids): Collection;
 }

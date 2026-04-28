@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\Vehicle;
 
+use App\Models\Assignment;
+use App\Models\Company;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -17,7 +19,7 @@ final class VehicleControllerTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function index_liste_les_vehicules_avec_taxe_annuelle(): void
+    public function index_liste_les_vehicules_avec_cout_plein_annee_et_taux_journalier(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -31,7 +33,8 @@ final class VehicleControllerTest extends TestCase
                 ->has('vehicles', 1, fn (AssertableInertia $v) => $v
                     ->where('id', $vehicle->id)
                     ->where('licensePlate', $vehicle->license_plate)
-                    ->has('annualTaxDue')
+                    ->has('fullYearTax')
+                    ->has('dailyTaxRate')
                     ->etc()),
             );
     }
@@ -89,7 +92,62 @@ final class VehicleControllerTest extends TestCase
                         ->where('effectiveTo', null)
                         ->etc())
                     ->has('fiscalCharacteristicsHistory', 1)
+                    ->has('usageStats', fn (AssertableInertia $s) => $s
+                        ->has('fiscalYear')
+                        ->has('daysInYear')
+                        ->where('daysUsedThisYear', 0)
+                        ->where('actualTaxThisYear', 0)
+                        ->has('fullYearTax')
+                        ->has('dailyTaxRate')
+                        ->has('companies', 0))
                     ->etc()),
+            );
+    }
+
+    #[Test]
+    public function show_inclut_breakdown_par_entreprise_utilisatrice_trie_par_jours(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $year = (int) config('floty.fiscal.available_years')[0];
+
+        $companyA = Company::factory()->create(['short_code' => 'ALPH']);
+        $companyB = Company::factory()->create(['short_code' => 'BETA']);
+
+        // 5 jours pour A, 10 jours pour B → B doit apparaître en premier (tri desc).
+        for ($i = 1; $i <= 5; $i++) {
+            Assignment::factory()->create([
+                'vehicle_id' => $vehicle->id,
+                'company_id' => $companyA->id,
+                'date' => sprintf('%04d-01-%02d', $year, $i),
+            ]);
+        }
+        for ($i = 1; $i <= 10; $i++) {
+            Assignment::factory()->create([
+                'vehicle_id' => $vehicle->id,
+                'company_id' => $companyB->id,
+                'date' => sprintf('%04d-02-%02d', $year, $i),
+            ]);
+        }
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Vehicles/Show/Index')
+                ->has('vehicle.usageStats', fn (AssertableInertia $s) => $s
+                    ->where('fiscalYear', $year)
+                    ->where('daysUsedThisYear', 15)
+                    ->has('daysInYear')
+                    ->has('actualTaxThisYear')
+                    ->has('fullYearTax')
+                    ->has('dailyTaxRate')
+                    ->has('companies', 2)
+                    ->where('companies.0.shortCode', 'BETA')
+                    ->where('companies.0.daysUsed', 10)
+                    ->where('companies.1.shortCode', 'ALPH')
+                    ->where('companies.1.daysUsed', 5)),
             );
     }
 

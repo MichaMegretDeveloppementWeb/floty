@@ -8,7 +8,7 @@ const props = defineProps<{
     fiscal: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData | null;
 }>();
 
-const co2Display = computed<string | null>(() => {
+const co2Display = computed<{ value: string; label: string } | null>(() => {
     const f = props.fiscal;
 
     if (!f) {
@@ -16,18 +16,50 @@ const co2Display = computed<string | null>(() => {
     }
 
     if (f.co2Wltp !== null) {
-        return `${f.co2Wltp} g/km (WLTP)`;
+        return { value: `${f.co2Wltp} g/km`, label: 'CO₂ WLTP' };
     }
 
     if (f.co2Nedc !== null) {
-        return `${f.co2Nedc} g/km (NEDC)`;
+        return { value: `${f.co2Nedc} g/km`, label: 'CO₂ NEDC' };
     }
 
     if (f.taxableHorsepower !== null) {
-        return `${f.taxableHorsepower} CV (PA)`;
+        return { value: `${f.taxableHorsepower} CV`, label: 'Puissance admin.' };
     }
 
     return null;
+});
+
+const stats = computed<{ value: string; label: string }[]>(() => {
+    const f = props.fiscal;
+
+    if (!f) {
+        return [];
+    }
+
+    const items: { value: string; label: string }[] = [
+        { value: f.receptionCategory, label: 'Catégorie réception' },
+        { value: f.vehicleUserType, label: "Type d'usage" },
+        { value: f.bodyType, label: 'Carrosserie' },
+        { value: f.energySource, label: 'Énergie' },
+        { value: f.homologationMethod, label: 'Méthode homologation' },
+        { value: f.pollutantCategory, label: 'Catégorie polluants' },
+        { value: `${f.seatsCount}`, label: 'Places assises' },
+    ];
+
+    if (f.euroStandard) {
+        items.push({ value: f.euroStandard, label: 'Norme Euro' });
+    }
+
+    if (co2Display.value) {
+        items.push(co2Display.value);
+    }
+
+    if (f.kerbMass !== null) {
+        items.push({ value: `${f.kerbMass} kg`, label: 'Masse à vide' });
+    }
+
+    return items;
 });
 
 const advancedFlags = computed<string[]>(() => {
@@ -59,7 +91,7 @@ const advancedFlags = computed<string[]>(() => {
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <h2 class="text-base font-semibold text-slate-900">
-                        Caractéristiques fiscales actuelles
+                        Caractéristiques fiscales actives
                     </h2>
                     <p v-if="props.fiscal" class="mt-0.5 text-xs text-slate-500">
                         Effective depuis le
@@ -77,96 +109,25 @@ const advancedFlags = computed<string[]>(() => {
             Aucune version fiscale active pour ce véhicule.
         </p>
 
-        <dl
+        <div
             v-else
-            class="grid grid-cols-1 gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3"
+            class="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
         >
-            <div class="flex flex-col">
-                <dt class="text-xs text-slate-400 uppercase">
-                    Catégorie de réception
-                </dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.receptionCategory }}
-                </dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="text-xs text-slate-400 uppercase">Type d'usage</dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.vehicleUserType }}
-                </dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="text-xs text-slate-400 uppercase">Carrosserie</dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.bodyType }}
-                </dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="text-xs text-slate-400 uppercase">Places assises</dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.seatsCount }}
-                </dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="text-xs text-slate-400 uppercase">Énergie</dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.energySource }}
-                </dd>
-            </div>
             <div
-                v-if="props.fiscal.euroStandard"
-                class="flex flex-col"
+                v-for="stat in stats"
+                :key="stat.label"
+                class="flex flex-col gap-0.5 rounded-lg bg-slate-50/70 px-3 py-2.5"
             >
-                <dt class="text-xs text-slate-400 uppercase">Norme Euro</dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.euroStandard }}
-                </dd>
+                <p
+                    class="text-xs font-medium tracking-wide text-slate-500 uppercase"
+                >
+                    {{ stat.label }}
+                </p>
+                <p class="text-sm font-semibold text-slate-900">
+                    {{ stat.value }}
+                </p>
             </div>
-            <div class="flex flex-col">
-                <dt class="text-xs text-slate-400 uppercase">
-                    Catégorie polluants
-                </dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.pollutantCategory }}
-                </dd>
-            </div>
-            <div class="flex flex-col">
-                <dt class="text-xs text-slate-400 uppercase">
-                    Méthode d'homologation
-                </dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.homologationMethod }}
-                </dd>
-            </div>
-            <div v-if="co2Display" class="flex flex-col">
-                <dt class="text-xs text-slate-400 uppercase">
-                    Émissions CO₂ / Puissance
-                </dt>
-                <dd class="font-medium text-slate-700">
-                    {{ co2Display }}
-                </dd>
-            </div>
-            <div
-                v-if="props.fiscal.kerbMass !== null"
-                class="flex flex-col"
-            >
-                <dt class="text-xs text-slate-400 uppercase">Masse à vide</dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.kerbMass }} kg
-                </dd>
-            </div>
-            <div
-                v-if="props.fiscal.underlyingCombustionEngineType"
-                class="flex flex-col"
-            >
-                <dt class="text-xs text-slate-400 uppercase">
-                    Moteur thermique sous-jacent
-                </dt>
-                <dd class="font-medium text-slate-700">
-                    {{ props.fiscal.underlyingCombustionEngineType }}
-                </dd>
-            </div>
-        </dl>
+        </div>
 
         <div
             v-if="props.fiscal && advancedFlags.length > 0"

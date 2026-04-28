@@ -48,17 +48,19 @@ final class VehicleData extends Data
         public ?VehicleFiscalCharacteristicsData $currentFiscalCharacteristics,
         #[DataCollectionOf(VehicleFiscalCharacteristicsData::class)]
         public array $fiscalCharacteristicsHistory,
+        public VehicleUsageStatsData $usageStats,
     ) {}
 
     /**
      * Compose le DTO depuis un Vehicle déjà chargé avec son historique
-     * fiscal (cf. `VehicleReadRepository::findByIdWithFiscalHistory`).
+     * fiscal (cf. `VehicleReadRepository::findByIdWithFiscalHistory`)
+     * et un agrégat statistiques pré-calculé pour l'année active.
      *
      * Le tri antéchronologique de l'historique est garanti par le repo
      * (ORDER BY effective_from DESC). La version courante est extraite
      * depuis cet historique, sans requête supplémentaire.
      */
-    public static function fromModel(Vehicle $vehicle): self
+    public static function fromModel(Vehicle $vehicle, VehicleUsageStatsData $usageStats): self
     {
         $history = $vehicle->fiscalCharacteristics
             ->map(static fn ($vfc): VehicleFiscalCharacteristicsData => VehicleFiscalCharacteristicsData::fromModel($vfc))
@@ -89,6 +91,7 @@ final class VehicleData extends Data
                 ? VehicleFiscalCharacteristicsData::fromModel($current)
                 : null,
             fiscalCharacteristicsHistory: $history,
+            usageStats: $usageStats,
         );
     }
 }
