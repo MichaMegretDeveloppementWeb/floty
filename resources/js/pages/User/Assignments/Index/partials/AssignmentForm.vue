@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import MultiDatePicker from '@/Components/Features/Planning/MultiDatePicker.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
+import { useAssignmentFormShape } from '@/Composables/Assignment/Index/useAssignmentFormShape';
 
 type VehicleOption = App.Data.User.Vehicle.VehicleOptionData;
 type CompanyOption = App.Data.User.Company.CompanyOptionData;
@@ -23,38 +23,13 @@ const emit = defineEmits<{
     'update:selectedDates': [value: string[]];
 }>();
 
-const vehicleOptions = computed(() =>
-    props.vehicles.map((v) => ({
-        value: String(v.id),
-        label: v.label,
-    })),
-);
-
-const companyOptions = computed(() =>
-    props.companies.map((c) => ({
-        value: String(c.id),
-        label: `${c.shortCode} — ${c.legalName}`,
-    })),
-);
-
-const vehicleIdString = computed({
-    get: () =>
-        props.selectedVehicleId !== null ? String(props.selectedVehicleId) : '',
-    set: (v: string) =>
-        emit('update:selectedVehicleId', v === '' ? null : Number(v)),
-});
-
-const companyIdString = computed({
-    get: () =>
-        props.selectedCompanyId !== null ? String(props.selectedCompanyId) : '',
-    set: (v: string) =>
-        emit('update:selectedCompanyId', v === '' ? null : Number(v)),
-});
-
-const datesProxy = computed({
-    get: () => props.selectedDates,
-    set: (v: string[]) => emit('update:selectedDates', v),
-});
+const {
+    vehicleOptions,
+    companyOptions,
+    vehicleIdString,
+    companyIdString,
+    datesProxy,
+} = useAssignmentFormShape(props, emit);
 </script>
 
 <template>

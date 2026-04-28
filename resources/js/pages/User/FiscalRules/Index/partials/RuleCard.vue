@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
-import { fiscalRulesContent2024 } from '@/data/fiscalRulesContent';
-import type { BadgeTone } from '@/types/ui';
+import { useRuleCard } from '@/Composables/FiscalRule/Index/useRuleCard';
 import RuleBracketsFlat from './RuleBracketsFlat.vue';
 import RuleBracketsProgressive from './RuleBracketsProgressive.vue';
 import RuleExample from './RuleExample.vue';
@@ -15,28 +14,7 @@ const props = defineProps<{
     rule: Rule | undefined;
 }>();
 
-const taxLabel: Record<string, string> = {
-    co2: 'CO₂',
-    pollutants: 'Polluants',
-};
-
-function taxBadgeTone(taxes: Rule['taxesConcerned']): BadgeTone {
-    if (taxes.includes('co2') && taxes.includes('pollutants')) {
-        return 'blue';
-    }
-
-    if (taxes.includes('co2')) {
-        return 'blue';
-    }
-
-    if (taxes.includes('pollutants')) {
-        return 'amber';
-    }
-
-    return 'slate';
-}
-
-const content = fiscalRulesContent2024[props.code];
+const { taxLabel, taxBadgeTone, content } = useRuleCard(props);
 </script>
 
 <template>

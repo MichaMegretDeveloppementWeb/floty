@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
-import { index as companiesIndexRoute, store as companiesStoreRoute } from '@/routes/user/companies';
-import type { CompanyFormShape } from './forms';
+import { useCompanyCreateForm } from '@/Composables/Company/Create/useCompanyCreateForm';
+import { index as companiesIndexRoute } from '@/routes/user/companies';
 import AddressSection from './partials/AddressSection.vue';
 import ContactSection from './partials/ContactSection.vue';
 import IdentitySection from './partials/IdentitySection.vue';
@@ -12,25 +12,7 @@ const props = defineProps<{
     colors: App.Data.User.Company.CompanyColorOptionData[];
 }>();
 
-const form = useForm<CompanyFormShape>({
-    legal_name: '',
-    short_code: '',
-    color: 'indigo',
-    siren: '',
-    siret: '',
-    address_line_1: '',
-    address_line_2: '',
-    postal_code: '',
-    city: '',
-    country: 'FR',
-    contact_name: '',
-    contact_email: '',
-    contact_phone: '',
-});
-
-const submit = (): void => {
-    form.post(companiesStoreRoute.url());
-};
+const { form, submit } = useCompanyCreateForm();
 </script>
 
 <template>

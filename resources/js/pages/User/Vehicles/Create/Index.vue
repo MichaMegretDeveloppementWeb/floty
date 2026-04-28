@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
-import { index as vehiclesIndexRoute, store as vehiclesStoreRoute } from '@/routes/user/vehicles';
-import type { VehicleFormShape } from './forms';
+import { useVehicleCreateForm } from '@/Composables/Vehicle/Create/useVehicleCreateForm';
+import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 import FiscalCharacteristicsSection from './partials/FiscalCharacteristicsSection.vue';
 import IdentitySection from './partials/IdentitySection.vue';
 import RegistrationSection from './partials/RegistrationSection.vue';
@@ -12,34 +12,7 @@ const props = defineProps<{
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
 }>();
 
-const form = useForm<VehicleFormShape>({
-    license_plate: '',
-    brand: '',
-    model: '',
-    vin: '',
-    color: '',
-    first_french_registration_date: '',
-    first_origin_registration_date: '',
-    first_economic_use_date: '',
-    acquisition_date: '',
-    mileage_current: null,
-    notes: '',
-    reception_category: 'M1',
-    vehicle_user_type: 'VP',
-    body_type: 'CI',
-    seats_count: 5,
-    energy_source: 'gasoline',
-    euro_standard: 'euro_6d_isc_fcm',
-    pollutant_category: 'category_1',
-    homologation_method: 'WLTP',
-    co2_wltp: null,
-    co2_nedc: null,
-    taxable_horsepower: null,
-});
-
-const submit = (): void => {
-    form.post(vehiclesStoreRoute.url());
-};
+const { form, submit } = useVehicleCreateForm();
 </script>
 
 <template>

@@ -1,15 +1,11 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head } from '@inertiajs/vue3';
 import Heatmap from '@/Components/Features/Planning/Heatmap/Heatmap.vue';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import { useWeekDetail } from '@/Composables/Planning/useWeekDetail';
+import { useUserPlanningIndex } from '@/Composables/Planning/Index/useUserPlanningIndex';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import PageHeader from './partials/PageHeader.vue';
-
-// R14 (ADR-0013) : `Heatmap` et `WeekDrawer` sont des Features
-// réutilisables (`Components/Features/Planning/`), pas des partials de
-// page. La page n'a donc qu'un seul partial réel (`PageHeader`).
 
 defineProps<{
     vehicles: App.Data.User.Planning.PlanningHeatmapVehicleData[];
@@ -17,13 +13,7 @@ defineProps<{
 }>();
 
 const { currentYear: fiscalYear } = useFiscalYear();
-const week = useWeekDetail();
-
-function onAssignmentsCreated(): void {
-    week.close();
-    // Rafraîchit la page pour recalculer densités + taxes annuelles.
-    router.reload({ only: ['vehicles'] });
-}
+const { week, onAssignmentsCreated } = useUserPlanningIndex();
 </script>
 
 <template>

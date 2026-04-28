@@ -1,10 +1,7 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
-import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
-import type { DataTableColumn } from '@/types/ui';
+import { useFleetTable } from '@/Composables/Vehicle/Index/useFleetTable';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
@@ -15,32 +12,7 @@ const props = defineProps<{
     fiscalYear: number;
 }>();
 
-const columns = computed<readonly DataTableColumn<VehicleRow>[]>(() => [
-    { key: 'licensePlate', label: 'Immatriculation' },
-    { key: 'model', label: 'Modèle' },
-    { key: 'firstFrenchRegistrationDate', label: '1ʳᵉ immat.', mono: true },
-    { key: 'fullYearTax', label: `Coût plein ${props.fiscalYear}`, align: 'right' },
-]);
-
-const statusLabel: Record<string, string> = {
-    active: 'Active',
-    maintenance: 'Maintenance',
-    sold: 'Vendu',
-    destroyed: 'Détruit',
-    other: 'Autre',
-};
-
-const statusDotClass: Record<string, string> = {
-    active: 'bg-emerald-500',
-    maintenance: 'bg-amber-500',
-    sold: 'bg-slate-400',
-    destroyed: 'bg-rose-500',
-    other: 'bg-slate-400',
-};
-
-const handleRowClick = (row: VehicleRow): void => {
-    router.visit(vehiclesShowRoute.url({ vehicle: row.id }));
-};
+const { columns, statusLabel, statusDotClass, handleRowClick } = useFleetTable(props);
 </script>
 
 <template>

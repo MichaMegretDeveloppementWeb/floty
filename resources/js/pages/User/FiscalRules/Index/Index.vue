@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Tabs from '@/Components/Ui/Tabs/Tabs.vue';
+import { useFiscalRulesIndex } from '@/Composables/FiscalRule/Index/useFiscalRulesIndex';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
-import {
-    cadreSectionsOrder,
-    calculSectionsOrder,
-    fiscalRulesContent2024,
-    sectionTitles,
-} from '@/data/fiscalRulesContent';
-import type { RuleSection as RuleSectionKey, RuleTab } from '@/data/fiscalRulesContent';
 import FormulaCard from './partials/FormulaCard.vue';
 import RuleSection from './partials/RuleSection.vue';
 
@@ -21,48 +14,7 @@ const props = defineProps<{
 }>();
 
 const { currentYear: fiscalYear, daysInYear: daysInFiscalYear } = useFiscalYear();
-
-const activeTab = ref<RuleTab>('calcul');
-
-const tabs: Array<{ value: RuleTab; label: string; count?: number }> = [
-    { value: 'calcul', label: 'Calcul des taxes' },
-    { value: 'cadre', label: 'Cadre & fonctionnement' },
-];
-
-const rulesByCode = computed((): Record<string, Rule> => {
-    const map: Record<string, Rule> = {};
-
-    for (const r of props.rules) {
-        map[r.ruleCode] = r;
-    }
-
-    return map;
-});
-
-type SectionGroup = {
-    section: RuleSectionKey;
-    title: string;
-    subtitle: string;
-    codes: string[];
-};
-
-const currentGroups = computed((): SectionGroup[] => {
-    const sections =
-        activeTab.value === 'calcul' ? calculSectionsOrder : cadreSectionsOrder;
-
-    return sections.map((section) => {
-        const codes = Object.entries(fiscalRulesContent2024)
-            .filter(([, content]) => content.section === section)
-            .map(([code]) => code);
-
-        return {
-            section,
-            title: sectionTitles[section].title,
-            subtitle: sectionTitles[section].subtitle,
-            codes,
-        };
-    });
-});
+const { activeTab, tabs, rulesByCode, currentGroups } = useFiscalRulesIndex(props);
 </script>
 
 <template>
