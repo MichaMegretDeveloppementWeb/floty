@@ -86,5 +86,8 @@ const iconWrapClass = computed<string>(() => {
         <p v-if="caption" class="text-xs text-slate-500">
             {{ caption }}
         </p>
+        <div v-if="slots.action" class="mt-2">
+            <slot name="action" />
+        </div>
     </div>
 </template>

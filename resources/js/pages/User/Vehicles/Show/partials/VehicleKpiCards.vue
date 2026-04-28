@@ -1,11 +1,16 @@
 <script setup lang="ts">
 import { Calendar, Coins, Receipt } from 'lucide-vue-next';
+import Button from '@/Components/Ui/Button/Button.vue';
 import StatCard from '@/Components/Ui/StatCard/StatCard.vue';
 import { useVehicleKpiCards } from '@/Composables/Vehicle/Show/useVehicleKpiCards';
 import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;
+}>();
+
+defineEmits<{
+    'open-full-year-detail': [];
 }>();
 
 const { actualTaxCaption } = useVehicleKpiCards(props);
@@ -43,6 +48,16 @@ const { actualTaxCaption } = useVehicleKpiCards(props);
         >
             <template #icon>
                 <Coins :size="18" :stroke-width="1.75" />
+            </template>
+            <template #action>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="xl:hidden"
+                    @click="$emit('open-full-year-detail')"
+                >
+                    Voir le détail
+                </Button>
             </template>
         </StatCard>
     </div>

@@ -62,7 +62,7 @@ const {
             Aucune indisponibilité enregistrée pour ce véhicule.
         </p>
 
-        <ul v-else class="flex flex-col divide-y divide-slate-100">
+        <ul v-else class="flex flex-col divide-y divide-slate-100 max-h-[11em] lg:max-h-[20em] xl:max-h-[11em] overflow-auto">
             <li
                 v-for="item in props.unavailabilities"
                 :key="item.id"

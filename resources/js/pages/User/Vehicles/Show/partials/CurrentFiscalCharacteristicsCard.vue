@@ -58,14 +58,14 @@ const { historyOpen, historyCount, stats, advancedFlags } =
             <div
                 v-for="stat in stats"
                 :key="stat.label"
-                class="flex flex-col gap-1 rounded-lg bg-slate-50/70 px-3 py-2.5"
+                class="flex flex-col gap-1.5 rounded-lg bg-slate-50/70 px-3 py-3"
             >
                 <p
-                    class="text-xs font-medium tracking-wide text-slate-500 uppercase"
+                    class="text-xs font-medium tracking-wide text-slate-400 uppercase"
                 >
                     {{ stat.label }}
                 </p>
-                <p class="text-sm font-semibold text-slate-900">
+                <p class="text-base font-semibold text-slate-900">
                     {{ stat.value }}
                 </p>
             </div>
