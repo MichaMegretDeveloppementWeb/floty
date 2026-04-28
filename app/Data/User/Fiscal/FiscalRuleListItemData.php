@@ -6,6 +6,7 @@ namespace App\Data\User\Fiscal;
 
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
+use App\Models\FiscalRule;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -35,4 +36,18 @@ final class FiscalRuleListItemData extends Data
         public array $legalBasis,
         public bool $isActive,
     ) {}
+
+    public static function fromModel(FiscalRule $rule): self
+    {
+        return new self(
+            id: $rule->id,
+            ruleCode: $rule->rule_code,
+            name: $rule->name,
+            description: $rule->description,
+            ruleType: $rule->rule_type,
+            taxesConcerned: $rule->taxes_concerned,
+            legalBasis: $rule->legal_basis,
+            isActive: $rule->is_active,
+        );
+    }
 }

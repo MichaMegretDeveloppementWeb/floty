@@ -40,7 +40,7 @@ const content = fiscalRulesContent2024[props.code];
 </script>
 
 <template>
-    <li
+    <article
         class="rounded-xl border border-slate-200 bg-white p-5 transition-shadow duration-[120ms] ease-out hover:shadow-sm"
         :class="rule && !rule.isActive ? 'opacity-70' : ''"
     >
@@ -120,5 +120,5 @@ const content = fiscalRulesContent2024[props.code];
             v-if="rule"
             :refs="rule.legalBasis"
         />
-    </li>
+    </article>
 </template>

@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal;
 
+use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
+use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\DTO\Fiscal\AnnualCumulByPair;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Models\FiscalRule;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
@@ -32,6 +35,7 @@ final readonly class FleetFiscalAggregator
     public function __construct(
         private FiscalPipeline $pipeline,
         private FiscalYearContext $yearContext,
+        private FiscalRuleReadRepositoryInterface $fiscalRules,
     ) {}
 
     /**
@@ -134,6 +138,12 @@ final readonly class FleetFiscalAggregator
             static fn ($v): bool => $v->effective_to === null,
         );
 
+        $appliedRules = $this->fiscalRules
+            ->findByCodesForYear($year, $result->appliedRuleCodes)
+            ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r))
+            ->values()
+            ->all();
+
         return new VehicleFullYearTaxBreakdownData(
             co2Method: $result->co2Method,
             co2FullYearTariff: $co2Tariff,
@@ -144,6 +154,7 @@ final readonly class FleetFiscalAggregator
             exemptionReasons: $result->exemptionReasons,
             appliedRuleCodes: $result->appliedRuleCodes,
             total: round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP),
+            appliedRules: $appliedRules,
         );
     }
 
@@ -163,8 +174,19 @@ final readonly class FleetFiscalAggregator
             HomologationMethod::Pa => $vfc->taxable_horsepower !== null ? "{$vfc->taxable_horsepower} CV (puissance administrative)" : 'PA',
         };
 
+        // Tarif à 0 € → exonération applicable. L'utilisateur a la
+        // liste des motifs dans la section « Exonérations applicables »
+        // juste en-dessous, on évite donc de re-dérouler le calcul
+        // (qui serait trompeur : « ... → 0 € » sans contexte).
+        if ($tariff === 0.0) {
+            return sprintf(
+                '%s — exonérée pour ce véhicule (voir motif ci-dessous).',
+                $value,
+            );
+        }
+
         return sprintf(
-            '%s × barème CO₂ %d → tarif annuel %s',
+            '%s × barème CO₂ %d → tarif annuel %s.',
             $value,
             $year,
             number_format($tariff, 2, ',', ' ').' €',
@@ -183,11 +205,19 @@ final readonly class FleetFiscalAggregator
         $energy = $vfc->energy_source->label();
         $euro = $vfc->euro_standard?->label() ?? 'sans norme Euro renseignée';
 
+        if ($tariff === 0.0) {
+            return sprintf(
+                '%s · %s → exonérée pour ce véhicule (voir motif ci-dessous).',
+                $energy,
+                $euro,
+            );
+        }
+
         return sprintf(
-            '%s · %s → catégorie %s → tarif fixe annuel %s',
+            '%s · %s → catégorie %s → tarif fixe annuel %s.',
             $energy,
             $euro,
-            $category->value,
+            $category->label(),
             number_format($tariff, 2, ',', ' ').' €',
         );
     }

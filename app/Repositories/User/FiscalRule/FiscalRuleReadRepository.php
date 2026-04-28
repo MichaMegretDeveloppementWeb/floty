@@ -28,4 +28,17 @@ final class FiscalRuleReadRepository implements FiscalRuleReadRepositoryInterfac
             ->where('is_active', true)
             ->count();
     }
+
+    public function findByCodesForYear(int $year, array $codes): Collection
+    {
+        if ($codes === []) {
+            return new Collection;
+        }
+
+        return FiscalRule::query()
+            ->where('fiscal_year', $year)
+            ->whereIn('rule_code', $codes)
+            ->orderBy('display_order')
+            ->get();
+    }
 }

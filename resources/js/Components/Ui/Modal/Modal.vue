@@ -87,7 +87,7 @@ close();
             <div
                 ref="panel"
                 :class="[
-                    'relative flex w-full flex-col overflow-hidden rounded-2xl bg-white shadow-2xl',
+                    'relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-2xl bg-white shadow-3xl',
                     sizeClass[size],
                 ]"
             >

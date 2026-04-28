@@ -110,8 +110,9 @@ final class VehicleControllerTest extends TestCase
                             ->has('pollutantsExplanation')
                             ->has('exemptionReasons')
                             ->has('appliedRuleCodes')
-                            ->has('total'))
-                        ->has('unavailabilityWeeks'))
+                            ->has('total')
+                            ->has('appliedRules')))
+                    ->has('busyDates')
                     ->etc()),
             );
     }
@@ -165,8 +166,7 @@ final class VehicleControllerTest extends TestCase
                     ->where('companies.1.shortCode', 'ALPH')
                     ->where('companies.1.daysUsed', 5)
                     ->has('weeklyBreakdown')
-                    ->has('fullYearTaxBreakdown')
-                    ->has('unavailabilityWeeks')),
+                    ->has('fullYearTaxBreakdown')),
             );
     }
 

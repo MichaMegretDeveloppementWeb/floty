@@ -31,14 +31,8 @@ const totalVehicleDays = computed<number>(() =>
     props.stats.weeklyBreakdown.reduce((sum, w) => sum + w.totalDays, 0),
 );
 
-const heightFor = (segment: Segment): string =>
-    `${(segment.days / 7) * 100}%`;
-
-const unavailableSet = computed<Set<number>>(
-    () => new Set(props.stats.unavailabilityWeeks),
-);
-
-const isUnavailable = (week: number): boolean => unavailableSet.value.has(week);
+const heightForDays = (days: number): string => `${(days / 7) * 100}%`;
+const heightFor = (segment: Segment): string => heightForDays(segment.days);
 
 // Légende = liste des entreprises ayant utilisé le véhicule sur l'année,
 // triée par jours décroissants (réutilise le tri du breakdown global).
@@ -85,7 +79,7 @@ const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
                             <div
                                 :class="[
                                     'relative flex h-10 w-[16px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
-                                    week.totalDays === 0 ? 'bg-slate-100' : '',
+                                    week.totalDays === 0 && week.unavailabilityDays === 0 ? 'bg-slate-100' : '',
                                 ]"
                             >
                                 <div
@@ -94,20 +88,29 @@ const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
                                     :class="companyColorBgClass(segment.color)"
                                     :style="{ height: heightFor(segment) }"
                                 />
-                                <!-- Overlay croix rouge si indispo sur la semaine -->
-                                <svg
-                                    v-if="isUnavailable(week.weekNumber)"
-                                    class="pointer-events-none absolute inset-0 h-full w-full text-rose-500/70"
-                                    viewBox="0 0 16 40"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    aria-hidden="true"
+                                <!-- Segment indispo empilé au-dessus des
+                                     attributions, hauteur proportionnelle
+                                     aux jours réels (sur 7). Croix en
+                                     lignes 1px pour rester subtile. -->
+                                <div
+                                    v-if="week.unavailabilityDays > 0"
+                                    :style="{ height: heightForDays(week.unavailabilityDays) }"
+                                    class="relative w-full bg-rose-50/60"
                                 >
-                                    <line x1="3" y1="8" x2="13" y2="32" />
-                                    <line x1="13" y1="8" x2="3" y2="32" />
-                                </svg>
+                                    <svg
+                                        class="pointer-events-none absolute inset-0 h-full w-full text-rose-400"
+                                        preserveAspectRatio="none"
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1"
+                                        vector-effect="non-scaling-stroke"
+                                        aria-hidden="true"
+                                    >
+                                        <line x1="2" y1="2" x2="14" y2="14" />
+                                        <line x1="14" y1="2" x2="2" y2="14" />
+                                    </svg>
+                                </div>
                             </div>
 
                             <template #content>
@@ -115,7 +118,7 @@ const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
                                     Semaine {{ week.weekNumber }}
                                 </p>
                                 <p
-                                    v-if="week.segments.length === 0"
+                                    v-if="week.segments.length === 0 && week.unavailabilityDays === 0"
                                     class="text-slate-300"
                                 >
                                     Pas d'utilisation
@@ -138,6 +141,19 @@ const legendEntries = computed<App.Data.User.Vehicle.VehicleCompanyUsageData[]>(
                                         </span>
                                         <span class="text-slate-300">
                                             {{ segment.days }}j
+                                        </span>
+                                    </li>
+                                    <li
+                                        v-if="week.unavailabilityDays > 0"
+                                        class="flex items-center gap-2"
+                                    >
+                                        <span
+                                            class="inline-block h-2 w-2 shrink-0 rounded-sm bg-rose-300"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="font-medium">Indispo</span>
+                                        <span class="text-slate-300">
+                                            {{ week.unavailabilityDays }}j
                                         </span>
                                     </li>
                                 </ul>

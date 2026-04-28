@@ -32,7 +32,6 @@ final class VehicleUsageStatsData extends Data
     /**
      * @param  list<VehicleCompanyUsageData>  $companies
      * @param  list<VehicleWeekUsageData>  $weeklyBreakdown
-     * @param  list<int>  $unavailabilityWeeks  Semaines ISO contenant ≥ 1 jour d'indispo
      */
     public function __construct(
         public int $fiscalYear,
@@ -46,6 +45,5 @@ final class VehicleUsageStatsData extends Data
         #[DataCollectionOf(VehicleWeekUsageData::class)]
         public array $weeklyBreakdown,
         public VehicleFullYearTaxBreakdownData $fullYearTaxBreakdown,
-        public array $unavailabilityWeeks,
     ) {}
 }

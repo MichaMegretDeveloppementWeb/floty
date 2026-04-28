@@ -21,12 +21,9 @@ defineProps<{
         </header>
 
         <ul class="flex flex-col gap-12">
-            <RuleCard
-                v-for="code in codes"
-                :key="code"
-                :code="code"
-                :rule="rulesByCode[code]"
-            />
+            <li v-for="code in codes" :key="code">
+                <RuleCard :code="code" :rule="rulesByCode[code]" />
+            </li>
         </ul>
     </section>
 </template>

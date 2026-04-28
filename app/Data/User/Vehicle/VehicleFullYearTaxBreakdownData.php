@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Data\User\Vehicle;
 
+use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -33,6 +35,11 @@ final class VehicleFullYearTaxBreakdownData extends Data
     /**
      * @param  list<string>  $exemptionReasons
      * @param  list<string>  $appliedRuleCodes
+     * @param  list<FiscalRuleListItemData>  $appliedRules  Détail
+     *                                                      complet (nom, description, refs légales) des règles
+     *                                                      listées dans `appliedRuleCodes`. Permet d'ouvrir la
+     *                                                      fiche détaillée d'une règle au clic depuis le panel
+     *                                                      sans aller-retour serveur.
      */
     public function __construct(
         public HomologationMethod $co2Method,
@@ -44,5 +51,7 @@ final class VehicleFullYearTaxBreakdownData extends Data
         public array $exemptionReasons,
         public array $appliedRuleCodes,
         public float $total,
+        #[DataCollectionOf(FiscalRuleListItemData::class)]
+        public array $appliedRules,
     ) {}
 }

@@ -3,7 +3,6 @@ import { Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import CompanyFiscalBreakdownTable from './partials/CompanyFiscalBreakdownTable.vue';
 import CurrentFiscalCharacteristicsCard from './partials/CurrentFiscalCharacteristicsCard.vue';
-import FiscalHistoryTimeline from './partials/FiscalHistoryTimeline.vue';
 import FullYearTaxBreakdownPanel from './partials/FullYearTaxBreakdownPanel.vue';
 import UnavailabilitiesCard from './partials/UnavailabilitiesCard.vue';
 import VehicleHeader from './partials/VehicleHeader.vue';
@@ -23,27 +22,26 @@ const props = defineProps<{
             <VehicleHeader :vehicle="props.vehicle" />
             <VehicleKpiCards :stats="props.vehicle.usageStats" />
 
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <!-- Colonne principale -->
-                <div class="flex flex-col gap-6 lg:col-span-2">
+                <div class="flex flex-col gap-6 xl:col-span-2">
                     <CurrentFiscalCharacteristicsCard
                         :fiscal="props.vehicle.currentFiscalCharacteristics"
+                        :history="props.vehicle.fiscalCharacteristicsHistory"
                     />
                     <VehicleYearlyUsageTimeline :stats="props.vehicle.usageStats" />
                     <CompanyFiscalBreakdownTable :stats="props.vehicle.usageStats" />
-                    <UnavailabilitiesCard
-                        :vehicle-id="props.vehicle.id"
-                        :unavailabilities="props.vehicle.unavailabilities"
-                    />
-                    <FiscalHistoryTimeline
-                        :history="props.vehicle.fiscalCharacteristicsHistory"
-                    />
                 </div>
 
                 <!-- Colonne aside (sticky en lg+) -->
-                <aside class="lg:col-span-1">
-                    <div class="lg:sticky lg:top-6">
+                <aside class="xl:col-span-1">
+                    <div class="flex flex-col gap-6 lg:top-6">
                         <FullYearTaxBreakdownPanel :stats="props.vehicle.usageStats" />
+                        <UnavailabilitiesCard
+                            :vehicle-id="props.vehicle.id"
+                            :unavailabilities="props.vehicle.unavailabilities"
+                            :busy-dates="props.vehicle.busyDates"
+                        />
                     </div>
                 </aside>
             </div>

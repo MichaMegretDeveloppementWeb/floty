@@ -31,11 +31,15 @@ interface UnavailabilityReadRepositoryInterface
     public function findById(int $id): Unavailability;
 
     /**
-     * Numéros de semaines ISO de l'année qui contiennent au moins
-     * 1 jour d'indisponibilité (tous types confondus). Utilisé pour
-     * marquer la timeline 52 semaines de la fiche véhicule.
+     * Nombre de jours d'indisponibilité (tous types confondus) par
+     * semaine ISO de l'année. Utilisé pour dimensionner un segment
+     * « indispo » empilé au-dessus des attributions dans la timeline
+     * 52 semaines de la fiche véhicule.
      *
-     * @return list<int> Semaines ISO (1-53), ordre croissant
+     * Une indispo couvrant 3 jours d'une semaine retournera `[N => 3]`
+     * (et non pas la semaine entière comme un overlay).
+     *
+     * @return array<int, int> weekNumber (1-53) → jours d'indispo (1-7)
      */
-    public function findOverlappingWeeksForVehicle(int $vehicleId, int $year): array;
+    public function findUnavailableDaysByWeekForVehicle(int $vehicleId, int $year): array;
 }

@@ -22,11 +22,19 @@ final class VehicleWeekUsageData extends Data
 {
     /**
      * @param  list<VehicleWeekSegmentData>  $segments
+     * @param  int  $unavailabilityDays  Nombre de jours d'indispo
+     *                                   (tous types) recoupant cette
+     *                                   semaine ISO de l'année. Sert
+     *                                   à dimensionner un segment
+     *                                   « indispo » empilé au-dessus
+     *                                   des attributions dans la
+     *                                   timeline (proportionnel sur 7).
      */
     public function __construct(
         public int $weekNumber,
         #[DataCollectionOf(VehicleWeekSegmentData::class)]
         public array $segments,
         public int $totalDays,
+        public int $unavailabilityDays,
     ) {}
 }

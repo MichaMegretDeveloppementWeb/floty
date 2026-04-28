@@ -28,4 +28,14 @@ interface FiscalRuleReadRepositoryInterface
      * Compte les règles fiscales actives pour une année donnée.
      */
     public function countActiveForYear(int $year): int;
+
+    /**
+     * Sous-ensemble des règles d'une année filtré par codes (utilisé
+     * par l'aggregator pour exposer les règles ayant participé au
+     * calcul d'un véhicule dans le payload de la page Show).
+     *
+     * @param  list<string>  $codes
+     * @return Collection<int, FiscalRule>
+     */
+    public function findByCodesForYear(int $year, array $codes): Collection;
 }

@@ -85,4 +85,25 @@ final class AssignmentReadRepository implements AssignmentReadRepositoryInterfac
     {
         return Assignment::query()->whereYear('date', $year)->count();
     }
+
+    public function findDatesForVehicleInRange(
+        int $vehicleId,
+        string $startDate,
+        ?string $endDate,
+    ): array {
+        $query = Assignment::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where('date', '>=', $startDate);
+
+        if ($endDate !== null) {
+            $query->where('date', '<=', $endDate);
+        }
+
+        return $query
+            ->orderBy('date')
+            ->pluck('date')
+            ->map(static fn ($date): string => $date->toDateString())
+            ->values()
+            ->all();
+    }
 }

@@ -24,7 +24,7 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
         return Unavailability::query()->findOrFail($id);
     }
 
-    public function findOverlappingWeeksForVehicle(int $vehicleId, int $year): array
+    public function findUnavailableDaysByWeekForVehicle(int $vehicleId, int $year): array
     {
         $yearStart = Carbon::create($year, 1, 1)->startOfDay();
         $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
@@ -37,25 +37,36 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
             })
             ->get(['start_date', 'end_date']);
 
-        $weeks = [];
+        // [weekNumber => Set<dayKey>] — Set pour dédupliquer si deux
+        // indispos chevauchent la même journée (cas exceptionnel).
+        /** @var array<int, array<string, bool>> $byWeekDays */
+        $byWeekDays = [];
         foreach ($rows as $row) {
             $start = $row->start_date->greaterThan($yearStart) ? $row->start_date : $yearStart;
             $end = $row->end_date === null || $row->end_date->greaterThan($yearEnd)
                 ? $yearEnd
                 : $row->end_date;
 
-            $cursor = $start->copy();
+            // Réassignation explicite — `start_date`/`end_date` sont castés
+            // en CarbonImmutable (cf. AppServiceProvider::Date::use), donc
+            // `addDay()` ne mute pas l'instance en place.
+            $cursor = $start;
             while ($cursor->lessThanOrEqualTo($end)) {
                 if ($cursor->year === $year) {
-                    $weeks[(int) $cursor->isoWeek] = true;
+                    $week = (int) $cursor->isoWeek;
+                    $byWeekDays[$week] ??= [];
+                    $byWeekDays[$week][$cursor->toDateString()] = true;
                 }
-                $cursor->addDay();
+                $cursor = $cursor->addDay();
             }
         }
 
-        $list = array_keys($weeks);
-        sort($list);
+        $byWeek = [];
+        foreach ($byWeekDays as $week => $days) {
+            $byWeek[$week] = count($days);
+        }
+        ksort($byWeek);
 
-        return $list;
+        return $byWeek;
     }
 }

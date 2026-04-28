@@ -1,18 +1,54 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import Modal from '@/Components/Ui/Modal/Modal.vue';
+import RuleCard from '@/pages/User/FiscalRules/Index/partials/RuleCard.vue';
 import { formatEur } from '@/Utils/format/formatEur';
 import {
     homologationMethodLabel,
     pollutantCategoryLabel,
 } from '@/Utils/labels/vehicleEnumLabels';
 
+type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
+
 const props = defineProps<{
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;
 }>();
 
 const breakdown = computed(() => props.stats.fullYearTaxBreakdown);
+
+const rulesByCode = computed<Record<string, Rule>>(() => {
+    const map: Record<string, Rule> = {};
+
+    for (const rule of breakdown.value.appliedRules) {
+        map[rule.ruleCode] = rule;
+    }
+
+    return map;
+});
+
+const selectedCode = ref<string | null>(null);
+const selectedRule = computed<Rule | null>(() => {
+    if (selectedCode.value === null) {
+        return null;
+    }
+
+    return rulesByCode.value[selectedCode.value] ?? null;
+});
+
+const modalOpen = computed<boolean>({
+    get: () => selectedCode.value !== null,
+    set: (value) => {
+        if (!value) {
+            selectedCode.value = null;
+        }
+    },
+});
+
+const openRule = (code: string): void => {
+    selectedCode.value = code;
+};
 </script>
 
 <template>
@@ -31,7 +67,7 @@ const breakdown = computed(() => props.stats.fullYearTaxBreakdown);
         <div class="flex flex-col gap-5">
             <!-- Section CO₂ -->
             <section class="flex flex-col gap-2">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
                     <span
                         class="text-xs font-semibold tracking-wider text-slate-500 uppercase"
                     >
@@ -51,7 +87,7 @@ const breakdown = computed(() => props.stats.fullYearTaxBreakdown);
 
             <!-- Section Polluants -->
             <section class="flex flex-col gap-2 border-t border-slate-100 pt-4">
-                <div class="flex items-center justify-between gap-2">
+                <div class="flex items-center justify-between gap-2 flex-wrap">
                     <span
                         class="text-xs font-semibold tracking-wider text-slate-500 uppercase"
                     >
@@ -112,14 +148,30 @@ const breakdown = computed(() => props.stats.fullYearTaxBreakdown);
         >
             <div class="flex flex-wrap items-center gap-2 text-xs">
                 <span class="text-slate-400">Règles appliquées :</span>
-                <code
+                <button
                     v-for="code in breakdown.appliedRuleCodes"
                     :key="code"
-                    class="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600"
+                    type="button"
+                    class="cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-200 hover:text-slate-900 focus-visible:bg-slate-200 focus-visible:outline-none"
+                    :title="`Voir le détail de la règle ${code}`"
+                    @click="openRule(code)"
                 >
                     {{ code }}
-                </code>
+                </button>
             </div>
         </template>
+
+        <Modal
+            v-model:open="modalOpen"
+            :title="selectedRule?.name ?? selectedCode ?? 'Règle fiscale'"
+            :description="`Code ${selectedCode}`"
+            size="lg"
+        >
+            <RuleCard
+                v-if="selectedCode"
+                :code="selectedCode"
+                :rule="selectedRule ?? undefined"
+            />
+        </Modal>
     </Card>
 </template>

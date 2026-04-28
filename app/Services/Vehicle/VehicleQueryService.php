@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Vehicle;
 
+use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
@@ -37,6 +38,7 @@ final class VehicleQueryService
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
         private readonly AssignmentQueryService $assignments,
+        private readonly AssignmentReadRepositoryInterface $assignmentRepo,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly FiscalYearContext $yearContext,
         private readonly UnavailabilityQueryService $unavailabilities,
@@ -94,6 +96,7 @@ final class VehicleQueryService
             $vehicle,
             $this->buildUsageStats($vehicle, $year),
             $this->unavailabilities->findForVehicle($vehicle->id),
+            $this->buildBusyDates($vehicle->id, $year),
         );
     }
 
@@ -122,6 +125,7 @@ final class VehicleQueryService
         $daysInYear = $this->yearContext->daysInYear($year);
         $cumul = $this->assignments->loadAnnualCumul($year);
         $weeklyMap = $this->assignments->loadVehicleWeeklyBreakdown($vehicle->id, $year);
+        $unavailabilityDaysByWeek = $this->unavailabilityRepo->findUnavailableDaysByWeekForVehicle($vehicle->id, $year);
 
         $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany($vehicle, $cumul, $year);
 
@@ -170,9 +174,8 @@ final class VehicleQueryService
             fullYearTax: $fullYearBreakdown->total,
             dailyTaxRate: round($fullYearBreakdown->total / $daysInYear, 2, PHP_ROUND_HALF_UP),
             companies: $companies,
-            weeklyBreakdown: $this->buildWeeklyBreakdown($weeklyMap, $companiesById, $year),
+            weeklyBreakdown: $this->buildWeeklyBreakdown($weeklyMap, $unavailabilityDaysByWeek, $companiesById, $year),
             fullYearTaxBreakdown: $fullYearBreakdown,
-            unavailabilityWeeks: $this->unavailabilityRepo->findOverlappingWeeksForVehicle($vehicle->id, $year),
         );
     }
 
@@ -202,16 +205,43 @@ final class VehicleQueryService
     }
 
     /**
+     * Liste flat des dates ISO (Y-m-d) déjà attribuées au véhicule
+     * sur l'année active. Alimente le `DateRangePicker` du modal
+     * indispos pour griser les jours non-sélectionnables.
+     *
+     * Bornée à `[01-01-Y, 31-12-Y]` — les attributions hors fenêtre
+     * ne bloquent pas l'UI (l'Action vérifie de toute façon avant
+     * écriture si l'utilisateur ouvre une plage débordante).
+     *
+     * @return list<string>
+     */
+    private function buildBusyDates(int $vehicleId, int $year): array
+    {
+        return $this->assignmentRepo->findDatesForVehicleInRange(
+            $vehicleId,
+            sprintf('%d-01-01', $year),
+            sprintf('%d-12-31', $year),
+        );
+    }
+
+    /**
      * Compose la liste des 52-53 entrées weekly (1 par semaine ISO
      * de l'année) pour la timeline visuelle. Les semaines vides
      * sont matérialisées avec `segments = []` et `totalDays = 0`.
      *
+     * Le `unavailabilityDays` est borné à `7 - totalDays` pour éviter
+     * un dépassement visuel (cas exceptionnel d'une indispo et d'une
+     * attribution sur le même jour — la base interdit normalement ce
+     * scénario via le check overlap des Actions).
+     *
      * @param  array<int, array<int, int>>  $weeklyMap  weekNumber → companyId → days
+     * @param  array<int, int>  $unavailabilityDaysByWeek  weekNumber → jours d'indispo
      * @param  Collection<int, Company>  $companiesById
      * @return list<VehicleWeekUsageData>
      */
     private function buildWeeklyBreakdown(
         array $weeklyMap,
+        array $unavailabilityDaysByWeek,
         Collection $companiesById,
         int $year,
     ): array {
@@ -240,10 +270,16 @@ final class VehicleQueryService
                 static fn (VehicleWeekSegmentData $a, VehicleWeekSegmentData $b): int => $a->companyId <=> $b->companyId,
             );
 
+            $unavailabilityDays = min(
+                $unavailabilityDaysByWeek[$week] ?? 0,
+                7 - $totalDays,
+            );
+
             $rows[] = new VehicleWeekUsageData(
                 weekNumber: $week,
                 segments: $segments,
                 totalDays: $totalDays,
+                unavailabilityDays: max(0, $unavailabilityDays),
             );
         }
 

@@ -29,6 +29,10 @@ final class VehicleData extends Data
     /**
      * @param  list<VehicleFiscalCharacteristicsData>  $fiscalCharacteristicsHistory
      * @param  list<UnavailabilityData>  $unavailabilities
+     * @param  list<string>  $busyDates  Dates ISO Y-m-d où le véhicule
+     *                                   est attribué sur l'année active
+     *                                   (alimente le DateRangePicker
+     *                                   du modal indispos).
      */
     public function __construct(
         public int $id,
@@ -53,6 +57,7 @@ final class VehicleData extends Data
         public VehicleUsageStatsData $usageStats,
         #[DataCollectionOf(UnavailabilityData::class)]
         public array $unavailabilities,
+        public array $busyDates,
     ) {}
 
     /**
@@ -63,14 +68,15 @@ final class VehicleData extends Data
      * Le tri antéchronologique de l'historique est garanti par le repo
      * (ORDER BY effective_from DESC). La version courante est extraite
      * depuis cet historique, sans requête supplémentaire.
-     */
-    /**
+     *
      * @param  list<UnavailabilityData>  $unavailabilities
+     * @param  list<string>  $busyDates
      */
     public static function fromModel(
         Vehicle $vehicle,
         VehicleUsageStatsData $usageStats,
         array $unavailabilities,
+        array $busyDates,
     ): self {
         $history = $vehicle->fiscalCharacteristics
             ->map(static fn ($vfc): VehicleFiscalCharacteristicsData => VehicleFiscalCharacteristicsData::fromModel($vfc))
@@ -103,6 +109,7 @@ final class VehicleData extends Data
             fiscalCharacteristicsHistory: $history,
             usageStats: $usageStats,
             unavailabilities: $unavailabilities,
+            busyDates: $busyDates,
         );
     }
 }

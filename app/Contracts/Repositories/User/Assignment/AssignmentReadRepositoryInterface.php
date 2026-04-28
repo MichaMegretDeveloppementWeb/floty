@@ -75,4 +75,18 @@ interface AssignmentReadRepositoryInterface
      * Compte les attributions de l'année (hors soft-deleted).
      */
     public function countForYear(int $year): int;
+
+    /**
+     * Dates ISO (Y-m-d) attribuées au véhicule qui tombent dans la
+     * plage `[startDate, endDate]`. Si `endDate` est null, la fenêtre
+     * est ouverte vers le futur (utilisé pour les indispos « en
+     * cours » qui bloquent toute attribution future).
+     *
+     * @return list<string>
+     */
+    public function findDatesForVehicleInRange(
+        int $vehicleId,
+        string $startDate,
+        ?string $endDate,
+    ): array;
 }

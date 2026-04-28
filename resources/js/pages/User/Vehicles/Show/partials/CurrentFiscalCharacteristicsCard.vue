@@ -1,7 +1,10 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { History } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import Modal from '@/Components/Ui/Modal/Modal.vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import {
     bodyTypeLabel,
@@ -13,10 +16,16 @@ import {
     underlyingCombustionEngineTypeLabel,
     vehicleUserTypeLabel,
 } from '@/Utils/labels/vehicleEnumLabels';
+import FiscalHistoryTimeline from './FiscalHistoryTimeline.vue';
 
 const props = defineProps<{
     fiscal: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData | null;
+    history: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData[];
 }>();
+
+const historyOpen = ref<boolean>(false);
+
+const historyCount = computed<number>(() => props.history.length);
 
 const co2Display = computed<{ value: string; label: string } | null>(() => {
     const f = props.fiscal;
@@ -115,6 +124,17 @@ const advancedFlags = computed<string[]>(() => {
                         {{ formatDateFr(props.fiscal.effectiveFrom) }}
                     </p>
                 </div>
+                <Button
+                    v-if="historyCount > 0"
+                    variant="ghost"
+                    size="sm"
+                    @click="historyOpen = true"
+                >
+                    <template #icon-left>
+                        <History :size="14" :stroke-width="1.75" />
+                    </template>
+                    Historique ({{ historyCount }})
+                </Button>
             </div>
         </template>
 
@@ -132,7 +152,7 @@ const advancedFlags = computed<string[]>(() => {
             <div
                 v-for="stat in stats"
                 :key="stat.label"
-                class="flex flex-col gap-0.5 rounded-lg bg-slate-50/70 px-3 py-2.5"
+                class="flex flex-col gap-1 rounded-lg bg-slate-50/70 px-3 py-2.5"
             >
                 <p
                     class="text-xs font-medium tracking-wide text-slate-500 uppercase"
@@ -157,5 +177,14 @@ const advancedFlags = computed<string[]>(() => {
                 {{ flag }}
             </Badge>
         </div>
+
+        <Modal
+            v-model:open="historyOpen"
+            title="Historique des caractéristiques fiscales"
+            :description="`${historyCount} version${historyCount > 1 ? 's' : ''} enregistrée${historyCount > 1 ? 's' : ''} — de la plus récente à la plus ancienne.`"
+            size="lg"
+        >
+            <FiscalHistoryTimeline :history="props.history" />
+        </Modal>
     </Card>
 </template>

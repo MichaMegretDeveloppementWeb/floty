@@ -16,6 +16,8 @@ type Unavailability = App.Data.User.Unavailability.UnavailabilityData;
 const props = defineProps<{
     vehicleId: number;
     unavailabilities: Unavailability[];
+    /** Dates ISO Y-m-d déjà attribuées au véhicule (passées au modal). */
+    busyDates: string[];
 }>();
 
 const formOpen = ref<boolean>(false);
@@ -159,6 +161,7 @@ const formatPeriod = (item: Unavailability): string => {
             v-model:open="formOpen"
             :vehicle-id="props.vehicleId"
             :editing="editing"
+            :busy-dates="props.busyDates"
         />
 
         <ConfirmModal
