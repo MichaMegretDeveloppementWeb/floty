@@ -73,8 +73,20 @@ export const pollutantCategoryLabel: Record<App.Enums.Vehicle.PollutantCategory,
 
 export const fiscalCharacteristicsChangeReasonLabel: Record<App.Enums.Vehicle.FiscalCharacteristicsChangeReason, string> = {
     initial_creation: 'Création initiale',
-    effective_change: 'Changement effectif',
+    recharacterization: 'Reclassement fiscal',
+    regulation_change: 'Changement réglementaire',
+    other_change: 'Autre changement',
     input_correction: 'Correction de saisie',
+};
+
+export const fiscalChangeModeLabel: Record<App.Enums.Vehicle.FiscalChangeMode, string> = {
+    correction: 'Correction de la version courante',
+    new_version: 'Nouvelle version (changement réel)',
+};
+
+export const fiscalCharacteristicsExtensionStrategyLabel: Record<App.Enums.Vehicle.FiscalCharacteristicsExtensionStrategy, string> = {
+    extend_previous: 'Étendre la version précédente sur la période supprimée',
+    extend_next: 'Étendre la version suivante sur la période supprimée',
 };
 
 export const underlyingCombustionEngineTypeLabel: Record<App.Enums.Vehicle.UnderlyingCombustionEngineType, string> = {

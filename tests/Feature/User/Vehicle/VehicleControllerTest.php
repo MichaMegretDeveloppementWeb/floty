@@ -262,4 +262,187 @@ final class VehicleControllerTest extends TestCase
             'co2_wltp' => 110,
         ]);
     }
+
+    #[Test]
+    public function edit_renvoie_la_page_d_edition_avec_le_vehicule_et_les_options(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create(['license_plate' => 'EH-142-AZ']);
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}/edit")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Vehicles/Edit/Index')
+                ->has('vehicle', fn (AssertableInertia $v) => $v
+                    ->where('id', $vehicle->id)
+                    ->where('licensePlate', 'EH-142-AZ')
+                    ->etc())
+                ->has('options'),
+            );
+    }
+
+    #[Test]
+    public function update_en_mode_correction_met_a_jour_la_vfc_courante_en_place(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'seats_count' => 5,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'fiscal_change_mode' => 'correction',
+            'seats_count' => 7,
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        // Aucune nouvelle VFC créée — mise à jour en place.
+        $this->assertSame(1, VehicleFiscalCharacteristics::query()->where('vehicle_id', $vehicle->id)->count());
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'seats_count' => 7,
+        ]);
+    }
+
+    #[Test]
+    public function update_en_mode_new_version_cree_une_nouvelle_vfc_et_ferme_la_courante(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'seats_count' => 5,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'fiscal_change_mode' => 'new_version',
+            'effective_from' => '2025-06-01',
+            'change_reason' => 'recharacterization',
+            'seats_count' => 9,
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        // VFC initiale fermée.
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_to' => '2025-05-31',
+        ]);
+
+        // Nouvelle VFC active.
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2025-06-01',
+            'effective_to' => null,
+            'seats_count' => 9,
+            'change_reason' => 'recharacterization',
+        ]);
+    }
+
+    #[Test]
+    public function update_en_mode_new_version_avec_cascade_supprime_les_versions_posterieures(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $oldest = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2022-01-01',
+            'effective_to' => '2023-12-31',
+        ]);
+        $middle = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => '2024-12-31',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2025-01-01',
+            'effective_to' => null,
+            'seats_count' => 5,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'fiscal_change_mode' => 'new_version',
+            'effective_from' => '2024-06-01',
+            'change_reason' => 'recharacterization',
+            'seats_count' => 11,
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        // Les versions postérieures ou égales à 2024-06-01 sont
+        // supprimées : middle (2024-01-01 → 2024-12-31) et current
+        // (2025-01-01 → null) ont effective_from >= 2024-06-01 ?
+        // middle commence avant, donc il survit (mais voit son
+        // effective_to ramené à 2024-05-31). current commence après
+        // et est supprimée.
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $oldest->id,
+            'effective_to' => '2023-12-31',
+        ]);
+        $this->assertDatabaseMissing('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+        ]);
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $middle->id,
+            'effective_to' => '2024-05-31',
+        ]);
+
+        // Nouvelle VFC active.
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-06-01',
+            'effective_to' => null,
+            'seats_count' => 11,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
+    private function buildVehicleUpdatePayload(Vehicle $vehicle, array $overrides = []): array
+    {
+        return array_merge([
+            'license_plate' => $vehicle->license_plate,
+            'brand' => $vehicle->brand,
+            'model' => $vehicle->model,
+            'vin' => $vehicle->vin ?? '',
+            'color' => $vehicle->color ?? '',
+            'first_french_registration_date' => $vehicle->first_french_registration_date?->format('Y-m-d'),
+            'first_origin_registration_date' => $vehicle->first_origin_registration_date?->format('Y-m-d'),
+            'first_economic_use_date' => $vehicle->first_economic_use_date?->format('Y-m-d'),
+            'acquisition_date' => $vehicle->acquisition_date?->format('Y-m-d'),
+            'mileage_current' => $vehicle->mileage_current,
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VP',
+            'body_type' => 'CI',
+            'seats_count' => 5,
+            'energy_source' => 'gasoline',
+            'euro_standard' => 'euro_6d_isc_fcm',
+            'pollutant_category' => 'category_1',
+            'homologation_method' => 'WLTP',
+            'co2_wltp' => 120,
+            'fiscal_change_mode' => 'correction',
+        ], $overrides);
+    }
 }

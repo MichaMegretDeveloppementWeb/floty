@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { Pencil, Trash2 } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
 import { useFiscalHistoryTimeline } from '@/Composables/Vehicle/Show/useFiscalHistoryTimeline';
 import {
     energySourceLabel,
@@ -8,8 +10,15 @@ import {
     pollutantCategoryLabel,
 } from '@/Utils/labels/vehicleEnumLabels';
 
+type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
+
 const props = defineProps<{
-    history: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData[];
+    history: Vfc[];
+}>();
+
+const emit = defineEmits<{
+    edit: [vfc: Vfc];
+    delete: [vfc: Vfc];
 }>();
 
 const { formatPeriod } = useFiscalHistoryTimeline();
@@ -32,14 +41,40 @@ const { formatPeriod } = useFiscalHistoryTimeline();
                 ]"
                 aria-hidden="true"
             />
-            <div class="flex flex-wrap items-center gap-2">
-                <span class="text-sm font-medium text-slate-900">
-                    {{ formatPeriod(item) }}
-                </span>
-                <Badge v-if="item.isCurrent" tone="emerald">Courante</Badge>
-                <Badge tone="slate">
-                    {{ fiscalCharacteristicsChangeReasonLabel[item.changeReason] }}
-                </Badge>
+            <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="text-sm font-medium text-slate-900">
+                        {{ formatPeriod(item) }}
+                    </span>
+                    <Badge v-if="item.isCurrent" tone="emerald">Courante</Badge>
+                    <Badge tone="slate">
+                        {{ fiscalCharacteristicsChangeReasonLabel[item.changeReason] }}
+                    </Badge>
+                </div>
+                <div class="flex items-center gap-1">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Modifier cette version"
+                        @click="emit('edit', item)"
+                    >
+                        <template #icon-left>
+                            <Pencil :size="14" :stroke-width="1.75" />
+                        </template>
+                        Modifier
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Supprimer cette version"
+                        @click="emit('delete', item)"
+                    >
+                        <template #icon-left>
+                            <Trash2 :size="14" :stroke-width="1.75" />
+                        </template>
+                        Supprimer
+                    </Button>
+                </div>
             </div>
             <p
                 v-if="item.changeNote"

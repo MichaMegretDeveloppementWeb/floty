@@ -7,6 +7,7 @@ namespace App\Repositories\User\Vehicle;
 use App\Actions\Vehicle\CreateVehicleAction;
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Data\User\Vehicle\StoreVehicleData;
+use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Models\Vehicle;
 
@@ -35,5 +36,26 @@ final class VehicleWriteRepository implements VehicleWriteRepositoryInterface
             'mileage_current' => $data->mileageCurrent,
             'notes' => $data->notes,
         ]);
+    }
+
+    public function update(int $vehicleId, UpdateVehicleData $data): Vehicle
+    {
+        $vehicle = Vehicle::findOrFail($vehicleId);
+
+        $vehicle->update([
+            'license_plate' => $data->licensePlate,
+            'brand' => $data->brand,
+            'model' => $data->model,
+            'vin' => $data->vin,
+            'color' => $data->color,
+            'first_french_registration_date' => $data->firstFrenchRegistrationDate,
+            'first_origin_registration_date' => $data->firstOriginRegistrationDate,
+            'first_economic_use_date' => $data->firstEconomicUseDate,
+            'acquisition_date' => $data->acquisitionDate,
+            'mileage_current' => $data->mileageCurrent,
+            'notes' => $data->notes,
+        ]);
+
+        return $vehicle->fresh();
     }
 }

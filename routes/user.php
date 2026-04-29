@@ -9,6 +9,7 @@ use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Planning\PlanningController;
 use App\Http\Controllers\User\Unavailability\UnavailabilityController;
 use App\Http\Controllers\User\Vehicle\VehicleController;
+use App\Http\Controllers\User\Vehicle\VehicleFiscalCharacteristicsController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -42,6 +43,30 @@ Route::middleware('auth')
         Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])
             ->whereNumber('vehicle')
             ->name('vehicles.show');
+        Route::get('/vehicles/{vehicle}/edit', [VehicleController::class, 'edit'])
+            ->whereNumber('vehicle')
+            ->name('vehicles.edit');
+        Route::patch('/vehicles/{vehicle}', [VehicleController::class, 'update'])
+            ->whereNumber('vehicle')
+            ->middleware('throttle:60,1')
+            ->name('vehicles.update');
+
+        // Vehicle fiscal characteristics — édition/suppression d'une
+        // VFC depuis la modale Historique de la page Show véhicule.
+        Route::patch(
+            '/vehicle-fiscal-characteristics/{vehicleFiscalCharacteristic}',
+            [VehicleFiscalCharacteristicsController::class, 'update'],
+        )
+            ->whereNumber('vehicleFiscalCharacteristic')
+            ->middleware('throttle:60,1')
+            ->name('vehicle-fiscal-characteristics.update');
+        Route::delete(
+            '/vehicle-fiscal-characteristics/{vehicleFiscalCharacteristic}',
+            [VehicleFiscalCharacteristicsController::class, 'destroy'],
+        )
+            ->whereNumber('vehicleFiscalCharacteristic')
+            ->middleware('throttle:60,1')
+            ->name('vehicle-fiscal-characteristics.destroy');
 
         // Unavailabilities — CRUD opéré depuis la page Show véhicule
         Route::post('/unavailabilities', [UnavailabilityController::class, 'store'])

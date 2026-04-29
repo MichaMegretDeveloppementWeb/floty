@@ -6,6 +6,7 @@ namespace App\Contracts\Repositories\User\Vehicle;
 
 use App\Actions\Vehicle\CreateVehicleAction;
 use App\Data\User\Vehicle\StoreVehicleData;
+use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Models\Vehicle;
 
 /**
@@ -23,4 +24,14 @@ interface VehicleWriteRepositoryInterface
      * Persiste un véhicule sans toucher à son historique fiscal.
      */
     public function create(StoreVehicleData $data): Vehicle;
+
+    /**
+     * Met à jour les seuls champs **identité** d'un véhicule
+     * (license_plate, brand, model, vin, color, dates immat,
+     * acquisition, kilométrage, notes). Ne touche pas à l'historique
+     * fiscal — celui-ci est géré séparément par
+     * {@see VehicleFiscalCharacteristicsWriteRepositoryInterface}
+     * sous l'orchestration d'une Action.
+     */
+    public function update(int $vehicleId, UpdateVehicleData $data): Vehicle;
 }

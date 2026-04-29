@@ -1,0 +1,1 @@
+import{D as e,_ as t,l as n,u as r,vt as i}from"./runtime-core.esm-bundler-BB_y22TY.js";var a=[`id`],o=t({__name:`InputError`,props:{id:{},message:{}},setup(t){return(o,s)=>t.message?(e(),r(`p`,{key:0,id:t.id,role:`alert`,class:`mt-1 text-xs text-rose-600`},i(t.message),9,a)):n(``,!0)}});export{o as t};

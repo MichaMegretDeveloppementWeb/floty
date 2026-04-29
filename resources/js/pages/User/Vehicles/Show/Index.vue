@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
+import ActionsBar from './partials/ActionsBar.vue';
 import CompanyFiscalBreakdownTable from './partials/CompanyFiscalBreakdownTable.vue';
 import CurrentFiscalCharacteristicsCard from './partials/CurrentFiscalCharacteristicsCard.vue';
 import FullYearTaxBreakdownPanel from './partials/FullYearTaxBreakdownPanel.vue';
@@ -13,6 +14,7 @@ import VehicleYearlyUsageTimeline from './partials/VehicleYearlyUsageTimeline.vu
 
 const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
+    options: App.Data.User.Vehicle.VehicleFormOptionsData;
 }>();
 
 const fullYearModalOpen = ref<boolean>(false);
@@ -24,6 +26,7 @@ const fullYearModalOpen = ref<boolean>(false);
     <UserLayout>
         <div class="flex flex-col gap-6">
             <VehicleHeader :vehicle="props.vehicle" />
+            <ActionsBar :vehicle="props.vehicle" />
             <VehicleKpiCards
                 :stats="props.vehicle.usageStats"
                 @open-full-year-detail="fullYearModalOpen = true"
@@ -35,6 +38,7 @@ const fullYearModalOpen = ref<boolean>(false);
                     <CurrentFiscalCharacteristicsCard
                         :fiscal="props.vehicle.currentFiscalCharacteristics"
                         :history="props.vehicle.fiscalCharacteristicsHistory"
+                        :options="props.options"
                     />
                     <VehicleYearlyUsageTimeline :stats="props.vehicle.usageStats" />
                     <!-- < xl : Indispo dans le main, sous Yearly. En xl+, c'est l'aside qui la porte. -->

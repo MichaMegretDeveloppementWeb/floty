@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Vehicle;
 
 use App\Actions\Vehicle\CreateVehicleAction;
+use App\Actions\Vehicle\UpdateVehicleAction;
 use App\Data\User\Vehicle\StoreVehicleData;
+use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Data\User\Vehicle\VehicleFormOptionsData;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
@@ -27,6 +29,7 @@ final class VehicleController extends Controller
     public function __construct(
         private readonly VehicleQueryService $vehicles,
         private readonly CreateVehicleAction $createVehicle,
+        private readonly UpdateVehicleAction $updateVehicle,
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
@@ -41,23 +44,14 @@ final class VehicleController extends Controller
     {
         return Inertia::render('User/Vehicles/Show/Index', [
             'vehicle' => $this->vehicles->findVehicleData($vehicle, $this->fiscalYear->resolve()),
+            'options' => $this->buildFormOptions(),
         ]);
     }
 
     public function create(): Response
     {
-        $options = new VehicleFormOptionsData(
-            receptionCategories: EnumOptions::fromCases(ReceptionCategory::cases()),
-            vehicleUserTypes: EnumOptions::fromCases(VehicleUserType::cases()),
-            bodyTypes: EnumOptions::fromCases(BodyType::cases()),
-            energySources: EnumOptions::fromCases(EnergySource::cases()),
-            euroStandards: EnumOptions::fromCases(EuroStandard::cases()),
-            homologationMethods: EnumOptions::fromCases(HomologationMethod::cases()),
-            pollutantCategories: EnumOptions::fromCases(PollutantCategory::cases()),
-        );
-
         return Inertia::render('User/Vehicles/Create/Index', [
-            'options' => $options,
+            'options' => $this->buildFormOptions(),
         ]);
     }
 
@@ -68,5 +62,35 @@ final class VehicleController extends Controller
         return redirect()
             ->route('user.vehicles.index')
             ->with('toast-success', 'Véhicule enregistré.');
+    }
+
+    public function edit(int $vehicle): Response
+    {
+        return Inertia::render('User/Vehicles/Edit/Index', [
+            'vehicle' => $this->vehicles->findVehicleData($vehicle, $this->fiscalYear->resolve()),
+            'options' => $this->buildFormOptions(),
+        ]);
+    }
+
+    public function update(int $vehicle, UpdateVehicleData $data): RedirectResponse
+    {
+        $this->updateVehicle->execute($vehicle, $data);
+
+        return redirect()
+            ->route('user.vehicles.show', ['vehicle' => $vehicle])
+            ->with('toast-success', 'Véhicule mis à jour.');
+    }
+
+    private function buildFormOptions(): VehicleFormOptionsData
+    {
+        return new VehicleFormOptionsData(
+            receptionCategories: EnumOptions::fromCases(ReceptionCategory::cases()),
+            vehicleUserTypes: EnumOptions::fromCases(VehicleUserType::cases()),
+            bodyTypes: EnumOptions::fromCases(BodyType::cases()),
+            energySources: EnumOptions::fromCases(EnergySource::cases()),
+            euroStandards: EnumOptions::fromCases(EuroStandard::cases()),
+            homologationMethods: EnumOptions::fromCases(HomologationMethod::cases()),
+            pollutantCategories: EnumOptions::fromCases(PollutantCategory::cases()),
+        );
     }
 }

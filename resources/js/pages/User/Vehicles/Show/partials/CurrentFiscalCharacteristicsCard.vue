@@ -5,16 +5,24 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import { useCurrentFiscalCharacteristicsCard } from '@/Composables/Vehicle/Show/useCurrentFiscalCharacteristicsCard';
+import { useVfcDeleteModalState } from '@/Composables/Vehicle/Show/useVfcDeleteForm';
+import { useVfcEditModalState } from '@/Composables/Vehicle/Show/useVfcEditForm';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import FiscalHistoryTimeline from './FiscalHistoryTimeline.vue';
+import VfcDeleteConfirmModal from './VfcDeleteConfirmModal.vue';
+import VfcEditModal from './VfcEditModal.vue';
 
 const props = defineProps<{
     fiscal: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData | null;
     history: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData[];
+    options: App.Data.User.Vehicle.VehicleFormOptionsData;
 }>();
 
 const { historyOpen, historyCount, stats, advancedFlags } =
     useCurrentFiscalCharacteristicsCard(props);
+
+const editState = useVfcEditModalState();
+const deleteState = useVfcDeleteModalState();
 </script>
 
 <template>
@@ -90,7 +98,22 @@ const { historyOpen, historyCount, stats, advancedFlags } =
             :description="`${historyCount} version${historyCount > 1 ? 's' : ''} enregistrée${historyCount > 1 ? 's' : ''} — de la plus récente à la plus ancienne.`"
             size="lg"
         >
-            <FiscalHistoryTimeline :history="props.history" />
+            <FiscalHistoryTimeline
+                :history="props.history"
+                @edit="editState.requestEdit"
+                @delete="deleteState.requestDelete"
+            />
         </Modal>
+
+        <VfcEditModal
+            v-model:open="editState.open.value"
+            :editing="editState.editing.value"
+            :options="props.options"
+        />
+
+        <VfcDeleteConfirmModal
+            v-model:open="deleteState.open.value"
+            :deleting="deleteState.deleting.value"
+        />
     </Card>
 </template>
