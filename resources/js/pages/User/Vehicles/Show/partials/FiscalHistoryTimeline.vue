@@ -22,95 +22,109 @@ const emit = defineEmits<{
 }>();
 
 const { formatPeriod } = useFiscalHistoryTimeline();
+
+const co2OrPa = (item: Vfc): string => {
+    if (item.co2Wltp !== null) {
+        return `${item.co2Wltp} g/km`;
+    }
+
+    if (item.co2Nedc !== null) {
+        return `${item.co2Nedc} g/km`;
+    }
+
+    if (item.taxableHorsepower !== null) {
+        return `${item.taxableHorsepower} CV`;
+    }
+
+    return '—';
+};
 </script>
 
 <template>
     <ol
         v-if="props.history.length > 0"
-        class="flex flex-col gap-4 border-l-2 border-slate-200 pl-5"
+        class="flex flex-col gap-3"
     >
         <li
             v-for="item in props.history"
             :key="item.id"
-            class="relative"
+            :class="[
+                'rounded-xl border p-4 transition-colors',
+                item.isCurrent
+                    ? 'border-emerald-200 bg-emerald-50/30'
+                    : 'border-slate-200 bg-white',
+            ]"
         >
-            <span
-                :class="[
-                    'absolute -left-[27px] top-1.5 inline-block h-3 w-3 rounded-full border-2 border-white',
-                    item.isCurrent ? 'bg-emerald-500' : 'bg-slate-300',
-                ]"
-                aria-hidden="true"
-            />
-            <div class="flex flex-wrap items-start justify-between gap-2">
-                <div class="flex flex-wrap items-center gap-2">
-                    <span class="text-sm font-medium text-slate-900">
-                        {{ formatPeriod(item) }}
-                    </span>
-                    <Badge v-if="item.isCurrent" tone="emerald">Courante</Badge>
-                    <Badge tone="slate">
+            <!-- En-tête : période à gauche, actions toujours à droite -->
+            <div class="flex items-start justify-between gap-3">
+                <div class="flex min-w-0 flex-col gap-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-sm font-semibold text-slate-900">
+                            {{ formatPeriod(item) }}
+                        </span>
+                        <Badge v-if="item.isCurrent" tone="emerald">
+                            Courante
+                        </Badge>
+                    </div>
+                    <p class="text-xs text-slate-500">
                         {{ fiscalCharacteristicsChangeReasonLabel[item.changeReason] }}
-                    </Badge>
+                    </p>
                 </div>
-                <div class="flex items-center gap-1">
+                <div class="flex shrink-0 items-center gap-1">
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         title="Modifier cette version"
                         @click="emit('edit', item)"
                     >
-                        <template #icon-left>
-                            <Pencil :size="14" :stroke-width="1.75" />
-                        </template>
-                        Modifier
+                        <Pencil :size="14" :stroke-width="1.75" />
+                        <span class="sr-only">Modifier</span>
                     </Button>
                     <Button
                         variant="ghost"
-                        size="sm"
+                        size="icon"
                         title="Supprimer cette version"
                         @click="emit('delete', item)"
                     >
-                        <template #icon-left>
-                            <Trash2 :size="14" :stroke-width="1.75" />
-                        </template>
-                        Supprimer
+                        <Trash2 :size="14" :stroke-width="1.75" />
+                        <span class="sr-only">Supprimer</span>
                     </Button>
                 </div>
             </div>
+
+            <!-- Note explicative (motif « Autre changement ») -->
             <p
                 v-if="item.changeNote"
-                class="mt-1 text-sm whitespace-pre-line text-slate-600"
+                class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs whitespace-pre-line text-slate-600"
             >
                 {{ item.changeNote }}
             </p>
+
+            <!-- Caractéristiques fiscales clés — toujours 4 colonnes -->
             <dl
-                class="mt-2 grid grid-cols-2 gap-x-6 gap-y-4 text-xs text-slate-500 sm:grid-cols-4"
+                class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs sm:grid-cols-4"
             >
-                <div>
+                <div class="flex flex-col gap-0.5">
                     <dt class="text-slate-400">Énergie</dt>
-                    <dd class="text-slate-700">
+                    <dd class="font-medium text-slate-700">
                         {{ energySourceLabel[item.energySource] }}
                     </dd>
                 </div>
-                <div>
-                    <dt class="text-slate-400">Méthode</dt>
-                    <dd class="text-slate-700">
+                <div class="flex flex-col gap-0.5">
+                    <dt class="text-slate-400">Homologation</dt>
+                    <dd class="font-medium text-slate-700">
                         {{ homologationMethodLabel[item.homologationMethod] }}
                     </dd>
                 </div>
-                <div>
+                <div class="flex flex-col gap-0.5">
                     <dt class="text-slate-400">CO₂ / PA</dt>
-                    <dd class="text-slate-700">
-                        {{
-                            item.co2Wltp ??
-                            item.co2Nedc ??
-                            item.taxableHorsepower ??
-                            '—'
-                        }}
+                    <dd class="font-medium text-slate-700">
+                        {{ co2OrPa(item) }}
                     </dd>
                 </div>
-                <div>
+                <div class="flex flex-col gap-0.5">
                     <dt class="text-slate-400">Polluants</dt>
-                    <dd class="text-slate-700">
+                    <dd class="font-medium text-slate-700">
                         {{ pollutantCategoryLabel[item.pollutantCategory] }}
                     </dd>
                 </div>
