@@ -97,9 +97,9 @@ Route::middleware('auth')
         Route::post('/planning/preview-taxes', [PlanningController::class, 'previewTaxes'])
             ->middleware('throttle:30,1')
             ->name('planning.preview-taxes');
-        Route::post('/planning/assignments', [PlanningController::class, 'storeBulk'])
+        Route::post('/planning/contracts', [PlanningController::class, 'storeBulk'])
             ->middleware('throttle:60,1')
-            ->name('planning.assignments.store-bulk');
+            ->name('planning.contracts.store-bulk');
 
         // Contracts (ADR-0014) — coexiste avec les routes assignments.*
         // pendant la transition (cleanup d'Assignment en chantier 04.H).

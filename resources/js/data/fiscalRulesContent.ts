@@ -262,14 +262,14 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-021': {
         tab: 'calcul',
         section: 'exoneration',
-        title: 'Exonération location courte durée (LCD) — seuil 30 jours',
-        pitch: 'Tant qu’une entreprise ne cumule pas plus de 30 jours sur un même véhicule dans l’année, ses deux taxes sont à zéro pour ce couple.',
-        body: "Règle clé du modèle de l'application : si une entreprise répartit ses besoins sur plusieurs véhicules différents (chaque couple ≤ 30 j), elle peut atteindre une exonération totale. Dès que le cumul annuel d'un couple (véhicule × entreprise) dépasse 30 jours, l'exonération tombe intégralement (et pas seulement au-delà de 30 j) : la taxe est due au prorata du cumul complet.",
+        title: 'Exonération location de courte durée (LCD)',
+        pitch: 'Un contrat de location de 30 jours ou moins (ou couvrant exactement un mois civil entier) est totalement exonéré : ses jours sortent du calcul.',
+        body: "Qualification appréciée **par contrat individuel**, pas en cumul annuel par couple (correction ADR-0014 conforme BOFiP § 180-190). Un contrat est LCD si l'une des deux conditions est vérifiée : durée ≤ 30 jours consécutifs, OU contrat couvrant exactement un mois civil entier (1er → dernier jour du même mois). Tous les jours d'un contrat LCD sont retirés du numérateur du prorata.",
         appliesWhen:
-            'Pour chaque couple (véhicule, entreprise utilisatrice) : cumul annuel des jours d’utilisation ≤ 30.',
-        effect: 'Si cumul ≤ 30 j : taxe CO₂ = 0 € ET taxe polluants = 0 € pour ce couple. Si cumul > 30 j : les deux taxes sont dues au prorata (cumul / 366) du tarif annuel plein.',
+            'Pour chaque contrat individuel : durée ≤ 30 jours consécutifs OU contrat = mois civil entier.',
+        effect: "Les jours du contrat LCD sont soustraits du numérateur du prorata appliqué à ce couple (véhicule, entreprise). Si tous les contrats du couple sont LCD, daysAssignedToCompany = 0 → taxe CO₂ + polluants = 0 €.",
         example:
-            'Entreprise A utilise le véhicule X 10 j en mars + 15 j en septembre = 25 j → 0,00 €. Si elle cumule 35 j : 173 × 35/366 + 100 × 35/366 ≈ 26,11 €. À l’inverse, 10 véhicules différents × 10 j chacun = 100 j d’usage total, 0 € de taxe.',
+            'Contrat A 1er→15 mars (15 j ≤ 30) → exonéré. Contrat B 1er→31 janvier (31 j mais 1 mois civil entier) → exonéré aussi. Contrat C 15 jan→15 mars (60 j à cheval, ni ≤ 30 ni mois civil entier) → taxable au prorata.',
     },
 
     // D. Exonérations prévues mais inactives dans Floty ───────────
@@ -333,9 +333,9 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-008': {
         tab: 'cadre',
         section: 'cadre-evenement',
-        title: 'Indisponibilités et impact sur le prorata',
-        pitch: 'Les jours d’indisponibilité (panne, maintenance, sinistre) ne comptent pas dans le prorata taxable de l’entreprise qui utilisait le véhicule.',
-        body: "Si une attribution court du 1er janvier au 31 mars (91 j) mais que le véhicule est en réparation 10 j en février, le prorata taxable est de 81 j. Les jours d'indisponibilité ne rebasculent pas côté bailleur : ils sont simplement retirés du redevable.",
+        title: 'Indisponibilités fiscalement réductrices',
+        pitch: 'Les jours d’indisponibilité subie (V1 : fourrière) tombant dans un contrat taxable sont retirés du numérateur du prorata.',
+        body: "Règle souveraine (refonte ADR-0014) : le moteur fiscal applique R-2024-008 sur la matière brute (contrats × indispos) — plus de filtrage SQL caché. Si un contrat de 91 j chevauche 10 j de fourrière, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà LCD-exonéré ne sont pas comptés (déjà retirés via R-2024-021). ADR-0016 raffinera la grille à 4 cas réducteurs en chantier 04.I.",
     },
     'R-2024-009': {
         tab: 'cadre',

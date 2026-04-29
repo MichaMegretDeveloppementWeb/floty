@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Vehicle;
 
-use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
@@ -17,7 +16,7 @@ use App\Data\User\Vehicle\VehicleWeekSegmentData;
 use App\Data\User\Vehicle\VehicleWeekUsageData;
 use App\Models\Company;
 use App\Models\Vehicle;
-use App\Services\Assignment\AssignmentQueryService;
+use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use App\Services\Unavailability\UnavailabilityQueryService;
@@ -31,14 +30,18 @@ use Spatie\LaravelData\DataCollection;
  * Aucune query Eloquent ici — toutes les lectures passent par les
  * repositories. Le service combine repository + aggregator fiscal +
  * mapping DTO (R3 d'ADR-0013).
+ *
+ * **Refonte 04.F (ADR-0014)** : la source des cumuls fiscaux et de la
+ * timeline hebdomadaire est désormais `ContractQueryService` (le
+ * domaine Assignment n'est plus consommé par le moteur fiscal — cleanup
+ * en chantier 04.H).
  */
 final class VehicleQueryService
 {
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
-        private readonly AssignmentQueryService $assignments,
-        private readonly AssignmentReadRepositoryInterface $assignmentRepo,
+        private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly FiscalYearContext $yearContext,
         private readonly UnavailabilityQueryService $unavailabilities,
@@ -123,11 +126,17 @@ final class VehicleQueryService
     private function buildUsageStats(Vehicle $vehicle, int $year): VehicleUsageStatsData
     {
         $daysInYear = $this->yearContext->daysInYear($year);
-        $cumul = $this->assignments->loadAnnualCumul($year);
-        $weeklyMap = $this->assignments->loadVehicleWeeklyBreakdown($vehicle->id, $year);
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
+        $vehicleUnavailabilities = $this->unavailabilityRepo->findForVehicle($vehicle->id)->all();
+        $weeklyMap = $this->contracts->loadVehicleWeeklyBreakdown($vehicle->id, $year);
         $unavailabilityDaysByWeek = $this->unavailabilityRepo->findUnavailableDaysByWeekForVehicle($vehicle->id, $year);
 
-        $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany($vehicle, $cumul, $year);
+        $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
+            $vehicle,
+            $contractsByPair,
+            $vehicleUnavailabilities,
+            $year,
+        );
 
         $companyIds = $this->collectCompanyIds($breakdown, $weeklyMap);
         $companiesById = $this->companies->findByIdsIndexed($companyIds);
@@ -205,19 +214,19 @@ final class VehicleQueryService
     }
 
     /**
-     * Liste flat des dates ISO (Y-m-d) déjà attribuées au véhicule
-     * sur l'année active. Alimente le `DateRangePicker` du modal
-     * indispos pour griser les jours non-sélectionnables.
+     * Liste flat des dates ISO (Y-m-d) déjà occupées par un contrat
+     * actif sur le véhicule pour l'année. Alimente le `DateRangePicker`
+     * du modal indispos pour griser les jours non-sélectionnables.
      *
-     * Bornée à `[01-01-Y, 31-12-Y]` — les attributions hors fenêtre
-     * ne bloquent pas l'UI (l'Action vérifie de toute façon avant
-     * écriture si l'utilisateur ouvre une plage débordante).
+     * Bornée à `[01-01-Y, 31-12-Y]` — les contrats hors fenêtre ne
+     * bloquent pas l'UI (l'Action vérifie de toute façon avant écriture
+     * si l'utilisateur ouvre une plage débordante).
      *
      * @return list<string>
      */
     private function buildBusyDates(int $vehicleId, int $year): array
     {
-        return $this->assignmentRepo->findDatesForVehicleInRange(
+        return $this->contracts->findDatesForVehicleInRange(
             $vehicleId,
             sprintf('%d-01-01', $year),
             sprintf('%d-12-31', $year),
@@ -230,8 +239,8 @@ final class VehicleQueryService
      * sont matérialisées avec `segments = []` et `totalDays = 0`.
      *
      * Le `unavailabilityDays` est borné à `7 - totalDays` pour éviter
-     * un dépassement visuel (cas exceptionnel d'une indispo et d'une
-     * attribution sur le même jour — la base interdit normalement ce
+     * un dépassement visuel (cas exceptionnel d'une indispo et d'un
+     * contrat sur le même jour — la base interdit normalement ce
      * scénario via le check overlap des Actions).
      *
      * @param  array<int, array<int, int>>  $weeklyMap  weekNumber → companyId → days

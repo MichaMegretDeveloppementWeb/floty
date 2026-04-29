@@ -11,7 +11,7 @@ use App\Data\User\Company\CompanyListItemData;
 use App\Data\User\Company\CompanyOptionData;
 use App\Enums\Company\CompanyColor;
 use App\Models\Company;
-use App\Services\Assignment\AssignmentQueryService;
+use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Spatie\LaravelData\DataCollection;
 
@@ -20,13 +20,16 @@ use Spatie\LaravelData\DataCollection;
  *
  * Pré-charge en bulk les véhicules concernés via le repository pour
  * éviter tout N+1 dans le calcul d'agrégats fiscaux par entreprise.
+ *
+ * **Refonte 04.F (ADR-0014)** : `daysUsed` et `annualTaxDue` dérivés
+ * de `ContractsByPair` au lieu de `AnnualCumulByPair`.
  */
 final class CompanyQueryService
 {
     public function __construct(
         private readonly CompanyReadRepositoryInterface $companies,
         private readonly VehicleReadRepositoryInterface $vehicles,
-        private readonly AssignmentQueryService $assignments,
+        private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 
@@ -38,13 +41,15 @@ final class CompanyQueryService
      */
     public function listForFleetView(int $year): DataCollection
     {
-        $cumul = $this->assignments->loadAnnualCumul($year);
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
 
         $vehicleIds = [];
-        foreach ($cumul->vehicleCompanyPairs() as $pair) {
+        foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
             $vehicleIds[$pair['vehicleId']] = true;
         }
-        $vehiclesById = $this->vehicles->findByIdsIndexed(array_keys($vehicleIds));
+        $vehicleIdList = array_keys($vehicleIds);
+        $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
+        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
 
         $rows = $this->companies->findAllOrderedByName()
             ->map(fn (Company $c): CompanyListItemData => new CompanyListItemData(
@@ -55,8 +60,14 @@ final class CompanyQueryService
                 siren: $c->siren,
                 city: $c->city,
                 isActive: $c->is_active,
-                daysUsed: $cumul->daysByCompany($c->id),
-                annualTaxDue: $this->aggregator->companyAnnualTax($c->id, $vehiclesById, $cumul, $year),
+                daysUsed: $contractsByPair->daysByCompany($c->id, $year),
+                annualTaxDue: $this->aggregator->companyAnnualTax(
+                    $c->id,
+                    $vehiclesById,
+                    $contractsByPair,
+                    $unavailabilitiesByVehicleId,
+                    $year,
+                ),
             ))
             ->values()
             ->all();

@@ -6,6 +6,7 @@ namespace App\Contracts\Repositories\User\Contract;
 
 use App\Models\Contract;
 use App\Services\Contract\ContractQueryService;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -29,6 +30,15 @@ interface ContractReadRepositoryInterface
     public function findByVehicleAndYear(int $vehicleId, int $year): Collection;
 
     /**
+     * Tous les contrats actifs croisant l'année — pivot du moteur fiscal
+     * (composé en `ContractsByPair` dans le service). Eager-load
+     * minimal pour les agrégations.
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findActiveForYear(int $year): Collection;
+
+    /**
      * Liste des contrats actifs d'une entreprise utilisatrice.
      *
      * @return Collection<int, Contract>
@@ -41,6 +51,18 @@ interface ContractReadRepositoryInterface
      * @return Collection<int, Contract>
      */
     public function listForVehicle(int $vehicleId): Collection;
+
+    /**
+     * Liste des contrats actifs d'un véhicule chevauchant la fenêtre
+     * `[start, end]`. Eager-load `company` pour le drawer semaine.
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findWindowContractsForVehicle(
+        int $vehicleId,
+        CarbonInterface $start,
+        CarbonInterface $end,
+    ): Collection;
 
     /**
      * Recherche un contrat actif sur le même véhicule dont la plage

@@ -5,7 +5,7 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
 import { useApi } from '@/Composables/Shared/useApi';
-import { storeBulk as storeBulkRoute } from '@/routes/user/planning/assignments';
+import { storeBulk as storeBulkRoute } from '@/routes/user/planning/contracts';
 import FiscalPreviewCard from './FiscalPreviewCard.vue';
 
 type Company = App.Data.User.Company.CompanyOptionData;
@@ -88,14 +88,23 @@ async function submit(): Promise<void> {
     }
 
     try {
-        await api.post<App.Data.User.Assignment.BulkCreateResultData>(
-            storeBulkRoute.url(),
-            {
-                vehicleId: props.vehicleId,
-                companyId: props.selectedCompanyId,
-                dates: props.selectedDates,
-            },
-        );
+        const sorted = [...props.selectedDates].sort();
+        // canSubmit garantit selectedDates.length > 0
+        const startDate = sorted[0] as string;
+        const endDate = sorted[sorted.length - 1] as string;
+
+        const payload: App.Data.User.Contract.BulkStoreContractsData = {
+            vehicleIds: [props.vehicleId],
+            companyId: props.selectedCompanyId as number,
+            driverId: null,
+            startDate,
+            endDate,
+            contractReference: null,
+            contractType: 'lcd',
+            notes: null,
+        };
+
+        await api.post<{ createdIds: number[] }>(storeBulkRoute.url(), payload);
         resetPreview();
         emit('submitted');
     } catch {

@@ -7,12 +7,15 @@ namespace App\Services\Fiscal;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
-use App\DTO\Fiscal\AnnualCumulByPair;
+use App\DTO\Fiscal\ContractsByPair;
+use App\Enums\Contract\ContractType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Models\Contract;
 use App\Models\FiscalRule;
+use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
@@ -29,6 +32,10 @@ use Illuminate\Support\Collection;
  * est appliqué **une seule fois par redevable** (entreprise utilisatrice),
  * jamais par couple intermédiaire. L'aggregator somme les `*DueRaw` des
  * `PipelineResult` et arrondit en sortie. Cf. ADR-0006 § 2.
+ *
+ * **Refonte 04.F (ADR-0014)** : passe de `AnnualCumulByPair` à
+ * `ContractsByPair`. Les indispos par véhicule sont passées séparément
+ * (map `vehicleId → list<Unavailability>`) pour alimenter R-2024-008.
  */
 final readonly class FleetFiscalAggregator
 {
@@ -46,18 +53,19 @@ final readonly class FleetFiscalAggregator
      * pré-chargées (sinon le pipeline déclenche une nouvelle requête
      * par appel via le repository).
      *
-     * Note : sémantiquement c'est une vue « par véhicule » (utilisée
-     * pour l'affichage dans la liste véhicules). L'arrondi BOFiP par
-     * redevable se fait dans {@see companyAnnualTax()}.
+     * @param  list<Unavailability>  $vehicleUnavailabilities  Indispos du véhicule sur l'année
      */
     public function vehicleAnnualTax(
         Vehicle $vehicle,
-        AnnualCumulByPair $cumul,
+        ContractsByPair $contracts,
+        array $vehicleUnavailabilities,
         int $year,
     ): float {
         $totalRaw = 0.0;
-        foreach ($cumul->pairsForVehicle($vehicle->id) as $days) {
-            $result = $this->pipeline->execute($this->buildContext($vehicle, $days, $days, $year));
+        foreach ($contracts->pairsForVehicle($vehicle->id) as $pairContracts) {
+            $result = $this->pipeline->execute(
+                $this->buildContext($vehicle, $pairContracts, $vehicleUnavailabilities, $year),
+            );
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
@@ -70,15 +78,17 @@ final readonly class FleetFiscalAggregator
      * seul arrondi par redevable.
      *
      * @param  Collection<int, Vehicle>  $vehiclesById  Indexée par id
+     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
      */
     public function companyAnnualTax(
         int $companyId,
         Collection $vehiclesById,
-        AnnualCumulByPair $cumul,
+        ContractsByPair $contracts,
+        array $unavailabilitiesByVehicleId,
         int $year,
     ): float {
         $totalRaw = 0.0;
-        foreach ($cumul->vehicleCompanyPairs() as $pair) {
+        foreach ($contracts->vehicleCompanyPairs() as $pair) {
             if ($pair['companyId'] !== $companyId) {
                 continue;
             }
@@ -87,7 +97,12 @@ final readonly class FleetFiscalAggregator
                 continue;
             }
             $result = $this->pipeline->execute(
-                $this->buildContext($vehicle, $pair['days'], $pair['days'], $year),
+                $this->buildContext(
+                    $vehicle,
+                    $pair['contracts'],
+                    $unavailabilitiesByVehicleId[$pair['vehicleId']] ?? [],
+                    $year,
+                ),
             );
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
@@ -98,20 +113,18 @@ final readonly class FleetFiscalAggregator
     /**
      * **Coût plein année théorique** d'un véhicule : ce qu'il
      * coûterait s'il était attribué 100 % du temps à une seule
-     * entreprise (sans LCD, prorata = 1.0).
+     * entreprise (sans LCD, sans indispo, prorata = 1.0).
      *
-     * Utilisé en colonne Flotte (comparaison inter-véhicules
-     * indépendamment de leur taux d'utilisation réel) et en KPI sur
-     * la page Show. Pour le détail de calcul (méthode CO₂, catégorie
-     * polluants, exonérations, codes règles), utiliser
-     * {@see vehicleFullYearTaxBreakdown()}.
+     * Construit un contrat synthétique non-persisté (1er jan → 31 déc)
+     * pour passer le pipeline normalement. Ce contrat est par
+     * construction non LCD (durée > 30 j et pas un mois civil entier)
+     * et sans indispo, donc R-2024-021 et R-2024-008 ne retirent rien
+     * du numérateur ; R-2024-002 calcule prorata = daysInYear / daysInYear = 1.0.
      */
     public function vehicleFullYearTax(Vehicle $vehicle, int $year): float
     {
-        $daysInYear = $this->yearContext->daysInYear($year);
-
         $result = $this->pipeline->execute(
-            $this->buildContext($vehicle, $daysInYear, $daysInYear, $year),
+            $this->buildContext($vehicle, [$this->fullYearSyntheticContract($year)], [], $year),
         );
 
         return round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
@@ -125,10 +138,8 @@ final readonly class FleetFiscalAggregator
      */
     public function vehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
-        $daysInYear = $this->yearContext->daysInYear($year);
-
         $result = $this->pipeline->execute(
-            $this->buildContext($vehicle, $daysInYear, $daysInYear, $year),
+            $this->buildContext($vehicle, [$this->fullYearSyntheticContract($year)], [], $year),
         );
 
         $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
@@ -228,17 +239,19 @@ final readonly class FleetFiscalAggregator
      * entrée par entreprise effectivement attributaire, non triée
      * (tri par jours décroissants à la charge du consommateur).
      *
+     * @param  list<Unavailability>  $vehicleUnavailabilities
      * @return list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
      */
     public function vehicleAnnualTaxBreakdownByCompany(
         Vehicle $vehicle,
-        AnnualCumulByPair $cumul,
+        ContractsByPair $contracts,
+        array $vehicleUnavailabilities,
         int $year,
     ): array {
         $rows = [];
-        foreach ($cumul->pairsForVehicle($vehicle->id) as $companyId => $days) {
+        foreach ($contracts->pairsForVehicle($vehicle->id) as $companyId => $pairContracts) {
             $result = $this->pipeline->execute(
-                $this->buildContext($vehicle, $days, $days, $year),
+                $this->buildContext($vehicle, $pairContracts, $vehicleUnavailabilities, $year),
             );
 
             $taxCo2 = round($result->co2DueRaw, 2, PHP_ROUND_HALF_UP);
@@ -246,7 +259,7 @@ final readonly class FleetFiscalAggregator
 
             $rows[] = [
                 'companyId' => $companyId,
-                'days' => $days,
+                'days' => $result->daysAssigned,
                 'taxCo2' => $taxCo2,
                 'taxPollutants' => $taxPollutants,
                 'taxTotal' => round($taxCo2 + $taxPollutants, 2, PHP_ROUND_HALF_UP),
@@ -262,20 +275,27 @@ final readonly class FleetFiscalAggregator
      * agrégat informatif (pas un montant déclaratif).
      *
      * @param  Collection<int, Vehicle>  $vehiclesById  Indexée par id
+     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
      */
     public function fleetAnnualTax(
         Collection $vehiclesById,
-        AnnualCumulByPair $cumul,
+        ContractsByPair $contracts,
+        array $unavailabilitiesByVehicleId,
         int $year,
     ): float {
         $totalRaw = 0.0;
-        foreach ($cumul->vehicleCompanyPairs() as $pair) {
+        foreach ($contracts->vehicleCompanyPairs() as $pair) {
             $vehicle = $vehiclesById->get($pair['vehicleId']);
             if ($vehicle === null) {
                 continue;
             }
             $result = $this->pipeline->execute(
-                $this->buildContext($vehicle, $pair['days'], $pair['days'], $year),
+                $this->buildContext(
+                    $vehicle,
+                    $pair['contracts'],
+                    $unavailabilitiesByVehicleId[$pair['vehicleId']] ?? [],
+                    $year,
+                ),
             );
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
@@ -283,18 +303,51 @@ final readonly class FleetFiscalAggregator
         return round($totalRaw, 2, PHP_ROUND_HALF_UP);
     }
 
+    /**
+     * @param  list<Contract>  $contractsForPair
+     * @param  list<Unavailability>  $vehicleUnavailabilities
+     */
     private function buildContext(
         Vehicle $vehicle,
-        int $daysAssignedToCompany,
-        int $cumulativeDaysForPair,
+        array $contractsForPair,
+        array $vehicleUnavailabilities,
         int $year,
     ): PipelineContext {
         return new PipelineContext(
             vehicle: $vehicle,
             fiscalYear: $year,
             daysInYear: $this->yearContext->daysInYear($year),
-            daysAssignedToCompany: $daysAssignedToCompany,
-            cumulativeDaysForPair: $cumulativeDaysForPair,
+            contractsForPair: $contractsForPair,
+            vehicleUnavailabilitiesInYear: $vehicleUnavailabilities,
         );
+    }
+
+    /**
+     * Contrat synthétique non-persisté couvrant toute l'année (1er jan
+     * → 31 déc), utilisé pour calculer le coût plein année théorique.
+     * Par construction non LCD (durée > 30 j, pas un mois civil entier).
+     */
+    private function fullYearSyntheticContract(int $year): Contract
+    {
+        $contract = new Contract([
+            'vehicle_id' => 0,
+            'company_id' => 0,
+            'driver_id' => null,
+            'start_date' => sprintf('%04d-01-01', $year),
+            'end_date' => sprintf('%04d-12-31', $year),
+            'contract_reference' => null,
+            'contract_type' => ContractType::Lld,
+            'notes' => null,
+        ]);
+
+        // Force les casts (Eloquent ne caste pas les attributs hors
+        // sauvegarde DB).
+        $contract->setRawAttributes([
+            'start_date' => sprintf('%04d-01-01', $year),
+            'end_date' => sprintf('%04d-12-31', $year),
+            'contract_type' => ContractType::Lld->value,
+        ], true);
+
+        return $contract;
     }
 }

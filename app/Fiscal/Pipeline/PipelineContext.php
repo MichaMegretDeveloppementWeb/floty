@@ -7,6 +7,9 @@ namespace App\Fiscal\Pipeline;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\Year2024\Transversal\R2024_002_DailyProrata;
+use App\Models\Contract;
+use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 
@@ -21,10 +24,22 @@ use App\Models\VehicleFiscalCharacteristics;
  * fil du pipeline. Un champ encore `null` à l'étape de tarification
  * indique soit qu'il n'y a pas eu de classification (cas dégénéré),
  * soit que la règle correspondante n'est pas encore exécutée.
+ *
+ * **Refonte 04.F (ADR-0014)** :
+ * - Le pipeline reçoit désormais la liste des contrats du couple
+ *   (`contractsForPair`) et les indispos du véhicule de l'année
+ *   (`vehicleUnavailabilitiesInYear`), pour permettre aux règles
+ *   souveraines (R-2024-021, R-2024-008) d'agir sur la matière brute.
+ * - `daysAssignedToCompany` et `cumulativeDaysForPair` deviennent
+ *   nullable et sont calculés par {@see R2024_002_DailyProrata}
+ *   à partir des contrats taxables (post-application des verdicts
+ *   d'exonération journalière).
  */
 final readonly class PipelineContext
 {
     /**
+     * @param  list<Contract>  $contractsForPair  Contrats actifs du couple sur l'année
+     * @param  list<Unavailability>  $vehicleUnavailabilitiesInYear  Indispos du véhicule sur l'année
      * @param  list<ExemptionVerdict>  $exemptionVerdicts  Verdicts collectés étape 4
      * @param  list<string>  $appliedRuleCodes  Trace pour le snapshot PDF
      */
@@ -32,8 +47,10 @@ final readonly class PipelineContext
         public Vehicle $vehicle,
         public int $fiscalYear,
         public int $daysInYear,
-        public int $daysAssignedToCompany,
-        public int $cumulativeDaysForPair,
+        public array $contractsForPair = [],
+        public array $vehicleUnavailabilitiesInYear = [],
+        public ?int $daysAssignedToCompany = null,
+        public ?int $cumulativeDaysForPair = null,
         public ?VehicleFiscalCharacteristics $currentFiscalCharacteristics = null,
         public ?bool $isFiscallyTaxable = null,
         public ?HomologationMethod $resolvedCo2Method = null,
@@ -81,6 +98,16 @@ final readonly class PipelineContext
         return $this->copyWith(['co2Due' => $co2Due, 'pollutantsDue' => $pollutantsDue]);
     }
 
+    public function withDaysAssignedToCompany(int $days): self
+    {
+        return $this->copyWith(['daysAssignedToCompany' => $days]);
+    }
+
+    public function withCumulativeDaysForPair(int $days): self
+    {
+        return $this->copyWith(['cumulativeDaysForPair' => $days]);
+    }
+
     public function withExemptionVerdict(ExemptionVerdict $verdict): self
     {
         return $this->copyWith(['exemptionVerdicts' => [...$this->exemptionVerdicts, $verdict]]);
@@ -93,7 +120,7 @@ final readonly class PipelineContext
 
     /**
      * Helper interne qui clone l'instance en remplaçant les champs
-     * fournis. Évite la répétition des 14+ champs à chaque méthode
+     * fournis. Évite la répétition des champs à chaque méthode
      * `with*()`. Un nouveau champ ajouté au constructeur ne nécessite
      * aucune modification ici.
      *
@@ -112,6 +139,8 @@ final readonly class PipelineContext
             vehicle: $pick('vehicle', $this->vehicle),
             fiscalYear: $pick('fiscalYear', $this->fiscalYear),
             daysInYear: $pick('daysInYear', $this->daysInYear),
+            contractsForPair: $pick('contractsForPair', $this->contractsForPair),
+            vehicleUnavailabilitiesInYear: $pick('vehicleUnavailabilitiesInYear', $this->vehicleUnavailabilitiesInYear),
             daysAssignedToCompany: $pick('daysAssignedToCompany', $this->daysAssignedToCompany),
             cumulativeDaysForPair: $pick('cumulativeDaysForPair', $this->cumulativeDaysForPair),
             currentFiscalCharacteristics: $pick('currentFiscalCharacteristics', $this->currentFiscalCharacteristics),

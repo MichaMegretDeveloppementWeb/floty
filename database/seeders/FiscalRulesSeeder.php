@@ -127,11 +127,13 @@ final class FiscalRulesSeeder extends Seeder
             ],
             [
                 'rule_code' => 'R-2024-008',
-                'name' => 'Impact des indisponibilités fourrière',
-                'description' => "Les jours d'indisponibilité fourrière sont déduits du numérateur du prorata. Règle issue de la doctrine BOFiP, sans article CIBS direct.",
-                'rule_type' => RuleType::Transversal,
+                'name' => 'Indisponibilités fiscalement réductrices',
+                'description' => "Les jours d'indisponibilité fourrière (V1) tombant dans un contrat taxable sont déduits du numérateur du prorata. ADR-0016 raffinera à 4 cas réducteurs en chantier 04.I.",
+                'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
-                'legal_basis' => [],
+                'legal_basis' => [
+                    $cibs('L. 421-118'),
+                ],
                 'display_order' => 8,
             ],
             [
@@ -272,8 +274,8 @@ final class FiscalRulesSeeder extends Seeder
             ],
             [
                 'rule_code' => 'R-2024-021',
-                'name' => 'Exonération LCD (cumul ≤ 30 jours par couple)',
-                'description' => "Location de courte durée : cumul annuel d'affectation par couple (véhicule, entreprise) ≤ 30 jours → exonération totale.",
+                'name' => 'Exonération LCD (location de courte durée)',
+                'description' => "Location de courte durée : durée d'un contrat ≤ 30 jours consécutifs OU contrat couvrant exactement un mois civil entier → tous les jours du contrat sont retirés du numérateur du prorata. Qualification per-contract (ADR-0014, BOFiP § 180-190).",
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [

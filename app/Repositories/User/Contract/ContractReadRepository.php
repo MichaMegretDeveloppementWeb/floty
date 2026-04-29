@@ -7,6 +7,7 @@ namespace App\Repositories\User\Contract;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Models\Contract;
 use App\Services\Contract\ContractQueryService;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -44,6 +45,19 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
+    public function findActiveForYear(int $year): Collection
+    {
+        $yearStart = sprintf('%04d-01-01', $year);
+        $yearEnd = sprintf('%04d-12-31', $year);
+
+        return Contract::query()
+            ->where('start_date', '<=', $yearEnd)
+            ->where('end_date', '>=', $yearStart)
+            ->orderBy('vehicle_id')
+            ->orderBy('start_date')
+            ->get();
+    }
+
     public function listForCompany(int $companyId): Collection
     {
         return Contract::query()
@@ -59,6 +73,20 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->with(['company:id,short_code,legal_name', 'driver:id,first_name,last_name'])
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')
+            ->get();
+    }
+
+    public function findWindowContractsForVehicle(
+        int $vehicleId,
+        CarbonInterface $start,
+        CarbonInterface $end,
+    ): Collection {
+        return Contract::query()
+            ->with('company:id,short_code,legal_name,color')
+            ->where('vehicle_id', $vehicleId)
+            ->where('start_date', '<=', $end->toDateString())
+            ->where('end_date', '>=', $start->toDateString())
+            ->orderBy('start_date')
             ->get();
     }
 

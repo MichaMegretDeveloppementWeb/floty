@@ -9,20 +9,25 @@ use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Planning\PlanningHeatmapVehicleData;
 use App\Models\Company;
-use App\Services\Assignment\AssignmentQueryService;
+use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Spatie\LaravelData\DataCollection;
 
 /**
  * Construction de la matrice véhicules × 52 semaines pour la page
  * « Vue d'ensemble » (planning).
+ *
+ * **Refonte 04.F (ADR-0014)** : la heatmap consomme désormais les
+ * contrats (`ContractQueryService`). Les indispos par véhicule sont
+ * passées au moteur fiscal pour permettre à R-2024-008 d'agir sur la
+ * matière brute.
  */
 final class PlanningHeatmapService
 {
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
-        private readonly AssignmentQueryService $assignments,
+        private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 
@@ -31,8 +36,14 @@ final class PlanningHeatmapService
      */
     public function buildHeatmap(int $year): array
     {
-        $cumul = $this->assignments->loadAnnualCumul($year);
-        $weekDensity = $this->assignments->loadWeekDensity($year);
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
+        $weekDensity = $this->contracts->loadWeekDensity($year);
+
+        $vehicleIds = [];
+        foreach ($this->vehicles->findAllForHeatmap() as $vehicle) {
+            $vehicleIds[] = $vehicle->id;
+        }
+        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
 
         $vehicleRows = [];
         foreach ($this->vehicles->findAllForHeatmap() as $vehicle) {
@@ -58,7 +69,12 @@ final class PlanningHeatmapService
                 taxableHorsepower: $fiscal->taxable_horsepower,
                 weeks: $weeks,
                 daysTotal: array_sum($weeks),
-                annualTaxDue: $this->aggregator->vehicleAnnualTax($vehicle, $cumul, $year),
+                annualTaxDue: $this->aggregator->vehicleAnnualTax(
+                    $vehicle,
+                    $contractsByPair,
+                    $unavailabilitiesByVehicleId[$vehicle->id] ?? [],
+                    $year,
+                ),
             );
         }
 

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\Company\CompanyColor;
+use App\Enums\Contract\ContractType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -15,8 +16,8 @@ use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Models\Assignment;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Database\Seeder;
@@ -46,7 +47,7 @@ final class DemoSeeder extends Seeder
         DB::transaction(function (): void {
             $companies = $this->seedCompanies();
             $vehicles = $this->seedVehicles();
-            $this->seedAssignments2024($vehicles, $companies);
+            $this->seedContracts2024($vehicles, $companies);
         });
     }
 
@@ -246,13 +247,23 @@ final class DemoSeeder extends Seeder
     }
 
     /**
+     * Crée des contrats 2024 (refonte ADR-0014) à partir du plan
+     * d'attribution. Une entrée du plan = un contrat couvrant la
+     * plage `[from, to]`. Le `contract_type` est déduit de la durée
+     * (≤ 30 j → `lcd`, sinon `lld`) pour cohérence visuelle ; le
+     * moteur fiscal calcule l'exonération LCD à partir des dates,
+     * pas du libellé.
+     *
      * @param  array<string, Vehicle>  $vehicles
      * @param  array<string, Company>  $companies
      */
-    private function seedAssignments2024(array $vehicles, array $companies): void
+    private function seedContracts2024(array $vehicles, array $companies): void
     {
         // Nettoyage : on repart à blanc pour 2024 pour la démo.
-        Assignment::whereYear('date', 2024)->delete();
+        Contract::query()
+            ->where('start_date', '<=', '2024-12-31')
+            ->where('end_date', '>=', '2024-01-01')
+            ->forceDelete();
 
         $plan = $this->buildAssignmentPlan();
         foreach ($plan as $row) {
@@ -264,22 +275,19 @@ final class DemoSeeder extends Seeder
 
             $start = Carbon::parse($row['from']);
             $end = Carbon::parse($row['to']);
-            $period = $start->copy();
-            $rows = [];
-            while ($period->lte($end)) {
-                $rows[] = [
-                    'vehicle_id' => $vehicle->id,
-                    'company_id' => $company->id,
-                    'driver_id' => null,
-                    'date' => $period->toDateString(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-                $period->addDay();
-            }
-            // Insertion batchée par attribution — INSERT IGNORE pour tolérer
-            // d'éventuels doublons liés à des plans chevauchants entre démos.
-            DB::table('assignments')->insertOrIgnore($rows);
+            $duration = $start->diffInDays($end) + 1;
+            $type = $duration <= 30 ? ContractType::Lcd : ContractType::Lld;
+
+            Contract::create([
+                'vehicle_id' => $vehicle->id,
+                'company_id' => $company->id,
+                'driver_id' => null,
+                'start_date' => $start->toDateString(),
+                'end_date' => $end->toDateString(),
+                'contract_reference' => null,
+                'contract_type' => $type,
+                'notes' => null,
+            ]);
         }
     }
 

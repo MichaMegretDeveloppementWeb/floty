@@ -24,17 +24,21 @@ use App\Services\Shared\Fiscal\FiscalYearContext;
  *
  *   1. Récupération du contexte (caractéristiques fiscales courantes)
  *   2. Classifications (méthode CO₂, catégorie polluants)
- *   3. Cumul (déjà fourni par l'appelant via le PipelineContext)
+ *   3. Cumul (alimenté par l'appelant via `contractsForPair` et
+ *      `vehicleUnavailabilitiesInYear` dans le PipelineContext)
  *   4. Exonérations (collecte des verdicts ; court-circuit hors scope)
  *   5. Abatements (vide en 2024)
  *   6. Tarification (CO₂ + polluants)
- *   7. Prorata + arrondi (Transversal)
+ *   7. Prorata + arrondi (Transversal — R-2024-002 calcule le numérateur
+ *      depuis les contrats taxables et applique le prorata)
  *   8. Output structuré (PipelineResult)
  *
- * Le pipeline lit les règles applicables via le {@see FiscalRuleRegistry}
- * pour l'année du contexte. Cela rend l'exécution agnostique de l'année
- * (2024, 2025, …) — c'est le registry qui sait quelles classes
- * appliquer pour quelle année.
+ * **Refonte 04.F (ADR-0014)** :
+ * Le pipeline ne reçoit plus de cumuls agrégés (`daysAssignedToCompany`,
+ * `cumulativeDaysForPair`) — il reçoit la matière brute (les contrats
+ * du couple, les indispos du véhicule) et les règles souveraines
+ * R-2024-021 et R-2024-008 décident des jours exonérés. R-2024-002
+ * (Transversal) calcule le numérateur final et l'écrit dans le contexte.
  */
 final class FiscalPipeline
 {
@@ -85,17 +89,20 @@ final class FiscalPipeline
             $context = $rule->price($context);
         }
 
-        // Application des verdicts d'exonération sur les tarifs (avant
-        // prorata) — préserve la sémantique du calculator legacy.
+        // Application des verdicts d'exonération **totaux** sur les
+        // tarifs (avant prorata) — handicap, électrique, OIG, etc. Les
+        // verdicts journaliers (partialDays, scope null) ne neutralisent
+        // pas les tariffs : ils n'agissent que sur le numérateur dans
+        // R-2024-002.
         $context = $this->applyExemptionsToTariffs($context);
 
         // Étape 7 — Transversales (prorata + arrondi)
+        // R-2024-002 calcule daysAssignedToCompany depuis contractsForPair
+        // et soustrait les verdicts partialDays.
         foreach ($this->filterByType($rules, TransversalRule::class) as $rule) {
             $context = $rule->apply($context);
         }
 
-        // Application finale des verdicts pleins (tariffs déjà mis à 0
-        // pour Both ou Co2Only/PollutantsOnly via applyExemptionsToTariffs).
         // Étape 8 — Sortie structurée
         return $this->buildResult($context);
     }
@@ -105,15 +112,8 @@ final class FiscalPipeline
         if (! $this->yearContext->isSupported($context->fiscalYear)) {
             throw FiscalCalculationException::yearNotSupported($context->fiscalYear);
         }
-        if ($context->daysAssignedToCompany < 0) {
-            throw FiscalCalculationException::negativeDays($context->daysAssignedToCompany);
-        }
-        if ($context->cumulativeDaysForPair < $context->daysAssignedToCompany) {
-            throw FiscalCalculationException::cumulInferiorToAssigned(
-                $context->cumulativeDaysForPair,
-                $context->daysAssignedToCompany,
-            );
-        }
+        // daysAssignedToCompany et cumulativeDaysForPair sont nullable
+        // (calculés par R-2024-002). Aucune validation amont possible.
     }
 
     private function loadFiscalCharacteristics(PipelineContext $context): PipelineContext
@@ -155,12 +155,15 @@ final class FiscalPipeline
         $hasZeroingTariffs = false;
         $covers = [];
         foreach ($verdicts as $verdict) {
+            // Verdicts journaliers (partialDays) → scope null → ne
+            // neutralisent pas les tariffs (effet via numérateur R-2024-002).
+            if ($verdict->scope === null) {
+                continue;
+            }
             if ($verdict->zeroesFullYearTariffs) {
                 $hasZeroingTariffs = true;
             }
-            if ($verdict->scope !== null) {
-                $covers[] = $verdict->scope;
-            }
+            $covers[] = $verdict->scope;
         }
 
         if ($hasZeroingTariffs) {
@@ -201,7 +204,12 @@ final class FiscalPipeline
             if ($verdict->scope === ExemptionScope::Co2Only) {
                 $electricExempt = true;
             }
-            if ($verdict->scope === ExemptionScope::Both && ! $verdict->zeroesFullYearTariffs) {
+            // LCD : marqueur présent dès qu'un contrat du couple est
+            // qualifié LCD (R-2024-021 a posé un verdict partialDays).
+            // Avec la sémantique per-contract, c'est désormais possible
+            // d'avoir un mix LCD/LLD sur le même couple — le bool
+            // signale juste qu'il y a au moins un contrat LCD.
+            if ($verdict->exemptDaysCount !== null && $verdict->exemptDaysCount > 0) {
                 $lcdExempt = true;
             }
         }
@@ -222,8 +230,8 @@ final class FiscalPipeline
         $totalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);
 
         return new PipelineResult(
-            daysAssigned: $context->daysAssignedToCompany,
-            cumulativeDaysForPair: $context->cumulativeDaysForPair,
+            daysAssigned: $context->daysAssignedToCompany ?? 0,
+            cumulativeDaysForPair: $context->cumulativeDaysForPair ?? 0,
             daysInYear: $context->daysInYear,
             lcdExempt: $lcdExempt,
             electricExempt: $electricExempt,

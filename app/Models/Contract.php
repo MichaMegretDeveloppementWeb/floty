@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Contract\ContractType;
+use App\Services\Contract\ContractQueryService;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -90,5 +92,41 @@ final class Contract extends Model
     public function driver(): BelongsTo
     {
         return $this->belongsTo(Driver::class);
+    }
+
+    /**
+     * Expansion du contrat en liste de dates ISO (Y-m-d), bornée à
+     * l'année passée en argument. Inclut les deux bornes du contrat.
+     *
+     * Helper réutilisé par les règles fiscales (R-2024-002 numérateur
+     * du prorata, R-2024-021 qualification LCD per-contract,
+     * R-2024-008 jours indispos réductrices ∩ contrats taxables) et
+     * par {@see ContractQueryService}.
+     *
+     * @return list<string>
+     */
+    public function expandToDaysInYear(int $year): array
+    {
+        $yearStart = CarbonImmutable::create($year, 1, 1);
+        $yearEnd = CarbonImmutable::create($year, 12, 31);
+
+        $start = CarbonImmutable::parse($this->start_date->toDateString());
+        $end = CarbonImmutable::parse($this->end_date->toDateString());
+
+        $rangeStart = $start->isAfter($yearStart) ? $start : $yearStart;
+        $rangeEnd = $end->isBefore($yearEnd) ? $end : $yearEnd;
+
+        if ($rangeStart->isAfter($rangeEnd)) {
+            return [];
+        }
+
+        $days = [];
+        $cursor = $rangeStart;
+        while (! $cursor->isAfter($rangeEnd)) {
+            $days[] = $cursor->toDateString();
+            $cursor = $cursor->addDay();
+        }
+
+        return $days;
     }
 }

@@ -4,48 +4,53 @@ declare(strict_types=1);
 
 namespace App\Services\Dashboard;
 
-use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Dashboard\DashboardStatsData;
-use App\Services\Assignment\AssignmentQueryService;
+use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
  * Calcul des KPIs de la page Dashboard.
  *
- * Tire parti du même `AnnualCumulByPair` que les autres services et
- * précharge en bulk via le repository tous les véhicules concernés
- * pour éviter les N+1.
+ * **Refonte 04.F (ADR-0014)** : KPIs dérivés des contrats. Le compteur
+ * `assignmentsYear` (jours-attribution sur l'année) est désormais le
+ * cumul des jours-contrat occupés (sémantique cohérente avec le métier).
  */
 final class DashboardStatsService
 {
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
-        private readonly AssignmentReadRepositoryInterface $assignmentRepo,
-        private readonly AssignmentQueryService $assignmentQuery,
+        private readonly ContractQueryService $contracts,
         private readonly FiscalRuleReadRepositoryInterface $fiscalRules,
         private readonly FleetFiscalAggregator $aggregator,
     ) {}
 
     public function computeStats(int $year): DashboardStatsData
     {
-        $cumul = $this->assignmentQuery->loadAnnualCumul($year);
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
 
         $vehicleIds = [];
-        foreach ($cumul->vehicleCompanyPairs() as $pair) {
+        foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
             $vehicleIds[$pair['vehicleId']] = true;
         }
-        $vehiclesById = $this->vehicles->findByIdsIndexed(array_keys($vehicleIds));
+        $vehicleIdList = array_keys($vehicleIds);
+        $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
+        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
 
         return new DashboardStatsData(
             vehiclesCount: $this->vehicles->countActive(),
             companiesCount: $this->companies->countActive(),
-            assignmentsYear: $this->assignmentRepo->countForYear($year),
+            assignmentsYear: $this->contracts->countContractDaysForYear($year),
             fiscalRulesCount: $this->fiscalRules->countActiveForYear($year),
-            totalTaxDue: $this->aggregator->fleetAnnualTax($vehiclesById, $cumul, $year),
+            totalTaxDue: $this->aggregator->fleetAnnualTax(
+                $vehiclesById,
+                $contractsByPair,
+                $unavailabilitiesByVehicleId,
+                $year,
+            ),
         );
     }
 }
