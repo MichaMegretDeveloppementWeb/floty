@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\Vehicle;
 
-use App\Models\Assignment;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -54,6 +54,7 @@ final class VehicleControllerTest extends TestCase
                     ->has('vehicleUserTypes')
                     ->has('bodyTypes')
                     ->has('energySources')
+                    ->has('underlyingCombustionEngineTypes')
                     ->has('euroStandards')
                     ->has('homologationMethods')
                     ->has('pollutantCategories')),
@@ -128,21 +129,17 @@ final class VehicleControllerTest extends TestCase
         $companyA = Company::factory()->create(['short_code' => 'ALPH']);
         $companyB = Company::factory()->create(['short_code' => 'BETA']);
 
-        // 5 jours pour A, 10 jours pour B → B doit apparaître en premier (tri desc).
-        for ($i = 1; $i <= 5; $i++) {
-            Assignment::factory()->create([
-                'vehicle_id' => $vehicle->id,
-                'company_id' => $companyA->id,
-                'date' => sprintf('%04d-01-%02d', $year, $i),
-            ]);
-        }
-        for ($i = 1; $i <= 10; $i++) {
-            Assignment::factory()->create([
-                'vehicle_id' => $vehicle->id,
-                'company_id' => $companyB->id,
-                'date' => sprintf('%04d-02-%02d', $year, $i),
-            ]);
-        }
+        // 35 jours pour A, 60 jours pour B → B doit apparaître en
+        // premier (tri desc). Contrats non-LCD (durée > 30, pas mois
+        // civil entier) pour produire un breakdown taxable visible.
+        Contract::factory()->forVehicle($vehicle)->forCompany($companyA)->create([
+            'start_date' => sprintf('%04d-01-15', $year),
+            'end_date' => sprintf('%04d-02-18', $year),
+        ]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($companyB)->create([
+            'start_date' => sprintf('%04d-04-15', $year),
+            'end_date' => sprintf('%04d-06-13', $year),
+        ]);
 
         $this->actingAs($user)
             ->get("/app/vehicles/{$vehicle->id}")
@@ -151,20 +148,20 @@ final class VehicleControllerTest extends TestCase
                 ->component('User/Vehicles/Show/Index')
                 ->has('vehicle.usageStats', fn (AssertableInertia $s) => $s
                     ->where('fiscalYear', $year)
-                    ->where('daysUsedThisYear', 15)
+                    ->where('daysUsedThisYear', 95)
                     ->has('daysInYear')
                     ->has('actualTaxThisYear')
                     ->has('fullYearTax')
                     ->has('dailyTaxRate')
                     ->has('companies', 2)
                     ->where('companies.0.shortCode', 'BETA')
-                    ->where('companies.0.daysUsed', 10)
+                    ->where('companies.0.daysUsed', 60)
                     ->has('companies.0.proratoPercent')
                     ->has('companies.0.taxCo2')
                     ->has('companies.0.taxPollutants')
                     ->has('companies.0.taxTotal')
                     ->where('companies.1.shortCode', 'ALPH')
-                    ->where('companies.1.daysUsed', 5)
+                    ->where('companies.1.daysUsed', 35)
                     ->has('weeklyBreakdown')
                     ->has('fullYearTaxBreakdown')),
             );
@@ -241,7 +238,6 @@ final class VehicleControllerTest extends TestCase
             'seats_count' => 5,
             'energy_source' => 'gasoline',
             'euro_standard' => 'euro_6d_isc_fcm',
-            'pollutant_category' => 'category_1',
             'homologation_method' => 'WLTP',
             'co2_wltp' => 110,
         ];
@@ -288,7 +284,7 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function update_en_mode_correction_met_a_jour_la_vfc_courante_en_place(): void
+    public function update_cree_une_nouvelle_vfc_et_ferme_la_courante(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -300,36 +296,6 @@ final class VehicleControllerTest extends TestCase
         ]);
 
         $payload = $this->buildVehicleUpdatePayload($vehicle, [
-            'fiscal_change_mode' => 'correction',
-            'seats_count' => 7,
-        ]);
-
-        $this->actingAs($user)
-            ->patch("/app/vehicles/{$vehicle->id}", $payload)
-            ->assertRedirect("/app/vehicles/{$vehicle->id}");
-
-        // Aucune nouvelle VFC créée — mise à jour en place.
-        $this->assertSame(1, VehicleFiscalCharacteristics::query()->where('vehicle_id', $vehicle->id)->count());
-        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
-            'id' => $current->id,
-            'seats_count' => 7,
-        ]);
-    }
-
-    #[Test]
-    public function update_en_mode_new_version_cree_une_nouvelle_vfc_et_ferme_la_courante(): void
-    {
-        $user = User::factory()->create();
-        $vehicle = Vehicle::factory()->create();
-        $current = VehicleFiscalCharacteristics::factory()->create([
-            'vehicle_id' => $vehicle->id,
-            'effective_from' => '2024-01-01',
-            'effective_to' => null,
-            'seats_count' => 5,
-        ]);
-
-        $payload = $this->buildVehicleUpdatePayload($vehicle, [
-            'fiscal_change_mode' => 'new_version',
             'effective_from' => '2025-06-01',
             'change_reason' => 'recharacterization',
             'seats_count' => 9,
@@ -356,7 +322,7 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function update_en_mode_new_version_avec_cascade_supprime_les_versions_posterieures(): void
+    public function update_avec_cascade_supprime_les_versions_posterieures(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -379,7 +345,6 @@ final class VehicleControllerTest extends TestCase
         ]);
 
         $payload = $this->buildVehicleUpdatePayload($vehicle, [
-            'fiscal_change_mode' => 'new_version',
             'effective_from' => '2024-06-01',
             'change_reason' => 'recharacterization',
             'seats_count' => 11,
@@ -439,10 +404,10 @@ final class VehicleControllerTest extends TestCase
             'seats_count' => 5,
             'energy_source' => 'gasoline',
             'euro_standard' => 'euro_6d_isc_fcm',
-            'pollutant_category' => 'category_1',
             'homologation_method' => 'WLTP',
             'co2_wltp' => 120,
-            'fiscal_change_mode' => 'correction',
+            'effective_from' => '2025-06-01',
+            'change_reason' => 'recharacterization',
         ], $overrides);
     }
 }

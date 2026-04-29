@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Fiscal;
 
-use App\DTO\Fiscal\AnnualCumulByPair;
+use App\DTO\Fiscal\ContractsByPair;
+use App\Enums\Contract\ContractType;
+use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -47,14 +49,20 @@ final class FleetFiscalAggregatorTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp100Essence();
 
-        $cumul = new AnnualCumulByPair([
-            $vehicle->id.'|10' => 100,
-            $vehicle->id.'|20' => 200,
+        // Contrats non-LCD pour produire des taxes effectives.
+        $contractsByPair = new ContractsByPair([
+            $vehicle->id.'|10' => [
+                $this->syntheticContract($vehicle->id, 10, '2024-01-15', 100),
+            ],
+            $vehicle->id.'|20' => [
+                $this->syntheticContract($vehicle->id, 20, '2024-04-15', 200),
+            ],
         ]);
 
         $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
             $vehicle,
-            $cumul,
+            $contractsByPair,
+            [],
             self::YEAR,
         );
 
@@ -86,11 +94,38 @@ final class FleetFiscalAggregatorTest extends TestCase
 
         $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
             $vehicle,
-            new AnnualCumulByPair([]),
+            new ContractsByPair([]),
+            [],
             self::YEAR,
         );
 
         self::assertSame([], $breakdown);
+    }
+
+    /**
+     * Contrat synthétique non-persisté de `$days` jours pour un couple
+     * donné. Démarre à `$start` ; la durée garantit non-LCD si `$days > 30`
+     * et la plage n'est pas un mois civil entier.
+     */
+    private function syntheticContract(int $vehicleId, int $companyId, string $start, int $days): Contract
+    {
+        $end = (new \DateTimeImmutable($start))
+            ->modify('+'.($days - 1).' days')
+            ->format('Y-m-d');
+
+        $contract = new Contract;
+        $contract->setRawAttributes([
+            'vehicle_id' => $vehicleId,
+            'company_id' => $companyId,
+            'driver_id' => null,
+            'start_date' => $start,
+            'end_date' => $end,
+            'contract_reference' => null,
+            'contract_type' => ContractType::Lld->value,
+            'notes' => null,
+        ], true);
+
+        return $contract;
     }
 
     #[Test]

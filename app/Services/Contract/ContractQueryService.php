@@ -11,6 +11,7 @@ use App\Data\User\Contract\ContractListItemData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Models\Contract;
 use App\Models\Unavailability;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Spatie\LaravelData\DataCollection;

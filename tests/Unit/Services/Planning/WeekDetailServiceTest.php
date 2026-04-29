@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Planning;
 
 use App\Data\User\Planning\PreviewTaxesInputData;
-use App\Models\Assignment;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Planning\WeekDetailService;
@@ -34,11 +34,11 @@ final class WeekDetailServiceTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
+        // Contrat couvrant le lundi de la semaine 8 (1 jour).
         $weekStart = Carbon::now()->setISODate($year, 8)->startOfWeek();
-        Assignment::factory()->create([
-            'vehicle_id' => $vehicle->id,
-            'company_id' => $company->id,
-            'date' => $weekStart->toDateString(),
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => $weekStart->toDateString(),
+            'end_date' => $weekStart->toDateString(),
         ]);
 
         $week = $this->service->buildWeek($vehicle->id, 8, $year);
@@ -57,20 +57,20 @@ final class WeekDetailServiceTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
-        // Cumul existant : 35 jours déjà dépassent le seuil LCD (30) →
-        // taxes effectivement dues
-        $start = Carbon::create($year, 7, 1);
-        for ($i = 0; $i < 35; $i++) {
-            Assignment::factory()->create([
-                'vehicle_id' => $vehicle->id,
-                'company_id' => $company->id,
-                'date' => $start->copy()->addDays($i)->toDateString(),
-            ]);
-        }
+        // Contrat existant 35 jours non-LCD pour produire un before
+        // taxable.
+        $start = Carbon::create($year, 7, 15);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => $start->toDateString(),
+            'end_date' => $start->copy()->addDays(34)->toDateString(),
+        ]);
 
+        // Nouvelles dates : plage de 35 j non-LCD pour produire un
+        // delta taxable (le service de preview crée un contrat
+        // synthétique sur [min, max] des dates).
         $newDates = [
-            $start->copy()->addDays(40)->toDateString(),
-            $start->copy()->addDays(41)->toDateString(),
+            $start->copy()->addDays(60)->toDateString(),
+            $start->copy()->addDays(94)->toDateString(),
         ];
         $input = new PreviewTaxesInputData(
             vehicleId: $vehicle->id,
@@ -80,9 +80,9 @@ final class WeekDetailServiceTest extends TestCase
 
         $preview = $this->service->previewTaxes($input, $year);
 
-        self::assertSame(2, $preview->newDaysCount);
+        self::assertSame(35, $preview->newDaysCount);
         self::assertSame(35, $preview->existingCumul);
-        self::assertSame(37, $preview->futureCumul);
+        self::assertSame(70, $preview->futureCumul);
         self::assertNotNull($preview->before);
         self::assertGreaterThan(0.0, $preview->incrementalDue);
     }

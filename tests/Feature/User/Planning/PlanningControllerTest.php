@@ -84,7 +84,7 @@ final class PlanningControllerTest extends TestCase
     }
 
     #[Test]
-    public function store_bulk_cree_les_attributions_demandees(): void
+    public function store_bulk_cree_un_contrat_sur_la_plage_demandee(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -92,18 +92,26 @@ final class PlanningControllerTest extends TestCase
         $year = (int) config('floty.fiscal.available_years')[0];
 
         $this->actingAs($user)
-            ->postJson('/app/planning/assignments', [
-                'vehicleId' => $vehicle->id,
-                'companyId' => $company->id,
-                'dates' => ["{$year}-04-10", "{$year}-04-11", "{$year}-04-12"],
+            ->postJson('/app/planning/contracts', [
+                'vehicle_ids' => [$vehicle->id],
+                'company_id' => $company->id,
+                'driver_id' => null,
+                'start_date' => "{$year}-04-10",
+                'end_date' => "{$year}-04-12",
+                'contract_reference' => null,
+                'contract_type' => 'lcd',
+                'notes' => null,
             ])
             ->assertOk()
-            ->assertJson([
-                'requested' => 3,
-                'inserted' => 3,
-                'skipped' => 0,
-            ]);
+            ->assertJsonStructure(['createdIds']);
 
-        $this->assertDatabaseCount('assignments', 3);
+        $this->assertDatabaseCount('contracts', 1);
+        $this->assertDatabaseHas('contracts', [
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => "{$year}-04-10",
+            'end_date' => "{$year}-04-12",
+            'contract_type' => 'lcd',
+        ]);
     }
 }

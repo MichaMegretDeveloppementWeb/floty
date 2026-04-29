@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Dashboard;
 
-use App\Models\Assignment;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\FiscalRule;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -39,14 +39,12 @@ final class DashboardStatsServiceTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
         FiscalRule::factory()->create(['fiscal_year' => $year, 'is_active' => true]);
-        $start = Carbon::create($year, 6, 1);
-        for ($i = 0; $i < 35; $i++) {
-            Assignment::factory()->create([
-                'vehicle_id' => $vehicle->id,
-                'company_id' => $company->id,
-                'date' => $start->copy()->addDays($i)->toDateString(),
-            ]);
-        }
+        // Contrat 35 jours non-LCD pour produire un cumul fiscal taxable.
+        $start = Carbon::create($year, 6, 15);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => $start->toDateString(),
+            'end_date' => $start->copy()->addDays(34)->toDateString(),
+        ]);
 
         $stats = $this->service->computeStats($year)->toArray();
 

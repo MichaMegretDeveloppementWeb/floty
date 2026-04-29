@@ -6,6 +6,7 @@ namespace Tests\Unit\Fiscal;
 
 use App\Data\User\Fiscal\FiscalBreakdownData;
 use App\DTO\Fiscal\FiscalBreakdown;
+use App\Enums\Contract\ContractType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -17,6 +18,7 @@ use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
+use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FiscalCalculator;
@@ -57,7 +59,7 @@ final class FiscalCalculatorTest extends TestCase
         // Prorata 120/366 → CO₂ 56,72 € + polluants 32,79 € = 89,51 €
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $r = $this->calculator->calculate($vehicle, 120, 120, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 120), [], 2024);
 
         $this->assertSame(HomologationMethod::Wltp, $r->co2Method);
         $this->assertSame(173.0, $r->co2FullYearTariff);
@@ -77,7 +79,7 @@ final class FiscalCalculatorTest extends TestCase
         // Tarif NEDC plein 130 g/km = 33+14+81+64+170+800+120 = 1 282 €
         $vehicle = $this->makeVehicleNedc(co2: 130);
 
-        $r = $this->calculator->calculate($vehicle, 250, 250, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 250), [], 2024);
 
         $this->assertSame(HomologationMethod::Nedc, $r->co2Method);
         $this->assertSame(1282.0, $r->co2FullYearTariff);
@@ -93,7 +95,7 @@ final class FiscalCalculatorTest extends TestCase
         // Polluants "plus polluants" = 500 €
         $vehicle = $this->makeVehiclePa(cv: 7, pollutant: PollutantCategory::MostPolluting);
 
-        $r = $this->calculator->calculate($vehicle, 366, 366, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 366), [], 2024);
 
         $this->assertSame(HomologationMethod::Pa, $r->co2Method);
         $this->assertSame(15000.0, $r->co2FullYearTariff);
@@ -107,7 +109,7 @@ final class FiscalCalculatorTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $r = $this->calculator->calculate($vehicle, 30, 30, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->lcdContractsForDays($vehicle, 30), [], 2024);
 
         $this->assertTrue($r->lcdExempt);
         $this->assertSame(0.0, $r->co2Due);
@@ -123,7 +125,7 @@ final class FiscalCalculatorTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $r = $this->calculator->calculate($vehicle, 31, 31, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 31), [], 2024);
 
         $this->assertFalse($r->lcdExempt);
         // 173 × 31/366 = 14,6530... → 14,65 ; 100 × 31/366 = 8,4699... → 8,47
@@ -138,7 +140,7 @@ final class FiscalCalculatorTest extends TestCase
     {
         $vehicle = $this->makeVehicleElectric();
 
-        $r = $this->calculator->calculate($vehicle, 200, 200, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 200), [], 2024);
 
         $this->assertTrue($r->electricExempt);
         $this->assertSame(0.0, $r->co2FullYearTariff);
@@ -162,7 +164,7 @@ final class FiscalCalculatorTest extends TestCase
             handicapAccess: true,
         );
 
-        $r = $this->calculator->calculate($vehicle, 300, 300, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 300), [], 2024);
 
         $this->assertTrue($r->handicapExempt);
         $this->assertFalse($r->lcdExempt);
@@ -183,7 +185,7 @@ final class FiscalCalculatorTest extends TestCase
         // sans la mesure correspondante — bascule applicative vers PA.
         $vehicle = $this->makeVehiclePa(cv: 5, pollutant: PollutantCategory::Category1);
 
-        $r = $this->calculator->calculate($vehicle, 100, 100, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 100), [], 2024);
 
         $this->assertSame(HomologationMethod::Pa, $r->co2Method);
         // 5 CV → 1500*3 + 2250*2 = 4500 + 4500 = 9000 €
@@ -200,29 +202,16 @@ final class FiscalCalculatorTest extends TestCase
         $this->expectException(FiscalCalculationException::class);
         $this->expectExceptionMessage('not supported');
 
-        $this->calculator->calculate($vehicle, 100, 100, 2099);
+        $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 100), [], 2099);
     }
 
-    #[Test]
-    public function jours_negatifs_levent_fiscal_calculation_exception(): void
-    {
-        $vehicle = $this->makeVehicleWltp(co2: 100);
-
-        $this->expectException(FiscalCalculationException::class);
-        $this->expectExceptionMessage('must be >= 0');
-
-        $this->calculator->calculate($vehicle, -1, 0, 2024);
-    }
-
-    #[Test]
-    public function cumul_inferieur_aux_jours_attribues_leve_fiscal_calculation_exception(): void
-    {
-        $vehicle = $this->makeVehicleWltp(co2: 100);
-
-        $this->expectException(FiscalCalculationException::class);
-
-        $this->calculator->calculate($vehicle, 100, 50, 2024);
-    }
+    // Tests obsolètes retirés (refonte 04.F) :
+    // - `jours_negatifs_levent_fiscal_calculation_exception` : la
+    //   nouvelle signature ne reçoit plus d'entier de jours, donc la
+    //   validation amont disparaît (R-2024-002 calcule le numérateur
+    //   depuis les contrats taxables, garanti ≥ 0 par construction).
+    // - `cumul_inferieur_aux_jours_attribues_leve_fiscal_calculation_exception` :
+    //   la sémantique cumul/jours est révoquée par ADR-0014.
 
     #[Test]
     public function vehicule_sans_caracteristiques_courantes_leve_fiscal_calculation_exception(): void
@@ -241,7 +230,7 @@ final class FiscalCalculatorTest extends TestCase
         $this->expectException(FiscalCalculationException::class);
         $this->expectExceptionMessage('no current fiscal characteristics');
 
-        $this->calculator->calculate($vehicle, 100, 100, 2024);
+        $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 100), [], 2024);
     }
 
     #[Test]
@@ -249,7 +238,7 @@ final class FiscalCalculatorTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $breakdown = $this->calculator->calculate($vehicle, 50, 50, 2024);
+        $breakdown = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 50), [], 2024);
         $data = FiscalBreakdownData::fromBreakdown($breakdown);
 
         // Conversion 1:1 vérifiée champ par champ
@@ -280,7 +269,7 @@ final class FiscalCalculatorTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp(co2: 100);
 
-        $r = $this->calculator->calculate($vehicle, 100, 100, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 100), [], 2024);
 
         $this->assertSame(366, $r->daysInYear);
     }
@@ -309,7 +298,7 @@ final class FiscalCalculatorTest extends TestCase
         ]);
         $vehicle = $vehicle->fresh();
 
-        $r = $this->calculator->calculate($vehicle, 200, 200, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 200), [], 2024);
 
         // R-2024-004 court-circuite : tous les montants à zéro
         $this->assertSame(0.0, $r->co2FullYearTariff);
@@ -329,7 +318,7 @@ final class FiscalCalculatorTest extends TestCase
             pollutant: PollutantCategory::Category1, // ← stocké à tort, doit être ignoré
         );
 
-        $r = $this->calculator->calculate($vehicle, 366, 366, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 366), [], 2024);
 
         // R-013 doit déterminer Most polluting depuis les enums, pas
         // lire la valeur stockée à tort.
@@ -365,7 +354,7 @@ final class FiscalCalculatorTest extends TestCase
         ]);
         $vehicle = $vehicle->fresh();
 
-        $r = $this->calculator->calculate($vehicle, 366, 366, 2024);
+        $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 366), [], 2024);
 
         $this->assertTrue($r->electricExempt); // mécanique scope=Co2Only
         $this->assertSame(0.0, $r->co2FullYearTariff);
@@ -416,6 +405,67 @@ final class FiscalCalculatorTest extends TestCase
         $n = ++self::$plateCounter;
 
         return sprintf('TT-%03d-TT', $n);
+    }
+
+    /**
+     * Construit un contrat synthétique non-persisté de `$days` jours
+     * pour le couple `(vehicle, companyId=0)`. Choisit une plage de
+     * dates qui évite le cas-limite « mois civil entier » pour `$days`
+     * compris entre 28 et 31 (sauf si on veut explicitement tester un
+     * contrat ≤ 30 j → toujours LCD).
+     *
+     * @return list<Contract>
+     */
+    private function contractsForDays(Vehicle $vehicle, int $days): array
+    {
+        // Démarrage en milieu de mois pour les tailles à risque
+        // (29-31 jours pourrait sinon coïncider avec un mois civil
+        // entier et rendre le contrat LCD à tort).
+        $start = ($days >= 29 && $days <= 31) ? '2024-01-15' : '2024-01-01';
+        $end = (new \DateTimeImmutable($start))
+            ->modify('+'.($days - 1).' days')
+            ->format('Y-m-d');
+
+        $contract = new Contract;
+        $contract->setRawAttributes([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => 0,
+            'driver_id' => null,
+            'start_date' => $start,
+            'end_date' => $end,
+            'contract_reference' => null,
+            'contract_type' => ContractType::Lld->value,
+            'notes' => null,
+        ], true);
+
+        return [$contract];
+    }
+
+    /**
+     * Variante qui force la qualification LCD (durée ≤ 30 j garantie).
+     *
+     * @return list<Contract>
+     */
+    private function lcdContractsForDays(Vehicle $vehicle, int $days): array
+    {
+        $start = '2024-01-01';
+        $end = (new \DateTimeImmutable($start))
+            ->modify('+'.($days - 1).' days')
+            ->format('Y-m-d');
+
+        $contract = new Contract;
+        $contract->setRawAttributes([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => 0,
+            'driver_id' => null,
+            'start_date' => $start,
+            'end_date' => $end,
+            'contract_reference' => null,
+            'contract_type' => ContractType::Lcd->value,
+            'notes' => null,
+        ], true);
+
+        return [$contract];
     }
 
     private function makeVehicleWltp(

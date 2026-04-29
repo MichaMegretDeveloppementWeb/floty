@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\Dashboard;
 
-use App\Models\Assignment;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -27,10 +27,12 @@ final class DashboardControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create([
             'vehicle_id' => $vehicle->id,
         ]);
-        Assignment::factory()->create([
-            'vehicle_id' => $vehicle->id,
-            'company_id' => $company->id,
-            'date' => now()->setYear((int) config('floty.fiscal.available_years')[0])->format('Y-m-d'),
+        // Contrat 1 jour pour produire un cumul `assignmentsYear = 1`
+        // (KPI brut côté Dashboard = nombre de jours-contrat occupés).
+        $year = (int) config('floty.fiscal.available_years')[0];
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => sprintf('%04d-06-15', $year),
+            'end_date' => sprintf('%04d-06-15', $year),
         ]);
 
         $this->actingAs($user)

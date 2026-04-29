@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Fiscal;
 
-use App\DTO\Fiscal\AnnualCumulByPair;
+use App\DTO\Fiscal\ContractsByPair;
+use App\Enums\Contract\ContractType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -14,6 +15,7 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FiscalCalculator;
@@ -66,7 +68,12 @@ final class FiscalEngineEndToEndTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp100Essence();
 
-        $r = $this->calculator->calculate($vehicle, 306, 306, 2024);
+        $r = $this->calculator->calculate(
+            $vehicle,
+            $this->contractsForDays($vehicle, 306),
+            [],
+            2024,
+        );
 
         // Conformité au texte BOFiP au centime près
         $this->assertSame(173.0, $r->co2FullYearTariff);
@@ -86,7 +93,12 @@ final class FiscalEngineEndToEndTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp100Essence();
 
-        $r = $this->calculator->calculate($vehicle, 183, 183, 2024);
+        $r = $this->calculator->calculate(
+            $vehicle,
+            $this->contractsForDays($vehicle, 183),
+            [],
+            2024,
+        );
 
         $this->assertSame(0.5, 183 / 366); // sanity check : prorata exact
         $this->assertSame(50.0, $r->pollutantsDue);
@@ -102,15 +114,25 @@ final class FiscalEngineEndToEndTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp100Essence();
 
-        $r = $this->calculator->calculate($vehicle, 30, 30, 2024);
+        $r = $this->calculator->calculate(
+            $vehicle,
+            $this->lcdContractsForDays($vehicle, 30),
+            [],
+            2024,
+        );
 
         $this->assertTrue($r->lcdExempt);
         $this->assertSame(0.0, $r->co2Due);
         $this->assertSame(0.0, $r->pollutantsDue);
         $this->assertSame(0.0, $r->totalDue);
 
-        // Cas frontière : 31 j → plus exonéré
-        $r31 = $this->calculator->calculate($vehicle, 31, 31, 2024);
+        // Cas frontière : 31 j non aligné mois civil → plus exonéré.
+        $r31 = $this->calculator->calculate(
+            $vehicle,
+            $this->contractsForDays($vehicle, 31),
+            [],
+            2024,
+        );
         $this->assertFalse($r31->lcdExempt);
         $this->assertGreaterThan(0.0, $r31->totalDue);
     }
@@ -140,9 +162,9 @@ final class FiscalEngineEndToEndTest extends TestCase
         $vehicle1 = $this->makeVehicleWltp100Essence();
         $vehicle2 = $this->makeVehicleWltp100Essence();
 
-        $cumul = new AnnualCumulByPair([
-            $vehicle1->id.'|'.$companyId => 306,
-            $vehicle2->id.'|'.$companyId => 100,
+        $contracts = new ContractsByPair([
+            $vehicle1->id.'|'.$companyId => $this->contractsForDays($vehicle1, 306),
+            $vehicle2->id.'|'.$companyId => $this->contractsForDays($vehicle2, 100),
         ]);
         $vehiclesById = new Collection([
             $vehicle1->id => $vehicle1,
@@ -152,7 +174,8 @@ final class FiscalEngineEndToEndTest extends TestCase
         $totalArrondi = $this->aggregator->companyAnnualTax(
             $companyId,
             $vehiclesById,
-            $cumul,
+            $contracts,
+            [$vehicle1->id => [], $vehicle2->id => []],
             2024,
         );
 
@@ -202,6 +225,58 @@ final class FiscalEngineEndToEndTest extends TestCase
         ]);
 
         return $vehicle->fresh();
+    }
+
+    /**
+     * Contrat synthétique non-LCD de `$days` jours pour `$vehicle`.
+     *
+     * @return list<Contract>
+     */
+    private function contractsForDays(Vehicle $vehicle, int $days): array
+    {
+        $start = ($days >= 29 && $days <= 31) ? '2024-01-15' : '2024-01-01';
+        $end = (new \DateTimeImmutable($start))
+            ->modify('+'.($days - 1).' days')
+            ->format('Y-m-d');
+        $contract = new Contract;
+        $contract->setRawAttributes([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => 0,
+            'driver_id' => null,
+            'start_date' => $start,
+            'end_date' => $end,
+            'contract_reference' => null,
+            'contract_type' => ContractType::Lld->value,
+            'notes' => null,
+        ], true);
+
+        return [$contract];
+    }
+
+    /**
+     * Variante LCD : durée ≤ 30 j, démarrage 1er jan.
+     *
+     * @return list<Contract>
+     */
+    private function lcdContractsForDays(Vehicle $vehicle, int $days): array
+    {
+        $start = '2024-01-01';
+        $end = (new \DateTimeImmutable($start))
+            ->modify('+'.($days - 1).' days')
+            ->format('Y-m-d');
+        $contract = new Contract;
+        $contract->setRawAttributes([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => 0,
+            'driver_id' => null,
+            'start_date' => $start,
+            'end_date' => $end,
+            'contract_reference' => null,
+            'contract_type' => ContractType::Lcd->value,
+            'notes' => null,
+        ], true);
+
+        return [$contract];
     }
 
     private static int $plateCounter = 0;

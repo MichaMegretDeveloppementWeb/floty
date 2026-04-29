@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Company;
 
-use App\Models\Assignment;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Company\CompanyQueryService;
@@ -37,14 +37,13 @@ final class CompanyQueryServiceTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
-        $start = Carbon::create($year, 5, 1);
-        for ($i = 0; $i < 35; $i++) {
-            Assignment::factory()->create([
-                'vehicle_id' => $vehicle->id,
-                'company_id' => $company->id,
-                'date' => $start->copy()->addDays($i)->toDateString(),
-            ]);
-        }
+        // Contrat 35 jours non-LCD (start 15 du mois → ne tombe pas sur
+        // un mois civil entier, durée > 30 → bien taxé en R-2024-021).
+        $start = Carbon::create($year, 5, 15);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => $start->toDateString(),
+            'end_date' => $start->copy()->addDays(34)->toDateString(),
+        ]);
 
         $result = $this->service->listForFleetView($year)->toArray();
 
