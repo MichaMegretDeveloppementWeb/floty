@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Schema;
  *     La ligne précédente voit son `effective_to` fermé à la veille.
  *   - Les périodes ne se chevauchent jamais — garanti par :
  *       1. Validation service (première ligne de défense).
- *       2. Trigger MySQL `BEFORE INSERT/UPDATE` (filet SQL — migration séparée).
+ *       2. Triggers MySQL `BEFORE INSERT/UPDATE` `vfc_no_overlap_*`.
  *       3. Verrou pessimiste côté service lors de la lecture de la version
  *          courante.
  *   - `effective_to IS NULL` = version courante.
@@ -27,6 +27,18 @@ use Illuminate\Support\Facades\Schema;
  * Une **correction de saisie** (pas un vrai changement) met à jour la ligne
  * existante (`UPDATE`) et garde `change_reason = 'input_correction'`. Flux
  * distinct côté UI via un toggle dédié.
+ *
+ * Colonne `affected_to_exempted_activity_percent` (Phase 1.9, R-2024-022) :
+ * pourcentage d'affectation à une activité exonérée. En V1 seule la valeur
+ * 100 (affectation totale) déclenche l'exonération — un prorata partiel
+ * sera traité en V2 si demandé.
+ *
+ * Motifs `change_reason` (cf. UI page Edit véhicule mode « Nouvelle version ») :
+ *   - `initial_creation`   : création du véhicule
+ *   - `recharacterization` : reclassement fiscal
+ *   - `regulation_change`  : changement réglementaire
+ *   - `other_change`       : autre (`change_note` requis côté UI)
+ *   - `input_correction`   : correction de saisie (pas un vrai changement)
  */
 return new class extends Migration
 {
@@ -67,6 +79,7 @@ return new class extends Migration
             $table->boolean('n1_removable_second_row_seat')->default(false);
             $table->boolean('m1_special_use')->default(false);
             $table->boolean('n1_ski_lift_use')->default(false);
+            $table->unsignedTinyInteger('affected_to_exempted_activity_percent')->default(0);
 
             // Audit
             $table->string('change_reason', 20);
@@ -82,8 +95,9 @@ return new class extends Migration
             $table->index(['vehicle_id', 'effective_to']);
         });
 
-        // CHECK constraints — filet SQL défensif, MySQL uniquement
-        // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT`).
+        // CHECK constraints + triggers anti-overlap — MySQL uniquement
+        // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT` ni
+        // SIGNAL/SQLSTATE).
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
         }
@@ -124,7 +138,13 @@ return new class extends Migration
         DB::statement(<<<'SQL'
             ALTER TABLE vehicle_fiscal_characteristics
                 ADD CONSTRAINT chk_vfc_change_reason_enum
-                CHECK (change_reason IN ('initial_creation', 'effective_change', 'input_correction'))
+                CHECK (change_reason IN (
+                    'initial_creation',
+                    'recharacterization',
+                    'regulation_change',
+                    'other_change',
+                    'input_correction'
+                ))
         SQL);
 
         DB::statement(<<<'SQL'
@@ -142,10 +162,44 @@ return new class extends Migration
                 ADD CONSTRAINT chk_vfc_pollutant_category_enum
                 CHECK (pollutant_category IN ('e', 'category_1', 'most_polluting'))
         SQL);
+
+        $this->createOverlapTriggers();
     }
 
     public function down(): void
     {
+        if (DB::connection()->getDriverName() === 'mysql') {
+            $this->dropOverlapTriggers();
+        }
+
         Schema::dropIfExists('vehicle_fiscal_characteristics');
+    }
+
+    private function createOverlapTriggers(): void
+    {
+        $body = <<<'SQL'
+            DECLARE overlap_count INT;
+
+            SELECT COUNT(*) INTO overlap_count
+            FROM vehicle_fiscal_characteristics
+            WHERE vehicle_id = NEW.vehicle_id
+              AND id <> COALESCE(NEW.id, 0)
+              AND NEW.effective_from <= COALESCE(effective_to, DATE('9999-12-31'))
+              AND effective_from <= COALESCE(NEW.effective_to, DATE('9999-12-31'));
+
+            IF overlap_count > 0 THEN
+                SIGNAL SQLSTATE '45000'
+                SET MESSAGE_TEXT = 'vehicle_fiscal_characteristics: overlapping effective period for this vehicle';
+            END IF;
+        SQL;
+
+        DB::unprepared('CREATE TRIGGER vfc_no_overlap_insert BEFORE INSERT ON vehicle_fiscal_characteristics FOR EACH ROW BEGIN '.$body.' END');
+        DB::unprepared('CREATE TRIGGER vfc_no_overlap_update BEFORE UPDATE ON vehicle_fiscal_characteristics FOR EACH ROW BEGIN '.$body.' END');
+    }
+
+    private function dropOverlapTriggers(): void
+    {
+        DB::unprepared('DROP TRIGGER IF EXISTS vfc_no_overlap_insert');
+        DB::unprepared('DROP TRIGGER IF EXISTS vfc_no_overlap_update');
     }
 };

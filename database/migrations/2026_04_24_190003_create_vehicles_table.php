@@ -13,10 +13,11 @@ use Illuminate\Support\Facades\Schema;
  * Cf. 01-schema-metier.md § 2.
  *
  * Particularités :
- *   - UNIQUE (license_plate) filtré par soft delete — permet la re-saisie
- *     après soft delete (colonne générée `license_plate_active`).
- *   - UNIQUE (vin) filtré par soft delete si VIN renseigné
- *     (colonne générée `vin_active`).
+ *   - UNIQUE (license_plate) filtré par soft delete via triggers
+ *     `vehicles_license_plate_active_*` — permet la re-saisie après soft
+ *     delete (MySQL refuse les expressions conditionnelles dans GENERATED
+ *     ALWAYS AS, donc on émule via SIGNAL).
+ *   - UNIQUE (vin) filtré idem si VIN renseigné.
  *   - Caractéristiques **fiscales** (co2, norme Euro, source énergie, etc.)
  *     dans `vehicle_fiscal_characteristics` — cette table-ci ne porte que
  *     les attributs **non fiscaux** (identité, cycle de vie).
@@ -51,17 +52,11 @@ return new class extends Migration
             $table->softDeletes();
 
             $table->index('exit_date');
-
-            // UNIQUE directs sur license_plate et vin — fallback MVP sans
-            // colonnes générées (cf. note similaire dans la migration
-            // companies). Conséquence : plaque/VIN d'un véhicule soft-
-            // deleté non réutilisable. À revoir en V1 via triggers.
-            $table->unique('license_plate');
-            $table->unique('vin');
+            $table->index('license_plate');
+            $table->index('vin');
         });
 
-        // CHECK constraints — filet SQL défensif, MySQL uniquement
-        // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT`).
+        // CHECK constraints + triggers — MySQL uniquement.
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
         }
@@ -89,10 +84,63 @@ return new class extends Migration
                 ADD CONSTRAINT chk_vehicles_status_enum
                 CHECK (current_status IN ('active', 'maintenance', 'sold', 'destroyed', 'other'))
         SQL);
+
+        $this->createSoftDeleteTriggers();
     }
 
     public function down(): void
     {
+        if (DB::connection()->getDriverName() === 'mysql') {
+            $this->dropSoftDeleteTriggers();
+        }
+
         Schema::dropIfExists('vehicles');
+    }
+
+    private function createSoftDeleteTriggers(): void
+    {
+        // vehicles.license_plate (NOT NULL)
+        $licensePlateBody = <<<'SQL'
+            DECLARE clash_count INT;
+            IF NEW.deleted_at IS NULL THEN
+                SELECT COUNT(*) INTO clash_count
+                FROM vehicles
+                WHERE license_plate = NEW.license_plate
+                  AND deleted_at IS NULL
+                  AND id <> COALESCE(NEW.id, 0);
+                IF clash_count > 0 THEN
+                    SIGNAL SQLSTATE '45000'
+                    SET MESSAGE_TEXT = 'vehicles: license_plate already used by an active vehicle';
+                END IF;
+            END IF;
+        SQL;
+        DB::unprepared('CREATE TRIGGER vehicles_license_plate_active_insert BEFORE INSERT ON vehicles FOR EACH ROW BEGIN '.$licensePlateBody.' END');
+        DB::unprepared('CREATE TRIGGER vehicles_license_plate_active_update BEFORE UPDATE ON vehicles FOR EACH ROW BEGIN '.$licensePlateBody.' END');
+
+        // vehicles.vin (NULL toléré)
+        $vinBody = <<<'SQL'
+            DECLARE clash_count INT;
+            IF NEW.deleted_at IS NULL AND NEW.vin IS NOT NULL THEN
+                SELECT COUNT(*) INTO clash_count
+                FROM vehicles
+                WHERE vin = NEW.vin
+                  AND deleted_at IS NULL
+                  AND id <> COALESCE(NEW.id, 0);
+                IF clash_count > 0 THEN
+                    SIGNAL SQLSTATE '45000'
+                    SET MESSAGE_TEXT = 'vehicles: vin already used by an active vehicle';
+                END IF;
+            END IF;
+        SQL;
+        DB::unprepared('CREATE TRIGGER vehicles_vin_active_insert BEFORE INSERT ON vehicles FOR EACH ROW BEGIN '.$vinBody.' END');
+        DB::unprepared('CREATE TRIGGER vehicles_vin_active_update BEFORE UPDATE ON vehicles FOR EACH ROW BEGIN '.$vinBody.' END');
+    }
+
+    private function dropSoftDeleteTriggers(): void
+    {
+        DB::unprepared('DROP TRIGGER IF EXISTS vehicles_license_plate_active_insert');
+        DB::unprepared('DROP TRIGGER IF EXISTS vehicles_license_plate_active_update');
+        DB::unprepared('DROP TRIGGER IF EXISTS vehicles_vin_active_insert');
+        DB::unprepared('DROP TRIGGER IF EXISTS vehicles_vin_active_update');
     }
 };
