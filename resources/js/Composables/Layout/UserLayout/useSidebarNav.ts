@@ -3,6 +3,7 @@ import {
     Building2,
     CalendarCheck,
     CalendarDays,
+    FileText,
     LayoutDashboard,
     Receipt,
 } from 'lucide-vue-next';
@@ -12,6 +13,7 @@ import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { dashboard as dashboardRoute } from '@/routes/user';
 import { index as assignmentsIndexRoute } from '@/routes/user/assignments';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
+import { index as contractsIndexRoute } from '@/routes/user/contracts';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
 import { index as planningIndexRoute } from '@/routes/user/planning';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
@@ -58,6 +60,11 @@ export function useSidebarNav(open: Ref<boolean>): {
                     label: "Vue d'ensemble",
                     icon: CalendarDays,
                     href: planningIndexRoute.url(),
+                },
+                {
+                    label: 'Contrats',
+                    icon: FileText,
+                    href: contractsIndexRoute.url(),
                 },
                 {
                     label: 'Attributions',

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
-import MultiDatePicker from '@/Components/Features/Planning/MultiDatePicker.vue';
+import { computed, ref, watch } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
+import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
 import { useApi } from '@/Composables/Shared/useApi';
@@ -9,6 +9,7 @@ import { storeBulk as storeBulkRoute } from '@/routes/user/planning/contracts';
 import FiscalPreviewCard from './FiscalPreviewCard.vue';
 
 type Company = App.Data.User.Company.CompanyOptionData;
+type DateRange = { startDate: string | null; endDate: string | null };
 
 const props = defineProps<{
     vehicleId: number;
@@ -18,12 +19,12 @@ const props = defineProps<{
     weekDates: string[];
     disabledDates: string[];
     selectedCompanyId: number | null;
-    selectedDates: string[];
+    selectedRange: DateRange;
 }>();
 
 const emit = defineEmits<{
     'update:selectedCompanyId': [value: number | null];
-    'update:selectedDates': [value: string[]];
+    'update:selectedRange': [value: DateRange];
     submitted: [];
 }>();
 
@@ -41,43 +42,62 @@ const companyIdString = computed({
     get: () =>
         props.selectedCompanyId !== null ? String(props.selectedCompanyId) : '',
     set: (v: string) => {
-        emit(
-            'update:selectedCompanyId',
-            v === '' ? null : Number(v),
-        );
+        emit('update:selectedCompanyId', v === '' ? null : Number(v));
     },
 });
 
-const datesProxy = computed({
-    get: () => props.selectedDates,
-    set: (v: string[]) => emit('update:selectedDates', v),
+const rangeProxy = computed<DateRange>({
+    get: () => props.selectedRange,
+    set: (v: DateRange) => emit('update:selectedRange', v),
 });
+const ongoing = ref<boolean>(false);
 
-// Dates de cette semaine attribuées au couple courant — pour info dans
-// le picker. Pour une vision annuelle complète il faudrait charger
-// l'historique du couple via l'API.
-const currentPairDatesHint = computed((): string[] => {
-    if (props.selectedCompanyId === null) {
+const submitting = ref<boolean>(false);
+
+const hasRange = computed(
+    () =>
+        props.selectedRange.startDate !== null &&
+        props.selectedRange.endDate !== null,
+);
+
+const canSubmit = computed(
+    () =>
+        props.selectedCompanyId !== null &&
+        hasRange.value &&
+        !submitting.value,
+);
+
+// Helper : expand la plage en liste de dates ISO (pour la preview qui
+// attend `dates: string[]` côté API actuelle).
+const datesInRange = computed<string[]>(() => {
+    const start = props.selectedRange.startDate;
+    const end = props.selectedRange.endDate;
+
+    if (start === null || end === null) {
         return [];
     }
 
-    return [];
+    const out: string[] = [];
+    const cursor = new Date(start);
+    const stop = new Date(end);
+
+    while (cursor <= stop) {
+        out.push(cursor.toISOString().slice(0, 10));
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return out;
 });
 
-const submitting = computed(() => false);
-const canSubmit = computed(
-    () => props.selectedCompanyId !== null && props.selectedDates.length > 0,
-);
-
-// Re-déclenche le preview à chaque changement de couple ou dates.
+// Re-déclenche la preview à chaque changement de couple ou de plage.
 watch(
-    () => [props.selectedCompanyId, props.selectedDates] as const,
+    () => [props.selectedCompanyId, datesInRange.value] as const,
     ([companyId, dates]) => {
-        fetchPreview({
-            vehicleId: props.vehicleId,
-            companyId,
-            dates,
-        });
+        if (dates.length === 0 || companyId === null) {
+            return;
+        }
+
+        fetchPreview({ vehicleId: props.vehicleId, companyId, dates });
     },
     { deep: true },
 );
@@ -87,18 +107,15 @@ async function submit(): Promise<void> {
         return;
     }
 
-    try {
-        const sorted = [...props.selectedDates].sort();
-        // canSubmit garantit selectedDates.length > 0
-        const startDate = sorted[0] as string;
-        const endDate = sorted[sorted.length - 1] as string;
+    submitting.value = true;
 
+    try {
         const payload: App.Data.User.Contract.BulkStoreContractsData = {
             vehicleIds: [props.vehicleId],
             companyId: props.selectedCompanyId as number,
             driverId: null,
-            startDate,
-            endDate,
+            startDate: props.selectedRange.startDate as string,
+            endDate: props.selectedRange.endDate as string,
             contractReference: null,
             contractType: 'lcd',
             notes: null,
@@ -109,13 +126,15 @@ async function submit(): Promise<void> {
         emit('submitted');
     } catch {
         // Toast erreur déjà affiché par useApi
+    } finally {
+        submitting.value = false;
     }
 }
 </script>
 
 <template>
     <section class="flex flex-col gap-3 border-t border-slate-100 pt-4">
-        <p class="eyebrow mb-0">Attribuer des jours</p>
+        <p class="eyebrow mb-0">Créer un contrat</p>
 
         <SelectInput
             v-model="companyIdString"
@@ -124,17 +143,16 @@ async function submit(): Promise<void> {
             :options="companyOptions"
         />
 
-        <MultiDatePicker
-            v-model:selected="datesProxy"
+        <DateRangePicker
+            v-model:range="rangeProxy"
+            v-model:ongoing="ongoing"
             :year="fiscalYear"
             :start-month="startMonth"
             :disabled-dates="disabledDates"
-            :current-pair-dates="currentPairDatesHint"
-            :highlight-dates="weekDates"
         />
 
         <FiscalPreviewCard
-            v-if="selectedDates.length > 0 && selectedCompanyId !== null"
+            v-if="hasRange && selectedCompanyId !== null"
             :preview="preview"
             :loading="previewLoading"
         />
@@ -146,9 +164,7 @@ async function submit(): Promise<void> {
             :disabled="!canSubmit"
             @click="submit"
         >
-            Créer {{ selectedDates.length }} attribution{{
-                selectedDates.length > 1 ? 's' : ''
-            }}
+            Créer le contrat
         </Button>
     </section>
 </template>

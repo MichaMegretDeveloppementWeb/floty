@@ -6,10 +6,12 @@
  *   - L'en-tête véhicule + semaine
  *   - 7 slots (Lun → Dim) montrant l'attribution du jour (ou « libre »)
  *   - Liste des entreprises présentes sur cette semaine
- *   - Un formulaire d'attribution + preview taxes induites
+ *   - Un formulaire de création de contrat (sélection plage début/fin)
+ *     + preview des taxes induites
  *
- * Logique métier extraite dans les composables `useFiscalPreview` /
- * `useApi` ; rendu décomposé en 4 partials sous `partials/`.
+ * **Refonte 04.G (ADR-0014)** : la sélection passe de multi-dates
+ * anarchique à une plage continue [début, fin] — un clic crée un
+ * contrat unique dont le calcul fiscal est conforme R-2024-021.
  */
 import { computed, ref, watch } from 'vue';
 import AssignmentForm from './partials/AssignmentForm.vue';
@@ -19,6 +21,7 @@ import WeekDayGrid from './partials/WeekDayGrid.vue';
 
 type Company = App.Data.User.Company.CompanyOptionData;
 type WeekData = App.Data.User.Planning.PlanningWeekData;
+type DateRange = { startDate: string | null; endDate: string | null };
 
 const props = defineProps<{
     open: boolean;
@@ -33,14 +36,14 @@ defineEmits<{
 }>();
 
 const selectedCompanyId = ref<number | null>(null);
-const selectedDates = ref<string[]>([]);
+const selectedRange = ref<DateRange>({ startDate: null, endDate: null });
 
 // Reset à chaque ouverture.
 watch(
     () => props.week,
     () => {
         selectedCompanyId.value = null;
-        selectedDates.value = [];
+        selectedRange.value = { startDate: null, endDate: null };
     },
 );
 
@@ -62,17 +65,19 @@ const weekDates = computed((): string[] =>
     props.week ? props.week.days.map((d) => d.date) : [],
 );
 
-function toggleSlot(date: string): void {
-    const set = new Set(selectedDates.value);
+// Dates de la semaine couvertes par la plage sélectionnée — affichage
+// visuel des cases pré-sélectionnées dans la grille semaine (lecture
+// seule, la sélection se fait via le DateRangePicker du formulaire).
+const selectedDatesInWeek = computed((): string[] => {
+    const start = selectedRange.value.startDate;
+    const end = selectedRange.value.endDate;
 
-    if (set.has(date)) {
-        set.delete(date);
-    } else {
-        set.add(date);
+    if (start === null || end === null) {
+        return [];
     }
 
-    selectedDates.value = [...set].sort();
-}
+    return weekDates.value.filter((date) => date >= start && date <= end);
+});
 </script>
 
 <template>
@@ -120,8 +125,7 @@ function toggleSlot(date: string): void {
             <div class="flex flex-col gap-6 px-5 py-5">
                 <WeekDayGrid
                     :days="week.days"
-                    :selected-dates="selectedDates"
-                    @toggle-slot="toggleSlot"
+                    :selected-dates="selectedDatesInWeek"
                 />
 
                 <CompaniesOnWeekList :entries="week.companiesOnWeek" />
@@ -134,9 +138,9 @@ function toggleSlot(date: string): void {
                     :week-dates="weekDates"
                     :disabled-dates="disabledDates"
                     :selected-company-id="selectedCompanyId"
-                    :selected-dates="selectedDates"
+                    :selected-range="selectedRange"
                     @update:selected-company-id="selectedCompanyId = $event"
-                    @update:selected-dates="selectedDates = $event"
+                    @update:selected-range="selectedRange = $event"
                     @submitted="$emit('assignments-created')"
                 />
             </div>

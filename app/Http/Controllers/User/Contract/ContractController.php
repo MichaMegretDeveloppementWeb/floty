@@ -11,11 +11,15 @@ use App\Actions\Contract\UpdateContractAction;
 use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Contract\StoreContractData;
 use App\Data\User\Contract\UpdateContractData;
+use App\Enums\Contract\ContractType;
 use App\Http\Controllers\Controller;
+use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
+use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use Spatie\LaravelData\DataCollection;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -30,6 +34,8 @@ final class ContractController extends Controller
 {
     public function __construct(
         private readonly ContractQueryService $contracts,
+        private readonly VehicleQueryService $vehicles,
+        private readonly CompanyQueryService $companies,
         private readonly StoreContractAction $storeContract,
         private readonly UpdateContractAction $updateContract,
         private readonly DeleteContractAction $deleteContract,
@@ -58,7 +64,9 @@ final class ContractController extends Controller
 
     public function create(): Response
     {
-        return Inertia::render('User/Contracts/Create/Index');
+        return Inertia::render('User/Contracts/Create/Index', [
+            'options' => $this->buildFormOptions(),
+        ]);
     }
 
     public function store(StoreContractData $data): RedirectResponse
@@ -80,7 +88,26 @@ final class ContractController extends Controller
 
         return Inertia::render('User/Contracts/Edit/Index', [
             'contract' => $contractData,
+            'options' => $this->buildFormOptions(),
         ]);
+    }
+
+    /**
+     * @return array{vehicles: DataCollection, companies: DataCollection, contractTypes: list<array{value: string, label: string}>}
+     */
+    private function buildFormOptions(): array
+    {
+        return [
+            'vehicles' => $this->vehicles->listForOptions(),
+            'companies' => $this->companies->listForOptions(),
+            'contractTypes' => array_map(
+                static fn (ContractType $t): array => [
+                    'value' => $t->value,
+                    'label' => $t->label(),
+                ],
+                ContractType::cases(),
+            ),
+        ];
     }
 
     public function update(int $contract, UpdateContractData $data): RedirectResponse

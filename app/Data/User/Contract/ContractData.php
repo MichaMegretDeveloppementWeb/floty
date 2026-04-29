@@ -22,8 +22,14 @@ final class ContractData extends Data
     public function __construct(
         public int $id,
         public int $vehicleId,
+        public string $vehicleLicensePlate,
+        public string $vehicleBrand,
+        public string $vehicleModel,
         public int $companyId,
+        public string $companyShortCode,
+        public string $companyLegalName,
         public ?int $driverId,
+        public ?string $driverFullName,
         public string $startDate,
         public string $endDate,
         public int $durationDays,
@@ -40,11 +46,21 @@ final class ContractData extends Data
         // Durée inclusive : (end - start) en jours + 1
         $duration = (int) $start->diffInDays($end) + 1;
 
+        $driverFullName = $contract->driver !== null
+            ? trim(($contract->driver->first_name ?? '').' '.($contract->driver->last_name ?? ''))
+            : null;
+
         return new self(
             id: $contract->id,
             vehicleId: $contract->vehicle_id,
+            vehicleLicensePlate: $contract->vehicle->license_plate,
+            vehicleBrand: $contract->vehicle->brand,
+            vehicleModel: $contract->vehicle->model,
             companyId: $contract->company_id,
+            companyShortCode: $contract->company->short_code,
+            companyLegalName: $contract->company->legal_name,
             driverId: $contract->driver_id,
+            driverFullName: $driverFullName !== '' ? $driverFullName : null,
             startDate: $start->toDateString(),
             endDate: $end->toDateString(),
             durationDays: $duration,
