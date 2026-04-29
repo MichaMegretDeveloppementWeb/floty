@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Schema;
 
 use App\Enums\Company\CompanyColor;
+use App\Enums\Contract\ContractType;
 use App\Enums\Declaration\DeclarationStatus;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Unavailability\UnavailabilityType;
@@ -19,6 +20,7 @@ use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Assignment;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\Declaration;
 use App\Models\DeclarationPdf;
 use App\Models\Driver;
@@ -246,6 +248,88 @@ final class SchemaSmokeTest extends TestCase
             'effective_from' => '2024-04-01',
             'effective_to' => null,
         ]);
+    }
+
+    #[Test]
+    public function contract_persists_with_casts_and_relations(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        $contract = Contract::create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'driver_id' => null,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-15',
+            'contract_reference' => 'REF-001',
+            'contract_type' => ContractType::Lcd,
+            'notes' => null,
+        ]);
+
+        $contract->refresh();
+
+        $this->assertSame(ContractType::Lcd, $contract->contract_type);
+        $this->assertInstanceOf(CarbonImmutable::class, $contract->start_date);
+        $this->assertSame('2024-03-15', $contract->end_date->toDateString());
+        $this->assertSame($vehicle->id, $contract->vehicle->id);
+        $this->assertSame($company->id, $contract->company->id);
+
+        $contract->delete();
+        $this->assertSoftDeleted($contract);
+    }
+
+    #[Test]
+    public function contract_overlap_trigger_rejects_overlapping_period_on_same_vehicle(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        Contract::create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-15',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        $this->expectExceptionMessageMatches('/overlapping period/');
+
+        Contract::create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => '2024-03-10',
+            'end_date' => '2024-03-25',
+            'contract_type' => ContractType::Lcd,
+        ]);
+    }
+
+    #[Test]
+    public function soft_deleted_contract_does_not_block_overlap(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        $first = Contract::create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-15',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        $first->delete();
+
+        // Le contrat soft-deleted ne doit plus bloquer un nouveau contrat
+        // sur la même plage (le trigger filtre `deleted_at IS NULL`).
+        $second = Contract::create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => '2024-03-05',
+            'end_date' => '2024-03-20',
+            'contract_type' => ContractType::Lld,
+        ]);
+
+        $this->assertNotSame($first->id, $second->id);
     }
 
     #[Test]

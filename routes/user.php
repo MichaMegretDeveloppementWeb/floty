@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\User\Assignment\AssignmentController;
 use App\Http\Controllers\User\Company\CompanyController;
+use App\Http\Controllers\User\Contract\ContractController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Planning\PlanningController;
@@ -99,6 +100,31 @@ Route::middleware('auth')
         Route::post('/planning/assignments', [PlanningController::class, 'storeBulk'])
             ->middleware('throttle:60,1')
             ->name('planning.assignments.store-bulk');
+
+        // Contracts (ADR-0014) — coexiste avec les routes assignments.*
+        // pendant la transition (cleanup d'Assignment en chantier 04.H).
+        Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
+        Route::get('/contracts/create', [ContractController::class, 'create'])->name('contracts.create');
+        Route::post('/contracts', [ContractController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('contracts.store');
+        Route::post('/contracts/bulk', [ContractController::class, 'bulkStore'])
+            ->middleware('throttle:30,1')
+            ->name('contracts.bulk-store');
+        Route::get('/contracts/{contract}', [ContractController::class, 'show'])
+            ->whereNumber('contract')
+            ->name('contracts.show');
+        Route::get('/contracts/{contract}/edit', [ContractController::class, 'edit'])
+            ->whereNumber('contract')
+            ->name('contracts.edit');
+        Route::patch('/contracts/{contract}', [ContractController::class, 'update'])
+            ->whereNumber('contract')
+            ->middleware('throttle:60,1')
+            ->name('contracts.update');
+        Route::delete('/contracts/{contract}', [ContractController::class, 'destroy'])
+            ->whereNumber('contract')
+            ->middleware('throttle:60,1')
+            ->name('contracts.destroy');
 
         // Fiscal rules — consultation only
         Route::get('/fiscal-rules', [FiscalRuleController::class, 'index'])->name('fiscal-rules.index');

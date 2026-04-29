@@ -8,6 +8,8 @@ use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface
 use App\Contracts\Repositories\User\Assignment\AssignmentWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
+use App\Contracts\Repositories\User\Contract\ContractWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
@@ -19,6 +21,8 @@ use App\Repositories\User\Assignment\AssignmentReadRepository;
 use App\Repositories\User\Assignment\AssignmentWriteRepository;
 use App\Repositories\User\Company\CompanyReadRepository;
 use App\Repositories\User\Company\CompanyWriteRepository;
+use App\Repositories\User\Contract\ContractReadRepository;
+use App\Repositories\User\Contract\ContractWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityWriteRepository;
@@ -61,6 +65,10 @@ final class RepositoryServiceProvider extends ServiceProvider
         // Assignment
         AssignmentReadRepositoryInterface::class => AssignmentReadRepository::class,
         AssignmentWriteRepositoryInterface::class => AssignmentWriteRepository::class,
+
+        // Contract (ADR-0014) — coexiste avec Assignment pendant la transition
+        ContractReadRepositoryInterface::class => ContractReadRepository::class,
+        ContractWriteRepositoryInterface::class => ContractWriteRepository::class,
 
         // FiscalRule
         FiscalRuleReadRepositoryInterface::class => FiscalRuleReadRepository::class,

@@ -1,0 +1,114 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\User\Contract;
+
+use App\Actions\Contract\BulkCreateContractsAction;
+use App\Actions\Contract\DeleteContractAction;
+use App\Actions\Contract\StoreContractAction;
+use App\Actions\Contract\UpdateContractAction;
+use App\Data\User\Contract\BulkStoreContractsData;
+use App\Data\User\Contract\StoreContractData;
+use App\Data\User\Contract\UpdateContractData;
+use App\Http\Controllers\Controller;
+use App\Services\Contract\ContractQueryService;
+use Illuminate\Http\RedirectResponse;
+use Inertia\Inertia;
+use Inertia\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+/**
+ * Endpoints HTTP du domaine Contract — slim conforme ADR-0013.
+ *
+ * Les pages Vue cibles `User/Contracts/*` sont créées au chantier 04.G ;
+ * en attendant, les méthodes `index`, `create`, `show`, `edit` rendent
+ * des composants Inertia placeholder qui seront remplacés par les
+ * vraies pages.
+ */
+final class ContractController extends Controller
+{
+    public function __construct(
+        private readonly ContractQueryService $contracts,
+        private readonly StoreContractAction $storeContract,
+        private readonly UpdateContractAction $updateContract,
+        private readonly DeleteContractAction $deleteContract,
+        private readonly BulkCreateContractsAction $bulkCreateContracts,
+    ) {}
+
+    public function index(): Response
+    {
+        return Inertia::render('User/Contracts/Index/Index', [
+            'contracts' => $this->contracts->listAll(),
+        ]);
+    }
+
+    public function show(int $contract): Response
+    {
+        $contractData = $this->contracts->findContractData($contract);
+
+        if ($contractData === null) {
+            throw new NotFoundHttpException;
+        }
+
+        return Inertia::render('User/Contracts/Show/Index', [
+            'contract' => $contractData,
+        ]);
+    }
+
+    public function create(): Response
+    {
+        return Inertia::render('User/Contracts/Create/Index');
+    }
+
+    public function store(StoreContractData $data): RedirectResponse
+    {
+        $contract = $this->storeContract->execute($data);
+
+        return redirect()
+            ->route('user.contracts.show', ['contract' => $contract->id])
+            ->with('toast-success', 'Contrat enregistré.');
+    }
+
+    public function edit(int $contract): Response
+    {
+        $contractData = $this->contracts->findContractData($contract);
+
+        if ($contractData === null) {
+            throw new NotFoundHttpException;
+        }
+
+        return Inertia::render('User/Contracts/Edit/Index', [
+            'contract' => $contractData,
+        ]);
+    }
+
+    public function update(int $contract, UpdateContractData $data): RedirectResponse
+    {
+        $this->updateContract->execute($contract, $data);
+
+        return redirect()
+            ->route('user.contracts.show', ['contract' => $contract])
+            ->with('toast-success', 'Contrat mis à jour.');
+    }
+
+    public function destroy(int $contract): RedirectResponse
+    {
+        $this->deleteContract->execute($contract);
+
+        return redirect()
+            ->route('user.contracts.index')
+            ->with('toast-success', 'Contrat supprimé.');
+    }
+
+    public function bulkStore(BulkStoreContractsData $data): RedirectResponse
+    {
+        $createdIds = $this->bulkCreateContracts->execute($data);
+        $count = count($createdIds);
+
+        return back()->with(
+            'toast-success',
+            sprintf('%d contrat%s enregistré%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : ''),
+        );
+    }
+}
