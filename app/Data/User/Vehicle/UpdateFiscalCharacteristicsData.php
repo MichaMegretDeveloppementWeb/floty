@@ -9,8 +9,8 @@ use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
 use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
 use App\Enums\Vehicle\HomologationMethod;
-use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
+use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Attributes\MapInputName;
@@ -67,10 +67,9 @@ final class UpdateFiscalCharacteristicsData extends Data
         #[Required]
         public EnergySource $energySource,
 
-        public ?EuroStandard $euroStandard,
+        public ?UnderlyingCombustionEngineType $underlyingCombustionEngineType,
 
-        #[Required]
-        public PollutantCategory $pollutantCategory,
+        public ?EuroStandard $euroStandard,
 
         #[Required]
         public HomologationMethod $homologationMethod,
@@ -91,6 +90,12 @@ final class UpdateFiscalCharacteristicsData extends Data
 
         #[Max(2000)]
         public ?string $changeNote = null,
+
+        // Confirmation explicite de la cascade destructive (suppression
+        // d'au moins une autre VFC voisine). Posé à `true` côté front
+        // après que l'utilisateur a validé la modale de confirmation.
+        // Si la cascade n'est pas destructive, ce champ est ignoré.
+        public bool $confirmed = false,
     ) {}
 
     /**
@@ -100,9 +105,15 @@ final class UpdateFiscalCharacteristicsData extends Data
     {
         $payload = $context->payload;
         $method = $payload['homologation_method'] ?? null;
+        $energy = $payload['energy_source'] ?? null;
         $reason = $payload['change_reason'] ?? null;
 
         $isOther = $reason === FiscalCharacteristicsChangeReason::OtherChange->value;
+        $isHybrid = in_array($energy, [
+            EnergySource::PluginHybrid->value,
+            EnergySource::NonPluginHybrid->value,
+            EnergySource::ElectricHydrogen->value,
+        ], true);
 
         return [
             'co2_wltp' => [
@@ -113,6 +124,9 @@ final class UpdateFiscalCharacteristicsData extends Data
             ],
             'taxable_horsepower' => [
                 Rule::requiredIf(fn (): bool => $method === HomologationMethod::Pa->value),
+            ],
+            'underlying_combustion_engine_type' => [
+                Rule::requiredIf(fn (): bool => $isHybrid),
             ],
             'change_note' => [
                 Rule::requiredIf(fn (): bool => $isOther),
@@ -129,6 +143,7 @@ final class UpdateFiscalCharacteristicsData extends Data
             'co2_wltp.required' => 'Le CO₂ WLTP est obligatoire quand la méthode d\'homologation est WLTP.',
             'co2_nedc.required' => 'Le CO₂ NEDC est obligatoire quand la méthode d\'homologation est NEDC.',
             'taxable_horsepower.required' => 'La puissance administrative est obligatoire quand la méthode d\'homologation est PA.',
+            'underlying_combustion_engine_type.required' => 'Le type de moteur thermique sous-jacent est obligatoire pour les véhicules hybrides.',
             'change_note.required' => 'La note est obligatoire pour le motif « Autre changement ».',
         ];
     }

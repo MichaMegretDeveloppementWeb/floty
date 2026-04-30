@@ -9,7 +9,6 @@ use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRep
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Data\User\Vehicle\UpdateVehicleData;
-use App\Enums\Vehicle\FiscalChangeMode;
 use App\Exceptions\Vehicle\NoFiscalChangeException;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -25,16 +24,13 @@ use Illuminate\Support\Facades\DB;
  *     kilométrage, notes) → toujours UPDATE en place sur la table
  *     `vehicles`. Pas de versioning.
  *
- *  2. **Caractéristiques fiscales** → traitement selon
- *     `data.fiscalChangeMode` :
+ *  2. **Caractéristiques fiscales** → toujours **création d'une
+ *     nouvelle version** (Edit ne sert qu'aux changements réels du
+ *     véhicule dans le temps). Les corrections de saisie sur une VFC
+ *     existante passent exclusivement par la modale Historique
+ *     (cf. {@see UpdateFiscalCharacteristicsAction}).
  *
- *     - **Correction** : UPDATE sur la VFC courante, aucune nouvelle
- *       ligne. L'utilisateur a indiqué qu'il rectifie une saisie
- *       erronée — pas de motif ni de note exposés.
- *
- *     - **NewVersion** : un changement réel sur le véhicule. Le
- *       payload porte `effectiveFrom`, `changeReason` et
- *       éventuellement `changeNote`. Logique en 4 étapes :
+ *     Logique en 4 étapes :
  *
  *       a. **Garde-fou** : si aucune valeur fiscale n'a changé entre
  *          la VFC courante et le payload, on lève
@@ -69,12 +65,6 @@ final readonly class UpdateVehicleAction
         return DB::transaction(function () use ($vehicleId, $data): Vehicle {
             $vehicle = $this->vehicleWriter->update($vehicleId, $data);
 
-            if ($data->fiscalChangeMode === FiscalChangeMode::Correction) {
-                $this->applyCorrection($vehicleId, $data);
-
-                return $vehicle;
-            }
-
             $this->applyNewVersion($vehicleId, $data);
 
             return $vehicle;
@@ -82,18 +72,8 @@ final readonly class UpdateVehicleAction
     }
 
     /**
-     * Mode « Correction » : UPDATE en place sur la VFC courante.
-     */
-    private function applyCorrection(int $vehicleId, UpdateVehicleData $data): void
-    {
-        $current = $this->loadCurrentVfc($vehicleId);
-
-        $this->fiscalWriter->updateInPlace($current->id, $data);
-    }
-
-    /**
-     * Mode « Nouvelle version » : cascade rétroactive éventuelle +
-     * fermeture de la version précédente + INSERT.
+     * Cascade rétroactive éventuelle + fermeture de la version
+     * précédente + INSERT de la nouvelle VFC.
      */
     private function applyNewVersion(int $vehicleId, UpdateVehicleData $data): void
     {
@@ -149,7 +129,11 @@ final readonly class UpdateVehicleAction
 
     /**
      * Compare champ par champ la VFC courante avec le payload : retourne
-     * `true` si au moins une valeur fiscale a changé.
+     * `true` si au moins une valeur fiscale a changé. La catégorie
+     * polluants n'est pas comparée — elle est dérivée des autres champs
+     * (cf. {@see PollutantCategory::derive()}), donc tout changement de
+     * polluant_category implique forcément un changement sur l'un de
+     * ses inputs (énergie / norme / sous-jacent), déjà comparés.
      */
     private function hasFiscalChanges(
         VehicleFiscalCharacteristics $current,
@@ -160,8 +144,8 @@ final readonly class UpdateVehicleAction
             || $current->body_type !== $data->bodyType
             || $current->seats_count !== $data->seatsCount
             || $current->energy_source !== $data->energySource
+            || $current->underlying_combustion_engine_type !== $data->underlyingCombustionEngineType
             || $current->euro_standard !== $data->euroStandard
-            || $current->pollutant_category !== $data->pollutantCategory
             || $current->homologation_method !== $data->homologationMethod
             || $current->co2_wltp !== $data->co2Wltp
             || $current->co2_nedc !== $data->co2Nedc

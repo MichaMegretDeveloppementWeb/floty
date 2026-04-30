@@ -6,7 +6,7 @@ import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import { useVehicleEditForm } from '@/Composables/Vehicle/Edit/useVehicleEditForm';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
-import FiscalChangeModeSection from './partials/FiscalChangeModeSection.vue';
+import FiscalChangeMetadataSection from './partials/FiscalChangeMetadataSection.vue';
 import FiscalCharacteristicsSection from './partials/FiscalCharacteristicsSection.vue';
 import IdentitySection from './partials/IdentitySection.vue';
 import RegistrationSection from './partials/RegistrationSection.vue';
@@ -19,7 +19,6 @@ const props = defineProps<{
 const {
     form,
     changeReasonOptions,
-    isNewVersionMode,
     isOtherChange,
     hasFiscalChanges,
     canSubmit,
@@ -50,7 +49,7 @@ const cascadeMessage = (): string => {
                     Modifier {{ props.vehicle.brand }} {{ props.vehicle.model }} ({{ props.vehicle.licensePlate }})
                 </h1>
                 <p class="mt-1 text-sm text-slate-500">
-                    Identité du véhicule + version courante des caractéristiques fiscales.
+                    Identité du véhicule + nouvelle version des caractéristiques fiscales.
                 </p>
             </header>
 
@@ -61,10 +60,9 @@ const cascadeMessage = (): string => {
                 <IdentitySection :form="form" />
                 <RegistrationSection :form="form" />
                 <FiscalCharacteristicsSection :form="form" :options="props.options" />
-                <FiscalChangeModeSection
+                <FiscalChangeMetadataSection
                     :form="form"
                     :change-reason-options="changeReasonOptions"
-                    :is-new-version-mode="isNewVersionMode"
                     :is-other-change="isOtherChange"
                     :has-fiscal-changes="hasFiscalChanges"
                 />

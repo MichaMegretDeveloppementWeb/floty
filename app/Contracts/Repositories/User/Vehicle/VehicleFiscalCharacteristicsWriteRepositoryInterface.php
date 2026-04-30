@@ -36,16 +36,6 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): VehicleFiscalCharacteristics;
 
     /**
-     * UPDATE en place sur la VFC courante (mode « Correction » du
-     * formulaire d'édition véhicule). Aucune nouvelle ligne n'est
-     * créée, l'historique reste intact.
-     */
-    public function updateInPlace(
-        int $fiscalId,
-        UpdateVehicleData $data,
-    ): VehicleFiscalCharacteristics;
-
-    /**
      * Crée une nouvelle ligne d'historique avec les caractéristiques
      * fournies. Utilisé par l'Action `UpdateVehicleAction` après
      * fermeture/suppression des versions adjacentes.

@@ -12,7 +12,6 @@ use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
 use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
 use App\Enums\Vehicle\HomologationMethod;
-use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Vehicle;
@@ -114,8 +113,8 @@ final class CreateVehicleActionTest extends TestCase
             bodyType: BodyType::InteriorDriving,
             seatsCount: 5,
             energySource: EnergySource::Gasoline,
+            underlyingCombustionEngineType: null,
             euroStandard: EuroStandard::Euro6,
-            pollutantCategory: PollutantCategory::Category1,
             homologationMethod: HomologationMethod::Wltp,
             co2Wltp: 110,
             co2Nedc: null,

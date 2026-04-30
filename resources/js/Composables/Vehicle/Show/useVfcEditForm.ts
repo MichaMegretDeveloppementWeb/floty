@@ -2,6 +2,11 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import {
+    computeVfcUpdateImpact,
+    hasDestructiveImpact,
+} from '@/Composables/Vehicle/Show/computeVfcUpdateImpact';
+import type { VfcImpact } from '@/Composables/Vehicle/Show/computeVfcUpdateImpact';
 import type { VfcEditFormShape } from '@/pages/User/Vehicles/Show/forms';
 import { update as vfcUpdateRoute } from '@/routes/user/vehicle-fiscal-characteristics';
 
@@ -18,28 +23,37 @@ type SelectOption = { value: string; label: string };
  *   - expose les motifs sélectionnables (tous sauf `initial_creation`
  *     qui est réservé au système) — l'historique permet plus de
  *     motifs que le flux Edit véhicule,
- *   - calcule `canSubmit` (bornes valides + change_note requise si
- *     motif `other_change`),
+ *   - **calcule en live l'impact** sur les voisines via
+ *     `computeVfcUpdateImpact()` pour que la modale puisse afficher
+ *     une preview des ajustements et déclencher une confirmation
+ *     destructive avant submit (mirroir de la cascade backend),
  *   - dispatche le submit PATCH puis ferme la modale au success.
  */
 export function useVfcEditForm(
-    props: { editing: Vfc | null },
+    props: { editing: Vfc | null; history: ReadonlyArray<Vfc> },
     open: Ref<boolean>,
 ): {
-    form: InertiaForm<VfcEditFormShape>;
+    form: InertiaForm<VfcEditFormShape & { confirmed: boolean }>;
     changeReasonOptions: SelectOption[];
     isOtherChange: ComputedRef<boolean>;
+    isInitialCreation: ComputedRef<boolean>;
     canSubmit: ComputedRef<boolean>;
-    submit: () => void;
+    impacts: ComputedRef<VfcImpact[]>;
+    nonDestructiveImpacts: ComputedRef<VfcImpact[]>;
+    destructiveImpacts: ComputedRef<VfcImpact[]>;
+    isDestructive: ComputedRef<boolean>;
+    confirmationOpen: Ref<boolean>;
+    requestSubmit: () => void;
+    confirmSubmit: () => void;
 } {
-    const form = useForm<VfcEditFormShape>({
+    const form = useForm<VfcEditFormShape & { confirmed: boolean }>({
         reception_category: 'M1',
         vehicle_user_type: 'VP',
         body_type: 'CI',
         seats_count: 5,
         energy_source: 'gasoline',
+        underlying_combustion_engine_type: '',
         euro_standard: 'euro_6d_isc_fcm',
-        pollutant_category: 'category_1',
         homologation_method: 'WLTP',
         co2_wltp: null,
         co2_nedc: null,
@@ -48,6 +62,7 @@ export function useVfcEditForm(
         effective_to: '',
         change_reason: 'recharacterization',
         change_note: '',
+        confirmed: false,
     });
 
     const changeReasonOptions: SelectOption[] = [
@@ -66,18 +81,22 @@ export function useVfcEditForm(
                 form.body_type = value.bodyType;
                 form.seats_count = value.seatsCount;
                 form.energy_source = value.energySource;
+                form.underlying_combustion_engine_type =
+                    value.underlyingCombustionEngineType ?? '';
                 form.euro_standard = value.euroStandard ?? '';
-                form.pollutant_category = value.pollutantCategory;
                 form.homologation_method = value.homologationMethod;
                 form.co2_wltp = value.co2Wltp;
                 form.co2_nedc = value.co2Nedc;
                 form.taxable_horsepower = value.taxableHorsepower;
                 form.effective_from = value.effectiveFrom;
                 form.effective_to = value.effectiveTo ?? '';
-                form.change_reason = value.changeReason === 'initial_creation'
-                    ? 'recharacterization'
-                    : value.changeReason;
+                // Pour une « Création initiale », on conserve la valeur
+                // d'origine telle quelle. Le champ Motif est masqué côté
+                // UI et la valeur n'est pas modifiable — sémantiquement
+                // ce n'est pas un changement, c'est l'origine.
+                form.change_reason = value.changeReason;
                 form.change_note = value.changeNote ?? '';
+                form.confirmed = false;
             }
 
             form.clearErrors();
@@ -86,6 +105,10 @@ export function useVfcEditForm(
 
     const isOtherChange = computed<boolean>(
         () => form.change_reason === 'other_change',
+    );
+
+    const isInitialCreation = computed<boolean>(
+        () => form.change_reason === 'initial_creation',
     );
 
     const canSubmit = computed<boolean>(() => {
@@ -97,41 +120,106 @@ export function useVfcEditForm(
             return false;
         }
 
-        if (isOtherChange.value && form.change_note.trim() === '') {
+        // Une initial_creation n'a pas de motif éditable côté UI ; la
+        // valeur est conservée telle quelle, donc canSubmit ne dépend
+        // pas de change_note pour ce cas.
+        if (
+            !isInitialCreation.value
+            && isOtherChange.value
+            && form.change_note.trim() === ''
+        ) {
             return false;
         }
 
         return true;
     });
 
-    const submit = (): void => {
+    const impacts = computed<VfcImpact[]>(() => {
+        if (!props.editing || form.effective_from === '') {
+            return [];
+        }
+
+        return computeVfcUpdateImpact(
+            props.history,
+            props.editing.id,
+            form.effective_from,
+            form.effective_to === '' ? null : form.effective_to,
+        );
+    });
+
+    const isDestructive = computed<boolean>(
+        () => hasDestructiveImpact(impacts.value),
+    );
+
+    const destructiveImpacts = computed<VfcImpact[]>(
+        () => impacts.value.filter((i) => i.type === 'delete'),
+    );
+
+    const nonDestructiveImpacts = computed<VfcImpact[]>(
+        () => impacts.value.filter((i) => i.type !== 'delete'),
+    );
+
+    const confirmationOpen = ref<boolean>(false);
+
+    const submit = (confirmed: boolean): void => {
         if (!canSubmit.value || !props.editing) {
             return;
         }
 
         form.transform((data) => ({
             ...data,
+            confirmed,
             change_reason: data.change_reason as ChangeReason,
             change_note: data.change_note === '' ? null : data.change_note,
             effective_to: data.effective_to === '' ? null : data.effective_to,
             euro_standard: data.euro_standard === '' ? null : data.euro_standard,
+            underlying_combustion_engine_type:
+                data.underlying_combustion_engine_type === ''
+                    ? null
+                    : data.underlying_combustion_engine_type,
         })).patch(
             vfcUpdateRoute.url({ vehicleFiscalCharacteristic: props.editing.id }),
             {
                 preserveScroll: true,
                 onSuccess: () => {
                     open.value = false;
+                    confirmationOpen.value = false;
                 },
             },
         );
+    };
+
+    const requestSubmit = (): void => {
+        if (!canSubmit.value || !props.editing) {
+            return;
+        }
+
+        if (isDestructive.value) {
+            confirmationOpen.value = true;
+
+            return;
+        }
+
+        submit(false);
+    };
+
+    const confirmSubmit = (): void => {
+        submit(true);
     };
 
     return {
         form,
         changeReasonOptions,
         isOtherChange,
+        isInitialCreation,
         canSubmit,
-        submit,
+        impacts,
+        nonDestructiveImpacts,
+        destructiveImpacts,
+        isDestructive,
+        confirmationOpen,
+        requestSubmit,
+        confirmSubmit,
     };
 }
 

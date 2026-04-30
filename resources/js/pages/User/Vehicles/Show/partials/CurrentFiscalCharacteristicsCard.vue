@@ -108,6 +108,7 @@ const deleteState = useVfcDeleteModalState();
         <VfcEditModal
             v-model:open="editState.open.value"
             :editing="editState.editing.value"
+            :history="props.history"
             :options="props.options"
         />
 

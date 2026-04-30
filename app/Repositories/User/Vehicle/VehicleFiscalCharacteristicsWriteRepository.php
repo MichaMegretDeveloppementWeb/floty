@@ -9,11 +9,18 @@ use App\Data\User\Vehicle\StoreVehicleData;
 use App\Data\User\Vehicle\UpdateFiscalCharacteristicsData;
 use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
+use App\Enums\Vehicle\PollutantCategory;
 use App\Models\VehicleFiscalCharacteristics;
 use DateTimeInterface;
 
 /**
  * Implémentation Eloquent des écritures de l'historique fiscal.
+ *
+ * Le champ `pollutant_category` n'est jamais saisi par l'utilisateur :
+ * il est dérivé à chaque écriture par {@see PollutantCategory::derive()}
+ * à partir des champs canoniques (source d'énergie, norme Euro, type
+ * de moteur thermique sous-jacent). Le DB reste cohérent avec la même
+ * cascade que celle appliquée au calcul fiscal (R-2024-013).
  */
 final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscalCharacteristicsWriteRepositoryInterface
 {
@@ -31,38 +38,19 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'body_type' => $data->bodyType,
             'seats_count' => $data->seatsCount,
             'energy_source' => $data->energySource,
+            'underlying_combustion_engine_type' => $data->underlyingCombustionEngineType,
             'euro_standard' => $data->euroStandard,
-            'pollutant_category' => $data->pollutantCategory,
+            'pollutant_category' => PollutantCategory::derive(
+                $data->energySource,
+                $data->euroStandard,
+                $data->underlyingCombustionEngineType,
+            ),
             'homologation_method' => $data->homologationMethod,
             'co2_wltp' => $data->co2Wltp,
             'co2_nedc' => $data->co2Nedc,
             'taxable_horsepower' => $data->taxableHorsepower,
             'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
         ]);
-    }
-
-    public function updateInPlace(
-        int $fiscalId,
-        UpdateVehicleData $data,
-    ): VehicleFiscalCharacteristics {
-        $vfc = VehicleFiscalCharacteristics::findOrFail($fiscalId);
-
-        $vfc->update([
-            'reception_category' => $data->receptionCategory,
-            'vehicle_user_type' => $data->vehicleUserType,
-            'body_type' => $data->bodyType,
-            'seats_count' => $data->seatsCount,
-            'energy_source' => $data->energySource,
-            'euro_standard' => $data->euroStandard,
-            'pollutant_category' => $data->pollutantCategory,
-            'homologation_method' => $data->homologationMethod,
-            'co2_wltp' => $data->co2Wltp,
-            'co2_nedc' => $data->co2Nedc,
-            'taxable_horsepower' => $data->taxableHorsepower,
-            'change_reason' => FiscalCharacteristicsChangeReason::InputCorrection,
-        ]);
-
-        return $vfc->fresh();
     }
 
     public function createNewVersion(
@@ -81,8 +69,13 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'body_type' => $data->bodyType,
             'seats_count' => $data->seatsCount,
             'energy_source' => $data->energySource,
+            'underlying_combustion_engine_type' => $data->underlyingCombustionEngineType,
             'euro_standard' => $data->euroStandard,
-            'pollutant_category' => $data->pollutantCategory,
+            'pollutant_category' => PollutantCategory::derive(
+                $data->energySource,
+                $data->euroStandard,
+                $data->underlyingCombustionEngineType,
+            ),
             'homologation_method' => $data->homologationMethod,
             'co2_wltp' => $data->co2Wltp,
             'co2_nedc' => $data->co2Nedc,
@@ -138,8 +131,13 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'body_type' => $data->bodyType,
             'seats_count' => $data->seatsCount,
             'energy_source' => $data->energySource,
+            'underlying_combustion_engine_type' => $data->underlyingCombustionEngineType,
             'euro_standard' => $data->euroStandard,
-            'pollutant_category' => $data->pollutantCategory,
+            'pollutant_category' => PollutantCategory::derive(
+                $data->energySource,
+                $data->euroStandard,
+                $data->underlyingCombustionEngineType,
+            ),
             'homologation_method' => $data->homologationMethod,
             'co2_wltp' => $data->co2Wltp,
             'co2_nedc' => $data->co2Nedc,

@@ -107,6 +107,193 @@ final class VehicleFiscalCharacteristicsControllerTest extends TestCase
     }
 
     #[Test]
+    public function update_decalage_avant_etend_automatiquement_la_precedente_pour_combler_le_trou(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $previous = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-01-01',
+            'effective_to' => '2023-12-31',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload(
+            $current,
+            ['effective_from' => '2024-03-15'],
+        );
+
+        $this->actingAs($user)
+            ->patch("/app/vehicle-fiscal-characteristics/{$current->id}", $payload)
+            ->assertRedirect()
+            ->assertSessionHas('toast-success')
+            ->assertSessionHas('toast-info');
+
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_from' => '2024-03-15',
+            'effective_to' => null,
+        ]);
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $previous->id,
+            'effective_to' => '2024-03-14',
+        ]);
+    }
+
+    #[Test]
+    public function update_decalage_arriere_chevauche_partiellement_raccourcit_la_precedente(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $previous = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-01-01',
+            'effective_to' => '2023-12-31',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload(
+            $current,
+            ['effective_from' => '2023-06-15'],
+        );
+
+        $this->actingAs($user)
+            ->patch("/app/vehicle-fiscal-characteristics/{$current->id}", $payload)
+            ->assertRedirect()
+            ->assertSessionHas('toast-info');
+
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_from' => '2023-06-15',
+        ]);
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $previous->id,
+            'effective_to' => '2023-06-14',
+        ]);
+    }
+
+    #[Test]
+    public function update_chevauchement_total_sans_confirmation_refuse_avec_toast_d_avertissement(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $previous = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-06-01',
+            'effective_to' => '2023-12-31',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+
+        // Reculer effective_from à 01/01/2023 → engloutit entièrement
+        // la précédente (qui démarre au 01/06/2023).
+        $payload = $this->buildVfcPayload(
+            $current,
+            ['effective_from' => '2023-01-01'],
+        );
+
+        $this->actingAs($user)
+            ->from("/app/vehicles/{$vehicle->id}")
+            ->patch("/app/vehicle-fiscal-characteristics/{$current->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}")
+            ->assertSessionHas('toast-error');
+
+        // Aucun changement appliqué : la précédente est intacte, la
+        // courante n'a pas bougé.
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $previous->id,
+            'effective_from' => '2023-06-01',
+            'effective_to' => '2023-12-31',
+        ]);
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_from' => '2024-01-01',
+        ]);
+    }
+
+    #[Test]
+    public function update_chevauchement_total_avec_confirmation_supprime_la_voisine(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $previous = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-06-01',
+            'effective_to' => '2023-12-31',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload(
+            $current,
+            [
+                'effective_from' => '2023-01-01',
+                'confirmed' => true,
+            ],
+        );
+
+        $this->actingAs($user)
+            ->patch("/app/vehicle-fiscal-characteristics/{$current->id}", $payload)
+            ->assertRedirect()
+            ->assertSessionHas('toast-success')
+            ->assertSessionHas('toast-info');
+
+        $this->assertDatabaseMissing('vehicle_fiscal_characteristics', [
+            'id' => $previous->id,
+        ]);
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_from' => '2023-01-01',
+        ]);
+    }
+
+    #[Test]
+    public function update_borne_droite_invalide_renvoie_un_toast_error(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $vfc = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-01-01',
+            'effective_to' => '2023-12-31',
+        ]);
+
+        $payload = $this->buildVfcPayload(
+            $vfc,
+            [
+                'effective_from' => '2023-12-01',
+                'effective_to' => '2023-06-01',
+            ],
+        );
+
+        $this->actingAs($user)
+            ->from("/app/vehicles/{$vehicle->id}")
+            ->patch("/app/vehicle-fiscal-characteristics/{$vfc->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}")
+            ->assertSessionHas('toast-error');
+
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $vfc->id,
+            'effective_from' => '2023-01-01',
+            'effective_to' => '2023-12-31',
+        ]);
+    }
+
+    #[Test]
     public function destroy_refuse_si_unique_version(): void
     {
         $user = User::factory()->create();
@@ -146,8 +333,8 @@ final class VehicleFiscalCharacteristicsControllerTest extends TestCase
             'body_type' => $vfc->body_type->value,
             'seats_count' => $vfc->seats_count,
             'energy_source' => $vfc->energy_source->value,
+            'underlying_combustion_engine_type' => $vfc->underlying_combustion_engine_type?->value,
             'euro_standard' => $vfc->euro_standard?->value,
-            'pollutant_category' => $vfc->pollutant_category->value,
             'homologation_method' => $vfc->homologation_method->value,
             'co2_wltp' => $vfc->co2_wltp,
             'co2_nedc' => $vfc->co2_nedc,

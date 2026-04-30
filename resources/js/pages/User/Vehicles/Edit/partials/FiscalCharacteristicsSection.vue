@@ -4,8 +4,15 @@ import { computed } from 'vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import type { FiscalCharacteristicsFieldsShape } from '@/pages/User/Vehicles/Create/forms';
+import {
+    derivePollutantCategory,
+    requiresUnderlyingCombustionEngine,
+} from '@/Utils/derivePollutantCategory';
 
-type FiscalErrors = Partial<Record<keyof FiscalCharacteristicsFieldsShape, string>>;
+type FiscalErrors = Partial<
+    Record<keyof FiscalCharacteristicsFieldsShape, string>
+>;
+type SelectOption = { value: string; label: string };
 
 const props = defineProps<{
     form: InertiaForm<T>;
@@ -17,6 +24,30 @@ const errors = computed<FiscalErrors>(() => props.form.errors as FiscalErrors);
 const showWltp = computed((): boolean => props.form.homologation_method === 'WLTP');
 const showNedc = computed((): boolean => props.form.homologation_method === 'NEDC');
 const showPa = computed((): boolean => props.form.homologation_method === 'PA');
+
+const isHybrid = computed((): boolean =>
+    requiresUnderlyingCombustionEngine(props.form.energy_source),
+);
+
+// Catégorie polluants dérivée live des champs canoniques. Garde-fou
+// côté UI : la valeur réellement persistée est recalculée par le
+// Repository avec la même cascade (cf. PollutantCategory::derive()).
+const derivedPollutantCategoryValue = computed<App.Enums.Vehicle.PollutantCategory>(
+    () => derivePollutantCategory(
+        props.form.energy_source,
+        props.form.euro_standard,
+        props.form.underlying_combustion_engine_type,
+    ),
+);
+
+const pollutantCategoryLabel = computed((): string => {
+    const target = derivedPollutantCategoryValue.value;
+    const found = props.options.pollutantCategories.find(
+        (option: SelectOption) => option.value === target,
+    );
+
+    return found?.label ?? target;
+});
 </script>
 
 <template>
@@ -70,10 +101,12 @@ const showPa = computed((): boolean => props.form.homologation_method === 'PA');
         </div>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <SelectInput
-                v-model="form.pollutant_category"
-                label="Catégorie polluants"
-                :options="options.pollutantCategories"
-                :error="errors.pollutant_category"
+                v-if="isHybrid"
+                v-model="form.underlying_combustion_engine_type"
+                label="Moteur thermique sous-jacent"
+                :options="options.underlyingCombustionEngineTypes"
+                :error="errors.underlying_combustion_engine_type"
+                hint="Indispensable pour catégoriser un hybride : essence → Catégorie 1, Diesel → Plus polluants."
                 required
             />
             <SelectInput
@@ -83,6 +116,21 @@ const showPa = computed((): boolean => props.form.homologation_method === 'PA');
                 :error="errors.homologation_method"
                 required
             />
+        </div>
+        <div
+            class="flex flex-col gap-1 rounded-lg bg-slate-50/70 px-3 py-3"
+            aria-live="polite"
+        >
+            <p class="text-xs font-medium tracking-wide text-slate-400 uppercase">
+                Catégorie polluants (calculée)
+            </p>
+            <p class="text-base font-semibold text-slate-900">
+                {{ pollutantCategoryLabel }}
+            </p>
+            <p class="text-xs leading-snug text-slate-500">
+                Dérivée automatiquement de la source d'énergie, de la norme Euro
+                et du moteur thermique sous-jacent. Non saisissable.
+            </p>
         </div>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <NumberInput

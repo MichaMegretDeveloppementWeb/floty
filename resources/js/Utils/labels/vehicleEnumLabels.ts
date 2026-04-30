@@ -79,11 +79,6 @@ export const fiscalCharacteristicsChangeReasonLabel: Record<App.Enums.Vehicle.Fi
     input_correction: 'Correction de saisie',
 };
 
-export const fiscalChangeModeLabel: Record<App.Enums.Vehicle.FiscalChangeMode, string> = {
-    correction: 'Correction de la version courante',
-    new_version: 'Nouvelle version (changement réel)',
-};
-
 export const fiscalCharacteristicsExtensionStrategyLabel: Record<App.Enums.Vehicle.FiscalCharacteristicsExtensionStrategy, string> = {
     extend_previous: 'Étendre la version précédente sur la période supprimée',
     extend_next: 'Étendre la version suivante sur la période supprimée',

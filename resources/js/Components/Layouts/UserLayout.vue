@@ -5,6 +5,9 @@ import { computed, ref, watch } from 'vue';
 import SidebarNav from '@/Components/Layouts/UserLayout/SidebarNav.vue';
 import TopBar from '@/Components/Layouts/UserLayout/TopBar.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer/ToastContainer.vue';
+import { useFlashToasts } from '@/Composables/Shared/useFlashToasts';
+
+useFlashToasts();
 
 withDefaults(
     defineProps<{

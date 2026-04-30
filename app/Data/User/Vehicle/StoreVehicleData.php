@@ -8,8 +8,8 @@ use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
 use App\Enums\Vehicle\HomologationMethod;
-use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
+use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Attributes\MapInputName;
@@ -86,10 +86,9 @@ final class StoreVehicleData extends Data
         #[Required]
         public EnergySource $energySource,
 
-        public ?EuroStandard $euroStandard,
+        public ?UnderlyingCombustionEngineType $underlyingCombustionEngineType,
 
-        #[Required]
-        public PollutantCategory $pollutantCategory,
+        public ?EuroStandard $euroStandard,
 
         #[Required]
         public HomologationMethod $homologationMethod,
@@ -115,6 +114,13 @@ final class StoreVehicleData extends Data
     {
         $payload = $context->payload;
         $method = $payload['homologation_method'] ?? null;
+        $energy = $payload['energy_source'] ?? null;
+
+        $isHybrid = in_array($energy, [
+            EnergySource::PluginHybrid->value,
+            EnergySource::NonPluginHybrid->value,
+            EnergySource::ElectricHydrogen->value,
+        ], true);
 
         return [
             'license_plate' => [
@@ -128,6 +134,9 @@ final class StoreVehicleData extends Data
             ],
             'taxable_horsepower' => [
                 Rule::requiredIf(fn (): bool => $method === HomologationMethod::Pa->value),
+            ],
+            'underlying_combustion_engine_type' => [
+                Rule::requiredIf(fn (): bool => $isHybrid),
             ],
         ];
     }
@@ -163,6 +172,7 @@ final class StoreVehicleData extends Data
             'co2_wltp.required' => 'Le CO₂ WLTP est obligatoire quand la méthode d\'homologation est WLTP.',
             'co2_nedc.required' => 'Le CO₂ NEDC est obligatoire quand la méthode d\'homologation est NEDC.',
             'taxable_horsepower.required' => 'La puissance administrative est obligatoire quand la méthode d\'homologation est PA.',
+            'underlying_combustion_engine_type.required' => 'Le type de moteur thermique sous-jacent est obligatoire pour les véhicules hybrides.',
         ];
     }
 }

@@ -5,8 +5,9 @@ import { store as vehiclesStoreRoute } from '@/routes/user/vehicles';
 
 /**
  * Form Inertia + valeurs initiales + soumission de la page
- * « Nouveau véhicule ». Les valeurs initiales reflètent les enums
- * par défaut (M1 / VP / WLTP / category_1 / Euro 6d-ISC-FCM…).
+ * « Nouveau véhicule ». La catégorie polluants n'est pas saisie —
+ * elle est dérivée côté backend par le Repository à partir de
+ * `energy_source`, `euro_standard` et `underlying_combustion_engine_type`.
  */
 export function useVehicleCreateForm(): {
     form: InertiaForm<VehicleFormShape>;
@@ -29,8 +30,8 @@ export function useVehicleCreateForm(): {
         body_type: 'CI',
         seats_count: 5,
         energy_source: 'gasoline',
+        underlying_combustion_engine_type: '',
         euro_standard: 'euro_6d_isc_fcm',
-        pollutant_category: 'category_1',
         homologation_method: 'WLTP',
         co2_wltp: null,
         co2_nedc: null,
@@ -38,7 +39,16 @@ export function useVehicleCreateForm(): {
     });
 
     const submit = (): void => {
-        form.post(vehiclesStoreRoute.url());
+        form
+            .transform((data) => ({
+                ...data,
+                underlying_combustion_engine_type:
+                    data.underlying_combustion_engine_type === ''
+                        ? null
+                        : data.underlying_combustion_engine_type,
+                euro_standard: data.euro_standard === '' ? null : data.euro_standard,
+            }))
+            .post(vehiclesStoreRoute.url());
     };
 
     return { form, submit };

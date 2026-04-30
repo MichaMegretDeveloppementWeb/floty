@@ -15,6 +15,7 @@ use App\Enums\Vehicle\EuroStandard;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
+use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
@@ -88,6 +89,7 @@ final class VehicleController extends Controller
             vehicleUserTypes: EnumOptions::fromCases(VehicleUserType::cases()),
             bodyTypes: EnumOptions::fromCases(BodyType::cases()),
             energySources: EnumOptions::fromCases(EnergySource::cases()),
+            underlyingCombustionEngineTypes: EnumOptions::fromCases(UnderlyingCombustionEngineType::cases()),
             euroStandards: EnumOptions::fromCases(EuroStandard::cases()),
             homologationMethods: EnumOptions::fromCases(HomologationMethod::cases()),
             pollutantCategories: EnumOptions::fromCases(PollutantCategory::cases()),

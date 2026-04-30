@@ -13,27 +13,28 @@ type SelectOption = { value: string; label: string };
 /**
  * Form Inertia + UI state de la page Edit véhicule.
  *
+ * Edit ne sert qu'aux **changements réels** du véhicule dans le temps :
+ * il crée systématiquement une nouvelle ligne d'historique fiscal. Les
+ * corrections de saisie sur une VFC existante passent exclusivement
+ * par la modale Historique de la page véhicule.
+ *
  * Le composable :
  *   - pré-remplit le `useForm` à partir de `props.vehicle` + sa VFC
  *     courante,
  *   - expose la liste des motifs sélectionnables (`changeReasonOptions`,
  *     les 3 motifs `userSelectableForNewVersion` côté backend),
- *   - calcule les flags d'affichage conditionnel
- *     (`isNewVersionMode`, `isOtherChange`),
- *   - détecte si au moins un champ fiscal a changé
- *     (`hasFiscalChanges`) — utilisé pour bloquer la soumission en
- *     mode `NewVersion` sans modification,
- *   - calcule la liste des **versions historiques qui seront
- *     supprimées** (`versionsToBeDeleted`) si la date d'effet
- *     remonte avant elles → utilisé par la ConfirmModal de cascade,
- *   - expose `requestSubmit()` qui ouvre la ConfirmModal si la
- *     cascade s'applique, sinon soumet directement, et `confirmSubmit()`
- *     pour confirmer après modale.
+ *   - calcule `isOtherChange` pour piloter l'affichage conditionnel de
+ *     la note explicative,
+ *   - détecte si au moins un champ fiscal a changé (`hasFiscalChanges`)
+ *     — utilisé pour bloquer la soumission sans modification réelle,
+ *   - calcule la liste des versions historiques qui seront supprimées
+ *     (`versionsToBeDeleted`) si la date d'effet remonte avant elles,
+ *   - expose `requestSubmit()` qui ouvre la ConfirmModal si la cascade
+ *     s'applique, sinon soumet directement.
  */
 export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     form: InertiaForm<VehicleEditFormShape>;
     changeReasonOptions: SelectOption[];
-    isNewVersionMode: ComputedRef<boolean>;
     isOtherChange: ComputedRef<boolean>;
     hasFiscalChanges: ComputedRef<boolean>;
     canSubmit: ComputedRef<boolean>;
@@ -63,13 +64,13 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         body_type: fiscal?.bodyType ?? 'CI',
         seats_count: fiscal?.seatsCount ?? 5,
         energy_source: fiscal?.energySource ?? 'gasoline',
+        underlying_combustion_engine_type:
+            fiscal?.underlyingCombustionEngineType ?? '',
         euro_standard: fiscal?.euroStandard ?? 'euro_6d_isc_fcm',
-        pollutant_category: fiscal?.pollutantCategory ?? 'category_1',
         homologation_method: fiscal?.homologationMethod ?? 'WLTP',
         co2_wltp: fiscal?.co2Wltp ?? null,
         co2_nedc: fiscal?.co2Nedc ?? null,
         taxable_horsepower: fiscal?.taxableHorsepower ?? null,
-        fiscal_change_mode: 'new_version',
         effective_from: today,
         change_reason: 'recharacterization',
         change_note: '',
@@ -80,10 +81,6 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         { value: 'regulation_change', label: 'Changement réglementaire' },
         { value: 'other_change', label: 'Autre changement' },
     ];
-
-    const isNewVersionMode = computed<boolean>(
-        () => form.fiscal_change_mode === 'new_version',
-    );
 
     const isOtherChange = computed<boolean>(
         () => form.change_reason === 'other_change',
@@ -99,8 +96,9 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
             || form.body_type !== fiscal.bodyType
             || form.seats_count !== fiscal.seatsCount
             || form.energy_source !== fiscal.energySource
+            || (form.underlying_combustion_engine_type || null)
+                !== fiscal.underlyingCombustionEngineType
             || (form.euro_standard || null) !== fiscal.euroStandard
-            || form.pollutant_category !== fiscal.pollutantCategory
             || form.homologation_method !== fiscal.homologationMethod
             || form.co2_wltp !== fiscal.co2Wltp
             || form.co2_nedc !== fiscal.co2Nedc
@@ -108,19 +106,19 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     });
 
     const canSubmit = computed<boolean>(() => {
-        if (isNewVersionMode.value && !hasFiscalChanges.value) {
+        if (!hasFiscalChanges.value) {
             return false;
         }
 
-        if (isNewVersionMode.value && form.effective_from === '') {
+        if (form.effective_from === '') {
             return false;
         }
 
-        if (isNewVersionMode.value && form.change_reason === '') {
+        if (form.change_reason === '') {
             return false;
         }
 
-        if (isNewVersionMode.value && isOtherChange.value && form.change_note.trim() === '') {
+        if (isOtherChange.value && form.change_note.trim() === '') {
             return false;
         }
 
@@ -136,10 +134,6 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
      * sauf si choisie strictement antérieure à la courante).
      */
     const versionsToBeDeleted = computed<Fiscal[]>(() => {
-        if (!isNewVersionMode.value) {
-            return [];
-        }
-
         const effective = form.effective_from;
 
         if (effective === '') {
@@ -170,7 +164,11 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
             ...data,
             change_reason: data.change_reason === '' ? null : data.change_reason as ChangeReason,
             change_note: data.change_note === '' ? null : data.change_note,
-            effective_from: data.fiscal_change_mode === 'new_version' ? data.effective_from : null,
+            underlying_combustion_engine_type:
+                data.underlying_combustion_engine_type === ''
+                    ? null
+                    : data.underlying_combustion_engine_type,
+            euro_standard: data.euro_standard === '' ? null : data.euro_standard,
         })).patch(vehiclesUpdateRoute.url({ vehicle: props.vehicle.id }));
     };
 
@@ -196,7 +194,6 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     return {
         form,
         changeReasonOptions,
-        isNewVersionMode,
         isOtherChange,
         hasFiscalChanges,
         canSubmit,

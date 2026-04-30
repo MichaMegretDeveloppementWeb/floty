@@ -8,6 +8,7 @@ use App\Actions\Vehicle\DeleteFiscalCharacteristicsAction;
 use App\Actions\Vehicle\UpdateFiscalCharacteristicsAction;
 use App\Data\User\Vehicle\DeleteFiscalCharacteristicsData;
 use App\Data\User\Vehicle\UpdateFiscalCharacteristicsData;
+use App\DTO\Vehicle\FiscalCharacteristicsImpact;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
 
@@ -27,7 +28,15 @@ final class VehicleFiscalCharacteristicsController extends Controller
     ): RedirectResponse {
         $action->execute($vehicleFiscalCharacteristic, $data);
 
-        return back()->with('toast-success', 'Version fiscale mise à jour.');
+        $impactSummary = $this->summarizeImpacts($action->lastImpacts());
+
+        $response = back()->with('toast-success', 'Version fiscale mise à jour.');
+
+        if ($impactSummary !== null) {
+            $response = $response->with('toast-info', $impactSummary);
+        }
+
+        return $response;
     }
 
     public function destroy(
@@ -41,5 +50,28 @@ final class VehicleFiscalCharacteristicsController extends Controller
         );
 
         return back()->with('toast-success', 'Version fiscale supprimée.');
+    }
+
+    /**
+     * @param  list<FiscalCharacteristicsImpact>  $impacts
+     */
+    private function summarizeImpacts(array $impacts): ?string
+    {
+        if ($impacts === []) {
+            return null;
+        }
+
+        $lines = array_map(
+            static fn (FiscalCharacteristicsImpact $i): string => '— '.$i->describe(),
+            $impacts,
+        );
+
+        $count = count($impacts);
+
+        return sprintf(
+            "%s sur les versions adjacentes :\n%s",
+            $count === 1 ? 'Ajustement automatique appliqué' : "{$count} ajustements automatiques appliqués",
+            implode("\n", $lines),
+        );
     }
 }

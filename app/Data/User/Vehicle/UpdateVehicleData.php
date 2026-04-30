@@ -7,11 +7,10 @@ namespace App\Data\User\Vehicle;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
-use App\Enums\Vehicle\FiscalChangeMode;
 use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
 use App\Enums\Vehicle\HomologationMethod;
-use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
+use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
 use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Attributes\MapInputName;
@@ -29,21 +28,20 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Payload d'édition d'un véhicule depuis la page Edit.
  *
- * Le DTO porte à la fois :
+ * Edit ne sert qu'aux **changements réels** du véhicule dans le temps
+ * (conversion E85, retrofit, transformation N1, …) qui justifient
+ * l'INSERT d'une nouvelle VFC. Les corrections de saisie sur une VFC
+ * existante passent exclusivement par la modale Historique
+ * (cf. {@see UpdateFiscalCharacteristicsData}).
+ *
+ * Le DTO porte :
  *   - les champs **identité** (table `vehicles`, toujours updatables
  *     en place sans historisation),
- *   - les champs **fiscaux** (table `vehicle_fiscal_characteristics`,
- *     traités selon `fiscalChangeMode`).
+ *   - les champs **fiscaux** de la nouvelle VFC à créer,
+ *   - les **bornes + motif/note** posés sur la nouvelle VFC.
  *
- * Selon `fiscalChangeMode` :
- *   - `Correction` → UPDATE de la VFC courante en place. Les champs
- *     `effectiveFrom`, `changeReason`, `changeNote` ne sont pas requis
- *     ni utilisés.
- *   - `NewVersion` → INSERT d'une nouvelle VFC, clôture de la précédente,
- *     éventuelle suppression des versions postérieures (cf. règle de
- *     cascade rétroactive). `effectiveFrom` + `changeReason` requis,
- *     `changeNote` optionnelle (sauf si `changeReason = OtherChange`,
- *     auquel cas elle devient requise).
+ * `effectiveFrom` + `changeReason` sont toujours requis. `changeNote`
+ * est requise uniquement si `changeReason = OtherChange`.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -100,10 +98,9 @@ final class UpdateVehicleData extends Data
         #[Required]
         public EnergySource $energySource,
 
-        public ?EuroStandard $euroStandard,
+        public ?UnderlyingCombustionEngineType $underlyingCombustionEngineType,
 
-        #[Required]
-        public PollutantCategory $pollutantCategory,
+        public ?EuroStandard $euroStandard,
 
         #[Required]
         public HomologationMethod $homologationMethod,
@@ -117,14 +114,12 @@ final class UpdateVehicleData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
-        // ---------- Mode + métadonnées de changement ----------
+        // ---------- Métadonnées de changement (toujours requises) ----------
+        #[Required, Date]
+        public string $effectiveFrom,
+
         #[Required]
-        public FiscalChangeMode $fiscalChangeMode,
-
-        #[Date]
-        public ?string $effectiveFrom = null,
-
-        public ?FiscalCharacteristicsChangeReason $changeReason = null,
+        public FiscalCharacteristicsChangeReason $changeReason,
 
         #[Max(2000)]
         public ?string $changeNote = null,
@@ -134,12 +129,11 @@ final class UpdateVehicleData extends Data
      * Règles dynamiques :
      *  - `license_plate` unique sauf pour le véhicule lui-même.
      *  - Mesure CO₂ / PA conditionnelle à la méthode d'homologation.
-     *  - Si `fiscal_change_mode = new_version` :
-     *      effective_from + change_reason requis.
-     *  - Si `change_reason = other_change` : `change_note` requis
-     *    (l'utilisateur doit expliquer).
-     *  - `change_reason` ne peut pas être `initial_creation` ni
-     *    `input_correction` (réservés au système).
+     *  - `change_reason` doit être un motif user-sélectionnable
+     *    (`InitialCreation` reste réservé au système — c'est le
+     *    Repository qui le pose à la création du véhicule).
+     *  - Si `change_reason = other_change` : `change_note` requise.
+     *  - Si véhicule hybride : `underlying_combustion_engine_type` requis.
      *
      * @return array<string, array<int, mixed>>
      */
@@ -147,7 +141,7 @@ final class UpdateVehicleData extends Data
     {
         $payload = $context->payload;
         $method = $payload['homologation_method'] ?? null;
-        $mode = $payload['fiscal_change_mode'] ?? null;
+        $energy = $payload['energy_source'] ?? null;
         $reason = $payload['change_reason'] ?? null;
         // Récupère l'id du véhicule depuis le route param `{vehicle}`
         // pour exclure le véhicule en cours de la règle d'unicité
@@ -155,8 +149,12 @@ final class UpdateVehicleData extends Data
         // soumettre sans modifier la plaque).
         $vehicleId = (int) (request()->route('vehicle') ?? 0);
 
-        $isNewVersion = $mode === FiscalChangeMode::NewVersion->value;
         $isOther = $reason === FiscalCharacteristicsChangeReason::OtherChange->value;
+        $isHybrid = in_array($energy, [
+            EnergySource::PluginHybrid->value,
+            EnergySource::NonPluginHybrid->value,
+            EnergySource::ElectricHydrogen->value,
+        ], true);
 
         $allowedReasons = array_map(
             static fn (FiscalCharacteristicsChangeReason $r): string => $r->value,
@@ -178,15 +176,14 @@ final class UpdateVehicleData extends Data
             'taxable_horsepower' => [
                 Rule::requiredIf(fn (): bool => $method === HomologationMethod::Pa->value),
             ],
-            'effective_from' => [
-                Rule::requiredIf(fn (): bool => $isNewVersion),
+            'underlying_combustion_engine_type' => [
+                Rule::requiredIf(fn (): bool => $isHybrid),
             ],
             'change_reason' => [
-                Rule::requiredIf(fn (): bool => $isNewVersion),
                 Rule::in($allowedReasons),
             ],
             'change_note' => [
-                Rule::requiredIf(fn (): bool => $isNewVersion && $isOther),
+                Rule::requiredIf(fn (): bool => $isOther),
             ],
         ];
     }
@@ -218,6 +215,7 @@ final class UpdateVehicleData extends Data
             'co2_wltp.required' => 'Le CO₂ WLTP est obligatoire quand la méthode d\'homologation est WLTP.',
             'co2_nedc.required' => 'Le CO₂ NEDC est obligatoire quand la méthode d\'homologation est NEDC.',
             'taxable_horsepower.required' => 'La puissance administrative est obligatoire quand la méthode d\'homologation est PA.',
+            'underlying_combustion_engine_type.required' => 'Le type de moteur thermique sous-jacent est obligatoire pour les véhicules hybrides.',
             'effective_from.required' => 'La date d\'effet est obligatoire pour une nouvelle version.',
             'change_reason.required' => 'Le motif est obligatoire pour une nouvelle version.',
             'change_reason.in' => 'Motif invalide pour une nouvelle version.',

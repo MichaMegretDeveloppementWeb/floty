@@ -4,15 +4,19 @@
  * isolée depuis la modale Historique. Permet de typer
  * `FiscalCharacteristicsSection` de façon générique sur tout
  * formulaire qui contient ces champs.
+ *
+ * `pollutant_category` n'est PAS un input — il est dérivé côté front
+ * par `derivePollutantCategory()` et persisté côté backend par le
+ * Repository. Ne pas le rajouter dans le shape.
  */
 export type FiscalCharacteristicsFieldsShape = {
     reception_category: string;
     vehicle_user_type: string;
     body_type: string;
     seats_count: number;
-    energy_source: string;
-    euro_standard: string;
-    pollutant_category: string;
+    energy_source: App.Enums.Vehicle.EnergySource;
+    underlying_combustion_engine_type: App.Enums.Vehicle.UnderlyingCombustionEngineType | '';
+    euro_standard: App.Enums.Vehicle.EuroStandard | '';
     homologation_method: string;
     co2_wltp: number | null;
     co2_nedc: number | null;

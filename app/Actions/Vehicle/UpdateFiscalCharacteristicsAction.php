@@ -7,14 +7,18 @@ namespace App\Actions\Vehicle;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepositoryInterface;
 use App\Data\User\Vehicle\UpdateFiscalCharacteristicsData;
-use App\Exceptions\Vehicle\FiscalCharacteristicsOverlapException;
+use App\DTO\Vehicle\FiscalCharacteristicsImpact;
+use App\Enums\Vehicle\FiscalCharacteristicsImpactType;
+use App\Exceptions\Vehicle\FiscalCharacteristicsRequiresConfirmationException;
 use App\Exceptions\Vehicle\InvalidFiscalCharacteristicsBoundsException;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Services\Vehicle\FiscalCharacteristicsImpactComputer;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Met à jour une VFC isolée depuis la modale Historique.
+ * Met à jour une VFC isolée depuis la modale Historique avec cascade
+ * d'ajustements automatiques sur ses voisines.
  *
  * Sous transaction :
  *
@@ -23,25 +27,42 @@ use Illuminate\Support\Facades\DB;
  *     - interdit la transformation courante↔historique (préserver
  *       l'invariant « 0 ou 1 version courante par véhicule »)
  *
- *  2. **Validation inter-versions** :
- *     - aucune autre VFC du véhicule ne doit chevaucher la nouvelle
- *       plage `[effective_from, effective_to]`
+ *  2. **Calcul des impacts** sur les autres VFC du véhicule via
+ *     {@see FiscalCharacteristicsImpactComputer} :
+ *     - `Delete`               : version voisine engloutie par les
+ *                                 nouvelles bornes
+ *     - `AdjustEffectiveTo`    : raccourcissement / prolongation de
+ *                                 la fin d'une voisine pour
+ *                                 contiguïté
+ *     - `AdjustEffectiveFrom`  : raccourcissement / prolongation du
+ *                                 début d'une voisine pour contiguïté
  *
- *  3. **UPDATE de la VFC** (bornes + valeurs fiscales + motif/note)
+ *  3. **Confirmation utilisateur** : si au moins un impact est
+ *     destructif (`Delete`) et que `data.confirmed === false`, on
+ *     lève {@see FiscalCharacteristicsRequiresConfirmationException}
+ *     pour que la modale de confirmation s'ouvre.
  *
- *  4. **Comblement automatique des trous adjacents** :
- *     - si la VFC immédiatement précédente termine avant
- *       `effective_from − 1 jour`, son `effective_to` est étendu pour
- *       atteindre cette date
- *     - si la VFC immédiatement suivante commence après
- *       `effective_to + 1 jour`, son `effective_from` est ramené à
- *       cette date
+ *  4. **Application** : `UPDATE` de la VFC éditée puis chaque impact
+ *     dans l'ordre (DELETE / SET effective_to / SET effective_from).
+ *
+ *  5. **Retour** : la VFC mise à jour fraîchement rechargée. Les
+ *     impacts sont en sortie via {@see self::$lastImpacts} pour que
+ *     le Controller puisse pousser un toast info récapitulatif.
+ *
+ * Réintroduit la garantie d'invariant « plages contiguës sans
+ * chevauchement » à l'échelle du véhicule complet — l'algorithme
+ * tolère plus d'un voisin touché par l'édition (déplacements de
+ * grande amplitude).
  */
-final readonly class UpdateFiscalCharacteristicsAction
+final class UpdateFiscalCharacteristicsAction
 {
+    /** @var list<FiscalCharacteristicsImpact> */
+    private array $lastImpacts = [];
+
     public function __construct(
-        private VehicleFiscalCharacteristicsReadRepositoryInterface $reader,
-        private VehicleFiscalCharacteristicsWriteRepositoryInterface $writer,
+        private readonly VehicleFiscalCharacteristicsReadRepositoryInterface $reader,
+        private readonly VehicleFiscalCharacteristicsWriteRepositoryInterface $writer,
+        private readonly FiscalCharacteristicsImpactComputer $impactComputer,
     ) {}
 
     public function execute(
@@ -57,14 +78,51 @@ final readonly class UpdateFiscalCharacteristicsAction
                 : CarbonImmutable::parse($data->effectiveTo);
 
             $this->guardBoundsConsistency($current, $newFrom, $newTo);
-            $this->guardNoOverlap($current, $newFrom, $newTo);
+
+            $others = VehicleFiscalCharacteristics::query()
+                ->where('vehicle_id', $current->vehicle_id)
+                ->where('id', '!=', $current->id)
+                ->get()
+                ->all();
+
+            $impacts = $this->impactComputer->compute($others, $newFrom, $newTo);
+
+            $hasDestructive = $this->hasDestructiveImpact($impacts);
+            if ($hasDestructive && ! $data->confirmed) {
+                throw FiscalCharacteristicsRequiresConfirmationException::withImpacts($impacts);
+            }
+
+            // Ordre obligatoire pour ne pas violer le trigger DB
+            // « no overlapping effective period » : on libère d'abord
+            // la place (DELETE + raccourcissements voisins), puis on
+            // déplace la VFC éditée, puis on comble les trous restants.
+            $this->applyImpacts(array_values(array_filter(
+                $impacts,
+                static fn (FiscalCharacteristicsImpact $i): bool => $i->mustApplyBeforeUpdate(),
+            )));
 
             $updated = $this->writer->updateBoundsAndFields($fiscalId, $data);
 
-            $this->fillAdjacentGaps($updated);
+            $this->applyImpacts(array_values(array_filter(
+                $impacts,
+                static fn (FiscalCharacteristicsImpact $i): bool => ! $i->mustApplyBeforeUpdate(),
+            )));
+
+            $this->lastImpacts = $impacts;
 
             return $updated;
         });
+    }
+
+    /**
+     * Liste des impacts appliqués lors du dernier `execute()`.
+     * Utilisé par le Controller pour composer le toast info de retour.
+     *
+     * @return list<FiscalCharacteristicsImpact>
+     */
+    public function lastImpacts(): array
+    {
+        return $this->lastImpacts;
     }
 
     /**
@@ -103,71 +161,36 @@ final readonly class UpdateFiscalCharacteristicsAction
     }
 
     /**
-     * Vérifie qu'aucune autre VFC du véhicule ne chevauche la nouvelle
-     * plage `[newFrom, newTo]` (où `newTo === null` représente
-     * l'ouverture vers le futur).
+     * @param  list<FiscalCharacteristicsImpact>  $impacts
      */
-    private function guardNoOverlap(
-        VehicleFiscalCharacteristics $current,
-        CarbonImmutable $newFrom,
-        ?CarbonImmutable $newTo,
-    ): void {
-        $others = VehicleFiscalCharacteristics::query()
-            ->where('vehicle_id', $current->vehicle_id)
-            ->where('id', '!=', $current->id)
-            ->get();
-
-        foreach ($others as $other) {
-            $otherFrom = CarbonImmutable::parse($other->effective_from->toDateString());
-            $otherTo = $other->effective_to === null
-                ? null
-                : CarbonImmutable::parse($other->effective_to->toDateString());
-
-            // Plages ouvertes côté droit : on considère "infini".
-            $newToEffective = $newTo ?? CarbonImmutable::parse('9999-12-31');
-            $otherToEffective = $otherTo ?? CarbonImmutable::parse('9999-12-31');
-
-            $overlap = $newFrom->lessThanOrEqualTo($otherToEffective)
-                && $otherFrom->lessThanOrEqualTo($newToEffective);
-
-            if ($overlap) {
-                throw FiscalCharacteristicsOverlapException::withVersion(
-                    $other->effective_from->toDateString(),
-                    $other->effective_to?->toDateString(),
-                );
+    private function hasDestructiveImpact(array $impacts): bool
+    {
+        foreach ($impacts as $impact) {
+            if ($impact->isDestructive()) {
+                return true;
             }
         }
+
+        return false;
     }
 
     /**
-     * Comble les trous éventuels avec les VFC immédiatement adjacentes.
+     * @param  list<FiscalCharacteristicsImpact>  $impacts
      */
-    private function fillAdjacentGaps(VehicleFiscalCharacteristics $updated): void
+    private function applyImpacts(array $impacts): void
     {
-        $previous = $this->reader->findAdjacent($updated, -1);
-
-        if ($previous !== null) {
-            $expectedTo = CarbonImmutable::parse($updated->effective_from->toDateString())->subDay();
-            $currentTo = $previous->effective_to === null
-                ? null
-                : CarbonImmutable::parse($previous->effective_to->toDateString());
-
-            if ($currentTo === null || ! $currentTo->equalTo($expectedTo)) {
-                $this->writer->setEffectiveTo($previous->id, $expectedTo);
-            }
-        }
-
-        if ($updated->effective_to !== null) {
-            $next = $this->reader->findAdjacent($updated, 1);
-
-            if ($next !== null) {
-                $expectedFrom = CarbonImmutable::parse($updated->effective_to->toDateString())->addDay();
-                $currentFrom = CarbonImmutable::parse($next->effective_from->toDateString());
-
-                if (! $currentFrom->equalTo($expectedFrom)) {
-                    $this->writer->setEffectiveFrom($next->id, $expectedFrom);
-                }
-            }
+        foreach ($impacts as $impact) {
+            match ($impact->type) {
+                FiscalCharacteristicsImpactType::Delete => $this->writer->deleteOne($impact->targetId),
+                FiscalCharacteristicsImpactType::AdjustEffectiveTo => $this->writer->setEffectiveTo(
+                    $impact->targetId,
+                    $impact->newEffectiveTo,
+                ),
+                FiscalCharacteristicsImpactType::AdjustEffectiveFrom => $this->writer->setEffectiveFrom(
+                    $impact->targetId,
+                    $impact->newEffectiveFrom,
+                ),
+            };
         }
     }
 }
