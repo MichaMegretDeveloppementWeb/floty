@@ -41,17 +41,16 @@ onMounted(async () => {
         <div class="flex flex-col gap-6">
             <ContractTitle :contract="props.contract" />
 
-            <!-- < xl : Actions au-dessus pour accès rapide. ≥ xl : c'est l'aside qui les porte. -->
-            <ActionsBar
-                class="xl:hidden"
-                :contract-id="props.contract.id"
-            />
-
             <ContractEntityCards :contract="props.contract" />
 
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <!-- Colonne principale -->
                 <div class="flex flex-col gap-6 xl:col-span-2">
+                    <!-- < xl : Actions juste avant Informations. ≥ xl : c'est l'aside qui les porte. -->
+                    <ActionsBar
+                        class="xl:hidden"
+                        :contract-id="props.contract.id"
+                    />
                     <ContractDetails :contract="props.contract" />
                     <TaxBreakdownPanel :tax-breakdown="props.taxBreakdown" />
                     <!-- < xl : Documents en bas du main. ≥ xl : c'est l'aside qui les porte. -->
