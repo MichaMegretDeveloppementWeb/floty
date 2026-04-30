@@ -1,24 +1,41 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
+import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
+import type {
+    CompanySortKey,
+} from '@/Composables/Company/Index/useCompaniesTable';
 import type { DataTableColumn } from '@/types/ui';
 import { formatEur } from '@/Utils/format/formatEur';
 
 type CompanyRow = App.Data.User.Company.CompanyListItemData;
 
-const props = defineProps<{
+defineProps<{
     companies: CompanyRow[];
-    fiscalYear: number;
+    columns: readonly DataTableColumn<CompanyRow>[];
+    sortKey: CompanySortKey | null;
+    sortDirection: 'asc' | 'desc';
 }>();
 
-const columns = computed<readonly DataTableColumn<CompanyRow>[]>(() => [
-    { key: 'company', label: 'Entreprise' },
-    { key: 'siren', label: 'SIREN', mono: true },
-    { key: 'city', label: 'Ville' },
-    { key: 'daysUsed', label: `Jours ${props.fiscalYear}`, mono: true },
-    { key: 'annualTaxDue', label: `Taxe ${props.fiscalYear}` },
-]);
+const emit = defineEmits<{
+    sort: [key: CompanySortKey];
+}>();
+
+const COLUMN_TO_SORT_KEY: Record<string, CompanySortKey> = {
+    company: 'company',
+    siren: 'siren',
+    city: 'city',
+    daysUsed: 'days',
+    annualTaxDue: 'tax',
+};
+
+function onHeaderClick(columnKey: string): void {
+    const sortKey = COLUMN_TO_SORT_KEY[columnKey];
+
+    if (sortKey !== undefined) {
+        emit('sort', sortKey);
+    }
+}
 </script>
 
 <template>
@@ -27,6 +44,21 @@ const columns = computed<readonly DataTableColumn<CompanyRow>[]>(() => [
         :rows="companies"
         :row-key="(row) => row.id"
     >
+        <template
+            v-for="column in columns"
+            #[`header-${column.key}`]="{ column: col }"
+            :key="column.key"
+        >
+            <SortableHeader
+                :label="col.label"
+                :sort-key="COLUMN_TO_SORT_KEY[col.key] ?? ''"
+                :active-key="sortKey"
+                :direction="sortDirection"
+                :align="col.align === 'right' ? 'right' : 'left'"
+                @click="onHeaderClick(col.key)"
+            />
+        </template>
+
         <template #cell-company="{ row }">
             <div class="flex items-center gap-2">
                 <span
