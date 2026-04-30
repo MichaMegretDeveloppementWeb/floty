@@ -41,29 +41,28 @@ onMounted(async () => {
         <div class="flex flex-col gap-6">
             <ContractTitle :contract="props.contract" />
 
-            <!-- < lg : Actions sous le titre. ≥ lg : c'est l'aside qui les porte. -->
-            <ActionsBar
-                class="lg:hidden"
-                :contract-id="props.contract.id"
-            />
-
             <ContractEntityCards :contract="props.contract" />
 
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
                 <!-- Colonne principale -->
-                <div class="flex flex-col gap-6 lg:col-span-2">
+                <div class="flex flex-col gap-6 xl:col-span-2">
                     <ContractDetails :contract="props.contract" />
                     <TaxBreakdownPanel :tax-breakdown="props.taxBreakdown" />
-                    <!-- < lg : Documents en bas du main. ≥ lg : c'est l'aside qui les porte. -->
+                    <!-- < xl : Documents en bas du main. ≥ xl : c'est l'aside qui les porte. -->
                     <ContractDocumentsSection
-                        class="lg:hidden"
+                        class="xl:hidden"
                         :contract-id="props.contract.id"
                         :documents="props.documents"
                     />
+                    <!-- < xl : Actions tout en bas (action secondaire, après lecture). -->
+                    <ActionsBar
+                        class="xl:hidden"
+                        :contract-id="props.contract.id"
+                    />
                 </div>
 
-                <!-- Aside ≥ lg : Actions + Documents empilés -->
-                <aside class="hidden lg:col-span-1 lg:block">
+                <!-- Aside ≥ xl : Actions + Documents empilés -->
+                <aside class="hidden xl:col-span-1 xl:block">
                     <div class="flex flex-col gap-6">
                         <ActionsBar :contract-id="props.contract.id" />
                         <ContractDocumentsSection
