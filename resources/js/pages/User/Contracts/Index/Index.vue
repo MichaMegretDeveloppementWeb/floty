@@ -8,6 +8,7 @@ import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import { useContractsTable } from '@/Composables/Contract/Index/useContractsTable';
+import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import ContractsTable from './partials/ContractsTable.vue';
 import EmptyContractsState from './partials/EmptyContractsState.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -20,6 +21,7 @@ const props = defineProps<{
     };
 }>();
 
+const { currentYear: fiscalYear } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
 
 const contractsRef = toRef(props, 'contracts');
@@ -153,7 +155,7 @@ const hasDriverModel = computed({
                                     id="filter-period"
                                     v-model:range="periodRange"
                                     v-model:ongoing="periodOngoing"
-                                    :year="new Date().getFullYear()"
+                                    :year="fiscalYear"
                                 />
                             </div>
                             <div>

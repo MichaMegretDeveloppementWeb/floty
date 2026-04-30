@@ -9,6 +9,7 @@ import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
+import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 
 type FormShape = {
     vehicle_id: number | null;
@@ -72,12 +73,14 @@ watch(range, (value) => {
     props.form.end_date = value.endDate ?? '';
 }, { deep: true });
 
+const { currentYear: fiscalYear } = useFiscalYear();
+
 const pickerYear = computed<number>(() => {
     if (props.form.start_date) {
         return Number(props.form.start_date.slice(0, 4));
     }
 
-    return new Date().getFullYear();
+    return fiscalYear.value;
 });
 </script>
 

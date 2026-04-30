@@ -25,9 +25,9 @@ enum HomologationMethod: string
     public function label(): string
     {
         return match ($this) {
-            self::Wltp => 'WLTP (immatriculation ≥ 01/03/2020)',
-            self::Nedc => 'NEDC (immatriculation 2004-2020)',
-            self::Pa => 'Puissance administrative (données CO₂ indisponibles)',
+            self::Wltp => 'WLTP (immat. ≥ 2020)',
+            self::Nedc => 'NEDC (immat. 2004–2020)',
+            self::Pa => 'Puissance administrative (sans CO₂)',
         };
     }
 }

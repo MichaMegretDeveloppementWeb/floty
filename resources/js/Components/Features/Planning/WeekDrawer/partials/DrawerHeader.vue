@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { X } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { formatFr } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
 
-defineProps<{
+const props = defineProps<{
     weekNumber: number;
     fiscalYear: number;
     licensePlate: string;
@@ -12,6 +14,9 @@ defineProps<{
 defineEmits<{
     close: [];
 }>();
+
+const weekStartFr = computed<string>(() => formatFr(props.weekStart));
+const weekEndFr = computed<string>(() => formatFr(props.weekEnd));
 </script>
 
 <template>
@@ -26,7 +31,7 @@ defineEmits<{
                 {{ licensePlate }}
             </h2>
             <p class="text-xs text-slate-500">
-                Du {{ weekStart }} au {{ weekEnd }}
+                Du {{ weekStartFr }} au {{ weekEndFr }}
             </p>
         </div>
         <button

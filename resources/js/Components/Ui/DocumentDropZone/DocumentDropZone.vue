@@ -151,7 +151,7 @@ function handleFiles(files: File[]): void {
             <span v-if="isDragOver">Déposez vos fichiers ici</span>
             <span v-else>
                 Glissez vos {{ acceptLabel }} ici
-                <span class="text-slate-400">ou</span>
+                <span class="text-slate-400"> ou </span>
                 <span class="text-indigo-600">cliquez pour parcourir</span>
             </span>
         </p>
