@@ -5,13 +5,9 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
-import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
-import {
-    useCompaniesTable,
-} from '@/Composables/Company/Index/useCompaniesTable';
-import type { CompanyFilters } from '@/Composables/Company/Index/useCompaniesTable';
+import { useCompaniesTable } from '@/Composables/Company/Index/useCompaniesTable';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import CompaniesTable from './partials/CompaniesTable.vue';
 import EmptyCompaniesState from './partials/EmptyCompaniesState.vue';
@@ -73,14 +69,8 @@ const maxModel = computed({
 
             <EmptyCompaniesState v-if="props.companies.length === 0" />
             <template v-else>
-                <div class="flex flex-wrap items-center gap-3">
-                    <FilterChips
-                        class="flex-1"
-                        :chips="tableState.activeFilterChips.value"
-                        @remove="(key: string) => tableState.removeFilter(key as keyof CompanyFilters)"
-                    />
+                <div class="flex justify-end">
                     <FilterPopover
-                        class="ml-auto shrink-0"
                         v-model:open="filtersOpen"
                         :active-count="tableState.state.activeFiltersCount.value"
                         @reset="tableState.state.clearFilters"

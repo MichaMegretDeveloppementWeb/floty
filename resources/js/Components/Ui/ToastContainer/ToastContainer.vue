@@ -1,12 +1,26 @@
 <script setup lang="ts">
+import { onMounted, ref } from 'vue';
 import Toast from '@/Components/Ui/Toast/Toast.vue';
 import { useToasts } from '@/Composables/Shared/useToasts';
 
 const { toasts, dismiss } = useToasts();
+
+// Le `<Teleport to="body">` cause un Hydration mismatch en SSR
+// (le serveur rend un placeholder `<script>` que le client remplace
+// par un `<div>`). On gate le Teleport derrière un flag `mounted` pour
+// ne le faire qu'au démarrage côté client, après l'hydration.
+const mounted = ref<boolean>(false);
+
+onMounted(() => {
+    mounted.value = true;
+});
 </script>
 
 <template>
-    <Teleport to="body">
+    <Teleport
+        v-if="mounted"
+        to="body"
+    >
         <div
             class="pointer-events-none fixed top-4 right-4 z-[60] flex flex-col gap-3"
             aria-live="polite"

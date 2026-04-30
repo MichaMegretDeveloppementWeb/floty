@@ -5,14 +5,10 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
-import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
-import {
-    useFleetTable,
-} from '@/Composables/Vehicle/Index/useFleetTable';
-import type { FleetFilters } from '@/Composables/Vehicle/Index/useFleetTable';
+import { useFleetTable } from '@/Composables/Vehicle/Index/useFleetTable';
 import EmptyFleetState from './partials/EmptyFleetState.vue';
 import FleetTable from './partials/FleetTable.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -81,14 +77,8 @@ const maxModel = computed({
 
             <EmptyFleetState v-if="props.vehicles.length === 0" />
             <template v-else>
-                <div class="flex flex-wrap items-center gap-3">
-                    <FilterChips
-                        class="flex-1"
-                        :chips="tableState.activeFilterChips.value"
-                        @remove="(key: string) => tableState.removeFilter(key as keyof FleetFilters)"
-                    />
+                <div class="flex justify-end">
                     <FilterPopover
-                        class="ml-auto shrink-0"
                         v-model:open="filtersOpen"
                         :active-count="tableState.state.activeFiltersCount.value"
                         @reset="tableState.state.clearFilters"

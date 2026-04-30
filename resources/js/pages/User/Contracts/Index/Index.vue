@@ -6,13 +6,8 @@ import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
-import FilterChips from '@/Components/Ui/Table/FilterChips.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
-import {
-    useContractsTable
-    
-} from '@/Composables/Contract/Index/useContractsTable';
-import type {ContractFilters} from '@/Composables/Contract/Index/useContractsTable';
+import { useContractsTable } from '@/Composables/Contract/Index/useContractsTable';
 import ContractsTable from './partials/ContractsTable.vue';
 import EmptyContractsState from './partials/EmptyContractsState.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -118,14 +113,8 @@ const hasDriverModel = computed({
 
             <EmptyContractsState v-if="props.contracts.length === 0" />
             <template v-else>
-                <div class="flex flex-wrap items-center gap-3">
-                    <FilterChips
-                        class="flex-1"
-                        :chips="tableState.activeFilterChips.value"
-                        @remove="(key: string) => tableState.removeFilter(key as keyof ContractFilters)"
-                    />
+                <div class="flex justify-end">
                     <FilterPopover
-                        class="ml-auto shrink-0"
                         v-model:open="filtersOpen"
                         :active-count="tableState.state.activeFiltersCount.value"
                         @reset="tableState.state.clearFilters"

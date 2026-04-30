@@ -16,7 +16,7 @@
  */
 
 import { router } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 type SortDirection = 'asc' | 'desc';
@@ -70,26 +70,44 @@ export function useTableState<
     F extends Record<string, unknown>,
     K extends string,
 >(opts: TableStateOptions<T, F, K>): TableState<T, F, K> {
-    const initialParams = new URLSearchParams(
-        typeof window !== 'undefined' ? window.location.search : '',
-    );
+    // **SSR-safe** : on initialise avec les defaults (au moment du SSR,
+    // `window` n'existe pas et le tableau doit avoir le même rendu
+    // serveur/client pour éviter les Hydration mismatches). La lecture
+    // de l'URL est différée à `onMounted`, donc côté client les filtres
+    // s'appliquent juste après l'hydration.
+    const filters = ref<F>({ ...opts.defaultFilters }) as Ref<F>;
+    const sort = ref<SortState<K>>({ key: null, direction: 'asc' }) as Ref<SortState<K>>;
 
-    const filters = ref<F>(opts.parseFiltersFromUrl(initialParams)) as Ref<F>;
+    // Flag de sync URL : ne synchronise PAS pendant l'hydratation (sinon
+    // on écrirait nos defaults par-dessus les query params de l'URL).
+    // Activé après `onMounted` une fois la lecture initiale faite.
+    const urlSyncEnabled = ref<boolean>(false);
 
-    const sortKeyParam = initialParams.get('sortKey');
-    const sortDirParam = initialParams.get('sortDir');
-    const sort = ref<SortState<K>>({
-        key:
-            sortKeyParam !== null && opts.sortKeys.includes(sortKeyParam as K)
-                ? (sortKeyParam as K)
-                : null,
-        direction: sortDirParam === 'desc' ? 'desc' : 'asc',
-    }) as Ref<SortState<K>>;
+    onMounted(() => {
+        if (typeof window === 'undefined') {
+            return;
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        filters.value = opts.parseFiltersFromUrl(params);
+
+        const sortKeyParam = params.get('sortKey');
+        const sortDirParam = params.get('sortDir');
+        sort.value = {
+            key:
+                sortKeyParam !== null && opts.sortKeys.includes(sortKeyParam as K)
+                    ? (sortKeyParam as K)
+                    : null,
+            direction: sortDirParam === 'desc' ? 'desc' : 'asc',
+        };
+
+        urlSyncEnabled.value = true;
+    });
 
     let syncTimer: ReturnType<typeof setTimeout> | null = null;
 
     function syncToUrl(): void {
-        if (typeof window === 'undefined') {
+        if (typeof window === 'undefined' || !urlSyncEnabled.value) {
             return;
         }
 
