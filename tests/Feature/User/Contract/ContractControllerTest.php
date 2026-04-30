@@ -84,7 +84,8 @@ final class ContractControllerTest extends TestCase
                         ->where('year', 2024)
                         ->where('daysAssigned', 0)  // tous jours retirés par R-2024-021 (LCD)
                         ->where('totalDue', fn (mixed $v): bool => (float) $v === 0.0)
-                        ->etc())));
+                        ->etc()))
+                ->has('documents', 0));  // ajout 04.N : prop liste documents PDF (vide ici)
     }
 
     #[Test]

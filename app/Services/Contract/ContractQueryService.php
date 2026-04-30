@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Services\Contract;
 
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
+use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Data\User\Contract\ContractData;
+use App\Data\User\Contract\ContractDocumentData;
 use App\Data\User\Contract\ContractListItemData;
 use App\Data\User\Contract\ContractTaxBreakdownData;
 use App\DTO\Fiscal\ContractsByPair;
@@ -32,8 +34,23 @@ final readonly class ContractQueryService
     public function __construct(
         private ContractReadRepositoryInterface $repository,
         private UnavailabilityReadRepositoryInterface $unavailabilityRepository,
+        private ContractDocumentReadRepositoryInterface $documentRepository,
         private FleetFiscalAggregator $aggregator,
     ) {}
+
+    /**
+     * Liste les documents PDF joints à un contrat (chantier 04.N).
+     *
+     * @return list<ContractDocumentData>
+     */
+    public function listDocumentsForContract(int $contractId): array
+    {
+        return $this->documentRepository
+            ->listForContract($contractId)
+            ->map(static fn ($d): ContractDocumentData => ContractDocumentData::fromModel($d))
+            ->values()
+            ->all();
+    }
 
     public function findContractData(int $id): ?ContractData
     {

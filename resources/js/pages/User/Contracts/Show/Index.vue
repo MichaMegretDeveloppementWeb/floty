@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
+import { onMounted } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import { useContractDocuments } from '@/Composables/Contract/useContractDocuments';
+import { consumePendingDocuments } from '@/Composables/Contract/useContractFormPendingDocuments';
 import ActionsBar from './partials/ActionsBar.vue';
 import ContractDetails from './partials/ContractDetails.vue';
+import ContractDocumentsSection from './partials/ContractDocumentsSection.vue';
 import ContractEntityCards from './partials/ContractEntityCards.vue';
 import ContractTitle from './partials/ContractTitle.vue';
 import TaxBreakdownPanel from './partials/TaxBreakdownPanel.vue';
@@ -10,7 +14,24 @@ import TaxBreakdownPanel from './partials/TaxBreakdownPanel.vue';
 const props = defineProps<{
     contract: App.Data.User.Contract.ContractData;
     taxBreakdown: App.Data.User.Contract.ContractTaxBreakdownData | null;
+    documents: App.Data.User.Contract.ContractDocumentData[];
 }>();
+
+const { uploadMany } = useContractDocuments();
+
+// Handover Create → Show : si la création du contrat avait des fichiers
+// en attente (stockés dans sessionStorage par useContractForm), on les
+// upload maintenant en arrière-plan puis on rafraîchit la prop documents.
+onMounted(async () => {
+    const pending = consumePendingDocuments();
+
+    if (pending.length === 0) {
+        return;
+    }
+
+    await uploadMany(props.contract.id, pending);
+    router.reload({ only: ['documents'] });
+});
 </script>
 
 <template>
@@ -25,6 +46,10 @@ const props = defineProps<{
                 <div class="flex flex-col gap-6 lg:col-span-2">
                     <ContractDetails :contract="props.contract" />
                     <TaxBreakdownPanel :tax-breakdown="props.taxBreakdown" />
+                    <ContractDocumentsSection
+                        :contract-id="props.contract.id"
+                        :documents="props.documents"
+                    />
                 </div>
                 <div>
                     <ActionsBar :contract-id="props.contract.id" />

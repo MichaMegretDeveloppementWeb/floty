@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\User\Company\CompanyController;
 use App\Http\Controllers\User\Contract\ContractController;
+use App\Http\Controllers\User\Contract\ContractDocumentController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Planning\PlanningController;
@@ -116,6 +117,19 @@ Route::middleware('auth')
             ->whereNumber('contract')
             ->middleware('throttle:60,1')
             ->name('contracts.destroy');
+
+        // Contract documents (chantier 04.N) — PDF joints (5 max, 10 Mo)
+        Route::post('/contracts/{contract}/documents', [ContractDocumentController::class, 'store'])
+            ->whereNumber('contract')
+            ->middleware('throttle:30,1')
+            ->name('contracts.documents.store');
+        Route::get('/contracts/{contract}/documents/{document}', [ContractDocumentController::class, 'show'])
+            ->whereNumber(['contract', 'document'])
+            ->name('contracts.documents.show');
+        Route::delete('/contracts/{contract}/documents/{document}', [ContractDocumentController::class, 'destroy'])
+            ->whereNumber(['contract', 'document'])
+            ->middleware('throttle:60,1')
+            ->name('contracts.documents.destroy');
 
         // Fiscal rules — consultation only
         Route::get('/fiscal-rules', [FiscalRuleController::class, 'index'])->name('fiscal-rules.index');

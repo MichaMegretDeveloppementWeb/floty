@@ -8,6 +8,8 @@ use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractWriteRepositoryInterface;
+use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadRepositoryInterface;
+use App\Contracts\Repositories\User\ContractDocument\ContractDocumentWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
@@ -19,6 +21,8 @@ use App\Repositories\User\Company\CompanyReadRepository;
 use App\Repositories\User\Company\CompanyWriteRepository;
 use App\Repositories\User\Contract\ContractReadRepository;
 use App\Repositories\User\Contract\ContractWriteRepository;
+use App\Repositories\User\ContractDocument\ContractDocumentReadRepository;
+use App\Repositories\User\ContractDocument\ContractDocumentWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityWriteRepository;
@@ -61,6 +65,10 @@ final class RepositoryServiceProvider extends ServiceProvider
         // Contract (ADR-0014) — entité pivot du domaine fiscal
         ContractReadRepositoryInterface::class => ContractReadRepository::class,
         ContractWriteRepositoryInterface::class => ContractWriteRepository::class,
+
+        // ContractDocument (chantier 04.N) — PDF joints aux contrats
+        ContractDocumentReadRepositoryInterface::class => ContractDocumentReadRepository::class,
+        ContractDocumentWriteRepositoryInterface::class => ContractDocumentWriteRepository::class,
 
         // FiscalRule
         FiscalRuleReadRepositoryInterface::class => FiscalRuleReadRepository::class,

@@ -23,6 +23,16 @@ export type UseApiReturn = {
         params?: Record<string, string | number | boolean>,
     ) => Promise<T>;
     post: <T>(url: string, body?: Record<string, unknown>) => Promise<T>;
+    /**
+     * POST avec `FormData` (multipart) pour les uploads de fichiers.
+     * N'envoie pas de Content-Type (le navigateur ajoute le boundary
+     * multipart automatiquement).
+     */
+    postFormData: <T>(url: string, formData: FormData) => Promise<T>;
+    /**
+     * DELETE — pas de body, retourne `void` (typiquement 204).
+     */
+    delete: (url: string) => Promise<void>;
 };
 
 function getXsrfToken(): string {
@@ -181,6 +191,63 @@ export function useApi(): UseApiReturn {
             }
 
             return (await response.json()) as T;
+        },
+
+        async postFormData<T>(url: string, formData: FormData): Promise<T> {
+            let response: Response;
+
+            try {
+                response = await fetch(url, {
+                    method: 'POST',
+                    credentials: 'include',
+                    headers: {
+                        ...baseHeaders,
+                        'X-XSRF-TOKEN': getXsrfToken(),
+                    },
+                    body: formData,
+                });
+            } catch (e) {
+                pushNetworkError(toasts);
+
+                throw e;
+            }
+
+            if (!response.ok) {
+                await pushHttpError(toasts, response);
+
+                throw new Error(
+                    `POST ${url} → ${response.status} ${response.statusText}`,
+                );
+            }
+
+            return (await response.json()) as T;
+        },
+
+        async delete(url: string): Promise<void> {
+            let response: Response;
+
+            try {
+                response = await fetch(url, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: {
+                        ...baseHeaders,
+                        'X-XSRF-TOKEN': getXsrfToken(),
+                    },
+                });
+            } catch (e) {
+                pushNetworkError(toasts);
+
+                throw e;
+            }
+
+            if (!response.ok) {
+                await pushHttpError(toasts, response);
+
+                throw new Error(
+                    `DELETE ${url} → ${response.status} ${response.statusText}`,
+                );
+            }
         },
     };
 }
