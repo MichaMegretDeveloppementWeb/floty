@@ -23,10 +23,6 @@ const {
         class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-6"
     >
         <h2 class="text-base font-semibold text-slate-900">Actions</h2>
-        <p class="text-sm text-slate-600">
-            Modifier les bornes du contrat ou le supprimer. La suppression
-            est un soft-delete (la plage redevient disponible).
-        </p>
         <div class="flex flex-wrap gap-2">
             <Button variant="secondary" @click="goEdit">
                 <template #icon-left>

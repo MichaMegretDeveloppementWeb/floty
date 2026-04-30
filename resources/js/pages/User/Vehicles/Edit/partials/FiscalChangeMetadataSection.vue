@@ -11,28 +11,26 @@ defineProps<{
     form: InertiaForm<VehicleEditFormShape>;
     changeReasonOptions: SelectOption[];
     isOtherChange: boolean;
-    hasFiscalChanges: boolean;
 }>();
 </script>
 
 <template>
     <section
-        class="flex flex-col gap-4 rounded-xl border border-slate-200 bg-slate-50/50 p-4"
+        class="flex flex-col gap-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4"
+        aria-live="polite"
     >
-        <p class="eyebrow">Métadonnées de la nouvelle version</p>
-        <p class="text-xs leading-snug text-slate-500">
-            Edit ne sert qu'aux changements réels du véhicule (conversion E85,
-            reclassement N1→M1, retrofit…) qui justifient l'INSERT d'une nouvelle
-            ligne d'historique. Pour corriger une saisie sur une version
-            existante, utilisez plutôt le bouton « Modifier » dans la modale
-            Historique de la page véhicule.
+        <p class="eyebrow text-blue-700">Métadonnées de la nouvelle version</p>
+        <p class="text-xs leading-snug text-slate-600">
+            Vous avez modifié au moins une caractéristique fiscale. Une
+            nouvelle version sera ajoutée à l'historique — précisez à
+            quelle date elle prend effet et le motif du changement.
         </p>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <DateInput
                 v-model="form.effective_from"
                 label="Date d'effet"
-                hint="Par défaut aujourd'hui. Une date dans le passé peut écraser des versions historiques."
+                hint="Par défaut aujourd'hui. Une date passée peut remplacer des versions précédentes."
                 :error="form.errors.effective_from"
                 required
             />
@@ -53,13 +51,5 @@ defineProps<{
             :error="form.errors.change_note"
             required
         />
-
-        <p
-            v-if="!hasFiscalChanges"
-            class="rounded-md bg-amber-50 px-3 py-2 text-xs text-amber-800"
-        >
-            Modifiez au moins une caractéristique fiscale pour enregistrer
-            une nouvelle version.
-        </p>
     </section>
 </template>

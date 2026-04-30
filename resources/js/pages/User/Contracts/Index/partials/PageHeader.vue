@@ -15,9 +15,7 @@ import { create as contractsCreateRoute } from '@/routes/user/contracts';
                 Contrats
             </h1>
             <p class="mt-1 text-base text-slate-600">
-                Plages d'attribution véhicule × entreprise. La règle LCD
-                (location de courte durée) est appliquée par contrat
-                individuel (≤ 30 jours ou mois civil entier).
+                Plages d'attribution véhicule × entreprise.
             </p>
         </div>
         <Link :href="contractsCreateRoute.url()">

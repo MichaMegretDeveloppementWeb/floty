@@ -49,7 +49,9 @@ const cascadeMessage = (): string => {
                     Modifier {{ props.vehicle.brand }} {{ props.vehicle.model }} ({{ props.vehicle.licensePlate }})
                 </h1>
                 <p class="mt-1 text-sm text-slate-500">
-                    Identité du véhicule + nouvelle version des caractéristiques fiscales.
+                    Modifiez librement l'identité du véhicule. Une nouvelle
+                    version d'historique fiscal n'est créée que si vous
+                    modifiez au moins un champ des caractéristiques fiscales.
                 </p>
             </header>
 
@@ -61,10 +63,10 @@ const cascadeMessage = (): string => {
                 <RegistrationSection :form="form" />
                 <FiscalCharacteristicsSection :form="form" :options="props.options" />
                 <FiscalChangeMetadataSection
+                    v-if="hasFiscalChanges"
                     :form="form"
                     :change-reason-options="changeReasonOptions"
                     :is-other-change="isOtherChange"
-                    :has-fiscal-changes="hasFiscalChanges"
                 />
 
                 <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">

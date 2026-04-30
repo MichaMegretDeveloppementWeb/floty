@@ -150,7 +150,7 @@ const hasDriverModel = computed({
                                 />
                             </div>
                             <div>
-                                <FieldLabel for="filter-period">Période (chevauchement)</FieldLabel>
+                                <FieldLabel for="filter-period">Période active</FieldLabel>
                                 <DateRangePicker
                                     id="filter-period"
                                     v-model:range="periodRange"
@@ -163,7 +163,7 @@ const hasDriverModel = computed({
                                 <SelectInput
                                     id="filter-driver"
                                     v-model="hasDriverModel"
-                                    placeholder="Indifférent"
+                                    placeholder="Tous"
                                     :options="hasDriverOptions"
                                 />
                             </div>

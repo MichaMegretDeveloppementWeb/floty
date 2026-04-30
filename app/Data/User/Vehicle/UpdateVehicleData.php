@@ -28,20 +28,27 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Payload d'édition d'un véhicule depuis la page Edit.
  *
- * Edit ne sert qu'aux **changements réels** du véhicule dans le temps
- * (conversion E85, retrofit, transformation N1, …) qui justifient
- * l'INSERT d'une nouvelle VFC. Les corrections de saisie sur une VFC
- * existante passent exclusivement par la modale Historique
- * (cf. {@see UpdateFiscalCharacteristicsData}).
- *
  * Le DTO porte :
  *   - les champs **identité** (table `vehicles`, toujours updatables
  *     en place sans historisation),
- *   - les champs **fiscaux** de la nouvelle VFC à créer,
- *   - les **bornes + motif/note** posés sur la nouvelle VFC.
+ *   - les champs **fiscaux** courants (utilisés pour détecter une
+ *     modification fiscale et, le cas échéant, créer une nouvelle VFC),
+ *   - les **métadonnées** d'une éventuelle nouvelle version
+ *     (`effectiveFrom`, `changeReason`, `changeNote`) — toutes optionnelles.
  *
- * `effectiveFrom` + `changeReason` sont toujours requis. `changeNote`
- * est requise uniquement si `changeReason = OtherChange`.
+ * Logique d'application (cf. {@see UpdateVehicleAction}) :
+ *   - L'identité est toujours mise à jour en place.
+ *   - Si au moins un champ fiscal a changé par rapport à la VFC
+ *     courante : une nouvelle ligne d'historique est créée. Dans ce
+ *     cas `effectiveFrom` et `changeReason` deviennent indispensables
+ *     (et la validation runtime côté Action lève
+ *     {@see App\Exceptions\Vehicle\MissingNewVersionMetadataException}
+ *     si elles manquent).
+ *   - Si aucun champ fiscal n'a changé : les métadonnées sont
+ *     ignorées, aucune nouvelle VFC n'est créée.
+ *
+ * Les corrections de saisie sur une VFC existante passent exclusivement
+ * par la modale Historique (cf. {@see UpdateFiscalCharacteristicsData}).
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -114,12 +121,14 @@ final class UpdateVehicleData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
-        // ---------- Métadonnées de changement (toujours requises) ----------
-        #[Required, Date]
-        public string $effectiveFrom,
+        // ---------- Métadonnées de la nouvelle version (optionnelles) ----------
+        // Requises uniquement si un champ fiscal a changé — détecté par
+        // l'Action qui compare le payload à la VFC courante. Si aucun
+        // changement fiscal, ces champs sont ignorés.
+        #[Date]
+        public ?string $effectiveFrom = null,
 
-        #[Required]
-        public FiscalCharacteristicsChangeReason $changeReason,
+        public ?FiscalCharacteristicsChangeReason $changeReason = null,
 
         #[Max(2000)]
         public ?string $changeNote = null,
@@ -129,11 +138,16 @@ final class UpdateVehicleData extends Data
      * Règles dynamiques :
      *  - `license_plate` unique sauf pour le véhicule lui-même.
      *  - Mesure CO₂ / PA conditionnelle à la méthode d'homologation.
-     *  - `change_reason` doit être un motif user-sélectionnable
-     *    (`InitialCreation` reste réservé au système — c'est le
-     *    Repository qui le pose à la création du véhicule).
-     *  - Si `change_reason = other_change` : `change_note` requise.
      *  - Si véhicule hybride : `underlying_combustion_engine_type` requis.
+     *  - `change_reason` (si fourni) doit être un motif user-sélectionnable.
+     *  - `change_note` requise uniquement si `change_reason = other_change`.
+     *
+     * Note : `effective_from` et `change_reason` ne sont pas
+     * `requiredIf` ici parce que la condition (« un champ fiscal a-t-il
+     * changé ? ») dépend de la VFC courante, inaccessible au DTO. Le
+     * filet de sécurité est posé dans {@see UpdateVehicleAction} qui
+     * lève {@see MissingNewVersionMetadataException} si fiscal modifié
+     * sans métadonnées.
      *
      * @return array<string, array<int, mixed>>
      */
@@ -180,6 +194,7 @@ final class UpdateVehicleData extends Data
                 Rule::requiredIf(fn (): bool => $isHybrid),
             ],
             'change_reason' => [
+                'nullable',
                 Rule::in($allowedReasons),
             ],
             'change_note' => [
@@ -216,8 +231,6 @@ final class UpdateVehicleData extends Data
             'co2_nedc.required' => 'Le CO₂ NEDC est obligatoire quand la méthode d\'homologation est NEDC.',
             'taxable_horsepower.required' => 'La puissance administrative est obligatoire quand la méthode d\'homologation est PA.',
             'underlying_combustion_engine_type.required' => 'Le type de moteur thermique sous-jacent est obligatoire pour les véhicules hybrides.',
-            'effective_from.required' => 'La date d\'effet est obligatoire pour une nouvelle version.',
-            'change_reason.required' => 'Le motif est obligatoire pour une nouvelle version.',
             'change_reason.in' => 'Motif invalide pour une nouvelle version.',
             'change_note.required' => 'La note est obligatoire pour le motif « Autre changement ».',
         ];

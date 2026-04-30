@@ -9,7 +9,7 @@ use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRep
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Data\User\Vehicle\UpdateVehicleData;
-use App\Exceptions\Vehicle\NoFiscalChangeException;
+use App\Exceptions\Vehicle\MissingNewVersionMetadataException;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Carbon\CarbonImmutable;
@@ -24,18 +24,17 @@ use Illuminate\Support\Facades\DB;
  *     kilométrage, notes) → toujours UPDATE en place sur la table
  *     `vehicles`. Pas de versioning.
  *
- *  2. **Caractéristiques fiscales** → toujours **création d'une
- *     nouvelle version** (Edit ne sert qu'aux changements réels du
- *     véhicule dans le temps). Les corrections de saisie sur une VFC
- *     existante passent exclusivement par la modale Historique
- *     (cf. {@see UpdateFiscalCharacteristicsAction}).
+ *  2. **Caractéristiques fiscales** → INSERT d'une nouvelle VFC
+ *     **uniquement si au moins un champ fiscal a changé** par rapport
+ *     à la VFC courante. Si aucun changement fiscal détecté, l'identité
+ *     est mise à jour seule sans toucher à l'historique.
  *
- *     Logique en 4 étapes :
+ *     Logique conditionnelle quand fiscal a changé :
  *
- *       a. **Garde-fou** : si aucune valeur fiscale n'a changé entre
- *          la VFC courante et le payload, on lève
- *          {@see NoFiscalChangeException}. L'UI bloque normalement
- *          en amont, mais le backend reste défensif (POST direct).
+ *       a. **Validation des métadonnées** : `effectiveFrom` et
+ *          `changeReason` deviennent indispensables pour matérialiser
+ *          la nouvelle version. Si elles manquent, on lève
+ *          {@see MissingNewVersionMetadataException}.
  *
  *       b. **Cascade rétroactive** : si `effectiveFrom` est antérieure
  *          à des versions existantes, ces versions sont supprimées
@@ -50,6 +49,9 @@ use Illuminate\Support\Facades\DB;
  *
  *       d. **INSERT** de la nouvelle VFC avec `effective_to = null`
  *          et le motif/note saisis.
+ *
+ * Les corrections de saisie sur une VFC existante passent exclusivement
+ * par la modale Historique (cf. {@see UpdateFiscalCharacteristicsAction}).
  */
 final readonly class UpdateVehicleAction
 {
@@ -65,6 +67,12 @@ final readonly class UpdateVehicleAction
         return DB::transaction(function () use ($vehicleId, $data): Vehicle {
             $vehicle = $this->vehicleWriter->update($vehicleId, $data);
 
+            $current = $this->loadCurrentVfc($vehicleId);
+
+            if (! $this->hasFiscalChanges($current, $data)) {
+                return $vehicle;
+            }
+
             $this->applyNewVersion($vehicleId, $data);
 
             return $vehicle;
@@ -74,16 +82,17 @@ final readonly class UpdateVehicleAction
     /**
      * Cascade rétroactive éventuelle + fermeture de la version
      * précédente + INSERT de la nouvelle VFC.
+     *
+     * Pré-condition : un champ fiscal a effectivement changé (vérifié
+     * par {@see hasFiscalChanges()} dans `execute()`).
      */
     private function applyNewVersion(int $vehicleId, UpdateVehicleData $data): void
     {
-        $current = $this->loadCurrentVfc($vehicleId);
-
-        if (! $this->hasFiscalChanges($current, $data)) {
-            throw NoFiscalChangeException::make();
+        if ($data->effectiveFrom === null || $data->changeReason === null) {
+            throw MissingNewVersionMetadataException::make();
         }
 
-        $effectiveFrom = CarbonImmutable::parse((string) $data->effectiveFrom);
+        $effectiveFrom = CarbonImmutable::parse($data->effectiveFrom);
 
         $this->fiscalWriter->deleteVersionsFromDate($vehicleId, $effectiveFrom);
 

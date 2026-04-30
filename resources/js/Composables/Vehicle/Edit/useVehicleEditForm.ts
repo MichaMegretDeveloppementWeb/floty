@@ -13,22 +13,27 @@ type SelectOption = { value: string; label: string };
 /**
  * Form Inertia + UI state de la page Edit véhicule.
  *
- * Edit ne sert qu'aux **changements réels** du véhicule dans le temps :
- * il crée systématiquement une nouvelle ligne d'historique fiscal. Les
- * corrections de saisie sur une VFC existante passent exclusivement
- * par la modale Historique de la page véhicule.
+ * L'identité (immatriculation, marque, dates, kilométrage, notes) est
+ * librement modifiable. Une nouvelle VFC n'est créée que si **au moins
+ * un champ fiscal a réellement changé** par rapport à la version
+ * courante (cf. `hasFiscalChanges`). Dans ce cas, la section
+ * « Métadonnées de la nouvelle version » apparaît en bas du formulaire
+ * et `effective_from` + `change_reason` deviennent obligatoires.
+ *
+ * Les corrections de saisie sur une VFC existante (sans création de
+ * nouvelle version) passent exclusivement par la modale Historique de
+ * la page véhicule.
  *
  * Le composable :
  *   - pré-remplit le `useForm` à partir de `props.vehicle` + sa VFC
  *     courante,
  *   - expose la liste des motifs sélectionnables (`changeReasonOptions`,
  *     les 3 motifs `userSelectableForNewVersion` côté backend),
- *   - calcule `isOtherChange` pour piloter l'affichage conditionnel de
- *     la note explicative,
- *   - détecte si au moins un champ fiscal a changé (`hasFiscalChanges`)
- *     — utilisé pour bloquer la soumission sans modification réelle,
+ *   - calcule `hasFiscalChanges` (au moins un champ fiscal modifié),
+ *     `isOtherChange` (motif Autre → note requise),
  *   - calcule la liste des versions historiques qui seront supprimées
- *     (`versionsToBeDeleted`) si la date d'effet remonte avant elles,
+ *     (`versionsToBeDeleted`) si la date d'effet remonte avant elles —
+ *     pertinent uniquement si `hasFiscalChanges`,
  *   - expose `requestSubmit()` qui ouvre la ConfirmModal si la cascade
  *     s'applique, sinon soumet directement.
  */
@@ -106,10 +111,14 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     });
 
     const canSubmit = computed<boolean>(() => {
+        // Modification d'identité seule (sans changement fiscal) : pas
+        // de métadonnées requises, le bouton est toujours actif.
         if (!hasFiscalChanges.value) {
-            return false;
+            return true;
         }
 
+        // Changement fiscal détecté → métadonnées de la nouvelle version
+        // requises (date d'effet + motif, et note si motif Autre).
         if (form.effective_from === '') {
             return false;
         }
@@ -128,12 +137,14 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     /**
      * Versions historiques qui seront supprimées par la cascade
      * rétroactive : toutes celles dont `effectiveFrom >= effective_from
-     * choisi`. La VFC courante est incluse (puisqu'elle commence par
-     * définition après `previousVfc.effective_to + 1`, et donc est
-     * postérieure ou égale à toute date que l'utilisateur peut choisir
-     * sauf si choisie strictement antérieure à la courante).
+     * choisi`. Pertinent uniquement quand un champ fiscal a changé
+     * (sinon aucune nouvelle VFC n'est créée donc aucune cascade).
      */
     const versionsToBeDeleted = computed<Fiscal[]>(() => {
+        if (!hasFiscalChanges.value) {
+            return [];
+        }
+
         const effective = form.effective_from;
 
         if (effective === '') {
@@ -160,10 +171,22 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     );
 
     const submit = (): void => {
+        const fiscalChanged = hasFiscalChanges.value;
+
         form.transform((data) => ({
             ...data,
-            change_reason: data.change_reason === '' ? null : data.change_reason as ChangeReason,
-            change_note: data.change_note === '' ? null : data.change_note,
+            // Métadonnées de nouvelle version : envoyées seulement si
+            // au moins un champ fiscal a changé. Sinon le backend les
+            // ignore et n'insère pas de nouvelle VFC.
+            effective_from: fiscalChanged && data.effective_from !== ''
+                ? data.effective_from
+                : null,
+            change_reason: fiscalChanged && data.change_reason !== ''
+                ? (data.change_reason as ChangeReason)
+                : null,
+            change_note: fiscalChanged && data.change_note !== ''
+                ? data.change_note
+                : null,
             underlying_combustion_engine_type:
                 data.underlying_combustion_engine_type === ''
                     ? null
