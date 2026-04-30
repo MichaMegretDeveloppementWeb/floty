@@ -322,6 +322,92 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
+    public function update_identite_seule_n_insere_pas_de_nouvelle_vfc(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create([
+            'mileage_current' => 30_000,
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VP',
+            'body_type' => 'CI',
+            'seats_count' => 5,
+            'energy_source' => 'gasoline',
+            'euro_standard' => 'euro_6d_isc_fcm',
+            'homologation_method' => 'WLTP',
+            'co2_wltp' => 120,
+        ]);
+
+        // Payload : aucun changement fiscal (mêmes valeurs que la VFC
+        // courante), uniquement le kilométrage qui passe à 45 000.
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'mileage_current' => 45_000,
+            'effective_from' => null,
+            'change_reason' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        // Identité mise à jour.
+        $this->assertDatabaseHas('vehicles', [
+            'id' => $vehicle->id,
+            'mileage_current' => 45_000,
+        ]);
+
+        // VFC courante intacte, aucune nouvelle ligne créée.
+        $this->assertSame(
+            1,
+            VehicleFiscalCharacteristics::query()
+                ->where('vehicle_id', $vehicle->id)
+                ->count(),
+        );
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+    }
+
+    #[Test]
+    public function update_avec_changement_fiscal_sans_metadonnees_renvoie_un_toast_erreur(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'seats_count' => 5,
+        ]);
+
+        // Changement fiscal (seats 5 → 9) mais pas de métadonnées.
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'seats_count' => 9,
+            'effective_from' => null,
+            'change_reason' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->from("/app/vehicles/{$vehicle->id}/edit")
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}/edit")
+            ->assertSessionHas('toast-error');
+
+        // VFC courante intacte (rollback transactionnel).
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'seats_count' => 5,
+            'effective_to' => null,
+        ]);
+    }
+
+    #[Test]
     public function update_avec_cascade_supprime_les_versions_posterieures(): void
     {
         $user = User::factory()->create();
