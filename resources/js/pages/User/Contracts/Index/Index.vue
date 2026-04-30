@@ -115,7 +115,7 @@ const hasDriverModel = computed({
 
             <EmptyContractsState v-if="props.contracts.length === 0" />
             <template v-else>
-                <div class="flex justify-end">
+                <div class="flex justify-start">
                     <FilterPopover
                         v-model:open="filtersOpen"
                         :active-count="tableState.state.activeFiltersCount.value"

@@ -77,7 +77,7 @@ const maxModel = computed({
 
             <EmptyFleetState v-if="props.vehicles.length === 0" />
             <template v-else>
-                <div class="flex justify-end">
+                <div class="flex justify-start">
                     <FilterPopover
                         v-model:open="filtersOpen"
                         :active-count="tableState.state.activeFiltersCount.value"

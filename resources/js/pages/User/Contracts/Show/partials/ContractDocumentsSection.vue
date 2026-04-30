@@ -82,26 +82,27 @@ async function confirmDelete(): Promise<void> {
 <template>
     <Card>
         <template #header>
-            <div class="flex items-center justify-between gap-3">
-                <div>
+            <div class="flex flex-col gap-3">
+                <div class="flex items-center justify-between gap-3">
                     <h2 class="text-base font-semibold text-slate-900">
                         Documents
                     </h2>
-                    <p class="mt-0.5 text-xs text-slate-500">
-                        {{ documents.length }} / {{ MAX_DOCUMENTS }} document{{
-                            MAX_DOCUMENTS > 1 ? 's' : ''
-                        }} joint{{ documents.length > 1 ? 's' : '' }}
-                        — PDF uniquement, 10 Mo max par fichier.
-                    </p>
+                    <Button
+                        type="button"
+                        size="sm"
+                        :disabled="isFull"
+                        class="whitespace-nowrap"
+                        @click="openUploadModal"
+                    >
+                        <Plus :size="14" :stroke-width="2" />
+                        Ajouter
+                    </Button>
                 </div>
-                <Button
-                    type="button"
-                    :disabled="isFull"
-                    @click="openUploadModal"
-                >
-                    <Plus :size="14" :stroke-width="2" />
-                    Ajouter un document
-                </Button>
+                <p class="text-xs text-slate-500">
+                    {{ documents.length }} / {{ MAX_DOCUMENTS }} PDF
+                    <span class="text-slate-300">·</span>
+                    10 Mo max par fichier
+                </p>
             </div>
         </template>
 

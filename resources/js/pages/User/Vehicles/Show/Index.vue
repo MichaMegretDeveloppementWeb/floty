@@ -3,7 +3,6 @@ import { Head } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
-import ActionsBar from './partials/ActionsBar.vue';
 import CompanyFiscalBreakdownTable from './partials/CompanyFiscalBreakdownTable.vue';
 import CurrentFiscalCharacteristicsCard from './partials/CurrentFiscalCharacteristicsCard.vue';
 import FullYearTaxBreakdownPanel from './partials/FullYearTaxBreakdownPanel.vue';
@@ -26,7 +25,6 @@ const fullYearModalOpen = ref<boolean>(false);
     <UserLayout>
         <div class="flex flex-col gap-6">
             <VehicleHeader :vehicle="props.vehicle" />
-            <ActionsBar :vehicle="props.vehicle" />
             <VehicleKpiCards
                 :stats="props.vehicle.usageStats"
                 @open-full-year-detail="fullYearModalOpen = true"

@@ -69,7 +69,7 @@ const maxModel = computed({
 
             <EmptyCompaniesState v-if="props.companies.length === 0" />
             <template v-else>
-                <div class="flex justify-end">
+                <div class="flex justify-start">
                     <FilterPopover
                         v-model:open="filtersOpen"
                         :active-count="tableState.state.activeFiltersCount.value"

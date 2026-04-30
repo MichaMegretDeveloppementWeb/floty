@@ -84,7 +84,7 @@ onBeforeUnmount(() => {
 
         <div
             v-if="open"
-            class="absolute right-0 top-full z-50 mt-2 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white shadow-lg"
+            class="absolute left-0 top-full z-50 mt-2 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white shadow-lg"
         >
             <div class="flex flex-col gap-3 p-4">
                 <slot />
