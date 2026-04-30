@@ -2,37 +2,37 @@
 /**
  * Calendrier custom de sélection d'une plage continue de dates.
  *
- * Modes :
- * - 1er clic : pose `startDate` et reset `endDate`
- * - 2ᵉ clic :
- *   - si > startDate → pose `endDate`
- *   - si < startDate → re-pose `startDate` (reset)
- *   - si ongoing actif → ignoré (toggle sans fin attendu)
+ * **v2 (04.I.2)** — 3 améliorations UX, API publique conservée :
+ *   1. Header avec selects mois + année (±5 ans glissants) + chevrons,
+ *      navigation rapide
+ *   2. Auto-normalize de l'ordre des clics : peu importe lequel des deux
+ *      clics est premier, `start = min(clics)`, `end = max(clics)`
+ *   3. Inputs date textuels synchronisés bidirectionnellement avec le
+ *      calendrier (input Fin disabled en mode `ongoing`)
  *
  * Toggle « en cours » (`v-model:ongoing`) : désactive la borne de fin
- * et garde uniquement `startDate` comme référence (cas d'une indispo
- * dont on ne connaît pas encore la date de retour).
+ * et garde uniquement `startDate` (cas d'une indispo dont on ne connaît
+ * pas encore la date de retour).
  *
  * `disabledDates` : ISO Y-m-d non sélectionnables (jours déjà attribués).
- * Si la plage [start, end] contient une date désactivée → range refusée
- * et `errorMessage` exposé sous le calendrier.
+ * Si une nouvelle plage chevauche un disabledDate → range refusée et
+ * `errorMessage` exposé sous le calendrier.
  *
- * Navigation mois libre (pas borné à 1 année) — utile pour les indispos
- * chevauchant la fin d'année.
+ * Toute la logique vit dans `useDateRangePicker` ; ce .vue est purement
+ * présentationnel.
  */
 import { ChevronLeft, ChevronRight, Infinity as InfinityIcon } from 'lucide-vue-next';
-import { computed, ref, watch } from 'vue';
-
-type DateRange = {
-    startDate: string | null;
-    endDate: string | null;
-};
+import { toRef } from 'vue';
+import {
+    useDateRangePicker,
+} from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
+import type { DateRange } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
 
 const props = withDefaults(
     defineProps<{
-        /** Année initiale d'ouverture du calendrier (mois 1). */
+        /** Année initiale d'ouverture du calendrier (centre du select année). */
         year: number;
-        /** Mois initial 1..12 (défaut = mois courant si dans l'année). */
+        /** Mois initial 1..12 (défaut = 1). */
         startMonth?: number;
         /** ISO Y-m-d non sélectionnables. */
         disabledDates?: string[];
@@ -46,255 +46,74 @@ const props = withDefaults(
 const range = defineModel<DateRange>('range', { required: true });
 const ongoing = defineModel<boolean>('ongoing', { required: true });
 
-const currentYear = ref<number>(props.year);
-const currentMonth = ref<number>(props.startMonth);
-
-const disabledSet = computed<Set<string>>(() => new Set(props.disabledDates));
-
-const errorMessage = ref<string | null>(null);
-
-watch(ongoing, (value) => {
-    if (value) {
-        // Ongoing activé : on retire la date de fin si présente.
-        range.value = { startDate: range.value.startDate, endDate: null };
-        errorMessage.value = null;
-    }
-});
-
-const monthLabel = computed<string>(() => {
-    const date = new Date(currentYear.value, currentMonth.value - 1, 1);
-
-    return date.toLocaleDateString('fr-FR', {
-        month: 'long',
-        year: 'numeric',
-    });
-});
-
-type DayCell = {
-    iso: string;
-    day: number;
-    inMonth: boolean;
-    disabled: boolean;
-    isStart: boolean;
-    isEnd: boolean;
-    isInRange: boolean;
-};
-
-const weeks = computed<DayCell[][]>(() => {
-    const year = currentYear.value;
-    const monthIdx = currentMonth.value - 1;
-
-    const firstOfMonth = new Date(year, monthIdx, 1);
-    const jsDayOfWeek = firstOfMonth.getDay(); // 0=Dim
-    const leading = (jsDayOfWeek + 6) % 7; // Lundi = 0
-
-    const gridStart = new Date(year, monthIdx, 1 - leading);
-    const rows: DayCell[][] = [];
-
-    const start = range.value.startDate;
-    const end = range.value.endDate;
-
-    for (let row = 0; row < 6; row++) {
-        const week: DayCell[] = [];
-
-        for (let col = 0; col < 7; col++) {
-            const d = new Date(
-                gridStart.getFullYear(),
-                gridStart.getMonth(),
-                gridStart.getDate() + row * 7 + col,
-            );
-            const iso = formatIso(d);
-            const isStart = start !== null && iso === start;
-            const isEnd = end !== null && iso === end;
-            const isInRange =
-                start !== null
-                && end !== null
-                && iso > start
-                && iso < end;
-
-            week.push({
-                iso,
-                day: d.getDate(),
-                inMonth: d.getMonth() === monthIdx,
-                disabled: disabledSet.value.has(iso),
-                isStart,
-                isEnd,
-                isInRange,
-            });
-        }
-
-        rows.push(week);
-
-        const last = week[6]!.iso;
-
-        if (new Date(last).getMonth() !== monthIdx && row >= 4) {
-            break;
-        }
-    }
-
-    return rows;
-});
-
-function formatIso(d: Date): string {
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-
-    return `${y}-${m}-${day}`;
-}
-
-function gotoPrevMonth(): void {
-    if (currentMonth.value > 1) {
-        currentMonth.value -= 1;
-
-        return;
-    }
-
-    currentMonth.value = 12;
-    currentYear.value -= 1;
-}
-
-function gotoNextMonth(): void {
-    if (currentMonth.value < 12) {
-        currentMonth.value += 1;
-
-        return;
-    }
-
-    currentMonth.value = 1;
-    currentYear.value += 1;
-}
-
-/**
- * Vérifie qu'aucune date désactivée n'est dans la plage [start, end]
- * (bornes incluses). Retourne la liste des dates en conflit.
- */
-function rangeConflicts(start: string, end: string): string[] {
-    const conflicts: string[] = [];
-    const a = new Date(start);
-    const b = new Date(end);
-    const cur = new Date(a);
-
-    while (cur <= b) {
-        const iso = formatIso(cur);
-
-        if (disabledSet.value.has(iso)) {
-            conflicts.push(iso);
-        }
-
-        cur.setDate(cur.getDate() + 1);
-    }
-
-    return conflicts;
-}
-
-function onDayClick(cell: DayCell): void {
-    if (cell.disabled) {
-        return;
-    }
-
-    const iso = cell.iso;
-
-    // Pas de startDate ou range complète → 1er clic = nouveau start.
-    if (
-        range.value.startDate === null
-        || (range.value.startDate !== null && range.value.endDate !== null)
-    ) {
-        range.value = { startDate: iso, endDate: null };
-        errorMessage.value = null;
-
-        return;
-    }
-
-    // Mode ongoing : tout clic supplémentaire ré-ancre juste le start.
-    if (ongoing.value) {
-        range.value = { startDate: iso, endDate: null };
-        errorMessage.value = null;
-
-        return;
-    }
-
-    // 2ᵉ clic en mode plage.
-    const start = range.value.startDate;
-
-    if (iso < start) {
-        // Antérieur au start → on ré-ancre le start.
-        range.value = { startDate: iso, endDate: null };
-        errorMessage.value = null;
-
-        return;
-    }
-
-    if (iso === start) {
-        // Même date → on ferme la plage sur 1 jour.
-        range.value = { startDate: start, endDate: start };
-        errorMessage.value = null;
-
-        return;
-    }
-
-    // Plage [start, iso] → vérifier qu'aucune date désactivée n'est dedans.
-    const conflicts = rangeConflicts(start, iso);
-
-    if (conflicts.length > 0) {
-        const formatted = conflicts.map(formatFr).join(', ');
-        errorMessage.value = `Plage refusée : conflit avec ${conflicts.length} jour(s) déjà attribué(s) (${formatted}).`;
-
-        return;
-    }
-
-    range.value = { startDate: start, endDate: iso };
-    errorMessage.value = null;
-}
-
-function formatFr(iso: string): string {
-    const [y, m, d] = iso.split('-');
-
-    return `${d}/${m}/${y}`;
-}
-
-function clearSelection(): void {
-    range.value = { startDate: null, endDate: null };
-    errorMessage.value = null;
-}
-
-const summary = computed<string>(() => {
-    const start = range.value.startDate;
-    const end = range.value.endDate;
-
-    if (start === null) {
-        return 'Aucune sélection';
-    }
-
-    if (ongoing.value) {
-        return `Depuis le ${formatFr(start)} (en cours)`;
-    }
-
-    if (end === null) {
-        return `Début : ${formatFr(start)} — sélectionnez la fin`;
-    }
-
-    return `Du ${formatFr(start)} au ${formatFr(end)}`;
-});
+const {
+    currentYear,
+    currentMonth,
+    errorMessage,
+    monthOptions,
+    yearOptions,
+    weeks,
+    summary,
+    gotoPrevMonth,
+    gotoNextMonth,
+    onDayClick,
+    onStartDateInput,
+    onEndDateInput,
+    clearSelection,
+} = useDateRangePicker(
+    toRef(props, 'year'),
+    toRef(props, 'startMonth'),
+    toRef(props, 'disabledDates'),
+    range,
+    ongoing,
+);
 </script>
 
 <template>
     <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between gap-2">
             <button
                 type="button"
-                class="flex h-7 w-7 items-center justify-center rounded-md text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-100"
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-100"
                 aria-label="Mois précédent"
                 @click="gotoPrevMonth"
             >
                 <ChevronLeft :size="16" :stroke-width="1.75" />
             </button>
-            <p class="text-sm font-medium text-slate-900 capitalize">
-                {{ monthLabel }}
-            </p>
+
+            <div class="flex flex-1 items-center justify-center gap-1.5">
+                <select
+                    v-model="currentMonth"
+                    aria-label="Sélectionner le mois"
+                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]"
+                >
+                    <option
+                        v-for="opt in monthOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                    >
+                        {{ opt.label }}
+                    </option>
+                </select>
+
+                <select
+                    v-model="currentYear"
+                    aria-label="Sélectionner l'année"
+                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]"
+                >
+                    <option
+                        v-for="opt in yearOptions"
+                        :key="opt.value"
+                        :value="opt.value"
+                    >
+                        {{ opt.label }}
+                    </option>
+                </select>
+            </div>
+
             <button
                 type="button"
-                class="flex h-7 w-7 items-center justify-center rounded-md text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-100"
+                class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-100"
                 aria-label="Mois suivant"
                 @click="gotoNextMonth"
             >
@@ -352,8 +171,44 @@ const summary = computed<string>(() => {
             </div>
         </div>
 
+        <div class="grid grid-cols-2 gap-2 border-t border-slate-100 pt-2.5">
+            <label class="flex flex-col gap-1">
+                <span class="text-[10px] font-medium tracking-wide text-slate-500 uppercase">
+                    Début
+                </span>
+                <input
+                    type="date"
+                    :value="range.startDate ?? ''"
+                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]"
+                    @change="(e) => onStartDateInput((e.target as HTMLInputElement).value)"
+                />
+            </label>
+            <label class="flex flex-col gap-1">
+                <span
+                    :class="[
+                        'text-[10px] font-medium tracking-wide uppercase',
+                        ongoing ? 'text-slate-300' : 'text-slate-500',
+                    ]"
+                >
+                    Fin
+                </span>
+                <input
+                    type="date"
+                    :value="range.endDate ?? ''"
+                    :disabled="ongoing"
+                    :class="[
+                        'rounded-md border px-2 py-1 text-sm transition-colors duration-[120ms] ease-out focus:outline-none',
+                        ongoing
+                            ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
+                            : 'border-slate-200 bg-white text-slate-900 focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]',
+                    ]"
+                    @change="(e) => onEndDateInput((e.target as HTMLInputElement).value)"
+                />
+            </label>
+        </div>
+
         <div
-            class="flex items-center justify-between border-t border-slate-100 pt-2.5 text-xs"
+            class="flex items-center justify-between text-xs"
         >
             <p class="text-slate-700">
                 {{ summary }}

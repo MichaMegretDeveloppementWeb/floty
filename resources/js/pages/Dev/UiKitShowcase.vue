@@ -27,6 +27,7 @@ import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
+import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import Drawer from '@/Components/Ui/Drawer/Drawer.vue';
 import EmptyState from '@/Components/Ui/EmptyState/EmptyState.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
@@ -132,6 +133,26 @@ const companyOptions = [
     { value: 'nordwell', label: 'Nordwell' },
     { value: 'bastion', label: 'Bastion Transport' },
     { value: 'helios', label: 'Helios Flotte' },
+];
+
+// Démo DateRangePicker v2 (04.I.2) — instance basique + instance avec
+// disabledDates factices pour montrer la gestion d'erreur.
+const demoRangeBasic = ref<{ startDate: string | null; endDate: string | null }>({
+    startDate: null,
+    endDate: null,
+});
+const demoOngoingBasic = ref<boolean>(false);
+
+const demoRangeWithBlocked = ref<{ startDate: string | null; endDate: string | null }>({
+    startDate: null,
+    endDate: null,
+});
+const demoOngoingBlocked = ref<boolean>(false);
+const demoBlockedDates = [
+    '2026-04-10',
+    '2026-04-11',
+    '2026-04-12',
+    '2026-04-25',
 ];
 
 // Démo SearchableSelect — 30 véhicules factices pour tester filtre,
@@ -851,6 +872,42 @@ const companyChips: Swatch[] = [
                                 :options="searchableVehicleOptions"
                                 disabled
                             />
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
+                        <p class="eyebrow mb-4">DateRangePicker v2</p>
+                        <p class="mb-4 text-xs text-slate-500">
+                            Calendrier de plage avec selects mois + année (±5 ans),
+                            auto-normalize de l'ordre des clics et inputs date
+                            synchronisés bidirectionnellement.
+                        </p>
+                        <div
+                            class="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-x-6"
+                        >
+                            <div class="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                                <p class="mb-2 text-xs font-medium text-slate-600">
+                                    Basique
+                                </p>
+                                <DateRangePicker
+                                    v-model:range="demoRangeBasic"
+                                    v-model:ongoing="demoOngoingBasic"
+                                    :year="2026"
+                                    :start-month="4"
+                                />
+                            </div>
+                            <div class="rounded-lg border border-slate-100 bg-slate-50 p-4">
+                                <p class="mb-2 text-xs font-medium text-slate-600">
+                                    Avec dates bloquées (10–12 et 25 avril 2026)
+                                </p>
+                                <DateRangePicker
+                                    v-model:range="demoRangeWithBlocked"
+                                    v-model:ongoing="demoOngoingBlocked"
+                                    :year="2026"
+                                    :start-month="4"
+                                    :disabled-dates="demoBlockedDates"
+                                />
+                            </div>
                         </div>
                     </div>
 
