@@ -26,7 +26,7 @@ defineProps<{
             </div>
         </header>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
             <TextInput
                 v-model="form.license_plate"
                 label="Immatriculation"

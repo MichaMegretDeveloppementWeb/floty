@@ -77,7 +77,7 @@ const pollutantCategoryLabel = computed((): string => {
             </div>
         </header>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-3">
             <SelectInput
                 v-model="form.reception_category"
                 label="Catégorie réception"
@@ -99,8 +99,6 @@ const pollutantCategoryLabel = computed((): string => {
                 :error="errors.body_type"
                 required
             />
-        </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <NumberInput
                 v-model="form.seats_count"
                 label="Nombre de places"
@@ -123,7 +121,7 @@ const pollutantCategoryLabel = computed((): string => {
                 :error="errors.euro_standard"
             />
         </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
             <SelectInput
                 v-if="isHybrid"
                 v-model="form.underlying_combustion_engine_type"
@@ -163,7 +161,7 @@ const pollutantCategoryLabel = computed((): string => {
                 </p>
             </div>
         </div>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-3">
             <NumberInput
                 v-if="showWltp"
                 v-model="form.co2_wltp"
@@ -191,35 +189,26 @@ const pollutantCategoryLabel = computed((): string => {
             >
                 <template #unit>CV</template>
             </NumberInput>
+            <NumberInput
+                v-model="form.kerb_mass"
+                label="Masse à vide"
+                :min="0"
+                :max="10000"
+                :error="errors.kerb_mass"
+                hint="Optionnelle. Utilisée par les barèmes fiscaux à venir (2026+)."
+            >
+                <template #unit>kg</template>
+            </NumberInput>
         </div>
 
-        <div class="flex flex-col gap-4 border-t border-slate-100 pt-4">
-            <p class="eyebrow">Spécificités fiscales</p>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <NumberInput
-                    v-model="form.kerb_mass"
-                    label="Masse à vide"
-                    :min="0"
-                    :max="10000"
-                    :error="errors.kerb_mass"
-                    hint="Optionnelle. Utilisée par les barèmes fiscaux à venir (2026+)."
-                >
-                    <template #unit>kg</template>
-                </NumberInput>
-                <CheckboxInput
-                    v-model="form.handicap_access"
-                    label="Aménagé pour fauteuil roulant ou conduite handicapée"
-                    hint="Déclenche l'exonération totale des deux taxes (CIBS L. 421-123 / L. 421-136)."
-                    :error="errors.handicap_access"
-                />
-            </div>
-        </div>
-
-        <div
-            v-if="showUsageSection"
-            class="flex flex-col gap-4 border-t border-slate-100 pt-4"
-        >
-            <p class="eyebrow">Usage spécifique</p>
+        <div class="flex flex-col gap-4 border-t border-slate-100 pt-6">
+            <p class="eyebrow">Exonérations et usages spéciaux</p>
+            <CheckboxInput
+                v-model="form.handicap_access"
+                label="Aménagé pour fauteuil roulant ou conduite handicapée"
+                hint="Déclenche l'exonération totale des deux taxes (CIBS L. 421-123 / L. 421-136)."
+                :error="errors.handicap_access"
+            />
             <CheckboxInput
                 v-if="isM1"
                 v-model="form.m1_special_use"
@@ -228,18 +217,16 @@ const pollutantCategoryLabel = computed((): string => {
                 :error="errors.m1_special_use"
             />
             <template v-if="isN1 && isLightTruck">
-                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <CheckboxInput
-                        v-model="form.n1_removable_second_row_seat"
-                        label="2ᵉ rangée amovible installée"
-                        :error="errors.n1_removable_second_row_seat"
-                    />
-                    <CheckboxInput
-                        v-model="form.n1_passenger_transport"
-                        label="Affectée au transport de personnes"
-                        :error="errors.n1_passenger_transport"
-                    />
-                </div>
+                <CheckboxInput
+                    v-model="form.n1_removable_second_row_seat"
+                    label="2ᵉ rangée amovible installée"
+                    :error="errors.n1_removable_second_row_seat"
+                />
+                <CheckboxInput
+                    v-model="form.n1_passenger_transport"
+                    label="Affectée au transport de personnes"
+                    :error="errors.n1_passenger_transport"
+                />
                 <p class="text-xs leading-snug text-slate-500">
                     Les deux ensemble rendent la camionnette N1 taxable
                     (CIBS L. 421-2). Si l'un manque, le véhicule reste hors

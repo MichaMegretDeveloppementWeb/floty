@@ -25,7 +25,7 @@ defineProps<{
             </div>
         </header>
 
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
             <DateInput
                 v-model="form.first_origin_registration_date"
                 label="1ère immatriculation (origine)"
