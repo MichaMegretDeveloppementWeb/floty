@@ -97,6 +97,28 @@ final class UpdateContractActionTest extends TestCase
         $this->assertNotNull($other);
     }
 
+    #[Test]
+    public function recalcule_le_type_quand_les_bornes_changent(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+        // Contrat LCD initial (10 jours) — création directe via la
+        // factory pour pré-poser le type LCD en DB.
+        $contract = Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-10',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        // Étend le contrat à 60 jours → le type doit basculer à LLD.
+        $updated = $this->action->execute(
+            $contract->id,
+            $this->makeData($vehicle->id, $company->id, '2024-03-01', '2024-04-29'),
+        );
+
+        $this->assertSame(ContractType::Lld, $updated->contract_type);
+    }
+
     private function makeData(
         int $vehicleId,
         int $companyId,
@@ -110,7 +132,6 @@ final class UpdateContractActionTest extends TestCase
             startDate: $startDate,
             endDate: $endDate,
             contractReference: null,
-            contractType: ContractType::Lcd,
             notes: null,
         );
     }

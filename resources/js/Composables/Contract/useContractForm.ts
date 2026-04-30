@@ -6,8 +6,6 @@ import {
     update as contractsUpdateRoute,
 } from '@/routes/user/contracts';
 
-type ContractType = App.Enums.Contract.ContractType;
-
 type ContractFormShape = {
     vehicle_id: number | null;
     company_id: number | null;
@@ -15,7 +13,6 @@ type ContractFormShape = {
     start_date: string;
     end_date: string;
     contract_reference: string | null;
-    contract_type: ContractType;
     notes: string | null;
 };
 
@@ -27,6 +24,10 @@ type ContractFormShape = {
  *
  * Le state est un Inertia `useForm()` — gestion automatique des erreurs
  * de validation (422) côté serveur via `form.errors.<field>`.
+ *
+ * **Refonte 04.K** : `contract_type` n'est plus dans le formulaire — il
+ * est dérivé automatiquement côté backend depuis [start_date, end_date]
+ * via {@see Contract::deriveTypeFromDates()}.
  */
 export function useContractForm(
     contract?: App.Data.User.Contract.ContractData,
@@ -45,7 +46,6 @@ export function useContractForm(
         start_date: contract?.startDate ?? '',
         end_date: contract?.endDate ?? '',
         contract_reference: contract?.contractReference ?? null,
-        contract_type: contract?.contractType ?? ('lcd' as ContractType),
         notes: contract?.notes ?? null,
     };
 

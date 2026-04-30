@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
-import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
+import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
 import { useApi } from '@/Composables/Shared/useApi';
 import { storeBulk as storeBulkRoute } from '@/routes/user/planning/contracts';
@@ -33,16 +33,15 @@ const { preview, loading: previewLoading, fetch: fetchPreview, reset: resetPrevi
 
 const companyOptions = computed(() =>
     props.companies.map((c) => ({
-        value: String(c.id),
+        value: c.id,
         label: `${c.shortCode} — ${c.legalName}`,
     })),
 );
 
-const companyIdString = computed({
-    get: () =>
-        props.selectedCompanyId !== null ? String(props.selectedCompanyId) : '',
-    set: (v: string) => {
-        emit('update:selectedCompanyId', v === '' ? null : Number(v));
+const companyIdModel = computed({
+    get: (): number | null => props.selectedCompanyId,
+    set: (v: string | number | null) => {
+        emit('update:selectedCompanyId', typeof v === 'number' ? v : null);
     },
 });
 
@@ -117,7 +116,6 @@ async function submit(): Promise<void> {
             startDate: props.selectedRange.startDate as string,
             endDate: props.selectedRange.endDate as string,
             contractReference: null,
-            contractType: 'lcd',
             notes: null,
         };
 
@@ -136,8 +134,8 @@ async function submit(): Promise<void> {
     <section class="flex flex-col gap-3 border-t border-slate-100 pt-4">
         <p class="eyebrow mb-0">Créer un contrat</p>
 
-        <SelectInput
-            v-model="companyIdString"
+        <SearchableSelect
+            v-model="companyIdModel"
             label="Entreprise"
             placeholder="Choisir une entreprise…"
             :options="companyOptions"

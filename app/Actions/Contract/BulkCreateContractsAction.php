@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractWriteRepositoryInterface;
 use App\Data\User\Contract\BulkStoreContractsData;
 use App\Exceptions\Contract\ContractOverlapException;
+use App\Models\Contract;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -40,7 +41,11 @@ final readonly class BulkCreateContractsAction
      */
     public function execute(BulkStoreContractsData $data): array
     {
-        return DB::transaction(function () use ($data): array {
+        // La plage est commune à tous les vehicleIds par construction
+        // du DTO, donc 1 seul calcul de type pour le batch entier.
+        $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
+
+        return DB::transaction(function () use ($data, $contractType): array {
             $rows = [];
 
             foreach ($data->vehicleIds as $vehicleId) {
@@ -71,7 +76,7 @@ final readonly class BulkCreateContractsAction
                     'start_date' => $data->startDate,
                     'end_date' => $data->endDate,
                     'contract_reference' => $data->contractReference,
-                    'contract_type' => $data->contractType->value,
+                    'contract_type' => $contractType->value,
                     'notes' => $data->notes,
                 ];
             }

@@ -94,6 +94,22 @@ final class StoreContractActionTest extends TestCase
         $this->assertSoftDeleted($existing);
     }
 
+    #[Test]
+    public function derive_lld_pour_un_contrat_de_60_jours(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        $contract = $this->action->execute($this->makeData(
+            $vehicle->id,
+            $company->id,
+            startDate: '2024-11-01',
+            endDate: '2024-12-30',
+        ));
+
+        $this->assertSame(ContractType::Lld, $contract->contract_type);
+    }
+
     private function makeData(
         int $vehicleId,
         int $companyId,
@@ -107,7 +123,6 @@ final class StoreContractActionTest extends TestCase
             startDate: $startDate,
             endDate: $endDate,
             contractReference: null,
-            contractType: ContractType::Lcd,
             notes: null,
         );
     }

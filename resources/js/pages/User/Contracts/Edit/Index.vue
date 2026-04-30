@@ -12,7 +12,6 @@ const props = defineProps<{
     options: {
         vehicles: App.Data.User.Vehicle.VehicleOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
-        contractTypes: { value: string; label: string }[];
     };
 }>();
 

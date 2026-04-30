@@ -7,6 +7,7 @@ namespace App\Contracts\Repositories\User\Contract;
 use App\Actions\Contract\BulkCreateContractsAction;
 use App\Data\User\Contract\StoreContractData;
 use App\Data\User\Contract\UpdateContractData;
+use App\Enums\Contract\ContractType;
 use App\Models\Contract;
 
 /**
@@ -14,12 +15,15 @@ use App\Models\Contract;
  *
  * Aucune décision métier ici (validation overlap, transactions
  * multi-entités, etc.) — c'est le rôle des Actions du domaine.
+ *
+ * **Refonte 04.K** : `contract_type` est passé en paramètre séparé,
+ * dérivé par l'Action via {@see Contract::deriveTypeFromDates()}.
  */
 interface ContractWriteRepositoryInterface
 {
-    public function create(StoreContractData $data): Contract;
+    public function create(StoreContractData $data, ContractType $contractType): Contract;
 
-    public function update(int $contractId, UpdateContractData $data): Contract;
+    public function update(int $contractId, UpdateContractData $data, ContractType $contractType): Contract;
 
     /**
      * Soft delete d'un contrat. Le trigger MySQL anti-overlap exclut

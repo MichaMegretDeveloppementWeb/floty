@@ -42,6 +42,11 @@ final readonly class UpdateContractAction
             );
         }
 
-        return $this->writer->update($contractId, $data);
+        // Recalcul inconditionnel : opération idempotente, peu coûteuse,
+        // pas de diff à gérer. Si les dates n'ont pas changé, on
+        // re-pose le même type.
+        $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
+
+        return $this->writer->update($contractId, $data, $contractType);
     }
 }

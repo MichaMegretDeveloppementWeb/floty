@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Contract\ContractType;
+use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Services\Contract\ContractQueryService;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -92,6 +93,49 @@ final class Contract extends Model
     public function driver(): BelongsTo
     {
         return $this->belongsTo(Driver::class);
+    }
+
+    /**
+     * Dérive le `contract_type` à partir d'une plage `[start, end]`.
+     *
+     * Convention BOFiP § 180-190 (« éternelle ») :
+     *   - durée ≤ 30 jours consécutifs → `Lcd`
+     *   - **OU** plage couvrant exactement un mois civil entier
+     *     (1er → dernier jour du même mois) → `Lcd`
+     *   - sinon → `Lld`
+     *
+     * Méthode statique pure : pas d'IO, pas d'état. Réutilisable côté
+     * Actions (Store/Update/BulkCreate) qui posent automatiquement le
+     * type avant persistance.
+     *
+     * **Note architecture** : cette dérivation est distincte de la
+     * qualification fiscale annuelle portée par
+     * {@see R2024_021_ShortTermRental::isShortTermRental()}.
+     * Le `contract_type` persisté est un **libellé indicatif** figé à
+     * la création/édition ; la qualification fiscale réelle s'évalue
+     * dans le pipeline avec la règle de l'année concernée.
+     */
+    public static function deriveTypeFromDates(string $startDate, string $endDate): ContractType
+    {
+        $start = CarbonImmutable::parse($startDate);
+        $end = CarbonImmutable::parse($endDate);
+
+        $duration = (int) $start->diffInDays($end) + 1;
+
+        if ($duration <= 30) {
+            return ContractType::Lcd;
+        }
+
+        $isFullCalendarMonth = $start->day === 1
+            && $end->day === $end->daysInMonth
+            && $start->month === $end->month
+            && $start->year === $end->year;
+
+        if ($isFullCalendarMonth) {
+            return ContractType::Lcd;
+        }
+
+        return ContractType::Lld;
     }
 
     /**

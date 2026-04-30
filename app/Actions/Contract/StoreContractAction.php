@@ -44,6 +44,8 @@ final readonly class StoreContractAction
             );
         }
 
-        return $this->writer->create($data);
+        $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
+
+        return $this->writer->create($data, $contractType);
     }
 }

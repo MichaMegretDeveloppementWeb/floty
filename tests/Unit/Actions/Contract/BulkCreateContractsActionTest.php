@@ -6,7 +6,6 @@ namespace Tests\Unit\Actions\Contract;
 
 use App\Actions\Contract\BulkCreateContractsAction;
 use App\Data\User\Contract\BulkStoreContractsData;
-use App\Enums\Contract\ContractType;
 use App\Exceptions\Contract\ContractOverlapException;
 use App\Models\Company;
 use App\Models\Contract;
@@ -94,7 +93,6 @@ final class BulkCreateContractsActionTest extends TestCase
             startDate: '2024-03-01',
             endDate: '2024-03-15',
             contractReference: null,
-            contractType: ContractType::Lcd,
             notes: null,
         );
     }

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Data\User\Contract;
 
-use App\Enums\Contract\ContractType;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\AfterOrEqual;
 use Spatie\LaravelData\Attributes\Validation\Date;
@@ -48,9 +47,6 @@ final class UpdateContractData extends Data
 
         #[Max(64)]
         public ?string $contractReference,
-
-        #[Required]
-        public ContractType $contractType,
 
         #[Max(5000)]
         public ?string $notes,

@@ -7,7 +7,7 @@ import { computed, ref, watch } from 'vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
-import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
+import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 
 type FormShape = {
@@ -17,7 +17,6 @@ type FormShape = {
     start_date: string;
     end_date: string;
     contract_reference: string | null;
-    contract_type: App.Enums.Contract.ContractType;
     notes: string | null;
 };
 
@@ -26,37 +25,37 @@ const props = defineProps<{
     options: {
         vehicles: App.Data.User.Vehicle.VehicleOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
-        contractTypes: { value: string; label: string }[];
     };
 }>();
 
 const vehicleOptions = computed(() =>
     props.options.vehicles.map((v) => ({
-        value: String(v.id),
+        value: v.id,
         label: v.label,
     })),
 );
 
 const companyOptions = computed(() =>
     props.options.companies.map((c) => ({
-        value: String(c.id),
+        value: c.id,
         label: `${c.shortCode} — ${c.legalName}`,
     })),
 );
 
-const typeOptions = computed(() => props.options.contractTypes);
-
-const vehicleIdString = computed({
-    get: () => (props.form.vehicle_id !== null ? String(props.form.vehicle_id) : ''),
-    set: (v: string) => {
-        props.form.vehicle_id = v === '' ? null : Number(v);
+// Wrappers v-model : SearchableSelect émet `string | number | null` ;
+// on borne à `number | null` côté formulaire pour cohérence avec
+// VehicleOptionData.id / CompanyOptionData.id (typés number).
+const vehicleIdModel = computed({
+    get: (): number | null => props.form.vehicle_id,
+    set: (v: string | number | null) => {
+        props.form.vehicle_id = typeof v === 'number' ? v : null;
     },
 });
 
-const companyIdString = computed({
-    get: () => (props.form.company_id !== null ? String(props.form.company_id) : ''),
-    set: (v: string) => {
-        props.form.company_id = v === '' ? null : Number(v);
+const companyIdModel = computed({
+    get: (): number | null => props.form.company_id,
+    set: (v: string | number | null) => {
+        props.form.company_id = typeof v === 'number' ? v : null;
     },
 });
 
@@ -87,9 +86,9 @@ const pickerYear = computed<number>(() => {
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
                 <FieldLabel for="vehicle_id">Véhicule</FieldLabel>
-                <SelectInput
+                <SearchableSelect
                     id="vehicle_id"
-                    v-model="vehicleIdString"
+                    v-model="vehicleIdModel"
                     placeholder="Choisir un véhicule…"
                     :options="vehicleOptions"
                 />
@@ -97,9 +96,9 @@ const pickerYear = computed<number>(() => {
             </div>
             <div>
                 <FieldLabel for="company_id">Entreprise utilisatrice</FieldLabel>
-                <SelectInput
+                <SearchableSelect
                     id="company_id"
-                    v-model="companyIdString"
+                    v-model="companyIdModel"
                     placeholder="Choisir une entreprise…"
                     :options="companyOptions"
                 />
@@ -108,23 +107,12 @@ const pickerYear = computed<number>(() => {
         </div>
 
         <div>
-            <FieldLabel for="contract_type">Type de contrat</FieldLabel>
-            <SelectInput
-                id="contract_type"
-                v-model="form.contract_type"
-                :options="typeOptions"
-            />
-            <p class="mt-1 text-xs text-slate-500">
-                Libellé indicatif. La qualification fiscale LCD se fait
-                automatiquement selon la durée (≤ 30 jours ou mois civil
-                entier — cf. R-2024-021).
-            </p>
-            <InputError :message="form.errors.contract_type" />
-        </div>
-
-        <div>
             <p class="text-xs font-medium uppercase tracking-wide text-slate-600">
                 Plage du contrat
+            </p>
+            <p class="mt-1 text-xs text-slate-500">
+                Le type LCD/LLD est déterminé automatiquement selon la durée
+                (≤ 30 jours ou mois civil entier → LCD ; sinon LLD).
             </p>
             <div class="mt-2">
                 <DateRangePicker

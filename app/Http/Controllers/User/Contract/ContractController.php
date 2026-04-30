@@ -11,7 +11,6 @@ use App\Actions\Contract\UpdateContractAction;
 use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Contract\StoreContractData;
 use App\Data\User\Contract\UpdateContractData;
-use App\Enums\Contract\ContractType;
 use App\Http\Controllers\Controller;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
@@ -93,20 +92,13 @@ final class ContractController extends Controller
     }
 
     /**
-     * @return array{vehicles: DataCollection, companies: DataCollection, contractTypes: list<array{value: string, label: string}>}
+     * @return array{vehicles: DataCollection, companies: DataCollection}
      */
     private function buildFormOptions(): array
     {
         return [
             'vehicles' => $this->vehicles->listForOptions(),
             'companies' => $this->companies->listForOptions(),
-            'contractTypes' => array_map(
-                static fn (ContractType $t): array => [
-                    'value' => $t->value,
-                    'label' => $t->label(),
-                ],
-                ContractType::cases(),
-            ),
         ];
     }
 
