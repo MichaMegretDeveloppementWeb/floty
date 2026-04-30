@@ -38,14 +38,15 @@ const { statusTone, secondaryInfo } = useVehicleHeader(props);
                 >
                     {{ props.vehicle.brand }} {{ props.vehicle.model }}
                 </h1>
-                <p class="text-sm text-slate-500">
-                    <span
+                <div class="flex items-center flex-wrap text-sm text-slate-500 mt-3">
+                    <div
                         v-for="(part, idx) in secondaryInfo"
                         :key="part"
                     >
-                        <span v-if="idx > 0" class="mx-2 text-slate-300">·</span>{{ part }}
-                    </span>
-                </p>
+                        <span>{{ part }}</span>
+                        <span v-if="idx < (secondaryInfo.length-1)" class="mx-2 text-slate-300">·</span>
+                    </div>
+                </div>
                 <p
                     v-if="props.vehicle.notes"
                     class="mt-1 max-w-3xl rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm whitespace-pre-line text-slate-700"
