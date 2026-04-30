@@ -71,7 +71,7 @@ const {
 
 <template>
     <div class="flex flex-col gap-3">
-        <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center justify-center gap-1.5">
             <button
                 type="button"
                 class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-100"
@@ -81,35 +81,33 @@ const {
                 <ChevronLeft :size="16" :stroke-width="1.75" />
             </button>
 
-            <div class="flex flex-1 items-center justify-center gap-1.5">
-                <select
-                    v-model="currentMonth"
-                    aria-label="Sélectionner le mois"
-                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]"
+            <select
+                v-model="currentMonth"
+                aria-label="Sélectionner le mois"
+                class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]"
+            >
+                <option
+                    v-for="opt in monthOptions"
+                    :key="opt.value"
+                    :value="opt.value"
                 >
-                    <option
-                        v-for="opt in monthOptions"
-                        :key="opt.value"
-                        :value="opt.value"
-                    >
-                        {{ opt.label }}
-                    </option>
-                </select>
+                    {{ opt.label }}
+                </option>
+            </select>
 
-                <select
-                    v-model="currentYear"
-                    aria-label="Sélectionner l'année"
-                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]"
+            <select
+                v-model="currentYear"
+                aria-label="Sélectionner l'année"
+                class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]"
+            >
+                <option
+                    v-for="opt in yearOptions"
+                    :key="opt.value"
+                    :value="opt.value"
                 >
-                    <option
-                        v-for="opt in yearOptions"
-                        :key="opt.value"
-                        :value="opt.value"
-                    >
-                        {{ opt.label }}
-                    </option>
-                </select>
-            </div>
+                    {{ opt.label }}
+                </option>
+            </select>
 
             <button
                 type="button"
