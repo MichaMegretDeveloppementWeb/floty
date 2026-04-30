@@ -147,6 +147,7 @@ async function submit(): Promise<void> {
             :year="fiscalYear"
             :start-month="startMonth"
             :disabled-dates="disabledDates"
+            :highlight-dates="weekDates"
         />
 
         <FiscalPreviewCard

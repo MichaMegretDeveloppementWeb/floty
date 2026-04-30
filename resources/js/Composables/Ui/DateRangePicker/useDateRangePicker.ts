@@ -14,6 +14,7 @@ export type DayCell = {
     isStart: boolean;
     isEnd: boolean;
     isInRange: boolean;
+    inCurrentWeek: boolean;
 };
 
 export type SelectOption<T extends string | number> = {
@@ -114,6 +115,7 @@ export function useDateRangePicker(
     disabledDatesProp: Readonly<Ref<readonly string[]>>,
     range: Ref<DateRange>,
     ongoing: Ref<boolean>,
+    highlightDatesProp: Readonly<Ref<readonly string[]>> = ref<readonly string[]>([]),
 ): {
     currentYear: Ref<number>;
     currentMonth: Ref<number>;
@@ -139,6 +141,10 @@ export function useDateRangePicker(
 
     const disabledSet = computed<Set<string>>(
         () => new Set(disabledDatesProp.value),
+    );
+
+    const highlightSet = computed<Set<string>>(
+        () => new Set(highlightDatesProp.value),
     );
 
     // Ongoing activé → on retire la date de fin si présente.
@@ -225,6 +231,7 @@ export function useDateRangePicker(
                     isStart,
                     isEnd,
                     isInRange,
+                    inCurrentWeek: highlightSet.value.has(iso),
                 });
             }
 

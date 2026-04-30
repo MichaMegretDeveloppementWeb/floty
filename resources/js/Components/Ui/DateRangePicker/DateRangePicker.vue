@@ -37,10 +37,14 @@ const props = withDefaults(
         startMonth?: number;
         /** ISO Y-m-d non sélectionnables. */
         disabledDates?: string[];
+        /** ISO Y-m-d à mettre en évidence (anneau bleu) — utilisé pour
+         *  marquer la semaine de contexte dans le drawer Planning. */
+        highlightDates?: string[];
     }>(),
     {
         startMonth: 1,
         disabledDates: () => [],
+        highlightDates: () => [],
     },
 );
 
@@ -66,6 +70,7 @@ const {
     toRef(props, 'disabledDates'),
     range,
     ongoing,
+    toRef(props, 'highlightDates'),
 );
 </script>
 
@@ -157,6 +162,9 @@ const {
                                 : cell.inMonth
                                   ? 'cursor-pointer text-slate-700 hover:bg-slate-100'
                                   : 'cursor-pointer text-slate-300 hover:bg-slate-100',
+                        cell.inCurrentWeek && !cell.isStart && !cell.isEnd && !cell.isInRange
+                            ? 'ring-2 ring-blue-400 ring-inset'
+                            : '',
                     ]"
                     :aria-pressed="cell.isStart || cell.isEnd"
                     @click="onDayClick(cell)"
