@@ -313,8 +313,7 @@ export function useDateRangePicker(
         const conflicts = rangeConflicts(start, end, disabledSet.value);
 
         if (conflicts.length > 0) {
-            const formatted = conflicts.map(formatFr).join(', ');
-            errorMessage.value = `Plage refusée : conflit avec ${conflicts.length} jour(s) déjà attribué(s) (${formatted}).`;
+            errorMessage.value = 'La plage choisie chevauche des dates déjà attribuées.';
 
             return false;
         }

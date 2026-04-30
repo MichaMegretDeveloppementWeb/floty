@@ -199,7 +199,7 @@ describe('useDateRangePicker — auto-normalize on click', () => {
             startDate: '2024-01-28',
             endDate: null,
         });
-        expect(ctx.errorMessage.value).toContain('conflit');
+        expect(ctx.errorMessage.value).toContain('chevauche');
     });
 });
 
@@ -252,7 +252,7 @@ describe('useDateRangePicker — input date sync', () => {
             startDate: '2024-01-10',
             endDate: null,
         });
-        expect(ctx.errorMessage.value).toContain('conflit');
+        expect(ctx.errorMessage.value).toContain('chevauche');
     });
 
     it('invalid ISO is ignored silently', () => {
