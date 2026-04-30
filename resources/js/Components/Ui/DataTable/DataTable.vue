@@ -70,7 +70,12 @@ const alignClass = (align: DataTableColumnAlign | undefined): string => {
                             ]"
                             scope="col"
                         >
-                            {{ column.label }}
+                            <slot
+                                :name="`header-${column.key}`"
+                                :column="column"
+                            >
+                                {{ column.label }}
+                            </slot>
                         </th>
                     </tr>
                 </thead>

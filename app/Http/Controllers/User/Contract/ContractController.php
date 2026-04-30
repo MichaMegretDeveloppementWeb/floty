@@ -45,6 +45,7 @@ final class ContractController extends Controller
     {
         return Inertia::render('User/Contracts/Index/Index', [
             'contracts' => $this->contracts->listAll(),
+            'options' => $this->buildFormOptions(),
         ]);
     }
 
