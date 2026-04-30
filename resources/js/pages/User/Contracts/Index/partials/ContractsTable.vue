@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Badge from '@/Components/Ui/Badge/Badge.vue';
+import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
 import { useContractsTable } from '@/Composables/Contract/Index/useContractsTable';
@@ -10,7 +12,7 @@ defineProps<{
     contracts: ContractRow[];
 }>();
 
-const { columns, typeLabel, handleRowClick } = useContractsTable();
+const { columns, shortLabel, badgeTone, handleRowClick } = useContractsTable();
 </script>
 
 <template>
@@ -25,9 +27,11 @@ const { columns, typeLabel, handleRowClick } = useContractsTable();
             <Plate :value="row.vehicleLicensePlate" />
         </template>
         <template #cell-companyShortCode="{ row }">
-            <span class="font-mono text-sm font-semibold text-slate-700">
-                {{ row.companyShortCode }}
-            </span>
+            <CompanyTag
+                :name="row.companyLegalName"
+                :initials="row.companyShortCode.slice(0, 2)"
+                :color="row.companyColor"
+            />
         </template>
         <template #cell-startDate="{ value }">
             {{ formatDateFr(String(value)) }}
@@ -39,18 +43,9 @@ const { columns, typeLabel, handleRowClick } = useContractsTable();
             {{ value }} j
         </template>
         <template #cell-contractType="{ row }">
-            <span
-                :class="[
-                    'inline-flex rounded-md px-2 py-0.5 text-xs font-medium',
-                    row.contractType === 'lcd'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : row.contractType === 'lld'
-                          ? 'bg-indigo-100 text-indigo-800'
-                          : 'bg-slate-100 text-slate-700',
-                ]"
-            >
-                {{ typeLabel[row.contractType] }}
-            </span>
+            <Badge :tone="badgeTone[row.contractType]">
+                {{ shortLabel[row.contractType] }}
+            </Badge>
         </template>
     </DataTable>
 </template>

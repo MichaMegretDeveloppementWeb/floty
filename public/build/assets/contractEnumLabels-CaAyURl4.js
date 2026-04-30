@@ -1,1 +1,0 @@
-var e={lcd:`Location de courte durée (LCD)`,lld:`Location de longue durée (LLD)`,mise_a_disposition_assimilee:`Mise à disposition assimilée`};export{e as t};

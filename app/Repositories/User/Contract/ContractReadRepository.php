@@ -61,7 +61,11 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
     public function listForCompany(int $companyId): Collection
     {
         return Contract::query()
-            ->with(['vehicle:id,license_plate', 'driver:id,first_name,last_name'])
+            ->with([
+                'vehicle:id,license_plate',
+                'company:id,short_code,legal_name,color',
+                'driver:id,first_name,last_name',
+            ])
             ->where('company_id', $companyId)
             ->orderByDesc('start_date')
             ->get();
@@ -70,7 +74,11 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
     public function listForVehicle(int $vehicleId): Collection
     {
         return Contract::query()
-            ->with(['company:id,short_code,legal_name', 'driver:id,first_name,last_name'])
+            ->with([
+                'vehicle:id,license_plate',
+                'company:id,short_code,legal_name,color',
+                'driver:id,first_name,last_name',
+            ])
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')
             ->get();
@@ -111,7 +119,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
     public function listAll(): Collection
     {
         return Contract::query()
-            ->with(['vehicle:id,license_plate', 'company:id,short_code,legal_name'])
+            ->with(['vehicle:id,license_plate', 'company:id,short_code,legal_name,color'])
             ->orderByDesc('start_date')
             ->get();
     }
