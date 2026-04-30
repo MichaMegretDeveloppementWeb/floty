@@ -58,6 +58,7 @@ final class ContractController extends Controller
 
         return Inertia::render('User/Contracts/Show/Index', [
             'contract' => $contractData,
+            'taxBreakdown' => $this->contracts->findContractTaxBreakdown($contract),
         ]);
     }
 

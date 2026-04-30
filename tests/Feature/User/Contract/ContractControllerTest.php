@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\Contract;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
@@ -50,15 +51,17 @@ final class ContractControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_renvoie_le_dto_du_contrat(): void
+    public function show_renvoie_le_dto_du_contrat_et_le_breakdown_fiscal_lcd(): void
     {
         $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $contract = Contract::factory()
-            ->forVehicle(Vehicle::factory()->create())
+            ->forVehicle($vehicle)
             ->forCompany(Company::factory()->create())
             ->create([
                 'start_date' => '2024-03-01',
-                'end_date' => '2024-03-15',
+                'end_date' => '2024-03-15',  // 15 j → LCD → 0 €
                 'contract_type' => ContractType::Lcd,
             ]);
 
@@ -72,7 +75,43 @@ final class ContractControllerTest extends TestCase
                     ->where('startDate', '2024-03-01')
                     ->where('endDate', '2024-03-15')
                     ->where('durationDays', 15)
-                    ->etc()));
+                    ->etc())
+                ->has('taxBreakdown', fn (AssertableInertia $b) => $b
+                    ->where('totalDue', fn (mixed $v): bool => (float) $v === 0.0)
+                    ->has('years', 1)
+                    ->has('years.0', fn (AssertableInertia $y) => $y
+                        ->where('year', 2024)
+                        ->where('daysAssigned', 0)  // tous jours retirés par R-2024-021 (LCD)
+                        ->where('totalDue', fn (mixed $v): bool => (float) $v === 0.0)
+                        ->etc())));
+    }
+
+    #[Test]
+    public function show_breakdown_fiscal_lld_60_jours_a_cheval_sur_deux_mois(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        // 60 jours à cheval mai-juin → LLD → taxable
+        $contract = Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany(Company::factory()->create())
+            ->create([
+                'start_date' => '2024-05-01',
+                'end_date' => '2024-06-29',
+                'contract_type' => ContractType::Lld,
+            ]);
+
+        $this->actingAs($user)
+            ->get("/app/contracts/{$contract->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('taxBreakdown', fn (AssertableInertia $b) => $b
+                    ->where('totalDue', fn (float $v): bool => $v > 0.0)
+                    ->has('years.0', fn (AssertableInertia $y) => $y
+                        ->where('daysAssigned', fn (int $v): bool => $v > 0)
+                        ->where('totalDue', fn (float $v): bool => $v > 0.0)
+                        ->etc())));
     }
 
     #[Test]

@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Fiscal;
 
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
+use App\Data\User\Contract\ContractTaxBreakdownData;
+use App\Data\User\Contract\ContractTaxYearBreakdownData;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\DTO\Fiscal\ContractsByPair;
@@ -166,6 +168,75 @@ final readonly class FleetFiscalAggregator
             appliedRuleCodes: $result->appliedRuleCodes,
             total: round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP),
             appliedRules: $appliedRules,
+        );
+    }
+
+    /**
+     * Détail fiscal complet d'un contrat — affiché dans la section
+     * « Taxes générées » de la page Show contrat.
+     *
+     * Le pipeline tourne par année. Si le contrat chevauche 2 années
+     * civiles (ex. 1er nov 2024 → 31 jan 2025), on exécute le pipeline
+     * deux fois et on agrège.
+     *
+     * Le `$contract->vehicle->fiscalCharacteristics` doit être eager-loadé
+     * par l'appelant (cf. `ContractReadRepository::findByIdWithRelations`).
+     *
+     * @param  list<Unavailability>  $vehicleUnavailabilities
+     */
+    public function contractTaxBreakdown(
+        Contract $contract,
+        array $vehicleUnavailabilities,
+    ): ContractTaxBreakdownData {
+        $vehicle = $contract->vehicle;
+        $startYear = $contract->start_date->year;
+        $endYear = $contract->end_date->year;
+
+        $years = [];
+        $totalRaw = 0.0;
+
+        for ($year = $startYear; $year <= $endYear; $year++) {
+            $result = $this->pipeline->execute(
+                $this->buildContext($vehicle, [$contract], $vehicleUnavailabilities, $year),
+            );
+
+            $daysInContractInYear = count($contract->expandToDaysInYear($year));
+
+            $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
+            $pollutantsTariff = round($result->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
+            $co2Due = round($result->co2DueRaw, 2, PHP_ROUND_HALF_UP);
+            $pollutantsDue = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+            $yearTotalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);
+
+            $appliedRules = $this->fiscalRules
+                ->findByCodesForYear($year, $result->appliedRuleCodes)
+                ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r))
+                ->values()
+                ->all();
+
+            $years[] = new ContractTaxYearBreakdownData(
+                year: $year,
+                daysInContractInYear: $daysInContractInYear,
+                daysAssigned: $result->daysAssigned,
+                daysInYear: $result->daysInYear,
+                co2Method: $result->co2Method,
+                pollutantCategory: $result->pollutantCategory,
+                co2FullYearTariff: $co2Tariff,
+                pollutantsFullYearTariff: $pollutantsTariff,
+                co2Due: $co2Due,
+                pollutantsDue: $pollutantsDue,
+                totalDue: $yearTotalDue,
+                exemptionReasons: $result->exemptionReasons,
+                appliedRuleCodes: $result->appliedRuleCodes,
+                appliedRules: $appliedRules,
+            );
+
+            $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
+        }
+
+        return new ContractTaxBreakdownData(
+            years: $years,
+            totalDue: round($totalRaw, 2, PHP_ROUND_HALF_UP),
         );
     }
 

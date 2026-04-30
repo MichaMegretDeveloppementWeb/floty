@@ -27,7 +27,11 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
     public function findByIdWithRelations(int $id): ?Contract
     {
         return Contract::query()
-            ->with(['vehicle', 'company', 'driver'])
+            ->with([
+                'vehicle.fiscalCharacteristics',
+                'company',
+                'driver',
+            ])
             ->find($id);
     }
 

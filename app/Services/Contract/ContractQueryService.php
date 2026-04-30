@@ -8,9 +8,11 @@ use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Data\User\Contract\ContractData;
 use App\Data\User\Contract\ContractListItemData;
+use App\Data\User\Contract\ContractTaxBreakdownData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Models\Contract;
 use App\Models\Unavailability;
+use App\Services\Fiscal\FleetFiscalAggregator;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -30,6 +32,7 @@ final readonly class ContractQueryService
     public function __construct(
         private ContractReadRepositoryInterface $repository,
         private UnavailabilityReadRepositoryInterface $unavailabilityRepository,
+        private FleetFiscalAggregator $aggregator,
     ) {}
 
     public function findContractData(int $id): ?ContractData
@@ -41,6 +44,30 @@ final readonly class ContractQueryService
         }
 
         return ContractData::fromModel($contract);
+    }
+
+    /**
+     * Façade fiscale pour la page détail contrat. Charge le contrat
+     * (avec vehicle.fiscalCharacteristics eager-loadées via
+     * `findByIdWithRelations`) et les indispos du véhicule, puis
+     * délègue à {@see FleetFiscalAggregator::contractTaxBreakdown}.
+     *
+     * Retourne `null` si le contrat est introuvable (cohérent avec
+     * `findContractData`).
+     */
+    public function findContractTaxBreakdown(int $id): ?ContractTaxBreakdownData
+    {
+        $contract = $this->repository->findByIdWithRelations($id);
+
+        if ($contract === null) {
+            return null;
+        }
+
+        $unavailabilities = $this->unavailabilityRepository
+            ->findForVehicle($contract->vehicle_id)
+            ->all();
+
+        return $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
     }
 
     /**
