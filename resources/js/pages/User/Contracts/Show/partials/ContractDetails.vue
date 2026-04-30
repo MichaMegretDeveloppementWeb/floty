@@ -1,5 +1,10 @@
 <script setup lang="ts">
+import Badge from '@/Components/Ui/Badge/Badge.vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
+import {
+    contractTypeBadgeTone,
+    contractTypeShortLabel,
+} from '@/Utils/labels/contractEnumLabels';
 
 defineProps<{
     contract: App.Data.User.Contract.ContractData;
@@ -39,6 +44,16 @@ defineProps<{
             </div>
             <div>
                 <dt class="text-xs font-medium uppercase text-slate-500">
+                    Type
+                </dt>
+                <dd class="mt-1">
+                    <Badge :tone="contractTypeBadgeTone[contract.contractType]">
+                        {{ contractTypeShortLabel[contract.contractType] }}
+                    </Badge>
+                </dd>
+            </div>
+            <div>
+                <dt class="text-xs font-medium uppercase text-slate-500">
                     Référence contrat
                 </dt>
                 <dd class="mt-1 text-sm text-slate-900">
@@ -54,12 +69,15 @@ defineProps<{
                 </dd>
             </div>
         </dl>
-        <div v-if="contract.notes">
+        <div>
             <dt class="text-xs font-medium uppercase text-slate-500">
                 Notes
             </dt>
-            <dd class="mt-1 whitespace-pre-line text-sm text-slate-700">
-                {{ contract.notes }}
+            <dd
+                class="mt-1 text-sm whitespace-pre-line"
+                :class="contract.notes ? 'text-slate-700' : 'text-slate-900'"
+            >
+                {{ contract.notes ?? '—' }}
             </dd>
         </div>
     </section>

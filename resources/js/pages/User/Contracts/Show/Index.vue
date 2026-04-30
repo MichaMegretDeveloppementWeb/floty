@@ -3,7 +3,8 @@ import { Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import ActionsBar from './partials/ActionsBar.vue';
 import ContractDetails from './partials/ContractDetails.vue';
-import ContractHeader from './partials/ContractHeader.vue';
+import ContractEntityCards from './partials/ContractEntityCards.vue';
+import ContractTitle from './partials/ContractTitle.vue';
 import TaxBreakdownPanel from './partials/TaxBreakdownPanel.vue';
 
 const props = defineProps<{
@@ -17,7 +18,8 @@ const props = defineProps<{
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <ContractHeader :contract="props.contract" />
+            <ContractTitle :contract="props.contract" />
+            <ContractEntityCards :contract="props.contract" />
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
                 <div class="flex flex-col gap-6 lg:col-span-2">

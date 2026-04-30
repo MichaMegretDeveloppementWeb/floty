@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\Contract;
 
+use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
 use App\Models\Contract;
 use Spatie\LaravelData\Data;
@@ -28,6 +29,7 @@ final class ContractData extends Data
         public int $companyId,
         public string $companyShortCode,
         public string $companyLegalName,
+        public CompanyColor $companyColor,
         public ?int $driverId,
         public ?string $driverFullName,
         public string $startDate,
@@ -59,6 +61,7 @@ final class ContractData extends Data
             companyId: $contract->company_id,
             companyShortCode: $contract->company->short_code,
             companyLegalName: $contract->company->legal_name,
+            companyColor: $contract->company->color,
             driverId: $contract->driver_id,
             driverFullName: $driverFullName !== '' ? $driverFullName : null,
             startDate: $start->toDateString(),

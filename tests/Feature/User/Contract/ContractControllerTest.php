@@ -75,6 +75,7 @@ final class ContractControllerTest extends TestCase
                     ->where('startDate', '2024-03-01')
                     ->where('endDate', '2024-03-15')
                     ->where('durationDays', 15)
+                    ->has('companyColor')  // ajout 04.M : prop nécessaire au CompanyTag du KPI Entreprise
                     ->etc())
                 ->has('taxBreakdown', fn (AssertableInertia $b) => $b
                     ->where('totalDue', fn (mixed $v): bool => (float) $v === 0.0)
