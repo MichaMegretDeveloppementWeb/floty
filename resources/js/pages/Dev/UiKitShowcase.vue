@@ -35,6 +35,7 @@ import KpiCard from '@/Components/Ui/KpiCard/KpiCard.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
+import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
@@ -131,6 +132,45 @@ const companyOptions = [
     { value: 'nordwell', label: 'Nordwell' },
     { value: 'bastion', label: 'Bastion Transport' },
     { value: 'helios', label: 'Helios Flotte' },
+];
+
+// Démo SearchableSelect — 30 véhicules factices pour tester filtre,
+// scroll et navigation clavier sur une liste réaliste.
+const demoSearchableVehicle = ref<number | null>(7);
+const demoSearchableEmpty = ref<number | null>(null);
+const demoSearchableError = ref<number | null>(null);
+const demoSearchableDisabled = ref<number | null>(2);
+const searchableVehicleOptions: { value: number; label: string }[] = [
+    { value: 1, label: 'EH-142-AZ — Peugeot 308' },
+    { value: 2, label: 'EL-887-KB — Renault Clio' },
+    { value: 3, label: 'EM-512-RD — Dacia Duster' },
+    { value: 4, label: 'EP-204-XJ — Citroën Berlingo' },
+    { value: 5, label: 'EQ-991-VT — Peugeot Partner' },
+    { value: 6, label: 'ER-330-MN — Renault Trafic' },
+    { value: 7, label: 'ES-417-WB — Tesla Model 3' },
+    { value: 8, label: 'ET-650-PK — Toyota Yaris hybride' },
+    { value: 9, label: 'EU-128-ZJ — BMW Série 3' },
+    { value: 10, label: 'EV-309-FR — Volkswagen Golf' },
+    { value: 11, label: 'EW-456-LM — Audi A4' },
+    { value: 12, label: 'EX-872-NQ — Mercedes Classe A' },
+    { value: 13, label: 'EY-013-CB — Hyundai Kona électrique' },
+    { value: 14, label: 'EZ-742-DV — Kia Niro hybride' },
+    { value: 15, label: 'FA-289-GH — Fiat Doblo' },
+    { value: 16, label: 'FB-554-JK — Ford Transit' },
+    { value: 17, label: 'FC-103-PL — Opel Vivaro' },
+    { value: 18, label: 'FD-701-WS — Iveco Daily' },
+    { value: 19, label: 'FE-218-XY — Skoda Octavia' },
+    { value: 20, label: 'FF-633-RT — Seat Leon' },
+    { value: 21, label: 'FG-049-MV — Volvo XC40' },
+    { value: 22, label: 'FH-825-NB — Land Rover Defender' },
+    { value: 23, label: 'FJ-376-QC — Jeep Renegade' },
+    { value: 24, label: 'FK-590-DE — Mini Cooper' },
+    { value: 25, label: 'FL-118-FG — Smart EQ ForTwo' },
+    { value: 26, label: 'FM-704-HJ — Nissan Leaf' },
+    { value: 27, label: 'FN-261-KL — Renault ZOE' },
+    { value: 28, label: 'FP-947-MN — Peugeot e-208' },
+    { value: 29, label: 'FQ-385-PR — Citroën ë-C4' },
+    { value: 30, label: 'FR-572-ST — Tesla Model Y' },
 ];
 
 type Swatch = { label: string; class: string };
@@ -769,6 +809,47 @@ const companyChips: Swatch[] = [
                                 v-model="demoDate"
                                 label="Date de début"
                                 required
+                            />
+                        </div>
+                    </div>
+
+                    <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
+                        <p class="eyebrow mb-4">SearchableSelect</p>
+                        <p class="mb-4 text-xs text-slate-500">
+                            Combobox avec filtre tapé (debounce 300 ms),
+                            navigation clavier ↑↓ Enter Escape, click-outside.
+                            Drop-in API SelectInput. Adapté aux listes longues
+                            (30+ options).
+                        </p>
+                        <div
+                            class="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-x-6"
+                        >
+                            <SearchableSelect
+                                v-model="demoSearchableVehicle"
+                                label="Véhicule (avec sélection)"
+                                :options="searchableVehicleOptions"
+                                placeholder="Choisir un véhicule…"
+                                hint="30 options factices — tape « tesla », « hybride »…"
+                                required
+                            />
+                            <SearchableSelect
+                                v-model="demoSearchableEmpty"
+                                label="Véhicule (vide)"
+                                :options="searchableVehicleOptions"
+                                placeholder="Aucun véhicule sélectionné"
+                            />
+                            <SearchableSelect
+                                v-model="demoSearchableError"
+                                label="Véhicule (erreur)"
+                                :options="searchableVehicleOptions"
+                                placeholder="Choisir un véhicule…"
+                                error="Sélection requise pour la création du contrat."
+                            />
+                            <SearchableSelect
+                                v-model="demoSearchableDisabled"
+                                label="Véhicule (désactivé)"
+                                :options="searchableVehicleOptions"
+                                disabled
                             />
                         </div>
                     </div>
