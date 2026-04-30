@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { onClickOutside, onKeyStroke } from '@vueuse/core';
 import { Filter } from 'lucide-vue-next';
-import { computed, nextTick, ref, watch } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 defineProps<{
     /** Nombre de filtres actifs (badge sur le bouton trigger). */
@@ -13,57 +12,54 @@ defineEmits<{
 }>();
 
 const open = defineModel<boolean>('open', { default: false });
-const triggerRef = ref<HTMLElement | null>(null);
-const panelRef = ref<HTMLElement | null>(null);
+const rootRef = ref<HTMLElement | null>(null);
 
-// Position absolue du panneau dans le body (Teleport) — calculée à
-// l'ouverture depuis le BoundingClientRect du bouton trigger pour
-// échapper aux ancêtres `overflow-hidden`.
-const panelPosition = ref<{ top: number; right: number }>({ top: 0, right: 0 });
+function toggle(event: MouseEvent): void {
+    event.stopPropagation();
+    open.value = !open.value;
+}
 
-function updatePosition(): void {
-    if (triggerRef.value === null) {
+function handleDocumentMouseDown(event: MouseEvent): void {
+    if (!open.value) {
         return;
     }
 
-    const rect = triggerRef.value.getBoundingClientRect();
-    panelPosition.value = {
-        top: rect.bottom + window.scrollY + 8,
-        right: window.innerWidth - rect.right,
-    };
-}
+    const target = event.target as Node | null;
 
-watch(open, async (value) => {
-    if (value) {
-        await nextTick();
-        updatePosition();
+    if (target === null) {
+        return;
     }
-});
 
-onClickOutside(panelRef, (event) => {
-    if (triggerRef.value !== null && triggerRef.value.contains(event.target as Node)) {
+    if (rootRef.value !== null && rootRef.value.contains(target)) {
         return;
     }
 
     open.value = false;
-});
+}
 
-onKeyStroke('Escape', () => {
-    if (open.value) {
+function handleEscape(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && open.value) {
         open.value = false;
     }
+}
+
+onMounted(() => {
+    document.addEventListener('mousedown', handleDocumentMouseDown);
+    document.addEventListener('keydown', handleEscape);
 });
 
-const panelStyle = computed(() => ({
-    top: `${panelPosition.value.top}px`,
-    right: `${panelPosition.value.right}px`,
-}));
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', handleDocumentMouseDown);
+    document.removeEventListener('keydown', handleEscape);
+});
 </script>
 
 <template>
-    <div class="inline-block">
+    <div
+        ref="rootRef"
+        class="relative inline-block"
+    >
         <button
-            ref="triggerRef"
             type="button"
             :class="[
                 'inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-[120ms] ease-out',
@@ -71,9 +67,12 @@ const panelStyle = computed(() => ({
                     ? 'border-blue-300 bg-blue-50 text-blue-900 hover:bg-blue-100'
                     : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50',
             ]"
-            @click="open = !open"
+            @click="toggle"
         >
-            <Filter :size="14" :stroke-width="1.75" />
+            <Filter
+                :size="14"
+                :stroke-width="1.75"
+            />
             <span>Filtres</span>
             <span
                 v-if="activeCount > 0"
@@ -83,39 +82,35 @@ const panelStyle = computed(() => ({
             </span>
         </button>
 
-        <Teleport to="body">
-            <div
-                v-if="open"
-                ref="panelRef"
-                class="fixed z-50 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white shadow-lg"
-                :style="panelStyle"
-            >
-                <div class="flex flex-col gap-3 p-4">
-                    <slot />
-                </div>
-                <div class="flex items-center justify-between border-t border-slate-100 px-4 py-2">
-                    <button
-                        type="button"
-                        :class="[
-                            'cursor-pointer text-xs underline-offset-2 transition-colors duration-[120ms] ease-out',
-                            activeCount > 0
-                                ? 'text-rose-600 hover:text-rose-700 hover:underline'
-                                : 'cursor-not-allowed text-slate-300',
-                        ]"
-                        :disabled="activeCount === 0"
-                        @click="$emit('reset')"
-                    >
-                        Réinitialiser
-                    </button>
-                    <button
-                        type="button"
-                        class="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
-                        @click="open = false"
-                    >
-                        Fermer
-                    </button>
-                </div>
+        <div
+            v-if="open"
+            class="absolute right-0 top-full z-50 mt-2 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white shadow-lg"
+        >
+            <div class="flex flex-col gap-3 p-4">
+                <slot />
             </div>
-        </Teleport>
+            <div class="flex items-center justify-between border-t border-slate-100 px-4 py-2">
+                <button
+                    type="button"
+                    :class="[
+                        'cursor-pointer text-xs underline-offset-2 transition-colors duration-[120ms] ease-out',
+                        activeCount > 0
+                            ? 'text-rose-600 hover:text-rose-700 hover:underline'
+                            : 'cursor-not-allowed text-slate-300',
+                    ]"
+                    :disabled="activeCount === 0"
+                    @click="$emit('reset')"
+                >
+                    Réinitialiser
+                </button>
+                <button
+                    type="button"
+                    class="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
+                    @click="open = false"
+                >
+                    Fermer
+                </button>
+            </div>
+        </div>
     </div>
 </template>

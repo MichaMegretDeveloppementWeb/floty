@@ -73,12 +73,14 @@ const maxModel = computed({
 
             <EmptyCompaniesState v-if="props.companies.length === 0" />
             <template v-else>
-                <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-3">
                     <FilterChips
+                        class="flex-1"
                         :chips="tableState.activeFilterChips.value"
                         @remove="(key: string) => tableState.removeFilter(key as keyof CompanyFilters)"
                     />
                     <FilterPopover
+                        class="ml-auto shrink-0"
                         v-model:open="filtersOpen"
                         :active-count="tableState.state.activeFiltersCount.value"
                         @reset="tableState.state.clearFilters"
