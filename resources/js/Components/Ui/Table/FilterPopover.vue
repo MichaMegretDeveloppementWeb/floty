@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onClickOutside, onKeyStroke } from '@vueuse/core';
 import { Filter } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 
 defineProps<{
     /** Nombre de filtres actifs (badge sur le bouton trigger). */
@@ -13,9 +13,38 @@ defineEmits<{
 }>();
 
 const open = defineModel<boolean>('open', { default: false });
-const rootRef = ref<HTMLElement | null>(null);
+const triggerRef = ref<HTMLElement | null>(null);
+const panelRef = ref<HTMLElement | null>(null);
 
-onClickOutside(rootRef, () => {
+// Position absolue du panneau dans le body (Teleport) — calculée à
+// l'ouverture depuis le BoundingClientRect du bouton trigger pour
+// échapper aux ancêtres `overflow-hidden`.
+const panelPosition = ref<{ top: number; right: number }>({ top: 0, right: 0 });
+
+function updatePosition(): void {
+    if (triggerRef.value === null) {
+        return;
+    }
+
+    const rect = triggerRef.value.getBoundingClientRect();
+    panelPosition.value = {
+        top: rect.bottom + window.scrollY + 8,
+        right: window.innerWidth - rect.right,
+    };
+}
+
+watch(open, async (value) => {
+    if (value) {
+        await nextTick();
+        updatePosition();
+    }
+});
+
+onClickOutside(panelRef, (event) => {
+    if (triggerRef.value !== null && triggerRef.value.contains(event.target as Node)) {
+        return;
+    }
+
     open.value = false;
 });
 
@@ -24,14 +53,17 @@ onKeyStroke('Escape', () => {
         open.value = false;
     }
 });
+
+const panelStyle = computed(() => ({
+    top: `${panelPosition.value.top}px`,
+    right: `${panelPosition.value.right}px`,
+}));
 </script>
 
 <template>
-    <div
-        ref="rootRef"
-        class="relative"
-    >
+    <div class="inline-block">
         <button
+            ref="triggerRef"
             type="button"
             :class="[
                 'inline-flex cursor-pointer items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm font-medium transition-colors duration-[120ms] ease-out',
@@ -51,35 +83,39 @@ onKeyStroke('Escape', () => {
             </span>
         </button>
 
-        <div
-            v-if="open"
-            class="absolute right-0 z-30 mt-2 w-[400px] rounded-lg border border-slate-200 bg-white shadow-lg"
-        >
-            <div class="flex flex-col gap-3 p-4">
-                <slot />
+        <Teleport to="body">
+            <div
+                v-if="open"
+                ref="panelRef"
+                class="fixed z-50 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white shadow-lg"
+                :style="panelStyle"
+            >
+                <div class="flex flex-col gap-3 p-4">
+                    <slot />
+                </div>
+                <div class="flex items-center justify-between border-t border-slate-100 px-4 py-2">
+                    <button
+                        type="button"
+                        :class="[
+                            'cursor-pointer text-xs underline-offset-2 transition-colors duration-[120ms] ease-out',
+                            activeCount > 0
+                                ? 'text-rose-600 hover:text-rose-700 hover:underline'
+                                : 'cursor-not-allowed text-slate-300',
+                        ]"
+                        :disabled="activeCount === 0"
+                        @click="$emit('reset')"
+                    >
+                        Réinitialiser
+                    </button>
+                    <button
+                        type="button"
+                        class="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
+                        @click="open = false"
+                    >
+                        Fermer
+                    </button>
+                </div>
             </div>
-            <div class="flex items-center justify-between border-t border-slate-100 px-4 py-2">
-                <button
-                    type="button"
-                    :class="[
-                        'cursor-pointer text-xs underline-offset-2 transition-colors duration-[120ms] ease-out',
-                        activeCount > 0
-                            ? 'text-rose-600 hover:text-rose-700 hover:underline'
-                            : 'cursor-not-allowed text-slate-300',
-                    ]"
-                    :disabled="activeCount === 0"
-                    @click="$emit('reset')"
-                >
-                    Réinitialiser
-                </button>
-                <button
-                    type="button"
-                    class="cursor-pointer rounded-md border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-700 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
-                    @click="open = false"
-                >
-                    Fermer
-                </button>
-            </div>
-        </div>
+        </Teleport>
     </div>
 </template>
