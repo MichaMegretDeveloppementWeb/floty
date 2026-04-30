@@ -143,7 +143,7 @@ function resolveLegalLinkFor(
         return {
             label: `CIBS ${ref.article}`,
             url: cibsUrlFor(ref.article, year),
-            title: `Article ${ref.article} du Code des impositions sur les biens et services — version applicable au 01/01/${year} (Légifrance)`,
+            title: `Article ${ref.article} du Code des impositions sur les biens et services, version applicable au 01/01/${year} (Légifrance)`,
         };
     }
 

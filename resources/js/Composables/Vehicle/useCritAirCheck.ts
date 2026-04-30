@@ -132,8 +132,8 @@ function expectedCategoryFromCritAir(vignette: CritAirVignette | null): Pollutan
 
 function labelOf(category: PollutantCategory): string {
     return {
-        e: 'E — Électrique / hydrogène',
-        category_1: '1 — Essence ou gaz Euro 5/6',
+        e: 'E · Électrique / hydrogène',
+        category_1: '1 · Essence ou gaz Euro 5/6',
         most_polluting: 'Véhicules les plus polluants',
     }[category];
 }

@@ -19,8 +19,8 @@ enum VehicleUserType: string
     public function label(): string
     {
         return match ($this) {
-            self::PassengerCar => 'VP — Voiture particulière',
-            self::CommercialVehicle => 'VU — Véhicule utilitaire',
+            self::PassengerCar => 'VP · Voiture particulière',
+            self::CommercialVehicle => 'VU · Véhicule utilitaire',
         };
     }
 }

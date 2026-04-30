@@ -143,12 +143,12 @@ final readonly class FiscalCharacteristicsImpact
             FiscalCharacteristicsImpactType::AdjustEffectiveTo => sprintf(
                 'Date de fin de la version %s ramenée au %s',
                 $period,
-                $this->newEffectiveTo?->format('d/m/Y') ?? '—',
+                $this->newEffectiveTo?->format('d/m/Y') ?? 'sans fin',
             ),
             FiscalCharacteristicsImpactType::AdjustEffectiveFrom => sprintf(
                 'Date de début de la version %s ramenée au %s',
                 $period,
-                $this->newEffectiveFrom?->format('d/m/Y') ?? '—',
+                $this->newEffectiveFrom?->format('d/m/Y') ?? 'sans début',
             ),
         };
     }

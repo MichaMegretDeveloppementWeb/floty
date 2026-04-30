@@ -39,7 +39,7 @@ const vehicleOptions = computed(() =>
 const companyOptions = computed(() =>
     props.options.companies.map((c) => ({
         value: c.id,
-        label: `${c.shortCode} — ${c.legalName}`,
+        label: `${c.shortCode} · ${c.legalName}`,
     })),
 );
 

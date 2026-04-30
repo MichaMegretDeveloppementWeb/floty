@@ -34,7 +34,7 @@ const { preview, loading: previewLoading, fetch: fetchPreview, reset: resetPrevi
 const companyOptions = computed(() =>
     props.companies.map((c) => ({
         value: c.id,
-        label: `${c.shortCode} — ${c.legalName}`,
+        label: `${c.shortCode} · ${c.legalName}`,
     })),
 );
 

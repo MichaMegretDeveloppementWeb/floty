@@ -78,7 +78,7 @@ const {
             <TextInput
                 v-model="form.description"
                 label="Description"
-                hint="Optionnel — précisez le contexte si utile."
+                hint="Optionnel. Précisez le contexte si utile."
                 :error="form.errors.description"
             />
         </form>

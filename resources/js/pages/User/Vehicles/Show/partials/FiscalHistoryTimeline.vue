@@ -36,7 +36,7 @@ const co2OrPa = (item: Vfc): string => {
         return `${item.taxableHorsepower} CV`;
     }
 
-    return '—';
+    return '';
 };
 </script>
 

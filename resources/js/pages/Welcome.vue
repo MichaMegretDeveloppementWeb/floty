@@ -11,7 +11,7 @@ const isAuthenticated = computed(() => page.props.auth?.user !== null);
 </script>
 
 <template>
-    <Head title="Floty — gestion de flotte partagée" />
+    <Head title="Floty · gestion de flotte partagée" />
 
     <main
         class="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 py-12"

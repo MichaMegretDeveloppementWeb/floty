@@ -35,7 +35,7 @@ final class FiscalCharacteristicsRequiresConfirmationException extends BaseAppEx
 
         $count = count($deletions);
         $lines = array_map(
-            static fn (FiscalCharacteristicsImpact $i): string => '— '.$i->describe(),
+            static fn (FiscalCharacteristicsImpact $i): string => '· '.$i->describe(),
             $deletions,
         );
 

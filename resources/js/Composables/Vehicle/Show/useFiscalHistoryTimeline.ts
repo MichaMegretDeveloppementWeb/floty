@@ -15,7 +15,7 @@ export function useFiscalHistoryTimeline(): {
         const from = formatDateFr(item.effectiveFrom);
 
         if (item.effectiveTo === null) {
-            return `du ${from} — en cours`;
+            return `du ${from}, en cours`;
         }
 
         return `du ${from} au ${formatDateFr(item.effectiveTo)}`;

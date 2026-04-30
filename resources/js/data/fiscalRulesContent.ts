@@ -94,7 +94,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-004': {
         tab: 'calcul',
         section: 'aiguillage',
-        title: 'Étape 1 — Le véhicule est-il taxable ?',
+        title: 'Étape 1 : le véhicule est-il taxable ?',
         pitch: 'Seuls les véhicules de catégorie M1 (tourisme) et certains N1 (transport de personnes) sont assujettis aux deux taxes.',
         body: "L'application qualifie automatiquement chaque véhicule à partir de sa catégorie de réception européenne (M1/N1), de sa carrosserie et du nombre de places. Les vrais utilitaires de transport de marchandises (N1 type fourgon, camionnette à 1 rang) sont hors du champ des taxes.",
         example:
@@ -103,8 +103,8 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-005': {
         tab: 'calcul',
         section: 'aiguillage',
-        title: 'Étape 2 — Quel barème CO₂ appliquer ?',
-        pitch: 'WLTP, NEDC ou Puissance Administrative — choix automatique selon la date de première immatriculation et les données disponibles.',
+        title: 'Étape 2 : quel barème CO₂ appliquer ?',
+        pitch: 'WLTP, NEDC ou Puissance Administrative, choix automatique selon la date de première immatriculation et les données disponibles.',
         body: "L'aiguillage suit cet arbre : (1) véhicule immatriculé en France à partir du 01/03/2020 et CO₂ WLTP connu → barème WLTP. (2) Véhicule immatriculé entre le 01/06/2004 et 29/02/2020 avec CO₂ NEDC connu → barème NEDC. (3) Dans tous les autres cas (ancien véhicule, données manquantes) → barème Puissance Administrative (CV).",
         example:
             'Peugeot 308 immat. 15/06/2022 avec CO₂ WLTP 100 g/km → WLTP. Peugeot 207 immat. 2010 avec NEDC 130 g/km → NEDC. Renault 21 immat. 2002, 7 CV → PA.',
@@ -112,7 +112,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-013': {
         tab: 'calcul',
         section: 'aiguillage',
-        title: 'Étape 3 — Quelle catégorie polluants ?',
+        title: 'Étape 3 : quelle catégorie polluants ?',
         pitch: 'Trois catégories : E (électrique/hydrogène), 1 (essence ou gaz Euro 5/6), « plus polluants » (tous les autres, dont Diesel).',
         body: 'Catégorie E = électrique exclusif, hydrogène exclusif, ou combinaison des deux. Catégorie 1 = véhicules à allumage commandé (essence, GPL, GNV, E85, ou hybride essence) respectant Euro 5 ou Euro 6. Catégorie « véhicules les plus polluants » = tous les autres, notamment tous les Diesel (même Euro 6), les essence pré-Euro 5, et les véhicules sans norme Euro renseignée.',
         example:
@@ -123,7 +123,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-010': {
         tab: 'calcul',
         section: 'bareme',
-        title: 'Barème CO₂ — WLTP (véhicules récents)',
+        title: 'Barème CO₂ WLTP (véhicules récents)',
         pitch: 'Tarif progressif par tranches calculé sur les grammes de CO₂ par km (valeur WLTP).',
         body: "Pour chaque tranche traversée par l'émission du véhicule, on multiplie la fraction d'émission tombant dans la tranche par le tarif marginal de cette tranche. La somme donne le tarif annuel plein. Puis : taxe due = tarif annuel plein × (jours utilisés / 366).",
         progressiveBrackets: {
@@ -147,7 +147,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-011': {
         tab: 'calcul',
         section: 'bareme',
-        title: 'Barème CO₂ — NEDC (véhicules 2004-2020)',
+        title: 'Barème CO₂ NEDC (véhicules 2004-2020)',
         pitch: 'Même mécanique que WLTP, mais avec des seuils plus bas car la norme NEDC mesure des émissions plus optimistes.',
         body: 'Tarif progressif à tarif marginal identique dans sa logique au barème WLTP. Les tranches sont décalées vers le bas : à tarif équivalent, on atteint une tranche donnée avec moins de grammes mesurés en NEDC qu’en WLTP.',
         progressiveBrackets: {
@@ -171,7 +171,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-012': {
         tab: 'calcul',
         section: 'bareme',
-        title: 'Barème CO₂ — Puissance Administrative (anciens véhicules)',
+        title: 'Barème CO₂ Puissance Administrative (anciens véhicules)',
         pitch: 'Barème de repli quand la valeur CO₂ est indisponible : tarif progressif sur les chevaux fiscaux (CV).',
         body: "S'applique aux véhicules immatriculés avant le 01/06/2004, à ceux déjà affectés à des fins économiques avant 2006, et à tous les cas où la donnée CO₂ attendue est manquante. Même logique de tarif marginal par tranches, appliquée sur la puissance administrative.",
         progressiveBrackets: {
@@ -191,18 +191,18 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     'R-2024-014': {
         tab: 'calcul',
         section: 'bareme',
-        title: 'Barème polluants — tarif forfaitaire par catégorie',
+        title: 'Barème polluants : tarif forfaitaire par catégorie',
         pitch: 'Tarif annuel forfaitaire selon la catégorie polluants du véhicule (déterminée à l’étape 3 ci-dessus).',
-        body: 'Le tarif annuel plein ne dépend ni de l’émission réelle ni de la cylindrée — c’est un forfait par catégorie. Il est multiplié par le prorata jours utilisés / 366.',
+        body: 'Le tarif annuel plein ne dépend ni de l’émission réelle ni de la cylindrée : c’est un forfait par catégorie. Il est multiplié par le prorata jours utilisés / 366.',
         flatBrackets: {
             header: ['Catégorie polluants', 'Tarif annuel 2024'],
             rows: [
                 {
-                    category: 'E — électrique / hydrogène',
+                    category: 'E · électrique / hydrogène',
                     amount: '0 €',
                     note: 'Effet du barème, pas une exonération.',
                 },
-                { category: '1 — essence/gaz Euro 5 ou 6', amount: '100 €' },
+                { category: '1 · essence/gaz Euro 5 ou 6', amount: '100 €' },
                 {
                     category: 'Véhicules les plus polluants',
                     amount: '500 €',
@@ -328,7 +328,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         section: 'cadre-evenement',
         title: 'Indisponibilités fiscalement réductrices',
         pitch: 'Les jours d’indisponibilité subie (V1 : fourrière) tombant dans un contrat taxable sont retirés du numérateur du prorata.',
-        body: "Règle souveraine (refonte ADR-0014) : le moteur fiscal applique R-2024-008 sur la matière brute (contrats × indispos) — plus de filtrage SQL caché. Si un contrat de 91 j chevauche 10 j de fourrière, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà LCD-exonéré ne sont pas comptés (déjà retirés via R-2024-021). ADR-0016 raffinera la grille à 4 cas réducteurs en chantier 04.I.",
+        body: "Règle souveraine (refonte ADR-0014) : le moteur fiscal applique R-2024-008 sur la matière brute (contrats × indispos), plus de filtrage SQL caché. Si un contrat de 91 j chevauche 10 j de fourrière, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà LCD-exonéré ne sont pas comptés (déjà retirés via R-2024-021). ADR-0016 raffinera la grille à 4 cas réducteurs en chantier 04.I.",
     },
     'R-2024-009': {
         tab: 'cadre',
@@ -407,7 +407,7 @@ export const sectionTitles: Record<
     },
     'cadre-implicite': {
         title: 'Règles implicites du calcul',
-        subtitle: 'Évidences du mécanisme fiscal — énoncées ici pour mémoire.',
+        subtitle: 'Évidences du mécanisme fiscal, énoncées ici pour mémoire.',
     },
     'cadre-evenement': {
         title: 'Règles de gestion des évènements véhicule',

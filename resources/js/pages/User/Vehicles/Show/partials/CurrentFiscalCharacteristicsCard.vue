@@ -95,7 +95,7 @@ const deleteState = useVfcDeleteModalState();
         <Modal
             v-model:open="historyOpen"
             title="Historique des caractéristiques fiscales"
-            :description="`${historyCount} version${historyCount > 1 ? 's' : ''} enregistrée${historyCount > 1 ? 's' : ''} — de la plus récente à la plus ancienne.`"
+            :description="`${historyCount} version${historyCount > 1 ? 's' : ''} enregistrée${historyCount > 1 ? 's' : ''}, de la plus récente à la plus ancienne.`"
             size="lg"
         >
             <FiscalHistoryTimeline

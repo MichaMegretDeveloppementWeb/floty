@@ -61,7 +61,7 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
                     v-if="year.daysAssigned === 0"
                     class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
                 >
-                    Contrat exonéré pour {{ year.year }} — 0 €.
+                    Contrat exonéré pour {{ year.year }} : 0 €.
                     <span class="block text-xs text-emerald-700/80 mt-0.5">
                         Aucun jour retenu au numérateur du prorata après application
                         des règles d'exonération.

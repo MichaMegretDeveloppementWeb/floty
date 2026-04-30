@@ -20,7 +20,7 @@ const fullYearModalOpen = ref<boolean>(false);
 </script>
 
 <template>
-    <Head :title="`${props.vehicle.licensePlate} — ${props.vehicle.brand} ${props.vehicle.model}`" />
+    <Head :title="`${props.vehicle.licensePlate} · ${props.vehicle.brand} ${props.vehicle.model}`" />
 
     <UserLayout>
         <div class="flex flex-col gap-6">

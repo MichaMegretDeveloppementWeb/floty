@@ -28,14 +28,14 @@ export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
         {
             label: "Vue d'ensemble",
             description:
-                "Heatmap annuelle des 52 semaines — la vue maîtresse pour attribuer et visualiser l'impact fiscal en temps réel.",
+                "Heatmap annuelle des 52 semaines, la vue maîtresse pour attribuer et visualiser l'impact fiscal en temps réel.",
             href: planningIndexRoute.url(),
             icon: CalendarDays,
         },
         {
             label: 'Contrats',
             description:
-                'Plages d\'attribution véhicule × entreprise — créer, modifier, supprimer (LCD per-contract).',
+                'Plages d\'attribution véhicule × entreprise. Créer, modifier, supprimer (LCD per-contract).',
             href: contractsIndexRoute.url(),
             icon: FileText,
         },
@@ -56,7 +56,7 @@ export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
         {
             label: 'Règles de calcul',
             description:
-                'Comprendre comment Floty calcule les taxes CO₂ et polluants — barèmes, exonérations, cadre.',
+                'Comprendre comment Floty calcule les taxes CO₂ et polluants : barèmes, exonérations, cadre.',
             href: fiscalRulesIndexRoute.url(),
             icon: Receipt,
         },

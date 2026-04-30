@@ -261,7 +261,7 @@ export function useDateRangePicker(
         }
 
         if (end === null) {
-            return `Début : ${formatFr(start)} — sélectionnez la fin`;
+            return `Début : ${formatFr(start)}, sélectionnez la fin`;
         }
 
         return `Du ${formatFr(start)} au ${formatFr(end)}`;

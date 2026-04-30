@@ -68,7 +68,7 @@ const {
                         v-for="(impact, idx) in nonDestructiveImpacts"
                         :key="`adj-${idx}`"
                     >
-                        — {{ describeImpact(impact) }}
+                        · {{ describeImpact(impact) }}
                     </li>
                 </ul>
             </section>
@@ -86,7 +86,7 @@ const {
                         v-for="(impact, idx) in destructiveImpacts"
                         :key="`del-${idx}`"
                     >
-                        — {{ describeImpact(impact) }}
+                        · {{ describeImpact(impact) }}
                     </li>
                 </ul>
                 <p class="mt-2 text-xs leading-snug text-rose-700">
@@ -101,7 +101,7 @@ const {
                 v-if="isInitialCreation"
                 class="rounded-xl border border-slate-200 bg-slate-50/50 p-4 text-xs leading-snug text-slate-500"
             >
-                Motif&nbsp;: <span class="font-medium text-slate-700">Création initiale</span> — non modifiable. Cette version est l'origine de l'historique fiscal du véhicule, elle ne décrit pas un changement.
+                Motif&nbsp;: <span class="font-medium text-slate-700">Création initiale</span>, non modifiable. Cette version est l'origine de l'historique fiscal du véhicule, elle ne décrit pas un changement.
             </section>
 
             <section
@@ -158,7 +158,7 @@ const {
                 v-for="(impact, idx) in destructiveImpacts"
                 :key="`confirm-del-${idx}`"
             >
-                — {{ describeImpact(impact) }}
+                · {{ describeImpact(impact) }}
             </li>
         </ul>
         <p

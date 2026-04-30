@@ -67,10 +67,10 @@ function onHeaderClick(columnKey: string): void {
             />
         </template>
         <template #cell-siren="{ value }">
-            {{ value ?? '—' }}
+            <span :class="value ? '' : 'text-slate-300'">{{ value ?? 'Non renseigné' }}</span>
         </template>
         <template #cell-city="{ value }">
-            {{ value ?? '—' }}
+            <span :class="value ? '' : 'text-slate-300'">{{ value ?? 'Non renseignée' }}</span>
         </template>
         <template #cell-daysUsed="{ value }">
             <span class="text-slate-700">{{ value }} j</span>
