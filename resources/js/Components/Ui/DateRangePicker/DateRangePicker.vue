@@ -54,7 +54,6 @@ const {
     monthOptions,
     yearOptions,
     weeks,
-    summary,
     gotoPrevMonth,
     gotoNextMonth,
     onDayClick,
@@ -184,7 +183,7 @@ const {
                 <input
                     type="date"
                     :value="range.startDate ?? ''"
-                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] w-[20em]"
+                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] w-[15em]"
                     @change="(e) => onStartDateInput((e.target as HTMLInputElement).value)"
                 />
             </label>
@@ -202,7 +201,7 @@ const {
                     :value="range.endDate ?? ''"
                     :disabled="ongoing"
                     :class="[
-                        'rounded-md border px-2 py-1 text-sm transition-colors duration-[120ms] ease-out focus:outline-none w-[20em]',
+                        'rounded-md border px-2 py-1 text-sm transition-colors duration-[120ms] ease-out focus:outline-none w-[15em]',
                         ongoing
                             ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
                             : 'border-slate-200 bg-white text-slate-900 focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]',
@@ -213,28 +212,6 @@ const {
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-            <!-- Pill avec X intégré (visible si sélection active) -->
-            <div
-                v-if="range.startDate !== null"
-                class="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 py-1 pr-1 pl-3 text-blue-900"
-            >
-                <span class="font-medium">{{ summary }}</span>
-                <button
-                    type="button"
-                    class="inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-blue-500 transition-colors duration-[120ms] ease-out hover:bg-blue-100 hover:text-blue-900"
-                    title="Effacer la sélection"
-                    aria-label="Effacer la sélection"
-                    @click="clearSelection"
-                >
-                    <X :size="12" :stroke-width="2" />
-                </button>
-            </div>
-            <p
-                v-else
-                class="text-slate-500"
-            >
-                {{ summary }}
-            </p>
 
             <!-- Bouton secondary visible si sélection active -->
             <Button

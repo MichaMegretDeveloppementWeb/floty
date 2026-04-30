@@ -70,7 +70,7 @@ final class FiscalCalculatorTest extends TestCase
         $this->assertFalse($r->lcdExempt);
         $this->assertFalse($r->electricExempt);
         $this->assertFalse($r->handicapExempt);
-        $this->assertSame([], $r->exemptionReasons);
+        $this->assertSame([], $r->appliedExemptions);
     }
 
     #[Test]
@@ -115,9 +115,10 @@ final class FiscalCalculatorTest extends TestCase
         $this->assertSame(0.0, $r->co2Due);
         $this->assertSame(0.0, $r->pollutantsDue);
         $this->assertSame(0.0, $r->totalDue);
-        $this->assertCount(1, $r->exemptionReasons);
-        $this->assertStringContainsString('LCD', $r->exemptionReasons[0]);
-        $this->assertStringContainsString('30 j', $r->exemptionReasons[0]);
+        $this->assertCount(1, $r->appliedExemptions);
+        $this->assertStringContainsString('LCD', $r->appliedExemptions[0]->reason);
+        $this->assertStringContainsString('30 j', $r->appliedExemptions[0]->reason);
+        $this->assertSame('R-2024-021', $r->appliedExemptions[0]->ruleCode);
     }
 
     #[Test]
@@ -132,7 +133,7 @@ final class FiscalCalculatorTest extends TestCase
         $this->assertSame(14.65, $r->co2Due);
         $this->assertSame(8.47, $r->pollutantsDue);
         $this->assertSame(23.12, $r->totalDue);
-        $this->assertSame([], $r->exemptionReasons);
+        $this->assertSame([], $r->appliedExemptions);
     }
 
     #[Test]
@@ -148,8 +149,9 @@ final class FiscalCalculatorTest extends TestCase
         // Polluants cat E = 0 € (effet du barème, pas exonération)
         $this->assertSame(0.0, $r->pollutantsDue);
         $this->assertSame(0.0, $r->totalDue);
-        $this->assertCount(1, $r->exemptionReasons);
-        $this->assertStringContainsString('électrique', $r->exemptionReasons[0]);
+        $this->assertCount(1, $r->appliedExemptions);
+        $this->assertStringContainsString('électrique', $r->appliedExemptions[0]->reason);
+        $this->assertSame('R-2024-016', $r->appliedExemptions[0]->ruleCode);
     }
 
     #[Test]
@@ -172,8 +174,9 @@ final class FiscalCalculatorTest extends TestCase
         $this->assertSame(0.0, $r->co2Due);
         $this->assertSame(0.0, $r->pollutantsDue);
         $this->assertSame(0.0, $r->totalDue);
-        $this->assertCount(1, $r->exemptionReasons);
-        $this->assertStringContainsString('handicap', $r->exemptionReasons[0]);
+        $this->assertCount(1, $r->appliedExemptions);
+        $this->assertStringContainsString('handicap', $r->appliedExemptions[0]->reason);
+        $this->assertSame('R-2024-015', $r->appliedExemptions[0]->ruleCode);
     }
 
     #[Test]
@@ -255,7 +258,9 @@ final class FiscalCalculatorTest extends TestCase
         $this->assertSame($breakdown->pollutantsFullYearTariff, $data->pollutantsFullYearTariff);
         $this->assertSame($breakdown->pollutantsDue, $data->pollutantsDue);
         $this->assertSame($breakdown->totalDue, $data->totalDue);
-        $this->assertSame($breakdown->exemptionReasons, $data->exemptionReasons);
+        // appliedExemptions est mappé via fromValueObject ; on compare par
+        // longueur (le test couvre un cas sans exonération → liste vide).
+        $this->assertCount(count($breakdown->appliedExemptions), $data->appliedExemptions);
 
         // Sérialisation Spatie expose les bons noms (camelCase)
         $payload = $data->toArray();
@@ -362,8 +367,9 @@ final class FiscalCalculatorTest extends TestCase
         // Polluants Category 1 toujours dus (R-017 = Co2Only)
         $this->assertSame(100.0, $r->pollutantsFullYearTariff);
         $this->assertSame(100.0, $r->pollutantsDue);
-        $this->assertCount(1, $r->exemptionReasons);
-        $this->assertStringContainsString('hybride', $r->exemptionReasons[0]);
+        $this->assertCount(1, $r->appliedExemptions);
+        $this->assertStringContainsString('hybride', $r->appliedExemptions[0]->reason);
+        $this->assertSame('R-2024-017', $r->appliedExemptions[0]->ruleCode);
     }
 
     #[Test]
@@ -383,7 +389,7 @@ final class FiscalCalculatorTest extends TestCase
             pollutantsFullYearTariff: 100.0,
             pollutantsDue: 27.32,
             totalDue: 74.59,
-            exemptionReasons: [],
+            appliedExemptions: [],
         );
 
         // Toutes les propriétés sont readonly — on vérifie via reflection.

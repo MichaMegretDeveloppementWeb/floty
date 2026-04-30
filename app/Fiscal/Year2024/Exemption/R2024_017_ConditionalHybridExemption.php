@@ -86,6 +86,7 @@ final readonly class R2024_017_ConditionalHybridExemption implements ExemptionRu
 
         return ExemptionVerdict::onlyCo2(
             'Exonération hybride conditionnelle 2024 (CIBS L. 421-125)',
+            $this->ruleCode(),
         );
     }
 

@@ -36,15 +36,18 @@ const { daysInYear } = useFiscalYear();
                 </span>
             </div>
             <div
-                v-if="preview.after.exemptionReasons.length > 0"
+                v-if="preview.after.appliedExemptions.length > 0"
                 class="mt-1 flex flex-col gap-1 text-xs text-emerald-700"
             >
                 <p
-                    v-for="(reason, i) in preview.after.exemptionReasons"
-                    :key="i"
+                    v-for="exemption in preview.after.appliedExemptions"
+                    :key="exemption.ruleCode"
                     class="rounded-md bg-emerald-50 px-2 py-1"
                 >
-                    ✓ {{ reason }}
+                    ✓ {{ exemption.reason }}
+                    <span class="font-mono text-[10px] text-emerald-600">
+                        ({{ exemption.ruleCode }})
+                    </span>
                 </p>
             </div>
             <div

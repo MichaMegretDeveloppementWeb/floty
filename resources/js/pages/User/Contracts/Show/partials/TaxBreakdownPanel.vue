@@ -133,7 +133,7 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
 
                 <!-- Exonérations appliquées -->
                 <section
-                    v-if="year.exemptionReasons.length > 0"
+                    v-if="year.appliedExemptions.length > 0"
                     class="flex flex-col gap-1.5 border-t border-slate-100 pt-3"
                 >
                     <span
@@ -141,14 +141,22 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
                     >
                         Exonérations appliquées
                     </span>
-                    <ul class="flex flex-col gap-1 text-sm text-slate-700">
+                    <ul class="flex flex-col gap-1.5 text-sm text-slate-700">
                         <li
-                            v-for="reason in year.exemptionReasons"
-                            :key="reason"
+                            v-for="exemption in year.appliedExemptions"
+                            :key="exemption.ruleCode"
                             class="flex items-start gap-2"
                         >
-                            <span class="text-emerald-600">✓</span>
-                            <span>{{ reason }}</span>
+                            <span class="mt-0.5 shrink-0 text-emerald-600">✓</span>
+                            <span class="flex-1">{{ exemption.reason }}</span>
+                            <button
+                                type="button"
+                                class="shrink-0 cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-200 hover:text-slate-900 focus-visible:bg-slate-200 focus-visible:outline-none"
+                                :title="`Voir le détail de la règle ${exemption.ruleCode}`"
+                                @click="openRule(exemption.ruleCode)"
+                            >
+                                {{ exemption.ruleCode }}
+                            </button>
                         </li>
                     </ul>
                 </section>

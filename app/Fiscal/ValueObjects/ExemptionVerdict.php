@@ -38,6 +38,7 @@ final readonly class ExemptionVerdict
         public ?string $reason,
         public bool $zeroesFullYearTariffs,
         public ?int $exemptDaysCount = null,
+        public ?string $ruleCode = null,
     ) {}
 
     public static function notExempt(): self
@@ -45,24 +46,24 @@ final readonly class ExemptionVerdict
         return new self(false, null, null, false);
     }
 
-    public static function full(string $reason): self
+    public static function full(string $reason, string $ruleCode): self
     {
-        return new self(true, ExemptionScope::Both, $reason, false);
+        return new self(true, ExemptionScope::Both, $reason, false, null, $ruleCode);
     }
 
-    public static function fullZeroingTariffs(string $reason): self
+    public static function fullZeroingTariffs(string $reason, string $ruleCode): self
     {
-        return new self(true, ExemptionScope::Both, $reason, true);
+        return new self(true, ExemptionScope::Both, $reason, true, null, $ruleCode);
     }
 
-    public static function onlyCo2(string $reason): self
+    public static function onlyCo2(string $reason, string $ruleCode): self
     {
-        return new self(true, ExemptionScope::Co2Only, $reason, false);
+        return new self(true, ExemptionScope::Co2Only, $reason, false, null, $ruleCode);
     }
 
-    public static function onlyPollutants(string $reason): self
+    public static function onlyPollutants(string $reason, string $ruleCode): self
     {
-        return new self(true, ExemptionScope::PollutantsOnly, $reason, false);
+        return new self(true, ExemptionScope::PollutantsOnly, $reason, false, null, $ruleCode);
     }
 
     /**
@@ -70,8 +71,8 @@ final readonly class ExemptionVerdict
      * numérateur du prorata. Les tarifs annuels pleins restent visibles
      * dans le breakdown (info utilisateur).
      */
-    public static function partialDays(int $daysCount, string $reason): self
+    public static function partialDays(int $daysCount, string $reason, string $ruleCode): self
     {
-        return new self(true, null, $reason, false, $daysCount);
+        return new self(true, null, $reason, false, $daysCount, $ruleCode);
     }
 }

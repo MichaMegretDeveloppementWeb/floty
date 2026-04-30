@@ -80,6 +80,7 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule
                 $exemptDays,
                 $exemptDays > 1 ? 's' : '',
             ),
+            $this->ruleCode(),
         );
     }
 

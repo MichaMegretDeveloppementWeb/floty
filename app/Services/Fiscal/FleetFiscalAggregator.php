@@ -7,6 +7,7 @@ namespace App\Services\Fiscal;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Data\User\Contract\ContractTaxBreakdownData;
 use App\Data\User\Contract\ContractTaxYearBreakdownData;
+use App\Data\User\Fiscal\AppliedExemptionData;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\DTO\Fiscal\ContractsByPair;
@@ -164,7 +165,10 @@ final readonly class FleetFiscalAggregator
             pollutantCategory: $result->pollutantCategory,
             pollutantsFullYearTariff: $pollutantsTariff,
             pollutantsExplanation: $this->buildPollutantsExplanation($vfc, $result->pollutantCategory, $pollutantsTariff),
-            exemptionReasons: $result->exemptionReasons,
+            appliedExemptions: array_map(
+                static fn ($e) => AppliedExemptionData::fromValueObject($e),
+                $result->appliedExemptions,
+            ),
             appliedRuleCodes: $result->appliedRuleCodes,
             total: round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP),
             appliedRules: $appliedRules,
@@ -226,7 +230,10 @@ final readonly class FleetFiscalAggregator
                 co2Due: $co2Due,
                 pollutantsDue: $pollutantsDue,
                 totalDue: $yearTotalDue,
-                exemptionReasons: $result->exemptionReasons,
+                appliedExemptions: array_map(
+                    static fn ($e) => AppliedExemptionData::fromValueObject($e),
+                    $result->appliedExemptions,
+                ),
                 appliedRuleCodes: $result->appliedRuleCodes,
                 appliedRules: $appliedRules,
             );

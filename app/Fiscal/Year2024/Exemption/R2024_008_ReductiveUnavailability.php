@@ -97,6 +97,7 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
                 $reductiveCount > 1 ? 's' : '',
                 $reductiveCount > 1 ? 's' : '',
             ),
+            $this->ruleCode(),
         );
     }
 

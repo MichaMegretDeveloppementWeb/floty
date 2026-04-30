@@ -7,6 +7,7 @@ namespace App\DTO\Fiscal;
 use App\Data\User\Fiscal\FiscalBreakdownData;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Fiscal\ValueObjects\AppliedExemption;
 use App\Services\Fiscal\FiscalCalculator;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
@@ -26,7 +27,8 @@ use App\Services\Fiscal\FleetFiscalAggregator;
 final readonly class FiscalBreakdown
 {
     /**
-     * @param  list<string>  $exemptionReasons  Motifs affichables en UI (FR)
+     * @param  list<AppliedExemption>  $appliedExemptions  Exonérations
+     *                                                     appliquées (couples raison + ruleCode)
      */
     public function __construct(
         public int $daysAssigned,
@@ -42,6 +44,6 @@ final readonly class FiscalBreakdown
         public float $pollutantsFullYearTariff,
         public float $pollutantsDue,
         public float $totalDue,
-        public array $exemptionReasons,
+        public array $appliedExemptions,
     ) {}
 }

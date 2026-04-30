@@ -7,6 +7,7 @@ namespace App\Data\User\Fiscal;
 use App\DTO\Fiscal\FiscalBreakdown;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -21,7 +22,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class FiscalBreakdownData extends Data
 {
     /**
-     * @param  list<string>  $exemptionReasons  Motifs FR pour affichage UI
+     * @param  list<AppliedExemptionData>  $appliedExemptions
      */
     public function __construct(
         public int $daysAssigned,
@@ -37,7 +38,8 @@ final class FiscalBreakdownData extends Data
         public float $pollutantsFullYearTariff,
         public float $pollutantsDue,
         public float $totalDue,
-        public array $exemptionReasons,
+        #[DataCollectionOf(AppliedExemptionData::class)]
+        public array $appliedExemptions,
     ) {}
 
     /**
@@ -60,7 +62,10 @@ final class FiscalBreakdownData extends Data
             pollutantsFullYearTariff: $breakdown->pollutantsFullYearTariff,
             pollutantsDue: $breakdown->pollutantsDue,
             totalDue: $breakdown->totalDue,
-            exemptionReasons: $breakdown->exemptionReasons,
+            appliedExemptions: array_map(
+                static fn ($e) => AppliedExemptionData::fromValueObject($e),
+                $breakdown->appliedExemptions,
+            ),
         );
     }
 }

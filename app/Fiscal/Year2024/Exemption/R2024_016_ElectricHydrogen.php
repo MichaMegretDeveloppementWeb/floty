@@ -50,7 +50,10 @@ final readonly class R2024_016_ElectricHydrogen implements ExemptionRule
         };
 
         if ($isElectric) {
-            return ExemptionVerdict::onlyCo2('Exonération électrique/hydrogène (CIBS L. 421-124)');
+            return ExemptionVerdict::onlyCo2(
+                'Exonération électrique/hydrogène (CIBS L. 421-124)',
+                $this->ruleCode(),
+            );
         }
 
         return ExemptionVerdict::notExempt();

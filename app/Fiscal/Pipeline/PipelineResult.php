@@ -6,6 +6,7 @@ namespace App\Fiscal\Pipeline;
 
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Fiscal\ValueObjects\AppliedExemption;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
@@ -32,7 +33,7 @@ final readonly class PipelineResult
      * pour appliquer R-2024-003 (un seul arrondi par redevable au
      * niveau entreprise).
      *
-     * @param  list<string>  $exemptionReasons
+     * @param  list<AppliedExemption>  $appliedExemptions
      * @param  list<string>  $appliedRuleCodes
      */
     public function __construct(
@@ -51,7 +52,7 @@ final readonly class PipelineResult
         public float $pollutantsDue,
         public float $pollutantsDueRaw,
         public float $totalDue,
-        public array $exemptionReasons,
+        public array $appliedExemptions,
         public array $appliedRuleCodes,
     ) {}
 }

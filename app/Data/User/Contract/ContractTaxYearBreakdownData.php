@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\Contract;
 
+use App\Data\User\Fiscal\AppliedExemptionData;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
@@ -34,7 +35,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class ContractTaxYearBreakdownData extends Data
 {
     /**
-     * @param  list<string>  $exemptionReasons
+     * @param  list<AppliedExemptionData>  $appliedExemptions
      * @param  list<string>  $appliedRuleCodes
      * @param  list<FiscalRuleListItemData>  $appliedRules
      */
@@ -50,7 +51,8 @@ final class ContractTaxYearBreakdownData extends Data
         public float $co2Due,
         public float $pollutantsDue,
         public float $totalDue,
-        public array $exemptionReasons,
+        #[DataCollectionOf(AppliedExemptionData::class)]
+        public array $appliedExemptions,
         public array $appliedRuleCodes,
         #[DataCollectionOf(FiscalRuleListItemData::class)]
         public array $appliedRules,

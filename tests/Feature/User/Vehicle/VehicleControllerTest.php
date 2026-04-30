@@ -109,7 +109,7 @@ final class VehicleControllerTest extends TestCase
                             ->has('pollutantCategory')
                             ->has('pollutantsFullYearTariff')
                             ->has('pollutantsExplanation')
-                            ->has('exemptionReasons')
+                            ->has('appliedExemptions')
                             ->has('appliedRuleCodes')
                             ->has('total')
                             ->has('appliedRules')))

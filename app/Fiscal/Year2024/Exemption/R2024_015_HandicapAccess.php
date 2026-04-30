@@ -38,6 +38,7 @@ final readonly class R2024_015_HandicapAccess implements ExemptionRule
         if ($context->currentFiscalCharacteristics?->handicap_access === true) {
             return ExemptionVerdict::fullZeroingTariffs(
                 'Exonération handicap (CIBS L. 421-123 / L. 421-136)',
+                $this->ruleCode(),
             );
         }
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\Vehicle;
 
+use App\Data\User\Fiscal\AppliedExemptionData;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
@@ -21,9 +22,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *                               application des règles d'aiguillage
  *   - pollutantCategory       : catégorie polluants déterminée
  *   - pollutantsFullYearTariff : tarif annuel polluants avant prorata
- *   - exemptionReasons        : raisons textuelles des exonérations
- *                               appliquées au calcul plein année
- *                               (ex. véhicule électrique → CO₂ = 0)
+ *   - appliedExemptions       : exonérations appliquées (couples
+ *                               raison + code R-2024-XXX) — chaque
+ *                               item est cliquable pour ouvrir la
+ *                               fiche détaillée de la règle
  *   - appliedRuleCodes        : codes des règles fiscales appliquées
  *                               (R-2024-XXX) — utile pour traçabilité
  *   - total                   : `co2FullYearTariff +
@@ -33,7 +35,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class VehicleFullYearTaxBreakdownData extends Data
 {
     /**
-     * @param  list<string>  $exemptionReasons
+     * @param  list<AppliedExemptionData>  $appliedExemptions
      * @param  list<string>  $appliedRuleCodes
      * @param  list<FiscalRuleListItemData>  $appliedRules  Détail
      *                                                      complet (nom, description, refs légales) des règles
@@ -48,7 +50,8 @@ final class VehicleFullYearTaxBreakdownData extends Data
         public PollutantCategory $pollutantCategory,
         public float $pollutantsFullYearTariff,
         public string $pollutantsExplanation,
-        public array $exemptionReasons,
+        #[DataCollectionOf(AppliedExemptionData::class)]
+        public array $appliedExemptions,
         public array $appliedRuleCodes,
         public float $total,
         #[DataCollectionOf(FiscalRuleListItemData::class)]

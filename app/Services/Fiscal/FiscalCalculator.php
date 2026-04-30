@@ -80,7 +80,7 @@ final readonly class FiscalCalculator
             pollutantsFullYearTariff: $result->pollutantsFullYearTariff,
             pollutantsDue: $result->pollutantsDue,
             totalDue: $result->totalDue,
-            exemptionReasons: $result->exemptionReasons,
+            appliedExemptions: $result->appliedExemptions,
         );
     }
 }

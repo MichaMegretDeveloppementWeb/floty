@@ -14,6 +14,7 @@ use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Fiscal\ValueObjects\AppliedExemption;
 use App\Fiscal\ValueObjects\ExemptionScope;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Services\Shared\Fiscal\FiscalYearContext;
@@ -189,10 +190,24 @@ final class FiscalPipeline
     private function buildResult(PipelineContext $context): PipelineResult
     {
         $verdicts = $context->exemptionVerdicts;
-        $reasons = array_values(array_filter(array_map(
-            static fn (ExemptionVerdict $v): ?string => $v->reason,
-            $verdicts,
-        ), static fn (?string $r): bool => $r !== null));
+
+        // Cas spécial R-2024-004 : véhicule hors champ fiscal — pas de
+        // verdict d'exonération (pipeline court-circuité avant la phase
+        // exonérations) mais on doit exposer un motif explicatif sinon
+        // l'utilisateur voit « voir motif ci-dessous » sans liste.
+        if ($context->isFiscallyTaxable === false) {
+            $appliedExemptions = [new AppliedExemption(
+                reason: 'Véhicule hors du champ fiscal des taxes annuelles (CIBS art. L. 421-2).',
+                ruleCode: 'R-2024-004',
+            )];
+        } else {
+            $appliedExemptions = array_values(array_filter(array_map(
+                static fn (ExemptionVerdict $v): ?AppliedExemption => $v->reason !== null && $v->ruleCode !== null
+                    ? new AppliedExemption($v->reason, $v->ruleCode)
+                    : null,
+                $verdicts,
+            )));
+        }
 
         $handicapExempt = false;
         $electricExempt = false;
@@ -245,7 +260,7 @@ final class FiscalPipeline
             pollutantsDue: $pollutantsDue,
             pollutantsDueRaw: $pollutantsDueRaw,
             totalDue: $totalDue,
-            exemptionReasons: $reasons,
+            appliedExemptions: $appliedExemptions,
             appliedRuleCodes: $context->appliedRuleCodes,
         );
     }
