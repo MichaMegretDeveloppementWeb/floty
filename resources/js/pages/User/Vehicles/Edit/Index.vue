@@ -56,7 +56,7 @@ const cascadeMessage = (): string => {
             </header>
 
             <form
-                class="flex flex-col gap-6 rounded-xl border border-slate-200 bg-white p-6"
+                class="flex flex-col gap-8"
                 @submit.prevent="requestSubmit"
             >
                 <IdentitySection :form="form" />
@@ -69,7 +69,7 @@ const cascadeMessage = (): string => {
                     :is-other-change="isOtherChange"
                 />
 
-                <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">
+                <div class="flex justify-end gap-3 pt-2">
                     <Link :href="vehiclesShowRoute.url({ vehicle: props.vehicle.id })">
                         <Button type="button" variant="ghost">Annuler</Button>
                     </Link>

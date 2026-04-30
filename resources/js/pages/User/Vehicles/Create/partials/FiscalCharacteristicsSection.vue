@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
+import { Lock, SlidersHorizontal } from 'lucide-vue-next';
 import { computed } from 'vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
@@ -55,8 +56,21 @@ const pollutantCategoryLabel = computed((): string => {
 </script>
 
 <template>
-    <section class="flex flex-col gap-4">
-        <p class="eyebrow">Caractéristiques fiscales (version initiale)</p>
+    <section class="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-6 md:p-8">
+        <header class="flex items-start gap-3">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
+                <SlidersHorizontal :size="18" :stroke-width="1.75" />
+            </span>
+            <div class="flex flex-col">
+                <h2 class="text-base font-semibold text-slate-900">
+                    Caractéristiques fiscales
+                </h2>
+                <p class="text-sm text-slate-500">
+                    Détermine le barème CO₂ et la catégorie polluants.
+                </p>
+            </div>
+        </header>
+
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <SelectInput
                 v-model="form.reception_category"
@@ -122,19 +136,26 @@ const pollutantCategoryLabel = computed((): string => {
             />
         </div>
         <div
-            class="flex flex-col gap-1 rounded-lg bg-slate-50/70 px-3 py-3"
+            class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3"
             aria-live="polite"
         >
-            <p class="text-xs font-medium tracking-wide text-slate-400 uppercase">
-                Catégorie polluants (calculée)
-            </p>
-            <p class="text-base font-semibold text-slate-900">
-                {{ pollutantCategoryLabel }}
-            </p>
-            <p class="text-xs leading-snug text-slate-500">
-                Dérivée automatiquement de la source d'énergie, de la norme Euro
-                et du moteur thermique sous-jacent. Non saisissable.
-            </p>
+            <Lock
+                :size="14"
+                :stroke-width="1.75"
+                class="mt-0.5 shrink-0 text-slate-400"
+                aria-hidden="true"
+            />
+            <div class="flex flex-col gap-0.5">
+                <p class="text-xs font-medium tracking-wide text-slate-500 uppercase">
+                    Catégorie polluants (calculée)
+                </p>
+                <p class="text-base font-semibold text-slate-900">
+                    {{ pollutantCategoryLabel }}
+                </p>
+                <p class="text-xs leading-snug text-slate-500">
+                    Calculée à partir de l'énergie, de la norme Euro et du moteur thermique sous-jacent.
+                </p>
+            </div>
         </div>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <NumberInput

@@ -32,14 +32,14 @@ const { form, submit } = useVehicleCreateForm();
             </header>
 
             <form
-                class="flex flex-col gap-6 rounded-xl border border-slate-200 bg-white p-6"
+                class="flex flex-col gap-8"
                 @submit.prevent="submit"
             >
                 <IdentitySection :form="form" />
                 <RegistrationSection :form="form" />
                 <FiscalCharacteristicsSection :form="form" :options="props.options" />
 
-                <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">
+                <div class="flex justify-end gap-3 pt-2">
                     <Link :href="vehiclesIndexRoute.url()">
                         <Button type="button" variant="ghost">Annuler</Button>
                     </Link>

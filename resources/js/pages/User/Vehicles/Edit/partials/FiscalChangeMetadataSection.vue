@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
+import { History } from 'lucide-vue-next';
 import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
@@ -16,15 +17,22 @@ defineProps<{
 
 <template>
     <section
-        class="flex flex-col gap-4 rounded-xl border border-blue-200 bg-blue-50/40 p-4"
+        class="flex flex-col gap-5 rounded-xl border border-blue-200 bg-blue-50/40 p-6 md:p-8"
         aria-live="polite"
     >
-        <p class="eyebrow text-blue-700">Métadonnées de la nouvelle version</p>
-        <p class="text-xs leading-snug text-slate-600">
-            Vous avez modifié au moins une caractéristique fiscale. Une
-            nouvelle version sera ajoutée à l'historique — précisez à
-            quelle date elle prend effet et le motif du changement.
-        </p>
+        <header class="flex items-start gap-3">
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+                <History :size="18" :stroke-width="1.75" />
+            </span>
+            <div class="flex flex-col">
+                <h2 class="text-base font-semibold text-slate-900">
+                    Nouvelle version d'historique
+                </h2>
+                <p class="text-sm text-slate-600">
+                    Vous avez modifié une caractéristique fiscale. Précisez la date d'effet et le motif.
+                </p>
+            </div>
+        </header>
 
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <DateInput
