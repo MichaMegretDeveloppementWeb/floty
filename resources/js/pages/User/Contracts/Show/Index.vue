@@ -40,20 +40,38 @@ onMounted(async () => {
     <UserLayout>
         <div class="flex flex-col gap-6">
             <ContractTitle :contract="props.contract" />
+
+            <!-- < lg : Actions sous le titre. ≥ lg : c'est l'aside qui les porte. -->
+            <ActionsBar
+                class="lg:hidden"
+                :contract-id="props.contract.id"
+            />
+
             <ContractEntityCards :contract="props.contract" />
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <!-- Colonne principale -->
                 <div class="flex flex-col gap-6 lg:col-span-2">
                     <ContractDetails :contract="props.contract" />
                     <TaxBreakdownPanel :tax-breakdown="props.taxBreakdown" />
+                    <!-- < lg : Documents en bas du main. ≥ lg : c'est l'aside qui les porte. -->
                     <ContractDocumentsSection
+                        class="lg:hidden"
                         :contract-id="props.contract.id"
                         :documents="props.documents"
                     />
                 </div>
-                <div>
-                    <ActionsBar :contract-id="props.contract.id" />
-                </div>
+
+                <!-- Aside ≥ lg : Actions + Documents empilés -->
+                <aside class="hidden lg:col-span-1 lg:block">
+                    <div class="flex flex-col gap-6">
+                        <ActionsBar :contract-id="props.contract.id" />
+                        <ContractDocumentsSection
+                            :contract-id="props.contract.id"
+                            :documents="props.documents"
+                        />
+                    </div>
+                </aside>
             </div>
         </div>
     </UserLayout>

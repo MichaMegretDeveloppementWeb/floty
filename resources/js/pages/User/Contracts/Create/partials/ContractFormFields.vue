@@ -106,7 +106,7 @@ const pickerYear = computed<number>(() => {
             </div>
         </div>
 
-        <div class="my-3">
+        <div class="my-5">
             <p class="text-xs font-medium uppercase tracking-wide text-slate-600">
                 Plage du contrat
             </p>
