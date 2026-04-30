@@ -27,7 +27,7 @@ final class DashboardControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create([
             'vehicle_id' => $vehicle->id,
         ]);
-        // Contrat 1 jour pour produire un cumul `assignmentsYear = 1`
+        // Contrat 1 jour pour produire un cumul `contractDaysYear = 1`
         // (KPI brut côté Dashboard = nombre de jours-contrat occupés).
         $year = (int) config('floty.fiscal.available_years')[0];
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
@@ -43,7 +43,7 @@ final class DashboardControllerTest extends TestCase
                 ->has('stats', fn (AssertableInertia $s) => $s
                     ->where('vehiclesCount', 1)
                     ->where('companiesCount', 1)
-                    ->where('assignmentsYear', 1)
+                    ->where('contractDaysYear', 1)
                     ->has('fiscalRulesCount')
                     ->has('totalTaxDue')),
             );

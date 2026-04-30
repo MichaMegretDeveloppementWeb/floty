@@ -22,7 +22,7 @@ defineProps<{
         />
         <KpiCard
             :label="`Jours-véhicule ${fiscalYear}`"
-            :value="stats.assignmentsYear.toLocaleString('fr-FR')"
+            :value="stats.contractDaysYear.toLocaleString('fr-FR')"
             caption="Total cumulé sur l'année sélectionnée"
         />
         <KpiCard

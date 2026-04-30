@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Feature\User\Unavailability;
 
 use App\Enums\Unavailability\UnavailabilityType;
-use App\Models\Assignment;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -135,16 +135,17 @@ final class UnavailabilityControllerTest extends TestCase
     }
 
     #[Test]
-    public function store_refuse_si_overlap_avec_une_attribution_existante(): void
+    public function store_refuse_si_overlap_avec_un_contrat_existant(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
-        Assignment::factory()->create([
+        Contract::factory()->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'date' => '2024-07-10',
+            'start_date' => '2024-07-08',
+            'end_date' => '2024-07-12',
         ]);
 
         $this->actingAs($user)
@@ -152,15 +153,15 @@ final class UnavailabilityControllerTest extends TestCase
             ->post('/app/unavailabilities', [
                 'vehicle_id' => $vehicle->id,
                 'type' => 'maintenance',
-                'start_date' => '2024-07-08',
-                'end_date' => '2024-07-12',
+                'start_date' => '2024-07-10',
+                'end_date' => '2024-07-15',
             ])
             ->assertRedirect("/app/vehicles/{$vehicle->id}")
             ->assertSessionHas('toast-error');
 
         $this->assertDatabaseMissing('unavailabilities', [
             'vehicle_id' => $vehicle->id,
-            'start_date' => '2024-07-08',
+            'start_date' => '2024-07-10',
         ]);
     }
 
@@ -192,7 +193,7 @@ final class UnavailabilityControllerTest extends TestCase
     }
 
     #[Test]
-    public function update_refuse_si_overlap_avec_une_attribution_existante(): void
+    public function update_refuse_si_overlap_avec_un_contrat_existant(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -206,10 +207,11 @@ final class UnavailabilityControllerTest extends TestCase
             'end_date' => '2024-08-05',
         ]);
 
-        Assignment::factory()->create([
+        Contract::factory()->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'date' => '2024-08-15',
+            'start_date' => '2024-08-12',
+            'end_date' => '2024-08-20',
         ]);
 
         $this->actingAs($user)

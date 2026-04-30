@@ -7,9 +7,9 @@ namespace Tests\Unit\Actions\Unavailability;
 use App\Actions\Unavailability\CreateUnavailabilityAction;
 use App\Data\User\Unavailability\StoreUnavailabilityData;
 use App\Enums\Unavailability\UnavailabilityType;
-use App\Exceptions\Unavailability\UnavailabilityOverlapsAssignmentsException;
-use App\Models\Assignment;
+use App\Exceptions\Unavailability\UnavailabilityOverlapsContractsException;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -17,7 +17,7 @@ use Tests\TestCase;
 
 /**
  * Tests isolés de l'orchestration création indispo : décision métier
- * `has_fiscal_impact` + sécurité overlap.
+ * `has_fiscal_impact` + sécurité overlap avec les contrats existants.
  */
 final class CreateUnavailabilityActionTest extends TestCase
 {
@@ -64,24 +64,25 @@ final class CreateUnavailabilityActionTest extends TestCase
     }
 
     #[Test]
-    public function leve_l_exception_metier_si_la_plage_chevauche_une_attribution(): void
+    public function leve_l_exception_metier_si_la_plage_chevauche_un_contrat(): void
     {
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
-        Assignment::factory()->create([
+        Contract::factory()->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'date' => '2024-05-12',
+            'start_date' => '2024-05-10',
+            'end_date' => '2024-05-15',
         ]);
 
-        $this->expectException(UnavailabilityOverlapsAssignmentsException::class);
+        $this->expectException(UnavailabilityOverlapsContractsException::class);
 
         $this->action->execute(new StoreUnavailabilityData(
             vehicleId: $vehicle->id,
             type: UnavailabilityType::Maintenance,
-            startDate: '2024-05-10',
-            endDate: '2024-05-15',
+            startDate: '2024-05-12',
+            endDate: '2024-05-20',
             description: null,
         ));
     }
@@ -92,51 +93,53 @@ final class CreateUnavailabilityActionTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
-        Assignment::factory()->create([
+        Contract::factory()->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'date' => '2024-05-12',
+            'start_date' => '2024-05-10',
+            'end_date' => '2024-05-15',
         ]);
 
         try {
             $this->action->execute(new StoreUnavailabilityData(
                 vehicleId: $vehicle->id,
                 type: UnavailabilityType::Maintenance,
-                startDate: '2024-05-10',
-                endDate: '2024-05-15',
+                startDate: '2024-05-12',
+                endDate: '2024-05-20',
                 description: null,
             ));
             $this->fail('Exception attendue.');
-        } catch (UnavailabilityOverlapsAssignmentsException) {
+        } catch (UnavailabilityOverlapsContractsException) {
             // OK
         }
 
         $this->assertDatabaseMissing('unavailabilities', [
             'vehicle_id' => $vehicle->id,
-            'start_date' => '2024-05-10',
+            'start_date' => '2024-05-12',
         ]);
     }
 
     #[Test]
-    public function indispo_en_cours_bloque_les_attributions_futures(): void
+    public function indispo_chevauchant_un_contrat_existant_est_bloquee(): void
     {
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
-        Assignment::factory()->create([
+        Contract::factory()->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'date' => '2024-09-01',
+            'start_date' => '2024-09-01',
+            'end_date' => '2024-09-30',
         ]);
 
-        $this->expectException(UnavailabilityOverlapsAssignmentsException::class);
+        $this->expectException(UnavailabilityOverlapsContractsException::class);
 
         $this->action->execute(new StoreUnavailabilityData(
             vehicleId: $vehicle->id,
             type: UnavailabilityType::Maintenance,
             startDate: '2024-08-15',
-            endDate: null,
-            description: 'Pas de date de retour connue',
+            endDate: '2024-09-05',
+            description: 'Maintenance planifiée chevauchant un contrat',
         ));
     }
 }

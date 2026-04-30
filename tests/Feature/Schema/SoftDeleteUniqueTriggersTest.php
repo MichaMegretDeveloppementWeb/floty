@@ -6,21 +6,20 @@ namespace Tests\Feature\Schema;
 
 use App\Enums\Company\CompanyColor;
 use App\Enums\Vehicle\VehicleStatus;
-use App\Models\Assignment;
 use App\Models\Company;
 use App\Models\Vehicle;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Vérifie que les triggers soft-delete (migration 2026_04_26_190000)
- * autorisent la réutilisation d'une valeur après soft-delete et
- * rejettent les doublons actifs avec `SQLSTATE 45000`.
+ * Vérifie que les triggers soft-delete autorisent la réutilisation d'une
+ * valeur après soft-delete et rejettent les doublons actifs avec
+ * `SQLSTATE 45000`.
  *
- * Couvre les 3 tables : companies, vehicles, assignments.
+ * Couvre les 2 tables : companies, vehicles. (Le domaine Contract a
+ * son propre test d'overlap dans SchemaSmokeTest.)
  */
 final class SoftDeleteUniqueTriggersTest extends TestCase
 {
@@ -103,56 +102,6 @@ final class SoftDeleteUniqueTriggersTest extends TestCase
         $this->makeVehicle(plate: 'BB-002-BB', vin: null);
 
         $this->assertSame(2, Vehicle::count());
-    }
-
-    // ─── assignments ─────────────────────────────────────────────────
-
-    #[Test]
-    public function un_couple_vehicule_date_actif_ne_peut_pas_etre_duplique(): void
-    {
-        $vehicle = $this->makeVehicle(plate: 'AA-001-AA');
-        $companyA = $this->makeCompany(short: 'AAA');
-        $companyB = $this->makeCompany(short: 'BBB');
-        $date = Carbon::parse('2024-06-15');
-
-        Assignment::create([
-            'vehicle_id' => $vehicle->id,
-            'company_id' => $companyA->id,
-            'date' => $date,
-        ]);
-
-        $this->expectException(QueryException::class);
-        $this->expectExceptionMessageMatches('/already assigned/');
-
-        Assignment::create([
-            'vehicle_id' => $vehicle->id,
-            'company_id' => $companyB->id,
-            'date' => $date,
-        ]);
-    }
-
-    #[Test]
-    public function un_couple_vehicule_date_libere_par_soft_delete_est_reutilisable(): void
-    {
-        $vehicle = $this->makeVehicle(plate: 'AA-001-AA');
-        $companyA = $this->makeCompany(short: 'AAA');
-        $companyB = $this->makeCompany(short: 'BBB');
-        $date = Carbon::parse('2024-06-15');
-
-        $first = Assignment::create([
-            'vehicle_id' => $vehicle->id,
-            'company_id' => $companyA->id,
-            'date' => $date,
-        ]);
-        $first->delete();
-
-        $second = Assignment::create([
-            'vehicle_id' => $vehicle->id,
-            'company_id' => $companyB->id,
-            'date' => $date,
-        ]);
-
-        $this->assertNotSame($first->id, $second->id);
     }
 
     // ─── helpers ─────────────────────────────────────────────────────

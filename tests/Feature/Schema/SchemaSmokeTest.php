@@ -18,7 +18,6 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Models\Assignment;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Declaration;
@@ -38,7 +37,7 @@ use Tests\TestCase;
  * Smoke test du schéma global Floty V1 (phase 01.bis).
  *
  * Crée une chaîne complète d'entités : Company → Driver → Vehicle
- * → VehicleFiscalCharacteristics → Assignment → Unavailability →
+ * → VehicleFiscalCharacteristics → Contract → Unavailability →
  * Declaration → DeclarationPdf → FiscalRule.
  *
  * Vérifie que :
@@ -103,11 +102,13 @@ final class SchemaSmokeTest extends TestCase
             'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
         ]);
 
-        $assignment = Assignment::create([
+        $contract = Contract::create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
             'driver_id' => $driver->id,
-            'date' => '2024-03-15',
+            'start_date' => '2024-03-15',
+            'end_date' => '2024-03-15',
+            'contract_type' => ContractType::Lcd,
         ]);
 
         $unavailability = Unavailability::create([
@@ -189,9 +190,9 @@ final class SchemaSmokeTest extends TestCase
         // --- Relations ---
         $this->assertSame($company->id, $driver->company->id);
         $this->assertSame($vehicle->id, $fiscalVersion->vehicle->id);
-        $this->assertSame($vehicle->id, $assignment->vehicle->id);
-        $this->assertSame($company->id, $assignment->company->id);
-        $this->assertSame($driver->id, $assignment->driver->id);
+        $this->assertSame($vehicle->id, $contract->vehicle->id);
+        $this->assertSame($company->id, $contract->company->id);
+        $this->assertSame($driver->id, $contract->driver->id);
         $this->assertSame($vehicle->id, $unavailability->vehicle->id);
         $this->assertSame($company->id, $declaration->company->id);
         $this->assertSame($user->id, $declaration->statusChangedBy->id);
@@ -201,7 +202,7 @@ final class SchemaSmokeTest extends TestCase
         // Relations inverses
         $this->assertCount(1, $company->fresh()->drivers);
         $this->assertCount(1, $vehicle->fresh()->fiscalCharacteristics);
-        $this->assertCount(1, $vehicle->fresh()->assignments);
+        $this->assertCount(1, $vehicle->fresh()->contracts);
         $this->assertCount(1, $vehicle->fresh()->unavailabilities);
         $this->assertCount(1, $declaration->fresh()->pdfs);
         $this->assertCount(1, $user->fresh()->changedDeclarations);

@@ -14,9 +14,8 @@ use App\Services\Fiscal\FleetFiscalAggregator;
 /**
  * Calcul des KPIs de la page Dashboard.
  *
- * **Refonte 04.F (ADR-0014)** : KPIs dérivés des contrats. Le compteur
- * `assignmentsYear` (jours-attribution sur l'année) est désormais le
- * cumul des jours-contrat occupés (sémantique cohérente avec le métier).
+ * KPIs dérivés des contrats (ADR-0014). `contractDaysYear` est le cumul
+ * des jours-contrat occupés sur l'année fiscale.
  */
 final class DashboardStatsService
 {
@@ -43,7 +42,7 @@ final class DashboardStatsService
         return new DashboardStatsData(
             vehiclesCount: $this->vehicles->countActive(),
             companiesCount: $this->companies->countActive(),
-            assignmentsYear: $this->contracts->countContractDaysForYear($year),
+            contractDaysYear: $this->contracts->countContractDaysForYear($year),
             fiscalRulesCount: $this->fiscalRules->countActiveForYear($year),
             totalTaxDue: $this->aggregator->fleetAnnualTax(
                 $vehiclesById,

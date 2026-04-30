@@ -28,7 +28,7 @@ final class WeekDetailServiceTest extends TestCase
     }
 
     #[Test]
-    public function build_week_renvoie_7_jours_avec_attributions_eager_loaded(): void
+    public function build_week_renvoie_7_jours_avec_contrats_eager_loaded(): void
     {
         $year = (int) config('floty.fiscal.available_years')[0];
         $vehicle = Vehicle::factory()->create();
@@ -44,8 +44,8 @@ final class WeekDetailServiceTest extends TestCase
         $week = $this->service->buildWeek($vehicle->id, 8, $year);
 
         self::assertCount(7, $week->days);
-        self::assertNotNull($week->days[0]->assignment);
-        self::assertNull($week->days[1]->assignment);
+        self::assertNotNull($week->days[0]->contract);
+        self::assertNull($week->days[1]->contract);
         self::assertCount(1, $week->companiesOnWeek);
         self::assertSame(1, $week->companiesOnWeek[0]->days);
     }

@@ -83,7 +83,7 @@ return new class extends Migration
                 CHECK (
                     invalidation_reason IS NULL
                     OR invalidation_reason IN (
-                        'assignment_modified',
+                        'contract_modified',
                         'vehicle_characteristics_changed',
                         'unavailability_changed',
                         'rule_changed',

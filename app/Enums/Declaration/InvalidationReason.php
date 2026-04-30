@@ -11,7 +11,7 @@ namespace App\Enums\Declaration;
  * lorsque le hash recalculé du snapshot diffère du hash stocké.
  *
  * Correspondance avec les événements déclencheurs :
- *   - `AssignmentModified`           ← event `AssignmentChanged` (phase 07)
+ *   - `ContractModified`              ← event `ContractChanged` (phase 11)
  *   - `VehicleCharacteristicsChanged` ← modification `vehicle_fiscal_characteristics`
  *                                        ou d'un champ direct du véhicule
  *   - `UnavailabilityChanged`         ← event `UnavailabilityChanged`,
@@ -22,7 +22,7 @@ namespace App\Enums\Declaration;
  */
 enum InvalidationReason: string
 {
-    case AssignmentModified = 'assignment_modified';
+    case ContractModified = 'contract_modified';
     case VehicleCharacteristicsChanged = 'vehicle_characteristics_changed';
     case UnavailabilityChanged = 'unavailability_changed';
     case RuleChanged = 'rule_changed';

@@ -13,7 +13,7 @@ use App\Data\User\Fiscal\FiscalPreviewData;
 use App\Data\User\Planning\PlanningWeekData;
 use App\Data\User\Planning\PreviewTaxesInputData;
 use App\Data\User\Planning\WeekCompanyPresenceData;
-use App\Data\User\Planning\WeekDayAssignmentData;
+use App\Data\User\Planning\WeekDayContractData;
 use App\Data\User\Planning\WeekDaySlotData;
 use App\Enums\Contract\ContractType;
 use App\Models\Contract;
@@ -23,12 +23,11 @@ use Illuminate\Support\Carbon;
 
 /**
  * Détail d'une semaine pour le drawer planning + preview des taxes
- * induites par une nouvelle attribution.
+ * induites par la création d'un nouveau contrat.
  *
- * **Refonte 04.F (ADR-0014)** : consomme désormais `Contract` au lieu
- * de `Assignment`. La preview simule l'ajout d'un contrat synthétique
- * sur la plage `[min(dates), max(dates)]` — sémantique cohérente avec
- * la refonte frontend en 04.F.4 (sélection par plage début/fin).
+ * La preview simule l'ajout d'un contrat synthétique sur la plage
+ * `[min(dates), max(dates)]` — sémantique cohérente avec la sélection
+ * par plage début/fin du DateRangePicker.
  */
 final class WeekDetailService
 {
@@ -72,8 +71,8 @@ final class WeekDetailService
             $days[] = new WeekDaySlotData(
                 date: $iso,
                 dayLabel: $cursor->translatedFormat('D d'),
-                assignment: $contract !== null
-                    ? new WeekDayAssignmentData(
+                contract: $contract !== null
+                    ? new WeekDayContractData(
                         id: $contract->id,
                         company: new CompanyOptionData(
                             id: $contract->company->id,

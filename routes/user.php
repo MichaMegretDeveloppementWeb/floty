@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Http\Controllers\User\Assignment\AssignmentController;
 use App\Http\Controllers\User\Company\CompanyController;
 use App\Http\Controllers\User\Contract\ContractController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
@@ -82,13 +81,6 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('unavailabilities.destroy');
 
-        // Assignments — « Attribution rapide » plein écran (sans POST dédié :
-        // utilise l'endpoint /app/planning/assignments pour créer en masse)
-        Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
-        Route::get('/assignments/vehicle-dates', [AssignmentController::class, 'vehicleDates'])
-            ->middleware('throttle:120,1')
-            ->name('assignments.vehicle-dates');
-
         // Planning global (heatmap annuelle) — vue d'ensemble maîtresse
         Route::get('/planning', [PlanningController::class, 'index'])->name('planning.index');
         Route::get('/planning/week', [PlanningController::class, 'week'])
@@ -101,8 +93,7 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('planning.contracts.store-bulk');
 
-        // Contracts (ADR-0014) — coexiste avec les routes assignments.*
-        // pendant la transition (cleanup d'Assignment en chantier 04.H).
+        // Contracts (ADR-0014) — entité pivot du domaine fiscal.
         Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
         Route::get('/contracts/create', [ContractController::class, 'create'])->name('contracts.create');
         Route::post('/contracts', [ContractController::class, 'store'])

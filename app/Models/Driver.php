@@ -69,12 +69,12 @@ final class Driver extends Model
     }
 
     /**
-     * Attributions où ce conducteur est désigné.
+     * Contrats où ce conducteur est désigné (entité pivot post ADR-0014).
      *
-     * @return HasMany<Assignment, $this>
+     * @return HasMany<Contract, $this>
      */
-    public function assignments(): HasMany
+    public function contracts(): HasMany
     {
-        return $this->hasMany(Assignment::class);
+        return $this->hasMany(Contract::class);
     }
 }

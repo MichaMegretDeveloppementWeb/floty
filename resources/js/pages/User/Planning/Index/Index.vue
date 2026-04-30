@@ -13,7 +13,7 @@ defineProps<{
 }>();
 
 const { currentYear: fiscalYear } = useFiscalYear();
-const { week, onAssignmentsCreated } = useUserPlanningIndex();
+const { week, onContractsCreated } = useUserPlanningIndex();
 </script>
 
 <template>
@@ -36,7 +36,7 @@ const { week, onAssignmentsCreated } = useUserPlanningIndex();
             :companies="companies"
             :fiscal-year="fiscalYear"
             @close="week.close"
-            @assignments-created="onAssignmentsCreated"
+            @contracts-created="onContractsCreated"
         />
     </UserLayout>
 </template>

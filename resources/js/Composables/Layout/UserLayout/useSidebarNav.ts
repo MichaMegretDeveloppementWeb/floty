@@ -1,7 +1,6 @@
 import { usePage } from '@inertiajs/vue3';
 import {
     Building2,
-    CalendarCheck,
     CalendarDays,
     FileText,
     LayoutDashboard,
@@ -11,7 +10,6 @@ import { computed } from 'vue';
 import type { Component, ComputedRef, Ref } from 'vue';
 import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { dashboard as dashboardRoute } from '@/routes/user';
-import { index as assignmentsIndexRoute } from '@/routes/user/assignments';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
@@ -65,11 +63,6 @@ export function useSidebarNav(open: Ref<boolean>): {
                     label: 'Contrats',
                     icon: FileText,
                     href: contractsIndexRoute.url(),
-                },
-                {
-                    label: 'Attributions',
-                    icon: CalendarCheck,
-                    href: assignmentsIndexRoute.url(),
                 },
             ],
         },

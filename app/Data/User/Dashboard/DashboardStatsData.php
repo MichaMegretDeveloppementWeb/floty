@@ -16,7 +16,7 @@ final class DashboardStatsData extends Data
     public function __construct(
         public int $vehiclesCount,
         public int $companiesCount,
-        public int $assignmentsYear,
+        public int $contractDaysYear,
         public int $fiscalRulesCount,
         public float $totalTaxDue,
     ) {}

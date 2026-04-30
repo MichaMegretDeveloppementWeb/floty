@@ -88,13 +88,13 @@ final class Vehicle extends Model
     }
 
     /**
-     * Attributions du véhicule.
+     * Contrats du véhicule (entité pivot post ADR-0014).
      *
-     * @return HasMany<Assignment, $this>
+     * @return HasMany<Contract, $this>
      */
-    public function assignments(): HasMany
+    public function contracts(): HasMany
     {
-        return $this->hasMany(Assignment::class);
+        return $this->hasMany(Contract::class);
     }
 
     /**

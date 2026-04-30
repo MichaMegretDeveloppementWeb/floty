@@ -27,10 +27,10 @@ function isSelected(date: string, selected: string[]): boolean {
                 v-for="(slot, idx) in days"
                 :key="slot.date"
                 type="button"
-                :disabled="slot.assignment !== null"
+                :disabled="slot.contract !== null"
                 :class="[
                     'flex flex-col items-center gap-0.5 rounded-md p-1.5 text-center text-[10px] transition-colors duration-[120ms] ease-out',
-                    slot.assignment
+                    slot.contract
                         ? 'cursor-not-allowed bg-slate-50'
                         : isSelected(slot.date, selectedDates)
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
@@ -38,13 +38,13 @@ function isSelected(date: string, selected: string[]): boolean {
                 ]"
                 :aria-pressed="isSelected(slot.date, selectedDates)"
                 @click="
-                    slot.assignment === null && emit('toggle-slot', slot.date)
+                    slot.contract === null && emit('toggle-slot', slot.date)
                 "
             >
                 <span
                     :class="[
                         'font-medium',
-                        isSelected(slot.date, selectedDates) && !slot.assignment
+                        isSelected(slot.date, selectedDates) && !slot.contract
                             ? 'text-blue-100'
                             : 'text-slate-500',
                     ]"
@@ -54,7 +54,7 @@ function isSelected(date: string, selected: string[]): boolean {
                 <span
                     :class="[
                         'font-mono',
-                        isSelected(slot.date, selectedDates) && !slot.assignment
+                        isSelected(slot.date, selectedDates) && !slot.contract
                             ? 'text-white'
                             : 'text-slate-400',
                     ]"
@@ -62,10 +62,10 @@ function isSelected(date: string, selected: string[]): boolean {
                     {{ Number(slot.date.slice(-2)) }}
                 </span>
                 <CompanyTag
-                    v-if="slot.assignment"
-                    :name="slot.assignment.company.shortCode"
-                    :initials="slot.assignment.company.shortCode.slice(0, 2)"
-                    :color="slot.assignment.company.color"
+                    v-if="slot.contract"
+                    :name="slot.contract.company.shortCode"
+                    :initials="slot.contract.company.shortCode.slice(0, 2)"
+                    :color="slot.contract.company.color"
                     class="mt-1"
                 />
                 <span

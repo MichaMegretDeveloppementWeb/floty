@@ -4,20 +4,20 @@ import { useWeekDetail } from '@/Composables/Planning/useWeekDetail';
 /**
  * Logique de la page « Vue d'ensemble » (heatmap planning) :
  * - délègue à `useWeekDetail` la gestion du drawer hebdo
- * - encapsule le handler post-création d'attributions (ferme le
- *   drawer + reload partiel des vehicles pour recalculer densités
- *   et taxes annuelles).
+ * - encapsule le handler post-création de contrats (ferme le drawer
+ *   + reload partiel des vehicles pour recalculer densités et taxes
+ *   annuelles).
  */
 export function useUserPlanningIndex(): {
     week: ReturnType<typeof useWeekDetail>;
-    onAssignmentsCreated: () => void;
+    onContractsCreated: () => void;
 } {
     const week = useWeekDetail();
 
-    const onAssignmentsCreated = (): void => {
+    const onContractsCreated = (): void => {
         week.close();
         router.reload({ only: ['vehicles'] });
     };
 
-    return { week, onAssignmentsCreated };
+    return { week, onContractsCreated };
 }

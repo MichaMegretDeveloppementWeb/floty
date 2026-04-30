@@ -32,9 +32,8 @@ use Spatie\LaravelData\DataCollection;
  * mapping DTO (R3 d'ADR-0013).
  *
  * **Refonte 04.F (ADR-0014)** : la source des cumuls fiscaux et de la
- * timeline hebdomadaire est désormais `ContractQueryService` (le
- * domaine Assignment n'est plus consommé par le moteur fiscal — cleanup
- * en chantier 04.H).
+ * timeline hebdomadaire est `ContractQueryService` (l'ancien domaine
+ * Assignment a été supprimé en chantier 04.H).
  */
 final class VehicleQueryService
 {

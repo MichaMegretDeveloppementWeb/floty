@@ -1,13 +1,11 @@
 import {
     Building2,
-    CalendarCheck,
     CalendarDays,
     FileText,
     Receipt,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import CarIcon from '@/Components/Icons/CarIcon.vue';
-import { index as assignmentsIndexRoute } from '@/routes/user/assignments';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
@@ -42,13 +40,6 @@ export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
                 'Plages d\'attribution véhicule × entreprise — créer, modifier, supprimer (LCD per-contract).',
             href: contractsIndexRoute.url(),
             icon: FileText,
-        },
-        {
-            label: 'Attribution rapide',
-            description:
-                'Sélectionner un véhicule, une entreprise et plusieurs dates en une passe.',
-            href: assignmentsIndexRoute.url(),
-            icon: CalendarCheck,
         },
         {
             label: 'Flotte',

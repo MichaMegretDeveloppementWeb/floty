@@ -13,9 +13,8 @@ use Illuminate\Support\Facades\Schema;
  * individuel »).
  *
  * **Une ligne = un contrat de location** (vehicle × company × plage
- * temporelle inclusive `[start_date, end_date]`). Remplace à terme la
- * table `assignments` (1 ligne par jour). La migration de bascule est
- * portée par les chantiers 04.F → 04.H.
+ * temporelle inclusive `[start_date, end_date]`). Remplace l'ancienne
+ * table `assignments` (1 ligne par jour) supprimée en chantier 04.H.
  *
  * **Invariants critiques** :
  *   - `end_date` NOT NULL (cohérent ADR-0014 D4 : tout contrat a une

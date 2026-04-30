@@ -18,7 +18,7 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  * tags par une **convention de préfixes hiérarchiques** sur les clés :
  *
  *   vehicle:42:fiscal_characteristics
- *   vehicle:42:current_assignments
+ *   vehicle:42:current_contracts
  *   vehicle:42:lcd_cumul:acme:2024
  *
  * Invalider « tout ce qui concerne le véhicule 42 » revient alors à

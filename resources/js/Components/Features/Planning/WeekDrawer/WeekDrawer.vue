@@ -4,18 +4,14 @@
  *
  * S'ouvre au clic sur une cellule de la heatmap. Contient :
  *   - L'en-tête véhicule + semaine
- *   - 7 slots (Lun → Dim) montrant l'attribution du jour (ou « libre »)
+ *   - 7 slots (Lun → Dim) montrant le contrat actif du jour (ou « libre »)
  *   - Liste des entreprises présentes sur cette semaine
  *   - Un formulaire de création de contrat (sélection plage début/fin)
- *     + preview des taxes induites
- *
- * **Refonte 04.G (ADR-0014)** : la sélection passe de multi-dates
- * anarchique à une plage continue [début, fin] — un clic crée un
- * contrat unique dont le calcul fiscal est conforme R-2024-021.
+ *     + preview des taxes induites (R-2024-021 LCD per-contract).
  */
 import { computed, ref, watch } from 'vue';
-import AssignmentForm from './partials/AssignmentForm.vue';
 import CompaniesOnWeekList from './partials/CompaniesOnWeekList.vue';
+import ContractForm from './partials/ContractForm.vue';
 import DrawerHeader from './partials/DrawerHeader.vue';
 import WeekDayGrid from './partials/WeekDayGrid.vue';
 
@@ -32,7 +28,7 @@ const props = defineProps<{
 
 defineEmits<{
     close: [];
-    'assignments-created': [];
+    'contracts-created': [];
 }>();
 
 const selectedCompanyId = ref<number | null>(null);
@@ -55,7 +51,7 @@ const startMonth = computed((): number =>
 const disabledDates = computed((): string[] =>
     props.week
         ? props.week.days
-              .filter((d) => d.assignment !== null)
+              .filter((d) => d.contract !== null)
               .map((d) => d.date)
         : [],
 );
@@ -130,7 +126,7 @@ const selectedDatesInWeek = computed((): string[] => {
 
                 <CompaniesOnWeekList :entries="week.companiesOnWeek" />
 
-                <AssignmentForm
+                <ContractForm
                     :vehicle-id="week.vehicleId"
                     :companies="companies"
                     :fiscal-year="fiscalYear"
@@ -141,7 +137,7 @@ const selectedDatesInWeek = computed((): string[] => {
                     :selected-range="selectedRange"
                     @update:selected-company-id="selectedCompanyId = $event"
                     @update:selected-range="selectedRange = $event"
-                    @submitted="$emit('assignments-created')"
+                    @submitted="$emit('contracts-created')"
                 />
             </div>
         </aside>

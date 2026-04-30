@@ -20,9 +20,8 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création multiple de contrats (chantier 04.G — création
- * groupée depuis la page planning, équivalent métier de l'ancien
- * « bulk assignments » mais en plages au lieu de jours individuels).
+ * Payload de création multiple de contrats — création groupée depuis
+ * la page planning.
  *
  * **Forme** : une plage commune `[start_date, end_date]` + un type
  * + une référence optionnelle, et la liste des `vehicleIds` à attribuer

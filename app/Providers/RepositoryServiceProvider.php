@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
-use App\Contracts\Repositories\User\Assignment\AssignmentReadRepositoryInterface;
-use App\Contracts\Repositories\User\Assignment\AssignmentWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
@@ -17,8 +15,6 @@ use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepo
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
-use App\Repositories\User\Assignment\AssignmentReadRepository;
-use App\Repositories\User\Assignment\AssignmentWriteRepository;
 use App\Repositories\User\Company\CompanyReadRepository;
 use App\Repositories\User\Company\CompanyWriteRepository;
 use App\Repositories\User\Contract\ContractReadRepository;
@@ -62,11 +58,7 @@ final class RepositoryServiceProvider extends ServiceProvider
         CompanyReadRepositoryInterface::class => CompanyReadRepository::class,
         CompanyWriteRepositoryInterface::class => CompanyWriteRepository::class,
 
-        // Assignment
-        AssignmentReadRepositoryInterface::class => AssignmentReadRepository::class,
-        AssignmentWriteRepositoryInterface::class => AssignmentWriteRepository::class,
-
-        // Contract (ADR-0014) — coexiste avec Assignment pendant la transition
+        // Contract (ADR-0014) — entité pivot du domaine fiscal
         ContractReadRepositoryInterface::class => ContractReadRepository::class,
         ContractWriteRepositoryInterface::class => ContractWriteRepository::class,
 

@@ -265,7 +265,7 @@ final class DemoSeeder extends Seeder
             ->where('end_date', '>=', '2024-01-01')
             ->forceDelete();
 
-        $plan = $this->buildAssignmentPlan();
+        $plan = $this->buildContractPlan();
         foreach ($plan as $row) {
             $vehicle = $vehicles[$row['plate']] ?? null;
             $company = $companies[$row['company']] ?? null;
@@ -292,7 +292,7 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Plan d'attribution 2024 conçu pour produire une démo parlante :
+     * Plan de contrats 2024 conçu pour produire une démo parlante :
      *
      * - Couples sous le seuil LCD 30 j → exonération (ex: COR × 308 = 25 j)
      * - Couples au-dessus → taxes prorata (ex: ACM × 308 = 90 j)
@@ -302,7 +302,7 @@ final class DemoSeeder extends Seeder
      *
      * @return list<array{plate:string,company:string,from:string,to:string}>
      */
-    private function buildAssignmentPlan(): array
+    private function buildContractPlan(): array
     {
         return [
             // --- Peugeot 308 (essence Euro 6, WLTP 100 g/km) ---

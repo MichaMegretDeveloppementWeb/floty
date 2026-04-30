@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Schema;
  * Cf. 01-schema-metier.md § 5.
  *
  * Fonctionnalité « Remplacer par… » (phase 06) : bulk UPDATE
- * `assignments.driver_id` côté applicatif, pas de structure dédiée en base.
+ * `contracts.driver_id` côté applicatif, pas de structure dédiée en base.
  */
 return new class extends Migration
 {

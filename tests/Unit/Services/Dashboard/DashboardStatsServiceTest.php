@@ -50,7 +50,7 @@ final class DashboardStatsServiceTest extends TestCase
 
         self::assertSame(1, $stats['vehiclesCount']);
         self::assertSame(1, $stats['companiesCount']);
-        self::assertSame(35, $stats['assignmentsYear']);
+        self::assertSame(35, $stats['contractDaysYear']);
         self::assertSame(1, $stats['fiscalRulesCount']);
         self::assertGreaterThan(0.0, $stats['totalTaxDue']);
     }
