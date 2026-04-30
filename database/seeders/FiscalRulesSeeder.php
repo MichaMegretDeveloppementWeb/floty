@@ -285,23 +285,6 @@ final class FiscalRulesSeeder extends Seeder
                 'display_order' => 21,
             ],
             [
-                'rule_code' => 'R-2024-022',
-                'name' => 'Exonérations à activité (transport public, agricole…)',
-                'description' => 'Transport public de personnes, agricole/forestier, enseignement de la conduite, compétitions sportives. INACTIVES par défaut.',
-                'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 421-130'),
-                    $cibs('L. 421-131'),
-                    $cibs('L. 421-132'),
-                    $cibs('L. 421-142'),
-                    $cibs('L. 421-143'),
-                    $cibs('L. 421-144'),
-                ],
-                'display_order' => 22,
-                'is_active' => false,
-            ],
-            [
                 'rule_code' => 'R-2024-023',
                 'name' => 'Aucun abattement isolé applicable en 2024',
                 'description' => "2024 : aucun abattement isolé (ex. E85) applicable. Placeholder pour 2025+ où l'abattement E85 pourrait apparaître.",

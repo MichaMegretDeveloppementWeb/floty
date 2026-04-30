@@ -15,7 +15,6 @@ use App\Fiscal\Year2024\Exemption\R2024_017_ConditionalHybridExemption;
 use App\Fiscal\Year2024\Exemption\R2024_018_OigExemption;
 use App\Fiscal\Year2024\Exemption\R2024_019_IndividualBusinessExemption;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
-use App\Fiscal\Year2024\Exemption\R2024_022_ActivityBasedExemption;
 use App\Fiscal\Year2024\Pricing\R2024_010_WltpProgressive;
 use App\Fiscal\Year2024\Pricing\R2024_011_NedcProgressive;
 use App\Fiscal\Year2024\Pricing\R2024_012_PaProgressive;
@@ -87,7 +86,6 @@ final class FiscalServiceProvider extends ServiceProvider
             R2024_018_OigExemption::class,
             R2024_019_IndividualBusinessExemption::class,
             R2024_021_ShortTermRental::class,
-            R2024_022_ActivityBasedExemption::class,
             // Pricing
             R2024_010_WltpProgressive::class,
             R2024_011_NedcProgressive::class,

@@ -121,6 +121,21 @@ final class UpdateVehicleData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
+        // ---------- Spécificités fiscales (toujours visibles) ----------
+        #[IntegerType, Min(0), Max(10000)]
+        public ?int $kerbMass = null,
+
+        public bool $handicapAccess = false,
+
+        // ---------- Usage spécifique (conditionnels selon catégorie/carrosserie) ----------
+        public bool $m1SpecialUse = false,
+
+        public bool $n1PassengerTransport = false,
+
+        public bool $n1RemovableSecondRowSeat = false,
+
+        public bool $n1SkiLiftUse = false,
+
         // ---------- Métadonnées de la nouvelle version (optionnelles) ----------
         // Requises uniquement si un champ fiscal a changé — détecté par
         // l'Action qui compare le payload à la VFC courante. Si aucun

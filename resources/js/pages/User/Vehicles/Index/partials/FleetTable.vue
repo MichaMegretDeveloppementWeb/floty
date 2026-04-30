@@ -14,8 +14,6 @@ defineProps<{
     columns: readonly DataTableColumn<VehicleRow>[];
     sortKey: FleetSortKey | null;
     sortDirection: 'asc' | 'desc';
-    statusLabel: Record<string, string>;
-    statusDotClass: Record<string, string>;
 }>();
 
 const emit = defineEmits<{
@@ -63,19 +61,7 @@ function onHeaderClick(columnKey: string): void {
         </template>
 
         <template #cell-licensePlate="{ row }">
-            <div class="flex items-center gap-2">
-                <span
-                    :class="[
-                        'inline-block h-2 w-2 shrink-0 rounded-full',
-                        statusDotClass[row.currentStatus] ?? 'bg-slate-400',
-                    ]"
-                    :title="
-                        statusLabel[row.currentStatus] ?? row.currentStatus
-                    "
-                    aria-hidden="true"
-                />
-                <Plate :value="row.licensePlate" />
-            </div>
+            <Plate :value="row.licensePlate" />
         </template>
         <template #cell-model="{ row }">
             <span class="text-slate-700">

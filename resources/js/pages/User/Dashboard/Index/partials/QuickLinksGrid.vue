@@ -16,10 +16,7 @@ const { quickLinks } = useQuickLinksGrid();
                 v-for="link in quickLinks"
                 :key="link.href"
                 :href="link.href"
-                :class="[
-                    'group relative flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 transition-colors duration-[120ms] ease-out hover:border-slate-400',
-                    link.featured ? 'sm:col-span-2 lg:col-span-2' : '',
-                ]"
+                class="group relative flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 transition-colors duration-[120ms] ease-out hover:border-slate-400"
             >
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-2 text-slate-900">

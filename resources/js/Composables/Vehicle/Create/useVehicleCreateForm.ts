@@ -1,5 +1,6 @@
 import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
+import { watch } from 'vue';
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 import { store as vehiclesStoreRoute } from '@/routes/user/vehicles';
 
@@ -36,7 +37,43 @@ export function useVehicleCreateForm(): {
         co2_wltp: null,
         co2_nedc: null,
         taxable_horsepower: null,
+        kerb_mass: null,
+        handicap_access: false,
+        m1_special_use: false,
+        n1_passenger_transport: false,
+        n1_removable_second_row_seat: false,
+        n1_ski_lift_use: false,
     });
+
+    // Watchers anti-données fantômes : les flags M1/N1 propres à une
+    // catégorie/carrosserie sont remis à false dès que l'utilisateur
+    // bascule vers une combinaison où ils ne s'appliquent plus.
+    watch(
+        () => form.reception_category,
+        (cat) => {
+            if (cat !== 'M1') {
+                form.m1_special_use = false;
+            }
+            if (cat !== 'N1') {
+                form.n1_passenger_transport = false;
+                form.n1_removable_second_row_seat = false;
+                form.n1_ski_lift_use = false;
+            }
+        },
+    );
+
+    watch(
+        () => form.body_type,
+        (body) => {
+            if (body !== 'CTTE') {
+                form.n1_passenger_transport = false;
+                form.n1_removable_second_row_seat = false;
+            }
+            if (body !== 'BE') {
+                form.n1_ski_lift_use = false;
+            }
+        },
+    );
 
     const submit = (): void => {
         form

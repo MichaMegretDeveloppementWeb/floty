@@ -53,8 +53,6 @@ export function useFleetTable(opts: {
     state: TableState<VehicleRow, FleetFilters, FleetSortKey>;
     activeFilterChips: ComputedRef<FleetFilterChip[]>;
     removeFilter: (key: keyof FleetFilters) => void;
-    statusLabel: Record<string, string>;
-    statusDotClass: Record<string, string>;
     handleRowClick: (row: VehicleRow) => void;
 } {
     const columns = computed<readonly DataTableColumn<VehicleRow>[]>(() => [
@@ -166,16 +164,6 @@ export function useFleetTable(opts: {
         state.setFilter(key, DEFAULT_FILTERS[key]);
     }
 
-    const statusLabel: Record<string, string> = STATUS_LABELS;
-
-    const statusDotClass: Record<string, string> = {
-        active: 'bg-emerald-500',
-        maintenance: 'bg-amber-500',
-        sold: 'bg-slate-400',
-        destroyed: 'bg-rose-500',
-        other: 'bg-slate-400',
-    };
-
     const handleRowClick = (row: VehicleRow): void => {
         router.visit(vehiclesShowRoute.url({ vehicle: row.id }));
     };
@@ -186,8 +174,6 @@ export function useFleetTable(opts: {
         state,
         activeFilterChips,
         removeFilter,
-        statusLabel,
-        statusDotClass,
         handleRowClick,
     };
 }

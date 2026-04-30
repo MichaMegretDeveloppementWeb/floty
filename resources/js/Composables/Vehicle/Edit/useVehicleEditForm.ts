@@ -76,6 +76,12 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         co2_wltp: fiscal?.co2Wltp ?? null,
         co2_nedc: fiscal?.co2Nedc ?? null,
         taxable_horsepower: fiscal?.taxableHorsepower ?? null,
+        kerb_mass: fiscal?.kerbMass ?? null,
+        handicap_access: fiscal?.handicapAccess ?? false,
+        m1_special_use: fiscal?.m1SpecialUse ?? false,
+        n1_passenger_transport: fiscal?.n1PassengerTransport ?? false,
+        n1_removable_second_row_seat: fiscal?.n1RemovableSecondRowSeat ?? false,
+        n1_ski_lift_use: fiscal?.n1SkiLiftUse ?? false,
         effective_from: today,
         change_reason: 'recharacterization',
         change_note: '',
@@ -107,7 +113,13 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
             || form.homologation_method !== fiscal.homologationMethod
             || form.co2_wltp !== fiscal.co2Wltp
             || form.co2_nedc !== fiscal.co2Nedc
-            || form.taxable_horsepower !== fiscal.taxableHorsepower;
+            || form.taxable_horsepower !== fiscal.taxableHorsepower
+            || form.kerb_mass !== fiscal.kerbMass
+            || form.handicap_access !== fiscal.handicapAccess
+            || form.m1_special_use !== fiscal.m1SpecialUse
+            || form.n1_passenger_transport !== fiscal.n1PassengerTransport
+            || form.n1_removable_second_row_seat !== fiscal.n1RemovableSecondRowSeat
+            || form.n1_ski_lift_use !== fiscal.n1SkiLiftUse;
     });
 
     const canSubmit = computed<boolean>(() => {
@@ -166,6 +178,36 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         (reason) => {
             if (reason !== 'other_change') {
                 form.change_note = '';
+            }
+        },
+    );
+
+    // Watchers anti-données fantômes : les flags M1/N1 propres à une
+    // catégorie/carrosserie sont remis à false dès que l'utilisateur
+    // bascule vers une combinaison où ils ne s'appliquent plus.
+    watch(
+        () => form.reception_category,
+        (cat) => {
+            if (cat !== 'M1') {
+                form.m1_special_use = false;
+            }
+            if (cat !== 'N1') {
+                form.n1_passenger_transport = false;
+                form.n1_removable_second_row_seat = false;
+                form.n1_ski_lift_use = false;
+            }
+        },
+    );
+
+    watch(
+        () => form.body_type,
+        (body) => {
+            if (body !== 'CTTE') {
+                form.n1_passenger_transport = false;
+                form.n1_removable_second_row_seat = false;
+            }
+            if (body !== 'BE') {
+                form.n1_ski_lift_use = false;
             }
         },
     );

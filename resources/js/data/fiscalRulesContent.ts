@@ -287,13 +287,6 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         pitch: 'Véhicules détenus par une personne physique exerçant en nom propre (BIC/BNC).',
         body: 'Inactive par défaut : les entreprises utilisatrices sont des sociétés, jamais des personnes physiques en nom propre.',
     },
-    'R-2024-022': {
-        tab: 'calcul',
-        section: 'exoneration-inactive',
-        title: 'Exonérations liées à l’activité (transport public, agricole, etc.)',
-        pitch: 'Transport public de personnes, activités agricoles ou forestières, enseignement de la conduite, compétitions sportives.',
-        body: "Quatre dispositifs prévus par le CIBS, modélisés mais inactifs par défaut : aucune entreprise utilisatrice n'exerce l'une de ces activités exonérées.",
-    },
 
     // ─────────────────────────────────────────────────────────────
     //  ONGLET 2 — CADRE & FONCTIONNEMENT

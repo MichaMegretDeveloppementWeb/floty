@@ -1,6 +1,7 @@
 <script setup lang="ts" generic="T extends FiscalCharacteristicsFieldsShape">
 import type { InertiaForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import type { FiscalCharacteristicsFieldsShape } from '@/pages/User/Vehicles/Create/forms';
@@ -27,6 +28,15 @@ const showPa = computed((): boolean => props.form.homologation_method === 'PA');
 
 const isHybrid = computed((): boolean =>
     requiresUnderlyingCombustionEngine(props.form.energy_source),
+);
+
+const isM1 = computed((): boolean => props.form.reception_category === 'M1');
+const isN1 = computed((): boolean => props.form.reception_category === 'N1');
+const isLightTruck = computed((): boolean => props.form.body_type === 'CTTE');
+const isPickup = computed((): boolean => props.form.body_type === 'BE');
+
+const showUsageSection = computed((): boolean =>
+    isM1.value || (isN1.value && (isLightTruck.value || isPickup.value)),
 );
 
 // Catégorie polluants dérivée live des champs canoniques. Garde-fou
@@ -160,6 +170,68 @@ const pollutantCategoryLabel = computed((): string => {
             >
                 <template #unit>CV</template>
             </NumberInput>
+        </div>
+
+        <div class="flex flex-col gap-4 border-t border-slate-100 pt-4">
+            <p class="eyebrow">Spécificités fiscales</p>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <NumberInput
+                    v-model="form.kerb_mass"
+                    label="Masse à vide"
+                    :min="0"
+                    :max="10000"
+                    :error="errors.kerb_mass"
+                    hint="Optionnelle. Utilisée par les barèmes fiscaux à venir (2026+)."
+                >
+                    <template #unit>kg</template>
+                </NumberInput>
+                <CheckboxInput
+                    v-model="form.handicap_access"
+                    label="Aménagé pour fauteuil roulant ou conduite handicapée"
+                    hint="Déclenche l'exonération totale des deux taxes (CIBS L. 421-123 / L. 421-136)."
+                    :error="errors.handicap_access"
+                />
+            </div>
+        </div>
+
+        <div
+            v-if="showUsageSection"
+            class="flex flex-col gap-4 border-t border-slate-100 pt-4"
+        >
+            <p class="eyebrow">Usage spécifique</p>
+            <CheckboxInput
+                v-if="isM1"
+                v-model="form.m1_special_use"
+                label="Usage spécial : corbillard, ambulance, véhicule blindé"
+                hint="Exclut le véhicule du champ fiscal des deux taxes annuelles (CIBS L. 421-2)."
+                :error="errors.m1_special_use"
+            />
+            <template v-if="isN1 && isLightTruck">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <CheckboxInput
+                        v-model="form.n1_removable_second_row_seat"
+                        label="2ᵉ rangée amovible installée"
+                        :error="errors.n1_removable_second_row_seat"
+                    />
+                    <CheckboxInput
+                        v-model="form.n1_passenger_transport"
+                        label="Affectée au transport de personnes"
+                        :error="errors.n1_passenger_transport"
+                    />
+                </div>
+                <p class="text-xs leading-snug text-slate-500">
+                    Les deux ensemble rendent la camionnette N1 taxable
+                    (CIBS L. 421-2). Si l'un manque, le véhicule reste hors
+                    champ fiscal.
+                </p>
+            </template>
+            <CheckboxInput
+                v-if="isN1 && isPickup"
+                v-model="form.n1_ski_lift_use"
+                label="Affecté à l'exploitation de remontées mécaniques"
+                hint="Exclut le pick-up N1 du champ fiscal."
+                :error="errors.n1_ski_lift_use"
+            />
         </div>
     </section>
 </template>

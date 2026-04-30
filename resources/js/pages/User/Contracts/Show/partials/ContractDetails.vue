@@ -52,32 +52,29 @@ defineProps<{
                     </Badge>
                 </dd>
             </div>
-            <div>
+            <div v-if="contract.contractReference">
                 <dt class="text-xs font-medium uppercase text-slate-500">
                     Référence contrat
                 </dt>
                 <dd class="mt-1 text-sm text-slate-900">
-                    {{ contract.contractReference ?? '—' }}
+                    {{ contract.contractReference }}
                 </dd>
             </div>
-            <div>
+            <div v-if="contract.driverFullName">
                 <dt class="text-xs font-medium uppercase text-slate-500">
                     Conducteur
                 </dt>
                 <dd class="mt-1 text-sm text-slate-900">
-                    {{ contract.driverFullName ?? '—' }}
+                    {{ contract.driverFullName }}
                 </dd>
             </div>
         </dl>
-        <div>
+        <div v-if="contract.notes">
             <dt class="text-xs font-medium uppercase text-slate-500">
                 Notes
             </dt>
-            <dd
-                class="mt-1 text-sm whitespace-pre-line"
-                :class="contract.notes ? 'text-slate-700' : 'text-slate-900'"
-            >
-                {{ contract.notes ?? '—' }}
+            <dd class="mt-1 text-sm whitespace-pre-line text-slate-700">
+                {{ contract.notes }}
             </dd>
         </div>
     </section>

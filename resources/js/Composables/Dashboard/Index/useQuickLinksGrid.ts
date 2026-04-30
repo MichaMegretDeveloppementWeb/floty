@@ -17,12 +17,11 @@ export type QuickLink = {
     description: string;
     href: string;
     icon: Component;
-    featured?: boolean;
 };
 
 /**
- * Liste statique des accès rapides du dashboard. La carte « Vue
- * d'ensemble » est marquée `featured` (occupe 2 colonnes en grille).
+ * Liste statique des accès rapides du dashboard. Cartes uniformes en
+ * grille 3 colonnes (5 items → ligne 1 pleine, ligne 2 partielle).
  */
 export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
     const quickLinks: QuickLink[] = [
@@ -32,7 +31,6 @@ export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
                 "Heatmap annuelle des 52 semaines — la vue maîtresse pour attribuer et visualiser l'impact fiscal en temps réel.",
             href: planningIndexRoute.url(),
             icon: CalendarDays,
-            featured: true,
         },
         {
             label: 'Contrats',

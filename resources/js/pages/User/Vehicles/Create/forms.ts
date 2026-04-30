@@ -21,6 +21,14 @@ export type FiscalCharacteristicsFieldsShape = {
     co2_wltp: number | null;
     co2_nedc: number | null;
     taxable_horsepower: number | null;
+    // Spécificités fiscales (toujours visibles)
+    kerb_mass: number | null;
+    handicap_access: boolean;
+    // Usage spécifique (conditionnels selon catégorie/carrosserie)
+    m1_special_use: boolean;
+    n1_passenger_transport: boolean;
+    n1_removable_second_row_seat: boolean;
+    n1_ski_lift_use: boolean;
 };
 
 /**

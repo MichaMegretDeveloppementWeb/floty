@@ -60,21 +60,11 @@ function onHeaderClick(columnKey: string): void {
         </template>
 
         <template #cell-company="{ row }">
-            <div class="flex items-center gap-2">
-                <span
-                    :class="[
-                        'inline-block h-2 w-2 shrink-0 rounded-full',
-                        row.isActive ? 'bg-emerald-500' : 'bg-slate-400',
-                    ]"
-                    :title="row.isActive ? 'Active' : 'Inactive'"
-                    aria-hidden="true"
-                />
-                <CompanyTag
-                    :name="row.legalName"
-                    :initials="row.shortCode"
-                    :color="row.color"
-                />
-            </div>
+            <CompanyTag
+                :name="row.legalName"
+                :initials="row.shortCode"
+                :color="row.color"
+            />
         </template>
         <template #cell-siren="{ value }">
             {{ value ?? '—' }}

@@ -113,10 +113,6 @@ export function useCurrentFiscalCharacteristicsCard(props: {
             { active: f.n1RemovableSecondRowSeat, label: 'N1 banquette amovible' },
             { active: f.m1SpecialUse, label: 'M1 usage spécial' },
             { active: f.n1SkiLiftUse, label: 'N1 remontée mécanique' },
-            {
-                active: f.affectedToExemptedActivityPercent > 0,
-                label: `Activité exonérée ${f.affectedToExemptedActivityPercent}%`,
-            },
         ];
 
         return candidates.filter((c) => c.active).map((c) => c.label);

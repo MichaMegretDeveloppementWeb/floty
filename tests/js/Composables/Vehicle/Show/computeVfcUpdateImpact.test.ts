@@ -39,7 +39,6 @@ function makeVfc(
         n1RemovableSecondRowSeat: false,
         m1SpecialUse: false,
         n1SkiLiftUse: false,
-        affectedToExemptedActivityPercent: 0,
         changeReason: 'initial_creation',
         changeNote: null,
     };

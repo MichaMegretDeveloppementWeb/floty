@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Enums\Company\ExemptedActivity;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +18,9 @@ use Illuminate\Support\Facades\Schema;
  *     conditionnelles dans GENERATED ALWAYS AS, cf. 01-schema-metier.md § 0.2).
  *   - UNIQUE (siren) filtré idem, appliqué uniquement si le SIREN est
  *     renseigné et l'entreprise non soft-deletée.
- *   - Drapeaux d'exonération pour le moteur fiscal (R-2024-018, R-2024-019,
- *     R-2024-022) : `is_oig`, `is_individual_business`, `exempted_activity`.
+ *   - Drapeaux d'exonération pour le moteur fiscal (R-2024-018, R-2024-019) :
+ *     `is_oig`, `is_individual_business`. La colonne `exempted_activity`
+ *     a été retirée par la migration 2026_04_30_175040 (cleanup R-2024-022).
  *   - Deux drapeaux orthogonaux :
  *       * `is_active` = désactivation métier (plus d'attributions futures
  *         mais historique conservé, visible en lecture),
@@ -54,7 +54,7 @@ return new class extends Migration
             $table->boolean('is_active')->default(true);
             $table->boolean('is_oig')->default(false);
             $table->boolean('is_individual_business')->default(false);
-            $table->string('exempted_activity', 32)->default(ExemptedActivity::None->value);
+            $table->string('exempted_activity', 32)->default('none');
             $table->timestamp('deactivated_at')->nullable();
 
             $table->timestamps();

@@ -54,7 +54,6 @@ final class VehicleFiscalCharacteristicsData extends Data
         public bool $n1RemovableSecondRowSeat,
         public bool $m1SpecialUse,
         public bool $n1SkiLiftUse,
-        public int $affectedToExemptedActivityPercent,
         public FiscalCharacteristicsChangeReason $changeReason,
         public ?string $changeNote,
     ) {}
@@ -84,7 +83,6 @@ final class VehicleFiscalCharacteristicsData extends Data
             n1RemovableSecondRowSeat: $vfc->n1_removable_second_row_seat,
             m1SpecialUse: $vfc->m1_special_use,
             n1SkiLiftUse: $vfc->n1_ski_lift_use,
-            affectedToExemptedActivityPercent: $vfc->affected_to_exempted_activity_percent,
             changeReason: $vfc->change_reason,
             changeNote: $vfc->change_note,
         );

@@ -158,6 +158,12 @@ final readonly class UpdateVehicleAction
             || $current->homologation_method !== $data->homologationMethod
             || $current->co2_wltp !== $data->co2Wltp
             || $current->co2_nedc !== $data->co2Nedc
-            || $current->taxable_horsepower !== $data->taxableHorsepower;
+            || $current->taxable_horsepower !== $data->taxableHorsepower
+            || $current->kerb_mass !== $data->kerbMass
+            || $current->handicap_access !== $data->handicapAccess
+            || $current->m1_special_use !== $data->m1SpecialUse
+            || $current->n1_passenger_transport !== $data->n1PassengerTransport
+            || $current->n1_removable_second_row_seat !== $data->n1RemovableSecondRowSeat
+            || $current->n1_ski_lift_use !== $data->n1SkiLiftUse;
     }
 }

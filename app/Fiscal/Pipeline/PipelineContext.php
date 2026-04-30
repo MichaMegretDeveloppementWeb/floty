@@ -53,6 +53,7 @@ final readonly class PipelineContext
         public ?int $cumulativeDaysForPair = null,
         public ?VehicleFiscalCharacteristics $currentFiscalCharacteristics = null,
         public ?bool $isFiscallyTaxable = null,
+        public ?string $isFiscallyTaxableReason = null,
         public ?HomologationMethod $resolvedCo2Method = null,
         public ?PollutantCategory $resolvedPollutantCategory = null,
         public ?float $co2FullYearTariff = null,
@@ -71,6 +72,11 @@ final readonly class PipelineContext
     public function withIsFiscallyTaxable(bool $taxable): self
     {
         return $this->copyWith(['isFiscallyTaxable' => $taxable]);
+    }
+
+    public function withFiscallyTaxableReason(?string $reason): self
+    {
+        return $this->copyWith(['isFiscallyTaxableReason' => $reason]);
     }
 
     public function withResolvedCo2Method(HomologationMethod $method): self
@@ -145,6 +151,7 @@ final readonly class PipelineContext
             cumulativeDaysForPair: $pick('cumulativeDaysForPair', $this->cumulativeDaysForPair),
             currentFiscalCharacteristics: $pick('currentFiscalCharacteristics', $this->currentFiscalCharacteristics),
             isFiscallyTaxable: $pick('isFiscallyTaxable', $this->isFiscallyTaxable),
+            isFiscallyTaxableReason: $pick('isFiscallyTaxableReason', $this->isFiscallyTaxableReason),
             resolvedCo2Method: $pick('resolvedCo2Method', $this->resolvedCo2Method),
             resolvedPollutantCategory: $pick('resolvedPollutantCategory', $this->resolvedPollutantCategory),
             co2FullYearTariff: $pick('co2FullYearTariff', $this->co2FullYearTariff),

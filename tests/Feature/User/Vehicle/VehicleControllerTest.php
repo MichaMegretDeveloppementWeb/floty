@@ -467,6 +467,182 @@ final class VehicleControllerTest extends TestCase
         ]);
     }
 
+    #[Test]
+    public function update_m1_special_use_persiste_le_flag(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'reception_category' => 'M1',
+            'body_type' => 'CI',
+            'm1_special_use' => false,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'reception_category' => 'M1',
+            'body_type' => 'CI',
+            'm1_special_use' => true,
+            'effective_from' => '2025-06-01',
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2025-06-01',
+            'effective_to' => null,
+            'm1_special_use' => true,
+        ]);
+    }
+
+    #[Test]
+    public function update_camionnette_n1_avec_2_rangs_et_transport_personnes_persiste_les_flags(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'reception_category' => 'N1',
+            'body_type' => 'CTTE',
+            'vehicle_user_type' => 'VU',
+            'n1_passenger_transport' => false,
+            'n1_removable_second_row_seat' => false,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'reception_category' => 'N1',
+            'body_type' => 'CTTE',
+            'vehicle_user_type' => 'VU',
+            'n1_passenger_transport' => true,
+            'n1_removable_second_row_seat' => true,
+            'effective_from' => '2025-06-01',
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2025-06-01',
+            'effective_to' => null,
+            'n1_passenger_transport' => true,
+            'n1_removable_second_row_seat' => true,
+        ]);
+    }
+
+    #[Test]
+    public function update_pickup_n1_skiable_persiste_le_flag(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'reception_category' => 'N1',
+            'body_type' => 'BE',
+            'vehicle_user_type' => 'VU',
+            'seats_count' => 5,
+            'n1_ski_lift_use' => false,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'reception_category' => 'N1',
+            'body_type' => 'BE',
+            'vehicle_user_type' => 'VU',
+            'seats_count' => 5,
+            'n1_ski_lift_use' => true,
+            'effective_from' => '2025-06-01',
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2025-06-01',
+            'effective_to' => null,
+            'n1_ski_lift_use' => true,
+        ]);
+    }
+
+    #[Test]
+    public function update_handicap_access_persiste_le_flag(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'handicap_access' => false,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'handicap_access' => true,
+            'effective_from' => '2025-06-01',
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2025-06-01',
+            'effective_to' => null,
+            'handicap_access' => true,
+        ]);
+    }
+
+    #[Test]
+    public function update_kerb_mass_seul_declenche_creation_nouvelle_vfc(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'kerb_mass' => 1300,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'kerb_mass' => 1450,
+            'effective_from' => '2025-06-01',
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        // Ancienne VFC fermée + nouvelle VFC active.
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_to' => '2025-05-31',
+        ]);
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2025-06-01',
+            'effective_to' => null,
+            'kerb_mass' => 1450,
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>
@@ -492,6 +668,14 @@ final class VehicleControllerTest extends TestCase
             'euro_standard' => 'euro_6d_isc_fcm',
             'homologation_method' => 'WLTP',
             'co2_wltp' => 120,
+            // Defaults alignés sur VehicleFiscalCharacteristicsFactory pour
+            // que hasFiscalChanges() ne détecte pas de faux positif.
+            'kerb_mass' => 1300,
+            'handicap_access' => false,
+            'm1_special_use' => false,
+            'n1_passenger_transport' => false,
+            'n1_removable_second_row_seat' => false,
+            'n1_ski_lift_use' => false,
             'effective_from' => '2025-06-01',
             'change_reason' => 'recharacterization',
         ], $overrides);

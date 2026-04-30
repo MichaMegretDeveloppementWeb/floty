@@ -49,6 +49,12 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'co2_wltp' => $data->co2Wltp,
             'co2_nedc' => $data->co2Nedc,
             'taxable_horsepower' => $data->taxableHorsepower,
+            'kerb_mass' => $data->kerbMass,
+            'handicap_access' => $data->handicapAccess,
+            'm1_special_use' => $data->m1SpecialUse,
+            'n1_passenger_transport' => $data->n1PassengerTransport,
+            'n1_removable_second_row_seat' => $data->n1RemovableSecondRowSeat,
+            'n1_ski_lift_use' => $data->n1SkiLiftUse,
             'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
         ]);
     }
@@ -80,6 +86,12 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'co2_wltp' => $data->co2Wltp,
             'co2_nedc' => $data->co2Nedc,
             'taxable_horsepower' => $data->taxableHorsepower,
+            'kerb_mass' => $data->kerbMass,
+            'handicap_access' => $data->handicapAccess,
+            'm1_special_use' => $data->m1SpecialUse,
+            'n1_passenger_transport' => $data->n1PassengerTransport,
+            'n1_removable_second_row_seat' => $data->n1RemovableSecondRowSeat,
+            'n1_ski_lift_use' => $data->n1SkiLiftUse,
             'change_reason' => $reason,
             'change_note' => $note,
         ]);
@@ -142,6 +154,12 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'co2_wltp' => $data->co2Wltp,
             'co2_nedc' => $data->co2Nedc,
             'taxable_horsepower' => $data->taxableHorsepower,
+            'kerb_mass' => $data->kerbMass,
+            'handicap_access' => $data->handicapAccess,
+            'm1_special_use' => $data->m1SpecialUse,
+            'n1_passenger_transport' => $data->n1PassengerTransport,
+            'n1_removable_second_row_seat' => $data->n1RemovableSecondRowSeat,
+            'n1_ski_lift_use' => $data->n1SkiLiftUse,
             'change_reason' => $data->changeReason,
             'change_note' => $data->changeNote,
         ]);

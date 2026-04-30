@@ -1,6 +1,4 @@
 <script setup lang="ts">
-import { Download } from 'lucide-vue-next';
-import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
@@ -25,22 +23,9 @@ const {
 <template>
     <Card>
         <template #header>
-            <div class="flex items-center justify-between gap-3">
-                <h2 class="text-base font-semibold text-slate-900">
-                    Répartition fiscale par entreprise utilisatrice
-                </h2>
-                <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled
-                    title="Bientôt disponible"
-                >
-                    <template #icon-left>
-                        <Download :size="14" :stroke-width="1.75" />
-                    </template>
-                    Export
-                </Button>
-            </div>
+            <h2 class="text-base font-semibold text-slate-900">
+                Répartition fiscale par entreprise utilisatrice
+            </h2>
         </template>
 
         <p

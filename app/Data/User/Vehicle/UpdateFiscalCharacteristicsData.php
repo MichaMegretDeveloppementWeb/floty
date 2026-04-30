@@ -83,10 +83,25 @@ final class UpdateFiscalCharacteristicsData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
+        // Spécificités fiscales (toujours visibles)
+        #[IntegerType, Min(0), Max(10000)]
+        public ?int $kerbMass = null,
+
+        public bool $handicapAccess = false,
+
+        // Usage spécifique (conditionnels selon catégorie/carrosserie)
+        public bool $m1SpecialUse = false,
+
+        public bool $n1PassengerTransport = false,
+
+        public bool $n1RemovableSecondRowSeat = false,
+
+        public bool $n1SkiLiftUse = false,
+
         // Motif (peut être modifié pour corriger la classification
         // historique). `InitialCreation` reste réservé au système.
         #[Required]
-        public FiscalCharacteristicsChangeReason $changeReason,
+        public FiscalCharacteristicsChangeReason $changeReason = FiscalCharacteristicsChangeReason::Recharacterization,
 
         #[Max(2000)]
         public ?string $changeNote = null,

@@ -339,6 +339,12 @@ final class VehicleFiscalCharacteristicsControllerTest extends TestCase
             'co2_wltp' => $vfc->co2_wltp,
             'co2_nedc' => $vfc->co2_nedc,
             'taxable_horsepower' => $vfc->taxable_horsepower,
+            'kerb_mass' => $vfc->kerb_mass,
+            'handicap_access' => $vfc->handicap_access,
+            'm1_special_use' => $vfc->m1_special_use,
+            'n1_passenger_transport' => $vfc->n1_passenger_transport,
+            'n1_removable_second_row_seat' => $vfc->n1_removable_second_row_seat,
+            'n1_ski_lift_use' => $vfc->n1_ski_lift_use,
             'change_reason' => $vfc->change_reason->value === 'initial_creation'
                 ? 'recharacterization'
                 : $vfc->change_reason->value,

@@ -51,7 +51,6 @@ use Illuminate\Support\Carbon;
  * @property bool $n1_removable_second_row_seat
  * @property bool $m1_special_use
  * @property bool $n1_ski_lift_use
- * @property int $affected_to_exempted_activity_percent
  * @property FiscalCharacteristicsChangeReason $change_reason
  * @property string|null $change_note
  * @property Carbon|null $created_at
@@ -79,7 +78,6 @@ use Illuminate\Support\Carbon;
     'n1_removable_second_row_seat',
     'm1_special_use',
     'n1_ski_lift_use',
-    'affected_to_exempted_activity_percent',
     'change_reason',
     'change_note',
 ])]

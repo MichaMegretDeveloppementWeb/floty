@@ -124,8 +124,6 @@ const maxModel = computed({
                     :columns="tableState.columns.value"
                     :sort-key="tableState.state.sort.value.key"
                     :sort-direction="tableState.state.sort.value.direction"
-                    :status-label="tableState.statusLabel"
-                    :status-dot-class="tableState.statusDotClass"
                     @sort="tableState.state.setSort"
                     @row-click="tableState.handleRowClick"
                 />

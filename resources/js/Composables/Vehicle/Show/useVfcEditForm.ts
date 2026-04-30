@@ -58,6 +58,12 @@ export function useVfcEditForm(
         co2_wltp: null,
         co2_nedc: null,
         taxable_horsepower: null,
+        kerb_mass: null,
+        handicap_access: false,
+        m1_special_use: false,
+        n1_passenger_transport: false,
+        n1_removable_second_row_seat: false,
+        n1_ski_lift_use: false,
         effective_from: '',
         effective_to: '',
         change_reason: 'recharacterization',
@@ -88,6 +94,12 @@ export function useVfcEditForm(
                 form.co2_wltp = value.co2Wltp;
                 form.co2_nedc = value.co2Nedc;
                 form.taxable_horsepower = value.taxableHorsepower;
+                form.kerb_mass = value.kerbMass;
+                form.handicap_access = value.handicapAccess;
+                form.m1_special_use = value.m1SpecialUse;
+                form.n1_passenger_transport = value.n1PassengerTransport;
+                form.n1_removable_second_row_seat = value.n1RemovableSecondRowSeat;
+                form.n1_ski_lift_use = value.n1SkiLiftUse;
                 form.effective_from = value.effectiveFrom;
                 form.effective_to = value.effectiveTo ?? '';
                 // Pour une « Création initiale », on conserve la valeur
@@ -100,6 +112,37 @@ export function useVfcEditForm(
             }
 
             form.clearErrors();
+        },
+    );
+
+    // Watchers anti-données fantômes : quand l'utilisateur bascule la
+    // catégorie ou la carrosserie, les flags M1/N1 propres à l'ancienne
+    // combinaison sont remis à false pour éviter de persister un état
+    // incohérent (ex. M1 + n1_ski_lift_use=true).
+    watch(
+        () => form.reception_category,
+        (cat) => {
+            if (cat !== 'M1') {
+                form.m1_special_use = false;
+            }
+            if (cat !== 'N1') {
+                form.n1_passenger_transport = false;
+                form.n1_removable_second_row_seat = false;
+                form.n1_ski_lift_use = false;
+            }
+        },
+    );
+
+    watch(
+        () => form.body_type,
+        (body) => {
+            if (body !== 'CTTE') {
+                form.n1_passenger_transport = false;
+                form.n1_removable_second_row_seat = false;
+            }
+            if (body !== 'BE') {
+                form.n1_ski_lift_use = false;
+            }
         },
     );
 

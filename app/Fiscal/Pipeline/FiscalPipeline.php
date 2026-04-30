@@ -194,10 +194,14 @@ final class FiscalPipeline
         // Cas spécial R-2024-004 : véhicule hors champ fiscal — pas de
         // verdict d'exonération (pipeline court-circuité avant la phase
         // exonérations) mais on doit exposer un motif explicatif sinon
-        // l'utilisateur voit « voir motif ci-dessous » sans liste.
+        // l'utilisateur voit « voir motif ci-dessous » sans liste. Le
+        // motif précis selon la branche d'exclusion est posé par
+        // R-2024-004 elle-même via `withFiscallyTaxableReason()`. Le
+        // fallback en chaîne dur-codée ne sert que de filet de sécurité.
         if ($context->isFiscallyTaxable === false) {
             $appliedExemptions = [new AppliedExemption(
-                reason: 'Véhicule hors du champ fiscal des taxes annuelles (CIBS art. L. 421-2).',
+                reason: $context->isFiscallyTaxableReason
+                    ?? 'Véhicule hors du champ fiscal des taxes annuelles (CIBS L. 421-2).',
                 ruleCode: 'R-2024-004',
             )];
         } else {
