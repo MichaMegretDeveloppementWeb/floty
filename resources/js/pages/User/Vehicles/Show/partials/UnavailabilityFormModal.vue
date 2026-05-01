@@ -28,6 +28,7 @@ const {
     isEditing,
     canSubmit,
     selectedIsReductive,
+    conflictDaysCount,
     submit,
 } = useUnavailabilityForm(props, open);
 </script>
@@ -101,15 +102,40 @@ const {
                         v-model:range="range"
                         v-model:ongoing="ongoing"
                         :year="currentYear"
-                        :disabled-dates="props.busyDates"
                     />
                 </div>
                 <InputError v-if="form.errors.start_date" :message="form.errors.start_date" />
                 <InputError v-if="form.errors.end_date" :message="form.errors.end_date" />
-                <p class="text-xs text-slate-500">
-                    Les jours déjà attribués au véhicule (barrés) ne peuvent
-                    pas être inclus dans la plage.
-                </p>
+
+                <div
+                    v-if="conflictDaysCount > 0"
+                    :class="[
+                        'rounded-lg border px-3 py-2.5 text-xs leading-snug',
+                        selectedIsReductive
+                            ? 'border-amber-200 bg-amber-50/60 text-amber-800'
+                            : 'border-slate-200 bg-slate-50/60 text-slate-600',
+                    ]"
+                    role="status"
+                    aria-live="polite"
+                >
+                    <p v-if="selectedIsReductive">
+                        Cette plage chevauche
+                        <strong>{{ conflictDaysCount }}</strong>
+                        jour{{ conflictDaysCount > 1 ? 's' : '' }}
+                        déjà attribué{{ conflictDaysCount > 1 ? 's' : '' }}
+                        à un contrat. L'indisponibilité
+                        <strong>réduira</strong> le prorata fiscal
+                        des contrats concernés (R-2024-008).
+                    </p>
+                    <p v-else>
+                        Cette plage chevauche
+                        <strong>{{ conflictDaysCount }}</strong>
+                        jour{{ conflictDaysCount > 1 ? 's' : '' }}
+                        déjà attribué{{ conflictDaysCount > 1 ? 's' : '' }}
+                        à un contrat.
+                        <strong>Aucun impact</strong> sur le calcul fiscal.
+                    </p>
+                </div>
             </div>
 
             <CheckboxInput

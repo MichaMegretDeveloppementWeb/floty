@@ -33,6 +33,51 @@ type SelectOptionGroup = {
 };
 
 /**
+ * Compte le nombre de dates ISO de `busyDates` (jours déjà attribués
+ * à un contrat actif) qui tombent dans la plage saisie par l'utilisateur.
+ *
+ * Cohabitation indispo↔contrat (ADR-0019) : la plage **peut** chevaucher
+ * un contrat — cette fonction sert à alimenter l'encart info pédagogique
+ * du modal, pas à bloquer la saisie.
+ *
+ * Sémantique :
+ *   - `startDate === null` → 0 (plage incomplète, on n'a rien à compter)
+ *   - `ongoing === false` et `endDate === null` → 0 (idem)
+ *   - `ongoing === true` → on compte tous les `busyDates >= startDate`
+ *     (la plage est considérée ouverte sur le futur, comme côté backend
+ *     où `end_date IS NULL` désigne une indispo encore en cours)
+ *   - sinon → on compte les `busyDates ∈ [startDate, endDate]` inclusif
+ *
+ * Pure pour faciliter le test unitaire — pas d'accès au composable.
+ */
+export function countConflictDaysInRange(
+    busyDates: ReadonlyArray<string>,
+    startDate: string | null,
+    endDate: string | null,
+    ongoing: boolean,
+): number {
+    if (startDate === null) {
+        return 0;
+    }
+
+    if (!ongoing && endDate === null) {
+        return 0;
+    }
+
+    return busyDates.filter((d) => {
+        if (d < startDate) {
+            return false;
+        }
+
+        if (!ongoing && endDate !== null && d > endDate) {
+            return false;
+        }
+
+        return true;
+    }).length;
+}
+
+/**
  * Form Inertia + UI state du modal de création/édition d'une
  * indisponibilité (ADR-0016 rev. 1.1, refonte chantier F).
  *
@@ -64,6 +109,7 @@ export function useUnavailabilityForm(
     isEditing: ComputedRef<boolean>;
     canSubmit: ComputedRef<boolean>;
     selectedIsReductive: ComputedRef<boolean>;
+    conflictDaysCount: ComputedRef<number>;
     submit: () => void;
 } {
     const { currentYear } = useFiscalYear();
@@ -147,6 +193,15 @@ export function useUnavailabilityForm(
         isUnavailabilityFiscallyReductive(form.type),
     );
 
+    const conflictDaysCount = computed<number>(() =>
+        countConflictDaysInRange(
+            props.busyDates,
+            range.value.startDate,
+            range.value.endDate,
+            ongoing.value,
+        ),
+    );
+
     const payloadTransform = (data: {
         type: UnavailabilityType;
         description: string;
@@ -202,6 +257,7 @@ export function useUnavailabilityForm(
         isEditing,
         canSubmit,
         selectedIsReductive,
+        conflictDaysCount,
         submit,
     };
 }
