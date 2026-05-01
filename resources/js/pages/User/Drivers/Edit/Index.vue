@@ -21,8 +21,13 @@ const { form, submit } = useEditDriverForm(props.driver);
     <UserLayout>
         <div class="mx-auto flex max-w-2xl flex-col gap-6">
             <div class="flex items-center justify-between">
-                <h1 class="text-2xl font-bold text-slate-900">Modifier conducteur</h1>
-                <Link :href="showRoute(props.driver.id).url" class="text-sm text-slate-600 hover:underline">
+                <h1 class="text-2xl font-bold text-slate-900">
+                    Modifier conducteur
+                </h1>
+                <Link
+                    :href="showRoute(props.driver.id).url"
+                    class="text-sm text-slate-600 hover:underline"
+                >
                     Annuler
                 </Link>
             </div>
@@ -41,7 +46,9 @@ const { form, submit } = useEditDriverForm(props.driver);
                 </div>
 
                 <div class="flex justify-end">
-                    <Button type="submit" :loading="form.processing">Enregistrer</Button>
+                    <Button type="submit" :loading="form.processing"
+                        >Enregistrer</Button
+                    >
                 </div>
             </form>
         </div>

@@ -34,8 +34,14 @@ const form = useForm<FormShape>({
 
 const resolutionOptions = [
     { value: 'none', label: 'Aucun contrat à venir à résoudre' },
-    { value: 'replace', label: 'Remplacer par un autre conducteur (à indiquer pour chaque contrat)' },
-    { value: 'detach', label: 'Retirer le conducteur des contrats à venir (driver_id = null)' },
+    {
+        value: 'replace',
+        label: 'Remplacer par un autre conducteur (à indiquer pour chaque contrat)',
+    },
+    {
+        value: 'detach',
+        label: 'Retirer le conducteur des contrats à venir (driver_id = null)',
+    },
 ];
 
 function close(): void {
@@ -52,13 +58,21 @@ function submit(): void {
 </script>
 
 <template>
-    <Modal v-model:open="open" title="Sortir le conducteur de l'entreprise" size="lg" @close="emit('close')">
+    <Modal
+        v-model:open="open"
+        title="Sortir le conducteur de l'entreprise"
+        size="lg"
+        @close="emit('close')"
+    >
         <p class="text-sm text-slate-700">
-            Sortir <strong>{{ driverFullName }}</strong> de <strong>{{ companyName }}</strong>.
+            Sortir <strong>{{ driverFullName }}</strong> de
+            <strong>{{ companyName }}</strong
+            >.
         </p>
         <p class="mt-2 text-xs text-slate-500">
-            Cette action pose une date de sortie sur la membership. L'historique des contrats passés est conservé.
-            Si le conducteur a des contrats à venir après cette date, choisissez comment les résoudre.
+            Cette action pose une date de sortie sur la membership. L'historique
+            des contrats passés est conservé. Si le conducteur a des contrats à
+            venir après cette date, choisissez comment les résoudre.
         </p>
 
         <form class="mt-6 flex flex-col gap-4" @submit.prevent="submit">
@@ -69,23 +83,34 @@ function submit(): void {
             </div>
 
             <div>
-                <FieldLabel for="leave-resolution">Contrats à venir après la date de sortie</FieldLabel>
+                <FieldLabel for="leave-resolution"
+                    >Contrats à venir après la date de sortie</FieldLabel
+                >
                 <SelectInput
                     id="leave-resolution"
                     v-model="form.future_contracts_resolution"
                     :options="resolutionOptions"
                 />
-                <InputError :message="form.errors.future_contracts_resolution" />
+                <InputError
+                    :message="form.errors.future_contracts_resolution"
+                />
                 <p class="mt-1 text-xs text-amber-600">
-                    L'enrichissement de la modale (liste des contrats à résoudre + sélecteurs de remplacement par
-                    contrat) sera livré en L5 — pour l'instant, choisissez 'none' si aucun contrat à venir, sinon
-                    'detach' pour les retirer en bloc.
+                    L'enrichissement de la modale (liste des contrats à résoudre
+                    + sélecteurs de remplacement par contrat) sera livré en L5 —
+                    pour l'instant, choisissez 'none' si aucun contrat à venir,
+                    sinon 'detach' pour les retirer en bloc.
                 </p>
             </div>
 
             <div class="flex justify-end gap-2">
-                <Button variant="ghost" type="button" @click="close">Annuler</Button>
-                <Button type="submit" variant="destructive" :loading="form.processing">
+                <Button variant="ghost" type="button" @click="close"
+                    >Annuler</Button
+                >
+                <Button
+                    type="submit"
+                    variant="destructive"
+                    :loading="form.processing"
+                >
                     Confirmer la sortie
                 </Button>
             </div>

@@ -25,7 +25,11 @@ function detach(membership: Membership): void {
         return;
     }
 
-    if (!confirm(`Détacher définitivement la membership avec ${membership.companyShortCode} ?`)) {
+    if (
+        !confirm(
+            `Détacher définitivement la membership avec ${membership.companyShortCode} ?`,
+        )
+    ) {
         return;
     }
 
@@ -58,12 +62,17 @@ function formatDate(value: string | null): string {
             </Button>
         </div>
 
-        <div v-if="memberships.length === 0" class="mt-4 text-sm text-slate-500">
+        <div
+            v-if="memberships.length === 0"
+            class="mt-4 text-sm text-slate-500"
+        >
             Aucune entreprise rattachée.
         </div>
 
         <table v-else class="mt-4 w-full text-sm">
-            <thead class="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+            <thead
+                class="border-b border-slate-200 text-left text-xs text-slate-500 uppercase"
+            >
                 <tr>
                     <th class="pb-2">Entreprise</th>
                     <th class="pb-2">Entrée</th>
@@ -85,7 +94,9 @@ function formatDate(value: string | null): string {
                             :color="m.companyColor"
                         />
                     </td>
-                    <td class="py-3 text-slate-700">{{ formatDate(m.joinedAt) }}</td>
+                    <td class="py-3 text-slate-700">
+                        {{ formatDate(m.joinedAt) }}
+                    </td>
                     <td class="py-3">
                         <span
                             v-if="m.isCurrentlyActive"
@@ -93,7 +104,9 @@ function formatDate(value: string | null): string {
                         >
                             Actif
                         </span>
-                        <span v-else class="text-slate-700">{{ formatDate(m.leftAt) }}</span>
+                        <span v-else class="text-slate-700">{{
+                            formatDate(m.leftAt)
+                        }}</span>
                     </td>
                     <td class="py-3 text-slate-700">{{ m.contractsCount }}</td>
                     <td class="py-3 text-right">

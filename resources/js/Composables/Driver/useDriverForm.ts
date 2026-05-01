@@ -1,5 +1,8 @@
 import { useForm } from '@inertiajs/vue3';
-import { store as storeRoute, update as updateRoute } from '@/routes/user/drivers';
+import {
+    store as storeRoute,
+    update as updateRoute,
+} from '@/routes/user/drivers';
 
 type CompanyOption = { id: number; shortCode: string; legalName: string };
 
@@ -32,7 +35,11 @@ export function useCreateDriverForm(initial?: { companyId?: number }) {
     return { form, submit };
 }
 
-export function useEditDriverForm(driver: { id: number; firstName: string; lastName: string }) {
+export function useEditDriverForm(driver: {
+    id: number;
+    firstName: string;
+    lastName: string;
+}) {
     const form = useForm<EditFormShape>({
         first_name: driver.firstName,
         last_name: driver.lastName,

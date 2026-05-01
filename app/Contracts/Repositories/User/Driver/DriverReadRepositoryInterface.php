@@ -76,4 +76,12 @@ interface DriverReadRepositoryInterface
         int $companyId,
         CarbonInterface $leftAt,
     ): Collection;
+
+    /**
+     * Compte les contrats du driver groupés par company (1 seule requête).
+     * Utilisé par le détail driver pour alimenter les memberships sans N+1.
+     *
+     * @return array<int, int> Map `[companyId => count]`
+     */
+    public function countContractsForDriverGroupedByCompany(int $driverId): array;
 }

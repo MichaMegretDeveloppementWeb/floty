@@ -61,7 +61,10 @@ async function reload(): Promise<void> {
     try {
         const url = `${optionsRoute().url}?company_id=${props.companyId}&start_date=${props.startDate}&end_date=${props.endDate}`;
         const response = await fetch(url, {
-            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
             credentials: 'same-origin',
         });
 
@@ -75,7 +78,10 @@ async function reload(): Promise<void> {
         options.value = data.drivers;
 
         // Si le driver actuellement sélectionné n'est plus dans la liste, on le retire.
-        if (props.modelValue !== null && !data.drivers.some((d) => d.id === props.modelValue)) {
+        if (
+            props.modelValue !== null &&
+            !data.drivers.some((d) => d.id === props.modelValue)
+        ) {
             emit('update:modelValue', null);
         }
     } finally {
@@ -100,10 +106,10 @@ watch(
             !isReady
                 ? 'Sélectionner d\'abord une entreprise et des dates'
                 : loading
-                    ? 'Chargement…'
-                    : items.length === 0
-                        ? 'Aucun conducteur disponible sur cette période'
-                        : 'Choisir un conducteur'
+                  ? 'Chargement…'
+                  : items.length === 0
+                    ? 'Aucun conducteur disponible sur cette période'
+                    : 'Choisir un conducteur'
         "
         :disabled="!isReady || loading"
     />

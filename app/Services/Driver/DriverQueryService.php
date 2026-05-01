@@ -11,7 +11,6 @@ use App\Data\User\Driver\DriverListItemCompanyTagData;
 use App\Data\User\Driver\DriverListItemData;
 use App\Data\User\Driver\DriverOptionData;
 use App\Models\Company;
-use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\Pivot\DriverCompany;
 use Carbon\CarbonInterface;
@@ -67,14 +66,11 @@ final class DriverQueryService
         }
 
         $today = Carbon::today();
+        $contractsByCompany = $this->driverReadRepo->countContractsForDriverGroupedByCompany($driverId);
 
-        $memberships = $driver->companies->map(function ($company) use ($driverId, $today): DriverCompanyMembershipData {
+        $memberships = $driver->companies->map(function ($company) use ($contractsByCompany, $today): DriverCompanyMembershipData {
             /** @var DriverCompany $pivot */
             $pivot = $company->pivot;
-            $contractsCount = Contract::query()
-                ->where('driver_id', $driverId)
-                ->where('company_id', $company->id)
-                ->count();
 
             return new DriverCompanyMembershipData(
                 pivotId: $pivot->id,
@@ -85,7 +81,7 @@ final class DriverQueryService
                 joinedAt: $pivot->joined_at->toDateString(),
                 leftAt: $pivot->left_at?->toDateString(),
                 isCurrentlyActive: $pivot->left_at === null || $pivot->left_at->greaterThanOrEqualTo($today),
-                contractsCount: $contractsCount,
+                contractsCount: $contractsByCompany[$company->id] ?? 0,
             );
         });
 

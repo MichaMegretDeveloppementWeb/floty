@@ -26,9 +26,18 @@ const { activeTab, setTab } = useCompanyTabs();
 
             <CompanyTabsNav :active-tab="activeTab" @change="setTab" />
 
-            <CompanyInfoTab v-if="activeTab === 'infos'" :company="props.company" />
-            <CompanyContractsTab v-else-if="activeTab === 'contracts'" :company="props.company" />
-            <CompanyDriversTab v-else-if="activeTab === 'drivers'" :drivers="props.company.drivers" />
+            <CompanyInfoTab
+                v-if="activeTab === 'infos'"
+                :company="props.company"
+            />
+            <CompanyContractsTab
+                v-else-if="activeTab === 'contracts'"
+                :company="props.company"
+            />
+            <CompanyDriversTab
+                v-else-if="activeTab === 'drivers'"
+                :drivers="props.company.drivers"
+            />
             <CompanyFiscalTab v-else-if="activeTab === 'fiscal'" />
             <CompanyBillingTab v-else-if="activeTab === 'billing'" />
         </div>

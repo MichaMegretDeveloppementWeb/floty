@@ -10,7 +10,10 @@ defineProps<{
 
 <template>
     <div class="flex flex-col gap-3">
-        <Link :href="indexRoute().url" class="text-sm text-slate-500 hover:underline">
+        <Link
+            :href="indexRoute().url"
+            class="text-sm text-slate-500 hover:underline"
+        >
             ← Entreprises
         </Link>
         <div class="flex items-center justify-between">
@@ -21,7 +24,10 @@ defineProps<{
             />
             <div class="text-right text-sm text-slate-600">
                 <div>{{ company.contractsCount }} contrat(s)</div>
-                <div>{{ company.activeDriversCount }} / {{ company.totalDriversCount }} conducteur(s) actif(s)</div>
+                <div>
+                    {{ company.activeDriversCount }} /
+                    {{ company.totalDriversCount }} conducteur(s) actif(s)
+                </div>
             </div>
         </div>
     </div>

@@ -7,7 +7,11 @@ import LeaveDriverCompanyModal from '@/Components/Domain/Driver/LeaveDriverCompa
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
-import { destroy as destroyDriverRoute, edit as editRoute, index as indexRoute } from '@/routes/user/drivers';
+import {
+    destroy as destroyDriverRoute,
+    edit as editRoute,
+    index as indexRoute,
+} from '@/routes/user/drivers';
 import DriverCompaniesSection from './partials/DriverCompaniesSection.vue';
 
 const props = defineProps<{
@@ -18,11 +22,17 @@ const leaveCompanyId = ref<number | null>(null);
 const showAddModal = ref(false);
 
 function destroy(): void {
-    if (!confirm(`Supprimer définitivement le conducteur ${props.driver.fullName} ?`)) {
+    if (
+        !confirm(
+            `Supprimer définitivement le conducteur ${props.driver.fullName} ?`,
+        )
+    ) {
         return;
     }
 
-    router.delete(destroyDriverRoute(props.driver.id).url, { preserveScroll: false });
+    router.delete(destroyDriverRoute(props.driver.id).url, {
+        preserveScroll: false,
+    });
 }
 </script>
 
@@ -33,7 +43,10 @@ function destroy(): void {
         <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <Link :href="indexRoute().url" class="text-sm text-slate-500 hover:underline">
+                    <Link
+                        :href="indexRoute().url"
+                        class="text-sm text-slate-500 hover:underline"
+                    >
                         ← Conducteurs
                     </Link>
                 </div>
@@ -53,10 +66,15 @@ function destroy(): void {
 
             <Card>
                 <div class="flex items-center gap-4">
-                    <DriverBadge :full-name="props.driver.fullName" :initials="props.driver.initials" />
+                    <DriverBadge
+                        :full-name="props.driver.fullName"
+                        :initials="props.driver.initials"
+                    />
                     <div class="ml-auto text-right text-sm text-slate-600">
                         <div>{{ props.driver.contractsCount }} contrat(s)</div>
-                        <div>{{ props.driver.memberships.length }} membership(s)</div>
+                        <div>
+                            {{ props.driver.memberships.length }} membership(s)
+                        </div>
                     </div>
                 </div>
             </Card>
@@ -74,7 +92,9 @@ function destroy(): void {
                 :company-id="leaveCompanyId"
                 :driver-full-name="props.driver.fullName"
                 :company-name="
-                    props.driver.memberships.find((m) => m.companyId === leaveCompanyId)?.companyLegalName ?? ''
+                    props.driver.memberships.find(
+                        (m) => m.companyId === leaveCompanyId,
+                    )?.companyLegalName ?? ''
                 "
                 @close="leaveCompanyId = null"
             />
@@ -82,7 +102,9 @@ function destroy(): void {
             <AddDriverCompanyModal
                 v-if="showAddModal"
                 :driver-id="props.driver.id"
-                :existing-company-ids="props.driver.memberships.map((m) => m.companyId)"
+                :existing-company-ids="
+                    props.driver.memberships.map((m) => m.companyId)
+                "
                 @close="showAddModal = false"
             />
         </div>

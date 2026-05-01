@@ -47,7 +47,11 @@ function submit(): void {
 </script>
 
 <template>
-    <Modal v-model:open="open" title="Ajouter une entreprise" @close="emit('close')">
+    <Modal
+        v-model:open="open"
+        title="Ajouter une entreprise"
+        @close="emit('close')"
+    >
         <form class="flex flex-col gap-4" @submit.prevent="submit">
             <div>
                 <FieldLabel for="add-company-id">ID entreprise</FieldLabel>
@@ -57,7 +61,10 @@ function submit(): void {
                     placeholder="Sélectionner"
                     :options="companyOptions"
                 />
-                <p v-if="companyOptions.length === 0" class="mt-1 text-xs text-amber-600">
+                <p
+                    v-if="companyOptions.length === 0"
+                    class="mt-1 text-xs text-amber-600"
+                >
                     Sélecteur company à enrichir en L4 (Show Company onglets).
                 </p>
                 <InputError :message="form.errors.company_id" />
@@ -68,8 +75,12 @@ function submit(): void {
                 <InputError :message="form.errors.joined_at" />
             </div>
             <div class="flex justify-end gap-2">
-                <Button variant="ghost" type="button" @click="close">Annuler</Button>
-                <Button type="submit" :loading="form.processing">Ajouter</Button>
+                <Button variant="ghost" type="button" @click="close"
+                    >Annuler</Button
+                >
+                <Button type="submit" :loading="form.processing"
+                    >Ajouter</Button
+                >
             </div>
         </form>
     </Modal>

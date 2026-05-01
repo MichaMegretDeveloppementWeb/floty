@@ -2,9 +2,20 @@ import type { Ref } from 'vue';
 import { computed, onMounted, watch } from 'vue';
 import { ref } from 'vue';
 
-export type CompanyTabKey = 'infos' | 'contracts' | 'drivers' | 'fiscal' | 'billing';
+export type CompanyTabKey =
+    | 'infos'
+    | 'contracts'
+    | 'drivers'
+    | 'fiscal'
+    | 'billing';
 
-const VALID_TABS: readonly CompanyTabKey[] = ['infos', 'contracts', 'drivers', 'fiscal', 'billing'];
+const VALID_TABS: readonly CompanyTabKey[] = [
+    'infos',
+    'contracts',
+    'drivers',
+    'fiscal',
+    'billing',
+];
 
 const DEFAULT_TAB: CompanyTabKey = 'infos';
 
@@ -27,7 +38,10 @@ export function useCompanyTabs(): {
         const params = new URLSearchParams(window.location.search);
         const value = params.get('tab');
 
-        if (value !== null && (VALID_TABS as readonly string[]).includes(value)) {
+        if (
+            value !== null &&
+            (VALID_TABS as readonly string[]).includes(value)
+        ) {
             return value as CompanyTabKey;
         }
 
@@ -67,7 +81,10 @@ export function useCompanyTabs(): {
     }
 
     return {
-        activeTab: computed({ get: () => activeTab.value, set: (v: CompanyTabKey) => (activeTab.value = v) }),
+        activeTab: computed({
+            get: () => activeTab.value,
+            set: (v: CompanyTabKey) => (activeTab.value = v),
+        }),
         setTab,
         isActive,
     };

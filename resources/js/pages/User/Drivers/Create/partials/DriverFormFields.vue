@@ -6,7 +6,10 @@ import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
-import type { CompanyOption, CreateFormShape } from '@/Composables/Driver/useDriverForm';
+import type {
+    CompanyOption,
+    CreateFormShape,
+} from '@/Composables/Driver/useDriverForm';
 
 defineProps<{
     form: InertiaForm<CreateFormShape>;
@@ -29,19 +32,31 @@ defineProps<{
         </div>
 
         <div>
-            <FieldLabel for="initial_company_id">Entreprise initiale</FieldLabel>
+            <FieldLabel for="initial_company_id"
+                >Entreprise initiale</FieldLabel
+            >
             <SelectInput
                 id="initial_company_id"
                 v-model="form.initial_company_id"
                 placeholder="Sélectionner une entreprise"
-                :options="companies.map((c) => ({ value: c.id, label: `${c.shortCode} — ${c.legalName}` }))"
+                :options="
+                    companies.map((c) => ({
+                        value: c.id,
+                        label: `${c.shortCode} — ${c.legalName}`,
+                    }))
+                "
             />
             <InputError :message="form.errors.initial_company_id" />
         </div>
 
         <div>
-            <FieldLabel for="initial_joined_at">Date d'entrée dans l'entreprise</FieldLabel>
-            <DateInput id="initial_joined_at" v-model="form.initial_joined_at" />
+            <FieldLabel for="initial_joined_at"
+                >Date d'entrée dans l'entreprise</FieldLabel
+            >
+            <DateInput
+                id="initial_joined_at"
+                v-model="form.initial_joined_at"
+            />
             <InputError :message="form.errors.initial_joined_at" />
         </div>
     </div>

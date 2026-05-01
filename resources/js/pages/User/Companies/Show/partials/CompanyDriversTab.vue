@@ -35,10 +35,14 @@ function formatDate(value: string | null): string {
     <Card>
         <div class="flex items-center justify-between">
             <div>
-                <h3 class="text-base font-semibold text-slate-900">Conducteurs</h3>
+                <h3 class="text-base font-semibold text-slate-900">
+                    Conducteurs
+                </h3>
                 <p class="text-sm text-slate-500">
-                    {{ drivers.filter((d) => d.isCurrentlyActive).length }} actif(s)
-                    sur {{ drivers.length }} total.
+                    {{
+                        drivers.filter((d) => d.isCurrentlyActive).length
+                    }}
+                    actif(s) sur {{ drivers.length }} total.
                 </p>
             </div>
             <div class="flex gap-2">
@@ -47,17 +51,26 @@ function formatDate(value: string | null): string {
                     class="text-sm text-slate-600 hover:underline"
                     @click="showInactive = !showInactive"
                 >
-                    {{ showInactive ? 'Masquer les sortis' : 'Inclure les sortis' }}
+                    {{
+                        showInactive
+                            ? 'Masquer les sortis'
+                            : 'Inclure les sortis'
+                    }}
                 </button>
             </div>
         </div>
 
-        <div v-if="visibleDrivers().length === 0" class="mt-4 text-sm text-slate-500">
+        <div
+            v-if="visibleDrivers().length === 0"
+            class="mt-4 text-sm text-slate-500"
+        >
             Aucun conducteur à afficher.
         </div>
 
         <table v-else class="mt-4 w-full text-sm">
-            <thead class="border-b border-slate-200 text-left text-xs uppercase text-slate-500">
+            <thead
+                class="border-b border-slate-200 text-left text-xs text-slate-500 uppercase"
+            >
                 <tr>
                     <th class="pb-2">Conducteur</th>
                     <th class="pb-2">Entrée</th>
@@ -73,11 +86,19 @@ function formatDate(value: string | null): string {
                     class="border-b border-slate-100 last:border-0"
                 >
                     <td class="py-3">
-                        <Link :href="driverShowRoute(d.driverId).url" class="text-blue-700 hover:underline">
-                            <DriverBadge :full-name="d.fullName" :initials="d.initials" />
+                        <Link
+                            :href="driverShowRoute(d.driverId).url"
+                            class="text-blue-700 hover:underline"
+                        >
+                            <DriverBadge
+                                :full-name="d.fullName"
+                                :initials="d.initials"
+                            />
                         </Link>
                     </td>
-                    <td class="py-3 text-slate-700">{{ formatDate(d.joinedAt) }}</td>
+                    <td class="py-3 text-slate-700">
+                        {{ formatDate(d.joinedAt) }}
+                    </td>
                     <td class="py-3">
                         <span
                             v-if="d.isCurrentlyActive"
@@ -85,7 +106,9 @@ function formatDate(value: string | null): string {
                         >
                             Actif
                         </span>
-                        <span v-else class="text-slate-700">{{ formatDate(d.leftAt) }}</span>
+                        <span v-else class="text-slate-700">{{
+                            formatDate(d.leftAt)
+                        }}</span>
                     </td>
                     <td class="py-3 text-slate-700">{{ d.contractsCount }}</td>
                     <td class="py-3 text-right">

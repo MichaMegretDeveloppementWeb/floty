@@ -108,4 +108,15 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             ->orderBy('start_date')
             ->get();
     }
+
+    public function countContractsForDriverGroupedByCompany(int $driverId): array
+    {
+        return Contract::query()
+            ->where('driver_id', $driverId)
+            ->selectRaw('company_id, COUNT(*) as aggregate')
+            ->groupBy('company_id')
+            ->pluck('aggregate', 'company_id')
+            ->map(fn ($v): int => (int) $v)
+            ->all();
+    }
 }

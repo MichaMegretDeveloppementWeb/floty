@@ -21,17 +21,16 @@ const columns: readonly DataTableColumn<DriverRow>[] = [
 </script>
 
 <template>
-    <DataTable
-        :columns="columns"
-        :rows="drivers"
-        :row-key="(row) => row.id"
-    >
+    <DataTable :columns="columns" :rows="drivers" :row-key="(row) => row.id">
         <template #cell-driver="{ row }">
             <Link
                 :href="showRoute(row.id).url"
                 class="text-blue-700 hover:underline"
             >
-                <DriverBadge :full-name="row.fullName" :initials="row.initials" />
+                <DriverBadge
+                    :full-name="row.fullName"
+                    :initials="row.initials"
+                />
             </Link>
         </template>
 
@@ -45,10 +44,16 @@ const columns: readonly DataTableColumn<DriverRow>[] = [
                     :color="tag.color"
                 />
                 <span
-                    v-if="row.totalActiveCompaniesCount > row.activeCompanies.length"
+                    v-if="
+                        row.totalActiveCompaniesCount >
+                        row.activeCompanies.length
+                    "
                     class="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-600"
                 >
-                    +{{ row.totalActiveCompaniesCount - row.activeCompanies.length }}
+                    +{{
+                        row.totalActiveCompaniesCount -
+                        row.activeCompanies.length
+                    }}
                 </span>
             </div>
         </template>

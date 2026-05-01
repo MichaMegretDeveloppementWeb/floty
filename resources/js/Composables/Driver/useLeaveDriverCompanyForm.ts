@@ -62,13 +62,19 @@ export function useLeaveDriverCompanyForm(opts: {
     }
 
     function setReplacement(contractId: number, driverId: number | null): void {
-        form.replacement_map = { ...form.replacement_map, [contractId]: driverId };
+        form.replacement_map = {
+            ...form.replacement_map,
+            [contractId]: driverId,
+        };
     }
 
     function submit(onSuccess?: () => void): void {
         form.transform((data) => ({
             ...data,
-            replacement_map: data.future_contracts_resolution === 'replace' ? data.replacement_map : {},
+            replacement_map:
+                data.future_contracts_resolution === 'replace'
+                    ? data.replacement_map
+                    : {},
         }));
 
         form.patch(leaveRoute([opts.driverId, opts.companyId]).url, {

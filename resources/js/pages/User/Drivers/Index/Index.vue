@@ -18,9 +18,13 @@ defineProps<{
         <div class="flex flex-col gap-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-bold text-slate-900">Conducteurs</h1>
+                    <h1 class="text-2xl font-bold text-slate-900">
+                        Conducteurs
+                    </h1>
                     <p class="text-sm text-slate-600">
-                        {{ drivers.length }} conducteur{{ drivers.length > 1 ? 's' : '' }}.
+                        {{ drivers.length }} conducteur{{
+                            drivers.length > 1 ? 's' : ''
+                        }}.
                     </p>
                 </div>
                 <Link :href="createRoute().url">

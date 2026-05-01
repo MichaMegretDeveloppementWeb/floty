@@ -19,6 +19,8 @@ withDefaults(
         >
             {{ initials }}
         </span>
-        <span :class="size === 'sm' ? 'text-sm' : 'text-base'">{{ fullName }}</span>
+        <span :class="size === 'sm' ? 'text-sm' : 'text-base'">{{
+            fullName
+        }}</span>
     </div>
 </template>
