@@ -26,6 +26,19 @@ interface UnavailabilityReadRepositoryInterface
     public function findForVehicle(int $vehicleId): Collection;
 
     /**
+     * Indispos de plusieurs véhicules en **un seul SELECT IN** —
+     * retourne un map `vehicleId → list<Unavailability>` (véhicule
+     * sans indispo absent du map ; aux appelants de défaulter sur `[]`).
+     *
+     * Remplace l'antipattern N+1 d'une boucle PHP appelant
+     * {@see self::findForVehicle()} pour chaque id.
+     *
+     * @param  list<int>  $vehicleIds
+     * @return array<int, list<Unavailability>>
+     */
+    public function findForVehicleIds(array $vehicleIds): array;
+
+    /**
      * Lookup unitaire — échoue si l'id n'existe pas (404).
      */
     public function findById(int $id): Unavailability;

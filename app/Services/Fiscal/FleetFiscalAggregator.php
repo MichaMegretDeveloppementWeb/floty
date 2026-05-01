@@ -16,6 +16,7 @@ use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Fiscal\Pipeline\PipelineResult;
 use App\Models\Contract;
 use App\Models\FiscalRule;
 use App\Models\Unavailability;
@@ -40,12 +41,36 @@ use Illuminate\Support\Collection;
  * `ContractsByPair`. Les indispos par véhicule sont passées séparément
  * (map `vehicleId → list<Unavailability>`) pour alimenter R-2024-008.
  */
-final readonly class FleetFiscalAggregator
+final class FleetFiscalAggregator
 {
+    /**
+     * Cache mémoire intra-instance des Collections de règles fiscales
+     * indexé par `"{year}|{sortedCodes}"`. Évite les lectures DB
+     * répétées quand l'aggregator est réutilisé sur plusieurs
+     * véhicules / contrats à l'intérieur d'une même requête (ex.
+     * VehicleQueryService::buildUsageStats appelle
+     * vehicleFullYearTaxBreakdown plusieurs fois indirectement).
+     *
+     * @var array<string, Collection<int, FiscalRule>>
+     */
+    private array $rulesCache = [];
+
+    /**
+     * Cache mémoire intra-instance des `PipelineResult` du « coût plein
+     * année théorique » indexé par `"{vehicleId}|{year}"`. Le résultat
+     * dépend exclusivement du véhicule et de l'année (contrat full-year
+     * synthétique, indispos vides), il est donc partageable entre
+     * `vehicleFullYearTax` et `vehicleFullYearTaxBreakdown` — la liste
+     * Flotte gagne ~50 % de pipeline runs.
+     *
+     * @var array<string, PipelineResult>
+     */
+    private array $fullYearResultCache = [];
+
     public function __construct(
-        private FiscalPipeline $pipeline,
-        private FiscalYearContext $yearContext,
-        private FiscalRuleReadRepositoryInterface $fiscalRules,
+        private readonly FiscalPipeline $pipeline,
+        private readonly FiscalYearContext $yearContext,
+        private readonly FiscalRuleReadRepositoryInterface $fiscalRules,
     ) {}
 
     /**
@@ -91,19 +116,16 @@ final readonly class FleetFiscalAggregator
         int $year,
     ): float {
         $totalRaw = 0.0;
-        foreach ($contracts->vehicleCompanyPairs() as $pair) {
-            if ($pair['companyId'] !== $companyId) {
-                continue;
-            }
-            $vehicle = $vehiclesById->get($pair['vehicleId']);
+        foreach ($contracts->pairsForCompany($companyId) as $vehicleId => $pairContracts) {
+            $vehicle = $vehiclesById->get($vehicleId);
             if ($vehicle === null) {
                 continue;
             }
             $result = $this->pipeline->execute(
                 $this->buildContext(
                     $vehicle,
-                    $pair['contracts'],
-                    $unavailabilitiesByVehicleId[$pair['vehicleId']] ?? [],
+                    $pairContracts,
+                    $unavailabilitiesByVehicleId[$vehicleId] ?? [],
                     $year,
                 ),
             );
@@ -126,9 +148,7 @@ final readonly class FleetFiscalAggregator
      */
     public function vehicleFullYearTax(Vehicle $vehicle, int $year): float
     {
-        $result = $this->pipeline->execute(
-            $this->buildContext($vehicle, [$this->fullYearSyntheticContract($year)], [], $year),
-        );
+        $result = $this->fullYearPipelineResult($vehicle, $year);
 
         return round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
     }
@@ -141,9 +161,7 @@ final readonly class FleetFiscalAggregator
      */
     public function vehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
-        $result = $this->pipeline->execute(
-            $this->buildContext($vehicle, [$this->fullYearSyntheticContract($year)], [], $year),
-        );
+        $result = $this->fullYearPipelineResult($vehicle, $year);
 
         $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
         $pollutantsTariff = round($result->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
@@ -152,8 +170,7 @@ final readonly class FleetFiscalAggregator
             static fn ($v): bool => $v->effective_to === null,
         );
 
-        $appliedRules = $this->fiscalRules
-            ->findByCodesForYear($year, $result->appliedRuleCodes)
+        $appliedRules = $this->loadRulesByCodes($year, $result->appliedRuleCodes)
             ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r))
             ->values()
             ->all();
@@ -212,8 +229,7 @@ final readonly class FleetFiscalAggregator
             $pollutantsDue = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
             $yearTotalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);
 
-            $appliedRules = $this->fiscalRules
-                ->findByCodesForYear($year, $result->appliedRuleCodes)
+            $appliedRules = $this->loadRulesByCodes($year, $result->appliedRuleCodes)
                 ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r))
                 ->values()
                 ->all();
@@ -397,6 +413,36 @@ final readonly class FleetFiscalAggregator
             daysInYear: $this->yearContext->daysInYear($year),
             contractsForPair: $contractsForPair,
             vehicleUnavailabilitiesInYear: $vehicleUnavailabilities,
+        );
+    }
+
+    /**
+     * Mémoïsation du chargement des règles fiscales par codes pour une
+     * année — clé `"{year}|{sortedCodes}"` afin que des appels avec un
+     * ordre de codes différent (mais même contenu) partagent l'entrée.
+     *
+     * @param  list<string>  $codes
+     * @return Collection<int, FiscalRule>
+     */
+    private function loadRulesByCodes(int $year, array $codes): Collection
+    {
+        sort($codes);
+        $key = $year.'|'.implode(',', $codes);
+
+        return $this->rulesCache[$key] ??= $this->fiscalRules->findByCodesForYear($year, $codes);
+    }
+
+    /**
+     * Mémoïsation du `PipelineResult` du calcul plein année théorique
+     * d'un véhicule — purement fonction de `(vehicleId, year)` (contrat
+     * synthétique full-year, indispos vides).
+     */
+    private function fullYearPipelineResult(Vehicle $vehicle, int $year): PipelineResult
+    {
+        $key = $vehicle->id.'|'.$year;
+
+        return $this->fullYearResultCache[$key] ??= $this->pipeline->execute(
+            $this->buildContext($vehicle, [$this->fullYearSyntheticContract($year)], [], $year),
         );
     }
 

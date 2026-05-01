@@ -42,7 +42,7 @@ final class DashboardStatsService
         return new DashboardStatsData(
             vehiclesCount: $this->vehicles->countActive(),
             companiesCount: $this->companies->countActive(),
-            contractDaysYear: $this->contracts->countContractDaysForYear($year),
+            contractDaysYear: $contractsByPair->totalDays($year),
             fiscalRulesCount: $this->fiscalRules->countActiveForYear($year),
             totalTaxDue: $this->aggregator->fleetAnnualTax(
                 $vehiclesById,

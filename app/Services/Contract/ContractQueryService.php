@@ -136,23 +136,39 @@ final readonly class ContractQueryService
     }
 
     /**
+     * Variante scopée d'un seul véhicule — utilisée par la page Show
+     * vehicle qui n'a aucun usage des autres véhicules de la flotte.
+     *
+     * Évite de matérialiser le pivot complet (cf. `loadContractsByPair`)
+     * juste pour en filtrer 1/N à l'arrivée.
+     */
+    public function loadContractsByPairForVehicle(int $vehicleId, int $year): ContractsByPair
+    {
+        $byPair = [];
+        foreach ($this->repository->findByVehicleAndYear($vehicleId, $year) as $contract) {
+            $key = $contract->vehicle_id.'|'.$contract->company_id;
+            $byPair[$key] ??= [];
+            $byPair[$key][] = $contract;
+        }
+
+        return new ContractsByPair($byPair);
+    }
+
+    /**
      * Indispos par véhicule pour alimenter R-2024-008 (la règle filtre
      * elle-même les indispos qui croisent l'année et les contrats
      * taxables — voir `R2024_008_ReductiveUnavailability::evaluate()`).
+     *
+     * Délègue à un `WHERE vehicle_id IN (?)` unique côté repository ;
+     * un véhicule sans indispo est absent du map (les appelants
+     * défaultent sur `[]` à la lecture).
      *
      * @param  list<int>  $vehicleIds
      * @return array<int, list<Unavailability>>
      */
     public function loadUnavailabilitiesByVehicle(array $vehicleIds): array
     {
-        $byVehicle = [];
-        foreach ($vehicleIds as $vehicleId) {
-            $byVehicle[$vehicleId] = $this->unavailabilityRepository
-                ->findForVehicle($vehicleId)
-                ->all();
-        }
-
-        return $byVehicle;
+        return $this->unavailabilityRepository->findForVehicleIds($vehicleIds);
     }
 
     /**
@@ -314,19 +330,6 @@ final readonly class ContractQueryService
         }
 
         return $density;
-    }
-
-    /**
-     * Nombre total de jours-véhicule occupés sur l'année (KPI Dashboard).
-     */
-    public function countContractDaysForYear(int $year): int
-    {
-        $total = 0;
-        foreach ($this->repository->findActiveForYear($year) as $contract) {
-            $total += count($contract->expandToDaysInYear($year));
-        }
-
-        return $total;
     }
 
     /**

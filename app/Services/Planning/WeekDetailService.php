@@ -118,6 +118,12 @@ final class WeekDetailService
             static fn (string $d): bool => str_starts_with($d, $yearPrefix),
         ));
 
+        // Préparation : un seul aller-retour DB pour les 3 entités
+        // requises par le calculator quel que soit le chemin (avec ou
+        // sans nouvelles dates) — auparavant ces lectures partaient
+        // dans chaque branche du if.
+        $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
+        $unavailabilities = $this->unavailabilityRepo->findForVehicle($input->vehicleId)->all();
         $existingContracts = $this->contractRepo
             ->findByVehicleAndYear($input->vehicleId, $year)
             ->all();
@@ -129,13 +135,11 @@ final class WeekDetailService
         $existingDates = $this->collectDates($existingForPair, $year);
         $existingCumul = count($existingDates);
 
-        if ($newDates === []) {
-            $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
-            $unavailabilities = $this->unavailabilityRepo->findForVehicle($input->vehicleId)->all();
+        $before = $existingCumul > 0
+            ? $this->calculator->calculate($vehicle, $existingForPair, $unavailabilities, $year)
+            : null;
 
-            $before = $existingCumul > 0
-                ? $this->calculator->calculate($vehicle, $existingForPair, $unavailabilities, $year)
-                : null;
+        if ($newDates === []) {
             $after = $this->calculator->calculate($vehicle, $existingForPair, $unavailabilities, $year);
 
             return new FiscalPreviewData(
@@ -169,12 +173,6 @@ final class WeekDetailService
         $newDaysCount = count($newDatesSet);
         $futureCumul = $existingCumul + $newDaysCount;
 
-        $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
-        $unavailabilities = $this->unavailabilityRepo->findForVehicle($input->vehicleId)->all();
-
-        $before = $existingCumul > 0
-            ? $this->calculator->calculate($vehicle, $existingForPair, $unavailabilities, $year)
-            : null;
         $after = $this->calculator->calculate(
             $vehicle,
             [...$existingForPair, $syntheticContract],

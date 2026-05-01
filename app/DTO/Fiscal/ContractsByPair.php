@@ -56,6 +56,27 @@ final readonly class ContractsByPair
     }
 
     /**
+     * Map vehicleId → contrats pour une entreprise donnée — symétrique
+     * de {@see pairsForVehicle}. Utilisé par l'aggregator pour sommer
+     * la taxe annuelle d'une entreprise sans ré-itérer toute la flotte.
+     *
+     * @return array<int, list<Contract>>
+     */
+    public function pairsForCompany(int $companyId): array
+    {
+        $result = [];
+        $suffix = '|'.$companyId;
+        foreach ($this->byPair as $key => $contracts) {
+            if (str_ends_with($key, $suffix)) {
+                $vehicleId = (int) substr($key, 0, -strlen($suffix));
+                $result[$vehicleId] = $contracts;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
      * Itérateur sur tous les couples renseignés (pratique pour
      * sommer toute la flotte sans recharger).
      *
@@ -89,6 +110,26 @@ final readonly class ContractsByPair
             if ((int) $cId !== $companyId) {
                 continue;
             }
+            foreach ($contracts as $contract) {
+                $total += count($contract->expandToDaysInYear($year));
+            }
+        }
+
+        return $total;
+    }
+
+    /**
+     * Total des jours-contrat occupés sur l'année tous couples
+     * confondus — KPI Dashboard.
+     *
+     * Sémantique : un même jour compté deux fois s'il est porté par
+     * deux pairs distincts (cohérent avec le total fiscal qui taxe
+     * chaque couple indépendamment).
+     */
+    public function totalDays(int $year): int
+    {
+        $total = 0;
+        foreach ($this->byPair as $contracts) {
             foreach ($contracts as $contract) {
                 $total += count($contract->expandToDaysInYear($year));
             }

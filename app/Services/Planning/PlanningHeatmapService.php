@@ -39,14 +39,12 @@ final class PlanningHeatmapService
         $contractsByPair = $this->contracts->loadContractsByPair($year);
         $weekDensity = $this->contracts->loadWeekDensity($year);
 
-        $vehicleIds = [];
-        foreach ($this->vehicles->findAllForHeatmap($year) as $vehicle) {
-            $vehicleIds[] = $vehicle->id;
-        }
+        $vehicles = $this->vehicles->findAllForHeatmap($year);
+        $vehicleIds = $vehicles->pluck('id')->all();
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
 
         $vehicleRows = [];
-        foreach ($this->vehicles->findAllForHeatmap($year) as $vehicle) {
+        foreach ($vehicles as $vehicle) {
             $fiscal = $vehicle->fiscalCharacteristics->first();
             if ($fiscal === null) {
                 continue;

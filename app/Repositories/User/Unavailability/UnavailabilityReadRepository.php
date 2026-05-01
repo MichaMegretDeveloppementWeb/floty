@@ -19,6 +19,26 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
             ->get();
     }
 
+    public function findForVehicleIds(array $vehicleIds): array
+    {
+        if ($vehicleIds === []) {
+            return [];
+        }
+
+        $rows = Unavailability::query()
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->orderByDesc('start_date')
+            ->get();
+
+        $byVehicle = [];
+        foreach ($rows as $unavailability) {
+            $byVehicle[$unavailability->vehicle_id] ??= [];
+            $byVehicle[$unavailability->vehicle_id][] = $unavailability;
+        }
+
+        return $byVehicle;
+    }
+
     public function findById(int $id): Unavailability
     {
         return Unavailability::query()->findOrFail($id);

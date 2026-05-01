@@ -7,6 +7,7 @@ namespace App\Services\Vehicle;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Data\User\Unavailability\UnavailabilityData;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
 use App\Data\User\Vehicle\VehicleData;
 use App\Data\User\Vehicle\VehicleListItemData;
@@ -15,6 +16,7 @@ use App\Data\User\Vehicle\VehicleUsageStatsData;
 use App\Data\User\Vehicle\VehicleWeekSegmentData;
 use App\Data\User\Vehicle\VehicleWeekUsageData;
 use App\Models\Company;
+use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -96,10 +98,20 @@ final class VehicleQueryService
     {
         $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
 
+        // Charge la Collection brute UNE fois et la propage à
+        // `buildUsageStats` + à la composition des DTO de la timeline
+        // — auparavant la même requête `findForVehicle` partait deux
+        // fois (via `UnavailabilityQueryService` puis re-direct repo).
+        $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
+        $unavailabilityDtos = $unavailabilityModels
+            ->map(static fn (Unavailability $u): UnavailabilityData => UnavailabilityData::fromModel($u))
+            ->values()
+            ->all();
+
         return VehicleData::fromModel(
             $vehicle,
-            $this->buildUsageStats($vehicle, $year),
-            $this->unavailabilities->findForVehicle($vehicle->id),
+            $this->buildUsageStats($vehicle, $year, $unavailabilityModels),
+            $unavailabilityDtos,
             $this->buildBusyDates($vehicle->id, $year),
         );
     }
@@ -135,13 +147,16 @@ final class VehicleQueryService
         return VehicleOptionData::collect($rows, DataCollection::class);
     }
 
-    private function buildUsageStats(Vehicle $vehicle, int $year): VehicleUsageStatsData
+    /**
+     * @param  Collection<int, Unavailability>  $unavailabilityModels  indispos brutes du véhicule (toutes années) — chargées une seule fois en amont
+     */
+    private function buildUsageStats(Vehicle $vehicle, int $year, Collection $unavailabilityModels): VehicleUsageStatsData
     {
         $daysInYear = $this->yearContext->daysInYear($year);
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
-        $vehicleUnavailabilities = $this->unavailabilityRepo->findForVehicle($vehicle->id)->all();
+        $contractsByPair = $this->contracts->loadContractsByPairForVehicle($vehicle->id, $year);
+        $vehicleUnavailabilities = $unavailabilityModels->all();
         $weeklyMap = $this->contracts->loadVehicleWeeklyBreakdown($vehicle->id, $year);
-        $unavailabilityDaysByWeek = $this->unavailabilityRepo->findUnavailableDaysByWeekForVehicle($vehicle->id, $year);
+        $unavailabilityDaysByWeek = $this->computeUnavailabilityDaysByWeek($unavailabilityModels, $year);
 
         $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
             $vehicle,
@@ -305,5 +320,57 @@ final class VehicleQueryService
         }
 
         return $rows;
+    }
+
+    /**
+     * Comptage `weekNumber → jours d'indispo` à partir de la Collection
+     * brute déjà chargée (port PHP de
+     * `UnavailabilityReadRepository::findUnavailableDaysByWeekForVehicle`).
+     *
+     * Évite la requête supplémentaire qui partait sur la même table
+     * `unavailabilities` que `findForVehicle` quelques lignes plus haut.
+     *
+     * @param  Collection<int, Unavailability>  $unavailabilityModels
+     * @return array<int, int> weekNumber (1-53) → jours d'indispo (1-7)
+     */
+    private function computeUnavailabilityDaysByWeek(Collection $unavailabilityModels, int $year): array
+    {
+        $yearStart = Carbon::create($year, 1, 1)->startOfDay();
+        $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
+
+        /** @var array<int, array<string, bool>> $byWeekDays */
+        $byWeekDays = [];
+        foreach ($unavailabilityModels as $row) {
+            // Filtre indispo croisant l'année (équivalent du WHERE SQL).
+            if ($row->start_date->greaterThan($yearEnd)) {
+                continue;
+            }
+            if ($row->end_date !== null && $row->end_date->lessThan($yearStart)) {
+                continue;
+            }
+
+            $start = $row->start_date->greaterThan($yearStart) ? $row->start_date : $yearStart;
+            $end = $row->end_date === null || $row->end_date->greaterThan($yearEnd)
+                ? $yearEnd
+                : $row->end_date;
+
+            $cursor = $start;
+            while ($cursor->lessThanOrEqualTo($end)) {
+                if ($cursor->year === $year) {
+                    $week = (int) $cursor->isoWeek;
+                    $byWeekDays[$week] ??= [];
+                    $byWeekDays[$week][$cursor->toDateString()] = true;
+                }
+                $cursor = $cursor->addDay();
+            }
+        }
+
+        $byWeek = [];
+        foreach ($byWeekDays as $week => $days) {
+            $byWeek[$week] = count($days);
+        }
+        ksort($byWeek);
+
+        return $byWeek;
     }
 }
