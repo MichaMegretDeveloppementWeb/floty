@@ -51,6 +51,14 @@ Route::middleware('auth')
             ->whereNumber('vehicle')
             ->middleware('throttle:60,1')
             ->name('vehicles.update');
+        Route::post('/vehicles/{vehicle}/exit', [VehicleController::class, 'exit'])
+            ->whereNumber('vehicle')
+            ->middleware('throttle:60,1')
+            ->name('vehicles.exit');
+        Route::post('/vehicles/{vehicle}/reactivate', [VehicleController::class, 'reactivate'])
+            ->whereNumber('vehicle')
+            ->middleware('throttle:60,1')
+            ->name('vehicles.reactivate');
 
         // Vehicle fiscal characteristics — édition/suppression d'une
         // VFC depuis la modale Historique de la page Show véhicule.

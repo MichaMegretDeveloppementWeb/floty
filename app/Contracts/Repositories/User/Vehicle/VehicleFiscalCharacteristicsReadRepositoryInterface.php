@@ -62,4 +62,13 @@ interface VehicleFiscalCharacteristicsReadRepositoryInterface
      * suppression pour bloquer la suppression de l'unique VFC.
      */
     public function countForVehicle(int $vehicleId): int;
+
+    /**
+     * Toutes les VFC d'un véhicule sauf une (par id), triées par
+     * `effective_from ASC`. Utilisé par l'Action d'édition pour calculer
+     * les impacts sur les voisines (cf. {@see App\Services\Vehicle\FiscalCharacteristicsImpactComputer}).
+     *
+     * @return list<VehicleFiscalCharacteristics>
+     */
+    public function findOthersForVehicle(int $vehicleId, int $excludeId): array;
 }

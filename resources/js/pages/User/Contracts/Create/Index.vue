@@ -15,6 +15,7 @@ const props = defineProps<{
         vehicles: App.Data.User.Vehicle.VehicleOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
     };
+    busyDatesByVehicleId: Record<number, string[]>;
 }>();
 
 const MAX_DOCUMENTS = 5;
@@ -70,7 +71,11 @@ async function submitWithDocuments(): Promise<void> {
                 class="flex flex-col gap-6 rounded-xl border border-slate-200 bg-white p-6"
                 @submit.prevent="submitWithDocuments"
             >
-                <ContractFormFields :form="form" :options="props.options" />
+                <ContractFormFields
+                    :form="form"
+                    :options="props.options"
+                    :busy-dates-by-vehicle-id="props.busyDatesByVehicleId"
+                />
 
                 <section class="flex flex-col gap-3 border-t border-slate-100 pt-4">
                     <div>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\Vehicle;
 
+use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -29,6 +30,8 @@ final class VehicleListItemData extends Data
         public string $firstFrenchRegistrationDate,
         public string $acquisitionDate,
         public ?string $exitDate,
+        public ?VehicleExitReason $exitReason,
+        public bool $isExited,
         public float $fullYearTax,
         public float $dailyTaxRate,
     ) {}

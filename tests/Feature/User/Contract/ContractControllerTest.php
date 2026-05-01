@@ -261,6 +261,80 @@ final class ContractControllerTest extends TestCase
     }
 
     #[Test]
+    public function create_expose_busy_dates_par_vehicule_pour_le_picker(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        // Contrat actif courant → ses jours doivent figurer dans busyDates.
+        $today = now()->toImmutable();
+        $start = $today->startOfMonth()->toDateString();
+        $end = $today->startOfMonth()->addDays(9)->toDateString();
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => $start,
+            'end_date' => $end,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/contracts/create')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Contracts/Create/Index')
+                ->where(
+                    'busyDatesByVehicleId',
+                    function (mixed $busyMap) use ($vehicle, $start, $end): bool {
+                        $byVehicle = collect($busyMap)->all();
+
+                        return isset($byVehicle[$vehicle->id])
+                            && in_array($start, $byVehicle[$vehicle->id], true)
+                            && in_array($end, $byVehicle[$vehicle->id], true);
+                    },
+                )
+                ->etc(),
+            );
+    }
+
+    #[Test]
+    public function edit_exclut_les_dates_du_contrat_courant_de_busy_dates(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        $today = now()->toImmutable();
+        $start = $today->startOfMonth()->toDateString();
+        $end = $today->startOfMonth()->addDays(9)->toDateString();
+        $contract = Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => $start,
+            'end_date' => $end,
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/contracts/{$contract->id}/edit")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Contracts/Edit/Index')
+                ->where(
+                    'busyDatesByVehicleId',
+                    function (mixed $busyMap) use ($vehicle, $start): bool {
+                        $byVehicle = collect($busyMap)->all();
+
+                        // Soit pas de busy pour ce véhicule (cas trivial),
+                        // soit les dates du contrat courant ne s'y trouvent
+                        // pas (cas edit avec d'autres contrats existants).
+                        if (! isset($byVehicle[$vehicle->id])) {
+                            return true;
+                        }
+
+                        return ! in_array($start, $byVehicle[$vehicle->id], true);
+                    },
+                )
+                ->etc(),
+            );
+    }
+
+    #[Test]
     public function bulk_store_cree_n_contrats_pour_n_vehicules(): void
     {
         $user = User::factory()->create();

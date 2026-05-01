@@ -32,13 +32,13 @@ final class CreateUnavailabilityActionTest extends TestCase
     }
 
     #[Test]
-    public function calcule_has_fiscal_impact_a_true_pour_la_fourriere(): void
+    public function calcule_has_fiscal_impact_a_true_pour_la_fourriere_publique(): void
     {
         $vehicle = Vehicle::factory()->create();
 
         $unavailability = $this->action->execute(new StoreUnavailabilityData(
             vehicleId: $vehicle->id,
-            type: UnavailabilityType::Pound,
+            type: UnavailabilityType::PoundPublic,
             startDate: '2024-03-01',
             endDate: '2024-03-15',
             description: null,

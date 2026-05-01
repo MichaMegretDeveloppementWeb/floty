@@ -113,7 +113,7 @@ final class SchemaSmokeTest extends TestCase
 
         $unavailability = Unavailability::create([
             'vehicle_id' => $vehicle->id,
-            'type' => UnavailabilityType::Pound,
+            'type' => UnavailabilityType::PoundPublic,
             'has_fiscal_impact' => true,
             'start_date' => '2024-06-01',
             'end_date' => '2024-06-10',

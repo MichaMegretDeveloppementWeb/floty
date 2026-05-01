@@ -45,6 +45,7 @@ function makeCell(iso: string, disabled = false) {
         isStart: false,
         isEnd: false,
         isInRange: false,
+        inCurrentWeek: false,
     };
 }
 

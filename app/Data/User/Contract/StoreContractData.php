@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Data\User\Contract;
 
 use App\Actions\Contract\StoreContractAction;
+use App\Rules\Vehicle\AvailableForPeriod;
+use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\AfterOrEqual;
 use Spatie\LaravelData\Attributes\Validation\Date;
@@ -14,6 +16,7 @@ use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
+use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -55,6 +58,45 @@ final class StoreContractData extends Data
         #[Max(5000)]
         public ?string $notes,
     ) {}
+
+    /**
+     * Règle dynamique : si le véhicule est sorti de flotte, bloquer
+     * tout contrat dont la période chevauche ou dépasse `exit_date`
+     * (cf. ADR-0018 § 5).
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    public static function rules(ValidationContext $context): array
+    {
+        $payload = $context->payload;
+        $vehicleId = (int) ($payload['vehicle_id'] ?? 0);
+        $startDate = (string) ($payload['start_date'] ?? '');
+        $endDate = (string) ($payload['end_date'] ?? '');
+
+        // Spatie Data : retourner un tableau ici **remplace** les rules
+        // de l'attribut `#[Required, Date, AfterOrEqual('start_date')]`
+        // sur `end_date`. On doit donc ré-énumérer toutes les rules
+        // en ajoutant `AvailableForPeriod` à la liste.
+        if ($vehicleId === 0 || $startDate === '' || $endDate === '') {
+            return [];
+        }
+
+        try {
+            $start = CarbonImmutable::parse($startDate);
+            $end = CarbonImmutable::parse($endDate);
+        } catch (\Exception) {
+            return [];
+        }
+
+        return [
+            'end_date' => [
+                'required',
+                'date',
+                'after_or_equal:start_date',
+                new AvailableForPeriod($vehicleId, $start, $end),
+            ],
+        ];
+    }
 
     /**
      * @return array<string, string>

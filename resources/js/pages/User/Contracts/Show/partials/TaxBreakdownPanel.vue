@@ -89,7 +89,7 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
                             {{ formatEur(year.co2FullYearTariff) }} ×
                             {{ year.daysAssigned }} / {{ year.daysInYear }}
                             <span class="text-slate-400">=</span>
-                            <span class="font-semibold text-slate-900">
+                            <span class="font-semibold text-slate-900 ml-2">
                                 {{ formatEur(year.co2Due) }}
                             </span>
                         </p>
@@ -111,7 +111,7 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
                             {{ formatEur(year.pollutantsFullYearTariff) }} ×
                             {{ year.daysAssigned }} / {{ year.daysInYear }}
                             <span class="text-slate-400">=</span>
-                            <span class="font-semibold text-slate-900">
+                            <span class="font-semibold text-slate-900 ml-2">
                                 {{ formatEur(year.pollutantsDue) }}
                             </span>
                         </p>

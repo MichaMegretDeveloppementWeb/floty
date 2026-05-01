@@ -13,6 +13,7 @@ const props = defineProps<{
         vehicles: App.Data.User.Vehicle.VehicleOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
     };
+    busyDatesByVehicleId: Record<number, string[]>;
 }>();
 
 const { form, canSubmit, submit } = useContractForm(props.contract);
@@ -49,7 +50,11 @@ const { form, canSubmit, submit } = useContractForm(props.contract);
                 class="flex flex-col gap-6 rounded-xl border border-slate-200 bg-white p-6"
                 @submit.prevent="submit"
             >
-                <ContractFormFields :form="form" :options="props.options" />
+                <ContractFormFields
+                    :form="form"
+                    :options="props.options"
+                    :busy-dates-by-vehicle-id="props.busyDatesByVehicleId"
+                />
 
                 <div class="flex justify-end gap-2 border-t border-slate-100 pt-4">
                     <Link

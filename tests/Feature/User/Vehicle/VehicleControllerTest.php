@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -641,6 +642,43 @@ final class VehicleControllerTest extends TestCase
             'effective_to' => null,
             'kerb_mass' => 1450,
         ]);
+    }
+
+    #[Test]
+    public function index_ne_regresse_pas_en_n_plus_1_avec_dix_vehicules(): void
+    {
+        // Garde-fou anti-régression : l'Index Flotte itère sur tous les
+        // véhicules et déclenche un calcul fiscal `vehicleFullYearTax` par
+        // ligne. Sans le fix N+1 sur `findCurrentForVehicle` (qui exploite
+        // la relation préchargée par `findAllForFleetView`), on aurait
+        // ~1 query SQL supplémentaire par véhicule pour récupérer la VFC
+        // courante. Ce test borne le total de queries de la requête HTTP
+        // à un cap raisonnable indépendant du nombre de véhicules.
+        $user = User::factory()->create();
+        for ($i = 0; $i < 10; $i++) {
+            $vehicle = Vehicle::factory()->create();
+            VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        }
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->actingAs($user)
+            ->get('/app/vehicles')
+            ->assertOk();
+
+        $queryCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        // Cap raisonnable : auth + load Vehicles + load VFC eager + load
+        // contracts + load unavailabilities + fiscal rules + queries
+        // collatérales Inertia. À 10 véhicules sans N+1 on observe
+        // ~10-15 queries. On laisse une marge.
+        self::assertLessThan(
+            25,
+            $queryCount,
+            "Trop de queries SQL ({$queryCount}) sur l'Index Flotte avec 10 véhicules — possible régression N+1.",
+        );
     }
 
     /**

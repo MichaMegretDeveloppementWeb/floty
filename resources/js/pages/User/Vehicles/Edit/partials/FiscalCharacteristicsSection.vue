@@ -36,10 +36,6 @@ const isN1 = computed((): boolean => props.form.reception_category === 'N1');
 const isLightTruck = computed((): boolean => props.form.body_type === 'CTTE');
 const isPickup = computed((): boolean => props.form.body_type === 'BE');
 
-const showUsageSection = computed((): boolean =>
-    isM1.value || (isN1.value && (isLightTruck.value || isPickup.value)),
-);
-
 // Catégorie polluants dérivée live des champs canoniques. Garde-fou
 // côté UI : la valeur réellement persistée est recalculée par le
 // Repository avec la même cascade (cf. PollutantCategory::derive()).

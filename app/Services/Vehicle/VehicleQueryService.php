@@ -54,11 +54,11 @@ final class VehicleQueryService
      *
      * @return DataCollection<int, VehicleListItemData>
      */
-    public function listForFleetView(int $year): DataCollection
+    public function listForFleetView(int $year, bool $includeExited = false): DataCollection
     {
         $daysInYear = $this->yearContext->daysInYear($year);
 
-        $rows = $this->vehicles->findAllForFleetView()
+        $rows = $this->vehicles->findAllForFleetView($includeExited)
             ->map(function (Vehicle $v) use ($year, $daysInYear): VehicleListItemData {
                 $fullYearTax = $this->aggregator->vehicleFullYearTax($v, $year);
 
@@ -71,6 +71,8 @@ final class VehicleQueryService
                     firstFrenchRegistrationDate: $v->first_french_registration_date->format('Y-m-d'),
                     acquisitionDate: $v->acquisition_date->format('Y-m-d'),
                     exitDate: $v->exit_date?->format('Y-m-d'),
+                    exitReason: $v->exit_reason,
+                    isExited: $v->is_exited,
                     fullYearTax: $fullYearTax,
                     dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
                 );
@@ -103,19 +105,30 @@ final class VehicleQueryService
     }
 
     /**
-     * Liste pour les `<SelectInput>` (Attribution rapide, etc.).
-     * Filtre les véhicules sortis (`exit_date IS NOT NULL`).
+     * Liste pour les `<SelectInput>` des formulaires (drawer Contrats,
+     * etc.). Inclut les véhicules sortis pour permettre la consultation
+     * et l'édition rétroactive des contrats antérieurs (cf. ADR-0018 § 4).
+     *
+     * Le frontend distingue actifs/retirés via `isExited` (groupement
+     * dans le picker, suffixe label « (retiré le DD/MM/YYYY) »).
      *
      * @return DataCollection<int, VehicleOptionData>
      */
     public function listForOptions(): DataCollection
     {
         $rows = $this->vehicles->findAllForOptions()
-            ->map(static fn (Vehicle $v): VehicleOptionData => new VehicleOptionData(
-                id: $v->id,
-                licensePlate: $v->license_plate,
-                label: sprintf('%s — %s %s', $v->license_plate, $v->brand, $v->model),
-            ))
+            ->map(static function (Vehicle $v): VehicleOptionData {
+                $exitDate = $v->exit_date?->format('Y-m-d');
+                $label = sprintf('%s — %s %s', $v->license_plate, $v->brand, $v->model);
+
+                return new VehicleOptionData(
+                    id: $v->id,
+                    licensePlate: $v->license_plate,
+                    label: $label,
+                    isExited: $exitDate !== null,
+                    exitDate: $exitDate,
+                );
+            })
             ->values()
             ->all();
 

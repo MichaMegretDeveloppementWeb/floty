@@ -61,10 +61,18 @@ function onHeaderClick(columnKey: string): void {
         </template>
 
         <template #cell-licensePlate="{ row }">
-            <Plate :value="row.licensePlate" />
+            <div :class="['flex flex-wrap items-center gap-2', row.isExited && 'opacity-60']">
+                <Plate :value="row.licensePlate" />
+                <span
+                    v-if="row.isExited"
+                    class="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-slate-700 uppercase"
+                >
+                    Retiré
+                </span>
+            </div>
         </template>
         <template #cell-model="{ row }">
-            <span class="text-slate-700">
+            <span :class="['text-slate-700', row.isExited && 'opacity-60']">
                 <span class="font-semibold text-slate-900">
                     {{ row.brand }}
                 </span>

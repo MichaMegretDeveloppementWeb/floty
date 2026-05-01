@@ -112,11 +112,15 @@ return [
     |
     | Some session drivers must manually sweep their storage location to get
     | rid of old sessions from storage. Here are the chances that it will
-    | happen on a given request. By default, the odds are 2 out of 100.
+    | happen on a given request. Floty utilise [25, 100] (au lieu du défaut
+    | Laravel [2, 100]) car le trafic est faible : le GC à 2 % laisserait
+    | trop de sessions mortes s'accumuler en BDD. À 25 %, le balayage tombe
+    | environ une fois toutes les 4 requêtes — largement suffisant pour
+    | éviter toute accumulation, et négligeable en coût (un DELETE indexé).
     |
     */
 
-    'lottery' => [2, 100],
+    'lottery' => [25, 100],
 
     /*
     |--------------------------------------------------------------------------

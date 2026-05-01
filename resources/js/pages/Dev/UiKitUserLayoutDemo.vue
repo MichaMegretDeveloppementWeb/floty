@@ -70,7 +70,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
 </script>
 
 <template>
-    <Head title="UI Kit — UserLayout" />
+    <Head title="UI Kit · UserLayout" />
 
     <UserLayout>
         <template #default="{ year }">
@@ -83,7 +83,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                         Aperçu flotte {{ year }}
                     </h1>
                     <p class="mt-1 text-base text-slate-600">
-                        Démo du layout authentifié Floty — sidebar fixe, topbar
+                        Démo du layout authentifié Floty : sidebar fixe, topbar
                         collante avec recherche, sélecteur d'année et menu
                         utilisateur.
                     </p>
@@ -203,7 +203,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                         </AlertRow>
                         <AlertRow
                             tone="danger"
-                            title="Déclarations 2025 — 4 en attente"
+                            title="Déclarations 2025 · 4 en attente"
                         >
                             <template #icon>
                                 <FileClock :size="15" :stroke-width="1.75" />
@@ -211,7 +211,7 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                         </AlertRow>
                         <AlertRow
                             tone="success"
-                            title="Tesla Model 3 — exonération confirmée"
+                            title="Tesla Model 3 · exonération confirmée"
                         >
                             <template #icon>
                                 <CheckCircle2 :size="15" :stroke-width="1.75" />

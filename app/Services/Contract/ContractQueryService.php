@@ -156,6 +156,54 @@ final readonly class ContractQueryService
     }
 
     /**
+     * Pour le formulaire Contract Create/Edit : table
+     * `vehicleId → list<date ISO>` des jours déjà occupés par un autre
+     * contrat actif du véhicule, sur une fenêtre [today − 2 ans, today
+     * + 2 ans] qui couvre largement les saisies réalistes.
+     *
+     * Le picker de plage côté front consomme cette table pour griser les
+     * jours non-sélectionnables et empêcher l'utilisateur de tomber
+     * dans le filet du trigger MySQL anti-overlap.
+     *
+     * Pour l'écran Edit, on exclut les dates du contrat en cours
+     * d'édition via `excludeContractId` — sinon l'utilisateur ne pourrait
+     * pas réenregistrer son contrat sans le « déplacer » d'abord.
+     *
+     * @return array<int, list<string>>
+     */
+    public function busyDatesByVehicleAroundToday(?int $excludeContractId = null): array
+    {
+        $today = CarbonImmutable::today();
+        $from = $today->subYears(2)->startOfYear()->toDateString();
+        $to = $today->addYears(2)->endOfYear()->toDateString();
+
+        $contracts = $this->repository->findAllInWindow($from, $to);
+
+        $byVehicle = [];
+        foreach ($contracts as $contract) {
+            if ($excludeContractId !== null && $contract->id === $excludeContractId) {
+                continue;
+            }
+            $vehicleId = $contract->vehicle_id;
+            if (! isset($byVehicle[$vehicleId])) {
+                $byVehicle[$vehicleId] = [];
+            }
+            foreach ($this->expandContractToRange($contract, $from, $to) as $date) {
+                $byVehicle[$vehicleId][$date] = true;
+            }
+        }
+
+        $result = [];
+        foreach ($byVehicle as $vehicleId => $datesMap) {
+            $list = array_keys($datesMap);
+            sort($list);
+            $result[$vehicleId] = $list;
+        }
+
+        return $result;
+    }
+
+    /**
      * Liste des dates ISO occupées par un véhicule sur une période —
      * source de `busyDates` côté page Vehicle Show (calendrier indispo).
      *

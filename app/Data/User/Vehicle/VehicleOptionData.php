@@ -18,5 +18,7 @@ final class VehicleOptionData extends Data
         public int $id,
         public string $licensePlate,
         public string $label,
+        public bool $isExited,
+        public ?string $exitDate,
     ) {}
 }

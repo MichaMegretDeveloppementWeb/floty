@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, ref, toRef } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
@@ -9,13 +10,17 @@ import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { useFleetTable } from '@/Composables/Vehicle/Index/useFleetTable';
+import { useIncludeExitedToggle } from '@/Composables/Vehicle/Index/useIncludeExitedToggle';
 import EmptyFleetState from './partials/EmptyFleetState.vue';
 import FleetTable from './partials/FleetTable.vue';
 import PageHeader from './partials/PageHeader.vue';
 
 const props = defineProps<{
     vehicles: App.Data.User.Vehicle.VehicleListItemData[];
+    includeExited: boolean;
 }>();
+
+const { includeExited } = useIncludeExitedToggle(toRef(props, 'includeExited'));
 
 const { currentYear: fiscalYear } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
@@ -75,9 +80,9 @@ const maxModel = computed({
         <div class="flex flex-col gap-6">
             <PageHeader :fiscal-year="fiscalYear" />
 
-            <EmptyFleetState v-if="props.vehicles.length === 0" />
+            <EmptyFleetState v-if="props.vehicles.length === 0 && !includeExited" />
             <template v-else>
-                <div class="flex justify-start">
+                <div class="flex flex-wrap items-center justify-between gap-3">
                     <FilterPopover
                         v-model:open="filtersOpen"
                         :active-count="tableState.state.activeFiltersCount.value"
@@ -117,6 +122,11 @@ const maxModel = computed({
                             </div>
                         </div>
                     </FilterPopover>
+
+                    <CheckboxInput
+                        v-model="includeExited"
+                        label="Inclure les véhicules retirés"
+                    />
                 </div>
 
                 <FleetTable

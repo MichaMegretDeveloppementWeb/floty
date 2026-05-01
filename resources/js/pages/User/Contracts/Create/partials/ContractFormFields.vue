@@ -10,6 +10,7 @@ import InputError from '@/Components/Ui/InputError/InputError.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 type FormShape = {
     vehicle_id: number | null;
@@ -27,14 +28,32 @@ const props = defineProps<{
         vehicles: App.Data.User.Vehicle.VehicleOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
     };
+    /**
+     * Map véhicule → dates ISO déjà occupées par un autre contrat actif.
+     * Empêche l'utilisateur de saisir une plage en chevauchement (chantier
+     * H — l'erreur backend reste le filet de sécurité). Le picker grise
+     * les dates concernées dès qu'un véhicule est sélectionné.
+     */
+    busyDatesByVehicleId: Record<number, string[]>;
 }>();
 
-const vehicleOptions = computed(() =>
-    props.options.vehicles.map((v) => ({
+// Tri Actifs en premier, puis Retirés ; les Retirés sont annotés
+// dans leur label pour rester identifiables dans le SearchableSelect
+// (qui ne gère pas natively les optgroups). Utile pour permettre
+// l'édition d'un contrat antérieur sur un véhicule sorti de flotte.
+const vehicleOptions = computed(() => {
+    const decorate = (v: App.Data.User.Vehicle.VehicleOptionData): { value: number; label: string } => ({
         value: v.id,
-        label: v.label,
-    })),
-);
+        label: v.isExited && v.exitDate
+            ? `${v.label} (retiré le ${formatDateFr(v.exitDate)})`
+            : v.label,
+    });
+
+    const active = props.options.vehicles.filter((v) => !v.isExited).map(decorate);
+    const exited = props.options.vehicles.filter((v) => v.isExited).map(decorate);
+
+    return [...active, ...exited];
+});
 
 const companyOptions = computed(() =>
     props.options.companies.map((c) => ({
@@ -82,6 +101,14 @@ const pickerYear = computed<number>(() => {
 
     return fiscalYear.value;
 });
+
+const disabledDates = computed<string[]>(() => {
+    if (props.form.vehicle_id === null) {
+        return [];
+    }
+
+    return props.busyDatesByVehicleId[props.form.vehicle_id] ?? [];
+});
 </script>
 
 <template>
@@ -123,8 +150,23 @@ const pickerYear = computed<number>(() => {
                     v-model:ongoing="ongoing"
                     :year="pickerYear"
                     :start-month="form.start_date ? Number(form.start_date.slice(5, 7)) : 1"
+                    :disabled-dates="disabledDates"
                 />
             </div>
+            <p
+                v-if="form.vehicle_id === null"
+                class="mt-1 text-xs text-slate-500"
+            >
+                Sélectionnez un véhicule pour voir les jours déjà occupés
+                par d'autres contrats actifs.
+            </p>
+            <p
+                v-else-if="disabledDates.length > 0"
+                class="mt-1 text-xs text-slate-500"
+            >
+                Les jours déjà occupés par un autre contrat de ce véhicule
+                (barrés) ne peuvent pas être inclus dans la plage.
+            </p>
             <InputError :message="form.errors.start_date || form.errors.end_date" />
         </div>
 

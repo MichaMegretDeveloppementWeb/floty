@@ -6,6 +6,7 @@ namespace App\Repositories\User\Vehicle;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Models\Vehicle;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
@@ -17,20 +18,24 @@ use Illuminate\Support\Collection;
  */
 final class VehicleReadRepository implements VehicleReadRepositoryInterface
 {
-    public function findAllForFleetView(): Collection
+    public function findAllForFleetView(bool $includeExited = false): Collection
     {
-        return Vehicle::query()
+        $query = Vehicle::query()
             ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
-            ->orderByDesc('acquisition_date')
-            ->get();
+            ->orderByDesc('acquisition_date');
+
+        if (! $includeExited) {
+            $query->activeAt(CarbonImmutable::today());
+        }
+
+        return $query->get();
     }
 
     public function findAllForOptions(): Collection
     {
         return Vehicle::query()
-            ->whereNull('exit_date')
             ->orderBy('license_plate')
-            ->get(['id', 'license_plate', 'brand', 'model']);
+            ->get(['id', 'license_plate', 'brand', 'model', 'exit_date', 'exit_reason']);
     }
 
     public function findByIdsIndexed(array $ids): Collection
@@ -56,10 +61,13 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ->findOrFail($id);
     }
 
-    public function findAllForHeatmap(): Collection
+    public function findAllForHeatmap(int $year): Collection
     {
+        $startOfYear = CarbonImmutable::create($year, 1, 1);
+
         return Vehicle::query()
             ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
+            ->activeAt($startOfYear)
             ->orderBy('license_plate')
             ->get();
     }

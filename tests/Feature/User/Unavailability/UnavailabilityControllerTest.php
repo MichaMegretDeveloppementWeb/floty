@@ -28,7 +28,7 @@ final class UnavailabilityControllerTest extends TestCase
         $this->actingAs($user)
             ->post('/app/unavailabilities', [
                 'vehicle_id' => $vehicle->id,
-                'type' => 'pound',
+                'type' => 'pound_public',
                 'start_date' => '2024-03-01',
                 'end_date' => '2024-03-15',
                 'description' => 'Mise en fourrière suite à infraction stationnement',
@@ -37,7 +37,7 @@ final class UnavailabilityControllerTest extends TestCase
 
         $this->assertDatabaseHas('unavailabilities', [
             'vehicle_id' => $vehicle->id,
-            'type' => 'pound',
+            'type' => 'pound_public',
             'has_fiscal_impact' => true,
         ]);
     }
@@ -108,7 +108,7 @@ final class UnavailabilityControllerTest extends TestCase
 
         $this->actingAs($user)
             ->patch("/app/unavailabilities/{$u->id}", [
-                'type' => 'pound',
+                'type' => 'pound_public',
                 'start_date' => '2024-06-01',
                 'end_date' => '2024-06-05',
             ])
@@ -116,7 +116,7 @@ final class UnavailabilityControllerTest extends TestCase
 
         $this->assertDatabaseHas('unavailabilities', [
             'id' => $u->id,
-            'type' => 'pound',
+            'type' => 'pound_public',
             'has_fiscal_impact' => true,
         ]);
     }

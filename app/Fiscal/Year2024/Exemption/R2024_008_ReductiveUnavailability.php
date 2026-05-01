@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Fiscal\Year2024\Exemption;
 
 use App\Enums\Fiscal\TaxType;
+use App\Enums\Unavailability\UnavailabilityType;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
@@ -14,27 +15,25 @@ use Carbon\CarbonImmutable;
 /**
  * R-2024-008 — Indisponibilités fiscalement réductrices.
  *
- * **Sémantique v2.0 (ADR-0014, ADR-0016 anticipée)** : règle souveraine.
- * Avant 04.F, ce filtrage était caché dans `AssignmentReadRepository::loadAnnualCumulRows`
- * (jointure SQL sur `unavailabilities`) — court-circuitant la logique
- * fiscale. La règle redevient une vraie `ExemptionRule` qui itère sur
- * les indispos du véhicule et calcule les jours retirés du numérateur
- * du prorata appliqué par R-2024-002.
+ * **Sémantique v2.1 (ADR-0014 + ADR-0016 rev. 1.1, chantier F)** : règle
+ * souveraine. Itère sur les indispos du véhicule et calcule les jours
+ * retirés du numérateur du prorata appliqué par R-2024-002.
  *
  * **Sémantique de calcul** :
  * Un jour d'indisponibilité est réducteur s'il :
  *   1. tombe dans un contrat **taxable** du couple (non LCD au sens de
  *      `R2024_021_ShortTermRental::isShortTermRental()`) ;
- *   2. ET porte un type d'indispo `has_fiscal_impact = true` (V1 :
- *      fourrière uniquement ; ADR-0016 raffinera à 4 cas réducteurs en
- *      04.I — accident, contrôle technique long, etc.).
+ *   2. ET porte un type d'indispo `has_fiscal_impact = true` — soit
+ *      l'un des 3 cases réducteurs définis par
+ *      {@see UnavailabilityType::isFiscallyReductive()} :
+ *      `pound_public`, `accident_no_circulation`, `ci_suspension`.
  *
  * Les jours d'indispo qui tombent dans un contrat LCD sont déjà retirés
  * via R-2024-021 — les compter ici serait un double-décompte.
  *
  * **Source légale** : CIBS art. L. 421-118 (assiette en temps
  * d'utilisation effective) ; doctrine BOFiP § 50, § 60, § 190 (indispos
- * subies). Précision V2 (4 cas) : ADR-0016.
+ * subies). Mapping enum → effet fiscal : ADR-0016 § 4 rev. 1.1.
  */
 final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
 {

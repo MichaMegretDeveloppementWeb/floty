@@ -20,6 +20,9 @@ use Symfony\Component\HttpFoundation\Response;
  *   fuite d'URL de pages internes vers les sites tiers.
  * - `Permissions-Policy: ...` — désactive les API browser non
  *   utilisées (caméra, micro, géoloc).
+ * - `Strict-Transport-Security` — force HTTPS pendant 1 an, posé
+ *   uniquement sur connexion sécurisée pour ne pas verrouiller le
+ *   dev local Herd HTTP.
  *
  * **CSP volontairement non posé ici** : nécessite un mode
  * `report-only` puis durcissement progressif. À traiter dans une
@@ -35,6 +38,13 @@ final class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+
+        if ($request->isSecure()) {
+            $response->headers->set(
+                'Strict-Transport-Security',
+                'max-age=31536000; includeSubDomains; preload',
+            );
+        }
 
         return $response;
     }

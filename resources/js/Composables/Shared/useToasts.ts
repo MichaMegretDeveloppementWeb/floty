@@ -12,9 +12,7 @@ import type { DeepReadonly } from 'vue';
  * Conforme à `composables-services-utils.md` :
  *   - emplacement `Composables/Shared/`
  *   - signature explicite `useToasts(): UseToastsReturn`
- *   - aucune dépendance Inertia ni store Pinia (volontaire — premier
- *     composable créé avant l'install de Pinia ; sera migré quand
- *     Pinia arrivera en phase 9).
+ *   - aucune dépendance Inertia, état module-level (Pinia non utilisé en V1).
  */
 
 export type ToastTone = 'success' | 'error' | 'warning' | 'info';

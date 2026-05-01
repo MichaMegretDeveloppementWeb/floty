@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import FlotyMark from '@/Components/Brand/FlotyMark.vue';
 import { useSidebarNav } from '@/Composables/Layout/UserLayout/useSidebarNav';
 
@@ -48,7 +49,7 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
                 </p>
                 <ul class="flex flex-col">
                     <li v-for="item in section.items" :key="item.label">
-                        <a
+                        <Link
                             :href="item.href"
                             :aria-current="
                                 isActive(item.href) ? 'page' : undefined
@@ -74,7 +75,7 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
                                 aria-hidden="true"
                             />
                             <span :class="labelClass">{{ item.label }}</span>
-                        </a>
+                        </Link>
                     </li>
                 </ul>
             </div>

@@ -106,6 +106,7 @@ const totalDays = computed((): number =>
                                 v-for="vehicle in vehicles"
                                 :key="`cells-${vehicle.id}`"
                                 :vehicle="vehicle"
+                                :fiscal-year="fiscalYear"
                                 @cell-click="$emit('cell-click', $event)"
                             />
                         </div>

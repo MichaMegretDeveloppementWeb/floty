@@ -66,7 +66,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
     {
         return Contract::query()
             ->with([
-                'vehicle:id,license_plate',
+                'vehicle:id,license_plate,exit_date,exit_reason',
                 'company:id,short_code,legal_name,color',
                 'driver:id,first_name,last_name',
             ])
@@ -79,7 +79,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
     {
         return Contract::query()
             ->with([
-                'vehicle:id,license_plate',
+                'vehicle:id,license_plate,exit_date,exit_reason',
                 'company:id,short_code,legal_name,color',
                 'driver:id,first_name,last_name',
             ])
@@ -120,11 +120,35 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         return $query->first();
     }
 
+    public function findAllOverlapping(
+        int $vehicleId,
+        string $startDate,
+        string $endDate,
+    ): Collection {
+        return Contract::query()
+            ->with('company:id,short_code,legal_name,color')
+            ->where('vehicle_id', $vehicleId)
+            ->where('start_date', '<=', $endDate)
+            ->where('end_date', '>=', $startDate)
+            ->orderBy('start_date')
+            ->get();
+    }
+
     public function listAll(): Collection
     {
         return Contract::query()
-            ->with(['vehicle:id,license_plate', 'company:id,short_code,legal_name,color'])
+            ->with(['vehicle:id,license_plate,exit_date,exit_reason', 'company:id,short_code,legal_name,color'])
             ->orderByDesc('start_date')
             ->get();
+    }
+
+    public function findAllInWindow(string $start, string $end): Collection
+    {
+        return Contract::query()
+            ->where('start_date', '<=', $end)
+            ->where('end_date', '>=', $start)
+            ->orderBy('vehicle_id')
+            ->orderBy('start_date')
+            ->get(['id', 'vehicle_id', 'start_date', 'end_date']);
     }
 }

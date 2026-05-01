@@ -42,4 +42,17 @@ interface UnavailabilityReadRepositoryInterface
      * @return array<int, int> weekNumber (1-53) → jours d'indispo (1-7)
      */
     public function findUnavailableDaysByWeekForVehicle(int $vehicleId, int $year): array;
+
+    /**
+     * Indispos d'un véhicule dont la plage `[start_date, end_date]`
+     * déborde la date passée — c'est-à-dire `end_date > $date` ou
+     * `end_date IS NULL` (indispo encore ouverte).
+     *
+     * Utilisé par {@see App\Services\Vehicle\VehicleExitImpactComputer}
+     * pour énumérer les conflits qui bloqueraient une sortie de flotte
+     * proposée à `$date` (cf. ADR-0018 § 8.1).
+     *
+     * @return Collection<int, Unavailability>
+     */
+    public function findActiveOverlappingDateForVehicle(int $vehicleId, string $date): Collection;
 }

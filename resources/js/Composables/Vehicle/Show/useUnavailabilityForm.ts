@@ -7,7 +7,10 @@ import {
     store as unavailabilitiesStoreRoute,
     update as unavailabilitiesUpdateRoute,
 } from '@/routes/user/unavailabilities';
-import { unavailabilityTypeLabel } from '@/Utils/labels/unavailabilityEnumLabels';
+import {
+    isUnavailabilityFiscallyReductive,
+    unavailabilityTypeLabel,
+} from '@/Utils/labels/unavailabilityEnumLabels';
 
 type UnavailabilityType = App.Enums.Unavailability.UnavailabilityType;
 type Unavailability = App.Data.User.Unavailability.UnavailabilityData;
@@ -23,18 +26,27 @@ type DateRange = { startDate: string | null; endDate: string | null };
 
 type SelectOption = { value: UnavailabilityType; label: string };
 
+type SelectOptionGroup = {
+    label: string;
+    isReductive: boolean;
+    options: SelectOption[];
+};
+
 /**
  * Form Inertia + UI state du modal de création/édition d'une
- * indisponibilité. Le composable :
+ * indisponibilité (ADR-0016 rev. 1.1, refonte chantier F).
  *
+ *   - construit la grille `optionGroups` à 2 groupes (Réducteurs /
+ *     Non réducteurs) consommée par le `<select>` de la modale ;
  *   - synchronise `range` et `ongoing` quand `props.editing` change
- *     (mode création vs édition)
+ *     (mode création vs édition) ;
  *   - calcule `canSubmit` (bouton désactivé tant que les bornes
- *     attendues ne sont pas posées)
- *   - applique `payloadTransform` qui mappe `range`+`ongoing` vers
- *     les champs snake_case attendus côté backend
+ *     attendues ne sont pas posées) ;
+ *   - calcule `selectedIsReductive` pour piloter le bandeau d'effet
+ *     fiscal annoncé avant validation ;
+ *   - applique `payloadTransform` (range+ongoing → snake_case backend) ;
  *   - dispatche le submit (POST store ou PATCH update selon le mode)
- *     puis ferme le modal et reset le state au success
+ *     puis ferme le modal et reset le state au success.
  */
 export function useUnavailabilityForm(
     props: {
@@ -44,23 +56,46 @@ export function useUnavailabilityForm(
     },
     open: Ref<boolean>,
 ): {
-    typeOptions: SelectOption[];
+    optionGroups: SelectOptionGroup[];
     currentYear: ComputedRef<number>;
     form: InertiaForm<FormShape>;
     range: Ref<DateRange>;
     ongoing: Ref<boolean>;
     isEditing: ComputedRef<boolean>;
     canSubmit: ComputedRef<boolean>;
+    selectedIsReductive: ComputedRef<boolean>;
     submit: () => void;
 } {
     const { currentYear } = useFiscalYear();
 
-    const typeOptions: SelectOption[] = (
-        Object.keys(unavailabilityTypeLabel) as UnavailabilityType[]
-    ).map((value) => ({
+    const buildOption = (value: UnavailabilityType): SelectOption => ({
         value,
         label: unavailabilityTypeLabel[value],
-    }));
+    });
+
+    const optionGroups: SelectOptionGroup[] = [
+        {
+            label: 'Réduit la taxe',
+            isReductive: true,
+            options: [
+                buildOption('accident_no_circulation'),
+                buildOption('pound_public'),
+                buildOption('ci_suspension'),
+            ],
+        },
+        {
+            label: 'Sans effet fiscal',
+            isReductive: false,
+            options: [
+                buildOption('maintenance'),
+                buildOption('technical_inspection'),
+                buildOption('accident_repair'),
+                buildOption('pound_private'),
+                buildOption('theft'),
+                buildOption('other'),
+            ],
+        },
+    ];
 
     const form = useForm<FormShape>({
         type: 'maintenance',
@@ -107,6 +142,10 @@ export function useUnavailabilityForm(
 
         return true;
     });
+
+    const selectedIsReductive = computed<boolean>(() =>
+        isUnavailabilityFiscallyReductive(form.type),
+    );
 
     const payloadTransform = (data: {
         type: UnavailabilityType;
@@ -155,13 +194,14 @@ export function useUnavailabilityForm(
     };
 
     return {
-        typeOptions,
+        optionGroups,
         currentYear,
         form,
         range,
         ongoing,
         isEditing,
         canSubmit,
+        selectedIsReductive,
         submit,
     };
 }

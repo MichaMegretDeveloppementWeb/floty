@@ -22,9 +22,13 @@ interface VehicleReadRepositoryInterface
      * `acquisition_date DESC` avec eager-loading des caractéristiques
      * fiscales actives (`effective_to IS NULL`).
      *
+     * @param  bool  $includeExited  Si false (défaut), exclut les véhicules
+     *                               dont `exit_date` est antérieure ou égale
+     *                               à aujourd'hui (cf. ADR-0018 § 4 — Index
+     *                               Flotte par défaut "aujourd'hui").
      * @return Collection<int, Vehicle>
      */
-    public function findAllForFleetView(): Collection;
+    public function findAllForFleetView(bool $includeExited = false): Collection;
 
     /**
      * Liste des véhicules disponibles (non sortis) pour les `<SelectInput>`,
@@ -60,13 +64,19 @@ interface VehicleReadRepositoryInterface
     public function findByIdWithFiscalHistory(int $id): Vehicle;
 
     /**
-     * Liste des véhicules pour la heatmap planning : actifs (non
-     * supprimés), eager-loading des caractéristiques fiscales actives,
-     * triés par plaque.
+     * Liste des véhicules pour la heatmap planning d'une **année donnée** :
+     * inclut tous les véhicules actifs au moins une partie de l'année
+     * (cf. scope {@see Vehicle::scopeActiveAt} avec `start_of_year`),
+     * eager-loading des caractéristiques fiscales actives, triés par
+     * plaque.
+     *
+     * Cf. ADR-0018 § 4 — un véhicule sorti mi-année reste affiché dans
+     * la heatmap de l'année où il était partiellement actif (cellules
+     * postérieures à exit_date grisées côté frontend).
      *
      * @return Collection<int, Vehicle>
      */
-    public function findAllForHeatmap(): Collection;
+    public function findAllForHeatmap(int $year): Collection;
 
     /**
      * Compte les véhicules actifs (sans `exit_date`).

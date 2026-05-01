@@ -68,6 +68,7 @@ final class ContractController extends Controller
     {
         return Inertia::render('User/Contracts/Create/Index', [
             'options' => $this->buildFormOptions(),
+            'busyDatesByVehicleId' => $this->contracts->busyDatesByVehicleAroundToday(),
         ]);
     }
 
@@ -91,6 +92,9 @@ final class ContractController extends Controller
         return Inertia::render('User/Contracts/Edit/Index', [
             'contract' => $contractData,
             'options' => $this->buildFormOptions(),
+            'busyDatesByVehicleId' => $this->contracts->busyDatesByVehicleAroundToday(
+                excludeContractId: $contract,
+            ),
         ]);
     }
 

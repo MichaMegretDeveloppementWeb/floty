@@ -4,7 +4,6 @@ import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
-import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useUnavailabilityForm } from '@/Composables/Vehicle/Show/useUnavailabilityForm';
 
@@ -21,13 +20,14 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { required: true });
 
 const {
-    typeOptions,
+    optionGroups,
     currentYear,
     form,
     range,
     ongoing,
     isEditing,
     canSubmit,
+    selectedIsReductive,
     submit,
 } = useUnavailabilityForm(props, open);
 </script>
@@ -39,14 +39,57 @@ const {
         size="md"
     >
         <form class="flex flex-col gap-4" @submit.prevent="submit">
-            <SelectInput
-                v-model="form.type"
-                label="Type"
-                :options="typeOptions"
-                :error="form.errors.type"
-                hint="La fourrière est le seul type qui réduit le numérateur du prorata fiscal."
-                required
-            />
+            <div class="flex flex-col gap-1.5">
+                <label
+                    for="unavailability-type"
+                    class="text-sm font-medium text-slate-500"
+                >
+                    Type d'indisponibilité
+                    <span aria-hidden="true" class="ml-0.5 text-rose-600">*</span>
+                </label>
+                <select
+                    id="unavailability-type"
+                    v-model="form.type"
+                    required
+                    class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
+                >
+                    <optgroup
+                        v-for="group in optionGroups"
+                        :key="group.label"
+                        :label="group.label"
+                    >
+                        <option
+                            v-for="option in group.options"
+                            :key="option.value"
+                            :value="option.value"
+                        >
+                            {{ option.label }}
+                        </option>
+                    </optgroup>
+                </select>
+                <InputError v-if="form.errors.type" :message="form.errors.type" />
+            </div>
+
+            <div
+                :class="[
+                    'rounded-lg border px-3 py-2.5 text-xs leading-snug',
+                    selectedIsReductive
+                        ? 'border-emerald-200 bg-emerald-50/60 text-emerald-800'
+                        : 'border-slate-200 bg-slate-50/60 text-slate-600',
+                ]"
+                role="status"
+                aria-live="polite"
+            >
+                <p v-if="selectedIsReductive">
+                    Cette indisponibilité <strong>réduira</strong> le numérateur
+                    du prorata fiscal sur la période concernée.
+                </p>
+                <p v-else>
+                    Cette indisponibilité <strong>n'a pas d'effet fiscal</strong>.
+                    Le véhicule reste considéré comme affecté à l'entreprise
+                    pendant cette période.
+                </p>
+            </div>
 
             <div class="flex flex-col gap-2">
                 <span class="text-sm font-medium text-slate-500">

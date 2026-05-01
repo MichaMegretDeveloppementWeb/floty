@@ -79,11 +79,7 @@ final class UpdateFiscalCharacteristicsAction
 
             $this->guardBoundsConsistency($current, $newFrom, $newTo);
 
-            $others = VehicleFiscalCharacteristics::query()
-                ->where('vehicle_id', $current->vehicle_id)
-                ->where('id', '!=', $current->id)
-                ->get()
-                ->all();
+            $others = $this->reader->findOthersForVehicle($current->vehicle_id, $current->id);
 
             $impacts = $this->impactComputer->compute($others, $newFrom, $newTo);
 

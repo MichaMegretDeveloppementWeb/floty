@@ -77,7 +77,15 @@ function onHeaderClick(columnKey: string): void {
         </template>
 
         <template #cell-vehicleLicensePlate="{ row }">
-            <Plate :value="row.vehicleLicensePlate" />
+            <div :class="['flex flex-wrap items-center gap-2', row.vehicleIsExited && 'opacity-60']">
+                <Plate :value="row.vehicleLicensePlate" />
+                <span
+                    v-if="row.vehicleIsExited"
+                    class="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-slate-700 uppercase"
+                >
+                    Véhicule retiré
+                </span>
+            </div>
         </template>
         <template #cell-companyShortCode="{ row }">
             <CompanyTag
@@ -110,12 +118,23 @@ function onHeaderClick(columnKey: string): void {
         >
             <button
                 type="button"
-                class="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
+                :class="[
+                    'flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50',
+                    row.vehicleIsExited && 'opacity-60',
+                ]"
                 @click="emit('row-click', row)"
             >
                 <div class="flex min-w-0 flex-1 flex-col gap-2">
                     <div class="flex items-center justify-between gap-2">
-                        <Plate :value="row.vehicleLicensePlate" />
+                        <div class="flex flex-wrap items-center gap-2">
+                            <Plate :value="row.vehicleLicensePlate" />
+                            <span
+                                v-if="row.vehicleIsExited"
+                                class="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-slate-700 uppercase"
+                            >
+                                Retiré
+                            </span>
+                        </div>
                         <Badge :tone="badgeTone[row.contractType]">
                             {{ shortLabel[row.contractType] }}
                         </Badge>

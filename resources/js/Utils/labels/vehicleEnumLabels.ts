@@ -102,5 +102,6 @@ export const vehicleExitReasonLabel: Record<App.Enums.Vehicle.VehicleExitReason,
     sold: 'Vendu',
     destroyed: 'Détruit',
     transferred: 'Transféré',
+    stolen_unrecovered: 'Vol non résolu',
     other: 'Autre',
 };

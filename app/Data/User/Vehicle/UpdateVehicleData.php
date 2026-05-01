@@ -13,6 +13,7 @@ use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
 use Illuminate\Validation\Rule;
+use Spatie\LaravelData\Attributes\FromRouteParameter;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\BeforeOrEqual;
 use Spatie\LaravelData\Attributes\Validation\Date;
@@ -147,6 +148,19 @@ final class UpdateVehicleData extends Data
 
         #[Max(2000)]
         public ?string $changeNote = null,
+
+        // ---------- Identifiant interne (route binding) ----------
+        // Identifiant du véhicule injecté automatiquement depuis le
+        // paramètre de route `{vehicle}` quand le DTO est construit
+        // depuis une Request HTTP. Permet aux règles de validation
+        // (notamment `Rule::unique` sur `license_plate`) de s'exclure
+        // elles-mêmes sans dépendre du global `request()`.
+        // Préfixé `_` pour signaler "interne, jamais saisi par
+        // l'utilisateur, jamais utilisé par le frontend".
+        // Conforme ADR-0013 : substitue l'appel à `request()->route()`
+        // qui couplait directement le DTO à la couche HTTP.
+        #[FromRouteParameter('vehicle')]
+        public ?int $_vehicleId = null,
     ) {}
 
     /**
@@ -172,11 +186,12 @@ final class UpdateVehicleData extends Data
         $method = $payload['homologation_method'] ?? null;
         $energy = $payload['energy_source'] ?? null;
         $reason = $payload['change_reason'] ?? null;
-        // Récupère l'id du véhicule depuis le route param `{vehicle}`
-        // pour exclure le véhicule en cours de la règle d'unicité
-        // license_plate (sinon l'utilisateur ne pourrait pas
-        // soumettre sans modifier la plaque).
-        $vehicleId = (int) (request()->route('vehicle') ?? 0);
+        // L'id du véhicule est injecté par `#[FromRouteParameter('vehicle')]`
+        // sur la propriété `_vehicleId`. Spatie Data le pose dans le
+        // payload (clé snake_case `_vehicle_id`) avant l'évaluation des
+        // règles, ce qui permet à `Rule::unique` de l'exclure de la
+        // recherche d'unicité sur `license_plate`.
+        $vehicleId = (int) ($payload['_vehicle_id'] ?? 0);
 
         $isOther = $reason === FiscalCharacteristicsChangeReason::OtherChange->value;
         $isHybrid = in_array($energy, [

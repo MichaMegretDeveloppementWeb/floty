@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
+use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -14,10 +15,12 @@ use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
+use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Database\Seeder;
@@ -48,6 +51,7 @@ final class DemoSeeder extends Seeder
             $companies = $this->seedCompanies();
             $vehicles = $this->seedVehicles();
             $this->seedContracts2024($vehicles, $companies);
+            $this->seedUnavailabilities2024($vehicles);
         });
     }
 
@@ -196,6 +200,20 @@ final class DemoSeeder extends Seeder
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 130, 'pa' => 6, 'kerb' => 1450,
                 'handicapAccess' => true,
             ],
+            // Citroën C3 vendue mi-2025 — exerce la matrice de visibilité
+            // (cf. ADR-0018 + chantier E.7) : présente dans la heatmap 2025
+            // avec cells après 30/04 grisées, masquée dans la heatmap 2026+.
+            [
+                'plate' => 'EK-011-KK', 'brand' => 'Citroën', 'model' => 'C3',
+                'regFrench' => '2019-09-01', 'regOrigin' => '2019-09-01', 'econ' => '2019-09-01',
+                'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5,
+                'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6,
+                'pollutant' => PollutantCategory::Category1,
+                'method' => HomologationMethod::Wltp, 'co2Wltp' => 115, 'pa' => 5, 'kerb' => 1100,
+                'exitDate' => '2025-04-30',
+                'exitReason' => VehicleExitReason::Sold,
+                'currentStatus' => VehicleStatus::Sold,
+            ],
         ];
 
         $created = [];
@@ -209,7 +227,9 @@ final class DemoSeeder extends Seeder
                     'first_origin_registration_date' => Carbon::parse($spec['regOrigin']),
                     'first_economic_use_date' => Carbon::parse($spec['econ']),
                     'acquisition_date' => Carbon::parse($spec['econ']),
-                    'current_status' => VehicleStatus::Active,
+                    'current_status' => $spec['currentStatus'] ?? VehicleStatus::Active,
+                    'exit_date' => isset($spec['exitDate']) ? Carbon::parse($spec['exitDate']) : null,
+                    'exit_reason' => $spec['exitReason'] ?? null,
                 ],
             );
 
@@ -289,6 +309,79 @@ final class DemoSeeder extends Seeder
                 'notes' => null,
             ]);
         }
+    }
+
+    /**
+     * Quelques indispos seedées pour exercer la grille ADR-0016 rev. 1.1
+     * en démo : au moins une de chaque type réducteur + un cas non
+     * réducteur. Les plages sont choisies pour ne pas chevaucher les
+     * contrats du plan (cf. trigger MySQL anti-overlap, ADR-0014).
+     *
+     * @param  array<string, Vehicle>  $vehicles
+     */
+    private function seedUnavailabilities2024(array $vehicles): void
+    {
+        Unavailability::query()
+            ->where('start_date', '<=', '2024-12-31')
+            ->where(function ($q): void {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', '2024-01-01');
+            })
+            ->forceDelete();
+
+        // EJ-010-JJ Kangoo TPMR — créneau libre 01-10 → 03-10/2024
+        // (avant le 1er contrat COR du 03-04). Fourrière publique 8 j.
+        $this->createUnavailability(
+            vehicle: $vehicles['EJ-010-JJ'],
+            type: UnavailabilityType::PoundPublic,
+            startDate: '2024-02-12',
+            endDate: '2024-02-19',
+            description: 'Stationnement gênant signalé par la mairie.',
+        );
+
+        // EI-009-II Ford Transit — créneau libre 06-01 → 09-30 (entre BTP et ECO).
+        // Interdiction de circuler post-sinistre 12 j.
+        $this->createUnavailability(
+            vehicle: $vehicles['EI-009-II'],
+            type: UnavailabilityType::AccidentNoCirculation,
+            startDate: '2024-07-08',
+            endDate: '2024-07-19',
+            description: 'Choc latéral, expertise + interdiction préfectorale.',
+        );
+
+        // EG-007-GG BMW Série 5 — créneau hors contrats. Suspension CI 25 j.
+        $this->createUnavailability(
+            vehicle: $vehicles['EG-007-GG'],
+            type: UnavailabilityType::CiSuspension,
+            startDate: '2024-08-05',
+            endDate: '2024-08-29',
+            description: 'Suspension administrative du certificat d\'immatriculation.',
+        );
+
+        // EH-008-HH Partner — maintenance courante 4 j (non réducteur).
+        $this->createUnavailability(
+            vehicle: $vehicles['EH-008-HH'],
+            type: UnavailabilityType::Maintenance,
+            startDate: '2024-10-21',
+            endDate: '2024-10-24',
+            description: 'Révision constructeur + remplacement pneus AV.',
+        );
+    }
+
+    private function createUnavailability(
+        Vehicle $vehicle,
+        UnavailabilityType $type,
+        string $startDate,
+        string $endDate,
+        ?string $description = null,
+    ): void {
+        Unavailability::create([
+            'vehicle_id' => $vehicle->id,
+            'type' => $type,
+            'has_fiscal_impact' => $type->isFiscallyReductive(),
+            'start_date' => $startDate,
+            'end_date' => $endDate,
+            'description' => $description,
+        ]);
     }
 
     /**

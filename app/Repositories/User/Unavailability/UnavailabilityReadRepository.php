@@ -24,6 +24,17 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
         return Unavailability::query()->findOrFail($id);
     }
 
+    public function findActiveOverlappingDateForVehicle(int $vehicleId, string $date): Collection
+    {
+        return Unavailability::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where(function ($q) use ($date): void {
+                $q->whereNull('end_date')->orWhere('end_date', '>', $date);
+            })
+            ->orderBy('start_date')
+            ->get();
+    }
+
     public function findUnavailableDaysByWeekForVehicle(int $vehicleId, int $year): array
     {
         $yearStart = Carbon::create($year, 1, 1)->startOfDay();

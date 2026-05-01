@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Vehicle;
 
 use App\Actions\Vehicle\CreateVehicleAction;
+use App\Actions\Vehicle\ExitVehicleAction;
+use App\Actions\Vehicle\ReactivateVehicleAction;
 use App\Actions\Vehicle\UpdateVehicleAction;
+use App\Data\User\Vehicle\ExitVehicleData;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Data\User\Vehicle\VehicleFormOptionsData;
@@ -22,6 +25,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Vehicle\VehicleQueryService;
 use App\Support\EnumOptions;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,13 +35,18 @@ final class VehicleController extends Controller
         private readonly VehicleQueryService $vehicles,
         private readonly CreateVehicleAction $createVehicle,
         private readonly UpdateVehicleAction $updateVehicle,
+        private readonly ExitVehicleAction $exitVehicle,
+        private readonly ReactivateVehicleAction $reactivateVehicle,
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
-    public function index(): Response
+    public function index(Request $request): Response
     {
+        $includeExited = $request->boolean('include_exited');
+
         return Inertia::render('User/Vehicles/Index/Index', [
-            'vehicles' => $this->vehicles->listForFleetView($this->fiscalYear->resolve()),
+            'vehicles' => $this->vehicles->listForFleetView($this->fiscalYear->resolve(), $includeExited),
+            'includeExited' => $includeExited,
         ]);
     }
 
@@ -80,6 +89,24 @@ final class VehicleController extends Controller
         return redirect()
             ->route('user.vehicles.show', ['vehicle' => $vehicle])
             ->with('toast-success', 'Véhicule mis à jour.');
+    }
+
+    public function exit(int $vehicle, ExitVehicleData $data): RedirectResponse
+    {
+        $this->exitVehicle->execute($vehicle, $data);
+
+        return redirect()
+            ->route('user.vehicles.show', ['vehicle' => $vehicle])
+            ->with('toast-success', 'Véhicule retiré de la flotte.');
+    }
+
+    public function reactivate(int $vehicle): RedirectResponse
+    {
+        $this->reactivateVehicle->execute($vehicle);
+
+        return redirect()
+            ->route('user.vehicles.show', ['vehicle' => $vehicle])
+            ->with('toast-success', 'Véhicule réactivé.');
     }
 
     private function buildFormOptions(): VehicleFormOptionsData

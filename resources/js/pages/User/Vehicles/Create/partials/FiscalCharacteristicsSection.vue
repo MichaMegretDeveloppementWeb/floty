@@ -33,10 +33,6 @@ const isN1 = computed((): boolean => props.form.reception_category === 'N1');
 const isLightTruck = computed((): boolean => props.form.body_type === 'CTTE');
 const isPickup = computed((): boolean => props.form.body_type === 'BE');
 
-const showUsageSection = computed((): boolean =>
-    isM1.value || (isN1.value && (isLightTruck.value || isPickup.value)),
-);
-
 const derivedPollutantCategoryValue = computed<App.Enums.Vehicle.PollutantCategory>(
     () => derivePollutantCategory(
         props.form.energy_source,

@@ -125,6 +125,7 @@ export function useVfcEditForm(
             if (cat !== 'M1') {
                 form.m1_special_use = false;
             }
+
             if (cat !== 'N1') {
                 form.n1_passenger_transport = false;
                 form.n1_removable_second_row_seat = false;
@@ -140,6 +141,7 @@ export function useVfcEditForm(
                 form.n1_passenger_transport = false;
                 form.n1_removable_second_row_seat = false;
             }
+
             if (body !== 'BE') {
                 form.n1_ski_lift_use = false;
             }

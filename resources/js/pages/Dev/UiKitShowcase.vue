@@ -135,7 +135,7 @@ const companyOptions = [
     { value: 'helios', label: 'Helios Flotte' },
 ];
 
-// Démo DateRangePicker v2 (04.I.2) — instance basique + instance avec
+// Démo DateRangePicker v2 (04.I.2) · instance basique + instance avec
 // disabledDates factices pour montrer la gestion d'erreur.
 const demoRangeBasic = ref<{ startDate: string | null; endDate: string | null }>({
     startDate: null,
@@ -155,43 +155,43 @@ const demoBlockedDates = [
     '2026-04-25',
 ];
 
-// Démo SearchableSelect — 30 véhicules factices pour tester filtre,
+// Démo SearchableSelect · 30 véhicules factices pour tester filtre,
 // scroll et navigation clavier sur une liste réaliste.
 const demoSearchableVehicle = ref<number | null>(7);
 const demoSearchableEmpty = ref<number | null>(null);
 const demoSearchableError = ref<number | null>(null);
 const demoSearchableDisabled = ref<number | null>(2);
 const searchableVehicleOptions: { value: number; label: string }[] = [
-    { value: 1, label: 'EH-142-AZ — Peugeot 308' },
-    { value: 2, label: 'EL-887-KB — Renault Clio' },
-    { value: 3, label: 'EM-512-RD — Dacia Duster' },
-    { value: 4, label: 'EP-204-XJ — Citroën Berlingo' },
-    { value: 5, label: 'EQ-991-VT — Peugeot Partner' },
-    { value: 6, label: 'ER-330-MN — Renault Trafic' },
-    { value: 7, label: 'ES-417-WB — Tesla Model 3' },
-    { value: 8, label: 'ET-650-PK — Toyota Yaris hybride' },
-    { value: 9, label: 'EU-128-ZJ — BMW Série 3' },
-    { value: 10, label: 'EV-309-FR — Volkswagen Golf' },
-    { value: 11, label: 'EW-456-LM — Audi A4' },
-    { value: 12, label: 'EX-872-NQ — Mercedes Classe A' },
-    { value: 13, label: 'EY-013-CB — Hyundai Kona électrique' },
-    { value: 14, label: 'EZ-742-DV — Kia Niro hybride' },
-    { value: 15, label: 'FA-289-GH — Fiat Doblo' },
-    { value: 16, label: 'FB-554-JK — Ford Transit' },
-    { value: 17, label: 'FC-103-PL — Opel Vivaro' },
-    { value: 18, label: 'FD-701-WS — Iveco Daily' },
-    { value: 19, label: 'FE-218-XY — Skoda Octavia' },
-    { value: 20, label: 'FF-633-RT — Seat Leon' },
-    { value: 21, label: 'FG-049-MV — Volvo XC40' },
-    { value: 22, label: 'FH-825-NB — Land Rover Defender' },
-    { value: 23, label: 'FJ-376-QC — Jeep Renegade' },
-    { value: 24, label: 'FK-590-DE — Mini Cooper' },
-    { value: 25, label: 'FL-118-FG — Smart EQ ForTwo' },
-    { value: 26, label: 'FM-704-HJ — Nissan Leaf' },
-    { value: 27, label: 'FN-261-KL — Renault ZOE' },
-    { value: 28, label: 'FP-947-MN — Peugeot e-208' },
-    { value: 29, label: 'FQ-385-PR — Citroën ë-C4' },
-    { value: 30, label: 'FR-572-ST — Tesla Model Y' },
+    { value: 1, label: 'EH-142-AZ · Peugeot 308' },
+    { value: 2, label: 'EL-887-KB · Renault Clio' },
+    { value: 3, label: 'EM-512-RD · Dacia Duster' },
+    { value: 4, label: 'EP-204-XJ · Citroën Berlingo' },
+    { value: 5, label: 'EQ-991-VT · Peugeot Partner' },
+    { value: 6, label: 'ER-330-MN · Renault Trafic' },
+    { value: 7, label: 'ES-417-WB · Tesla Model 3' },
+    { value: 8, label: 'ET-650-PK · Toyota Yaris hybride' },
+    { value: 9, label: 'EU-128-ZJ · BMW Série 3' },
+    { value: 10, label: 'EV-309-FR · Volkswagen Golf' },
+    { value: 11, label: 'EW-456-LM · Audi A4' },
+    { value: 12, label: 'EX-872-NQ · Mercedes Classe A' },
+    { value: 13, label: 'EY-013-CB · Hyundai Kona électrique' },
+    { value: 14, label: 'EZ-742-DV · Kia Niro hybride' },
+    { value: 15, label: 'FA-289-GH · Fiat Doblo' },
+    { value: 16, label: 'FB-554-JK · Ford Transit' },
+    { value: 17, label: 'FC-103-PL · Opel Vivaro' },
+    { value: 18, label: 'FD-701-WS · Iveco Daily' },
+    { value: 19, label: 'FE-218-XY · Skoda Octavia' },
+    { value: 20, label: 'FF-633-RT · Seat Leon' },
+    { value: 21, label: 'FG-049-MV · Volvo XC40' },
+    { value: 22, label: 'FH-825-NB · Land Rover Defender' },
+    { value: 23, label: 'FJ-376-QC · Jeep Renegade' },
+    { value: 24, label: 'FK-590-DE · Mini Cooper' },
+    { value: 25, label: 'FL-118-FG · Smart EQ ForTwo' },
+    { value: 26, label: 'FM-704-HJ · Nissan Leaf' },
+    { value: 27, label: 'FN-261-KL · Renault ZOE' },
+    { value: 28, label: 'FP-947-MN · Peugeot e-208' },
+    { value: 29, label: 'FQ-385-PR · Citroën ë-C4' },
+    { value: 30, label: 'FR-572-ST · Tesla Model Y' },
 ];
 
 type Swatch = { label: string; class: string };
@@ -246,7 +246,7 @@ const companyChips: Swatch[] = [
 </script>
 
 <template>
-    <Head title="UI Kit — Showcase" />
+    <Head title="UI Kit · Showcase" />
 
     <div class="min-h-screen bg-slate-50 py-6 md:py-12">
         <div class="mx-auto max-w-[1400px] px-4 md:px-8">
@@ -255,7 +255,7 @@ const companyChips: Swatch[] = [
                 <h1
                     class="text-2xl font-semibold tracking-tight text-slate-900 md:text-4xl"
                 >
-                    UI Kit — Showcase
+                    UI Kit · Showcase
                 </h1>
                 <p class="mt-2 max-w-2xl text-base text-slate-600">
                     Page de validation visuelle des composants du design system.
@@ -279,7 +279,7 @@ const companyChips: Swatch[] = [
                                 <FlotyMark :size="48" />
                             </div>
                             <p class="font-mono text-[10px] text-slate-500">
-                                32 × 32 — 3 pastilles + anneau
+                                32 × 32 · 3 pastilles + anneau
                             </p>
                         </div>
                         <div class="flex flex-col gap-3">
@@ -315,7 +315,7 @@ const companyChips: Swatch[] = [
                         <p class="eyebrow mb-3">Typographie</p>
                         <div class="space-y-2">
                             <p class="text-4xl font-semibold text-slate-900">
-                                Aa — DM Sans
+                                Aa · DM Sans
                             </p>
                             <p class="font-mono text-xl text-slate-700">
                                 EH-142-AZ · 452 367 891
@@ -327,7 +327,7 @@ const companyChips: Swatch[] = [
                     </div>
 
                     <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
-                        <p class="eyebrow mb-3">Palette — slate</p>
+                        <p class="eyebrow mb-3">Palette · slate</p>
                         <div class="flex gap-1">
                             <div
                                 v-for="swatch in slateScale"
@@ -339,7 +339,7 @@ const companyChips: Swatch[] = [
                                 :title="`slate-${swatch.label}`"
                             />
                         </div>
-                        <p class="eyebrow mt-4 mb-3">Palette — blue</p>
+                        <p class="eyebrow mt-4 mb-3">Palette · blue</p>
                         <div class="flex gap-1">
                             <div
                                 v-for="swatch in blueScale"
@@ -351,7 +351,7 @@ const companyChips: Swatch[] = [
                                 :title="`blue-${swatch.label}`"
                             />
                         </div>
-                        <p class="eyebrow mt-4 mb-3">Heatmap — densité</p>
+                        <p class="eyebrow mt-4 mb-3">Heatmap · densité</p>
                         <div class="flex gap-1">
                             <div
                                 v-for="swatch in densityScale"
@@ -397,7 +397,7 @@ const companyChips: Swatch[] = [
 
                 <div class="space-y-6">
                     <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
-                        <p class="eyebrow mb-4">Button — Variants</p>
+                        <p class="eyebrow mb-4">Button · Variants</p>
                         <div
                             class="grid grid-cols-[140px_1fr] items-center gap-x-6 gap-y-4"
                         >
@@ -535,7 +535,7 @@ const companyChips: Swatch[] = [
                     </div>
 
                     <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
-                        <p class="eyebrow mb-4">Badge — Type véhicule</p>
+                        <p class="eyebrow mb-4">Badge · Type véhicule</p>
                         <div
                             class="grid grid-cols-[140px_1fr] items-center gap-x-6 gap-y-4"
                         >
@@ -553,7 +553,7 @@ const companyChips: Swatch[] = [
                     </div>
 
                     <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
-                        <p class="eyebrow mb-4">StatusPill — Déclaration</p>
+                        <p class="eyebrow mb-4">StatusPill · Déclaration</p>
                         <div
                             class="grid grid-cols-[140px_1fr] items-center gap-x-6 gap-y-4"
                         >
@@ -701,7 +701,7 @@ const companyChips: Swatch[] = [
                                 />
                                 <InputError
                                     id="demo-siren-error"
-                                    message="SIREN invalide — 9 chiffres attendus."
+                                    message="SIREN invalide · 9 chiffres attendus."
                                 />
                             </div>
 
@@ -718,7 +718,7 @@ const companyChips: Swatch[] = [
                                 <p class="text-sm text-slate-600">
                                     Classe CSS
                                     <code class="font-mono"> .eyebrow </code>
-                                    — pas de composant dédié.
+                                    · pas de composant dédié.
                                 </p>
                             </div>
                         </div>
@@ -768,7 +768,7 @@ const companyChips: Swatch[] = [
                                 v-model="demoInvalidSiren"
                                 label="SIREN"
                                 hint="9 chiffres."
-                                error="SIREN invalide — 9 chiffres attendus."
+                                error="SIREN invalide · 9 chiffres attendus."
                                 mono
                                 required
                             />
@@ -850,7 +850,7 @@ const companyChips: Swatch[] = [
                                 label="Véhicule (avec sélection)"
                                 :options="searchableVehicleOptions"
                                 placeholder="Choisir un véhicule…"
-                                hint="30 options factices — tape « tesla », « hybride »…"
+                                hint="30 options factices · tape « tesla », « hybride »…"
                                 required
                             />
                             <SearchableSelect
@@ -1007,7 +1007,7 @@ const companyChips: Swatch[] = [
                     </div>
 
                     <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
-                        <p class="eyebrow mb-4">Card — variantes</p>
+                        <p class="eyebrow mb-4">Card · variantes</p>
                         <div
                             class="grid grid-cols-1 gap-4 md:grid-cols-3 md:gap-x-6"
                         >
@@ -1068,7 +1068,7 @@ const companyChips: Swatch[] = [
                             <AlertRow
                                 tone="warning"
                                 title="3 véhicules sous-utilisés (< 15 % d'occupation)"
-                                description="Dacia Duster, Skoda Octavia, Hyundai Kona — envisager une réaffectation"
+                                description="Dacia Duster, Skoda Octavia, Hyundai Kona · envisager une réaffectation"
                             >
                                 <template #icon>
                                     <AlertTriangle
@@ -1091,7 +1091,7 @@ const companyChips: Swatch[] = [
                             </AlertRow>
                             <AlertRow
                                 tone="danger"
-                                title="Déclarations fiscales 2025 — 4 en attente"
+                                title="Déclarations fiscales 2025 · 4 en attente"
                                 description="ACME Industries, Cedar & Co, Delta Maintenance, Alpha Services"
                             >
                                 <template #icon>
@@ -1103,7 +1103,7 @@ const companyChips: Swatch[] = [
                             </AlertRow>
                             <AlertRow
                                 tone="success"
-                                title="Tesla Model 3 — exonération CO₂ 2026 confirmée"
+                                title="Tesla Model 3 · exonération CO₂ 2026 confirmée"
                                 description="Économie estimée : 420 € sur cette année fiscale"
                             >
                                 <template #icon>
@@ -1342,7 +1342,7 @@ const companyChips: Swatch[] = [
 
                     <div class="rounded-xl bg-white p-6 ring-1 ring-slate-200">
                         <p class="eyebrow mb-4">
-                            ToastContainer — déclencheurs
+                            ToastContainer · déclencheurs
                         </p>
                         <div class="flex flex-wrap items-center gap-2">
                             <Button
@@ -1396,7 +1396,7 @@ const companyChips: Swatch[] = [
                             </Button>
                         </div>
                         <p class="mt-3 text-xs text-slate-500">
-                            Les toasts s'auto-suppriment après 5 s — clic sur
+                            Les toasts s'auto-suppriment après 5 s · clic sur
                             <code class="font-mono">×</code> pour fermer
                             immédiatement.
                         </p>
@@ -1412,7 +1412,7 @@ const companyChips: Swatch[] = [
                             Layout
                         </h2>
                         <p class="mt-1 text-sm text-slate-600">
-                            UserLayout — zone connectée avec Sidebar, TopBar,
+                            UserLayout · zone connectée avec Sidebar, TopBar,
                             YearSelector et UserMenu. Le layout prend tout le
                             viewport, il a donc sa page démo dédiée. Les pages
                             publiques seront traitées à part, hors UI Kit.

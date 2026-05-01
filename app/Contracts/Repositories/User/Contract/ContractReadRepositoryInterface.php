@@ -80,9 +80,34 @@ interface ContractReadRepositoryInterface
     ): ?Contract;
 
     /**
+     * Tous les contrats actifs d'un véhicule chevauchant `[start, end]`.
+     * Différent de {@see findOverlapping} qui retourne le premier
+     * conflit pour vérification booléenne ; utilisé par les services
+     * qui doivent ENUMÉRER les conflits (typiquement pour exposer la
+     * liste exhaustive de dates conflictuelles à un utilisateur).
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findAllOverlapping(
+        int $vehicleId,
+        string $startDate,
+        string $endDate,
+    ): Collection;
+
+    /**
      * Liste paginée pour la page Index (chantier 04.G).
      *
      * @return Collection<int, Contract>
      */
     public function listAll(): Collection;
+
+    /**
+     * Tous les contrats actifs (toutes plates) chevauchant la fenêtre
+     * `[start, end]`. Utilisé pour pré-calculer la table
+     * `vehicleId → busyDates` consommée par le picker du formulaire
+     * Contract Create/Edit (chantier H).
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findAllInWindow(string $start, string $end): Collection;
 }

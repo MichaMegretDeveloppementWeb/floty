@@ -33,5 +33,6 @@ final class PlanningHeatmapVehicleData extends Data
         public array $weeks,
         public int $daysTotal,
         public float $annualTaxDue,
+        public ?string $exitDate,
     ) {}
 }

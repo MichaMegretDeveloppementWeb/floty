@@ -17,6 +17,18 @@ final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalC
 {
     public function findCurrentForVehicle(Vehicle $vehicle): ?VehicleFiscalCharacteristics
     {
+        // Si la relation est préchargée (eager load via `with(...)`),
+        // on travaille sur la collection en mémoire pour éviter une
+        // nouvelle requête SQL inutile. Évite le N+1 sur l'Index Flotte
+        // qui itère sur tous les véhicules avec leurs VFC déjà
+        // eager-loadées par {@see VehicleReadRepository::findAllForFleetView}.
+        if ($vehicle->relationLoaded('fiscalCharacteristics')) {
+            return $vehicle->fiscalCharacteristics
+                ->where('effective_to', null)
+                ->sortByDesc('effective_from')
+                ->first();
+        }
+
         return $vehicle->fiscalCharacteristics()
             ->whereNull('effective_to')
             ->latest('effective_from')
@@ -65,5 +77,15 @@ final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalC
         return VehicleFiscalCharacteristics::query()
             ->where('vehicle_id', $vehicleId)
             ->count();
+    }
+
+    public function findOthersForVehicle(int $vehicleId, int $excludeId): array
+    {
+        return VehicleFiscalCharacteristics::query()
+            ->where('vehicle_id', $vehicleId)
+            ->where('id', '!=', $excludeId)
+            ->orderBy('effective_from')
+            ->get()
+            ->all();
     }
 }

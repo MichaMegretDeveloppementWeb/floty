@@ -5,7 +5,7 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import { useUnavailabilitiesCard } from '@/Composables/Vehicle/Show/useUnavailabilitiesCard';
-import { unavailabilityTypeLabel } from '@/Utils/labels/unavailabilityEnumLabels';
+import { unavailabilityTypeShortLabel } from '@/Utils/labels/unavailabilityEnumLabels';
 import UnavailabilityFormModal from './UnavailabilityFormModal.vue';
 
 type Unavailability = App.Data.User.Unavailability.UnavailabilityData;
@@ -71,7 +71,7 @@ const {
                 <div class="flex flex-col gap-1 min-w-0">
                     <div class="flex flex-wrap items-center gap-2">
                         <Badge :tone="item.hasFiscalImpact ? 'rose' : 'slate'">
-                            {{ unavailabilityTypeLabel[item.type] }}
+                            {{ unavailabilityTypeShortLabel[item.type] }}
                         </Badge>
                         <span class="text-sm font-medium text-slate-900">
                             {{ formatPeriod(item) }}
