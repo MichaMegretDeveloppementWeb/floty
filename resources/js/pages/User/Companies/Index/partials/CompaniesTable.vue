@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import type {
     CompanySortKey,
 } from '@/Composables/Company/Index/useCompaniesTable';
+import { show as companyShowRoute } from '@/routes/user/companies';
 import type { DataTableColumn } from '@/types/ui';
 import { formatEur } from '@/Utils/format/formatEur';
 
@@ -60,11 +62,13 @@ function onHeaderClick(columnKey: string): void {
         </template>
 
         <template #cell-company="{ row }">
-            <CompanyTag
-                :name="row.legalName"
-                :initials="row.shortCode"
-                :color="row.color"
-            />
+            <Link :href="companyShowRoute(row.id).url" class="hover:underline">
+                <CompanyTag
+                    :name="row.legalName"
+                    :initials="row.shortCode"
+                    :color="row.color"
+                />
+            </Link>
         </template>
         <template #cell-siren="{ value }">
             <span :class="value ? '' : 'text-slate-300'">{{ value ?? 'Non renseigné' }}</span>

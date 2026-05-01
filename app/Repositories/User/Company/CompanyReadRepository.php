@@ -13,6 +13,11 @@ use Illuminate\Support\Collection;
  */
 final class CompanyReadRepository implements CompanyReadRepositoryInterface
 {
+    public function findById(int $id): ?Company
+    {
+        return Company::query()->find($id);
+    }
+
     public function findAllOrderedByName(): Collection
     {
         return Company::query()->orderBy('legal_name')->get();

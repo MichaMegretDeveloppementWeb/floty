@@ -16,6 +16,8 @@ use Illuminate\Support\Collection;
  */
 interface CompanyReadRepositoryInterface
 {
+    public function findById(int $id): ?Company;
+
     /**
      * Liste de toutes les entreprises pour la page « Entreprises
      * utilisatrices », triées par raison sociale.

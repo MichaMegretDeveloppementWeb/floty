@@ -7,12 +7,17 @@ namespace App\Services\Company;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyColorOptionData;
+use App\Data\User\Company\CompanyDetailData;
+use App\Data\User\Company\CompanyDriverRowData;
 use App\Data\User\Company\CompanyListItemData;
 use App\Data\User\Company\CompanyOptionData;
 use App\Enums\Company\CompanyColor;
 use App\Models\Company;
+use App\Models\Contract;
+use App\Models\Pivot\DriverCompany;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
+use Illuminate\Support\Carbon;
 use Spatie\LaravelData\DataCollection;
 
 /**
@@ -93,6 +98,86 @@ final class CompanyQueryService
             ->all();
 
         return CompanyOptionData::collect($rows, DataCollection::class);
+    }
+
+    /**
+     * Détail complet d'une entreprise pour la page Show avec onglets
+     * (Phase 06 L4).
+     */
+    public function detail(int $companyId): ?CompanyDetailData
+    {
+        $company = $this->companies->findById($companyId);
+        if ($company === null) {
+            return null;
+        }
+
+        $today = Carbon::today();
+
+        // Drivers de cette entreprise (toutes memberships, actives + sorties)
+        $company->load(['drivers' => function ($query): void {
+            $query->orderByPivot('joined_at');
+        }]);
+
+        $contractsCountByDriver = Contract::query()
+            ->where('company_id', $companyId)
+            ->whereNotNull('driver_id')
+            ->selectRaw('driver_id, COUNT(*) as cnt')
+            ->groupBy('driver_id')
+            ->pluck('cnt', 'driver_id')
+            ->all();
+
+        $driverRows = $company->drivers->map(function ($driver) use ($contractsCountByDriver, $today): CompanyDriverRowData {
+            /** @var DriverCompany $pivot */
+            $pivot = $driver->pivot;
+            $first = (string) ($driver->first_name ?? '');
+            $last = (string) ($driver->last_name ?? '');
+            $fullName = trim($first.' '.$last);
+            $initials = mb_strtoupper(mb_substr($first, 0, 1).mb_substr($last, 0, 1));
+
+            return new CompanyDriverRowData(
+                driverId: $driver->id,
+                pivotId: $pivot->id,
+                fullName: $fullName !== '' ? $fullName : '—',
+                initials: $initials !== '' ? $initials : '—',
+                joinedAt: $pivot->joined_at->toDateString(),
+                leftAt: $pivot->left_at?->toDateString(),
+                isCurrentlyActive: $pivot->left_at === null || $pivot->left_at->greaterThanOrEqualTo($today),
+                contractsCount: (int) ($contractsCountByDriver[$driver->id] ?? 0),
+            );
+        })->values()->all();
+
+        $activeDriversCount = 0;
+        foreach ($driverRows as $row) {
+            if ($row->isCurrentlyActive) {
+                $activeDriversCount++;
+            }
+        }
+
+        $contractsCount = Contract::query()->where('company_id', $companyId)->count();
+
+        return new CompanyDetailData(
+            id: $company->id,
+            legalName: $company->legal_name,
+            shortCode: $company->short_code,
+            color: $company->color,
+            siren: $company->siren,
+            siret: $company->siret,
+            addressLine1: $company->address_line_1,
+            addressLine2: $company->address_line_2,
+            postalCode: $company->postal_code,
+            city: $company->city,
+            country: $company->country,
+            contactName: $company->contact_name,
+            contactEmail: $company->contact_email,
+            contactPhone: $company->contact_phone,
+            isActive: $company->is_active,
+            isOig: $company->is_oig,
+            isIndividualBusiness: $company->is_individual_business,
+            contractsCount: $contractsCount,
+            activeDriversCount: $activeDriversCount,
+            totalDriversCount: count($driverRows),
+            drivers: $driverRows,
+        );
     }
 
     /**

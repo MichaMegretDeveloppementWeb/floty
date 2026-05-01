@@ -35,6 +35,9 @@ Route::middleware('auth')
         Route::post('/companies', [CompanyController::class, 'store'])
             ->middleware('throttle:60,1')
             ->name('companies.store');
+        Route::get('/companies/{company}', [CompanyController::class, 'show'])
+            ->whereNumber('company')
+            ->name('companies.show');
 
         // Vehicles
         Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');

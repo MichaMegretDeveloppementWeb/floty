@@ -3,6 +3,7 @@ import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from 'lucide-vue-next';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
+import { show as companiesShowRoute } from '@/routes/user/companies';
 import { show as driversShowRoute } from '@/routes/user/drivers';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 
@@ -54,12 +55,9 @@ function driverInitials(): string {
             />
         </Link>
 
-        <!--
-            TODO 05.X : envelopper dans <Link :href="companiesShowRoute.url(...)">
-            quand la page Show Company sera livrée. Pour V1, carte statique.
-        -->
-        <div
-            class="flex items-center gap-4 rounded-xl border border-slate-200 bg-white p-4"
+        <Link
+            :href="companiesShowRoute(contract.companyId).url"
+            class="group flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
         >
             <div class="flex flex-col gap-2">
                 <span
@@ -73,7 +71,12 @@ function driverInitials(): string {
                     :color="contract.companyColor"
                 />
             </div>
-        </div>
+            <ChevronRight
+                :size="18"
+                :stroke-width="1.75"
+                class="shrink-0 text-slate-400 transition-transform duration-[120ms] ease-out group-hover:translate-x-0.5 group-hover:text-slate-600"
+            />
+        </Link>
 
         <Link
             v-if="contract.driverId !== null"
