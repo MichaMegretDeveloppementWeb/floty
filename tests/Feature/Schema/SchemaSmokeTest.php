@@ -69,10 +69,11 @@ final class SchemaSmokeTest extends TestCase
         ]);
 
         $driver = Driver::create([
-            'company_id' => $company->id,
             'first_name' => 'Marie',
             'last_name' => 'Dupont',
-            'is_active' => true,
+        ]);
+        $driver->companies()->attach($company->id, [
+            'joined_at' => now()->toDateString(),
         ]);
 
         $vehicle = Vehicle::create([
@@ -188,7 +189,7 @@ final class SchemaSmokeTest extends TestCase
         );
 
         // --- Relations ---
-        $this->assertSame($company->id, $driver->company->id);
+        $this->assertSame($company->id, $driver->fresh()->companies->first()->id);
         $this->assertSame($vehicle->id, $fiscalVersion->vehicle->id);
         $this->assertSame($vehicle->id, $contract->vehicle->id);
         $this->assertSame($company->id, $contract->company->id);

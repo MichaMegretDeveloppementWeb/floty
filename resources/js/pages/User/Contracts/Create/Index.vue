@@ -48,7 +48,7 @@ async function submitWithDocuments(): Promise<void> {
     <Head title="Nouveau contrat" />
 
     <UserLayout>
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6 max-w-[70em] m-auto">
             <header class="flex flex-col gap-3">
                 <Link
                     :href="contractsIndexRoute.url()"

@@ -10,6 +10,8 @@ use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractWriteRepositoryInterface;
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadRepositoryInterface;
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
+use App\Contracts\Repositories\User\Driver\DriverWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
@@ -23,6 +25,8 @@ use App\Repositories\User\Contract\ContractReadRepository;
 use App\Repositories\User\Contract\ContractWriteRepository;
 use App\Repositories\User\ContractDocument\ContractDocumentReadRepository;
 use App\Repositories\User\ContractDocument\ContractDocumentWriteRepository;
+use App\Repositories\User\Driver\DriverReadRepository;
+use App\Repositories\User\Driver\DriverWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityWriteRepository;
@@ -69,6 +73,10 @@ final class RepositoryServiceProvider extends ServiceProvider
         // ContractDocument (chantier 04.N) — PDF joints aux contrats
         ContractDocumentReadRepositoryInterface::class => ContractDocumentReadRepository::class,
         ContractDocumentWriteRepositoryInterface::class => ContractDocumentWriteRepository::class,
+
+        // Driver (Phase 06 V1.2) — many-to-many avec Company via pivot driver_company
+        DriverReadRepositoryInterface::class => DriverReadRepository::class,
+        DriverWriteRepositoryInterface::class => DriverWriteRepository::class,
 
         // FiscalRule
         FiscalRuleReadRepositoryInterface::class => FiscalRuleReadRepository::class,

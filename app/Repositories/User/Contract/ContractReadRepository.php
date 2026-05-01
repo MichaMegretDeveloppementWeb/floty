@@ -137,7 +137,11 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
     public function listAll(): Collection
     {
         return Contract::query()
-            ->with(['vehicle:id,license_plate,exit_date,exit_reason', 'company:id,short_code,legal_name,color'])
+            ->with([
+                'vehicle:id,license_plate,exit_date,exit_reason',
+                'company:id,short_code,legal_name,color',
+                'driver:id,first_name,last_name',
+            ])
             ->orderByDesc('start_date')
             ->get();
     }

@@ -129,7 +129,7 @@ function handleFiles(files: File[]): void {
 <template>
     <div
         :class="[
-            'flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-8 text-center transition-colors duration-[120ms] ease-out',
+            'flex flex-col items-center justify-center gap-2 rounded-lg w-full max-w-[35em] mx-auto mt-5 border-2 border-dashed p-8 text-center transition-colors duration-120 ease-out',
             disabled
                 ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
                 : isDragOver

@@ -6,6 +6,7 @@ use App\Http\Controllers\User\Company\CompanyController;
 use App\Http\Controllers\User\Contract\ContractController;
 use App\Http\Controllers\User\Contract\ContractDocumentController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
+use App\Http\Controllers\User\Driver\DriverController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Planning\PlanningController;
 use App\Http\Controllers\User\Unavailability\UnavailabilityController;
@@ -138,6 +139,43 @@ Route::middleware('auth')
             ->whereNumber(['contract', 'document'])
             ->middleware('throttle:60,1')
             ->name('contracts.documents.destroy');
+
+        // Drivers (Phase 06 V1.2)
+        Route::get('/drivers', [DriverController::class, 'index'])->name('drivers.index');
+        Route::get('/drivers/options', [DriverController::class, 'contractOptions'])
+            ->name('drivers.contract-options');
+        Route::get('/drivers/create', [DriverController::class, 'create'])->name('drivers.create');
+        Route::post('/drivers', [DriverController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('drivers.store');
+        Route::get('/drivers/{driver}', [DriverController::class, 'show'])
+            ->whereNumber('driver')
+            ->name('drivers.show');
+        Route::get('/drivers/{driver}/edit', [DriverController::class, 'edit'])
+            ->whereNumber('driver')
+            ->name('drivers.edit');
+        Route::patch('/drivers/{driver}', [DriverController::class, 'update'])
+            ->whereNumber('driver')
+            ->middleware('throttle:60,1')
+            ->name('drivers.update');
+        Route::delete('/drivers/{driver}', [DriverController::class, 'destroy'])
+            ->whereNumber('driver')
+            ->middleware('throttle:60,1')
+            ->name('drivers.destroy');
+
+        // Drivers — memberships company (Phase 06 V1.2)
+        Route::post('/drivers/{driver}/memberships', [DriverController::class, 'attachCompany'])
+            ->whereNumber('driver')
+            ->middleware('throttle:60,1')
+            ->name('drivers.memberships.store');
+        Route::patch('/drivers/{driver}/memberships/{companyId}/leave', [DriverController::class, 'leaveCompany'])
+            ->whereNumber(['driver', 'companyId'])
+            ->middleware('throttle:60,1')
+            ->name('drivers.memberships.leave');
+        Route::delete('/drivers/{driver}/memberships/{pivotId}', [DriverController::class, 'detachCompany'])
+            ->whereNumber(['driver', 'pivotId'])
+            ->middleware('throttle:60,1')
+            ->name('drivers.memberships.destroy');
 
         // Fiscal rules — consultation only
         Route::get('/fiscal-rules', [FiscalRuleController::class, 'index'])->name('fiscal-rules.index');

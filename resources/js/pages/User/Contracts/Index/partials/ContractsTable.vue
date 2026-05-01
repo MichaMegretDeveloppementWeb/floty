@@ -88,11 +88,19 @@ function onHeaderClick(columnKey: string): void {
             </div>
         </template>
         <template #cell-companyShortCode="{ row }">
-            <CompanyTag
-                :name="row.companyLegalName"
-                :initials="row.companyShortCode.slice(0, 2)"
-                :color="row.companyColor"
-            />
+            <div class="flex flex-col gap-1">
+                <CompanyTag
+                    :name="row.companyLegalName"
+                    :initials="row.companyShortCode.slice(0, 2)"
+                    :color="row.companyColor"
+                />
+                <span
+                    v-if="row.driverFullName !== null"
+                    class="text-xs text-slate-500"
+                >
+                    Conducteur : {{ row.driverFullName }}
+                </span>
+            </div>
         </template>
         <template #cell-startDate="{ value }">
             {{ formatDateFr(String(value)) }}

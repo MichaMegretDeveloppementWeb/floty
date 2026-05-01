@@ -4,6 +4,7 @@
    est instancié dans le parent et passé tel quel pour éviter de
    pousser la logique submit dans ce partial purement présentationnel). */
 import { computed, ref, watch } from 'vue';
+import DriverSelector from '@/Components/Domain/Driver/DriverSelector.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
@@ -209,6 +210,18 @@ watch(disabledDates, (newDisabled) => {
                 (barrés) ne peuvent pas être inclus dans la plage.
             </p>
             <InputError :message="form.errors.start_date || form.errors.end_date" />
+        </div>
+
+        <div>
+            <FieldLabel for="driver_id">Conducteur (optionnel)</FieldLabel>
+            <DriverSelector
+                :model-value="form.driver_id"
+                :company-id="form.company_id"
+                :start-date="form.start_date || null"
+                :end-date="form.end_date || null"
+                @update:model-value="(v) => (form.driver_id = v)"
+            />
+            <InputError :message="form.errors.driver_id" />
         </div>
 
         <div>

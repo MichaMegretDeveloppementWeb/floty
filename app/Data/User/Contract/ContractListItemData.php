@@ -27,6 +27,9 @@ final class ContractListItemData extends Data
         public string $companyShortCode,
         public string $companyLegalName,
         public CompanyColor $companyColor,
+        public ?int $driverId,
+        public ?string $driverFullName,
+        public ?string $driverInitials,
         public string $startDate,
         public string $endDate,
         public int $durationDays,
@@ -41,6 +44,19 @@ final class ContractListItemData extends Data
 
         $duration = (int) $start->diffInDays($end) + 1;
 
+        $driverFullName = null;
+        $driverInitials = null;
+        if ($contract->driver !== null) {
+            $first = (string) ($contract->driver->first_name ?? '');
+            $last = (string) ($contract->driver->last_name ?? '');
+            $driverFullName = trim($first.' '.$last);
+            if ($driverFullName === '') {
+                $driverFullName = null;
+            } else {
+                $driverInitials = mb_strtoupper(mb_substr($first, 0, 1).mb_substr($last, 0, 1));
+            }
+        }
+
         return new self(
             id: $contract->id,
             vehicleId: $contract->vehicle_id,
@@ -50,6 +66,9 @@ final class ContractListItemData extends Data
             companyShortCode: $contract->company->short_code,
             companyLegalName: $contract->company->legal_name,
             companyColor: $contract->company->color,
+            driverId: $contract->driver_id,
+            driverFullName: $driverFullName,
+            driverInitials: $driverInitials,
             startDate: $start->toDateString(),
             endDate: $end->toDateString(),
             durationDays: $duration,
