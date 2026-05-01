@@ -59,6 +59,15 @@ final class WeekDetailService
             $end,
         );
 
+        // ADR-0019 D5 : pour la bordure rouge des jours d'indispo dans
+        // la grille « État de la semaine », on charge UNE fois les
+        // indispos du véhicule croisant la fenêtre semaine et on filtre
+        // par jour côté PHP.
+        $weekUnavailabilities = $this->unavailabilityRepo
+            ->findForVehicle($vehicleId)
+            ->filter(static fn ($u): bool => $u->start_date->lessThanOrEqualTo($end)
+                && ($u->end_date === null || $u->end_date->greaterThanOrEqualTo($start)));
+
         $days = [];
         $cursor = $start->copy();
         while ($cursor->lte($end)) {
@@ -66,6 +75,11 @@ final class WeekDetailService
             $contract = $weekContracts->first(
                 static fn (Contract $c): bool => $iso >= $c->start_date->toDateString()
                     && $iso <= $c->end_date->toDateString(),
+            );
+
+            $hasUnavailabilityOnDay = $weekUnavailabilities->contains(
+                static fn ($u): bool => $u->start_date->toDateString() <= $iso
+                    && ($u->end_date === null || $u->end_date->toDateString() >= $iso),
             );
 
             $days[] = new WeekDaySlotData(
@@ -82,18 +96,12 @@ final class WeekDetailService
                         ),
                     )
                     : null,
+                hasUnavailability: $hasUnavailabilityOnDay,
             );
             $cursor->addDay();
         }
 
         $companiesOnWeek = $this->buildCompaniesOnWeek($weekContracts, $start, $end);
-
-        // ADR-0019 D5 : flag bordure rouge du drawer si la semaine
-        // contient au moins un jour d'indispo (tous types confondus).
-        $hasUnavailability = $this->unavailabilityRepo
-            ->findForVehicle($vehicleId)
-            ->contains(static fn ($u): bool => $u->start_date->lessThanOrEqualTo($end)
-                && ($u->end_date === null || $u->end_date->greaterThanOrEqualTo($start)));
 
         return new PlanningWeekData(
             weekNumber: $weekNumber,
@@ -103,7 +111,6 @@ final class WeekDetailService
             licensePlate: $vehicle->license_plate,
             days: $days,
             companiesOnWeek: $companiesOnWeek,
-            hasUnavailability: $hasUnavailability,
         );
     }
 

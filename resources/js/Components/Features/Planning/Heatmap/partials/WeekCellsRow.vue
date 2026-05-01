@@ -54,7 +54,7 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
                 textContrastClass(days),
                 'flex h-7 w-5 items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
                 exitedWeekFlags[weekIndex] && 'pointer-events-none opacity-30',
-                unavailabilityWeekFlags[weekIndex] && 'ring-2 ring-rose-500 ring-inset',
+                unavailabilityWeekFlags[weekIndex] && 'ring-1 ring-rose-500 ring-inset',
             ]"
             :aria-label="`Semaine ${weekIndex + 1} · ${vehicle.licensePlate} · ${days} jours utilisés${unavailabilityWeekFlags[weekIndex] ? ' (indisponibilité présente)' : ''}`"
             :title="exitedWeekFlags[weekIndex] && exitTooltip

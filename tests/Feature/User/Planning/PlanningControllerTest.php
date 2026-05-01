@@ -54,9 +54,10 @@ final class PlanningControllerTest extends TestCase
                 'weekEnd',
                 'vehicleId',
                 'licensePlate',
-                'days',
+                'days' => [
+                    '*' => ['date', 'dayLabel', 'contract', 'hasUnavailability'],
+                ],
                 'companiesOnWeek',
-                'hasUnavailability',
             ]);
     }
 
@@ -97,15 +98,21 @@ final class PlanningControllerTest extends TestCase
     }
 
     #[Test]
-    public function week_expose_has_unavailability_a_true_si_la_semaine_porte_une_indispo(): void
+    public function week_expose_has_unavailability_par_jour_couvert_par_une_indispo(): void
     {
+        // ADR-0019 D5 — la grille « État de la semaine » du drawer
+        // applique une bordure rouge sur les seuls jours portant une
+        // indispo, pas sur toute la semaine. Le DTO doit donc remonter
+        // un flag par jour, pas par semaine.
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
         $year = (int) config('floty.fiscal.available_years')[0];
+        // Indispo de 2 jours en milieu de semaine — les autres jours
+        // de la semaine doivent rester sans flag.
         $start = sprintf('%d-03-05', $year);
-        $end = sprintf('%d-03-09', $year);
+        $end = sprintf('%d-03-06', $year);
         $weekNumber = (int) Carbon::parse($start)->isoWeek;
 
         Unavailability::factory()->create([
@@ -116,23 +123,38 @@ final class PlanningControllerTest extends TestCase
             'end_date' => $end,
         ]);
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week={$weekNumber}")
-            ->assertOk()
-            ->assertJson(['hasUnavailability' => true]);
+            ->assertOk();
+
+        $payload = $response->json();
+        $byDate = collect($payload['days'])->keyBy('date');
+
+        $this->assertTrue($byDate->get($start)['hasUnavailability'], "Le jour $start doit porter le flag.");
+        $this->assertTrue($byDate->get($end)['hasUnavailability'], "Le jour $end doit porter le flag.");
+        // Les autres jours de la semaine (lundi/mardi avant, jeudi-dimanche après)
+        // doivent rester sans flag.
+        foreach ($payload['days'] as $day) {
+            if ($day['date'] !== $start && $day['date'] !== $end) {
+                $this->assertFalse($day['hasUnavailability'], "Le jour {$day['date']} ne doit pas porter le flag.");
+            }
+        }
     }
 
     #[Test]
-    public function week_expose_has_unavailability_a_false_si_aucune_indispo(): void
+    public function week_expose_has_unavailability_a_false_partout_si_aucune_indispo(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
-        $this->actingAs($user)
+        $response = $this->actingAs($user)
             ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week=15")
-            ->assertOk()
-            ->assertJson(['hasUnavailability' => false]);
+            ->assertOk();
+
+        foreach ($response->json('days') as $day) {
+            $this->assertFalse($day['hasUnavailability']);
+        }
     }
 
     #[Test]

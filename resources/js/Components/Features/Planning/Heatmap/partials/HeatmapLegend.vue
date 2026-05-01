@@ -18,7 +18,7 @@ import { densityClass } from '@/Components/Features/Planning/Heatmap/utils/densi
         <div class="flex items-center gap-1.5">
             <span
                 aria-hidden="true"
-                class="inline-block h-4 w-4 rounded-[3px] bg-white ring-2 ring-rose-500 ring-inset"
+                class="inline-block h-4 w-4 rounded-[3px] bg-white ring-1 ring-rose-500 ring-inset"
             />
             <span>Présence d'une indisponibilité</span>
         </div>

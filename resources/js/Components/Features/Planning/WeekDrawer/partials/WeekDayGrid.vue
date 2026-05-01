@@ -35,8 +35,10 @@ function isSelected(date: string, selected: string[]): boolean {
                         : isSelected(slot.date, selectedDates)
                           ? 'bg-blue-600 text-white hover:bg-blue-700'
                           : 'border border-dashed border-slate-200 hover:border-slate-400 hover:bg-slate-50',
+                    slot.hasUnavailability && 'ring-1 ring-rose-500 ring-inset',
                 ]"
                 :aria-pressed="isSelected(slot.date, selectedDates)"
+                :aria-label="slot.hasUnavailability ? `${slot.dayLabel} — indisponibilité présente` : undefined"
                 @click="
                     slot.contract === null && emit('toggle-slot', slot.date)
                 "
