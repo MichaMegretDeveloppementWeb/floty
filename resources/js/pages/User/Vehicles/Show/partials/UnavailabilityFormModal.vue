@@ -25,6 +25,7 @@ const {
     form,
     range,
     ongoing,
+    initialMonth,
     isEditing,
     canSubmit,
     selectedIsReductive,
@@ -102,6 +103,7 @@ const {
                         v-model:range="range"
                         v-model:ongoing="ongoing"
                         :year="currentYear"
+                        :start-month="initialMonth"
                     />
                 </div>
                 <InputError v-if="form.errors.start_date" :message="form.errors.start_date" />

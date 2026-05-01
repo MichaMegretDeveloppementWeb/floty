@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { nextTick, ref } from 'vue';
 import {
+    findLongestFreeSubrange,
     formatFr,
     formatIso,
     isValidIsoDate,
@@ -339,5 +340,75 @@ describe('useDateRangePicker — clear', () => {
         ctx.clearSelection();
         expect(range.value).toEqual({ startDate: null, endDate: null });
         expect(ctx.errorMessage.value).toBeNull();
+    });
+});
+
+describe('findLongestFreeSubrange', () => {
+    it('retourne la plage entière quand aucune date n\'est disabled', () => {
+        const result = findLongestFreeSubrange('2024-05-12', '2024-05-20', new Set());
+        expect(result).toEqual({ start: '2024-05-12', end: '2024-05-20' });
+    });
+
+    it('retourne null quand toutes les dates de la plage sont disabled', () => {
+        const set = new Set([
+            '2024-05-12', '2024-05-13', '2024-05-14',
+        ]);
+        expect(findLongestFreeSubrange('2024-05-12', '2024-05-14', set)).toBeNull();
+    });
+
+    it('garde la plus longue sous-plage libre quand un trou est en milieu', () => {
+        // Cas user : sélectionné 12-20, pris 17-19 → libre = [12-16] (5j) + [20-20] (1j)
+        // 12-16 est plus long, on le garde.
+        const set = new Set(['2024-05-17', '2024-05-18', '2024-05-19']);
+        expect(findLongestFreeSubrange('2024-05-12', '2024-05-20', set))
+            .toEqual({ start: '2024-05-12', end: '2024-05-16' });
+    });
+
+    it('garde la première sous-plage en cas d\'égalité de longueur', () => {
+        // Cas user : sélectionné 12-20, pris 13-16 et 18-19 →
+        // libres = [12], [17], [20]. Toutes de longueur 1 → on garde la 1ʳᵉ.
+        const set = new Set([
+            '2024-05-13', '2024-05-14', '2024-05-15', '2024-05-16',
+            '2024-05-18', '2024-05-19',
+        ]);
+        expect(findLongestFreeSubrange('2024-05-12', '2024-05-20', set))
+            .toEqual({ start: '2024-05-12', end: '2024-05-12' });
+    });
+
+    it('garde la suite après quand le début est disabled', () => {
+        const set = new Set(['2024-05-12', '2024-05-13', '2024-05-14']);
+        expect(findLongestFreeSubrange('2024-05-12', '2024-05-20', set))
+            .toEqual({ start: '2024-05-15', end: '2024-05-20' });
+    });
+
+    it('garde la suite avant quand la fin est disabled', () => {
+        const set = new Set(['2024-05-18', '2024-05-19', '2024-05-20']);
+        expect(findLongestFreeSubrange('2024-05-12', '2024-05-20', set))
+            .toEqual({ start: '2024-05-12', end: '2024-05-17' });
+    });
+
+    it('gère une plage d\'un seul jour libre', () => {
+        expect(findLongestFreeSubrange('2024-05-15', '2024-05-15', new Set()))
+            .toEqual({ start: '2024-05-15', end: '2024-05-15' });
+    });
+
+    it('gère une plage d\'un seul jour disabled', () => {
+        const set = new Set(['2024-05-15']);
+        expect(findLongestFreeSubrange('2024-05-15', '2024-05-15', set)).toBeNull();
+    });
+
+    it('compare correctement deux trous séparés et garde le plus grand', () => {
+        // libres : [01-03] (3j), [09-15] (7j). On doit garder [09-15].
+        const set = new Set([
+            '2024-05-04', '2024-05-05', '2024-05-06', '2024-05-07', '2024-05-08',
+        ]);
+        expect(findLongestFreeSubrange('2024-05-01', '2024-05-15', set))
+            .toEqual({ start: '2024-05-09', end: '2024-05-15' });
+    });
+
+    it('passe correctement une frontière de mois', () => {
+        // Pas de disabled, plage chevauchant fin avril / début mai
+        const result = findLongestFreeSubrange('2024-04-29', '2024-05-03', new Set());
+        expect(result).toEqual({ start: '2024-04-29', end: '2024-05-03' });
     });
 });

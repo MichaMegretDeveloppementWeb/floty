@@ -10,6 +10,10 @@ import InputError from '@/Components/Ui/InputError/InputError.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import {
+    findLongestFreeSubrange,
+    rangeConflicts,
+} from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 type FormShape = {
@@ -108,6 +112,43 @@ const disabledDates = computed<string[]>(() => {
     }
 
     return props.busyDatesByVehicleId[props.form.vehicle_id] ?? [];
+});
+
+// Quand l'utilisateur change de véhicule après avoir saisi une plage,
+// la nouvelle liste `disabledDates` peut chevaucher la plage actuelle.
+// Plutôt que de laisser une saisie invalide silencieuse (qui sera
+// refusée par le backend au submit), on ré-ajuste à la **plus longue
+// sous-plage libre** trouvée dans la plage actuelle. Aucune sous-plage
+// libre → on efface start_date et end_date.
+//
+// Le watch ne réagit qu'aux **changements** de `disabledDates` (pas au
+// mount) — donc l'ouverture en mode édition ne déclenche aucun reset
+// involontaire.
+watch(disabledDates, (newDisabled) => {
+    if (range.value.startDate === null || range.value.endDate === null) {
+        return;
+    }
+
+    const set = new Set(newDisabled);
+    const conflicts = rangeConflicts(
+        range.value.startDate,
+        range.value.endDate,
+        set,
+    );
+
+    if (conflicts.length === 0) {
+        return;
+    }
+
+    const sub = findLongestFreeSubrange(
+        range.value.startDate,
+        range.value.endDate,
+        set,
+    );
+
+    range.value = sub === null
+        ? { startDate: null, endDate: null }
+        : { startDate: sub.start, endDate: sub.end };
 });
 </script>
 

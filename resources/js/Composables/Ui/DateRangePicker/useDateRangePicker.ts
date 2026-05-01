@@ -105,6 +105,77 @@ export function rangeConflicts(
 }
 
 /**
+ * Retourne la **plus longue sous-plage libre** (consécutive) à
+ * l'intérieur de `[start, end]` qui ne contient aucune date de
+ * `disabledSet`. Retourne `null` si aucune date n'est libre dans la
+ * plage demandée.
+ *
+ * Cas de figure couverts (cf. ContractFormFields, watcher au changement
+ * de véhicule) :
+ *   - aucune intersection → la plage entière `[start, end]` est rendue
+ *   - intersection au milieu (`12-20` libre, sauf `17-19` pris) →
+ *     `12-16` (5 j) > `20-20` (1 j) → on garde `12-16`
+ *   - plusieurs trous de longueurs égales → on garde le premier
+ *     rencontré (déterministe)
+ *   - aucune date libre → `null`
+ *
+ * En cas d'égalité de longueur, on conserve la première sous-plage
+ * rencontrée chronologiquement (sémantique « commencer le plus tôt
+ * possible » par défaut).
+ */
+export function findLongestFreeSubrange(
+    start: string,
+    end: string,
+    disabledSet: ReadonlySet<string>,
+): { start: string; end: string } | null {
+    let bestStart: string | null = null;
+    let bestEnd: string | null = null;
+    let bestLen = 0;
+
+    let curStart: string | null = null;
+    let curEnd: string | null = null;
+    let curLen = 0;
+
+    const finalize = (): void => {
+        if (curStart !== null && curEnd !== null && curLen > bestLen) {
+            bestStart = curStart;
+            bestEnd = curEnd;
+            bestLen = curLen;
+        }
+    };
+
+    const a = new Date(`${start}T00:00:00`);
+    const b = new Date(`${end}T00:00:00`);
+    const cur = new Date(a);
+
+    while (cur <= b) {
+        const iso = formatIso(cur);
+
+        if (disabledSet.has(iso)) {
+            finalize();
+            curStart = null;
+            curEnd = null;
+            curLen = 0;
+        } else {
+            if (curStart === null) {
+                curStart = iso;
+            }
+
+            curEnd = iso;
+            curLen += 1;
+        }
+
+        cur.setDate(cur.getDate() + 1);
+    }
+
+    finalize();
+
+    return bestStart !== null && bestEnd !== null
+        ? { start: bestStart, end: bestEnd }
+        : null;
+}
+
+/**
  * État + handlers du `DateRangePicker`. Toute la logique vit ici pour
  * respecter la convention « strict minimum dans les .vue ». Le template
  * du composant délègue intégralement.
@@ -153,6 +224,18 @@ export function useDateRangePicker(
             range.value = { startDate: range.value.startDate, endDate: null };
             errorMessage.value = null;
         }
+    });
+
+    // Le parent peut piloter dynamiquement la fenêtre du calendrier
+    // (ex. : ouverture de la modale d'édition d'une indispo en mai →
+    // le picker doit s'ouvrir en mai et non en janvier). Sans ce
+    // watcher, `currentYear` / `currentMonth` étaient figés à la
+    // valeur du premier mount et ignoraient les changements ultérieurs.
+    watch(yearProp, (value) => {
+        currentYear.value = value;
+    });
+    watch(startMonthProp, (value) => {
+        currentMonth.value = value;
     });
 
     const monthLabel = computed<string>(() => {

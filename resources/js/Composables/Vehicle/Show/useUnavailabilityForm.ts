@@ -106,6 +106,7 @@ export function useUnavailabilityForm(
     form: InertiaForm<FormShape>;
     range: Ref<DateRange>;
     ongoing: Ref<boolean>;
+    initialMonth: Ref<number>;
     isEditing: ComputedRef<boolean>;
     canSubmit: ComputedRef<boolean>;
     selectedIsReductive: ComputedRef<boolean>;
@@ -152,6 +153,10 @@ export function useUnavailabilityForm(
 
     const range = ref<DateRange>({ startDate: null, endDate: null });
     const ongoing = ref<boolean>(false);
+    // Mois initial du DateRangePicker — dérivé du startDate de
+    // l'indispo en cours d'édition pour que le calendrier s'ouvre sur
+    // le bon mois. Création = 1 (janvier).
+    const initialMonth = ref<number>(1);
 
     watch(
         () => props.editing,
@@ -164,11 +169,13 @@ export function useUnavailabilityForm(
                     endDate: value.endDate,
                 };
                 ongoing.value = value.endDate === null;
+                initialMonth.value = Number(value.startDate.slice(5, 7));
             } else {
                 form.reset();
                 form.type = 'maintenance';
                 range.value = { startDate: null, endDate: null };
                 ongoing.value = false;
+                initialMonth.value = 1;
             }
 
             form.clearErrors();
@@ -254,6 +261,7 @@ export function useUnavailabilityForm(
         form,
         range,
         ongoing,
+        initialMonth,
         isEditing,
         canSubmit,
         selectedIsReductive,
