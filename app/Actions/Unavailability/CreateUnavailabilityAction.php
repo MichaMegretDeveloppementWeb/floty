@@ -7,9 +7,7 @@ namespace App\Actions\Unavailability;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
 use App\Data\User\Unavailability\StoreUnavailabilityData;
 use App\Enums\Unavailability\UnavailabilityType;
-use App\Exceptions\Unavailability\UnavailabilityOverlapsContractsException;
 use App\Models\Unavailability;
-use App\Services\Vehicle\VehiclePeriodConflictsService;
 
 /**
  * Création d'une indisponibilité véhicule.
@@ -19,31 +17,22 @@ use App\Services\Vehicle\VehiclePeriodConflictsService;
  * — le payload utilisateur ne le porte jamais (cf. CHECK SQL en base
  * qui garantit la cohérence).
  *
- * **Sécurité métier** : vérifie qu'aucun contrat actif du véhicule ne
- * chevauche la plage demandée via {@see VehiclePeriodConflictsService}.
- * L'UI bloque déjà la sélection mais cette vérification couvre les POST
- * hors UI et les races (un autre user crée un contrat pendant que le
- * formulaire est ouvert).
+ * **Cohabitation indispo↔contrat (ADR-0019)** : aucune contrainte
+ * d'overlap avec les contrats actifs du véhicule. Une indispo peut
+ * être saisie sur la plage d'un contrat existant ; R-2024-008 traite
+ * l'intersection au moment du calcul fiscal (jours réducteurs retirés
+ * du numérateur du prorata pour les types `pound_public`,
+ * `accident_no_circulation`, `ci_suspension` ; sans effet pour les 6
+ * autres types). Voir ADR-0019 § 2 D1-D2.
  */
 final readonly class CreateUnavailabilityAction
 {
     public function __construct(
         private UnavailabilityWriteRepositoryInterface $repository,
-        private VehiclePeriodConflictsService $conflicts,
     ) {}
 
     public function execute(StoreUnavailabilityData $data): Unavailability
     {
-        $conflicts = $this->conflicts->expandConflictingDatesForPeriod(
-            $data->vehicleId,
-            $data->startDate,
-            $data->endDate,
-        );
-
-        if ($conflicts !== []) {
-            throw UnavailabilityOverlapsContractsException::withConflicts($conflicts);
-        }
-
         return $this->repository->create([
             'vehicle_id' => $data->vehicleId,
             'type' => $data->type,

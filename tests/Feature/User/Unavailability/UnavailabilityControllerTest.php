@@ -135,8 +135,11 @@ final class UnavailabilityControllerTest extends TestCase
     }
 
     #[Test]
-    public function store_refuse_si_overlap_avec_un_contrat_existant(): void
+    public function store_persiste_indispo_meme_si_la_plage_chevauche_un_contrat(): void
     {
+        // ADR-0019 D1-D2 : la cohabitation indispo↔contrat est
+        // autorisée. R-2024-008 traite l'intersection au moment du
+        // calcul fiscal, pas au moment de la saisie.
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
@@ -149,19 +152,18 @@ final class UnavailabilityControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->from("/app/vehicles/{$vehicle->id}")
             ->post('/app/unavailabilities', [
                 'vehicle_id' => $vehicle->id,
                 'type' => 'maintenance',
                 'start_date' => '2024-07-10',
                 'end_date' => '2024-07-15',
             ])
-            ->assertRedirect("/app/vehicles/{$vehicle->id}")
-            ->assertSessionHas('toast-error');
+            ->assertRedirect();
 
-        $this->assertDatabaseMissing('unavailabilities', [
+        $this->assertDatabaseHas('unavailabilities', [
             'vehicle_id' => $vehicle->id,
             'start_date' => '2024-07-10',
+            'end_date' => '2024-07-15',
         ]);
     }
 
@@ -193,8 +195,11 @@ final class UnavailabilityControllerTest extends TestCase
     }
 
     #[Test]
-    public function update_refuse_si_overlap_avec_un_contrat_existant(): void
+    public function update_persiste_indispo_meme_si_la_nouvelle_plage_chevauche_un_contrat(): void
     {
+        // ADR-0019 D2 — symétrie create/update : un élargissement de
+        // plage qui fait désormais chevaucher un contrat existant doit
+        // être accepté.
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
@@ -215,18 +220,16 @@ final class UnavailabilityControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->from("/app/vehicles/{$vehicle->id}")
             ->patch("/app/unavailabilities/{$unavailability->id}", [
                 'type' => 'maintenance',
                 'start_date' => '2024-08-01',
                 'end_date' => '2024-08-20',
             ])
-            ->assertRedirect("/app/vehicles/{$vehicle->id}")
-            ->assertSessionHas('toast-error');
+            ->assertRedirect();
 
         $this->assertDatabaseHas('unavailabilities', [
             'id' => $unavailability->id,
-            'end_date' => '2024-08-05',
+            'end_date' => '2024-08-20',
         ]);
     }
 }

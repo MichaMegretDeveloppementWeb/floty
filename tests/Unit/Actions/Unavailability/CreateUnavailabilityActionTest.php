@@ -7,7 +7,6 @@ namespace Tests\Unit\Actions\Unavailability;
 use App\Actions\Unavailability\CreateUnavailabilityAction;
 use App\Data\User\Unavailability\StoreUnavailabilityData;
 use App\Enums\Unavailability\UnavailabilityType;
-use App\Exceptions\Unavailability\UnavailabilityOverlapsContractsException;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
@@ -17,7 +16,8 @@ use Tests\TestCase;
 
 /**
  * Tests isolés de l'orchestration création indispo : décision métier
- * `has_fiscal_impact` + sécurité overlap avec les contrats existants.
+ * `has_fiscal_impact` (dérivé de `UnavailabilityType::isFiscallyReductive`)
+ * + politique de cohabitation avec les contrats (ADR-0019).
  */
 final class CreateUnavailabilityActionTest extends TestCase
 {
@@ -64,8 +64,12 @@ final class CreateUnavailabilityActionTest extends TestCase
     }
 
     #[Test]
-    public function leve_l_exception_metier_si_la_plage_chevauche_un_contrat(): void
+    public function indispo_chevauchant_un_contrat_existant_est_persistee_sans_blocage(): void
     {
+        // ADR-0019 D1 : la politique de cohabitation autorise la
+        // saisie d'une indispo dont la plage chevauche un contrat
+        // actif. R-2024-008 traite l'intersection au moment du calcul
+        // fiscal, pas au moment de l'écriture.
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
@@ -76,70 +80,20 @@ final class CreateUnavailabilityActionTest extends TestCase
             'end_date' => '2024-05-15',
         ]);
 
-        $this->expectException(UnavailabilityOverlapsContractsException::class);
-
-        $this->action->execute(new StoreUnavailabilityData(
+        $unavailability = $this->action->execute(new StoreUnavailabilityData(
             vehicleId: $vehicle->id,
-            type: UnavailabilityType::Maintenance,
+            type: UnavailabilityType::PoundPublic,
             startDate: '2024-05-12',
             endDate: '2024-05-20',
             description: null,
         ));
-    }
 
-    #[Test]
-    public function ne_persiste_pas_l_indispo_si_overlap(): void
-    {
-        $vehicle = Vehicle::factory()->create();
-        $company = Company::factory()->create();
-
-        Contract::factory()->create([
-            'vehicle_id' => $vehicle->id,
-            'company_id' => $company->id,
-            'start_date' => '2024-05-10',
-            'end_date' => '2024-05-15',
-        ]);
-
-        try {
-            $this->action->execute(new StoreUnavailabilityData(
-                vehicleId: $vehicle->id,
-                type: UnavailabilityType::Maintenance,
-                startDate: '2024-05-12',
-                endDate: '2024-05-20',
-                description: null,
-            ));
-            $this->fail('Exception attendue.');
-        } catch (UnavailabilityOverlapsContractsException) {
-            // OK
-        }
-
-        $this->assertDatabaseMissing('unavailabilities', [
+        $this->assertDatabaseHas('unavailabilities', [
+            'id' => $unavailability->id,
             'vehicle_id' => $vehicle->id,
             'start_date' => '2024-05-12',
+            'end_date' => '2024-05-20',
         ]);
-    }
-
-    #[Test]
-    public function indispo_chevauchant_un_contrat_existant_est_bloquee(): void
-    {
-        $vehicle = Vehicle::factory()->create();
-        $company = Company::factory()->create();
-
-        Contract::factory()->create([
-            'vehicle_id' => $vehicle->id,
-            'company_id' => $company->id,
-            'start_date' => '2024-09-01',
-            'end_date' => '2024-09-30',
-        ]);
-
-        $this->expectException(UnavailabilityOverlapsContractsException::class);
-
-        $this->action->execute(new StoreUnavailabilityData(
-            vehicleId: $vehicle->id,
-            type: UnavailabilityType::Maintenance,
-            startDate: '2024-08-15',
-            endDate: '2024-09-05',
-            description: 'Maintenance planifiée chevauchant un contrat',
-        ));
+        $this->assertTrue($unavailability->has_fiscal_impact);
     }
 }
