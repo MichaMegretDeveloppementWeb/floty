@@ -47,13 +47,13 @@ const startMonth = computed((): number =>
     props.week ? Number(props.week.weekStart.slice(5, 7)) : 1,
 );
 
-// Dates déjà occupées par ce véhicule — à griser dans le picker.
+// Dates déjà occupées par ce véhicule sur toute l'année — à griser
+// dans le picker. Auparavant le filtre se limitait aux 7 jours de la
+// semaine affichée, ce qui laissait l'utilisateur sélectionner une
+// plage qui chevauchait un contrat hors de cette semaine. Le backend
+// fournit désormais l'index complet via `vehicleBusyDates`.
 const disabledDates = computed((): string[] =>
-    props.week
-        ? props.week.days
-              .filter((d) => d.contract !== null)
-              .map((d) => d.date)
-        : [],
+    props.week ? props.week.vehicleBusyDates : [],
 );
 
 // Dates de la semaine — repérées visuellement dans le calendrier.

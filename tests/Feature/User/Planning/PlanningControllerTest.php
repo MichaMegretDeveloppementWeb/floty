@@ -6,6 +6,7 @@ namespace Tests\Feature\User\Planning;
 
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\User;
 use App\Models\Vehicle;
@@ -58,7 +59,46 @@ final class PlanningControllerTest extends TestCase
                     '*' => ['date', 'dayLabel', 'contract', 'hasUnavailability'],
                 ],
                 'companiesOnWeek',
+                'vehicleBusyDates',
             ]);
+    }
+
+    #[Test]
+    public function week_expose_vehicle_busy_dates_inclut_les_contrats_hors_semaine_affichee(): void
+    {
+        // Régression : le drawer doit griser dans le DateRangePicker
+        // les jours déjà occupés par un contrat existant, même quand
+        // ceux-ci tombent dans une autre semaine que celle affichée.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        $year = (int) config('floty.fiscal.available_years')[0];
+
+        // Contrat janvier (semaines ISO ~1-2)
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => sprintf('%d-01-01', $year),
+            'end_date' => sprintf('%d-01-12', $year),
+        ]);
+
+        // On ouvre le drawer sur une semaine d'août — bien hors janvier
+        $augustWeek = (int) Carbon::parse(sprintf('%d-08-12', $year))->isoWeek;
+
+        $response = $this->actingAs($user)
+            ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week={$augustWeek}")
+            ->assertOk();
+
+        $busy = $response->json('vehicleBusyDates');
+
+        // Toutes les dates janvier 1-12 doivent figurer.
+        $this->assertContains(sprintf('%d-01-01', $year), $busy);
+        $this->assertContains(sprintf('%d-01-05', $year), $busy);
+        $this->assertContains(sprintf('%d-01-12', $year), $busy);
+        // Et pas une date hors contrat
+        $this->assertNotContains(sprintf('%d-02-15', $year), $busy);
     }
 
     #[Test]

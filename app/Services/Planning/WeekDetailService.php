@@ -103,6 +103,16 @@ final class WeekDetailService
 
         $companiesOnWeek = $this->buildCompaniesOnWeek($weekContracts, $start, $end);
 
+        // Toutes les dates de l'année où le véhicule est déjà sous
+        // contrat — pour empêcher la sélection conflictuelle dans le
+        // DateRangePicker même quand l'utilisateur navigue sur d'autres
+        // semaines / mois que la semaine ouverte au drawer.
+        $vehicleBusyDates = $this->contractQuery->findDatesForVehicleInRange(
+            $vehicleId,
+            sprintf('%d-01-01', $year),
+            sprintf('%d-12-31', $year),
+        );
+
         return new PlanningWeekData(
             weekNumber: $weekNumber,
             weekStart: $start->toDateString(),
@@ -111,6 +121,7 @@ final class WeekDetailService
             licensePlate: $vehicle->license_plate,
             days: $days,
             companiesOnWeek: $companiesOnWeek,
+            vehicleBusyDates: $vehicleBusyDates,
         );
     }
 
