@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\Planning;
 
+use App\Enums\Unavailability\UnavailabilityType;
 use App\Models\Company;
+use App\Models\Unavailability;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -53,7 +56,83 @@ final class PlanningControllerTest extends TestCase
                 'licensePlate',
                 'days',
                 'companiesOnWeek',
+                'hasUnavailability',
             ]);
+    }
+
+    #[Test]
+    public function index_expose_weeks_with_unavailability_pour_chaque_vehicule(): void
+    {
+        // ADR-0019 D5 — la heatmap doit savoir, pour chaque véhicule,
+        // sur quelles semaines une indispo (tous types confondus) existe
+        // pour rendre la bordure rouge côté UI.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $year = (int) config('floty.fiscal.available_years')[0];
+
+        // Indispo en semaine ISO connue : 5 mars (`Y-03-05`) → semaine
+        // ISO calculée précisément à partir du calendrier réel.
+        $start = sprintf('%d-03-05', $year);
+        $end = sprintf('%d-03-09', $year);
+        $expectedWeek = (int) Carbon::parse($start)->isoWeek;
+
+        Unavailability::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'type' => UnavailabilityType::PoundPublic,
+            'has_fiscal_impact' => true,
+            'start_date' => $start,
+            'end_date' => $end,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/planning')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Planning/Index/Index')
+                ->has('vehicles', 1)
+                ->where('vehicles.0.weeksWithUnavailability', [$expectedWeek]),
+            );
+    }
+
+    #[Test]
+    public function week_expose_has_unavailability_a_true_si_la_semaine_porte_une_indispo(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $year = (int) config('floty.fiscal.available_years')[0];
+        $start = sprintf('%d-03-05', $year);
+        $end = sprintf('%d-03-09', $year);
+        $weekNumber = (int) Carbon::parse($start)->isoWeek;
+
+        Unavailability::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'type' => UnavailabilityType::Maintenance,
+            'has_fiscal_impact' => false,
+            'start_date' => $start,
+            'end_date' => $end,
+        ]);
+
+        $this->actingAs($user)
+            ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week={$weekNumber}")
+            ->assertOk()
+            ->assertJson(['hasUnavailability' => true]);
+    }
+
+    #[Test]
+    public function week_expose_has_unavailability_a_false_si_aucune_indispo(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)
+            ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week=15")
+            ->assertOk()
+            ->assertJson(['hasUnavailability' => false]);
     }
 
     #[Test]

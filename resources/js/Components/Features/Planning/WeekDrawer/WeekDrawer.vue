@@ -105,9 +105,12 @@ const selectedDatesInWeek = computed((): string[] => {
     >
         <aside
             v-if="open && week"
-            class="fixed inset-y-0 right-0 z-50 flex w-full flex-col overflow-y-auto bg-white shadow-2xl md:w-[480px]"
+            :class="[
+                'fixed inset-y-0 right-0 z-50 flex w-full flex-col overflow-y-auto bg-white shadow-2xl md:w-[480px]',
+                week.hasUnavailability && 'border-l-4 border-rose-500',
+            ]"
             role="dialog"
-            :aria-label="`Semaine ${week.weekNumber} · ${week.licensePlate}`"
+            :aria-label="`Semaine ${week.weekNumber} · ${week.licensePlate}${week.hasUnavailability ? ' (indisponibilité présente)' : ''}`"
         >
             <DrawerHeader
                 :week-number="week.weekNumber"

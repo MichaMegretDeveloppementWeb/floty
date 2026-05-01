@@ -19,6 +19,15 @@ final class PlanningHeatmapVehicleData extends Data
 {
     /**
      * @param  list<int>  $weeks  52 entiers (0-7) — densité jours utilisés / semaine
+     * @param  list<int>  $weeksWithUnavailability  numéros ISO (1-52) des
+     *                                              semaines portant au moins
+     *                                              un jour d'indispo (tous
+     *                                              types confondus, peu
+     *                                              importe que la semaine
+     *                                              porte aussi un contrat).
+     *                                              Alimente la bordure
+     *                                              rouge des cellules
+     *                                              heatmap (ADR-0019 § 2 D5).
      */
     public function __construct(
         public int $id,
@@ -34,5 +43,6 @@ final class PlanningHeatmapVehicleData extends Data
         public int $daysTotal,
         public float $annualTaxDue,
         public ?string $exitDate,
+        public array $weeksWithUnavailability,
     ) {}
 }

@@ -29,6 +29,16 @@ const exitTooltip = computed<string | null>(() =>
         ? null
         : `Véhicule retiré le ${formatDateFr(props.vehicle.exitDate)}`,
 );
+
+// ADR-0019 D5 — bordure rouge sur les cellules de semaines portant
+// au moins un jour d'indispo (avec ou sans contrat sur la même
+// semaine), pour rendre visible la cohabitation indispo↔contrat
+// désormais autorisée.
+const unavailabilityWeekFlags = computed<boolean[]>(() => {
+    const set = new Set(props.vehicle.weeksWithUnavailability);
+
+    return props.vehicle.weeks.map((_, idx) => set.has(idx + 1));
+});
 </script>
 
 <template>
@@ -44,11 +54,12 @@ const exitTooltip = computed<string | null>(() =>
                 textContrastClass(days),
                 'flex h-7 w-5 items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
                 exitedWeekFlags[weekIndex] && 'pointer-events-none opacity-30',
+                unavailabilityWeekFlags[weekIndex] && 'ring-2 ring-rose-500 ring-inset',
             ]"
-            :aria-label="`Semaine ${weekIndex + 1} · ${vehicle.licensePlate} · ${days} jours utilisés`"
+            :aria-label="`Semaine ${weekIndex + 1} · ${vehicle.licensePlate} · ${days} jours utilisés${unavailabilityWeekFlags[weekIndex] ? ' (indisponibilité présente)' : ''}`"
             :title="exitedWeekFlags[weekIndex] && exitTooltip
                 ? exitTooltip
-                : `S${weekIndex + 1} · ${days}j / 7`"
+                : `S${weekIndex + 1} · ${days}j / 7${unavailabilityWeekFlags[weekIndex] ? ' · indisponibilité présente' : ''}`"
             :disabled="exitedWeekFlags[weekIndex]"
             @click="
                 emit('cell-click', {

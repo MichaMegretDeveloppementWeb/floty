@@ -88,6 +88,13 @@ final class WeekDetailService
 
         $companiesOnWeek = $this->buildCompaniesOnWeek($weekContracts, $start, $end);
 
+        // ADR-0019 D5 : flag bordure rouge du drawer si la semaine
+        // contient au moins un jour d'indispo (tous types confondus).
+        $hasUnavailability = $this->unavailabilityRepo
+            ->findForVehicle($vehicleId)
+            ->contains(static fn ($u): bool => $u->start_date->lessThanOrEqualTo($end)
+                && ($u->end_date === null || $u->end_date->greaterThanOrEqualTo($start)));
+
         return new PlanningWeekData(
             weekNumber: $weekNumber,
             weekStart: $start->toDateString(),
@@ -96,6 +103,7 @@ final class WeekDetailService
             licensePlate: $vehicle->license_plate,
             days: $days,
             companiesOnWeek: $companiesOnWeek,
+            hasUnavailability: $hasUnavailability,
         );
     }
 
