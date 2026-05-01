@@ -3,11 +3,13 @@ import {
     CalendarDays,
     FileText,
     Receipt,
+    Users,
 } from 'lucide-vue-next';
 import type { Component } from 'vue';
 import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
+import { index as driversIndexRoute } from '@/routes/user/drivers';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
 import { index as planningIndexRoute } from '@/routes/user/planning';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
@@ -52,6 +54,13 @@ export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
                 'Clients utilisateurs de la flotte, jours cumulés et taxes par entreprise.',
             href: companiesIndexRoute.url(),
             icon: Building2,
+        },
+        {
+            label: 'Conducteurs',
+            description:
+                "Conducteurs rattachés à une ou plusieurs entreprises avec dates d'entrée/sortie.",
+            href: driversIndexRoute.url(),
+            icon: Users,
         },
         {
             label: 'Règles de calcul',

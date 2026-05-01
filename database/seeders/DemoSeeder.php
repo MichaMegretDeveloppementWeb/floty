@@ -20,6 +20,7 @@ use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\Driver;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -52,7 +53,67 @@ final class DemoSeeder extends Seeder
             $vehicles = $this->seedVehicles();
             $this->seedContracts2024($vehicles, $companies);
             $this->seedUnavailabilities2024($vehicles);
+            $this->seedDrivers($companies);
         });
+    }
+
+    /**
+     * Phase 06 V1.2 — 8 conducteurs démo couvrant les cas d'usage Driver↔Company N:N :
+     *   - 5 simples (1 par entreprise, actifs depuis 2024)
+     *   - 1 multi-companies (Sophie : ACM + BTP)
+     *   - 1 sorti d'une entreprise après 2026 (Pierre : sorti d'ACM le 2026-04-30)
+     *   - 1 multi-companies (Aurélie : ECO + DRS)
+     *
+     * @param  array<string, Company>  $companies
+     */
+    private function seedDrivers(array $companies): void
+    {
+        $specs = [
+            ['first' => 'Marc', 'last' => 'Dubois', 'memberships' => [['code' => 'ACM', 'joined' => '2024-01-01', 'left' => null]]],
+            ['first' => 'Sophie', 'last' => 'Martin', 'memberships' => [
+                ['code' => 'ACM', 'joined' => '2024-03-15', 'left' => null],
+                ['code' => 'BTP', 'joined' => '2025-01-01', 'left' => null],
+            ]],
+            ['first' => 'Pierre', 'last' => 'Lefebvre', 'memberships' => [['code' => 'ACM', 'joined' => '2024-01-15', 'left' => '2026-04-30']]],
+            ['first' => 'Julie', 'last' => 'Bernard', 'memberships' => [['code' => 'COR', 'joined' => '2024-02-01', 'left' => null]]],
+            ['first' => 'Thomas', 'last' => 'Petit', 'memberships' => [['code' => 'BTP', 'joined' => '2024-01-10', 'left' => null]]],
+            ['first' => 'Camille', 'last' => 'Roux', 'memberships' => [['code' => 'DRS', 'joined' => '2024-04-01', 'left' => null]]],
+            ['first' => 'Nicolas', 'last' => 'Moreau', 'memberships' => [['code' => 'ECO', 'joined' => '2024-01-20', 'left' => null]]],
+            ['first' => 'Aurélie', 'last' => 'Simon', 'memberships' => [
+                ['code' => 'ECO', 'joined' => '2024-06-01', 'left' => null],
+                ['code' => 'DRS', 'joined' => '2025-03-01', 'left' => null],
+            ]],
+        ];
+
+        foreach ($specs as $spec) {
+            $existing = Driver::query()
+                ->where('first_name', $spec['first'])
+                ->where('last_name', $spec['last'])
+                ->first();
+            if ($existing !== null) {
+                continue;
+            }
+
+            $driver = Driver::create([
+                'first_name' => $spec['first'],
+                'last_name' => $spec['last'],
+            ]);
+
+            foreach ($spec['memberships'] as $m) {
+                $company = $companies[$m['code']] ?? null;
+                if ($company === null) {
+                    continue;
+                }
+                DB::table('driver_company')->insert([
+                    'driver_id' => $driver->id,
+                    'company_id' => $company->id,
+                    'joined_at' => $m['joined'],
+                    'left_at' => $m['left'],
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
     }
 
     /**

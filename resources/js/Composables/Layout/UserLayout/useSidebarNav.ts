@@ -5,6 +5,7 @@ import {
     FileText,
     LayoutDashboard,
     Receipt,
+    Users,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Component, ComputedRef, Ref } from 'vue';
@@ -12,6 +13,7 @@ import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { dashboard as dashboardRoute } from '@/routes/user';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
+import { index as driversIndexRoute } from '@/routes/user/drivers';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
 import { index as planningIndexRoute } from '@/routes/user/planning';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
@@ -74,6 +76,11 @@ export function useSidebarNav(open: Ref<boolean>): {
                     label: 'Entreprises',
                     icon: Building2,
                     href: companiesIndexRoute.url(),
+                },
+                {
+                    label: 'Conducteurs',
+                    icon: Users,
+                    href: driversIndexRoute.url(),
                 },
             ],
         },
