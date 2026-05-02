@@ -6,6 +6,7 @@ namespace App\Contracts\Repositories\User\Driver;
 
 use App\Models\Contract;
 use App\Models\Driver;
+use App\Models\Pivot\DriverCompany;
 use App\Services\Driver\DriverQueryService;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
@@ -84,4 +85,21 @@ interface DriverReadRepositoryInterface
      * @return array<int, int> Map `[companyId => count]`
      */
     public function countContractsForDriverGroupedByCompany(int $driverId): array;
+
+    /**
+     * Récupère la membership active la plus récente du driver dans la
+     * company donnée. Utilisée par le workflow Q6 (sortie d'une entreprise).
+     */
+    public function findActiveMembership(int $driverId, int $companyId): ?DriverCompany;
+
+    /**
+     * Récupère une membership par son id de pivot. Utilisée par le détachement.
+     */
+    public function findMembershipById(int $pivotId): ?DriverCompany;
+
+    /**
+     * Compte le nombre total de contrats référençant ce driver (toutes
+     * companies, toutes périodes). Utilisé par la vérification pré-suppression.
+     */
+    public function countContractsForDriver(int $driverId): int;
 }

@@ -155,4 +155,12 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->orderBy('start_date')
             ->get(['id', 'vehicle_id', 'start_date', 'end_date']);
     }
+
+    public function countForDriverInCompany(int $driverId, int $companyId): int
+    {
+        return Contract::query()
+            ->where('driver_id', $driverId)
+            ->where('company_id', $companyId)
+            ->count();
+    }
 }

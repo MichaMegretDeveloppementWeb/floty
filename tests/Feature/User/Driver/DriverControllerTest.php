@@ -234,6 +234,101 @@ final class DriverControllerTest extends TestCase
     }
 
     #[Test]
+    public function leave_company_renvoie_toast_error_si_aucune_membership_active(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+        $company = Company::factory()->create();
+        // Aucune membership attachée → action doit lever DriverMembershipNotFoundException
+
+        $response = $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id.'/memberships/'.$company->id.'/leave', [
+                'left_at' => '2026-06-30',
+                'future_contracts_resolution' => 'none',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('toast-error', 'Aucune appartenance active à cette entreprise.');
+    }
+
+    #[Test]
+    public function leave_company_avec_mode_replace_reassigne_les_contrats_a_venir(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        $sortant = Driver::factory()->create();
+        $sortant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        $remplacant = Driver::factory()->create();
+        $remplacant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        $contract = Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'driver_id' => $sortant->id,
+            'start_date' => '2027-01-01',
+            'end_date' => '2027-01-31',
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$sortant->id.'/memberships/'.$company->id.'/leave', [
+                'left_at' => '2026-06-30',
+                'future_contracts_resolution' => 'replace',
+                'replacement_map' => [$contract->id => $remplacant->id],
+            ])
+            ->assertRedirect();
+
+        $this->assertSame($remplacant->id, $contract->fresh()->driver_id);
+        $this->assertDatabaseHas('driver_company', [
+            'driver_id' => $sortant->id,
+            'company_id' => $company->id,
+            'left_at' => '2026-06-30',
+        ]);
+    }
+
+    #[Test]
+    public function leave_company_avec_mode_detach_passe_les_contrats_a_venir_a_null(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+        $driver = Driver::factory()->create();
+        $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        $contract = Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'driver_id' => $driver->id,
+            'start_date' => '2027-01-01',
+            'end_date' => '2027-01-31',
+        ]);
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id.'/memberships/'.$company->id.'/leave', [
+                'left_at' => '2026-06-30',
+                'future_contracts_resolution' => 'detach',
+            ])
+            ->assertRedirect();
+
+        $this->assertNull($contract->fresh()->driver_id);
+    }
+
+    #[Test]
+    public function detach_company_renvoie_toast_error_si_pivot_id_introuvable(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->delete('/app/drivers/'.$driver->id.'/memberships/99999');
+
+        $response->assertRedirect();
+        $response->assertSessionHas('toast-error', 'Appartenance introuvable.');
+    }
+
+    #[Test]
     public function contract_options_renvoie_drivers_actifs_sur_la_periode(): void
     {
         $user = User::factory()->create();

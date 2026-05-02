@@ -70,4 +70,22 @@ final class ContractWriteRepository implements ContractWriteRepositoryInterface
 
         return $ids;
     }
+
+    public function reassignDriver(int $contractId, ?int $driverId): void
+    {
+        Contract::query()
+            ->where('id', $contractId)
+            ->update(['driver_id' => $driverId]);
+    }
+
+    public function bulkReassignDriver(array $contractIds, ?int $driverId): void
+    {
+        if ($contractIds === []) {
+            return;
+        }
+
+        Contract::query()
+            ->whereIn('id', $contractIds)
+            ->update(['driver_id' => $driverId]);
+    }
 }

@@ -17,6 +17,7 @@ use App\Data\User\Driver\StoreDriverData;
 use App\Data\User\Driver\UpdateDriverData;
 use App\Exceptions\Driver\DriverCompanyMembershipBlockedException;
 use App\Exceptions\Driver\DriverDeletionBlockedException;
+use App\Exceptions\Driver\DriverMembershipNotFoundException;
 use App\Exceptions\Driver\DriverNotFoundException;
 use App\Exceptions\Driver\LeaveResolutionInvalidException;
 use App\Http\Controllers\Controller;
@@ -124,6 +125,8 @@ final class DriverController extends Controller
     ): RedirectResponse {
         try {
             $action->execute($driver, $companyId, $data);
+        } catch (DriverMembershipNotFoundException $e) {
+            return back()->with('toast-error', $e->getUserMessage());
         } catch (LeaveResolutionInvalidException $e) {
             throw ValidationException::withMessages(['future_contracts_resolution' => [$e->getUserMessage()]]);
         }
@@ -138,11 +141,13 @@ final class DriverController extends Controller
     ): RedirectResponse {
         try {
             $action->execute($pivotId);
+        } catch (DriverMembershipNotFoundException $e) {
+            return back()->with('toast-error', $e->getUserMessage());
         } catch (DriverCompanyMembershipBlockedException $e) {
             return back()->with('toast-error', $e->getUserMessage());
         }
 
-        return back()->with('toast-success', 'Membership supprimée.');
+        return back()->with('toast-success', 'Appartenance supprimée.');
     }
 
     /**

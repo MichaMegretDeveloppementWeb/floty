@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Data\User\Driver;
 
+use App\Enums\Driver\FutureContractsResolutionMode;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\Date;
-use Spatie\LaravelData\Attributes\Validation\In;
 use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
@@ -38,8 +38,8 @@ final class LeaveDriverCompanyMembershipData extends Data
         #[Required, Date]
         public string $leftAt,
 
-        #[Required, In(['replace', 'detach', 'none'])]
-        public string $futureContractsResolution,
+        #[Required]
+        public FutureContractsResolutionMode $futureContractsResolution,
 
         public array $replacementMap = [],
     ) {}
@@ -52,7 +52,7 @@ final class LeaveDriverCompanyMembershipData extends Data
         return [
             'left_at.required' => 'La date de sortie est obligatoire.',
             'future_contracts_resolution.required' => 'Choix de résolution des contrats à venir obligatoire.',
-            'future_contracts_resolution.in' => 'Résolution invalide.',
+            'future_contracts_resolution.enum' => 'Résolution invalide.',
         ];
     }
 }

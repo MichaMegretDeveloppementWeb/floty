@@ -42,4 +42,20 @@ interface ContractWriteRepositoryInterface
      * @return list<int> IDs des contrats créés, dans le même ordre.
      */
     public function insertManyRows(array $rows): array;
+
+    /**
+     * Réassigne (ou détache si null) le conducteur d'un contrat.
+     * Utilisé par le workflow Q6 (sortie d'un driver d'une entreprise)
+     * pour réaffecter individuellement les contrats à venir.
+     */
+    public function reassignDriver(int $contractId, ?int $driverId): void;
+
+    /**
+     * Réassigne (ou détache si null) le conducteur de plusieurs contrats
+     * en une seule requête. Utilisé par le mode `detach` du workflow Q6
+     * pour traiter en batch tous les contrats à venir d'un coup.
+     *
+     * @param  list<int>  $contractIds
+     */
+    public function bulkReassignDriver(array $contractIds, ?int $driverId): void;
 }

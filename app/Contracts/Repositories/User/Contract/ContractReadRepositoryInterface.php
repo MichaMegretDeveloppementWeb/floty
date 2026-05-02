@@ -110,4 +110,12 @@ interface ContractReadRepositoryInterface
      * @return Collection<int, Contract>
      */
     public function findAllInWindow(string $start, string $end): Collection;
+
+    /**
+     * Compte les contrats référençant ce driver dans cette company
+     * (toutes périodes confondues). Utilisé par
+     * `DetachDriverCompanyMembershipAction` pour bloquer la suppression
+     * d'une membership encore liée à des contrats.
+     */
+    public function countForDriverInCompany(int $driverId, int $companyId): int;
 }

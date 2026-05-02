@@ -7,6 +7,7 @@ namespace App\Repositories\User\Driver;
 use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
 use App\Models\Contract;
 use App\Models\Driver;
+use App\Models\Pivot\DriverCompany;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -118,5 +119,25 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             ->pluck('aggregate', 'company_id')
             ->map(fn ($v): int => (int) $v)
             ->all();
+    }
+
+    public function findActiveMembership(int $driverId, int $companyId): ?DriverCompany
+    {
+        return DriverCompany::query()
+            ->where('driver_id', $driverId)
+            ->where('company_id', $companyId)
+            ->whereNull('left_at')
+            ->orderByDesc('joined_at')
+            ->first();
+    }
+
+    public function findMembershipById(int $pivotId): ?DriverCompany
+    {
+        return DriverCompany::query()->find($pivotId);
+    }
+
+    public function countContractsForDriver(int $driverId): int
+    {
+        return Contract::query()->where('driver_id', $driverId)->count();
     }
 }
