@@ -41,6 +41,22 @@ return new class extends Migration
                 ->constrained('users')
                 ->nullOnDelete();
 
+            // **Sémantique BOFiP** : montants en **euros entiers**, déjà
+            // arrondis par R-2024-003 (FinalRounding) au moment de
+            // l'écriture. CIBS L. 131-1 impose l'arrondi half-up à
+            // l'euro le plus proche par redevable, sans arrondi
+            // intermédiaire. La somme (raw float multi-véhicules) est
+            // arrondie une seule fois dans
+            // `FleetFiscalAggregator::companyAnnualTax()` avant d'être
+            // persistée ici.
+            //
+            // **Ne PAS migrer en `decimal(10,2)` sans ADR explicite** :
+            // garder les centimes en base impliquerait soit un double
+            // arrondi (incompatible BOFiP), soit un changement de
+            // doctrine déclarative (à arbitrer avec un EC).
+            //
+            // Cf. `taxes-rules/2024.md` § R-2024-003 et test
+            // `PipelineNoIntermediateRoundingTest`.
             $table->unsignedInteger('total_co2_tax')->nullable();
             $table->unsignedInteger('total_pollutant_tax')->nullable();
             $table->unsignedInteger('total_tax_all')->nullable();

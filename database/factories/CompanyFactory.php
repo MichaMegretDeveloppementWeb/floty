@@ -35,6 +35,13 @@ final class CompanyFactory extends Factory
             'short_code' => $shortCode,
             'color' => fake()->randomElement(CompanyColor::cases()),
             'is_active' => true,
+            // Forcés à false : R-2024-018 (OIG) et R-2024-019 (EIRL)
+            // sont des stubs en V1 (cf. note Fillable Company.php).
+            // Les tests qui veulent une entreprise OIG/EIRL doivent
+            // explicitement override ces flags via state — on ne veut pas
+            // qu'une factory random produise un cas non couvert.
+            'is_oig' => false,
+            'is_individual_business' => false,
             'deactivated_at' => null,
         ];
     }

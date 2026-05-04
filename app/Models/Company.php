@@ -42,6 +42,15 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  */
+// **Note V1** : `is_oig` et `is_individual_business` volontairement
+// **exclus du Fillable** — les règles d'exonération R-2024-018 (OIG) et
+// R-2024-019 (EIRL) sont des stubs en V1 (cf.
+// `R2024_018And019_StubExemptionsTest`). Tant qu'elles ne sont pas
+// finalisées, autoriser une création/update mass-assignment de ces flags
+// produirait un calcul fiscal silencieusement faux pour les entreprises
+// concernées (taxe due alors qu'exonérée par CIBS L. 421-122). À
+// réactiver dans le `Fillable` quand les règles seront implémentées,
+// après ADR validant la sémantique exacte.
 #[Fillable([
     'legal_name',
     'siren',
@@ -57,8 +66,6 @@ use Illuminate\Support\Carbon;
     'short_code',
     'color',
     'is_active',
-    'is_oig',
-    'is_individual_business',
     'deactivated_at',
 ])]
 final class Company extends Model
