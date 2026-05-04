@@ -1,33 +1,30 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { computed, ref, toRef } from 'vue';
+import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
-import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
+import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
+import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
-import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { useFleetTable } from '@/Composables/Vehicle/Index/useFleetTable';
-import { useIncludeExitedToggle } from '@/Composables/Vehicle/Index/useIncludeExitedToggle';
 import EmptyFleetState from './partials/EmptyFleetState.vue';
 import FleetTable from './partials/FleetTable.vue';
 import PageHeader from './partials/PageHeader.vue';
 
 const props = defineProps<{
-    vehicles: App.Data.User.Vehicle.VehicleListItemData[];
-    includeExited: boolean;
+    vehicles: App.Data.User.Vehicle.PaginatedVehicleListData;
+    query: App.Data.User.Vehicle.VehicleIndexQueryData;
 }>();
-
-const { includeExited } = useIncludeExitedToggle(toRef(props, 'includeExited'));
 
 const { currentYear: fiscalYear } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
 
 const tableState = useFleetTable({
-    vehicles: toRef(props, 'vehicles'),
-    fiscalYear,
+    query: props.query,
+    fiscalYear: fiscalYear.value,
 });
 
 const statusOptions = [
@@ -38,38 +35,44 @@ const statusOptions = [
     { value: 'other', label: 'Autre' },
 ];
 
-const searchModel = computed({
-    get: () => tableState.state.filters.value.search,
-    set: (value: string) => {
-        tableState.state.setFilter('search', value);
-    },
-});
-
-const statusModel = computed({
+const statusModel = computed<string | number>({
     get: () => tableState.state.filters.value.status ?? '',
     set: (value: string | number) => {
         const v = String(value);
+        const isValid =
+            v === 'active' ||
+            v === 'maintenance' ||
+            v === 'sold' ||
+            v === 'destroyed' ||
+            v === 'other';
         tableState.state.setFilter(
             'status',
-            v === 'active' || v === 'maintenance' || v === 'sold' || v === 'destroyed' || v === 'other'
-                ? (v as App.Enums.Vehicle.VehicleStatus)
-                : null,
+            isValid ? (v as App.Enums.Vehicle.VehicleStatus) : null,
         );
     },
 });
 
-const minModel = computed({
-    get: () => tableState.state.filters.value.fullYearTaxMin,
-    set: (value: number | null) => {
-        tableState.state.setFilter('fullYearTaxMin', value);
+// CheckboxInput v-model bindé directement. Le watch interne du composable
+// ne déclenche PAS de reload (pas dans search), mais on appelle
+// setFilter() pour reset page=1 + reload immédiat.
+const includeExitedModel = computed<boolean>({
+    get: () => tableState.state.filters.value.includeExited,
+    set: (value: boolean) => {
+        tableState.state.setFilter('includeExited', value);
     },
 });
 
-const maxModel = computed({
-    get: () => tableState.state.filters.value.fullYearTaxMax,
-    set: (value: number | null) => {
-        tableState.state.setFilter('fullYearTaxMax', value);
-    },
+const activeFiltersCount = computed<number>(() => {
+    let n = 0;
+
+    if (tableState.state.filters.value.status !== null) {
+        n += 1;
+    }
+
+    // includeExited n'est pas compté comme "filtre actif" : c'est une
+    // bascule de scope (visible directement à côté), pas un filtre dans
+    // le popover.
+    return n;
 });
 </script>
 
@@ -80,62 +83,69 @@ const maxModel = computed({
         <div class="flex flex-col gap-6">
             <PageHeader :fiscal-year="fiscalYear" />
 
-            <EmptyFleetState v-if="props.vehicles.length === 0 && !includeExited" />
+            <div
+                v-if="
+                    vehicles.meta.total === 0 &&
+                    tableState.state.search.value === '' &&
+                    tableState.state.filters.value.status === null &&
+                    !tableState.state.filters.value.includeExited
+                "
+            >
+                <EmptyFleetState />
+            </div>
+
             <template v-else>
                 <div class="flex flex-wrap items-center justify-between gap-3">
-                    <FilterPopover
-                        v-model:open="filtersOpen"
-                        :active-count="tableState.state.activeFiltersCount.value"
-                        @reset="tableState.state.clearFilters"
-                    >
-                        <div class="flex flex-col gap-3">
-                            <div>
-                                <FieldLabel for="filter-search">Recherche</FieldLabel>
-                                <TextInput
-                                    id="filter-search"
-                                    v-model="searchModel"
-                                    placeholder="Immatriculation, marque, modèle…"
-                                />
-                            </div>
-                            <div>
-                                <FieldLabel for="filter-status">Statut</FieldLabel>
-                                <SelectInput
-                                    id="filter-status"
-                                    v-model="statusModel"
-                                    placeholder="Tous les statuts"
-                                    :options="statusOptions"
-                                />
-                            </div>
-                            <div>
-                                <FieldLabel for="filter-tax-min">Coût plein (€)</FieldLabel>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <NumberInput
-                                        id="filter-tax-min"
-                                        v-model="minModel"
-                                        placeholder="Min"
-                                    />
-                                    <NumberInput
-                                        v-model="maxModel"
-                                        placeholder="Max"
+                    <div class="flex flex-wrap items-center gap-3">
+                        <div class="max-w-md grow">
+                            <SearchInput
+                                v-model="tableState.state.search.value"
+                                placeholder="Rechercher (immat, marque, modèle)"
+                                aria-label="Rechercher un véhicule"
+                            />
+                        </div>
+                        <FilterPopover
+                            v-model:open="filtersOpen"
+                            :active-count="activeFiltersCount"
+                            @reset="tableState.state.clearFilters"
+                        >
+                            <div class="flex flex-col gap-3">
+                                <div>
+                                    <FieldLabel for="filter-status"
+                                        >Statut</FieldLabel
+                                    >
+                                    <SelectInput
+                                        id="filter-status"
+                                        v-model="statusModel"
+                                        placeholder="Tous les statuts"
+                                        :options="statusOptions"
                                     />
                                 </div>
                             </div>
-                        </div>
-                    </FilterPopover>
+                        </FilterPopover>
+                    </div>
 
                     <CheckboxInput
-                        v-model="includeExited"
+                        v-model="includeExitedModel"
                         label="Inclure les véhicules retirés"
                     />
                 </div>
 
                 <FleetTable
-                    :vehicles="tableState.rows.value"
-                    :columns="tableState.columns.value"
-                    :sort-key="tableState.state.sort.value.key"
+                    :vehicles="vehicles.data"
+                    :columns="tableState.columns"
+                    :active-sort-column-key="
+                        tableState.activeSortColumnKey.value
+                    "
                     :sort-direction="tableState.state.sort.value.direction"
-                    @sort="tableState.state.setSort"
-                    @row-click="tableState.handleRowClick"
+                    @header-click="tableState.onHeaderClick"
+                    @row-click="tableState.onRowClick"
+                />
+
+                <Paginator
+                    :meta="vehicles.meta"
+                    @page-change="tableState.state.setPage"
+                    @per-page-change="tableState.state.setPerPage"
                 />
             </template>
         </div>

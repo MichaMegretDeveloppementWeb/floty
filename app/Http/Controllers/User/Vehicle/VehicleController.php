@@ -12,6 +12,7 @@ use App\Data\User\Vehicle\ExitVehicleData;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Data\User\Vehicle\VehicleFormOptionsData;
+use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -25,7 +26,6 @@ use App\Http\Controllers\Controller;
 use App\Services\Vehicle\VehicleQueryService;
 use App\Support\EnumOptions;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -40,13 +40,11 @@ final class VehicleController extends Controller
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
-    public function index(Request $request): Response
+    public function index(VehicleIndexQueryData $query): Response
     {
-        $includeExited = $request->boolean('include_exited');
-
         return Inertia::render('User/Vehicles/Index/Index', [
-            'vehicles' => $this->vehicles->listForFleetView($this->fiscalYear->resolve(), $includeExited),
-            'includeExited' => $includeExited,
+            'vehicles' => $this->vehicles->listPaginated($query, $this->fiscalYear->resolve()),
+            'query' => $query,
         ]);
     }
 

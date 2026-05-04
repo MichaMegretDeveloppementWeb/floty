@@ -244,8 +244,8 @@ final class ExitVehicleControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Vehicles/Index/Index')
-                ->where('includeExited', false)
-                ->has('vehicles', 1, fn (AssertableInertia $v) => $v
+                ->where('query.includeExited', false)
+                ->has('vehicles.data', 1, fn (AssertableInertia $v) => $v
                     ->where('id', $active->id)
                     ->etc()),
             );
@@ -264,12 +264,14 @@ final class ExitVehicleControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $active->id]);
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $exited->id]);
 
+        // Note : la query string est camelCase (`includeExited`) côté
+        // ADR-0020, contrairement à l'ancien `include_exited` snake_case.
         $this->actingAs($user)
-            ->get('/app/vehicles?include_exited=1')
+            ->get('/app/vehicles?includeExited=1')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('includeExited', true)
-                ->has('vehicles', 2),
+                ->where('query.includeExited', true)
+                ->has('vehicles.data', 2),
             );
     }
 

@@ -7,9 +7,12 @@ namespace App\Services\Vehicle;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\Unavailability\UnavailabilityData;
+use App\Data\User\Vehicle\PaginatedVehicleListData;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
 use App\Data\User\Vehicle\VehicleData;
+use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Data\User\Vehicle\VehicleListItemData;
 use App\Data\User\Vehicle\VehicleOptionData;
 use App\Data\User\Vehicle\VehicleUsageStatsData;
@@ -55,34 +58,67 @@ final class VehicleQueryService
      * + pro-rata journalier équivalent.
      *
      * @return DataCollection<int, VehicleListItemData>
+     *
+     * @deprecated Conservé temporairement — sera retiré en L6 du
+     *             chantier ADR-0020. Utiliser {@see listPaginated()}.
      */
     public function listForFleetView(int $year, bool $includeExited = false): DataCollection
     {
         $daysInYear = $this->yearContext->daysInYear($year);
 
         $rows = $this->vehicles->findAllForFleetView($includeExited)
-            ->map(function (Vehicle $v) use ($year, $daysInYear): VehicleListItemData {
-                $fullYearTax = $this->aggregator->vehicleFullYearTax($v, $year);
-
-                return new VehicleListItemData(
-                    id: $v->id,
-                    licensePlate: $v->license_plate,
-                    brand: $v->brand,
-                    model: $v->model,
-                    currentStatus: $v->current_status,
-                    firstFrenchRegistrationDate: $v->first_french_registration_date->format('Y-m-d'),
-                    acquisitionDate: $v->acquisition_date->format('Y-m-d'),
-                    exitDate: $v->exit_date?->format('Y-m-d'),
-                    exitReason: $v->exit_reason,
-                    isExited: $v->is_exited,
-                    fullYearTax: $fullYearTax,
-                    dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
-                );
-            })
+            ->map(fn (Vehicle $v): VehicleListItemData => $this->mapVehicleToListItem($v, $year, $daysInYear))
             ->values()
             ->all();
 
         return VehicleListItemData::collect($rows, DataCollection::class);
+    }
+
+    /**
+     * Index Vehicles paginé server-side (cf. ADR-0020).
+     *
+     * Le repo gère pagination + filtres `includeExited`/`status` + search
+     * en SQL pur. Le service calcule ensuite `fullYearTax` + `dailyTaxRate`
+     * **uniquement pour les véhicules de la page courante** (pas pour
+     * tout le dataset, contrairement à `listForFleetView()`).
+     *
+     * Cf. ADR-0020 D6 : le tri par `fullYearTax` est volontairement
+     * absent de la whitelist sortKey (valeur calculée non SQL).
+     */
+    public function listPaginated(VehicleIndexQueryData $query, int $year): PaginatedVehicleListData
+    {
+        $daysInYear = $this->yearContext->daysInYear($year);
+        $paginator = $this->vehicles->paginateForIndex($query);
+
+        $items = array_map(
+            fn (Vehicle $v): VehicleListItemData => $this->mapVehicleToListItem($v, $year, $daysInYear),
+            $paginator->items(),
+        );
+
+        return new PaginatedVehicleListData(
+            data: $items,
+            meta: PaginationMetaData::fromPaginator($paginator),
+        );
+    }
+
+    private function mapVehicleToListItem(Vehicle $v, int $year, int $daysInYear): VehicleListItemData
+    {
+        $fullYearTax = $this->aggregator->vehicleFullYearTax($v, $year);
+
+        return new VehicleListItemData(
+            id: $v->id,
+            licensePlate: $v->license_plate,
+            brand: $v->brand,
+            model: $v->model,
+            currentStatus: $v->current_status,
+            firstFrenchRegistrationDate: $v->first_french_registration_date->format('Y-m-d'),
+            acquisitionDate: $v->acquisition_date->format('Y-m-d'),
+            exitDate: $v->exit_date?->format('Y-m-d'),
+            exitReason: $v->exit_reason,
+            isExited: $v->is_exited,
+            fullYearTax: $fullYearTax,
+            dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
+        );
     }
 
     /**

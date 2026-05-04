@@ -2,39 +2,32 @@
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
-import type { FleetSortKey } from '@/Composables/Vehicle/Index/useFleetTable';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
 type VehicleRow = App.Data.User.Vehicle.VehicleListItemData;
 
+// Colonnes triables côté serveur (cf. VehicleIndexQueryData::allowedSortKeys()).
+// fullYearTax est volontairement absent (valeur calculée non SQL,
+// règle ADR-0020 D6).
+const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
+    'licensePlate',
+    'model',
+    'firstFrenchRegistrationDate',
+]);
+
 defineProps<{
     vehicles: VehicleRow[];
     columns: readonly DataTableColumn<VehicleRow>[];
-    sortKey: FleetSortKey | null;
+    activeSortColumnKey: string | null;
     sortDirection: 'asc' | 'desc';
 }>();
 
 const emit = defineEmits<{
-    sort: [key: FleetSortKey];
+    'header-click': [columnKey: string];
     'row-click': [row: VehicleRow];
 }>();
-
-const COLUMN_TO_SORT_KEY: Record<string, FleetSortKey> = {
-    licensePlate: 'plate',
-    model: 'model',
-    firstFrenchRegistrationDate: 'firstReg',
-    fullYearTax: 'fullYearTax',
-};
-
-function onHeaderClick(columnKey: string): void {
-    const sortKey = COLUMN_TO_SORT_KEY[columnKey];
-
-    if (sortKey !== undefined) {
-        emit('sort', sortKey);
-    }
-}
 </script>
 
 <template>
@@ -51,17 +44,32 @@ function onHeaderClick(columnKey: string): void {
             :key="column.key"
         >
             <SortableHeader
+                v-if="SORTABLE_COLUMNS.has(col.key)"
                 :label="col.label"
-                :sort-key="COLUMN_TO_SORT_KEY[col.key] ?? ''"
-                :active-key="sortKey"
+                :sort-key="col.key"
+                :active-key="activeSortColumnKey"
                 :direction="sortDirection"
                 :align="col.align === 'right' ? 'right' : 'left'"
-                @click="onHeaderClick(col.key)"
+                @click="emit('header-click', col.key)"
             />
+            <span
+                v-else
+                :class="[
+                    'inline-flex w-full text-xs font-semibold tracking-wider text-slate-500 uppercase',
+                    col.align === 'right' ? 'justify-end' : 'justify-start',
+                ]"
+            >
+                {{ col.label }}
+            </span>
         </template>
 
         <template #cell-licensePlate="{ row }">
-            <div :class="['flex flex-wrap items-center gap-2', row.isExited && 'opacity-60']">
+            <div
+                :class="[
+                    'flex flex-wrap items-center gap-2',
+                    row.isExited && 'opacity-60',
+                ]"
+            >
                 <Plate :value="row.licensePlate" />
                 <span
                     v-if="row.isExited"
@@ -90,6 +98,17 @@ function onHeaderClick(columnKey: string): void {
                 <span class="text-xs text-slate-400">
                     {{ formatEur(row.dailyTaxRate, 2) }} / jour
                 </span>
+            </div>
+        </template>
+
+        <template #empty>
+            <div class="flex flex-col items-center gap-2 py-8 text-center">
+                <p class="text-sm font-medium text-slate-700">
+                    Aucun véhicule ne correspond aux filtres
+                </p>
+                <p class="text-xs text-slate-500">
+                    Modifiez votre recherche ou réinitialisez les filtres.
+                </p>
             </div>
         </template>
     </DataTable>

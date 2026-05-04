@@ -1,203 +1,114 @@
+/**
+ * Configuration de la table Index Vehicles (server-side, cf. ADR-0020).
+ *
+ * Particularités :
+ *  - Filtres `includeExited` (boolean) + `status` (VehicleStatus | null)
+ *  - Colonne `fullYearTax` affichée mais NON triable (valeur calculée
+ *    par l'aggregator fiscal — règle ADR-0020 D6)
+ *
+ * Le rendu reste dans `FleetTable.vue` (slots cell-*).
+ */
+
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import type { ComputedRef, Ref } from 'vue';
-import { useTableState } from '@/Composables/Shared/useTableState';
-import type { TableState } from '@/Composables/Shared/useTableState';
+import type { ComputedRef } from 'vue';
+import { useServerTableState } from '@/Composables/Shared/useServerTableState';
+import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import type { DataTableColumn } from '@/types/ui';
 
 type VehicleRow = App.Data.User.Vehicle.VehicleListItemData;
 
+export type FleetSortKey =
+    | 'licensePlate'
+    | 'model'
+    | 'firstFrenchRegistrationDate'
+    | 'acquisitionDate'
+    | 'currentStatus';
+
+// Mapping clé colonne UI → sortKey backend (whitelist VehicleIndexQueryData).
+// La colonne `fullYearTax` n'a pas d'entrée car non triable (D6).
+const COLUMN_TO_SORT_KEY: Partial<Record<string, FleetSortKey>> = {
+    licensePlate: 'licensePlate',
+    model: 'model',
+    firstFrenchRegistrationDate: 'firstFrenchRegistrationDate',
+};
+
 export type FleetFilters = {
-    search: string;
     status: App.Enums.Vehicle.VehicleStatus | null;
-    fullYearTaxMin: number | null;
-    fullYearTaxMax: number | null;
-};
-
-export type FleetSortKey = 'plate' | 'model' | 'firstReg' | 'fullYearTax';
-
-const DEFAULT_FILTERS: FleetFilters = {
-    search: '',
-    status: null,
-    fullYearTaxMin: null,
-    fullYearTaxMax: null,
-};
-
-const SORT_KEYS: readonly FleetSortKey[] = [
-    'plate',
-    'model',
-    'firstReg',
-    'fullYearTax',
-];
-
-export type FleetFilterChip = {
-    key: keyof FleetFilters;
-    label: string;
-};
-
-const STATUS_LABELS: Record<App.Enums.Vehicle.VehicleStatus, string> = {
-    active: 'Active',
-    maintenance: 'Maintenance',
-    sold: 'Vendu',
-    destroyed: 'Détruit',
-    other: 'Autre',
+    includeExited: boolean;
 };
 
 export function useFleetTable(opts: {
-    vehicles: Ref<readonly VehicleRow[]>;
-    fiscalYear: Ref<number>;
+    query: App.Data.User.Vehicle.VehicleIndexQueryData;
+    fiscalYear: number;
 }): {
-    columns: ComputedRef<readonly DataTableColumn<VehicleRow>[]>;
-    rows: ComputedRef<VehicleRow[]>;
-    state: TableState<VehicleRow, FleetFilters, FleetSortKey>;
-    activeFilterChips: ComputedRef<FleetFilterChip[]>;
-    removeFilter: (key: keyof FleetFilters) => void;
-    handleRowClick: (row: VehicleRow) => void;
+    columns: readonly DataTableColumn<VehicleRow>[];
+    state: ServerTableState<FleetFilters>;
+    activeSortColumnKey: ComputedRef<string | null>;
+    onHeaderClick: (columnKey: string) => void;
+    onRowClick: (row: VehicleRow) => void;
 } {
-    const columns = computed<readonly DataTableColumn<VehicleRow>[]>(() => [
+    const columns: readonly DataTableColumn<VehicleRow>[] = [
         { key: 'licensePlate', label: 'Immatriculation' },
         { key: 'model', label: 'Modèle' },
         { key: 'firstFrenchRegistrationDate', label: '1ʳᵉ immat.', mono: true },
         {
             key: 'fullYearTax',
-            label: `Coût plein ${opts.fiscalYear.value}`,
+            label: `Coût plein ${opts.fiscalYear}`,
             align: 'right',
         },
-    ]);
+    ];
 
-    const state = useTableState<VehicleRow, FleetFilters, FleetSortKey>({
-        defaultFilters: DEFAULT_FILTERS,
-        sortKeys: SORT_KEYS,
-        parseFiltersFromUrl: (params) => ({
-            search: params.get('search') ?? '',
-            status: parseStatus(params.get('status')),
-            fullYearTaxMin: parseFloatOrNull(params.get('fullYearTaxMin')),
-            fullYearTaxMax: parseFloatOrNull(params.get('fullYearTaxMax')),
-        }),
-        serializeFiltersToUrl: (f) => ({
-            search: f.search === '' ? null : f.search,
+    const state = useServerTableState<FleetFilters>({
+        only: ['vehicles', 'query'],
+        initialPage: opts.query.page,
+        initialPerPage: opts.query.perPage,
+        initialSearch: opts.query.search ?? '',
+        initialSortKey: opts.query.sortKey,
+        initialSortDirection: opts.query.sortDirection,
+        defaultFilters: { status: null, includeExited: false },
+        initialFilters: {
+            status: opts.query.status,
+            includeExited: opts.query.includeExited,
+        },
+        serializeFilters: (f) => ({
             status: f.status,
-            fullYearTaxMin: f.fullYearTaxMin?.toString() ?? null,
-            fullYearTaxMax: f.fullYearTaxMax?.toString() ?? null,
+            // Sérialisation booléenne 1/0/null cohérente avec Spatie Data.
+            includeExited: f.includeExited ? 1 : null,
         }),
-        applyFilter: (item, f) => {
-            if (f.search !== '') {
-                const needle = f.search.toLowerCase();
-                const haystack =
-                    `${item.licensePlate} ${item.brand} ${item.model}`.toLowerCase();
-
-                if (!haystack.includes(needle)) {
-                    return false;
-                }
-            }
-
-            if (f.status !== null && item.currentStatus !== f.status) {
-                return false;
-            }
-
-            if (
-                f.fullYearTaxMin !== null
-                && item.fullYearTax < f.fullYearTaxMin
-            ) {
-                return false;
-            }
-
-            if (
-                f.fullYearTaxMax !== null
-                && item.fullYearTax > f.fullYearTaxMax
-            ) {
-                return false;
-            }
-
-            return true;
-        },
-        sortComparators: {
-            plate: (a, b) => a.licensePlate.localeCompare(b.licensePlate),
-            model: (a, b) =>
-                `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`),
-            firstReg: (a, b) =>
-                a.firstFrenchRegistrationDate.localeCompare(
-                    b.firstFrenchRegistrationDate,
-                ),
-            fullYearTax: (a, b) => a.fullYearTax - b.fullYearTax,
-        },
     });
 
-    const rows = computed<VehicleRow[]>(() => state.apply(opts.vehicles.value));
-
-    const activeFilterChips = computed<FleetFilterChip[]>(() => {
-        const chips: FleetFilterChip[] = [];
-        const f = state.filters.value;
-
-        if (f.search !== '') {
-            chips.push({ key: 'search', label: `Recherche : « ${f.search} »` });
+    const activeSortColumnKey = computed<string | null>(() => {
+        if (state.sort.value.key === null) {
+            return null;
         }
 
-        if (f.status !== null) {
-            chips.push({
-                key: 'status',
-                label: `Statut : ${STATUS_LABELS[f.status] ?? f.status}`,
-            });
-        }
+        const entry = Object.entries(COLUMN_TO_SORT_KEY).find(
+            ([, sortKey]) => sortKey === state.sort.value.key,
+        );
 
-        if (f.fullYearTaxMin !== null || f.fullYearTaxMax !== null) {
-            const min = f.fullYearTaxMin === null ? '…' : `${f.fullYearTaxMin} €`;
-            const max = f.fullYearTaxMax === null ? '…' : `${f.fullYearTaxMax} €`;
-            chips.push({
-                key: 'fullYearTaxMin',
-                label: `Coût plein : ${min} → ${max}`,
-            });
-        }
-
-        return chips;
+        return entry ? entry[0] : null;
     });
 
-    function removeFilter(key: keyof FleetFilters): void {
-        if (key === 'fullYearTaxMin' || key === 'fullYearTaxMax') {
-            state.setFilter('fullYearTaxMin', null);
-            state.setFilter('fullYearTaxMax', null);
+    function onHeaderClick(columnKey: string): void {
+        const sortKey = COLUMN_TO_SORT_KEY[columnKey];
 
-            return;
+        if (sortKey !== undefined) {
+            state.setSort(sortKey);
         }
-
-        state.setFilter(key, DEFAULT_FILTERS[key]);
+        // fullYearTax n'a pas de mapping → no-op (header non interactif).
     }
 
-    const handleRowClick = (row: VehicleRow): void => {
+    function onRowClick(row: VehicleRow): void {
         router.visit(vehiclesShowRoute.url({ vehicle: row.id }));
-    };
+    }
 
     return {
         columns,
-        rows,
         state,
-        activeFilterChips,
-        removeFilter,
-        handleRowClick,
+        activeSortColumnKey,
+        onHeaderClick,
+        onRowClick,
     };
-}
-
-function parseStatus(value: string | null): App.Enums.Vehicle.VehicleStatus | null {
-    if (
-        value === 'active'
-        || value === 'maintenance'
-        || value === 'sold'
-        || value === 'destroyed'
-        || value === 'other'
-    ) {
-        return value;
-    }
-
-    return null;
-}
-
-function parseFloatOrNull(value: string | null): number | null {
-    if (value === null) {
-        return null;
-    }
-
-    const n = Number.parseFloat(value);
-
-    return Number.isNaN(n) ? null : n;
 }

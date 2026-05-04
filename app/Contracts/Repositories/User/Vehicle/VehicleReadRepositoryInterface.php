@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\Vehicle;
 
+use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Models\Vehicle;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
@@ -27,8 +29,27 @@ interface VehicleReadRepositoryInterface
      *                               à aujourd'hui (cf. ADR-0018 § 4 - Index
      *                               Flotte par défaut "aujourd'hui").
      * @return Collection<int, Vehicle>
+     *
+     * @deprecated Conservé temporairement — sera retiré en L6 du chantier
+     *             ADR-0020. Utiliser {@see paginateForIndex()}.
      */
     public function findAllForFleetView(bool $includeExited = false): Collection;
+
+    /**
+     * Liste paginée server-side de l'Index Vehicles (cf. ADR-0020).
+     * Applique `{search, includeExited, status, sortKey, sortDirection,
+     * page, perPage}` du DTO en SQL pur.
+     *
+     * Search : LIKE sur `license_plate OR brand OR model`.
+     * Sort whitelist : licensePlate | model | firstFrenchRegistrationDate
+     * | acquisitionDate | currentStatus.
+     *
+     * Eager-load des `fiscalCharacteristics` actives pour éviter N+1 sur
+     * le calcul de `fullYearTax` côté service.
+     *
+     * @return LengthAwarePaginator<int, Vehicle>
+     */
+    public function paginateForIndex(VehicleIndexQueryData $query): LengthAwarePaginator;
 
     /**
      * Liste des véhicules disponibles (non sortis) pour les `<SelectInput>`,

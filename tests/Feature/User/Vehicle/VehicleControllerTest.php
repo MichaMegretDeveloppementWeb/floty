@@ -13,10 +13,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Feature\Concerns\AssertsPaginatedIndex;
 use Tests\TestCase;
 
 final class VehicleControllerTest extends TestCase
 {
+    use AssertsPaginatedIndex;
     use RefreshDatabase;
 
     #[Test]
@@ -29,14 +31,158 @@ final class VehicleControllerTest extends TestCase
         $this->actingAs($user)
             ->get('/app/vehicles')
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Vehicles/Index/Index')
-                ->has('vehicles', 1, fn (AssertableInertia $v) => $v
+            ->assertInertia(function (AssertableInertia $page) use ($vehicle): void {
+                $page->component('User/Vehicles/Index/Index');
+                $this->assertPaginatedShape(
+                    $page,
+                    'vehicles',
+                    expectedDataCount: 1,
+                    expectedMeta: ['total' => 1, 'currentPage' => 1, 'perPage' => 20],
+                );
+                $page->has('vehicles.data.0', fn (AssertableInertia $v) => $v
                     ->where('id', $vehicle->id)
                     ->where('licensePlate', $vehicle->license_plate)
                     ->has('fullYearTax')
                     ->has('dailyTaxRate')
-                    ->etc()),
+                    ->etc(),
+                );
+            });
+    }
+
+    #[Test]
+    public function index_paginate_avec_per_page_personnalise(): void
+    {
+        $user = User::factory()->create();
+        for ($i = 0; $i < 25; $i++) {
+            $vehicle = Vehicle::factory()->create();
+            VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        }
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?perPage=10')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'vehicles',
+                expectedDataCount: 10,
+                expectedMeta: ['total' => 25, 'lastPage' => 3, 'perPage' => 10],
+            ));
+    }
+
+    #[Test]
+    public function index_per_page_hors_whitelist_rejette_la_requete(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?perPage=33')
+            ->assertSessionHasErrors(['perPage']);
+    }
+
+    #[Test]
+    public function index_sort_full_year_tax_hors_whitelist_rejette_la_requete(): void
+    {
+        $user = User::factory()->create();
+
+        // fullYearTax était triable avant ADR-0020 ; volontairement absent
+        // de la whitelist server-side car valeur calculée non SQL (D6).
+        $this->actingAs($user)
+            ->get('/app/vehicles?sortKey=fullYearTax')
+            ->assertSessionHasErrors(['sortKey']);
+    }
+
+    #[Test]
+    public function index_sort_par_license_plate_desc(): void
+    {
+        $user = User::factory()->create();
+        $a = Vehicle::factory()->create(['license_plate' => 'AA-111-AA']);
+        $c = Vehicle::factory()->create(['license_plate' => 'CC-333-CC']);
+        $b = Vehicle::factory()->create(['license_plate' => 'BB-222-BB']);
+        foreach ([$a, $b, $c] as $v) {
+            VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v->id]);
+        }
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?sortKey=licensePlate&sortDirection=desc')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.data.0.licensePlate', 'CC-333-CC')
+                ->where('vehicles.data.1.licensePlate', 'BB-222-BB')
+                ->where('vehicles.data.2.licensePlate', 'AA-111-AA'),
+            );
+    }
+
+    #[Test]
+    public function index_filtre_status(): void
+    {
+        $user = User::factory()->create();
+        $active = Vehicle::factory()->create(['current_status' => 'active']);
+        $maintenance = Vehicle::factory()->create(['current_status' => 'maintenance']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $active->id]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $maintenance->id]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?status=active')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'vehicles',
+                expectedDataCount: 1,
+                expectedMeta: ['total' => 1],
+            ));
+    }
+
+    #[Test]
+    public function index_search_filtre_par_plate_brand_ou_model(): void
+    {
+        $user = User::factory()->create();
+        $renault = Vehicle::factory()->create(['license_plate' => 'AA-111-AA', 'brand' => 'Renault', 'model' => 'Clio']);
+        $peugeot = Vehicle::factory()->create(['license_plate' => 'BB-222-BB', 'brand' => 'Peugeot', 'model' => '208']);
+        $citroen = Vehicle::factory()->create(['license_plate' => 'CC-333-CC', 'brand' => 'Citroën', 'model' => 'C3']);
+        foreach ([$renault, $peugeot, $citroen] as $v) {
+            VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v->id]);
+        }
+
+        // Search par plate
+        $this->actingAs($user)
+            ->get('/app/vehicles?search=BB-222')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.data.0.licensePlate', 'BB-222-BB'),
+            );
+
+        // Search par brand
+        $this->actingAs($user)
+            ->get('/app/vehicles?search=Renault')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.data.0.brand', 'Renault'),
+            );
+
+        // Search par model
+        $this->actingAs($user)
+            ->get('/app/vehicles?search=C3')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.data.0.model', 'C3'),
+            );
+    }
+
+    #[Test]
+    public function index_query_dto_est_renvoye_au_frontend(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?perPage=50&sortKey=licensePlate&sortDirection=desc&search=foo&includeExited=1&status=active')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('query.perPage', 50)
+                ->where('query.sortKey', 'licensePlate')
+                ->where('query.sortDirection', 'desc')
+                ->where('query.search', 'foo')
+                ->where('query.includeExited', true)
+                ->where('query.status', 'active'),
             );
     }
 

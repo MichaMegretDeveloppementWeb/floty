@@ -139,10 +139,20 @@ final class DriverControllerTest extends TestCase
 
         $driverWith2 = Driver::factory()->create(['first_name' => 'Two', 'last_name' => 'Contracts']);
         $driverWith2->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
-        Contract::factory()->count(2)->create([
+        // Dates fixes pour éviter le trigger d'overlap par hasard sur le même vehicle.
+        Contract::factory()->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
             'driver_id' => $driverWith2->id,
+            'start_date' => '2025-01-01',
+            'end_date' => '2025-01-31',
+        ]);
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'driver_id' => $driverWith2->id,
+            'start_date' => '2025-03-01',
+            'end_date' => '2025-03-31',
         ]);
 
         $driverWith0 = Driver::factory()->create(['first_name' => 'Zero', 'last_name' => 'Contracts']);

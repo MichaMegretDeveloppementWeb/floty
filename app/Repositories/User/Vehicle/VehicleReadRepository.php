@@ -5,8 +5,11 @@ declare(strict_types=1);
 namespace App\Repositories\User\Vehicle;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Data\Shared\Listing\SortDirection;
+use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Models\Vehicle;
 use Carbon\CarbonImmutable;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
@@ -29,6 +32,50 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
         }
 
         return $query->get();
+    }
+
+    public function paginateForIndex(VehicleIndexQueryData $query): LengthAwarePaginator
+    {
+        $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';
+
+        $eloquentQuery = Vehicle::query()
+            ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')]);
+
+        if (! $query->includeExited) {
+            $eloquentQuery->activeAt(CarbonImmutable::today());
+        }
+
+        if ($query->status !== null) {
+            $eloquentQuery->where('current_status', $query->status->value);
+        }
+
+        // Search LIKE sur license_plate OR brand OR model.
+        if ($query->search !== null) {
+            $term = '%'.$query->search.'%';
+            $eloquentQuery->where(function ($w) use ($term): void {
+                $w->where('license_plate', 'like', $term)
+                    ->orWhere('brand', 'like', $term)
+                    ->orWhere('model', 'like', $term);
+            });
+        }
+
+        // Tri whitelist (cf. VehicleIndexQueryData::allowedSortKeys()).
+        match ($query->sortKey) {
+            'licensePlate' => $eloquentQuery->orderBy('license_plate', $direction),
+            'model' => $eloquentQuery
+                ->orderBy('brand', $direction)
+                ->orderBy('model', $direction),
+            'firstFrenchRegistrationDate' => $eloquentQuery->orderBy('first_french_registration_date', $direction),
+            'acquisitionDate' => $eloquentQuery->orderBy('acquisition_date', $direction),
+            'currentStatus' => $eloquentQuery->orderBy('current_status', $direction),
+            // Défaut : tri historique acquisition_date DESC (ordre d'achat).
+            default => $eloquentQuery->orderByDesc('acquisition_date'),
+        };
+
+        return $eloquentQuery->paginate(
+            perPage: $query->perPage,
+            page: $query->page,
+        );
     }
 
     public function findAllForOptions(): Collection
