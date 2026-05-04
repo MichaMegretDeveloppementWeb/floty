@@ -13,8 +13,8 @@ const tabs: readonly { key: CompanyTabKey; label: string }[] = [
     { key: 'overview', label: 'Vue d\'ensemble' },
     { key: 'contracts', label: 'Contrats' },
     { key: 'drivers', label: 'Conducteurs' },
-    { key: 'fiscal', label: 'Recap fiscal' },
-    { key: 'billing', label: 'Recap facturation' },
+    { key: 'fiscal', label: 'Fiscalité' },
+    { key: 'billing', label: 'Facturation' },
 ] as const;
 </script>
 
