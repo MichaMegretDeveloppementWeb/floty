@@ -43,11 +43,12 @@ ids.push(errorId.value);
         <label
             :for="inputId"
             :class="[
-                'group inline-flex items-start gap-2.5',
+                'group inline-flex gap-2.5',
+                hint ? 'items-start' : 'items-center',
                 disabled ? 'cursor-not-allowed' : 'cursor-pointer',
             ]"
         >
-            <span class="relative mt-0.5 inline-flex">
+            <span :class="['relative inline-flex', hint ? 'mt-0.5' : '']">
                 <input
                     :id="inputId"
                     v-model="modelValue"

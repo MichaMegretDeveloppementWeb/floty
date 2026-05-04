@@ -48,10 +48,6 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
             $eloquentQuery->where('is_individual_business', true);
         }
 
-        if ($query->isOig === true) {
-            $eloquentQuery->where('is_oig', true);
-        }
-
         if ($query->city !== null && $query->city !== '') {
             $eloquentQuery->where('city', 'like', '%'.$query->city.'%');
         }

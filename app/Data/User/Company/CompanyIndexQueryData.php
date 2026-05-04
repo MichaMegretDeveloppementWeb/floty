@@ -16,7 +16,6 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *  - `contractsScope` : 'with' = au moins un contrat ; 'without' = aucun
  *  - `companyType` : 'corporate' (personne morale) | 'individual'
  *     (entrepreneur individuel) — basé sur `is_individual_business`
- *  - `isOig` : bool|null — true = uniquement OIG
  *  - `city` : LIKE sur `city`
  *
  * Whitelist sortKey : `shortCode | legalName | siren | city`. Les valeurs
@@ -30,7 +29,6 @@ final class CompanyIndexQueryData extends IndexQueryData
         public ?bool $isActive = null,
         public ?string $contractsScope = null,
         public ?string $companyType = null,
-        public ?bool $isOig = null,
         public ?string $city = null,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,
@@ -52,7 +50,6 @@ final class CompanyIndexQueryData extends IndexQueryData
             'isActive' => ['nullable', 'boolean'],
             'contractsScope' => ['nullable', 'string', 'in:with,without'],
             'companyType' => ['nullable', 'string', 'in:corporate,individual'],
-            'isOig' => ['nullable', 'boolean'],
             'city' => ['nullable', 'string', 'max:255'],
         ]);
     }

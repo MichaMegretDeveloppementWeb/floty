@@ -2,7 +2,6 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
@@ -87,13 +86,6 @@ const companyTypeModel = computed<string | number>({
     },
 });
 
-const isOigModel = computed<boolean>({
-    get: () => tableState.state.filters.value.isOig === true,
-    set: (value: boolean) => {
-        tableState.state.setFilter('isOig', value === true ? true : null);
-    },
-});
-
 const cityModel = computed<string>({
     get: () => tableState.state.filters.value.city ?? '',
     set: (value: string) => {
@@ -114,10 +106,6 @@ const activeFiltersCount = computed<number>(() => {
     }
 
     if (f.companyType !== null) {
-        n += 1;
-    }
-
-    if (f.isOig === true) {
         n += 1;
     }
 
@@ -203,12 +191,6 @@ const activeFiltersCount = computed<number>(() => {
                                     id="filter-city"
                                     v-model="cityModel"
                                     placeholder="Lyon, Paris…"
-                                />
-                            </div>
-                            <div>
-                                <CheckboxInput
-                                    v-model="isOigModel"
-                                    label="OIG uniquement"
                                 />
                             </div>
                         </div>
