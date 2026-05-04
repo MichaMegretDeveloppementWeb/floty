@@ -27,5 +27,28 @@ export default defineConfig({
         // les composables qui consomment `router.reload` etc.
         setupFiles: ['./tests/js/setup/inertia-mock.ts'],
         css: false,
+        coverage: {
+            provider: 'v8',
+            // HTML pour inspection locale, lcov pour outils CI, json-summary
+            // pour seuils.
+            reporter: ['text', 'html', 'lcov', 'json-summary'],
+            reportsDirectory: './coverage/js',
+            // Périmètre source : on instrumente uniquement les composables
+            // / utils / pages testables (la couverture de composants .vue
+            // purs présentationnels n'apporte rien et fausse les chiffres).
+            include: [
+                'resources/js/Composables/**/*.ts',
+                'resources/js/Utils/**/*.ts',
+                'resources/js/lib/**/*.ts',
+            ],
+            exclude: [
+                '**/*.d.ts',
+                '**/types/**',
+                'resources/js/Composables/**/*.test.ts',
+            ],
+            // Pas de seuil bloquant en V1 ; on observe la trend en CI
+            // d'abord. Seuils strict à activer après ~10 PR (cf. ADR
+            // futur si besoin).
+        },
     },
 });

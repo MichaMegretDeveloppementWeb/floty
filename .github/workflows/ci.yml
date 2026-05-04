@@ -1,0 +1,183 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Évite les runs concurrents sur la même branche : la dernière annule les
+# précédentes (utile pour les push successifs sur une PR).
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ------------------------------------------------------------------
+  # PHP — qualité, analyse statique, tests + coverage.
+  # MySQL service car les tests utilisent FK RESTRICT, triggers, CHECK,
+  # JSON, generated columns (cf. phpunit.xml).
+  # ------------------------------------------------------------------
+  php:
+    name: PHP (Pint + PHPStan + PHPUnit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: floty_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4 + PCOV (coverage)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, bcmath, gd, zip, redis
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Prepare .env testing
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: floty_testing
+          DB_USERNAME: root
+          DB_PASSWORD: root
+
+      - name: Wait for MySQL
+        run: |
+          until mysqladmin ping -h 127.0.0.1 -uroot -proot --silent; do
+            echo "Waiting for MySQL…"
+            sleep 1
+          done
+
+      - name: Pint (style FR)
+        run: vendor/bin/pint --test --format=txt
+
+      - name: PHPStan (level 6)
+        run: vendor/bin/phpstan analyse --memory-limit=2G --no-progress --error-format=table
+
+      - name: PHPUnit + coverage
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: floty_testing
+          DB_USERNAME: root
+          DB_PASSWORD: root
+        run: php artisan test --compact --coverage-clover=coverage/php/clover.xml
+
+      - name: Composer audit
+        run: composer audit --no-interaction || echo "::warning::composer audit a relevé des advisories — vérifier manuellement"
+
+      - name: Upload PHP coverage HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-php-html
+          path: coverage/php
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # ------------------------------------------------------------------
+  # JS — ESLint, format, types (Wayfinder + Spatie TS Transformer
+  # nécessitent PHP), Vitest + coverage v8, build production.
+  # ------------------------------------------------------------------
+  js:
+    name: JS (ESLint + types + Vitest + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP 8.4
+        # Wayfinder + Spatie TypeScript Transformer ont besoin de PHP +
+        # autoload Laravel pour générer les types TS consommés par
+        # `vue-tsc` et `vitest`.
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, intl, pdo_mysql, bcmath, gd, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Cache Composer
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install Composer dependencies (autoload pour Wayfinder/TS Transformer)
+        run: composer install --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Prepare .env (clé app pour les commandes artisan)
+        run: |
+          cp .env.example .env
+          php artisan key:generate --ansi
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: ESLint
+        run: npm run lint:check
+
+      - name: Prettier (format)
+        run: npm run format:check
+
+      - name: TypeScript (vue-tsc — passe par typescript:transform)
+        run: npm run types:check
+
+      - name: Vitest + coverage v8
+        run: npx vitest run --coverage
+
+      - name: Vite build
+        run: npm run build
+
+      - name: npm audit
+        run: npm audit --omit=dev || echo "::warning::npm audit a relevé des advisories — vérifier manuellement"
+
+      - name: Upload JS coverage HTML
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-js-html
+          path: coverage/js
+          retention-days: 14
+          if-no-files-found: ignore

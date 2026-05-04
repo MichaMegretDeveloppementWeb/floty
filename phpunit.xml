@@ -17,6 +17,12 @@
             <directory>app</directory>
         </include>
     </source>
+    <!--
+        Coverage piloté en CLI uniquement (cf. .github/workflows/ci.yml) :
+        php artisan test  coverage-clover=coverage/php/clover.xml. Pas
+        de bloc <coverage> ici car il exigerait un driver (Xdebug/PCOV)
+        installé en local pour chaque dev (non souhaité).
+    -->
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
