@@ -19,13 +19,23 @@ const tabs: readonly { key: CompanyTabKey; label: string }[] = [
 </script>
 
 <template>
-    <div class="flex gap-1 border-b border-slate-200">
+    <!-- Scroll horizontal natif sur mobile (touch drag fonctionne en
+         standard) ; sur desktop la barre fait sa largeur naturelle si
+         tout rentre, sinon scroll molette/touchpad. Scrollbar masquée
+         visuellement pour rester propre - le visuel border-b reste
+         continu sous la nav. -->
+    <div
+        class="flex gap-1 overflow-x-auto border-b border-slate-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+    >
         <button
             v-for="tab in tabs"
             :key="tab.key"
             type="button"
+            role="tab"
+            :aria-selected="activeTab === tab.key"
             :class="[
-                'border-b-2 px-4 py-2 text-sm font-medium transition-colors',
+                'shrink-0 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors',
                 activeTab === tab.key
                     ? 'border-blue-600 text-blue-700'
                     : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900',

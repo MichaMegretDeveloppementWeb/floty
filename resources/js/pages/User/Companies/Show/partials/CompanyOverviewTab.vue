@@ -14,7 +14,7 @@
  */
 import CompanyAddressCard from './overview/CompanyAddressCard.vue';
 import CompanyContactCard from './overview/CompanyContactCard.vue';
-import CompanyLifetimeStatsCard from './overview/CompanyLifetimeStatsCard.vue';
+import CompanyLifetimeStatsCards from './overview/CompanyLifetimeStatsCards.vue';
 import CompanyYearHistoryCard from './overview/CompanyYearHistoryCard.vue';
 
 defineProps<{
@@ -24,7 +24,7 @@ defineProps<{
 
 <template>
     <div class="flex flex-col gap-6">
-        <CompanyLifetimeStatsCard :lifetime="company.lifetime" />
+        <CompanyLifetimeStatsCards :lifetime="company.lifetime" />
 
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <!-- Colonne principale -->
