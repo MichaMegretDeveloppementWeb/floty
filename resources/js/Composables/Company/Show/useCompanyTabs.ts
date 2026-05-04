@@ -3,21 +3,30 @@ import { computed, onMounted, watch } from 'vue';
 import { ref } from 'vue';
 
 export type CompanyTabKey =
-    | 'infos'
+    | 'overview'
     | 'contracts'
     | 'drivers'
     | 'fiscal'
     | 'billing';
 
 const VALID_TABS: readonly CompanyTabKey[] = [
-    'infos',
+    'overview',
     'contracts',
     'drivers',
     'fiscal',
     'billing',
 ];
 
-const DEFAULT_TAB: CompanyTabKey = 'infos';
+const DEFAULT_TAB: CompanyTabKey = 'overview';
+
+/**
+ * Compatibilité bookmarks : l'ancien tab key `infos` (avant chantier K,
+ * cf. ADR-0020 D3) est silencieusement remappé vers `overview` à
+ * l'arrivée pour ne pas casser les liens partagés.
+ */
+const LEGACY_TAB_ALIASES: Readonly<Record<string, CompanyTabKey>> = {
+    infos: 'overview',
+};
 
 /**
  * Sync de l'onglet actif sur Show Company avec le query param `?tab=...`
@@ -38,10 +47,17 @@ export function useCompanyTabs(): {
         const params = new URLSearchParams(window.location.search);
         const value = params.get('tab');
 
-        if (
-            value !== null &&
-            (VALID_TABS as readonly string[]).includes(value)
-        ) {
+        if (value === null) {
+            return DEFAULT_TAB;
+        }
+
+        // Remap silencieux des anciens noms d'onglets pour compat
+        // bookmarks (ex. `?tab=infos` post-chantier K).
+        if (value in LEGACY_TAB_ALIASES) {
+            return LEGACY_TAB_ALIASES[value]!;
+        }
+
+        if ((VALID_TABS as readonly string[]).includes(value)) {
             return value as CompanyTabKey;
         }
 

@@ -7,7 +7,7 @@ import CompanyContractsTab from './partials/CompanyContractsTab.vue';
 import CompanyDriversTab from './partials/CompanyDriversTab.vue';
 import CompanyFiscalTab from './partials/CompanyFiscalTab.vue';
 import CompanyHeader from './partials/CompanyHeader.vue';
-import CompanyInfoTab from './partials/CompanyInfoTab.vue';
+import CompanyOverviewTab from './partials/CompanyOverviewTab.vue';
 import CompanyTabsNav from './partials/CompanyTabsNav.vue';
 
 const props = defineProps<{
@@ -26,8 +26,8 @@ const { activeTab, setTab } = useCompanyTabs();
 
             <CompanyTabsNav :active-tab="activeTab" @change="setTab" />
 
-            <CompanyInfoTab
-                v-if="activeTab === 'infos'"
+            <CompanyOverviewTab
+                v-if="activeTab === 'overview'"
                 :company="props.company"
             />
             <CompanyContractsTab
