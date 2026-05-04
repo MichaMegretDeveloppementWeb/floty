@@ -5,7 +5,6 @@ import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
-import type { ContractSortKey } from '@/Composables/Contract/Index/useContractsTable';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import type {
@@ -18,34 +17,16 @@ type ContractRow = App.Data.User.Contract.ContractListItemData;
 defineProps<{
     contracts: ContractRow[];
     columns: readonly DataTableColumn<ContractRow>[];
-    sortKey: ContractSortKey | null;
+    activeSortColumnKey: string | null;
     sortDirection: 'asc' | 'desc';
     badgeTone: typeof contractTypeBadgeTone;
     shortLabel: typeof contractTypeShortLabel;
 }>();
 
 const emit = defineEmits<{
-    sort: [key: ContractSortKey];
+    'header-click': [columnKey: string];
     'row-click': [row: ContractRow];
 }>();
-
-// Mapping colonne → clé de tri (toutes les colonnes sont triables ici).
-const COLUMN_TO_SORT_KEY: Record<string, ContractSortKey> = {
-    vehicleLicensePlate: 'vehicle',
-    companyShortCode: 'company',
-    startDate: 'startDate',
-    endDate: 'endDate',
-    durationDays: 'duration',
-    contractType: 'type',
-};
-
-function onHeaderClick(columnKey: string): void {
-    const sortKey = COLUMN_TO_SORT_KEY[columnKey];
-
-    if (sortKey !== undefined) {
-        emit('sort', sortKey);
-    }
-}
 </script>
 
 <template>
@@ -65,11 +46,11 @@ function onHeaderClick(columnKey: string): void {
         >
             <SortableHeader
                 :label="col.label"
-                :sort-key="COLUMN_TO_SORT_KEY[col.key] ?? ''"
-                :active-key="sortKey"
+                :sort-key="col.key"
+                :active-key="activeSortColumnKey ?? ''"
                 :direction="sortDirection"
                 :align="col.align === 'right' ? 'right' : 'left'"
-                @click="onHeaderClick(col.key)"
+                @click="emit('header-click', col.key)"
             />
         </template>
 

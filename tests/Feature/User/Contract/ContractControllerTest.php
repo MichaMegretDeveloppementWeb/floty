@@ -7,12 +7,14 @@ namespace Tests\Feature\User\Contract;
 use App\Enums\Contract\ContractType;
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\Driver;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Feature\Concerns\AssertsPaginatedIndex;
 use Tests\TestCase;
 
 /**
@@ -21,6 +23,7 @@ use Tests\TestCase;
  */
 final class ContractControllerTest extends TestCase
 {
+    use AssertsPaginatedIndex;
     use RefreshDatabase;
 
     #[Test]
@@ -39,9 +42,320 @@ final class ContractControllerTest extends TestCase
         $this->actingAs($user)
             ->get('/app/contracts')
             ->assertOk()
+            ->assertInertia(function (AssertableInertia $page): void {
+                $page->component('User/Contracts/Index/Index');
+                $this->assertPaginatedShape(
+                    $page,
+                    'contracts',
+                    expectedDataCount: 2,
+                    expectedMeta: ['total' => 2, 'currentPage' => 1, 'perPage' => 20],
+                );
+            });
+    }
+
+    #[Test]
+    public function index_paginate_avec_per_page_personnalise(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+        // 25 contrats sur le même vehicle avec dates non-overlap (1 par mois sur 25 mois)
+        for ($i = 0; $i < 25; $i++) {
+            $start = sprintf('2023-%02d-01', ($i % 12) + 1);
+            $end = sprintf('2023-%02d-15', ($i % 12) + 1);
+            // Étaler sur plusieurs years pour éviter overlap
+            $year = 2023 + intdiv($i, 12);
+            Contract::factory()->create([
+                'vehicle_id' => Vehicle::factory()->create()->id,
+                'company_id' => $company->id,
+                'start_date' => sprintf('%04d-01-01', $year + $i),
+                'end_date' => sprintf('%04d-01-15', $year + $i),
+            ]);
+        }
+
+        $this->actingAs($user)
+            ->get('/app/contracts?perPage=10')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'contracts',
+                expectedDataCount: 10,
+                expectedMeta: ['total' => 25, 'lastPage' => 3, 'perPage' => 10],
+            ));
+    }
+
+    #[Test]
+    public function index_per_page_hors_whitelist_rejette_la_requete(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/contracts?perPage=33')
+            ->assertSessionHasErrors(['perPage']);
+    }
+
+    #[Test]
+    public function index_sort_key_hors_whitelist_rejette_la_requete(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/contracts?sortKey=password')
+            ->assertSessionHasErrors(['sortKey']);
+    }
+
+    #[Test]
+    public function index_filtre_par_vehicle_id(): void
+    {
+        $user = User::factory()->create();
+        $v1 = Vehicle::factory()->create();
+        $v2 = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+        Contract::factory()->create([
+            'vehicle_id' => $v1->id, 'company_id' => $company->id,
+            'start_date' => '2025-01-01', 'end_date' => '2025-01-31',
+        ]);
+        Contract::factory()->create([
+            'vehicle_id' => $v2->id, 'company_id' => $company->id,
+            'start_date' => '2025-02-01', 'end_date' => '2025-02-28',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/contracts?vehicleId='.$v1->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'contracts',
+                expectedDataCount: 1,
+                expectedMeta: ['total' => 1],
+            ));
+    }
+
+    #[Test]
+    public function index_filtre_par_company_id_driver_id_et_type(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $vehicle2 = Vehicle::factory()->create();
+        $vehicle3 = Vehicle::factory()->create();
+        $c1 = Company::factory()->create();
+        $c2 = Company::factory()->create();
+        $driver = Driver::factory()->create();
+
+        // Match: c1 + driver + lcd
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $c1->id,
+            'driver_id' => $driver->id, 'contract_type' => ContractType::Lcd,
+            'start_date' => '2025-01-01', 'end_date' => '2025-01-15',
+        ]);
+        // Pas match (c2)
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle2->id, 'company_id' => $c2->id,
+            'driver_id' => $driver->id, 'contract_type' => ContractType::Lcd,
+            'start_date' => '2025-02-01', 'end_date' => '2025-02-15',
+        ]);
+        // Pas match (lld)
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle3->id, 'company_id' => $c1->id,
+            'driver_id' => $driver->id, 'contract_type' => ContractType::Lld,
+            'start_date' => '2025-03-01', 'end_date' => '2025-12-31',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/contracts?companyId='.$c1->id.'&driverId='.$driver->id.'&type=lcd')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'contracts',
+                expectedDataCount: 1,
+                expectedMeta: ['total' => 1],
+            ));
+    }
+
+    #[Test]
+    public function index_filtre_par_periode_chevauchement(): void
+    {
+        $user = User::factory()->create();
+        $vehicle1 = Vehicle::factory()->create();
+        $vehicle2 = Vehicle::factory()->create();
+        $vehicle3 = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        // Avant la fenêtre — pas match
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle1->id, 'company_id' => $company->id,
+            'start_date' => '2025-01-01', 'end_date' => '2025-01-31',
+        ]);
+        // Chevauche fenêtre [2025-03-01, 2025-03-31] — match
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle2->id, 'company_id' => $company->id,
+            'start_date' => '2025-03-15', 'end_date' => '2025-04-15',
+        ]);
+        // Après la fenêtre — pas match
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle3->id, 'company_id' => $company->id,
+            'start_date' => '2025-05-01', 'end_date' => '2025-05-31',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/contracts?periodStart=2025-03-01&periodEnd=2025-03-31')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'contracts',
+                expectedDataCount: 1,
+                expectedMeta: ['total' => 1],
+            ));
+    }
+
+    #[Test]
+    public function index_search_combo_vehicle_company_driver(): void
+    {
+        $user = User::factory()->create();
+        $vehicle1 = Vehicle::factory()->create(['license_plate' => 'AA-111-AA', 'brand' => 'Renault', 'model' => 'Clio']);
+        $vehicle2 = Vehicle::factory()->create(['license_plate' => 'BB-222-BB', 'brand' => 'Peugeot', 'model' => '208']);
+        $vehicle3 = Vehicle::factory()->create(['license_plate' => 'CC-333-CC', 'brand' => 'Citroën', 'model' => 'C3']);
+        $companyA = Company::factory()->create(['short_code' => 'ALP', 'legal_name' => 'Alpha SARL']);
+        $companyB = Company::factory()->create(['short_code' => 'BTA', 'legal_name' => 'Beta SAS']);
+        $driver = Driver::factory()->create(['first_name' => 'Sophie', 'last_name' => 'Martin']);
+
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle1->id, 'company_id' => $companyA->id,
+            'start_date' => '2025-01-01', 'end_date' => '2025-01-31',
+        ]);
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle2->id, 'company_id' => $companyB->id,
+            'driver_id' => $driver->id,
+            'start_date' => '2025-02-01', 'end_date' => '2025-02-28',
+        ]);
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle3->id, 'company_id' => $companyA->id,
+            'start_date' => '2025-03-01', 'end_date' => '2025-03-31',
+        ]);
+
+        // Search par plate
+        $this->actingAs($user)
+            ->get('/app/contracts?search=BB-222')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page, 'contracts', expectedDataCount: 1, expectedMeta: ['total' => 1],
+            ));
+
+        // Search par brand
+        $this->actingAs($user)
+            ->get('/app/contracts?search=Renault')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page, 'contracts', expectedDataCount: 1, expectedMeta: ['total' => 1],
+            ));
+
+        // Search par company short_code
+        $this->actingAs($user)
+            ->get('/app/contracts?search=ALP')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page, 'contracts', expectedDataCount: 2, expectedMeta: ['total' => 2],
+            ));
+
+        // Search par driver name
+        $this->actingAs($user)
+            ->get('/app/contracts?search=Sophie')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page, 'contracts', expectedDataCount: 1, expectedMeta: ['total' => 1],
+            ));
+    }
+
+    #[Test]
+    public function index_sort_par_start_date_desc(): void
+    {
+        $user = User::factory()->create();
+        $v1 = Vehicle::factory()->create();
+        $v2 = Vehicle::factory()->create();
+        $v3 = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        Contract::factory()->create([
+            'vehicle_id' => $v1->id, 'company_id' => $company->id,
+            'start_date' => '2025-01-01', 'end_date' => '2025-01-31',
+        ]);
+        Contract::factory()->create([
+            'vehicle_id' => $v2->id, 'company_id' => $company->id,
+            'start_date' => '2025-03-01', 'end_date' => '2025-03-31',
+        ]);
+        Contract::factory()->create([
+            'vehicle_id' => $v3->id, 'company_id' => $company->id,
+            'start_date' => '2025-02-01', 'end_date' => '2025-02-28',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/contracts?sortKey=startDate&sortDirection=desc')
+            ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Contracts/Index/Index')
-                ->has('contracts', 2));
+                ->where('contracts.data.0.startDate', '2025-03-01')
+                ->where('contracts.data.1.startDate', '2025-02-01')
+                ->where('contracts.data.2.startDate', '2025-01-01'),
+            );
+    }
+
+    #[Test]
+    public function index_sort_par_duration_desc(): void
+    {
+        $user = User::factory()->create();
+        $v1 = Vehicle::factory()->create();
+        $v2 = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        // Court (2 jours)
+        Contract::factory()->create([
+            'vehicle_id' => $v1->id, 'company_id' => $company->id,
+            'start_date' => '2025-01-01', 'end_date' => '2025-01-02',
+        ]);
+        // Long (90 jours)
+        Contract::factory()->create([
+            'vehicle_id' => $v2->id, 'company_id' => $company->id,
+            'start_date' => '2025-01-01', 'end_date' => '2025-03-31',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/contracts?sortKey=duration&sortDirection=desc')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contracts.data.0.durationDays', 90)
+                ->where('contracts.data.1.durationDays', 2),
+            );
+    }
+
+    #[Test]
+    public function index_query_dto_est_renvoye_au_frontend(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+        $driver = Driver::factory()->create();
+
+        $url = sprintf(
+            '/app/contracts?perPage=50&sortKey=startDate&sortDirection=desc&search=foo&vehicleId=%d&companyId=%d&driverId=%d&type=lcd&periodStart=2025-01-01&periodEnd=2025-12-31',
+            $vehicle->id,
+            $company->id,
+            $driver->id,
+        );
+
+        $this->actingAs($user)
+            ->get($url)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('query.perPage', 50)
+                ->where('query.sortKey', 'startDate')
+                ->where('query.sortDirection', 'desc')
+                ->where('query.search', 'foo')
+                ->where('query.vehicleId', $vehicle->id)
+                ->where('query.companyId', $company->id)
+                ->where('query.driverId', $driver->id)
+                ->where('query.type', 'lcd')
+                ->where('query.periodStart', '2025-01-01')
+                ->where('query.periodEnd', '2025-12-31'),
+            );
     }
 
     #[Test]

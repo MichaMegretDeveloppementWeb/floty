@@ -1,8 +1,22 @@
+/**
+ * Configuration de la table Index Contracts (server-side, cf. ADR-0020).
+ *
+ * Particularités :
+ *  - 5 filtres : vehicleId, companyId, driverId, type (lcd/lld),
+ *    periodStart/periodEnd (chevauchement)
+ *  - Search combo SQL : LIKE sur vehicle.license_plate/brand/model,
+ *    company.short_code/legal_name, driver.first_name/last_name
+ *  - Toutes les 6 colonnes triables (vehicle, company, startDate,
+ *    endDate, duration via DATEDIFF, type)
+ *
+ * Le rendu (badges, plates, dates) reste dans `ContractsTable.vue`.
+ */
+
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import type { ComputedRef, Ref } from 'vue';
-import { useTableState } from '@/Composables/Shared/useTableState';
-import type { TableState } from '@/Composables/Shared/useTableState';
+import type { ComputedRef } from 'vue';
+import { useServerTableState } from '@/Composables/Shared/useServerTableState';
+import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { show as contractsShowRoute } from '@/routes/user/contracts';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
@@ -13,6 +27,25 @@ import {
 
 type ContractRow = App.Data.User.Contract.ContractListItemData;
 
+export type ContractSortKey =
+    | 'vehicle'
+    | 'company'
+    | 'startDate'
+    | 'endDate'
+    | 'duration'
+    | 'type';
+
+// Mapping clé colonne UI → sortKey backend (whitelist
+// ContractIndexQueryData::allowedSortKeys).
+const COLUMN_TO_SORT_KEY: Partial<Record<string, ContractSortKey>> = {
+    vehicleLicensePlate: 'vehicle',
+    companyShortCode: 'company',
+    startDate: 'startDate',
+    endDate: 'endDate',
+    durationDays: 'duration',
+    contractType: 'type',
+};
+
 export type ContractFilters = {
     vehicleId: number | null;
     companyId: number | null;
@@ -22,139 +55,87 @@ export type ContractFilters = {
     periodEnd: string | null;
 };
 
-export type ContractSortKey =
-    | 'vehicle'
-    | 'company'
-    | 'startDate'
-    | 'endDate'
-    | 'duration'
-    | 'type';
-
-const DEFAULT_FILTERS: ContractFilters = {
-    vehicleId: null,
-    companyId: null,
-    driverId: null,
-    type: null,
-    periodStart: null,
-    periodEnd: null,
-};
-
-const SORT_KEYS: readonly ContractSortKey[] = [
-    'vehicle',
-    'company',
-    'startDate',
-    'endDate',
-    'duration',
-    'type',
-];
-
 export type ContractFilterChip = {
     key: keyof ContractFilters;
     label: string;
 };
 
-/**
- * Configuration colonnes + état tri/filtres pour la table de la page
- * Index Contracts (chantier D).
- *
- * Le rendu des cellules (badges, plates, dates) reste dans
- * `ContractsTable.vue` via les slots de `DataTable`.
- */
 export function useContractsTable(opts: {
-    contracts: Ref<readonly ContractRow[]>;
-    vehicleOptions: Ref<readonly App.Data.User.Vehicle.VehicleOptionData[]>;
-    companyOptions: Ref<readonly App.Data.User.Company.CompanyOptionData[]>;
-    driverOptions: Ref<readonly App.Data.User.Driver.DriverOptionData[]>;
+    query: App.Data.User.Contract.ContractIndexQueryData;
+    vehicleOptions: readonly App.Data.User.Vehicle.VehicleOptionData[];
+    companyOptions: readonly App.Data.User.Company.CompanyOptionData[];
+    driverOptions: readonly App.Data.User.Driver.DriverOptionData[];
 }): {
-    columns: ComputedRef<readonly DataTableColumn<ContractRow>[]>;
-    rows: ComputedRef<ContractRow[]>;
-    state: TableState<ContractRow, ContractFilters, ContractSortKey>;
+    columns: readonly DataTableColumn<ContractRow>[];
+    state: ServerTableState<ContractFilters>;
+    activeSortColumnKey: ComputedRef<string | null>;
     activeFilterChips: ComputedRef<ContractFilterChip[]>;
-    removeFilter: (key: keyof ContractFilters) => void;
+    activeFiltersCount: ComputedRef<number>;
+    onHeaderClick: (columnKey: string) => void;
+    onRowClick: (row: ContractRow) => void;
     shortLabel: typeof contractTypeShortLabel;
     badgeTone: typeof contractTypeBadgeTone;
-    handleRowClick: (row: ContractRow) => void;
 } {
-    const columns = computed<readonly DataTableColumn<ContractRow>[]>(() => [
+    const columns: readonly DataTableColumn<ContractRow>[] = [
         { key: 'vehicleLicensePlate', label: 'Véhicule' },
         { key: 'companyShortCode', label: 'Entreprise' },
         { key: 'startDate', label: 'Du', mono: true },
         { key: 'endDate', label: 'Au', mono: true },
         { key: 'durationDays', label: 'Durée', align: 'right', mono: true },
         { key: 'contractType', label: 'Type' },
-    ]);
+    ];
 
-    const state = useTableState<ContractRow, ContractFilters, ContractSortKey>({
-        defaultFilters: DEFAULT_FILTERS,
-        sortKeys: SORT_KEYS,
-        parseFiltersFromUrl: (params) => ({
-            vehicleId: parseIntOrNull(params.get('vehicleId')),
-            companyId: parseIntOrNull(params.get('companyId')),
-            driverId: parseIntOrNull(params.get('driverId')),
-            type: parseTypeOrNull(params.get('type')),
-            periodStart: params.get('periodStart'),
-            periodEnd: params.get('periodEnd'),
-        }),
-        serializeFiltersToUrl: (f) => ({
-            vehicleId: f.vehicleId?.toString() ?? null,
-            companyId: f.companyId?.toString() ?? null,
-            driverId: f.driverId?.toString() ?? null,
+    const state = useServerTableState<ContractFilters>({
+        only: ['contracts', 'query'],
+        initialPage: opts.query.page,
+        initialPerPage: opts.query.perPage,
+        initialSearch: opts.query.search ?? '',
+        initialSortKey: opts.query.sortKey,
+        initialSortDirection: opts.query.sortDirection,
+        defaultFilters: {
+            vehicleId: null,
+            companyId: null,
+            driverId: null,
+            type: null,
+            periodStart: null,
+            periodEnd: null,
+        },
+        initialFilters: {
+            vehicleId: opts.query.vehicleId,
+            companyId: opts.query.companyId,
+            driverId: opts.query.driverId,
+            type: opts.query.type as 'lcd' | 'lld' | null,
+            periodStart: opts.query.periodStart,
+            periodEnd: opts.query.periodEnd,
+        },
+        serializeFilters: (f) => ({
+            vehicleId: f.vehicleId,
+            companyId: f.companyId,
+            driverId: f.driverId,
             type: f.type,
             periodStart: f.periodStart,
             periodEnd: f.periodEnd,
         }),
-        applyFilter: (item, f) => {
-            if (f.vehicleId !== null && item.vehicleId !== f.vehicleId) {
-                return false;
-            }
-
-            if (f.companyId !== null && item.companyId !== f.companyId) {
-                return false;
-            }
-
-            if (f.driverId !== null && item.driverId !== f.driverId) {
-                return false;
-            }
-
-            if (f.type !== null && item.contractType !== f.type) {
-                return false;
-            }
-
-            // Période : le contrat doit chevaucher [periodStart, periodEnd].
-            if (f.periodStart !== null && item.endDate < f.periodStart) {
-                return false;
-            }
-
-            if (f.periodEnd !== null && item.startDate > f.periodEnd) {
-                return false;
-            }
-
-            return true;
-        },
-        sortComparators: {
-            vehicle: (a, b) =>
-                a.vehicleLicensePlate.localeCompare(b.vehicleLicensePlate),
-            company: (a, b) =>
-                a.companyShortCode.localeCompare(b.companyShortCode),
-            startDate: (a, b) => a.startDate.localeCompare(b.startDate),
-            endDate: (a, b) => a.endDate.localeCompare(b.endDate),
-            duration: (a, b) => a.durationDays - b.durationDays,
-            type: (a, b) => a.contractType.localeCompare(b.contractType),
-        },
     });
 
-    const rows = computed<ContractRow[]>(() =>
-        state.apply(opts.contracts.value),
-    );
+    const activeSortColumnKey = computed<string | null>(() => {
+        if (state.sort.value.key === null) {
+            return null;
+        }
+
+        const entry = Object.entries(COLUMN_TO_SORT_KEY).find(
+            ([, sortKey]) => sortKey === state.sort.value.key,
+        );
+
+        return entry ? entry[0] : null;
+    });
 
     const activeFilterChips = computed<ContractFilterChip[]>(() => {
         const chips: ContractFilterChip[] = [];
         const f = state.filters.value;
 
         if (f.vehicleId !== null) {
-            const v = opts.vehicleOptions.value.find(
-                (x) => x.id === f.vehicleId,
-            );
+            const v = opts.vehicleOptions.find((x) => x.id === f.vehicleId);
             chips.push({
                 key: 'vehicleId',
                 label: `Véhicule : ${v?.label ?? '#' + f.vehicleId}`,
@@ -162,9 +143,7 @@ export function useContractsTable(opts: {
         }
 
         if (f.companyId !== null) {
-            const c = opts.companyOptions.value.find(
-                (x) => x.id === f.companyId,
-            );
+            const c = opts.companyOptions.find((x) => x.id === f.companyId);
             chips.push({
                 key: 'companyId',
                 label: `Entreprise : ${c?.shortCode ?? '#' + f.companyId}`,
@@ -172,7 +151,7 @@ export function useContractsTable(opts: {
         }
 
         if (f.driverId !== null) {
-            const d = opts.driverOptions.value.find((x) => x.id === f.driverId);
+            const d = opts.driverOptions.find((x) => x.id === f.driverId);
             chips.push({
                 key: 'driverId',
                 label: `Conducteur : ${d?.fullName ?? '#' + f.driverId}`,
@@ -187,8 +166,8 @@ export function useContractsTable(opts: {
         }
 
         if (f.periodStart !== null || f.periodEnd !== null) {
-            const start =
-                f.periodStart === null ? '…' : formatDateFr(f.periodStart);
+            const start
+                = f.periodStart === null ? '…' : formatDateFr(f.periodStart);
             const end = f.periodEnd === null ? '…' : formatDateFr(f.periodEnd);
             chips.push({
                 key: 'periodStart',
@@ -199,48 +178,31 @@ export function useContractsTable(opts: {
         return chips;
     });
 
-    function removeFilter(key: keyof ContractFilters): void {
-        if (key === 'periodStart' || key === 'periodEnd') {
-            // La pill "Période" couvre les 2 bornes - on les efface ensemble.
-            state.setFilter('periodStart', null);
-            state.setFilter('periodEnd', null);
+    const activeFiltersCount = computed<number>(
+        () => activeFilterChips.value.length,
+    );
 
-            return;
+    function onHeaderClick(columnKey: string): void {
+        const sortKey = COLUMN_TO_SORT_KEY[columnKey];
+
+        if (sortKey !== undefined) {
+            state.setSort(sortKey);
         }
-
-        state.setFilter(key, DEFAULT_FILTERS[key]);
     }
 
-    const handleRowClick = (row: ContractRow): void => {
+    function onRowClick(row: ContractRow): void {
         router.visit(contractsShowRoute.url({ contract: row.id }));
-    };
+    }
 
     return {
         columns,
-        rows,
         state,
+        activeSortColumnKey,
         activeFilterChips,
-        removeFilter,
+        activeFiltersCount,
+        onHeaderClick,
+        onRowClick,
         shortLabel: contractTypeShortLabel,
         badgeTone: contractTypeBadgeTone,
-        handleRowClick,
     };
-}
-
-function parseIntOrNull(value: string | null): number | null {
-    if (value === null) {
-        return null;
-    }
-
-    const n = Number.parseInt(value, 10);
-
-    return Number.isNaN(n) ? null : n;
-}
-
-function parseTypeOrNull(value: string | null): 'lcd' | 'lld' | null {
-    if (value === 'lcd' || value === 'lld') {
-        return value;
-    }
-
-    return null;
 }

@@ -9,6 +9,7 @@ use App\Actions\Contract\DeleteContractAction;
 use App\Actions\Contract\StoreContractAction;
 use App\Actions\Contract\UpdateContractAction;
 use App\Data\User\Contract\BulkStoreContractsData;
+use App\Data\User\Contract\ContractIndexQueryData;
 use App\Data\User\Contract\StoreContractData;
 use App\Data\User\Contract\UpdateContractData;
 use App\Http\Controllers\Controller;
@@ -43,11 +44,12 @@ final class ContractController extends Controller
         private readonly BulkCreateContractsAction $bulkCreateContracts,
     ) {}
 
-    public function index(): Response
+    public function index(ContractIndexQueryData $query): Response
     {
         return Inertia::render('User/Contracts/Index/Index', [
-            'contracts' => $this->contracts->listAll(),
+            'contracts' => $this->contracts->listPaginated($query),
             'options' => $this->buildFormOptions(),
+            'query' => $query,
         ]);
     }
 
