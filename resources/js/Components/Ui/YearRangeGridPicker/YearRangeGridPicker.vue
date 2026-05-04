@@ -14,7 +14,9 @@ const yearMax = defineModel<number | null>('yearMax', { required: true });
 const years = computed<number[]>(() => {
     const list: number[] = [];
 
-    for (let y = props.max; y >= props.min; y--) {
+    // Ordre ascendant : année la plus ancienne en haut, la plus récente
+    // en bas. Cohérent avec la lecture occidentale (passé → présent).
+    for (let y = props.min; y <= props.max; y++) {
         list.push(y);
     }
 

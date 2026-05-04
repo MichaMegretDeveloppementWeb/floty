@@ -82,14 +82,29 @@ onBeforeUnmount(() => {
             </span>
         </button>
 
+        <!--
+            Mobile (< sm) : bottom sheet centrée + backdrop léger pour
+            focus visuel, hauteur bornée à 80vh + scroll interne.
+            Desktop (≥ sm) : popover ancré sous le bouton, max 400px de
+            large, hauteur bornée à viewport-8rem + scroll interne pour
+            les longs contenus (filtres avec grille année, par ex.).
+        -->
         <div
             v-if="open"
-            class="absolute left-0 top-full z-50 mt-2 w-[400px] max-w-[calc(100vw-2rem)] rounded-lg border border-slate-200 bg-white shadow-lg"
+            class="fixed inset-0 z-40 bg-slate-900/20 sm:hidden"
+            aria-hidden="true"
+            @click="open = false"
+        />
+        <div
+            v-if="open"
+            class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[400px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"
         >
-            <div class="flex flex-col gap-3 p-4">
+            <div class="flex flex-col gap-3 overflow-y-auto p-4">
                 <slot />
             </div>
-            <div class="flex items-center justify-between border-t border-slate-100 px-4 py-2">
+            <div
+                class="flex shrink-0 items-center justify-between border-t border-slate-100 px-4 py-2"
+            >
                 <button
                     type="button"
                     :class="[
