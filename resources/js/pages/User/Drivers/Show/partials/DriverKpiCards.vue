@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Building2, CalendarClock, FileText } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
+import { Building2, FileText } from 'lucide-vue-next';
 import { computed } from 'vue';
 import StatCard from '@/Components/Ui/StatCard/StatCard.vue';
-import { useDriverAnciennete } from '@/Composables/Driver/useDriverAnciennete';
+import { index as contractsIndexRoute } from '@/routes/user/contracts';
 
 const props = defineProps<{
     driver: App.Data.User.Driver.DriverData;
@@ -12,23 +13,28 @@ const activeCompaniesCount = computed<number>(
     () => props.driver.memberships.filter((m) => m.isCurrentlyActive).length,
 );
 
-const anciennete = computed<string>(() =>
-    useDriverAnciennete(props.driver.memberships),
+const contractsHref = computed<string>(() =>
+    contractsIndexRoute.url({ query: { driverId: props.driver.id } }),
 );
 </script>
 
 <template>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard
-            :value="props.driver.contractsCount"
-            label="Contrats"
-            caption="Tous statuts confondus"
-            tone="blue"
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Link
+            :href="contractsHref"
+            class="block rounded-xl transition-shadow duration-[120ms] ease-out hover:shadow-md"
         >
-            <template #icon>
-                <FileText :size="16" :stroke-width="1.75" />
-            </template>
-        </StatCard>
+            <StatCard
+                :value="props.driver.contractsCount"
+                label="Contrats"
+                caption="Voir les contrats du conducteur"
+                tone="blue"
+            >
+                <template #icon>
+                    <FileText :size="16" :stroke-width="1.75" />
+                </template>
+            </StatCard>
+        </Link>
 
         <StatCard
             :value="activeCompaniesCount"
@@ -38,17 +44,6 @@ const anciennete = computed<string>(() =>
         >
             <template #icon>
                 <Building2 :size="16" :stroke-width="1.75" />
-            </template>
-        </StatCard>
-
-        <StatCard
-            :value="anciennete"
-            label="Ancienneté"
-            caption="Depuis la première entrée"
-            tone="slate"
-        >
-            <template #icon>
-                <CalendarClock :size="16" :stroke-width="1.75" />
             </template>
         </StatCard>
     </div>
