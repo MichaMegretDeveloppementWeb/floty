@@ -40,8 +40,8 @@ export type FleetFilters = {
     energySource: App.Enums.Vehicle.EnergySource | null;
     pollutantCategory: App.Enums.Vehicle.PollutantCategory | null;
     handicapAccess: boolean | null;
-    acquisitionYearMin: number | null;
-    acquisitionYearMax: number | null;
+    firstRegistrationYearMin: number | null;
+    firstRegistrationYearMax: number | null;
 };
 
 export function useFleetTable(opts: {
@@ -78,8 +78,8 @@ export function useFleetTable(opts: {
             energySource: null,
             pollutantCategory: null,
             handicapAccess: null,
-            acquisitionYearMin: null,
-            acquisitionYearMax: null,
+            firstRegistrationYearMin: null,
+            firstRegistrationYearMax: null,
         },
         initialFilters: {
             status: opts.query.status,
@@ -87,8 +87,8 @@ export function useFleetTable(opts: {
             energySource: opts.query.energySource,
             pollutantCategory: opts.query.pollutantCategory,
             handicapAccess: opts.query.handicapAccess,
-            acquisitionYearMin: opts.query.acquisitionYearMin,
-            acquisitionYearMax: opts.query.acquisitionYearMax,
+            firstRegistrationYearMin: opts.query.firstRegistrationYearMin,
+            firstRegistrationYearMax: opts.query.firstRegistrationYearMax,
         },
         serializeFilters: (f) => ({
             status: f.status,
@@ -97,8 +97,8 @@ export function useFleetTable(opts: {
             energySource: f.energySource,
             pollutantCategory: f.pollutantCategory,
             handicapAccess: f.handicapAccess === true ? 1 : null,
-            acquisitionYearMin: f.acquisitionYearMin,
-            acquisitionYearMax: f.acquisitionYearMax,
+            firstRegistrationYearMin: f.firstRegistrationYearMin,
+            firstRegistrationYearMax: f.firstRegistrationYearMax,
         }),
     });
 

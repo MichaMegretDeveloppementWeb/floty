@@ -22,8 +22,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *  - `pollutantCategory: PollutantCategory|null` — sur la VFC active
  *  - `handicapAccess: bool|null` — sur la VFC active (true = uniquement
  *     les véhicules accessibles handicapés)
- *  - `acquisitionYearMin/Max: int|null` — `YEAR(acquisition_date)` dans
- *     la fourchette
+ *  - `firstRegistrationYearMin/Max: int|null` —
+ *     `YEAR(first_french_registration_date)` dans la fourchette
+ *     (date de 1ʳᵉ immatriculation, plus pertinente que la date
+ *     d'acquisition pour borner l'âge fiscal du véhicule)
  *
  * Whitelist sortKey : `licensePlate | model | firstFrenchRegistrationDate
  * | acquisitionDate | currentStatus`. La colonne `fullYearTax` est
@@ -39,8 +41,8 @@ final class VehicleIndexQueryData extends IndexQueryData
         public ?EnergySource $energySource = null,
         public ?PollutantCategory $pollutantCategory = null,
         public ?bool $handicapAccess = null,
-        public ?int $acquisitionYearMin = null,
-        public ?int $acquisitionYearMax = null,
+        public ?int $firstRegistrationYearMin = null,
+        public ?int $firstRegistrationYearMax = null,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,
         ?string $search = null,
@@ -72,8 +74,8 @@ final class VehicleIndexQueryData extends IndexQueryData
             'energySource' => ['nullable', 'string', 'in:'.implode(',', $energyValues)],
             'pollutantCategory' => ['nullable', 'string', 'in:'.implode(',', $pollutantValues)],
             'handicapAccess' => ['nullable', 'boolean'],
-            'acquisitionYearMin' => ['nullable', 'integer', 'min:1900', 'max:2100'],
-            'acquisitionYearMax' => ['nullable', 'integer', 'min:1900', 'max:2100'],
+            'firstRegistrationYearMin' => ['nullable', 'integer', 'min:1900', 'max:2100'],
+            'firstRegistrationYearMax' => ['nullable', 'integer', 'min:1900', 'max:2100'],
         ]);
     }
 }

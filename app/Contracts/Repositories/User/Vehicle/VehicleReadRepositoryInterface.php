@@ -103,4 +103,13 @@ interface VehicleReadRepositoryInterface
      * Compte les véhicules actifs (sans `exit_date`).
      */
     public function countActive(): int;
+
+    /**
+     * Bornes min/max des années de 1ʳᵉ immatriculation française parmi
+     * tous les véhicules. Utilisé par le filtre Index pour borner le
+     * sélecteur d'année. Retourne `null` si la table est vide.
+     *
+     * @return array{min: int, max: int}|null
+     */
+    public function findFirstRegistrationYearBounds(): ?array;
 }

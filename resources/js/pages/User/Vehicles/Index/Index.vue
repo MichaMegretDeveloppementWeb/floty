@@ -8,6 +8,7 @@ import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
+import YearRangeGridPicker from '@/Components/Ui/YearRangeGridPicker/YearRangeGridPicker.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { useFleetTable } from '@/Composables/Vehicle/Index/useFleetTable';
 import {
@@ -21,29 +22,14 @@ import PageHeader from './partials/PageHeader.vue';
 
 const props = defineProps<{
     vehicles: App.Data.User.Vehicle.PaginatedVehicleListData;
+    options: {
+        firstRegistrationYearBounds: { min: number; max: number } | null;
+    };
     query: App.Data.User.Vehicle.VehicleIndexQueryData;
 }>();
 
-const { currentYear: fiscalYear, availableYears } = useFiscalYear();
+const { currentYear: fiscalYear } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
-
-// Bornes de l'année d'acquisition : min = 1ère année fiscale configurée
-// (typiquement 2024), max = année calendaire courante. `new Date()` est
-// volontairement utilisé ici car il s'agit d'une borne UI de sélecteur,
-// pas de logique fiscale (laquelle passe systématiquement par useFiscalYear).
-const acquisitionYearOptions = computed<{ value: number; label: string }[]>(
-    () => {
-        const min = availableYears.value[0] ?? 2024;
-        const max = new Date().getFullYear();
-        const options: { value: number; label: string }[] = [];
-
-        for (let year = max; year >= min; year--) {
-            options.push({ value: year, label: String(year) });
-        }
-
-        return options;
-    },
-);
 
 const tableState = useFleetTable({
     query: props.query,
@@ -123,27 +109,17 @@ const handicapAccessModel = computed<boolean>({
     },
 });
 
-function parseYear(value: string | number | null): number | null {
-    if (value === null || value === '' || value === undefined) {
-        return null;
-    }
-
-    const n = typeof value === 'number' ? value : Number.parseInt(value, 10);
-
-    return Number.isNaN(n) ? null : n;
-}
-
-const acquisitionMinModel = computed<string | number | null>({
-    get: () => tableState.state.filters.value.acquisitionYearMin ?? '',
-    set: (value: string | number | null) => {
-        tableState.state.setFilter('acquisitionYearMin', parseYear(value));
+const firstRegistrationYearMinModel = computed<number | null>({
+    get: () => tableState.state.filters.value.firstRegistrationYearMin,
+    set: (value: number | null) => {
+        tableState.state.setFilter('firstRegistrationYearMin', value);
     },
 });
 
-const acquisitionMaxModel = computed<string | number | null>({
-    get: () => tableState.state.filters.value.acquisitionYearMax ?? '',
-    set: (value: string | number | null) => {
-        tableState.state.setFilter('acquisitionYearMax', parseYear(value));
+const firstRegistrationYearMaxModel = computed<number | null>({
+    get: () => tableState.state.filters.value.firstRegistrationYearMax,
+    set: (value: number | null) => {
+        tableState.state.setFilter('firstRegistrationYearMax', value);
     },
 });
 
@@ -178,7 +154,10 @@ const activeFiltersCount = computed<number>(() => {
         n += 1;
     }
 
-    if (f.acquisitionYearMin !== null || f.acquisitionYearMax !== null) {
+    if (
+        f.firstRegistrationYearMin !== null ||
+        f.firstRegistrationYearMax !== null
+    ) {
         n += 1;
     }
 
@@ -254,25 +233,20 @@ const activeFiltersCount = computed<number>(() => {
                                     nullable
                                 />
                             </div>
-                            <div>
-                                <FieldLabel for="filter-acquisition-min"
-                                    >Année d'acquisition</FieldLabel
+                            <div v-if="options.firstRegistrationYearBounds">
+                                <FieldLabel for="filter-first-registration"
+                                    >Année de 1ʳᵉ immatriculation</FieldLabel
                                 >
-                                <div class="grid grid-cols-2 gap-2">
-                                    <SelectInput
-                                        id="filter-acquisition-min"
-                                        v-model="acquisitionMinModel"
-                                        placeholder="Min"
-                                        :options="acquisitionYearOptions"
-                                        nullable
-                                    />
-                                    <SelectInput
-                                        v-model="acquisitionMaxModel"
-                                        placeholder="Max"
-                                        :options="acquisitionYearOptions"
-                                        nullable
-                                    />
-                                </div>
+                                <YearRangeGridPicker
+                                    v-model:year-min="
+                                        firstRegistrationYearMinModel
+                                    "
+                                    v-model:year-max="
+                                        firstRegistrationYearMaxModel
+                                    "
+                                    :min="options.firstRegistrationYearBounds.min"
+                                    :max="options.firstRegistrationYearBounds.max"
+                                />
                             </div>
                             <div>
                                 <CheckboxInput

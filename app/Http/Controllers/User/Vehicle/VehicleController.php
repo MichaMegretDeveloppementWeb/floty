@@ -44,6 +44,9 @@ final class VehicleController extends Controller
     {
         return Inertia::render('User/Vehicles/Index/Index', [
             'vehicles' => $this->vehicles->listPaginated($query, $this->fiscalYear->resolve()),
+            'options' => [
+                'firstRegistrationYearBounds' => $this->vehicles->firstRegistrationYearBounds(),
+            ],
             'query' => $query,
         ]);
     }

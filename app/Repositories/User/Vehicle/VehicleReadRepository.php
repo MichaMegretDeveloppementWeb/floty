@@ -80,13 +80,13 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             });
         }
 
-        // Fourchette année d'acquisition.
-        if ($query->acquisitionYearMin !== null) {
-            $eloquentQuery->whereYear('acquisition_date', '>=', $query->acquisitionYearMin);
+        // Fourchette année de 1ʳᵉ immatriculation française.
+        if ($query->firstRegistrationYearMin !== null) {
+            $eloquentQuery->whereYear('first_french_registration_date', '>=', $query->firstRegistrationYearMin);
         }
 
-        if ($query->acquisitionYearMax !== null) {
-            $eloquentQuery->whereYear('acquisition_date', '<=', $query->acquisitionYearMax);
+        if ($query->firstRegistrationYearMax !== null) {
+            $eloquentQuery->whereYear('first_french_registration_date', '<=', $query->firstRegistrationYearMax);
         }
 
         // Tri whitelist (cf. VehicleIndexQueryData::allowedSortKeys()).
@@ -152,5 +152,21 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
     public function countActive(): int
     {
         return Vehicle::query()->whereNull('exit_date')->count();
+    }
+
+    public function findFirstRegistrationYearBounds(): ?array
+    {
+        $row = Vehicle::query()
+            ->selectRaw('MIN(YEAR(first_french_registration_date)) AS min_year, MAX(YEAR(first_french_registration_date)) AS max_year')
+            ->first();
+
+        if ($row === null || $row->min_year === null || $row->max_year === null) {
+            return null;
+        }
+
+        return [
+            'min' => (int) $row->min_year,
+            'max' => (int) $row->max_year,
+        ];
     }
 }

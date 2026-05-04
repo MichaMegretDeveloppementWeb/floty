@@ -161,6 +161,19 @@ final class VehicleQueryService
     }
 
     /**
+     * Bornes min/max d'année de 1ʳᵉ immatriculation parmi tous les
+     * véhicules en BDD. Alimente le sélecteur de fourchette du filtre
+     * Index. Retourne `null` si la flotte est vide (le frontend cache
+     * alors le filtre).
+     *
+     * @return array{min: int, max: int}|null
+     */
+    public function firstRegistrationYearBounds(): ?array
+    {
+        return $this->vehicles->findFirstRegistrationYearBounds();
+    }
+
+    /**
      * @param  Collection<int, Unavailability>  $unavailabilityModels  indispos brutes du véhicule (toutes années) - chargées une seule fois en amont
      */
     private function buildUsageStats(Vehicle $vehicle, int $year, Collection $unavailabilityModels): VehicleUsageStatsData

@@ -246,39 +246,95 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function index_filtre_acquisition_year_range(): void
+    public function index_filtre_first_registration_year_range(): void
     {
         $user = User::factory()->create();
-        $v2020 = Vehicle::factory()->create(['acquisition_date' => '2020-06-15']);
+        $v2018 = Vehicle::factory()->create([
+            'first_french_registration_date' => '2018-06-15',
+            'first_origin_registration_date' => '2018-06-15',
+            'first_economic_use_date' => '2018-06-15',
+            'acquisition_date' => '2018-06-15',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2018->id]);
+        $v2020 = Vehicle::factory()->create([
+            'first_french_registration_date' => '2020-03-10',
+            'first_origin_registration_date' => '2020-03-10',
+            'first_economic_use_date' => '2020-03-10',
+            'acquisition_date' => '2020-03-10',
+        ]);
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2020->id]);
-        $v2022 = Vehicle::factory()->create(['acquisition_date' => '2022-03-10']);
-        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2022->id]);
-        $v2023 = Vehicle::factory()->create(['acquisition_date' => '2023-11-20']);
+        $v2023 = Vehicle::factory()->create([
+            'first_french_registration_date' => '2023-11-20',
+            'first_origin_registration_date' => '2023-11-20',
+            'first_economic_use_date' => '2023-11-20',
+            'acquisition_date' => '2023-11-20',
+        ]);
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2023->id]);
 
-        // Min seul : >= 2022 → v2022 + v2023
+        // Min seul : >= 2020 → v2020 + v2023
         $this->actingAs($user)
-            ->get('/app/vehicles?acquisitionYearMin=2022')
+            ->get('/app/vehicles?firstRegistrationYearMin=2020')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('vehicles.meta.total', 2),
             );
 
-        // Max seul : <= 2022 → v2020 + v2022
+        // Max seul : <= 2020 → v2018 + v2020
         $this->actingAs($user)
-            ->get('/app/vehicles?acquisitionYearMax=2022')
+            ->get('/app/vehicles?firstRegistrationYearMax=2020')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('vehicles.meta.total', 2),
             );
 
-        // Range Min + Max : exactement 2022
+        // Range Min + Max : exactement 2020
         $this->actingAs($user)
-            ->get('/app/vehicles?acquisitionYearMin=2022&acquisitionYearMax=2022')
+            ->get('/app/vehicles?firstRegistrationYearMin=2020&firstRegistrationYearMax=2020')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('vehicles.meta.total', 1)
-                ->where('vehicles.data.0.id', $v2022->id),
+                ->where('vehicles.data.0.id', $v2020->id),
+            );
+    }
+
+    #[Test]
+    public function index_renvoie_first_registration_year_bounds(): void
+    {
+        $user = User::factory()->create();
+        $v1 = Vehicle::factory()->create([
+            'first_french_registration_date' => '2018-06-15',
+            'first_origin_registration_date' => '2018-06-15',
+            'first_economic_use_date' => '2018-06-15',
+            'acquisition_date' => '2018-06-15',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v1->id]);
+        $v2 = Vehicle::factory()->create([
+            'first_french_registration_date' => '2023-11-20',
+            'first_origin_registration_date' => '2023-11-20',
+            'first_economic_use_date' => '2023-11-20',
+            'acquisition_date' => '2023-11-20',
+        ]);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2->id]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('options.firstRegistrationYearBounds.min', 2018)
+                ->where('options.firstRegistrationYearBounds.max', 2023),
+            );
+    }
+
+    #[Test]
+    public function index_renvoie_first_registration_year_bounds_null_si_flotte_vide(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/vehicles')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('options.firstRegistrationYearBounds', null),
             );
     }
 
