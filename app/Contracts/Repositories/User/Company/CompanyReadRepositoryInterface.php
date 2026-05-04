@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\Company;
 
+use App\Data\User\Company\CompanyIndexQueryData;
 use App\Models\Company;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,8 +25,24 @@ interface CompanyReadRepositoryInterface
      * utilisatrices », triées par raison sociale.
      *
      * @return Collection<int, Company>
+     *
+     * @deprecated Conservé temporairement — sera retiré en L6 du
+     *             chantier ADR-0020 une fois les pages migrées.
+     *             Utiliser {@see paginateForIndex()}.
      */
     public function findAllOrderedByName(): Collection;
+
+    /**
+     * Liste paginée server-side de l'Index Companies (cf. ADR-0020).
+     * Applique `{search, isActive, sortKey, sortDirection, page,
+     * perPage}` du DTO en SQL pur.
+     *
+     * Search : LIKE sur `short_code OR legal_name OR siren`.
+     * Sort whitelist : shortCode | legalName | siren | city.
+     *
+     * @return LengthAwarePaginator<int, Company>
+     */
+    public function paginateForIndex(CompanyIndexQueryData $query): LengthAwarePaginator;
 
     /**
      * Liste des entreprises actives pour les `<SelectInput>`, colonnes

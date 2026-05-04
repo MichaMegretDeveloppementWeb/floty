@@ -6,11 +6,15 @@ namespace App\Services\Company;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\Company\CompanyColorOptionData;
 use App\Data\User\Company\CompanyDetailData;
 use App\Data\User\Company\CompanyDriverRowData;
+use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\CompanyListItemData;
 use App\Data\User\Company\CompanyOptionData;
+use App\Data\User\Company\PaginatedCompanyListData;
+use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Company\CompanyColor;
 use App\Models\Company;
 use App\Models\Contract;
@@ -18,6 +22,7 @@ use App\Models\Pivot\DriverCompany;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Spatie\LaravelData\DataCollection;
 
 /**
@@ -43,11 +48,46 @@ final class CompanyQueryService
      * avec jours utilisés + taxe annuelle agrégée par entreprise.
      *
      * @return DataCollection<int, CompanyListItemData>
+     *
+     * @deprecated Conservé temporairement — sera retiré en L6 du
+     *             chantier ADR-0020. Utiliser {@see listPaginated()}.
      */
     public function listForFleetView(int $year): DataCollection
     {
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
+        $rows = $this->companies->findAllOrderedByName()
+            ->map(fn (Company $c): CompanyListItemData => $this->mapCompanyToListItem(
+                company: $c,
+                year: $year,
+                contractsByPair: $this->contracts->loadContractsByPair($year),
+                vehiclesById: null,
+                unavailabilitiesByVehicleId: null,
+            ))
+            ->values()
+            ->all();
 
+        return CompanyListItemData::collect($rows, DataCollection::class);
+    }
+
+    /**
+     * Index Companies paginé server-side (cf. ADR-0020).
+     *
+     * Le repo gère pagination + filtre `isActive` + search SQL. Le
+     * service calcule ensuite les aggregates fiscaux (`daysUsed`,
+     * `annualTaxDue`) **uniquement pour les entreprises de la page
+     * courante** — pas pour tout le dataset, contrairement à
+     * `listForFleetView()`.
+     *
+     * Note perf : `loadContractsByPair($year)` charge tous les contrats
+     * de l'année (borne O(contrats/an), pas O(companies)). Acceptable
+     * tant que les contrats annuels restent < 10k. À matérialiser si la
+     * volumétrie explose (cf. ADR-0020 D6).
+     */
+    public function listPaginated(CompanyIndexQueryData $query, int $year): PaginatedCompanyListData
+    {
+        $paginator = $this->companies->paginateForIndex($query);
+
+        // Pré-charge bulk pour le calcul des aggregates de la page.
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
         $vehicleIds = [];
         foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
             $vehicleIds[$pair['vehicleId']] = true;
@@ -56,28 +96,62 @@ final class CompanyQueryService
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
 
-        $rows = $this->companies->findAllOrderedByName()
-            ->map(fn (Company $c): CompanyListItemData => new CompanyListItemData(
-                id: $c->id,
-                legalName: $c->legal_name,
-                shortCode: $c->short_code,
-                color: $c->color,
-                siren: $c->siren,
-                city: $c->city,
-                isActive: $c->is_active,
-                daysUsed: $contractsByPair->daysByCompany($c->id, $year),
-                annualTaxDue: $this->aggregator->companyAnnualTax(
-                    $c->id,
-                    $vehiclesById,
-                    $contractsByPair,
-                    $unavailabilitiesByVehicleId,
-                    $year,
-                ),
-            ))
-            ->values()
-            ->all();
+        $items = array_map(
+            fn (Company $c): CompanyListItemData => $this->mapCompanyToListItem(
+                company: $c,
+                year: $year,
+                contractsByPair: $contractsByPair,
+                vehiclesById: $vehiclesById,
+                unavailabilitiesByVehicleId: $unavailabilitiesByVehicleId,
+            ),
+            $paginator->items(),
+        );
 
-        return CompanyListItemData::collect($rows, DataCollection::class);
+        return new PaginatedCompanyListData(
+            data: $items,
+            meta: PaginationMetaData::fromPaginator($paginator),
+        );
+    }
+
+    private function mapCompanyToListItem(
+        Company $company,
+        int $year,
+        ContractsByPair $contractsByPair,
+        ?Collection $vehiclesById,
+        ?array $unavailabilitiesByVehicleId,
+    ): CompanyListItemData {
+        // Si le pré-load n'a pas été passé (cas listForFleetView deprecated),
+        // on charge à la volée (perf moindre mais correct jusqu'à L6).
+        // Note : vehicleCompanyPairs() retourne un Generator → on itère
+        // pour collecter les vehicleIds uniques.
+        if ($vehiclesById === null) {
+            $vehicleIds = [];
+            foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
+                $vehicleIds[$pair['vehicleId']] = true;
+            }
+            $vehiclesById = $this->vehicles->findByIdsIndexed(array_keys($vehicleIds));
+        }
+        $unavailabilitiesByVehicleId ??= $this->contracts->loadUnavailabilitiesByVehicle(
+            $vehiclesById->keys()->all(),
+        );
+
+        return new CompanyListItemData(
+            id: $company->id,
+            legalName: $company->legal_name,
+            shortCode: $company->short_code,
+            color: $company->color,
+            siren: $company->siren,
+            city: $company->city,
+            isActive: $company->is_active,
+            daysUsed: $contractsByPair->daysByCompany($company->id, $year),
+            annualTaxDue: $this->aggregator->companyAnnualTax(
+                $company->id,
+                $vehiclesById,
+                $contractsByPair,
+                $unavailabilitiesByVehicleId,
+                $year,
+            ),
+        );
     }
 
     /**

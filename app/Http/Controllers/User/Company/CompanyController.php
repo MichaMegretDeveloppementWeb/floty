@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Company;
 
 use App\Actions\Company\CreateCompanyAction;
+use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\StoreCompanyData;
 use App\Exceptions\Company\CompanyShortCodeCollisionException;
 use App\Fiscal\Resolver\FiscalYearResolver;
@@ -25,10 +26,11 @@ final class CompanyController extends Controller
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
-    public function index(): Response
+    public function index(CompanyIndexQueryData $query): Response
     {
         return Inertia::render('User/Companies/Index/Index', [
-            'companies' => $this->companies->listForFleetView($this->fiscalYear->resolve()),
+            'companies' => $this->companies->listPaginated($query, $this->fiscalYear->resolve()),
+            'query' => $query,
         ]);
     }
 

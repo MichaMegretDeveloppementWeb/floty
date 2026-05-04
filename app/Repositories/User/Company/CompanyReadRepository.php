@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Repositories\User\Company;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Data\Shared\Listing\SortDirection;
+use App\Data\User\Company\CompanyIndexQueryData;
 use App\Models\Company;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
@@ -21,6 +24,41 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
     public function findAllOrderedByName(): Collection
     {
         return Company::query()->orderBy('legal_name')->get();
+    }
+
+    public function paginateForIndex(CompanyIndexQueryData $query): LengthAwarePaginator
+    {
+        $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';
+
+        $eloquentQuery = Company::query();
+
+        if ($query->isActive !== null) {
+            $eloquentQuery->where('is_active', $query->isActive);
+        }
+
+        // Search LIKE sur short_code OR legal_name OR siren.
+        if ($query->search !== null) {
+            $term = '%'.$query->search.'%';
+            $eloquentQuery->where(function ($w) use ($term): void {
+                $w->where('short_code', 'like', $term)
+                    ->orWhere('legal_name', 'like', $term)
+                    ->orWhere('siren', 'like', $term);
+            });
+        }
+
+        // Tri whitelist (cf. CompanyIndexQueryData::allowedSortKeys()).
+        match ($query->sortKey) {
+            'shortCode' => $eloquentQuery->orderBy('short_code', $direction),
+            'legalName' => $eloquentQuery->orderBy('legal_name', $direction),
+            'siren' => $eloquentQuery->orderBy('siren', $direction),
+            'city' => $eloquentQuery->orderBy('city', $direction),
+            default => $eloquentQuery->orderBy('legal_name'),
+        };
+
+        return $eloquentQuery->paginate(
+            perPage: $query->perPage,
+            page: $query->page,
+        );
     }
 
     public function findAllForOptions(): Collection

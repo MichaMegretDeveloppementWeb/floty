@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { computed, ref, toRef } from 'vue';
+import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
-import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
+import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
+import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
-import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useCompaniesTable } from '@/Composables/Company/Index/useCompaniesTable';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import CompaniesTable from './partials/CompaniesTable.vue';
@@ -14,50 +14,42 @@ import EmptyCompaniesState from './partials/EmptyCompaniesState.vue';
 import PageHeader from './partials/PageHeader.vue';
 
 const props = defineProps<{
-    companies: App.Data.User.Company.CompanyListItemData[];
+    companies: App.Data.User.Company.PaginatedCompanyListData;
+    query: App.Data.User.Company.CompanyIndexQueryData;
 }>();
 
 const { currentYear: fiscalYear } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
 
 const tableState = useCompaniesTable({
-    companies: toRef(props, 'companies'),
-    fiscalYear,
+    query: props.query,
+    fiscalYear: fiscalYear.value,
 });
 
+// Bind du SelectInput isActive : 'yes' / 'no' / '' → boolean | null.
 const isActiveOptions = [
     { value: 'yes', label: 'Active' },
     { value: 'no', label: 'Inactive' },
 ];
 
-const searchModel = computed({
-    get: () => tableState.state.filters.value.search,
-    set: (value: string) => {
-        tableState.state.setFilter('search', value);
-    },
-});
+const isActiveModel = computed<string | number>({
+    get: () => {
+        if (tableState.state.filters.value.isActive === null) {
+            return '';
+        }
 
-const isActiveModel = computed({
-    get: () => tableState.state.filters.value.isActive ?? '',
+        return tableState.state.filters.value.isActive ? 'yes' : 'no';
+    },
     set: (value: string | number) => {
         const v = String(value);
-        tableState.state.setFilter('isActive', v === 'yes' || v === 'no' ? v : null);
+        const next = v === 'yes' ? true : v === 'no' ? false : null;
+        tableState.state.setFilter('isActive', next);
     },
 });
 
-const minModel = computed({
-    get: () => tableState.state.filters.value.daysUsedMin,
-    set: (value: number | null) => {
-        tableState.state.setFilter('daysUsedMin', value);
-    },
-});
-
-const maxModel = computed({
-    get: () => tableState.state.filters.value.daysUsedMax,
-    set: (value: number | null) => {
-        tableState.state.setFilter('daysUsedMax', value);
-    },
-});
+const activeFiltersCount = computed<number>(() =>
+    tableState.state.filters.value.isActive === null ? 0 : 1,
+);
 </script>
 
 <template>
@@ -67,25 +59,35 @@ const maxModel = computed({
         <div class="flex flex-col gap-6">
             <PageHeader :fiscal-year="fiscalYear" />
 
-            <EmptyCompaniesState v-if="props.companies.length === 0" />
+            <div
+                v-if="
+                    companies.meta.total === 0 &&
+                    tableState.state.search.value === '' &&
+                    tableState.state.filters.value.isActive === null
+                "
+            >
+                <EmptyCompaniesState />
+            </div>
+
             <template v-else>
-                <div class="flex justify-start">
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="max-w-md grow">
+                        <SearchInput
+                            v-model="tableState.state.search.value"
+                            placeholder="Rechercher (nom, SIREN, code court)"
+                            aria-label="Rechercher une entreprise"
+                        />
+                    </div>
                     <FilterPopover
                         v-model:open="filtersOpen"
-                        :active-count="tableState.state.activeFiltersCount.value"
+                        :active-count="activeFiltersCount"
                         @reset="tableState.state.clearFilters"
                     >
                         <div class="flex flex-col gap-3">
                             <div>
-                                <FieldLabel for="filter-search">Recherche</FieldLabel>
-                                <TextInput
-                                    id="filter-search"
-                                    v-model="searchModel"
-                                    placeholder="Nom, SIREN, ville…"
-                                />
-                            </div>
-                            <div>
-                                <FieldLabel for="filter-active">Activité</FieldLabel>
+                                <FieldLabel for="filter-active"
+                                    >Activité</FieldLabel
+                                >
                                 <SelectInput
                                     id="filter-active"
                                     v-model="isActiveModel"
@@ -93,30 +95,25 @@ const maxModel = computed({
                                     :options="isActiveOptions"
                                 />
                             </div>
-                            <div>
-                                <FieldLabel for="filter-days-min">Jours utilisés</FieldLabel>
-                                <div class="grid grid-cols-2 gap-2">
-                                    <NumberInput
-                                        id="filter-days-min"
-                                        v-model="minModel"
-                                        placeholder="Min"
-                                    />
-                                    <NumberInput
-                                        v-model="maxModel"
-                                        placeholder="Max"
-                                    />
-                                </div>
-                            </div>
                         </div>
                     </FilterPopover>
                 </div>
 
                 <CompaniesTable
-                    :companies="tableState.rows.value"
-                    :columns="tableState.columns.value"
-                    :sort-key="tableState.state.sort.value.key"
+                    :companies="companies.data"
+                    :columns="tableState.columns"
+                    :active-sort-column-key="
+                        tableState.activeSortColumnKey.value
+                    "
                     :sort-direction="tableState.state.sort.value.direction"
-                    @sort="tableState.state.setSort"
+                    @header-click="tableState.onHeaderClick"
+                    @row-click="tableState.onRowClick"
+                />
+
+                <Paginator
+                    :meta="companies.meta"
+                    @page-change="tableState.state.setPage"
+                    @per-page-change="tableState.state.setPerPage"
                 />
             </template>
         </div>

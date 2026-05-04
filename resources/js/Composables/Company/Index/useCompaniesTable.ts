@@ -1,174 +1,104 @@
+/**
+ * Configuration de la table Index Companies (server-side, cf. ADR-0020).
+ *
+ * Particularités vs Drivers :
+ *  - Filtre `isActive` (boolean tri-state : true / false / null)
+ *  - Colonnes `daysUsed` et `annualTaxDue` affichées mais NON triables
+ *    (valeurs calculées par l'aggregator fiscal — règle ADR-0020 D6)
+ *
+ * Le rendu reste dans `CompaniesTable.vue` (slots cell-*).
+ */
+
+import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import type { ComputedRef, Ref } from 'vue';
-import { useTableState } from '@/Composables/Shared/useTableState';
-import type { TableState } from '@/Composables/Shared/useTableState';
+import type { ComputedRef } from 'vue';
+import { useServerTableState } from '@/Composables/Shared/useServerTableState';
+import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
+import { show as companyShowRoute } from '@/routes/user/companies';
 import type { DataTableColumn } from '@/types/ui';
 
 type CompanyRow = App.Data.User.Company.CompanyListItemData;
 
+export type CompanySortKey = 'shortCode' | 'legalName' | 'siren' | 'city';
+
+// Mapping clé colonne UI → sortKey backend (CompanyIndexQueryData whitelist).
+// Les colonnes daysUsed et annualTaxDue n'ont PAS d'entrée car non triables.
+const COLUMN_TO_SORT_KEY: Partial<Record<string, CompanySortKey>> = {
+    company: 'legalName',
+    siren: 'siren',
+    city: 'city',
+};
+
 export type CompanyFilters = {
-    search: string;
-    isActive: 'yes' | 'no' | null;
-    daysUsedMin: number | null;
-    daysUsedMax: number | null;
-};
-
-export type CompanySortKey = 'company' | 'siren' | 'city' | 'days' | 'tax';
-
-const DEFAULT_FILTERS: CompanyFilters = {
-    search: '',
-    isActive: null,
-    daysUsedMin: null,
-    daysUsedMax: null,
-};
-
-const SORT_KEYS: readonly CompanySortKey[] = [
-    'company',
-    'siren',
-    'city',
-    'days',
-    'tax',
-];
-
-export type CompanyFilterChip = {
-    key: keyof CompanyFilters;
-    label: string;
+    isActive: boolean | null;
 };
 
 export function useCompaniesTable(opts: {
-    companies: Ref<readonly CompanyRow[]>;
-    fiscalYear: Ref<number>;
+    query: App.Data.User.Company.CompanyIndexQueryData;
+    fiscalYear: number;
 }): {
-    columns: ComputedRef<readonly DataTableColumn<CompanyRow>[]>;
-    rows: ComputedRef<CompanyRow[]>;
-    state: TableState<CompanyRow, CompanyFilters, CompanySortKey>;
-    activeFilterChips: ComputedRef<CompanyFilterChip[]>;
-    removeFilter: (key: keyof CompanyFilters) => void;
+    columns: readonly DataTableColumn<CompanyRow>[];
+    state: ServerTableState<CompanyFilters>;
+    activeSortColumnKey: ComputedRef<string | null>;
+    onHeaderClick: (columnKey: string) => void;
+    onRowClick: (row: CompanyRow) => void;
 } {
-    const columns = computed<readonly DataTableColumn<CompanyRow>[]>(() => [
+    const columns: readonly DataTableColumn<CompanyRow>[] = [
         { key: 'company', label: 'Entreprise' },
         { key: 'siren', label: 'SIREN', mono: true },
         { key: 'city', label: 'Ville' },
-        { key: 'daysUsed', label: `Jours ${opts.fiscalYear.value}`, mono: true },
-        { key: 'annualTaxDue', label: `Taxe ${opts.fiscalYear.value}` },
-    ]);
+        { key: 'daysUsed', label: `Jours ${opts.fiscalYear}`, mono: true },
+        { key: 'annualTaxDue', label: `Taxe ${opts.fiscalYear}` },
+    ];
 
-    const state = useTableState<CompanyRow, CompanyFilters, CompanySortKey>({
-        defaultFilters: DEFAULT_FILTERS,
-        sortKeys: SORT_KEYS,
-        parseFiltersFromUrl: (params) => ({
-            search: params.get('search') ?? '',
-            isActive: parseIsActive(params.get('isActive')),
-            daysUsedMin: parseIntOrNull(params.get('daysUsedMin')),
-            daysUsedMax: parseIntOrNull(params.get('daysUsedMax')),
+    const state = useServerTableState<CompanyFilters>({
+        only: ['companies', 'query'],
+        initialPage: opts.query.page,
+        initialPerPage: opts.query.perPage,
+        initialSearch: opts.query.search ?? '',
+        initialSortKey: opts.query.sortKey,
+        initialSortDirection: opts.query.sortDirection,
+        defaultFilters: { isActive: null },
+        initialFilters: { isActive: opts.query.isActive },
+        serializeFilters: (f) => ({
+            // Sérialisation booléenne : 1/0/null pour cohérence avec
+            // Spatie Data ?isActive=1 / ?isActive=0 / absent.
+            isActive: f.isActive === null ? null : f.isActive ? 1 : 0,
         }),
-        serializeFiltersToUrl: (f) => ({
-            search: f.search === '' ? null : f.search,
-            isActive: f.isActive,
-            daysUsedMin: f.daysUsedMin?.toString() ?? null,
-            daysUsedMax: f.daysUsedMax?.toString() ?? null,
-        }),
-        applyFilter: (item, f) => {
-            if (f.search !== '') {
-                const needle = f.search.toLowerCase();
-                const haystack =
-                    `${item.legalName} ${item.shortCode} ${item.siren ?? ''} ${item.city ?? ''}`.toLowerCase();
-
-                if (!haystack.includes(needle)) {
-                    return false;
-                }
-            }
-
-            if (f.isActive === 'yes' && !item.isActive) {
-                return false;
-            }
-
-            if (f.isActive === 'no' && item.isActive) {
-                return false;
-            }
-
-            if (f.daysUsedMin !== null && item.daysUsed < f.daysUsedMin) {
-                return false;
-            }
-
-            if (f.daysUsedMax !== null && item.daysUsed > f.daysUsedMax) {
-                return false;
-            }
-
-            return true;
-        },
-        sortComparators: {
-            company: (a, b) => a.legalName.localeCompare(b.legalName),
-            siren: (a, b) => (a.siren ?? '').localeCompare(b.siren ?? ''),
-            city: (a, b) => (a.city ?? '').localeCompare(b.city ?? ''),
-            days: (a, b) => a.daysUsed - b.daysUsed,
-            tax: (a, b) => a.annualTaxDue - b.annualTaxDue,
-        },
     });
 
-    const rows = computed<CompanyRow[]>(() => state.apply(opts.companies.value));
-
-    const activeFilterChips = computed<CompanyFilterChip[]>(() => {
-        const chips: CompanyFilterChip[] = [];
-        const f = state.filters.value;
-
-        if (f.search !== '') {
-            chips.push({ key: 'search', label: `Recherche : « ${f.search} »` });
+    const activeSortColumnKey = computed<string | null>(() => {
+        if (state.sort.value.key === null) {
+            return null;
         }
 
-        if (f.isActive !== null) {
-            chips.push({
-                key: 'isActive',
-                label: f.isActive === 'yes' ? 'Active' : 'Inactive',
-            });
-        }
+        const entry = Object.entries(COLUMN_TO_SORT_KEY).find(
+            ([, sortKey]) => sortKey === state.sort.value.key,
+        );
 
-        if (f.daysUsedMin !== null || f.daysUsedMax !== null) {
-            const min = f.daysUsedMin === null ? '…' : `${f.daysUsedMin} j`;
-            const max = f.daysUsedMax === null ? '…' : `${f.daysUsedMax} j`;
-            chips.push({
-                key: 'daysUsedMin',
-                label: `Jours utilisés : ${min} → ${max}`,
-            });
-        }
-
-        return chips;
+        return entry ? entry[0] : null;
     });
 
-    function removeFilter(key: keyof CompanyFilters): void {
-        if (key === 'daysUsedMin' || key === 'daysUsedMax') {
-            state.setFilter('daysUsedMin', null);
-            state.setFilter('daysUsedMax', null);
+    function onHeaderClick(columnKey: string): void {
+        const sortKey = COLUMN_TO_SORT_KEY[columnKey];
 
-            return;
+        if (sortKey !== undefined) {
+            state.setSort(sortKey);
         }
+        // Les colonnes sans entrée dans COLUMN_TO_SORT_KEY (daysUsed,
+        // annualTaxDue) sont volontairement no-op au clic — pas de tri
+        // possible côté serveur sur ces valeurs calculées.
+    }
 
-        state.setFilter(key, DEFAULT_FILTERS[key]);
+    function onRowClick(row: CompanyRow): void {
+        router.visit(companyShowRoute(row.id).url);
     }
 
     return {
         columns,
-        rows,
         state,
-        activeFilterChips,
-        removeFilter,
+        activeSortColumnKey,
+        onHeaderClick,
+        onRowClick,
     };
-}
-
-function parseIsActive(value: string | null): 'yes' | 'no' | null {
-    if (value === 'yes' || value === 'no') {
-        return value;
-    }
-
-    return null;
-}
-
-function parseIntOrNull(value: string | null): number | null {
-    if (value === null) {
-        return null;
-    }
-
-    const n = Number.parseInt(value, 10);
-
-    return Number.isNaN(n) ? null : n;
 }

@@ -1,45 +1,32 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
-import type { CompanySortKey } from '@/Composables/Company/Index/useCompaniesTable';
-import { show as companyShowRoute } from '@/routes/user/companies';
 import type { DataTableColumn } from '@/types/ui';
 import { formatEur } from '@/Utils/format/formatEur';
 
 type CompanyRow = App.Data.User.Company.CompanyListItemData;
 
+// Colonnes triables côté serveur (cf. CompanyIndexQueryData::allowedSortKeys()).
+// daysUsed et annualTaxDue sont volontairement absents (valeurs calculées
+// non triables en SQL — règle ADR-0020 D6).
+const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
+    'company',
+    'siren',
+    'city',
+]);
+
 defineProps<{
     companies: CompanyRow[];
     columns: readonly DataTableColumn<CompanyRow>[];
-    sortKey: CompanySortKey | null;
+    activeSortColumnKey: string | null;
     sortDirection: 'asc' | 'desc';
 }>();
 
 const emit = defineEmits<{
-    sort: [key: CompanySortKey];
+    'header-click': [columnKey: string];
+    'row-click': [row: CompanyRow];
 }>();
-
-const COLUMN_TO_SORT_KEY: Record<string, CompanySortKey> = {
-    company: 'company',
-    siren: 'siren',
-    city: 'city',
-    daysUsed: 'days',
-    annualTaxDue: 'tax',
-};
-
-function onHeaderClick(columnKey: string): void {
-    const sortKey = COLUMN_TO_SORT_KEY[columnKey];
-
-    if (sortKey !== undefined) {
-        emit('sort', sortKey);
-    }
-}
-
-function onRowClick(row: CompanyRow): void {
-    router.visit(companyShowRoute(row.id).url);
-}
 </script>
 
 <template>
@@ -48,7 +35,7 @@ function onRowClick(row: CompanyRow): void {
         :rows="companies"
         :row-key="(row) => row.id"
         clickable
-        @row-click="onRowClick"
+        @row-click="(row) => emit('row-click', row)"
     >
         <template
             v-for="column in columns"
@@ -56,13 +43,23 @@ function onRowClick(row: CompanyRow): void {
             :key="column.key"
         >
             <SortableHeader
+                v-if="SORTABLE_COLUMNS.has(col.key)"
                 :label="col.label"
-                :sort-key="COLUMN_TO_SORT_KEY[col.key] ?? ''"
-                :active-key="sortKey"
+                :sort-key="col.key"
+                :active-key="activeSortColumnKey"
                 :direction="sortDirection"
                 :align="col.align === 'right' ? 'right' : 'left'"
-                @click="onHeaderClick(col.key)"
+                @click="emit('header-click', col.key)"
             />
+            <span
+                v-else
+                :class="[
+                    'inline-flex w-full text-xs font-semibold tracking-wider text-slate-500 uppercase',
+                    col.align === 'right' ? 'justify-end' : 'justify-start',
+                ]"
+            >
+                {{ col.label }}
+            </span>
         </template>
 
         <template #cell-company="{ row }">
@@ -89,6 +86,17 @@ function onRowClick(row: CompanyRow): void {
             <span class="font-mono font-medium text-slate-900">
                 {{ formatEur(Number(value)) }}
             </span>
+        </template>
+
+        <template #empty>
+            <div class="flex flex-col items-center gap-2 py-8 text-center">
+                <p class="text-sm font-medium text-slate-700">
+                    Aucune entreprise ne correspond aux filtres
+                </p>
+                <p class="text-xs text-slate-500">
+                    Modifiez votre recherche ou réinitialisez les filtres.
+                </p>
+            </div>
         </template>
     </DataTable>
 </template>
