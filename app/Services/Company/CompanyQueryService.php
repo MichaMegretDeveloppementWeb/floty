@@ -139,18 +139,16 @@ final class CompanyQueryService
     /**
      * Détail complet d'une entreprise pour la page Show — alimente :
      *  - le hero d'identité (intemporel)
-     *  - la section « Depuis le début » (`lifetime`)
-     *  - la section « Aperçu par année » (`byYear`, piloté par
-     *    `$selectedYear`)
+     *  - les KPIs lifetime cumulés (`lifetime`)
      *  - la section « Historique par année » (`history`)
      *  - les onglets restants (Drivers, etc.) qui consomment les
      *    champs identitaires existants
      *
-     * `$selectedYear` est l'année active du sélecteur **local** de la
-     * fiche (cf. ADR-0020 D3 — pas de sélecteur global). Si `null`
-     * passé, fallback à l'année calendaire réelle.
+     * `currentRealYear` est exposé pour permettre à l'historique de
+     * marquer l'exercice en cours sans dépendre de `new Date()`
+     * côté front (cf. ADR-0020 D4).
      */
-    public function detail(int $companyId, ?int $selectedYear = null): ?CompanyDetailData
+    public function detail(int $companyId): ?CompanyDetailData
     {
         $company = $this->companies->findById($companyId);
         if ($company === null) {
@@ -200,7 +198,7 @@ final class CompanyQueryService
             }
         }
 
-        // ADR-0020 D3 — calcul des stats temporelles (lifetime + history + byYear)
+        // ADR-0020 D3 — calcul des stats temporelles (lifetime + history)
         $contractsCount = $this->contracts->countContractsForCompany($companyId);
         $availableYears = $this->contracts->findActiveYearsForCompany($companyId);
 
@@ -208,10 +206,6 @@ final class CompanyQueryService
         foreach ($availableYears as $year) {
             $history[] = $this->computeYearStats($companyId, $year);
         }
-
-        $effectiveYear = $selectedYear ?? $currentRealYear;
-        $byYear = $this->findStatsForYear($history, $effectiveYear)
-            ?? $this->emptyYearStats($effectiveYear);
 
         $lifetime = new CompanyLifetimeStatsData(
             daysUsed: array_sum(array_map(static fn (CompanyYearStatsData $s): int => $s->daysUsed, $history)),
@@ -221,6 +215,11 @@ final class CompanyQueryService
                 2,
                 PHP_ROUND_HALF_UP,
             ),
+            // V1.2 — la facturation des loyers n'est pas livrée. Le champ
+            // est exposé en placeholder null pour que l'UI le rende dès
+            // maintenant (carte KPI, branchement réel quand le module
+            // facturation arrive).
+            rentTotal: null,
         );
 
         return new CompanyDetailData(
@@ -246,9 +245,7 @@ final class CompanyQueryService
             totalDriversCount: count($driverRows),
             drivers: $driverRows,
             lifetime: $lifetime,
-            byYear: $byYear,
             history: $history,
-            availableYears: $availableYears,
             currentRealYear: $currentRealYear,
         );
     }
@@ -309,41 +306,6 @@ final class CompanyQueryService
             lcdCount: $lcdCount,
             lldCount: $lldCount,
             annualTaxDue: $annualTaxDue,
-            rent: null,
-        );
-    }
-
-    /**
-     * Cherche dans `$history` l'entrée correspondant à `$year`. Retourne
-     * `null` si l'entreprise n'avait aucun contrat sur cette année.
-     *
-     * @param  list<CompanyYearStatsData>  $history
-     */
-    private function findStatsForYear(array $history, int $year): ?CompanyYearStatsData
-    {
-        foreach ($history as $stat) {
-            if ($stat->year === $year) {
-                return $stat;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Stats vides pour une année où l'entreprise n'a aucun contrat —
-     * permet à `byYear` de toujours être renseigné (l'utilisateur a
-     * sélectionné une année future ou hors plage d'activité).
-     */
-    private function emptyYearStats(int $year): CompanyYearStatsData
-    {
-        return new CompanyYearStatsData(
-            year: $year,
-            daysUsed: 0,
-            contractsCount: 0,
-            lcdCount: 0,
-            lldCount: 0,
-            annualTaxDue: 0.0,
             rent: null,
         );
     }

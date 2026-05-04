@@ -1,65 +1,53 @@
 <script setup lang="ts">
 /**
  * Onglet « Vue d'ensemble » de la fiche entreprise (chantier K,
- * ADR-0020 D3). Remplace l'ancien `CompanyInfoTab.vue` (tableau
- * d'état civil) par un assembleur de cartes thématiques inspirées du
- * pattern « fiche d'entité » CRM moderne :
+ * ADR-0020 D3).
  *
- *   1. Stats lifetime (cumul tous exercices)
- *   2. Aperçu par année (sélecteur local + 4 KPIs annuels)
- *   3. Historique par année (tableau récap)
- *   4. Contact (si renseigné)
- *   5. Adresse
- *   6. Informations légales
- *
- * Ce tab sert de **référence visible** du pattern D3 — les autres
- * fiches d'entité (Vehicle Show, Driver Show futur) suivront le même
- * pattern lors de leur passage en chantier.
+ * Layout responsive (pattern aligné avec Vehicle Show) :
+ *   - Hero (full width, dans Show/Index.vue) ✓
+ *   - 4 KPIs lifetime (full width)
+ *   - Historique par année (full width)
+ *   - Layout 2 colonnes XL+ : main (Historique en col-span-2) + aside
+ *     (Contact + Adresse en col-span-1)
+ *   - < xl : Contact + Adresse passent dans le flux principal sous
+ *     l'historique (déjà rendus dans le main, l'aside disparaît)
  */
-import { toRef } from 'vue';
-import { useCompanySelectedYear } from '@/Composables/Company/Show/useCompanySelectedYear';
 import CompanyAddressCard from './overview/CompanyAddressCard.vue';
 import CompanyContactCard from './overview/CompanyContactCard.vue';
-import CompanyLegalInfoCard from './overview/CompanyLegalInfoCard.vue';
 import CompanyLifetimeStatsCard from './overview/CompanyLifetimeStatsCard.vue';
 import CompanyYearHistoryCard from './overview/CompanyYearHistoryCard.vue';
-import CompanyYearStatsCard from './overview/CompanyYearStatsCard.vue';
 
-type Company = App.Data.User.Company.CompanyDetailData;
-
-const props = defineProps<{
-    company: Company;
+defineProps<{
+    company: App.Data.User.Company.CompanyDetailData;
 }>();
-
-const { selectedYear, byYear, setSelectedYear } = useCompanySelectedYear({
-    history: toRef(() => props.company.history),
-    availableYears: toRef(() => props.company.availableYears),
-    currentRealYear: toRef(() => props.company.currentRealYear),
-});
 </script>
 
 <template>
     <div class="flex flex-col gap-6">
         <CompanyLifetimeStatsCard :lifetime="company.lifetime" />
 
-        <CompanyYearStatsCard
-            :by-year="byYear"
-            :available-years="company.availableYears"
-            :current-real-year="company.currentRealYear"
-            :selected-year="selectedYear"
-            @update:selected-year="setSelectedYear"
-        />
+        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <!-- Colonne principale -->
+            <div class="flex flex-col gap-6 xl:col-span-2">
+                <CompanyYearHistoryCard
+                    :history="company.history"
+                    :current-real-year="company.currentRealYear"
+                />
 
-        <CompanyYearHistoryCard
-            :history="company.history"
-            :current-real-year="company.currentRealYear"
-        />
+                <!-- < xl : Contact + Adresse dans le main flow, sous l'historique. En xl+, l'aside les porte. -->
+                <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:hidden">
+                    <CompanyContactCard :company="company" />
+                    <CompanyAddressCard :company="company" />
+                </div>
+            </div>
 
-        <div class="grid gap-4 md:grid-cols-2">
-            <CompanyContactCard :company="company" />
-            <CompanyAddressCard :company="company" />
+            <!-- Aside visible xl+ uniquement -->
+            <aside class="hidden xl:col-span-1 xl:block">
+                <div class="flex flex-col gap-6">
+                    <CompanyContactCard :company="company" />
+                    <CompanyAddressCard :company="company" />
+                </div>
+            </aside>
         </div>
-
-        <CompanyLegalInfoCard :company="company" />
     </div>
 </template>

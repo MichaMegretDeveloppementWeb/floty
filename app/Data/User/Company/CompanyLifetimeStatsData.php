@@ -9,10 +9,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Statistiques cumulées « depuis le début » d'une entreprise — tous
- * exercices confondus, indépendamment de l'année active du sélecteur
- * local de la fiche.
+ * exercices confondus.
  *
- * Alimente la section « Depuis le début » de la fiche entreprise
+ * Alimente la rangée de 4 KPIs lifetime de la fiche entreprise
  * (cf. chantier K, ADR-0020 § 2 D3).
  */
 #[TypeScript]
@@ -25,5 +24,7 @@ final class CompanyLifetimeStatsData extends Data
         public int $contractsCount,
         /** Somme des taxes calculées sur tous les exercices (€, arrondi 2 décimales). */
         public float $taxesGenerated,
+        /** Total cumulé des loyers facturés tous exercices — null tant que la facturation V1.2 n'est pas livrée. */
+        public ?float $rentTotal,
     ) {}
 }

@@ -32,7 +32,6 @@ final class CompanyDetailData extends Data
     /**
      * @param  list<CompanyDriverRowData>  $drivers
      * @param  list<CompanyYearStatsData>  $history  Un objet par exercice avec ≥ 1 contrat
-     * @param  list<int>  $availableYears  Années avec ≥ 1 contrat (peuple le sélecteur)
      */
     public function __construct(
         public int $id,
@@ -58,10 +57,8 @@ final class CompanyDetailData extends Data
         #[DataCollectionOf(CompanyDriverRowData::class)]
         public array $drivers,
         public CompanyLifetimeStatsData $lifetime,
-        public CompanyYearStatsData $byYear,
         #[DataCollectionOf(CompanyYearStatsData::class)]
         public array $history,
-        public array $availableYears,
         public int $currentRealYear,
     ) {}
 }

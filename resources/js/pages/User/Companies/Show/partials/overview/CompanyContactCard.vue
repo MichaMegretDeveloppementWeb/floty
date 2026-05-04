@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Carte Contact — affichée uniquement si au moins un champ contact
- * est renseigné. La majorité des entreprises de la flotte n'ont pas
- * de contact dédié, mais le DTO et la DB conservent les colonnes
- * comme champs optionnels (cf. Q2 utilisateur, chantier K).
+ * Carte Contact — toujours visible (même si aucun champ renseigné),
+ * avec un message explicite en état vide. La majorité des entreprises
+ * n'ont pas de contact dédié, mais le DTO et la DB conservent les
+ * colonnes comme champs optionnels (cf. Q2 utilisateur, chantier K).
  */
 import { Mail, Phone, User } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -24,14 +24,14 @@ const hasAnyContact = computed<boolean>(
 </script>
 
 <template>
-    <Card v-if="hasAnyContact">
+    <Card>
         <template #header>
             <h2 class="text-sm font-medium uppercase tracking-wide text-slate-500">
                 Contact
             </h2>
         </template>
 
-        <ul class="flex flex-col gap-2 text-sm text-slate-700">
+        <ul v-if="hasAnyContact" class="flex flex-col gap-2 text-sm text-slate-700">
             <li v-if="company.contactName" class="flex items-center gap-2">
                 <User :size="14" :stroke-width="1.75" class="shrink-0 text-slate-400" />
                 {{ company.contactName }}
@@ -55,5 +55,9 @@ const hasAnyContact = computed<boolean>(
                 </a>
             </li>
         </ul>
+
+        <p v-else class="text-sm italic text-slate-400">
+            Aucun contact renseigné.
+        </p>
     </Card>
 </template>
