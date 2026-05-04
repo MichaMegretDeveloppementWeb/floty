@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Actions\Vehicle\DeleteFiscalCharacteristicsAction;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -29,6 +30,14 @@ use Illuminate\Support\Carbon;
  * Les périodes pour un même véhicule ne se chevauchent **jamais** -
  * protection triple : service applicatif + trigger BEFORE INSERT/UPDATE +
  * verrou pessimiste (cf. § 0.3 du schema doc).
+ *
+ * **Pas de soft-delete** : la suppression d'une version historique est un
+ * hard-delete (cf. {@see DeleteFiscalCharacteristicsAction}),
+ * conditionné par l'absence de contrat couvrant la période. Une version
+ * « courante » n'est jamais supprimée mais corrigée ou clôturée par
+ * création d'une nouvelle version (chantier 04.B). La doctrine d'audit
+ * fiscal repose sur les contrats (immutables soft-deletables) plutôt que
+ * sur l'historique des caractéristiques techniques du véhicule.
  *
  * @property int $id
  * @property int $vehicle_id
