@@ -26,6 +26,12 @@ const props = defineProps<{
         companies: CompanyOption[];
     };
     query: App.Data.User.Driver.DriverIndexQueryData;
+    /**
+     * `true` ssi au moins un driver existe en base. Source de vérité unique
+     * pour décider du placeholder « Aucun conducteur » (vs. empty filtré).
+     * Évite le flash placeholder lors du reset de filtre — cf. note backend.
+     */
+    hasAnyDriver: boolean;
 }>();
 
 const tableState = useDriversTable(props.query);
@@ -123,11 +129,7 @@ const contractsScopeModel = computed<string | number>({
             </div>
 
             <div
-                v-if="
-                    drivers.meta.total === 0 &&
-                    searchModel === '' &&
-                    tableState.activeFiltersCount.value === 0
-                "
+                v-if="!props.hasAnyDriver"
                 class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center"
             >
                 <span

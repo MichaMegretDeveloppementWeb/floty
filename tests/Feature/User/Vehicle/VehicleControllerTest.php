@@ -22,6 +22,27 @@ final class VehicleControllerTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
+    public function index_expose_has_any_vehicle_pour_decider_du_placeholder_initial(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/vehicles')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hasAnyVehicle', false));
+
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hasAnyVehicle', true));
+    }
+
+    #[Test]
     public function index_liste_les_vehicules_avec_cout_plein_annee_et_taux_journalier(): void
     {
         $user = User::factory()->create();

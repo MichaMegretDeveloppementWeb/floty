@@ -34,6 +34,11 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
         return $query->get();
     }
 
+    public function existsAny(): bool
+    {
+        return Vehicle::query()->exists();
+    }
+
     public function paginateForIndex(VehicleIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

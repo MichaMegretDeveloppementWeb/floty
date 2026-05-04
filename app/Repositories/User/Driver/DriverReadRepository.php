@@ -34,6 +34,11 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             ->find($id);
     }
 
+    public function existsAny(): bool
+    {
+        return Driver::query()->exists();
+    }
+
     public function paginateForIndex(DriverIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

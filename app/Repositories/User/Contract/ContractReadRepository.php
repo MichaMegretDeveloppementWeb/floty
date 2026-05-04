@@ -138,6 +138,11 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
+    public function existsAny(): bool
+    {
+        return Contract::query()->exists();
+    }
+
     public function paginateForIndex(ContractIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

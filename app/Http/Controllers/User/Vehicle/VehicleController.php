@@ -8,6 +8,7 @@ use App\Actions\Vehicle\CreateVehicleAction;
 use App\Actions\Vehicle\ExitVehicleAction;
 use App\Actions\Vehicle\ReactivateVehicleAction;
 use App\Actions\Vehicle\UpdateVehicleAction;
+use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Vehicle\ExitVehicleData;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Data\User\Vehicle\UpdateVehicleData;
@@ -33,6 +34,7 @@ final class VehicleController extends Controller
 {
     public function __construct(
         private readonly VehicleQueryService $vehicles,
+        private readonly VehicleReadRepositoryInterface $vehicleRead,
         private readonly CreateVehicleAction $createVehicle,
         private readonly UpdateVehicleAction $updateVehicle,
         private readonly ExitVehicleAction $exitVehicle,
@@ -48,6 +50,10 @@ final class VehicleController extends Controller
                 'firstRegistrationYearBounds' => $this->vehicles->firstRegistrationYearBounds(),
             ],
             'query' => $query,
+            // Cf. note d'archi sur le bug placeholder : `hasAnyVehicle`
+            // distingue « table intrinsèquement vide » du « filtre actif
+            // retournant 0 » sans dériver depuis 3 sources désynchronisées.
+            'hasAnyVehicle' => $this->vehicleRead->existsAny(),
         ]);
     }
 

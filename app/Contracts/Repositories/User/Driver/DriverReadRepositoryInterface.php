@@ -43,6 +43,14 @@ interface DriverReadRepositoryInterface
     public function paginateForIndex(DriverIndexQueryData $query): LengthAwarePaginator;
 
     /**
+     * `true` ssi au moins un driver existe en base (`SELECT EXISTS`).
+     * Utilisé par l'Index pour distinguer « table intrinsèquement vide
+     * (pas encore d'entité créée) » du « filtre actif retournant 0 ».
+     * Cf. note d'archi sur le flash placeholder.
+     */
+    public function existsAny(): bool;
+
+    /**
      * Liste plate de tous les drivers (triés nom/prénom). Utilisé par le
      * filtre conducteur du Contracts Index, qui n'est pas restreint à une
      * company / période.

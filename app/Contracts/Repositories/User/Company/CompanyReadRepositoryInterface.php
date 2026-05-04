@@ -45,6 +45,13 @@ interface CompanyReadRepositoryInterface
     public function paginateForIndex(CompanyIndexQueryData $query): LengthAwarePaginator;
 
     /**
+     * `true` ssi au moins une entreprise existe en base (`SELECT EXISTS`).
+     * Utilisé par l'Index pour distinguer « table intrinsèquement vide »
+     * du « filtre actif retournant 0 ».
+     */
+    public function existsAny(): bool;
+
+    /**
      * Liste des entreprises actives pour les `<SelectInput>`, colonnes
      * minimales, triées par raison sociale.
      *

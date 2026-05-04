@@ -17,6 +17,12 @@ import PageHeader from './partials/PageHeader.vue';
 const props = defineProps<{
     companies: App.Data.User.Company.PaginatedCompanyListData;
     query: App.Data.User.Company.CompanyIndexQueryData;
+    /**
+     * `true` ssi au moins une entreprise existe en base. Source de vérité
+     * unique pour décider du placeholder. Évite le flash lors du reset de
+     * filtre — cf. note backend sur le bug placeholder.
+     */
+    hasAnyCompany: boolean;
 }>();
 
 const { currentYear: fiscalYear } = useFiscalYear();
@@ -124,13 +130,7 @@ const activeFiltersCount = computed<number>(() => {
         <div class="flex flex-col gap-6">
             <PageHeader :fiscal-year="fiscalYear" />
 
-            <div
-                v-if="
-                    companies.meta.total === 0 &&
-                    searchModel === '' &&
-                    activeFiltersCount === 0
-                "
-            >
+            <div v-if="!props.hasAnyCompany">
                 <EmptyCompaniesState />
             </div>
 

@@ -26,6 +26,11 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
         return Company::query()->orderBy('legal_name')->get();
     }
 
+    public function existsAny(): bool
+    {
+        return Company::query()->exists();
+    }
+
     public function paginateForIndex(CompanyIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

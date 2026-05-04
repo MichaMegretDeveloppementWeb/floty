@@ -119,6 +119,13 @@ interface ContractReadRepositoryInterface
     public function paginateForIndex(ContractIndexQueryData $query): LengthAwarePaginator;
 
     /**
+     * `true` ssi au moins un contrat existe en base (`SELECT EXISTS`).
+     * Utilisé par l'Index pour distinguer « table intrinsèquement vide »
+     * du « filtre actif retournant 0 ».
+     */
+    public function existsAny(): bool;
+
+    /**
      * Tous les contrats actifs (toutes plates) chevauchant la fenêtre
      * `[start, end]`. Utilisé pour pré-calculer la table
      * `vehicleId → busyDates` consommée par le picker du formulaire

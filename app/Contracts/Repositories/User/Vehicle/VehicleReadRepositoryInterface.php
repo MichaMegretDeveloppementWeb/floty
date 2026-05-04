@@ -52,6 +52,14 @@ interface VehicleReadRepositoryInterface
     public function paginateForIndex(VehicleIndexQueryData $query): LengthAwarePaginator;
 
     /**
+     * `true` ssi au moins un véhicule existe en base (`SELECT EXISTS`).
+     * Utilisé par l'Index pour distinguer « table intrinsèquement vide »
+     * du « filtre actif retournant 0 ». Inclut les véhicules retirés
+     * (un véhicule retiré n'est pas un véhicule "absent").
+     */
+    public function existsAny(): bool;
+
+    /**
      * Liste des véhicules disponibles (non sortis) pour les `<SelectInput>`,
      * colonnes minimales, triés par plaque.
      *

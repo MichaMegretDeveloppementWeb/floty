@@ -23,6 +23,26 @@ final class CompanyControllerTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
+    public function index_expose_has_any_company_pour_decider_du_placeholder_initial(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hasAnyCompany', false));
+
+        Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hasAnyCompany', true));
+    }
+
+    #[Test]
     public function index_liste_les_entreprises(): void
     {
         $user = User::factory()->create();

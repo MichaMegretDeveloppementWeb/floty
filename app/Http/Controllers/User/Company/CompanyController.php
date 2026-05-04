@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Company;
 
 use App\Actions\Company\CreateCompanyAction;
+use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\StoreCompanyData;
 use App\Data\User\Contract\ContractIndexQueryData;
@@ -25,6 +26,7 @@ final class CompanyController extends Controller
 {
     public function __construct(
         private readonly CompanyQueryService $companies,
+        private readonly CompanyReadRepositoryInterface $companyRead,
         private readonly DriverQueryService $drivers,
         private readonly ContractQueryService $contracts,
         private readonly CreateCompanyAction $createCompany,
@@ -36,6 +38,10 @@ final class CompanyController extends Controller
         return Inertia::render('User/Companies/Index/Index', [
             'companies' => $this->companies->listPaginated($query, $this->fiscalYear->resolve()),
             'query' => $query,
+            // Cf. note d'archi sur le bug placeholder : `hasAnyCompany`
+            // distingue « table intrinsèquement vide » du « filtre actif
+            // retournant 0 » sans dériver depuis 3 sources désynchronisées.
+            'hasAnyCompany' => $this->companyRead->existsAny(),
         ]);
     }
 

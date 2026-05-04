@@ -8,6 +8,7 @@ use App\Actions\Contract\BulkCreateContractsAction;
 use App\Actions\Contract\DeleteContractAction;
 use App\Actions\Contract\StoreContractAction;
 use App\Actions\Contract\UpdateContractAction;
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Contract\ContractIndexQueryData;
@@ -38,6 +39,7 @@ final class ContractController extends Controller
 {
     public function __construct(
         private readonly ContractQueryService $contracts,
+        private readonly ContractReadRepositoryInterface $contractRead,
         private readonly VehicleQueryService $vehicles,
         private readonly CompanyQueryService $companies,
         private readonly DriverQueryService $drivers,
@@ -53,6 +55,10 @@ final class ContractController extends Controller
             'contracts' => $this->contracts->listPaginated($query),
             'options' => $this->buildFormOptions(),
             'query' => $query,
+            // Cf. note d'archi sur le bug placeholder : `hasAnyContract`
+            // distingue « table intrinsèquement vide » du « filtre actif
+            // retournant 0 » sans dériver depuis 3 sources désynchronisées.
+            'hasAnyContract' => $this->contractRead->existsAny(),
         ]);
     }
 

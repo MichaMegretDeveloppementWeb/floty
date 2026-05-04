@@ -11,6 +11,7 @@ use App\Actions\Driver\LeaveDriverCompanyMembershipAction;
 use App\Actions\Driver\SoftDeleteDriverAction;
 use App\Actions\Driver\UpdateDriverAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
 use App\Data\User\Driver\AddDriverCompanyMembershipData;
 use App\Data\User\Driver\DriverIndexQueryData;
 use App\Data\User\Driver\LeaveDriverCompanyMembershipData;
@@ -37,6 +38,7 @@ final class DriverController extends Controller
     public function __construct(
         private readonly DriverQueryService $drivers,
         private readonly CompanyReadRepositoryInterface $companyRead,
+        private readonly DriverReadRepositoryInterface $driverRead,
     ) {}
 
     public function index(DriverIndexQueryData $query): Response
@@ -47,6 +49,11 @@ final class DriverController extends Controller
                 'companies' => $this->companyOptions(),
             ],
             'query' => $query,
+            // `hasAnyDriver` = vraie réponse à « la table est-elle
+            // intrinsèquement vide ? », indépendante du filtre actif.
+            // Évite le flash placeholder pendant les transitions de
+            // filtre (cf. note d'archi sur le bug placeholder).
+            'hasAnyDriver' => $this->driverRead->existsAny(),
         ]);
     }
 

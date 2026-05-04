@@ -23,6 +23,12 @@ const props = defineProps<{
         drivers: App.Data.User.Driver.DriverOptionData[];
     };
     query: App.Data.User.Contract.ContractIndexQueryData;
+    /**
+     * `true` ssi au moins un contrat existe en base. Source de vérité
+     * unique pour décider du placeholder. Évite le flash lors du reset
+     * de filtre — cf. note backend sur le bug placeholder.
+     */
+    hasAnyContract: boolean;
 }>();
 
 const { currentYear: fiscalYear } = useFiscalYear();
@@ -130,13 +136,7 @@ const periodOngoing = ref<boolean>(false);
         <div class="flex flex-col gap-6">
             <PageHeader />
 
-            <EmptyContractsState
-                v-if="
-                    contracts.meta.total === 0
-                        && tableState.state.search.value === ''
-                        && tableState.activeFiltersCount.value === 0
-                "
-            />
+            <EmptyContractsState v-if="!props.hasAnyContract" />
 
             <template v-else>
                 <div class="flex flex-wrap items-center gap-3">

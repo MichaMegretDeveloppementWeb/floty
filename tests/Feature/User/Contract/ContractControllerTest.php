@@ -27,6 +27,31 @@ final class ContractControllerTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
+    public function index_expose_has_any_contract_pour_decider_du_placeholder_initial(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/contracts')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hasAnyContract', false));
+
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany(Company::factory()->create())
+            ->create();
+
+        $this->actingAs($user)
+            ->get('/app/contracts')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hasAnyContract', true));
+    }
+
+    #[Test]
     public function index_renvoie_la_liste_des_contrats(): void
     {
         $user = User::factory()->create();

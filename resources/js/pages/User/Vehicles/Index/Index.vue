@@ -26,6 +26,13 @@ const props = defineProps<{
         firstRegistrationYearBounds: { min: number; max: number } | null;
     };
     query: App.Data.User.Vehicle.VehicleIndexQueryData;
+    /**
+     * `true` ssi au moins un véhicule existe en base. Source de vérité
+     * unique pour décider du placeholder « Aucun véhicule ». Évite le
+     * flash placeholder lors du reset de filtre, et le faux-positif
+     * quand toute la flotte est retirée et `showExited=false`.
+     */
+    hasAnyVehicle: boolean;
 }>();
 
 const { currentYear: fiscalYear } = useFiscalYear();
@@ -174,13 +181,7 @@ const activeFiltersCount = computed<number>(() => {
         <div class="flex flex-col gap-6">
             <PageHeader :fiscal-year="fiscalYear" />
 
-            <div
-                v-if="
-                    vehicles.meta.total === 0
-                        && searchModel === ''
-                        && activeFiltersCount === 0
-                "
-            >
+            <div v-if="!props.hasAnyVehicle">
                 <EmptyFleetState />
             </div>
 

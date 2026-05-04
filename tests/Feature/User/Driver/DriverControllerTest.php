@@ -24,6 +24,29 @@ final class DriverControllerTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
+    public function index_expose_has_any_driver_pour_decider_du_placeholder_initial(): void
+    {
+        // Source de vérité unique côté backend : empêche le flash du
+        // placeholder « Aucun conducteur » lors du reset de filtre quand
+        // le filtre précédent retournait 0 résultats.
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/drivers')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hasAnyDriver', false));
+
+        Driver::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/drivers')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('hasAnyDriver', true));
+    }
+
+    #[Test]
     public function index_liste_les_drivers_avec_companies_actives_et_count_contrats(): void
     {
         $user = User::factory()->create();
