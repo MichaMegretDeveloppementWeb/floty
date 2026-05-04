@@ -10,14 +10,29 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue détaillée d'une entreprise - utilisée par la page Show Company
- * avec onglets (Phase 06 L4).
+ * Vue détaillée d'une entreprise — alimente la page Show Company
+ * (chantier K, refonte fiche entreprise, ADR-0020 D3).
+ *
+ * Le DTO porte trois familles d'information :
+ *   1. **Identité** (intemporelle) : nom, SIREN, adresse, contact, statuts.
+ *   2. **Stats temporelles** :
+ *      - `lifetime` : cumul tous exercices (section « Depuis le début »)
+ *      - `byYear`   : exercice sélectionné via `?year=` (section « Aperçu par année »)
+ *      - `history`  : récap exercice par exercice (section « Historique par année »)
+ *   3. **Drivers** : liste pour l'onglet « Conducteurs ».
+ *
+ * `availableYears` peuple le sélecteur local de la fiche.
+ * `currentRealYear` est l'année calendaire réelle (séparée de l'année
+ * sélectionnée), exposée pour les sections « temps réel » des lots
+ * ultérieurs (cf. chantier K § Lots ultérieurs).
  */
 #[TypeScript]
 final class CompanyDetailData extends Data
 {
     /**
      * @param  list<CompanyDriverRowData>  $drivers
+     * @param  list<CompanyYearStatsData>  $history  Un objet par exercice avec ≥ 1 contrat
+     * @param  list<int>  $availableYears  Années avec ≥ 1 contrat (peuple le sélecteur)
      */
     public function __construct(
         public int $id,
@@ -42,5 +57,11 @@ final class CompanyDetailData extends Data
         public int $totalDriversCount,
         #[DataCollectionOf(CompanyDriverRowData::class)]
         public array $drivers,
+        public CompanyLifetimeStatsData $lifetime,
+        public CompanyYearStatsData $byYear,
+        #[DataCollectionOf(CompanyYearStatsData::class)]
+        public array $history,
+        public array $availableYears,
+        public int $currentRealYear,
     ) {}
 }

@@ -11,11 +11,15 @@ use App\Data\User\Company\CompanyColorOptionData;
 use App\Data\User\Company\CompanyDetailData;
 use App\Data\User\Company\CompanyDriverRowData;
 use App\Data\User\Company\CompanyIndexQueryData;
+use App\Data\User\Company\CompanyLifetimeStatsData;
 use App\Data\User\Company\CompanyListItemData;
 use App\Data\User\Company\CompanyOptionData;
+use App\Data\User\Company\CompanyYearStatsData;
 use App\Data\User\Company\PaginatedCompanyListData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Company\CompanyColor;
+use App\Enums\Contract\ContractType;
+use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Pivot\DriverCompany;
@@ -175,10 +179,20 @@ final class CompanyQueryService
     }
 
     /**
-     * Détail complet d'une entreprise pour la page Show avec onglets
-     * (Phase 06 L4).
+     * Détail complet d'une entreprise pour la page Show — alimente :
+     *  - le hero d'identité (intemporel)
+     *  - la section « Depuis le début » (`lifetime`)
+     *  - la section « Aperçu par année » (`byYear`, piloté par
+     *    `$selectedYear`)
+     *  - la section « Historique par année » (`history`)
+     *  - les onglets restants (Drivers, etc.) qui consomment les
+     *    champs identitaires existants
+     *
+     * `$selectedYear` est l'année active du sélecteur **local** de la
+     * fiche (cf. ADR-0020 D3 — pas de sélecteur global). Si `null`
+     * passé, fallback à l'année calendaire réelle.
      */
-    public function detail(int $companyId): ?CompanyDetailData
+    public function detail(int $companyId, ?int $selectedYear = null): ?CompanyDetailData
     {
         $company = $this->companies->findById($companyId);
         if ($company === null) {
@@ -186,6 +200,7 @@ final class CompanyQueryService
         }
 
         $today = Carbon::today();
+        $currentRealYear = (int) $today->year;
 
         // Drivers de cette entreprise (toutes memberships, actives + sorties)
         $company->load(['drivers' => function ($query): void {
@@ -227,7 +242,28 @@ final class CompanyQueryService
             }
         }
 
-        $contractsCount = Contract::query()->where('company_id', $companyId)->count();
+        // ADR-0020 D3 — calcul des stats temporelles (lifetime + history + byYear)
+        $contractsCount = $this->contracts->countContractsForCompany($companyId);
+        $availableYears = $this->contracts->findActiveYearsForCompany($companyId);
+
+        $history = [];
+        foreach ($availableYears as $year) {
+            $history[] = $this->computeYearStats($companyId, $year);
+        }
+
+        $effectiveYear = $selectedYear ?? $currentRealYear;
+        $byYear = $this->findStatsForYear($history, $effectiveYear)
+            ?? $this->emptyYearStats($effectiveYear);
+
+        $lifetime = new CompanyLifetimeStatsData(
+            daysUsed: array_sum(array_map(static fn (CompanyYearStatsData $s): int => $s->daysUsed, $history)),
+            contractsCount: $contractsCount,
+            taxesGenerated: round(
+                array_sum(array_map(static fn (CompanyYearStatsData $s): float => $s->annualTaxDue, $history)),
+                2,
+                PHP_ROUND_HALF_UP,
+            ),
+        );
 
         return new CompanyDetailData(
             id: $company->id,
@@ -251,6 +287,106 @@ final class CompanyQueryService
             activeDriversCount: $activeDriversCount,
             totalDriversCount: count($driverRows),
             drivers: $driverRows,
+            lifetime: $lifetime,
+            byYear: $byYear,
+            history: $history,
+            availableYears: $availableYears,
+            currentRealYear: $currentRealYear,
+        );
+    }
+
+    /**
+     * Calcule les KPIs annuels d'une entreprise pour une année donnée.
+     * Charge les contrats de l'année (toutes flottes via aggregator) puis
+     * filtre sur le couple `(vehicleId, $companyId)` côté `ContractsByPair`.
+     */
+    private function computeYearStats(int $companyId, int $year): CompanyYearStatsData
+    {
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
+
+        $vehicleIds = [];
+        $lcdCount = 0;
+        $lldCount = 0;
+        foreach ($contractsByPair->pairsForCompany($companyId) as $vehicleId => $pairContracts) {
+            $vehicleIds[] = $vehicleId;
+            foreach ($pairContracts as $contract) {
+                if ($contract->contract_type === ContractType::Lcd) {
+                    $lcdCount++;
+                } else {
+                    $lldCount++;
+                }
+            }
+        }
+
+        $daysUsed = $contractsByPair->daysByCompany($companyId, $year);
+
+        $annualTaxDue = 0.0;
+        if ($vehicleIds !== []) {
+            try {
+                $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
+                $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+                $annualTaxDue = $this->aggregator->companyAnnualTax(
+                    $companyId,
+                    $vehiclesById,
+                    $contractsByPair,
+                    $unavailabilitiesByVehicleId,
+                    $year,
+                );
+            } catch (FiscalCalculationException) {
+                // L'année n'est pas configurée dans le calculateur
+                // (cf. `config/floty.fiscal.available_years`). On laisse
+                // `annualTaxDue: 0.0` plutôt que faire crasher la page —
+                // l'utilisateur voit quand même les jours et le compte
+                // de contrats pour cet exercice. Cas typique : contrats
+                // antérieurs à la config fiscale, ou en avance sur
+                // celle-ci.
+                $annualTaxDue = 0.0;
+            }
+        }
+
+        return new CompanyYearStatsData(
+            year: $year,
+            daysUsed: $daysUsed,
+            contractsCount: $lcdCount + $lldCount,
+            lcdCount: $lcdCount,
+            lldCount: $lldCount,
+            annualTaxDue: $annualTaxDue,
+            rent: null,
+        );
+    }
+
+    /**
+     * Cherche dans `$history` l'entrée correspondant à `$year`. Retourne
+     * `null` si l'entreprise n'avait aucun contrat sur cette année.
+     *
+     * @param  list<CompanyYearStatsData>  $history
+     */
+    private function findStatsForYear(array $history, int $year): ?CompanyYearStatsData
+    {
+        foreach ($history as $stat) {
+            if ($stat->year === $year) {
+                return $stat;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Stats vides pour une année où l'entreprise n'a aucun contrat —
+     * permet à `byYear` de toujours être renseigné (l'utilisateur a
+     * sélectionné une année future ou hors plage d'activité).
+     */
+    private function emptyYearStats(int $year): CompanyYearStatsData
+    {
+        return new CompanyYearStatsData(
+            year: $year,
+            daysUsed: 0,
+            contractsCount: 0,
+            lcdCount: 0,
+            lldCount: 0,
+            annualTaxDue: 0.0,
+            rent: null,
         );
     }
 

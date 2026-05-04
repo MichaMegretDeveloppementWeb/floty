@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace App\Repositories\User\Contract;
 
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
+use App\Data\Shared\Listing\SortDirection;
+use App\Data\User\Contract\ContractIndexQueryData;
 use App\Models\Contract;
 use App\Services\Contract\ContractQueryService;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Implémentation Eloquent des lectures Contract - slim conforme
@@ -146,6 +150,83 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
+    public function paginateForIndex(ContractIndexQueryData $query): LengthAwarePaginator
+    {
+        $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';
+
+        $eloquentQuery = Contract::query()
+            ->select('contracts.*')
+            ->with([
+                'vehicle:id,license_plate,exit_date,exit_reason',
+                'company:id,short_code,legal_name,color',
+                'driver:id,first_name,last_name',
+            ]);
+
+        // Filtres exact match.
+        if ($query->vehicleId !== null) {
+            $eloquentQuery->where('contracts.vehicle_id', $query->vehicleId);
+        }
+        if ($query->companyId !== null) {
+            $eloquentQuery->where('contracts.company_id', $query->companyId);
+        }
+        if ($query->driverId !== null) {
+            $eloquentQuery->where('contracts.driver_id', $query->driverId);
+        }
+        if ($query->type !== null) {
+            $eloquentQuery->where('contracts.contract_type', $query->type);
+        }
+
+        // Filtre période : chevauchement [periodStart, periodEnd].
+        if ($query->periodStart !== null) {
+            $eloquentQuery->where('contracts.end_date', '>=', $query->periodStart);
+        }
+        if ($query->periodEnd !== null) {
+            $eloquentQuery->where('contracts.start_date', '<=', $query->periodEnd);
+        }
+
+        // Search combo : LIKE sur vehicle/company/driver via whereHas.
+        if ($query->search !== null) {
+            $term = '%'.$query->search.'%';
+            $eloquentQuery->where(function (Builder $w) use ($term): void {
+                $w->whereHas('vehicle', fn (Builder $qv) => $qv
+                    ->where('license_plate', 'like', $term)
+                    ->orWhere('brand', 'like', $term)
+                    ->orWhere('model', 'like', $term))
+                    ->orWhereHas('company', fn (Builder $qc) => $qc
+                        ->where('short_code', 'like', $term)
+                        ->orWhere('legal_name', 'like', $term))
+                    ->orWhereHas('driver', fn (Builder $qd) => $qd
+                        ->where('first_name', 'like', $term)
+                        ->orWhere('last_name', 'like', $term));
+            });
+        }
+
+        // Tri whitelist (cf. ContractIndexQueryData::allowedSortKeys()).
+        // `vehicle` et `company` utilisent un leftJoin temporaire pour
+        // ordonner sur la colonne textuelle de la relation.
+        match ($query->sortKey) {
+            'vehicle' => $eloquentQuery
+                ->leftJoin('vehicles', 'contracts.vehicle_id', '=', 'vehicles.id')
+                ->orderBy('vehicles.license_plate', $direction),
+            'company' => $eloquentQuery
+                ->leftJoin('companies', 'contracts.company_id', '=', 'companies.id')
+                ->orderBy('companies.short_code', $direction),
+            'startDate' => $eloquentQuery->orderBy('contracts.start_date', $direction),
+            'endDate' => $eloquentQuery->orderBy('contracts.end_date', $direction),
+            'duration' => $eloquentQuery->orderByRaw(
+                'DATEDIFF(contracts.end_date, contracts.start_date) '.($direction === 'desc' ? 'desc' : 'asc'),
+            ),
+            'type' => $eloquentQuery->orderBy('contracts.contract_type', $direction),
+            // Défaut : tri historique start_date DESC.
+            default => $eloquentQuery->orderByDesc('contracts.start_date'),
+        };
+
+        return $eloquentQuery->paginate(
+            perPage: $query->perPage,
+            page: $query->page,
+        );
+    }
+
     public function findAllInWindow(string $start, string $end): Collection
     {
         return Contract::query()
@@ -162,5 +243,33 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->where('driver_id', $driverId)
             ->where('company_id', $companyId)
             ->count();
+    }
+
+    public function countForCompany(int $companyId): int
+    {
+        return Contract::query()
+            ->where('company_id', $companyId)
+            ->count();
+    }
+
+    public function findActiveYearsForCompany(int $companyId): array
+    {
+        $rows = Contract::query()
+            ->where('company_id', $companyId)
+            ->get(['start_date', 'end_date']);
+
+        $years = [];
+        foreach ($rows as $contract) {
+            $startYear = (int) $contract->start_date->format('Y');
+            $endYear = (int) $contract->end_date->format('Y');
+            for ($y = $startYear; $y <= $endYear; $y++) {
+                $years[$y] = true;
+            }
+        }
+
+        $list = array_keys($years);
+        sort($list);
+
+        return $list;
     }
 }

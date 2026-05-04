@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\Contract;
 
+use App\Data\User\Contract\ContractIndexQueryData;
 use App\Models\Contract;
 use App\Services\Contract\ContractQueryService;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Lectures Contract - interface slim conforme ADR-0013 (zéro
@@ -98,8 +100,33 @@ interface ContractReadRepositoryInterface
      * Liste paginée pour la page Index (chantier 04.G).
      *
      * @return Collection<int, Contract>
+     *
+     * @deprecated Conservé temporairement — sera retiré en L6 du
+     *             chantier ADR-0020. Utiliser {@see paginateForIndex()}.
      */
     public function listAll(): Collection;
+
+    /**
+     * Liste paginée server-side de l'Index Contracts (cf. ADR-0020).
+     * Applique `{search, vehicleId, companyId, driverId, type,
+     * periodStart, periodEnd, sortKey, sortDirection, page, perPage}`
+     * du DTO en SQL pure.
+     *
+     * Search : LIKE sur `vehicle.license_plate, vehicle.brand,
+     * vehicle.model, company.short_code, company.legal_name,
+     * driver.first_name, driver.last_name` via `whereHas`.
+     *
+     * Sort whitelist : vehicle | company | startDate | endDate |
+     * duration | type. `vehicle`/`company` utilisent un join temporaire
+     * pour ordonner sur la colonne textuelle de la relation. `duration`
+     * via `DATEDIFF(end_date, start_date)`.
+     *
+     * Filtre période : chevauchement
+     * (`start_date <= periodEnd AND end_date >= periodStart`).
+     *
+     * @return LengthAwarePaginator<int, Contract>
+     */
+    public function paginateForIndex(ContractIndexQueryData $query): LengthAwarePaginator;
 
     /**
      * Tous les contrats actifs (toutes plates) chevauchant la fenêtre
@@ -118,4 +145,29 @@ interface ContractReadRepositoryInterface
      * d'une membership encore liée à des contrats.
      */
     public function countForDriverInCompany(int $driverId, int $companyId): int;
+
+    /**
+     * Compte total des contrats (non soft-deleted) d'une entreprise,
+     * tous exercices confondus. Alimente la stat lifetime
+     * `contractsCount` de la fiche entreprise (chantier K, ADR-0020 D3).
+     */
+    public function countForCompany(int $companyId): int;
+
+    /**
+     * Liste triée et dédoublonnée des années (ISO calendaire) au cours
+     * desquelles l'entreprise a au moins un contrat actif (peu importe
+     * que le contrat couvre l'année entière ou n'y déborde que
+     * partiellement).
+     *
+     * Une entreprise dont le seul contrat va du 15/12/2024 au 10/01/2025
+     * remonte donc `[2024, 2025]`.
+     *
+     * Alimente :
+     *   - `availableYears` (peuple le sélecteur d'année local de la fiche)
+     *   - les itérations du `history` (1 entrée `CompanyYearStatsData`
+     *     par année)
+     *
+     * @return list<int>
+     */
+    public function findActiveYearsForCompany(int $companyId): array;
 }

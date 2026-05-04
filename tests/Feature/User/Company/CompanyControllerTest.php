@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Tests\Feature\User\Company;
 
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\User;
+use App\Models\Vehicle;
+use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Feature\Concerns\AssertsPaginatedIndex;
@@ -240,5 +244,124 @@ final class CompanyControllerTest extends TestCase
             ->assertSessionHasErrors(['legal_name']);
 
         $this->assertDatabaseMissing('companies', ['legal_name' => 'Acme SAS']);
+    }
+
+    // ----------------------------------------------------------------
+    // Show — chantier K (refonte fiche entreprise, ADR-0020 D3)
+    // ----------------------------------------------------------------
+
+    #[Test]
+    public function show_renvoie_la_structure_complete_avec_les_nouveaux_champs(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Companies/Show/Index')
+                ->has('company.lifetime', fn (AssertableInertia $stat) => $stat
+                    ->where('daysUsed', 0)
+                    ->where('contractsCount', 0)
+                    ->where('taxesGenerated', 0),
+                )
+                ->has('company.byYear', fn (AssertableInertia $stat) => $stat
+                    ->where('year', (int) Carbon::now()->year)
+                    ->where('daysUsed', 0)
+                    ->where('contractsCount', 0)
+                    ->where('lcdCount', 0)
+                    ->where('lldCount', 0)
+                    ->where('annualTaxDue', 0)
+                    ->where('rent', null),
+                )
+                ->has('company.history', 0)
+                ->has('company.availableYears', 0)
+                ->where('company.currentRealYear', (int) Carbon::now()->year),
+            );
+    }
+
+    #[Test]
+    public function show_respecte_year_query_param_pour_by_year(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}?year=2024")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('company.byYear.year', 2024),
+            );
+    }
+
+    #[Test]
+    public function show_year_invalide_ou_absent_fallback_to_current_real_year(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $currentRealYear = (int) Carbon::now()->year;
+
+        // Year absent
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('company.byYear.year', $currentRealYear),
+            );
+
+        // Year invalide (non numérique)
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}?year=foo")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('company.byYear.year', $currentRealYear),
+            );
+
+        // Year hors plage (< 1900)
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}?year=1800")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('company.byYear.year', $currentRealYear),
+            );
+    }
+
+    #[Test]
+    public function show_history_et_available_years_incluent_uniquement_les_annees_avec_contrat(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        // Contrat en 2024 → l'année 2024 doit figurer dans availableYears + history
+        Contract::factory()->create([
+            'company_id' => $company->id,
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-15',
+        ]);
+
+        // Contrat en 2025 → 2025 aussi
+        $vehicle2 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle2->id]);
+        Contract::factory()->create([
+            'company_id' => $company->id,
+            'vehicle_id' => $vehicle2->id,
+            'start_date' => '2025-06-01',
+            'end_date' => '2025-06-30',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('company.availableYears', [2024, 2025])
+                ->has('company.history', 2)
+                ->where('company.history.0.year', 2024)
+                ->where('company.history.1.year', 2025)
+                ->where('company.lifetime.contractsCount', 2),
+            );
     }
 }

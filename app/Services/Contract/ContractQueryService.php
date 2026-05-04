@@ -7,10 +7,13 @@ namespace App\Services\Contract;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
+use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\Contract\ContractData;
 use App\Data\User\Contract\ContractDocumentData;
+use App\Data\User\Contract\ContractIndexQueryData;
 use App\Data\User\Contract\ContractListItemData;
 use App\Data\User\Contract\ContractTaxBreakdownData;
+use App\Data\User\Contract\PaginatedContractListData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Models\Contract;
 use App\Models\Unavailability;
@@ -91,6 +94,9 @@ final readonly class ContractQueryService
      * Liste paginée pour la page Index (chantier 04.G).
      *
      * @return DataCollection<int, ContractListItemData>
+     *
+     * @deprecated Conservé temporairement — sera retiré en L6 du
+     *             chantier ADR-0020. Utiliser {@see listPaginated()}.
      */
     public function listAll(): DataCollection
     {
@@ -100,6 +106,26 @@ final readonly class ContractQueryService
         return ContractListItemData::collect(
             $contracts->map(static fn (Contract $c): ContractListItemData => ContractListItemData::fromModel($c)),
             DataCollection::class,
+        );
+    }
+
+    /**
+     * Index Contracts paginé server-side (cf. ADR-0020). Le repo gère
+     * pagination + filtres + search + tri en SQL pure ; le service mappe
+     * les models en DTO.
+     */
+    public function listPaginated(ContractIndexQueryData $query): PaginatedContractListData
+    {
+        $paginator = $this->repository->paginateForIndex($query);
+
+        $items = array_map(
+            static fn (Contract $c): ContractListItemData => ContractListItemData::fromModel($c),
+            $paginator->items(),
+        );
+
+        return new PaginatedContractListData(
+            data: $items,
+            meta: PaginationMetaData::fromPaginator($paginator),
         );
     }
 
@@ -169,6 +195,28 @@ final readonly class ContractQueryService
     public function loadUnavailabilitiesByVehicle(array $vehicleIds): array
     {
         return $this->unavailabilityRepository->findForVehicleIds($vehicleIds);
+    }
+
+    /**
+     * Compte total des contrats d'une entreprise (toutes années).
+     * Délégué au repo, exposé via le service pour respecter la chaîne
+     * d'appels Service → Service → Repository (cf. ADR-0013) consommée
+     * par {@see CompanyQueryService::detail()}.
+     */
+    public function countContractsForCompany(int $companyId): int
+    {
+        return $this->repository->countForCompany($companyId);
+    }
+
+    /**
+     * Liste triée des années où l'entreprise a au moins un contrat
+     * actif (cf. {@see ContractReadRepositoryInterface::findActiveYearsForCompany}).
+     *
+     * @return list<int>
+     */
+    public function findActiveYearsForCompany(int $companyId): array
+    {
+        return $this->repository->findActiveYearsForCompany($companyId);
     }
 
     /**

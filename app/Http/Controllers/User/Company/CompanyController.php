@@ -13,6 +13,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Services\Company\CompanyQueryService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -34,9 +35,15 @@ final class CompanyController extends Controller
         ]);
     }
 
-    public function show(Company $company): Response
+    public function show(Company $company, Request $request): Response
     {
-        $detail = $this->companies->detail($company->id);
+        // ADR-0020 D3 : sélecteur d'année **local** à la fiche, lu depuis
+        // le query param. Fallback à null → le service applique l'année
+        // calendaire réelle. Pas de dépendance au sélecteur global
+        // (résolveur fiscal de session non utilisé ici).
+        $selectedYear = $this->parseYearQuery($request->query('year'));
+
+        $detail = $this->companies->detail($company->id, $selectedYear);
 
         if ($detail === null) {
             throw new NotFoundHttpException('Entreprise introuvable.');
@@ -45,6 +52,32 @@ final class CompanyController extends Controller
         return Inertia::render('User/Companies/Show/Index', [
             'company' => $detail,
         ]);
+    }
+
+    /**
+     * Parse silencieux du `?year=YYYY` query param. Retourne `null` si
+     * absent / invalide / hors plage raisonnable — le service appliquera
+     * son fallback (année calendaire réelle).
+     */
+    private function parseYearQuery(mixed $value): ?int
+    {
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        if (! ctype_digit($value)) {
+            return null;
+        }
+
+        $year = (int) $value;
+        // Garde-fou : on accepte 1900..2100 pour ne pas crasher l'UI sur
+        // un input délirant (seuils larges, le service tolère les années
+        // sans données et retourne des stats à zéro).
+        if ($year < 1900 || $year > 2100) {
+            return null;
+        }
+
+        return $year;
     }
 
     public function create(): Response
