@@ -83,7 +83,7 @@ final class DriverQueryService
 
         $memberships = $driver->companies->map(function ($company) use ($contractsByCompany, $today): DriverCompanyMembershipData {
             /** @var DriverCompany $pivot */
-            $pivot = $company->pivot;
+            $pivot = $company->getAttribute('pivot');
 
             return new DriverCompanyMembershipData(
                 pivotId: $pivot->id,

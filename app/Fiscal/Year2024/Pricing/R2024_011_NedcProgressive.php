@@ -56,7 +56,7 @@ final readonly class R2024_011_NedcProgressive implements PricingRule
         if ($context->resolvedCo2Method !== HomologationMethod::Nedc) {
             return $context;
         }
-        $co2 = $context->currentFiscalCharacteristics?->co2_nedc ?? 0;
+        $co2 = $context->currentFiscalCharacteristics->co2_nedc ?? 0;
         $tariff = $this->scale->apply($co2);
 
         return $context

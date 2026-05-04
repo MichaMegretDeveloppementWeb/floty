@@ -326,7 +326,7 @@ final class VehicleFiscalCharacteristicsControllerTest extends TestCase
     private function buildVfcPayload(VehicleFiscalCharacteristics $vfc, array $overrides = []): array
     {
         return array_merge([
-            'effective_from' => $vfc->effective_from?->format('Y-m-d'),
+            'effective_from' => $vfc->effective_from->format('Y-m-d'),
             'effective_to' => $vfc->effective_to?->format('Y-m-d'),
             'reception_category' => $vfc->reception_category->value,
             'vehicle_user_type' => $vfc->vehicle_user_type->value,

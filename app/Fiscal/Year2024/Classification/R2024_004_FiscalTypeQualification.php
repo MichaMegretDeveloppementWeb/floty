@@ -64,33 +64,21 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
 
     private function isTaxable(VehicleFiscalCharacteristics $fiscal): bool
     {
-        // M1 - voiture particulière taxable sauf usage spécial.
-        if ($fiscal->reception_category === ReceptionCategory::M1) {
-            return $fiscal->m1_special_use === false;
-        }
-
-        // N1 - pick-up ≥ 5 places non skiable
-        if (
-            $fiscal->reception_category === ReceptionCategory::N1
-            && $fiscal->body_type === BodyType::Pickup
-            && $fiscal->seats_count >= 5
-            && $fiscal->n1_ski_lift_use === false
-        ) {
-            return true;
-        }
-
-        // N1 - camionnette avec banquette amovible 2 rangs ET affectée
-        // transport personnes
-        if (
-            $fiscal->reception_category === ReceptionCategory::N1
-            && $fiscal->body_type === BodyType::LightTruck
-            && $fiscal->n1_removable_second_row_seat === true
-            && $fiscal->n1_passenger_transport === true
-        ) {
-            return true;
-        }
-
-        return false;
+        return match ($fiscal->reception_category) {
+            // M1 - voiture particulière taxable sauf usage spécial.
+            ReceptionCategory::M1 => $fiscal->m1_special_use === false,
+            // N1 - pick-up ≥ 5 places non skiable, OU camionnette avec
+            // banquette amovible 2 rangs ET affectée transport personnes.
+            ReceptionCategory::N1 => (
+                $fiscal->body_type === BodyType::Pickup
+                && $fiscal->seats_count >= 5
+                && $fiscal->n1_ski_lift_use === false
+            ) || (
+                $fiscal->body_type === BodyType::LightTruck
+                && $fiscal->n1_removable_second_row_seat === true
+                && $fiscal->n1_passenger_transport === true
+            ),
+        };
     }
 
     /**
@@ -100,43 +88,42 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
      */
     private function nonTaxableReason(VehicleFiscalCharacteristics $fiscal): string
     {
-        // M1 hors champ ⇒ forcément m1_special_use=true (autre cas =
-        // taxable). On ne défensive pas inutilement.
-        if ($fiscal->reception_category === ReceptionCategory::M1) {
-            return 'Véhicule M1 à usage spécial (corbillard, ambulance, véhicule blindé) - hors champ fiscal (CIBS L. 421-2).';
-        }
+        return match ($fiscal->reception_category) {
+            // M1 hors champ ⇒ forcément m1_special_use=true (autre cas =
+            // taxable). On ne défensive pas inutilement.
+            ReceptionCategory::M1 => 'Véhicule M1 à usage spécial (corbillard, ambulance, véhicule blindé) - hors champ fiscal (CIBS L. 421-2).',
+            ReceptionCategory::N1 => $this->n1NonTaxableReason($fiscal),
+        };
+    }
 
-        if ($fiscal->reception_category === ReceptionCategory::N1) {
-            if ($fiscal->body_type === BodyType::Pickup) {
-                if ($fiscal->n1_ski_lift_use) {
-                    return 'Pick-up N1 affecté à l\'exploitation de remontées mécaniques - hors champ fiscal (CIBS L. 421-2).';
-                }
-
-                // Reste de la branche pickup : seats_count < 5
-                return 'Pick-up N1 de moins de 5 places - hors champ fiscal (CIBS L. 421-2).';
+    private function n1NonTaxableReason(VehicleFiscalCharacteristics $fiscal): string
+    {
+        if ($fiscal->body_type === BodyType::Pickup) {
+            if ($fiscal->n1_ski_lift_use) {
+                return 'Pick-up N1 affecté à l\'exploitation de remontées mécaniques - hors champ fiscal (CIBS L. 421-2).';
             }
 
-            if ($fiscal->body_type === BodyType::LightTruck) {
-                $hasSecondRow = $fiscal->n1_removable_second_row_seat;
-                $isPassengerTransport = $fiscal->n1_passenger_transport;
-
-                if (! $hasSecondRow && ! $isPassengerTransport) {
-                    return 'Camionnette N1 sans 2ᵉ rangée amovible et non affectée au transport de personnes - hors champ fiscal (CIBS L. 421-2).';
-                }
-
-                if (! $hasSecondRow) {
-                    return 'Camionnette N1 sans 2ᵉ rangée amovible - hors champ fiscal (CIBS L. 421-2).';
-                }
-
-                // Reste : ! $isPassengerTransport
-                return 'Camionnette N1 non affectée au transport de personnes - hors champ fiscal (CIBS L. 421-2).';
-            }
-
-            // N1 avec une carrosserie ni Pickup ni LightTruck.
-            return 'Véhicule N1 hors des cas taxables (pick-up ≥ 5 places ou camionnette aménagée transport de personnes) - hors champ fiscal (CIBS L. 421-2).';
+            // Reste de la branche pickup : seats_count < 5
+            return 'Pick-up N1 de moins de 5 places - hors champ fiscal (CIBS L. 421-2).';
         }
 
-        // M2 / N2 / M3 / N3 ou catégorie inconnue.
-        return 'Véhicule hors du champ fiscal des taxes annuelles (CIBS L. 421-2).';
+        if ($fiscal->body_type === BodyType::LightTruck) {
+            $hasSecondRow = $fiscal->n1_removable_second_row_seat;
+            $isPassengerTransport = $fiscal->n1_passenger_transport;
+
+            if (! $hasSecondRow && ! $isPassengerTransport) {
+                return 'Camionnette N1 sans 2ᵉ rangée amovible et non affectée au transport de personnes - hors champ fiscal (CIBS L. 421-2).';
+            }
+
+            if (! $hasSecondRow) {
+                return 'Camionnette N1 sans 2ᵉ rangée amovible - hors champ fiscal (CIBS L. 421-2).';
+            }
+
+            // Reste : ! $isPassengerTransport
+            return 'Camionnette N1 non affectée au transport de personnes - hors champ fiscal (CIBS L. 421-2).';
+        }
+
+        // N1 avec une carrosserie ni Pickup ni LightTruck.
+        return 'Véhicule N1 hors des cas taxables (pick-up ≥ 5 places ou camionnette aménagée transport de personnes) - hors champ fiscal (CIBS L. 421-2).';
     }
 }

@@ -48,7 +48,6 @@ final class VehicleQueryService
         private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly FiscalYearContext $yearContext,
-        private readonly UnavailabilityQueryService $unavailabilities,
         private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
     ) {}
 
@@ -263,7 +262,7 @@ final class VehicleQueryService
             }
         }
 
-        return array_values(array_keys($ids));
+        return array_keys($ids);
     }
 
     /**

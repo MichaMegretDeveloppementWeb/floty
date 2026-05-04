@@ -158,15 +158,16 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
     {
         $row = Vehicle::query()
             ->selectRaw('MIN(YEAR(first_french_registration_date)) AS min_year, MAX(YEAR(first_french_registration_date)) AS max_year')
-            ->first();
+            ->first()
+            ?->toArray();
 
-        if ($row === null || $row->min_year === null || $row->max_year === null) {
+        if ($row === null || $row['min_year'] === null || $row['max_year'] === null) {
             return null;
         }
 
         return [
-            'min' => (int) $row->min_year,
-            'max' => (int) $row->max_year,
+            'min' => (int) $row['min_year'],
+            'max' => (int) $row['max_year'],
         ];
     }
 }

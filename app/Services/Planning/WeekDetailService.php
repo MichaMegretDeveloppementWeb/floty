@@ -206,7 +206,8 @@ final class WeekDetailService
             $year,
         );
 
-        $incrementalDue = $after->totalDue - ($before?->totalDue ?? 0.0);
+        $beforeDue = $before !== null ? $before->totalDue : 0.0;
+        $incrementalDue = $after->totalDue - $beforeDue;
 
         return new FiscalPreviewData(
             fiscalYear: $year,

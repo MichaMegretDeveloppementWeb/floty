@@ -77,7 +77,9 @@ final class UpdateContractActionTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
-        $other = Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+        // Contrat existant sur Avril → la mise à jour de $contract pour
+        // déborder dessus doit déclencher l'exception d'overlap.
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => '2024-04-01',
             'end_date' => '2024-04-30',
         ]);
@@ -93,8 +95,6 @@ final class UpdateContractActionTest extends TestCase
             $contract->id,
             $this->makeData($vehicle->id, $company->id, '2024-03-15', '2024-04-15'),
         );
-
-        $this->assertNotNull($other);
     }
 
     #[Test]

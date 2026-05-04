@@ -598,7 +598,9 @@ final class ContractControllerTest extends TestCase
                 ->where(
                     'busyDatesByVehicleId',
                     function (mixed $busyMap) use ($vehicle, $start, $end): bool {
-                        $byVehicle = collect($busyMap)->all();
+                        /** @var array<int, list<string>> $busyMapArray */
+                        $busyMapArray = $busyMap;
+                        $byVehicle = collect($busyMapArray)->all();
 
                         return isset($byVehicle[$vehicle->id])
                             && in_array($start, $byVehicle[$vehicle->id], true)
@@ -632,7 +634,9 @@ final class ContractControllerTest extends TestCase
                 ->where(
                     'busyDatesByVehicleId',
                     function (mixed $busyMap) use ($vehicle, $start): bool {
-                        $byVehicle = collect($busyMap)->all();
+                        /** @var array<int, list<string>> $busyMapArray */
+                        $busyMapArray = $busyMap;
+                        $byVehicle = collect($busyMapArray)->all();
 
                         // Soit pas de busy pour ce véhicule (cas trivial),
                         // soit les dates du contrat courant ne s'y trouvent

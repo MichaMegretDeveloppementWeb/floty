@@ -57,7 +57,7 @@ final readonly class R2024_010_WltpProgressive implements PricingRule
         if ($context->resolvedCo2Method !== HomologationMethod::Wltp) {
             return $context;
         }
-        $co2 = $context->currentFiscalCharacteristics?->co2_wltp ?? 0;
+        $co2 = $context->currentFiscalCharacteristics->co2_wltp ?? 0;
         $tariff = $this->scale->apply($co2);
 
         return $context

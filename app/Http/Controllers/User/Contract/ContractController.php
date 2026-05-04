@@ -8,10 +8,13 @@ use App\Actions\Contract\BulkCreateContractsAction;
 use App\Actions\Contract\DeleteContractAction;
 use App\Actions\Contract\StoreContractAction;
 use App\Actions\Contract\UpdateContractAction;
+use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Contract\ContractIndexQueryData;
 use App\Data\User\Contract\StoreContractData;
 use App\Data\User\Contract\UpdateContractData;
+use App\Data\User\Driver\DriverOptionData;
+use App\Data\User\Vehicle\VehicleOptionData;
 use App\Http\Controllers\Controller;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
@@ -103,7 +106,11 @@ final class ContractController extends Controller
     }
 
     /**
-     * @return array{vehicles: DataCollection, companies: DataCollection, drivers: array}
+     * @return array{
+     *     vehicles: DataCollection<int, VehicleOptionData>,
+     *     companies: DataCollection<int, CompanyOptionData>,
+     *     drivers: array<int, DriverOptionData>,
+     * }
      */
     private function buildFormOptions(): array
     {

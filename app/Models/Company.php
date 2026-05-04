@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\Company\CompanyColor;
 use App\Models\Pivot\DriverCompany;
+use Database\Factories\CompanyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -62,7 +63,10 @@ use Illuminate\Support\Carbon;
 ])]
 final class Company extends Model
 {
-    use HasFactory, SoftDeletes;
+    /** @use HasFactory<CompanyFactory> */
+    use HasFactory;
+
+    use SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -84,7 +88,7 @@ final class Company extends Model
      *
      * Cf. Phase 06 V1.2 (refonte N:N).
      *
-     * @return BelongsToMany<Driver, $this>
+     * @return BelongsToMany<Driver, $this, DriverCompany, 'pivot'>
      */
     public function drivers(): BelongsToMany
     {

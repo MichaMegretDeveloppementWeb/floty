@@ -22,7 +22,9 @@ final class UserRoutesAuthTest extends TestCase
     #[Test]
     public function toutes_les_routes_user_redirigent_vers_login_si_non_authentifie(): void
     {
-        $userRoutes = collect(Route::getRoutes())
+        /** @var list<\Illuminate\Routing\Route> $allRoutes */
+        $allRoutes = Route::getRoutes()->getRoutes();
+        $userRoutes = collect($allRoutes)
             ->filter(fn ($route) => str_starts_with((string) $route->getName(), 'user.'));
 
         $this->assertGreaterThan(

@@ -62,6 +62,8 @@ final class User extends Authenticatable
 
     /**
      * Concatène `first_name` + `last_name` pour l'affichage compact.
+     *
+     * @return Attribute<string, never>
      */
     protected function fullName(): Attribute
     {

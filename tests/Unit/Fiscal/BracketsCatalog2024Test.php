@@ -66,6 +66,7 @@ final class BracketsCatalog2024Test extends TestCase
             'wltp' => new R2024_010_WltpProgressive,
             'nedc' => new R2024_011_NedcProgressive,
             'pa' => new R2024_012_PaProgressive,
+            default => throw new \LogicException("Scale inconnu : {$scale}"),
         };
 
         $progressive = (new ReflectionClass($rule))->getProperty('scale')->getValue($rule);

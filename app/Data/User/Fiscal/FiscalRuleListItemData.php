@@ -45,7 +45,10 @@ final class FiscalRuleListItemData extends Data
             name: $rule->name,
             description: $rule->description,
             ruleType: $rule->rule_type,
-            taxesConcerned: $rule->taxes_concerned,
+            taxesConcerned: array_values(array_map(
+                static fn (string $value): TaxType => TaxType::from($value),
+                $rule->taxes_concerned,
+            )),
             legalBasis: $rule->legal_basis,
             isActive: $rule->is_active,
         );

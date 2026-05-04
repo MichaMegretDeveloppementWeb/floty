@@ -7,6 +7,7 @@ namespace Tests\Feature\User\Driver;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Driver;
+use App\Models\Pivot\DriverCompany;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -389,8 +390,10 @@ final class DriverControllerTest extends TestCase
         $driver = Driver::query()->where('first_name', 'Marie')->where('last_name', 'Dupont')->firstOrFail();
         $this->assertCount(1, $driver->companies);
         $this->assertSame($company->id, $driver->companies->first()->id);
-        $this->assertSame('2024-01-15', $driver->companies->first()->pivot->joined_at->toDateString());
-        $this->assertNull($driver->companies->first()->pivot->left_at);
+        /** @var DriverCompany $pivot */
+        $pivot = $driver->companies->first()->getAttribute('pivot');
+        $this->assertSame('2024-01-15', $pivot->joined_at->toDateString());
+        $this->assertNull($pivot->left_at);
     }
 
     #[Test]

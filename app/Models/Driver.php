@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Models\Pivot\DriverCompany;
+use Database\Factories\DriverFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -28,6 +29,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  * @property-read string $full_name
  * @property-read string $initials
+ * @property-read int|null $active_companies_count Computed via withCount('companies as ...') (cf. DriverReadRepository::paginateForIndex)
+ * @property-read int|null $contracts_count Computed via withCount('contracts')
  */
 #[Fillable([
     'first_name',
@@ -35,8 +38,14 @@ use Illuminate\Support\Carbon;
 ])]
 final class Driver extends Model
 {
-    use HasFactory, SoftDeletes;
+    /** @use HasFactory<DriverFactory> */
+    use HasFactory;
 
+    use SoftDeletes;
+
+    /**
+     * @return Attribute<string, never>
+     */
     protected function fullName(): Attribute
     {
         return Attribute::make(
@@ -46,6 +55,8 @@ final class Driver extends Model
 
     /**
      * Initiales du prénom + nom (2 lettres en majuscules).
+     *
+     * @return Attribute<string, never>
      */
     protected function initials(): Attribute
     {
@@ -60,7 +71,7 @@ final class Driver extends Model
      * Entreprises auxquelles ce conducteur a été rattaché (actuellement
      * ou dans le passé) avec dates d'entrée et de sortie.
      *
-     * @return BelongsToMany<Company, $this>
+     * @return BelongsToMany<Company, $this, DriverCompany, 'pivot'>
      */
     public function companies(): BelongsToMany
     {

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use Carbon\CarbonInterface;
+use Database\Factories\VehicleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
@@ -62,7 +63,10 @@ use Illuminate\Support\Carbon;
 ])]
 final class Vehicle extends Model
 {
-    use HasFactory, SoftDeletes;
+    /** @use HasFactory<VehicleFactory> */
+    use HasFactory;
+
+    use SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -117,6 +121,8 @@ final class Vehicle extends Model
      * **toujours préférer les scopes date-aware** ({@see scopeActiveAt},
      * {@see scopeActiveDuring}) - un véhicule sorti reste pleinement
      * opérationnel sur sa période d'activité antérieure (cf. ADR-0018 D3).
+     *
+     * @return Attribute<bool, never>
      */
     protected function isExited(): Attribute
     {

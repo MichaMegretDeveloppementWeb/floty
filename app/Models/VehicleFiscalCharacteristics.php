@@ -13,6 +13,7 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
+use Database\Factories\VehicleFiscalCharacteristicsFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -83,6 +84,7 @@ use Illuminate\Support\Carbon;
 ])]
 final class VehicleFiscalCharacteristics extends Model
 {
+    /** @use HasFactory<VehicleFiscalCharacteristicsFactory> */
     use HasFactory;
 
     /**

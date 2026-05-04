@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Fiscal\RuleType;
+use Database\Factories\FiscalRuleFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -60,6 +61,7 @@ use Illuminate\Support\Carbon;
 ])]
 final class FiscalRule extends Model
 {
+    /** @use HasFactory<FiscalRuleFactory> */
     use HasFactory;
 
     /**

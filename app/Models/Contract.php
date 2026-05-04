@@ -8,6 +8,7 @@ use App\Enums\Contract\ContractType;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Services\Contract\ContractQueryService;
 use Carbon\CarbonImmutable;
+use Database\Factories\ContractFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -55,7 +56,10 @@ use Illuminate\Support\Carbon;
 ])]
 final class Contract extends Model
 {
-    use HasFactory, SoftDeletes;
+    /** @use HasFactory<ContractFactory> */
+    use HasFactory;
+
+    use SoftDeletes;
 
     /**
      * @return array<string, string>

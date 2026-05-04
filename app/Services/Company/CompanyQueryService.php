@@ -25,6 +25,8 @@ use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Pivot\DriverCompany;
+use App\Models\Unavailability;
+use App\Models\Vehicle;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
@@ -92,6 +94,10 @@ final class CompanyQueryService
         );
     }
 
+    /**
+     * @param  Collection<int, Vehicle>  $vehiclesById
+     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     */
     private function mapCompanyToListItem(
         Company $company,
         int $year,
@@ -175,7 +181,7 @@ final class CompanyQueryService
 
         $driverRows = $company->drivers->map(function ($driver) use ($contractsCountByDriver, $today): CompanyDriverRowData {
             /** @var DriverCompany $pivot */
-            $pivot = $driver->pivot;
+            $pivot = $driver->getAttribute('pivot');
             $first = (string) ($driver->first_name ?? '');
             $last = (string) ($driver->last_name ?? '');
             $fullName = trim($first.' '.$last);

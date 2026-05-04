@@ -167,6 +167,7 @@ final class PlanningControllerTest extends TestCase
             ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week={$weekNumber}")
             ->assertOk();
 
+        /** @var array{days: list<array<string, mixed>>} $payload */
         $payload = $response->json();
         $byDate = collect($payload['days'])->keyBy('date');
 

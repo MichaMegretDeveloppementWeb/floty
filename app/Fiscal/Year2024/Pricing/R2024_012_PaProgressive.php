@@ -52,7 +52,7 @@ final readonly class R2024_012_PaProgressive implements PricingRule
         if ($context->resolvedCo2Method !== HomologationMethod::Pa) {
             return $context;
         }
-        $cv = $context->currentFiscalCharacteristics?->taxable_horsepower ?? 0;
+        $cv = $context->currentFiscalCharacteristics->taxable_horsepower ?? 0;
         $tariff = $this->scale->apply($cv);
 
         return $context

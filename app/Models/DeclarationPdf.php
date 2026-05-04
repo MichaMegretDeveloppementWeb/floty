@@ -6,7 +6,6 @@ namespace App\Models;
 
 use App\Actions\User\Declaration\GenerateDeclarationPdfAction;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
@@ -55,8 +54,6 @@ use Illuminate\Support\Carbon;
 ])]
 final class DeclarationPdf extends Model
 {
-    use HasFactory;
-
     public const UPDATED_AT = null;
 
     /**

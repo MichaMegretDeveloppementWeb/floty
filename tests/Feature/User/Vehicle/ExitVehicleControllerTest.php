@@ -227,8 +227,12 @@ final class ExitVehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function index_par_defaut_masque_les_vehicules_retires(): void
+    public function index_par_defaut_inclut_les_vehicules_retires(): void
     {
+        // Décision UX (cf. ADR-0018 § 4) : on affiche tous les véhicules
+        // historiques par défaut pour permettre la consultation et
+        // l'édition rétroactive. L'utilisateur doit décocher la case
+        // « Inclure les véhicules retirés » pour ne voir que les actifs.
         $user = User::factory()->create();
         $active = Vehicle::factory()->create(['exit_date' => null]);
         $exited = Vehicle::factory()->create([
@@ -244,15 +248,13 @@ final class ExitVehicleControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Vehicles/Index/Index')
-                ->where('query.includeExited', false)
-                ->has('vehicles.data', 1, fn (AssertableInertia $v) => $v
-                    ->where('id', $active->id)
-                    ->etc()),
+                ->where('query.includeExited', true)
+                ->has('vehicles.data', 2),
             );
     }
 
     #[Test]
-    public function index_avec_include_exited_remonte_les_deux(): void
+    public function index_avec_include_exited_a_zero_masque_les_retires(): void
     {
         $user = User::factory()->create();
         $active = Vehicle::factory()->create(['exit_date' => null]);
@@ -264,14 +266,17 @@ final class ExitVehicleControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $active->id]);
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $exited->id]);
 
-        // Note : la query string est camelCase (`includeExited`) côté
-        // ADR-0020, contrairement à l'ancien `include_exited` snake_case.
+        // Override explicite : la case décochée envoie `includeExited=0`
+        // (cf. useFleetTable.serializeFilters — on n'envoie le param
+        // que si l'utilisateur a override le défaut backend `true`).
         $this->actingAs($user)
-            ->get('/app/vehicles?includeExited=1')
+            ->get('/app/vehicles?includeExited=0')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('query.includeExited', true)
-                ->has('vehicles.data', 2),
+                ->where('query.includeExited', false)
+                ->has('vehicles.data', 1, fn (AssertableInertia $v) => $v
+                    ->where('id', $active->id)
+                    ->etc()),
             );
     }
 
@@ -329,7 +334,9 @@ final class ExitVehicleControllerTest extends TestCase
                 ->where(
                     'vehicles',
                     function (mixed $vehicles) use ($vehicleMidYear, $vehiclePrev): bool {
-                        $ids = collect($vehicles)->pluck('id')->all();
+                        /** @var list<array{id: int}> $vehiclesArray */
+                        $vehiclesArray = $vehicles;
+                        $ids = collect($vehiclesArray)->pluck('id')->all();
 
                         return in_array($vehicleMidYear->id, $ids, true)
                             && ! in_array($vehiclePrev->id, $ids, true);

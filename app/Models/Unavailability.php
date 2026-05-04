@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\Unavailability\UnavailabilityType;
+use Database\Factories\UnavailabilityFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -43,7 +44,10 @@ use Illuminate\Support\Carbon;
 ])]
 final class Unavailability extends Model
 {
-    use HasFactory, SoftDeletes;
+    /** @use HasFactory<UnavailabilityFactory> */
+    use HasFactory;
+
+    use SoftDeletes;
 
     /**
      * @return array<string, string>
