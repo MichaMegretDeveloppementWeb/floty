@@ -4,12 +4,18 @@ import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
+import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { useFleetTable } from '@/Composables/Vehicle/Index/useFleetTable';
+import {
+    energySourceLabel,
+    pollutantCategoryLabel,
+    vehicleStatusLabel,
+} from '@/Utils/labels/vehicleEnumLabels';
 import EmptyFleetState from './partials/EmptyFleetState.vue';
 import FleetTable from './partials/FleetTable.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -27,7 +33,6 @@ const tableState = useFleetTable({
     fiscalYear: fiscalYear.value,
 });
 
-// Computed wrapper sur le ref `state.search` (pattern fiable v-model).
 const searchModel = computed<string>({
     get: () => tableState.state.search.value,
     set: (value: string) => {
@@ -35,13 +40,9 @@ const searchModel = computed<string>({
     },
 });
 
-const statusOptions = [
-    { value: 'active', label: 'Active' },
-    { value: 'maintenance', label: 'Maintenance' },
-    { value: 'sold', label: 'Vendu' },
-    { value: 'destroyed', label: 'Détruit' },
-    { value: 'other', label: 'Autre' },
-];
+const statusOptions = (
+    Object.keys(vehicleStatusLabel) as App.Enums.Vehicle.VehicleStatus[]
+).map((value) => ({ value, label: vehicleStatusLabel[value] }));
 
 const statusModel = computed<string | number>({
     get: () => tableState.state.filters.value.status ?? '',
@@ -60,9 +61,65 @@ const statusModel = computed<string | number>({
     },
 });
 
-// CheckboxInput v-model bindé directement. Le watch interne du composable
-// ne déclenche PAS de reload (pas dans search), mais on appelle
-// setFilter() pour reset page=1 + reload immédiat.
+const energySourceOptions = (
+    Object.keys(energySourceLabel) as App.Enums.Vehicle.EnergySource[]
+).map((value) => ({ value, label: energySourceLabel[value] }));
+
+const energySourceModel = computed<string | number>({
+    get: () => tableState.state.filters.value.energySource ?? '',
+    set: (value: string | number) => {
+        const v = String(value);
+        const allowed = Object.keys(
+            energySourceLabel,
+        ) as App.Enums.Vehicle.EnergySource[];
+        const next = allowed.includes(v as App.Enums.Vehicle.EnergySource)
+            ? (v as App.Enums.Vehicle.EnergySource)
+            : null;
+        tableState.state.setFilter('energySource', next);
+    },
+});
+
+const pollutantCategoryOptions = (
+    Object.keys(
+        pollutantCategoryLabel,
+    ) as App.Enums.Vehicle.PollutantCategory[]
+).map((value) => ({ value, label: pollutantCategoryLabel[value] }));
+
+const pollutantCategoryModel = computed<string | number>({
+    get: () => tableState.state.filters.value.pollutantCategory ?? '',
+    set: (value: string | number) => {
+        const v = String(value);
+        const allowed = Object.keys(
+            pollutantCategoryLabel,
+        ) as App.Enums.Vehicle.PollutantCategory[];
+        const next = allowed.includes(v as App.Enums.Vehicle.PollutantCategory)
+            ? (v as App.Enums.Vehicle.PollutantCategory)
+            : null;
+        tableState.state.setFilter('pollutantCategory', next);
+    },
+});
+
+const handicapAccessModel = computed<boolean>({
+    get: () => tableState.state.filters.value.handicapAccess === true,
+    set: (value: boolean) => {
+        tableState.state.setFilter('handicapAccess', value === true ? true : null);
+    },
+});
+
+const acquisitionMinModel = computed<number | null>({
+    get: () => tableState.state.filters.value.acquisitionYearMin,
+    set: (value: number | null) => {
+        tableState.state.setFilter('acquisitionYearMin', value);
+    },
+});
+
+const acquisitionMaxModel = computed<number | null>({
+    get: () => tableState.state.filters.value.acquisitionYearMax,
+    set: (value: number | null) => {
+        tableState.state.setFilter('acquisitionYearMax', value);
+    },
+});
+
 const includeExitedModel = computed<boolean>({
     get: () => tableState.state.filters.value.includeExited,
     set: (value: boolean) => {
@@ -72,12 +129,29 @@ const includeExitedModel = computed<boolean>({
 
 const activeFiltersCount = computed<number>(() => {
     let n = 0;
+    const f = tableState.state.filters.value;
 
-    if (tableState.state.filters.value.status !== null) {
+    if (f.status !== null) {
         n += 1;
     }
 
-    if (tableState.state.filters.value.includeExited) {
+    if (f.includeExited) {
+        n += 1;
+    }
+
+    if (f.energySource !== null) {
+        n += 1;
+    }
+
+    if (f.pollutantCategory !== null) {
+        n += 1;
+    }
+
+    if (f.handicapAccess === true) {
+        n += 1;
+    }
+
+    if (f.acquisitionYearMin !== null || f.acquisitionYearMax !== null) {
         n += 1;
     }
 
@@ -96,8 +170,7 @@ const activeFiltersCount = computed<number>(() => {
                 v-if="
                     vehicles.meta.total === 0 &&
                     searchModel === '' &&
-                    tableState.state.filters.value.status === null &&
-                    !tableState.state.filters.value.includeExited
+                    activeFiltersCount === 0
                 "
             >
                 <EmptyFleetState />
@@ -127,6 +200,50 @@ const activeFiltersCount = computed<number>(() => {
                                     v-model="statusModel"
                                     placeholder="Tous les statuts"
                                     :options="statusOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-energy"
+                                    >Énergie</FieldLabel
+                                >
+                                <SelectInput
+                                    id="filter-energy"
+                                    v-model="energySourceModel"
+                                    placeholder="Toutes les énergies"
+                                    :options="energySourceOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-pollutant"
+                                    >Catégorie polluant</FieldLabel
+                                >
+                                <SelectInput
+                                    id="filter-pollutant"
+                                    v-model="pollutantCategoryModel"
+                                    placeholder="Toutes catégories"
+                                    :options="pollutantCategoryOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-acquisition-min"
+                                    >Année d'acquisition</FieldLabel
+                                >
+                                <div class="grid grid-cols-2 gap-2">
+                                    <NumberInput
+                                        id="filter-acquisition-min"
+                                        v-model="acquisitionMinModel"
+                                        placeholder="Min"
+                                    />
+                                    <NumberInput
+                                        v-model="acquisitionMaxModel"
+                                        placeholder="Max"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <CheckboxInput
+                                    v-model="handicapAccessModel"
+                                    label="Accès handicapé uniquement"
                                 />
                             </div>
                             <div>

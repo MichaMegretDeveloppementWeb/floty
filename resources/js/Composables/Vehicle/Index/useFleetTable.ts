@@ -37,6 +37,11 @@ const COLUMN_TO_SORT_KEY: Partial<Record<string, FleetSortKey>> = {
 export type FleetFilters = {
     status: App.Enums.Vehicle.VehicleStatus | null;
     includeExited: boolean;
+    energySource: App.Enums.Vehicle.EnergySource | null;
+    pollutantCategory: App.Enums.Vehicle.PollutantCategory | null;
+    handicapAccess: boolean | null;
+    acquisitionYearMin: number | null;
+    acquisitionYearMax: number | null;
 };
 
 export function useFleetTable(opts: {
@@ -67,15 +72,33 @@ export function useFleetTable(opts: {
         initialSearch: opts.query.search ?? '',
         initialSortKey: opts.query.sortKey,
         initialSortDirection: opts.query.sortDirection,
-        defaultFilters: { status: null, includeExited: false },
+        defaultFilters: {
+            status: null,
+            includeExited: false,
+            energySource: null,
+            pollutantCategory: null,
+            handicapAccess: null,
+            acquisitionYearMin: null,
+            acquisitionYearMax: null,
+        },
         initialFilters: {
             status: opts.query.status,
             includeExited: opts.query.includeExited,
+            energySource: opts.query.energySource,
+            pollutantCategory: opts.query.pollutantCategory,
+            handicapAccess: opts.query.handicapAccess,
+            acquisitionYearMin: opts.query.acquisitionYearMin,
+            acquisitionYearMax: opts.query.acquisitionYearMax,
         },
         serializeFilters: (f) => ({
             status: f.status,
             // Sérialisation booléenne 1/0/null cohérente avec Spatie Data.
             includeExited: f.includeExited ? 1 : null,
+            energySource: f.energySource,
+            pollutantCategory: f.pollutantCategory,
+            handicapAccess: f.handicapAccess === true ? 1 : null,
+            acquisitionYearMin: f.acquisitionYearMin,
+            acquisitionYearMax: f.acquisitionYearMax,
         }),
     });
 

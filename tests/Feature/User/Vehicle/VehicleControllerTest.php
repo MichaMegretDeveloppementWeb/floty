@@ -169,6 +169,120 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
+    public function index_filtre_energy_source(): void
+    {
+        $user = User::factory()->create();
+        $electric = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $electric->id,
+            'energy_source' => 'electric',
+        ]);
+
+        $diesel = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $diesel->id,
+            'energy_source' => 'diesel',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?energySource=electric')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.meta.total', 1)
+                ->where('vehicles.data.0.id', $electric->id),
+            );
+    }
+
+    #[Test]
+    public function index_filtre_pollutant_category(): void
+    {
+        $user = User::factory()->create();
+        $catE = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $catE->id,
+            'energy_source' => 'electric',
+            'pollutant_category' => 'e',
+        ]);
+
+        $catPolluting = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $catPolluting->id,
+            'energy_source' => 'diesel',
+            'pollutant_category' => 'most_polluting',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?pollutantCategory=e')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.meta.total', 1)
+                ->where('vehicles.data.0.id', $catE->id),
+            );
+    }
+
+    #[Test]
+    public function index_filtre_handicap_access(): void
+    {
+        $user = User::factory()->create();
+        $handicap = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $handicap->id,
+            'handicap_access' => true,
+        ]);
+
+        $standard = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $standard->id,
+            'handicap_access' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/vehicles?handicapAccess=1')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.meta.total', 1)
+                ->where('vehicles.data.0.id', $handicap->id),
+            );
+    }
+
+    #[Test]
+    public function index_filtre_acquisition_year_range(): void
+    {
+        $user = User::factory()->create();
+        $v2020 = Vehicle::factory()->create(['acquisition_date' => '2020-06-15']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2020->id]);
+        $v2022 = Vehicle::factory()->create(['acquisition_date' => '2022-03-10']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2022->id]);
+        $v2023 = Vehicle::factory()->create(['acquisition_date' => '2023-11-20']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2023->id]);
+
+        // Min seul : >= 2022 → v2022 + v2023
+        $this->actingAs($user)
+            ->get('/app/vehicles?acquisitionYearMin=2022')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.meta.total', 2),
+            );
+
+        // Max seul : <= 2022 → v2020 + v2022
+        $this->actingAs($user)
+            ->get('/app/vehicles?acquisitionYearMax=2022')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.meta.total', 2),
+            );
+
+        // Range Min + Max : exactement 2022
+        $this->actingAs($user)
+            ->get('/app/vehicles?acquisitionYearMin=2022&acquisitionYearMax=2022')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicles.meta.total', 1)
+                ->where('vehicles.data.0.id', $v2022->id),
+            );
+    }
+
+    #[Test]
     public function index_query_dto_est_renvoye_au_frontend(): void
     {
         $user = User::factory()->create();

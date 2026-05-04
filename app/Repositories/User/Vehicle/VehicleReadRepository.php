@@ -59,6 +59,36 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             });
         }
 
+        // Filtres VFC active (effective_to IS NULL).
+        if ($query->energySource !== null) {
+            $energyValue = $query->energySource->value;
+            $eloquentQuery->whereHas('fiscalCharacteristics', function ($q) use ($energyValue): void {
+                $q->whereNull('effective_to')->where('energy_source', $energyValue);
+            });
+        }
+
+        if ($query->pollutantCategory !== null) {
+            $pollutantValue = $query->pollutantCategory->value;
+            $eloquentQuery->whereHas('fiscalCharacteristics', function ($q) use ($pollutantValue): void {
+                $q->whereNull('effective_to')->where('pollutant_category', $pollutantValue);
+            });
+        }
+
+        if ($query->handicapAccess === true) {
+            $eloquentQuery->whereHas('fiscalCharacteristics', function ($q): void {
+                $q->whereNull('effective_to')->where('handicap_access', true);
+            });
+        }
+
+        // Fourchette année d'acquisition.
+        if ($query->acquisitionYearMin !== null) {
+            $eloquentQuery->whereYear('acquisition_date', '>=', $query->acquisitionYearMin);
+        }
+
+        if ($query->acquisitionYearMax !== null) {
+            $eloquentQuery->whereYear('acquisition_date', '<=', $query->acquisitionYearMax);
+        }
+
         // Tri whitelist (cf. VehicleIndexQueryData::allowedSortKeys()).
         match ($query->sortKey) {
             'licensePlate' => $eloquentQuery->orderBy('license_plate', $direction),
