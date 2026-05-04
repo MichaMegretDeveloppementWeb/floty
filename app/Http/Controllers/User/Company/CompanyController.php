@@ -17,6 +17,7 @@ use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -45,13 +46,19 @@ final class CompanyController extends Controller
         ]);
     }
 
-    public function show(Company $company, ContractIndexQueryData $contractsQuery): Response
+    public function show(Company $company, ContractIndexQueryData $contractsQuery, Request $request): Response
     {
         $detail = $this->companies->detail($company->id);
 
         if ($detail === null) {
             throw new NotFoundHttpException('Entreprise introuvable.');
         }
+
+        // Onglet Fiscalité (chantier N.2) — sélecteur d'année **local**
+        // indépendant. Préfixe `?fiscalYear=` pour ne pas collide avec
+        // `?year=` (Activité Vue d'ensemble) ni `?periodStart/End=`
+        // (Contrats). Default = année réelle courante.
+        $fiscalYear = (int) $request->query('fiscalYear', (string) $detail->currentRealYear);
 
         return Inertia::render('User/Companies/Show/Index', [
             'company' => $detail,
@@ -84,6 +91,12 @@ final class CompanyController extends Controller
             'contractsAvailableYears' => $this->contracts->availableYearsRangeForCompany(
                 $company->id,
                 $detail->currentRealYear,
+            ),
+            // Onglet Fiscalité — breakdown par véhicule pour l'année
+            // sélectionnée + plage continue d'années pour les pills.
+            'companyFiscal' => $this->companies->fiscalBreakdownForYear(
+                $company->id,
+                $fiscalYear,
             ),
         ]);
     }

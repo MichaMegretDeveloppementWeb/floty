@@ -26,7 +26,8 @@ import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import { useCompanyContractsTable } from '@/Composables/Company/Show/useCompanyContractsTable';
 import CompanyContractsActiveFilterChip from './CompanyContractsActiveFilterChip.vue';
 import CompanyContractsTable from './CompanyContractsTable.vue';
-import CompanyContractsYearPills from './CompanyContractsYearPills.vue';
+import CompanyYearPills from './CompanyYearPills.vue';
+
 
 const props = defineProps<{
     company: App.Data.User.Company.CompanyDetailData;
@@ -193,7 +194,7 @@ function clearPeriod(): void {
                     class="flex flex-col gap-3 lg:flex-row lg:items-center"
                 >
                     <div class="flex-1 min-w-0">
-                        <CompanyContractsYearPills
+                        <CompanyYearPills
                             :years="props.contractsAvailableYears"
                             :active-year="activeYear"
                             @select="selectYear"

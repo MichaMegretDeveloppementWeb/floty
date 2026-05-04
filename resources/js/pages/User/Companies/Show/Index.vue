@@ -21,6 +21,7 @@ const props = defineProps<{
     contractsQuery: App.Data.User.Contract.ContractIndexQueryData;
     contractsStats: App.Data.User.Company.CompanyContractsStatsData;
     contractsAvailableYears: number[];
+    companyFiscal: App.Data.User.Company.CompanyFiscalYearData;
 }>();
 
 const { activeTab, setTab } = useCompanyTabs();
@@ -54,7 +55,10 @@ const { activeTab, setTab } = useCompanyTabs();
                 :drivers="props.company.drivers"
                 :available-drivers="props.options.drivers"
             />
-            <CompanyFiscalTab v-else-if="activeTab === 'fiscal'" />
+            <CompanyFiscalTab
+                v-else-if="activeTab === 'fiscal'"
+                :fiscal="props.companyFiscal"
+            />
             <CompanyBillingTab v-else-if="activeTab === 'billing'" />
         </div>
     </UserLayout>

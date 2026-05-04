@@ -653,6 +653,100 @@ final class CompanyControllerTest extends TestCase
             );
     }
 
+    // ----------------------------------------------------------------
+    // Show — chantier N.2 (onglet Fiscalité)
+    // ----------------------------------------------------------------
+
+    #[Test]
+    public function show_expose_company_fiscal_avec_default_year_a_current_real_year(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companyFiscal.year', (int) Carbon::now()->year)
+                ->where('companyFiscal.currentRealYear', (int) Carbon::now()->year)
+                ->where('companyFiscal.rows', [])
+                ->where('companyFiscal.totalDays', 0)
+                ->where('companyFiscal.totalTaxAll', 0),
+            );
+    }
+
+    #[Test]
+    public function show_company_fiscal_respecte_le_query_param_fiscal_year(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01', 'end_date' => '2024-03-31',
+        ]);
+
+        // Sans query : default = current year (pas 2024 sauf si on est en 2024)
+        // Avec query `fiscalYear=2024` : on doit avoir 1 ligne avec 31 jours
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?fiscalYear=2024')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companyFiscal.year', 2024)
+                ->has('companyFiscal.rows', 1)
+                ->where('companyFiscal.rows.0.daysUsed', 31)
+                ->where('companyFiscal.totalDays', 31),
+            );
+    }
+
+    #[Test]
+    public function show_company_fiscal_calcule_un_breakdown_par_vehicule(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $v1 = Vehicle::factory()->create(['license_plate' => 'AAA-001-AA']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v1->id]);
+        $v2 = Vehicle::factory()->create(['license_plate' => 'BBB-002-BB']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2->id]);
+
+        Contract::factory()->forVehicle($v1)->forCompany($company)->create([
+            'start_date' => '2024-01-01', 'end_date' => '2024-01-10', // 10j
+        ]);
+        Contract::factory()->forVehicle($v2)->forCompany($company)->create([
+            'start_date' => '2024-02-01', 'end_date' => '2024-02-29', // 29j
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?fiscalYear=2024')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('companyFiscal.rows', 2)
+                ->where('companyFiscal.totalDays', 39),
+            );
+    }
+
+    #[Test]
+    public function show_company_fiscal_available_years_est_continue(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $v = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v->id]);
+
+        Contract::factory()->forVehicle($v)->forCompany($company)->create([
+            'start_date' => '2022-06-01', 'end_date' => '2022-08-31',
+        ]);
+
+        $expectedRange = range(2022, (int) Carbon::now()->year);
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companyFiscal.availableYears', $expectedRange),
+            );
+    }
+
     #[Test]
     public function show_history_inclut_uniquement_les_annees_avec_contrat(): void
     {

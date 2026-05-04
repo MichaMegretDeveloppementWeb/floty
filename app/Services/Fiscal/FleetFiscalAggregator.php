@@ -364,6 +364,54 @@ final class FleetFiscalAggregator
     }
 
     /**
+     * Miroir de `vehicleAnnualTaxBreakdownByCompany` côté entreprise :
+     * détail fiscal d'une entreprise réparti **par véhicule utilisé**
+     * sur l'année (chantier N.2). Utilisé par l'onglet Fiscalité de la
+     * fiche Company Show.
+     *
+     * @param  Collection<int, Vehicle>  $vehiclesById  Indexée par id
+     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * @return list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
+     */
+    public function companyAnnualTaxBreakdownByVehicle(
+        int $companyId,
+        Collection $vehiclesById,
+        ContractsByPair $contracts,
+        array $unavailabilitiesByVehicleId,
+        int $year,
+    ): array {
+        $rows = [];
+        foreach ($contracts->pairsForCompany($companyId) as $vehicleId => $pairContracts) {
+            $vehicle = $vehiclesById->get($vehicleId);
+            if ($vehicle === null) {
+                continue;
+            }
+
+            $result = $this->pipeline->execute(
+                $this->buildContext(
+                    $vehicle,
+                    $pairContracts,
+                    $unavailabilitiesByVehicleId[$vehicleId] ?? [],
+                    $year,
+                ),
+            );
+
+            $taxCo2 = round($result->co2DueRaw, 2, PHP_ROUND_HALF_UP);
+            $taxPollutants = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+
+            $rows[] = [
+                'vehicleId' => $vehicleId,
+                'days' => $result->daysAssigned,
+                'taxCo2' => $taxCo2,
+                'taxPollutants' => $taxPollutants,
+                'taxTotal' => round($taxCo2 + $taxPollutants, 2, PHP_ROUND_HALF_UP),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
      * Total fiscal annuel sommé sur toute la flotte (tous couples
      * véhicule × entreprise confondus). Affiché côté Dashboard ;
      * agrégat informatif (pas un montant déclaratif).
