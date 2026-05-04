@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Plus, UserPlus } from 'lucide-vue-next';
+import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
@@ -16,8 +17,15 @@ const props = defineProps<{
 
 const tableState = useDriversTable(props.query);
 
-// `state.search` est un Ref<string> — bind direct au v-model du SearchInput.
-// Le watch interne du composable déclenche le reload debouncé (300ms).
+// Computed wrapper sur le ref `state.search` — pattern fiable pour v-model
+// (vs `v-model="tableState.state.search.value"` qui peut perdre la
+// réactivité dans certains contextes Vue).
+const searchModel = computed<string>({
+    get: () => tableState.state.search.value,
+    set: (value: string) => {
+        tableState.state.search.value = value;
+    },
+});
 </script>
 
 <template>
@@ -56,17 +64,14 @@ const tableState = useDriversTable(props.query);
 
             <div class="max-w-md">
                 <SearchInput
-                    v-model="tableState.state.search.value"
+                    v-model="searchModel"
                     placeholder="Rechercher un conducteur (nom ou prénom)"
                     aria-label="Rechercher un conducteur"
                 />
             </div>
 
             <div
-                v-if="
-                    drivers.meta.total === 0 &&
-                    tableState.state.search.value === ''
-                "
+                v-if="drivers.meta.total === 0 && searchModel === ''"
                 class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center"
             >
                 <span

@@ -27,6 +27,14 @@ const tableState = useFleetTable({
     fiscalYear: fiscalYear.value,
 });
 
+// Computed wrapper sur le ref `state.search` (pattern fiable v-model).
+const searchModel = computed<string>({
+    get: () => tableState.state.search.value,
+    set: (value: string) => {
+        tableState.state.search.value = value;
+    },
+});
+
 const statusOptions = [
     { value: 'active', label: 'Active' },
     { value: 'maintenance', label: 'Maintenance' },
@@ -86,7 +94,7 @@ const activeFiltersCount = computed<number>(() => {
             <div
                 v-if="
                     vehicles.meta.total === 0 &&
-                    tableState.state.search.value === '' &&
+                    searchModel === '' &&
                     tableState.state.filters.value.status === null &&
                     !tableState.state.filters.value.includeExited
                 "
@@ -99,7 +107,7 @@ const activeFiltersCount = computed<number>(() => {
                     <div class="flex flex-wrap items-center gap-3">
                         <div class="max-w-md grow">
                             <SearchInput
-                                v-model="tableState.state.search.value"
+                                v-model="searchModel"
                                 placeholder="Rechercher (immat, marque, modèle)"
                                 aria-label="Rechercher un véhicule"
                             />

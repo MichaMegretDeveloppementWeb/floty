@@ -139,11 +139,27 @@ export function useServerTableState<F extends Record<string, unknown>>(
             searchTimer = null;
         }
 
-        // `router.reload` préserve l'état du formulaire et le scroll par
-        // défaut (Inertia v3) — pas besoin de `preserveState/preserveScroll`.
-        router.reload({
+        // Cf. inertia-navigation.md § 10 : `router.get(url, data, options)`
+        // est le pattern documenté pour partial reload AVEC URL update.
+        // `router.reload({ data })` ne met pas à jour l'URL côté navigateur
+        // → la page ne s'actualise pas correctement (tri/filtre invisibles).
+        // `replace: true` évite de polluer l'historique sur chaque keystroke.
+        const params = buildQueryData();
+
+        // Filtre les valeurs null pour garder l'URL propre.
+        const cleanParams: Record<string, string | number> = {};
+
+        for (const [key, value] of Object.entries(params)) {
+            if (value !== null) {
+                cleanParams[key] = value;
+            }
+        }
+
+        router.get(window.location.pathname, cleanParams, {
             only: [...opts.only],
-            data: buildQueryData(),
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
             onStart: () => {
                 isReloading.value = true;
             },

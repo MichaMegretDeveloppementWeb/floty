@@ -26,6 +26,14 @@ const tableState = useCompaniesTable({
     fiscalYear: fiscalYear.value,
 });
 
+// Computed wrapper sur le ref `state.search` (pattern fiable v-model).
+const searchModel = computed<string>({
+    get: () => tableState.state.search.value,
+    set: (value: string) => {
+        tableState.state.search.value = value;
+    },
+});
+
 // Bind du SelectInput isActive : 'yes' / 'no' / '' → boolean | null.
 const isActiveOptions = [
     { value: 'yes', label: 'Active' },
@@ -62,7 +70,7 @@ const activeFiltersCount = computed<number>(() =>
             <div
                 v-if="
                     companies.meta.total === 0 &&
-                    tableState.state.search.value === '' &&
+                    searchModel === '' &&
                     tableState.state.filters.value.isActive === null
                 "
             >
@@ -73,7 +81,7 @@ const activeFiltersCount = computed<number>(() =>
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="max-w-md grow">
                         <SearchInput
-                            v-model="tableState.state.search.value"
+                            v-model="searchModel"
                             placeholder="Rechercher (nom, SIREN, code court)"
                             aria-label="Rechercher une entreprise"
                         />

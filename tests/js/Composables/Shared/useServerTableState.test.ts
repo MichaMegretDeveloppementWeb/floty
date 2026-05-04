@@ -8,7 +8,9 @@ type FakeFilters = {
     type: 'lcd' | 'lld' | null;
 };
 
-function createState(overrides: Partial<Parameters<typeof useServerTableState<FakeFilters>>[0]> = {}) {
+function createState(
+    overrides: Partial<Parameters<typeof useServerTableState<FakeFilters>>[0]> = {},
+) {
     return useServerTableState<FakeFilters>({
         only: ['drivers', 'query'],
         initialPage: 1,
@@ -28,7 +30,7 @@ function createState(overrides: Partial<Parameters<typeof useServerTableState<Fa
 describe('useServerTableState', () => {
     beforeEach(() => {
         vi.useFakeTimers();
-        vi.mocked(router.reload).mockClear();
+        vi.mocked(router.get).mockClear();
     });
 
     afterEach(() => {
@@ -50,7 +52,7 @@ describe('useServerTableState', () => {
         expect(state.search.value).toBe('foo');
         expect(state.sort.value).toEqual({ key: 'fullName', direction: 'desc' });
         expect(state.filters.value).toEqual({ companyId: 42, type: 'lcd' });
-        expect(router.reload).not.toHaveBeenCalled();
+        expect(router.get).not.toHaveBeenCalled();
     });
 
     it('debounce setSearch — pas de reload avant 300ms', async () => {
@@ -59,10 +61,10 @@ describe('useServerTableState', () => {
         await nextTick();
 
         vi.advanceTimersByTime(299);
-        expect(router.reload).not.toHaveBeenCalled();
+        expect(router.get).not.toHaveBeenCalled();
 
         vi.advanceTimersByTime(1);
-        expect(router.reload).toHaveBeenCalledTimes(1);
+        expect(router.get).toHaveBeenCalledTimes(1);
     });
 
     it('debounce setSearch — frappe rapide ne déclenche qu\'un reload', async () => {
@@ -80,12 +82,9 @@ describe('useServerTableState', () => {
         await nextTick();
         vi.advanceTimersByTime(300);
 
-        expect(router.reload).toHaveBeenCalledTimes(1);
-        expect(router.reload).toHaveBeenLastCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({ search: 'foo' }),
-            }),
-        );
+        expect(router.get).toHaveBeenCalledTimes(1);
+        const [, data] = vi.mocked(router.get).mock.calls[0]!;
+        expect(data).toEqual(expect.objectContaining({ search: 'foo' }));
     });
 
     it('setSort déclenche un reload immédiat et annule le pending search timer', async () => {
@@ -94,22 +93,18 @@ describe('useServerTableState', () => {
         state.setSearch('foo');
         await nextTick();
         vi.advanceTimersByTime(100);
-        expect(router.reload).not.toHaveBeenCalled();
+        expect(router.get).not.toHaveBeenCalled();
 
         state.setSort('fullName');
-        expect(router.reload).toHaveBeenCalledTimes(1);
-        expect(router.reload).toHaveBeenLastCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({
-                    search: 'foo',
-                    sortKey: 'fullName',
-                }),
-            }),
+        expect(router.get).toHaveBeenCalledTimes(1);
+        const [, data] = vi.mocked(router.get).mock.calls[0]!;
+        expect(data).toEqual(
+            expect.objectContaining({ search: 'foo', sortKey: 'fullName' }),
         );
 
         // Le timer search annulé ne doit plus tirer
         vi.advanceTimersByTime(500);
-        expect(router.reload).toHaveBeenCalledTimes(1);
+        expect(router.get).toHaveBeenCalledTimes(1);
     });
 
     it('setSort cycle asc → desc → off', () => {
@@ -141,14 +136,14 @@ describe('useServerTableState', () => {
         state.setPage(3);
 
         expect(state.page.value).toBe(3);
-        expect(router.reload).toHaveBeenCalledTimes(1);
+        expect(router.get).toHaveBeenCalledTimes(1);
     });
 
     it('setPage no-op si même page', () => {
         const state = createState({ initialPage: 2 });
         state.setPage(2);
 
-        expect(router.reload).not.toHaveBeenCalled();
+        expect(router.get).not.toHaveBeenCalled();
     });
 
     it('setPerPage réinitialise page à 1 et reload', () => {
@@ -157,7 +152,7 @@ describe('useServerTableState', () => {
 
         expect(state.perPage.value).toBe(50);
         expect(state.page.value).toBe(1);
-        expect(router.reload).toHaveBeenCalledTimes(1);
+        expect(router.get).toHaveBeenCalledTimes(1);
     });
 
     it('setFilter réinitialise page à 1 et reload', () => {
@@ -166,7 +161,7 @@ describe('useServerTableState', () => {
 
         expect(state.filters.value.companyId).toBe(42);
         expect(state.page.value).toBe(1);
-        expect(router.reload).toHaveBeenCalledTimes(1);
+        expect(router.get).toHaveBeenCalledTimes(1);
     });
 
     it('clearFilters réinitialise filters + search + page et reload une fois', () => {
@@ -181,21 +176,23 @@ describe('useServerTableState', () => {
         expect(state.filters.value).toEqual({ companyId: null, type: null });
         expect(state.search.value).toBe('');
         expect(state.page.value).toBe(1);
-        expect(router.reload).toHaveBeenCalledTimes(1);
+        expect(router.get).toHaveBeenCalledTimes(1);
     });
 
-    it('buildQueryData omet les valeurs par défaut', () => {
+    it('buildQueryData omet les valeurs nulles (URL propre)', () => {
         const state = createState();
         state.setSort('fullName'); // sortKey set, direction asc (default → omit)
 
-        const callArgs = vi.mocked(router.reload).mock.calls[0]?.[0];
-        const data = callArgs?.data as Record<string, unknown>;
+        const data = vi.mocked(router.get).mock.calls[0]![1] as Record<string, unknown>;
 
-        expect(data.page).toBeNull(); // page=1 default
-        expect(data.perPage).toBeNull(); // perPage=20 default
-        expect(data.search).toBeNull(); // empty
+        // Les valeurs par défaut + null sont absentes de la query string
+        expect(data).not.toHaveProperty('page');
+        expect(data).not.toHaveProperty('perPage');
+        expect(data).not.toHaveProperty('search');
+        expect(data).not.toHaveProperty('sortDirection');
+        expect(data).not.toHaveProperty('companyId');
+        expect(data).not.toHaveProperty('type');
         expect(data.sortKey).toBe('fullName');
-        expect(data.sortDirection).toBeNull(); // asc default + sortKey set → omit
     });
 
     it('buildQueryData expose sortDirection desc', () => {
@@ -203,9 +200,7 @@ describe('useServerTableState', () => {
         state.setSort('fullName');
         state.setSort('fullName'); // desc
 
-        const callArgs = vi.mocked(router.reload).mock.calls[1]?.[0];
-        const data = callArgs?.data as Record<string, unknown>;
-
+        const data = vi.mocked(router.get).mock.calls[1]![1] as Record<string, unknown>;
         expect(data.sortDirection).toBe('desc');
     });
 
@@ -213,23 +208,29 @@ describe('useServerTableState', () => {
         const state = createState();
         state.setPage(2);
 
-        const callArgs = vi.mocked(router.reload).mock.calls[0]?.[0];
+        const [, , options] = vi.mocked(router.get).mock.calls[0]!;
         expect(state.isReloading.value).toBe(false);
 
-        callArgs?.onStart?.({} as never);
+        options?.onStart?.({} as never);
         expect(state.isReloading.value).toBe(true);
 
-        callArgs?.onFinish?.({} as never);
+        options?.onFinish?.({} as never);
         expect(state.isReloading.value).toBe(false);
     });
 
-    it('only est passé au router.reload', () => {
+    it('appel router.get avec url + data + options corrects', () => {
         const state = createState({ only: ['contracts', 'meta'] });
         state.setPage(2);
 
-        expect(router.reload).toHaveBeenCalledWith(
+        // router.get(url, data, options)
+        expect(router.get).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({ page: 2 }),
             expect.objectContaining({
                 only: ['contracts', 'meta'],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
             }),
         );
     });
