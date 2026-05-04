@@ -30,13 +30,13 @@ defineProps<{
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <!-- Colonne principale -->
             <div class="flex flex-col gap-6 xl:col-span-2">
-                <CompanyActivityCard :company="company" />
                 <CompanyYearHistoryCard
                     :history="company.history"
                     :current-real-year="company.currentRealYear"
                 />
+                <CompanyActivityCard :company="company" />
 
-                <!-- < xl : Contact + Adresse dans le main flow, sous l'historique. En xl+, l'aside les porte. -->
+                <!-- < xl : Contact + Adresse dans le main flow, sous l'activité. En xl+, l'aside les porte. -->
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:hidden">
                     <CompanyContactCard :company="company" />
                     <CompanyAddressCard :company="company" />
