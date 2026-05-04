@@ -9,8 +9,13 @@ import DriverCompaniesSection from './partials/DriverCompaniesSection.vue';
 import DriverHeader from './partials/DriverHeader.vue';
 import DriverKpiCards from './partials/DriverKpiCards.vue';
 
+type CompanyOption = { id: number; shortCode: string; legalName: string };
+
 const props = defineProps<{
     driver: App.Data.User.Driver.DriverData;
+    options: {
+        companies: CompanyOption[];
+    };
 }>();
 
 const leaveCompanyId = ref<number | null>(null);
@@ -76,6 +81,7 @@ const canDelete = computed<boolean>(() => props.driver.contractsCount === 0);
                 :existing-company-ids="
                     props.driver.memberships.map((m) => m.companyId)
                 "
+                :available-companies="props.options.companies"
                 @close="showAddModal = false"
             />
         </div>

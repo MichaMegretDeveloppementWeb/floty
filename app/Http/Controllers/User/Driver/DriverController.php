@@ -60,6 +60,12 @@ final class DriverController extends Controller
 
         return Inertia::render('User/Drivers/Show/Index', [
             'driver' => $detail,
+            'options' => [
+                // Liste plate des companies pour peupler le picker du modal
+                // d'ajout de membership (`AddDriverCompanyModal`). La modale
+                // filtre côté front les companies déjà rattachées au driver.
+                'companies' => $this->companyOptions(),
+            ],
         ]);
     }
 

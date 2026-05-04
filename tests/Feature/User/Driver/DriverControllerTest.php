@@ -215,7 +215,7 @@ final class DriverControllerTest extends TestCase
     }
 
     #[Test]
-    public function index_filtre_par_company_id_inclut_les_memberships_passes(): void
+    public function index_filtre_par_company_id_inclut_uniquement_memberships_actifs(): void
     {
         $user = User::factory()->create();
         $companyA = Company::factory()->create(['legal_name' => 'Société A']);
@@ -224,22 +224,21 @@ final class DriverControllerTest extends TestCase
         $driverActif = Driver::factory()->create(['first_name' => 'Alice', 'last_name' => 'A']);
         $driverActif->companies()->attach($companyA->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
+        // Bob a quitté Société A → ne doit PAS apparaître quand on filtre A.
         $driverPasse = Driver::factory()->create(['first_name' => 'Bob', 'last_name' => 'B']);
         $driverPasse->companies()->attach($companyA->id, ['joined_at' => '2023-01-01', 'left_at' => '2023-12-31']);
 
         $driverHors = Driver::factory()->create(['first_name' => 'Clara', 'last_name' => 'C']);
         $driverHors->companies()->attach($companyB->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        // Filtre companyA → 2 drivers (actif + passé), pas Clara
+        // Filtre companyA → seulement Alice (Bob est sorti, Clara est ailleurs).
         $this->actingAs($user)
             ->get('/app/drivers?companyId='.$companyA->id)
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
-                $page,
-                'drivers',
-                expectedDataCount: 2,
-                expectedMeta: ['total' => 2],
-            ));
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('drivers.meta.total', 1)
+                ->where('drivers.data.0.fullName', 'Alice A'),
+            );
     }
 
     #[Test]
@@ -345,6 +344,29 @@ final class DriverControllerTest extends TestCase
                     )
                     ->where('contractsCount', 0)
                     ->etc(),
+                ),
+            );
+    }
+
+    #[Test]
+    public function show_expose_options_companies_pour_le_picker_du_modal_add(): void
+    {
+        // Chantier M.1 : `AddDriverCompanyModal` peuple son `<SelectInput>`
+        // depuis `props.options.companies`. Le filtrage des companies déjà
+        // rattachées vit côté front (cf. `filterAvailableCompanies`).
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+        Company::factory()->count(3)->create();
+
+        $this->actingAs($user)
+            ->get('/app/drivers/'.$driver->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('options.companies', 3)
+                ->has('options.companies.0', fn (AssertableInertia $c) => $c
+                    ->has('id')
+                    ->has('shortCode')
+                    ->has('legalName'),
                 ),
             );
     }

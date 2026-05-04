@@ -1,4 +1,15 @@
 <script setup lang="ts">
+/**
+ * Modal d'ajout d'une membership Driver↔Company depuis la fiche
+ * Driver Show (chantier M.1, ADR-0020 D3).
+ *
+ * Le picker de company est peuplé par la prop `availableCompanies`
+ * exposée par `DriverController::show` via `options.companies`. Les
+ * companies déjà rattachées au driver (peu importe statut) sont
+ * filtrées pour éviter de proposer une membership active dupliquée.
+ *
+ * Pattern symétrique à `AddCompanyDriverModal` (chantier M.2).
+ */
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
@@ -7,31 +18,31 @@ import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
+import { filterAvailableCompanies } from '@/Composables/Driver/membershipPickers';
 import { store as storeRoute } from '@/routes/user/drivers/memberships';
+
+type CompanyOption = { id: number; shortCode: string; legalName: string };
 
 const props = defineProps<{
     driverId: number;
     existingCompanyIds: number[];
+    availableCompanies: CompanyOption[];
 }>();
 
 const emit = defineEmits<{ close: [] }>();
 
 const open = ref(true);
 
-// La liste des companies disponibles est partagée via shared props ou
-// on délègue le chargement via fetch (pour V1.2 simple, on suppose que
-// l'utilisateur connaît l'ID - un futur enrichissement L4/L5 ajoutera
-// un endpoint dédié).
 const form = useForm({
     company_id: null as number | null,
     joined_at: new Date().toISOString().slice(0, 10),
 });
 
-const companyOptions = computed(() => {
-    // Pour V1.2 : pas de chargement async ici. En L4 on enrichira via shared props.
-    // Placeholder : input numérique direct.
-    return [];
-});
+const companyOptions = computed(() =>
+    filterAvailableCompanies(props.availableCompanies, props.existingCompanyIds),
+);
+
+const noOptions = computed<boolean>(() => companyOptions.value.length === 0);
 
 function close(): void {
     open.value = false;
@@ -54,18 +65,19 @@ function submit(): void {
     >
         <form class="flex flex-col gap-4" @submit.prevent="submit">
             <div>
-                <FieldLabel for="add-company-id">ID entreprise</FieldLabel>
+                <FieldLabel for="add-company-id">Entreprise</FieldLabel>
                 <SelectInput
                     id="add-company-id"
                     v-model="form.company_id"
-                    placeholder="Sélectionner"
+                    placeholder="Sélectionner une entreprise"
                     :options="companyOptions"
+                    :disabled="noOptions"
                 />
                 <p
-                    v-if="companyOptions.length === 0"
-                    class="mt-1 text-xs text-amber-600"
+                    v-if="noOptions"
+                    class="mt-1 text-xs text-slate-500"
                 >
-                    Sélecteur company à enrichir en L4 (Show Company onglets).
+                    Toutes les entreprises sont déjà rattachées à ce conducteur.
                 </p>
                 <InputError :message="form.errors.company_id" />
             </div>
@@ -75,12 +87,16 @@ function submit(): void {
                 <InputError :message="form.errors.joined_at" />
             </div>
             <div class="flex justify-end gap-2">
-                <Button variant="ghost" type="button" @click="close"
-                    >Annuler</Button
+                <Button variant="ghost" type="button" @click="close">
+                    Annuler
+                </Button>
+                <Button
+                    type="submit"
+                    :loading="form.processing"
+                    :disabled="noOptions || form.company_id === null"
                 >
-                <Button type="submit" :loading="form.processing"
-                    >Ajouter</Button
-                >
+                    Ajouter
+                </Button>
             </div>
         </form>
     </Modal>
