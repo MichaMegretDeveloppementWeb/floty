@@ -164,6 +164,29 @@ describe('useServerTableState', () => {
         expect(router.get).toHaveBeenCalledTimes(1);
     });
 
+    it('patchFilters met à jour plusieurs filtres en un seul reload', () => {
+        const state = createState({ initialPage: 4 });
+        state.patchFilters({ companyId: 42, type: 'lcd' });
+
+        expect(state.filters.value).toEqual({ companyId: 42, type: 'lcd' });
+        expect(state.page.value).toBe(1);
+        expect(router.get).toHaveBeenCalledTimes(1);
+
+        const data = vi.mocked(router.get).mock.calls[0]![1] as Record<string, unknown>;
+        expect(data).toEqual(
+            expect.objectContaining({ companyId: 42, type: 'lcd' }),
+        );
+    });
+
+    it('patchFilters préserve les filtres non passés dans le patch', () => {
+        const state = createState({
+            initialFilters: { companyId: 7, type: 'lld' },
+        });
+        state.patchFilters({ companyId: 99 });
+
+        expect(state.filters.value).toEqual({ companyId: 99, type: 'lld' });
+    });
+
     it('clearFilters réinitialise filters + search + page et reload une fois', () => {
         const state = createState({
             initialPage: 3,

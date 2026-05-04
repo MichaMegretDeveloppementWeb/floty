@@ -85,6 +85,14 @@ export type ServerTableState<F extends Record<string, unknown>> = {
     activeSortKey: ComputedRef<string | null>;
     activeSortDirection: ComputedRef<SortDirection>;
     setFilter: <K extends keyof F>(key: K, value: F[K]) => void;
+    /**
+     * Met à jour plusieurs filtres en un seul reload. À utiliser quand
+     * un widget UI modifie 2+ filtres logiquement liés (ex. DateRangePicker
+     * → periodStart + periodEnd) : `setFilter` consécutifs déclenchent 2
+     * requests dont la 1ère est partielle (race) et peut renvoyer un état
+     * incohérent (cf. bug filtre période Contracts, 2026-05).
+     */
+    patchFilters: (patch: Partial<F>) => void;
     setSort: (key: string) => void;
     setPage: (page: number) => void;
     setPerPage: (perPage: number) => void;
@@ -114,6 +122,7 @@ export function useServerTableState<F extends Record<string, unknown>>(
 
     const debounceMs = opts.debounceMs ?? DEFAULT_DEBOUNCE_MS;
     let searchTimer: ReturnType<typeof setTimeout> | null = null;
+    let pendingCancel: (() => void) | null = null;
 
     function buildQueryData(): Record<string, string | number | null> {
         const data: Record<string, string | number | null> = {
@@ -139,6 +148,17 @@ export function useServerTableState<F extends Record<string, unknown>>(
             searchTimer = null;
         }
 
+        // Annule la requête précédente si elle est encore en vol.
+        // Anti-race : garantit que la DERNIÈRE requête gagne, peu importe
+        // l'ordre d'arrivée des réponses. Sans ça, si 2 reloads sont
+        // déclenchés coup sur coup (ex. DateRangePicker qui émet une
+        // update par input modifié), la 1ère réponse peut écraser la 2ème
+        // et afficher un état incohérent (cf. bug filtre période 2026-05).
+        if (pendingCancel !== null) {
+            pendingCancel();
+            pendingCancel = null;
+        }
+
         // Cf. inertia-navigation.md § 10 : `router.get(url, data, options)`
         // est le pattern documenté pour partial reload AVEC URL update.
         // `router.reload({ data })` ne met pas à jour l'URL côté navigateur
@@ -160,11 +180,15 @@ export function useServerTableState<F extends Record<string, unknown>>(
             preserveState: true,
             preserveScroll: true,
             replace: true,
+            onCancelToken: (token) => {
+                pendingCancel = token.cancel;
+            },
             onStart: () => {
                 isReloading.value = true;
             },
             onFinish: () => {
                 isReloading.value = false;
+                pendingCancel = null;
             },
         });
     }
@@ -179,6 +203,12 @@ export function useServerTableState<F extends Record<string, unknown>>(
 
     function setFilter<K extends keyof F>(key: K, value: F[K]): void {
         filters.value = { ...filters.value, [key]: value };
+        page.value = FACTORY_DEFAULT_PAGE;
+        reloadNow();
+    }
+
+    function patchFilters(patch: Partial<F>): void {
+        filters.value = { ...filters.value, ...patch };
         page.value = FACTORY_DEFAULT_PAGE;
         reloadNow();
     }
@@ -256,6 +286,7 @@ export function useServerTableState<F extends Record<string, unknown>>(
         activeSortKey,
         activeSortDirection,
         setFilter,
+        patchFilters,
         setSort,
         setPage,
         setPerPage,

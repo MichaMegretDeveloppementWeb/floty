@@ -110,11 +110,14 @@ const periodRange = computed({
         endDate: tableState.state.filters.value.periodEnd,
     }),
     set: (range: { startDate: string | null; endDate: string | null }) => {
-        // Note : setFilter reset page=1 + reload immédiat. On set les 2
-        // bornes à la suite (2 reloads, le second annule le premier en
-        // pratique car Inertia cancel les requests pendantes).
-        tableState.state.setFilter('periodStart', range.startDate);
-        tableState.state.setFilter('periodEnd', range.endDate);
+        // patchFilters : update atomique en 1 seul reload. Évite la race
+        // où la 1ère request `?periodStart=…` (sans periodEnd) revient
+        // après la 2ème et écrase l'état avec un filtre incohérent
+        // (cf. bug filtre période 2026-05).
+        tableState.state.patchFilters({
+            periodStart: range.startDate,
+            periodEnd: range.endDate,
+        });
     },
 });
 const periodOngoing = ref<boolean>(false);
