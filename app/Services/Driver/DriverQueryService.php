@@ -12,6 +12,7 @@ use App\Data\User\Driver\DriverIndexQueryData;
 use App\Data\User\Driver\DriverListItemCompanyTagData;
 use App\Data\User\Driver\DriverListItemData;
 use App\Data\User\Driver\DriverOptionData;
+use App\Data\User\Driver\FutureContractRowData;
 use App\Data\User\Driver\PaginatedDriverListData;
 use App\Models\Company;
 use App\Models\Driver;
@@ -128,6 +129,60 @@ final class DriverQueryService
                 initials: $driver->initials,
             ))
             ->all();
+    }
+
+    /**
+     * Aperçu des contrats à venir d'un driver dans une company après
+     * une `leftAt` donnée — utilisé par la modal de sortie pour offrir
+     * une UX complète de résolution des contrats à venir (workflow Q6).
+     *
+     * Pour chaque contrat à venir, la liste des `candidates` (drivers
+     * actifs dans la company sur la période exacte du contrat) est
+     * pré-calculée — cohérent avec le check
+     * `LeaveDriverCompanyMembershipAction::validateReplacementMap`. Le
+     * driver sortant lui-même est exclu (interdit comme remplaçant de
+     * lui-même).
+     *
+     * @return list<FutureContractRowData>
+     */
+    public function futureContractsForLeavePreview(
+        int $driverId,
+        int $companyId,
+        CarbonInterface $leftAt,
+    ): array {
+        $contracts = $this->driverReadRepo->listFutureContractsInCompany(
+            $driverId,
+            $companyId,
+            $leftAt,
+        );
+
+        $rows = [];
+        foreach ($contracts as $contract) {
+            $start = $contract->start_date;
+            $end = $contract->end_date;
+            $candidates = $this->driverReadRepo
+                ->listActiveInCompanyDuring($companyId, $start, $end)
+                ->reject(fn (Driver $d): bool => $d->id === $driverId)
+                ->map(fn (Driver $d): DriverOptionData => new DriverOptionData(
+                    id: $d->id,
+                    fullName: $d->full_name,
+                    initials: $d->initials,
+                ))
+                ->values()
+                ->all();
+
+            $rows[] = new FutureContractRowData(
+                contractId: $contract->id,
+                vehicleLicensePlate: $contract->vehicle->license_plate,
+                startDate: $start->toDateString(),
+                endDate: $end->toDateString(),
+                durationDays: (int) $start->diffInDays($end) + 1,
+                contractType: $contract->contract_type,
+                candidates: $candidates,
+            );
+        }
+
+        return $rows;
     }
 
     /**

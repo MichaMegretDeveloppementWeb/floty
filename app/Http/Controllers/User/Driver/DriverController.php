@@ -169,6 +169,32 @@ final class DriverController extends Controller
     }
 
     /**
+     * Endpoint JSON consommé par la modal de sortie d'un driver d'une
+     * entreprise (workflow Q6). Pour la `leftAt` choisie par l'utilisateur,
+     * retourne la liste des contrats à venir du driver dans cette company
+     * + pour chaque contrat la liste des drivers de remplacement
+     * éligibles (actifs sur la période exacte). Le driver sortant est
+     * exclu des candidats (interdit comme remplaçant de lui-même).
+     */
+    public function futureContractsForLeave(
+        Driver $driver,
+        int $companyId,
+        Request $request,
+    ): JsonResponse {
+        $validated = $request->validate([
+            'leftAt' => ['required', 'date_format:Y-m-d'],
+        ]);
+
+        $rows = $this->drivers->futureContractsForLeavePreview(
+            $driver->id,
+            $companyId,
+            CarbonImmutable::parse($validated['leftAt']),
+        );
+
+        return response()->json(['contracts' => $rows]);
+    }
+
+    /**
      * Endpoint JSON consommé par le sélecteur driver du formulaire Contract.
      * Renvoie les drivers actifs dans la company sur la période demandée.
      */

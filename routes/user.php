@@ -171,6 +171,9 @@ Route::middleware('auth')
             ->whereNumber('driver')
             ->middleware('throttle:60,1')
             ->name('drivers.memberships.store');
+        Route::get('/drivers/{driver}/memberships/{companyId}/future-contracts', [DriverController::class, 'futureContractsForLeave'])
+            ->whereNumber(['driver', 'companyId'])
+            ->name('drivers.memberships.future-contracts');
         Route::patch('/drivers/{driver}/memberships/{companyId}/leave', [DriverController::class, 'leaveCompany'])
             ->whereNumber(['driver', 'companyId'])
             ->middleware('throttle:60,1')
