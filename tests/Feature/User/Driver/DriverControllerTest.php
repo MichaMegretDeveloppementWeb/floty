@@ -13,10 +13,12 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Feature\Concerns\AssertsPaginatedIndex;
 use Tests\TestCase;
 
 final class DriverControllerTest extends TestCase
 {
+    use AssertsPaginatedIndex;
     use RefreshDatabase;
 
     #[Test]
@@ -33,16 +35,171 @@ final class DriverControllerTest extends TestCase
         $this->actingAs($user)
             ->get('/app/drivers')
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Drivers/Index/Index')
-                ->has('drivers', 1, fn (AssertableInertia $d) => $d
+            ->assertInertia(function (AssertableInertia $page) use ($driver): void {
+                $page->component('User/Drivers/Index/Index');
+                $this->assertPaginatedShape(
+                    $page,
+                    'drivers',
+                    expectedDataCount: 1,
+                    expectedMeta: ['total' => 1, 'currentPage' => 1, 'perPage' => 20],
+                );
+                $page->has('drivers.data.0', fn (AssertableInertia $d) => $d
                     ->where('id', $driver->id)
                     ->where('fullName', $driver->full_name)
                     ->where('initials', $driver->initials)
                     ->where('totalActiveCompaniesCount', 2)
                     ->has('activeCompanies', 2)
                     ->where('contractsCount', 0),
-                ),
+                );
+            });
+    }
+
+    #[Test]
+    public function index_paginate_avec_per_page_personnalise(): void
+    {
+        $user = User::factory()->create();
+        Driver::factory()->count(25)->create();
+
+        $this->actingAs($user)
+            ->get('/app/drivers?perPage=10')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'drivers',
+                expectedDataCount: 10,
+                expectedMeta: ['total' => 25, 'currentPage' => 1, 'lastPage' => 3, 'perPage' => 10],
+            ));
+    }
+
+    #[Test]
+    public function index_navigation_page_2(): void
+    {
+        $user = User::factory()->create();
+        Driver::factory()->count(25)->create();
+
+        $this->actingAs($user)
+            ->get('/app/drivers?perPage=10&page=2')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'drivers',
+                expectedDataCount: 10,
+                expectedMeta: ['total' => 25, 'currentPage' => 2, 'from' => 11, 'to' => 20],
+            ));
+    }
+
+    #[Test]
+    public function index_per_page_hors_whitelist_rejette_la_requete(): void
+    {
+        $user = User::factory()->create();
+        Driver::factory()->create();
+
+        // Inertia route HTML : ValidationException → redirect 302 + session errors.
+        // Pour un endpoint JSON on aurait 422 ; ici on teste la sécurité côté
+        // Inertia (UI app/drivers).
+        $this->actingAs($user)
+            ->get('/app/drivers?perPage=33')
+            ->assertSessionHasErrors(['perPage']);
+    }
+
+    #[Test]
+    public function index_sort_key_hors_whitelist_rejette_la_requete(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/drivers?sortKey=password')
+            ->assertSessionHasErrors(['sortKey']);
+    }
+
+    #[Test]
+    public function index_sort_par_full_name_desc(): void
+    {
+        $user = User::factory()->create();
+        Driver::factory()->create(['first_name' => 'Alice', 'last_name' => 'Albert']);
+        Driver::factory()->create(['first_name' => 'Charlie', 'last_name' => 'Charlie']);
+        Driver::factory()->create(['first_name' => 'Bob', 'last_name' => 'Bertrand']);
+
+        $this->actingAs($user)
+            ->get('/app/drivers?sortKey=fullName&sortDirection=desc')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('drivers.data.0.fullName', 'Charlie Charlie')
+                ->where('drivers.data.1.fullName', 'Bob Bertrand')
+                ->where('drivers.data.2.fullName', 'Alice Albert'),
+            );
+    }
+
+    #[Test]
+    public function index_sort_par_contracts_count_desc(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $driverWith2 = Driver::factory()->create(['first_name' => 'Two', 'last_name' => 'Contracts']);
+        $driverWith2->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+        Contract::factory()->count(2)->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'driver_id' => $driverWith2->id,
+        ]);
+
+        $driverWith0 = Driver::factory()->create(['first_name' => 'Zero', 'last_name' => 'Contracts']);
+
+        $this->actingAs($user)
+            ->get('/app/drivers?sortKey=contractsCount&sortDirection=desc')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('drivers.data.0.id', $driverWith2->id)
+                ->where('drivers.data.0.contractsCount', 2)
+                ->where('drivers.data.1.id', $driverWith0->id)
+                ->where('drivers.data.1.contractsCount', 0),
+            );
+    }
+
+    #[Test]
+    public function index_search_filtre_par_first_name_ou_last_name(): void
+    {
+        $user = User::factory()->create();
+        Driver::factory()->create(['first_name' => 'Sophie', 'last_name' => 'Martin']);
+        Driver::factory()->create(['first_name' => 'Pierre', 'last_name' => 'Lefebvre']);
+        Driver::factory()->create(['first_name' => 'Marie', 'last_name' => 'Dubois']);
+
+        // Search par début de prénom
+        $this->actingAs($user)
+            ->get('/app/drivers?search=sop')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'drivers',
+                expectedDataCount: 1,
+                expectedMeta: ['total' => 1],
+            ));
+
+        // Search par nom
+        $this->actingAs($user)
+            ->get('/app/drivers?search=Lefebvre')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('drivers.data.0.fullName', 'Pierre Lefebvre'),
+            );
+    }
+
+    #[Test]
+    public function index_query_dto_est_renvoye_au_frontend(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/drivers?perPage=50&sortKey=fullName&sortDirection=desc&search=foo')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('query.perPage', 50)
+                ->where('query.sortKey', 'fullName')
+                ->where('query.sortDirection', 'desc')
+                ->where('query.search', 'foo')
+                ->where('query.page', 1),
             );
     }
 

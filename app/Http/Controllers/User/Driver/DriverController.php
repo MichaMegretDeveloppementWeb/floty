@@ -12,6 +12,7 @@ use App\Actions\Driver\SoftDeleteDriverAction;
 use App\Actions\Driver\UpdateDriverAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Data\User\Driver\AddDriverCompanyMembershipData;
+use App\Data\User\Driver\DriverIndexQueryData;
 use App\Data\User\Driver\LeaveDriverCompanyMembershipData;
 use App\Data\User\Driver\StoreDriverData;
 use App\Data\User\Driver\UpdateDriverData;
@@ -38,10 +39,11 @@ final class DriverController extends Controller
         private readonly CompanyReadRepositoryInterface $companyRead,
     ) {}
 
-    public function index(): Response
+    public function index(DriverIndexQueryData $query): Response
     {
         return Inertia::render('User/Drivers/Index/Index', [
-            'drivers' => $this->drivers->listForIndex(),
+            'drivers' => $this->drivers->listPaginated($query),
+            'query' => $query,
         ]);
     }
 

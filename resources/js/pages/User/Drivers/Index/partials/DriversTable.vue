@@ -1,26 +1,23 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import DriverBadge from '@/Components/Domain/Driver/DriverBadge.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
-import { show as showRoute } from '@/routes/user/drivers';
+import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import type { DataTableColumn } from '@/types/ui';
 
 type DriverRow = App.Data.User.Driver.DriverListItemData;
 
 defineProps<{
     drivers: DriverRow[];
+    columns: readonly DataTableColumn<DriverRow>[];
+    activeSortColumnKey: string | null;
+    sortDirection: 'asc' | 'desc';
 }>();
 
-const columns: readonly DataTableColumn<DriverRow>[] = [
-    { key: 'driver', label: 'Conducteur' },
-    { key: 'companies', label: 'Entreprises' },
-    { key: 'contractsCount', label: 'Contrats', mono: true },
-];
-
-function onRowClick(row: DriverRow): void {
-    router.visit(showRoute(row.id).url);
-}
+const emit = defineEmits<{
+    'header-click': [columnKey: string];
+    'row-click': [row: DriverRow];
+}>();
 </script>
 
 <template>
@@ -29,8 +26,23 @@ function onRowClick(row: DriverRow): void {
         :rows="drivers"
         :row-key="(row) => row.id"
         clickable
-        @row-click="onRowClick"
+        @row-click="(row) => emit('row-click', row)"
     >
+        <template
+            v-for="column in columns"
+            #[`header-${column.key}`]="{ column: col }"
+            :key="column.key"
+        >
+            <SortableHeader
+                :label="col.label"
+                :sort-key="col.key"
+                :active-key="activeSortColumnKey"
+                :direction="sortDirection"
+                :align="col.align === 'right' ? 'right' : 'left'"
+                @click="emit('header-click', col.key)"
+            />
+        </template>
+
         <template #cell-driver="{ row }">
             <DriverBadge :full-name="row.fullName" :initials="row.initials" />
         </template>
@@ -61,6 +73,17 @@ function onRowClick(row: DriverRow): void {
 
         <template #cell-contractsCount="{ row }">
             {{ row.contractsCount }}
+        </template>
+
+        <template #empty>
+            <div class="flex flex-col items-center gap-2 py-8 text-center">
+                <p class="text-sm font-medium text-slate-700">
+                    Aucun conducteur ne correspond à votre recherche
+                </p>
+                <p class="text-xs text-slate-500">
+                    Essayez avec un autre nom ou videz le champ de recherche.
+                </p>
+            </div>
         </template>
     </DataTable>
 </template>

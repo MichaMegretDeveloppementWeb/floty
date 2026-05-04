@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Driver;
 
 use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
+use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\Driver\DriverCompanyMembershipData;
 use App\Data\User\Driver\DriverData;
+use App\Data\User\Driver\DriverIndexQueryData;
 use App\Data\User\Driver\DriverListItemCompanyTagData;
 use App\Data\User\Driver\DriverListItemData;
 use App\Data\User\Driver\DriverOptionData;
+use App\Data\User\Driver\PaginatedDriverListData;
 use App\Models\Company;
 use App\Models\Driver;
 use App\Models\Pivot\DriverCompany;
@@ -28,34 +31,67 @@ final class DriverQueryService
 
     /**
      * @return array<int, DriverListItemData>
+     *
+     * @deprecated Conservé temporairement pour compatibilité — sera retiré
+     *             en L6 du chantier ADR-0020 une fois les 4 pilotes Index
+     *             stabilisés. Utiliser {@see listPaginated()}.
      */
     public function listForIndex(): array
     {
         $drivers = $this->driverReadRepo->listAllForIndex();
 
         return $drivers
-            ->map(function (Driver $driver): DriverListItemData {
-                /** @var Collection<int, Company> $activeCompanies */
-                $activeCompanies = $driver->companies;
-                $tags = $activeCompanies
-                    ->take(2)
-                    ->map(fn ($company): DriverListItemCompanyTagData => new DriverListItemCompanyTagData(
-                        companyId: $company->id,
-                        shortCode: $company->short_code,
-                        color: $company->color,
-                    ))
-                    ->all();
-
-                return new DriverListItemData(
-                    id: $driver->id,
-                    fullName: $driver->full_name,
-                    initials: $driver->initials,
-                    activeCompanies: $tags,
-                    totalActiveCompaniesCount: $activeCompanies->count(),
-                    contractsCount: (int) ($driver->contracts_count ?? 0),
-                );
-            })
+            ->map(fn (Driver $driver): DriverListItemData => $this->mapDriverToListItem($driver))
             ->all();
+    }
+
+    /**
+     * Index drivers paginé server-side (cf. ADR-0020). Délègue au repo
+     * pour la query SQL puis mappe les models en DTO de présentation.
+     */
+    public function listPaginated(DriverIndexQueryData $query): PaginatedDriverListData
+    {
+        $paginator = $this->driverReadRepo->paginateForIndex($query);
+
+        $items = array_map(
+            fn (Driver $driver): DriverListItemData => $this->mapDriverToListItem($driver),
+            $paginator->items(),
+        );
+
+        return new PaginatedDriverListData(
+            data: $items,
+            meta: PaginationMetaData::fromPaginator($paginator),
+        );
+    }
+
+    private function mapDriverToListItem(Driver $driver): DriverListItemData
+    {
+        /** @var Collection<int, Company> $activeCompanies */
+        $activeCompanies = $driver->companies;
+        $tags = $activeCompanies
+            ->take(2)
+            ->map(fn ($company): DriverListItemCompanyTagData => new DriverListItemCompanyTagData(
+                companyId: $company->id,
+                shortCode: $company->short_code,
+                color: $company->color,
+            ))
+            ->all();
+
+        // `active_companies_count` est défini par paginateForIndex() (chantier
+        // ADR-0020). Pour listForIndex() (deprecated), on retombe sur
+        // `$activeCompanies->count()` car ce withCount n'est pas chargé.
+        $totalActiveCount = isset($driver->active_companies_count)
+            ? (int) $driver->active_companies_count
+            : $activeCompanies->count();
+
+        return new DriverListItemData(
+            id: $driver->id,
+            fullName: $driver->full_name,
+            initials: $driver->initials,
+            activeCompanies: $tags,
+            totalActiveCompaniesCount: $totalActiveCount,
+            contractsCount: (int) ($driver->contracts_count ?? 0),
+        );
     }
 
     public function detail(int $driverId): ?DriverData

@@ -1,25 +1,23 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Plus, UserPlus } from 'lucide-vue-next';
-import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
+import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
+import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
+import { useDriversTable } from '@/Composables/Driver/Index/useDriversTable';
 import { create as createRoute } from '@/routes/user/drivers';
 import DriversTable from './partials/DriversTable.vue';
 
 const props = defineProps<{
-    drivers: App.Data.User.Driver.DriverListItemData[];
+    drivers: App.Data.User.Driver.PaginatedDriverListData;
+    query: App.Data.User.Driver.DriverIndexQueryData;
 }>();
 
-const stats = computed<{ total: number; active: number; multi: number }>(
-    () => ({
-        total: props.drivers.length,
-        active: props.drivers.filter((d) => d.totalActiveCompaniesCount > 0)
-            .length,
-        multi: props.drivers.filter((d) => d.totalActiveCompaniesCount >= 2)
-            .length,
-    }),
-);
+const tableState = useDriversTable(props.query);
+
+// `state.search` est un Ref<string> — bind direct au v-model du SearchInput.
+// Le watch interne du composable déclenche le reload debouncé (300ms).
 </script>
 
 <template>
@@ -40,13 +38,10 @@ const stats = computed<{ total: number; active: number; multi: number }>(
                         Conducteurs
                     </h1>
                     <p class="text-sm text-slate-500">
-                        {{ stats.active }} actif{{
-                            stats.active > 1 ? 's' : ''
+                        {{ drivers.meta.total }} conducteur{{
+                            drivers.meta.total > 1 ? 's' : ''
                         }}
-                        sur {{ stats.total }} au total
-                        <span v-if="stats.multi > 0" class="text-slate-400">
-                            · {{ stats.multi }} multi-entreprises
-                        </span>
+                        au total
                     </p>
                 </div>
                 <Link :href="createRoute().url">
@@ -59,8 +54,19 @@ const stats = computed<{ total: number; active: number; multi: number }>(
                 </Link>
             </div>
 
+            <div class="max-w-md">
+                <SearchInput
+                    v-model="tableState.state.search.value"
+                    placeholder="Rechercher un conducteur (nom ou prénom)"
+                    aria-label="Rechercher un conducteur"
+                />
+            </div>
+
             <div
-                v-if="drivers.length === 0"
+                v-if="
+                    drivers.meta.total === 0 &&
+                    tableState.state.search.value === ''
+                "
                 class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center"
             >
                 <span
@@ -79,7 +85,25 @@ const stats = computed<{ total: number; active: number; multi: number }>(
                     <Button>Créer un conducteur</Button>
                 </Link>
             </div>
-            <DriversTable v-else :drivers="drivers" />
+
+            <template v-else>
+                <DriversTable
+                    :drivers="drivers.data"
+                    :columns="tableState.columns"
+                    :active-sort-column-key="
+                        tableState.activeSortColumnKey.value
+                    "
+                    :sort-direction="tableState.state.sort.value.direction"
+                    @header-click="tableState.onHeaderClick"
+                    @row-click="tableState.onRowClick"
+                />
+
+                <Paginator
+                    :meta="drivers.meta"
+                    @page-change="tableState.state.setPage"
+                    @per-page-change="tableState.state.setPerPage"
+                />
+            </template>
         </div>
     </UserLayout>
 </template>

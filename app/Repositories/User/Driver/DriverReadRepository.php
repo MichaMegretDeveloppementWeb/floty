@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Repositories\User\Driver;
 
 use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
+use App\Data\Shared\Listing\SortDirection;
+use App\Data\User\Driver\DriverIndexQueryData;
 use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\Pivot\DriverCompany;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Implémentation Eloquent des lectures Driver - slim conforme ADR-0013.
@@ -42,6 +45,46 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             ->orderBy('last_name')
             ->orderBy('first_name')
             ->get();
+    }
+
+    public function paginateForIndex(DriverIndexQueryData $query): LengthAwarePaginator
+    {
+        $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';
+
+        $eloquentQuery = Driver::query()
+            ->with(['companies' => function ($q): void {
+                $q->whereNull('driver_company.left_at')
+                    ->orderByPivot('joined_at');
+            }])
+            ->withCount('contracts')
+            ->withCount(['companies as active_companies_count' => function ($q): void {
+                $q->whereNull('driver_company.left_at');
+            }]);
+
+        // Search par nom (LIKE sur first_name OU last_name).
+        if ($query->search !== null) {
+            $term = '%'.$query->search.'%';
+            $eloquentQuery->where(function ($w) use ($term): void {
+                $w->where('first_name', 'like', $term)
+                    ->orWhere('last_name', 'like', $term);
+            });
+        }
+
+        // Tri whitelisté (cf. DriverIndexQueryData::allowedSortKeys()).
+        match ($query->sortKey) {
+            'fullName' => $eloquentQuery
+                ->orderBy('last_name', $direction)
+                ->orderBy('first_name', $direction),
+            'contractsCount' => $eloquentQuery->orderBy('contracts_count', $direction),
+            'activeCompaniesCount' => $eloquentQuery->orderBy('active_companies_count', $direction),
+            // Pas de sortKey explicite : tri par défaut alphabétique.
+            default => $eloquentQuery->orderBy('last_name')->orderBy('first_name'),
+        };
+
+        return $eloquentQuery->paginate(
+            perPage: $query->perPage,
+            page: $query->page,
+        );
     }
 
     public function listAllForOptions(): Collection
