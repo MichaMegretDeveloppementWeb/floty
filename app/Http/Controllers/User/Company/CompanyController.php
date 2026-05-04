@@ -12,6 +12,7 @@ use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Services\Company\CompanyQueryService;
+use App\Services\Driver\DriverQueryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
@@ -22,6 +23,7 @@ final class CompanyController extends Controller
 {
     public function __construct(
         private readonly CompanyQueryService $companies,
+        private readonly DriverQueryService $drivers,
         private readonly CreateCompanyAction $createCompany,
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
@@ -44,6 +46,12 @@ final class CompanyController extends Controller
 
         return Inertia::render('User/Companies/Show/Index', [
             'company' => $detail,
+            'options' => [
+                // Liste plate des drivers pour peupler le picker du modal
+                // d'ajout de membership (`AddCompanyDriverModal`). La modale
+                // filtre côté front les drivers déjà rattachés à la company.
+                'drivers' => $this->drivers->listForOptions(),
+            ],
         ]);
     }
 

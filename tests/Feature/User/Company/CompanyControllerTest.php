@@ -6,6 +6,7 @@ namespace Tests\Feature\User\Company;
 
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\Driver;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -442,6 +443,29 @@ final class CompanyControllerTest extends TestCase
                 ->where('company.activityByYear.0.topVehicles.1.daysUsed', 20)
                 ->where('company.activityByYear.0.topVehicles.2.licensePlate', 'CCC-003-CC')
                 ->where('company.activityByYear.0.topVehicles.2.daysUsed', 10),
+            );
+    }
+
+    #[Test]
+    public function show_expose_options_drivers_pour_le_picker_du_modal_add(): void
+    {
+        // Chantier M.2 : `AddCompanyDriverModal` peuple son `<SelectInput>`
+        // depuis `props.options.drivers`. Le filtrage des drivers déjà
+        // rattachés vit côté front (cf. `filterAvailableDrivers`).
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        Driver::factory()->count(3)->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('options.drivers', 3)
+                ->has('options.drivers.0', fn (AssertableInertia $d) => $d
+                    ->has('id')
+                    ->has('fullName')
+                    ->has('initials'),
+                ),
             );
     }
 

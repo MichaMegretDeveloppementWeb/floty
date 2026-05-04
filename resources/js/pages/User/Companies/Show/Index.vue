@@ -10,8 +10,13 @@ import CompanyHeader from './partials/CompanyHeader.vue';
 import CompanyOverviewTab from './partials/CompanyOverviewTab.vue';
 import CompanyTabsNav from './partials/CompanyTabsNav.vue';
 
+type DriverOption = { id: number; fullName: string; initials: string };
+
 const props = defineProps<{
     company: App.Data.User.Company.CompanyDetailData;
+    options: {
+        drivers: DriverOption[];
+    };
 }>();
 
 const { activeTab, setTab } = useCompanyTabs();
@@ -36,7 +41,10 @@ const { activeTab, setTab } = useCompanyTabs();
             />
             <CompanyDriversTab
                 v-else-if="activeTab === 'drivers'"
+                :company-id="props.company.id"
+                :company-legal-name="props.company.legalName"
                 :drivers="props.company.drivers"
+                :available-drivers="props.options.drivers"
             />
             <CompanyFiscalTab v-else-if="activeTab === 'fiscal'" />
             <CompanyBillingTab v-else-if="activeTab === 'billing'" />
