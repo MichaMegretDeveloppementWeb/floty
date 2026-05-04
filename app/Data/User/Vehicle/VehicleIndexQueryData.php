@@ -15,8 +15,11 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * DTO d'entrée pour l'Index Vehicles server-side (cf. ADR-0020).
  *
  * Filtres :
- *  - `includeExited: bool` (défaut false) — inclut les véhicules dont
- *     `exit_date` est passée (cf. ADR-0018 § 4)
+ *  - `includeExited: bool` (défaut **true**) — inclut les véhicules dont
+ *     `exit_date` est passée. Décision UX : par défaut on affiche tous
+ *     les véhicules historiques pour permettre la consultation et
+ *     l'édition rétroactive (cf. ADR-0018 § 4). L'utilisateur peut
+ *     décocher pour ne voir que les véhicules actifs aujourd'hui.
  *  - `status: VehicleStatus|null` — filtre par statut courant
  *  - `energySource: EnergySource|null` — sur la VFC active
  *  - `pollutantCategory: PollutantCategory|null` — sur la VFC active
@@ -36,7 +39,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class VehicleIndexQueryData extends IndexQueryData
 {
     public function __construct(
-        public bool $includeExited = false,
+        public bool $includeExited = true,
         public ?VehicleStatus $status = null,
         public ?EnergySource $energySource = null,
         public ?PollutantCategory $pollutantCategory = null,

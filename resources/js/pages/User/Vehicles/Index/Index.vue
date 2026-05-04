@@ -138,7 +138,9 @@ const activeFiltersCount = computed<number>(() => {
         n += 1;
     }
 
-    if (f.includeExited) {
+    // includeExited défaut true : compté comme filtre actif uniquement
+    // si l'utilisateur a explicitement décoché (override = exclure).
+    if (!f.includeExited) {
         n += 1;
     }
 
@@ -174,9 +176,9 @@ const activeFiltersCount = computed<number>(() => {
 
             <div
                 v-if="
-                    vehicles.meta.total === 0 &&
-                    searchModel === '' &&
-                    activeFiltersCount === 0
+                    vehicles.meta.total === 0
+                        && searchModel === ''
+                        && activeFiltersCount === 0
                 "
             >
                 <EmptyFleetState />

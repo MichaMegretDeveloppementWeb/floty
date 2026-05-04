@@ -74,7 +74,9 @@ export function useFleetTable(opts: {
         initialSortDirection: opts.query.sortDirection,
         defaultFilters: {
             status: null,
-            includeExited: false,
+            // Défaut true : on affiche les véhicules retirés par défaut
+            // (consultation/édition rétroactive). Décocher pour les masquer.
+            includeExited: true,
             energySource: null,
             pollutantCategory: null,
             handicapAccess: null,
@@ -92,8 +94,9 @@ export function useFleetTable(opts: {
         },
         serializeFilters: (f) => ({
             status: f.status,
-            // Sérialisation booléenne 1/0/null cohérente avec Spatie Data.
-            includeExited: f.includeExited ? 1 : null,
+            // includeExited a comme défaut backend `true` : on ne l'envoie
+            // dans l'URL que si l'utilisateur a décoché (override = 0).
+            includeExited: f.includeExited ? null : 0,
             energySource: f.energySource,
             pollutantCategory: f.pollutantCategory,
             handicapAccess: f.handicapAccess === true ? 1 : null,
