@@ -9,11 +9,17 @@ use App\Contracts\Repositories\User\Contract\ContractWriteRepositoryInterface;
 use App\Data\User\Contract\UpdateContractData;
 use App\Exceptions\Contract\ContractOverlapException;
 use App\Models\Contract;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Mise à jour d'un contrat avec re-validation applicative anti-overlap
  * (défense en profondeur, cf. ADR-0014 D5). La ligne courante est
  * exclue de la recherche de conflit via `excludeId`.
+ *
+ * Cf. note transactionnelle dans {@see StoreContractAction} : la
+ * transaction Laravel garantit l'atomicité des side-effects côté app,
+ * le trigger MySQL `contracts_no_overlap_*` reste la source de vérité
+ * de l'invariant face aux races inter-requêtes.
  */
 final readonly class UpdateContractAction
 {
@@ -24,29 +30,31 @@ final readonly class UpdateContractAction
 
     public function execute(int $contractId, UpdateContractData $data): Contract
     {
-        $conflict = $this->reader->findOverlapping(
-            vehicleId: $data->vehicleId,
-            startDate: $data->startDate,
-            endDate: $data->endDate,
-            excludeId: $contractId,
-        );
-
-        if ($conflict !== null) {
-            throw ContractOverlapException::fromConflict(
+        return DB::transaction(function () use ($contractId, $data): Contract {
+            $conflict = $this->reader->findOverlapping(
                 vehicleId: $data->vehicleId,
                 startDate: $data->startDate,
                 endDate: $data->endDate,
-                conflictingContractId: $conflict->id,
-                conflictingStartDate: $conflict->start_date->toDateString(),
-                conflictingEndDate: $conflict->end_date->toDateString(),
+                excludeId: $contractId,
             );
-        }
 
-        // Recalcul inconditionnel : opération idempotente, peu coûteuse,
-        // pas de diff à gérer. Si les dates n'ont pas changé, on
-        // re-pose le même type.
-        $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
+            if ($conflict !== null) {
+                throw ContractOverlapException::fromConflict(
+                    vehicleId: $data->vehicleId,
+                    startDate: $data->startDate,
+                    endDate: $data->endDate,
+                    conflictingContractId: $conflict->id,
+                    conflictingStartDate: $conflict->start_date->toDateString(),
+                    conflictingEndDate: $conflict->end_date->toDateString(),
+                );
+            }
 
-        return $this->writer->update($contractId, $data, $contractType);
+            // Recalcul inconditionnel : opération idempotente, peu coûteuse,
+            // pas de diff à gérer. Si les dates n'ont pas changé, on
+            // re-pose le même type.
+            $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
+
+            return $this->writer->update($contractId, $data, $contractType);
+        });
     }
 }
