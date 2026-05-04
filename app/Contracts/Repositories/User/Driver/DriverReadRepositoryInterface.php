@@ -35,6 +35,15 @@ interface DriverReadRepositoryInterface
     public function listAllForIndex(): Collection;
 
     /**
+     * Liste plate de tous les drivers (triés nom/prénom). Utilisé par le
+     * filtre conducteur du Contracts Index, qui n'est pas restreint à une
+     * company / période.
+     *
+     * @return Collection<int, Driver>
+     */
+    public function listAllForOptions(): Collection;
+
+    /**
      * Liste des drivers ayant **au moins une membership** (active ou
      * historique) avec la company donnée. Utilisé par la section
      * Conducteurs de Show Company.

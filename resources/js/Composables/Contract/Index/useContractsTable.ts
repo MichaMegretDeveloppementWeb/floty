@@ -16,10 +16,10 @@ type ContractRow = App.Data.User.Contract.ContractListItemData;
 export type ContractFilters = {
     vehicleId: number | null;
     companyId: number | null;
+    driverId: number | null;
     type: 'lcd' | 'lld' | null;
     periodStart: string | null;
     periodEnd: string | null;
-    hasDriver: 'yes' | 'no' | null;
 };
 
 export type ContractSortKey =
@@ -33,10 +33,10 @@ export type ContractSortKey =
 const DEFAULT_FILTERS: ContractFilters = {
     vehicleId: null,
     companyId: null,
+    driverId: null,
     type: null,
     periodStart: null,
     periodEnd: null,
-    hasDriver: null,
 };
 
 const SORT_KEYS: readonly ContractSortKey[] = [
@@ -64,6 +64,7 @@ export function useContractsTable(opts: {
     contracts: Ref<readonly ContractRow[]>;
     vehicleOptions: Ref<readonly App.Data.User.Vehicle.VehicleOptionData[]>;
     companyOptions: Ref<readonly App.Data.User.Company.CompanyOptionData[]>;
+    driverOptions: Ref<readonly App.Data.User.Driver.DriverOptionData[]>;
 }): {
     columns: ComputedRef<readonly DataTableColumn<ContractRow>[]>;
     rows: ComputedRef<ContractRow[]>;
@@ -89,18 +90,18 @@ export function useContractsTable(opts: {
         parseFiltersFromUrl: (params) => ({
             vehicleId: parseIntOrNull(params.get('vehicleId')),
             companyId: parseIntOrNull(params.get('companyId')),
+            driverId: parseIntOrNull(params.get('driverId')),
             type: parseTypeOrNull(params.get('type')),
             periodStart: params.get('periodStart'),
             periodEnd: params.get('periodEnd'),
-            hasDriver: parseHasDriverOrNull(params.get('hasDriver')),
         }),
         serializeFiltersToUrl: (f) => ({
             vehicleId: f.vehicleId?.toString() ?? null,
             companyId: f.companyId?.toString() ?? null,
+            driverId: f.driverId?.toString() ?? null,
             type: f.type,
             periodStart: f.periodStart,
             periodEnd: f.periodEnd,
-            hasDriver: f.hasDriver,
         }),
         applyFilter: (item, f) => {
             if (f.vehicleId !== null && item.vehicleId !== f.vehicleId) {
@@ -108,6 +109,10 @@ export function useContractsTable(opts: {
             }
 
             if (f.companyId !== null && item.companyId !== f.companyId) {
+                return false;
+            }
+
+            if (f.driverId !== null && item.driverId !== f.driverId) {
                 return false;
             }
 
@@ -124,15 +129,13 @@ export function useContractsTable(opts: {
                 return false;
             }
 
-            // hasDriver : `driverId` n'existe pas encore sur ContractListItemData
-            // en V1 ; on le branchera dès que le DTO l'expose. Pour l'instant
-            // ce filtre est neutre (toujours vrai).
             return true;
         },
         sortComparators: {
             vehicle: (a, b) =>
                 a.vehicleLicensePlate.localeCompare(b.vehicleLicensePlate),
-            company: (a, b) => a.companyShortCode.localeCompare(b.companyShortCode),
+            company: (a, b) =>
+                a.companyShortCode.localeCompare(b.companyShortCode),
             startDate: (a, b) => a.startDate.localeCompare(b.startDate),
             endDate: (a, b) => a.endDate.localeCompare(b.endDate),
             duration: (a, b) => a.durationDays - b.durationDays,
@@ -140,14 +143,18 @@ export function useContractsTable(opts: {
         },
     });
 
-    const rows = computed<ContractRow[]>(() => state.apply(opts.contracts.value));
+    const rows = computed<ContractRow[]>(() =>
+        state.apply(opts.contracts.value),
+    );
 
     const activeFilterChips = computed<ContractFilterChip[]>(() => {
         const chips: ContractFilterChip[] = [];
         const f = state.filters.value;
 
         if (f.vehicleId !== null) {
-            const v = opts.vehicleOptions.value.find((x) => x.id === f.vehicleId);
+            const v = opts.vehicleOptions.value.find(
+                (x) => x.id === f.vehicleId,
+            );
             chips.push({
                 key: 'vehicleId',
                 label: `Véhicule : ${v?.label ?? '#' + f.vehicleId}`,
@@ -155,30 +162,37 @@ export function useContractsTable(opts: {
         }
 
         if (f.companyId !== null) {
-            const c = opts.companyOptions.value.find((x) => x.id === f.companyId);
+            const c = opts.companyOptions.value.find(
+                (x) => x.id === f.companyId,
+            );
             chips.push({
                 key: 'companyId',
                 label: `Entreprise : ${c?.shortCode ?? '#' + f.companyId}`,
             });
         }
 
+        if (f.driverId !== null) {
+            const d = opts.driverOptions.value.find((x) => x.id === f.driverId);
+            chips.push({
+                key: 'driverId',
+                label: `Conducteur : ${d?.fullName ?? '#' + f.driverId}`,
+            });
+        }
+
         if (f.type !== null) {
-            chips.push({ key: 'type', label: `Type : ${f.type.toUpperCase()}` });
+            chips.push({
+                key: 'type',
+                label: `Type : ${f.type.toUpperCase()}`,
+            });
         }
 
         if (f.periodStart !== null || f.periodEnd !== null) {
-            const start = f.periodStart === null ? '…' : formatDateFr(f.periodStart);
+            const start =
+                f.periodStart === null ? '…' : formatDateFr(f.periodStart);
             const end = f.periodEnd === null ? '…' : formatDateFr(f.periodEnd);
             chips.push({
                 key: 'periodStart',
                 label: `Période : ${start} → ${end}`,
-            });
-        }
-
-        if (f.hasDriver !== null) {
-            chips.push({
-                key: 'hasDriver',
-                label: f.hasDriver === 'yes' ? 'Avec conducteur' : 'Sans conducteur',
             });
         }
 
@@ -225,14 +239,6 @@ function parseIntOrNull(value: string | null): number | null {
 
 function parseTypeOrNull(value: string | null): 'lcd' | 'lld' | null {
     if (value === 'lcd' || value === 'lld') {
-        return value;
-    }
-
-    return null;
-}
-
-function parseHasDriverOrNull(value: string | null): 'yes' | 'no' | null {
-    if (value === 'yes' || value === 'no') {
         return value;
     }
 

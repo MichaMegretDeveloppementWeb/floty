@@ -14,6 +14,7 @@ use App\Data\User\Contract\UpdateContractData;
 use App\Http\Controllers\Controller;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
+use App\Services\Driver\DriverQueryService;
 use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -35,6 +36,7 @@ final class ContractController extends Controller
         private readonly ContractQueryService $contracts,
         private readonly VehicleQueryService $vehicles,
         private readonly CompanyQueryService $companies,
+        private readonly DriverQueryService $drivers,
         private readonly StoreContractAction $storeContract,
         private readonly UpdateContractAction $updateContract,
         private readonly DeleteContractAction $deleteContract,
@@ -99,13 +101,14 @@ final class ContractController extends Controller
     }
 
     /**
-     * @return array{vehicles: DataCollection, companies: DataCollection}
+     * @return array{vehicles: DataCollection, companies: DataCollection, drivers: array}
      */
     private function buildFormOptions(): array
     {
         return [
             'vehicles' => $this->vehicles->listForOptions(),
             'companies' => $this->companies->listForOptions(),
+            'drivers' => $this->drivers->listForOptions(),
         ];
     }
 

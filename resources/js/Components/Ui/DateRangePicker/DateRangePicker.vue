@@ -189,7 +189,7 @@ const {
                 <input
                     type="date"
                     :value="range.startDate ?? ''"
-                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] w-[15em]"
+                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] w-[14em]"
                     @change="(e) => onStartDateInput((e.target as HTMLInputElement).value)"
                 />
             </label>
@@ -207,7 +207,7 @@ const {
                     :value="range.endDate ?? ''"
                     :disabled="ongoing"
                     :class="[
-                        'rounded-md border px-2 py-1 text-sm transition-colors duration-[120ms] ease-out focus:outline-none w-[15em]',
+                        'rounded-md border px-2 py-1 text-sm transition-colors duration-[120ms] ease-out focus:outline-none w-[14em]',
                         ongoing
                             ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
                             : 'border-slate-200 bg-white text-slate-900 focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]',

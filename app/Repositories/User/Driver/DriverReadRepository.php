@@ -44,6 +44,14 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             ->get();
     }
 
+    public function listAllForOptions(): Collection
+    {
+        return Driver::query()
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+    }
+
     public function listForCompany(int $companyId, bool $includeInactive = true): Collection
     {
         $query = Driver::query()

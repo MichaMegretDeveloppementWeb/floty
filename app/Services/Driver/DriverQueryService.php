@@ -116,4 +116,22 @@ final class DriverQueryService
             ))
             ->all();
     }
+
+    /**
+     * Options plates pour le filtre conducteur du Contracts Index (toutes
+     * companies, toutes périodes).
+     *
+     * @return array<int, DriverOptionData>
+     */
+    public function listForOptions(): array
+    {
+        return $this->driverReadRepo
+            ->listAllForOptions()
+            ->map(fn (Driver $driver): DriverOptionData => new DriverOptionData(
+                id: $driver->id,
+                fullName: $driver->full_name,
+                initials: $driver->initials,
+            ))
+            ->all();
+    }
 }

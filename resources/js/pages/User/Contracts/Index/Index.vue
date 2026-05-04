@@ -18,6 +18,7 @@ const props = defineProps<{
     options: {
         vehicles: App.Data.User.Vehicle.VehicleOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
+        drivers: App.Data.User.Driver.DriverOptionData[];
     };
 }>();
 
@@ -27,11 +28,13 @@ const filtersOpen = ref<boolean>(false);
 const contractsRef = toRef(props, 'contracts');
 const vehicleOptionsRef = computed(() => props.options.vehicles);
 const companyOptionsRef = computed(() => props.options.companies);
+const driverOptionsRef = computed(() => props.options.drivers);
 
 const tableState = useContractsTable({
     contracts: contractsRef,
     vehicleOptions: vehicleOptionsRef,
     companyOptions: companyOptionsRef,
+    driverOptions: driverOptionsRef,
 });
 
 const vehicleSelectOptions = computed(() =>
@@ -45,14 +48,13 @@ const companySelectOptions = computed(() =>
     })),
 );
 
+const driverSelectOptions = computed(() =>
+    props.options.drivers.map((d) => ({ value: d.id, label: d.fullName })),
+);
+
 const typeOptions = [
     { value: 'lcd', label: 'LCD (≤ 30 jours)' },
     { value: 'lld', label: 'LLD (> 30 jours)' },
-];
-
-const hasDriverOptions = [
-    { value: 'yes', label: 'Avec conducteur' },
-    { value: 'no', label: 'Sans conducteur' },
 ];
 
 const periodRange = computed({
@@ -85,23 +87,37 @@ function companyIdModelSet(value: string | number | null): void {
         typeof value === 'number' ? value : null,
     );
 }
+function driverIdModelGet(): number | null {
+    return tableState.state.filters.value.driverId;
+}
+function driverIdModelSet(value: string | number | null): void {
+    tableState.state.setFilter(
+        'driverId',
+        typeof value === 'number' ? value : null,
+    );
+}
 
-const vehicleIdModel = computed({ get: vehicleIdModelGet, set: vehicleIdModelSet });
-const companyIdModel = computed({ get: companyIdModelGet, set: companyIdModelSet });
+const vehicleIdModel = computed({
+    get: vehicleIdModelGet,
+    set: vehicleIdModelSet,
+});
+const companyIdModel = computed({
+    get: companyIdModelGet,
+    set: companyIdModelSet,
+});
+const driverIdModel = computed({
+    get: driverIdModelGet,
+    set: driverIdModelSet,
+});
 
 const typeModel = computed({
     get: () => tableState.state.filters.value.type ?? '',
     set: (value: string | number) => {
         const v = String(value);
-        tableState.state.setFilter('type', v === 'lcd' || v === 'lld' ? v : null);
-    },
-});
-
-const hasDriverModel = computed({
-    get: () => tableState.state.filters.value.hasDriver ?? '',
-    set: (value: string | number) => {
-        const v = String(value);
-        tableState.state.setFilter('hasDriver', v === 'yes' || v === 'no' ? v : null);
+        tableState.state.setFilter(
+            'type',
+            v === 'lcd' || v === 'lld' ? v : null,
+        );
     },
 });
 </script>
@@ -118,12 +134,16 @@ const hasDriverModel = computed({
                 <div class="flex justify-start">
                     <FilterPopover
                         v-model:open="filtersOpen"
-                        :active-count="tableState.state.activeFiltersCount.value"
+                        :active-count="
+                            tableState.state.activeFiltersCount.value
+                        "
                         @reset="tableState.state.clearFilters"
                     >
                         <div class="flex flex-col gap-3">
                             <div>
-                                <FieldLabel for="filter-vehicle">Véhicule</FieldLabel>
+                                <FieldLabel for="filter-vehicle"
+                                    >Véhicule</FieldLabel
+                                >
                                 <SearchableSelect
                                     id="filter-vehicle"
                                     v-model="vehicleIdModel"
@@ -132,12 +152,25 @@ const hasDriverModel = computed({
                                 />
                             </div>
                             <div>
-                                <FieldLabel for="filter-company">Entreprise</FieldLabel>
+                                <FieldLabel for="filter-company"
+                                    >Entreprise</FieldLabel
+                                >
                                 <SearchableSelect
                                     id="filter-company"
                                     v-model="companyIdModel"
                                     placeholder="Toutes les entreprises"
                                     :options="companySelectOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-driver"
+                                    >Conducteur</FieldLabel
+                                >
+                                <SearchableSelect
+                                    id="filter-driver"
+                                    v-model="driverIdModel"
+                                    placeholder="Tous les conducteurs"
+                                    :options="driverSelectOptions"
                                 />
                             </div>
                             <div>
@@ -150,21 +183,14 @@ const hasDriverModel = computed({
                                 />
                             </div>
                             <div>
-                                <FieldLabel for="filter-period">Période active</FieldLabel>
+                                <FieldLabel for="filter-period"
+                                    >Période active</FieldLabel
+                                >
                                 <DateRangePicker
                                     id="filter-period"
                                     v-model:range="periodRange"
                                     v-model:ongoing="periodOngoing"
                                     :year="fiscalYear"
-                                />
-                            </div>
-                            <div>
-                                <FieldLabel for="filter-driver">Conducteur</FieldLabel>
-                                <SelectInput
-                                    id="filter-driver"
-                                    v-model="hasDriverModel"
-                                    placeholder="Tous"
-                                    :options="hasDriverOptions"
                                 />
                             </div>
                         </div>

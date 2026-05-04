@@ -5,16 +5,13 @@ import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
-import type {
-    ContractSortKey,
-} from '@/Composables/Contract/Index/useContractsTable';
+import type { ContractSortKey } from '@/Composables/Contract/Index/useContractsTable';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import type {
     contractTypeBadgeTone,
     contractTypeShortLabel,
 } from '@/Utils/labels/contractEnumLabels';
-
 
 type ContractRow = App.Data.User.Contract.ContractListItemData;
 
@@ -77,7 +74,12 @@ function onHeaderClick(columnKey: string): void {
         </template>
 
         <template #cell-vehicleLicensePlate="{ row }">
-            <div :class="['flex flex-wrap items-center gap-2', row.vehicleIsExited && 'opacity-60']">
+            <div
+                :class="[
+                    'flex flex-wrap items-center gap-2',
+                    row.vehicleIsExited && 'opacity-60',
+                ]"
+            >
                 <Plate :value="row.vehicleLicensePlate" />
                 <span
                     v-if="row.vehicleIsExited"
@@ -88,7 +90,7 @@ function onHeaderClick(columnKey: string): void {
             </div>
         </template>
         <template #cell-companyShortCode="{ row }">
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col items-start gap-1">
                 <CompanyTag
                     :name="row.companyLegalName"
                     :initials="row.companyShortCode.slice(0, 2)"
@@ -98,7 +100,7 @@ function onHeaderClick(columnKey: string): void {
                     v-if="row.driverFullName !== null"
                     class="text-xs text-slate-500"
                 >
-                    Conducteur : {{ row.driverFullName }}
+                    {{ row.driverFullName }}
                 </span>
             </div>
         </template>
@@ -108,9 +110,7 @@ function onHeaderClick(columnKey: string): void {
         <template #cell-endDate="{ value }">
             {{ formatDateFr(String(value)) }}
         </template>
-        <template #cell-durationDays="{ value }">
-            {{ value }} j
-        </template>
+        <template #cell-durationDays="{ value }"> {{ value }} j </template>
         <template #cell-contractType="{ row }">
             <Badge :tone="badgeTone[row.contractType]">
                 {{ shortLabel[row.contractType] }}
@@ -120,10 +120,7 @@ function onHeaderClick(columnKey: string): void {
 
     <!-- Mobile < md : cards verticales tactiles -->
     <ul class="flex flex-col gap-2 md:hidden">
-        <li
-            v-for="row in contracts"
-            :key="row.id"
-        >
+        <li v-for="row in contracts" :key="row.id">
             <button
                 type="button"
                 :class="[
