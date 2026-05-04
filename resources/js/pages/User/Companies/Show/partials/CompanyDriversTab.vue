@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import DriverBadge from '@/Components/Domain/Driver/DriverBadge.vue';
-import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { show as driverShowRoute } from '@/routes/user/drivers';
 
@@ -29,6 +28,10 @@ function formatDate(value: string | null): string {
 
     return `${d}/${m}/${y}`;
 }
+
+function onRowClick(driverId: number): void {
+    router.visit(driverShowRoute(driverId).url);
+}
 </script>
 
 <template>
@@ -39,9 +42,7 @@ function formatDate(value: string | null): string {
                     Conducteurs
                 </h3>
                 <p class="text-sm text-slate-500">
-                    {{
-                        drivers.filter((d) => d.isCurrentlyActive).length
-                    }}
+                    {{ drivers.filter((d) => d.isCurrentlyActive).length }}
                     actif(s) sur {{ drivers.length }} total.
                 </p>
             </div>
@@ -76,25 +77,20 @@ function formatDate(value: string | null): string {
                     <th class="pb-2">Entrée</th>
                     <th class="pb-2">Sortie</th>
                     <th class="pb-2">Contrats</th>
-                    <th class="pb-2 text-right">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 <tr
                     v-for="d in visibleDrivers()"
                     :key="d.pivotId"
-                    class="border-b border-slate-100 last:border-0"
+                    class="cursor-pointer border-b border-slate-100 transition-colors duration-[120ms] ease-out last:border-0 hover:bg-slate-50"
+                    @click="onRowClick(d.driverId)"
                 >
                     <td class="py-3">
-                        <Link
-                            :href="driverShowRoute(d.driverId).url"
-                            class="text-blue-700 hover:underline"
-                        >
-                            <DriverBadge
-                                :full-name="d.fullName"
-                                :initials="d.initials"
-                            />
-                        </Link>
+                        <DriverBadge
+                            :full-name="d.fullName"
+                            :initials="d.initials"
+                        />
                     </td>
                     <td class="py-3 text-slate-700">
                         {{ formatDate(d.joinedAt) }}
@@ -111,11 +107,6 @@ function formatDate(value: string | null): string {
                         }}</span>
                     </td>
                     <td class="py-3 text-slate-700">{{ d.contractsCount }}</td>
-                    <td class="py-3 text-right">
-                        <Link :href="driverShowRoute(d.driverId).url">
-                            <Button variant="ghost" size="sm">Voir</Button>
-                        </Link>
-                    </td>
                 </tr>
             </tbody>
         </table>

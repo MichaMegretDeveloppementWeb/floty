@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
-import type {
-    CompanySortKey,
-} from '@/Composables/Company/Index/useCompaniesTable';
+import type { CompanySortKey } from '@/Composables/Company/Index/useCompaniesTable';
 import { show as companyShowRoute } from '@/routes/user/companies';
 import type { DataTableColumn } from '@/types/ui';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -38,6 +36,10 @@ function onHeaderClick(columnKey: string): void {
         emit('sort', sortKey);
     }
 }
+
+function onRowClick(row: CompanyRow): void {
+    router.visit(companyShowRoute(row.id).url);
+}
 </script>
 
 <template>
@@ -45,6 +47,8 @@ function onHeaderClick(columnKey: string): void {
         :columns="columns"
         :rows="companies"
         :row-key="(row) => row.id"
+        clickable
+        @row-click="onRowClick"
     >
         <template
             v-for="column in columns"
@@ -62,19 +66,21 @@ function onHeaderClick(columnKey: string): void {
         </template>
 
         <template #cell-company="{ row }">
-            <Link :href="companyShowRoute(row.id).url" class="hover:underline">
-                <CompanyTag
-                    :name="row.legalName"
-                    :initials="row.shortCode"
-                    :color="row.color"
-                />
-            </Link>
+            <CompanyTag
+                :name="row.legalName"
+                :initials="row.shortCode"
+                :color="row.color"
+            />
         </template>
         <template #cell-siren="{ value }">
-            <span :class="value ? '' : 'text-slate-300'">{{ value ?? 'Non renseigné' }}</span>
+            <span :class="value ? '' : 'text-slate-300'">{{
+                value ?? 'Non renseigné'
+            }}</span>
         </template>
         <template #cell-city="{ value }">
-            <span :class="value ? '' : 'text-slate-300'">{{ value ?? 'Non renseignée' }}</span>
+            <span :class="value ? '' : 'text-slate-300'">{{
+                value ?? 'Non renseignée'
+            }}</span>
         </template>
         <template #cell-daysUsed="{ value }">
             <span class="text-slate-700">{{ value }} j</span>

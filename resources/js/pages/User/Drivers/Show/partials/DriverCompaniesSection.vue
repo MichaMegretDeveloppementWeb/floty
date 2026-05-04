@@ -4,6 +4,7 @@ import { Building2, Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
+import { show as companyShowRoute } from '@/routes/user/companies';
 import { destroy as detachRoute } from '@/routes/user/drivers/memberships';
 
 type Membership = App.Data.User.Driver.DriverCompanyMembershipData;
@@ -54,6 +55,10 @@ function formatDate(value: string | null): string {
     const [y, m, d] = value.split('-');
 
     return `${d}/${m}/${y}`;
+}
+
+function onRowClick(companyId: number): void {
+    router.visit(companyShowRoute(companyId).url);
 }
 </script>
 
@@ -113,7 +118,8 @@ function formatDate(value: string | null): string {
                 <tr
                     v-for="m in memberships"
                     :key="m.pivotId"
-                    class="border-b border-slate-100 last:border-0"
+                    class="cursor-pointer border-b border-slate-100 transition-colors duration-[120ms] ease-out last:border-0 hover:bg-slate-50"
+                    @click="onRowClick(m.companyId)"
                 >
                     <td class="py-4">
                         <CompanyTag
@@ -147,7 +153,7 @@ function formatDate(value: string | null): string {
                             v-if="m.isCurrentlyActive"
                             variant="secondary"
                             size="sm"
-                            @click="emit('open-leave', m.companyId)"
+                            @click.stop="emit('open-leave', m.companyId)"
                         >
                             Sortir
                         </Button>
@@ -156,7 +162,7 @@ function formatDate(value: string | null): string {
                             variant="ghost"
                             size="sm"
                             :loading="detaching === m.pivotId"
-                            @click="detach(m)"
+                            @click.stop="detach(m)"
                         >
                             Détacher
                         </Button>

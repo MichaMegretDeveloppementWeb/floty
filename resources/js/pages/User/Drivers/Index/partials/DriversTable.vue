@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { router } from '@inertiajs/vue3';
 import DriverBadge from '@/Components/Domain/Driver/DriverBadge.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
@@ -16,22 +16,23 @@ const columns: readonly DataTableColumn<DriverRow>[] = [
     { key: 'driver', label: 'Conducteur' },
     { key: 'companies', label: 'Entreprises' },
     { key: 'contractsCount', label: 'Contrats', mono: true },
-    { key: 'actions', label: '', mono: false },
 ];
+
+function onRowClick(row: DriverRow): void {
+    router.visit(showRoute(row.id).url);
+}
 </script>
 
 <template>
-    <DataTable :columns="columns" :rows="drivers" :row-key="(row) => row.id">
+    <DataTable
+        :columns="columns"
+        :rows="drivers"
+        :row-key="(row) => row.id"
+        clickable
+        @row-click="onRowClick"
+    >
         <template #cell-driver="{ row }">
-            <Link
-                :href="showRoute(row.id).url"
-                class="text-blue-700 hover:underline"
-            >
-                <DriverBadge
-                    :full-name="row.fullName"
-                    :initials="row.initials"
-                />
-            </Link>
+            <DriverBadge :full-name="row.fullName" :initials="row.initials" />
         </template>
 
         <template #cell-companies="{ row }">
@@ -60,15 +61,6 @@ const columns: readonly DataTableColumn<DriverRow>[] = [
 
         <template #cell-contractsCount="{ row }">
             {{ row.contractsCount }}
-        </template>
-
-        <template #cell-actions="{ row }">
-            <Link
-                :href="showRoute(row.id).url"
-                class="text-sm text-blue-600 hover:underline"
-            >
-                Voir
-            </Link>
         </template>
     </DataTable>
 </template>
