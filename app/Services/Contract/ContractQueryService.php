@@ -91,25 +91,6 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Liste paginée pour la page Index (chantier 04.G).
-     *
-     * @return DataCollection<int, ContractListItemData>
-     *
-     * @deprecated Conservé temporairement — sera retiré en L6 du
-     *             chantier ADR-0020. Utiliser {@see listPaginated()}.
-     */
-    public function listAll(): DataCollection
-    {
-        $contracts = $this->repository->listAll();
-
-        /** @var DataCollection<int, ContractListItemData> */
-        return ContractListItemData::collect(
-            $contracts->map(static fn (Contract $c): ContractListItemData => ContractListItemData::fromModel($c)),
-            DataCollection::class,
-        );
-    }
-
-    /**
      * Index Contracts paginé server-side (cf. ADR-0020). Le repo gère
      * pagination + filtres + search + tri en SQL pure ; le service mappe
      * les models en DTO.

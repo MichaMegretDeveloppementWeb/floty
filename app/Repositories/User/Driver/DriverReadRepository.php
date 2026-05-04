@@ -34,19 +34,6 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             ->find($id);
     }
 
-    public function listAllForIndex(): Collection
-    {
-        return Driver::query()
-            ->with(['companies' => function ($query): void {
-                $query->whereNull('driver_company.left_at')
-                    ->orderByPivot('joined_at');
-            }])
-            ->withCount('contracts')
-            ->orderBy('last_name')
-            ->orderBy('first_name')
-            ->get();
-    }
-
     public function paginateForIndex(DriverIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

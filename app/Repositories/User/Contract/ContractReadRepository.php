@@ -138,18 +138,6 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
-    public function listAll(): Collection
-    {
-        return Contract::query()
-            ->with([
-                'vehicle:id,license_plate,exit_date,exit_reason',
-                'company:id,short_code,legal_name,color',
-                'driver:id,first_name,last_name',
-            ])
-            ->orderByDesc('start_date')
-            ->get();
-    }
-
     public function paginateForIndex(ContractIndexQueryData $query): LengthAwarePaginator
     {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';

@@ -48,38 +48,11 @@ final class CompanyQueryService
     ) {}
 
     /**
-     * Liste des entreprises pour la page « Entreprises utilisatrices »
-     * avec jours utilisés + taxe annuelle agrégée par entreprise.
-     *
-     * @return DataCollection<int, CompanyListItemData>
-     *
-     * @deprecated Conservé temporairement — sera retiré en L6 du
-     *             chantier ADR-0020. Utiliser {@see listPaginated()}.
-     */
-    public function listForFleetView(int $year): DataCollection
-    {
-        $rows = $this->companies->findAllOrderedByName()
-            ->map(fn (Company $c): CompanyListItemData => $this->mapCompanyToListItem(
-                company: $c,
-                year: $year,
-                contractsByPair: $this->contracts->loadContractsByPair($year),
-                vehiclesById: null,
-                unavailabilitiesByVehicleId: null,
-            ))
-            ->values()
-            ->all();
-
-        return CompanyListItemData::collect($rows, DataCollection::class);
-    }
-
-    /**
      * Index Companies paginé server-side (cf. ADR-0020).
      *
      * Le repo gère pagination + filtre `isActive` + search SQL. Le
      * service calcule ensuite les aggregates fiscaux (`daysUsed`,
-     * `annualTaxDue`) **uniquement pour les entreprises de la page
-     * courante** — pas pour tout le dataset, contrairement à
-     * `listForFleetView()`.
+     * `annualTaxDue`) uniquement pour les entreprises de la page courante.
      *
      * Note perf : `loadContractsByPair($year)` charge tous les contrats
      * de l'année (borne O(contrats/an), pas O(companies)). Acceptable
@@ -121,24 +94,9 @@ final class CompanyQueryService
         Company $company,
         int $year,
         ContractsByPair $contractsByPair,
-        ?Collection $vehiclesById,
-        ?array $unavailabilitiesByVehicleId,
+        Collection $vehiclesById,
+        array $unavailabilitiesByVehicleId,
     ): CompanyListItemData {
-        // Si le pré-load n'a pas été passé (cas listForFleetView deprecated),
-        // on charge à la volée (perf moindre mais correct jusqu'à L6).
-        // Note : vehicleCompanyPairs() retourne un Generator → on itère
-        // pour collecter les vehicleIds uniques.
-        if ($vehiclesById === null) {
-            $vehicleIds = [];
-            foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
-                $vehicleIds[$pair['vehicleId']] = true;
-            }
-            $vehiclesById = $this->vehicles->findByIdsIndexed(array_keys($vehicleIds));
-        }
-        $unavailabilitiesByVehicleId ??= $this->contracts->loadUnavailabilitiesByVehicle(
-            $vehiclesById->keys()->all(),
-        );
-
         return new CompanyListItemData(
             id: $company->id,
             legalName: $company->legal_name,

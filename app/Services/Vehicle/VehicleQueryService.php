@@ -53,34 +53,11 @@ final class VehicleQueryService
     ) {}
 
     /**
-     * Liste des véhicules pour la page « Flotte » avec **coût plein
-     * année théorique** (max si véhicule attribué 100 % à 1 entreprise)
-     * + pro-rata journalier équivalent.
-     *
-     * @return DataCollection<int, VehicleListItemData>
-     *
-     * @deprecated Conservé temporairement — sera retiré en L6 du
-     *             chantier ADR-0020. Utiliser {@see listPaginated()}.
-     */
-    public function listForFleetView(int $year, bool $includeExited = false): DataCollection
-    {
-        $daysInYear = $this->yearContext->daysInYear($year);
-
-        $rows = $this->vehicles->findAllForFleetView($includeExited)
-            ->map(fn (Vehicle $v): VehicleListItemData => $this->mapVehicleToListItem($v, $year, $daysInYear))
-            ->values()
-            ->all();
-
-        return VehicleListItemData::collect($rows, DataCollection::class);
-    }
-
-    /**
      * Index Vehicles paginé server-side (cf. ADR-0020).
      *
      * Le repo gère pagination + filtres `includeExited`/`status` + search
      * en SQL pur. Le service calcule ensuite `fullYearTax` + `dailyTaxRate`
-     * **uniquement pour les véhicules de la page courante** (pas pour
-     * tout le dataset, contrairement à `listForFleetView()`).
+     * uniquement pour les véhicules de la page courante.
      *
      * Cf. ADR-0020 D6 : le tri par `fullYearTax` est volontairement
      * absent de la whitelist sortKey (valeur calculée non SQL).

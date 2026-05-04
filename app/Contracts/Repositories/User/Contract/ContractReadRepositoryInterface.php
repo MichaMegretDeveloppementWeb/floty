@@ -97,16 +97,6 @@ interface ContractReadRepositoryInterface
     ): Collection;
 
     /**
-     * Liste paginée pour la page Index (chantier 04.G).
-     *
-     * @return Collection<int, Contract>
-     *
-     * @deprecated Conservé temporairement — sera retiré en L6 du
-     *             chantier ADR-0020. Utiliser {@see paginateForIndex()}.
-     */
-    public function listAll(): Collection;
-
-    /**
      * Liste paginée server-side de l'Index Contracts (cf. ADR-0020).
      * Applique `{search, vehicleId, companyId, driverId, type,
      * periodStart, periodEnd, sortKey, sortDirection, page, perPage}`

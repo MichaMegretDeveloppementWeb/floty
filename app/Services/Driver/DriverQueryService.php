@@ -30,22 +30,6 @@ final class DriverQueryService
     ) {}
 
     /**
-     * @return array<int, DriverListItemData>
-     *
-     * @deprecated Conservé temporairement pour compatibilité — sera retiré
-     *             en L6 du chantier ADR-0020 une fois les 4 pilotes Index
-     *             stabilisés. Utiliser {@see listPaginated()}.
-     */
-    public function listForIndex(): array
-    {
-        $drivers = $this->driverReadRepo->listAllForIndex();
-
-        return $drivers
-            ->map(fn (Driver $driver): DriverListItemData => $this->mapDriverToListItem($driver))
-            ->all();
-    }
-
-    /**
      * Index drivers paginé server-side (cf. ADR-0020). Délègue au repo
      * pour la query SQL puis mappe les models en DTO de présentation.
      */
@@ -77,19 +61,12 @@ final class DriverQueryService
             ))
             ->all();
 
-        // `active_companies_count` est défini par paginateForIndex() (chantier
-        // ADR-0020). Pour listForIndex() (deprecated), on retombe sur
-        // `$activeCompanies->count()` car ce withCount n'est pas chargé.
-        $totalActiveCount = isset($driver->active_companies_count)
-            ? (int) $driver->active_companies_count
-            : $activeCompanies->count();
-
         return new DriverListItemData(
             id: $driver->id,
             fullName: $driver->full_name,
             initials: $driver->initials,
             activeCompanies: $tags,
-            totalActiveCompaniesCount: $totalActiveCount,
+            totalActiveCompaniesCount: (int) $driver->active_companies_count,
             contractsCount: (int) ($driver->contracts_count ?? 0),
         );
     }

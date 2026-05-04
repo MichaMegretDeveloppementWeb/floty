@@ -30,18 +30,6 @@ interface DriverReadRepositoryInterface
     public function findByIdWithRelations(int $id): ?Driver;
 
     /**
-     * Liste paginée pour la page Index drivers (toutes companies confondues).
-     *
-     * @return Collection<int, Driver>
-     *
-     * @deprecated Conservé temporairement pour compatibilité — sera retiré
-     *             en L6 du chantier ADR-0020 (cleanup pagination V1.1) une
-     *             fois les 4 pilotes Index migrés et stabilisés. Utiliser
-     *             {@see paginateForIndex()}.
-     */
-    public function listAllForIndex(): Collection;
-
-    /**
      * Liste paginée server-side de l'Index drivers (cf. ADR-0020).
      * Applique les paramètres `{search, sortKey, sortDirection, page,
      * perPage}` du DTO en SQL pur via `where`/`orderBy`/`paginate`.

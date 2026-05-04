@@ -7,7 +7,6 @@ namespace Tests\Unit\Services\Vehicle;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Models\Vehicle;
-use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -27,31 +26,6 @@ final class VehicleQueryServiceTest extends TestCase
     {
         parent::setUp();
         $this->service = $this->app->make(VehicleQueryService::class);
-    }
-
-    #[Test]
-    public function list_for_fleet_view_renvoie_un_dto_par_vehicule_avec_cout_plein_annee(): void
-    {
-        $year = (int) config('floty.fiscal.available_years')[0];
-        $vehicle = Vehicle::factory()->create();
-        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
-
-        // Pas besoin d'attribution pour fullYearTax - c'est un montant
-        // théorique pleine année, indépendant des attributions.
-        $result = $this->service->listForFleetView($year);
-
-        $items = $result->toArray();
-        self::assertCount(1, $items);
-        self::assertSame($vehicle->id, $items[0]['id']);
-        self::assertSame($vehicle->license_plate, $items[0]['licensePlate']);
-        self::assertGreaterThan(0.0, $items[0]['fullYearTax']);
-        self::assertGreaterThan(0.0, $items[0]['dailyTaxRate']);
-        // Pro-rata : dailyTaxRate ≈ fullYearTax / 366 (à 1 cent près)
-        self::assertEqualsWithDelta(
-            $items[0]['fullYearTax'] / 366,
-            $items[0]['dailyTaxRate'],
-            0.01,
-        );
     }
 
     #[Test]
