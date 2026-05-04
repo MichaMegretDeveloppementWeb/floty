@@ -9,8 +9,8 @@ import { formatEur } from '@/Utils/format/formatEur';
 type VehicleRow = App.Data.User.Vehicle.VehicleListItemData;
 
 // Colonnes triables côté serveur (cf. VehicleIndexQueryData::allowedSortKeys()).
-// fullYearTax est volontairement absent (valeur calculée non SQL,
-// règle ADR-0020 D6).
+// `fullYearTax` et `rentalPriceFullYear` sont volontairement absents
+// (valeurs calculées non SQL, règle ADR-0020 D6).
 const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
     'licensePlate',
     'model',
@@ -28,6 +28,23 @@ const emit = defineEmits<{
     'header-click': [columnKey: string];
     'row-click': [row: VehicleRow];
 }>();
+
+// Pastille de statut affichée avant l'immatriculation. Code couleur métier :
+//   - vert  : véhicule en service
+//   - orange : véhicule indisponible temporairement (maintenance)
+//   - rouge : sorti définitivement (vendu, détruit ou autre)
+function statusPalette(
+    status: App.Enums.Vehicle.VehicleStatus,
+): { dot: string; label: string } {
+    switch (status) {
+        case 'active':
+            return { dot: 'bg-emerald-500', label: 'Actif' };
+        case 'maintenance':
+            return { dot: 'bg-amber-500', label: 'En maintenance' };
+        default:
+            return { dot: 'bg-rose-500', label: 'Sorti de flotte' };
+    }
+}
 </script>
 
 <template>
@@ -64,18 +81,23 @@ const emit = defineEmits<{
         </template>
 
         <template #cell-licensePlate="{ row }">
-            <div
-                :class="[
-                    'flex flex-wrap items-center gap-2',
-                    row.isExited && 'opacity-60',
-                ]"
-            >
-                <Plate :value="row.licensePlate" />
+            <div :class="['flex flex-col gap-0.5', row.isExited && 'opacity-60']">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span
+                        :class="[
+                            'inline-block size-2.5 shrink-0 rounded-full',
+                            statusPalette(row.currentStatus).dot,
+                        ]"
+                        :title="statusPalette(row.currentStatus).label"
+                        :aria-label="statusPalette(row.currentStatus).label"
+                    />
+                    <Plate :value="row.licensePlate" />
+                </div>
                 <span
-                    v-if="row.isExited"
-                    class="rounded-md bg-slate-200 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-slate-700 uppercase"
+                    v-if="row.isExited && row.exitDate"
+                    class="text-xs text-slate-400"
                 >
-                    Retiré
+                    Sortie le {{ formatDateFr(row.exitDate) }}
                 </span>
             </div>
         </template>
@@ -99,6 +121,17 @@ const emit = defineEmits<{
                     {{ formatEur(row.dailyTaxRate, 2) }} / jour
                 </span>
             </div>
+        </template>
+        <template #cell-rentalPriceFullYear="{ row }">
+            <span
+                v-if="row.rentalPriceFullYear !== null"
+                class="font-mono font-normal text-slate-900"
+            >
+                {{ formatEur(row.rentalPriceFullYear) }}
+            </span>
+            <span v-else class="text-slate-300" title="Module facturation V1.2 — à venir">
+                —
+            </span>
         </template>
 
         <template #empty>

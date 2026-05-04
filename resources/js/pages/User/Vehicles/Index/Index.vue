@@ -27,6 +27,13 @@ const props = defineProps<{
     };
     query: App.Data.User.Vehicle.VehicleIndexQueryData;
     /**
+     * Année résolue par le backend pour les colonnes financières
+     * (cf. `VehicleController::index`). Sert à initialiser le sélecteur
+     * d'année local au premier rendu, puis pilote le label des colonnes
+     * « Coût plein » / « Prix location ».
+     */
+    selectedYear: number;
+    /**
      * `true` ssi au moins un véhicule existe en base. Source de vérité
      * unique pour décider du placeholder « Aucun véhicule ». Évite le
      * flash placeholder lors du reset de filtre, et le faux-positif
@@ -35,13 +42,28 @@ const props = defineProps<{
     hasAnyVehicle: boolean;
 }>();
 
-const { currentYear: fiscalYear } = useFiscalYear();
+const { currentYear: fiscalYear, availableYears } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
 
 const tableState = useFleetTable({
     query: props.query,
-    fiscalYear: fiscalYear.value,
+    selectedYear: props.selectedYear,
+    currentRealYear: fiscalYear.value,
 });
+
+// Sélecteur d'année local à la page (chantier η anticipé) — pilote
+// uniquement les colonnes financières. Le label explicite évite la
+// confusion d'un sélecteur global anonyme (cf. arbitrage chantier θ.4).
+const selectedYearModel = computed<number>({
+    get: () => tableState.state.filters.value.year,
+    set: (value: number) => {
+        tableState.state.setFilter('year', value);
+    },
+});
+
+const yearOptions = computed<{ value: number; label: string }[]>(() =>
+    availableYears.value.map((year) => ({ value: year, label: String(year) })),
+);
 
 const searchModel = computed<string>({
     get: () => tableState.state.search.value,
@@ -194,6 +216,22 @@ const activeFiltersCount = computed<number>(() => {
                             aria-label="Rechercher un véhicule"
                         />
                     </div>
+                    <div
+                        class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5"
+                    >
+                        <FieldLabel
+                            for="fleet-financial-year"
+                            class="!mb-0 whitespace-nowrap text-xs"
+                        >
+                            Année des colonnes financières
+                        </FieldLabel>
+                        <SelectInput
+                            id="fleet-financial-year"
+                            v-model.number="selectedYearModel"
+                            :options="yearOptions"
+                            :disabled="yearOptions.length <= 1"
+                        />
+                    </div>
                     <FilterPopover
                         v-model:open="filtersOpen"
                         :active-count="activeFiltersCount"
@@ -269,7 +307,7 @@ const activeFiltersCount = computed<number>(() => {
 
                 <FleetTable
                     :vehicles="vehicles.data"
-                    :columns="tableState.columns"
+                    :columns="tableState.columns.value"
                     :active-sort-column-key="
                         tableState.activeSortColumnKey.value
                     "

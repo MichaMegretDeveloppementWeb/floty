@@ -3,8 +3,14 @@
  *
  * Particularités :
  *  - Filtres `includeExited` (boolean) + `status` (VehicleStatus | null)
- *  - Colonne `fullYearTax` affichée mais NON triable (valeur calculée
- *    par l'aggregator fiscal — règle ADR-0020 D6)
+ *  - Colonnes `fullYearTax` et `rentalPriceFullYear` affichées mais NON
+ *    triables (valeurs calculées par l'aggregator fiscal et le module
+ *    facturation V1.2 — règle ADR-0020 D6)
+ *  - Sélecteur d'année **local à la page** (chantier η anticipé) :
+ *    pilote uniquement les colonnes financières. Géré comme un filtre
+ *    `year` dans `useServerTableState` pour bénéficier de la sérialisation
+ *    URL + partial reload Inertia natifs (chaque changement d'année
+ *    déclenche un recalcul backend des `fullYearTax`).
  *
  * Le rendu reste dans `FleetTable.vue` (slots cell-*).
  */
@@ -27,7 +33,8 @@ export type FleetSortKey =
     | 'currentStatus';
 
 // Mapping clé colonne UI → sortKey backend (whitelist VehicleIndexQueryData).
-// La colonne `fullYearTax` n'a pas d'entrée car non triable (D6).
+// Les colonnes `fullYearTax` et `rentalPriceFullYear` n'ont pas d'entrée
+// car non triables (D6).
 const COLUMN_TO_SORT_KEY: Partial<Record<string, FleetSortKey>> = {
     licensePlate: 'licensePlate',
     model: 'model',
@@ -42,31 +49,25 @@ export type FleetFilters = {
     handicapAccess: boolean | null;
     firstRegistrationYearMin: number | null;
     firstRegistrationYearMax: number | null;
+    /** Année des colonnes financières (Coût plein, Prix location). */
+    year: number;
 };
 
 export function useFleetTable(opts: {
     query: App.Data.User.Vehicle.VehicleIndexQueryData;
-    fiscalYear: number;
+    /** Année résolue par le backend (selectedYear), sert de fallback. */
+    selectedYear: number;
+    /** Année réelle (= année du resolver), URL omise si on y revient. */
+    currentRealYear: number;
 }): {
-    columns: readonly DataTableColumn<VehicleRow>[];
+    columns: ComputedRef<readonly DataTableColumn<VehicleRow>[]>;
     state: ServerTableState<FleetFilters>;
     activeSortColumnKey: ComputedRef<string | null>;
     onHeaderClick: (columnKey: string) => void;
     onRowClick: (row: VehicleRow) => void;
 } {
-    const columns: readonly DataTableColumn<VehicleRow>[] = [
-        { key: 'licensePlate', label: 'Immatriculation' },
-        { key: 'model', label: 'Modèle' },
-        { key: 'firstFrenchRegistrationDate', label: '1ʳᵉ immat.', mono: true },
-        {
-            key: 'fullYearTax',
-            label: `Coût plein ${opts.fiscalYear}`,
-            align: 'right',
-        },
-    ];
-
     const state = useServerTableState<FleetFilters>({
-        only: ['vehicles', 'query'],
+        only: ['vehicles', 'query', 'selectedYear'],
         initialPage: opts.query.page,
         initialPerPage: opts.query.perPage,
         initialSearch: opts.query.search ?? '',
@@ -82,6 +83,7 @@ export function useFleetTable(opts: {
             handicapAccess: null,
             firstRegistrationYearMin: null,
             firstRegistrationYearMax: null,
+            year: opts.currentRealYear,
         },
         initialFilters: {
             status: opts.query.status,
@@ -91,6 +93,7 @@ export function useFleetTable(opts: {
             handicapAccess: opts.query.handicapAccess,
             firstRegistrationYearMin: opts.query.firstRegistrationYearMin,
             firstRegistrationYearMax: opts.query.firstRegistrationYearMax,
+            year: opts.selectedYear,
         },
         serializeFilters: (f) => ({
             status: f.status,
@@ -102,7 +105,32 @@ export function useFleetTable(opts: {
             handicapAccess: f.handicapAccess === true ? 1 : null,
             firstRegistrationYearMin: f.firstRegistrationYearMin,
             firstRegistrationYearMax: f.firstRegistrationYearMax,
+            // L'année réelle reste implicite (URL propre) ; on ne sérialise
+            // que les valeurs « non triviales » à la R-C des autres filtres.
+            year: f.year === opts.currentRealYear ? null : f.year,
         }),
+    });
+
+    // Labels dépendant de l'année courante du sélecteur — recalculés
+    // automatiquement quand `state.filters.value.year` change.
+    const columns = computed<readonly DataTableColumn<VehicleRow>[]>(() => {
+        const year = state.filters.value.year;
+
+        return [
+            { key: 'licensePlate', label: 'Immatriculation' },
+            { key: 'model', label: 'Modèle' },
+            { key: 'firstFrenchRegistrationDate', label: '1ʳᵉ immat.', mono: true },
+            {
+                key: 'fullYearTax',
+                label: `Coût plein ${year}`,
+                align: 'right',
+            },
+            {
+                key: 'rentalPriceFullYear',
+                label: `Prix location ${year}`,
+                align: 'right',
+            },
+        ];
     });
 
     const activeSortColumnKey = computed<string | null>(() => {

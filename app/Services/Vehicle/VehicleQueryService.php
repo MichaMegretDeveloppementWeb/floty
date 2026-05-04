@@ -94,6 +94,11 @@ final class VehicleQueryService
             isExited: $v->is_exited,
             fullYearTax: $fullYearTax,
             dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
+            // Placeholder V1.2 (cf. roadmap_v12_facturation) : la colonne
+            // « Prix location » est exposée dès maintenant pour stabiliser
+            // le contrat DTO/UI, mais reste null tant que le module
+            // facturation n'est pas livré.
+            rentalPriceFullYear: null,
         );
     }
 

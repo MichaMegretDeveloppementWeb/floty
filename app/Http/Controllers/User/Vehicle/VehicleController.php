@@ -44,12 +44,19 @@ final class VehicleController extends Controller
 
     public function index(VehicleIndexQueryData $query): Response
     {
+        // Année qui pilote les colonnes financières de la table.
+        // `?year=` URL > fallback FiscalYearResolver (préfigure le pattern
+        // « année par page » de l'ADR-0020 ; le sélecteur global du TopBar
+        // sera retiré au chantier η).
+        $year = $query->year ?? $this->fiscalYear->resolve();
+
         return Inertia::render('User/Vehicles/Index/Index', [
-            'vehicles' => $this->vehicles->listPaginated($query, $this->fiscalYear->resolve()),
+            'vehicles' => $this->vehicles->listPaginated($query, $year),
             'options' => [
                 'firstRegistrationYearBounds' => $this->vehicles->firstRegistrationYearBounds(),
             ],
             'query' => $query,
+            'selectedYear' => $year,
             // Cf. note d'archi sur le bug placeholder : `hasAnyVehicle`
             // distingue « table intrinsèquement vide » du « filtre actif
             // retournant 0 » sans dériver depuis 3 sources désynchronisées.
