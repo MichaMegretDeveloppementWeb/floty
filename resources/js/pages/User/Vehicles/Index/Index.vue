@@ -4,7 +4,6 @@ import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
-import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
@@ -25,8 +24,26 @@ const props = defineProps<{
     query: App.Data.User.Vehicle.VehicleIndexQueryData;
 }>();
 
-const { currentYear: fiscalYear } = useFiscalYear();
+const { currentYear: fiscalYear, availableYears } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
+
+// Bornes de l'année d'acquisition : min = 1ère année fiscale configurée
+// (typiquement 2024), max = année calendaire courante. `new Date()` est
+// volontairement utilisé ici car il s'agit d'une borne UI de sélecteur,
+// pas de logique fiscale (laquelle passe systématiquement par useFiscalYear).
+const acquisitionYearOptions = computed<{ value: number; label: string }[]>(
+    () => {
+        const min = availableYears.value[0] ?? 2024;
+        const max = new Date().getFullYear();
+        const options: { value: number; label: string }[] = [];
+
+        for (let year = max; year >= min; year--) {
+            options.push({ value: year, label: String(year) });
+        }
+
+        return options;
+    },
+);
 
 const tableState = useFleetTable({
     query: props.query,
@@ -106,17 +123,27 @@ const handicapAccessModel = computed<boolean>({
     },
 });
 
-const acquisitionMinModel = computed<number | null>({
-    get: () => tableState.state.filters.value.acquisitionYearMin,
-    set: (value: number | null) => {
-        tableState.state.setFilter('acquisitionYearMin', value);
+function parseYear(value: string | number | null): number | null {
+    if (value === null || value === '' || value === undefined) {
+        return null;
+    }
+
+    const n = typeof value === 'number' ? value : Number.parseInt(value, 10);
+
+    return Number.isNaN(n) ? null : n;
+}
+
+const acquisitionMinModel = computed<string | number | null>({
+    get: () => tableState.state.filters.value.acquisitionYearMin ?? '',
+    set: (value: string | number | null) => {
+        tableState.state.setFilter('acquisitionYearMin', parseYear(value));
     },
 });
 
-const acquisitionMaxModel = computed<number | null>({
-    get: () => tableState.state.filters.value.acquisitionYearMax,
-    set: (value: number | null) => {
-        tableState.state.setFilter('acquisitionYearMax', value);
+const acquisitionMaxModel = computed<string | number | null>({
+    get: () => tableState.state.filters.value.acquisitionYearMax ?? '',
+    set: (value: string | number | null) => {
+        tableState.state.setFilter('acquisitionYearMax', parseYear(value));
     },
 });
 
@@ -200,6 +227,7 @@ const activeFiltersCount = computed<number>(() => {
                                     v-model="statusModel"
                                     placeholder="Tous les statuts"
                                     :options="statusOptions"
+                                    nullable
                                 />
                             </div>
                             <div>
@@ -211,6 +239,7 @@ const activeFiltersCount = computed<number>(() => {
                                     v-model="energySourceModel"
                                     placeholder="Toutes les énergies"
                                     :options="energySourceOptions"
+                                    nullable
                                 />
                             </div>
                             <div>
@@ -222,6 +251,7 @@ const activeFiltersCount = computed<number>(() => {
                                     v-model="pollutantCategoryModel"
                                     placeholder="Toutes catégories"
                                     :options="pollutantCategoryOptions"
+                                    nullable
                                 />
                             </div>
                             <div>
@@ -229,14 +259,18 @@ const activeFiltersCount = computed<number>(() => {
                                     >Année d'acquisition</FieldLabel
                                 >
                                 <div class="grid grid-cols-2 gap-2">
-                                    <NumberInput
+                                    <SelectInput
                                         id="filter-acquisition-min"
                                         v-model="acquisitionMinModel"
                                         placeholder="Min"
+                                        :options="acquisitionYearOptions"
+                                        nullable
                                     />
-                                    <NumberInput
+                                    <SelectInput
                                         v-model="acquisitionMaxModel"
                                         placeholder="Max"
+                                        :options="acquisitionYearOptions"
+                                        nullable
                                     />
                                 </div>
                             </div>

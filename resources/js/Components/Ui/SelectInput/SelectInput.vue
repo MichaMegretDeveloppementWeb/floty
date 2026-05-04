@@ -18,11 +18,18 @@ const props = withDefaults(
         error?: string;
         disabled?: boolean;
         required?: boolean;
+        /**
+         * Si true, l'option placeholder reste sélectionnable après un
+         * choix initial — utile pour les filtres où "Tous" est une
+         * valeur valide (revient à value=''). Défaut false (cas form).
+         */
+        nullable?: boolean;
         id?: string;
     }>(),
     {
         disabled: false,
         required: false,
+        nullable: false,
     },
 );
 
@@ -78,7 +85,7 @@ const selectStateClasses = computed<string>(() => {
                     selectStateClasses,
                 ]"
             >
-                <option v-if="placeholder" value="" disabled>
+                <option v-if="placeholder" value="" :disabled="!nullable">
                     {{ placeholder }}
                 </option>
                 <option

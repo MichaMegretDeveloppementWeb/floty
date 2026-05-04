@@ -182,6 +182,7 @@ const contractsScopeModel = computed<string | number>({
                                     v-model="activityStatusModel"
                                     placeholder="Tous"
                                     :options="activityStatusOptions"
+                                    nullable
                                 />
                             </div>
                             <div>
@@ -193,6 +194,7 @@ const contractsScopeModel = computed<string | number>({
                                     v-model="contractsScopeModel"
                                     placeholder="Tous"
                                     :options="contractsScopeOptions"
+                                    nullable
                                 />
                             </div>
                         </div>

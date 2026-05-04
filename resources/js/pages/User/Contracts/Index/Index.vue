@@ -184,6 +184,7 @@ const periodOngoing = ref<boolean>(false);
                                     v-model="typeModel"
                                     placeholder="Tous les types"
                                     :options="typeOptions"
+                                    nullable
                                 />
                             </div>
                             <div>

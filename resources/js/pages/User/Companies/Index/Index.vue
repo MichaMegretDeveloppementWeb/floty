@@ -170,6 +170,7 @@ const activeFiltersCount = computed<number>(() => {
                                     v-model="isActiveModel"
                                     placeholder="Toutes"
                                     :options="isActiveOptions"
+                                    nullable
                                 />
                             </div>
                             <div>
@@ -181,6 +182,7 @@ const activeFiltersCount = computed<number>(() => {
                                     v-model="contractsScopeModel"
                                     placeholder="Toutes"
                                     :options="contractsScopeOptions"
+                                    nullable
                                 />
                             </div>
                             <div>
@@ -192,6 +194,7 @@ const activeFiltersCount = computed<number>(() => {
                                     v-model="companyTypeModel"
                                     placeholder="Tous"
                                     :options="companyTypeOptions"
+                                    nullable
                                 />
                             </div>
                             <div>
