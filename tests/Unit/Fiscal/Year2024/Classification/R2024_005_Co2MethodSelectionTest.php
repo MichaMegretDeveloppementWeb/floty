@@ -23,7 +23,7 @@ use Tests\TestCase;
  * Les bordures testées correspondent aux situations réelles de la
  * flotte : véhicule WLTP avec valeur manquante (saisie incomplète),
  * véhicule NEDC sans valeur (vieux import), véhicule PA pur (avant
- * 2002 — pas de mesure CO₂).
+ * 2002 - pas de mesure CO₂).
  */
 final class R2024_005_Co2MethodSelectionTest extends TestCase
 {

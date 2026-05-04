@@ -42,6 +42,6 @@ export function textContrastClass(days: number): string {
     return days >= 3 ? 'text-white' : 'text-slate-500';
 }
 
-/** Constantes de layout — partagées entre l'orchestrateur et les partials. */
+/** Constantes de layout - partagées entre l'orchestrateur et les partials. */
 export const HEATMAP_CELL_WIDTH = 21;
 export const HEATMAP_GRID_WIDTH = 52 * HEATMAP_CELL_WIDTH;

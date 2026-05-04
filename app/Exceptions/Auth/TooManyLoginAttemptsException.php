@@ -38,7 +38,7 @@ final class TooManyLoginAttemptsException extends BaseAppException
     public static function forEmail(string $email, int $retryAfterSeconds): self
     {
         return new self(
-            technicalMessage: "Login rate-limit reached for email '{$email}' — wait {$retryAfterSeconds}s.",
+            technicalMessage: "Login rate-limit reached for email '{$email}' - wait {$retryAfterSeconds}s.",
             userMessage: sprintf(
                 'Trop de tentatives. Réessayez dans %d secondes.',
                 $retryAfterSeconds,
@@ -51,7 +51,7 @@ final class TooManyLoginAttemptsException extends BaseAppException
     public static function forIp(string $ip, int $retryAfterSeconds): self
     {
         return new self(
-            technicalMessage: "Login rate-limit reached for IP '{$ip}' — wait {$retryAfterSeconds}s.",
+            technicalMessage: "Login rate-limit reached for IP '{$ip}' - wait {$retryAfterSeconds}s.",
             userMessage: sprintf(
                 'Trop de tentatives depuis cette IP. Réessayez dans %d secondes.',
                 $retryAfterSeconds,

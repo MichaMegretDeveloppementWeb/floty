@@ -10,7 +10,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 
 /**
- * R-2024-019 — Exonération entreprise individuelle (CIBS L. 421-127
+ * R-2024-019 - Exonération entreprise individuelle (CIBS L. 421-127
  * / L. 421-139).
  *
  * Si l'entreprise utilisatrice est une personne physique exerçant en

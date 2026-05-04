@@ -12,7 +12,7 @@ use App\Fiscal\ValueObjects\BracketRange;
 use App\Fiscal\ValueObjects\ProgressiveScale;
 
 /**
- * R-2024-012 — Barème Puissance Administrative 2024 (CIBS L. 421-122).
+ * R-2024-012 - Barème Puissance Administrative 2024 (CIBS L. 421-122).
  *
  * Barème progressif sur la puissance administrative en chevaux fiscaux
  * (CV). Fallback historique pour les véhicules sans donnée CO₂. 5

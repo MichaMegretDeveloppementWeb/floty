@@ -6,7 +6,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Facades\DB;
 
 /**
- * ADR-0016 rev. 1.1 — passage de l'enum `UnavailabilityType` de 5 à 9
+ * ADR-0016 rev. 1.1 - passage de l'enum `UnavailabilityType` de 5 à 9
  * valeurs et raffinement du CHECK `has_fiscal_impact`.
  *
  * Anciennes valeurs (5)         → Nouvelles (9)
@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\DB;
  *
  * Le CHECK `has_fiscal_impact` passe de `(type = 'pound')` à
  * `(type IN ('accident_no_circulation', 'pound_public', 'ci_suspension'))`
- * — les 3 cas réducteurs définis par ADR-0016 § 4.
+ * - les 3 cas réducteurs définis par ADR-0016 § 4.
  *
  * Données existantes : remappage `accident → accident_repair` et
  * `pound → pound_public` (choix par défaut conservatoire). Les seules

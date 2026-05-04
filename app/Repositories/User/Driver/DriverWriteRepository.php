@@ -10,7 +10,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Implémentation Eloquent des écritures Driver — slim conforme ADR-0013.
+ * Implémentation Eloquent des écritures Driver - slim conforme ADR-0013.
  */
 final class DriverWriteRepository implements DriverWriteRepositoryInterface
 {

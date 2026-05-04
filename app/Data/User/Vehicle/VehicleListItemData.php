@@ -12,7 +12,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Ligne de la table « Flotte » (page User/Vehicles/Index).
  *
- * Le coût présenté est **théorique** (`fullYearTax`) — ce que coûterait
+ * Le coût présenté est **théorique** (`fullYearTax`) - ce que coûterait
  * le véhicule s'il était attribué 100 % du temps à une seule entreprise.
  * Permet de comparer les véhicules de la flotte indépendamment de leur
  * taux d'utilisation. La taxe réelle (compte tenu des attributions

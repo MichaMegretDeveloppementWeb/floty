@@ -14,7 +14,7 @@ use App\Models\Unavailability;
  *
  * **Décision métier portée ici** : `has_fiscal_impact` est dérivé de
  * `type` via {@see UnavailabilityType::isFiscallyReductive()}
- * — le payload utilisateur ne le porte jamais (cf. CHECK SQL en base
+ * - le payload utilisateur ne le porte jamais (cf. CHECK SQL en base
  * qui garantit la cohérence).
  *
  * **Cohabitation indispo↔contrat (ADR-0019)** : aucune contrainte

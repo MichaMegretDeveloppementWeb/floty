@@ -83,7 +83,7 @@ final class FiscalEngineEndToEndTest extends TestCase
     }
 
     /**
-     * Cas R-2024-002 — exemple Skoda Octavia essence Euro 6 M1
+     * Cas R-2024-002 - exemple Skoda Octavia essence Euro 6 M1
      * polluants cat 1, 183 jours d'affectation → prorata exact 0,5.
      * Polluants annuel plein = 100 €, prorata 183/366 = 0,5
      * → polluants due = **50,00 €** (cité dans le catalogue).
@@ -105,7 +105,7 @@ final class FiscalEngineEndToEndTest extends TestCase
     }
 
     /**
-     * Cas R-2024-021 LCD — cumul annuel strictement ≤ 30 jours par
+     * Cas R-2024-021 LCD - cumul annuel strictement ≤ 30 jours par
      * couple (véhicule × entreprise) → exonération totale des deux
      * taxes, aucune ligne fiscale produite.
      */
@@ -138,7 +138,7 @@ final class FiscalEngineEndToEndTest extends TestCase
     }
 
     /**
-     * Cas R-2024-003 — exemple ACME du catalogue : entreprise A avec
+     * Cas R-2024-003 - exemple ACME du catalogue : entreprise A avec
      * 2 véhicules.
      *
      * - Véhicule 1 : WLTP 100 g/km essence M1 cat 1, 306 jours
@@ -181,7 +181,7 @@ final class FiscalEngineEndToEndTest extends TestCase
 
         // Total brut = 144,6393 + 83,6066 + 47,2677 + 27,3224 = 302,8361
         // Arrondi half-up à 2 décimales : 302,84 € (le BOFiP donne 303 € à
-        // l'euro mais notre Aggregator arrondit à 2 décimales — l'arrondi
+        // l'euro mais notre Aggregator arrondit à 2 décimales - l'arrondi
         // à l'euro entier vit au niveau Action de déclaration en phase 11)
         $this->assertSame(302.84, $totalArrondi);
 
@@ -190,7 +190,7 @@ final class FiscalEngineEndToEndTest extends TestCase
     }
 
     /**
-     * Crée un véhicule M1 essence Euro 6 WLTP 100 g/km cat 1 — la
+     * Crée un véhicule M1 essence Euro 6 WLTP 100 g/km cat 1 - la
      * configuration de référence des exemples BOFiP du catalogue.
      */
     private function makeVehicleWltp100Essence(): Vehicle

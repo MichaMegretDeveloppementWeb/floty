@@ -32,7 +32,7 @@ const PRE_EURO_5: ReadonlyArray<EuroStandard> = [
  * Mirroir TS de {@see App\Enums\Vehicle\PollutantCategory::derive()}.
  *
  * Sert exclusivement à l'affichage live de la catégorie résolue dans
- * le formulaire — la valeur réellement persistée est calculée côté
+ * le formulaire - la valeur réellement persistée est calculée côté
  * backend par le Repository, à partir des mêmes inputs. Les deux
  * implémentations doivent rester strictement équivalentes.
  *

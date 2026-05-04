@@ -22,7 +22,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *                        initiale).
  *
  * Le 3ᵉ choix « Annuler » est purement UI (l'utilisateur ferme le
- * modal sans soumettre) — il ne remonte pas au backend.
+ * modal sans soumettre) - il ne remonte pas au backend.
  */
 #[TypeScript]
 enum FiscalCharacteristicsExtensionStrategy: string

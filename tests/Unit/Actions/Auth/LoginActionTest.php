@@ -18,7 +18,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests isolés de l'orchestration auth — vérifie que l'Action :
+ * Tests isolés de l'orchestration auth - vérifie que l'Action :
  *   - délègue le rate-limit au service avant de tenter Auth::attempt
  *   - lève les exceptions typées attendues
  *   - met à jour `last_login_at` au succès et clear les compteurs.

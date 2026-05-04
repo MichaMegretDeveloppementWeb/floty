@@ -37,7 +37,7 @@ use Tests\TestCase;
  *
  * Les valeurs attendues sont calculées à partir des barèmes 2024 testés
  * dans `BracketsCatalog2024Test`. Tout changement de barème casse aussi
- * ce test — c'est voulu.
+ * ce test - c'est voulu.
  */
 final class FiscalCalculatorTest extends TestCase
 {
@@ -185,7 +185,7 @@ final class FiscalCalculatorTest extends TestCase
         // Cas réaliste : véhicule pré-2004 ou import sans donnée CO₂,
         // déclaré directement PA dès la création (R-2024-005). La garde
         // DB `chk_vfc_homologation_implies_measurement` empêche WLTP/NEDC
-        // sans la mesure correspondante — bascule applicative vers PA.
+        // sans la mesure correspondante - bascule applicative vers PA.
         $vehicle = $this->makeVehiclePa(cv: 5, pollutant: PollutantCategory::Category1);
 
         $r = $this->calculator->calculate($vehicle, $this->contractsForDays($vehicle, 100), [], 2024);
@@ -392,7 +392,7 @@ final class FiscalCalculatorTest extends TestCase
             appliedExemptions: [],
         );
 
-        // Toutes les propriétés sont readonly — on vérifie via reflection.
+        // Toutes les propriétés sont readonly - on vérifie via reflection.
         $reflection = new \ReflectionClass($r);
         foreach ($reflection->getProperties() as $property) {
             $this->assertTrue(

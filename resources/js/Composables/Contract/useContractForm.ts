@@ -22,10 +22,10 @@ type ContractFormShape = {
  * Mode `create` : POST `/app/contracts` (vide par défaut).
  * Mode `edit`   : PATCH `/app/contracts/{id}` (pré-rempli depuis le DTO).
  *
- * Le state est un Inertia `useForm()` — gestion automatique des erreurs
+ * Le state est un Inertia `useForm()` - gestion automatique des erreurs
  * de validation (422) côté serveur via `form.errors.<field>`.
  *
- * **Refonte 04.K** : `contract_type` n'est plus dans le formulaire — il
+ * **Refonte 04.K** : `contract_type` n'est plus dans le formulaire - il
  * est dérivé automatiquement côté backend depuis [start_date, end_date]
  * via {@see Contract::deriveTypeFromDates()}.
  */

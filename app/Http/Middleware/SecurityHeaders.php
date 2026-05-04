@@ -11,16 +11,16 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Headers de sécurité ajoutés à toutes les réponses du groupe `web`.
  *
- * - `X-Frame-Options: DENY` — empêche l'inclusion en iframe (anti
+ * - `X-Frame-Options: DENY` - empêche l'inclusion en iframe (anti
  *   clickjacking). L'application Floty ne s'embed pas légitimement
  *   dans un autre site.
- * - `X-Content-Type-Options: nosniff` — empêche le MIME-sniffing
+ * - `X-Content-Type-Options: nosniff` - empêche le MIME-sniffing
  *   navigateur, oblige le respect du Content-Type déclaré.
- * - `Referrer-Policy: strict-origin-when-cross-origin` — limite la
+ * - `Referrer-Policy: strict-origin-when-cross-origin` - limite la
  *   fuite d'URL de pages internes vers les sites tiers.
- * - `Permissions-Policy: ...` — désactive les API browser non
+ * - `Permissions-Policy: ...` - désactive les API browser non
  *   utilisées (caméra, micro, géoloc).
- * - `Strict-Transport-Security` — force HTTPS pendant 1 an, posé
+ * - `Strict-Transport-Security` - force HTTPS pendant 1 an, posé
  *   uniquement sur connexion sécurisée pour ne pas verrouiller le
  *   dev local Herd HTTP.
  *

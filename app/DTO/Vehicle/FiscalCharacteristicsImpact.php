@@ -18,7 +18,7 @@ use Carbon\CarbonImmutable;
  *
  * Les bornes sont conservées en `Y-m-d` pour faciliter les comparaisons
  * et la sérialisation dans les messages utilisateur (toast info,
- * confirmation modale). Aucune logique métier ici — pure structure de
+ * confirmation modale). Aucune logique métier ici - pure structure de
  * données.
  */
 final readonly class FiscalCharacteristicsImpact
@@ -88,7 +88,7 @@ final readonly class FiscalCharacteristicsImpact
      *     ou la **supprime** doit s'exécuter AVANT l'`UPDATE` afin
      *     d'éviter un état intermédiaire chevauchant.
      *   - une cascade qui **prolonge** une voisine (comble un trou)
-     *     doit s'exécuter APRÈS l'`UPDATE` pour la même raison —
+     *     doit s'exécuter APRÈS l'`UPDATE` pour la même raison -
      *     prolonger avant aurait empiété sur les bornes existantes.
      */
     public function mustApplyBeforeUpdate(): bool

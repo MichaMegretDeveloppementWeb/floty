@@ -20,7 +20,7 @@ use Tests\TestCase;
  * que vous auriez payé »). C'est la seule règle qui utilise le
  * `fullZeroingTariffs()` factory de l'ExemptionVerdict.
  *
- * Le flag `handicap_access` est ce qui fait foi — la carrosserie HB
+ * Le flag `handicap_access` est ce qui fait foi - la carrosserie HB
  * (ou autre) ne suffit pas à elle seule.
  */
 final class R2024_015_HandicapAccessTest extends TestCase

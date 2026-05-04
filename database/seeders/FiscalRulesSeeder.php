@@ -139,7 +139,7 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-009',
                 'name' => "Mise hors-service en cours d'année",
-                'description' => "Gestion des véhicules sortis de flotte (vente, destruction) — prorata jusqu'à la date de sortie. Règle d'UX produit, sans fondement légal direct.",
+                'description' => "Gestion des véhicules sortis de flotte (vente, destruction) - prorata jusqu'à la date de sortie. Règle d'UX produit, sans fondement légal direct.",
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
                 'legal_basis' => [],
@@ -203,7 +203,7 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-015',
                 'name' => 'Exonération handicap',
-                'description' => 'Véhicules accessibles aux personnes à mobilité réduite — exonération totale CO₂ et polluants.',
+                'description' => 'Véhicules accessibles aux personnes à mobilité réduite - exonération totale CO₂ et polluants.',
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
@@ -215,7 +215,7 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-016',
                 'name' => 'Exonération électrique / hydrogène (CO₂)',
-                'description' => 'Véhicules électriques, hydrogène, ou électrique + hydrogène exclusifs — exonération totale CO₂.',
+                'description' => 'Véhicules électriques, hydrogène, ou électrique + hydrogène exclusifs - exonération totale CO₂.',
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $co2,
                 'legal_basis' => [
@@ -226,7 +226,7 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-017',
                 'name' => 'Exonération hybride conditionnelle (CO₂)',
-                'description' => "Véhicules hybrides 2024 respectant des seuils de CO₂ et d'ancienneté — exonération CO₂ totale.",
+                'description' => "Véhicules hybrides 2024 respectant des seuils de CO₂ et d'ancienneté - exonération CO₂ totale.",
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $co2,
                 'legal_basis' => [
@@ -237,7 +237,7 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-018',
                 'name' => "Exonération organisme d'intérêt général",
-                'description' => 'OIG (CGI art. 261, 7°) — exonération CO₂ et polluants. INACTIVE par défaut en V1.',
+                'description' => 'OIG (CGI art. 261, 7°) - exonération CO₂ et polluants. INACTIVE par défaut en V1.',
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
@@ -262,7 +262,7 @@ final class FiscalRulesSeeder extends Seeder
             ],
             [
                 'rule_code' => 'R-2024-020',
-                'name' => 'Exonération loueur — redevable = entreprise utilisatrice',
+                'name' => 'Exonération loueur - redevable = entreprise utilisatrice',
                 'description' => "Fondamentale pour Floty : le loueur n'est pas redevable, ce sont les entreprises utilisatrices qui le sont.",
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
@@ -308,7 +308,7 @@ final class FiscalRulesSeeder extends Seeder
 
     /**
      * Complète une ligne de règle avec les valeurs par défaut communes.
-     * (pas utilisé — inlined dans run() via updateOrCreate qui accepte la map.)
+     * (pas utilisé - inlined dans run() via updateOrCreate qui accepte la map.)
      *
      * Enrichi sur chaque entrée :
      *   - fiscal_year = 2024

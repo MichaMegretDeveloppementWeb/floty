@@ -1,11 +1,11 @@
 /**
- * Shape des champs purement fiscaux (VFC) — partagé entre le form
+ * Shape des champs purement fiscaux (VFC) - partagé entre le form
  * véhicule complet (Create/Edit) et le form d'édition d'une VFC
  * isolée depuis la modale Historique. Permet de typer
  * `FiscalCharacteristicsSection` de façon générique sur tout
  * formulaire qui contient ces champs.
  *
- * `pollutant_category` n'est PAS un input — il est dérivé côté front
+ * `pollutant_category` n'est PAS un input - il est dérivé côté front
  * par `derivePollutantCategory()` et persisté côté backend par le
  * Repository. Ne pas le rajouter dans le shape.
  */

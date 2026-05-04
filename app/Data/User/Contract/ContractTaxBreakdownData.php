@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail fiscal complet d'un contrat — affiché dans la section
+ * Détail fiscal complet d'un contrat - affiché dans la section
  * « Taxes générées » de la page Show contrat.
  *
  * Structure pluriannuelle : un contrat chevauchant 2 années porte 2

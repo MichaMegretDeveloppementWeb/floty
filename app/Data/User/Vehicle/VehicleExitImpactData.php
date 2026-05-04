@@ -17,7 +17,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * lèvera {@see App\Exceptions\Vehicle\VehicleExitBlockedByConflictsException}
  * et la modale Sortie affichera la liste à l'utilisateur.
  *
- * Cf. ADR-0018 § 8.1 — section "Conflits détectés".
+ * Cf. ADR-0018 § 8.1 - section "Conflits détectés".
  */
 #[TypeScript]
 final class VehicleExitImpactData extends Data

@@ -14,7 +14,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre la qualification LCD (Location de Courte Durée) — CIBS art.
+ * Couvre la qualification LCD (Location de Courte Durée) - CIBS art.
  * L. 421-129 / L. 421-141, BOFiP § 180-190.
  *
  * Deux conditions OR :
@@ -71,7 +71,7 @@ final class R2024_021_ShortTermRentalTest extends TestCase
     #[Test]
     public function contrat_couvrant_fevrier_2024_bissextile_29j_qualifie_lcd(): void
     {
-        // Février 2024 fait 29 j (année bissextile) — < 30 j, qualifie
+        // Février 2024 fait 29 j (année bissextile) - < 30 j, qualifie
         // déjà par durée. Test redondant mais documente la bordure.
         $contract = $this->makeContract('2024-02-01', '2024-02-29');
 

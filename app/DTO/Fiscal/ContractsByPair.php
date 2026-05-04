@@ -11,7 +11,7 @@ use App\Services\Fiscal\FleetFiscalAggregator;
  * Liste des contrats actifs sur l'année regroupés par couple
  * (véhicule, entreprise utilisatrice).
  *
- * Remplace `AnnualCumulByPair` (cumul annuel agrégé) — la sémantique de
+ * Remplace `AnnualCumulByPair` (cumul annuel agrégé) - la sémantique de
  * cumul-annuel-par-couple a été révoquée par ADR-0014. Le moteur fiscal
  * reçoit désormais la matière brute (la liste des contrats du couple)
  * et chaque règle fiscale décide (ex. R-2024-021 qualifie chaque
@@ -56,7 +56,7 @@ final readonly class ContractsByPair
     }
 
     /**
-     * Map vehicleId → contrats pour une entreprise donnée — symétrique
+     * Map vehicleId → contrats pour une entreprise donnée - symétrique
      * de {@see pairsForVehicle}. Utilisé par l'aggregator pour sommer
      * la taxe annuelle d'une entreprise sans ré-itérer toute la flotte.
      *
@@ -98,7 +98,7 @@ final readonly class ContractsByPair
      * Total des jours-contrat occupés par une entreprise sur la
      * flotte de l'année (tous véhicules confondus).
      *
-     * Note : KPI brut (sans déduction LCD ni indispos réductrices) —
+     * Note : KPI brut (sans déduction LCD ni indispos réductrices) -
      * pour la valeur fiscalement taxable, passer par
      * {@see FleetFiscalAggregator}.
      */
@@ -120,7 +120,7 @@ final readonly class ContractsByPair
 
     /**
      * Total des jours-contrat occupés sur l'année tous couples
-     * confondus — KPI Dashboard.
+     * confondus - KPI Dashboard.
      *
      * Sémantique : un même jour compté deux fois s'il est porté par
      * deux pairs distincts (cohérent avec le total fiscal qui taxe

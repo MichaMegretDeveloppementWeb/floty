@@ -11,7 +11,7 @@
  *     /codes/article_lc/{LEGIARTI}/{YYYY-MM-DD}
  *
  * On utilise systématiquement le format daté avec le 1er juin de
- * l'année fiscale courante (milieu d'année — sécurise les transitions
+ * l'année fiscale courante (milieu d'année - sécurise les transitions
  * de barème au 01/01). Sans date, Légifrance ouvre la dernière version
  * (peut être 2026+ alors qu'on parle de la fiscalité 2024).
  *
@@ -52,21 +52,21 @@ const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
  *
  * Chaque LEGIARTI ci-dessous est un identifiant **stable d'article**
  * (pas de version). Légifrance résout la version applicable à la date
- * passée en URL — on combine ces LEGIARTI avec une date dérivée de
+ * passée en URL - on combine ces LEGIARTI avec une date dérivée de
  * l'année fiscale courante (cf. `articleUrlForYear`).
  *
  * Source : Légifrance, Code des impositions sur les biens et services
  * (LEGITEXT000044595989). Articles couverts :
- * — L. 131-1 (règle d'arrondi half-up, livre I) ;
- * — L. 421-2 (définition véhicule de tourisme M1/N1) ;
- * — L. 421-6 (définition de la méthode WLTP) ;
- * — L. 421-94 à L. 421-95, L. 421-99, L. 421-105, L. 421-107, L. 421-110,
+ * - L. 131-1 (règle d'arrondi half-up, livre I) ;
+ * - L. 421-2 (définition véhicule de tourisme M1/N1) ;
+ * - L. 421-6 (définition de la méthode WLTP) ;
+ * - L. 421-94 à L. 421-95, L. 421-99, L. 421-105, L. 421-107, L. 421-110,
  *   L. 421-111 (assujettissement, fait générateur, territoire, proportion
  *   annuelle d'affectation, coefficient pondérateur, minoration 15 000 €) ;
- * — L. 421-119 et L. 421-119-1 (règle générale tarifs CO₂ et bascule
+ * - L. 421-119 et L. 421-119-1 (règle générale tarifs CO₂ et bascule
  *   WLTP/NEDC/PA) ;
- * — L. 421-120 à L. 421-144 (tarifs et exonérations CO₂ + polluants) ;
- * — L. 421-164 (état récapitulatif annuel).
+ * - L. 421-120 à L. 421-144 (tarifs et exonérations CO₂ + polluants) ;
+ * - L. 421-164 (état récapitulatif annuel).
  */
 const CIBS_ARTICLE_LEGIARTI: Record<string, string> = {
     'L. 131-1': 'LEGIARTI000044604185',

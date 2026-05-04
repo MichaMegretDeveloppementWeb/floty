@@ -32,7 +32,7 @@ final class R2024_PricingScalesTest extends TestCase
     use RefreshDatabase;
 
     // ============================================================
-    // R-2024-010 WLTP — bordures de tranche
+    // R-2024-010 WLTP - bordures de tranche
     // ============================================================
 
     #[Test]
@@ -94,7 +94,7 @@ final class R2024_PricingScalesTest extends TestCase
     #[Test]
     public function wltp_ne_s_applique_pas_si_methode_resolue_est_pa(): void
     {
-        // La règle skip si la méthode résolue est PA — laisse `co2FullYearTariff` à null.
+        // La règle skip si la méthode résolue est PA - laisse `co2FullYearTariff` à null.
         $rule = new R2024_010_WltpProgressive;
         $vfc = $this->makeVfc(['homologation_method' => HomologationMethod::Wltp, 'co2_wltp' => 100]);
         $context = $this->makeContext($vfc, HomologationMethod::Pa);
@@ -105,7 +105,7 @@ final class R2024_PricingScalesTest extends TestCase
     }
 
     // ============================================================
-    // R-2024-011 NEDC — bordures de tranche
+    // R-2024-011 NEDC - bordures de tranche
     // ============================================================
 
     #[Test]
@@ -127,7 +127,7 @@ final class R2024_PricingScalesTest extends TestCase
     }
 
     // ============================================================
-    // R-2024-012 PA — bordures CV
+    // R-2024-012 PA - bordures CV
     // ============================================================
 
     #[Test]

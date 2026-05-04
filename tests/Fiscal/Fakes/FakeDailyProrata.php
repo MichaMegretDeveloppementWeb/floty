@@ -10,7 +10,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 
 /**
  * Fake `TransversalRule` minimal qui applique un prorata journalier
- * équivalent à R-2024-002 — utilisé pour valider que le pipeline
+ * équivalent à R-2024-002 - utilisé pour valider que le pipeline
  * tourne sur une année arbitraire (cf.
  * `tests/Feature/Fiscal/FiscalRegistryExtensibilityTest.php`).
  */

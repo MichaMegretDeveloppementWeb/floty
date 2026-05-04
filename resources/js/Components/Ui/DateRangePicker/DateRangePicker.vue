@@ -2,7 +2,7 @@
 /**
  * Calendrier custom de sélection d'une plage continue de dates.
  *
- * **v2 (04.I.2)** — 3 améliorations UX, API publique conservée :
+ * **v2 (04.I.2)** - 3 améliorations UX, API publique conservée :
  *   1. Header avec selects mois + année (±5 ans glissants) + chevrons,
  *      navigation rapide
  *   2. Auto-normalize de l'ordre des clics : peu importe lequel des deux
@@ -37,7 +37,7 @@ const props = withDefaults(
         startMonth?: number;
         /** ISO Y-m-d non sélectionnables. */
         disabledDates?: string[];
-        /** ISO Y-m-d à mettre en évidence (anneau bleu) — utilisé pour
+        /** ISO Y-m-d à mettre en évidence (anneau bleu) - utilisé pour
          *  marquer la semaine de contexte dans le drawer Planning. */
         highlightDates?: string[];
     }>(),

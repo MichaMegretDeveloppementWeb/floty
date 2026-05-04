@@ -9,13 +9,13 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Agrégat statistiques d'utilisation d'un véhicule pour l'année active —
+ * Agrégat statistiques d'utilisation d'un véhicule pour l'année active -
  * affiché dans les KPI cards + la timeline 52 semaines + le tableau
  * breakdown sur la page Show.
  *
  *   - actualTaxThisYear  : ce qui est effectivement dû compte tenu des
  *                          attributions réelles (somme par couple,
- *                          arrondie par couple — vue informative).
+ *                          arrondie par couple - vue informative).
  *   - fullYearTax        : maximum théorique annuel (1 véhicule
  *                          attribué 100 % à 1 entreprise, sans LCD).
  *   - dailyTaxRate       : `fullYearTax / daysInYear`.

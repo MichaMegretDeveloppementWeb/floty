@@ -10,7 +10,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Lectures Contract — interface slim conforme ADR-0013 (zéro
+ * Lectures Contract - interface slim conforme ADR-0013 (zéro
  * transformation, zéro décision métier ; les retours sont des
  * Collections / Models bruts. Toute composition de DTO ou agrégat
  * vit dans {@see ContractQueryService}).
@@ -22,7 +22,7 @@ interface ContractReadRepositoryInterface
     public function findByIdWithRelations(int $id): ?Contract;
 
     /**
-     * Liste des contrats actifs d'un véhicule sur l'année — utilisée
+     * Liste des contrats actifs d'un véhicule sur l'année - utilisée
      * par le moteur fiscal pour expansion en jours (cf. R-2024-002).
      *
      * @return Collection<int, Contract>
@@ -30,7 +30,7 @@ interface ContractReadRepositoryInterface
     public function findByVehicleAndYear(int $vehicleId, int $year): Collection;
 
     /**
-     * Tous les contrats actifs croisant l'année — pivot du moteur fiscal
+     * Tous les contrats actifs croisant l'année - pivot du moteur fiscal
      * (composé en `ContractsByPair` dans le service). Eager-load
      * minimal pour les agrégations.
      *

@@ -12,7 +12,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Lectures Driver — interface slim conforme ADR-0013 (zéro transformation,
+ * Lectures Driver - interface slim conforme ADR-0013 (zéro transformation,
  * zéro décision métier ; les retours sont des Models / Collections bruts).
  *
  * Toute composition de DTO ou agrégat vit dans
@@ -23,7 +23,7 @@ interface DriverReadRepositoryInterface
     public function findById(int $id): ?Driver;
 
     /**
-     * Driver avec memberships company + counts contrats — pour la page Show.
+     * Driver avec memberships company + counts contrats - pour la page Show.
      */
     public function findByIdWithRelations(int $id): ?Driver;
 
@@ -68,7 +68,7 @@ interface DriverReadRepositoryInterface
 
     /**
      * Liste les contrats à venir (`start_date > leftAt`) du driver dans
-     * la company donnée — pour exposer la liste dans la modale Q6.
+     * la company donnée - pour exposer la liste dans la modale Q6.
      *
      * @return Collection<int, Contract>
      */

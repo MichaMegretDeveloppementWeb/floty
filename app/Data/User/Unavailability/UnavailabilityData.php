@@ -14,7 +14,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * véhicule, listes etc.).
  *
  *   - daysCount : nombre de jours couverts (inclusif), ou 0 si
- *                 l'indispo est encore en cours (end_date null) — le
+ *                 l'indispo est encore en cours (end_date null) - le
  *                 front affiche alors « depuis le {start_date} ».
  */
 #[TypeScript]

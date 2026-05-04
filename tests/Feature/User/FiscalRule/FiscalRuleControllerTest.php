@@ -22,7 +22,7 @@ final class FiscalRuleControllerTest extends TestCase
         $year = (int) config('floty.fiscal.available_years')[0];
 
         FiscalRule::factory()->count(3)->create(['fiscal_year' => $year]);
-        // Une règle d'une autre année — ne doit pas apparaître
+        // Une règle d'une autre année - ne doit pas apparaître
         FiscalRule::factory()->create(['fiscal_year' => $year - 1]);
 
         $this->actingAs($user)

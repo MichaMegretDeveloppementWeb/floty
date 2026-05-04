@@ -86,7 +86,7 @@ final class CreateVehicleActionTest extends TestCase
             $this->assertSame('boom', $e->getMessage());
         }
 
-        // Le véhicule a été créé dans la transaction puis rollback —
+        // Le véhicule a été créé dans la transaction puis rollback -
         // aucune ligne ne doit subsister.
         $this->assertDatabaseMissing('vehicles', ['license_plate' => 'XX-000-XX']);
         $this->assertSame(0, DB::table('vehicles')->count());

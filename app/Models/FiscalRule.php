@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Métadonnée d'une règle fiscale — index consultable peuplé par seeders
+ * Métadonnée d'une règle fiscale - index consultable peuplé par seeders
  * uniquement (ADR-0002).
  *
  * Cf. 02-schema-fiscal.md § 1 + ADR-0009.

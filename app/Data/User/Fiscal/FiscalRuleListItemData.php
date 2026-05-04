@@ -16,7 +16,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * est associé côté front via `ruleCode` (cf. `fiscalRulesContent.ts`).
  *
  * `legalBasis` est conservé en `array<string, mixed>` car la structure
- * varie selon le type (CIBS / BOFIP / NOTICE) — un futur DTO
+ * varie selon le type (CIBS / BOFIP / NOTICE) - un futur DTO
  * polymorphe pourra le typer plus finement.
  */
 #[TypeScript]

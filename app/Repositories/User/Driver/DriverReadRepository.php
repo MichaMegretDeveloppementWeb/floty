@@ -12,7 +12,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Implémentation Eloquent des lectures Driver — slim conforme ADR-0013.
+ * Implémentation Eloquent des lectures Driver - slim conforme ADR-0013.
  */
 final class DriverReadRepository implements DriverReadRepositoryInterface
 {

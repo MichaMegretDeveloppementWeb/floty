@@ -7,7 +7,7 @@ namespace App\Exceptions\Fiscal;
 use App\Exceptions\BaseAppException;
 
 /**
- * Erreur du moteur fiscal — données d'entrée incohérentes ou état
+ * Erreur du moteur fiscal - données d'entrée incohérentes ou état
  * véhicule manquant pour produire un calcul.
  *
  * Référence : implementation-rules/gestion-erreurs.md.

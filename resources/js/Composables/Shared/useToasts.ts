@@ -6,7 +6,7 @@ import type { DeepReadonly } from 'vue';
  *
  * Le store est mutualisé au module (instance unique pour toute
  * l'application). Toute page ou composable peut empiler / vider sans
- * coordination — l'auto-dismiss programmé via `setTimeout` est pris
+ * coordination - l'auto-dismiss programmé via `setTimeout` est pris
  * en charge par le composable lui-même.
  *
  * Conforme à `composables-services-utils.md` :

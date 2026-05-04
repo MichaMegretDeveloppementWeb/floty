@@ -20,7 +20,7 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 
 /**
- * Orchestrateur du moteur fiscal Floty (cf. ADR-0006 § 2 — pipeline
+ * Orchestrateur du moteur fiscal Floty (cf. ADR-0006 § 2 - pipeline
  * fixe en 8 étapes).
  *
  *   1. Récupération du contexte (caractéristiques fiscales courantes)
@@ -30,13 +30,13 @@ use App\Services\Shared\Fiscal\FiscalYearContext;
  *   4. Exonérations (collecte des verdicts ; court-circuit hors scope)
  *   5. Abatements (vide en 2024)
  *   6. Tarification (CO₂ + polluants)
- *   7. Prorata + arrondi (Transversal — R-2024-002 calcule le numérateur
+ *   7. Prorata + arrondi (Transversal - R-2024-002 calcule le numérateur
  *      depuis les contrats taxables et applique le prorata)
  *   8. Output structuré (PipelineResult)
  *
  * **Refonte 04.F (ADR-0014)** :
  * Le pipeline ne reçoit plus de cumuls agrégés (`daysAssignedToCompany`,
- * `cumulativeDaysForPair`) — il reçoit la matière brute (les contrats
+ * `cumulativeDaysForPair`) - il reçoit la matière brute (les contrats
  * du couple, les indispos du véhicule) et les règles souveraines
  * R-2024-021 et R-2024-008 décident des jours exonérés. R-2024-002
  * (Transversal) calcule le numérateur final et l'écrit dans le contexte.
@@ -55,10 +55,10 @@ final class FiscalPipeline
 
         $rules = $this->registry->rulesForYear($context->fiscalYear);
 
-        // Étape 1 — récupération des caractéristiques fiscales courantes
+        // Étape 1 - récupération des caractéristiques fiscales courantes
         $context = $this->loadFiscalCharacteristics($context);
 
-        // Étape 2 — Classifications
+        // Étape 2 - Classifications
         foreach ($this->filterByType($rules, ClassificationRule::class) as $rule) {
             $context = $rule->classify($context);
         }
@@ -70,7 +70,7 @@ final class FiscalPipeline
             return $this->buildResult($context);
         }
 
-        // Étape 4 — Exonérations (collecte des verdicts)
+        // Étape 4 - Exonérations (collecte des verdicts)
         foreach ($this->filterByType($rules, ExemptionRule::class) as $rule) {
             $verdict = $rule->evaluate($context);
             if ($verdict->isExempt) {
@@ -80,31 +80,31 @@ final class FiscalPipeline
             }
         }
 
-        // Étape 5 — Abatements (vide en 2024 mais déjà cablé)
+        // Étape 5 - Abatements (vide en 2024 mais déjà cablé)
         foreach ($this->filterByType($rules, AbatementRule::class) as $rule) {
             $context = $rule->abate($context);
         }
 
-        // Étape 6 — Tarification
+        // Étape 6 - Tarification
         foreach ($this->filterByType($rules, PricingRule::class) as $rule) {
             $context = $rule->price($context);
         }
 
         // Application des verdicts d'exonération **totaux** sur les
-        // tarifs (avant prorata) — handicap, électrique, OIG, etc. Les
+        // tarifs (avant prorata) - handicap, électrique, OIG, etc. Les
         // verdicts journaliers (partialDays, scope null) ne neutralisent
         // pas les tariffs : ils n'agissent que sur le numérateur dans
         // R-2024-002.
         $context = $this->applyExemptionsToTariffs($context);
 
-        // Étape 7 — Transversales (prorata + arrondi)
+        // Étape 7 - Transversales (prorata + arrondi)
         // R-2024-002 calcule daysAssignedToCompany depuis contractsForPair
         // et soustrait les verdicts partialDays.
         foreach ($this->filterByType($rules, TransversalRule::class) as $rule) {
             $context = $rule->apply($context);
         }
 
-        // Étape 8 — Sortie structurée
+        // Étape 8 - Sortie structurée
         return $this->buildResult($context);
     }
 
@@ -191,7 +191,7 @@ final class FiscalPipeline
     {
         $verdicts = $context->exemptionVerdicts;
 
-        // Cas spécial R-2024-004 : véhicule hors champ fiscal — pas de
+        // Cas spécial R-2024-004 : véhicule hors champ fiscal - pas de
         // verdict d'exonération (pipeline court-circuité avant la phase
         // exonérations) mais on doit exposer un motif explicatif sinon
         // l'utilisateur voit « voir motif ci-dessous » sans liste. Le
@@ -226,7 +226,7 @@ final class FiscalPipeline
             // LCD : marqueur présent dès qu'un contrat du couple est
             // qualifié LCD (R-2024-021 a posé un verdict partialDays).
             // Avec la sémantique per-contract, c'est désormais possible
-            // d'avoir un mix LCD/LLD sur le même couple — le bool
+            // d'avoir un mix LCD/LLD sur le même couple - le bool
             // signale juste qu'il y a au moins un contrat LCD.
             if ($verdict->exemptDaysCount !== null && $verdict->exemptDaysCount > 0) {
                 $lcdExempt = true;

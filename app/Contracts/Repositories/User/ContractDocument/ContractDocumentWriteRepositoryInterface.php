@@ -7,10 +7,10 @@ namespace App\Contracts\Repositories\User\ContractDocument;
 use App\Models\ContractDocument;
 
 /**
- * Écritures ContractDocument — interface slim conforme ADR-0013.
+ * Écritures ContractDocument - interface slim conforme ADR-0013.
  *
  * Aucune décision métier ici (validation max 5 docs, hash, upload
- * fichier physique) — c'est le rôle des Actions du domaine.
+ * fichier physique) - c'est le rôle des Actions du domaine.
  */
 interface ContractDocumentWriteRepositoryInterface
 {

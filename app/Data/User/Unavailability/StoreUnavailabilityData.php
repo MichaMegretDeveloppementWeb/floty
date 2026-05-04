@@ -22,7 +22,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Payload de création d'une indisponibilité.
  *
- * `has_fiscal_impact` n'est PAS dans le payload — il est calculé
+ * `has_fiscal_impact` n'est PAS dans le payload - il est calculé
  * côté Action depuis l'enum (`UnavailabilityType::isFiscallyReductive()`).
  */
 #[TypeScript]

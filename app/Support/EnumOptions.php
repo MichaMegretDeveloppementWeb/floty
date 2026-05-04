@@ -12,7 +12,7 @@ use BackedEnum;
  * en options `<SelectInput>` exposées au front.
  *
  * Chaque enum métier expose une méthode `label()` qui retourne le
- * libellé FR affichable — la valeur brute reste envoyée au backend.
+ * libellé FR affichable - la valeur brute reste envoyée au backend.
  */
 final class EnumOptions
 {

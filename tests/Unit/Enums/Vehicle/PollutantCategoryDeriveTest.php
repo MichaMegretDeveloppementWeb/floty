@@ -166,7 +166,7 @@ final class PollutantCategoryDeriveTest extends TestCase
     public function hybride_sans_sous_jacent_renseigne_donne_categorie_les_plus_polluants(): void
     {
         // Defensive default : sans information sur le moteur thermique,
-        // on ne peut pas attribuer la Catégorie 1 — sécuritaire pour le
+        // on ne peut pas attribuer la Catégorie 1 - sécuritaire pour le
         // contribuable comme pour le fisc.
         $category = PollutantCategory::derive(
             EnergySource::NonPluginHybrid,

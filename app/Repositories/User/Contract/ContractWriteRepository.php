@@ -11,14 +11,14 @@ use App\Enums\Contract\ContractType;
 use App\Models\Contract;
 
 /**
- * Implémentation Eloquent des écritures Contract — slim conforme
+ * Implémentation Eloquent des écritures Contract - slim conforme
  * ADR-0013 (zéro transformation, zéro décision métier ; les Actions
  * portent les transactions multi-entités et les pré-validations
  * applicatives).
  *
  * **Refonte 04.K** : `contract_type` est désormais dérivé par l'Action
  * (cf. {@see Contract::deriveTypeFromDates()}) et passé au writer en
- * paramètre séparé — le DTO ne le porte plus.
+ * paramètre séparé - le DTO ne le porte plus.
  */
 final class ContractWriteRepository implements ContractWriteRepositoryInterface
 {

@@ -104,7 +104,7 @@ final class PlanningHeatmapService
      * dans l'année fiscale demandée.
      *
      * Alimente la bordure rouge sur les cellules heatmap (ADR-0019 D5)
-     * — visibilité immédiate de la cohabitation indispo↔contrat.
+     * - visibilité immédiate de la cohabitation indispo↔contrat.
      *
      * @param  list<Unavailability>  $unavailabilities
      * @return list<int>

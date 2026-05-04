@@ -19,7 +19,7 @@ use Tests\TestCase;
 /**
  * Couvre les 10 cas-tests permanents d'ADR-0016 § 7 rev. 1.1.
  *
- * Toute modification de R-2024-008 doit conserver ces invariants —
+ * Toute modification de R-2024-008 doit conserver ces invariants -
  * c'est le filet de sécurité fiscal de la règle « indispos
  * fiscalement réductrices ».
  */
@@ -192,7 +192,7 @@ final class R2024_008_ReductiveUnavailabilityTest extends TestCase
             'end_date' => '2024-09-05',
         ]);
 
-        // Contrat couvrant uniquement Janvier — l'indispo de Septembre
+        // Contrat couvrant uniquement Janvier - l'indispo de Septembre
         // ne croise aucun jour taxable du couple.
         $contract = Contract::factory()->create([
             'vehicle_id' => $this->vehicle->id,

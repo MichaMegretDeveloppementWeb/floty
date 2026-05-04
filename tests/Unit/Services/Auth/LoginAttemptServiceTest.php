@@ -27,7 +27,7 @@ final class LoginAttemptServiceTest extends TestCase
         parent::setUp();
 
         // Le service appelle `request()` pour produire l'événement
-        // Lockout — on lui fournit une requête vide à défaut de
+        // Lockout - on lui fournit une requête vide à défaut de
         // contexte HTTP réel.
         Request::swap(\Illuminate\Http\Request::create('/login'));
 

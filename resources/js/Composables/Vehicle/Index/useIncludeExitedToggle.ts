@@ -6,7 +6,7 @@ import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 /**
  * Toggle « Inclure véhicules retirés » sur la page Index Flotte.
  *
- * Le filtre est appliqué côté backend (cf. ADR-0018 § 4) — le repo
+ * Le filtre est appliqué côté backend (cf. ADR-0018 § 4) - le repo
  * filtre via `Vehicle::activeAt(today)` quand `includeExited === false`.
  * Le toggle déclenche donc un Inertia visit qui re-fetch la liste avec
  * la query `?include_exited=1`.

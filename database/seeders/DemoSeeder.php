@@ -58,7 +58,7 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Phase 06 V1.2 — 8 conducteurs démo couvrant les cas d'usage Driver↔Company N:N :
+     * Phase 06 V1.2 - 8 conducteurs démo couvrant les cas d'usage Driver↔Company N:N :
      *   - 5 simples (1 par entreprise, actifs depuis 2024)
      *   - 1 multi-companies (Sophie : ACM + BTP)
      *   - 1 sorti d'une entreprise après 2026 (Pierre : sorti d'ACM le 2026-04-30)
@@ -166,7 +166,7 @@ final class DemoSeeder extends Seeder
     private function seedVehicles(): array
     {
         $specs = [
-            // Peugeot 308 essence Euro 6 WLTP 100 g/km — exemple officiel BOFiP
+            // Peugeot 308 essence Euro 6 WLTP 100 g/km - exemple officiel BOFiP
             [
                 'plate' => 'EA-001-AA', 'brand' => 'Peugeot', 'model' => '308',
                 'regFrench' => '2022-06-15', 'regOrigin' => '2022-06-15', 'econ' => '2022-06-15',
@@ -175,7 +175,7 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::Category1,
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 100, 'pa' => 6, 'kerb' => 1340,
             ],
-            // Renault Trafic Diesel Euro 6 — « plus polluants »
+            // Renault Trafic Diesel Euro 6 - « plus polluants »
             [
                 'plate' => 'EB-002-BB', 'brand' => 'Renault', 'model' => 'Trafic',
                 'regFrench' => '2021-04-10', 'regOrigin' => '2021-04-10', 'econ' => '2021-04-10',
@@ -185,7 +185,7 @@ final class DemoSeeder extends Seeder
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 165, 'pa' => 8, 'kerb' => 1950,
                 'n1PassengerTransport' => true,
             ],
-            // Tesla Model 3 électrique — catégorie E, exonération CO₂
+            // Tesla Model 3 électrique - catégorie E, exonération CO₂
             [
                 'plate' => 'EC-003-CC', 'brand' => 'Tesla', 'model' => 'Model 3',
                 'regFrench' => '2023-02-14', 'regOrigin' => '2023-02-14', 'econ' => '2023-02-14',
@@ -194,7 +194,7 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::E,
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 0, 'pa' => 9, 'kerb' => 1844,
             ],
-            // Peugeot 207 essence NEDC 130 g/km — vieille immat. 2010
+            // Peugeot 207 essence NEDC 130 g/km - vieille immat. 2010
             [
                 'plate' => 'ED-004-DD', 'brand' => 'Peugeot', 'model' => '207',
                 'regFrench' => '2010-06-15', 'regOrigin' => '2010-06-15', 'econ' => '2010-06-15',
@@ -203,7 +203,7 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::MostPolluting, // essence pré-Euro 5 → most_polluting
                 'method' => HomologationMethod::Nedc, 'co2Nedc' => 130, 'pa' => 5, 'kerb' => 1150,
             ],
-            // Renault 21 essence 7 CV — PA (trop vieux pour NEDC)
+            // Renault 21 essence 7 CV - PA (trop vieux pour NEDC)
             [
                 'plate' => 'EE-005-EE', 'brand' => 'Renault', 'model' => '21 Nevada',
                 'regFrench' => '2002-05-15', 'regOrigin' => '2002-05-15', 'econ' => '2002-05-15',
@@ -222,7 +222,7 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::Category1, // hybride essence → cat 1
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 95, 'pa' => 5, 'kerb' => 1180,
             ],
-            // BMW Série 5 Diesel Euro 6 — « plus polluants » gros CO₂
+            // BMW Série 5 Diesel Euro 6 - « plus polluants » gros CO₂
             [
                 'plate' => 'EG-007-GG', 'brand' => 'BMW', 'model' => 'Série 5 520d',
                 'regFrench' => '2022-11-20', 'regOrigin' => '2022-11-20', 'econ' => '2022-11-20',
@@ -231,7 +231,7 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::MostPolluting,
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 155, 'pa' => 9, 'kerb' => 1700,
             ],
-            // Peugeot Partner camionnette Diesel Euro 6 — N1 transport personnes
+            // Peugeot Partner camionnette Diesel Euro 6 - N1 transport personnes
             [
                 'plate' => 'EH-008-HH', 'brand' => 'Peugeot', 'model' => 'Partner 2 rangs',
                 'regFrench' => '2023-03-05', 'regOrigin' => '2023-03-05', 'econ' => '2023-03-05',
@@ -241,7 +241,7 @@ final class DemoSeeder extends Seeder
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 145, 'pa' => 7, 'kerb' => 1500,
                 'n1PassengerTransport' => true,
             ],
-            // Ford Transit Custom Diesel Euro 6 — utilitaire de transport
+            // Ford Transit Custom Diesel Euro 6 - utilitaire de transport
             [
                 'plate' => 'EI-009-II', 'brand' => 'Ford', 'model' => 'Transit Custom',
                 'regFrench' => '2020-08-10', 'regOrigin' => '2020-08-10', 'econ' => '2020-08-10',
@@ -251,7 +251,7 @@ final class DemoSeeder extends Seeder
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 175, 'pa' => 9, 'kerb' => 2000,
                 'n1PassengerTransport' => true,
             ],
-            // Renault Kangoo handicap — exonération totale
+            // Renault Kangoo handicap - exonération totale
             [
                 'plate' => 'EJ-010-JJ', 'brand' => 'Renault', 'model' => 'Kangoo TPMR',
                 'regFrench' => '2022-04-12', 'regOrigin' => '2022-04-12', 'econ' => '2022-04-12',
@@ -261,7 +261,7 @@ final class DemoSeeder extends Seeder
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 130, 'pa' => 6, 'kerb' => 1450,
                 'handicapAccess' => true,
             ],
-            // Citroën C3 vendue mi-2025 — exerce la matrice de visibilité
+            // Citroën C3 vendue mi-2025 - exerce la matrice de visibilité
             // (cf. ADR-0018 + chantier E.7) : présente dans la heatmap 2025
             // avec cells après 30/04 grisées, masquée dans la heatmap 2026+.
             [
@@ -294,7 +294,7 @@ final class DemoSeeder extends Seeder
                 ],
             );
 
-            // Caractéristiques fiscales initiales — une seule version courante.
+            // Caractéristiques fiscales initiales - une seule version courante.
             $vehicle->fiscalCharacteristics()->delete();
             VehicleFiscalCharacteristics::create([
                 'vehicle_id' => $vehicle->id,
@@ -389,7 +389,7 @@ final class DemoSeeder extends Seeder
             })
             ->forceDelete();
 
-        // EJ-010-JJ Kangoo TPMR — créneau libre 01-10 → 03-10/2024
+        // EJ-010-JJ Kangoo TPMR - créneau libre 01-10 → 03-10/2024
         // (avant le 1er contrat COR du 03-04). Fourrière publique 8 j.
         $this->createUnavailability(
             vehicle: $vehicles['EJ-010-JJ'],
@@ -399,7 +399,7 @@ final class DemoSeeder extends Seeder
             description: 'Stationnement gênant signalé par la mairie.',
         );
 
-        // EI-009-II Ford Transit — créneau libre 06-01 → 09-30 (entre BTP et ECO).
+        // EI-009-II Ford Transit - créneau libre 06-01 → 09-30 (entre BTP et ECO).
         // Interdiction de circuler post-sinistre 12 j.
         $this->createUnavailability(
             vehicle: $vehicles['EI-009-II'],
@@ -409,7 +409,7 @@ final class DemoSeeder extends Seeder
             description: 'Choc latéral, expertise + interdiction préfectorale.',
         );
 
-        // EG-007-GG BMW Série 5 — créneau hors contrats. Suspension CI 25 j.
+        // EG-007-GG BMW Série 5 - créneau hors contrats. Suspension CI 25 j.
         $this->createUnavailability(
             vehicle: $vehicles['EG-007-GG'],
             type: UnavailabilityType::CiSuspension,
@@ -418,7 +418,7 @@ final class DemoSeeder extends Seeder
             description: 'Suspension administrative du certificat d\'immatriculation.',
         );
 
-        // EH-008-HH Partner — maintenance courante 4 j (non réducteur).
+        // EH-008-HH Partner - maintenance courante 4 j (non réducteur).
         $this->createUnavailability(
             vehicle: $vehicles['EH-008-HH'],
             type: UnavailabilityType::Maintenance,
@@ -467,7 +467,7 @@ final class DemoSeeder extends Seeder
             ['plate' => 'EA-001-AA', 'company' => 'DRS', 'from' => '2024-07-01', 'to' => '2024-07-05'], // 5 j ≤ 30 → LCD
             ['plate' => 'EA-001-AA', 'company' => 'ECO', 'from' => '2024-09-09', 'to' => '2024-11-15'], // 68 j > 30
 
-            // --- Renault Trafic (Diesel Euro 6 — taxe polluants 500 €) ---
+            // --- Renault Trafic (Diesel Euro 6 - taxe polluants 500 €) ---
             ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2024-01-15', 'to' => '2024-04-30'], // 107 j
             ['plate' => 'EB-002-BB', 'company' => 'DRS', 'from' => '2024-05-06', 'to' => '2024-05-20'], // 15 j ≤ 30 → LCD
             ['plate' => 'EB-002-BB', 'company' => 'ACM', 'from' => '2024-06-03', 'to' => '2024-06-28'], // 26 j ≤ 30 → LCD
@@ -484,7 +484,7 @@ final class DemoSeeder extends Seeder
             ['plate' => 'ED-004-DD', 'company' => 'BTP', 'from' => '2024-06-10', 'to' => '2024-07-02'], // 23 j ≤ 30 → LCD
             ['plate' => 'ED-004-DD', 'company' => 'DRS', 'from' => '2024-09-02', 'to' => '2024-12-20'],
 
-            // --- Renault 21 (PA 7 CV — taxe CO₂ lourde : 15 000 €/an) ---
+            // --- Renault 21 (PA 7 CV - taxe CO₂ lourde : 15 000 €/an) ---
             ['plate' => 'EE-005-EE', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-03-28'], // 25 j ≤ 30 → LCD
             ['plate' => 'EE-005-EE', 'company' => 'ACM', 'from' => '2024-07-01', 'to' => '2024-07-26'], // 26 j ≤ 30 → LCD
 

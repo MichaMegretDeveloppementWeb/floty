@@ -97,7 +97,7 @@ final class DriverQueryService
     }
 
     /**
-     * Options pour le picker driver dans le formulaire Contract — filtré
+     * Options pour le picker driver dans le formulaire Contract - filtré
      * par company + période exacte (Q4).
      *
      * @return array<int, DriverOptionData>

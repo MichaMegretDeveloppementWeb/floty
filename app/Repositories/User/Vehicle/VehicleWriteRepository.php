@@ -17,7 +17,7 @@ use App\Models\Vehicle;
  * Implémentation Eloquent des écritures Vehicle.
  *
  * Ne porte plus la transaction sur Vehicle + ses caractéristiques fiscales
- * — c'est désormais le rôle de {@see CreateVehicleAction}
+ * - c'est désormais le rôle de {@see CreateVehicleAction}
  * qui orchestre les deux repositories sous une `DB::transaction`.
  */
 final class VehicleWriteRepository implements VehicleWriteRepositoryInterface
@@ -89,7 +89,7 @@ final class VehicleWriteRepository implements VehicleWriteRepositoryInterface
 
     /**
      * Mappe un motif de sortie vers le `current_status` cohérent.
-     * Cf. ADR-0018 § 3 — asymétrie acceptée : Transferred et
+     * Cf. ADR-0018 § 3 - asymétrie acceptée : Transferred et
      * StolenUnrecovered → Other.
      */
     private static function statusForExitReason(VehicleExitReason $reason): VehicleStatus

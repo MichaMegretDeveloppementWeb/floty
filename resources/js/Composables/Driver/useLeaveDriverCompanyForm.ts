@@ -17,7 +17,7 @@ type FormShape = {
 };
 
 /**
- * Workflow Q6 — modale de sortie d'un driver d'une entreprise.
+ * Workflow Q6 - modale de sortie d'un driver d'une entreprise.
  *
  * État géré :
  * - `leftAt` (date de sortie)

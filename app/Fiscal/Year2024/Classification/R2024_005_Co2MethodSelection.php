@@ -11,7 +11,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * R-2024-005 — Sélection du barème CO₂ + R-2024-006 — bascule PA si
+ * R-2024-005 - Sélection du barème CO₂ + R-2024-006 - bascule PA si
  * donnée CO₂ manquante.
  *
  * Règle :

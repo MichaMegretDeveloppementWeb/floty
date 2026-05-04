@@ -8,7 +8,7 @@ use App\Exceptions\BaseAppException;
 
 /**
  * Tentative de suppression de l'unique VFC d'un véhicule. Un véhicule
- * doit toujours avoir au moins une période fiscale active — supprimer
+ * doit toujours avoir au moins une période fiscale active - supprimer
  * la dernière reviendrait à laisser le moteur fiscal sans données.
  *
  * Pour réinitialiser complètement la fiscalité d'un véhicule, l'opérateur

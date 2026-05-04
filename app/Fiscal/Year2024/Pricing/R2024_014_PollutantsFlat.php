@@ -11,7 +11,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\PollutantTariff;
 
 /**
- * R-2024-014 — Tarif annuel forfaitaire polluants (CIBS L. 421-135).
+ * R-2024-014 - Tarif annuel forfaitaire polluants (CIBS L. 421-135).
  *
  *   - E (électrique / hydrogène)        →   0 €
  *   - Catégorie 1 (essence/gaz Euro 5/6)→ 100 €

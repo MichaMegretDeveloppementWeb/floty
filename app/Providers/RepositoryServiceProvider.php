@@ -66,15 +66,15 @@ final class RepositoryServiceProvider extends ServiceProvider
         CompanyReadRepositoryInterface::class => CompanyReadRepository::class,
         CompanyWriteRepositoryInterface::class => CompanyWriteRepository::class,
 
-        // Contract (ADR-0014) — entité pivot du domaine fiscal
+        // Contract (ADR-0014) - entité pivot du domaine fiscal
         ContractReadRepositoryInterface::class => ContractReadRepository::class,
         ContractWriteRepositoryInterface::class => ContractWriteRepository::class,
 
-        // ContractDocument (chantier 04.N) — PDF joints aux contrats
+        // ContractDocument (chantier 04.N) - PDF joints aux contrats
         ContractDocumentReadRepositoryInterface::class => ContractDocumentReadRepository::class,
         ContractDocumentWriteRepositoryInterface::class => ContractDocumentWriteRepository::class,
 
-        // Driver (Phase 06 V1.2) — many-to-many avec Company via pivot driver_company
+        // Driver (Phase 06 V1.2) - many-to-many avec Company via pivot driver_company
         DriverReadRepositoryInterface::class => DriverReadRepository::class,
         DriverWriteRepositoryInterface::class => DriverWriteRepository::class,
 

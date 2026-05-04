@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `unavailabilities` — Plages continues durant lesquelles un véhicule
+ * Table `unavailabilities` - Plages continues durant lesquelles un véhicule
  * n'est pas attribuable.
  *
  * Cf. 01-schema-metier.md § 7.
@@ -50,7 +50,7 @@ return new class extends Migration
             $table->index(['type', 'start_date']);
         });
 
-        // CHECK constraints — filet SQL défensif, MySQL uniquement
+        // CHECK constraints - filet SQL défensif, MySQL uniquement
         // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT`).
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;

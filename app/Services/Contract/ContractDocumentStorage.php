@@ -11,7 +11,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Encapsule l'accès au filesystem pour les documents contrat. Toute la
- * logique d'I/O fichier passe par ici — les Actions ne touchent jamais
+ * logique d'I/O fichier passe par ici - les Actions ne touchent jamais
  * directement {@see Storage}.
  *
  * Le disque utilisé est celui configuré par défaut (`config('filesystems.default')`).
@@ -56,7 +56,7 @@ final readonly class ContractDocumentStorage
 
     /**
      * Supprime un fichier physique. Idempotent : si le fichier n'existe
-     * plus (déjà supprimé ou jamais écrit), pas d'erreur — on assume
+     * plus (déjà supprimé ou jamais écrit), pas d'erreur - on assume
      * que l'invariant DB↔disque peut être réparé.
      */
     public function delete(string $storagePath): void

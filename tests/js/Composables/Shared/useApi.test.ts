@@ -32,7 +32,7 @@ describe('useApi', () => {
 
     beforeEach(() => {
         fetchMock = vi.fn();
-        // @ts-expect-error — override global fetch dans l'env test
+        // @ts-expect-error - override global fetch dans l'env test
         globalThis.fetch = fetchMock;
         useToasts().clear();
     });

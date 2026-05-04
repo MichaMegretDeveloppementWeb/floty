@@ -13,7 +13,7 @@ use App\Exceptions\BaseAppException;
  * pas explicitement confirmés.
  *
  * Le handler global (`bootstrap/app.php`) transforme cette exception
- * en flash `toast-warning` côté Inertia avec le détail des impacts —
+ * en flash `toast-warning` côté Inertia avec le détail des impacts -
  * l'utilisateur doit alors re-soumettre le formulaire en cochant la
  * case de confirmation pour appliquer la cascade.
  *

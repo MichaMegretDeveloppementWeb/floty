@@ -13,7 +13,6 @@ export function useCompanyCreateForm(): {
 } {
     const form = useForm<CompanyFormShape>({
         legal_name: '',
-        short_code: '',
         color: 'indigo',
         siren: '',
         siret: '',

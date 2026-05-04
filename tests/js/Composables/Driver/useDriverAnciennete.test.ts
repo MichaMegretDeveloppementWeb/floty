@@ -44,8 +44,8 @@ describe('formatAnciennete', () => {
 });
 
 describe('useDriverAnciennete', () => {
-    it('renvoie "—" pour un driver sans membership', () => {
-        expect(useDriverAnciennete([])).toBe('—');
+    it('renvoie "-" pour un driver sans membership', () => {
+        expect(useDriverAnciennete([])).toBe('-');
     });
 
     it('utilise la date la plus ancienne quand plusieurs memberships existent', () => {

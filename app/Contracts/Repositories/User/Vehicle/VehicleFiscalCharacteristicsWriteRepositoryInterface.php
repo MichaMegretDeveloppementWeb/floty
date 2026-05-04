@@ -17,7 +17,7 @@ use DateTimeInterface;
  * Séparé de {@see VehicleWriteRepositoryInterface} : le cycle de vie
  * d'une période fiscale (création initiale, nouvelle version, correction
  * d'une version existante, cascade rétroactive) est piloté par les
- * Actions du domaine (cf. ADR-0013 R3 — orchestration multi-entités
+ * Actions du domaine (cf. ADR-0013 R3 - orchestration multi-entités
  * appartient à la couche Action, pas au repository).
  */
 interface VehicleFiscalCharacteristicsWriteRepositoryInterface

@@ -10,11 +10,11 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests unitaires de {@see Contract::deriveTypeFromDates()} — convention
+ * Tests unitaires de {@see Contract::deriveTypeFromDates()} - convention
  * BOFiP § 180-190 (LCD si durée ≤ 30 j ou mois civil entier).
  *
  * Test pur (pas de DB), donc `PHPUnit\Framework\TestCase` direct (pas
- * `Tests\TestCase`) — pas besoin du framework Laravel.
+ * `Tests\TestCase`) - pas besoin du framework Laravel.
  */
 final class ContractDeriveTypeTest extends TestCase
 {

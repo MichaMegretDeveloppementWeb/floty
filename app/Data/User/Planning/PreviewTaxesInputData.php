@@ -16,7 +16,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Payload de l'endpoint `POST /app/planning/preview-taxes`.
  *
- * Validation Spatie Data — utilisée via `Data::from($request)` ou
+ * Validation Spatie Data - utilisée via `Data::from($request)` ou
  * `Data::validateAndCreate()` selon le besoin. Marqueur `#[TypeScript]`
  * pour exposer le type côté front (typage de `useApi.post<TInput, …>`).
  */

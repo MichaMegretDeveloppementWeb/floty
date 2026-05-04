@@ -13,7 +13,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail du calcul du « Coût plein {année} » d'un véhicule — affiché
+ * Détail du calcul du « Coût plein {année} » d'un véhicule - affiché
  * dans la sidebar de la page Show pour expliquer comment le total a
  * été obtenu.
  *
@@ -23,11 +23,11 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - pollutantCategory       : catégorie polluants déterminée
  *   - pollutantsFullYearTariff : tarif annuel polluants avant prorata
  *   - appliedExemptions       : exonérations appliquées (couples
- *                               raison + code R-2024-XXX) — chaque
+ *                               raison + code R-2024-XXX) - chaque
  *                               item est cliquable pour ouvrir la
  *                               fiche détaillée de la règle
  *   - appliedRuleCodes        : codes des règles fiscales appliquées
- *                               (R-2024-XXX) — utile pour traçabilité
+ *                               (R-2024-XXX) - utile pour traçabilité
  *   - total                   : `co2FullYearTariff +
  *                               pollutantsFullYearTariff` arrondi
  */

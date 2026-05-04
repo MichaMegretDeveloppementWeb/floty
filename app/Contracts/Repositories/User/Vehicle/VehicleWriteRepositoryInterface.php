@@ -14,7 +14,7 @@ use App\Models\Vehicle;
  * Écritures sur l'entité Vehicle stricto sensu.
  *
  * Ne porte plus la transaction « Vehicle + caractéristiques fiscales »
- * — l'orchestration multi-entités est désormais à la charge de
+ * - l'orchestration multi-entités est désormais à la charge de
  * {@see CreateVehicleAction} (ADR-0013 R3 :
  * tout enchaînement de plusieurs services/repositories autour d'une
  * décision métier appartient à la couche Action).
@@ -30,7 +30,7 @@ interface VehicleWriteRepositoryInterface
      * Met à jour les seuls champs **identité** d'un véhicule
      * (license_plate, brand, model, vin, color, dates immat,
      * acquisition, kilométrage, notes). Ne touche pas à l'historique
-     * fiscal — celui-ci est géré séparément par
+     * fiscal - celui-ci est géré séparément par
      * {@see VehicleFiscalCharacteristicsWriteRepositoryInterface}
      * sous l'orchestration d'une Action.
      */
@@ -40,7 +40,7 @@ interface VehicleWriteRepositoryInterface
      * Marque un véhicule comme sorti de flotte : pose `exit_date`,
      * `exit_reason`, et met à jour `current_status` cohérent (mapping
      * sold→Sold, destroyed→Destroyed, autres motifs→Other ; cf. ADR-0018
-     * § 3 — asymétrie acceptée pour minimiser le scope).
+     * § 3 - asymétrie acceptée pour minimiser le scope).
      *
      * La validation des conflits (contrats/indispos débordants) est à
      * la charge de l'Action appelante via {@see App\Services\Vehicle\VehicleExitImpactComputer}.

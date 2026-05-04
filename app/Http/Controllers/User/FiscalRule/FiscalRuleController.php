@@ -11,7 +11,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Page consultation « Règles de calcul » — lecture seule.
+ * Page consultation « Règles de calcul » - lecture seule.
  *
  * L'année affichée suit l'année active résolue par
  * {@see FiscalYearResolver} (= shared props `fiscal.currentYear` côté

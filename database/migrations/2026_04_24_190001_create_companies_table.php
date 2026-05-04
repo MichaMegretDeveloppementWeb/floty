@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `companies` — Entreprises utilisatrices de la flotte.
+ * Table `companies` - Entreprises utilisatrices de la flotte.
  *
  * Cf. 01-schema-metier.md § 4.
  *
@@ -65,7 +65,7 @@ return new class extends Migration
             $table->index('siren');
         });
 
-        // CHECK constraints + triggers — MySQL uniquement (SQLite tests
+        // CHECK constraints + triggers - MySQL uniquement (SQLite tests
         // legacy n'a pas SIGNAL/SQLSTATE, la validation applicative reste
         // la première ligne de défense).
         if (DB::connection()->getDriverName() !== 'mysql') {
@@ -78,7 +78,7 @@ return new class extends Migration
                 CHECK (color IN ('indigo', 'emerald', 'amber', 'rose', 'violet', 'teal', 'orange', 'cyan'))
         SQL);
 
-        // Triggers UNIQUE filtré par soft-delete (cf. note ci-dessus —
+        // Triggers UNIQUE filtré par soft-delete (cf. note ci-dessus -
         // MySQL refuse les expressions conditionnelles dans GENERATED
         // ALWAYS AS, donc on émule via SIGNAL).
         $this->createSoftDeleteTriggers();

@@ -15,7 +15,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de mise à jour d'une indisponibilité — pas de vehicle_id
+ * Payload de mise à jour d'une indisponibilité - pas de vehicle_id
  * (on ne change pas le véhicule rattaché).
  */
 #[TypeScript]

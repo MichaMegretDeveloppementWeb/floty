@@ -9,7 +9,7 @@ type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
  * pédagogique enrichi côté front via `fiscalRulesContent2024`).
  *
  * Le `content` reçoit le `code` au moment de l'appel (pas de Ref) :
- * la page parent ne change pas le code dynamiquement — le composant
+ * la page parent ne change pas le code dynamiquement - le composant
  * est re-monté quand le code change.
  */
 export function useRuleCard(props: { code: string }): {

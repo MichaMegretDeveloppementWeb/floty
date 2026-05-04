@@ -11,14 +11,14 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Une ligne de la heatmap Planning — un véhicule sur 52 semaines avec
+ * Une ligne de la heatmap Planning - un véhicule sur 52 semaines avec
  * sa densité d'utilisation et son agrégat fiscal annuel.
  */
 #[TypeScript]
 final class PlanningHeatmapVehicleData extends Data
 {
     /**
-     * @param  list<int>  $weeks  52 entiers (0-7) — densité jours utilisés / semaine
+     * @param  list<int>  $weeks  52 entiers (0-7) - densité jours utilisés / semaine
      * @param  list<int>  $weeksWithUnavailability  numéros ISO (1-52) des
      *                                              semaines portant au moins
      *                                              un jour d'indispo (tous

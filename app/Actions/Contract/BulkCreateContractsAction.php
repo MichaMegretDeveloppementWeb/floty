@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Création atomique de N contrats partageant une plage commune,
- * un type, et la même entreprise affectataire — typiquement
+ * un type, et la même entreprise affectataire - typiquement
  * l'attribution rapide multi-véhicules depuis le planning
  * (chantier 04.G).
  *

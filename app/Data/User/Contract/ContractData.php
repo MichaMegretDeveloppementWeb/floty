@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue détaillée d'un contrat — utilisée par la page de détail
+ * Vue détaillée d'un contrat - utilisée par la page de détail
  * (chantier 04.G : `User/Contracts/Show/Index.vue`).
  *
  * Cf. ADR-0014 D6 (page détail + documents joints) et `taxes-rules/2024.md`

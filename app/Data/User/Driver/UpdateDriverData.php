@@ -12,7 +12,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload d'édition d'un conducteur — uniquement firstName/lastName.
+ * Payload d'édition d'un conducteur - uniquement firstName/lastName.
  * Les memberships company sont gérées via des endpoints dédiés.
  */
 #[TypeScript]

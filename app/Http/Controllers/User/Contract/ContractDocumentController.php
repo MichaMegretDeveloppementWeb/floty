@@ -24,7 +24,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  *   - GET    /app/contracts/{contract}/documents/{document}   → download
  *   - DELETE /app/contracts/{contract}/documents/{document}   → delete
  *
- * Pas de Policy formelle V1 — middleware `auth` au niveau du group de
+ * Pas de Policy formelle V1 - middleware `auth` au niveau du group de
  * routes suffit. Multi-tenant viendra en V2 avec une vérification
  * d'appartenance.
  */

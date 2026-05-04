@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Data\User\Company;
 
 use App\Enums\Company\CompanyColor;
-use Illuminate\Validation\Rule;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\Email;
 use Spatie\LaravelData\Attributes\Validation\Max;
@@ -31,9 +30,6 @@ final class StoreCompanyData extends Data
     public function __construct(
         #[Required, Max(255)]
         public string $legalName,
-
-        #[Required, Max(5)]
-        public string $shortCode,
 
         #[Required]
         public CompanyColor $color,
@@ -72,28 +68,12 @@ final class StoreCompanyData extends Data
     ) {}
 
     /**
-     * Règles dynamiques cumulées avec les attributs.
-     *
-     * @return array<string, array<int, mixed>>
-     */
-    public static function rules(): array
-    {
-        return [
-            'short_code' => [
-                Rule::unique('companies', 'short_code')->whereNull('deleted_at'),
-            ],
-        ];
-    }
-
-    /**
      * @return array<string, string>
      */
     public static function messages(): array
     {
         return [
             'legal_name.required' => 'La raison sociale est obligatoire.',
-            'short_code.required' => 'Le code court est obligatoire.',
-            'short_code.unique' => 'Ce code court est déjà utilisé par une autre entreprise.',
             'color.required' => 'La couleur est obligatoire.',
             'siren.size' => 'Le SIREN doit contenir exactement 9 chiffres.',
             'siren.regex' => 'Le SIREN doit contenir uniquement des chiffres.',

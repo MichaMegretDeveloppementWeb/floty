@@ -17,7 +17,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Payload de sortie de flotte d'un véhicule (depuis la modale Sortie).
  *
- * Cf. ADR-0018 § 8.1 — modale Sortie. Le `vehicleId` n'est pas dans le
+ * Cf. ADR-0018 § 8.1 - modale Sortie. Le `vehicleId` n'est pas dans le
  * payload, il est lu depuis le paramètre de route `{vehicle}`.
  */
 #[TypeScript]

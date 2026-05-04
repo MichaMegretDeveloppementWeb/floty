@@ -15,7 +15,7 @@ use Illuminate\Contracts\Container\Container;
  * Le mapping `year → list<class-string<FiscalRule>>` est posé au boot
  * via {@see register()} (typiquement dans `FiscalServiceProvider`). Le
  * pipeline interroge {@see rulesForYear()} qui résout les classes en
- * instances via le container Laravel — chaque règle est instanciée en
+ * instances via le container Laravel - chaque règle est instanciée en
  * singleton (les règles sont sans état).
  */
 final class FiscalRuleRegistry

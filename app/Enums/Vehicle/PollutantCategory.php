@@ -9,7 +9,7 @@ namespace App\Enums\Vehicle;
  *
  * Catégorie **dérivée** de la source d'énergie, de la norme Euro et du
  * type de moteur thermique sous-jacent (pour les hybrides). Jamais
- * saisie par l'utilisateur — la cascade {@see self::derive()} fait
+ * saisie par l'utilisateur - la cascade {@see self::derive()} fait
  * autorité aussi bien à l'écriture (Repository) qu'au calcul fiscal
  * (R-2024-013).
  *
@@ -28,8 +28,8 @@ enum PollutantCategory: string
     public function label(): string
     {
         return match ($this) {
-            self::E => 'E — Électrique / hydrogène (0 €)',
-            self::Category1 => '1 — Essence ou gaz Euro 5/6 (100 €)',
+            self::E => 'E - Électrique / hydrogène (0 €)',
+            self::Category1 => '1 - Essence ou gaz Euro 5/6 (100 €)',
             self::MostPolluting => 'Véhicules les plus polluants (500 €)',
         };
     }
@@ -46,7 +46,7 @@ enum PollutantCategory: string
      *   - sans norme Euro, un véhicule thermique tombe forcément en
      *     `MostPolluting` (l'absence de norme n'est jamais Catégorie 1).
      *   - un hybride sans `underlyingCombustion` connu tombe en
-     *     `MostPolluting` (par défaut sécuritaire — l'utilisateur doit
+     *     `MostPolluting` (par défaut sécuritaire - l'utilisateur doit
      *     fournir l'info pour bénéficier de la Catégorie 1).
      */
     public static function derive(

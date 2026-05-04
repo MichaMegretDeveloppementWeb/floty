@@ -23,7 +23,7 @@ export type UseContractDocumentsReturn = {
  *   - garder un feedback de progression compréhensible côté UI
  *   - éviter de saturer le rate-limit serveur (30 uploads/min)
  *   - simplifier la gestion d'erreur (un échec n'annule pas les
- *     uploads précédents — l'utilisateur sait ce qui est passé)
+ *     uploads précédents - l'utilisateur sait ce qui est passé)
  */
 export function useContractDocuments(): UseContractDocumentsReturn {
     const api = useApi();
@@ -63,7 +63,7 @@ export function useContractDocuments(): UseContractDocumentsReturn {
                     uploaded.push(doc);
                 } catch {
                     // Toast erreur déjà affiché par useApi. On continue
-                    // les autres fichiers — pattern « best effort ».
+                    // les autres fichiers - pattern « best effort ».
                 }
             }
         } finally {

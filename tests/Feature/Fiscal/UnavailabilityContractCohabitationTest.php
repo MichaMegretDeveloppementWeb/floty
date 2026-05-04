@@ -30,7 +30,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Cas-tests permanents d'ADR-0019 — politique de cohabitation
+ * Cas-tests permanents d'ADR-0019 - politique de cohabitation
  * indispos ↔ contrats sans contrainte d'overlap.
  *
  * Couvre les invariants minimaux de la décision :
@@ -82,7 +82,7 @@ final class UnavailabilityContractCohabitationTest extends TestCase
             'end_date' => '2024-02-29', // 60 jours sur année bissextile
         ]);
 
-        // Action — création d'une fourrière publique de 10 jours qui
+        // Action - création d'une fourrière publique de 10 jours qui
         // chevauche le contrat. Sans ADR-0019, cette ligne lèverait
         // UnavailabilityOverlapsContractsException.
         $unavailability = $this->createUnavailability->execute(new StoreUnavailabilityData(
@@ -123,7 +123,7 @@ final class UnavailabilityContractCohabitationTest extends TestCase
             'end_date' => '2024-05-30',
         ]);
 
-        // Action — maintenance 5 j pendant le contrat (type non
+        // Action - maintenance 5 j pendant le contrat (type non
         // réducteur). Ne lève pas non plus.
         $unavailability = $this->createUnavailability->execute(new StoreUnavailabilityData(
             vehicleId: $vehicle->id,
@@ -138,7 +138,7 @@ final class UnavailabilityContractCohabitationTest extends TestCase
         $without = $this->calculator->calculate($vehicle, [$contract], [], 2024);
         $with = $this->calculator->calculate($vehicle, [$contract], [$unavailability], 2024);
 
-        // Aucun effet sur le calcul fiscal — types non réducteurs
+        // Aucun effet sur le calcul fiscal - types non réducteurs
         // cohabitent sans toucher au prorata.
         $this->assertSame($without->totalDue, $with->totalDue);
     }
@@ -156,7 +156,7 @@ final class UnavailabilityContractCohabitationTest extends TestCase
             'end_date' => '2024-06-10',
         ]);
 
-        // Action — création d'un contrat de 60 j qui englobe la
+        // Action - création d'un contrat de 60 j qui englobe la
         // période de l'indispo. ADR-0019 D2 : la symétrie applicative
         // exige que cette saisie passe sans erreur.
         $contract = $this->storeContract->execute(new StoreContractData(
@@ -185,7 +185,7 @@ final class UnavailabilityContractCohabitationTest extends TestCase
     }
 
     /**
-     * Véhicule M1 essence Euro 6 WLTP 100 g/km cat 1 — la
+     * Véhicule M1 essence Euro 6 WLTP 100 g/km cat 1 - la
      * configuration de référence des exemples BOFiP.
      */
     private function makeVehicleWltp100Essence(): Vehicle

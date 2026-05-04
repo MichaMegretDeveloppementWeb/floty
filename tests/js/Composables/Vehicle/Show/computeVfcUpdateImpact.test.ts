@@ -7,7 +7,7 @@ import {
 type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 
 /**
- * Helper minimal — seules les bornes et l'id sont utilisés par
+ * Helper minimal - seules les bornes et l'id sont utilisés par
  * `computeVfcUpdateImpact`, on remplit le reste avec des valeurs
  * neutres pour satisfaire le type complet sans bruit dans les tests.
  */

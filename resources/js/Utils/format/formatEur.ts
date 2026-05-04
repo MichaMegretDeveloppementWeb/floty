@@ -1,7 +1,7 @@
 /**
  * Formate un montant en euros avec le séparateur français et un
  * espace insécable fin (NNBSP, U+202F) entre les milliers et le
- * symbole — comme l'attendent les conventions typographiques FR.
+ * symbole - comme l'attendent les conventions typographiques FR.
  *
  * Le `Intl.NumberFormat` de Node insère parfois un espace fine
  * normale (U+2009) ou un espace insécable (U+00A0). On normalise

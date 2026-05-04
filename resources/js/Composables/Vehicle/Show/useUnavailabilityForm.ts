@@ -37,7 +37,7 @@ type SelectOptionGroup = {
  * à un contrat actif) qui tombent dans la plage saisie par l'utilisateur.
  *
  * Cohabitation indispo↔contrat (ADR-0019) : la plage **peut** chevaucher
- * un contrat — cette fonction sert à alimenter l'encart info pédagogique
+ * un contrat - cette fonction sert à alimenter l'encart info pédagogique
  * du modal, pas à bloquer la saisie.
  *
  * Sémantique :
@@ -48,7 +48,7 @@ type SelectOptionGroup = {
  *     où `end_date IS NULL` désigne une indispo encore en cours)
  *   - sinon → on compte les `busyDates ∈ [startDate, endDate]` inclusif
  *
- * Pure pour faciliter le test unitaire — pas d'accès au composable.
+ * Pure pour faciliter le test unitaire - pas d'accès au composable.
  */
 export function countConflictDaysInRange(
     busyDates: ReadonlyArray<string>,
@@ -153,7 +153,7 @@ export function useUnavailabilityForm(
 
     const range = ref<DateRange>({ startDate: null, endDate: null });
     const ongoing = ref<boolean>(false);
-    // Mois initial du DateRangePicker — dérivé du startDate de
+    // Mois initial du DateRangePicker - dérivé du startDate de
     // l'indispo en cours d'édition pour que le calendrier s'ouvre sur
     // le bon mois. Création = 1 (janvier).
     const initialMonth = ref<number>(1);

@@ -13,11 +13,11 @@ use App\Models\Company;
  */
 final class CompanyWriteRepository implements CompanyWriteRepositoryInterface
 {
-    public function create(StoreCompanyData $data): Company
+    public function create(StoreCompanyData $data, string $shortCode): Company
     {
         return Company::create([
             'legal_name' => $data->legalName,
-            'short_code' => $data->shortCode,
+            'short_code' => $shortCode,
             'color' => $data->color,
             'siren' => $data->siren,
             'siret' => $data->siret,

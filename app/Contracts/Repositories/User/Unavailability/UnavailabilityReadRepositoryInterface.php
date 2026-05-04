@@ -11,7 +11,7 @@ use Illuminate\Support\Collection;
 /**
  * Lectures sur le domaine Unavailability.
  *
- * Aucune transformation ni composition de DTO ici (R3) — retourne
+ * Aucune transformation ni composition de DTO ici (R3) - retourne
  * des Collections de Models bruts ou des arrays primitifs. La
  * composition vit dans {@see UnavailabilityQueryService}.
  */
@@ -26,7 +26,7 @@ interface UnavailabilityReadRepositoryInterface
     public function findForVehicle(int $vehicleId): Collection;
 
     /**
-     * Indispos de plusieurs véhicules en **un seul SELECT IN** —
+     * Indispos de plusieurs véhicules en **un seul SELECT IN** -
      * retourne un map `vehicleId → list<Unavailability>` (véhicule
      * sans indispo absent du map ; aux appelants de défaulter sur `[]`).
      *
@@ -39,7 +39,7 @@ interface UnavailabilityReadRepositoryInterface
     public function findForVehicleIds(array $vehicleIds): array;
 
     /**
-     * Lookup unitaire — échoue si l'id n'existe pas (404).
+     * Lookup unitaire - échoue si l'id n'existe pas (404).
      */
     public function findById(int $id): Unavailability;
 
@@ -58,7 +58,7 @@ interface UnavailabilityReadRepositoryInterface
 
     /**
      * Indispos d'un véhicule dont la plage `[start_date, end_date]`
-     * déborde la date passée — c'est-à-dire `end_date > $date` ou
+     * déborde la date passée - c'est-à-dire `end_date > $date` ou
      * `end_date IS NULL` (indispo encore ouverte).
      *
      * Utilisé par {@see App\Services\Vehicle\VehicleExitImpactComputer}

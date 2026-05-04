@@ -14,7 +14,7 @@ namespace App\Enums\Declaration;
  *   - *          → Draft       (retour en arrière possible, sans effacer les PDF)
  *
  * L'invalidation (`declarations.is_invalidated`) est **orthogonale** au
- * statut — une déclaration peut être invalidée dans n'importe quel statut.
+ * statut - une déclaration peut être invalidée dans n'importe quel statut.
  */
 enum DeclarationStatus: string
 {

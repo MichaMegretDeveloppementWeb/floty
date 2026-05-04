@@ -13,7 +13,7 @@ use App\Models\Unavailability;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2024-008 — Indisponibilités fiscalement réductrices.
+ * R-2024-008 - Indisponibilités fiscalement réductrices.
  *
  * **Sémantique v2.1 (ADR-0014 + ADR-0016 rev. 1.1, chantier F)** : règle
  * souveraine. Itère sur les indispos du véhicule et calcule les jours
@@ -23,13 +23,13 @@ use Carbon\CarbonImmutable;
  * Un jour d'indisponibilité est réducteur s'il :
  *   1. tombe dans un contrat **taxable** du couple (non LCD au sens de
  *      `R2024_021_ShortTermRental::isShortTermRental()`) ;
- *   2. ET porte un type d'indispo `has_fiscal_impact = true` — soit
+ *   2. ET porte un type d'indispo `has_fiscal_impact = true` - soit
  *      l'un des 3 cases réducteurs définis par
  *      {@see UnavailabilityType::isFiscallyReductive()} :
  *      `pound_public`, `accident_no_circulation`, `ci_suspension`.
  *
  * Les jours d'indispo qui tombent dans un contrat LCD sont déjà retirés
- * via R-2024-021 — les compter ici serait un double-décompte.
+ * via R-2024-021 - les compter ici serait un double-décompte.
  *
  * **Source légale** : CIBS art. L. 421-118 (assiette en temps
  * d'utilisation effective) ; doctrine BOFiP § 50, § 60, § 190 (indispos
@@ -91,7 +91,7 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         return ExemptionVerdict::partialDays(
             $reductiveCount,
             sprintf(
-                'Indisponibilité réductrice — %d jour%s soustrait%s du numérateur (CIBS L. 421-118, BOFiP § 50/60/190)',
+                'Indisponibilité réductrice - %d jour%s soustrait%s du numérateur (CIBS L. 421-118, BOFiP § 50/60/190)',
                 $reductiveCount,
                 $reductiveCount > 1 ? 's' : '',
                 $reductiveCount > 1 ? 's' : '',
@@ -119,7 +119,7 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
             }
 
             $start = CarbonImmutable::parse($unavailability->start_date->toDateString());
-            // end_date est nullable côté DB (indispo « ouverte ») —
+            // end_date est nullable côté DB (indispo « ouverte ») -
             // dans ce cas, on clamp à fin d'année.
             $end = $unavailability->end_date !== null
                 ? CarbonImmutable::parse($unavailability->end_date->toDateString())

@@ -16,19 +16,19 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Détail fiscal d'un contrat **pour une année traversée**.
  *
  * Un contrat peut chevaucher 2 années civiles (ex. 1er nov 2024 → 31 jan
- * 2025). Le moteur fiscal tourne par année — chaque exécution produit
+ * 2025). Le moteur fiscal tourne par année - chaque exécution produit
  * une instance de ce DTO. L'agrégat parent {@see ContractTaxBreakdownData}
  * porte la liste des années et le total cross-year.
  *
  * - `daysInContractInYear` : jours du contrat tombant dans l'année (avant
- *   exonération) — utile pour expliquer « X jours dans l'année ».
+ *   exonération) - utile pour expliquer « X jours dans l'année ».
  * - `daysAssigned` : jours retenus au numérateur du prorata, après
  *   application des règles d'exonération journalière (R-2024-021 LCD,
  *   R-2024-008 indispos réductrices). C'est ce nombre qui multiplie
  *   le tarif annuel.
  * - `daysInYear` : dénominateur (366 en 2024 bissextile).
  * - `appliedRules` : détail complet (nom, description, refs légales) des
- *   règles listées dans `appliedRuleCodes` — permet d'ouvrir la fiche
+ *   règles listées dans `appliedRuleCodes` - permet d'ouvrir la fiche
  *   d'une règle directement depuis le panel sans aller-retour serveur.
  */
 #[TypeScript]

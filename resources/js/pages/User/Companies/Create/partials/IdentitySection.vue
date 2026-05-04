@@ -16,17 +16,11 @@ defineProps<{
         <TextInput
             v-model="form.legal_name"
             label="Raison sociale"
+            hint="Un code court à 3 lettres sera généré automatiquement à partir de la raison sociale."
             :error="form.errors.legal_name"
             required
         />
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <TextInput
-                v-model="form.short_code"
-                label="Code court"
-                hint="2 à 5 caractères. Sert d'étiquette courte dans le planning."
-                :error="form.errors.short_code"
-                required
-            />
             <SelectInput
                 v-model="form.color"
                 label="Couleur"

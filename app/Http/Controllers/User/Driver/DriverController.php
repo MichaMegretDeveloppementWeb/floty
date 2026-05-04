@@ -147,7 +147,7 @@ final class DriverController extends Controller
             return back()->with('toast-error', $e->getUserMessage());
         }
 
-        return back()->with('toast-success', 'Appartenance supprimée.');
+        return back()->with('toast-success', 'Rattachement supprimé.');
     }
 
     /**

@@ -13,7 +13,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   ≤ 30 jours consécutifs OU ≤ 1 mois civil entier. L'algorithme
  *   d'évaluation `is_short_term_rental` (cf. R-2024-021 v2.0) vérifie
  *   ces critères ; le `contract_type` côté DB reste un libellé indicatif
- *   posé par l'utilisateur — l'exonération fiscale est calculée
+ *   posé par l'utilisateur - l'exonération fiscale est calculée
  *   indépendamment, à partir des dates.
  * - `lld` (Location de Longue Durée) : contrat hors périmètre LCD,
  *   typique des usages permanents.

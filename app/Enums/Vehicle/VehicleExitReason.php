@@ -8,7 +8,7 @@ namespace App\Enums\Vehicle;
  * Motif de sortie de flotte (colonne `vehicles.exit_reason`).
  *
  * Renseigné ssi `vehicles.exit_date IS NOT NULL`
- * (cf. 01-schema-metier.md § 2 — invariant applicatif).
+ * (cf. 01-schema-metier.md § 2 - invariant applicatif).
  *
  * Distinction avec {@see App\Enums\Unavailability\UnavailabilityType} :
  * `VehicleExitReason` caractérise une **sortie définitive** de flotte

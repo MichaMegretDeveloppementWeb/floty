@@ -9,7 +9,7 @@ use App\Models\ContractDocument;
 use App\Services\Contract\ContractDocumentStorage;
 
 /**
- * Suppression d'un document — hard-delete (DB row + fichier physique).
+ * Suppression d'un document - hard-delete (DB row + fichier physique).
  *
  * Ordre : suppression du fichier physique d'abord, puis DB. Si la
  * suppression DB échoue après, on aura un orphan record sans fichier

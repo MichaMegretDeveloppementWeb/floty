@@ -179,7 +179,7 @@ final class R2024_017_ConditionalHybridExemptionTest extends TestCase
         VehicleFiscalCharacteristics $vfc,
         int $vehicleAge,
     ): PipelineContext {
-        // L'âge est pris au 01/01/2024 — on calibre la date de première
+        // L'âge est pris au 01/01/2024 - on calibre la date de première
         // immat. d'origine sur le véhicule existant (créé par la factory
         // VFC) pour produire l'âge demandé.
         $vehicle = $vfc->vehicle ?? Vehicle::factory()->create();

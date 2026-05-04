@@ -10,7 +10,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 
 /**
- * R-2024-015 — Exonération handicap (CIBS L. 421-123 / L. 421-136).
+ * R-2024-015 - Exonération handicap (CIBS L. 421-123 / L. 421-136).
  *
  * Véhicules accessibles aux personnes à mobilité réduite : exonération
  * **totale** des deux taxes ET les tarifs annuels pleins ne sont PAS

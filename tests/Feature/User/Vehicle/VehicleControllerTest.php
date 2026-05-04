@@ -677,7 +677,7 @@ final class VehicleControllerTest extends TestCase
         self::assertLessThan(
             25,
             $queryCount,
-            "Trop de queries SQL ({$queryCount}) sur l'Index Flotte avec 10 véhicules — possible régression N+1.",
+            "Trop de queries SQL ({$queryCount}) sur l'Index Flotte avec 10 véhicules - possible régression N+1.",
         );
     }
 

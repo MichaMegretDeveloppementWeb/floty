@@ -30,7 +30,7 @@ export type UseApiReturn = {
      */
     postFormData: <T>(url: string, formData: FormData) => Promise<T>;
     /**
-     * DELETE — pas de body, retourne `void` (typiquement 204).
+     * DELETE - pas de body, retourne `void` (typiquement 204).
      */
     delete: (url: string) => Promise<void>;
 };

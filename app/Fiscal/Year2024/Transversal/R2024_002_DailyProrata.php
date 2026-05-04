@@ -9,7 +9,7 @@ use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Pipeline\PipelineContext;
 
 /**
- * R-2024-002 — Prorata journalier (jours d'utilisation effective /
+ * R-2024-002 - Prorata journalier (jours d'utilisation effective /
  * dénominateur dynamique selon l'année, 366 en 2024 bissextile).
  *
  * **Sémantique v2.0 (ADR-0014)** :
@@ -26,7 +26,7 @@ use App\Fiscal\Pipeline\PipelineContext;
  * pour que `PipelineResult` puisse les exposer aux consommateurs en
  * aval (PDF, breakdown UI).
  *
- * Cette règle ne s'occupe PAS de l'arrondi — c'est le rôle de
+ * Cette règle ne s'occupe PAS de l'arrondi - c'est le rôle de
  * {@see R2024_003_FinalRounding}.
  */
 final readonly class R2024_002_DailyProrata implements TransversalRule
@@ -70,7 +70,7 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
         $daysAssignedToCompany = max(0, $totalDays - $exemptDays);
 
         // 3. Application du prorata sur les tarifs annuels (déjà
-        // éventuellement neutralisés par les exonérations totales —
+        // éventuellement neutralisés par les exonérations totales -
         // handicap, électrique, OIG, etc.).
         $co2Full = $context->co2FullYearTariff ?? 0.0;
         $pollutantsFull = $context->pollutantsFullYearTariff ?? 0.0;

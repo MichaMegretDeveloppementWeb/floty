@@ -9,7 +9,7 @@ use App\Exceptions\Fiscal\FiscalCalculationException;
 
 /**
  * Tarif annuel forfaitaire par catégorie polluants (R-2024-014).
- * Chaque {@see PollutantCategory} doit avoir un tarif explicite —
+ * Chaque {@see PollutantCategory} doit avoir un tarif explicite -
  * impossible de construire un tarif partiel.
  */
 final readonly class PollutantTariff

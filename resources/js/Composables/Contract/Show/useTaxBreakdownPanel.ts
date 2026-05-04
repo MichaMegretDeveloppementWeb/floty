@@ -26,7 +26,7 @@ export function useTaxBreakdownPanel(props: {
 
     // Indexation cross-year : si la même règle est posée en 2024 et 2025
     // pour un contrat à cheval, on garde la première occurrence trouvée
-    // (les détails — nom, refs légales — sont identiques par construction
+    // (les détails - nom, refs légales - sont identiques par construction
     // du registry annuel).
     const rulesByCode = computed<Record<string, Rule>>(() => {
         const map: Record<string, Rule> = {};

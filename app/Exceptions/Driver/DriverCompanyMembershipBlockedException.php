@@ -24,7 +24,7 @@ final class DriverCompanyMembershipBlockedException extends BaseAppException
             sprintf('Membership pivot %d cannot be detached: %d contracts associated.', $pivotId, $contractsCount),
             sprintf(
                 'Impossible de détacher ce conducteur de cette entreprise : '
-                .'%d contrat(s) y sont rattachés. Pour le sortir tout en conservant '
+                .'%d contrat(s) y sont liés. Pour le sortir tout en conservant '
                 .'l\'historique, utilisez l\'action « Sortir » qui pose une date de sortie.',
                 $contractsCount,
             ),

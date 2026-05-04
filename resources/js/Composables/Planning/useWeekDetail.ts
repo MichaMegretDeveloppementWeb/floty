@@ -10,7 +10,7 @@ import { week as planningWeekRoute } from '@/routes/user/planning';
  * drawer. Le drawer s'ouvre automatiquement à la fin du fetch réussi
  * (loadingWeek passe à false avant l'ouverture pour éviter le flash).
  *
- * Conforme R7 : aucune logique réactive ne reste dans la page —
+ * Conforme R7 : aucune logique réactive ne reste dans la page -
  * Planning/Index.vue ne fait qu'instancier ce composable et brancher
  * les events Heatmap/WeekDrawer dessus.
  */

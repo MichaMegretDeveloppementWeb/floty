@@ -14,7 +14,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représentation complète d'un véhicule pour la page Show — identité +
+ * Représentation complète d'un véhicule pour la page Show - identité +
  * caractéristiques fiscales actives + historique antéchronologique des
  * versions VFC.
  *

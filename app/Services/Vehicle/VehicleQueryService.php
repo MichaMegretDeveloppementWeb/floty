@@ -29,7 +29,7 @@ use Spatie\LaravelData\DataCollection;
 /**
  * Orchestration des lectures du domaine Vehicle vers les DTOs exposés.
  *
- * Aucune query Eloquent ici — toutes les lectures passent par les
+ * Aucune query Eloquent ici - toutes les lectures passent par les
  * repositories. Le service combine repository + aggregator fiscal +
  * mapping DTO (R3 d'ADR-0013).
  *
@@ -100,7 +100,7 @@ final class VehicleQueryService
 
         // Charge la Collection brute UNE fois et la propage à
         // `buildUsageStats` + à la composition des DTO de la timeline
-        // — auparavant la même requête `findForVehicle` partait deux
+        // - auparavant la même requête `findForVehicle` partait deux
         // fois (via `UnavailabilityQueryService` puis re-direct repo).
         $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
         $unavailabilityDtos = $unavailabilityModels
@@ -131,7 +131,7 @@ final class VehicleQueryService
         $rows = $this->vehicles->findAllForOptions()
             ->map(static function (Vehicle $v): VehicleOptionData {
                 $exitDate = $v->exit_date?->format('Y-m-d');
-                $label = sprintf('%s — %s %s', $v->license_plate, $v->brand, $v->model);
+                $label = sprintf('%s - %s %s', $v->license_plate, $v->brand, $v->model);
 
                 return new VehicleOptionData(
                     id: $v->id,
@@ -148,7 +148,7 @@ final class VehicleQueryService
     }
 
     /**
-     * @param  Collection<int, Unavailability>  $unavailabilityModels  indispos brutes du véhicule (toutes années) — chargées une seule fois en amont
+     * @param  Collection<int, Unavailability>  $unavailabilityModels  indispos brutes du véhicule (toutes années) - chargées une seule fois en amont
      */
     private function buildUsageStats(Vehicle $vehicle, int $year, Collection $unavailabilityModels): VehicleUsageStatsData
     {
@@ -245,7 +245,7 @@ final class VehicleQueryService
      * actif sur le véhicule pour l'année. Alimente le `DateRangePicker`
      * du modal indispos pour griser les jours non-sélectionnables.
      *
-     * Bornée à `[01-01-Y, 31-12-Y]` — les contrats hors fenêtre ne
+     * Bornée à `[01-01-Y, 31-12-Y]` - les contrats hors fenêtre ne
      * bloquent pas l'UI (l'Action vérifie de toute façon avant écriture
      * si l'utilisateur ouvre une plage débordante).
      *
@@ -267,7 +267,7 @@ final class VehicleQueryService
      *
      * Le `unavailabilityDays` est borné à `7 - totalDays` pour éviter
      * un dépassement visuel (cas exceptionnel d'une indispo et d'un
-     * contrat sur le même jour — la base interdit normalement ce
+     * contrat sur le même jour - la base interdit normalement ce
      * scénario via le check overlap des Actions).
      *
      * @param  array<int, array<int, int>>  $weeklyMap  weekNumber → companyId → days

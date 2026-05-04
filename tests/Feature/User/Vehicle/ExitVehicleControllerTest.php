@@ -202,7 +202,7 @@ final class ExitVehicleControllerTest extends TestCase
     #[Test]
     public function creation_contrat_sur_vehicule_sorti_apres_exit_date_renvoie_422(): void
     {
-        // Cf. ADR-0018 § 5 + chantier E.2 — la rule AvailableForPeriod
+        // Cf. ADR-0018 § 5 + chantier E.2 - la rule AvailableForPeriod
         // est attachée à StoreContractData et bloque toute saisie qui
         // chevauche/dépasse exit_date avec un message FR explicite.
         $user = User::factory()->create();

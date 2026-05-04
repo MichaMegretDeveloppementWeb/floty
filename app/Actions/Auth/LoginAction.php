@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\Date;
  *      en cas d'échec, et incrémente le compteur de tentatives)
  *   3. au succès, reset les compteurs et trace `last_login_at`
  *
- * Action stateless — toute la mécanique session/cookie reste à la
+ * Action stateless - toute la mécanique session/cookie reste à la
  * charge du contrôleur (regenerate, redirect intended).
  *
  * Conforme ADR-0013 R3 : pas d'Eloquent ici, lectures/écritures

@@ -21,7 +21,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *     pour chaque contrat futur du driver dans cette company
  *   - 'detach' : tous les contrats futurs passent à `driver_id = NULL`
  *   - 'none' : il n'y a pas de contrat futur à résoudre (utilisé quand
- *     la modale a détecté qu'aucun contrat n'est concerné — sortie
+ *     la modale a détecté qu'aucun contrat n'est concerné - sortie
  *     directe sans résolution)
  *
  * - `replacementMap` : clé = contractId, valeur = driverId de remplacement

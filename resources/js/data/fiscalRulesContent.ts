@@ -17,7 +17,7 @@
 export type RuleTab = 'calcul' | 'cadre';
 
 /**
- * Rôle fonctionnel de la règle — détermine sa section d'affichage.
+ * Rôle fonctionnel de la règle - détermine sa section d'affichage.
  *
  * - `aiguillage`    : comment Floty choisit le bon barème pour un véhicule.
  * - `bareme`        : barème de tarification (CO₂ WLTP/NEDC/PA, polluants).
@@ -87,10 +87,10 @@ export type RuleContent = {
  */
 export const fiscalRulesContent2024: Record<string, RuleContent> = {
     // ─────────────────────────────────────────────────────────────
-    //  ONGLET 1 — CALCUL DES TAXES
+    //  ONGLET 1 - CALCUL DES TAXES
     // ─────────────────────────────────────────────────────────────
 
-    // A. Aiguillage — comment l'application choisit le barème applicable ───
+    // A. Aiguillage - comment l'application choisit le barème applicable ───
     'R-2024-004': {
         tab: 'calcul',
         section: 'aiguillage',
@@ -289,7 +289,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
     },
 
     // ─────────────────────────────────────────────────────────────
-    //  ONGLET 2 — CADRE & FONCTIONNEMENT
+    //  ONGLET 2 - CADRE & FONCTIONNEMENT
     // ─────────────────────────────────────────────────────────────
 
     // Règles implicites / évidences ──────────────────────────────

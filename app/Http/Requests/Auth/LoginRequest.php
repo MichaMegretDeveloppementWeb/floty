@@ -13,7 +13,7 @@ use Illuminate\Foundation\Http\FormRequest;
  *
  * La logique métier (rate-limit, tentative d'authentification, mise à
  * jour `last_login_at`) vit dans {@see LoginAction}
- * et {@see LoginAttemptService} — ce FormRequest
+ * et {@see LoginAttemptService} - ce FormRequest
  * ne fait que la validation des inputs (ADR-0013 R3 : pas de logique
  * métier dans la couche HTTP).
  */

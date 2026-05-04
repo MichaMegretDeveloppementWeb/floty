@@ -114,4 +114,48 @@ final class Company extends Model
     {
         return $this->hasMany(Declaration::class);
     }
+
+    /**
+     * Génère un code court à 3 lettres en majuscules à partir du nom légal.
+     *
+     * Algo (validé chantier A) :
+     *   1. Normalisation : retire les accents, garde [A-Za-z], trim espaces multiples
+     *   2. Split en mots
+     *   3. Si >= 3 mots : initiales des 3 premiers
+     *   4. Si 2 mots : 1ère du 1er + 2 premières du 2e
+     *   5. Si 1 mot : 3 premières lettres
+     *   6. Padding 'X' à droite si moins de 3 lettres obtenues
+     *
+     * Helper pur, ne touche pas la BDD. La vérification d'unicité est de la
+     * responsabilité de l'Action appelante (CreateCompanyAction).
+     */
+    public static function generateShortCode(string $legalName): string
+    {
+        // Normalise les accents : "Café Hôtelier" -> "Cafe Hotelier"
+        $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $legalName);
+        if ($ascii === false) {
+            $ascii = $legalName;
+        }
+
+        // Garde lettres + espaces, supprime le reste, trim, normalise espaces multiples
+        $cleaned = preg_replace('/[^A-Za-z\s]/', '', $ascii) ?? '';
+        $cleaned = trim((string) preg_replace('/\s+/', ' ', $cleaned));
+
+        if ($cleaned === '') {
+            return 'XXX';
+        }
+
+        $words = explode(' ', $cleaned);
+
+        if (count($words) >= 3) {
+            $code = mb_strtoupper($words[0][0].$words[1][0].$words[2][0]);
+        } elseif (count($words) === 2) {
+            $code = mb_strtoupper($words[0][0].mb_substr($words[1], 0, 2));
+        } else {
+            $code = mb_strtoupper(mb_substr($words[0], 0, 3));
+        }
+
+        // Padding 'X' si moins de 3 chars (ex. mot court "ON" -> "ONX")
+        return str_pad($code, 3, 'X');
+    }
 }

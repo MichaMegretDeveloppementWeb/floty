@@ -82,7 +82,7 @@ defineProps<{
                     :options="
                         companies.map((c) => ({
                             value: c.id,
-                            label: `${c.shortCode} — ${c.legalName}`,
+                            label: `${c.shortCode} · ${c.legalName}`,
                         }))
                     "
                     :error="form.errors.initial_company_id"

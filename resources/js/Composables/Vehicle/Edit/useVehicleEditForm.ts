@@ -32,7 +32,7 @@ type SelectOption = { value: string; label: string };
  *   - calcule `hasFiscalChanges` (au moins un champ fiscal modifié),
  *     `isOtherChange` (motif Autre → note requise),
  *   - calcule la liste des versions historiques qui seront supprimées
- *     (`versionsToBeDeleted`) si la date d'effet remonte avant elles —
+ *     (`versionsToBeDeleted`) si la date d'effet remonte avant elles -
  *     pertinent uniquement si `hasFiscalChanges`,
  *   - expose `requestSubmit()` qui ouvre la ConfirmModal si la cascade
  *     s'applique, sinon soumet directement.

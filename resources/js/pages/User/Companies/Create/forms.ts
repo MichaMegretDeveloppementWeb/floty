@@ -8,7 +8,6 @@
  */
 export type CompanyFormShape = {
     legal_name: string;
-    short_code: string;
     color: string;
     siren: string;
     siret: string;

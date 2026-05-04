@@ -8,7 +8,7 @@ use App\Models\Driver;
 use Carbon\CarbonInterface;
 
 /**
- * Écritures Driver — slim conforme ADR-0013.
+ * Écritures Driver - slim conforme ADR-0013.
  */
 interface DriverWriteRepositoryInterface
 {
@@ -36,7 +36,7 @@ interface DriverWriteRepositoryInterface
 
     /**
      * Supprime une membership (uniquement si elle n'a aucun contrat
-     * associé — la garde est faite côté Action).
+     * associé - la garde est faite côté Action).
      */
     public function deleteMembership(int $pivotId): void;
 }

@@ -31,7 +31,7 @@ function detach(membership: Membership): void {
 
     if (
         !confirm(
-            `Détacher l'appartenance avec ${membership.companyShortCode} ? Les dates d'entrée et de sortie seront perdues.`,
+            `Détacher le rattachement avec ${membership.companyShortCode} ? Les dates d'entrée et de sortie seront perdues.`,
         )
     ) {
         return;
@@ -48,7 +48,7 @@ function detach(membership: Membership): void {
 
 function formatDate(value: string | null): string {
     if (value === null) {
-        return '—';
+        return '-';
     }
 
     const [y, m, d] = value.split('-');

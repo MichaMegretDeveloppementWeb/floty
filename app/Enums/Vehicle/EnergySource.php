@@ -26,7 +26,7 @@ enum EnergySource: string
 
     /**
      * Renvoie vrai pour les sources qui impliquent un moteur thermique
-     * sous-jacent — l'implémentation fiscale doit alors renseigner
+     * sous-jacent - l'implémentation fiscale doit alors renseigner
      * {@see UnderlyingCombustionEngineType} sur la même caractéristique.
      */
     public function requiresUnderlyingCombustionEngine(): bool

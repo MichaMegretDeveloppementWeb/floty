@@ -1,4 +1,4 @@
-// Extension Vite — typage strict des variables `import.meta.env.*`
+// Extension Vite - typage strict des variables `import.meta.env.*`
 // utilisées côté client. On ajoute ici chaque variable `VITE_*` exposée
 // par `.env` au fur et à mesure qu'elle est consommée.
 

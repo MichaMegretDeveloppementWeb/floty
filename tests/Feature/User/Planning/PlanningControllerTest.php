@@ -84,7 +84,7 @@ final class PlanningControllerTest extends TestCase
             'end_date' => sprintf('%d-01-12', $year),
         ]);
 
-        // On ouvre le drawer sur une semaine d'août — bien hors janvier
+        // On ouvre le drawer sur une semaine d'août - bien hors janvier
         $augustWeek = (int) Carbon::parse(sprintf('%d-08-12', $year))->isoWeek;
 
         $response = $this->actingAs($user)
@@ -104,7 +104,7 @@ final class PlanningControllerTest extends TestCase
     #[Test]
     public function index_expose_weeks_with_unavailability_pour_chaque_vehicule(): void
     {
-        // ADR-0019 D5 — la heatmap doit savoir, pour chaque véhicule,
+        // ADR-0019 D5 - la heatmap doit savoir, pour chaque véhicule,
         // sur quelles semaines une indispo (tous types confondus) existe
         // pour rendre la bordure rouge côté UI.
         $user = User::factory()->create();
@@ -140,7 +140,7 @@ final class PlanningControllerTest extends TestCase
     #[Test]
     public function week_expose_has_unavailability_par_jour_couvert_par_une_indispo(): void
     {
-        // ADR-0019 D5 — la grille « État de la semaine » du drawer
+        // ADR-0019 D5 - la grille « État de la semaine » du drawer
         // applique une bordure rouge sur les seuls jours portant une
         // indispo, pas sur toute la semaine. Le DTO doit donc remonter
         // un flag par jour, pas par semaine.
@@ -149,7 +149,7 @@ final class PlanningControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
         $year = (int) config('floty.fiscal.available_years')[0];
-        // Indispo de 2 jours en milieu de semaine — les autres jours
+        // Indispo de 2 jours en milieu de semaine - les autres jours
         // de la semaine doivent rester sans flag.
         $start = sprintf('%d-03-05', $year);
         $end = sprintf('%d-03-06', $year);

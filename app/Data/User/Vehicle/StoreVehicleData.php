@@ -161,7 +161,7 @@ final class StoreVehicleData extends Data
      * stockée en majuscules. Effectuer la transformation ici (et pas
      * dans le repository) garantit que la règle d'unicité
      * (`Rule::unique('vehicles', 'license_plate')`) est testée sur la
-     * valeur normalisée — un user ne peut donc pas contourner l'unique
+     * valeur normalisée - un user ne peut donc pas contourner l'unique
      * en envoyant une casse différente.
      *
      * @param  array<string, mixed>  $properties

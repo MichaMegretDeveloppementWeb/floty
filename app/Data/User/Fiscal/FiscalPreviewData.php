@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Réponse de l'endpoint `POST /app/planning/preview-taxes` —
+ * Réponse de l'endpoint `POST /app/planning/preview-taxes` -
  * comparaison de l'état fiscal d'un couple AVANT vs APRÈS l'ajout
  * d'attributions.
  *

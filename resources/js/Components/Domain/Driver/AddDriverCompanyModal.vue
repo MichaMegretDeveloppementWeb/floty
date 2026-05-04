@@ -20,7 +20,7 @@ const open = ref(true);
 
 // La liste des companies disponibles est partagée via shared props ou
 // on délègue le chargement via fetch (pour V1.2 simple, on suppose que
-// l'utilisateur connaît l'ID — un futur enrichissement L4/L5 ajoutera
+// l'utilisateur connaît l'ID - un futur enrichissement L4/L5 ajoutera
 // un endpoint dédié).
 const form = useForm({
     company_id: null as number | null,

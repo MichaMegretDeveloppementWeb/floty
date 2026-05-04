@@ -68,7 +68,7 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
             })
             ->get(['start_date', 'end_date']);
 
-        // [weekNumber => Set<dayKey>] — Set pour dédupliquer si deux
+        // [weekNumber => Set<dayKey>] - Set pour dédupliquer si deux
         // indispos chevauchent la même journée (cas exceptionnel).
         /** @var array<int, array<string, bool>> $byWeekDays */
         $byWeekDays = [];
@@ -78,7 +78,7 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
                 ? $yearEnd
                 : $row->end_date;
 
-            // Réassignation explicite — `start_date`/`end_date` sont castés
+            // Réassignation explicite - `start_date`/`end_date` sont castés
             // en CarbonImmutable (cf. AppServiceProvider::Date::use), donc
             // `addDay()` ne mute pas l'instance en place.
             $cursor = $start;

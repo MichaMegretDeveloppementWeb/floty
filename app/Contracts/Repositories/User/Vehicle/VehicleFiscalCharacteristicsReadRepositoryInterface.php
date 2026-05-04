@@ -13,7 +13,7 @@ use DateTimeInterface;
  *
  * Utilisé par le moteur fiscal pour résoudre la période active à un
  * instant donné. Séparé de {@see VehicleReadRepositoryInterface} car le
- * moteur fiscal ne dépend pas du Vehicle dans son ensemble — uniquement
+ * moteur fiscal ne dépend pas du Vehicle dans son ensemble - uniquement
  * de la période fiscale courante.
  */
 interface VehicleFiscalCharacteristicsReadRepositoryInterface
@@ -37,13 +37,13 @@ interface VehicleFiscalCharacteristicsReadRepositoryInterface
     ): ?VehicleFiscalCharacteristics;
 
     /**
-     * Lookup unitaire — échoue si l'id n'existe pas (404).
+     * Lookup unitaire - échoue si l'id n'existe pas (404).
      */
     public function findById(int $id): VehicleFiscalCharacteristics;
 
     /**
      * VFC immédiatement adjacente (par ordre `effective_from`) à une
-     * VFC donnée — soit la précédente (`direction = -1`), soit la
+     * VFC donnée - soit la précédente (`direction = -1`), soit la
      * suivante (`direction = +1`). Utilisée pour combler les trous
      * créés par la modification des bornes ou la suppression.
      *

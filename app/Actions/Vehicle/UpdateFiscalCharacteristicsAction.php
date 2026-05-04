@@ -50,7 +50,7 @@ use Illuminate\Support\Facades\DB;
  *     le Controller puisse pousser un toast info récapitulatif.
  *
  * Réintroduit la garantie d'invariant « plages contiguës sans
- * chevauchement » à l'échelle du véhicule complet — l'algorithme
+ * chevauchement » à l'échelle du véhicule complet - l'algorithme
  * tolère plus d'un voisin touché par l'édition (déplacements de
  * grande amplitude).
  */

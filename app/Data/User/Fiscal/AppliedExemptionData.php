@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * DTO de présentation d'une exonération appliquée — couple `(reason,
+ * DTO de présentation d'une exonération appliquée - couple `(reason,
  * ruleCode)` exposé dans les panneaux "Exonérations applicables" du
  * frontend (Show véhicule + Show contrat).
  *

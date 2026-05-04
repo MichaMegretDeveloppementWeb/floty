@@ -10,7 +10,7 @@ use Illuminate\Support\Carbon;
 /**
  * Pivot Driver ↔ Company avec dates d'entrée et de sortie.
  *
- * Cf. Phase 06 V1.2 — un conducteur peut appartenir à plusieurs entreprises
+ * Cf. Phase 06 V1.2 - un conducteur peut appartenir à plusieurs entreprises
  * au cours du temps. Chaque membership porte sa propre période d'activité.
  *
  * @property int $id

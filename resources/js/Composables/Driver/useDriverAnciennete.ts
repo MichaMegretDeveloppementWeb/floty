@@ -2,11 +2,11 @@
  * Calcul de l'ancienneté d'un conducteur depuis sa première membership
  * (date `joinedAt` la plus ancienne, toutes companies confondues).
  *
- * Helper pur (pas d'effet de bord, pas de réactivité Vue) — testable
+ * Helper pur (pas d'effet de bord, pas de réactivité Vue) - testable
  * unitairement et réutilisable depuis n'importe quel composant.
  *
  * Format de retour :
- *   - "—" si aucune membership
+ *   - "-" si aucune membership
  *   - "X an(s)" si > 12 mois pile
  *   - "X mois" si < 12 mois
  *   - "X an Y mois" sinon
@@ -60,20 +60,21 @@ export function formatAnciennete(months: number): string {
 
 /**
  * Compose anciennetéMonths + formatAnciennete depuis la liste de
- * memberships d'un driver. Renvoie "—" si aucune membership.
+ * memberships d'un driver. Renvoie "-" si aucune membership.
  */
 export function useDriverAnciennete(
     memberships: ReadonlyArray<Membership>,
     today: Date = new Date(),
 ): string {
     if (memberships.length === 0) {
-        return '—';
+        return '-';
     }
 
     const sorted = memberships.map((m: Membership) => m.joinedAt).sort();
     const oldestJoinedAt = sorted[0];
+
     if (oldestJoinedAt === undefined) {
-        return '—';
+        return '-';
     }
 
     return formatAnciennete(ancienneteMonths(oldestJoinedAt, today));

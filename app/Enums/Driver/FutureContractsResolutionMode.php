@@ -8,7 +8,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Mode de résolution des contrats à venir lors de la sortie d'un
- * conducteur d'une entreprise (workflow Q6 — Phase 06 V1.2).
+ * conducteur d'une entreprise (workflow Q6 - Phase 06 V1.2).
  *
  * - `Replace` : pour chaque contrat à venir, l'utilisateur choisit un
  *   driver de remplacement (actif sur la période exacte du contrat).

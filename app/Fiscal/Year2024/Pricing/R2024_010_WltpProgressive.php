@@ -12,7 +12,7 @@ use App\Fiscal\ValueObjects\BracketRange;
 use App\Fiscal\ValueObjects\ProgressiveScale;
 
 /**
- * R-2024-010 — Barème CO₂ WLTP 2024 (CIBS art. L. 421-120).
+ * R-2024-010 - Barème CO₂ WLTP 2024 (CIBS art. L. 421-120).
  *
  * Tarif progressif par tranches à tarif marginal sur les émissions
  * CO₂ WLTP (g/km). 9 tranches, dernière ouverte (≥ 175 g/km).

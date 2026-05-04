@@ -43,7 +43,7 @@ final class UpdateFiscalCharacteristicsData extends Data
 {
     public function __construct(
         // Bornes (peut transformer un historique → courante uniquement
-        // si le véhicule n'a pas déjà une courante — vérification à
+        // si le véhicule n'a pas déjà une courante - vérification à
         // l'Action).
         #[Required, Date]
         public string $effectiveFrom,

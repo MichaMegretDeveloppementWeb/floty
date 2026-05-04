@@ -9,7 +9,7 @@ use App\Models\ContractDocument;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Lectures ContractDocument — interface slim conforme ADR-0013.
+ * Lectures ContractDocument - interface slim conforme ADR-0013.
  */
 interface ContractDocumentReadRepositoryInterface
 {
@@ -24,7 +24,7 @@ interface ContractDocumentReadRepositoryInterface
     public function listForContract(int $contractId): Collection;
 
     /**
-     * Compte des documents existants pour un contrat — utilisé par
+     * Compte des documents existants pour un contrat - utilisé par
      * {@see UploadContractDocumentAction} pour
      * vérifier la limite des 5 documents avant insert.
      */

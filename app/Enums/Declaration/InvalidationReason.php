@@ -17,7 +17,7 @@ namespace App\Enums\Declaration;
  *   - `UnavailabilityChanged`         ← event `UnavailabilityChanged`,
  *                                        uniquement si l'indispo est fiscale (fourrière)
  *   - `RuleChanged`                   ← correction d'une classe Rule côté code
- *                                        (pas de version interne — cf. ADR-0009)
+ *                                        (pas de version interne - cf. ADR-0009)
  *   - `Other`                         ← cas non anticipé, fallback explicite
  */
 enum InvalidationReason: string

@@ -12,7 +12,7 @@ use App\Models\Contract;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2024-021 — Exonération Location de Courte Durée (LCD).
+ * R-2024-021 - Exonération Location de Courte Durée (LCD).
  *
  * **Sémantique v2.0 (ADR-0014, conforme BOFiP § 180-190)** :
  * Un contrat de location est qualifié de courte durée si **l'une** des
@@ -22,7 +22,7 @@ use Carbon\CarbonImmutable;
  *     (premier au dernier jour d'un même mois calendaire)
  *
  * Tous les jours d'un contrat LCD sont exonérés des deux taxes (CO₂ +
- * polluants) — ils sont retirés du numérateur du prorata appliqué par
+ * polluants) - ils sont retirés du numérateur du prorata appliqué par
  * R-2024-002. La qualification s'apprécie **par contrat individuel**,
  * jamais en cumul du couple.
  *
@@ -31,7 +31,7 @@ use Carbon\CarbonImmutable;
  * financier) ; doctrine BOFiP-IS-DG-30-10-30.
  *
  * **Architecture** (cf. memory `feedback_fiscal_rules_authority`) : la
- * qualification LCD est portée par cette règle souveraine — aucun
+ * qualification LCD est portée par cette règle souveraine - aucun
  * service ne décide à sa place. R-2024-008 (indispos réductrices)
  * délègue à `isShortTermRental()` pour distinguer contrats taxables et
  * contrats déjà LCD-exonérés.
@@ -73,7 +73,7 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule
         return ExemptionVerdict::partialDays(
             $exemptDays,
             sprintf(
-                'Exonération LCD — %d contrat%s court%s (%d jour%s) (CIBS L. 421-129 / L. 421-141, BOFiP § 180-190)',
+                'Exonération LCD - %d contrat%s court%s (%d jour%s) (CIBS L. 421-129 / L. 421-141, BOFiP § 180-190)',
                 $lcdContractsCount,
                 $lcdContractsCount > 1 ? 's' : '',
                 $lcdContractsCount > 1 ? 's' : '',

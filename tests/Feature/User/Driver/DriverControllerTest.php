@@ -248,7 +248,7 @@ final class DriverControllerTest extends TestCase
             ]);
 
         $response->assertRedirect();
-        $response->assertSessionHas('toast-error', 'Aucune appartenance active à cette entreprise.');
+        $response->assertSessionHas('toast-error', 'Aucun rattachement actif à cette entreprise.');
     }
 
     #[Test]
@@ -325,7 +325,7 @@ final class DriverControllerTest extends TestCase
             ->delete('/app/drivers/'.$driver->id.'/memberships/99999');
 
         $response->assertRedirect();
-        $response->assertSessionHas('toast-error', 'Appartenance introuvable.');
+        $response->assertSessionHas('toast-error', 'Rattachement introuvable.');
     }
 
     #[Test]

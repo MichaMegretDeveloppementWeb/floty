@@ -70,9 +70,10 @@ function submit(): void {
             >.
         </p>
         <p class="mt-2 text-xs text-slate-500">
-            Cette action pose une date de sortie sur la membership. L'historique
-            des contrats passés est conservé. Si le conducteur a des contrats à
-            venir après cette date, choisissez comment les résoudre.
+            Cette action pose une date de sortie sur le rattachement.
+            L'historique des contrats passés est conservé. Si le conducteur a
+            des contrats à venir après cette date, choisissez comment les
+            résoudre.
         </p>
 
         <form class="mt-6 flex flex-col gap-4" @submit.prevent="submit">
@@ -96,9 +97,9 @@ function submit(): void {
                 />
                 <p class="mt-1 text-xs text-amber-600">
                     L'enrichissement de la modale (liste des contrats à résoudre
-                    + sélecteurs de remplacement par contrat) sera livré en L5 —
-                    pour l'instant, choisissez 'none' si aucun contrat à venir,
-                    sinon 'detach' pour les retirer en bloc.
+                    + sélecteurs de remplacement par contrat) sera livré
+                    ultérieurement. Pour l'instant, choisissez 'none' si aucun
+                    contrat à venir, sinon 'detach' pour les retirer en bloc.
                 </p>
             </div>
 

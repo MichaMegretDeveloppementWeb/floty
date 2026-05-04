@@ -7,7 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `drivers` — Conducteurs, rattachés à une company unique.
+ * Table `drivers` - Conducteurs, rattachés à une company unique.
  *
  * Cf. 01-schema-metier.md § 5.
  *

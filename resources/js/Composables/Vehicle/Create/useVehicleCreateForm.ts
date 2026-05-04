@@ -6,7 +6,7 @@ import { store as vehiclesStoreRoute } from '@/routes/user/vehicles';
 
 /**
  * Form Inertia + valeurs initiales + soumission de la page
- * « Nouveau véhicule ». La catégorie polluants n'est pas saisie —
+ * « Nouveau véhicule ». La catégorie polluants n'est pas saisie -
  * elle est dérivée côté backend par le Repository à partir de
  * `energy_source`, `euro_standard` et `underlying_combustion_engine_type`.
  */

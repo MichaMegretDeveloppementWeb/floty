@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Sélecteur conducteur pour le formulaire Contract (Phase 06 V1.2 — Q4).
+ * Sélecteur conducteur pour le formulaire Contract (Phase 06 V1.2 - Q4).
  *
  * Disabled tant que `companyId + startDate + endDate` ne sont pas tous
  * renseignés. Charge les options actives sur la période exacte via

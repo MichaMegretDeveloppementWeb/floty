@@ -19,7 +19,7 @@ use Illuminate\Support\Carbon;
  * Cf. 02-schema-fiscal.md § 2.
  *
  * **Pas de soft delete** : donnée fiscale persistante. L'invalidation
- * est un drapeau orthogonal au cycle de vie — une déclaration marquée
+ * est un drapeau orthogonal au cycle de vie - une déclaration marquée
  * invalidée reste visible et peut être régénérée via un nouveau
  * {@see DeclarationPdf}.
  *

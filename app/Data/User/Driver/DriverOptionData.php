@@ -9,7 +9,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Option minimale pour le sélecteur driver dans le formulaire Contract
- * (Phase 06 V1.2 — consommé par `DriverSelector.vue`).
+ * (Phase 06 V1.2 - consommé par `DriverSelector.vue`).
  *
  * Filtré par company + période exacte (cf. `DriverQueryService::optionsForContract`).
  */

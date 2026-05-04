@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue détaillée d'un conducteur — utilisée par la page de détail
+ * Vue détaillée d'un conducteur - utilisée par la page de détail
  * (Phase 06 V1.2 : `User/Drivers/Show/Index.vue`).
  */
 #[TypeScript]

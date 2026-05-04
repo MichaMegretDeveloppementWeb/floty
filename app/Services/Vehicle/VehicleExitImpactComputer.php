@@ -21,7 +21,7 @@ use App\Models\Unavailability;
  *     sortie en présence de conflits (lève
  *     {@see App\Exceptions\Vehicle\VehicleExitBlockedByConflictsException}).
  *   - La modale Sortie côté frontend (via un endpoint dédié si
- *     pré-vérification UX nécessaire — défini chantier E.4).
+ *     pré-vérification UX nécessaire - défini chantier E.4).
  *
  * Cf. ADR-0018 § 8.1.
  */

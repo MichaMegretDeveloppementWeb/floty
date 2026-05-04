@@ -14,7 +14,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * véhicule sur cette semaine, avec leur nombre de jours respectif.
  *
  * Les semaines sans aucune attribution sont exposées avec
- * `segments = []` et `totalDays = 0` — le front rend alors une
+ * `segments = []` et `totalDays = 0` - le front rend alors une
  * cellule vide (pas de filtre côté consommateur).
  */
 #[TypeScript]

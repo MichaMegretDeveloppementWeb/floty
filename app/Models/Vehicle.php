@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Véhicule (attributs non fiscaux — les caractéristiques fiscalement
+ * Véhicule (attributs non fiscaux - les caractéristiques fiscalement
  * déterminantes sont dans {@see VehicleFiscalCharacteristics}).
  *
  * Cf. 01-schema-metier.md § 2.
@@ -115,7 +115,7 @@ final class Vehicle extends Model
      * Vrai ssi le véhicule est sorti de flotte (`exit_date IS NOT NULL`).
      * Sémantique purement booléenne ; pour les filtrations applicatives
      * **toujours préférer les scopes date-aware** ({@see scopeActiveAt},
-     * {@see scopeActiveDuring}) — un véhicule sorti reste pleinement
+     * {@see scopeActiveDuring}) - un véhicule sorti reste pleinement
      * opérationnel sur sa période d'activité antérieure (cf. ADR-0018 D3).
      */
     protected function isExited(): Attribute
@@ -151,7 +151,7 @@ final class Vehicle extends Model
     /**
      * Scope : véhicules actifs **à un moment quelconque** de la fenêtre
      * `[start, end]`. Utile pour la heatmap année N et pour les calculs
-     * fiscaux annuels — un véhicule sorti mi-année reste affiché pour
+     * fiscaux annuels - un véhicule sorti mi-année reste affiché pour
      * l'année où il était partiellement actif.
      *
      * Critère : `exit_date IS NULL OR exit_date >= $start`.

@@ -60,7 +60,7 @@ final class FleetFiscalAggregator
      * année théorique » indexé par `"{vehicleId}|{year}"`. Le résultat
      * dépend exclusivement du véhicule et de l'année (contrat full-year
      * synthétique, indispos vides), il est donc partageable entre
-     * `vehicleFullYearTax` et `vehicleFullYearTaxBreakdown` — la liste
+     * `vehicleFullYearTax` et `vehicleFullYearTaxBreakdown` - la liste
      * Flotte gagne ~50 % de pipeline runs.
      *
      * @var array<string, PipelineResult>
@@ -154,7 +154,7 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Détail complet du calcul du coût plein année d'un véhicule —
+     * Détail complet du calcul du coût plein année d'un véhicule -
      * affiché dans la sidebar de la page Show pour expliquer comment
      * le total a été obtenu (méthode CO₂, catégorie polluants,
      * exonérations appliquées, codes règles).
@@ -193,7 +193,7 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Détail fiscal complet d'un contrat — affiché dans la section
+     * Détail fiscal complet d'un contrat - affiché dans la section
      * « Taxes générées » de la page Show contrat.
      *
      * Le pipeline tourne par année. Si le contrat chevauche 2 années
@@ -285,7 +285,7 @@ final class FleetFiscalAggregator
         // (qui serait trompeur : « ... → 0 € » sans contexte).
         if ($tariff === 0.0) {
             return sprintf(
-                '%s — exonérée pour ce véhicule (voir motif ci-dessous).',
+                '%s - exonérée pour ce véhicule (voir motif ci-dessous).',
                 $value,
             );
         }
@@ -418,7 +418,7 @@ final class FleetFiscalAggregator
 
     /**
      * Mémoïsation du chargement des règles fiscales par codes pour une
-     * année — clé `"{year}|{sortedCodes}"` afin que des appels avec un
+     * année - clé `"{year}|{sortedCodes}"` afin que des appels avec un
      * ordre de codes différent (mais même contenu) partagent l'entrée.
      *
      * @param  list<string>  $codes
@@ -434,7 +434,7 @@ final class FleetFiscalAggregator
 
     /**
      * Mémoïsation du `PipelineResult` du calcul plein année théorique
-     * d'un véhicule — purement fonction de `(vehicleId, year)` (contrat
+     * d'un véhicule - purement fonction de `(vehicleId, year)` (contrat
      * synthétique full-year, indispos vides).
      */
     private function fullYearPipelineResult(Vehicle $vehicle, int $year): PipelineResult

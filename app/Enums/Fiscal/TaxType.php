@@ -6,7 +6,7 @@ namespace App\Enums\Fiscal;
 
 /**
  * Les deux taxes annuelles sur véhicules couvertes par Floty V1
- * (ex-TVS depuis 2022 — cf. CIBS art. L. 421-119 et suivants).
+ * (ex-TVS depuis 2022 - cf. CIBS art. L. 421-119 et suivants).
  *
  * | Valeur      | CIBS             | Libellé officiel                                     |
  * |-------------|------------------|------------------------------------------------------|

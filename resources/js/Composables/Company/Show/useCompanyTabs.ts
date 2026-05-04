@@ -21,7 +21,7 @@ const DEFAULT_TAB: CompanyTabKey = 'infos';
 
 /**
  * Sync de l'onglet actif sur Show Company avec le query param `?tab=...`
- * pour permettre le deep-link (Phase 06 L4 — Q8).
+ * pour permettre le deep-link (Phase 06 L4 - Q8).
  */
 export function useCompanyTabs(): {
     activeTab: Ref<CompanyTabKey>;

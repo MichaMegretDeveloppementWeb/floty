@@ -56,7 +56,7 @@ function base64ToFile(name: string, type: string, base64: string): File {
 /**
  * Stocke les fichiers à uploader après création du contrat. Le
  * `contractId` est posé après la création (typiquement dans le callback
- * `onSuccess` d'Inertia useForm — on lit l'URL de redirection ou la
+ * `onSuccess` d'Inertia useForm - on lit l'URL de redirection ou la
  * shared prop pour le récupérer).
  *
  * **Note** : à l'appel, on ne connaît pas encore le contractId (la

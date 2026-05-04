@@ -25,7 +25,7 @@ use Illuminate\Support\Facades\DB;
  *
  *     - `ExtendPrevious` : la VFC précédente voit son `effective_to`
  *       repoussé jusqu'à `effective_to` de la supprimée (ou à `null`
- *       si la supprimée était courante — la précédente reprend alors
+ *       si la supprimée était courante - la précédente reprend alors
  *       le rôle de courante).
  *
  *     - `ExtendNext` : la VFC suivante voit son `effective_from`

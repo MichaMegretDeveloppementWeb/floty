@@ -28,14 +28,14 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  * ### Convention d'emploi côté appelant
  *
  * ```php
- * // Écriture — composer la clé via key() pour garantir la cohérence.
+ * // Écriture - composer la clé via key() pour garantir la cohérence.
  * Cache::remember(
  *     $this->cacheTags->key('vehicle', $vehicleId, 'fiscal_characteristics'),
  *     ttl: 3600,
  *     callback: fn () => $this->repo->loadFiscal($vehicleId),
  * );
  *
- * // Invalidation — tout ce qui « tague » ce véhicule est balayé.
+ * // Invalidation - tout ce qui « tague » ce véhicule est balayé.
  * $this->cacheTags->invalidateByPrefix(
  *     $this->cacheTags->key('vehicle', $vehicleId)
  * );
@@ -111,7 +111,7 @@ final class CacheTagsManager
 
     /**
      * Renvoie le {@see DatabaseStore} sous-jacent ou lève si la store
-     * « database » n'est pas résoluble — précaution contre une mauvaise
+     * « database » n'est pas résoluble - précaution contre une mauvaise
      * configuration qui sinon invaliderait silencieusement 0 entrée.
      */
     private function resolveDatabaseStore(): DatabaseStore

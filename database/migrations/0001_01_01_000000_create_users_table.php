@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Schema;
  *   - Ajout de `must_change_password` (forçage au premier login)
  *   - Ajout de `last_login_at` (audit + UX « dernière activité »)
  *   - Ajout de `deleted_at` soft delete (départ d'un gestionnaire préserve
- *     l'historique — cf. ADR-0012 révision 2026-04-24)
+ *     l'historique - cf. ADR-0012 révision 2026-04-24)
  *
  * Les tables associées `password_reset_tokens` et `sessions` restent
  * au format Laravel standard.

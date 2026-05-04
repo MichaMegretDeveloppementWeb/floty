@@ -26,7 +26,7 @@ use Illuminate\Support\Carbon;
  * induites par la création d'un nouveau contrat.
  *
  * La preview simule l'ajout d'un contrat synthétique sur la plage
- * `[min(dates), max(dates)]` — sémantique cohérente avec la sélection
+ * `[min(dates), max(dates)]` - sémantique cohérente avec la sélection
  * par plage début/fin du DateRangePicker.
  */
 final class WeekDetailService
@@ -104,7 +104,7 @@ final class WeekDetailService
         $companiesOnWeek = $this->buildCompaniesOnWeek($weekContracts, $start, $end);
 
         // Toutes les dates de l'année où le véhicule est déjà sous
-        // contrat — pour empêcher la sélection conflictuelle dans le
+        // contrat - pour empêcher la sélection conflictuelle dans le
         // DateRangePicker même quand l'utilisateur navigue sur d'autres
         // semaines / mois que la semaine ouverte au drawer.
         $vehicleBusyDates = $this->contractQuery->findDatesForVehicleInRange(
@@ -146,7 +146,7 @@ final class WeekDetailService
 
         // Préparation : un seul aller-retour DB pour les 3 entités
         // requises par le calculator quel que soit le chemin (avec ou
-        // sans nouvelles dates) — auparavant ces lectures partaient
+        // sans nouvelles dates) - auparavant ces lectures partaient
         // dans chaque branche du if.
         $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
         $unavailabilities = $this->unavailabilityRepo->findForVehicle($input->vehicleId)->all();

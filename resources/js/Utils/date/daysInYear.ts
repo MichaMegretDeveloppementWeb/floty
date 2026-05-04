@@ -4,7 +4,7 @@
  * Utilisé pour tous les calculs de prorata fiscaux côté front (taxes
  * CO₂ et polluants). Source jumelle de
  * `App\Services\Shared\Fiscal\FiscalYearContext::daysInYear` côté
- * backend — les deux DOIVENT renvoyer le même résultat pour une année
+ * backend - les deux DOIVENT renvoyer le même résultat pour une année
  * donnée, sinon l'aperçu temps réel diverge du calcul serveur.
  *
  * @param year année grégorienne (ex. 2024)

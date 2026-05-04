@@ -22,8 +22,8 @@ enum ReceptionCategory: string
     public function label(): string
     {
         return match ($this) {
-            self::M1 => 'M1 — Voiture particulière (≤ 8 places)',
-            self::N1 => 'N1 — Camionnette (PTAC ≤ 3,5 t)',
+            self::M1 => 'M1 - Voiture particulière (≤ 8 places)',
+            self::N1 => 'N1 - Camionnette (PTAC ≤ 3,5 t)',
         };
     }
 }

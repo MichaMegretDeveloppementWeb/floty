@@ -100,7 +100,7 @@ const co2OrPa = (item: Vfc): string => {
                 {{ item.changeNote }}
             </p>
 
-            <!-- Caractéristiques fiscales clés — toujours 4 colonnes -->
+            <!-- Caractéristiques fiscales clés - toujours 4 colonnes -->
             <dl
                 class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs sm:grid-cols-4"
             >

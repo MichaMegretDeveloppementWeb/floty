@@ -11,7 +11,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 
 /**
- * R-2024-016 — Exonération CO₂ électrique / hydrogène (CIBS L. 421-124).
+ * R-2024-016 - Exonération CO₂ électrique / hydrogène (CIBS L. 421-124).
  *
  * Véhicules à motorisation strictement électrique, hydrogène ou
  * combinaison électrique + hydrogène : exonération **CO₂ uniquement**

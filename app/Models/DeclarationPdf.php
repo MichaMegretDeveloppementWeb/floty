@@ -12,17 +12,17 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * PDF généré pour une déclaration — **immutable** (ADR-0003).
+ * PDF généré pour une déclaration - **immutable** (ADR-0003).
  *
  * Cf. 02-schema-fiscal.md § 3.
  *
  * Chaque ligne correspond à un fichier PDF sur le filesystem Laravel
  * (chemin relatif dans `pdf_path`). Le `snapshot_json` capture l'ensemble
- * des données utilisées pour produire ce PDF — son hash SHA-256 sert à
+ * des données utilisées pour produire ce PDF - son hash SHA-256 sert à
  * détecter l'invalidation (ADR-0004).
  *
  * **Invariants** :
- *   - Pas de `updated_at`, pas de `deleted_at` — immuabilité stricte.
+ *   - Pas de `updated_at`, pas de `deleted_at` - immuabilité stricte.
  *   - Pas d'`$touches` ni d'événements de modification.
  *   - `version_number` calculé applicativement dans une transaction
  *     (cf. {@see GenerateDeclarationPdfAction}

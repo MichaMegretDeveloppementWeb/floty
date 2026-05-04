@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Company;
 
-use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
+use App\Actions\Company\CreateCompanyAction;
 use App\Data\User\Company\StoreCompanyData;
+use App\Exceptions\Company\CompanyShortCodeCollisionException;
 use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Services\Company\CompanyQueryService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -19,7 +21,7 @@ final class CompanyController extends Controller
 {
     public function __construct(
         private readonly CompanyQueryService $companies,
-        private readonly CompanyWriteRepositoryInterface $companyWrite,
+        private readonly CreateCompanyAction $createCompany,
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
@@ -52,7 +54,13 @@ final class CompanyController extends Controller
 
     public function store(StoreCompanyData $data): RedirectResponse
     {
-        $this->companyWrite->create($data);
+        try {
+            $this->createCompany->execute($data);
+        } catch (CompanyShortCodeCollisionException $e) {
+            throw ValidationException::withMessages([
+                'legal_name' => $e->getUserMessage(),
+            ]);
+        }
 
         return redirect()
             ->route('user.companies.index')

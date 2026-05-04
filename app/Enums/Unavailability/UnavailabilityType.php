@@ -17,14 +17,14 @@ namespace App\Enums\Unavailability;
  *   - CIBS art. L. 421-118 (assiette en temps d'utilisation effective)
  *   - BOFiP BOI-AIS-MOB-10-30-10 § 50 / § 60 / § 190
  *   - C. route L. 325-1 → L. 325-1-2 (fourrière publique)
- *   - C. route L. 325-12 (fourrière privée — non réducteur)
+ *   - C. route L. 325-12 (fourrière privée - non réducteur)
  *   - C. route R. 322-6 (suspension CI)
  *   - C. route L. 327-4 / L. 327-5 (interdiction circulation post-sinistre)
  *
  * Note : la destruction VHU (certificat C. route R. 322-9) n'est PAS
- * dans cet enum — elle relève d'ADR-0018 cycle de vie véhicule
+ * dans cet enum - elle relève d'ADR-0018 cycle de vie véhicule
  * (`vehicles.exit_reason = Destroyed`). Idem pour le vol non résolu
- * définitif (`exit_reason = StolenUnrecovered`) — `theft` ici représente
+ * définitif (`exit_reason = StolenUnrecovered`) - `theft` ici représente
  * un vol récent susceptible de retour à la flotte.
  */
 enum UnavailabilityType: string
@@ -43,7 +43,7 @@ enum UnavailabilityType: string
     case Other = 'other';
 
     /**
-     * Vrai ssi ce type réduit le numérateur du prorata fiscal — c.-à-d.
+     * Vrai ssi ce type réduit le numérateur du prorata fiscal - c.-à-d.
      * caractérise une mise hors-circulation administrative ou par les
      * pouvoirs publics au sens BOFiP § 50 / § 60.
      */

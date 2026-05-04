@@ -13,7 +13,7 @@ use Tests\TestCase;
  * authentification. Garde-fou contre les régressions futures
  * (ajout de route oubliant `auth` middleware).
  *
- * En l'absence de Policies métier (D11 — pas de modèle d'ownership
+ * En l'absence de Policies métier (D11 - pas de modèle d'ownership
  * dans le data model MVP), ce test est notre filet de sécurité
  * unique pour vérifier que l'accès aux ressources est protégé.
  */
@@ -28,7 +28,7 @@ final class UserRoutesAuthTest extends TestCase
         $this->assertGreaterThan(
             0,
             $userRoutes->count(),
-            'Aucune route user.* trouvée — le test est vide.',
+            'Aucune route user.* trouvée - le test est vide.',
         );
 
         foreach ($userRoutes as $route) {

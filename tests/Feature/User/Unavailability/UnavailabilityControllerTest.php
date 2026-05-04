@@ -171,7 +171,7 @@ final class UnavailabilityControllerTest extends TestCase
     public function show_du_vehicule_se_rend_avec_une_indispo_active_dans_l_annee(): void
     {
         // Régression : `findOverlappingWeeksForVehicle` itérait jour
-        // par jour avec `$cursor->addDay()` sur un CarbonImmutable —
+        // par jour avec `$cursor->addDay()` sur un CarbonImmutable -
         // boucle infinie dès qu'une indispo couvrait des jours de
         // l'année active.
         $user = User::factory()->create();
@@ -197,7 +197,7 @@ final class UnavailabilityControllerTest extends TestCase
     #[Test]
     public function update_persiste_indispo_meme_si_la_nouvelle_plage_chevauche_un_contrat(): void
     {
-        // ADR-0019 D2 — symétrie create/update : un élargissement de
+        // ADR-0019 D2 - symétrie create/update : un élargissement de
         // plage qui fait désormais chevaucher un contrat existant doit
         // être accepté.
         $user = User::factory()->create();

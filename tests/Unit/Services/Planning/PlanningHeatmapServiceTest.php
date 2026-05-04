@@ -35,7 +35,7 @@ final class PlanningHeatmapServiceTest extends TestCase
         $company = Company::factory()->create();
         // Contrat 1 jour en semaine 10 (durée=1 → LCD ≤ 30 j, mais ce
         // test vérifie la heatmap brute (densité de jours occupés),
-        // pas la fiscalité — donc l'exonération LCD n'invalide pas
+        // pas la fiscalité - donc l'exonération LCD n'invalide pas
         // l'assertion `weeks[9] = 1`).
         $weekStart = Carbon::now()->setISODate($year, 10)->startOfWeek();
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([

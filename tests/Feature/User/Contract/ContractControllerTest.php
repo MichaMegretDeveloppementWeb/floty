@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Feature CRUD Contract — couvre l'auth, les redirects, la
+ * Tests Feature CRUD Contract - couvre l'auth, les redirects, la
  * validation FR et la propagation au repo via Action+Service.
  */
 final class ContractControllerTest extends TestCase

@@ -22,7 +22,7 @@ function visibleDrivers(): App.Data.User.Company.CompanyDriverRowData[] {
 
 function formatDate(value: string | null): string {
     if (value === null) {
-        return '—';
+        return '-';
     }
 
     const [y, m, d] = value.split('-');

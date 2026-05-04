@@ -145,7 +145,7 @@ describe('rangeConflicts', () => {
     });
 });
 
-describe('useDateRangePicker — auto-normalize on click', () => {
+describe('useDateRangePicker - auto-normalize on click', () => {
     it('2nd click after start sets endDate normally', () => {
         const { ctx, range } = setup();
         ctx.onDayClick(makeCell('2024-01-12'));
@@ -205,7 +205,7 @@ describe('useDateRangePicker — auto-normalize on click', () => {
     });
 });
 
-describe('useDateRangePicker — input date sync', () => {
+describe('useDateRangePicker - input date sync', () => {
     it('onStartDateInput sets startDate when no endDate', () => {
         const { ctx, range } = setup({ year: 2026, startMonth: 4 });
         ctx.onStartDateInput('2024-05-15');
@@ -265,7 +265,7 @@ describe('useDateRangePicker — input date sync', () => {
     });
 });
 
-describe('useDateRangePicker — month/year nav', () => {
+describe('useDateRangePicker - month/year nav', () => {
     it('gotoNextMonth wraps year', () => {
         const { ctx } = setup({ year: 2024, startMonth: 12 });
         ctx.gotoNextMonth();
@@ -306,7 +306,7 @@ describe('useDateRangePicker — month/year nav', () => {
     });
 });
 
-describe('useDateRangePicker — ongoing mode', () => {
+describe('useDateRangePicker - ongoing mode', () => {
     it('activating ongoing clears endDate', async () => {
         const { ctx, range, ongoing } = setup({
             initialRange: { startDate: '2024-01-10', endDate: '2024-01-20' },
@@ -331,7 +331,7 @@ describe('useDateRangePicker — ongoing mode', () => {
     });
 });
 
-describe('useDateRangePicker — clear', () => {
+describe('useDateRangePicker - clear', () => {
     it('clearSelection resets range and errorMessage', () => {
         const { ctx, range } = setup({
             initialRange: { startDate: '2024-01-10', endDate: '2024-01-20' },

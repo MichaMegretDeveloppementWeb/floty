@@ -10,7 +10,7 @@ namespace App\Fiscal\ValueObjects;
  * Modes d'exonération :
  *
  * - `notExempt()`            : la règle ne s'applique pas
- * - `full(...)`              : exonération totale (deux taxes) — les
+ * - `full(...)`              : exonération totale (deux taxes) - les
  *                              tarifs annuels pleins restent affichés
  *                              dans le breakdown
  * - `fullZeroingTariffs(...)`: exonération totale ET les tarifs annuels
@@ -20,7 +20,7 @@ namespace App\Fiscal\ValueObjects;
  * - `onlyCo2(...)`           : exonération CO₂ seule, polluants normal
  *                              (cas électrique / hydrogène)
  * - `onlyPollutants(...)`    : exonération polluants seule, CO₂ normal
- * - `partialDays(count, ...)`: exonération journalière — `count` jours
+ * - `partialDays(count, ...)`: exonération journalière - `count` jours
  *                              sont retirés du numérateur du prorata
  *                              R-2024-002. Les tarifs annuels restent
  *                              visibles. Utilisé pour LCD per-contract

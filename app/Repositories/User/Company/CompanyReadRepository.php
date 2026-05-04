@@ -55,4 +55,9 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
             ->get(['id', 'short_code', 'legal_name', 'color'])
             ->keyBy('id');
     }
+
+    public function existsByShortCode(string $shortCode): bool
+    {
+        return Company::query()->where('short_code', $shortCode)->exists();
+    }
 }

@@ -15,7 +15,7 @@ use App\Services\Fiscal\FleetFiscalAggregator;
  * Résultat détaillé d'un calcul fiscal pour un couple
  * (véhicule, entreprise utilisatrice) sur un nombre de jours donné.
  *
- * DTO interne — produit par {@see FiscalCalculator}
+ * DTO interne - produit par {@see FiscalCalculator}
  * et consommé par les services métier (notamment
  * {@see FleetFiscalAggregator}).
  *

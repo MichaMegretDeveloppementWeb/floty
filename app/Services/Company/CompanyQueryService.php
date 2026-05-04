@@ -137,8 +137,8 @@ final class CompanyQueryService
             return new CompanyDriverRowData(
                 driverId: $driver->id,
                 pivotId: $pivot->id,
-                fullName: $fullName !== '' ? $fullName : '—',
-                initials: $initials !== '' ? $initials : '—',
+                fullName: $fullName !== '' ? $fullName : '-',
+                initials: $initials !== '' ? $initials : '-',
                 joinedAt: $pivot->joined_at->toDateString(),
                 leftAt: $pivot->left_at?->toDateString(),
                 isCurrentlyActive: $pivot->left_at === null || $pivot->left_at->greaterThanOrEqualTo($today),

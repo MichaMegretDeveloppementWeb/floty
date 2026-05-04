@@ -10,7 +10,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
- * R-2024-003 — Arrondi half-up commercial (CIBS L. 131-1).
+ * R-2024-003 - Arrondi half-up commercial (CIBS L. 131-1).
  *
  * **Sémantique BOFiP** : « le montant total à payer par chaque
  * redevable est arrondi à l'euro le plus proche, sans arrondi
@@ -21,7 +21,7 @@ use App\Services\Fiscal\FleetFiscalAggregator;
  *
  * Cette classe règle est conservée comme **marqueur** dans le pipeline
  * (apparaît dans `appliedRuleCodes` du snapshot, page « Règles de
- * calcul »). Elle ne modifie pas les montants — l'arrondi par couple
+ * calcul »). Elle ne modifie pas les montants - l'arrondi par couple
  * (utile pour l'affichage par ligne du PDF / drawer planning) est
  * appliqué par le pipeline lui-même dans `buildResult()`.
  */

@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `declarations` — Déclaration fiscale annuelle par (company × année).
+ * Table `declarations` - Déclaration fiscale annuelle par (company × année).
  *
  * Cf. 02-schema-fiscal.md § 2.
  *
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  * civile. Porte :
  *   - un **statut** cycle de vie ({@see DeclarationStatus}),
  *   - un **drapeau d'invalidation** (ADR-0004) orthogonal au statut,
- *   - les totaux calculés (remplis après calcul fiscal — nullable tant que non calculé).
+ *   - les totaux calculés (remplis après calcul fiscal - nullable tant que non calculé).
  *
  * Pas de soft delete : donnée fiscale persistante, jamais supprimée.
  */
@@ -59,7 +59,7 @@ return new class extends Migration
             $table->index(['is_invalidated', 'fiscal_year']);
         });
 
-        // CHECK constraints — filet SQL défensif, MySQL uniquement
+        // CHECK constraints - filet SQL défensif, MySQL uniquement
         // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT`).
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;

@@ -11,7 +11,7 @@ use Throwable;
  * Classe racine de toute exception métier Floty.
  *
  * Sépare explicitement deux messages :
- *   - {@see getMessage()} : technique (anglais, détails de diagnostic — va dans les logs).
+ *   - {@see getMessage()} : technique (anglais, détails de diagnostic - va dans les logs).
  *   - {@see getUserMessage()} : utilisateur (français, destiné à l'affichage via flash/toast).
  *
  * Les sous-classes exposent des factory methods statiques (`::byId()`,
@@ -34,7 +34,7 @@ abstract class BaseAppException extends RuntimeException
     }
 
     /**
-     * Message destiné à l'utilisateur — français, ton formel,
+     * Message destiné à l'utilisateur - français, ton formel,
      * aucun détail technique (nom de classe, SQL, stack trace).
      */
     public function getUserMessage(): string

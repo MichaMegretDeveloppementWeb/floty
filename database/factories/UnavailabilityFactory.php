@@ -35,7 +35,7 @@ final class UnavailabilityFactory extends Factory
     }
 
     /**
-     * State « fourrière publique » — réducteur fiscal, choix par défaut
+     * State « fourrière publique » - réducteur fiscal, choix par défaut
      * pour les ex-`pound` historiques (cf. ADR-0016 rev. 1.1).
      */
     public function poundPublic(): static
@@ -47,7 +47,7 @@ final class UnavailabilityFactory extends Factory
     }
 
     /**
-     * State « interdiction de circuler post-sinistre » — réducteur.
+     * State « interdiction de circuler post-sinistre » - réducteur.
      */
     public function accidentNoCirculation(): static
     {
@@ -58,7 +58,7 @@ final class UnavailabilityFactory extends Factory
     }
 
     /**
-     * State « suspension du certificat d'immatriculation » — réducteur.
+     * State « suspension du certificat d'immatriculation » - réducteur.
      */
     public function ciSuspension(): static
     {
@@ -69,7 +69,7 @@ final class UnavailabilityFactory extends Factory
     }
 
     /**
-     * State « maintenance courante » — non réducteur, cas par défaut le
+     * State « maintenance courante » - non réducteur, cas par défaut le
      * plus fréquent dans les tests.
      */
     public function maintenance(): static

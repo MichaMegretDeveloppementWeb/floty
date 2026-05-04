@@ -7,7 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `contract_documents` — PDF joints à un contrat (chantier 04.N).
+ * Table `contract_documents` - PDF joints à un contrat (chantier 04.N).
  *
  * **Limites métier V1** (matérialisées dans l'Action, pas en DB) :
  *   - 5 documents maximum par contrat
@@ -19,7 +19,7 @@ use Illuminate\Support\Facades\Schema;
  * S3 = juste changer `FILESYSTEM_DISK` dans .env, pas de migration.
  *
  * Path de stockage : `contract-documents/{contract_id}/{uuid}.pdf`
- * — UUID pour éviter collisions, contract_id pour cleanup facile.
+ * - UUID pour éviter collisions, contract_id pour cleanup facile.
  *
  * Pas de soft-delete : la suppression côté UI est immédiate (DB +
  * fichier physique). Choix V1 pour simplifier ; si l'on veut garder

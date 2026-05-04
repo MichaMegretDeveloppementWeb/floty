@@ -24,7 +24,7 @@ interface VehicleReadRepositoryInterface
      *
      * @param  bool  $includeExited  Si false (défaut), exclut les véhicules
      *                               dont `exit_date` est antérieure ou égale
-     *                               à aujourd'hui (cf. ADR-0018 § 4 — Index
+     *                               à aujourd'hui (cf. ADR-0018 § 4 - Index
      *                               Flotte par défaut "aujourd'hui").
      * @return Collection<int, Vehicle>
      */
@@ -70,7 +70,7 @@ interface VehicleReadRepositoryInterface
      * eager-loading des caractéristiques fiscales actives, triés par
      * plaque.
      *
-     * Cf. ADR-0018 § 4 — un véhicule sorti mi-année reste affiché dans
+     * Cf. ADR-0018 § 4 - un véhicule sorti mi-année reste affiché dans
      * la heatmap de l'année où il était partiellement actif (cellules
      * postérieures à exit_date grisées côté frontend).
      *

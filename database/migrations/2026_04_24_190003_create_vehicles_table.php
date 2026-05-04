@@ -8,18 +8,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `vehicles` — Registre des véhicules.
+ * Table `vehicles` - Registre des véhicules.
  *
  * Cf. 01-schema-metier.md § 2.
  *
  * Particularités :
  *   - UNIQUE (license_plate) filtré par soft delete via triggers
- *     `vehicles_license_plate_active_*` — permet la re-saisie après soft
+ *     `vehicles_license_plate_active_*` - permet la re-saisie après soft
  *     delete (MySQL refuse les expressions conditionnelles dans GENERATED
  *     ALWAYS AS, donc on émule via SIGNAL).
  *   - UNIQUE (vin) filtré idem si VIN renseigné.
  *   - Caractéristiques **fiscales** (co2, norme Euro, source énergie, etc.)
- *     dans `vehicle_fiscal_characteristics` — cette table-ci ne porte que
+ *     dans `vehicle_fiscal_characteristics` - cette table-ci ne porte que
  *     les attributs **non fiscaux** (identité, cycle de vie).
  */
 return new class extends Migration
@@ -56,7 +56,7 @@ return new class extends Migration
             $table->index('vin');
         });
 
-        // CHECK constraints + triggers — MySQL uniquement.
+        // CHECK constraints + triggers - MySQL uniquement.
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
         }

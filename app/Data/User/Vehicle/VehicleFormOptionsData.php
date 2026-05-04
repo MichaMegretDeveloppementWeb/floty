@@ -8,11 +8,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Bundle d'options enum pour le formulaire `Vehicles/Create.vue` —
+ * Bundle d'options enum pour le formulaire `Vehicles/Create.vue` -
  * chaque clé alimente un `<SelectInput>`.
  *
  * `pollutantCategories` est exposé pour les *labels* uniquement
- * (affichage de la catégorie dérivée) — ce n'est pas un input.
+ * (affichage de la catégorie dérivée) - ce n'est pas un input.
  */
 #[TypeScript]
 final class VehicleFormOptionsData extends Data

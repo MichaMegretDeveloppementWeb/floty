@@ -7,7 +7,7 @@ namespace App\Exceptions\Auth;
 use App\Exceptions\BaseAppException;
 
 /**
- * Échec d'authentification — email inconnu ou mot de passe incorrect.
+ * Échec d'authentification - email inconnu ou mot de passe incorrect.
  *
  * Le message utilisateur est volontairement ambigu (ne distingue pas
  * « email inconnu » de « mot de passe faux ») pour ne pas divulguer

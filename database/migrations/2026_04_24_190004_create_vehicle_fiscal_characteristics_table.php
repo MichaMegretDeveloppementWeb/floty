@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `vehicle_fiscal_characteristics` — Historisation des caractéristiques
+ * Table `vehicle_fiscal_characteristics` - Historisation des caractéristiques
  * fiscalement déterminantes.
  *
  * Cf. 01-schema-metier.md § 3.
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  *   - Chaque modification effective (conversion E85, 2ᵉ rang ajouté…) crée
  *     une **nouvelle ligne** avec `effective_from` = jour du changement.
  *     La ligne précédente voit son `effective_to` fermé à la veille.
- *   - Les périodes ne se chevauchent jamais — garanti par :
+ *   - Les périodes ne se chevauchent jamais - garanti par :
  *       1. Validation service (première ligne de défense).
  *       2. Triggers MySQL `BEFORE INSERT/UPDATE` `vfc_no_overlap_*`.
  *       3. Verrou pessimiste côté service lors de la lecture de la version
@@ -30,7 +30,7 @@ use Illuminate\Support\Facades\Schema;
  *
  * Colonne `affected_to_exempted_activity_percent` (Phase 1.9, R-2024-022) :
  * pourcentage d'affectation à une activité exonérée. En V1 seule la valeur
- * 100 (affectation totale) déclenche l'exonération — un prorata partiel
+ * 100 (affectation totale) déclenche l'exonération - un prorata partiel
  * sera traité en V2 si demandé.
  *
  * Motifs `change_reason` (cf. UI page Edit véhicule mode « Nouvelle version ») :
@@ -90,12 +90,12 @@ return new class extends Migration
             $table->index(['vehicle_id', 'effective_from']);
             // Index sur effective_to pour accélérer la recherche de la version
             // courante (effective_to IS NULL). La colonne générée is_current
-            // initialement prévue est retirée en MVP — Hostinger refuse les
+            // initialement prévue est retirée en MVP - Hostinger refuse les
             // expressions conditionnelles dans GENERATED ALWAYS AS.
             $table->index(['vehicle_id', 'effective_to']);
         });
 
-        // CHECK constraints + triggers anti-overlap — MySQL uniquement
+        // CHECK constraints + triggers anti-overlap - MySQL uniquement
         // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT` ni
         // SIGNAL/SQLSTATE).
         if (DB::connection()->getDriverName() !== 'mysql') {

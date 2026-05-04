@@ -8,7 +8,7 @@ import { previewTaxes as previewTaxesRoute } from '@/routes/user/planning';
  *
  * État debounced (200 ms) consommant
  * `POST /app/planning/preview-taxes`. Le composable gère son propre
- * timer avec cleanup via `onScopeDispose` — pas de fuite si le
+ * timer avec cleanup via `onScopeDispose` - pas de fuite si le
  * composant parent est détruit pendant un debounce.
  *
  * Pas de retour `error` séparé : `useApi` push automatiquement un

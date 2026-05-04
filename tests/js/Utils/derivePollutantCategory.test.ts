@@ -6,7 +6,7 @@ import {
 
 /**
  * Mirroir TS de PollutantCategory::derive() côté backend.
- * Les deux implémentations DOIVENT rester strictement équivalentes —
+ * Les deux implémentations DOIVENT rester strictement équivalentes -
  * tout changement de cascade côté PHP doit être répliqué ici (et
  * réciproquement). Les cas couverts ici sont alignés sur
  * `PollutantCategoryDeriveTest` côté backend.

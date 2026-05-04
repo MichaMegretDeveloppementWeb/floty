@@ -30,7 +30,7 @@ const exitTooltip = computed<string | null>(() =>
         : `Véhicule retiré le ${formatDateFr(props.vehicle.exitDate)}`,
 );
 
-// ADR-0019 D5 — bordure rouge sur les cellules de semaines portant
+// ADR-0019 D5 - bordure rouge sur les cellules de semaines portant
 // au moins un jour d'indispo (avec ou sans contrat sur la même
 // semaine), pour rendre visible la cohabitation indispo↔contrat
 // désormais autorisée.

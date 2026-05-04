@@ -1,5 +1,5 @@
 /**
- * Mapping `CompanyColor` → classe Tailwind `bg-company-{color}` —
+ * Mapping `CompanyColor` → classe Tailwind `bg-company-{color}` -
  * util partagé pour éviter la duplication entre les composants
  * d'affichage du domaine Entreprise (CompanyTag, timeline, breakdown).
  *

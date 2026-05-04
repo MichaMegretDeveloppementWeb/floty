@@ -25,7 +25,7 @@ use Illuminate\Support\Carbon;
  *
  * Cf. 01-schema-metier.md § 3.
  *
- * Les périodes pour un même véhicule ne se chevauchent **jamais** —
+ * Les périodes pour un même véhicule ne se chevauchent **jamais** -
  * protection triple : service applicatif + trigger BEFORE INSERT/UPDATE +
  * verrou pessimiste (cf. § 0.3 du schema doc).
  *

@@ -187,7 +187,7 @@ export function useContractsTable(opts: {
 
     function removeFilter(key: keyof ContractFilters): void {
         if (key === 'periodStart' || key === 'periodEnd') {
-            // La pill "Période" couvre les 2 bornes — on les efface ensemble.
+            // La pill "Période" couvre les 2 bornes - on les efface ensemble.
             state.setFilter('periodStart', null);
             state.setFilter('periodEnd', null);
 

@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  * de la cacher dans le repository (ADR-0013 R3 : multi-entités → Action).
  *
  * Les invariants de cohérence (homologation ↔ CO₂, énergie ↔ moteur,
- * etc.) sont validés en amont par le FormRequest et — à terme — par
+ * etc.) sont validés en amont par le FormRequest et - à terme - par
  * un `VehicleFiscalCharacteristicsService` (phase 04 complète).
  */
 final readonly class CreateVehicleAction

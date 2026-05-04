@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests de la mise à jour d'un contrat — vérifie l'exclusion de la
+ * Tests de la mise à jour d'un contrat - vérifie l'exclusion de la
  * ligne courante dans la recherche d'overlap (un contrat ne se
  * chevauche pas avec lui-même).
  */
@@ -102,7 +102,7 @@ final class UpdateContractActionTest extends TestCase
     {
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
-        // Contrat LCD initial (10 jours) — création directe via la
+        // Contrat LCD initial (10 jours) - création directe via la
         // factory pour pré-poser le type LCD en DB.
         $contract = Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => '2024-03-01',

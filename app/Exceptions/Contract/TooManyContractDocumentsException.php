@@ -7,7 +7,7 @@ namespace App\Exceptions\Contract;
 use App\Exceptions\BaseAppException;
 
 /**
- * Tentative d'upload d'un 6ᵉ document sur un contrat — la limite V1 est
+ * Tentative d'upload d'un 6ᵉ document sur un contrat - la limite V1 est
  * de 5 documents par contrat (cf. `UploadContractDocumentAction`).
  */
 final class TooManyContractDocumentsException extends BaseAppException

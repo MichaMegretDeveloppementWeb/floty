@@ -13,9 +13,9 @@ use App\Models\Company;
 interface CompanyWriteRepositoryInterface
 {
     /**
-     * Crée une entreprise à partir du DTO Spatie. Mapping camelCase →
-     * snake_case explicite (Spatie Data n'expose `MapInputName` que
-     * pour la désérialisation entrante, pas pour `->all()`).
+     * Crée une entreprise à partir du DTO Spatie + d'un code court généré
+     * en amont par l'Action (cf. CreateCompanyAction). Le code court n'est
+     * plus dans le DTO depuis le chantier A V1.2 (auto-généré, non éditable).
      */
-    public function create(StoreCompanyData $data): Company;
+    public function create(StoreCompanyData $data, string $shortCode): Company;
 }

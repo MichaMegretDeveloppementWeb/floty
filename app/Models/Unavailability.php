@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
  *
  * Cf. 01-schema-metier.md § 7.
  *
- * Trois types réduisent le numérateur du prorata fiscal — cf. ADR-0016
+ * Trois types réduisent le numérateur du prorata fiscal - cf. ADR-0016
  * rev. 1.1 et {@see UnavailabilityType::isFiscallyReductive()}. La colonne
  * `has_fiscal_impact` est dénormalisée pour un requêtage rapide ;
  * un CHECK SQL garantit la cohérence avec `type`.

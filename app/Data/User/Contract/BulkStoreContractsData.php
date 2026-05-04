@@ -19,7 +19,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création multiple de contrats — création groupée depuis
+ * Payload de création multiple de contrats - création groupée depuis
  * la page planning.
  *
  * **Forme** : une plage commune `[start_date, end_date]` + un type

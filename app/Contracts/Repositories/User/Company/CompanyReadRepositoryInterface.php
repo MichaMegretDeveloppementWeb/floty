@@ -56,4 +56,11 @@ interface CompanyReadRepositoryInterface
      * @return Collection<int, Company>
      */
     public function findByIdsIndexed(array $ids): Collection;
+
+    /**
+     * Vérifie si un code court est déjà utilisé par une entreprise non
+     * supprimée. Utilisé par CreateCompanyAction pour la pré-vérification
+     * d'unicité avant l'insert (génération auto du short_code, chantier A).
+     */
+    public function existsByShortCode(string $shortCode): bool;
 }

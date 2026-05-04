@@ -38,7 +38,7 @@ use Illuminate\Support\Facades\DB;
  *
  *       b. **Cascade rétroactive** : si `effectiveFrom` est antérieure
  *          à des versions existantes, ces versions sont supprimées
- *          (HARD DELETE) — l'utilisateur a explicitement choisi de
+ *          (HARD DELETE) - l'utilisateur a explicitement choisi de
  *          réécrire l'historique à partir de cette date. Une
  *          ConfirmModal côté UI liste les versions concernées.
  *
@@ -118,7 +118,7 @@ final readonly class UpdateVehicleAction
     }
 
     /**
-     * Charge la VFC courante du véhicule. Lève si introuvable —
+     * Charge la VFC courante du véhicule. Lève si introuvable -
      * un véhicule en BDD doit toujours avoir au moins la version
      * `InitialCreation` (cf. CreateVehicleAction).
      */
@@ -139,7 +139,7 @@ final readonly class UpdateVehicleAction
     /**
      * Compare champ par champ la VFC courante avec le payload : retourne
      * `true` si au moins une valeur fiscale a changé. La catégorie
-     * polluants n'est pas comparée — elle est dérivée des autres champs
+     * polluants n'est pas comparée - elle est dérivée des autres champs
      * (cf. {@see PollutantCategory::derive()}), donc tout changement de
      * polluant_category implique forcément un changement sur l'un de
      * ses inputs (énergie / norme / sous-jacent), déjà comparés.

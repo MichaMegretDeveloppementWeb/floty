@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Quatre canaux de flash messages — un par variante de Toast du DS.
+ * Quatre canaux de flash messages - un par variante de Toast du DS.
  * Les controllers alimentent via `->with('toast-success', '...')` et le
  * front lit `flash.success` (etc.).
  */

@@ -19,10 +19,10 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload d'édition d'un contrat (chantier 04.G — page Edit).
+ * Payload d'édition d'un contrat (chantier 04.G - page Edit).
  *
  * Sémantique d'avenant : modifier un contrat met à jour ses bornes en
- * place. Pas d'historique d'avenant en V1 — la traçabilité passera par
+ * place. Pas d'historique d'avenant en V1 - la traçabilité passera par
  * les documents joints (cf. ADR-0014 D6 et chantier 04.K).
  *
  * Mêmes validations que {@see StoreContractData}. Note : le trigger

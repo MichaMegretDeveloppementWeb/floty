@@ -8,7 +8,7 @@ type UnderlyingCombustionEngineType = App.Enums.Vehicle.UnderlyingCombustionEngi
 type PollutantCategory = App.Enums.Vehicle.PollutantCategory;
 
 /**
- * Vignette Crit'Air — saisie optionnelle sur le formulaire véhicule
+ * Vignette Crit'Air - saisie optionnelle sur le formulaire véhicule
  * (rubrique non encore en BDD à date 2026-04-27 ; le composable est
  * prêt à être branché quand la colonne sera ajoutée à
  * `vehicle_fiscal_characteristics`).
@@ -27,14 +27,14 @@ export type CritAirCheckResult = {
     inferredPollutantCategory: PollutantCategory | null;
     /** Catégorie polluants attendue selon la vignette Crit'Air saisie. */
     expectedFromCritAir: PollutantCategory | null;
-    /** Vrai si une divergence est détectée — alerte UI non bloquante. */
+    /** Vrai si une divergence est détectée - alerte UI non bloquante. */
     hasMismatch: boolean;
     /** Message FR à afficher en banner. `null` si aucune alerte. */
     message: string | null;
 };
 
 /**
- * R-2024-024 — Garde-fou Crit'Air (CIBS BOFiP § 270).
+ * R-2024-024 - Garde-fou Crit'Air (CIBS BOFiP § 270).
  *
  * Compare la **catégorie polluants déduite** par R-2024-013
  * (motorisation + Euro) à la **catégorie attendue** par la vignette
@@ -48,7 +48,7 @@ export type CritAirCheckResult = {
  *
  * Implémentation TS qui **réplique** la cascade R-2024-013 du backend
  * pour permettre la validation temps réel sans aller-retour HTTP.
- * Les deux implémentations doivent rester synchronisées — toute
+ * Les deux implémentations doivent rester synchronisées - toute
  * modification de R-013 côté PHP impose un audit ici.
  */
 export function useCritAirCheck(

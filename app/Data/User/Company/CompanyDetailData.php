@@ -10,7 +10,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue détaillée d'une entreprise — utilisée par la page Show Company
+ * Vue détaillée d'une entreprise - utilisée par la page Show Company
  * avec onglets (Phase 06 L4).
  */
 #[TypeScript]

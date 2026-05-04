@@ -1,7 +1,7 @@
 /**
  * Maps de traduction FR pour les enums du domaine Vehicle.
  *
- * Synchronisés à la main avec les méthodes `label()` côté PHP — le
+ * Synchronisés à la main avec les méthodes `label()` côté PHP - le
  * typage `Record<EnumValue, string>` force l'exhaustivité TS, donc
  * vue-tsc échouera si on ajoute un case enum côté PHP sans mettre
  * à jour ce fichier.

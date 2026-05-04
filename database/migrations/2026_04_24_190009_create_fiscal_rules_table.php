@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `fiscal_rules` — Index consultable des règles fiscales.
+ * Table `fiscal_rules` - Index consultable des règles fiscales.
  *
  * Cf. 02-schema-fiscal.md § 1 + ADR-0002 + ADR-0006 + ADR-0009.
  *
@@ -57,7 +57,7 @@ return new class extends Migration
             $table->index(['is_active', 'fiscal_year']);
         });
 
-        // CHECK constraints — filet SQL défensif, MySQL uniquement
+        // CHECK constraints - filet SQL défensif, MySQL uniquement
         // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT`).
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;

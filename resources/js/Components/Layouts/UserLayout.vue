@@ -18,7 +18,7 @@ withDefaults(
 
 const page = usePage();
 
-// Année fiscale — source de vérité dans les shared props Inertia.
+// Année fiscale - source de vérité dans les shared props Inertia.
 // Tant qu'une seule année de règles est codée (2024), la sélection reste
 // mécaniquement bloquée : min = max = currentYear → flèches désactivées.
 const currentYear = computed((): number => page.props.fiscal.currentYear);

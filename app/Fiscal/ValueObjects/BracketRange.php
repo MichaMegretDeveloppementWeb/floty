@@ -14,7 +14,7 @@ use App\Exceptions\Fiscal\FiscalCalculationException;
  * dernière tranche d'un barème peut avoir `upperInclusive = null` pour
  * désigner une borne ouverte (au lieu du PHP_INT_MAX historique).
  *
- * Immuable et validée au constructeur — impossible de construire une
+ * Immuable et validée au constructeur - impossible de construire une
  * tranche incohérente.
  */
 final readonly class BracketRange

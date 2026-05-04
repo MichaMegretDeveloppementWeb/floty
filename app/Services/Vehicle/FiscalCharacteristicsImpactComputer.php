@@ -12,7 +12,7 @@ use Carbon\CarbonImmutable;
  * Calcule la liste des effets de bord d'une édition de VFC sur ses
  * voisines de l'historique d'un véhicule.
  *
- * Pure fonction (pas d'I/O, pas d'état) — l'Action passe l'historique
+ * Pure fonction (pas d'I/O, pas d'état) - l'Action passe l'historique
  * complet du véhicule (sauf la VFC en cours d'édition) et les
  * nouvelles bornes proposées, et reçoit la liste des `Delete` /
  * `AdjustEffectiveFrom` / `AdjustEffectiveTo` à appliquer après le

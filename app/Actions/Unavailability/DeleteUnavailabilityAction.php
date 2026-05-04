@@ -9,7 +9,7 @@ use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepository
 /**
  * Soft-delete d'une indisponibilité véhicule.
  *
- * Action triviale aujourd'hui (passe-plat) — formalisée pour
+ * Action triviale aujourd'hui (passe-plat) - formalisée pour
  * cohérence du pattern et pour permettre l'ajout d'événements /
  * audit / notifications dans le futur sans modifier le controller.
  */

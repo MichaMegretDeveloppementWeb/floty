@@ -35,7 +35,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - les champs **fiscaux** courants (utilisés pour détecter une
  *     modification fiscale et, le cas échéant, créer une nouvelle VFC),
  *   - les **métadonnées** d'une éventuelle nouvelle version
- *     (`effectiveFrom`, `changeReason`, `changeNote`) — toutes optionnelles.
+ *     (`effectiveFrom`, `changeReason`, `changeNote`) - toutes optionnelles.
  *
  * Logique d'application (cf. {@see UpdateVehicleAction}) :
  *   - L'identité est toujours mise à jour en place.
@@ -138,7 +138,7 @@ final class UpdateVehicleData extends Data
         public bool $n1SkiLiftUse = false,
 
         // ---------- Métadonnées de la nouvelle version (optionnelles) ----------
-        // Requises uniquement si un champ fiscal a changé — détecté par
+        // Requises uniquement si un champ fiscal a changé - détecté par
         // l'Action qui compare le payload à la VFC courante. Si aucun
         // changement fiscal, ces champs sont ignorés.
         #[Date]

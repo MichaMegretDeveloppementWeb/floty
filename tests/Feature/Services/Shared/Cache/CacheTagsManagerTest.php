@@ -110,7 +110,7 @@ final class CacheTagsManagerTest extends TestCase
     {
         Cache::put('vehicle:42:fiscal', 'A', 3600);
 
-        // Argument avec `:` final — doit être toléré et normalisé.
+        // Argument avec `:` final - doit être toléré et normalisé.
         $removed = $this->manager->invalidateByPrefix('vehicle:42:');
 
         $this->assertSame(1, $removed);

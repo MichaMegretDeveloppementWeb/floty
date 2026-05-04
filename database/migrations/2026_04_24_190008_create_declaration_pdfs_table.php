@@ -8,7 +8,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `declaration_pdfs` — Historique immuable des PDF générés (ADR-0003).
+ * Table `declaration_pdfs` - Historique immuable des PDF générés (ADR-0003).
  *
  * Cf. 02-schema-fiscal.md § 3.
  *

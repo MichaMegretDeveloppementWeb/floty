@@ -40,7 +40,7 @@ final class FleetFiscalAggregatorTest extends TestCase
         $fullYearTax = $this->aggregator->vehicleFullYearTax($vehicle, self::YEAR);
 
         // WLTP 100 g/km essence M1 cat 1 = 173 € CO₂ + 100 € polluants = 273 €
-        // (sans prorata, sans LCD — le contexte est daysAssigned = daysInYear).
+        // (sans prorata, sans LCD - le contexte est daysAssigned = daysInYear).
         self::assertSame(273.0, $fullYearTax);
     }
 

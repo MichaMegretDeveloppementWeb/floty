@@ -15,7 +15,7 @@ use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Support\Carbon;
 
 /**
- * R-2024-017 — Exonération hybride conditionnelle 2024 (CIBS L. 421-125).
+ * R-2024-017 - Exonération hybride conditionnelle 2024 (CIBS L. 421-125).
  *
  * **Applicable uniquement en 2024** (supprimée par la LF 2025).
  * Concerne la **taxe CO₂ uniquement** (la taxe polluants reste due).
@@ -24,7 +24,7 @@ use Illuminate\Support\Carbon;
  *   1. Combinaison de sources d'énergie éligible
  *      - (a) électricité ou hydrogène + essence / GPL / GNV / E85
  *      - (b) GNV / GPL + essence / E85 (combinaison non modélisée
- *        par les enums Floty actuels — ignorée en V1)
+ *        par les enums Floty actuels - ignorée en V1)
  *   2. Seuils d'émissions/puissance selon la méthode CO₂ et
  *      l'ancienneté du véhicule au 01/01/2024 :
  *      - régime général (≥ 3 ans) : WLTP ≤ 60, NEDC ≤ 50, PA ≤ 3 CV

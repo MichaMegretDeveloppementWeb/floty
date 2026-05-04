@@ -36,7 +36,7 @@ final class VehicleQueryServiceTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
-        // Pas besoin d'attribution pour fullYearTax — c'est un montant
+        // Pas besoin d'attribution pour fullYearTax - c'est un montant
         // théorique pleine année, indépendant des attributions.
         $result = $this->service->listForFleetView($year);
 

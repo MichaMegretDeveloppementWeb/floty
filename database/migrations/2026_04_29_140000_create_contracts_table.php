@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `contracts` — Entité pivot du domaine fiscal après refonte
+ * Table `contracts` - Entité pivot du domaine fiscal après refonte
  * 2026-04-29 (cf. ADR-0014 « Modèle Contract et règle LCD par contrat
  * individuel »).
  *
@@ -66,7 +66,7 @@ return new class extends Migration
             $table->index(['start_date', 'end_date']);
         });
 
-        // CHECK constraint + triggers — MySQL uniquement (Schema Builder
+        // CHECK constraint + triggers - MySQL uniquement (Schema Builder
         // Laravel ne supporte pas les CHECK natifs ; SQLite ne supporte
         // ni `ALTER TABLE ADD CONSTRAINT` ni SIGNAL/SQLSTATE).
         if (DB::connection()->getDriverName() !== 'mysql') {

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Grille « État de la semaine » du drawer Planning — purement
+ * Grille « État de la semaine » du drawer Planning - purement
  * indicative depuis la refonte attribution → contrat. La saisie de
  * plage se fait au DateRangePicker du formulaire, pas ici. Les slots
  * jour ne portent donc plus de cursor / hover / handler clic.
@@ -37,7 +37,7 @@ function isSelected(date: string, selected: string[]): boolean {
                           : 'border border-dashed border-slate-200',
                     slot.hasUnavailability && 'ring-1 ring-rose-500 ring-inset',
                 ]"
-                :aria-label="slot.hasUnavailability ? `${slot.dayLabel} — indisponibilité présente` : undefined"
+                :aria-label="slot.hasUnavailability ? `${slot.dayLabel} : indisponibilité présente` : undefined"
             >
                 <span
                     :class="[

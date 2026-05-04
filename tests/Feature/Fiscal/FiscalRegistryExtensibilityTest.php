@@ -19,7 +19,7 @@ use Tests\Fiscal\Fakes\FakeWltpProgressive;
 use Tests\TestCase;
 
 /**
- * Phase 1.10 — Future-proofing du registry fiscal.
+ * Phase 1.10 - Future-proofing du registry fiscal.
  *
  * **But** : prouver, sans toucher au code de production
  * (`app/Fiscal/Year2024/...`), que le {@see FiscalRuleRegistry} est

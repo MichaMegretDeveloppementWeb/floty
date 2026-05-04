@@ -17,7 +17,7 @@ import { daysInYear as daysInYearOf } from '@/Utils/date/daysInYear';
  * les vues tant qu'une seule année est supportée.
  *
  * Expose aussi `daysInYear` (365/366) calculé à partir de l'année
- * courante — à consommer dans tous les prorata fiscaux côté UI pour
+ * courante - à consommer dans tous les prorata fiscaux côté UI pour
  * éviter les `/ 366` hardcodés.
  */
 export type UseFiscalYearReturn = {
@@ -27,7 +27,7 @@ export type UseFiscalYearReturn = {
     availableYears: ComputedRef<number[]>;
     /** Vrai si une seule année est disponible (sélecteur figé). */
     isLocked: ComputedRef<boolean>;
-    /** Jours dans l'année courante (365 ou 366) — réactif. */
+    /** Jours dans l'année courante (365 ou 366) - réactif. */
     daysInYear: ComputedRef<365 | 366>;
 };
 

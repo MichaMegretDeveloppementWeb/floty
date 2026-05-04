@@ -22,7 +22,7 @@ use Spatie\LaravelData\DataCollection;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Endpoints HTTP du domaine Contract — slim conforme ADR-0013.
+ * Endpoints HTTP du domaine Contract - slim conforme ADR-0013.
  *
  * Les pages Vue cibles `User/Contracts/*` sont créées au chantier 04.G ;
  * en attendant, les méthodes `index`, `create`, `show`, `edit` rendent

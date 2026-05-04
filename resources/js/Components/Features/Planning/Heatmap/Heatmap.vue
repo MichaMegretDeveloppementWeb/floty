@@ -72,7 +72,7 @@ const totalDays = computed((): number =>
         <!-- Container heatmap : 3 zones (fixe / scrollable / fixe) -->
         <div class="rounded-xl border border-slate-200 bg-white p-4">
             <div class="flex items-stretch">
-                <!-- ZONE GAUCHE FIXE — mini-fiches véhicules -->
+                <!-- ZONE GAUCHE FIXE - mini-fiches véhicules -->
                 <div class="shrink-0 bg-white pr-3">
                     <div class="mb-2 h-4" />
                     <div class="flex flex-col">
@@ -84,7 +84,7 @@ const totalDays = computed((): number =>
                     </div>
                 </div>
 
-                <!-- ZONE CENTRE SCROLLABLE — 52 semaines -->
+                <!-- ZONE CENTRE SCROLLABLE - 52 semaines -->
                 <div class="min-w-0 flex-1 overflow-x-auto">
                     <div :style="{ width: `${HEATMAP_GRID_WIDTH}px` }">
                         <!-- Labels mensuels -->
@@ -113,7 +113,7 @@ const totalDays = computed((): number =>
                     </div>
                 </div>
 
-                <!-- ZONE DROITE FIXE — taxe annuelle + jours total -->
+                <!-- ZONE DROITE FIXE - taxe annuelle + jours total -->
                 <div class="shrink-0 bg-white pl-3">
                     <div class="mb-2 h-4" />
                     <div class="flex flex-col">

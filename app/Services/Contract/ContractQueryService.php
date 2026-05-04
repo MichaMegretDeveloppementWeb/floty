@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Service Query du domaine Contract — composition pure des
+ * Service Query du domaine Contract - composition pure des
  * Collections retournées par le Repository en DataCollection<DTO>,
  * et helpers d'agrégation utilisés par le moteur fiscal et les
  * services consommateurs (cf. chantier 04.F).
@@ -120,7 +120,7 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Pivot du moteur fiscal — tous les contrats actifs croisant
+     * Pivot du moteur fiscal - tous les contrats actifs croisant
      * l'année regroupés par couple (vehicleId, companyId).
      */
     public function loadContractsByPair(int $year): ContractsByPair
@@ -136,7 +136,7 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Variante scopée d'un seul véhicule — utilisée par la page Show
+     * Variante scopée d'un seul véhicule - utilisée par la page Show
      * vehicle qui n'a aucun usage des autres véhicules de la flotte.
      *
      * Évite de matérialiser le pivot complet (cf. `loadContractsByPair`)
@@ -157,7 +157,7 @@ final readonly class ContractQueryService
     /**
      * Indispos par véhicule pour alimenter R-2024-008 (la règle filtre
      * elle-même les indispos qui croisent l'année et les contrats
-     * taxables — voir `R2024_008_ReductiveUnavailability::evaluate()`).
+     * taxables - voir `R2024_008_ReductiveUnavailability::evaluate()`).
      *
      * Délègue à un `WHERE vehicle_id IN (?)` unique côté repository ;
      * un véhicule sans indispo est absent du map (les appelants
@@ -182,7 +182,7 @@ final readonly class ContractQueryService
      * dans le filet du trigger MySQL anti-overlap.
      *
      * Pour l'écran Edit, on exclut les dates du contrat en cours
-     * d'édition via `excludeContractId` — sinon l'utilisateur ne pourrait
+     * d'édition via `excludeContractId` - sinon l'utilisateur ne pourrait
      * pas réenregistrer son contrat sans le « déplacer » d'abord.
      *
      * @return array<int, list<string>>
@@ -220,7 +220,7 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Liste des dates ISO occupées par un véhicule sur une période —
+     * Liste des dates ISO occupées par un véhicule sur une période -
      * source de `busyDates` côté page Vehicle Show (calendrier indispo).
      *
      * @return list<string>
@@ -247,7 +247,7 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Dates ISO d'un couple sur l'année — preview taxes (incrément
+     * Dates ISO d'un couple sur l'année - preview taxes (incrément
      * journalier potentiel d'un nouvel ajout dans le drawer planning).
      *
      * @return list<string>
@@ -303,7 +303,7 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Densité par véhicule × semaine ISO de l'année — heatmap planning.
+     * Densité par véhicule × semaine ISO de l'année - heatmap planning.
      * Clé = `"vehicleId|weekNumber"` ; valeur = nombre de jours
      * occupés par au moins un contrat du véhicule cette semaine.
      *
@@ -333,7 +333,7 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Contrats du véhicule chevauchant la fenêtre [start, end] —
+     * Contrats du véhicule chevauchant la fenêtre [start, end] -
      * drawer semaine planning (avec relation `company` eager-loaded).
      *
      * @return Collection<int, Contract>

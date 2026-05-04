@@ -22,7 +22,7 @@ vi.mock('@inertiajs/vue3', () => ({
     }),
 }));
 
-// Import après vi.mock — l'ordre est intentionnel pour que le mock
+// Import après vi.mock - l'ordre est intentionnel pour que le mock
 // d'@inertiajs/vue3 soit installé avant l'évaluation du composable.
 // eslint-disable-next-line import/order
 import { useFlashToasts } from '@/Composables/Shared/useFlashToasts';
@@ -120,7 +120,7 @@ describe('useFlashToasts', () => {
 
     it('ignore les chaînes vides et les valeurs non-string', async () => {
         flashState.success = '';
-        // simulate accidental non-string sneak — ignored
+        // simulate accidental non-string sneak - ignored
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (flashState as any).error = 0;
 

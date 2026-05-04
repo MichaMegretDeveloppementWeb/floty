@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Réponse de l'endpoint `GET /app/planning/week` — détail d'une
+ * Réponse de l'endpoint `GET /app/planning/week` - détail d'une
  * semaine pour un véhicule donné, consommée par le drawer planning.
  */
 #[TypeScript]

@@ -18,7 +18,7 @@ use Illuminate\Contracts\Session\Session;
  *      configuration (`available_years[0]`)
  *
  * **Pourquoi pas la config** : si l'année active vivait dans `config(...)`,
- * elle serait globale à l'application — un changement basculerait tous
+ * elle serait globale à l'application - un changement basculerait tous
  * les utilisateurs simultanément. La session permet à chaque utilisateur
  * d'avoir son année active indépendamment des autres.
  *

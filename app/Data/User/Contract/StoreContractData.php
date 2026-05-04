@@ -20,7 +20,7 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création d'un contrat (chantier 04.G — page Create).
+ * Payload de création d'un contrat (chantier 04.G - page Create).
  *
  * **Validations posées par DB et par les triggers** (en plus de celles
  * ci-dessous) :

@@ -21,11 +21,11 @@ defineProps<{
                 </dd>
                 <dt class="text-slate-500">SIREN</dt>
                 <dd class="font-mono text-slate-900">
-                    {{ company.siren ?? '—' }}
+                    {{ company.siren ?? 'Non renseigné' }}
                 </dd>
                 <dt class="text-slate-500">SIRET</dt>
                 <dd class="font-mono text-slate-900">
-                    {{ company.siret ?? '—' }}
+                    {{ company.siret ?? 'Non renseigné' }}
                 </dd>
             </dl>
         </Card>
@@ -33,7 +33,7 @@ defineProps<{
         <Card>
             <h3 class="mb-3 text-base font-semibold text-slate-900">Adresse</h3>
             <p class="text-sm text-slate-700">
-                {{ company.addressLine1 ?? '—'
+                {{ company.addressLine1 ?? 'Non renseigné'
                 }}<br v-if="company.addressLine2 !== null" />
                 <span v-if="company.addressLine2 !== null">{{
                     company.addressLine2
@@ -48,14 +48,14 @@ defineProps<{
             <h3 class="mb-3 text-base font-semibold text-slate-900">Contact</h3>
             <dl class="grid grid-cols-[100px_1fr] gap-2 text-sm">
                 <dt class="text-slate-500">Nom</dt>
-                <dd class="text-slate-900">{{ company.contactName ?? '—' }}</dd>
+                <dd class="text-slate-900">{{ company.contactName ?? 'Non renseigné' }}</dd>
                 <dt class="text-slate-500">Email</dt>
                 <dd class="text-slate-900">
-                    {{ company.contactEmail ?? '—' }}
+                    {{ company.contactEmail ?? 'Non renseigné' }}
                 </dd>
                 <dt class="text-slate-500">Téléphone</dt>
                 <dd class="text-slate-900">
-                    {{ company.contactPhone ?? '—' }}
+                    {{ company.contactPhone ?? 'Non renseigné' }}
                 </dd>
             </dl>
         </Card>

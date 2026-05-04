@@ -1,7 +1,7 @@
 import '@/types/generated/generated';
 
 /**
- * PageProps Floty — shared props exposées par `HandleInertiaRequests`
+ * PageProps Floty - shared props exposées par `HandleInertiaRequests`
  * à chaque page Inertia, typées strictement via les DTOs Spatie Data
  * générés automatiquement (cf. `@/types/generated/generated.d.ts`).
  *

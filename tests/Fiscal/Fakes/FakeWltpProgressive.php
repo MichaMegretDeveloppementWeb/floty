@@ -14,7 +14,7 @@ use App\Fiscal\Pipeline\PipelineContext;
  * prouver que le registry accepte une année arbitraire (au-delà des
  * `Year2024/...` enregistrées en production).
  *
- * Pose un `co2FullYearTariff` constant — pas de logique réaliste.
+ * Pose un `co2FullYearTariff` constant - pas de logique réaliste.
  * **Ne jamais référencer cette classe depuis le code de production.**
  */
 final readonly class FakeWltpProgressive implements PricingRule

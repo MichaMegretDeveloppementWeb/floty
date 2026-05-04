@@ -17,7 +17,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Planning — vue d'ensemble heatmap annuelle (CDC § 3.3) +
+ * Planning - vue d'ensemble heatmap annuelle (CDC § 3.3) +
  * détail semaine (drawer) + preview taxes + création de contrats.
  *
  * **Refonte 04.F (ADR-0014)** : `storeBulk` crée désormais des contrats
@@ -61,7 +61,7 @@ final class PlanningController extends Controller
     }
 
     /**
-     * POST /app/planning/contracts — création d'un (ou plusieurs)
+     * POST /app/planning/contracts - création d'un (ou plusieurs)
      * contrat(s) sur une plage commune `[start_date, end_date]` à
      * partir du wizard d'attribution rapide du planning.
      *

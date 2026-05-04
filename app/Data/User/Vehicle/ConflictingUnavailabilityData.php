@@ -10,7 +10,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Description minimale d'une indisponibilité active qui déborde une
- * date de sortie de flotte proposée — affichée dans la modale Sortie
+ * date de sortie de flotte proposée - affichée dans la modale Sortie
  * pour permettre à l'utilisateur d'aller la résoudre.
  */
 #[TypeScript]

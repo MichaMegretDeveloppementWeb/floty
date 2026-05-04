@@ -11,7 +11,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Implémentation Eloquent des lectures Contract — slim conforme
+ * Implémentation Eloquent des lectures Contract - slim conforme
  * ADR-0013 (zéro transformation, zéro décision métier).
  *
  * La composition de DTOs vit dans

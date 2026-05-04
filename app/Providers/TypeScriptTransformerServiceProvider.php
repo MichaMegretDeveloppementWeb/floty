@@ -20,7 +20,7 @@ use Spatie\TypeScriptTransformer\Writers\GlobalNamespaceWriter;
  *
  *     import type { VehicleListItemData } from '@/types/generated';
  *
- * Aucun type métier ne doit être redéclaré inline dans les composants —
+ * Aucun type métier ne doit être redéclaré inline dans les composants -
  * la source de vérité est ici, côté PHP.
  */
 class TypeScriptTransformerServiceProvider extends BaseTypeScriptTransformerServiceProvider

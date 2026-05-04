@@ -36,7 +36,7 @@ const props = defineProps<{
     /**
      * Map véhicule → dates ISO déjà occupées par un autre contrat actif.
      * Empêche l'utilisateur de saisir une plage en chevauchement (chantier
-     * H — l'erreur backend reste le filet de sécurité). Le picker grise
+     * H - l'erreur backend reste le filet de sécurité). Le picker grise
      * les dates concernées dès qu'un véhicule est sélectionné.
      */
     busyDatesByVehicleId: Record<number, string[]>;
@@ -123,7 +123,7 @@ const disabledDates = computed<string[]>(() => {
 // libre → on efface start_date et end_date.
 //
 // Le watch ne réagit qu'aux **changements** de `disabledDates` (pas au
-// mount) — donc l'ouverture en mode édition ne déclenche aucun reset
+// mount) - donc l'ouverture en mode édition ne déclenche aucun reset
 // involontaire.
 watch(disabledDates, (newDisabled) => {
     if (range.value.startDate === null || range.value.endDate === null) {

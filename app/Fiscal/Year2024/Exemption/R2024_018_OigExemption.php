@@ -10,7 +10,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 
 /**
- * R-2024-018 — Exonération organisme d'intérêt général (CIBS L. 421-126
+ * R-2024-018 - Exonération organisme d'intérêt général (CIBS L. 421-126
  * / L. 421-138).
  *
  * Si l'entreprise utilisatrice est un organisme d'intérêt général
@@ -24,7 +24,7 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
  *
  * Note V1 : tant que le {@see PipelineContext} ne porte pas la
  * `Company` du couple, cette règle retourne `notExempt()`. Le critère
- * d'affectation exclusive sera évalué côté contrat (V2) — pas sur la
+ * d'affectation exclusive sera évalué côté contrat (V2) - pas sur la
  * VFC, qui ne porte pas la sémantique d'usage par entreprise.
  */
 final readonly class R2024_018_OigExemption implements ExemptionRule

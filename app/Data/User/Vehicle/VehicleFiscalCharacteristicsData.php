@@ -23,9 +23,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * Utilisé dans la page Show pour afficher la version courante et
  * l'historique. Les champs étendus (n1_*, m1_*, exempted activity,
- * underlying engine type, kerb mass) sont exposés en lecture seule —
+ * underlying engine type, kerb mass) sont exposés en lecture seule -
  * non éditables via le formulaire Create/Edit (cf. mémoire architecture
- * — décision client : restent à null/false par défaut, prévus pour
+ * - décision client : restent à null/false par défaut, prévus pour
  * usage futur).
  */
 #[TypeScript]

@@ -48,7 +48,7 @@ final class LeaveDriverCompanyMembershipAction
     {
         $leftAt = Carbon::parse($data->leftAt);
 
-        // 1. Trouver la membership active — throw avant la transaction
+        // 1. Trouver la membership active - throw avant la transaction
         $pivot = $this->driverReadRepo->findActiveMembership($driver->id, $companyId);
         if ($pivot === null) {
             throw DriverMembershipNotFoundException::forActiveMembership($driver->id, $companyId);
@@ -99,7 +99,7 @@ final class LeaveDriverCompanyMembershipAction
     ): void {
         $company = $this->companyReadRepo->findById($companyId);
         if ($company === null) {
-            // Cas dégénéré : pivot existait mais la company a disparu — ne devrait
+            // Cas dégénéré : pivot existait mais la company a disparu - ne devrait
             // jamais arriver vu le restrictOnDelete sur la pivot. Défense en profondeur.
             throw DriverMembershipNotFoundException::forActiveMembership($driver->id, $companyId);
         }

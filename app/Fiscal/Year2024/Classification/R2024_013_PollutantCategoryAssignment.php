@@ -10,12 +10,12 @@ use App\Fiscal\Contracts\ClassificationRule;
 use App\Fiscal\Pipeline\PipelineContext;
 
 /**
- * R-2024-013 — Catégorisation polluants algorithmique
+ * R-2024-013 - Catégorisation polluants algorithmique
  * (CIBS art. L. 421-134).
  *
  * La cascade complète vit dans {@see PollutantCategory::derive()} pour
  * que la même logique s'applique aussi à l'écriture (Repository) et au
- * front (mirroir TS) — voir le docblock de l'enum.
+ * front (mirroir TS) - voir le docblock de l'enum.
  *
  * Cette règle pose simplement la catégorie résolue sur le contexte de
  * calcul, à partir des champs canoniques de la VFC (sans relire le

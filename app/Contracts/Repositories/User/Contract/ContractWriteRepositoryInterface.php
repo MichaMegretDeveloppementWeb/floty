@@ -11,10 +11,10 @@ use App\Enums\Contract\ContractType;
 use App\Models\Contract;
 
 /**
- * Écritures Contract — interface slim conforme ADR-0013.
+ * Écritures Contract - interface slim conforme ADR-0013.
  *
  * Aucune décision métier ici (validation overlap, transactions
- * multi-entités, etc.) — c'est le rôle des Actions du domaine.
+ * multi-entités, etc.) - c'est le rôle des Actions du domaine.
  *
  * **Refonte 04.K** : `contract_type` est passé en paramètre séparé,
  * dérivé par l'Action via {@see Contract::deriveTypeFromDates()}.
@@ -33,7 +33,7 @@ interface ContractWriteRepositoryInterface
     public function delete(int $contractId): void;
 
     /**
-     * Création atomique de plusieurs contrats — utilisée par
+     * Création atomique de plusieurs contrats - utilisée par
      * {@see BulkCreateContractsAction}. La
      * transaction est portée par l'Action ; ce repo se contente
      * d'enchaîner les inserts.

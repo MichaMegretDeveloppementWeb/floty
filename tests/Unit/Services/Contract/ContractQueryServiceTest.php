@@ -13,7 +13,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests du Service Query — composition DTOs + helper expandToDays
+ * Tests du Service Query - composition DTOs + helper expandToDays
  * (utilisé par le moteur fiscal en 04.F pour le numérateur du prorata,
  * cf. R-2024-002).
  */

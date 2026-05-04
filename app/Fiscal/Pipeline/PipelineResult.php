@@ -19,7 +19,7 @@ use App\Services\Fiscal\FleetFiscalAggregator;
  *
  * Les `appliedRuleCodes` permettent au snapshot PDF de référencer
  * précisément quelles règles ont participé au calcul (ADR-0006 § 5
- * + ADR-0009 — pas de version, juste le rule_code).
+ * + ADR-0009 - pas de version, juste le rule_code).
  *
  * @phpstan-type FiscalRuleCode string
  */
@@ -29,7 +29,7 @@ final readonly class PipelineResult
      * `co2Due`, `pollutantsDue`, `totalDue` sont **arrondis half-up à
      * 2 décimales** pour l'affichage par couple (PDF ligne véhicule,
      * drawer planning). Les `*Raw` portent la valeur **avant arrondi**
-     * — utilisés par le {@see FleetFiscalAggregator}
+     * - utilisés par le {@see FleetFiscalAggregator}
      * pour appliquer R-2024-003 (un seul arrondi par redevable au
      * niveau entreprise).
      *

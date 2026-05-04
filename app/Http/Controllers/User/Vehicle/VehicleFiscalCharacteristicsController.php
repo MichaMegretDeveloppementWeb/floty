@@ -16,7 +16,7 @@ use Illuminate\Http\RedirectResponse;
  * CRUD partiel sur l'historique fiscal d'un véhicule (modale
  * Historique de la page Show). Le store est porté par
  * `UpdateVehicleAction` (mode « Nouvelle version » du formulaire
- * d'édition véhicule), pas ici — ce controller ne gère que
+ * d'édition véhicule), pas ici - ce controller ne gère que
  * l'update et le delete d'une VFC existante.
  */
 final class VehicleFiscalCharacteristicsController extends Controller
@@ -62,7 +62,7 @@ final class VehicleFiscalCharacteristicsController extends Controller
         }
 
         $lines = array_map(
-            static fn (FiscalCharacteristicsImpact $i): string => '— '.$i->describe(),
+            static fn (FiscalCharacteristicsImpact $i): string => '- '.$i->describe(),
             $impacts,
         );
 

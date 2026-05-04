@@ -12,7 +12,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Représentation minimale de l'utilisateur connecté, exposée aux pages
  * Inertia via les shared props `auth.user`.
  *
- * `null` quand aucun utilisateur n'est authentifié — exprimé côté
+ * `null` quand aucun utilisateur n'est authentifié - exprimé côté
  * shared props via `?CurrentUserData`.
  */
 #[TypeScript]

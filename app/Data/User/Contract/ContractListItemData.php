@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue liste d'un contrat — utilisée par la table de la page
+ * Vue liste d'un contrat - utilisée par la table de la page
  * `User/Contracts/Index/Index.vue` (chantier 04.G). Champs essentiels
  * uniquement pour limiter le payload Inertia.
  */

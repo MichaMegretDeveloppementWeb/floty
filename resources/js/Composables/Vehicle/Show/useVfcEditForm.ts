@@ -21,7 +21,7 @@ type SelectOption = { value: string; label: string };
  *   - synchronise le `useForm` quand `props.editing` change (la
  *     modale est partagée entre toutes les lignes de l'historique),
  *   - expose les motifs sélectionnables (tous sauf `initial_creation`
- *     qui est réservé au système) — l'historique permet plus de
+ *     qui est réservé au système) - l'historique permet plus de
  *     motifs que le flux Edit véhicule,
  *   - **calcule en live l'impact** sur les voisines via
  *     `computeVfcUpdateImpact()` pour que la modale puisse afficher
@@ -104,7 +104,7 @@ export function useVfcEditForm(
                 form.effective_to = value.effectiveTo ?? '';
                 // Pour une « Création initiale », on conserve la valeur
                 // d'origine telle quelle. Le champ Motif est masqué côté
-                // UI et la valeur n'est pas modifiable — sémantiquement
+                // UI et la valeur n'est pas modifiable - sémantiquement
                 // ce n'est pas un changement, c'est l'origine.
                 form.change_reason = value.changeReason;
                 form.change_note = value.changeNote ?? '';

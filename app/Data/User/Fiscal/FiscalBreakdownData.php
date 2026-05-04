@@ -15,7 +15,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Pendant Spatie Data, exposé front, du DTO interne
  * {@see FiscalBreakdown}.
  *
- * Conversion explicite via {@see self::fromBreakdown()} — pas de
+ * Conversion explicite via {@see self::fromBreakdown()} - pas de
  * conversion magique par réflexion.
  */
 #[TypeScript]

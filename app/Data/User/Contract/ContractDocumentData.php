@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue d'un document PDF joint à un contrat — utilisée par la section
+ * Vue d'un document PDF joint à un contrat - utilisée par la section
  * « Documents » de la page Show contrat (chantier 04.N).
  *
  * `downloadUrl` est calculé côté serveur via `route()` pour que le

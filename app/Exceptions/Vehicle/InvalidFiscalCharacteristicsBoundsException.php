@@ -8,7 +8,7 @@ use App\Exceptions\BaseAppException;
 
 /**
  * Les bornes (`effective_from` / `effective_to`) soumises par
- * l'utilisateur sont invalides à elles seules — sans considérer
+ * l'utilisateur sont invalides à elles seules - sans considérer
  * l'historique du véhicule.
  *
  * Cas couverts :

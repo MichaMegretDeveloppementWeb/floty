@@ -4,7 +4,7 @@
  * la semaine 1 contient le 4 janvier.
  *
  * Suffisant pour griser les cellules « après exit_date » dans la
- * heatmap — pas pour de la fiscalité (où le backend reste autorité).
+ * heatmap - pas pour de la fiscalité (où le backend reste autorité).
  */
 export function isoWeekOf(date: string): number {
     const target = new Date(`${date}T00:00:00`);

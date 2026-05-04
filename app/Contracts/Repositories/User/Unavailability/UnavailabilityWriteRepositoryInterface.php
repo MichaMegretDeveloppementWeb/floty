@@ -10,7 +10,7 @@ use App\Models\Unavailability;
  * Écritures sur le domaine Unavailability.
  *
  * Repo pur : aucune décision métier (calcul de `has_fiscal_impact`
- * via l'enum, validation, etc.) — c'est le rôle des Actions.
+ * via l'enum, validation, etc.) - c'est le rôle des Actions.
  */
 interface UnavailabilityWriteRepositoryInterface
 {

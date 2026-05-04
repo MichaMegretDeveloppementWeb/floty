@@ -11,16 +11,16 @@ namespace App\Enums\Vehicle;
  *   - `InitialCreation`    : 1ʳᵉ version créée à l'insertion du véhicule.
  *   - `Recharacterization` : reclassement fiscal du véhicule (changement
  *                            d'énergie, de catégorie polluants, conversion
- *                            E85, ajout 2ᵉ rang…) — crée une nouvelle
+ *                            E85, ajout 2ᵉ rang…) - crée une nouvelle
  *                            version, ferme la précédente.
  *   - `RegulationChange`   : adaptation suite à un changement de cadre
  *                            réglementaire (loi de finances, nouvelle norme
- *                            Euro applicable…) — crée une nouvelle version.
+ *                            Euro applicable…) - crée une nouvelle version.
  *   - `OtherChange`        : autre changement effectif non couvert par les
- *                            deux précédents — `change_note` doit alors
+ *                            deux précédents - `change_note` doit alors
  *                            être renseignée.
  *   - `InputCorrection`    : correction d'une saisie erronée sur la version
- *                            existante — `UPDATE` direct, pas de nouvelle
+ *                            existante - `UPDATE` direct, pas de nouvelle
  *                            ligne.
  */
 enum FiscalCharacteristicsChangeReason: string

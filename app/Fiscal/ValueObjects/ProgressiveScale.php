@@ -17,7 +17,7 @@ use App\Exceptions\Fiscal\FiscalCalculationException;
  *   - la dernière tranche peut être ouverte (`upperInclusive = null`)
  *     pour couvrir l'infini
  *
- * Validé au constructeur — toute incohérence lève une
+ * Validé au constructeur - toute incohérence lève une
  * {@see FiscalCalculationException} immédiatement.
  */
 final readonly class ProgressiveScale

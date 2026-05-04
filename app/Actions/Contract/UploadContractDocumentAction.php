@@ -19,7 +19,7 @@ use Illuminate\Http\UploadedFile;
  * physiquement et de persister. Le stockage et la persistance ne sont
  * pas dans une transaction commune (le filesystem n'est pas
  * transactionnel) ; en cas d'échec DB après upload, le fichier
- * physique reste sur le disk — un job de cleanup pourra purger les
+ * physique reste sur le disk - un job de cleanup pourra purger les
  * orphelins en V2 si besoin.
  */
 final readonly class UploadContractDocumentAction

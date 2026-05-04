@@ -352,7 +352,7 @@ final class SchemaSmokeTest extends TestCase
         $this->assertSoftDeleted($first);
 
         // La même plaque doit pouvoir être réutilisée sur un nouveau véhicule
-        // (UNIQUE filtré par `deleted_at IS NULL` — colonne générée `license_plate_active`).
+        // (UNIQUE filtré par `deleted_at IS NULL` - colonne générée `license_plate_active`).
         $second = Vehicle::create([
             'license_plate' => 'AA-001-AA',
             'brand' => 'Test',

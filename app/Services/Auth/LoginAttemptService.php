@@ -14,16 +14,16 @@ use Illuminate\Support\Str;
  * Gestion du rate-limit sur les tentatives de connexion (ADR-0011).
  *
  * Double couche :
- *   - 5 tentatives / 15 min sur le couple email+IP — anti bruteforce
+ *   - 5 tentatives / 15 min sur le couple email+IP - anti bruteforce
  *     ciblé d'un compte précis.
- *   - 50 tentatives / 15 min sur l'IP seule — anti attaques distribuées
+ *   - 50 tentatives / 15 min sur l'IP seule - anti attaques distribuées
  *     (un attaquant avec N IPs ne peut pas faire 5×N tentatives par
  *     email).
  *
  * L'événement {@see Lockout} est dispatché à chaque blocage pour
  * permettre aux listeners (audit, alerte sécurité) d'observer.
  *
- * Service stateless — toutes les bornes vivent dans le RateLimiter.
+ * Service stateless - toutes les bornes vivent dans le RateLimiter.
  * Testable sans HTTP via {@see RateLimiter::clear()} dans `setUp`.
  */
 final class LoginAttemptService

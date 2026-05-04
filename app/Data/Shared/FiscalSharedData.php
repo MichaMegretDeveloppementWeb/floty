@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Bloc `fiscal` des shared props Inertia — année courante + années
+ * Bloc `fiscal` des shared props Inertia - année courante + années
  * disponibles. Source unique de vérité côté front pour
  * `useFiscalYear()`.
  */

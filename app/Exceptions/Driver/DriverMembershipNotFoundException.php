@@ -18,7 +18,7 @@ final class DriverMembershipNotFoundException extends BaseAppException
     {
         return new self(
             sprintf('No active membership for driver %d in company %d.', $driverId, $companyId),
-            'Aucune appartenance active à cette entreprise.',
+            'Aucun rattachement actif à cette entreprise.',
         );
     }
 
@@ -26,7 +26,7 @@ final class DriverMembershipNotFoundException extends BaseAppException
     {
         return new self(
             sprintf('Membership pivot %d not found.', $pivotId),
-            'Appartenance introuvable.',
+            'Rattachement introuvable.',
         );
     }
 }
