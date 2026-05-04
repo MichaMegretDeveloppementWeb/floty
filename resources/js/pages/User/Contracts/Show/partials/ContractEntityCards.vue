@@ -67,7 +67,7 @@ function driverInitials(): string {
                 </span>
                 <CompanyTag
                     :name="contract.companyLegalName"
-                    :initials="contract.companyShortCode.slice(0, 2)"
+                    :initials="contract.companyShortCode"
                     :color="contract.companyColor"
                 />
             </div>

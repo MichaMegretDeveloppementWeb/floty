@@ -93,7 +93,7 @@ function onHeaderClick(columnKey: string): void {
             <div class="flex flex-col items-start gap-1">
                 <CompanyTag
                     :name="row.companyLegalName"
-                    :initials="row.companyShortCode.slice(0, 2)"
+                    :initials="row.companyShortCode"
                     :color="row.companyColor"
                 />
                 <span
@@ -146,7 +146,7 @@ function onHeaderClick(columnKey: string): void {
                     </div>
                     <CompanyTag
                         :name="row.companyLegalName"
-                        :initials="row.companyShortCode.slice(0, 2)"
+                        :initials="row.companyShortCode"
                         :color="row.companyColor"
                     />
                     <p class="text-xs text-slate-500">

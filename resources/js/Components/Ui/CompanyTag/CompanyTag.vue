@@ -47,7 +47,7 @@ const dotClasses = computed<string>(() => {
     >
         <span
             :class="[
-                'flex h-[18px] w-[18px] items-center justify-center rounded-full text-[9px] font-semibold text-white uppercase',
+                'flex h-[25px] w-[25px] items-center justify-center rounded-full text-[10px] font-semibold tracking-tight text-white uppercase',
                 dotClasses,
             ]"
             aria-hidden="true"

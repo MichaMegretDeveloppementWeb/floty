@@ -17,7 +17,7 @@ defineProps<{
             >
                 <CompanyTag
                     :name="entry.company.shortCode"
-                    :initials="entry.company.shortCode.slice(0, 2)"
+                    :initials="entry.company.shortCode"
                     :color="entry.company.color"
                 />
                 <div class="flex-1 truncate text-slate-700">

@@ -19,7 +19,7 @@ defineProps<{
         <div class="flex items-center justify-between">
             <CompanyTag
                 :name="company.legalName"
-                :initials="company.shortCode.slice(0, 2)"
+                :initials="company.shortCode"
                 :color="company.color"
             />
             <div class="text-right text-sm text-slate-600">

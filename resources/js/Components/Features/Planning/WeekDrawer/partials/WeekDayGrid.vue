@@ -62,7 +62,7 @@ function isSelected(date: string, selected: string[]): boolean {
                 <CompanyTag
                     v-if="slot.contract"
                     :name="slot.contract.company.shortCode"
-                    :initials="slot.contract.company.shortCode.slice(0, 2)"
+                    :initials="slot.contract.company.shortCode"
                     :color="slot.contract.company.color"
                     class="mt-1"
                 />

@@ -25,7 +25,12 @@ export function useCompanyFiscalBreakdownTable(props: {
         { key: 'daysUsed', label: 'Jours', align: 'right', mono: true },
         { key: 'proratoPercent', label: 'Prorata', align: 'right', mono: true },
         { key: 'taxCo2', label: 'Taxe CO₂', align: 'right', mono: true },
-        { key: 'taxPollutants', label: 'Taxe polluant', align: 'right', mono: true },
+        {
+            key: 'taxPollutants',
+            label: 'Taxe polluant',
+            align: 'right',
+            mono: true,
+        },
         { key: 'taxTotal', label: 'Total', align: 'right', mono: true },
     ];
 
@@ -49,8 +54,7 @@ export function useCompanyFiscalBreakdownTable(props: {
         props.stats.companies.reduce((sum, c) => sum + c.taxTotal, 0),
     );
 
-    const initialsOf = (shortCode: string): string =>
-        shortCode.slice(0, 2).toUpperCase();
+    const initialsOf = (shortCode: string): string => shortCode.toUpperCase();
 
     return {
         columns,
