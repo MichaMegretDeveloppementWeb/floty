@@ -57,11 +57,15 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             });
         }
 
-        // Filtre entreprise — drivers ayant ou ayant eu un membership.
+        // Filtre entreprise — drivers ACTIVEMENT rattachés à l'entreprise
+        // (membership ouvert, left_at IS NULL). Les rattachements clos ne
+        // sont pas remontés : si un conducteur a quitté l'entreprise, on
+        // ne le voit plus apparaître quand on filtre sur celle-ci.
         if ($query->companyId !== null) {
             $companyId = $query->companyId;
             $eloquentQuery->whereHas('companies', function ($q) use ($companyId): void {
-                $q->where('companies.id', $companyId);
+                $q->where('companies.id', $companyId)
+                    ->whereNull('driver_company.left_at');
             });
         }
 

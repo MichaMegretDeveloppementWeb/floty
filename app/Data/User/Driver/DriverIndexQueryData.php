@@ -12,8 +12,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * DTO d'entrée pour l'Index Drivers server-side (cf. ADR-0020).
  *
  * Filtres :
- *  - `companyId` : drivers ayant ou ayant eu un membership avec cette
- *    entreprise (toutes périodes confondues — actif ou passé)
+ *  - `companyId` : drivers ACTIVEMENT rattachés à cette entreprise
+ *    (membership ouvert, `driver_company.left_at IS NULL`). Les
+ *    rattachements clos sont exclus.
  *  - `activityStatus` : 'active' = au moins un membership ouvert ;
  *    'inactive' = aucun membership ouvert
  *  - `contractsScope` : 'with' = au moins un contrat ; 'without' = aucun
