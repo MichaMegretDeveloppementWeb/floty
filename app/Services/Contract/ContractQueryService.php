@@ -111,6 +111,33 @@ final readonly class ContractQueryService
     }
 
     /**
+     * Variante de `listPaginated` qui force le `companyId` à la valeur
+     * passée en paramètre — utilisée par l'onglet Contrats de la fiche
+     * Company (chantier N.1). On ne fait pas confiance au query param
+     * de l'URL : la fiche Company impose son propre `companyId`.
+     */
+    public function listPaginatedForCompany(
+        int $companyId,
+        ContractIndexQueryData $query,
+    ): PaginatedContractListData {
+        $scoped = new ContractIndexQueryData(
+            vehicleId: $query->vehicleId,
+            companyId: $companyId,
+            driverId: $query->driverId,
+            type: $query->type,
+            periodStart: $query->periodStart,
+            periodEnd: $query->periodEnd,
+            page: $query->page,
+            perPage: $query->perPage,
+            search: $query->search,
+            sortKey: $query->sortKey,
+            sortDirection: $query->sortDirection,
+        );
+
+        return $this->listPaginated($scoped);
+    }
+
+    /**
      * Liste des contrats d'une entreprise utilisatrice (page company show).
      *
      * @return DataCollection<int, ContractListItemData>

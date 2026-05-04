@@ -7,11 +7,13 @@ namespace App\Http\Controllers\User\Company;
 use App\Actions\Company\CreateCompanyAction;
 use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\StoreCompanyData;
+use App\Data\User\Contract\ContractIndexQueryData;
 use App\Exceptions\Company\CompanyShortCodeCollisionException;
 use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Services\Company\CompanyQueryService;
+use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +26,7 @@ final class CompanyController extends Controller
     public function __construct(
         private readonly CompanyQueryService $companies,
         private readonly DriverQueryService $drivers,
+        private readonly ContractQueryService $contracts,
         private readonly CreateCompanyAction $createCompany,
         private readonly FiscalYearResolver $fiscalYear,
     ) {}
@@ -36,7 +39,7 @@ final class CompanyController extends Controller
         ]);
     }
 
-    public function show(Company $company): Response
+    public function show(Company $company, ContractIndexQueryData $contractsQuery): Response
     {
         $detail = $this->companies->detail($company->id);
 
@@ -52,6 +55,17 @@ final class CompanyController extends Controller
                 // filtre côté front les drivers déjà rattachés à la company.
                 'drivers' => $this->drivers->listForOptions(),
             ],
+            // Onglet Contrats — table paginée server-side (chantier N.1).
+            // Le query DTO standard `ContractIndexQueryData` est consommé
+            // directement (filtres `periodStart`/`periodEnd`, `type`,
+            // pagination, tri). Le `companyId` est forcé côté service à
+            // `$company->id` indépendamment de ce qui pourrait venir de
+            // l'URL — la fiche Company impose son propre scope.
+            'contracts' => $this->contracts->listPaginatedForCompany(
+                $company->id,
+                $contractsQuery,
+            ),
+            'contractsQuery' => $contractsQuery,
         ]);
     }
 

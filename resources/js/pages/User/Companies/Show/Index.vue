@@ -17,6 +17,8 @@ const props = defineProps<{
     options: {
         drivers: DriverOption[];
     };
+    contracts: App.Data.User.Contract.PaginatedContractListData;
+    contractsQuery: App.Data.User.Contract.ContractIndexQueryData;
 }>();
 
 const { activeTab, setTab } = useCompanyTabs();
@@ -38,6 +40,8 @@ const { activeTab, setTab } = useCompanyTabs();
             <CompanyContractsTab
                 v-else-if="activeTab === 'contracts'"
                 :company="props.company"
+                :contracts="props.contracts"
+                :contracts-query="props.contractsQuery"
             />
             <CompanyDriversTab
                 v-else-if="activeTab === 'drivers'"

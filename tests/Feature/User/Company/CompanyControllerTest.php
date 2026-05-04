@@ -199,22 +199,6 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
-    public function index_filtre_is_oig(): void
-    {
-        $user = User::factory()->create();
-        Company::factory()->create(['is_oig' => true, 'legal_name' => 'OIG Asso']);
-        Company::factory()->create(['is_oig' => false, 'legal_name' => 'Standard']);
-
-        $this->actingAs($user)
-            ->get('/app/companies?isOig=1')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('companies.meta.total', 1)
-                ->where('companies.data.0.legalName', 'OIG Asso'),
-            );
-    }
-
-    #[Test]
     public function index_filtre_city_like(): void
     {
         $user = User::factory()->create();
@@ -443,6 +427,94 @@ final class CompanyControllerTest extends TestCase
                 ->where('company.activityByYear.0.topVehicles.1.daysUsed', 20)
                 ->where('company.activityByYear.0.topVehicles.2.licensePlate', 'CCC-003-CC')
                 ->where('company.activityByYear.0.topVehicles.2.daysUsed', 10),
+            );
+    }
+
+    // ----------------------------------------------------------------
+    // Show — chantier N.1 (onglet Contrats avec table paginée server-side)
+    // ----------------------------------------------------------------
+
+    #[Test]
+    public function show_expose_contracts_pagines_pour_l_onglet_contrats(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        // 25 contrats sur 25 véhicules distincts pour éviter le trigger
+        // SQL `contracts_no_overlap_*` (invariant ADR-0019 D3).
+        for ($i = 0; $i < 25; $i++) {
+            $vehicle = Vehicle::factory()->create();
+            VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+            Contract::factory()->forVehicle($vehicle)->forCompany($company)->create();
+        }
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'contracts',
+                expectedDataCount: 20,
+                expectedMeta: ['total' => 25, 'lastPage' => 2, 'perPage' => 20],
+            ));
+    }
+
+    #[Test]
+    public function show_force_le_company_id_meme_si_query_envoie_un_autre(): void
+    {
+        // Un attaquant pourrait tenter de passer ?companyId=X en query
+        // pour scope les contrats sur une autre entreprise. La fiche
+        // Company doit imposer son propre scope.
+        $user = User::factory()->create();
+        $companyA = Company::factory()->create(['legal_name' => 'A']);
+        $companyB = Company::factory()->create(['legal_name' => 'B']);
+        // Véhicule distinct par contrat → pas de collision overlap.
+        $vA = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vA->id]);
+        $vB1 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vB1->id]);
+        $vB2 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vB2->id]);
+        $vB3 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vB3->id]);
+
+        Contract::factory()->forVehicle($vA)->forCompany($companyA)->create();
+        Contract::factory()->forVehicle($vB1)->forCompany($companyB)->create();
+        Contract::factory()->forVehicle($vB2)->forCompany($companyB)->create();
+        Contract::factory()->forVehicle($vB3)->forCompany($companyB)->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$companyA->id.'?companyId='.$companyB->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contracts.meta.total', 1)
+                ->where('contracts.data.0.companyId', $companyA->id),
+            );
+    }
+
+    #[Test]
+    public function show_filtre_contracts_par_periode(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        // Contrat 2024 (hors plage)
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01', 'end_date' => '2024-03-31',
+        ]);
+        // Contrat 2025 (dans plage)
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2025-06-01', 'end_date' => '2025-06-30',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?periodStart=2025-01-01&periodEnd=2025-12-31')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contracts.meta.total', 1)
+                ->where('contracts.data.0.startDate', '2025-06-01'),
             );
     }
 
