@@ -62,12 +62,14 @@ const searchModel = computed<string>({
                 </Link>
             </div>
 
-            <div class="max-w-md">
-                <SearchInput
-                    v-model="searchModel"
-                    placeholder="Rechercher un conducteur (nom ou prénom)"
-                    aria-label="Rechercher un conducteur"
-                />
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="grow max-w-md">
+                    <SearchInput
+                        v-model="searchModel"
+                        placeholder="Rechercher un conducteur (nom ou prénom)"
+                        aria-label="Rechercher un conducteur"
+                    />
+                </div>
             </div>
 
             <div

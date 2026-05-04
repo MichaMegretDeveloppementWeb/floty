@@ -77,9 +77,10 @@ const activeFiltersCount = computed<number>(() => {
         n += 1;
     }
 
-    // includeExited n'est pas compté comme "filtre actif" : c'est une
-    // bascule de scope (visible directement à côté), pas un filtre dans
-    // le popover.
+    if (tableState.state.filters.value.includeExited) {
+        n += 1;
+    }
+
     return n;
 });
 </script>
@@ -103,40 +104,39 @@ const activeFiltersCount = computed<number>(() => {
             </div>
 
             <template v-else>
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div class="flex flex-wrap items-center gap-3">
-                        <div class="max-w-md grow">
-                            <SearchInput
-                                v-model="searchModel"
-                                placeholder="Rechercher (immat, marque, modèle)"
-                                aria-label="Rechercher un véhicule"
-                            />
-                        </div>
-                        <FilterPopover
-                            v-model:open="filtersOpen"
-                            :active-count="activeFiltersCount"
-                            @reset="tableState.state.clearFilters"
-                        >
-                            <div class="flex flex-col gap-3">
-                                <div>
-                                    <FieldLabel for="filter-status"
-                                        >Statut</FieldLabel
-                                    >
-                                    <SelectInput
-                                        id="filter-status"
-                                        v-model="statusModel"
-                                        placeholder="Tous les statuts"
-                                        :options="statusOptions"
-                                    />
-                                </div>
-                            </div>
-                        </FilterPopover>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="grow max-w-md">
+                        <SearchInput
+                            v-model="searchModel"
+                            placeholder="Rechercher (immat, marque, modèle)"
+                            aria-label="Rechercher un véhicule"
+                        />
                     </div>
-
-                    <CheckboxInput
-                        v-model="includeExitedModel"
-                        label="Inclure les véhicules retirés"
-                    />
+                    <FilterPopover
+                        v-model:open="filtersOpen"
+                        :active-count="activeFiltersCount"
+                        @reset="tableState.state.clearFilters"
+                    >
+                        <div class="flex flex-col gap-3">
+                            <div>
+                                <FieldLabel for="filter-status"
+                                    >Statut</FieldLabel
+                                >
+                                <SelectInput
+                                    id="filter-status"
+                                    v-model="statusModel"
+                                    placeholder="Tous les statuts"
+                                    :options="statusOptions"
+                                />
+                            </div>
+                            <div>
+                                <CheckboxInput
+                                    v-model="includeExitedModel"
+                                    label="Inclure les véhicules retirés"
+                                />
+                            </div>
+                        </div>
+                    </FilterPopover>
                 </div>
 
                 <FleetTable

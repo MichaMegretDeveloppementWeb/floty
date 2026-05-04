@@ -79,7 +79,7 @@ const activeFiltersCount = computed<number>(() =>
 
             <template v-else>
                 <div class="flex flex-wrap items-center gap-3">
-                    <div class="max-w-md grow">
+                    <div class="grow max-w-md">
                         <SearchInput
                             v-model="searchModel"
                             placeholder="Rechercher (nom, SIREN, code court)"
