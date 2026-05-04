@@ -144,6 +144,32 @@ interface ContractReadRepositoryInterface
     public function countForCompany(int $companyId): int;
 
     /**
+     * Stats sur les contrats d'une entreprise dans une fenêtre temporelle
+     * optionnelle (chantier N.1.fixes). Le `totalDays` est calculé en
+     * **intersection** avec la fenêtre : un contrat 01/01–31/12 dans
+     * un filtre Q3 ne compte que les jours de juillet–septembre.
+     *
+     * Sans fenêtre (`$periodStart` et `$periodEnd` null), retourne le
+     * cumul lifetime sur tous les contrats de l'entreprise.
+     *
+     * @return array{totalDays: int, lcdCount: int, lldCount: int}
+     */
+    public function statsForCompanyInPeriod(
+        int $companyId,
+        ?string $periodStart,
+        ?string $periodEnd,
+    ): array;
+
+    /**
+     * Année du premier contrat de l'entreprise (la plus ancienne `start_date`).
+     * Utilisé pour générer la plage `[firstYear..currentYear]` des pills
+     * de filtre rapide année (chantier N.1.fixes).
+     *
+     * Retourne `null` si l'entreprise n'a aucun contrat.
+     */
+    public function firstContractYearForCompany(int $companyId): ?int;
+
+    /**
      * Liste triée et dédoublonnée des années (ISO calendaire) au cours
      * desquelles l'entreprise a au moins un contrat actif (peu importe
      * que le contrat couvre l'année entière ou n'y déborde que

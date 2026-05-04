@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
+use App\Data\User\Company\CompanyContractsStatsData;
 use App\Data\User\Contract\ContractData;
 use App\Data\User\Contract\ContractDocumentData;
 use App\Data\User\Contract\ContractIndexQueryData;
@@ -108,6 +109,54 @@ final readonly class ContractQueryService
             data: $items,
             meta: PaginationMetaData::fromPaginator($paginator),
         );
+    }
+
+    /**
+     * Stats contextuelles affichées sous le titre de l'onglet Contrats
+     * de la fiche Company Show (chantier N.1.fixes). Les jours sont en
+     * intersection avec la fenêtre filtrée (cf. doc repo).
+     */
+    public function statsForCompany(
+        int $companyId,
+        ?string $periodStart,
+        ?string $periodEnd,
+    ): CompanyContractsStatsData {
+        $row = $this->repository->statsForCompanyInPeriod(
+            $companyId,
+            $periodStart,
+            $periodEnd,
+        );
+
+        return new CompanyContractsStatsData(
+            totalDays: $row['totalDays'],
+            lcdCount: $row['lcdCount'],
+            lldCount: $row['lldCount'],
+        );
+    }
+
+    /**
+     * Plage continue `[firstYear..currentRealYear]` pour les pills de
+     * filtre rapide année (chantier N.1.fixes). Si l'entreprise n'a
+     * aucun contrat, retourne un tableau vide — les pills ne sont
+     * pas affichées (l'empty state suffit).
+     *
+     * Différent de `availableYears` (= années avec ≥ 1 contrat) :
+     * la plage des pills est continue pour ne pas créer de "trous"
+     * visuels et pour permettre de filtrer une année creuse afin de
+     * confirmer l'absence de contrats.
+     *
+     * @return list<int>
+     */
+    public function availableYearsRangeForCompany(
+        int $companyId,
+        int $currentRealYear,
+    ): array {
+        $first = $this->repository->firstContractYearForCompany($companyId);
+        if ($first === null) {
+            return [];
+        }
+
+        return range($first, $currentRealYear);
     }
 
     /**

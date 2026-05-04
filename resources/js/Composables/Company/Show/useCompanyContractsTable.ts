@@ -69,7 +69,7 @@ export function useCompanyContractsTable(opts: {
     ];
 
     const state = useServerTableState<CompanyContractFilters>({
-        only: ['contracts', 'contractsQuery'],
+        only: ['contracts', 'contractsQuery', 'contractsStats'],
         initialPage: opts.query.page,
         initialPerPage: opts.query.perPage,
         initialSearch: '',

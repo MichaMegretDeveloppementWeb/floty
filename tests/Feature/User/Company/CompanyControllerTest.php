@@ -519,6 +519,98 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
+    public function show_expose_stats_contractuelles_lifetime_sans_filtre(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $v1 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v1->id]);
+        $v2 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2->id]);
+
+        // 10 jours LCD + 31 jours LLD = 41 jours, 1 LCD, 1 LLD
+        Contract::factory()->forVehicle($v1)->forCompany($company)->create([
+            'start_date' => '2024-01-01', 'end_date' => '2024-01-10',
+            'contract_type' => 'lcd',
+        ]);
+        Contract::factory()->forVehicle($v2)->forCompany($company)->create([
+            'start_date' => '2024-02-01', 'end_date' => '2024-03-02',
+            'contract_type' => 'lld',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contractsStats.totalDays', 41)
+                ->where('contractsStats.lcdCount', 1)
+                ->where('contractsStats.lldCount', 1),
+            );
+    }
+
+    #[Test]
+    public function show_stats_contractuelles_clamp_les_jours_a_la_periode_filtree(): void
+    {
+        // Un contrat 01/01–31/12 affiché dans un filtre Q3 2024 doit
+        // compter ~92 jours (juillet–septembre), pas 365.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $v = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v->id]);
+
+        Contract::factory()->forVehicle($v)->forCompany($company)->create([
+            'start_date' => '2024-01-01', 'end_date' => '2024-12-31',
+            'contract_type' => 'lld',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?periodStart=2024-07-01&periodEnd=2024-09-30')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contractsStats.totalDays', 92) // 31 + 31 + 30
+                ->where('contractsStats.lcdCount', 0)
+                ->where('contractsStats.lldCount', 1),
+            );
+    }
+
+    #[Test]
+    public function show_expose_plage_continue_des_annees_de_first_contract_a_current_year(): void
+    {
+        // Premier contrat en 2022 → plage attendue [2022, 2023, ..., currentYear].
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $v = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v->id]);
+
+        Contract::factory()->forVehicle($v)->forCompany($company)->create([
+            'start_date' => '2022-06-01', 'end_date' => '2022-08-31',
+        ]);
+
+        $expectedRange = range(2022, (int) Carbon::now()->year);
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contractsAvailableYears', $expectedRange),
+            );
+    }
+
+    #[Test]
+    public function show_plage_annees_vide_quand_aucun_contrat(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contractsAvailableYears', []),
+            );
+    }
+
+    #[Test]
     public function show_expose_options_drivers_pour_le_picker_du_modal_add(): void
     {
         // Chantier M.2 : `AddCompanyDriverModal` peuple son `<SelectInput>`

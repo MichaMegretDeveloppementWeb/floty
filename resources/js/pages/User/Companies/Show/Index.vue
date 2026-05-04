@@ -19,6 +19,8 @@ const props = defineProps<{
     };
     contracts: App.Data.User.Contract.PaginatedContractListData;
     contractsQuery: App.Data.User.Contract.ContractIndexQueryData;
+    contractsStats: App.Data.User.Company.CompanyContractsStatsData;
+    contractsAvailableYears: number[];
 }>();
 
 const { activeTab, setTab } = useCompanyTabs();
@@ -42,6 +44,8 @@ const { activeTab, setTab } = useCompanyTabs();
                 :company="props.company"
                 :contracts="props.contracts"
                 :contracts-query="props.contractsQuery"
+                :contracts-stats="props.contractsStats"
+                :contracts-available-years="props.contractsAvailableYears"
             />
             <CompanyDriversTab
                 v-else-if="activeTab === 'drivers'"

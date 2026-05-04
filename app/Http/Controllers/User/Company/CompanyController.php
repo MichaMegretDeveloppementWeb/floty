@@ -66,6 +66,19 @@ final class CompanyController extends Controller
                 $contractsQuery,
             ),
             'contractsQuery' => $contractsQuery,
+            // Stats contextuelles affichées sous le titre de l'onglet —
+            // bougent avec le filtre période (chantier N.1.fixes).
+            'contractsStats' => $this->contracts->statsForCompany(
+                $company->id,
+                $contractsQuery->periodStart,
+                $contractsQuery->periodEnd,
+            ),
+            // Plage continue `[firstYear..currentRealYear]` pour les pills
+            // de filtre rapide année. Tableau vide si aucun contrat.
+            'contractsAvailableYears' => $this->contracts->availableYearsRangeForCompany(
+                $company->id,
+                $detail->currentRealYear,
+            ),
         ]);
     }
 

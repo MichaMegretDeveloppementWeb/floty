@@ -240,6 +240,62 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->count();
     }
 
+    public function statsForCompanyInPeriod(
+        int $companyId,
+        ?string $periodStart,
+        ?string $periodEnd,
+    ): array {
+        $query = Contract::query()->where('company_id', $companyId);
+
+        if ($periodStart !== null) {
+            $query->where('end_date', '>=', $periodStart);
+        }
+
+        if ($periodEnd !== null) {
+            $query->where('start_date', '<=', $periodEnd);
+        }
+
+        // Intersection (clamp) start/end à la fenêtre filtrée pour le
+        // cumul de jours. Sans fenêtre, on prend la durée brute du contrat.
+        // Bindings paramétrés (défense en profondeur — le DTO valide déjà
+        // `date_format:Y-m-d`).
+        $clampedEndExpr = $periodEnd !== null ? 'LEAST(end_date, ?)' : 'end_date';
+        $clampedStartExpr = $periodStart !== null ? 'GREATEST(start_date, ?)' : 'start_date';
+
+        $totalDaysExpr = "COALESCE(SUM(DATEDIFF({$clampedEndExpr}, {$clampedStartExpr}) + 1), 0) AS total_days";
+        $bindings = [];
+        if ($periodEnd !== null) {
+            $bindings[] = $periodEnd;
+        }
+        if ($periodStart !== null) {
+            $bindings[] = $periodStart;
+        }
+
+        $row = (clone $query)
+            ->selectRaw($totalDaysExpr, $bindings)
+            ->selectRaw("SUM(CASE WHEN contract_type = 'lcd' THEN 1 ELSE 0 END) AS lcd_count")
+            ->selectRaw("SUM(CASE WHEN contract_type = 'lld' THEN 1 ELSE 0 END) AS lld_count")
+            ->first();
+
+        return [
+            'totalDays' => (int) ($row?->total_days ?? 0),
+            'lcdCount' => (int) ($row?->lcd_count ?? 0),
+            'lldCount' => (int) ($row?->lld_count ?? 0),
+        ];
+    }
+
+    public function firstContractYearForCompany(int $companyId): ?int
+    {
+        $row = Contract::query()
+            ->where('company_id', $companyId)
+            ->selectRaw('YEAR(MIN(start_date)) AS first_year')
+            ->first();
+
+        $value = $row?->first_year;
+
+        return $value === null ? null : (int) $value;
+    }
+
     public function findActiveYearsForCompany(int $companyId): array
     {
         $rows = Contract::query()
