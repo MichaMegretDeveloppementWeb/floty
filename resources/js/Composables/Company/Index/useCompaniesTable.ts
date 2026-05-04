@@ -31,6 +31,10 @@ const COLUMN_TO_SORT_KEY: Partial<Record<string, CompanySortKey>> = {
 
 export type CompanyFilters = {
     isActive: boolean | null;
+    contractsScope: 'with' | 'without' | null;
+    companyType: 'corporate' | 'individual' | null;
+    isOig: boolean | null;
+    city: string | null;
 };
 
 export function useCompaniesTable(opts: {
@@ -58,12 +62,34 @@ export function useCompaniesTable(opts: {
         initialSearch: opts.query.search ?? '',
         initialSortKey: opts.query.sortKey,
         initialSortDirection: opts.query.sortDirection,
-        defaultFilters: { isActive: null },
-        initialFilters: { isActive: opts.query.isActive },
+        defaultFilters: {
+            isActive: null,
+            contractsScope: null,
+            companyType: null,
+            isOig: null,
+            city: null,
+        },
+        initialFilters: {
+            isActive: opts.query.isActive,
+            contractsScope: opts.query.contractsScope as
+                | 'with'
+                | 'without'
+                | null,
+            companyType: opts.query.companyType as
+                | 'corporate'
+                | 'individual'
+                | null,
+            isOig: opts.query.isOig,
+            city: opts.query.city,
+        },
         serializeFilters: (f) => ({
             // Sérialisation booléenne : 1/0/null pour cohérence avec
             // Spatie Data ?isActive=1 / ?isActive=0 / absent.
             isActive: f.isActive === null ? null : f.isActive ? 1 : 0,
+            contractsScope: f.contractsScope,
+            companyType: f.companyType,
+            isOig: f.isOig === true ? 1 : null,
+            city: f.city,
         }),
     });
 

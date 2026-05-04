@@ -36,6 +36,26 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
             $eloquentQuery->where('is_active', $query->isActive);
         }
 
+        if ($query->contractsScope === 'with') {
+            $eloquentQuery->has('contracts');
+        } elseif ($query->contractsScope === 'without') {
+            $eloquentQuery->doesntHave('contracts');
+        }
+
+        if ($query->companyType === 'corporate') {
+            $eloquentQuery->where('is_individual_business', false);
+        } elseif ($query->companyType === 'individual') {
+            $eloquentQuery->where('is_individual_business', true);
+        }
+
+        if ($query->isOig === true) {
+            $eloquentQuery->where('is_oig', true);
+        }
+
+        if ($query->city !== null && $query->city !== '') {
+            $eloquentQuery->where('city', 'like', '%'.$query->city.'%');
+        }
+
         // Search LIKE sur short_code OR legal_name OR siren.
         if ($query->search !== null) {
             $term = '%'.$query->search.'%';

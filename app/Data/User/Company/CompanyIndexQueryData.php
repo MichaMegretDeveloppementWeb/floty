@@ -11,20 +11,27 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * DTO d'entrée pour l'Index Companies server-side (cf. ADR-0020).
  *
- * Filtres spécifiques :
- *  - `isActive: bool|null` — filtrer par statut activité (true = active,
- *     false = inactive, null = tous)
+ * Filtres (tous SQL purs) :
+ *  - `isActive` : statut activité (true/false/null)
+ *  - `contractsScope` : 'with' = au moins un contrat ; 'without' = aucun
+ *  - `companyType` : 'corporate' (personne morale) | 'individual'
+ *     (entrepreneur individuel) — basé sur `is_individual_business`
+ *  - `isOig` : bool|null — true = uniquement OIG
+ *  - `city` : LIKE sur `city`
  *
- * Whitelist sortKey : `shortCode | legalName | siren | city` (toutes
- * colonnes SQL pures). Les valeurs calculées `daysUsed` et `annualTaxDue`
- * sont volontairement exclues car non-sortables en SQL — cf. ADR-0020 D6
- * (à matérialiser pour réactiver le tri).
+ * Whitelist sortKey : `shortCode | legalName | siren | city`. Les valeurs
+ * calculées `daysUsed` et `annualTaxDue` sont volontairement exclues
+ * (cf. ADR-0020 D6 — à matérialiser pour réactiver le tri).
  */
 #[TypeScript]
 final class CompanyIndexQueryData extends IndexQueryData
 {
     public function __construct(
         public ?bool $isActive = null,
+        public ?string $contractsScope = null,
+        public ?string $companyType = null,
+        public ?bool $isOig = null,
+        public ?string $city = null,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,
         ?string $search = null,
@@ -43,6 +50,10 @@ final class CompanyIndexQueryData extends IndexQueryData
     {
         return array_merge(parent::rules(), [
             'isActive' => ['nullable', 'boolean'],
+            'contractsScope' => ['nullable', 'string', 'in:with,without'],
+            'companyType' => ['nullable', 'string', 'in:corporate,individual'],
+            'isOig' => ['nullable', 'boolean'],
+            'city' => ['nullable', 'string', 'max:255'],
         ]);
     }
 }

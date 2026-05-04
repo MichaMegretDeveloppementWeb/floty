@@ -145,6 +145,91 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
+    public function index_filtre_contracts_scope(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $avec = Company::factory()->create(['legal_name' => 'Avec contrats']);
+        Contract::factory()->forVehicle($vehicle)->forCompany($avec)->create();
+
+        Company::factory()->create(['legal_name' => 'Sans contrats']);
+
+        $this->actingAs($user)
+            ->get('/app/companies?contractsScope=with')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companies.meta.total', 1)
+                ->where('companies.data.0.legalName', 'Avec contrats'),
+            );
+
+        $this->actingAs($user)
+            ->get('/app/companies?contractsScope=without')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companies.meta.total', 1)
+                ->where('companies.data.0.legalName', 'Sans contrats'),
+            );
+    }
+
+    #[Test]
+    public function index_filtre_company_type(): void
+    {
+        $user = User::factory()->create();
+        Company::factory()->create(['is_individual_business' => false, 'legal_name' => 'Société']);
+        Company::factory()->create(['is_individual_business' => true, 'legal_name' => 'EI Dupont']);
+
+        $this->actingAs($user)
+            ->get('/app/companies?companyType=corporate')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companies.meta.total', 1)
+                ->where('companies.data.0.legalName', 'Société'),
+            );
+
+        $this->actingAs($user)
+            ->get('/app/companies?companyType=individual')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companies.meta.total', 1)
+                ->where('companies.data.0.legalName', 'EI Dupont'),
+            );
+    }
+
+    #[Test]
+    public function index_filtre_is_oig(): void
+    {
+        $user = User::factory()->create();
+        Company::factory()->create(['is_oig' => true, 'legal_name' => 'OIG Asso']);
+        Company::factory()->create(['is_oig' => false, 'legal_name' => 'Standard']);
+
+        $this->actingAs($user)
+            ->get('/app/companies?isOig=1')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companies.meta.total', 1)
+                ->where('companies.data.0.legalName', 'OIG Asso'),
+            );
+    }
+
+    #[Test]
+    public function index_filtre_city_like(): void
+    {
+        $user = User::factory()->create();
+        Company::factory()->create(['city' => 'Lyon', 'legal_name' => 'Lyon Co']);
+        Company::factory()->create(['city' => 'Paris', 'legal_name' => 'Paris Co']);
+
+        $this->actingAs($user)
+            ->get('/app/companies?city=lyon')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companies.meta.total', 1)
+                ->where('companies.data.0.legalName', 'Lyon Co'),
+            );
+    }
+
+    #[Test]
     public function index_search_filtre_par_short_code_legal_name_ou_siren(): void
     {
         $user = User::factory()->create();

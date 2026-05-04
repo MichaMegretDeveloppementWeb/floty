@@ -2,11 +2,13 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
+import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useCompaniesTable } from '@/Composables/Company/Index/useCompaniesTable';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import CompaniesTable from './partials/CompaniesTable.vue';
@@ -26,7 +28,6 @@ const tableState = useCompaniesTable({
     fiscalYear: fiscalYear.value,
 });
 
-// Computed wrapper sur le ref `state.search` (pattern fiable v-model).
 const searchModel = computed<string>({
     get: () => tableState.state.search.value,
     set: (value: string) => {
@@ -34,7 +35,6 @@ const searchModel = computed<string>({
     },
 });
 
-// Bind du SelectInput isActive : 'yes' / 'no' / '' → boolean | null.
 const isActiveOptions = [
     { value: 'yes', label: 'Active' },
     { value: 'no', label: 'Inactive' },
@@ -55,9 +55,78 @@ const isActiveModel = computed<string | number>({
     },
 });
 
-const activeFiltersCount = computed<number>(() =>
-    tableState.state.filters.value.isActive === null ? 0 : 1,
-);
+const contractsScopeOptions = [
+    { value: 'with', label: 'Avec contrats' },
+    { value: 'without', label: 'Sans contrats' },
+];
+
+const contractsScopeModel = computed<string | number>({
+    get: () => tableState.state.filters.value.contractsScope ?? '',
+    set: (value: string | number) => {
+        const v = String(value);
+        tableState.state.setFilter(
+            'contractsScope',
+            v === 'with' || v === 'without' ? v : null,
+        );
+    },
+});
+
+const companyTypeOptions = [
+    { value: 'corporate', label: 'Personne morale' },
+    { value: 'individual', label: 'Entrepreneur individuel' },
+];
+
+const companyTypeModel = computed<string | number>({
+    get: () => tableState.state.filters.value.companyType ?? '',
+    set: (value: string | number) => {
+        const v = String(value);
+        tableState.state.setFilter(
+            'companyType',
+            v === 'corporate' || v === 'individual' ? v : null,
+        );
+    },
+});
+
+const isOigModel = computed<boolean>({
+    get: () => tableState.state.filters.value.isOig === true,
+    set: (value: boolean) => {
+        tableState.state.setFilter('isOig', value === true ? true : null);
+    },
+});
+
+const cityModel = computed<string>({
+    get: () => tableState.state.filters.value.city ?? '',
+    set: (value: string) => {
+        tableState.state.setFilter('city', value === '' ? null : value);
+    },
+});
+
+const activeFiltersCount = computed<number>(() => {
+    let n = 0;
+    const f = tableState.state.filters.value;
+
+    if (f.isActive !== null) {
+        n += 1;
+    }
+
+    if (f.contractsScope !== null) {
+        n += 1;
+    }
+
+    if (f.companyType !== null) {
+        n += 1;
+    }
+
+    if (f.isOig === true) {
+        n += 1;
+    }
+
+    if (f.city !== null && f.city !== '') {
+        n += 1;
+    }
+
+    return n;
+});
 </script>
 
 <template>
@@ -71,7 +140,7 @@ const activeFiltersCount = computed<number>(() =>
                 v-if="
                     companies.meta.total === 0 &&
                     searchModel === '' &&
-                    tableState.state.filters.value.isActive === null
+                    activeFiltersCount === 0
                 "
             >
                 <EmptyCompaniesState />
@@ -101,6 +170,42 @@ const activeFiltersCount = computed<number>(() =>
                                     v-model="isActiveModel"
                                     placeholder="Toutes"
                                     :options="isActiveOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-contracts"
+                                    >Contrats</FieldLabel
+                                >
+                                <SelectInput
+                                    id="filter-contracts"
+                                    v-model="contractsScopeModel"
+                                    placeholder="Toutes"
+                                    :options="contractsScopeOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-type"
+                                    >Type juridique</FieldLabel
+                                >
+                                <SelectInput
+                                    id="filter-type"
+                                    v-model="companyTypeModel"
+                                    placeholder="Tous"
+                                    :options="companyTypeOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-city">Ville</FieldLabel>
+                                <TextInput
+                                    id="filter-city"
+                                    v-model="cityModel"
+                                    placeholder="Lyon, Paris…"
+                                />
+                            </div>
+                            <div>
+                                <CheckboxInput
+                                    v-model="isOigModel"
+                                    label="OIG uniquement"
                                 />
                             </div>
                         </div>
