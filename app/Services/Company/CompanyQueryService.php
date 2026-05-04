@@ -7,6 +7,7 @@ namespace App\Services\Company;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
+use App\Data\User\Company\CompanyActivityYearData;
 use App\Data\User\Company\CompanyColorOptionData;
 use App\Data\User\Company\CompanyDetailData;
 use App\Data\User\Company\CompanyDriverRowData;
@@ -14,6 +15,7 @@ use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\CompanyLifetimeStatsData;
 use App\Data\User\Company\CompanyListItemData;
 use App\Data\User\Company\CompanyOptionData;
+use App\Data\User\Company\CompanyTopVehicleData;
 use App\Data\User\Company\CompanyYearStatsData;
 use App\Data\User\Company\PaginatedCompanyListData;
 use App\DTO\Fiscal\ContractsByPair;
@@ -246,7 +248,89 @@ final class CompanyQueryService
             drivers: $driverRows,
             lifetime: $lifetime,
             history: $history,
+            activityByYear: array_map(
+                fn (int $year): CompanyActivityYearData => $this->computeActivityForYear($companyId, $year),
+                $availableYears,
+            ),
+            availableYears: $availableYears,
             currentRealYear: $currentRealYear,
+        );
+    }
+
+    /**
+     * Calcule l'activité détaillée d'une entreprise pour un exercice :
+     * heatmap mensuelle (12 entiers, jours-véhicules / mois) + top 3
+     * véhicules (triés desc par jours utilisés).
+     *
+     * Cette méthode dépend des informations véhicule (licensePlate,
+     * brand, model) — les charge via le repo en bulk pour éviter les
+     * N+1 lors de l'itération. Si l'entreprise n'a aucun pair sur
+     * l'année (cas `availableYears` partiellement vide), retourne un
+     * `CompanyActivityYearData` à zéros (12 cases vides + top vide).
+     */
+    private function computeActivityForYear(int $companyId, int $year): CompanyActivityYearData
+    {
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
+
+        // Pré-passe : on accumule par véhicule (pour le top) et par mois
+        // (pour la heatmap), à partir des couples de l'entreprise sur
+        // l'année. Un jour-véhicule = 1 unité ; deux véhicules attribués
+        // simultanément le même jour = 2 unités sur le compteur du mois.
+        /** @var array<int, int> $daysPerVehicle */
+        $daysPerVehicle = [];
+        $daysByMonth = array_fill(0, 12, 0);
+
+        foreach ($contractsByPair->pairsForCompany($companyId) as $vehicleId => $pairContracts) {
+            foreach ($pairContracts as $contract) {
+                foreach ($contract->expandToDaysInYear($year) as $iso) {
+                    $monthIndex = (int) substr($iso, 5, 2) - 1; // YYYY-MM-DD → 0..11
+                    $daysByMonth[$monthIndex]++;
+                    $daysPerVehicle[$vehicleId] = ($daysPerVehicle[$vehicleId] ?? 0) + 1;
+                }
+            }
+        }
+
+        if ($daysPerVehicle === []) {
+            return new CompanyActivityYearData(
+                year: $year,
+                daysByMonth: $daysByMonth,
+                topVehicles: [],
+            );
+        }
+
+        // Top 3 véhicules — tri desc, limite 3.
+        arsort($daysPerVehicle);
+        $topVehicleIds = array_slice(array_keys($daysPerVehicle), 0, 3, preserve_keys: true);
+
+        // Lookup bulk pour récupérer license_plate + brand + model des
+        // véhicules du top (au plus 3 — coût négligeable).
+        $vehiclesById = $this->vehicles->findByIdsIndexed($topVehicleIds);
+
+        $totalVehicleDays = (int) array_sum($daysPerVehicle);
+
+        $topVehicles = [];
+        foreach ($topVehicleIds as $vehicleId) {
+            $vehicle = $vehiclesById->get($vehicleId);
+            if ($vehicle === null) {
+                continue;
+            }
+            $days = $daysPerVehicle[$vehicleId];
+            $topVehicles[] = new CompanyTopVehicleData(
+                vehicleId: $vehicle->id,
+                licensePlate: $vehicle->license_plate,
+                brand: $vehicle->brand,
+                model: $vehicle->model,
+                daysUsed: $days,
+                percentage: $totalVehicleDays > 0
+                    ? round($days / $totalVehicleDays * 100, 1)
+                    : 0.0,
+            );
+        }
+
+        return new CompanyActivityYearData(
+            year: $year,
+            daysByMonth: $daysByMonth,
+            topVehicles: $topVehicles,
         );
     }
 

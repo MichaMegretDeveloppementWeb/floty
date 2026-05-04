@@ -16,15 +16,19 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Le DTO porte trois familles d'information :
  *   1. **Identité** (intemporelle) : nom, SIREN, adresse, contact, statuts.
  *   2. **Stats temporelles** :
- *      - `lifetime` : cumul tous exercices (section « Depuis le début »)
- *      - `byYear`   : exercice sélectionné via `?year=` (section « Aperçu par année »)
- *      - `history`  : récap exercice par exercice (section « Historique par année »)
+ *      - `lifetime`       : cumul tous exercices (4 KPIs phares de la fiche)
+ *      - `history`        : récap tabulaire exercice par exercice
+ *      - `activityByYear` : détail visuel par exercice (heatmap mensuelle
+ *                           + top 3 véhicules), pré-calculé pour toutes
+ *                           les années dans `availableYears` afin que le
+ *                           sélecteur local côté front ne déclenche aucun
+ *                           aller-retour réseau (chantier K L2)
  *   3. **Drivers** : liste pour l'onglet « Conducteurs ».
  *
- * `availableYears` peuple le sélecteur local de la fiche.
- * `currentRealYear` est l'année calendaire réelle (séparée de l'année
- * sélectionnée), exposée pour les sections « temps réel » des lots
- * ultérieurs (cf. chantier K § Lots ultérieurs).
+ * `availableYears` peuple le sélecteur d'année **local** de la section
+ * Activité. `currentRealYear` est l'année calendaire réelle (séparée
+ * du sélecteur), exposée notamment au tableau historique pour marquer
+ * l'exercice en cours.
  */
 #[TypeScript]
 final class CompanyDetailData extends Data
@@ -32,6 +36,8 @@ final class CompanyDetailData extends Data
     /**
      * @param  list<CompanyDriverRowData>  $drivers
      * @param  list<CompanyYearStatsData>  $history  Un objet par exercice avec ≥ 1 contrat
+     * @param  list<CompanyActivityYearData>  $activityByYear  Détail visuel par exercice (1 entrée par année dans `availableYears`)
+     * @param  list<int>  $availableYears  Années avec ≥ 1 contrat — peuple le sélecteur de la section Activité
      */
     public function __construct(
         public int $id,
@@ -59,6 +65,9 @@ final class CompanyDetailData extends Data
         public CompanyLifetimeStatsData $lifetime,
         #[DataCollectionOf(CompanyYearStatsData::class)]
         public array $history,
+        #[DataCollectionOf(CompanyActivityYearData::class)]
+        public array $activityByYear,
+        public array $availableYears,
         public int $currentRealYear,
     ) {}
 }

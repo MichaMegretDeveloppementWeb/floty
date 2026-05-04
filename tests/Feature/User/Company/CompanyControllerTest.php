@@ -268,7 +268,95 @@ final class CompanyControllerTest extends TestCase
                     ->where('rentTotal', null),
                 )
                 ->has('company.history', 0)
+                ->has('company.activityByYear', 0)
+                ->has('company.availableYears', 0)
                 ->where('company.currentRealYear', (int) Carbon::now()->year),
+            );
+    }
+
+    #[Test]
+    public function show_activity_calcule_la_heatmap_mensuelle_par_an(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        // 5 jours en mars 2024 (mois index 2) sur ce véhicule
+        Contract::factory()->create([
+            'company_id' => $company->id,
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-05',
+        ]);
+
+        // 3 jours en juillet 2024 (mois index 6) sur le même véhicule
+        Contract::factory()->create([
+            'company_id' => $company->id,
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2024-07-10',
+            'end_date' => '2024-07-12',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('company.availableYears', [2024])
+                ->has('company.activityByYear', 1)
+                ->where('company.activityByYear.0.year', 2024)
+                ->where('company.activityByYear.0.daysByMonth.2', 5) // mars
+                ->where('company.activityByYear.0.daysByMonth.6', 3) // juillet
+                ->where('company.activityByYear.0.daysByMonth.0', 0) // janvier vide
+                ->where('company.activityByYear.0.daysByMonth.11', 0), // décembre vide
+            );
+    }
+
+    #[Test]
+    public function show_activity_top_vehicles_trie_desc_et_limite_a_3(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        // 4 véhicules avec des durées d'usage distinctes en 2024
+        $v1 = Vehicle::factory()->create(['license_plate' => 'AAA-001-AA', 'brand' => 'Renault', 'model' => 'Clio']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v1->id]);
+        $v2 = Vehicle::factory()->create(['license_plate' => 'BBB-002-BB', 'brand' => 'Peugeot', 'model' => '3008']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2->id]);
+        $v3 = Vehicle::factory()->create(['license_plate' => 'CCC-003-CC', 'brand' => 'Citroën', 'model' => 'C3']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v3->id]);
+        $v4 = Vehicle::factory()->create(['license_plate' => 'DDD-004-DD', 'brand' => 'Dacia', 'model' => 'Sandero']);
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v4->id]);
+
+        // v1 = 30 jours, v2 = 20 jours, v3 = 10 jours, v4 = 5 jours
+        Contract::factory()->create([
+            'company_id' => $company->id, 'vehicle_id' => $v1->id,
+            'start_date' => '2024-01-01', 'end_date' => '2024-01-30',
+        ]);
+        Contract::factory()->create([
+            'company_id' => $company->id, 'vehicle_id' => $v2->id,
+            'start_date' => '2024-02-01', 'end_date' => '2024-02-20',
+        ]);
+        Contract::factory()->create([
+            'company_id' => $company->id, 'vehicle_id' => $v3->id,
+            'start_date' => '2024-03-01', 'end_date' => '2024-03-10',
+        ]);
+        Contract::factory()->create([
+            'company_id' => $company->id, 'vehicle_id' => $v4->id,
+            'start_date' => '2024-04-01', 'end_date' => '2024-04-05',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('company.activityByYear.0.topVehicles', 3) // tronqué à 3
+                ->where('company.activityByYear.0.topVehicles.0.licensePlate', 'AAA-001-AA')
+                ->where('company.activityByYear.0.topVehicles.0.daysUsed', 30)
+                ->where('company.activityByYear.0.topVehicles.1.licensePlate', 'BBB-002-BB')
+                ->where('company.activityByYear.0.topVehicles.1.daysUsed', 20)
+                ->where('company.activityByYear.0.topVehicles.2.licensePlate', 'CCC-003-CC')
+                ->where('company.activityByYear.0.topVehicles.2.daysUsed', 10),
             );
     }
 

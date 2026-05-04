@@ -12,6 +12,7 @@
  *   - < xl : Contact + Adresse passent dans le flux principal sous
  *     l'historique (déjà rendus dans le main, l'aside disparaît)
  */
+import CompanyActivityCard from './overview/CompanyActivityCard.vue';
 import CompanyAddressCard from './overview/CompanyAddressCard.vue';
 import CompanyContactCard from './overview/CompanyContactCard.vue';
 import CompanyLifetimeStatsCards from './overview/CompanyLifetimeStatsCards.vue';
@@ -29,6 +30,7 @@ defineProps<{
         <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <!-- Colonne principale -->
             <div class="flex flex-col gap-6 xl:col-span-2">
+                <CompanyActivityCard :company="company" />
                 <CompanyYearHistoryCard
                     :history="company.history"
                     :current-real-year="company.currentRealYear"
