@@ -23,6 +23,9 @@ export default defineConfig({
         // Tests sous tests/js/ (séparé du source, miroir resources/js/)
         // — cohérence avec PHPUnit + lisibilité de la couverture (ADR-0013 R13).
         include: ['tests/js/**/*.{test,spec}.ts'],
+        // Mock global de `@inertiajs/vue3` (cf. ADR-0020) pour tester
+        // les composables qui consomment `router.reload` etc.
+        setupFiles: ['./tests/js/setup/inertia-mock.ts'],
         css: false,
     },
 });
