@@ -1,29 +1,89 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { Plus, UserPlus } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
+import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
+import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
+import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
+import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import { useDriversTable } from '@/Composables/Driver/Index/useDriversTable';
 import { create as createRoute } from '@/routes/user/drivers';
 import DriversTable from './partials/DriversTable.vue';
 
+type CompanyOption = {
+    id: number;
+    shortCode: string;
+    legalName: string;
+};
+
 const props = defineProps<{
     drivers: App.Data.User.Driver.PaginatedDriverListData;
+    options: {
+        companies: CompanyOption[];
+    };
     query: App.Data.User.Driver.DriverIndexQueryData;
 }>();
 
 const tableState = useDriversTable(props.query);
+const filtersOpen = ref<boolean>(false);
 
-// Computed wrapper sur le ref `state.search` — pattern fiable pour v-model
-// (vs `v-model="tableState.state.search.value"` qui peut perdre la
-// réactivité dans certains contextes Vue).
 const searchModel = computed<string>({
     get: () => tableState.state.search.value,
     set: (value: string) => {
         tableState.state.search.value = value;
+    },
+});
+
+const companySelectOptions = computed(() =>
+    props.options.companies.map((c) => ({
+        value: c.id,
+        label: `${c.shortCode} · ${c.legalName}`,
+    })),
+);
+
+const companyIdModel = computed<number | null>({
+    get: () => tableState.state.filters.value.companyId,
+    set: (value: string | number | null) => {
+        tableState.state.setFilter(
+            'companyId',
+            typeof value === 'number' ? value : null,
+        );
+    },
+});
+
+const activityStatusOptions = [
+    { value: 'active', label: 'Actuellement actif' },
+    { value: 'inactive', label: 'Inactif partout' },
+];
+
+const activityStatusModel = computed<string | number>({
+    get: () => tableState.state.filters.value.activityStatus ?? '',
+    set: (value: string | number) => {
+        const v = String(value);
+        tableState.state.setFilter(
+            'activityStatus',
+            v === 'active' || v === 'inactive' ? v : null,
+        );
+    },
+});
+
+const contractsScopeOptions = [
+    { value: 'with', label: 'Avec contrats' },
+    { value: 'without', label: 'Sans contrats' },
+];
+
+const contractsScopeModel = computed<string | number>({
+    get: () => tableState.state.filters.value.contractsScope ?? '',
+    set: (value: string | number) => {
+        const v = String(value);
+        tableState.state.setFilter(
+            'contractsScope',
+            v === 'with' || v === 'without' ? v : null,
+        );
     },
 });
 </script>
@@ -62,18 +122,12 @@ const searchModel = computed<string>({
                 </Link>
             </div>
 
-            <div class="flex flex-wrap items-center gap-3">
-                <div class="grow max-w-md">
-                    <SearchInput
-                        v-model="searchModel"
-                        placeholder="Rechercher un conducteur (nom ou prénom)"
-                        aria-label="Rechercher un conducteur"
-                    />
-                </div>
-            </div>
-
             <div
-                v-if="drivers.meta.total === 0 && searchModel === ''"
+                v-if="
+                    drivers.meta.total === 0 &&
+                    searchModel === '' &&
+                    tableState.activeFiltersCount.value === 0
+                "
                 class="flex flex-col items-center gap-3 rounded-xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center"
             >
                 <span
@@ -94,6 +148,57 @@ const searchModel = computed<string>({
             </div>
 
             <template v-else>
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="grow max-w-md">
+                        <SearchInput
+                            v-model="searchModel"
+                            placeholder="Rechercher un conducteur (nom ou prénom)"
+                            aria-label="Rechercher un conducteur"
+                        />
+                    </div>
+                    <FilterPopover
+                        v-model:open="filtersOpen"
+                        :active-count="tableState.activeFiltersCount.value"
+                        @reset="tableState.state.clearFilters"
+                    >
+                        <div class="flex flex-col gap-3">
+                            <div>
+                                <FieldLabel for="filter-company"
+                                    >Entreprise</FieldLabel
+                                >
+                                <SearchableSelect
+                                    id="filter-company"
+                                    v-model="companyIdModel"
+                                    placeholder="Toutes les entreprises"
+                                    :options="companySelectOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-activity"
+                                    >Statut</FieldLabel
+                                >
+                                <SelectInput
+                                    id="filter-activity"
+                                    v-model="activityStatusModel"
+                                    placeholder="Tous"
+                                    :options="activityStatusOptions"
+                                />
+                            </div>
+                            <div>
+                                <FieldLabel for="filter-contracts"
+                                    >Contrats</FieldLabel
+                                >
+                                <SelectInput
+                                    id="filter-contracts"
+                                    v-model="contractsScopeModel"
+                                    placeholder="Tous"
+                                    :options="contractsScopeOptions"
+                                />
+                            </div>
+                        </div>
+                    </FilterPopover>
+                </div>
+
                 <DriversTable
                     :drivers="drivers.data"
                     :columns="tableState.columns"

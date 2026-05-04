@@ -57,6 +57,32 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             });
         }
 
+        // Filtre entreprise — drivers ayant ou ayant eu un membership.
+        if ($query->companyId !== null) {
+            $companyId = $query->companyId;
+            $eloquentQuery->whereHas('companies', function ($q) use ($companyId): void {
+                $q->where('companies.id', $companyId);
+            });
+        }
+
+        // Filtre statut activité — au moins un membership ouvert / aucun.
+        if ($query->activityStatus === 'active') {
+            $eloquentQuery->whereHas('companies', function ($q): void {
+                $q->whereNull('driver_company.left_at');
+            });
+        } elseif ($query->activityStatus === 'inactive') {
+            $eloquentQuery->whereDoesntHave('companies', function ($q): void {
+                $q->whereNull('driver_company.left_at');
+            });
+        }
+
+        // Filtre périmètre contrats — avec / sans contrat.
+        if ($query->contractsScope === 'with') {
+            $eloquentQuery->has('contracts');
+        } elseif ($query->contractsScope === 'without') {
+            $eloquentQuery->doesntHave('contracts');
+        }
+
         // Tri whitelisté (cf. DriverIndexQueryData::allowedSortKeys()).
         match ($query->sortKey) {
             'fullName' => $eloquentQuery

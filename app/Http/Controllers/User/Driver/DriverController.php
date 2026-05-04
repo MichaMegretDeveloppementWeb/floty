@@ -43,6 +43,9 @@ final class DriverController extends Controller
     {
         return Inertia::render('User/Drivers/Index/Index', [
             'drivers' => $this->drivers->listPaginated($query),
+            'options' => [
+                'companies' => $this->companyOptions(),
+            ],
             'query' => $query,
         ]);
     }

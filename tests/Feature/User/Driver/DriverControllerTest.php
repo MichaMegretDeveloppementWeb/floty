@@ -9,6 +9,7 @@ use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
@@ -210,6 +211,113 @@ final class DriverControllerTest extends TestCase
                 ->where('query.sortDirection', 'desc')
                 ->where('query.search', 'foo')
                 ->where('query.page', 1),
+            );
+    }
+
+    #[Test]
+    public function index_filtre_par_company_id_inclut_les_memberships_passes(): void
+    {
+        $user = User::factory()->create();
+        $companyA = Company::factory()->create(['legal_name' => 'Société A']);
+        $companyB = Company::factory()->create(['legal_name' => 'Société B']);
+
+        $driverActif = Driver::factory()->create(['first_name' => 'Alice', 'last_name' => 'A']);
+        $driverActif->companies()->attach($companyA->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        $driverPasse = Driver::factory()->create(['first_name' => 'Bob', 'last_name' => 'B']);
+        $driverPasse->companies()->attach($companyA->id, ['joined_at' => '2023-01-01', 'left_at' => '2023-12-31']);
+
+        $driverHors = Driver::factory()->create(['first_name' => 'Clara', 'last_name' => 'C']);
+        $driverHors->companies()->attach($companyB->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        // Filtre companyA → 2 drivers (actif + passé), pas Clara
+        $this->actingAs($user)
+            ->get('/app/drivers?companyId='.$companyA->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'drivers',
+                expectedDataCount: 2,
+                expectedMeta: ['total' => 2],
+            ));
+    }
+
+    #[Test]
+    public function index_filtre_par_activity_status(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $actif = Driver::factory()->create(['first_name' => 'Actif', 'last_name' => 'A']);
+        $actif->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        $inactifSorti = Driver::factory()->create(['first_name' => 'Inactif', 'last_name' => 'I']);
+        $inactifSorti->companies()->attach($company->id, ['joined_at' => '2023-01-01', 'left_at' => '2023-12-31']);
+
+        $inactifSansMembership = Driver::factory()->create(['first_name' => 'Sans', 'last_name' => 'S']);
+
+        $this->actingAs($user)
+            ->get('/app/drivers?activityStatus=active')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('drivers.meta.total', 1)
+                ->where('drivers.data.0.fullName', 'Actif A'),
+            );
+
+        $this->actingAs($user)
+            ->get('/app/drivers?activityStatus=inactive')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
+                $page,
+                'drivers',
+                expectedDataCount: 2,
+                expectedMeta: ['total' => 2],
+            ));
+    }
+
+    #[Test]
+    public function index_filtre_par_contracts_scope(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $avecContrat = Driver::factory()->create(['first_name' => 'Avec', 'last_name' => 'A']);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'driver_id' => $avecContrat->id,
+        ]);
+
+        Driver::factory()->create(['first_name' => 'Sans', 'last_name' => 'S']);
+
+        $this->actingAs($user)
+            ->get('/app/drivers?contractsScope=with')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('drivers.meta.total', 1)
+                ->where('drivers.data.0.fullName', 'Avec A'),
+            );
+
+        $this->actingAs($user)
+            ->get('/app/drivers?contractsScope=without')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('drivers.meta.total', 1)
+                ->where('drivers.data.0.fullName', 'Sans S'),
+            );
+    }
+
+    #[Test]
+    public function index_renvoie_company_options_pour_le_filtre(): void
+    {
+        $user = User::factory()->create();
+        Company::factory()->count(3)->create();
+
+        $this->actingAs($user)
+            ->get('/app/drivers')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('options.companies', 3),
             );
     }
 
