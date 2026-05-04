@@ -1,1 +1,0 @@
-import{o as e}from"./runtime-core.esm-bundler-BB_y22TY.js";import{i as t}from"./app-BchoEYrD.js";function n(e){return e%4==0&&e%100!=0||e%400==0?366:365}function r(){let r=t(),i=e(()=>r.props.fiscal.currentYear),a=e(()=>r.props.fiscal.availableYears);return{currentYear:i,availableYears:a,isLocked:e(()=>a.value.length<=1),daysInYear:e(()=>n(i.value))}}export{r as t};
