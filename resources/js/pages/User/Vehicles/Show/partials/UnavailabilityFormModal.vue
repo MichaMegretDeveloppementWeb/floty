@@ -87,9 +87,9 @@ const {
                     du prorata fiscal sur la période concernée.
                 </p>
                 <p v-else>
-                    Cette indisponibilité <strong>n'a pas d'effet fiscal</strong>.
-                    Le véhicule reste considéré comme affecté à l'entreprise
-                    pendant cette période.
+                    Cette indisponibilité <strong>ne réduit pas</strong> le
+                    numérateur du prorata fiscal. Le véhicule reste considéré
+                    comme affecté à l'entreprise pendant la période.
                 </p>
             </div>
 

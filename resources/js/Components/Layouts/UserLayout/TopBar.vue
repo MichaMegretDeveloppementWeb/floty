@@ -35,9 +35,9 @@ const { search, fullName, initials } = useTopBar();
         <div class="min-w-0 flex-1">
             <SearchInput
                 v-model="search"
-                placeholder="Rechercher véhicule, entreprise…"
-                aria-label="Recherche globale"
-                :shortcut="['⌘', 'K']"
+                placeholder="Recherche bientôt disponible"
+                aria-label="Recherche globale (bientôt disponible)"
+                disabled
             />
         </div>
 
