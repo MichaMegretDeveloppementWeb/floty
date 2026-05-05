@@ -316,6 +316,19 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         return (int) $row->first_year;
     }
 
+    public function yearBounds(): array
+    {
+        $row = DB::table('contracts')
+            ->whereNull('deleted_at')
+            ->selectRaw('YEAR(MIN(start_date)) AS min_year, YEAR(MAX(start_date)) AS max_year')
+            ->first();
+
+        return [
+            'min' => $row?->min_year !== null ? (int) $row->min_year : null,
+            'max' => $row?->max_year !== null ? (int) $row->max_year : null,
+        ];
+    }
+
     public function findActiveYearsForCompany(int $companyId): array
     {
         $rows = Contract::query()

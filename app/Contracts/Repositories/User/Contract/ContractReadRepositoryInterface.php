@@ -7,6 +7,7 @@ namespace App\Contracts\Repositories\User\Contract;
 use App\Data\User\Contract\ContractIndexQueryData;
 use App\Models\Contract;
 use App\Services\Contract\ContractQueryService;
+use App\Services\Fiscal\AvailableYearsResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -193,4 +194,23 @@ interface ContractReadRepositoryInterface
      * @return list<int>
      */
     public function findActiveYearsForCompany(int $companyId): array;
+
+    /**
+     * Bornes globales des années sur les contrats **non soft-deletés**.
+     *
+     * Source de vérité du sélecteur d'année dynamique exposé par
+     * {@see AvailableYearsResolver} (chantier η).
+     *
+     * Retourne `['min' => null, 'max' => null]` si la table est vide
+     * (laisse au resolver le soin du fallback sur l'année calendaire
+     * courante).
+     *
+     * Implémentation attendue : 1 query SQL pure avec
+     * `YEAR(MIN(start_date))` et `YEAR(MAX(start_date))`, filter explicite
+     * `deleted_at IS NULL` pour contourner l'absence de scope global
+     * SoftDeletes lorsqu'on attaque la table via `DB::table()`.
+     *
+     * @return array{min: int|null, max: int|null}
+     */
+    public function yearBounds(): array;
 }

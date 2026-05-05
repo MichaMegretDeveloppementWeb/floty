@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Services\Fiscal\AvailableYearsResolver;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -19,7 +20,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Singleton : garantit qu'un seul resolver vit par requête HTTP
+        // (cache mémoire process partagé entre tous les consumers d'une
+        // même requête). Cf. chantier η Phase 0.1.
+        $this->app->singleton(AvailableYearsResolver::class);
     }
 
     /**
