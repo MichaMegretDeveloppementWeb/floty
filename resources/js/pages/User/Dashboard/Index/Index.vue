@@ -33,13 +33,13 @@ defineProps<{
 
             <DashboardKpiCards :kpis="kpis" />
 
-            <QuickLinksGrid />
-
             <DashboardEvolutionChart :history="history" />
 
             <DashboardActivityCard :activity="activity" />
 
             <DashboardPendingTasksRow :tasks="pendingTasks" />
+
+            <QuickLinksGrid />
         </div>
     </UserLayout>
 </template>

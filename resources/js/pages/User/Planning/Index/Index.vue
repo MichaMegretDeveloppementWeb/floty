@@ -58,7 +58,7 @@ const { week, onContractsCreated } = useUserPlanningIndex();
             <Heatmap
                 :vehicles="vehicles"
                 :fiscal-year="selectedYear"
-                @cell-click="(p) => week.open(p.vehicleId, p.week)"
+                @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear)"
             />
         </div>
 
