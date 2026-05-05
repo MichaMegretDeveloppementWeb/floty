@@ -77,10 +77,14 @@ final class VehicleIndexQueryData extends IndexQueryData
     {
         $energyValues = array_map(static fn (EnergySource $e): string => $e->value, EnergySource::cases());
         $pollutantValues = array_map(static fn (PollutantCategory $p): string => $p->value, PollutantCategory::cases());
-        $availableYears = config('floty.fiscal.available_years', []);
-        $yearRule = $availableYears === []
-            ? ['nullable', 'integer', 'min:1900', 'max:2100']
-            : ['nullable', 'integer', 'in:'.implode(',', $availableYears)];
+        // Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 3) :
+        // l'année saisie est libre (range calendaire raisonnable). La
+        // résolution contre le scope dynamique des contrats est faite par
+        // le controller via `AvailableYearsResolver`, et l'aggrégateur
+        // fiscal tolère les années sans règles (renvoie 0 €). Filtrer ici
+        // sur la config statique morte rejetait silencieusement les années
+        // hors `[2024]` et empêchait le sélecteur de basculer.
+        $yearRule = ['nullable', 'integer', 'min:1900', 'max:2100'];
 
         return array_merge(parent::rules(), [
             'includeExited' => ['nullable', 'boolean'],

@@ -54,10 +54,9 @@ final class ContractIndexQueryData extends IndexQueryData
 
     public static function rules(): array
     {
-        $availableYears = config('floty.fiscal.available_years', []);
-        $yearRule = $availableYears === []
-            ? ['nullable', 'integer', 'min:1900', 'max:2100']
-            : ['nullable', 'integer', 'in:'.implode(',', $availableYears)];
+        // Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 3) :
+        // l'année saisie est libre. Cf. note dans VehicleIndexQueryData.
+        $yearRule = ['nullable', 'integer', 'min:1900', 'max:2100'];
 
         return array_merge(parent::rules(), [
             'vehicleId' => ['nullable', 'integer', 'exists:vehicles,id'],

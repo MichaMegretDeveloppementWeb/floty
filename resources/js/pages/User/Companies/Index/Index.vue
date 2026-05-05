@@ -227,7 +227,7 @@ const activeFiltersCount = computed<number>(() => {
 
                 <CompaniesTable
                     :companies="companies.data"
-                    :columns="tableState.columns"
+                    :columns="tableState.columns.value"
                     :active-sort-column-key="
                         tableState.activeSortColumnKey.value
                     "

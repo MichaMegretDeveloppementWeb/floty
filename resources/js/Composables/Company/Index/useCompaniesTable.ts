@@ -42,20 +42,12 @@ export function useCompaniesTable(opts: {
     query: App.Data.User.Company.CompanyIndexQueryData;
     selectedYear: number;
 }): {
-    columns: readonly DataTableColumn<CompanyRow>[];
+    columns: ComputedRef<readonly DataTableColumn<CompanyRow>[]>;
     state: ServerTableState<CompanyFilters>;
     activeSortColumnKey: ComputedRef<string | null>;
     onHeaderClick: (columnKey: string) => void;
     onRowClick: (row: CompanyRow) => void;
 } {
-    const columns: readonly DataTableColumn<CompanyRow>[] = [
-        { key: 'company', label: 'Entreprise' },
-        { key: 'siren', label: 'SIREN', mono: true },
-        { key: 'city', label: 'Ville' },
-        { key: 'daysUsed', label: `Jours ${opts.selectedYear}`, mono: true },
-        { key: 'annualTaxDue', label: `Taxe ${opts.selectedYear}` },
-    ];
-
     const state = useServerTableState<CompanyFilters>({
         only: ['companies', 'query', 'selectedYear'],
         initialPage: opts.query.page,
@@ -92,6 +84,21 @@ export function useCompaniesTable(opts: {
             city: f.city,
             year: f.year,
         }),
+    });
+
+    // Labels dépendant de l'année du sélecteur — recalculés automatiquement
+    // quand `state.filters.value.year` change (chantier η Phase 3 fix). Sans
+    // ça, les colonnes restaient figées sur l'année initiale.
+    const columns = computed<readonly DataTableColumn<CompanyRow>[]>(() => {
+        const year = state.filters.value.year;
+
+        return [
+            { key: 'company', label: 'Entreprise' },
+            { key: 'siren', label: 'SIREN', mono: true },
+            { key: 'city', label: 'Ville' },
+            { key: 'daysUsed', label: `Jours ${year}`, mono: true },
+            { key: 'annualTaxDue', label: `Taxe ${year}` },
+        ];
     });
 
     const activeSortColumnKey = computed<string | null>(() => {
