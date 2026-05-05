@@ -10,7 +10,6 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
-use App\Providers\FiscalServiceProvider;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\Fiscal\Fakes\FakeDailyProrata;
@@ -30,9 +29,8 @@ use Tests\TestCase;
  * Si ce test passe, ajouter 2025 / 2026 / etc. en production se
  * résume à :
  *   1. créer les classes sous `app/Fiscal/Year{YYYY}/...`
- *   2. ajouter une méthode `registerYear{YYYY}()` dans
- *      {@see FiscalServiceProvider}
- *   3. ajouter l'année dans `config/floty.fiscal.available_years`
+ *   2. créer `Year{YYYY}Boot` qui les enregistre
+ *   3. ajouter le boot dans `config/floty.php`'s `fiscal.year_boots`
  *
  * Procédure complète : `project-management/taxes-rules/_adding-a-new-year.md`.
  */
@@ -71,9 +69,9 @@ final class FiscalRegistryExtensibilityTest extends TestCase
     #[Test]
     public function le_pipeline_execute_un_calcul_complet_sur_une_annee_fake(): void
     {
-        // Mock : l'année 2099 doit être considérée supportée
-        config(['floty.fiscal.available_years' => [2024, self::FAKE_YEAR]]);
-
+        // Enregistre l'année 2099 dans le registry — `FiscalYearContext`
+        // s'appuie sur `registeredYears()` (chantier η Phase 5), donc
+        // l'année devient supportée dès qu'au moins une règle est posée.
         $registry = $this->app->make(FiscalRuleRegistry::class);
         $registry->register(self::FAKE_YEAR, [
             FakeWltpProgressive::class,

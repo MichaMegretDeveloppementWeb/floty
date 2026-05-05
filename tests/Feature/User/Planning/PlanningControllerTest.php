@@ -74,7 +74,7 @@ final class PlanningControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
 
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
 
         // Contrat janvier (semaines ISO ~1-2)
         Contract::factory()->create([
@@ -88,7 +88,7 @@ final class PlanningControllerTest extends TestCase
         $augustWeek = (int) Carbon::parse(sprintf('%d-08-12', $year))->isoWeek;
 
         $response = $this->actingAs($user)
-            ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week={$augustWeek}")
+            ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week={$augustWeek}&year={$year}")
             ->assertOk();
 
         $busy = $response->json('vehicleBusyDates');
@@ -111,7 +111,7 @@ final class PlanningControllerTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
 
         // Indispo en semaine ISO connue : 5 mars (`Y-03-05`) → semaine
         // ISO calculée précisément à partir du calendrier réel.
@@ -128,7 +128,7 @@ final class PlanningControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/planning')
+            ->get('/app/planning?year='.$year)
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Planning/Index/Index')
@@ -148,7 +148,7 @@ final class PlanningControllerTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
         // Indispo de 2 jours en milieu de semaine - les autres jours
         // de la semaine doivent rester sans flag.
         $start = sprintf('%d-03-05', $year);
@@ -164,7 +164,7 @@ final class PlanningControllerTest extends TestCase
         ]);
 
         $response = $this->actingAs($user)
-            ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week={$weekNumber}")
+            ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week={$weekNumber}&year={$year}")
             ->assertOk();
 
         /** @var array{days: list<array<string, mixed>>} $payload */
@@ -206,7 +206,7 @@ final class PlanningControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
 
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
 
         $this->actingAs($user)
             ->postJson('/app/planning/preview-taxes', [
@@ -231,7 +231,7 @@ final class PlanningControllerTest extends TestCase
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
 
         $this->actingAs($user)
             ->postJson('/app/planning/contracts', [

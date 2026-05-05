@@ -29,14 +29,14 @@ final class DashboardControllerTest extends TestCase
         ]);
         // Contrat 1 jour pour produire un cumul `contractDaysYear = 1`
         // (KPI brut côté Dashboard = nombre de jours-contrat occupés).
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => sprintf('%04d-06-15', $year),
             'end_date' => sprintf('%04d-06-15', $year),
         ]);
 
         $this->actingAs($user)
-            ->get('/app/dashboard')
+            ->get('/app/dashboard?year='.$year)
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Dashboard/Index/Index')

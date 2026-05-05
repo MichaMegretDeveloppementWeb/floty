@@ -4,40 +4,26 @@ declare(strict_types=1);
 
 namespace App\Services\Shared\Fiscal;
 
-use Illuminate\Contracts\Config\Repository;
+use App\Fiscal\Registry\FiscalRuleRegistry;
 
 /**
- * Petit contexte de référence pour les propriétés calendaires d'une
- * année fiscale (jours dans l'année, années disponibles, support).
+ * Contexte de référence pour les propriétés calendaires d'une année
+ * fiscale (jours dans l'année) et la vérification qu'une année est
+ * couverte par le moteur fiscal (registry des règles codées).
  *
- * **Note chantier J (2026-05-05)** : `FiscalYearResolver` a été supprimé.
- * L'année active côté utilisateur est désormais résolue **par page**
- * via `?year=` URL query param (cf. ADR-0020). Cette classe reste
- * utilisée pour les opérations purement calendaires (`daysInYear`) et
- * pour valider qu'une année est supportée par l'installation.
+ * **Doctrine "données métier ⊥ règles fiscales"** (chantier η Phase 5) :
+ * la source d'autorité est désormais le {@see FiscalRuleRegistry} (les
+ * règles que l'app sait calculer), pas une config statique parallèle.
+ * La config `floty.fiscal.available_years` a été supprimée.
  *
  * **Stateless / immuable** : pas de propriété mutable, partageable en
  * singleton via le container Laravel sans précaution.
- *
- * **Pas de couplage Laravel `app()`** : on lit la config par injection
- * (`Repository`) pour rester testable hors framework.
  */
 final class FiscalYearContext
 {
     public function __construct(
-        private readonly Repository $config,
+        private readonly FiscalRuleRegistry $registry,
     ) {}
-
-    /**
-     * @return list<int>
-     */
-    public function availableYears(): array
-    {
-        return array_values(array_map(
-            'intval',
-            (array) $this->config->get('floty.fiscal.available_years', []),
-        ));
-    }
 
     /**
      * Nombre de jours dans une année grégorienne :
@@ -52,11 +38,12 @@ final class FiscalYearContext
     }
 
     /**
-     * Une année supportée par la configuration ?
+     * Une année supportée par le moteur fiscal (au moins une règle
+     * enregistrée pour cette année dans le registry) ?
      */
     public function isSupported(int $year): bool
     {
-        return in_array($year, $this->availableYears(), true);
+        return in_array($year, $this->registry->registeredYears(), true);
     }
 
     private function isLeapYear(int $year): bool

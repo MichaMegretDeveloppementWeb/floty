@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal;
 
+use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Services\Shared\Fiscal\FiscalYearContext;
-use Illuminate\Config\Repository;
+use Illuminate\Container\Container;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -14,11 +15,12 @@ use PHPUnit\Framework\TestCase;
  * Tests purs (sans bootstrap Laravel) du contexte d'année fiscale.
  *
  * Couvre la logique bissextile (cas limite 1900/2000/2100/2400) et la
- * lecture des années disponibles via un `Repository` stub.
+ * validation d'année supportée déléguée au {@see FiscalRuleRegistry}.
  *
- * Note chantier J (ADR-0020) : `FiscalYearResolver` (qui résolvait
- * l'année active via session) a été supprimé. La résolution de l'année
- * vit désormais par page via `?year=` URL.
+ * Note chantier η Phase 5 : la config statique
+ * `floty.fiscal.available_years` a été supprimée. La source d'autorité
+ * pour `isSupported()` est désormais le registry des règles codées
+ * (sémantique : "le moteur fiscal sait calculer cette année").
  */
 final class FiscalYearContextTest extends TestCase
 {
@@ -49,17 +51,9 @@ final class FiscalYearContextTest extends TestCase
     }
 
     #[Test]
-    public function available_years_normalise_en_int_list(): void
+    public function is_supported_delegue_au_registry(): void
     {
-        $context = $this->makeContext(availableYears: ['2024', 2025, '2026']);
-
-        $this->assertSame([2024, 2025, 2026], $context->availableYears());
-    }
-
-    #[Test]
-    public function is_supported_verifie_la_liste(): void
-    {
-        $context = $this->makeContext(availableYears: [2024, 2025]);
+        $context = $this->makeContext(registeredYears: [2024, 2025]);
 
         $this->assertTrue($context->isSupported(2024));
         $this->assertTrue($context->isSupported(2025));
@@ -67,18 +61,19 @@ final class FiscalYearContextTest extends TestCase
     }
 
     /**
-     * @param  array<int, int|string>  $availableYears
+     * @param  list<int>  $registeredYears
      */
-    private function makeContext(array $availableYears = [2024]): FiscalYearContext
+    private function makeContext(array $registeredYears = [2024]): FiscalYearContext
     {
-        $config = new Repository([
-            'floty' => [
-                'fiscal' => [
-                    'available_years' => $availableYears,
-                ],
-            ],
-        ]);
+        $registry = new FiscalRuleRegistry(new Container);
 
-        return new FiscalYearContext($config);
+        // `registeredYears()` ne fait que renvoyer les clés de `$byYear`.
+        // Une liste vide de classes suffit à enregistrer l'année dans le
+        // registry pour les besoins du test.
+        foreach ($registeredYears as $year) {
+            $registry->register($year, []);
+        }
+
+        return new FiscalYearContext($registry);
     }
 }

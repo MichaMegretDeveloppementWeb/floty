@@ -179,7 +179,7 @@ final class UnavailabilityControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create([
             'vehicle_id' => $vehicle->id,
         ]);
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
 
         Unavailability::factory()->create([
             'vehicle_id' => $vehicle->id,

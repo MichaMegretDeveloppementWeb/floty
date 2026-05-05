@@ -30,7 +30,7 @@ final class WeekDetailServiceTest extends TestCase
     #[Test]
     public function build_week_renvoie_7_jours_avec_contrats_eager_loaded(): void
     {
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
@@ -53,7 +53,7 @@ final class WeekDetailServiceTest extends TestCase
     #[Test]
     public function preview_taxes_calcule_le_delta_de_taxe_pour_n_nouvelles_dates(): void
     {
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();

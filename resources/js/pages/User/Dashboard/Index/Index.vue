@@ -4,7 +4,6 @@ import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { useLocalYearSelector } from '@/Composables/Shared/useLocalYearSelector';
 import KpisGrid from './partials/KpisGrid.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -13,16 +12,21 @@ import QuickLinksGrid from './partials/QuickLinksGrid.vue';
 const props = defineProps<{
     stats: App.Data.User.Dashboard.DashboardStatsData;
     selectedYear: number;
+    /**
+     * Scope d'années dynamique calculé depuis les contrats actifs
+     * (chantier η Phase 5). Remplace l'ancienne shared prop
+     * `fiscal.availableYears` lue via `useFiscalYear`.
+     */
+    yearScope: App.Data.Shared.YearScopeData;
 }>();
 
-const { availableYears } = useFiscalYear();
 const { selectedYear, selectYear } = useLocalYearSelector(
     props.selectedYear,
     ['stats', 'selectedYear'],
 );
 
 const yearOptions = computed<{ value: number; label: string }[]>(() =>
-    availableYears.value.map((year) => ({ value: year, label: String(year) })),
+    props.yearScope.availableYears.map((year) => ({ value: year, label: String(year) })),
 );
 
 const yearModel = computed<number>({

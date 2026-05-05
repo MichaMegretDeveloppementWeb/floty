@@ -44,8 +44,6 @@ final class SharedPropsTest extends TestCase
                     ->where('error', null)
                     ->where('warning', null)
                     ->where('info', null))
-                ->has('fiscal', fn (AssertableInertia $fy) => $fy
-                    ->has('availableYears'))
                 ->etc(),
             );
     }

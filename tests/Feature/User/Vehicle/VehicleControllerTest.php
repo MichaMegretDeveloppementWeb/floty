@@ -464,7 +464,7 @@ final class VehicleControllerTest extends TestCase
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
 
         $companyA = Company::factory()->create(['short_code' => 'ALPH']);
         $companyB = Company::factory()->create(['short_code' => 'BETA']);

@@ -6,7 +6,6 @@ import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import Tabs from '@/Components/Ui/Tabs/Tabs.vue';
 import { useFiscalRulesIndex } from '@/Composables/FiscalRule/Index/useFiscalRulesIndex';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { useLocalYearSelector } from '@/Composables/Shared/useLocalYearSelector';
 import { daysInYear as daysInYearOf } from '@/Utils/date/daysInYear';
 import FormulaCard from './partials/FormulaCard.vue';
@@ -17,16 +16,21 @@ type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
 const props = defineProps<{
     rules: Rule[];
     selectedYear: number;
+    /**
+     * Scope d'années alimenté par le **registry des règles fiscales**
+     * (chantier η Phase 5). Sémantique : « années pour lesquelles
+     * l'application sait calculer des règles » (≠ scope contrats).
+     */
+    yearScope: App.Data.Shared.YearScopeData;
 }>();
 
-const { availableYears } = useFiscalYear();
 const { selectedYear, selectYear } = useLocalYearSelector(
     props.selectedYear,
     ['rules', 'selectedYear'],
 );
 
 const yearOptions = computed<{ value: number; label: string }[]>(() =>
-    availableYears.value.map((year) => ({ value: year, label: String(year) })),
+    props.yearScope.availableYears.map((year) => ({ value: year, label: String(year) })),
 );
 
 const yearModel = computed<number>({

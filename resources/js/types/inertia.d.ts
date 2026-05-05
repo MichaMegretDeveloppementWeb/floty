@@ -14,7 +14,6 @@ declare module '@inertiajs/core' {
             user: App.Data.Auth.CurrentUserData | null;
         };
         flash: App.Data.Shared.FlashData;
-        fiscal: App.Data.Shared.FiscalSharedData;
     }
 }
 

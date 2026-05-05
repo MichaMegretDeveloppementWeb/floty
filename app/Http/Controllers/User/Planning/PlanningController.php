@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Planning;
 
 use App\Actions\Contract\BulkCreateContractsAction;
+use App\Data\Shared\YearScopeData;
 use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Planning\PreviewTaxesInputData;
 use App\Data\User\Planning\WeekQueryData;
 use App\Http\Controllers\Controller;
+use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Planning\PlanningHeatmapService;
 use App\Services\Planning\WeekDetailService;
 use Carbon\CarbonImmutable;
@@ -34,6 +36,7 @@ final class PlanningController extends Controller
         private readonly PlanningHeatmapService $heatmap,
         private readonly WeekDetailService $weekDetail,
         private readonly BulkCreateContractsAction $bulkCreateContracts,
+        private readonly AvailableYearsResolver $availableYears,
     ) {}
 
     public function index(Request $request): Response
@@ -45,6 +48,7 @@ final class PlanningController extends Controller
             [
                 ...$this->heatmap->buildHeatmap($year),
                 'selectedYear' => $year,
+                'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
         );
     }
@@ -91,21 +95,22 @@ final class PlanningController extends Controller
         return response()->json(['createdIds' => $createdIds]);
     }
 
+    /**
+     * Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 5) —
+     * l'utilisateur pilote n'importe quelle année calendaire raisonnable
+     * (range 1900-2100). Le sélecteur UI affiche `yearScope` (scope
+     * contrats), mais un deep-link `?year=` libre reste honoré. Fallback
+     * année calendaire courante.
+     */
     private function resolveYear(Request $request): int
     {
-        $available = array_map('intval', config('floty.fiscal.available_years', []));
         $raw = $request->query('year');
         $candidate = is_numeric($raw) ? (int) $raw : null;
 
-        if ($candidate !== null && in_array($candidate, $available, true)) {
+        if ($candidate !== null && $candidate >= 1900 && $candidate <= 2100) {
             return $candidate;
         }
 
-        $current = (int) CarbonImmutable::now()->year;
-        if (in_array($current, $available, true)) {
-            return $current;
-        }
-
-        return $available === [] ? $current : (int) max($available);
+        return $this->availableYears->currentYear();
     }
 }

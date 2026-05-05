@@ -7,7 +7,6 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import { useUserPlanningIndex } from '@/Composables/Planning/Index/useUserPlanningIndex';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { useLocalYearSelector } from '@/Composables/Shared/useLocalYearSelector';
 import PageHeader from './partials/PageHeader.vue';
 
@@ -15,16 +14,20 @@ const props = defineProps<{
     vehicles: App.Data.User.Planning.PlanningHeatmapVehicleData[];
     companies: App.Data.User.Company.CompanyOptionData[];
     selectedYear: number;
+    /**
+     * Scope d'années dynamique calculé depuis les contrats actifs
+     * (chantier η Phase 5).
+     */
+    yearScope: App.Data.Shared.YearScopeData;
 }>();
 
-const { availableYears } = useFiscalYear();
 const { selectedYear, selectYear } = useLocalYearSelector(
     props.selectedYear,
     ['vehicles', 'companies', 'selectedYear'],
 );
 
 const yearOptions = computed<{ value: number; label: string }[]>(() =>
-    availableYears.value.map((year) => ({ value: year, label: String(year) })),
+    props.yearScope.availableYears.map((year) => ({ value: year, label: String(year) })),
 );
 
 const yearModel = computed<number>({

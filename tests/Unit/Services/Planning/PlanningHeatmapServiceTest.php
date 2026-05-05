@@ -29,7 +29,7 @@ final class PlanningHeatmapServiceTest extends TestCase
     #[Test]
     public function build_heatmap_construit_la_matrice_52_semaines(): void
     {
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();

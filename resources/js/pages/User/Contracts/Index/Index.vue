@@ -12,7 +12,6 @@ import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import { useContractsTable } from '@/Composables/Contract/Index/useContractsTable';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import ContractsTable from './partials/ContractsTable.vue';
 import EmptyContractsState from './partials/EmptyContractsState.vue';
@@ -32,9 +31,14 @@ const props = defineProps<{
      * de filtre — cf. note backend sur le bug placeholder.
      */
     hasAnyContract: boolean;
+    /**
+     * Scope d'années dynamique calculé depuis les contrats actifs
+     * (chantier η Phase 5). Remplace l'ancienne shared prop
+     * `fiscal.availableYears` lue via `useFiscalYear`.
+     */
+    yearScope: App.Data.Shared.YearScopeData;
 }>();
 
-const { availableYears } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
 
 const tableState = useContractsTable({
@@ -135,7 +139,7 @@ const initialMode: ScopeMode
 const scopeMode = ref<ScopeMode>(initialMode);
 
 const yearOptions = computed<{ value: number; label: string }[]>(() =>
-    availableYears.value.map((year) => ({ value: year, label: String(year) })),
+    props.yearScope.availableYears.map((year) => ({ value: year, label: String(year) })),
 );
 
 // Année par défaut : valeur du DTO query si mode year, sinon dernière
@@ -145,11 +149,11 @@ const defaultYear = computed<number>(() => {
         return props.query.year;
     }
 
-    const max = availableYears.value.length === 0
-        ? new Date().getFullYear()
-        : Math.max(...availableYears.value);
+    const years = props.yearScope.availableYears;
 
-    return max;
+    return years.length === 0
+        ? new Date().getFullYear()
+        : Math.max(...years);
 });
 
 const yearModel = computed<number>({

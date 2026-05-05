@@ -9,6 +9,7 @@ use App\Actions\Contract\DeleteContractAction;
 use App\Actions\Contract\StoreContractAction;
 use App\Actions\Contract\UpdateContractAction;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
+use App\Data\Shared\YearScopeData;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Contract\ContractIndexQueryData;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
+use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -47,6 +49,7 @@ final class ContractController extends Controller
         private readonly UpdateContractAction $updateContract,
         private readonly DeleteContractAction $deleteContract,
         private readonly BulkCreateContractsAction $bulkCreateContracts,
+        private readonly AvailableYearsResolver $availableYears,
     ) {}
 
     public function index(ContractIndexQueryData $query): Response
@@ -59,6 +62,7 @@ final class ContractController extends Controller
             // distingue « table intrinsèquement vide » du « filtre actif
             // retournant 0 » sans dériver depuis 3 sources désynchronisées.
             'hasAnyContract' => $this->contractRead->existsAny(),
+            'yearScope' => YearScopeData::fromResolver($this->availableYears),
         ]);
     }
 

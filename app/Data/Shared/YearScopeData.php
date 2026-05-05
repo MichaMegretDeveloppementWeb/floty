@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Data\Shared;
 
+use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Services\Fiscal\AvailableYearsResolver;
+use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -18,12 +20,6 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * choisit son défaut. Centraliser en shared encouragerait un couplage
  * implicite (« la page A modifie l'année, la page B en hérite ») qu'on
  * veut éviter.
- *
- * **Co-existence avec `FiscalSharedData`** : `FiscalSharedData` reste
- * exposé en shared props pour l'instant (alimenté par
- * `config('floty.fiscal.available_years')` — ancien chemin caduc). Le
- * cleanup Phase 5 supprimera ce shared global au profit de cette prop
- * locale.
  *
  * **Champs** :
  *   - `currentYear` : année calendaire réelle (2026 aujourd'hui). Sert
@@ -61,6 +57,34 @@ final class YearScopeData extends Data
             currentYear: $resolver->currentYear(),
             minYear: $resolver->minYear(),
             availableYears: $resolver->availableYears(),
+        );
+    }
+
+    /**
+     * Construit le DTO depuis le scope **moteur fiscal** (années pour
+     * lesquelles des règles sont enregistrées dans le registry). Variant
+     * utilisée par la page « Règles de calcul » : elle consulte des
+     * barèmes versionnés, pas un scope de données métier.
+     *
+     * `currentYear` = dernière année enregistrée (les barèmes sont
+     * versionnés ; le défaut UX est le plus récent disponible). Si aucun
+     * boot n'est enregistré, fallback sur l'année calendaire courante.
+     */
+    public static function fromRegistry(FiscalRuleRegistry $registry): self
+    {
+        $years = $registry->registeredYears();
+        sort($years);
+
+        if ($years === []) {
+            $current = (int) CarbonImmutable::now()->year;
+
+            return new self(currentYear: $current, minYear: $current, availableYears: [$current]);
+        }
+
+        return new self(
+            currentYear: (int) max($years),
+            minYear: (int) min($years),
+            availableYears: $years,
         );
     }
 }

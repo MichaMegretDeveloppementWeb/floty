@@ -309,7 +309,7 @@ final class ExitVehicleControllerTest extends TestCase
     public function heatmap_planning_exclut_les_vehicules_sortis_avant_le_1er_janvier_de_l_annee(): void
     {
         $user = User::factory()->create();
-        $year = (int) config('floty.fiscal.available_years')[0];
+        $year = 2024;
 
         // Sorti l'année précédente → ne doit pas apparaître.
         $vehiclePrev = Vehicle::factory()->create([
@@ -328,7 +328,7 @@ final class ExitVehicleControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleMidYear->id]);
 
         $this->actingAs($user)
-            ->get('/app/planning')
+            ->get('/app/planning?year='.$year)
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where(
