@@ -13,6 +13,7 @@ use App\Data\User\Unavailability\UnavailabilityData;
 use App\Data\User\Vehicle\PaginatedVehicleListData;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
 use App\Data\User\Vehicle\VehicleData;
+use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Data\User\Vehicle\VehicleListItemData;
 use App\Data\User\Vehicle\VehicleOptionData;
@@ -20,6 +21,9 @@ use App\Data\User\Vehicle\VehicleUsageStatsData;
 use App\Data\User\Vehicle\VehicleWeekSegmentData;
 use App\Data\User\Vehicle\VehicleWeekUsageData;
 use App\Data\User\Vehicle\VehicleYearStatsData;
+use App\DTO\Fiscal\ContractsByPair;
+use App\Enums\Vehicle\HomologationMethod;
+use App\Enums\Vehicle\PollutantCategory;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Company;
@@ -158,18 +162,15 @@ final class VehicleQueryService
         }
 
         // Exploration — sélecteur d'année partagé Timeline/Breakdown/
-        // FullYearTax. Limité aux années dont les règles fiscales sont
-        // codées (`scope ∩ registry`) car `buildUsageStats` repose sur
-        // le pipeline fiscal complet (tarifs CO₂, polluants, exonérations)
-        // qui plante sur une année non configurée. La doctrine
-        // « données métier ⊥ règles fiscales » s'applique aux KPI/history
-        // (chiffres bruts tolérés) mais pas à l'Exploration qui exige
-        // un calcul fiscal valide.
-        $explorableYears = array_values(array_intersect(
-            $this->availableYears->availableYears(),
-            $this->fiscalRules->registeredYears(),
-        ));
-        $selectedYear = $this->resolveSelectedExploration($requestedYear, $explorableYears);
+        // FullYearTax. Le scope est le **scope global complet**
+        // (`availableYears`), pas restreint au registry fiscal — doctrine
+        // « données métier ⊥ règles fiscales » : on doit pouvoir explorer
+        // n'importe quelle année où il y a eu un contrat, même si les
+        // règles fiscales de cette année ne sont pas encore codées.
+        // `buildUsageStats` est rendu tolérant (chiffres taxes à 0 +
+        // breakdown FullYear neutre si pipeline indisponible).
+        // Default = `currentYear` (cohérent avec Phase 1 Activity).
+        $selectedYear = $this->resolveSelectedExploration($requestedYear);
 
         return VehicleData::fromModel(
             $vehicle,
@@ -182,42 +183,21 @@ final class VehicleQueryService
             history: $history,
             selectedYear: $selectedYear,
             yearScope: YearScopeData::fromResolver($this->availableYears),
-            explorableYears: $explorableYears,
         );
     }
 
     /**
      * Sélectionne l'année Exploration depuis l'année demandée (URL),
-     * en validant contre les années explorables. Fallback sur la plus
-     * récente année avec règles fiscales codées si la demande est
-     * invalide ou absente — garantit que `buildUsageStats` ne plantera
-     * jamais sur cette page.
-     *
-     * Cas BDD vide (typique RefreshDatabase) : `explorableYears` peut
-     * être vide (scope global = currentYear seulement, intersect avec
-     * registry = ∅). On fallback alors sur `max(registeredYears)` —
-     * `buildUsageStats` peut tourner même sans contrat à compter,
-     * tant que les règles fiscales de l'année sont chargées.
-     *
-     * @param  list<int>  $explorableYears
+     * en validant contre le scope global. Fallback sur `currentYear`
+     * si la demande est invalide ou absente.
      */
-    private function resolveSelectedExploration(?int $requested, array $explorableYears): int
+    private function resolveSelectedExploration(?int $requested): int
     {
-        if ($requested !== null && in_array($requested, $explorableYears, true)) {
+        $available = $this->availableYears->availableYears();
+        if ($requested !== null && in_array($requested, $available, true)) {
             return $requested;
         }
 
-        if ($explorableYears !== []) {
-            return max($explorableYears);
-        }
-
-        $registered = $this->fiscalRules->registeredYears();
-        if ($registered !== []) {
-            return max($registered);
-        }
-
-        // Edge case extrême : aucun registry chargé — improbable en
-        // prod (FiscalServiceProvider charge toujours au moins 2024).
         return $this->availableYears->currentYear();
     }
 
@@ -330,12 +310,22 @@ final class VehicleQueryService
         $weeklyMap = $this->contracts->loadVehicleWeeklyBreakdown($vehicle->id, $year);
         $unavailabilityDaysByWeek = $this->computeUnavailabilityDaysByWeek($unavailabilityModels, $year);
 
-        $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
-            $vehicle,
-            $contractsByPair,
-            $vehicleUnavailabilities,
-            $year,
-        );
+        // Calcul fiscal — encadré pour tolérer une année hors registry
+        // (doctrine « données métier ⊥ règles fiscales » : la Timeline et
+        // les jours bruts restent toujours affichables, seuls les
+        // chiffres de taxe tombent à 0 + breakdown FullYear neutre).
+        try {
+            $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
+                $vehicle,
+                $contractsByPair,
+                $vehicleUnavailabilities,
+                $year,
+            );
+            $fullYearBreakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
+        } catch (FiscalCalculationException) {
+            $breakdown = $this->fallbackBreakdownByCompany($contractsByPair, $vehicle->id);
+            $fullYearBreakdown = $this->emptyFullYearBreakdown($vehicle, $year);
+        }
 
         $companyIds = $this->collectCompanyIds($breakdown, $weeklyMap);
         $companiesById = $this->companies->findByIdsIndexed($companyIds);
@@ -372,18 +362,74 @@ final class VehicleQueryService
             $totalTax += $row['taxTotal'];
         }
 
-        $fullYearBreakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
-
         return new VehicleUsageStatsData(
             fiscalYear: $year,
             daysInYear: $daysInYear,
             daysUsedThisYear: $totalDays,
             actualTaxThisYear: round($totalTax, 2, PHP_ROUND_HALF_UP),
             fullYearTax: $fullYearBreakdown->total,
-            dailyTaxRate: round($fullYearBreakdown->total / $daysInYear, 2, PHP_ROUND_HALF_UP),
+            dailyTaxRate: $daysInYear > 0
+                ? round($fullYearBreakdown->total / $daysInYear, 2, PHP_ROUND_HALF_UP)
+                : 0.0,
             companies: $companies,
             weeklyBreakdown: $this->buildWeeklyBreakdown($weeklyMap, $unavailabilityDaysByWeek, $companiesById, $year),
             fullYearTaxBreakdown: $fullYearBreakdown,
+        );
+    }
+
+    /**
+     * Compose un breakdown par entreprise à partir des contrats seuls
+     * (jours uniquement, sans calcul fiscal). Utilisé en fallback quand
+     * le pipeline fiscal n'est pas disponible pour l'année — la colonne
+     * « Jours » reste informative, les colonnes Tax CO₂/Polluants/Total
+     * sont à 0.
+     *
+     * @return list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
+     */
+    private function fallbackBreakdownByCompany(ContractsByPair $contractsByPair, int $vehicleId): array
+    {
+        $rows = [];
+        foreach ($contractsByPair->pairsForVehicle($vehicleId) as $companyId => $pairContracts) {
+            $days = 0;
+            foreach ($pairContracts as $contract) {
+                $days += count($contract->expandToDaysInYear($contract->start_date->year));
+            }
+            $rows[] = [
+                'companyId' => $companyId,
+                'days' => $days,
+                'taxCo2' => 0.0,
+                'taxPollutants' => 0.0,
+                'taxTotal' => 0.0,
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * DTO `VehicleFullYearTaxBreakdownData` neutre — tarifs à 0 et
+     * messages explicites pour l'UI quand l'année n'a pas de règles
+     * fiscales codées. Les enums `co2Method` / `pollutantCategory` sont
+     * pris du current VFC du véhicule (ou défaut WLTP/Category1).
+     */
+    private function emptyFullYearBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
+    {
+        $current = $vehicle->fiscalCharacteristics
+            ->firstWhere(static fn ($vfc): bool => $vfc->effective_to === null);
+
+        $message = sprintf('Règles fiscales %d non implémentées.', $year);
+
+        return new VehicleFullYearTaxBreakdownData(
+            co2Method: $current !== null ? $current->homologation_method : HomologationMethod::Wltp,
+            co2FullYearTariff: 0.0,
+            co2Explanation: $message,
+            pollutantCategory: $current !== null ? $current->pollutant_category : PollutantCategory::Category1,
+            pollutantsFullYearTariff: 0.0,
+            pollutantsExplanation: $message,
+            appliedExemptions: [],
+            appliedRuleCodes: [],
+            total: 0.0,
+            appliedRules: [],
         );
     }
 

@@ -480,8 +480,9 @@ final class VehicleControllerTest extends TestCase
             'end_date' => sprintf('%04d-06-13', $year),
         ]);
 
+        // Force `?year=$year` car depuis Phase 2 le default est `currentYear`.
         $this->actingAs($user)
-            ->get("/app/vehicles/{$vehicle->id}")
+            ->get("/app/vehicles/{$vehicle->id}?year={$year}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Vehicles/Show/Index')
@@ -630,12 +631,12 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_year_scope_et_explorable_years_exposes(): void
+    public function show_year_scope_et_selected_year_exposes(): void
     {
         // `yearScope` = scope global (currentYear/minYear/availableYears)
-        // `explorableYears` = scope ∩ registry fiscal (= [2024] tant que
-        // seules les règles 2024 sont codées). Default selectedYear =
-        // max(explorableYears) = 2024.
+        // — toutes les années où il y a au moins un contrat en BDD.
+        // `selectedYear` = `currentYear` par défaut (cohérent doctrine
+        // « année par défaut = année en cours, navigable sur scope global »).
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -656,8 +657,43 @@ final class VehicleControllerTest extends TestCase
                     ->where('currentYear', $currentYear)
                     ->where('minYear', 2024)
                     ->has('availableYears'))
-                ->where('vehicle.explorableYears', [2024])
-                ->where('vehicle.selectedYear', 2024),
+                ->where('vehicle.selectedYear', $currentYear),
+            );
+    }
+
+    #[Test]
+    public function show_selected_year_accepte_n_importe_quelle_annee_du_scope_meme_sans_regles_fiscales(): void
+    {
+        // Doctrine « données métier ⊥ règles fiscales » : on doit
+        // pouvoir bascule sur `?year=2025` (sans règles codées) et
+        // obtenir une page rendue (Timeline OK, taxes à 0, FullYear
+        // neutre).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        // Contrat 2024 + 2025 → scope global inclut 2024 et 2025.
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-15',
+        ]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2025-04-01',
+            'end_date' => '2025-04-15',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}?year=2025")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicle.selectedYear', 2025)
+                // Pas de règles 2025 codées → fullYearTax = 0
+                ->where('vehicle.usageStats.fiscalYear', 2025)
+                ->where('vehicle.usageStats.fullYearTax', 0)
+                ->where('vehicle.usageStats.actualTaxThisYear', 0)
+                // Mais la donnée métier reste : 15 jours d'usage en 2025
+                ->where('vehicle.usageStats.daysUsedThisYear', 15),
             );
     }
 

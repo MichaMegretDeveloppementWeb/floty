@@ -11,12 +11,13 @@
  *
  * Le sélecteur Exploration utilise `useYearScope` en mode reload — le
  * pipeline fiscal est trop lourd pour pré-calculer toutes les années
- * côté front. Le scope est restreint à `vehicle.explorableYears`
- * (intersection scope global × règles fiscales codées) pour garantir
- * que `usageStats` est toujours calculable sans crash.
+ * côté front. Le scope est le scope global complet (`yearScope.availableYears`)
+ * — toutes les années où il y a au moins un contrat. Si l'année
+ * sélectionnée n'a pas de règles fiscales codées, le backend renvoie
+ * Timeline + jours intacts mais taxes à 0 et FullYear neutre.
  */
 import { Head } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import YearSelector from '@/Components/Ui/YearSelector/YearSelector.vue';
@@ -40,14 +41,12 @@ const fullYearModalOpen = ref<boolean>(false);
 // Sélecteur d'année Exploration — partagé entre Timeline, Breakdown,
 // FullYearTax. Mode reload (Inertia partial reload du DTO `vehicle`)
 // car le pipeline fiscal est trop lourd à pré-calculer toutes années.
-// Scope restreint à `explorableYears` (scope global ∩ registry fiscal).
-const explorationScope = computed<App.Data.Shared.YearScopeData>(() => ({
-    currentYear: props.vehicle.yearScope.currentYear,
-    minYear: props.vehicle.yearScope.minYear,
-    availableYears: props.vehicle.explorableYears,
-}));
-
-const { selectedYearModel, canSelect } = useYearScope(explorationScope.value, {
+// Scope = scope global complet (`yearScope.availableYears`) — doctrine
+// « données métier ⊥ règles fiscales » : on peut explorer n'importe
+// quelle année. Si l'année n'a pas de règles fiscales codées, le
+// backend renvoie Timeline + jours intacts, taxes à 0, breakdown
+// FullYear neutre avec message « Règles non implémentées ».
+const { selectedYearModel, canSelect } = useYearScope(props.vehicle.yearScope, {
     reloadKeys: ['vehicle'],
     initialYear: props.vehicle.selectedYear,
 });
@@ -92,7 +91,7 @@ const { selectedYearModel, canSelect } = useYearScope(explorationScope.value, {
                     <YearSelector
                         v-if="canSelect"
                         v-model="selectedYearModel"
-                        :available-years="props.vehicle.explorableYears"
+                        :available-years="props.vehicle.yearScope.availableYears"
                     />
                 </header>
 

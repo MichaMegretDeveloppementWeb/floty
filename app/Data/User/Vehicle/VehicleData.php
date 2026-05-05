@@ -39,12 +39,6 @@ final class VehicleData extends Data
      *                                               lignes neutres (zéros)
      *                                               comprises (cf. doctrine
      *                                               temporelle Phase 2).
-     * @param  list<int>  $explorableYears  Sous-ensemble du scope global
-     *                                      restreint aux années dont les
-     *                                      règles fiscales sont codées
-     *                                      (`scope ∩ registry`). Alimente
-     *                                      le sélecteur d'année partagé
-     *                                      Timeline/Breakdown/FullYearTax.
      */
     public function __construct(
         public int $id,
@@ -79,7 +73,6 @@ final class VehicleData extends Data
         public array $history,
         public int $selectedYear,
         public YearScopeData $yearScope,
-        public array $explorableYears,
     ) {}
 
     /**
@@ -94,7 +87,6 @@ final class VehicleData extends Data
      * @param  list<UnavailabilityData>  $unavailabilities
      * @param  list<string>  $busyDates
      * @param  list<VehicleYearStatsData>  $history
-     * @param  list<int>  $explorableYears
      */
     public static function fromModel(
         Vehicle $vehicle,
@@ -107,7 +99,6 @@ final class VehicleData extends Data
         array $history,
         int $selectedYear,
         YearScopeData $yearScope,
-        array $explorableYears,
     ): self {
         $fiscalHistory = $vehicle->fiscalCharacteristics
             ->map(static fn ($vfc): VehicleFiscalCharacteristicsData => VehicleFiscalCharacteristicsData::fromModel($vfc))
@@ -148,7 +139,6 @@ final class VehicleData extends Data
             history: $history,
             selectedYear: $selectedYear,
             yearScope: $yearScope,
-            explorableYears: $explorableYears,
         );
     }
 }
