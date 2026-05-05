@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Contract;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 
 /**
  * Encapsule l'accès au filesystem pour les documents contrat. Toute la
@@ -62,6 +64,28 @@ final readonly class ContractDocumentStorage
     public function delete(string $storagePath): void
     {
         Storage::disk($this->disk())->delete($storagePath);
+    }
+
+    /**
+     * Variante best-effort de {@see delete()} : avale toute exception
+     * driver (S3 down, permission, I/O) et logge un warning. Utilisée
+     * dans deux scénarios de compensation (chantier γ.2) :
+     *   1. Rollback fichier après échec persistance DB lors d'un upload
+     *      → on ne veut pas masquer l'exception DB d'origine.
+     *   2. Cleanup physique après suppression DB d'un document
+     *      → un orphelin disque est préférable à un orphelin record.
+     */
+    public function safeDelete(string $storagePath): void
+    {
+        try {
+            Storage::disk($this->disk())->delete($storagePath);
+        } catch (Throwable $e) {
+            Log::warning('ContractDocumentStorage::safeDelete failed', [
+                'storage_path' => $storagePath,
+                'exception' => $e::class,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
