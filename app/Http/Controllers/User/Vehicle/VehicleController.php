@@ -26,6 +26,7 @@ use App\Http\Controllers\Controller;
 use App\Services\Vehicle\VehicleQueryService;
 use App\Support\EnumOptions;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -63,21 +64,43 @@ final class VehicleController extends Controller
         ]);
     }
 
-    public function show(int $vehicle, Request $request): Response
+    public function show(int $vehicle): Response
     {
-        // Doctrine temporelle (chantier η Phase 2) — `?year=` URL passé
-        // brut au service qui valide contre `explorableYears` (scope ×
-        // registry) et fallback sur la dernière année fiscalement codée.
-        // L'année `selectedYear` pilote la lentille Exploration
-        // (Timeline + Breakdown + FullYearTax). Les KPIs Présent et la
-        // section Historique restent figés sur `currentYear` (cf. service).
-        $rawYear = $request->query('year');
-        $requestedYear = is_numeric($rawYear) ? (int) $rawYear : null;
-
+        // Doctrine temporelle (chantier η Phase 2 — refonte onglets) :
+        // `usageStats` est initialisé sur `currentYear`. Le sélecteur
+        // d'année des cartes Utilisation et Fiscalité fetch en lazy via
+        // `usageStatsForYear` / `fullYearBreakdownForYear` côté front
+        // avec cache client.
         return Inertia::render('User/Vehicles/Show/Index', [
-            'vehicle' => $this->vehicles->findVehicleData($vehicle, $requestedYear),
+            'vehicle' => $this->vehicles->findVehicleData($vehicle),
             'options' => $this->buildFormOptions(),
         ]);
+    }
+
+    /**
+     * Endpoint lazy JSON appelé par `useYearLazy` côté front quand
+     * l'utilisateur change l'année dans la carte Utilisation & Répartition
+     * de la fiche véhicule. Retourne `VehicleUsageStatsData` pour
+     * l'année demandée — Timeline + Breakdown par entreprise + breakdown
+     * Coût plein imbriqué.
+     */
+    public function usageStats(int $vehicle, Request $request): JsonResponse
+    {
+        $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
+
+        return response()->json($this->vehicles->usageStatsForYear($vehicle, $year));
+    }
+
+    /**
+     * Endpoint lazy JSON pour le panel Coût plein de l'onglet Fiscalité.
+     * Retourne uniquement `VehicleFullYearTaxBreakdownData` (panel détaillé
+     * du calcul théorique 100 % d'utilisation).
+     */
+    public function fullYearBreakdown(int $vehicle, Request $request): JsonResponse
+    {
+        $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
+
+        return response()->json($this->vehicles->fullYearBreakdownForYear($vehicle, $year));
     }
 
     public function create(): Response
@@ -96,14 +119,11 @@ final class VehicleController extends Controller
             ->with('toast-success', 'Véhicule enregistré.');
     }
 
-    public function edit(int $vehicle, Request $request): Response
+    public function edit(int $vehicle): Response
     {
-        $year = $this->resolveYearFromRequest($request);
-
         return Inertia::render('User/Vehicles/Edit/Index', [
-            'vehicle' => $this->vehicles->findVehicleData($vehicle, $year),
+            'vehicle' => $this->vehicles->findVehicleData($vehicle),
             'options' => $this->buildFormOptions(),
-            'selectedYear' => $year,
         ]);
     }
 
@@ -153,25 +173,6 @@ final class VehicleController extends Controller
         }
 
         return $available === [] ? $current : (int) max($available);
-    }
-
-    /**
-     * Résolution de l'année depuis Request (`?year=`) avec fallback.
-     *
-     * @deprecated Utilisé seulement par `edit()` — sera remplacé par
-     * `AvailableYearsResolver` au cleanup Phase 5.
-     */
-    private function resolveYearFromRequest(Request $request): int
-    {
-        $available = array_map('intval', config('floty.fiscal.available_years', []));
-        $raw = $request->query('year');
-        $candidate = is_numeric($raw) ? (int) $raw : null;
-
-        if ($candidate !== null && in_array($candidate, $available, true)) {
-            return $candidate;
-        }
-
-        return $this->resolveDefaultYear();
     }
 
     private function buildFormOptions(): VehicleFormOptionsData

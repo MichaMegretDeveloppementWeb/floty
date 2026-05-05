@@ -129,7 +129,7 @@ final class VehicleQueryService
      * Lève `ModelNotFoundException` (rendu 404 par Laravel) si l'id
      * n'existe pas.
      */
-    public function findVehicleData(int $id, ?int $requestedYear = null): VehicleData
+    public function findVehicleData(int $id): VehicleData
     {
         $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
 
@@ -143,8 +143,7 @@ final class VehicleQueryService
             ->values()
             ->all();
 
-        // Présent — KPI sur l'année calendaire courante (séparé du
-        // selectedYear de l'Exploration, qui peut être passé/futur).
+        // Présent — KPI sur l'année calendaire courante.
         $kpiYear = $this->availableYears->currentYear();
         $kpiStats = $this->computeVehicleYearStats($vehicle, $kpiYear, $unavailabilityModels);
         $kpiFiscalAvailable = in_array(
@@ -161,44 +160,61 @@ final class VehicleQueryService
             $history[] = $this->computeVehicleYearStats($vehicle, $year, $unavailabilityModels);
         }
 
-        // Exploration — sélecteur d'année partagé Timeline/Breakdown/
-        // FullYearTax. Le scope est le **scope global complet**
-        // (`availableYears`), pas restreint au registry fiscal — doctrine
-        // « données métier ⊥ règles fiscales » : on doit pouvoir explorer
-        // n'importe quelle année où il y a eu un contrat, même si les
-        // règles fiscales de cette année ne sont pas encore codées.
-        // `buildUsageStats` est rendu tolérant (chiffres taxes à 0 +
-        // breakdown FullYear neutre si pipeline indisponible).
-        // Default = `currentYear` (cohérent avec Phase 1 Activity).
-        $selectedYear = $this->resolveSelectedExploration($requestedYear);
+        // Exploration — `usageStats` initialisé sur `currentYear`. Les
+        // autres années sont fetchées à la demande côté front via les
+        // endpoints lazy `usageStatsForYear` / `fullYearBreakdownForYear`
+        // avec cache client (composable `useYearLazy`). Évite le pré-calcul
+        // backend pour des années qui ne seront jamais consultées.
+        $initialYear = $kpiYear;
 
         return VehicleData::fromModel(
             $vehicle,
-            $this->buildUsageStats($vehicle, $selectedYear, $unavailabilityModels),
+            $this->buildUsageStats($vehicle, $initialYear, $unavailabilityModels),
             $unavailabilityDtos,
-            $this->buildBusyDates($vehicle->id, $selectedYear),
+            $this->buildBusyDates($vehicle->id, $initialYear),
             kpiYear: $kpiYear,
             kpiStats: $kpiStats,
             kpiFiscalAvailable: $kpiFiscalAvailable,
             history: $history,
-            selectedYear: $selectedYear,
+            selectedYear: $initialYear,
             yearScope: YearScopeData::fromResolver($this->availableYears),
         );
     }
 
     /**
-     * Sélectionne l'année Exploration depuis l'année demandée (URL),
-     * en validant contre le scope global. Fallback sur `currentYear`
-     * si la demande est invalide ou absente.
+     * Endpoint lazy : recalcule `VehicleUsageStatsData` pour une année
+     * arbitraire du scope. Appelé par `useYearLazy` côté front quand
+     * l'utilisateur change l'année du sélecteur de la carte
+     * Utilisation & Répartition (onglet Vue d'ensemble).
+     *
+     * Tolère une année sans règles fiscales codées : Timeline et jours
+     * bruts intacts, chiffres taxes à 0 + breakdown FullYear neutre.
      */
-    private function resolveSelectedExploration(?int $requested): int
+    public function usageStatsForYear(int $vehicleId, int $year): VehicleUsageStatsData
     {
-        $available = $this->availableYears->availableYears();
-        if ($requested !== null && in_array($requested, $available, true)) {
-            return $requested;
-        }
+        $vehicle = $this->vehicles->findByIdWithFiscalHistory($vehicleId);
+        $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
 
-        return $this->availableYears->currentYear();
+        return $this->buildUsageStats($vehicle, $year, $unavailabilityModels);
+    }
+
+    /**
+     * Endpoint lazy : recalcule `VehicleFullYearTaxBreakdownData` pour
+     * une année arbitraire du scope. Appelé par l'onglet Fiscalité au
+     * changement d'année du sélecteur dédié.
+     *
+     * Si l'année n'a pas de règles fiscales codées, retourne un DTO
+     * neutre (tarifs 0 + message « Règles non implémentées »).
+     */
+    public function fullYearBreakdownForYear(int $vehicleId, int $year): VehicleFullYearTaxBreakdownData
+    {
+        $vehicle = $this->vehicles->findByIdWithFiscalHistory($vehicleId);
+
+        try {
+            return $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
+        } catch (FiscalCalculationException) {
+            return $this->emptyFullYearBreakdown($vehicle, $year);
+        }
     }
 
     /**

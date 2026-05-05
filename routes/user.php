@@ -48,6 +48,16 @@ Route::middleware('auth')
         Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])
             ->whereNumber('vehicle')
             ->name('vehicles.show');
+        // Endpoints lazy JSON pour la fiche véhicule (chantier η Phase 2
+        // refonte onglets) — sélecteurs locaux dans cartes
+        // Utilisation/Répartition + Fiscalité, fetchent à la demande
+        // avec cache client (composable `useYearLazy`).
+        Route::get('/vehicles/{vehicle}/usage-stats', [VehicleController::class, 'usageStats'])
+            ->whereNumber('vehicle')
+            ->name('vehicles.usage-stats');
+        Route::get('/vehicles/{vehicle}/full-year-breakdown', [VehicleController::class, 'fullYearBreakdown'])
+            ->whereNumber('vehicle')
+            ->name('vehicles.full-year-breakdown');
         Route::get('/vehicles/{vehicle}/edit', [VehicleController::class, 'edit'])
             ->whereNumber('vehicle')
             ->name('vehicles.edit');

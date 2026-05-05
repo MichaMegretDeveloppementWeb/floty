@@ -480,31 +480,21 @@ final class VehicleControllerTest extends TestCase
             'end_date' => sprintf('%04d-06-13', $year),
         ]);
 
-        // Force `?year=$year` car depuis Phase 2 le default est `currentYear`.
-        $this->actingAs($user)
-            ->get("/app/vehicles/{$vehicle->id}?year={$year}")
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Vehicles/Show/Index')
-                ->has('vehicle.usageStats', fn (AssertableInertia $s) => $s
-                    ->where('fiscalYear', $year)
-                    ->where('daysUsedThisYear', 95)
-                    ->has('daysInYear')
-                    ->has('actualTaxThisYear')
-                    ->has('fullYearTax')
-                    ->has('dailyTaxRate')
-                    ->has('companies', 2)
-                    ->where('companies.0.shortCode', 'BETA')
-                    ->where('companies.0.daysUsed', 60)
-                    ->has('companies.0.proratoPercent')
-                    ->has('companies.0.taxCo2')
-                    ->has('companies.0.taxPollutants')
-                    ->has('companies.0.taxTotal')
-                    ->where('companies.1.shortCode', 'ALPH')
-                    ->where('companies.1.daysUsed', 35)
-                    ->has('weeklyBreakdown')
-                    ->has('fullYearTaxBreakdown')),
-            );
+        // L'endpoint show() ne lit plus `?year=` depuis Phase 2 onglets
+        // (lazy fetch via `/usage-stats`). On test directement l'endpoint
+        // JSON lazy pour un breakdown sur l'année voulue.
+        $response = $this->actingAs($user)
+            ->getJson("/app/vehicles/{$vehicle->id}/usage-stats?year={$year}")
+            ->assertOk();
+
+        $payload = $response->json();
+        $this->assertSame($year, $payload['fiscalYear']);
+        $this->assertSame(95, $payload['daysUsedThisYear']);
+        $this->assertCount(2, $payload['companies']);
+        $this->assertSame('BETA', $payload['companies'][0]['shortCode']);
+        $this->assertSame(60, $payload['companies'][0]['daysUsed']);
+        $this->assertSame('ALPH', $payload['companies'][1]['shortCode']);
+        $this->assertSame(35, $payload['companies'][1]['daysUsed']);
     }
 
     #[Test]
@@ -662,39 +652,51 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_selected_year_accepte_n_importe_quelle_annee_du_scope_meme_sans_regles_fiscales(): void
+    public function lazy_endpoint_usage_stats_accepte_annee_sans_regles_fiscales(): void
     {
-        // Doctrine « données métier ⊥ règles fiscales » : on doit
-        // pouvoir bascule sur `?year=2025` (sans règles codées) et
-        // obtenir une page rendue (Timeline OK, taxes à 0, FullYear
-        // neutre).
+        // Doctrine « données métier ⊥ règles fiscales » : l'endpoint
+        // lazy `/usage-stats` accepte n'importe quelle année et tolère
+        // une année sans règles fiscales codées (Timeline OK, jours
+        // bruts intacts, taxes à 0).
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
 
-        // Contrat 2024 + 2025 → scope global inclut 2024 et 2025.
-        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
-            'start_date' => '2024-03-01',
-            'end_date' => '2024-03-15',
-        ]);
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => '2025-04-01',
             'end_date' => '2025-04-15',
         ]);
 
-        $this->actingAs($user)
-            ->get("/app/vehicles/{$vehicle->id}?year=2025")
+        $payload = $this->actingAs($user)
+            ->getJson("/app/vehicles/{$vehicle->id}/usage-stats?year=2025")
             ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('vehicle.selectedYear', 2025)
-                // Pas de règles 2025 codées → fullYearTax = 0
-                ->where('vehicle.usageStats.fiscalYear', 2025)
-                ->where('vehicle.usageStats.fullYearTax', 0)
-                ->where('vehicle.usageStats.actualTaxThisYear', 0)
-                // Mais la donnée métier reste : 15 jours d'usage en 2025
-                ->where('vehicle.usageStats.daysUsedThisYear', 15),
-            );
+            ->json();
+
+        $this->assertSame(2025, $payload['fiscalYear']);
+        $this->assertSame(15, $payload['daysUsedThisYear']);
+        $this->assertSame(0, $payload['fullYearTax']);
+        $this->assertSame(0, $payload['actualTaxThisYear']);
+    }
+
+    #[Test]
+    public function lazy_endpoint_full_year_breakdown_retourne_dto_neutre_si_pas_de_regles(): void
+    {
+        // L'endpoint `/full-year-breakdown` retourne un DTO neutre
+        // (tarifs 0, message « Règles non implémentées ») pour les
+        // années sans règles fiscales codées.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $payload = $this->actingAs($user)
+            ->getJson("/app/vehicles/{$vehicle->id}/full-year-breakdown?year=2025")
+            ->assertOk()
+            ->json();
+
+        $this->assertEquals(0, $payload['total']);
+        $this->assertEquals(0, $payload['co2FullYearTariff']);
+        $this->assertStringContainsString('non implémentées', $payload['co2Explanation']);
     }
 
     #[Test]
