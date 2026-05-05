@@ -493,11 +493,14 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_history_exclut_l_annee_calendaire_courante(): void
+    public function show_history_exclut_l_annee_calendaire_courante_et_comble_les_annees_sans_contrat(): void
     {
         // Crée un contrat 2024 (année passée) + un contrat sur l'année
-        // courante. L'historique ne doit contenir QUE 2024 — l'année
-        // courante est dans les KPIs en haut, pas dupliquée.
+        // courante. L'historique doit :
+        //   - exclure l'année courante (déjà dans les KPIs)
+        //   - couvrir toutes les années [minYear..kpiYear-1] avec lignes
+        //     neutres (zéros) pour les années sans contrat
+        // Si currentYear = 2026 → history = [2024 (10j), 2025 (0j neutre)].
         $user = User::factory()->create();
         $company = Company::factory()->create();
         $vehicleA = Vehicle::factory()->create();
@@ -520,12 +523,18 @@ final class CompanyControllerTest extends TestCase
             'end_date' => "{$currentYear}-06-10",
         ]);
 
+        $expectedYears = range(2024, $currentYear - 1);
+
         $this->actingAs($user)
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('company.history', 1) // uniquement 2024
+                ->has('company.history', count($expectedYears))
                 ->where('company.history.0.year', 2024)
+                ->where('company.history.0.daysUsed', 10)
+                // Année juste avant l'année courante : neutre (0j).
+                ->where('company.history.'.(count($expectedYears) - 1).'.year', $currentYear - 1)
+                ->where('company.history.'.(count($expectedYears) - 1).'.daysUsed', $currentYear - 1 === 2024 ? 10 : 0)
                 // KPIs reflètent l'année courante avec le contrat (10 jours)
                 ->where('company.kpiYear', $currentYear)
                 ->where('company.kpiStats.daysUsed', 10),
@@ -848,14 +857,19 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_history_inclut_uniquement_les_annees_avec_contrat(): void
+    public function show_history_inclut_toutes_les_annees_passees_du_scope_global(): void
     {
+        // Doctrine temporelle (chantier η Phase 1) : la section Historique
+        // couvre `[minYear..currentYear-1]` du scope global, MÊME les
+        // années où l'entreprise n'a aucun contrat (lignes neutres). On
+        // contrôle ici qu'une année à 0 sur l'entreprise apparaît bien
+        // entre 2 années à activité non nulle.
         $user = User::factory()->create();
         $company = Company::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
-        // Contrat en 2024 → 2024 doit figurer dans history
+        // Contrat 2024 sur cette entreprise
         Contract::factory()->create([
             'company_id' => $company->id,
             'vehicle_id' => $vehicle->id,
@@ -863,24 +877,30 @@ final class CompanyControllerTest extends TestCase
             'end_date' => '2024-03-15',
         ]);
 
-        // Contrat en 2025 → 2025 aussi
+        // Contrat 2026 sur une AUTRE entreprise (étend le scope global
+        // sans toucher l'historique de $company)
+        $otherCompany = Company::factory()->create();
         $vehicle2 = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle2->id]);
         Contract::factory()->create([
-            'company_id' => $company->id,
+            'company_id' => $otherCompany->id,
             'vehicle_id' => $vehicle2->id,
-            'start_date' => '2025-06-01',
-            'end_date' => '2025-06-30',
+            'start_date' => '2026-06-01',
+            'end_date' => '2026-06-30',
         ]);
+
+        $currentYear = (int) Carbon::now()->year;
+        $expectedYears = range(2024, $currentYear - 1);
 
         $this->actingAs($user)
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('company.history', 2)
+                ->has('company.history', count($expectedYears))
                 ->where('company.history.0.year', 2024)
-                ->where('company.history.1.year', 2025)
-                ->where('company.lifetime.contractsCount', 2),
+                ->where('company.history.0.daysUsed', 15)
+                // 2025 (si dans la plage) doit être présente, neutre.
+                ->where('company.lifetime.contractsCount', 1),
             );
     }
 }

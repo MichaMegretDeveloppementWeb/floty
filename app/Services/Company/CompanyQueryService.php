@@ -247,16 +247,7 @@ final class CompanyQueryService
         // on retourne un CompanyYearStatsData neutre (zéros) — l'UI
         // affichera "0 j / 0 contrats / 0 €" sans crash.
         $kpiYear = $this->availableYears->currentYear();
-        $kpiStats = $allYearStats[$kpiYear]
-            ?? new CompanyYearStatsData(
-                year: $kpiYear,
-                daysUsed: 0,
-                contractsCount: 0,
-                lcdCount: 0,
-                lldCount: 0,
-                annualTaxDue: 0.0,
-                rent: null,
-            );
+        $kpiStats = $allYearStats[$kpiYear] ?? $this->emptyYearStats($kpiYear);
 
         // Distingue "données absentes" (KPIs à 0) de "calcul fiscal
         // impossible" (règles fiscales pas encore codées pour kpiYear).
@@ -268,13 +259,19 @@ final class CompanyQueryService
             true,
         );
 
-        // Évolution — section Historique : toutes années passées avec
-        // contrats (exclut kpiYear qui est dans les KPIs ci-dessus).
-        // Évite la duplication info entre KPIs et Historique.
-        $history = array_values(array_filter(
-            $allYearStats,
-            static fn (CompanyYearStatsData $s): bool => $s->year < $kpiYear,
-        ));
+        // Évolution — section Historique : toutes les années passées du
+        // scope global `[minYear..kpiYear-1]`, MÊME celles où cette
+        // entreprise n'a aucun contrat (lignes neutres à zéros). Une
+        // année à 0 sur la fiche Entreprise est une info utile (« cette
+        // année-là, l'entreprise n'a rien utilisé »). Cohérent avec la
+        // doctrine HD4 : bornes globales partagées par toutes les pages.
+        // Si la DB est vide globalement, `minYear == kpiYear` → boucle
+        // vide → état empty UI déclenché.
+        $historyMinYear = $this->availableYears->minYear();
+        $history = [];
+        for ($year = $historyMinYear; $year < $kpiYear; $year++) {
+            $history[] = $allYearStats[$year] ?? $this->emptyYearStats($year);
+        }
 
         return new CompanyDetailData(
             id: $company->id,
@@ -387,6 +384,24 @@ final class CompanyQueryService
             year: $year,
             daysByMonth: $daysByMonth,
             topVehicles: $topVehicles,
+        );
+    }
+
+    /**
+     * Stats neutres (tous compteurs à zéro) pour une année où l'entreprise
+     * n'a aucun contrat. Utilisé pour les KPIs et pour combler les trous
+     * dans l'historique.
+     */
+    private function emptyYearStats(int $year): CompanyYearStatsData
+    {
+        return new CompanyYearStatsData(
+            year: $year,
+            daysUsed: 0,
+            contractsCount: 0,
+            lcdCount: 0,
+            lldCount: 0,
+            annualTaxDue: 0.0,
+            rent: null,
         );
     }
 
