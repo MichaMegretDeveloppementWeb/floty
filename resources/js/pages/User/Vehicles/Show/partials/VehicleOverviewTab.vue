@@ -14,10 +14,10 @@
  * Le panel détaillé du Coût plein vit dans l'onglet Fiscalité.
  */
 import CurrentFiscalCharacteristicsCard from './CurrentFiscalCharacteristicsCard.vue';
+import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
 import UnavailabilitiesCard from './UnavailabilitiesCard.vue';
 import VehicleKpiCards from './VehicleKpiCards.vue';
 import VehicleYearHistoryCard from './VehicleYearHistoryCard.vue';
-import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
 
 defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;

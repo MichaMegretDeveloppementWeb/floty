@@ -38,6 +38,14 @@ export type UseYearLazyReturn<T> = {
     error: Ref<string | null>;
     /** Demande explicite de bascule sur une année. */
     selectYear: (year: number) => Promise<void>;
+    /**
+     * Vide le cache et refetch l'année actuelle. Pour `initialYear`,
+     * on peut passer `freshInitial` qui remplace directement les données
+     * sans round-trip serveur (typique : un parent vient de recevoir un
+     * nouveau payload Inertia post-CRUD et veut propager les nouvelles
+     * stats à la carte sans bloquer l'UI).
+     */
+    invalidate: (freshInitial?: T) => Promise<void>;
 };
 
 export function useYearLazy<T>(
@@ -87,5 +95,35 @@ export function useYearLazy<T>(
         },
     });
 
-    return { year, yearModel, data, isLoading, error, selectYear };
+    async function invalidate(freshInitial?: T): Promise<void> {
+        cache.clear();
+
+        if (freshInitial !== undefined) {
+            cache.set(initialYear, freshInitial);
+
+            if (year.value === initialYear) {
+                data.value = freshInitial;
+
+                return;
+            }
+        }
+
+        // Refetch l'année actuelle (peut être ≠ initialYear si l'utilisateur
+        // a bascule sur une autre année avant le CRUD parent).
+        const target = year.value;
+
+        isLoading.value = true;
+        error.value = null;
+        try {
+            const fetched = await fetchFn(target);
+            cache.set(target, fetched);
+            data.value = fetched;
+        } catch (e) {
+            error.value = e instanceof Error ? e.message : 'Erreur inconnue';
+        } finally {
+            isLoading.value = false;
+        }
+    }
+
+    return { year, yearModel, data, isLoading, error, selectYear, invalidate };
 }

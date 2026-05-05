@@ -15,7 +15,7 @@
  * l'année, on fetch JSON ciblé via `usageStats.url(...)` (Wayfinder),
  * on cache, on affiche. Une année déjà visitée → affichage instantané.
  */
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
 import { usageStats as usageStatsRoute } from '@/actions/App/Http/Controllers/User/Vehicle/VehicleController';
 import Card from '@/Components/Ui/Card/Card.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
@@ -36,7 +36,7 @@ const props = defineProps<{
     availableYears: readonly number[];
 }>();
 
-const { yearModel, data, isLoading } = useYearLazy<UsageStats>(
+const { yearModel, data, isLoading, invalidate } = useYearLazy<UsageStats>(
     props.initialStats.fiscalYear,
     props.initialStats,
     async (year) => {
@@ -51,6 +51,22 @@ const { yearModel, data, isLoading } = useYearLazy<UsageStats>(
         }
 
         return (await response.json()) as UsageStats;
+    },
+);
+
+// Auto-update timeline + breakdown après CRUD indispo : le parent
+// `VehicleOverviewTab` reçoit un nouveau `vehicle.usageStats` après
+// `router.delete/post/patch` (Inertia full reload sans `only:`).
+// Le watch détecte la nouvelle référence d'`initialStats` et invalide
+// le cache. Si l'utilisateur est sur l'année initiale, propagation
+// instantanée ; sinon refetch de l'année actuelle.
+watch(
+    () => props.initialStats,
+    (fresh, previous) => {
+        if (fresh === previous) {
+            return;
+        }
+        void invalidate(fresh);
     },
 );
 
@@ -82,6 +98,24 @@ const {
     initialsOf,
 } = useCompanyFiscalBreakdownTable(composableArg);
 </script>
+
+<style scoped>
+/**
+ * Indisponibilité : pattern de hachures diagonales rose +
+ * background plein. Plus lisible que la croix SVG précédente
+ * (visible même sur des bandes très étroites).
+ */
+.unavailability-segment {
+    background-color: rgb(254 205 211); /* rose-200 */
+    background-image: repeating-linear-gradient(
+        135deg,
+        rgb(225 29 72 / 0.55) 0,
+        rgb(225 29 72 / 0.55) 1.5px,
+        transparent 1.5px,
+        transparent 4px
+    );
+}
+</style>
 
 <template>
     <Card>
@@ -143,22 +177,8 @@ const {
                                     <div
                                         v-if="week.unavailabilityDays > 0"
                                         :style="{ height: heightForDays(week.unavailabilityDays) }"
-                                        class="relative w-full bg-rose-50/60"
-                                    >
-                                        <svg
-                                            class="pointer-events-none absolute inset-0 h-full w-full text-rose-400"
-                                            preserveAspectRatio="none"
-                                            viewBox="0 0 16 16"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            stroke-width="1"
-                                            vector-effect="non-scaling-stroke"
-                                            aria-hidden="true"
-                                        >
-                                            <line x1="2" y1="2" x2="14" y2="14" />
-                                            <line x1="14" y1="2" x2="2" y2="14" />
-                                        </svg>
-                                    </div>
+                                        class="unavailability-segment relative w-full"
+                                    />
                                 </div>
 
                                 <template #content>
