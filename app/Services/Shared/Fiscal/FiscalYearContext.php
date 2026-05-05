@@ -4,19 +4,17 @@ declare(strict_types=1);
 
 namespace App\Services\Shared\Fiscal;
 
-use App\Fiscal\Resolver\FiscalYearResolver;
 use Illuminate\Contracts\Config\Repository;
 
 /**
  * Petit contexte de référence pour les propriétés calendaires d'une
  * année fiscale (jours dans l'année, années disponibles, support).
  *
- * **Note V1.8** : ce contexte ne porte plus la notion d'« année
- * courante ». L'année active côté utilisateur est désormais résolue
- * par {@see FiscalYearResolver} (lecture session).
- * Cette classe reste utilisée pour les opérations purement calendaires
- * (`daysInYear`) et pour valider qu'une année est supportée par
- * l'installation.
+ * **Note chantier J (2026-05-05)** : `FiscalYearResolver` a été supprimé.
+ * L'année active côté utilisateur est désormais résolue **par page**
+ * via `?year=` URL query param (cf. ADR-0020). Cette classe reste
+ * utilisée pour les opérations purement calendaires (`daysInYear`) et
+ * pour valider qu'une année est supportée par l'installation.
  *
  * **Stateless / immuable** : pas de propriété mutable, partageable en
  * singleton via le container Laravel sans précaution.

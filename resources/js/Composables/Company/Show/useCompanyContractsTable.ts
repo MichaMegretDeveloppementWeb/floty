@@ -86,12 +86,6 @@ export function useCompanyContractsTable(opts: {
         serializeFilters: (f) => ({
             periodStart: f.periodStart,
             periodEnd: f.periodEnd,
-            // `tab=contracts` est forcé dans l'URL pour que tout reload
-            // (filtre période, tri, pagination) préserve l'onglet actif —
-            // sinon `useServerTableState` (qui fait `router.get(pathname,
-            // cleanParams)`) écrase le `?tab=` injecté par `useCompanyTabs`
-            // et un F5 utilisateur retombe sur Vue d'ensemble.
-            tab: 'contracts',
         }),
     });
 

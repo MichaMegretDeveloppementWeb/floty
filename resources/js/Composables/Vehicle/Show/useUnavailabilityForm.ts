@@ -2,7 +2,6 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import {
     store as unavailabilitiesStoreRoute,
     update as unavailabilitiesUpdateRoute,
@@ -113,7 +112,10 @@ export function useUnavailabilityForm(
     conflictDaysCount: ComputedRef<number>;
     submit: () => void;
 } {
-    const { currentYear } = useFiscalYear();
+    // Chantier J : année calendaire courante côté front (l'utilisateur
+    // saisit une indispo dans son contexte présent, pas selon une session
+    // fiscale globale).
+    const currentYear = computed<number>(() => new Date().getFullYear());
 
     const buildOption = (value: UnavailabilityType): SelectOption => ({
         value,

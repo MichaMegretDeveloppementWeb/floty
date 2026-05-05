@@ -10,7 +10,6 @@ import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import {
     findLongestFreeSubrange,
     rangeConflicts,
@@ -97,14 +96,16 @@ watch(range, (value) => {
     props.form.end_date = value.endDate ?? '';
 }, { deep: true });
 
-const { currentYear: fiscalYear } = useFiscalYear();
-
+// Chantier J : année calendaire courante (le formulaire de création
+// d'un contrat n'a pas de contexte fiscal global ; le DateRangePicker
+// s'ouvre sur l'année courante par défaut, ou l'année du `start_date`
+// déjà saisi).
 const pickerYear = computed<number>(() => {
     if (props.form.start_date) {
         return Number(props.form.start_date.slice(0, 4));
     }
 
-    return fiscalYear.value;
+    return new Date().getFullYear();
 });
 
 const disabledDates = computed<string[]>(() => {

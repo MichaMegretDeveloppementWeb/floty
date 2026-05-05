@@ -42,13 +42,18 @@ const props = defineProps<{
     hasAnyVehicle: boolean;
 }>();
 
-const { currentYear: fiscalYear, availableYears } = useFiscalYear();
+const { availableYears } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
+
+// Année calendaire courante (front) — distincte de `selectedYear` qui
+// est pilotée par l'utilisateur. Sert de borne de référence dans
+// `useFleetTable` (ex. pour afficher des badges « En cours »).
+const currentRealYear = new Date().getFullYear();
 
 const tableState = useFleetTable({
     query: props.query,
     selectedYear: props.selectedYear,
-    currentRealYear: fiscalYear.value,
+    currentRealYear,
 });
 
 // Sélecteur d'année local à la page (chantier η anticipé) — pilote
@@ -201,7 +206,20 @@ const activeFiltersCount = computed<number>(() => {
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <PageHeader :fiscal-year="fiscalYear" />
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <PageHeader :fiscal-year="props.selectedYear" />
+                <div class="flex flex-col gap-1">
+                    <FieldLabel for="fleet-financial-year">
+                        Année des colonnes financières
+                    </FieldLabel>
+                    <SelectInput
+                        id="fleet-financial-year"
+                        v-model.number="selectedYearModel"
+                        :options="yearOptions"
+                        :disabled="yearOptions.length <= 1"
+                    />
+                </div>
+            </div>
 
             <div v-if="!props.hasAnyVehicle">
                 <EmptyFleetState />
@@ -214,22 +232,6 @@ const activeFiltersCount = computed<number>(() => {
                             v-model="searchModel"
                             placeholder="Rechercher (immat, marque, modèle)"
                             aria-label="Rechercher un véhicule"
-                        />
-                    </div>
-                    <div
-                        class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5"
-                    >
-                        <FieldLabel
-                            for="fleet-financial-year"
-                            class="!mb-0 whitespace-nowrap text-xs"
-                        >
-                            Année des colonnes financières
-                        </FieldLabel>
-                        <SelectInput
-                            id="fleet-financial-year"
-                            v-model.number="selectedYearModel"
-                            :options="yearOptions"
-                            :disabled="yearOptions.length <= 1"
                         />
                     </div>
                     <FilterPopover

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal;
 
-use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Config\Repository;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -17,9 +16,9 @@ use PHPUnit\Framework\TestCase;
  * Couvre la logique bissextile (cas limite 1900/2000/2100/2400) et la
  * lecture des années disponibles via un `Repository` stub.
  *
- * Note V1.8 : `currentYear()` a été retirée du contexte - la résolution
- * de l'année active vit désormais dans
- * {@see FiscalYearResolver} (qui a son propre test).
+ * Note chantier J (ADR-0020) : `FiscalYearResolver` (qui résolvait
+ * l'année active via session) a été supprimé. La résolution de l'année
+ * vit désormais par page via `?year=` URL.
  */
 final class FiscalYearContextTest extends TestCase
 {

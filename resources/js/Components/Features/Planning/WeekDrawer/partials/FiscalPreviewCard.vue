@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import { computed } from 'vue';
+import { daysInYear as daysInYearOf } from '@/Utils/date/daysInYear';
 import { formatEur } from '@/Utils/format/formatEur';
 
-defineProps<{
+const props = defineProps<{
     preview: App.Data.User.Fiscal.FiscalPreviewData | null;
     loading: boolean;
+    /** Année qui pilote le diviseur 365/366 du compteur cumul (chantier J). */
+    year: number;
 }>();
 
-const { daysInYear } = useFiscalYear();
+const daysInYear = computed<number>(() => daysInYearOf(props.year));
 </script>
 
 <template>

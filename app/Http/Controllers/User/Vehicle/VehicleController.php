@@ -22,11 +22,12 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
-use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Services\Vehicle\VehicleQueryService;
 use App\Support\EnumOptions;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -39,16 +40,14 @@ final class VehicleController extends Controller
         private readonly UpdateVehicleAction $updateVehicle,
         private readonly ExitVehicleAction $exitVehicle,
         private readonly ReactivateVehicleAction $reactivateVehicle,
-        private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
     public function index(VehicleIndexQueryData $query): Response
     {
-        // Année qui pilote les colonnes financières de la table.
-        // `?year=` URL > fallback FiscalYearResolver (préfigure le pattern
-        // « année par page » de l'ADR-0020 ; le sélecteur global du TopBar
-        // sera retiré au chantier η).
-        $year = $query->year ?? $this->fiscalYear->resolve();
+        // Sélecteur année **local** à la page (chantier J, ADR-0020).
+        // `?year=` URL avec fallback année calendaire courante. Pilote
+        // les colonnes financières (« Coût plein YYYY », « Prix location »).
+        $year = $query->year ?? $this->resolveDefaultYear();
 
         return Inertia::render('User/Vehicles/Index/Index', [
             'vehicles' => $this->vehicles->listPaginated($query, $year),
@@ -64,11 +63,14 @@ final class VehicleController extends Controller
         ]);
     }
 
-    public function show(int $vehicle): Response
+    public function show(int $vehicle, Request $request): Response
     {
+        $year = $this->resolveYearFromRequest($request);
+
         return Inertia::render('User/Vehicles/Show/Index', [
-            'vehicle' => $this->vehicles->findVehicleData($vehicle, $this->fiscalYear->resolve()),
+            'vehicle' => $this->vehicles->findVehicleData($vehicle, $year),
             'options' => $this->buildFormOptions(),
+            'selectedYear' => $year,
         ]);
     }
 
@@ -88,11 +90,14 @@ final class VehicleController extends Controller
             ->with('toast-success', 'Véhicule enregistré.');
     }
 
-    public function edit(int $vehicle): Response
+    public function edit(int $vehicle, Request $request): Response
     {
+        $year = $this->resolveYearFromRequest($request);
+
         return Inertia::render('User/Vehicles/Edit/Index', [
-            'vehicle' => $this->vehicles->findVehicleData($vehicle, $this->fiscalYear->resolve()),
+            'vehicle' => $this->vehicles->findVehicleData($vehicle, $year),
             'options' => $this->buildFormOptions(),
+            'selectedYear' => $year,
         ]);
     }
 
@@ -121,6 +126,40 @@ final class VehicleController extends Controller
         return redirect()
             ->route('user.vehicles.show', ['vehicle' => $vehicle])
             ->with('toast-success', 'Véhicule réactivé.');
+    }
+
+    /**
+     * Résolution de l'année par défaut (year non passé) : année
+     * calendaire courante si présente dans la config fiscale, sinon
+     * dernière année configurée. Borne de sécurité contre les années
+     * non couvertes par les barèmes.
+     */
+    private function resolveDefaultYear(): int
+    {
+        $available = array_map('intval', config('floty.fiscal.available_years', []));
+        $current = (int) CarbonImmutable::now()->year;
+
+        if (in_array($current, $available, true)) {
+            return $current;
+        }
+
+        return $available === [] ? $current : (int) max($available);
+    }
+
+    /**
+     * Résolution de l'année depuis Request (`?year=`) avec fallback.
+     */
+    private function resolveYearFromRequest(Request $request): int
+    {
+        $available = array_map('intval', config('floty.fiscal.available_years', []));
+        $raw = $request->query('year');
+        $candidate = is_numeric($raw) ? (int) $raw : null;
+
+        if ($candidate !== null && in_array($candidate, $available, true)) {
+            return $candidate;
+        }
+
+        return $this->resolveDefaultYear();
     }
 
     private function buildFormOptions(): VehicleFormOptionsData

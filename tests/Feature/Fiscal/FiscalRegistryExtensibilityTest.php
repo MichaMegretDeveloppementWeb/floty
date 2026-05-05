@@ -8,7 +8,6 @@ use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Registry\FiscalRuleRegistry;
-use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Providers\FiscalServiceProvider;
@@ -67,17 +66,6 @@ final class FiscalRegistryExtensibilityTest extends TestCase
 
         $this->expectException(FiscalCalculationException::class);
         $registry->rulesForYear(1900);
-    }
-
-    #[Test]
-    public function le_resolver_renvoie_une_annee_arbitraire_si_supportee_et_active_en_session(): void
-    {
-        config(['floty.fiscal.available_years' => [2024, self::FAKE_YEAR]]);
-        session(['fiscal.active_year' => self::FAKE_YEAR]);
-
-        $resolver = $this->app->make(FiscalYearResolver::class);
-
-        self::assertSame(self::FAKE_YEAR, $resolver->resolve());
     }
 
     #[Test]

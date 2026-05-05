@@ -7,7 +7,6 @@ namespace App\Http\Middleware;
 use App\Data\Auth\CurrentUserData;
 use App\Data\Shared\FiscalSharedData;
 use App\Data\Shared\FlashData;
-use App\Fiscal\Resolver\FiscalYearResolver;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -27,16 +26,14 @@ use Inertia\Middleware;
  *     de Toast du design system (success / error / warning / info).
  *     Le controller alimente via `->with('toast-success', 'Message')` et
  *     le front lit `flash.success`.
- *   - `fiscal` : année fiscale courante + années disponibles, propagées
- *     depuis `config/floty.php` (source de vérité unique).
+ *   - `fiscal.availableYears` : années configurées dans le moteur fiscal
+ *     (cf. `config/floty.fiscal.available_years`). Source unique de vérité
+ *     pour peupler les sélecteurs d'année locaux. Chantier J (ADR-0020) a
+ *     retiré `currentYear` (plus de session active).
  */
 final class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
-
-    public function __construct(
-        private readonly FiscalYearResolver $fiscalYearResolver,
-    ) {}
 
     public function version(Request $request): ?string
     {
@@ -65,7 +62,6 @@ final class HandleInertiaRequests extends Middleware
             ),
 
             'fiscal' => fn (): FiscalSharedData => new FiscalSharedData(
-                currentYear: $this->fiscalYearResolver->resolve(),
                 availableYears: array_map(
                     'intval',
                     config('floty.fiscal.available_years', []),

@@ -1,16 +1,11 @@
 <script setup lang="ts">
 import { Menu } from 'lucide-vue-next';
 import UserMenu from '@/Components/Layouts/UserLayout/UserMenu.vue';
-import YearSelector from '@/Components/Layouts/UserLayout/YearSelector.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import { useTopBar } from '@/Composables/Layout/UserLayout/useTopBar';
 
-const year = defineModel<number>('year', { required: true });
-
-defineProps<{
-    minYear: number;
-    maxYear: number;
-}>();
+// Chantier J (ADR-0020) : le sélecteur d'année global a été retiré.
+// Chaque page consommatrice gère désormais son sélecteur local.
 
 const emit = defineEmits<{
     'toggle-sidebar': [];
@@ -40,10 +35,6 @@ const { search, fullName, initials } = useTopBar();
                 disabled
             />
         </div>
-
-        <YearSelector v-model="year" :min="minYear" :max="maxYear" />
-
-        <div class="hidden h-8 w-px bg-slate-200 md:block" aria-hidden="true" />
 
         <UserMenu
             :name="fullName"

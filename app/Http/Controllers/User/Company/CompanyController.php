@@ -10,12 +10,12 @@ use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\StoreCompanyData;
 use App\Data\User\Contract\ContractIndexQueryData;
 use App\Exceptions\Company\CompanyShortCodeCollisionException;
-use App\Fiscal\Resolver\FiscalYearResolver;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -31,14 +31,19 @@ final class CompanyController extends Controller
         private readonly DriverQueryService $drivers,
         private readonly ContractQueryService $contracts,
         private readonly CreateCompanyAction $createCompany,
-        private readonly FiscalYearResolver $fiscalYear,
     ) {}
 
     public function index(CompanyIndexQueryData $query): Response
     {
+        // Sélecteur année **local** à la page (chantier J, ADR-0020) :
+        // `?year=` URL via DTO avec fallback année calendaire courante.
+        // Pilote les colonnes `daysUsed` et `annualTaxDue` du listing.
+        $year = $query->year ?? $this->resolveDefaultYear();
+
         return Inertia::render('User/Companies/Index/Index', [
-            'companies' => $this->companies->listPaginated($query, $this->fiscalYear->resolve()),
+            'companies' => $this->companies->listPaginated($query, $year),
             'query' => $query,
+            'selectedYear' => $year,
             // Cf. note d'archi sur le bug placeholder : `hasAnyCompany`
             // distingue « table intrinsèquement vide » du « filtre actif
             // retournant 0 » sans dériver depuis 3 sources désynchronisées.
@@ -121,5 +126,22 @@ final class CompanyController extends Controller
         return redirect()
             ->route('user.companies.index')
             ->with('toast-success', 'Entreprise créée.');
+    }
+
+    /**
+     * Résolution de l'année par défaut (year non passé) : année
+     * calendaire courante si présente dans la config fiscale, sinon
+     * dernière année configurée.
+     */
+    private function resolveDefaultYear(): int
+    {
+        $available = array_map('intval', config('floty.fiscal.available_years', []));
+        $current = (int) CarbonImmutable::now()->year;
+
+        if (in_array($current, $available, true)) {
+            return $current;
+        }
+
+        return $available === [] ? $current : (int) max($available);
     }
 }

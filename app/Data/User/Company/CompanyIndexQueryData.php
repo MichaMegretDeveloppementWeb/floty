@@ -30,6 +30,13 @@ final class CompanyIndexQueryData extends IndexQueryData
         public ?string $contractsScope = null,
         public ?string $companyType = null,
         public ?string $city = null,
+        /**
+         * Année qui pilote les colonnes financières (`daysUsed`,
+         * `annualTaxDue`) calculées par le service. Sélecteur **local**
+         * à la page (chantier J, ADR-0020). Si `null` côté DTO, le
+         * controller résout via fallback année calendaire courante.
+         */
+        public ?int $year = null,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,
         ?string $search = null,
@@ -46,11 +53,17 @@ final class CompanyIndexQueryData extends IndexQueryData
 
     public static function rules(): array
     {
+        $availableYears = config('floty.fiscal.available_years', []);
+        $yearRule = $availableYears === []
+            ? ['nullable', 'integer', 'min:1900', 'max:2100']
+            : ['nullable', 'integer', 'in:'.implode(',', $availableYears)];
+
         return array_merge(parent::rules(), [
             'isActive' => ['nullable', 'boolean'],
             'contractsScope' => ['nullable', 'string', 'in:with,without'],
             'companyType' => ['nullable', 'string', 'in:corporate,individual'],
             'city' => ['nullable', 'string', 'max:255'],
+            'year' => $yearRule,
         ]);
     }
 }

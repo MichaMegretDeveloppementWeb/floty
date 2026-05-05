@@ -4,9 +4,11 @@ import type { LegalReference } from '@/Composables/Shared/useOfficialLegalLinks'
 
 const props = defineProps<{
     refs: App.Data.User.Fiscal.FiscalRuleListItemData['legalBasis'];
+    /** Année qui pilote la résolution des versions Légifrance (chantier J). */
+    year: number;
 }>();
 
-const { resolveAll } = useOfficialLegalLinks();
+const { resolveAll } = useOfficialLegalLinks(() => props.year);
 
 const links = resolveAll(props.refs as unknown as LegalReference[]);
 </script>

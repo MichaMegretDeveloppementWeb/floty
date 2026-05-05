@@ -19,7 +19,6 @@ import { useServerTableState } from '@/Composables/Shared/useServerTableState';
 import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { show as contractsShowRoute } from '@/routes/user/contracts';
 import type { DataTableColumn } from '@/types/ui';
-import { formatDateFr } from '@/Utils/format/formatDateFr';
 import {
     contractTypeBadgeTone,
     contractTypeShortLabel,
@@ -51,6 +50,8 @@ export type ContractFilters = {
     companyId: number | null;
     driverId: number | null;
     type: 'lcd' | 'lld' | null;
+    /** Mode « Année » du toggle scope (chantier J). Mutuellement exclusif avec periodStart/End. */
+    year: number | null;
     periodStart: string | null;
     periodEnd: string | null;
 };
@@ -97,6 +98,7 @@ export function useContractsTable(opts: {
             companyId: null,
             driverId: null,
             type: null,
+            year: null,
             periodStart: null,
             periodEnd: null,
         },
@@ -105,6 +107,7 @@ export function useContractsTable(opts: {
             companyId: opts.query.companyId,
             driverId: opts.query.driverId,
             type: opts.query.type as 'lcd' | 'lld' | null,
+            year: opts.query.year,
             periodStart: opts.query.periodStart,
             periodEnd: opts.query.periodEnd,
         },
@@ -113,6 +116,7 @@ export function useContractsTable(opts: {
             companyId: f.companyId,
             driverId: f.driverId,
             type: f.type,
+            year: f.year,
             periodStart: f.periodStart,
             periodEnd: f.periodEnd,
         }),
@@ -165,15 +169,10 @@ export function useContractsTable(opts: {
             });
         }
 
-        if (f.periodStart !== null || f.periodEnd !== null) {
-            const start
-                = f.periodStart === null ? '…' : formatDateFr(f.periodStart);
-            const end = f.periodEnd === null ? '…' : formatDateFr(f.periodEnd);
-            chips.push({
-                key: 'periodStart',
-                label: `Période : ${start} → ${end}`,
-            });
-        }
+        // Chantier J : `year` / `periodStart-End` ne sont plus des filtres
+        // du panneau (devenus sélecteur scope au-dessus de la table). Ils
+        // n'apparaissent donc plus comme chips dans le décompte des filtres
+        // actifs du `FilterPopover`.
 
         return chips;
     });

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { CalendarDays } from 'lucide-vue-next';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
@@ -11,6 +13,7 @@ import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import { useContractsTable } from '@/Composables/Contract/Index/useContractsTable';
 import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 import ContractsTable from './partials/ContractsTable.vue';
 import EmptyContractsState from './partials/EmptyContractsState.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -31,7 +34,7 @@ const props = defineProps<{
     hasAnyContract: boolean;
 }>();
 
-const { currentYear: fiscalYear } = useFiscalYear();
+const { availableYears } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
 
 const tableState = useContractsTable({
@@ -41,7 +44,6 @@ const tableState = useContractsTable({
     driverOptions: props.options.drivers,
 });
 
-// Computed wrappers v-model fiables (cf. fix router.get).
 const searchModel = computed<string>({
     get: () => tableState.state.search.value,
     set: (value: string) => {
@@ -110,23 +112,146 @@ const typeModel = computed<string | number>({
     },
 });
 
+// ---------------------------------------------------------------
+// Sélecteur scope hybride année/période (chantier J)
+// ---------------------------------------------------------------
+//
+// 2 modes mutuellement exclusifs côté front :
+//  - mode 'year'   : SelectInput compact, envoie ?year=YYYY
+//  - mode 'period' : DateRangePicker dans popover, envoie ?periodStart=&periodEnd=
+//
+// Le mode initial est dérivé des params URL : `year` présent → mode year ;
+// `periodStart/End` présents → mode period ; sinon défaut année courante.
+
+type ScopeMode = 'year' | 'period';
+
+const initialMode: ScopeMode
+    = props.query.year !== null
+        ? 'year'
+        : props.query.periodStart !== null || props.query.periodEnd !== null
+            ? 'period'
+            : 'year';
+
+const scopeMode = ref<ScopeMode>(initialMode);
+
+const yearOptions = computed<{ value: number; label: string }[]>(() =>
+    availableYears.value.map((year) => ({ value: year, label: String(year) })),
+);
+
+// Année par défaut : valeur du DTO query si mode year, sinon dernière
+// année disponible. L'utilisateur peut la changer via le SelectInput.
+const defaultYear = computed<number>(() => {
+    if (props.query.year !== null) {
+        return props.query.year;
+    }
+    const max = availableYears.value.length === 0
+        ? new Date().getFullYear()
+        : Math.max(...availableYears.value);
+    return max;
+});
+
+const yearModel = computed<number>({
+    get: () => tableState.state.filters.value.year ?? defaultYear.value,
+    set: (v: number) => {
+        // En mode year : on set year, on efface periodStart/End. patchFilters
+        // pour update atomique en 1 seul reload.
+        tableState.state.patchFilters({
+            year: v,
+            periodStart: null,
+            periodEnd: null,
+        });
+    },
+});
+
 const periodRange = computed({
     get: () => ({
         startDate: tableState.state.filters.value.periodStart,
         endDate: tableState.state.filters.value.periodEnd,
     }),
     set: (range: { startDate: string | null; endDate: string | null }) => {
-        // patchFilters : update atomique en 1 seul reload. Évite la race
-        // où la 1ère request `?periodStart=…` (sans periodEnd) revient
-        // après la 2ème et écrase l'état avec un filtre incohérent
-        // (cf. bug filtre période 2026-05).
+        // En mode period : on set periodStart/End, on efface year.
         tableState.state.patchFilters({
+            year: null,
             periodStart: range.startDate,
             periodEnd: range.endDate,
         });
     },
 });
 const periodOngoing = ref<boolean>(false);
+
+function setScopeMode(mode: ScopeMode): void {
+    scopeMode.value = mode;
+    if (mode === 'year') {
+        // Bascule en année → applique l'année par défaut, efface period
+        if (tableState.state.filters.value.year === null) {
+            tableState.state.patchFilters({
+                year: defaultYear.value,
+                periodStart: null,
+                periodEnd: null,
+            });
+        }
+    } else {
+        // Bascule en période → garde period si déjà saisi, sinon clear year
+        if (
+            tableState.state.filters.value.periodStart === null
+            && tableState.state.filters.value.periodEnd === null
+        ) {
+            tableState.state.patchFilters({
+                year: null,
+                periodStart: null,
+                periodEnd: null,
+            });
+        } else {
+            tableState.state.setFilter('year', null);
+        }
+    }
+}
+
+// Popover période personnalisée
+const periodPopoverOpen = ref<boolean>(false);
+const popoverRoot = ref<HTMLElement | null>(null);
+
+function handleDocumentMouseDown(event: MouseEvent): void {
+    if (!periodPopoverOpen.value) return;
+    const target = event.target as Node | null;
+    if (target === null) return;
+    if (popoverRoot.value !== null && popoverRoot.value.contains(target))
+        return;
+    periodPopoverOpen.value = false;
+}
+
+function handleEscape(event: KeyboardEvent): void {
+    if (event.key === 'Escape' && periodPopoverOpen.value) {
+        periodPopoverOpen.value = false;
+    }
+}
+
+onMounted(() => {
+    document.addEventListener('mousedown', handleDocumentMouseDown);
+    document.addEventListener('keydown', handleEscape);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('mousedown', handleDocumentMouseDown);
+    document.removeEventListener('keydown', handleEscape);
+});
+
+const pickerYear = computed<number>(() => {
+    const start = tableState.state.filters.value.periodStart;
+    if (start !== null) {
+        return Number.parseInt(start.slice(0, 4), 10);
+    }
+    return defaultYear.value;
+});
+
+const periodLabel = computed<string>(() => {
+    const start = tableState.state.filters.value.periodStart;
+    const end = tableState.state.filters.value.periodEnd;
+    if (start === null && end === null) return 'Aucune période sélectionnée';
+    const s = start === null ? '…' : formatDateFr(start);
+    const e = end === null ? '…' : formatDateFr(end);
+    return `${s} → ${e}`;
+});
 </script>
 
 <template>
@@ -139,6 +264,86 @@ const periodOngoing = ref<boolean>(false);
             <EmptyContractsState v-if="!props.hasAnyContract" />
 
             <template v-else>
+                <!-- Sélecteur scope hybride année/période (hors panneau filtres) -->
+                <div class="flex flex-wrap items-end justify-between gap-3">
+                    <div class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-1">
+                        <button
+                            type="button"
+                            :class="[
+                                'rounded-md px-3 py-1 text-xs font-medium transition-colors duration-[120ms]',
+                                scopeMode === 'year'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-slate-600 hover:bg-slate-50',
+                            ]"
+                            @click="setScopeMode('year')"
+                        >
+                            Année
+                        </button>
+                        <button
+                            type="button"
+                            :class="[
+                                'rounded-md px-3 py-1 text-xs font-medium transition-colors duration-[120ms]',
+                                scopeMode === 'period'
+                                    ? 'bg-blue-50 text-blue-700'
+                                    : 'text-slate-600 hover:bg-slate-50',
+                            ]"
+                            @click="setScopeMode('period')"
+                        >
+                            Période personnalisée
+                        </button>
+                    </div>
+
+                    <!-- Mode année : SelectInput compact -->
+                    <div v-if="scopeMode === 'year'" class="flex flex-col gap-1">
+                        <FieldLabel for="contracts-year">Exercice</FieldLabel>
+                        <SelectInput
+                            id="contracts-year"
+                            v-model.number="yearModel"
+                            :options="yearOptions"
+                            :disabled="yearOptions.length <= 1"
+                        />
+                    </div>
+
+                    <!-- Mode période : bouton + popover DateRangePicker -->
+                    <div v-else ref="popoverRoot" class="relative">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            @click="periodPopoverOpen = !periodPopoverOpen"
+                        >
+                            <template #icon-left>
+                                <CalendarDays
+                                    :size="14"
+                                    :stroke-width="1.75"
+                                />
+                            </template>
+                            {{ periodLabel }}
+                        </Button>
+
+                        <div
+                            v-if="periodPopoverOpen"
+                            class="fixed inset-0 z-40 bg-slate-900/20 sm:hidden"
+                            aria-hidden="true"
+                            @click="periodPopoverOpen = false"
+                        />
+                        <div
+                            v-if="periodPopoverOpen"
+                            class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[360px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"
+                        >
+                            <div
+                                class="flex flex-col gap-3 overflow-y-auto p-4"
+                            >
+                                <DateRangePicker
+                                    id="contracts-period"
+                                    v-model:range="periodRange"
+                                    v-model:ongoing="periodOngoing"
+                                    :year="pickerYear"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="grow max-w-md">
                         <SearchInput
@@ -188,15 +393,6 @@ const periodOngoing = ref<boolean>(false);
                                     placeholder="Tous les types"
                                     :options="typeOptions"
                                     nullable
-                                />
-                            </div>
-                            <div>
-                                <FieldLabel for="filter-period">Période active</FieldLabel>
-                                <DateRangePicker
-                                    id="filter-period"
-                                    v-model:range="periodRange"
-                                    v-model:ongoing="periodOngoing"
-                                    :year="fiscalYear"
                                 />
                             </div>
                         </div>

@@ -166,31 +166,61 @@ export function useServerTableState<F extends Record<string, unknown>>(
         // `replace: true` évite de polluer l'historique sur chaque keystroke.
         const params = buildQueryData();
 
-        // Filtre les valeurs null pour garder l'URL propre.
-        const cleanParams: Record<string, string | number> = {};
+        // Stratégie URL : on FUSIONNE avec les query params existants au lieu
+        // de tout remplacer. Ainsi un param hors-table (ex. `?tab=contracts`
+        // posé par useCompanyTabs, ou un futur sélecteur global) survit à
+        // chaque interaction de table. Sans ça, chaque page consommatrice
+        // doit injecter ses params dans `serializeFilters` en workaround.
+        const url = new URL(window.location.href);
 
+        // 1. Retirer de l'URL les keys gérées par le composable (paramètres
+        //    « table standards » + clés de filtres custom). Ainsi un filtre
+        //    qui passe à null disparaît bien de l'URL au lieu de persister.
+        const managedKeys = new Set<string>([
+            'page',
+            'perPage',
+            'search',
+            'sortKey',
+            'sortDirection',
+            ...Object.keys(params).filter(
+                (k) =>
+                    !['page', 'perPage', 'search', 'sortKey', 'sortDirection'].includes(
+                        k,
+                    ),
+            ),
+        ]);
+        for (const key of managedKeys) {
+            url.searchParams.delete(key);
+        }
+
+        // 2. Réinjecter les valeurs courantes (en filtrant les null pour
+        //    garder l'URL propre).
         for (const [key, value] of Object.entries(params)) {
             if (value !== null) {
-                cleanParams[key] = value;
+                url.searchParams.set(key, String(value));
             }
         }
 
-        router.get(window.location.pathname, cleanParams, {
-            only: [...opts.only],
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-            onCancelToken: (token) => {
-                pendingCancel = token.cancel;
+        router.get(
+            url.pathname + url.search,
+            {},
+            {
+                only: [...opts.only],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onCancelToken: (token) => {
+                    pendingCancel = token.cancel;
+                },
+                onStart: () => {
+                    isReloading.value = true;
+                },
+                onFinish: () => {
+                    isReloading.value = false;
+                    pendingCancel = null;
+                },
             },
-            onStart: () => {
-                isReloading.value = true;
-            },
-            onFinish: () => {
-                isReloading.value = false;
-                pendingCancel = null;
-            },
-        });
+        );
     }
 
     function reloadDebounced(): void {

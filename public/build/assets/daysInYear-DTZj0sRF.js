@@ -1,0 +1,1 @@
+function e(e){return e%4==0&&e%100!=0||e%400==0?366:365}export{e as t};

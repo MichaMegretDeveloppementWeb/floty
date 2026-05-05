@@ -174,6 +174,7 @@ async function submit(): Promise<void> {
             v-if="hasRange && selectedCompanyId !== null"
             :preview="preview"
             :loading="previewLoading"
+            :year="fiscalYear"
         />
 
         <Button

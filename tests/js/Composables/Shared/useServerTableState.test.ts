@@ -27,10 +27,32 @@ function createState(
     });
 }
 
+/**
+ * Depuis le refactor « préservation query params » (chantier J.0), les
+ * paramètres de la table sont injectés dans l'URL passée en 1er argument
+ * de `router.get(url, {}, options)`, plus dans le 2e argument `data`.
+ * Helper pour récupérer l'URL en `URL` parsable.
+ */
+function urlOfCall(callIndex = 0): URL {
+    const [urlString] = vi.mocked(router.get).mock.calls[callIndex]!;
+    return new URL(urlString as string, 'http://localhost');
+}
+
+function paramsOfCall(callIndex = 0): Record<string, string> {
+    const url = urlOfCall(callIndex);
+    const out: Record<string, string> = {};
+    for (const [key, value] of url.searchParams.entries()) {
+        out[key] = value;
+    }
+    return out;
+}
+
 describe('useServerTableState', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         vi.mocked(router.get).mockClear();
+        // Reset URL pour garantir un état déterministe entre tests
+        window.history.replaceState({}, '', '/');
     });
 
     afterEach(() => {
@@ -67,7 +89,7 @@ describe('useServerTableState', () => {
         expect(router.get).toHaveBeenCalledTimes(1);
     });
 
-    it('debounce setSearch — frappe rapide ne déclenche qu\'un reload', async () => {
+    it("debounce setSearch — frappe rapide ne déclenche qu'un reload", async () => {
         const state = createState();
 
         state.setSearch('f');
@@ -83,8 +105,7 @@ describe('useServerTableState', () => {
         vi.advanceTimersByTime(300);
 
         expect(router.get).toHaveBeenCalledTimes(1);
-        const [, data] = vi.mocked(router.get).mock.calls[0]!;
-        expect(data).toEqual(expect.objectContaining({ search: 'foo' }));
+        expect(paramsOfCall().search).toBe('foo');
     });
 
     it('setSort déclenche un reload immédiat et annule le pending search timer', async () => {
@@ -97,10 +118,9 @@ describe('useServerTableState', () => {
 
         state.setSort('fullName');
         expect(router.get).toHaveBeenCalledTimes(1);
-        const [, data] = vi.mocked(router.get).mock.calls[0]!;
-        expect(data).toEqual(
-            expect.objectContaining({ search: 'foo', sortKey: 'fullName' }),
-        );
+        const params = paramsOfCall();
+        expect(params.search).toBe('foo');
+        expect(params.sortKey).toBe('fullName');
 
         // Le timer search annulé ne doit plus tirer
         vi.advanceTimersByTime(500);
@@ -137,6 +157,7 @@ describe('useServerTableState', () => {
 
         expect(state.page.value).toBe(3);
         expect(router.get).toHaveBeenCalledTimes(1);
+        expect(paramsOfCall().page).toBe('3');
     });
 
     it('setPage no-op si même page', () => {
@@ -153,6 +174,7 @@ describe('useServerTableState', () => {
         expect(state.perPage.value).toBe(50);
         expect(state.page.value).toBe(1);
         expect(router.get).toHaveBeenCalledTimes(1);
+        expect(paramsOfCall().perPage).toBe('50');
     });
 
     it('setFilter réinitialise page à 1 et reload', () => {
@@ -162,6 +184,7 @@ describe('useServerTableState', () => {
         expect(state.filters.value.companyId).toBe(42);
         expect(state.page.value).toBe(1);
         expect(router.get).toHaveBeenCalledTimes(1);
+        expect(paramsOfCall().companyId).toBe('42');
     });
 
     it('patchFilters met à jour plusieurs filtres en un seul reload', () => {
@@ -172,10 +195,9 @@ describe('useServerTableState', () => {
         expect(state.page.value).toBe(1);
         expect(router.get).toHaveBeenCalledTimes(1);
 
-        const data = vi.mocked(router.get).mock.calls[0]![1] as Record<string, unknown>;
-        expect(data).toEqual(
-            expect.objectContaining({ companyId: 42, type: 'lcd' }),
-        );
+        const params = paramsOfCall();
+        expect(params.companyId).toBe('42');
+        expect(params.type).toBe('lcd');
     });
 
     it('patchFilters préserve les filtres non passés dans le patch', () => {
@@ -206,16 +228,16 @@ describe('useServerTableState', () => {
         const state = createState();
         state.setSort('fullName'); // sortKey set, direction asc (default → omit)
 
-        const data = vi.mocked(router.get).mock.calls[0]![1] as Record<string, unknown>;
+        const params = paramsOfCall();
 
         // Les valeurs par défaut + null sont absentes de la query string
-        expect(data).not.toHaveProperty('page');
-        expect(data).not.toHaveProperty('perPage');
-        expect(data).not.toHaveProperty('search');
-        expect(data).not.toHaveProperty('sortDirection');
-        expect(data).not.toHaveProperty('companyId');
-        expect(data).not.toHaveProperty('type');
-        expect(data.sortKey).toBe('fullName');
+        expect(params).not.toHaveProperty('page');
+        expect(params).not.toHaveProperty('perPage');
+        expect(params).not.toHaveProperty('search');
+        expect(params).not.toHaveProperty('sortDirection');
+        expect(params).not.toHaveProperty('companyId');
+        expect(params).not.toHaveProperty('type');
+        expect(params.sortKey).toBe('fullName');
     });
 
     it('buildQueryData expose sortDirection desc', () => {
@@ -223,8 +245,7 @@ describe('useServerTableState', () => {
         state.setSort('fullName');
         state.setSort('fullName'); // desc
 
-        const data = vi.mocked(router.get).mock.calls[1]![1] as Record<string, unknown>;
-        expect(data.sortDirection).toBe('desc');
+        expect(paramsOfCall(1).sortDirection).toBe('desc');
     });
 
     it('isReloading toggle via callbacks onStart / onFinish', () => {
@@ -241,14 +262,14 @@ describe('useServerTableState', () => {
         expect(state.isReloading.value).toBe(false);
     });
 
-    it('appel router.get avec url + data + options corrects', () => {
+    it('appel router.get avec url contenant les params + options correctes', () => {
         const state = createState({ only: ['contracts', 'meta'] });
         state.setPage(2);
 
-        // router.get(url, data, options)
+        // router.get(url, {}, options) — paramètres dans l'URL, pas dans le 2e arg
         expect(router.get).toHaveBeenCalledWith(
-            expect.any(String),
-            expect.objectContaining({ page: 2 }),
+            expect.stringContaining('page=2'),
+            {},
             expect.objectContaining({
                 only: ['contracts', 'meta'],
                 preserveState: true,
@@ -256,5 +277,49 @@ describe('useServerTableState', () => {
                 replace: true,
             }),
         );
+    });
+
+    // ----------------------------------------------------------------
+    // Préservation des query params hors-table (chantier J.0)
+    // ----------------------------------------------------------------
+
+    it('préserve un query param non géré par le composable (ex. ?tab=contracts)', () => {
+        // Le user a `?tab=contracts` dans l'URL avant l'interaction (posé
+        // par useCompanyTabs sur la fiche entreprise). Une interaction de
+        // table ne doit PAS supprimer ce param.
+        window.history.replaceState({}, '', '/?tab=contracts');
+
+        const state = createState();
+        state.setPage(3);
+
+        const params = paramsOfCall();
+        expect(params.tab).toBe('contracts');
+        expect(params.page).toBe('3');
+    });
+
+    it('préserve plusieurs query params hors-table en parallèle', () => {
+        window.history.replaceState({}, '', '/?tab=fiscal&fiscalYear=2024');
+
+        const state = createState();
+        state.setSort('fullName');
+
+        const params = paramsOfCall();
+        expect(params.tab).toBe('fiscal');
+        expect(params.fiscalYear).toBe('2024');
+        expect(params.sortKey).toBe('fullName');
+    });
+
+    it('retire un filtre quand sa valeur passe à null (URL propre)', () => {
+        // Le user arrive avec ?companyId=42 dans l'URL puis le clear via
+        // setFilter(...null). L'URL doit perdre la clé companyId, mais
+        // garder les autres params (ex. ?tab=foo).
+        window.history.replaceState({}, '', '/?tab=foo&companyId=42');
+
+        const state = createState({ initialFilters: { companyId: 42, type: null } });
+        state.setFilter('companyId', null);
+
+        const params = paramsOfCall();
+        expect(params).not.toHaveProperty('companyId');
+        expect(params.tab).toBe('foo');
     });
 });

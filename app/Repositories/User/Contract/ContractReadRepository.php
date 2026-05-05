@@ -13,6 +13,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Implémentation Eloquent des lectures Contract - slim conforme
@@ -170,11 +171,15 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         }
 
         // Filtre période : chevauchement [periodStart, periodEnd].
-        if ($query->periodStart !== null) {
-            $eloquentQuery->where('contracts.end_date', '>=', $query->periodStart);
+        // `effectivePeriod()` dérive l'exercice complet quand `year` est
+        // présent (mode « Année » du toggle UI), sinon retourne les bornes
+        // saisies tel quel (mode « Période personnalisée »).
+        $period = $query->effectivePeriod();
+        if ($period['periodStart'] !== null) {
+            $eloquentQuery->where('contracts.end_date', '>=', $period['periodStart']);
         }
-        if ($query->periodEnd !== null) {
-            $eloquentQuery->where('contracts.start_date', '<=', $query->periodEnd);
+        if ($period['periodEnd'] !== null) {
+            $eloquentQuery->where('contracts.start_date', '<=', $period['periodEnd']);
         }
 
         // Search combo : LIKE sur vehicle/company/driver via whereHas.
@@ -276,29 +281,39 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             $bindings[] = $periodStart;
         }
 
+        // `toBase()` pour passer en QueryBuilder : `first()` retourne
+        // ?stdClass (et non ?Contract), ce qui permet l'accès aux colonnes
+        // calculées via selectRaw sans déclaration sur le Model.
         $row = (clone $query)
+            ->toBase()
             ->selectRaw($totalDaysExpr, $bindings)
             ->selectRaw("SUM(CASE WHEN contract_type = 'lcd' THEN 1 ELSE 0 END) AS lcd_count")
             ->selectRaw("SUM(CASE WHEN contract_type = 'lld' THEN 1 ELSE 0 END) AS lld_count")
             ->first();
 
+        if ($row === null) {
+            return ['totalDays' => 0, 'lcdCount' => 0, 'lldCount' => 0];
+        }
+
         return [
-            'totalDays' => (int) ($row?->total_days ?? 0),
-            'lcdCount' => (int) ($row?->lcd_count ?? 0),
-            'lldCount' => (int) ($row?->lld_count ?? 0),
+            'totalDays' => (int) ($row->total_days ?? 0),
+            'lcdCount' => (int) ($row->lcd_count ?? 0),
+            'lldCount' => (int) ($row->lld_count ?? 0),
         ];
     }
 
     public function firstContractYearForCompany(int $companyId): ?int
     {
-        $row = Contract::query()
+        $row = DB::table('contracts')
             ->where('company_id', $companyId)
             ->selectRaw('YEAR(MIN(start_date)) AS first_year')
             ->first();
 
-        $value = $row?->first_year;
+        if ($row === null || $row->first_year === null) {
+            return null;
+        }
 
-        return $value === null ? null : (int) $value;
+        return (int) $row->first_year;
     }
 
     public function findActiveYearsForCompany(int $companyId): array

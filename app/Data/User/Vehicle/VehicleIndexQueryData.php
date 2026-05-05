@@ -34,7 +34,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *  - `year: int|null` — année qui pilote les colonnes financières de la
  *     table (Coût plein, Prix location). Préfigure le pattern « année
  *     par page » de l'ADR-0020 (chantier η à venir). Null → fallback
- *     `FiscalYearResolver` côté controller. Borné par `available_years`.
+ *     fallback année calendaire courante côté controller. Borné par `available_years`.
  *
  * Whitelist sortKey : `licensePlate | model | firstFrenchRegistrationDate
  * | acquisitionDate | currentStatus`. La colonne `fullYearTax` est

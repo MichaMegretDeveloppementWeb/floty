@@ -492,9 +492,7 @@ final class CompanyQueryService
             $taxPollutants = $taxRow !== null ? (float) $taxRow['taxPollutants'] : 0.0;
             $taxTotal = $taxRow !== null ? (float) $taxRow['taxTotal'] : 0.0;
 
-            $proratoPercent = $daysInYear > 0
-                ? round($days / $daysInYear * 100, 1)
-                : 0.0;
+            $proratoPercent = round($days / $daysInYear * 100, 1);
 
             $rows[] = new CompanyVehicleFiscalRowData(
                 vehicleId: $vehicle->id,

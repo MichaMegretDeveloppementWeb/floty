@@ -12,6 +12,7 @@ type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
 const props = defineProps<{
     code: string;
     rule: Rule | undefined;
+    year: number;
 }>();
 
 const { taxLabel, taxBadgeTone, content } = useRuleCard(props);
@@ -97,6 +98,7 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard(props);
         <RuleLegalReferences
             v-if="rule"
             :refs="rule.legalBasis"
+            :year="year"
         />
     </article>
 </template>

@@ -174,6 +174,7 @@ final readonly class ContractQueryService
             companyId: $companyId,
             driverId: $query->driverId,
             type: $query->type,
+            year: $query->year,
             periodStart: $query->periodStart,
             periodEnd: $query->periodEnd,
             page: $query->page,

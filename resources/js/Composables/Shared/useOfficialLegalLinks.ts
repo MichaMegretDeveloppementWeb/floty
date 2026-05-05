@@ -25,9 +25,8 @@
  * **NOTICE DGFiP** : recherche sur impots.gouv.fr.
  */
 
-import { computed } from 'vue';
-import type { ComputedRef } from 'vue';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
+import { computed, type Ref, unref } from 'vue';
+import type { ComputedRef, MaybeRef } from 'vue';
 
 export type LegalReference = {
     type: 'CIBS' | 'BOFIP' | 'CGI' | 'NOTICE' | string;
@@ -189,19 +188,26 @@ function resolveLegalLinkFor(
 }
 
 export type UseOfficialLegalLinksReturn = {
-    /** Année fiscale courante effectivement utilisée pour résoudre les versions. */
+    /** Année fiscale utilisée pour résoudre les versions. */
     fiscalYear: ComputedRef<number>;
-    /** Résout une référence vers son lien officiel (utilise l'année courante). */
+    /** Résout une référence vers son lien officiel. */
     resolveLegalLink: (ref: LegalReference) => ResolvedLegalLink | null;
     /** Résout un tableau de références. */
     resolveAll: (refs: LegalReference[]) => ResolvedLegalLink[];
 };
 
-export function useOfficialLegalLinks(): UseOfficialLegalLinksReturn {
-    const { currentYear } = useFiscalYear();
+/**
+ * Chantier J (ADR-0020) : l'année est désormais passée en argument
+ * (par la page consommatrice qui gère son sélecteur local) plutôt que
+ * lue depuis un état global supprimé.
+ */
+export function useOfficialLegalLinks(
+    year: MaybeRef<number>,
+): UseOfficialLegalLinksReturn {
+    const yearRef = computed<number>(() => unref(year as Ref<number> | number));
 
     const resolveLegalLink = (ref: LegalReference): ResolvedLegalLink | null =>
-        resolveLegalLinkFor(ref, currentYear.value);
+        resolveLegalLinkFor(ref, yearRef.value);
 
     const resolveAll = (refs: LegalReference[]): ResolvedLegalLink[] =>
         refs
@@ -209,7 +215,7 @@ export function useOfficialLegalLinks(): UseOfficialLegalLinksReturn {
             .filter((l): l is ResolvedLegalLink => l !== null);
 
     return {
-        fiscalYear: computed(() => currentYear.value),
+        fiscalYear: yearRef,
         resolveLegalLink,
         resolveAll,
     };

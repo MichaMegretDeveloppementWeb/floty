@@ -34,11 +34,13 @@ export type CompanyFilters = {
     contractsScope: 'with' | 'without' | null;
     companyType: 'corporate' | 'individual' | null;
     city: string | null;
+    /** Année qui pilote les colonnes financières (chantier J). */
+    year: number;
 };
 
 export function useCompaniesTable(opts: {
     query: App.Data.User.Company.CompanyIndexQueryData;
-    fiscalYear: number;
+    selectedYear: number;
 }): {
     columns: readonly DataTableColumn<CompanyRow>[];
     state: ServerTableState<CompanyFilters>;
@@ -50,12 +52,12 @@ export function useCompaniesTable(opts: {
         { key: 'company', label: 'Entreprise' },
         { key: 'siren', label: 'SIREN', mono: true },
         { key: 'city', label: 'Ville' },
-        { key: 'daysUsed', label: `Jours ${opts.fiscalYear}`, mono: true },
-        { key: 'annualTaxDue', label: `Taxe ${opts.fiscalYear}` },
+        { key: 'daysUsed', label: `Jours ${opts.selectedYear}`, mono: true },
+        { key: 'annualTaxDue', label: `Taxe ${opts.selectedYear}` },
     ];
 
     const state = useServerTableState<CompanyFilters>({
-        only: ['companies', 'query'],
+        only: ['companies', 'query', 'selectedYear'],
         initialPage: opts.query.page,
         initialPerPage: opts.query.perPage,
         initialSearch: opts.query.search ?? '',
@@ -66,6 +68,7 @@ export function useCompaniesTable(opts: {
             contractsScope: null,
             companyType: null,
             city: null,
+            year: opts.selectedYear,
         },
         initialFilters: {
             isActive: opts.query.isActive,
@@ -78,6 +81,7 @@ export function useCompaniesTable(opts: {
                 | 'individual'
                 | null,
             city: opts.query.city,
+            year: opts.query.year ?? opts.selectedYear,
         },
         serializeFilters: (f) => ({
             // Sérialisation booléenne : 1/0/null pour cohérence avec
@@ -86,6 +90,7 @@ export function useCompaniesTable(opts: {
             contractsScope: f.contractsScope,
             companyType: f.companyType,
             city: f.city,
+            year: f.year,
         }),
     });
 

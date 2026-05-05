@@ -23,14 +23,24 @@ const props = defineProps<{
      * filtre — cf. note backend sur le bug placeholder.
      */
     hasAnyCompany: boolean;
+    selectedYear: number;
 }>();
 
-const { currentYear: fiscalYear } = useFiscalYear();
+const { availableYears } = useFiscalYear();
 const filtersOpen = ref<boolean>(false);
 
 const tableState = useCompaniesTable({
     query: props.query,
-    fiscalYear: fiscalYear.value,
+    selectedYear: props.selectedYear,
+});
+
+const yearOptions = computed<{ value: number; label: string }[]>(() =>
+    availableYears.value.map((year) => ({ value: year, label: String(year) })),
+);
+
+const yearModel = computed<number>({
+    get: () => tableState.state.filters.value.year,
+    set: (v) => tableState.state.setFilter('year', v),
 });
 
 const searchModel = computed<string>({
@@ -128,7 +138,20 @@ const activeFiltersCount = computed<number>(() => {
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <PageHeader :fiscal-year="fiscalYear" />
+            <div class="flex flex-wrap items-end justify-between gap-3">
+                <PageHeader :fiscal-year="props.selectedYear" />
+                <div class="flex flex-col gap-1">
+                    <FieldLabel for="companies-year">
+                        Année des colonnes financières
+                    </FieldLabel>
+                    <SelectInput
+                        id="companies-year"
+                        v-model.number="yearModel"
+                        :options="yearOptions"
+                        :disabled="yearOptions.length <= 1"
+                    />
+                </div>
+            </div>
 
             <div v-if="!props.hasAnyCompany">
                 <EmptyCompaniesState />

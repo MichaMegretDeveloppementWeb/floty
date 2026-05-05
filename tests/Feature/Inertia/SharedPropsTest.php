@@ -45,7 +45,6 @@ final class SharedPropsTest extends TestCase
                     ->where('warning', null)
                     ->where('info', null))
                 ->has('fiscal', fn (AssertableInertia $fy) => $fy
-                    ->where('currentYear', (int) config('floty.fiscal.available_years')[0])
                     ->has('availableYears'))
                 ->etc(),
             );

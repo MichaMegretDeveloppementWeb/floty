@@ -8,6 +8,7 @@ defineProps<{
     subtitle: string;
     codes: string[];
     rulesByCode: Record<string, Rule>;
+    year: number;
 }>();
 </script>
 
@@ -22,7 +23,7 @@ defineProps<{
 
         <ul class="flex flex-col gap-12">
             <li v-for="code in codes" :key="code">
-                <RuleCard :code="code" :rule="rulesByCode[code]" />
+                <RuleCard :code="code" :rule="rulesByCode[code]" :year="year" />
             </li>
         </ul>
     </section>
