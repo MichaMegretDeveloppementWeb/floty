@@ -65,12 +65,18 @@ final class VehicleController extends Controller
 
     public function show(int $vehicle, Request $request): Response
     {
-        $year = $this->resolveYearFromRequest($request);
+        // Doctrine temporelle (chantier η Phase 2) — `?year=` URL passé
+        // brut au service qui valide contre `explorableYears` (scope ×
+        // registry) et fallback sur la dernière année fiscalement codée.
+        // L'année `selectedYear` pilote la lentille Exploration
+        // (Timeline + Breakdown + FullYearTax). Les KPIs Présent et la
+        // section Historique restent figés sur `currentYear` (cf. service).
+        $rawYear = $request->query('year');
+        $requestedYear = is_numeric($rawYear) ? (int) $rawYear : null;
 
         return Inertia::render('User/Vehicles/Show/Index', [
-            'vehicle' => $this->vehicles->findVehicleData($vehicle, $year),
+            'vehicle' => $this->vehicles->findVehicleData($vehicle, $requestedYear),
             'options' => $this->buildFormOptions(),
-            'selectedYear' => $year,
         ]);
     }
 
@@ -133,6 +139,9 @@ final class VehicleController extends Controller
      * calendaire courante si présente dans la config fiscale, sinon
      * dernière année configurée. Borne de sécurité contre les années
      * non couvertes par les barèmes.
+     *
+     * @deprecated Utilisé seulement par `index()` et `edit()` — sera
+     * remplacé par `AvailableYearsResolver` au cleanup Phase 5.
      */
     private function resolveDefaultYear(): int
     {
@@ -148,6 +157,9 @@ final class VehicleController extends Controller
 
     /**
      * Résolution de l'année depuis Request (`?year=`) avec fallback.
+     *
+     * @deprecated Utilisé seulement par `edit()` — sera remplacé par
+     * `AvailableYearsResolver` au cleanup Phase 5.
      */
     private function resolveYearFromRequest(Request $request): int
     {

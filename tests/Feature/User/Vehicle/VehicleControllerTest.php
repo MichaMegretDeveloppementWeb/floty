@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
@@ -552,6 +553,112 @@ final class VehicleControllerTest extends TestCase
         $this->actingAs($user)
             ->get('/app/vehicles/999999')
             ->assertNotFound();
+    }
+
+    // ----------------------------------------------------------------
+    // Show — chantier η Phase 2 (doctrine temporelle 3 lentilles)
+    // ----------------------------------------------------------------
+
+    #[Test]
+    public function show_kpi_year_est_l_annee_calendaire_courante(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicle.kpiYear', (int) Carbon::now()->year)
+                ->has('vehicle.kpiStats', fn (AssertableInertia $s) => $s
+                    ->where('year', (int) Carbon::now()->year)
+                    ->where('daysUsed', 0)
+                    ->where('contractsCount', 0)
+                    ->has('actualTax')
+                    ->has('fullYearTax')),
+            );
+    }
+
+    #[Test]
+    public function show_kpi_fiscal_available_false_si_pas_de_regles_pour_l_annee_courante(): void
+    {
+        // En 2026, seules les règles 2024 sont codées dans le registry.
+        // `kpiFiscalAvailable` doit être false pour qu'à l'UI les KPI
+        // Taxes/Coût plein affichent "—" + caption "Règles non implémentées".
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('vehicle.kpiFiscalAvailable', false),
+            );
+    }
+
+    #[Test]
+    public function show_history_couvre_les_annees_passees_du_scope_global(): void
+    {
+        // Crée un contrat 2024 → minYear = 2024, currentYear = 2026
+        // → history doit contenir [2024 réel, 2025 neutre], pas 2026.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-15',
+        ]);
+
+        $currentYear = (int) Carbon::now()->year;
+        $expectedYears = range(2024, $currentYear - 1);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicle.history', count($expectedYears))
+                // Le service ordonne DESC : index 0 = currentYear-1
+                // (neutre si currentYear > 2025) ou 2024 lui-même.
+                ->where('vehicle.history.0.year', $currentYear - 1)
+                ->where('vehicle.history.'.(count($expectedYears) - 1).'.year', 2024)
+                ->where('vehicle.history.'.(count($expectedYears) - 1).'.daysUsed', 15),
+            );
+    }
+
+    #[Test]
+    public function show_year_scope_et_explorable_years_exposes(): void
+    {
+        // `yearScope` = scope global (currentYear/minYear/availableYears)
+        // `explorableYears` = scope ∩ registry fiscal (= [2024] tant que
+        // seules les règles 2024 sont codées). Default selectedYear =
+        // max(explorableYears) = 2024.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-15',
+        ]);
+
+        $currentYear = (int) Carbon::now()->year;
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicle.yearScope', fn (AssertableInertia $scope) => $scope
+                    ->where('currentYear', $currentYear)
+                    ->where('minYear', 2024)
+                    ->has('availableYears'))
+                ->where('vehicle.explorableYears', [2024])
+                ->where('vehicle.selectedYear', 2024),
+            );
     }
 
     #[Test]

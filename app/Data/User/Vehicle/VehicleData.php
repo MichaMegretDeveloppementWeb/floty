@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Data\User\Vehicle;
 
 use App\Actions\Vehicle\CreateVehicleAction;
+use App\Data\Shared\YearScopeData;
 use App\Data\User\Unavailability\UnavailabilityData;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
@@ -33,6 +34,17 @@ final class VehicleData extends Data
      *                                   est attribué sur l'année active
      *                                   (alimente le DateRangePicker
      *                                   du modal indispos).
+     * @param  list<VehicleYearStatsData>  $history  Stats annuelles passées
+     *                                               `[minYear..kpiYear-1]`,
+     *                                               lignes neutres (zéros)
+     *                                               comprises (cf. doctrine
+     *                                               temporelle Phase 2).
+     * @param  list<int>  $explorableYears  Sous-ensemble du scope global
+     *                                      restreint aux années dont les
+     *                                      règles fiscales sont codées
+     *                                      (`scope ∩ registry`). Alimente
+     *                                      le sélecteur d'année partagé
+     *                                      Timeline/Breakdown/FullYearTax.
      */
     public function __construct(
         public int $id,
@@ -59,6 +71,15 @@ final class VehicleData extends Data
         #[DataCollectionOf(UnavailabilityData::class)]
         public array $unavailabilities,
         public array $busyDates,
+        // Doctrine temporelle (chantier η Phase 2) — 3 lentilles distinctes :
+        public int $kpiYear,
+        public VehicleYearStatsData $kpiStats,
+        public bool $kpiFiscalAvailable,
+        #[DataCollectionOf(VehicleYearStatsData::class)]
+        public array $history,
+        public int $selectedYear,
+        public YearScopeData $yearScope,
+        public array $explorableYears,
     ) {}
 
     /**
@@ -72,14 +93,23 @@ final class VehicleData extends Data
      *
      * @param  list<UnavailabilityData>  $unavailabilities
      * @param  list<string>  $busyDates
+     * @param  list<VehicleYearStatsData>  $history
+     * @param  list<int>  $explorableYears
      */
     public static function fromModel(
         Vehicle $vehicle,
         VehicleUsageStatsData $usageStats,
         array $unavailabilities,
         array $busyDates,
+        int $kpiYear,
+        VehicleYearStatsData $kpiStats,
+        bool $kpiFiscalAvailable,
+        array $history,
+        int $selectedYear,
+        YearScopeData $yearScope,
+        array $explorableYears,
     ): self {
-        $history = $vehicle->fiscalCharacteristics
+        $fiscalHistory = $vehicle->fiscalCharacteristics
             ->map(static fn ($vfc): VehicleFiscalCharacteristicsData => VehicleFiscalCharacteristicsData::fromModel($vfc))
             ->values()
             ->all();
@@ -108,10 +138,17 @@ final class VehicleData extends Data
             currentFiscalCharacteristics: $current !== null
                 ? VehicleFiscalCharacteristicsData::fromModel($current)
                 : null,
-            fiscalCharacteristicsHistory: $history,
+            fiscalCharacteristicsHistory: $fiscalHistory,
             usageStats: $usageStats,
             unavailabilities: $unavailabilities,
             busyDates: $busyDates,
+            kpiYear: $kpiYear,
+            kpiStats: $kpiStats,
+            kpiFiscalAvailable: $kpiFiscalAvailable,
+            history: $history,
+            selectedYear: $selectedYear,
+            yearScope: $yearScope,
+            explorableYears: $explorableYears,
         );
     }
 }
