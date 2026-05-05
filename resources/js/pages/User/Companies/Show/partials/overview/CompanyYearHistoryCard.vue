@@ -1,12 +1,21 @@
 <script setup lang="ts">
 /**
- * Tableau récapitulatif exercice par exercice — comparaison directe
- * sans bascule de sélecteur (chantier K, ADR-0020 D3 — section
- * Historique).
+ * Tableau récapitulatif des **exercices passés** de l'entreprise — un
+ * objet par année avec ≥ 1 contrat (chantier η Phase 1, doctrine
+ * temporelle « Évolution »).
  *
- * Le marqueur ● sur la ligne de l'année calendaire en cours signale
- * « exercice non clos / en cours » et différencie d'un exercice
- * historique terminé.
+ * **L'année calendaire courante n'apparaît pas ici** — elle vit dans
+ * les KPIs en haut de page (`CompanyKpiCards`). Cette section est
+ * exclusivement dédiée à l'évolution dans le temps : on regarde le
+ * passé, pas le présent.
+ *
+ * Tri DESC (le plus récent en haut — convention dashboard rétrospectif).
+ *
+ * État vide : si l'entreprise n'a aucun contrat sur les exercices
+ * passés (typiquement : entreprise créée cette année, ou jamais utilisée
+ * historiquement), la carte affiche un message neutre plutôt que d'être
+ * masquée — l'utilisateur sait que la section existe et pourquoi elle
+ * est vide.
  */
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -16,24 +25,26 @@ type YearStats = App.Data.User.Company.CompanyYearStatsData;
 
 const props = defineProps<{
     history: readonly YearStats[];
-    currentRealYear: number;
 }>();
 
-// Tri DESC (le plus récent en haut — convention dashboard rétrospectif)
 const sortedHistory = computed<YearStats[]>(() =>
     [...props.history].sort((a, b) => b.year - a.year),
 );
 </script>
 
 <template>
-    <Card v-if="sortedHistory.length > 0">
+    <Card>
         <template #header>
             <h2 class="text-sm font-medium uppercase tracking-wide text-slate-500">
                 Historique par année
             </h2>
         </template>
 
-        <div class="overflow-x-auto">
+        <div v-if="sortedHistory.length === 0" class="py-6 text-center text-sm italic text-slate-400">
+            Aucun exercice passé pour cette entreprise.
+        </div>
+
+        <div v-else class="overflow-x-auto">
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b border-slate-200 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -51,17 +62,7 @@ const sortedHistory = computed<YearStats[]>(() =>
                         class="border-b border-slate-100 last:border-0"
                     >
                         <td class="py-2 pr-4 font-medium text-slate-900">
-                            <span class="inline-flex items-center gap-1.5">
-                                {{ entry.year }}
-                                <span
-                                    v-if="entry.year === currentRealYear"
-                                    class="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"
-                                    title="Exercice en cours"
-                                >
-                                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
-                                    en cours
-                                </span>
-                            </span>
+                            {{ entry.year }}
                         </td>
                         <td class="py-2 pr-4 text-right tabular-nums text-slate-700">
                             {{ entry.daysUsed }}
@@ -81,9 +82,9 @@ const sortedHistory = computed<YearStats[]>(() =>
                     </tr>
                 </tbody>
             </table>
+            <p class="mt-2 text-[11px] text-slate-400">
+                Format Contrats : total (LCD/LLD). Loyer : facturation V1.2.
+            </p>
         </div>
-        <p class="mt-2 text-[11px] text-slate-400">
-            Format Contrats : total (LCD/LLD). Loyer : facturation V1.2.
-        </p>
     </Card>
 </template>

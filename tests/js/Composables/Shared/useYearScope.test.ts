@@ -142,4 +142,55 @@ describe('useYearScope', () => {
         expect(ctx.isInScope(2025)).toBe(true);
         expect(ctx.isInScope(2027)).toBe(false);
     });
+
+    it('lit ?year= dans l\'URL au montage (deep-link / refresh F5)', async () => {
+        // Garantit qu'un partage de lien `/companies/1?year=2024` ou un
+        // refresh après bascule restitue la sélection — sinon le `replaceState`
+        // côté setter serait lui-même perdu au F5.
+        const { ctx } = mountComposable(
+            makeScope({ availableYears: [2024, 2025, 2026] }),
+            undefined,
+            '/companies/1?year=2024',
+        );
+
+        await nextTick();
+        expect(ctx.selectedYear.value).toBe(2024);
+    });
+
+    it('ignore ?year= dans l\'URL si hors scope (fallback currentYear)', async () => {
+        const { ctx } = mountComposable(
+            makeScope({ currentYear: 2026, availableYears: [2024, 2025, 2026] }),
+            undefined,
+            '/companies/1?year=2099',
+        );
+
+        await nextTick();
+        expect(ctx.selectedYear.value).toBe(2026);
+    });
+
+    it('opts.initialYear prioritaire sur ?year= dans l\'URL', async () => {
+        const { ctx } = mountComposable(
+            makeScope({ availableYears: [2024, 2025, 2026] }),
+            { initialYear: 2025 },
+            '/companies/1?year=2024',
+        );
+
+        await nextTick();
+        expect(ctx.selectedYear.value).toBe(2025);
+    });
+
+    it('selectedYearModel.value = X passe par selectYear() (sync URL)', async () => {
+        // Garantit que muter le wrapper v-model déclenche bien la
+        // logique selectYear() — le binding `<YearSelector v-model>`
+        // sur ce computed doit propager au URL replace, pas seulement
+        // au state interne.
+        const { ctx } = mountComposable(makeScope(), undefined, '/companies/1');
+        await nextTick();
+
+        ctx.selectedYearModel.value = 2024;
+        await nextTick();
+
+        expect(ctx.selectedYear.value).toBe(2024);
+        expect(window.location.search).toContain('year=2024');
+    });
 });

@@ -35,7 +35,7 @@
  */
 
 import { computed, ref } from 'vue';
-import type { ComputedRef, Ref } from 'vue';
+import type { ComputedRef, Ref, WritableComputedRef } from 'vue';
 import { useLocalYearSelector } from './useLocalYearSelector';
 
 type YearScope = App.Data.Shared.YearScopeData;
@@ -47,8 +47,21 @@ export type UseYearScopeReturn = {
     minYear: ComputedRef<number>;
     /** Range continu `[minYear, …, max]`. */
     availableYears: ComputedRef<readonly number[]>;
-    /** Année actuellement sélectionnée par l'utilisateur. */
+    /**
+     * Année actuellement sélectionnée. Lecture seule conseillée — pour
+     * un binding `v-model` côté composant, utiliser plutôt
+     * {@see selectedYearModel} qui passe systématiquement par
+     * {@see selectYear} (validation + sync URL/reload).
+     */
     selectedYear: Ref<number>;
+    /**
+     * Wrapper `v-model` autour de `selectedYear`. Le setter appelle
+     * `selectYear()` plutôt que de muter `selectedYear.value`
+     * directement — garantit que la sync URL (mode local) ou le partial
+     * reload (mode reload) est toujours déclenché, même quand la
+     * mutation vient d'un binding `v-model`.
+     */
+    selectedYearModel: WritableComputedRef<number>;
     /** `true` ssi `availableYears.length > 1` (sinon sélecteur figé). */
     canSelect: ComputedRef<boolean>;
     /** Vrai ssi `year` ∈ `availableYears`. */
@@ -87,9 +100,32 @@ export function useYearScope(
     const isInScope = (year: number): boolean =>
         scope.availableYears.includes(year);
 
+    // Préserve le deep-link / refresh F5 : si la page est ouverte avec
+    // `?year=YYYY` dans l'URL (cas d'un partage de lien ou d'un F5 après
+    // bascule), on initialise sur cette valeur. La priorité explicite
+    // `opts.initialYear` reste prioritaire (cas usage avancé), et on
+    // retombe sur `scope.currentYear` si rien n'est exploitable.
+    function readYearFromUrl(): number | undefined {
+        if (typeof window === 'undefined') {
+            return undefined;
+        }
+
+        const raw = new URL(window.location.href).searchParams.get('year');
+
+        if (raw === null) {
+            return undefined;
+        }
+
+        const parsed = Number(raw);
+
+        return Number.isFinite(parsed) ? parsed : undefined;
+    }
+
+    const candidate = opts.initialYear ?? readYearFromUrl();
+
     const initial =
-        opts.initialYear !== undefined && isInScope(opts.initialYear)
-            ? opts.initialYear
+        candidate !== undefined && isInScope(candidate)
+            ? candidate
             : scope.currentYear;
 
     const useReload = (opts.reloadKeys?.length ?? 0) > 0;
@@ -131,11 +167,21 @@ export function useYearScope(
         }
     }
 
+    // v-model wrapper : passe systématiquement par selectYear() pour
+    // garantir validation + sync URL/reload, même quand la mutation
+    // vient d'un binding `v-model` côté composant Vue (le set direct
+    // de selectedYear.value bypasserait selectYear sinon).
+    const selectedYearModel = computed<number>({
+        get: () => selectedYear.value,
+        set: (value: number) => selectYear(value),
+    });
+
     return {
         currentYear,
         minYear,
         availableYears,
         selectedYear,
+        selectedYearModel,
         canSelect,
         isInScope,
         selectYear,

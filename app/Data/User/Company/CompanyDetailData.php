@@ -4,40 +4,52 @@ declare(strict_types=1);
 
 namespace App\Data\User\Company;
 
+use App\Data\Shared\YearScopeData;
 use App\Enums\Company\CompanyColor;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue détaillée d'une entreprise — alimente la page Show Company
- * (chantier K, refonte fiche entreprise, ADR-0020 D3).
+ * Vue détaillée d'une entreprise — alimente la page Show Company.
  *
- * Le DTO porte trois familles d'information :
- *   1. **Identité** (intemporelle) : nom, SIREN, adresse, contact, statuts.
- *   2. **Stats temporelles** :
- *      - `lifetime`       : cumul tous exercices (4 KPIs phares de la fiche)
- *      - `history`        : récap tabulaire exercice par exercice
- *      - `activityByYear` : détail visuel par exercice (heatmap mensuelle
- *                           + top 3 véhicules), pré-calculé pour toutes
- *                           les années dans `availableYears` afin que le
- *                           sélecteur local côté front ne déclenche aucun
- *                           aller-retour réseau (chantier K L2)
- *   3. **Drivers** : liste pour l'onglet « Conducteurs ».
+ * **Doctrine temporelle (chantier η Phase 1, 2026-05-05)** : 3 lentilles
+ * temporelles distinctes pour la fiche :
  *
- * `availableYears` peuple le sélecteur d'année **local** de la section
- * Activité. `currentRealYear` est l'année calendaire réelle (séparée
- * du sélecteur), exposée notamment au tableau historique pour marquer
- * l'exercice en cours.
+ *   1. **Présent** (KPIs en haut) : champs `kpiYear` / `kpiStats` /
+ *      `kpiFiscalAvailable`. Reflètent **uniquement l'année calendaire
+ *      courante** (ex. 2026 aujourd'hui), pas pilotables. Si pas de
+ *      données → 0/—. Si pas de règles fiscales codées → message
+ *      explicite (`kpiFiscalAvailable = false`).
+ *   2. **Évolution** (section Historique) : `history[]` filtré sur
+ *      `year < kpiYear` (toutes années passées avec contrats, sans
+ *      l'année courante qui est déjà dans les KPIs). Pas de doublon.
+ *   3. **Exploration** (section Activité) : `activityByYear[]` détail
+ *      visuel par exercice (heatmap + top véhicules). Sélecteur local
+ *      piloté par `yearScope` qui expose les bornes globales (calculées
+ *      par `AvailableYearsResolver` — ADR-0020).
+ *
+ * **Identité** (intemporelle) : nom, SIREN, adresse, contact, statuts —
+ * pas concernée par la doctrine temporelle.
+ *
+ * **`yearScope`** porte les bornes globales `[minYear, …, max]` calculées
+ * dynamiquement depuis les contrats actifs (Phase 0.1). Remplace l'ancien
+ * `availableYears` par-entreprise (qui restait limité aux années où
+ * **cette** entreprise avait un contrat — décision HD4 : on uniformise
+ * à l'échelle globale pour cohérence UX entre fiches).
+ *
+ * **`lifetime`** est conservé pour ne pas casser les consommateurs
+ * potentiels résiduels — sera retiré en Phase 5 cleanup si effectivement
+ * inutilisé après refonte de tous les onglets.
  */
 #[TypeScript]
 final class CompanyDetailData extends Data
 {
     /**
      * @param  list<CompanyDriverRowData>  $drivers
-     * @param  list<CompanyYearStatsData>  $history  Un objet par exercice avec ≥ 1 contrat
-     * @param  list<CompanyActivityYearData>  $activityByYear  Détail visuel par exercice (1 entrée par année dans `availableYears`)
-     * @param  list<int>  $availableYears  Années avec ≥ 1 contrat — peuple le sélecteur de la section Activité
+     * @param  list<CompanyYearStatsData>  $history  Un objet par exercice **passé** avec ≥ 1 contrat (exclut l'année courante qui est dans `kpiStats`)
+     * @param  list<CompanyActivityYearData>  $activityByYear  Détail visuel par exercice (1 entrée par année dans `availableYears` historiques)
+     * @param  list<int>  $availableYears  Années avec ≥ 1 contrat sur cette entreprise spécifique — alimente la section Activité
      */
     public function __construct(
         public int $id,
@@ -63,11 +75,15 @@ final class CompanyDetailData extends Data
         #[DataCollectionOf(CompanyDriverRowData::class)]
         public array $drivers,
         public CompanyLifetimeStatsData $lifetime,
+        public CompanyYearStatsData $kpiStats,
+        public int $kpiYear,
+        public bool $kpiFiscalAvailable,
         #[DataCollectionOf(CompanyYearStatsData::class)]
         public array $history,
         #[DataCollectionOf(CompanyActivityYearData::class)]
         public array $activityByYear,
         public array $availableYears,
         public int $currentRealYear,
+        public YearScopeData $yearScope,
     ) {}
 }

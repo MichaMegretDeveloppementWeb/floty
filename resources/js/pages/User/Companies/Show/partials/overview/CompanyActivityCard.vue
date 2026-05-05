@@ -1,9 +1,12 @@
 <script setup lang="ts">
 /**
- * Section « Activité » de la fiche entreprise (chantier K L2, ADR-0020 D3).
+ * Section « Activité » de la fiche entreprise — lentille **Exploration**
+ * de la doctrine temporelle (chantier η Phase 1, 2026-05-05).
  *
  * Une carte unique, deux visualisations empilées pilotées par un
- * sélecteur d'année **local** (sync URL `?year=YYYY`) :
+ * sélecteur d'année **local** (mode local — pas de reload Inertia, les
+ * données de toutes années sont déjà pré-calculées dans
+ * `company.activityByYear`) :
  *
  *   1. Heatmap mensuelle : 12 cases (J → D), saturation calée sur le
  *      mois le plus chargé de l'année (échelle 0..7 réutilisant la
@@ -11,40 +14,64 @@
  *   2. Top 3 véhicules : licence plate + marque/modèle + jours +
  *      pourcentage du total annuel jours-véhicules de l'entreprise.
  *
- * État vide (année hors `availableYears`, ou aucune activité) :
- * heatmap blanche + message « Aucun véhicule attribué sur cet exercice ».
+ * **Migration chantier η** : remplace l'ancien `useCompanySelectedYear`
+ * par `useYearScope` (générique, partagé avec toutes les pages). Le
+ * composant `YearSelector` remplace le `<select>` natif inline. Les
+ * bornes du sélecteur viennent désormais de `company.yearScope`
+ * (calculées globalement par `AvailableYearsResolver`).
+ *
+ * État vide (année hors `availableYears` propres à la company, ou aucune
+ * activité) : heatmap blanche + message « Aucune activité enregistrée
+ * pour cet exercice ».
  */
-import { computed, toRef } from 'vue';
+import { computed } from 'vue';
 import { densityClass, textContrastClass } from '@/Components/Features/Planning/Heatmap/utils/density';
 import Card from '@/Components/Ui/Card/Card.vue';
-import { useCompanySelectedYear } from '@/Composables/Company/Show/useCompanySelectedYear';
+import YearSelector from '@/Components/Ui/YearSelector/YearSelector.vue';
+import { useYearScope } from '@/Composables/Shared/useYearScope';
 
 type Company = App.Data.User.Company.CompanyDetailData;
+type ActivityYear = App.Data.User.Company.CompanyActivityYearData;
 
 const props = defineProps<{
     company: Company;
 }>();
 
-const { selectedYear, byYear, setSelectedYear } = useCompanySelectedYear({
-    activityByYear: toRef(() => props.company.activityByYear),
-    availableYears: toRef(() => props.company.availableYears),
-    currentRealYear: toRef(() => props.company.currentRealYear),
-});
+// Mode local : pas de `reloadKeys` — toutes les années sont déjà
+// pré-calculées côté backend dans `activityByYear`. Le changement
+// d'année met juste à jour l'URL (deep-link / refresh F5 préservé).
+//
+// `selectedYearModel` est utilisé pour le `v-model` du YearSelector
+// (passe par `selectYear()` qui sync l'URL). `selectedYear` est
+// utilisé en lecture seule pour le lookup `byYear`.
+const { selectedYear, selectedYearModel, availableYears } = useYearScope(
+    props.company.yearScope,
+);
 
-// Options du sélecteur : `availableYears` (desc) + `currentRealYear`
-// si pas déjà dedans (l'utilisateur peut toujours revenir au présent
-// même si l'entreprise n'a aucun contrat sur l'année réelle).
-const yearOptions = computed<number[]>(() => {
-    const set = new Set<number>(props.company.availableYears);
-    set.add(props.company.currentRealYear);
+// Le scope front (`company.yearScope.availableYears`) est global —
+// toutes les années où le système a au moins un contrat. C'est ce que
+// le sélecteur expose. Si la company spécifique n'a pas de contrat sur
+// une année donnée, on rendra l'état vide ci-dessous.
+const sortedYears = computed<readonly number[]>(() =>
+    [...availableYears.value].sort((a, b) => b - a),
+);
 
-    return Array.from(set).sort((a, b) => b - a);
-});
+// Lookup local dans le pré-calcul backend. Si l'année sélectionnée n'a
+// pas d'entrée (cas : year ∈ scope global mais pas dans availableYears
+// de cette company), on retourne une activité vide neutre.
+function emptyActivity(year: number): ActivityYear {
+    return {
+        year,
+        daysByMonth: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+        topVehicles: [],
+    };
+}
 
-const selectedModel = computed<number>({
-    get: () => selectedYear.value,
-    set: (value: number) => setSelectedYear(value),
-});
+const byYear = computed<ActivityYear>(
+    () =>
+        props.company.activityByYear.find((entry) => entry.year === selectedYear.value)
+        ?? emptyActivity(selectedYear.value),
+);
 
 // Échelle de densité : on normalise à 0..7 par division par le max
 // du mois le plus chargé de l'année. Permet de réutiliser la palette
@@ -85,21 +112,10 @@ function formatPercentage(value: number): string {
                 <h2 class="text-sm font-medium uppercase tracking-wide text-slate-500">
                     Activité
                 </h2>
-                <label class="flex items-center gap-2 text-xs text-slate-600">
-                    <span class="font-medium">Année</span>
-                    <select
-                        v-model.number="selectedModel"
-                        class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out hover:bg-slate-50 focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]"
-                    >
-                        <option
-                            v-for="year in yearOptions"
-                            :key="year"
-                            :value="year"
-                        >
-                            {{ year }}
-                        </option>
-                    </select>
-                </label>
+                <YearSelector
+                    v-model="selectedYearModel"
+                    :available-years="sortedYears"
+                />
             </div>
         </template>
 

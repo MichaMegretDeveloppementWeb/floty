@@ -7,6 +7,7 @@ namespace App\Services\Company;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
+use App\Data\Shared\YearScopeData;
 use App\Data\User\Company\CompanyActivityYearData;
 use App\Data\User\Company\CompanyColorOptionData;
 use App\Data\User\Company\CompanyDetailData;
@@ -24,12 +25,14 @@ use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
+use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Pivot\DriverCompany;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Services\Contract\ContractQueryService;
+use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
@@ -51,6 +54,8 @@ final class CompanyQueryService
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
+        private readonly AvailableYearsResolver $availableYears,
+        private readonly FiscalRuleRegistry $fiscalRules,
     ) {}
 
     /**
@@ -212,16 +217,19 @@ final class CompanyQueryService
         $contractsCount = $this->contracts->countContractsForCompany($companyId);
         $availableYears = $this->contracts->findActiveYearsForCompany($companyId);
 
-        $history = [];
+        // Toutes les années où l'entreprise a au moins un contrat,
+        // utilisées pour pré-calculer history + activityByYear (sans
+        // distinction encore présent/passé).
+        $allYearStats = [];
         foreach ($availableYears as $year) {
-            $history[] = $this->computeYearStats($companyId, $year);
+            $allYearStats[$year] = $this->computeYearStats($companyId, $year);
         }
 
         $lifetime = new CompanyLifetimeStatsData(
-            daysUsed: array_sum(array_map(static fn (CompanyYearStatsData $s): int => $s->daysUsed, $history)),
+            daysUsed: array_sum(array_map(static fn (CompanyYearStatsData $s): int => $s->daysUsed, $allYearStats)),
             contractsCount: $contractsCount,
             taxesGenerated: round(
-                array_sum(array_map(static fn (CompanyYearStatsData $s): float => $s->annualTaxDue, $history)),
+                array_sum(array_map(static fn (CompanyYearStatsData $s): float => $s->annualTaxDue, $allYearStats)),
                 2,
                 PHP_ROUND_HALF_UP,
             ),
@@ -231,6 +239,42 @@ final class CompanyQueryService
             // facturation arrive).
             rentTotal: null,
         );
+
+        // **Doctrine temporelle (chantier η Phase 1)** : 3 lentilles distinctes.
+        //
+        // Présent — KPIs en haut de page, toujours sur l'année calendaire
+        // courante. Si l'entreprise n'a pas de contrat sur cette année,
+        // on retourne un CompanyYearStatsData neutre (zéros) — l'UI
+        // affichera "0 j / 0 contrats / 0 €" sans crash.
+        $kpiYear = $this->availableYears->currentYear();
+        $kpiStats = $allYearStats[$kpiYear]
+            ?? new CompanyYearStatsData(
+                year: $kpiYear,
+                daysUsed: 0,
+                contractsCount: 0,
+                lcdCount: 0,
+                lldCount: 0,
+                annualTaxDue: 0.0,
+                rent: null,
+            );
+
+        // Distingue "données absentes" (KPIs à 0) de "calcul fiscal
+        // impossible" (règles fiscales pas encore codées pour kpiYear).
+        // Permet à l'UI d'afficher un message court explicite sur la
+        // KPI Taxes uniquement (cf. doctrine HD6).
+        $kpiFiscalAvailable = in_array(
+            $kpiYear,
+            $this->fiscalRules->registeredYears(),
+            true,
+        );
+
+        // Évolution — section Historique : toutes années passées avec
+        // contrats (exclut kpiYear qui est dans les KPIs ci-dessus).
+        // Évite la duplication info entre KPIs et Historique.
+        $history = array_values(array_filter(
+            $allYearStats,
+            static fn (CompanyYearStatsData $s): bool => $s->year < $kpiYear,
+        ));
 
         return new CompanyDetailData(
             id: $company->id,
@@ -255,6 +299,9 @@ final class CompanyQueryService
             totalDriversCount: count($driverRows),
             drivers: $driverRows,
             lifetime: $lifetime,
+            kpiStats: $kpiStats,
+            kpiYear: $kpiYear,
+            kpiFiscalAvailable: $kpiFiscalAvailable,
             history: $history,
             activityByYear: array_map(
                 fn (int $year): CompanyActivityYearData => $this->computeActivityForYear($companyId, $year),
@@ -262,6 +309,7 @@ final class CompanyQueryService
             ),
             availableYears: $availableYears,
             currentRealYear: $currentRealYear,
+            yearScope: YearScopeData::fromResolver($this->availableYears),
         );
     }
 

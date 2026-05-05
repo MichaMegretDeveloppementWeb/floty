@@ -451,6 +451,106 @@ final class CompanyControllerTest extends TestCase
     }
 
     // ----------------------------------------------------------------
+    // Show — chantier η Phase 1 (doctrine temporelle KPIs/Historique/Activité)
+    // ----------------------------------------------------------------
+
+    #[Test]
+    public function show_expose_kpi_year_egal_a_l_annee_calendaire_courante(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('company.kpiYear', (int) Carbon::now()->year)
+                ->has('company.kpiStats', fn (AssertableInertia $stats) => $stats
+                    ->where('year', (int) Carbon::now()->year)
+                    ->where('daysUsed', 0)
+                    ->where('contractsCount', 0)
+                    ->where('annualTaxDue', 0)
+                    ->etc(),
+                ),
+            );
+    }
+
+    #[Test]
+    public function show_kpi_fiscal_available_false_pour_une_annee_sans_regles_codees(): void
+    {
+        // En 2026 (année calendaire courante) on n'a codé que Year2024Boot
+        // → aucune règle fiscale 2026 → flag à false côté UI pour
+        // afficher le message « Règles non implémentées » sur la KPI Taxes.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('company.kpiFiscalAvailable', false),
+            );
+    }
+
+    #[Test]
+    public function show_history_exclut_l_annee_calendaire_courante(): void
+    {
+        // Crée un contrat 2024 (année passée) + un contrat sur l'année
+        // courante. L'historique ne doit contenir QUE 2024 — l'année
+        // courante est dans les KPIs en haut, pas dupliquée.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicleA = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleA->id]);
+        $vehicleB = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleB->id]);
+
+        Contract::factory()->create([
+            'company_id' => $company->id,
+            'vehicle_id' => $vehicleA->id,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-10',
+        ]);
+
+        $currentYear = (int) Carbon::now()->year;
+        Contract::factory()->create([
+            'company_id' => $company->id,
+            'vehicle_id' => $vehicleB->id,
+            'start_date' => "{$currentYear}-06-01",
+            'end_date' => "{$currentYear}-06-10",
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('company.history', 1) // uniquement 2024
+                ->where('company.history.0.year', 2024)
+                // KPIs reflètent l'année courante avec le contrat (10 jours)
+                ->where('company.kpiYear', $currentYear)
+                ->where('company.kpiStats.daysUsed', 10),
+            );
+    }
+
+    #[Test]
+    public function show_year_scope_est_expose_avec_les_3_champs_attendus(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('company.yearScope', fn (AssertableInertia $scope) => $scope
+                    ->has('currentYear')
+                    ->has('minYear')
+                    ->has('availableYears'),
+                ),
+            );
+    }
+
+    // ----------------------------------------------------------------
     // Show — chantier N.1 (onglet Contrats avec table paginée server-side)
     // ----------------------------------------------------------------
 
