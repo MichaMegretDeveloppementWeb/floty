@@ -52,7 +52,7 @@ const trendJours = computed(() =>
     comparison.value ? buildTrend(comparison.value.deltaJoursVehiculePercent, ' %') : null,
 );
 const trendContracts = computed(() =>
-    comparison.value ? buildTrend(comparison.value.deltaContractsActifsPercent, ' %') : null,
+    comparison.value ? buildTrend(comparison.value.deltaContractsPercent, ' %') : null,
 );
 const trendTaxes = computed(() =>
     comparison.value ? buildTrend(comparison.value.deltaTaxesDuesPercent, ' %') : null,
@@ -87,13 +87,13 @@ const comparisonCaption = computed<string | null>(() => {
         </KpiCard>
 
         <KpiCard
-            label="Contrats actifs"
-            :value="kpis.contractsActifs.toLocaleString('fr-FR')"
+            label="Contrats"
+            :value="kpis.contracts.toLocaleString('fr-FR')"
             :trend="trendContracts?.text"
             :trend-direction="trendContracts?.direction"
         >
             <template #caption>
-                État au {{ new Date().toLocaleDateString('fr-FR') }}<span
+                Total {{ kpis.year }} · dont {{ kpis.contractsActiveNow }} actif{{ kpis.contractsActiveNow > 1 ? 's' : '' }} aujourd'hui<span
                     v-if="comparisonCaption"
                 >
                     · {{ comparisonCaption }}</span>

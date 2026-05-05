@@ -28,7 +28,8 @@ final class DashboardYearHistoryData extends Data
         /** Vrai si l'année est l'année calendaire courante (donc partielle). */
         public bool $isCurrentYear,
         public int $joursVehicule,
-        public int $contractsActifs,
+        /** Total contrats ayant une activité sur l'année. */
+        public int $contracts,
         public float $taxesDues,
         public float $tauxOccupation,
     ) {}

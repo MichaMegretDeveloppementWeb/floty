@@ -49,8 +49,13 @@ final class DashboardStatsService
     /** Nombre de véhicules dans le « Top véhicules par taxe YTD ». */
     private const TOP_VEHICLES_COUNT = 3;
 
-    /** Profondeur de l'historique « Évolution » (années passées + année en cours). */
-    private const HISTORY_YEARS_BACK = 4;
+    /**
+     * Nombre maximum de barres dans le graphique « Évolution ». Si le
+     * scope dynamique des contrats remonte plus loin (ex. 20 ans), on
+     * tronque aux N dernières années pour garder une lecture visuelle
+     * claire. Si scope plus court (3 ans), on affiche tout.
+     */
+    private const HISTORY_MAX_YEARS = 8;
 
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
@@ -77,11 +82,11 @@ final class DashboardStatsService
                 year: $year - 1,
                 endDate: $previousYearEnd->toDateString(),
                 joursVehicule: $previous['joursVehicule'],
-                contractsActifs: $previous['contractsActifs'],
+                contracts: $previous['contracts'],
                 taxesDues: $previous['taxesDues'],
                 tauxOccupation: $previous['tauxOccupation'],
                 deltaJoursVehiculePercent: self::deltaPercent($current['joursVehicule'], $previous['joursVehicule']),
-                deltaContractsActifsPercent: self::deltaPercent($current['contractsActifs'], $previous['contractsActifs']),
+                deltaContractsPercent: self::deltaPercent($current['contracts'], $previous['contracts']),
                 deltaTaxesDuesPercent: self::deltaPercent($current['taxesDues'], $previous['taxesDues']),
                 deltaTauxOccupationPoints: round($current['tauxOccupation'] - $previous['tauxOccupation'], 1),
             )
@@ -90,7 +95,8 @@ final class DashboardStatsService
         return new DashboardKpiData(
             year: $year,
             joursVehicule: $current['joursVehicule'],
-            contractsActifs: $current['contractsActifs'],
+            contracts: $current['contracts'],
+            contractsActiveNow: $current['contractsActiveNow'],
             taxesDues: $current['taxesDues'],
             tauxOccupation: $current['tauxOccupation'],
             previousYearComparison: $comparison,
@@ -98,19 +104,35 @@ final class DashboardStatsService
     }
 
     /**
-     * Historique des 4 KPIs sur les N dernières années (incluant
-     * l'année en cours marquée `isCurrentYear: true`).
+     * Historique des 4 KPIs **dans le scope dynamique des contrats**
+     * (cf. `AvailableYearsResolver` — doctrine "données métier"). Si
+     * le scope remonte au-delà de {@see HISTORY_MAX_YEARS}, on tronque
+     * aux N dernières années pour préserver la lisibilité visuelle.
+     *
+     * Inclut toujours l'année calendaire courante (marquée
+     * `isCurrentYear: true`), même si elle n'est pas dans le scope
+     * (cas où aucun contrat n'a encore été créé sur l'année en cours).
      *
      * @return list<DashboardYearHistoryData>
      */
     public function computeHistory(): array
     {
         $currentYear = $this->availableYears->currentYear();
-        $startYear = $currentYear - self::HISTORY_YEARS_BACK;
-        $today = CarbonImmutable::today();
+        $scope = $this->availableYears->availableYears();
+        // Garantit que l'année courante figure dans l'historique
+        // (même si scope contrats vide — cas appli neuve).
+        if (! in_array($currentYear, $scope, true)) {
+            $scope[] = $currentYear;
+            sort($scope);
+        }
+        // Tronque aux N dernières si scope trop large.
+        if (count($scope) > self::HISTORY_MAX_YEARS) {
+            $scope = array_slice($scope, -self::HISTORY_MAX_YEARS);
+        }
 
+        $today = CarbonImmutable::today();
         $history = [];
-        for ($year = $startYear; $year <= $currentYear; $year++) {
+        foreach ($scope as $year) {
             $isCurrent = $year === $currentYear;
             // Année écoulée : on prend la fenêtre complète. Année courante : YTD.
             $endDate = $isCurrent
@@ -121,7 +143,7 @@ final class DashboardStatsService
                 year: $year,
                 isCurrentYear: $isCurrent,
                 joursVehicule: $metrics['joursVehicule'],
-                contractsActifs: $metrics['contractsActifs'],
+                contracts: $metrics['contracts'],
                 taxesDues: $metrics['taxesDues'],
                 tauxOccupation: $metrics['tauxOccupation'],
             );
@@ -162,17 +184,22 @@ final class DashboardStatsService
      * `$upToDate`). Utilisé deux fois par {@see computeKpis} (année
      * courante + même fenêtre Y-1) et N fois par {@see computeHistory}.
      *
-     * @return array{joursVehicule: int, contractsActifs: int, taxesDues: float, tauxOccupation: float, hasData: bool}
+     * @return array{joursVehicule: int, contracts: int, contractsActiveNow: int, taxesDues: float, tauxOccupation: float, hasData: bool}
      */
     private function computePeriodMetrics(int $year, CarbonImmutable $upToDate): array
     {
         $contractsByPair = $this->contracts->loadContractsByPair($year);
         $upToDateString = $upToDate->toDateString();
+        $todayString = CarbonImmutable::today()->toDateString();
 
         // Jours-véhicule YTD : on filtre les jours expandus pour ne garder que <= upToDate.
         $joursVehicule = 0;
-        $contractsActifsCount = 0;
-        $contractIdsCounted = [];
+        // Total contrats : tout contrat ayant chevauché [début année, upToDate]
+        // est compté une fois (déduplique cross-pair via id).
+        $contractsTotalIds = [];
+        // Sous-décompte « actifs aujourd'hui » : start_date <= today <= end_date.
+        // Sert uniquement à la lentille Présent (pas Y-1 ni history).
+        $contractsActiveNowIds = [];
         foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
             foreach ($pair['contracts'] as $contract) {
                 $days = $contract->expandToDaysInYear($year);
@@ -181,16 +208,22 @@ final class DashboardStatsService
                         $joursVehicule++;
                     }
                 }
-                // Contrats actifs au upToDate : start_date <= upToDate <= end_date
-                if (! isset($contractIdsCounted[$contract->id])
-                    && $contract->start_date->toDateString() <= $upToDateString
-                    && $contract->end_date->toDateString() >= $upToDateString
+                // Total : tout contrat dont la plage croise [1er janvier, upToDate]
+                // → start_date <= upToDate (la fin est forcément >= 1er janvier
+                // si on est ici, vu que loadContractsByPair filtre déjà).
+                if ($contract->start_date->toDateString() <= $upToDateString) {
+                    $contractsTotalIds[$contract->id] = true;
+                }
+                // Actif aujourd'hui (∀ year, on regarde la photographie maintenant) :
+                if ($contract->start_date->toDateString() <= $todayString
+                    && $contract->end_date->toDateString() >= $todayString
                 ) {
-                    $contractIdsCounted[$contract->id] = true;
-                    $contractsActifsCount++;
+                    $contractsActiveNowIds[$contract->id] = true;
                 }
             }
         }
+        $contractsCount = count($contractsTotalIds);
+        $contractsActiveNowCount = count($contractsActiveNowIds);
 
         // Taxes YTD : approximation linéaire de la taxe annuelle.
         // Cf. doctrine de classe ci-dessus.
@@ -210,10 +243,11 @@ final class DashboardStatsService
 
         return [
             'joursVehicule' => $joursVehicule,
-            'contractsActifs' => $contractsActifsCount,
+            'contracts' => $contractsCount,
+            'contractsActiveNow' => $contractsActiveNowCount,
             'taxesDues' => $taxesDues,
             'tauxOccupation' => $tauxOccupation,
-            'hasData' => $joursVehicule > 0 || $contractsActifsCount > 0 || $taxesAnnuelles > 0,
+            'hasData' => $joursVehicule > 0 || $contractsCount > 0 || $taxesAnnuelles > 0,
         ];
     }
 

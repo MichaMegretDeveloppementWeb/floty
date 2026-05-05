@@ -30,8 +30,20 @@ final class DashboardKpiData extends Data
         public int $year,
         /** Jours-véhicule occupés du 1er janvier au jour courant. */
         public int $joursVehicule,
-        /** Contrats actuellement actifs (date courante ∈ [start, end]). */
-        public int $contractsActifs,
+        /**
+         * Nombre total de contrats ayant une activité sur la période YTD
+         * (= dont la plage `[start, end]` chevauche `[1er janvier, aujourd'hui]`).
+         * Inclut les contrats clos courant l'année + ceux encore actifs.
+         */
+        public int $contracts,
+        /**
+         * Sous-décompte des contrats encore en cours aujourd'hui
+         * (date courante ∈ `[start, end]`). Affiché en sous-titre du KPI
+         * Contrats. Présent uniquement sur la lentille Présent — pas
+         * dans la comparaison Y-1 (la notion « actif au 5 mai 2025 »
+         * n'est pas exploitable, on ne compare que les totaux).
+         */
+        public int $contractsActiveNow,
         /** Taxes dues YTD (CO₂ + polluants, toutes entreprises). */
         public float $taxesDues,
         /**

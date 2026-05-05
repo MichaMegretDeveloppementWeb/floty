@@ -67,62 +67,71 @@ function cellTitle(date: string, status: string): string {
         <div v-if="vehicles.length === 0" class="text-sm text-slate-500">
             Aucun véhicule actif dans la fenêtre des 30 derniers jours.
         </div>
-        <div v-else class="flex flex-col gap-1.5">
-            <!-- En-tête : jours du mois -->
-            <div class="flex items-center gap-1 pl-[100px]">
-                <div
-                    v-for="day in dayHeaders"
-                    :key="day.date"
-                    :class="[
-                        'flex-1 text-center font-mono text-[10px]',
-                        day.isFirstOfMonth ? 'font-semibold text-slate-700' : 'text-slate-400',
-                    ]"
-                >
-                    {{ day.label }}
-                </div>
-            </div>
-
-            <!-- Lignes véhicules -->
-            <div
-                v-for="vehicle in vehicles"
-                :key="vehicle.vehicleId"
-                class="flex items-center gap-1"
-            >
-                <Link
-                    :href="vehicleShowRoute({ vehicle: vehicle.vehicleId }).url"
-                    class="w-[100px] truncate text-xs text-slate-700 hover:text-slate-900 hover:underline"
-                    :title="`${vehicle.brand} ${vehicle.model}`"
-                >
-                    <Plate :value="vehicle.licensePlate" />
-                </Link>
-                <div class="flex flex-1 items-center gap-1">
+        <!--
+            Sur mobile la grille déborderait facilement (30 colonnes de
+            cellules + colonne plaque). On wrap dans un overflow-x-auto
+            avec une min-width sur le contenu pour préserver lisibilité
+            puis scroll horizontal naturel. Plaque sticky-left garde le
+            repère visible pendant le scroll.
+        -->
+        <div v-else class="-mx-2 overflow-x-auto px-2">
+            <div class="flex min-w-[640px] flex-col gap-1.5">
+                <!-- En-tête : jours du mois -->
+                <div class="flex items-center gap-1 pl-[104px]">
                     <div
-                        v-for="day in vehicle.days"
+                        v-for="day in dayHeaders"
                         :key="day.date"
                         :class="[
-                            'h-4 flex-1 rounded-sm transition-opacity duration-[120ms] hover:opacity-70',
-                            cellClass(day.status),
+                            'min-w-[16px] flex-1 text-center font-mono text-[10px]',
+                            day.isFirstOfMonth ? 'font-semibold text-slate-700' : 'text-slate-400',
                         ]"
-                        :title="cellTitle(day.date, day.status)"
-                    />
+                    >
+                        {{ day.label }}
+                    </div>
+                </div>
+
+                <!-- Lignes véhicules -->
+                <div
+                    v-for="vehicle in vehicles"
+                    :key="vehicle.vehicleId"
+                    class="flex items-center gap-1"
+                >
+                    <Link
+                        :href="vehicleShowRoute({ vehicle: vehicle.vehicleId }).url"
+                        class="sticky left-0 z-10 w-[100px] shrink-0 bg-white pr-1 text-xs text-slate-700 hover:text-slate-900 hover:underline"
+                        :title="`${vehicle.brand} ${vehicle.model}`"
+                    >
+                        <Plate :value="vehicle.licensePlate" />
+                    </Link>
+                    <div class="flex flex-1 items-center gap-1">
+                        <div
+                            v-for="day in vehicle.days"
+                            :key="day.date"
+                            :class="[
+                                'h-4 min-w-[16px] flex-1 rounded-sm transition-opacity duration-[120ms] hover:opacity-70',
+                                cellClass(day.status),
+                            ]"
+                            :title="cellTitle(day.date, day.status)"
+                        />
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Légende -->
-            <div class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
-                <span class="flex items-center gap-1.5">
-                    <span class="h-3 w-3 rounded-sm bg-slate-700" />
-                    Occupé
-                </span>
-                <span class="flex items-center gap-1.5">
-                    <span class="h-3 w-3 rounded-sm bg-rose-300" />
-                    Indisponible
-                </span>
-                <span class="flex items-center gap-1.5">
-                    <span class="h-3 w-3 rounded-sm bg-slate-100" />
-                    Libre
-                </span>
-            </div>
+        <!-- Légende -->
+        <div v-if="vehicles.length > 0" class="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+            <span class="flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-sm bg-slate-700" />
+                Occupé
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-sm bg-rose-300" />
+                Indisponible
+            </span>
+            <span class="flex items-center gap-1.5">
+                <span class="h-3 w-3 rounded-sm bg-slate-100" />
+                Libre
+            </span>
         </div>
     </div>
 </template>

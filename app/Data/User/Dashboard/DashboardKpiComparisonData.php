@@ -29,12 +29,18 @@ final class DashboardKpiComparisonData extends Data
         /** Date de fin de la fenêtre comparée (Y-1, même jour-mois que aujourd'hui). */
         public string $endDate,
         public int $joursVehicule,
-        public int $contractsActifs,
+        /**
+         * Total contrats ayant une activité sur la période Y-1 YTD.
+         * Pas de sous-décompte « actifs » ici — la notion « actif au
+         * 5 mai 2025 » est une photographie ponctuelle qui ne se
+         * compare pas pertinemment d'une année à l'autre.
+         */
+        public int $contracts,
         public float $taxesDues,
         public float $tauxOccupation,
         /** Variation relative en % pour les 3 KPIs cumulatifs (jours, contrats, taxes). Null si Y-1 = 0. */
         public ?float $deltaJoursVehiculePercent,
-        public ?float $deltaContractsActifsPercent,
+        public ?float $deltaContractsPercent,
         public ?float $deltaTaxesDuesPercent,
         /** Variation absolue en points de pourcentage pour le taux d'occupation. */
         public float $deltaTauxOccupationPoints,

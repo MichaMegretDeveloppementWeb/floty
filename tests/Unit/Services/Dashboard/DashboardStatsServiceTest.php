@@ -48,7 +48,8 @@ final class DashboardStatsServiceTest extends TestCase
 
         self::assertSame($today->year, $kpis['year']);
         self::assertGreaterThan(0, $kpis['joursVehicule']);
-        self::assertSame(1, $kpis['contractsActifs']);
+        self::assertSame(1, $kpis['contracts']);
+        self::assertSame(1, $kpis['contractsActiveNow']);
         self::assertGreaterThanOrEqual(0.0, $kpis['taxesDues']);
         self::assertGreaterThanOrEqual(0.0, $kpis['tauxOccupation']);
     }
@@ -72,21 +73,22 @@ final class DashboardStatsServiceTest extends TestCase
     }
 
     #[Test]
-    public function compute_history_renvoie_n_dernieres_annees_dont_l_annee_courante(): void
+    public function compute_history_se_borne_au_scope_dynamique_des_contrats(): void
     {
+        // Sans contrat, le scope du resolver = [currentYear] uniquement.
+        // computeHistory garantit que l'année courante figure même si
+        // scope vide → renvoie au moins 1 entrée.
         $today = CarbonImmutable::today();
         $history = $this->service->computeHistory();
 
-        // 4 années passées + année en cours = 5 entrées
-        self::assertCount(5, $history);
-        // La dernière entrée doit être l'année calendaire courante avec
-        // isCurrentYear: true.
+        self::assertNotEmpty($history);
         $last = end($history);
         self::assertSame($today->year, $last->year);
         self::assertTrue($last->isCurrentYear);
-        // Les autres ne sont pas l'année courante.
-        for ($i = 0; $i < 4; $i++) {
-            self::assertFalse($history[$i]->isCurrentYear);
+        // Aucune année antérieure à 2024 (scope contrats vide) ne doit
+        // apparaître artificiellement.
+        foreach ($history as $entry) {
+            self::assertGreaterThanOrEqual($today->year, $entry->year);
         }
     }
 

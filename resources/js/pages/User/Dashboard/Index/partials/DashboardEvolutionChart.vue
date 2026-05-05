@@ -19,7 +19,7 @@ const props = defineProps<{
     history: App.Data.User.Dashboard.DashboardYearHistoryData[];
 }>();
 
-type Dimension = 'joursVehicule' | 'contractsActifs' | 'taxesDues' | 'tauxOccupation';
+type Dimension = 'joursVehicule' | 'contracts' | 'taxesDues' | 'tauxOccupation';
 
 type DimensionMeta = {
     key: Dimension;
@@ -38,8 +38,8 @@ const DIMENSIONS: readonly DimensionMeta[] = [
         format: (v) => v.toLocaleString('fr-FR'),
     },
     {
-        key: 'contractsActifs',
-        label: 'Contrats actifs',
+        key: 'contracts',
+        label: 'Contrats',
         color: '#0f766e', // teal-700
         format: (v) => v.toLocaleString('fr-FR'),
     },

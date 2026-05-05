@@ -42,7 +42,8 @@ final class DashboardControllerTest extends TestCase
                 ->has('kpis', fn (AssertableInertia $k) => $k
                     ->has('year')
                     ->has('joursVehicule')
-                    ->has('contractsActifs')
+                    ->has('contracts')
+                    ->has('contractsActiveNow')
                     ->has('taxesDues')
                     ->has('tauxOccupation')
                     ->has('previousYearComparison'))
