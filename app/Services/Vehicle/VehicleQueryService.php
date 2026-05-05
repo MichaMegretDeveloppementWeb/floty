@@ -15,6 +15,7 @@ use App\Data\User\Vehicle\VehicleCompanyUsageData;
 use App\Data\User\Vehicle\VehicleData;
 use App\Data\User\Vehicle\VehicleFiscalCharacteristicsData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
+use App\Data\User\Vehicle\VehicleFullYearTaxSegmentData;
 use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Data\User\Vehicle\VehicleListItemData;
 use App\Data\User\Vehicle\VehicleOptionData;
@@ -23,8 +24,6 @@ use App\Data\User\Vehicle\VehicleWeekSegmentData;
 use App\Data\User\Vehicle\VehicleWeekUsageData;
 use App\Data\User\Vehicle\VehicleYearStatsData;
 use App\DTO\Fiscal\ContractsByPair;
-use App\Enums\Vehicle\HomologationMethod;
-use App\Enums\Vehicle\PollutantCategory;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Company;
@@ -444,20 +443,38 @@ final class VehicleQueryService
 
         $message = sprintf('Règles fiscales %d non implémentées.', $year);
 
+        // Année non supportée → pas d'exécution du pipeline, pas de
+        // segments calculés. On expose la VFC actuelle (si elle existe)
+        // sous forme d'un segment unique couvrant l'année avec tarifs
+        // et dûs à 0, pour conserver la traçabilité dans l'UI sans
+        // mentir sur le calcul (qui n'a pas eu lieu).
+        $taxSegments = [];
+        if ($current !== null) {
+            $taxSegments[] = new VehicleFullYearTaxSegmentData(
+                effectiveFromInYear: sprintf('%04d-01-01', $year),
+                effectiveToInYear: sprintf('%04d-12-31', $year),
+                daysInSegment: $this->yearContext->daysInYear($year),
+                vfc: VehicleFiscalCharacteristicsData::fromModel($current),
+                co2Method: $current->homologation_method,
+                co2FullYearTariff: 0.0,
+                co2Explanation: $message,
+                co2Due: 0.0,
+                pollutantCategory: $current->pollutant_category,
+                pollutantsFullYearTariff: 0.0,
+                pollutantsExplanation: $message,
+                pollutantsDue: 0.0,
+                appliedExemptions: [],
+                appliedRuleCodes: [],
+            );
+        }
+
         return new VehicleFullYearTaxBreakdownData(
-            co2Method: $current !== null ? $current->homologation_method : HomologationMethod::Wltp,
-            co2FullYearTariff: 0.0,
-            co2Explanation: $message,
-            pollutantCategory: $current !== null ? $current->pollutant_category : PollutantCategory::Category1,
-            pollutantsFullYearTariff: 0.0,
-            pollutantsExplanation: $message,
+            daysInYear: $this->yearContext->daysInYear($year),
+            total: 0.0,
             appliedExemptions: [],
             appliedRuleCodes: [],
-            total: 0.0,
             appliedRules: [],
-            appliedVfc: $current !== null
-                ? VehicleFiscalCharacteristicsData::fromModel($current)
-                : null,
+            taxSegments: $taxSegments,
         );
     }
 

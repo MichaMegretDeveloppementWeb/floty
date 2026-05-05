@@ -275,6 +275,25 @@ final class DemoSeeder extends Seeder
                 'exitReason' => VehicleExitReason::Sold,
                 'currentStatus' => VehicleStatus::Sold,
             ],
+            // Renault Mégane VP essence Euro 6 — exerce le calcul fiscal
+            // segmenté par VFC (chantier dette VFC). 1ʳᵉ VFC à 102 g/km
+            // (saisie initiale), corrigée le 2024-06-16 à 145 g/km après
+            // re-homologation. Le moteur fiscal doit appliquer la bonne
+            // version à chaque période, pas l'actuelle (145) à toute
+            // l'année 2024.
+            [
+                'plate' => 'EL-012-LL', 'brand' => 'Renault', 'model' => 'Mégane E-Tech',
+                'regFrench' => '2023-08-20', 'regOrigin' => '2023-08-20', 'econ' => '2023-08-20',
+                'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5,
+                'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d,
+                'pollutant' => PollutantCategory::Category1,
+                'method' => HomologationMethod::Wltp, 'co2Wltp' => 145, 'pa' => 6, 'kerb' => 1380,
+                // Marqueur traité en post-boucle : la VFC initiale est
+                // fermée au 2024-06-15 et une 2ᵉ VFC démarre au 2024-06-16
+                // avec ce co2Wltp. La 1ʳᵉ VFC garde le co2InitialWltp.
+                'co2InitialWltp' => 102,
+                'splitVfcOn' => '2024-06-16',
+            ],
         ];
 
         $created = [];
@@ -322,6 +341,48 @@ final class DemoSeeder extends Seeder
             ]);
 
             $created[$spec['plate']] = $vehicle;
+        }
+
+        // Cas multi-VFC (chantier dette VFC L4) : pour les véhicules
+        // marqués `splitVfcOn`, on ferme la VFC initiale au jour précédent
+        // avec son `co2InitialWltp`, puis on crée une 2ᵉ VFC à partir de
+        // la date de bascule avec le `co2Wltp` du spec. Permet d'exercer
+        // visuellement le segmenteur fiscal sur la fiche véhicule.
+        foreach ($specs as $spec) {
+            if (! isset($spec['splitVfcOn'])) {
+                continue;
+            }
+            $vehicle = $created[$spec['plate']];
+            $splitDate = Carbon::parse($spec['splitVfcOn']);
+            $initial = $vehicle->fiscalCharacteristics()->latest('effective_from')->firstOrFail();
+            $initial->update([
+                'effective_to' => $splitDate->copy()->subDay(),
+                'co2_wltp' => $spec['co2InitialWltp'],
+            ]);
+            VehicleFiscalCharacteristics::create([
+                'vehicle_id' => $vehicle->id,
+                'effective_from' => $splitDate,
+                'effective_to' => null,
+                'reception_category' => $spec['cat'],
+                'vehicle_user_type' => $spec['user'],
+                'body_type' => $spec['body'],
+                'seats_count' => $spec['seats'],
+                'energy_source' => $spec['energy'],
+                'underlying_combustion_engine_type' => $spec['underlying'] ?? null,
+                'euro_standard' => $spec['euro'] ?? null,
+                'pollutant_category' => $spec['pollutant'],
+                'homologation_method' => $spec['method'],
+                'co2_wltp' => $spec['co2Wltp'] ?? null,
+                'co2_nedc' => $spec['co2Nedc'] ?? null,
+                'taxable_horsepower' => $spec['pa'],
+                'kerb_mass' => $spec['kerb'] ?? null,
+                'handicap_access' => $spec['handicapAccess'] ?? false,
+                'n1_passenger_transport' => $spec['n1PassengerTransport'] ?? false,
+                'n1_removable_second_row_seat' => false,
+                'm1_special_use' => false,
+                'n1_ski_lift_use' => false,
+                'change_reason' => FiscalCharacteristicsChangeReason::Recharacterization,
+            ]);
         }
 
         return $created;
@@ -516,6 +577,14 @@ final class DemoSeeder extends Seeder
             ['plate' => 'EJ-010-JJ', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-05-31'],
             ['plate' => 'EJ-010-JJ', 'company' => 'DRS', 'from' => '2024-06-17', 'to' => '2024-09-30'],
             ['plate' => 'EJ-010-JJ', 'company' => 'ECO', 'from' => '2024-11-04', 'to' => '2024-12-15'],
+
+            // --- Renault Mégane (multi-VFC : 102 g/km jusqu'au 15/06,
+            // 145 g/km à partir du 16/06). Trois contrats répartis :
+            // un avant la bascule, un à cheval sur la bascule, un après.
+            // Permet d'observer le segmenteur fiscal sur la fiche.
+            ['plate' => 'EL-012-LL', 'company' => 'ACM', 'from' => '2024-02-05', 'to' => '2024-04-30'],
+            ['plate' => 'EL-012-LL', 'company' => 'BTP', 'from' => '2024-05-13', 'to' => '2024-07-26'],
+            ['plate' => 'EL-012-LL', 'company' => 'ECO', 'from' => '2024-09-09', 'to' => '2024-11-29'],
         ];
     }
 }

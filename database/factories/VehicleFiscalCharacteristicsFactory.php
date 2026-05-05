@@ -14,6 +14,7 @@ use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -31,7 +32,15 @@ final class VehicleFiscalCharacteristicsFactory extends Factory
     {
         return [
             'vehicle_id' => Vehicle::factory(),
-            'effective_from' => now()->subYear()->startOfYear(),
+            // Plage historique large (depuis 2020) pour que les tests
+            // qui créent des contrats sur n'importe quelle année post-2020
+            // disposent d'une VFC effective. Avant le chantier dette VFC
+            // (orchestrateur segmenté), `findCurrentForVehicle` masquait
+            // le décalage en renvoyant la VFC actuelle peu importe l'année,
+            // ce qui produisait des calculs faux silencieux. L'orchestrateur
+            // est désormais strict : il throw si aucun segment n'est actif
+            // sur l'année calculée — la factory doit donc couvrir large.
+            'effective_from' => Carbon::create(2020, 1, 1),
             'effective_to' => null,
             'reception_category' => ReceptionCategory::M1,
             'vehicle_user_type' => VehicleUserType::PassengerCar,

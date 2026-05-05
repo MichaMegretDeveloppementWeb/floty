@@ -7,6 +7,7 @@ namespace App\Fiscal\Year2024\Transversal;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Pipeline\PipelineContext;
+use Carbon\CarbonImmutable;
 
 /**
  * R-2024-002 - Prorata journalier (jours d'utilisation effective /
@@ -50,9 +51,20 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
         // triggers anti-overlap garantissent l'absence de chevauchement
         // entre contrats actifs du couple, mais on agrège via un set
         // pour rester strict).
+        //
+        // Si une `daysWindow` est posée (mode segmenté par VFC, cf.
+        // VfcSegmentedFiscalExecutor), on filtre les jours présents
+        // pour ne compter que ceux qui tombent dans la fenêtre du
+        // segment courant. Les contrats restent passés entiers au
+        // pipeline (nécessaire pour que R-2024-021 LCD juge sur leur
+        // durée totale, pas sur la portion clippée).
+        $window = $context->daysWindow;
         $totalDates = [];
         foreach ($context->contractsForPair as $contract) {
             foreach ($contract->expandToDaysInYear($context->fiscalYear) as $date) {
+                if ($window !== null && ! $window->contains(CarbonImmutable::parse($date))) {
+                    continue;
+                }
                 $totalDates[$date] = true;
             }
         }

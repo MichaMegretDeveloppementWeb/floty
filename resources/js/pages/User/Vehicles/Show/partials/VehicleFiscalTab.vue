@@ -60,7 +60,7 @@ const statsLike = computed<UsageStats>(() => ({
 
 <template>
     <div class="flex flex-col gap-6">
-        <AppliedVfcCard :applied-vfc="(data ?? initialBreakdown).appliedVfc" />
+        <AppliedVfcCard :segments="(data ?? initialBreakdown).taxSegments" />
 
         <Card>
             <template #header>

@@ -136,13 +136,21 @@ final class FleetFiscalAggregatorTest extends TestCase
         $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, self::YEAR);
 
         // WLTP 100 essence M1 cat 1 = 173 € CO₂ + 100 € polluants = 273 €
-        self::assertSame(173.0, $breakdown->co2FullYearTariff);
-        self::assertSame(100.0, $breakdown->pollutantsFullYearTariff);
         self::assertSame(273.0, $breakdown->total);
-
-        self::assertSame('WLTP', $breakdown->co2Method->value);
-        self::assertSame('category_1', $breakdown->pollutantCategory->value);
         self::assertNotEmpty($breakdown->appliedRuleCodes);
+
+        // Mono-VFC : un seul segment couvrant l'année entière. Les
+        // tarifs et méthodes/catégories vivent désormais dans le segment
+        // (chantier dette VFC L3 — cohérence affichage par segment).
+        self::assertCount(1, $breakdown->taxSegments);
+        $segment = $breakdown->taxSegments[0];
+        self::assertSame(173.0, $segment->co2FullYearTariff);
+        self::assertSame(100.0, $segment->pollutantsFullYearTariff);
+        self::assertSame(173.0, $segment->co2Due);
+        self::assertSame(100.0, $segment->pollutantsDue);
+        self::assertSame('WLTP', $segment->co2Method->value);
+        self::assertSame('category_1', $segment->pollutantCategory->value);
+        self::assertSame(366, $segment->daysInSegment);
     }
 
     private function makeVehicleWltp100Essence(): Vehicle

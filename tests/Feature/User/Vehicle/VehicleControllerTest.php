@@ -442,17 +442,26 @@ final class VehicleControllerTest extends TestCase
                         ->has('companies', 0)
                         ->has('weeklyBreakdown')
                         ->has('fullYearTaxBreakdown', fn (AssertableInertia $b) => $b
-                            ->has('co2Method')
-                            ->has('co2FullYearTariff')
-                            ->has('co2Explanation')
-                            ->has('pollutantCategory')
-                            ->has('pollutantsFullYearTariff')
-                            ->has('pollutantsExplanation')
+                            ->has('daysInYear')
+                            ->has('total')
                             ->has('appliedExemptions')
                             ->has('appliedRuleCodes')
-                            ->has('total')
                             ->has('appliedRules')
-                            ->has('appliedVfc')))
+                            ->has('taxSegments', 1, fn (AssertableInertia $s) => $s
+                                ->has('effectiveFromInYear')
+                                ->has('effectiveToInYear')
+                                ->has('daysInSegment')
+                                ->has('vfc')
+                                ->has('co2Method')
+                                ->has('co2FullYearTariff')
+                                ->has('co2Explanation')
+                                ->has('co2Due')
+                                ->has('pollutantCategory')
+                                ->has('pollutantsFullYearTariff')
+                                ->has('pollutantsExplanation')
+                                ->has('pollutantsDue')
+                                ->has('appliedExemptions')
+                                ->has('appliedRuleCodes'))))
                     ->has('busyDates')
                     ->etc()),
             );
@@ -696,8 +705,12 @@ final class VehicleControllerTest extends TestCase
             ->json();
 
         $this->assertEquals(0, $payload['total']);
-        $this->assertEquals(0, $payload['co2FullYearTariff']);
-        $this->assertStringContainsString('non implémentées', $payload['co2Explanation']);
+        // Mode "année non supportée" : un segment placeholder couvrant
+        // l'année avec tarifs/dûs à 0 et message explicite.
+        $this->assertCount(1, $payload['taxSegments']);
+        $this->assertEquals(0, $payload['taxSegments'][0]['co2FullYearTariff']);
+        $this->assertEquals(0, $payload['taxSegments'][0]['co2Due']);
+        $this->assertStringContainsString('non implémentées', $payload['taxSegments'][0]['co2Explanation']);
     }
 
     #[Test]

@@ -1,4 +1,14 @@
 <script setup lang="ts">
+/**
+ * Détail du « Coût plein {année} » par segment VFC.
+ *
+ * Quand le véhicule a une seule VFC sur l'année → un seul bloc de
+ * détails (CO₂ + polluants + total). Quand la VFC change en cours
+ * d'année → un bloc par segment, chacun avec ses propres tarifs et
+ * dûs (cohérence affichage/total : la somme des dûs des segments donne
+ * exactement le `total` global, conformément à la doctrine ADR-0005
+ * calcul jour par jour).
+ */
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
@@ -10,12 +20,27 @@ import {
     pollutantCategoryLabel,
 } from '@/Utils/labels/vehicleEnumLabels';
 
+type Segment = App.Data.User.Vehicle.VehicleFullYearTaxSegmentData;
+
 const props = defineProps<{
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;
 }>();
 
 const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
     useFullYearTaxBreakdownPanel(props);
+
+function segmentPeriodLabel(seg: Segment): string {
+    const from = formatDmy(seg.effectiveFromInYear);
+    const to = formatDmy(seg.effectiveToInYear);
+
+    return `Du ${from} au ${to} · ${seg.daysInSegment} j`;
+}
+
+function formatDmy(iso: string): string {
+    const [year, month, day] = iso.split('-');
+
+    return `${day}/${month}/${year}`;
+}
 </script>
 
 <template>
@@ -27,52 +52,84 @@ const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
                 </h2>
                 <p class="mt-0.5 text-xs text-slate-500">
                     Calcul théorique pour 100 % d'utilisation
+                    <template v-if="breakdown.taxSegments.length > 1">
+                        — segmenté par version VFC, le total agrège tous les segments.
+                    </template>
                 </p>
             </div>
         </template>
 
         <div class="flex flex-col gap-5">
-            <!-- Section CO₂ -->
-            <section class="flex flex-col gap-2">
-                <div class="flex items-center justify-between gap-2 flex-wrap">
-                    <span
-                        class="text-xs font-semibold tracking-wider text-slate-500 uppercase"
-                    >
-                        Taxe CO₂
-                    </span>
-                    <Badge tone="blue">
-                        {{ homologationMethodLabel[breakdown.co2Method] }}
-                    </Badge>
-                </div>
-                <p class="font-mono text-base font-semibold text-slate-900">
-                    {{ formatEur(breakdown.co2FullYearTariff) }}
+            <div
+                v-for="(segment, index) in breakdown.taxSegments"
+                :key="index"
+                :class="breakdown.taxSegments.length > 1 ? 'rounded-lg border border-slate-200 bg-slate-50 p-4' : ''"
+            >
+                <p
+                    v-if="breakdown.taxSegments.length > 1"
+                    class="mb-3 text-xs font-semibold uppercase tracking-wider text-slate-500"
+                >
+                    {{ segmentPeriodLabel(segment) }}
                 </p>
-                <p class="text-xs leading-relaxed text-slate-500">
-                    {{ breakdown.co2Explanation }}
-                </p>
-            </section>
 
-            <!-- Section Polluants -->
-            <section class="flex flex-col gap-2 border-t border-slate-100 pt-4">
-                <div class="flex items-center justify-between gap-2 flex-wrap">
-                    <span
-                        class="text-xs font-semibold tracking-wider text-slate-500 uppercase"
-                    >
-                        Taxe polluants
-                    </span>
-                    <Badge tone="amber">
-                        {{ pollutantCategoryLabel[breakdown.pollutantCategory] }}
-                    </Badge>
-                </div>
-                <p class="font-mono text-base font-semibold text-slate-900">
-                    {{ formatEur(breakdown.pollutantsFullYearTariff) }}
-                </p>
-                <p class="text-xs leading-relaxed text-slate-500">
-                    {{ breakdown.pollutantsExplanation }}
-                </p>
-            </section>
+                <!-- Section CO₂ -->
+                <section class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span
+                            class="text-xs font-semibold tracking-wider text-slate-500 uppercase"
+                        >
+                            Taxe CO₂
+                        </span>
+                        <Badge tone="blue">
+                            {{ homologationMethodLabel[segment.co2Method] }}
+                        </Badge>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <p class="font-mono text-base font-semibold text-slate-900">
+                            {{ formatEur(segment.co2Due) }}
+                        </p>
+                        <p
+                            v-if="breakdown.taxSegments.length > 1 || segment.co2Due !== segment.co2FullYearTariff"
+                            class="text-xs text-slate-500"
+                        >
+                            ({{ formatEur(segment.co2FullYearTariff) }} annuel × {{ segment.daysInSegment }}/{{ breakdown.daysInYear }} j)
+                        </p>
+                    </div>
+                    <p class="text-xs leading-relaxed text-slate-500">
+                        {{ segment.co2Explanation }}
+                    </p>
+                </section>
 
-            <!-- Exonérations / abattements (si présents) -->
+                <!-- Section Polluants -->
+                <section class="mt-4 flex flex-col gap-2 border-t border-slate-200 pt-4">
+                    <div class="flex items-center justify-between gap-2 flex-wrap">
+                        <span
+                            class="text-xs font-semibold tracking-wider text-slate-500 uppercase"
+                        >
+                            Taxe polluants
+                        </span>
+                        <Badge tone="amber">
+                            {{ pollutantCategoryLabel[segment.pollutantCategory] }}
+                        </Badge>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <p class="font-mono text-base font-semibold text-slate-900">
+                            {{ formatEur(segment.pollutantsDue) }}
+                        </p>
+                        <p
+                            v-if="breakdown.taxSegments.length > 1 || segment.pollutantsDue !== segment.pollutantsFullYearTariff"
+                            class="text-xs text-slate-500"
+                        >
+                            ({{ formatEur(segment.pollutantsFullYearTariff) }} annuel × {{ segment.daysInSegment }}/{{ breakdown.daysInYear }} j)
+                        </p>
+                    </div>
+                    <p class="text-xs leading-relaxed text-slate-500">
+                        {{ segment.pollutantsExplanation }}
+                    </p>
+                </section>
+            </div>
+
+            <!-- Exonérations / abattements (agrégés) -->
             <section
                 v-if="breakdown.appliedExemptions.length > 0"
                 class="flex flex-col gap-2 border-t border-slate-100 pt-4"
@@ -102,7 +159,7 @@ const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
                 </ul>
             </section>
 
-            <!-- Total final mis en valeur -->
+            <!-- Total final -->
             <section
                 class="flex items-center justify-between gap-2 rounded-lg bg-transparent px-4 py-3 shadow-[0_0_3px_silver]"
             >

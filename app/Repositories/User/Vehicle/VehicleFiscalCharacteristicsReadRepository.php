@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Repositories\User\Vehicle;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
+use App\Fiscal\ValueObjects\VfcEffectiveSegment;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use Carbon\CarbonImmutable;
 use DateTimeInterface;
 
 /**
@@ -33,6 +35,45 @@ final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalC
             ->whereNull('effective_to')
             ->latest('effective_from')
             ->first();
+    }
+
+    public function findEffectiveSegmentsForYear(Vehicle $vehicle, int $year): array
+    {
+        $yearStart = CarbonImmutable::create($year, 1, 1);
+        $yearEnd = CarbonImmutable::create($year, 12, 31);
+
+        if ($vehicle->relationLoaded('fiscalCharacteristics')) {
+            $matching = $vehicle->fiscalCharacteristics
+                ->filter(static fn (VehicleFiscalCharacteristics $vfc): bool => $vfc->effective_from->lessThanOrEqualTo($yearEnd)
+                    && ($vfc->effective_to === null || $vfc->effective_to->greaterThanOrEqualTo($yearStart)))
+                ->sortBy(static fn (VehicleFiscalCharacteristics $vfc): string => $vfc->effective_from->toDateString())
+                ->values();
+        } else {
+            $matching = $vehicle->fiscalCharacteristics()
+                ->where('effective_from', '<=', $yearEnd)
+                ->where(static function ($q) use ($yearStart): void {
+                    $q->whereNull('effective_to')
+                        ->orWhere('effective_to', '>=', $yearStart);
+                })
+                ->orderBy('effective_from')
+                ->get();
+        }
+
+        return $matching
+            ->map(static function (VehicleFiscalCharacteristics $vfc) use ($yearStart, $yearEnd): VfcEffectiveSegment {
+                $start = CarbonImmutable::parse($vfc->effective_from->toDateString());
+                $end = $vfc->effective_to !== null
+                    ? CarbonImmutable::parse($vfc->effective_to->toDateString())
+                    : $yearEnd;
+
+                return new VfcEffectiveSegment(
+                    vfc: $vfc,
+                    start: $start->lessThan($yearStart) ? $yearStart : $start,
+                    end: $end->greaterThan($yearEnd) ? $yearEnd : $end,
+                );
+            })
+            ->values()
+            ->all();
     }
 
     public function findLastVersionStrictlyBefore(

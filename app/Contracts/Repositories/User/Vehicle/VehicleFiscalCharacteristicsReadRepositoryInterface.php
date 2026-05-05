@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\Vehicle;
 
+use App\Fiscal\ValueObjects\VfcEffectiveSegment;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use DateTimeInterface;
@@ -24,6 +25,27 @@ interface VehicleFiscalCharacteristicsReadRepositoryInterface
      * Renvoie `null` si le véhicule n'a aucune période active.
      */
     public function findCurrentForVehicle(Vehicle $vehicle): ?VehicleFiscalCharacteristics;
+
+    /**
+     * Tous les segments VFC effectifs durant l'année fiscale donnée,
+     * triés par `start ASC`. Bornes clippées à `[year-01-01,
+     * year-12-31]` (incluses).
+     *
+     * Une VFC est incluse ssi `effective_from <= year-12-31` ET
+     * (`effective_to IS NULL` OU `effective_to >= year-01-01`).
+     *
+     * Renvoie une liste vide si aucune VFC n'est active sur l'année
+     * (véhicule créé après l'année calculée par exemple). C'est à
+     * l'appelant ({@see App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor})
+     * de décider quoi faire — typiquement throw
+     * `FiscalCalculationException::missingFiscalCharacteristics`.
+     *
+     * Si la relation `fiscalCharacteristics` du véhicule est
+     * pré-chargée, le filtrage se fait en mémoire (anti-N+1).
+     *
+     * @return list<VfcEffectiveSegment>
+     */
+    public function findEffectiveSegmentsForYear(Vehicle $vehicle, int $year): array;
 
     /**
      * Dernière VFC d'un véhicule dont `effective_from` est strictement

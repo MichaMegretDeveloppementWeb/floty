@@ -11,13 +11,14 @@ use App\Data\User\Fiscal\AppliedExemptionData;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Data\User\Vehicle\VehicleFiscalCharacteristicsData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
+use App\Data\User\Vehicle\VehicleFullYearTaxSegmentData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
-use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\PipelineResult;
+use App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor;
 use App\Models\Contract;
 use App\Models\FiscalRule;
 use App\Models\Unavailability;
@@ -69,7 +70,7 @@ final class FleetFiscalAggregator
     private array $fullYearResultCache = [];
 
     public function __construct(
-        private readonly FiscalPipeline $pipeline,
+        private readonly VfcSegmentedFiscalExecutor $pipeline,
         private readonly FiscalYearContext $yearContext,
         private readonly FiscalRuleReadRepositoryInterface $fiscalRules,
     ) {}
@@ -162,37 +163,76 @@ final class FleetFiscalAggregator
      */
     public function vehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
-        $result = $this->fullYearPipelineResult($vehicle, $year);
-
-        $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
-        $pollutantsTariff = round($result->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
-
-        $vfc = $vehicle->fiscalCharacteristics->firstWhere(
-            static fn ($v): bool => $v->effective_to === null,
+        // On exécute le pipeline avec un contrat synthétique full-year
+        // (1ᵉʳ jan → 31 déc) pour calculer le coût plein. L'orchestrateur
+        // segmente automatiquement par VFC : 1 breakdown en mono-VFC,
+        // N en multi-VFC.
+        $context = $this->buildContext(
+            $vehicle,
+            [$this->fullYearSyntheticContract($year)],
+            [],
+            $year,
         );
+        $breakdowns = $this->pipeline->executeWithSegments($context);
 
-        $appliedRules = $this->loadRulesByCodes($year, $result->appliedRuleCodes)
+        $taxSegments = [];
+        $totalRaw = 0.0;
+        /** @var array<string, AppliedExemptionData> $exemptionsByCode */
+        $exemptionsByCode = [];
+        /** @var array<string, true> $ruleCodesSet */
+        $ruleCodesSet = [];
+
+        foreach ($breakdowns as $breakdown) {
+            $segment = $breakdown->segment;
+            $result = $breakdown->result;
+
+            $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
+            $pollutantsTariff = round($result->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
+            $co2Due = round($result->co2DueRaw, 2, PHP_ROUND_HALF_UP);
+            $pollutantsDue = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+
+            $taxSegments[] = new VehicleFullYearTaxSegmentData(
+                effectiveFromInYear: $segment->start->toDateString(),
+                effectiveToInYear: $segment->end->toDateString(),
+                daysInSegment: (int) $segment->start->diffInDays($segment->end) + 1,
+                vfc: VehicleFiscalCharacteristicsData::fromModel($segment->vfc),
+                co2Method: $result->co2Method,
+                co2FullYearTariff: $co2Tariff,
+                co2Explanation: $this->buildCo2Explanation($segment->vfc, $result->co2Method, $co2Tariff, $year),
+                co2Due: $co2Due,
+                pollutantCategory: $result->pollutantCategory,
+                pollutantsFullYearTariff: $pollutantsTariff,
+                pollutantsExplanation: $this->buildPollutantsExplanation($segment->vfc, $result->pollutantCategory, $pollutantsTariff),
+                pollutantsDue: $pollutantsDue,
+                appliedExemptions: array_map(
+                    static fn ($e) => AppliedExemptionData::fromValueObject($e),
+                    $result->appliedExemptions,
+                ),
+                appliedRuleCodes: $result->appliedRuleCodes,
+            );
+
+            $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
+            foreach ($result->appliedExemptions as $exemption) {
+                $exemptionsByCode[$exemption->ruleCode] ??= AppliedExemptionData::fromValueObject($exemption);
+            }
+            foreach ($result->appliedRuleCodes as $code) {
+                $ruleCodesSet[$code] = true;
+            }
+        }
+
+        $appliedRuleCodes = array_keys($ruleCodesSet);
+        $appliedRules = $this->loadRulesByCodes($year, $appliedRuleCodes)
             ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r))
             ->values()
             ->all();
 
         return new VehicleFullYearTaxBreakdownData(
-            co2Method: $result->co2Method,
-            co2FullYearTariff: $co2Tariff,
-            co2Explanation: $this->buildCo2Explanation($vfc, $result->co2Method, $co2Tariff, $year),
-            pollutantCategory: $result->pollutantCategory,
-            pollutantsFullYearTariff: $pollutantsTariff,
-            pollutantsExplanation: $this->buildPollutantsExplanation($vfc, $result->pollutantCategory, $pollutantsTariff),
-            appliedExemptions: array_map(
-                static fn ($e) => AppliedExemptionData::fromValueObject($e),
-                $result->appliedExemptions,
-            ),
-            appliedRuleCodes: $result->appliedRuleCodes,
-            total: round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP),
+            daysInYear: $this->yearContext->daysInYear($year),
+            total: round($totalRaw, 2, PHP_ROUND_HALF_UP),
+            appliedExemptions: array_values($exemptionsByCode),
+            appliedRuleCodes: $appliedRuleCodes,
             appliedRules: $appliedRules,
-            appliedVfc: $vfc !== null
-                ? VehicleFiscalCharacteristicsData::fromModel($vfc)
-                : null,
+            taxSegments: $taxSegments,
         );
     }
 

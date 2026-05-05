@@ -6,30 +6,28 @@ namespace App\Data\User\Vehicle;
 
 use App\Data\User\Fiscal\AppliedExemptionData;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
-use App\Enums\Vehicle\HomologationMethod;
-use App\Enums\Vehicle\PollutantCategory;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail du calcul du « Coût plein {année} » d'un véhicule - affiché
- * dans la sidebar de la page Show pour expliquer comment le total a
- * été obtenu.
+ * Détail du calcul du « Coût plein {année} » d'un véhicule — exposé
+ * par segment VFC depuis le chantier dette VFC pour garantir la
+ * cohérence affichage/total quand un véhicule a plusieurs versions
+ * actives sur l'année.
  *
- *   - co2Method               : méthode d'aiguillage CO₂ (WLTP/NEDC/PA)
- *   - co2FullYearTariff       : tarif annuel CO₂ avant prorata, après
- *                               application des règles d'aiguillage
- *   - pollutantCategory       : catégorie polluants déterminée
- *   - pollutantsFullYearTariff : tarif annuel polluants avant prorata
- *   - appliedExemptions       : exonérations appliquées (couples
- *                               raison + code R-2024-XXX) - chaque
- *                               item est cliquable pour ouvrir la
- *                               fiche détaillée de la règle
- *   - appliedRuleCodes        : codes des règles fiscales appliquées
- *                               (R-2024-XXX) - utile pour traçabilité
- *   - total                   : `co2FullYearTariff +
- *                               pollutantsFullYearTariff` arrondi
+ * Champs agrégés au niveau année :
+ *   - total : somme des `co2Due + pollutantsDue` de tous les segments,
+ *     arrondie selon R-2024-003.
+ *   - appliedExemptions / appliedRuleCodes / appliedRules : union
+ *     dédupliquée par code de règle sur tous les segments.
+ *
+ * Champ par segment :
+ *   - taxSegments : un {@see VehicleFullYearTaxSegmentData} par
+ *     période VFC active. Liste à 1 segment en mono-VFC, à N en
+ *     multi-VFC. Vide ssi le véhicule n'avait pas de VFC sur l'année
+ *     calculée (cas véhicule créé après l'exercice — service
+ *     responsable de poser un placeholder explicite).
  */
 #[TypeScript]
 final class VehicleFullYearTaxBreakdownData extends Data
@@ -37,36 +35,18 @@ final class VehicleFullYearTaxBreakdownData extends Data
     /**
      * @param  list<AppliedExemptionData>  $appliedExemptions
      * @param  list<string>  $appliedRuleCodes
-     * @param  list<FiscalRuleListItemData>  $appliedRules  Détail
-     *                                                      complet (nom, description, refs légales) des règles
-     *                                                      listées dans `appliedRuleCodes`. Permet d'ouvrir la
-     *                                                      fiche détaillée d'une règle au clic depuis le panel
-     *                                                      sans aller-retour serveur.
+     * @param  list<FiscalRuleListItemData>  $appliedRules
+     * @param  list<VehicleFullYearTaxSegmentData>  $taxSegments
      */
     public function __construct(
-        public HomologationMethod $co2Method,
-        public float $co2FullYearTariff,
-        public string $co2Explanation,
-        public PollutantCategory $pollutantCategory,
-        public float $pollutantsFullYearTariff,
-        public string $pollutantsExplanation,
+        public int $daysInYear,
+        public float $total,
         #[DataCollectionOf(AppliedExemptionData::class)]
         public array $appliedExemptions,
         public array $appliedRuleCodes,
-        public float $total,
         #[DataCollectionOf(FiscalRuleListItemData::class)]
         public array $appliedRules,
-        /**
-         * VFC appliquée pour ce calcul (actuellement la VFC en vigueur
-         * au jour J, indépendamment de l'année — cf. note dans
-         * `FiscalPipeline::execute()`). Permet à l'onglet Fiscalité de
-         * la fiche véhicule d'afficher la traçabilité « Calcul basé
-         * sur la VFC effective du DD/MM/YYYY au DD/MM/YYYY » et d'éviter
-         * la confusion utilisateur sur les valeurs employées (ex. CO₂
-         * 95 g/km vs 85 g/km vu sur l'onglet Vue d'ensemble).
-         *
-         * `null` si le véhicule n'a pas (encore) de VFC enregistrée.
-         */
-        public ?VehicleFiscalCharacteristicsData $appliedVfc = null,
+        #[DataCollectionOf(VehicleFullYearTaxSegmentData::class)]
+        public array $taxSegments,
     ) {}
 }

@@ -6,6 +6,7 @@ namespace App\Fiscal\Pipeline;
 
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Fiscal\ValueObjects\DaysWindow;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\Year2024\Transversal\R2024_002_DailyProrata;
 use App\Models\Contract;
@@ -62,6 +63,15 @@ final readonly class PipelineContext
         public ?float $pollutantsDue = null,
         public array $exemptionVerdicts = [],
         public array $appliedRuleCodes = [],
+        /**
+         * Fenêtre de jours posée par
+         * {@see App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor} quand
+         * un calcul est segmenté par VFC. Restreint le compte des
+         * jours présents dans R-2024-002 sans clipper la définition
+         * des contrats (R-2024-021 LCD juge sur la durée totale du
+         * contrat). `null` = pas de restriction (mode mono-VFC).
+         */
+        public ?DaysWindow $daysWindow = null,
     ) {}
 
     public function withCurrentFiscalCharacteristics(VehicleFiscalCharacteristics $vfc): self
@@ -124,6 +134,11 @@ final readonly class PipelineContext
         return $this->copyWith(['appliedRuleCodes' => [...$this->appliedRuleCodes, $ruleCode]]);
     }
 
+    public function withDaysWindow(?DaysWindow $window): self
+    {
+        return $this->copyWith(['daysWindow' => $window]);
+    }
+
     /**
      * Helper interne qui clone l'instance en remplaçant les champs
      * fournis. Évite la répétition des champs à chaque méthode
@@ -160,6 +175,7 @@ final readonly class PipelineContext
             pollutantsDue: $pick('pollutantsDue', $this->pollutantsDue),
             exemptionVerdicts: $pick('exemptionVerdicts', $this->exemptionVerdicts),
             appliedRuleCodes: $pick('appliedRuleCodes', $this->appliedRuleCodes),
+            daysWindow: $pick('daysWindow', $this->daysWindow),
         );
     }
 }
