@@ -19,7 +19,7 @@ final class DashboardControllerTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function dashboard_renvoie_les_stats_attendues(): void
+    public function dashboard_expose_les_4_blocs_doctrinaux(): void
     {
         $user = User::factory()->create();
         $company = Company::factory()->create();
@@ -27,8 +27,7 @@ final class DashboardControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create([
             'vehicle_id' => $vehicle->id,
         ]);
-        // Contrat 1 jour pour produire un cumul `contractDaysYear = 1`
-        // (KPI brut côté Dashboard = nombre de jours-contrat occupés).
+        // Contrat 1 jour pour produire un cumul `joursVehicule` non nul.
         $year = 2024;
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => sprintf('%04d-06-15', $year),
@@ -40,12 +39,22 @@ final class DashboardControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Dashboard/Index/Index')
-                ->has('stats', fn (AssertableInertia $s) => $s
-                    ->where('vehiclesCount', 1)
-                    ->where('companiesCount', 1)
-                    ->where('contractDaysYear', 1)
-                    ->has('fiscalRulesCount')
-                    ->has('totalTaxDue')),
+                ->has('kpis', fn (AssertableInertia $k) => $k
+                    ->has('year')
+                    ->has('joursVehicule')
+                    ->has('contractsActifs')
+                    ->has('taxesDues')
+                    ->has('tauxOccupation')
+                    ->has('previousYearComparison'))
+                ->has('history')
+                ->has('activity', fn (AssertableInertia $a) => $a
+                    ->has('last30DaysHeatmap')
+                    ->has('topExpensiveVehicles'))
+                ->has('pendingTasks', fn (AssertableInertia $t) => $t
+                    ->where('pendingDeclarations', 0)
+                    ->where('pendingInvoices', 0))
+                ->has('selectedYear')
+                ->has('yearScope'),
             );
     }
 }

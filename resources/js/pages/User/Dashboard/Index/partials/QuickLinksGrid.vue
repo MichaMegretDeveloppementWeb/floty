@@ -7,7 +7,7 @@ const { quickLinks } = useQuickLinksGrid();
 </script>
 
 <template>
-    <section class="flex flex-col gap-4">
+    <section class="mx-auto flex w-full max-w-5xl flex-col gap-4">
         <h2 class="text-lg font-semibold tracking-tight text-slate-900">
             Accès rapide
         </h2>

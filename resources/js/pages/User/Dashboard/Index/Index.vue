@@ -1,38 +1,27 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
-import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
-import { useLocalYearSelector } from '@/Composables/Shared/useLocalYearSelector';
-import KpisGrid from './partials/KpisGrid.vue';
+import DashboardActivityCard from './partials/DashboardActivityCard.vue';
+import DashboardEvolutionChart from './partials/DashboardEvolutionChart.vue';
+import DashboardKpiCards from './partials/DashboardKpiCards.vue';
+import DashboardPendingTasksRow from './partials/DashboardPendingTasksRow.vue';
 import PageHeader from './partials/PageHeader.vue';
 import QuickLinksGrid from './partials/QuickLinksGrid.vue';
 
-const props = defineProps<{
-    stats: App.Data.User.Dashboard.DashboardStatsData;
+defineProps<{
+    /** Lentille Présent — KPIs YTD + comparaison vs même période Y-1. */
+    kpis: App.Data.User.Dashboard.DashboardKpiData;
+    /** Lentille Évolution — historique multi-années pour graphique barres. */
+    history: App.Data.User.Dashboard.DashboardYearHistoryData[];
+    /** Lentille Exploration — heatmap 30j flotte + top véhicules coûteux. */
+    activity: App.Data.User.Dashboard.DashboardActivityData;
+    /** Compteurs tâches en attente (placeholders MVP). */
+    pendingTasks: App.Data.User.Dashboard.DashboardPendingTasksData;
+    /** Année résolue par le backend (sert au PageHeader uniquement). */
     selectedYear: number;
-    /**
-     * Scope d'années dynamique calculé depuis les contrats actifs
-     * (chantier η Phase 5). Remplace l'ancienne shared prop
-     * `fiscal.availableYears` lue via `useFiscalYear`.
-     */
+    /** Scope d'années dynamique (chantier η Phase 5). */
     yearScope: App.Data.Shared.YearScopeData;
 }>();
-
-const { selectedYear, selectYear } = useLocalYearSelector(
-    props.selectedYear,
-    ['stats', 'selectedYear'],
-);
-
-const yearOptions = computed<{ value: number; label: string }[]>(() =>
-    props.yearScope.availableYears.map((year) => ({ value: year, label: String(year) })),
-);
-
-const yearModel = computed<number>({
-    get: () => selectedYear.value,
-    set: (v) => selectYear(v),
-});
 </script>
 
 <template>
@@ -40,18 +29,16 @@ const yearModel = computed<number>({
 
     <UserLayout>
         <div class="flex flex-col gap-8">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-                <PageHeader :fiscal-year="selectedYear" />
-                <div class="flex flex-col gap-1">
-                    <FieldLabel for="dashboard-year">Exercice</FieldLabel>
-                    <SelectInput
-                        id="dashboard-year"
-                        v-model="yearModel"
-                        :options="yearOptions"
-                    />
-                </div>
-            </div>
-            <KpisGrid :stats="props.stats" :fiscal-year="selectedYear" />
+            <PageHeader :fiscal-year="kpis.year" />
+
+            <DashboardKpiCards :kpis="kpis" />
+
+            <DashboardEvolutionChart :history="history" />
+
+            <DashboardActivityCard :activity="activity" />
+
+            <DashboardPendingTasksRow :tasks="pendingTasks" />
+
             <QuickLinksGrid />
         </div>
     </UserLayout>
