@@ -17,6 +17,7 @@ import { fullYearBreakdown as fullYearBreakdownRoute } from '@/actions/App/Http/
 import Card from '@/Components/Ui/Card/Card.vue';
 import YearSelector from '@/Components/Ui/YearSelector/YearSelector.vue';
 import { useYearLazy } from '@/Composables/Shared/useYearLazy';
+import AppliedVfcCard from './fiscal/AppliedVfcCard.vue';
 import FullYearTaxBreakdownPanel from './FullYearTaxBreakdownPanel.vue';
 
 type Breakdown = App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
@@ -59,6 +60,8 @@ const statsLike = computed<UsageStats>(() => ({
 
 <template>
     <div class="flex flex-col gap-6">
+        <AppliedVfcCard :applied-vfc="(data ?? initialBreakdown).appliedVfc" />
+
         <Card>
             <template #header>
                 <div class="flex flex-wrap items-center justify-between gap-3">

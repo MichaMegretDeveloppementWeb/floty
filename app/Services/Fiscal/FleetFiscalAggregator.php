@@ -9,6 +9,7 @@ use App\Data\User\Contract\ContractTaxBreakdownData;
 use App\Data\User\Contract\ContractTaxYearBreakdownData;
 use App\Data\User\Fiscal\AppliedExemptionData;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
+use App\Data\User\Vehicle\VehicleFiscalCharacteristicsData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
@@ -189,6 +190,9 @@ final class FleetFiscalAggregator
             appliedRuleCodes: $result->appliedRuleCodes,
             total: round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP),
             appliedRules: $appliedRules,
+            appliedVfc: $vfc !== null
+                ? VehicleFiscalCharacteristicsData::fromModel($vfc)
+                : null,
         );
     }
 

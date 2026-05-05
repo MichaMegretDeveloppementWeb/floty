@@ -451,7 +451,8 @@ final class VehicleControllerTest extends TestCase
                             ->has('appliedExemptions')
                             ->has('appliedRuleCodes')
                             ->has('total')
-                            ->has('appliedRules')))
+                            ->has('appliedRules')
+                            ->has('appliedVfc')))
                     ->has('busyDates')
                     ->etc()),
             );

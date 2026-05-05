@@ -56,5 +56,17 @@ final class VehicleFullYearTaxBreakdownData extends Data
         public float $total,
         #[DataCollectionOf(FiscalRuleListItemData::class)]
         public array $appliedRules,
+        /**
+         * VFC appliquée pour ce calcul (actuellement la VFC en vigueur
+         * au jour J, indépendamment de l'année — cf. note dans
+         * `FiscalPipeline::execute()`). Permet à l'onglet Fiscalité de
+         * la fiche véhicule d'afficher la traçabilité « Calcul basé
+         * sur la VFC effective du DD/MM/YYYY au DD/MM/YYYY » et d'éviter
+         * la confusion utilisateur sur les valeurs employées (ex. CO₂
+         * 95 g/km vs 85 g/km vu sur l'onglet Vue d'ensemble).
+         *
+         * `null` si le véhicule n'a pas (encore) de VFC enregistrée.
+         */
+        public ?VehicleFiscalCharacteristicsData $appliedVfc = null,
     ) {}
 }

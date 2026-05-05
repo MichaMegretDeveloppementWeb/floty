@@ -13,6 +13,7 @@ use App\Data\User\Unavailability\UnavailabilityData;
 use App\Data\User\Vehicle\PaginatedVehicleListData;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
 use App\Data\User\Vehicle\VehicleData;
+use App\Data\User\Vehicle\VehicleFiscalCharacteristicsData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Data\User\Vehicle\VehicleListItemData;
@@ -446,6 +447,9 @@ final class VehicleQueryService
             appliedRuleCodes: [],
             total: 0.0,
             appliedRules: [],
+            appliedVfc: $current !== null
+                ? VehicleFiscalCharacteristicsData::fromModel($current)
+                : null,
         );
     }
 
