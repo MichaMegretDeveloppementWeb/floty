@@ -28,15 +28,18 @@ function isFullYear(start: string, end: string): number | null {
     const startMatch = /^(\d{4})-01-01$/.exec(start);
     const endMatch = /^(\d{4})-12-31$/.exec(end);
 
-    if (startMatch === null || endMatch === null) {
+    if (startMatch === undefined || endMatch === undefined || startMatch === null || endMatch === null) {
         return null;
     }
 
-    if (startMatch[1] !== endMatch[1]) {
+    const startYear = startMatch[1];
+    const endYear = endMatch[1];
+
+    if (startYear === undefined || endYear === undefined || startYear !== endYear) {
         return null;
     }
 
-    return Number.parseInt(startMatch[1], 10);
+    return Number.parseInt(startYear, 10);
 }
 
 const label = computed<string | null>(() => {
@@ -48,6 +51,7 @@ const label = computed<string | null>(() => {
 
     if (periodStart !== null && periodEnd !== null) {
         const fullYear = isFullYear(periodStart, periodEnd);
+
         if (fullYear !== null) {
             return `Année ${fullYear}`;
         }

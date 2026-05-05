@@ -29,6 +29,7 @@ export function useCompanyFiscalSelectedYear(
         if (year === selectedYear.value) {
             return;
         }
+
         selectedYear.value = year;
 
         // Préserve les autres query params existants (notamment `tab`,

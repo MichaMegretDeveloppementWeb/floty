@@ -66,6 +66,7 @@ watch(
         if (fresh === previous) {
             return;
         }
+
         void invalidate(fresh);
     },
 );

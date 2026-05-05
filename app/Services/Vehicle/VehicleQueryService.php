@@ -91,7 +91,15 @@ final class VehicleQueryService
 
     private function mapVehicleToListItem(Vehicle $v, int $year, int $daysInYear): VehicleListItemData
     {
-        $fullYearTax = $this->aggregator->vehicleFullYearTax($v, $year);
+        // Tolère une année hors registry fiscal (cohérent doctrine
+        // « données métier ⊥ règles fiscales » Phase 2) : si le pipeline
+        // fiscal n'a pas de règles pour `$year`, on affiche `0 €` plutôt
+        // que de crasher tout l'Index.
+        try {
+            $fullYearTax = $this->aggregator->vehicleFullYearTax($v, $year);
+        } catch (FiscalCalculationException) {
+            $fullYearTax = 0.0;
+        }
 
         return new VehicleListItemData(
             id: $v->id,

@@ -1,0 +1,1 @@
+import{o as e}from"./runtime-core.esm-bundler-BB_y22TY.js";import{i as t}from"./app-CWNimJCk.js";function n(){let n=t(),r=e(()=>n.props.fiscal.availableYears);return{availableYears:r,isLocked:e(()=>r.value.length<=1)}}export{n as t};

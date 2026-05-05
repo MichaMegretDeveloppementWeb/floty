@@ -73,10 +73,13 @@ let fetchTimer: ReturnType<typeof setTimeout> | null = null;
 
 async function fetchFutureContracts(): Promise<void> {
     fetchError.value = null;
+
     if (!/^\d{4}-\d{2}-\d{2}$/.test(form.left_at)) {
         return;
     }
+
     loadingContracts.value = true;
+
     try {
         const response = await api.get<{ contracts: FutureContract[] }>(
             futureContractsRoute([props.driverId, props.companyId]).url,
@@ -86,13 +89,14 @@ async function fetchFutureContracts(): Promise<void> {
         // Reset des sélections — l'utilisateur doit re-choisir si la
         // date change (les candidats peuvent varier selon la période).
         replacementMap.value = {};
+
         // Si plus aucun contrat à résoudre, force le mode none.
         if (response.contracts.length === 0) {
             form.future_contracts_resolution = 'none';
         } else if (form.future_contracts_resolution === 'none') {
             form.future_contracts_resolution = 'detach';
         }
-    } catch (e) {
+    } catch {
         fetchError.value
             = 'Impossible de charger les contrats à venir. Veuillez réessayer.';
     } finally {
@@ -107,6 +111,7 @@ watch(
         if (fetchTimer !== null) {
             clearTimeout(fetchTimer);
         }
+
         fetchTimer = setTimeout(fetchFutureContracts, 250);
     },
     { immediate: true },
@@ -120,6 +125,7 @@ const replaceModeIncomplete = computed<boolean>(() => {
     if (form.future_contracts_resolution !== 'replace') {
         return false;
     }
+
     return futureContracts.value.some(
         (c) => replacementMap.value[c.contractId] === undefined,
     );
@@ -133,6 +139,7 @@ const resolutionOptions = computed<
     Array<{ value: ResolutionMode; label: string }>
 >(() => {
     const count = futureContracts.value.length;
+
     return [
         {
             value: 'detach',
@@ -152,6 +159,7 @@ function candidateOptionsFor(contract: FutureContract): Array<{
     const options: Array<{ value: number | string; label: string }>
         = contract.candidates.map((c) => ({ value: c.id, label: c.fullName }));
     options.unshift({ value: '__detach__', label: '— Détacher ce contrat —' });
+
     return options;
 }
 
@@ -161,8 +169,10 @@ function selectCandidate(
 ): void {
     if (rawValue === '__detach__' || rawValue === null) {
         replacementMap.value[contractId] = null;
+
         return;
     }
+
     if (typeof rawValue === 'number') {
         replacementMap.value[contractId] = rawValue;
     }
@@ -179,20 +189,24 @@ function submit(): void {
             left_at: data.left_at,
             future_contracts_resolution: data.future_contracts_resolution,
         };
+
         if (data.future_contracts_resolution !== 'replace') {
             // Spatie Data + Laravel rejettent `replacement_map: {}` explicite
             // en JSON (validation.required) — on omet la clé sauf en mode
             // 'replace' où elle porte le mapping.
             return base;
         }
+
         // Convertit la map locale (avec undefined possible) en plain object
         // {contractId: driverId|null} attendu par le DTO.
         const map: Record<number, number | null> = {};
+
         for (const [contractId, driverId] of Object.entries(
             replacementMap.value,
         )) {
             map[Number(contractId)] = driverId === undefined ? null : driverId;
         }
+
         return { ...base, replacement_map: map };
     }).patch(leaveRoute([props.driverId, props.companyId]).url, {
         preserveScroll: true,

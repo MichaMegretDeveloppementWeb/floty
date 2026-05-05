@@ -189,6 +189,7 @@ export function useServerTableState<F extends Record<string, unknown>>(
                     ),
             ),
         ]);
+
         for (const key of managedKeys) {
             url.searchParams.delete(key);
         }

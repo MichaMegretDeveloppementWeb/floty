@@ -9,7 +9,6 @@ import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import YearRangeGridPicker from '@/Components/Ui/YearRangeGridPicker/YearRangeGridPicker.vue';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import { useFleetTable } from '@/Composables/Vehicle/Index/useFleetTable';
 import {
     energySourceLabel,
@@ -34,6 +33,13 @@ const props = defineProps<{
      */
     selectedYear: number;
     /**
+     * Scope d'années dynamique calculé depuis les contrats actifs
+     * (chantier η Phase 3). Remplace l'ancienne config statique
+     * `floty.fiscal.available_years` qui était lue via `useFiscalYear`.
+     * Bornes : `[minYear..max(currentYear, maxContractYear)]`.
+     */
+    yearScope: App.Data.Shared.YearScopeData;
+    /**
      * `true` ssi au moins un véhicule existe en base. Source de vérité
      * unique pour décider du placeholder « Aucun véhicule ». Évite le
      * flash placeholder lors du reset de filtre, et le faux-positif
@@ -42,7 +48,7 @@ const props = defineProps<{
     hasAnyVehicle: boolean;
 }>();
 
-const { availableYears } = useFiscalYear();
+const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
 const filtersOpen = ref<boolean>(false);
 
 // Année calendaire courante (front) — distincte de `selectedYear` qui

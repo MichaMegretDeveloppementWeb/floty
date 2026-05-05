@@ -25,8 +25,8 @@
  * **NOTICE DGFiP** : recherche sur impots.gouv.fr.
  */
 
-import { computed, type Ref, unref } from 'vue';
-import type { ComputedRef, MaybeRef } from 'vue';
+import { computed, toValue } from 'vue';
+import type { ComputedRef, MaybeRefOrGetter } from 'vue';
 
 export type LegalReference = {
     type: 'CIBS' | 'BOFIP' | 'CGI' | 'NOTICE' | string;
@@ -202,9 +202,9 @@ export type UseOfficialLegalLinksReturn = {
  * lue depuis un état global supprimé.
  */
 export function useOfficialLegalLinks(
-    year: MaybeRef<number>,
+    year: MaybeRefOrGetter<number>,
 ): UseOfficialLegalLinksReturn {
-    const yearRef = computed<number>(() => unref(year as Ref<number> | number));
+    const yearRef = computed<number>(() => toValue(year));
 
     const resolveLegalLink = (ref: LegalReference): ResolvedLegalLink | null =>
         resolveLegalLinkFor(ref, yearRef.value);

@@ -36,6 +36,7 @@ const props = defineProps<{
 
 const co2Display = computed<string>(() => {
     const vfc = props.appliedVfc;
+
     if (vfc === null) {
         return '—';
     }
@@ -47,9 +48,11 @@ const co2Display = computed<string>(() => {
     if (wltp !== null) {
         return `${wltp} g/km (WLTP)`;
     }
+
     if (nedc !== null) {
         return `${nedc} g/km (NEDC)`;
     }
+
     if (hp !== null) {
         return `${hp} CV (PA)`;
     }
@@ -59,6 +62,7 @@ const co2Display = computed<string>(() => {
 
 const periodDisplay = computed<string>(() => {
     const vfc = props.appliedVfc;
+
     if (vfc === null) {
         return 'Aucune VFC enregistrée';
     }

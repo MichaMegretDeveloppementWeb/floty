@@ -108,6 +108,17 @@ const pickerYear = computed<number>(() => {
     return new Date().getFullYear();
 });
 
+// Chantier η Phase 3 : mois d'ouverture du DateRangePicker. Mois du
+// `start_date` saisi sinon mois calendaire courant — l'utilisateur
+// saisit dans son présent, pas en partant de janvier.
+const pickerStartMonth = computed<number>(() => {
+    if (props.form.start_date) {
+        return Number(props.form.start_date.slice(5, 7));
+    }
+
+    return new Date().getMonth() + 1;
+});
+
 const disabledDates = computed<string[]>(() => {
     if (props.form.vehicle_id === null) {
         return [];
@@ -192,7 +203,7 @@ watch(disabledDates, (newDisabled) => {
                     v-model:range="range"
                     v-model:ongoing="ongoing"
                     :year="pickerYear"
-                    :start-month="form.start_date ? Number(form.start_date.slice(5, 7)) : 1"
+                    :start-month="pickerStartMonth"
                     :disabled-dates="disabledDates"
                 />
             </div>

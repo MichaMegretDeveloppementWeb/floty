@@ -9,6 +9,7 @@ use App\Actions\Vehicle\ExitVehicleAction;
 use App\Actions\Vehicle\ReactivateVehicleAction;
 use App\Actions\Vehicle\UpdateVehicleAction;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Data\Shared\YearScopeData;
 use App\Data\User\Vehicle\ExitVehicleData;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Data\User\Vehicle\UpdateVehicleData;
@@ -23,6 +24,7 @@ use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Http\Controllers\Controller;
+use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Vehicle\VehicleQueryService;
 use App\Support\EnumOptions;
 use Carbon\CarbonImmutable;
@@ -41,14 +43,17 @@ final class VehicleController extends Controller
         private readonly UpdateVehicleAction $updateVehicle,
         private readonly ExitVehicleAction $exitVehicle,
         private readonly ReactivateVehicleAction $reactivateVehicle,
+        private readonly AvailableYearsResolver $availableYears,
     ) {}
 
     public function index(VehicleIndexQueryData $query): Response
     {
-        // Sélecteur année **local** à la page (chantier J, ADR-0020).
-        // `?year=` URL avec fallback année calendaire courante. Pilote
-        // les colonnes financières (« Coût plein YYYY », « Prix location »).
-        $year = $query->year ?? $this->resolveDefaultYear();
+        // Sélecteur année **local** à la page (chantier η Phase 3) —
+        // bornes alimentées par `AvailableYearsResolver` (scope global
+        // dynamique calculé depuis les contrats, pas la config statique
+        // morte). `?year=` URL validé contre ce scope, fallback
+        // `currentYear` si invalide.
+        $year = $this->resolveSelectedYear($query->year);
 
         return Inertia::render('User/Vehicles/Index/Index', [
             'vehicles' => $this->vehicles->listPaginated($query, $year),
@@ -57,11 +62,26 @@ final class VehicleController extends Controller
             ],
             'query' => $query,
             'selectedYear' => $year,
+            'yearScope' => YearScopeData::fromResolver($this->availableYears),
             // Cf. note d'archi sur le bug placeholder : `hasAnyVehicle`
             // distingue « table intrinsèquement vide » du « filtre actif
             // retournant 0 » sans dériver depuis 3 sources désynchronisées.
             'hasAnyVehicle' => $this->vehicleRead->existsAny(),
         ]);
+    }
+
+    /**
+     * Doctrine temporelle (chantier η Phase 3) — résolution `?year=`
+     * URL contre le scope global dynamique, fallback `currentYear` si
+     * invalide ou absent.
+     */
+    private function resolveSelectedYear(?int $requested): int
+    {
+        if ($requested !== null && in_array($requested, $this->availableYears->availableYears(), true)) {
+            return $requested;
+        }
+
+        return $this->availableYears->currentYear();
     }
 
     public function show(int $vehicle): Response
@@ -152,27 +172,6 @@ final class VehicleController extends Controller
         return redirect()
             ->route('user.vehicles.show', ['vehicle' => $vehicle])
             ->with('toast-success', 'Véhicule réactivé.');
-    }
-
-    /**
-     * Résolution de l'année par défaut (year non passé) : année
-     * calendaire courante si présente dans la config fiscale, sinon
-     * dernière année configurée. Borne de sécurité contre les années
-     * non couvertes par les barèmes.
-     *
-     * @deprecated Utilisé seulement par `index()` et `edit()` — sera
-     * remplacé par `AvailableYearsResolver` au cleanup Phase 5.
-     */
-    private function resolveDefaultYear(): int
-    {
-        $available = array_map('intval', config('floty.fiscal.available_years', []));
-        $current = (int) CarbonImmutable::now()->year;
-
-        if (in_array($current, $available, true)) {
-            return $current;
-        }
-
-        return $available === [] ? $current : (int) max($available);
     }
 
     private function buildFormOptions(): VehicleFormOptionsData

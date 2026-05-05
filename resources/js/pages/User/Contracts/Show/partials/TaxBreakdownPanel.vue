@@ -14,8 +14,15 @@ const props = defineProps<{
     taxBreakdown: App.Data.User.Contract.ContractTaxBreakdownData | null;
 }>();
 
-const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
-    useTaxBreakdownPanel(props);
+const {
+    years,
+    isMultiYear,
+    selectedCode,
+    selectedYear,
+    selectedRule,
+    modalOpen,
+    openRule,
+} = useTaxBreakdownPanel(props);
 </script>
 
 <template>
@@ -153,7 +160,7 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
                                 type="button"
                                 class="shrink-0 cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-200 hover:text-slate-900 focus-visible:bg-slate-200 focus-visible:outline-none"
                                 :title="`Voir le détail de la règle ${exemption.ruleCode}`"
-                                @click="openRule(exemption.ruleCode)"
+                                @click="openRule(exemption.ruleCode, year.year)"
                             >
                                 {{ exemption.ruleCode }}
                             </button>
@@ -173,7 +180,7 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
                         type="button"
                         class="cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-200 hover:text-slate-900 focus-visible:bg-slate-200 focus-visible:outline-none"
                         :title="`Voir le détail de la règle ${code}`"
-                        @click="openRule(code)"
+                        @click="openRule(code, year.year)"
                     >
                         {{ code }}
                     </button>
@@ -182,33 +189,18 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
 
             <!-- Total agrégé (visible seulement en multi-année) -->
             <section
-                v-if="isMultiYear"
-                class="flex items-center justify-between gap-2 rounded-lg bg-slate-900 px-4 py-3"
+                class="flex items-center justify-between gap-2 rounded-lg bg-transparent px-4 py-3 shadow-[0_0_3px_silver]"
             >
                 <span
-                    class="text-xs font-semibold tracking-wider text-slate-300 uppercase"
+                    class="text-xs font-semibold tracking-wider text-slate-700 uppercase"
                 >
                     Total contrat
                 </span>
-                <span class="font-mono text-lg font-semibold text-white">
+                <span class="font-mono text-lg font-semibold text-slate-700">
                     {{ formatEur(taxBreakdown.totalDue) }}
                 </span>
             </section>
 
-            <!-- Total simple (mono-année) -->
-            <section
-                v-else
-                class="flex items-center justify-between gap-2 rounded-lg bg-slate-900 px-4 py-3"
-            >
-                <span
-                    class="text-xs font-semibold tracking-wider text-slate-300 uppercase"
-                >
-                    Total contrat
-                </span>
-                <span class="font-mono text-lg font-semibold text-white">
-                    {{ formatEur(taxBreakdown.totalDue) }}
-                </span>
-            </section>
         </div>
 
         <Modal
@@ -218,9 +210,10 @@ const { years, isMultiYear, selectedCode, selectedRule, modalOpen, openRule } =
             size="lg"
         >
             <RuleCard
-                v-if="selectedCode"
+                v-if="selectedCode && selectedYear !== null"
                 :code="selectedCode"
                 :rule="selectedRule ?? undefined"
+                :year="selectedYear"
             />
         </Modal>
     </Card>

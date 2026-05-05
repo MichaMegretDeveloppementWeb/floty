@@ -144,9 +144,11 @@ const defaultYear = computed<number>(() => {
     if (props.query.year !== null) {
         return props.query.year;
     }
+
     const max = availableYears.value.length === 0
         ? new Date().getFullYear()
         : Math.max(...availableYears.value);
+
     return max;
 });
 
@@ -181,6 +183,7 @@ const periodOngoing = ref<boolean>(false);
 
 function setScopeMode(mode: ScopeMode): void {
     scopeMode.value = mode;
+
     if (mode === 'year') {
         // Bascule en année → applique l'année par défaut, efface period
         if (tableState.state.filters.value.year === null) {
@@ -212,11 +215,20 @@ const periodPopoverOpen = ref<boolean>(false);
 const popoverRoot = ref<HTMLElement | null>(null);
 
 function handleDocumentMouseDown(event: MouseEvent): void {
-    if (!periodPopoverOpen.value) return;
+    if (!periodPopoverOpen.value) {
+return;
+}
+
     const target = event.target as Node | null;
-    if (target === null) return;
-    if (popoverRoot.value !== null && popoverRoot.value.contains(target))
-        return;
+
+    if (target === null) {
+return;
+}
+
+    if (popoverRoot.value !== null && popoverRoot.value.contains(target)) {
+return;
+}
+
     periodPopoverOpen.value = false;
 }
 
@@ -238,18 +250,25 @@ onBeforeUnmount(() => {
 
 const pickerYear = computed<number>(() => {
     const start = tableState.state.filters.value.periodStart;
+
     if (start !== null) {
         return Number.parseInt(start.slice(0, 4), 10);
     }
+
     return defaultYear.value;
 });
 
 const periodLabel = computed<string>(() => {
     const start = tableState.state.filters.value.periodStart;
     const end = tableState.state.filters.value.periodEnd;
-    if (start === null && end === null) return 'Aucune période sélectionnée';
+
+    if (start === null && end === null) {
+return 'Aucune période sélectionnée';
+}
+
     const s = start === null ? '…' : formatDateFr(start);
     const e = end === null ? '…' : formatDateFr(end);
+
     return `${s} → ${e}`;
 });
 </script>

@@ -35,15 +35,18 @@ function createState(
  */
 function urlOfCall(callIndex = 0): URL {
     const [urlString] = vi.mocked(router.get).mock.calls[callIndex]!;
+
     return new URL(urlString as string, 'http://localhost');
 }
 
 function paramsOfCall(callIndex = 0): Record<string, string> {
     const url = urlOfCall(callIndex);
     const out: Record<string, string> = {};
+
     for (const [key, value] of url.searchParams.entries()) {
         out[key] = value;
     }
+
     return out;
 }
 

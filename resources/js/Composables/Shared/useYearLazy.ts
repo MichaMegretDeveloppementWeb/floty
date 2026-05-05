@@ -114,6 +114,7 @@ export function useYearLazy<T>(
 
         isLoading.value = true;
         error.value = null;
+
         try {
             const fetched = await fetchFn(target);
             cache.set(target, fetched);

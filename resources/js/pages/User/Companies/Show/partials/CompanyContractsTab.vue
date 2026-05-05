@@ -47,13 +47,17 @@ function handleDocumentMouseDown(event: MouseEvent): void {
     if (!periodPopoverOpen.value) {
         return;
     }
+
     const target = event.target as Node | null;
+
     if (target === null) {
         return;
     }
+
     if (popoverRoot.value !== null && popoverRoot.value.contains(target)) {
         return;
     }
+
     periodPopoverOpen.value = false;
 }
 
@@ -105,15 +109,19 @@ const activeYear = computed<number | null>(() => {
         return null;
     }
 
-    if (startMatch[1] !== endMatch[1]) {
+    const startYear = startMatch[1];
+    const endYear = endMatch[1];
+
+    if (startYear === undefined || endYear === undefined || startYear !== endYear) {
         return null;
     }
 
-    return Number.parseInt(startMatch[1], 10);
+    return Number.parseInt(startYear, 10);
 });
 
 const pickerYear = computed<number>(() => {
     const start = tableState.state.filters.value.periodStart;
+
     if (start !== null) {
         return Number.parseInt(start.slice(0, 4), 10);
     }
@@ -137,11 +145,13 @@ const isUnfilteredEmpty = computed<boolean>(
 
 const totalContractsLabel = computed<string>(() => {
     const total = props.contracts.meta.total;
+
     return `${total} contrat${total > 1 ? 's' : ''}`;
 });
 
 const totalDaysLabel = computed<string>(() => {
     const days = props.contractsStats.totalDays;
+
     return `${days} jour${days > 1 ? 's' : ''} cumulé${days > 1 ? 's' : ''}`;
 });
 

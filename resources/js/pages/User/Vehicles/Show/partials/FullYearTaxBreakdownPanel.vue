@@ -104,14 +104,14 @@ const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
 
             <!-- Total final mis en valeur -->
             <section
-                class="flex items-center justify-between gap-2 rounded-lg bg-slate-900 px-4 py-3"
+                class="flex items-center justify-between gap-2 rounded-lg bg-transparent px-4 py-3 shadow-[0_0_3px_silver]"
             >
                 <span
-                    class="text-xs font-semibold tracking-wider text-slate-300 uppercase"
+                    class="text-xs font-semibold tracking-wider text-slate-700 uppercase"
                 >
                     Total {{ props.stats.fiscalYear }}
                 </span>
-                <span class="font-mono text-lg font-semibold text-white">
+                <span class="font-mono text-lg font-semibold text-slate-700">
                     {{ formatEur(breakdown.total) }}
                 </span>
             </section>
@@ -146,6 +146,7 @@ const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
                 v-if="selectedCode"
                 :code="selectedCode"
                 :rule="selectedRule ?? undefined"
+                :year="props.stats.fiscalYear"
             />
         </Modal>
     </Card>

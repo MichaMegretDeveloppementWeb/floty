@@ -30,6 +30,7 @@ const reversedYears = computed<readonly number[]>(() =>
 
 function pillClass(year: number): string {
     const active = props.activeYear === year;
+
     if (active) {
         return 'snap-start shrink-0 rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700 cursor-pointer transition-colors duration-[120ms]';
     }

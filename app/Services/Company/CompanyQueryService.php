@@ -112,6 +112,23 @@ final class CompanyQueryService
         Collection $vehiclesById,
         array $unavailabilitiesByVehicleId,
     ): CompanyListItemData {
+        // Tolère une année hors registry fiscal (cohérent doctrine
+        // « données métier ⊥ règles fiscales » Phase 2) : si le pipeline
+        // fiscal n'a pas de règles pour `$year`, on affiche `0 €` sur la
+        // colonne taxes plutôt que de crasher l'Index. La colonne `daysUsed`
+        // reste valide (donnée brute, pas de dépendance au pipeline).
+        try {
+            $annualTaxDue = $this->aggregator->companyAnnualTax(
+                $company->id,
+                $vehiclesById,
+                $contractsByPair,
+                $unavailabilitiesByVehicleId,
+                $year,
+            );
+        } catch (FiscalCalculationException) {
+            $annualTaxDue = 0.0;
+        }
+
         return new CompanyListItemData(
             id: $company->id,
             legalName: $company->legal_name,
@@ -121,13 +138,7 @@ final class CompanyQueryService
             city: $company->city,
             isActive: $company->is_active,
             daysUsed: $contractsByPair->daysByCompany($company->id, $year),
-            annualTaxDue: $this->aggregator->companyAnnualTax(
-                $company->id,
-                $vehiclesById,
-                $contractsByPair,
-                $unavailabilitiesByVehicleId,
-                $year,
-            ),
+            annualTaxDue: $annualTaxDue,
         );
     }
 

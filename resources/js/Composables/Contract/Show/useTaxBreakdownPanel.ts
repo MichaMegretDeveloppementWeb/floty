@@ -17,9 +17,10 @@ export function useTaxBreakdownPanel(props: {
     years: ComputedRef<YearBreakdown[]>;
     isMultiYear: ComputedRef<boolean>;
     selectedCode: Ref<string | null>;
+    selectedYear: Ref<number | null>;
     selectedRule: ComputedRef<Rule | null>;
     modalOpen: WritableComputedRef<boolean>;
-    openRule: (code: string) => void;
+    openRule: (code: string, year: number) => void;
 } {
     const years = computed<YearBreakdown[]>(() => props.taxBreakdown?.years ?? []);
     const isMultiYear = computed<boolean>(() => years.value.length > 1);
@@ -43,6 +44,10 @@ export function useTaxBreakdownPanel(props: {
     });
 
     const selectedCode = ref<string | null>(null);
+    // Chantier η Phase 3 : tracé pour transmettre le contexte temporel
+    // au RuleCard (les liens Légifrance résolvent une version d'article
+    // datée de l'année concernée).
+    const selectedYear = ref<number | null>(null);
 
     const selectedRule = computed<Rule | null>(() => {
         if (selectedCode.value === null) {
@@ -57,18 +62,21 @@ export function useTaxBreakdownPanel(props: {
         set: (value) => {
             if (!value) {
                 selectedCode.value = null;
+                selectedYear.value = null;
             }
         },
     });
 
-    const openRule = (code: string): void => {
+    const openRule = (code: string, year: number): void => {
         selectedCode.value = code;
+        selectedYear.value = year;
     };
 
     return {
         years,
         isMultiYear,
         selectedCode,
+        selectedYear,
         selectedRule,
         modalOpen,
         openRule,

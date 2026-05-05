@@ -33,11 +33,13 @@ const hasRows = computed<boolean>(() => props.fiscal.rows.length > 0);
 
 const vehiclesCountLabel = computed<string>(() => {
     const count = props.fiscal.rows.length;
+
     return `${count} véhicule${count > 1 ? 's' : ''} taxé${count > 1 ? 's' : ''}`;
 });
 
 const totalDaysLabel = computed<string>(() => {
     const days = props.fiscal.totalDays;
+
     return `${days} jour${days > 1 ? 's' : ''} cumulé${days > 1 ? 's' : ''}`;
 });
 

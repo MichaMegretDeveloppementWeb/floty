@@ -6,6 +6,7 @@ namespace App\Http\Controllers\User\Company;
 
 use App\Actions\Company\CreateCompanyAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Data\Shared\YearScopeData;
 use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\StoreCompanyData;
 use App\Data\User\Contract\ContractIndexQueryData;
@@ -15,7 +16,7 @@ use App\Models\Company;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
-use Carbon\CarbonImmutable;
+use App\Services\Fiscal\AvailableYearsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -31,24 +32,42 @@ final class CompanyController extends Controller
         private readonly DriverQueryService $drivers,
         private readonly ContractQueryService $contracts,
         private readonly CreateCompanyAction $createCompany,
+        private readonly AvailableYearsResolver $availableYears,
     ) {}
 
     public function index(CompanyIndexQueryData $query): Response
     {
-        // Sélecteur année **local** à la page (chantier J, ADR-0020) :
-        // `?year=` URL via DTO avec fallback année calendaire courante.
-        // Pilote les colonnes `daysUsed` et `annualTaxDue` du listing.
-        $year = $query->year ?? $this->resolveDefaultYear();
+        // Sélecteur année **local** à la page (chantier η Phase 3) —
+        // bornes alimentées par `AvailableYearsResolver` (scope global
+        // dynamique calculé depuis les contrats, pas la config statique
+        // morte). `?year=` URL validé contre ce scope, fallback
+        // `currentYear` si invalide.
+        $year = $this->resolveSelectedYear($query->year);
 
         return Inertia::render('User/Companies/Index/Index', [
             'companies' => $this->companies->listPaginated($query, $year),
             'query' => $query,
             'selectedYear' => $year,
+            'yearScope' => YearScopeData::fromResolver($this->availableYears),
             // Cf. note d'archi sur le bug placeholder : `hasAnyCompany`
             // distingue « table intrinsèquement vide » du « filtre actif
             // retournant 0 » sans dériver depuis 3 sources désynchronisées.
             'hasAnyCompany' => $this->companyRead->existsAny(),
         ]);
+    }
+
+    /**
+     * Doctrine temporelle (chantier η Phase 3) — résolution `?year=`
+     * URL contre le scope global dynamique, fallback `currentYear` si
+     * invalide ou absent.
+     */
+    private function resolveSelectedYear(?int $requested): int
+    {
+        if ($requested !== null && in_array($requested, $this->availableYears->availableYears(), true)) {
+            return $requested;
+        }
+
+        return $this->availableYears->currentYear();
     }
 
     public function show(Company $company, ContractIndexQueryData $contractsQuery, Request $request): Response
@@ -126,22 +145,5 @@ final class CompanyController extends Controller
         return redirect()
             ->route('user.companies.index')
             ->with('toast-success', 'Entreprise créée.');
-    }
-
-    /**
-     * Résolution de l'année par défaut (year non passé) : année
-     * calendaire courante si présente dans la config fiscale, sinon
-     * dernière année configurée.
-     */
-    private function resolveDefaultYear(): int
-    {
-        $available = array_map('intval', config('floty.fiscal.available_years', []));
-        $current = (int) CarbonImmutable::now()->year;
-
-        if (in_array($current, $available, true)) {
-            return $current;
-        }
-
-        return $available === [] ? $current : (int) max($available);
     }
 }

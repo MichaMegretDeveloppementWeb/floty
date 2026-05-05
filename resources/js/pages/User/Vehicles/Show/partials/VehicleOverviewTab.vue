@@ -18,10 +18,10 @@
  * Le panel détaillé du Coût plein vit dans l'onglet Fiscalité.
  */
 import CurrentFiscalCharacteristicsCard from './CurrentFiscalCharacteristicsCard.vue';
+import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
 import UnavailabilitiesCard from './UnavailabilitiesCard.vue';
 import VehicleKpiCards from './VehicleKpiCards.vue';
 import VehicleYearHistoryCard from './VehicleYearHistoryCard.vue';
-import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
 
 defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
@@ -37,13 +37,13 @@ defineProps<{
             :kpi-fiscal-available="vehicle.kpiFiscalAvailable"
         />
 
+        <VehicleYearHistoryCard :history="vehicle.history" />
+
         <CurrentFiscalCharacteristicsCard
             :fiscal="vehicle.currentFiscalCharacteristics"
             :history="vehicle.fiscalCharacteristicsHistory"
             :options="options"
         />
-
-        <VehicleYearHistoryCard :history="vehicle.history" />
 
         <VehicleUsageAndBreakdownCard
             :vehicle-id="vehicle.id"

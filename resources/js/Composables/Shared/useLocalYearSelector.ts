@@ -30,6 +30,7 @@ export function useLocalYearSelector(
         if (year === selectedYear.value) {
             return;
         }
+
         selectedYear.value = year;
 
         // Préserve les autres query params en construisant l'URL depuis

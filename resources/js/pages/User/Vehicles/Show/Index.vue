@@ -34,7 +34,7 @@ const { activeTab, setTab } = useVehicleTabs();
     <Head :title="`${props.vehicle.licensePlate} · ${props.vehicle.brand} ${props.vehicle.model}`" />
 
     <UserLayout>
-        <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6 max-w-[80em] m-auto">
             <VehicleHeader :vehicle="props.vehicle" />
 
             <VehicleTabsNav :active-tab="activeTab" @change="setTab" />

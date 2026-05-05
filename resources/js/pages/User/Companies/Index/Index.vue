@@ -9,7 +9,6 @@ import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useCompaniesTable } from '@/Composables/Company/Index/useCompaniesTable';
-import { useFiscalYear } from '@/Composables/Shared/useFiscalYear';
 import CompaniesTable from './partials/CompaniesTable.vue';
 import EmptyCompaniesState from './partials/EmptyCompaniesState.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -24,9 +23,15 @@ const props = defineProps<{
      */
     hasAnyCompany: boolean;
     selectedYear: number;
+    /**
+     * Scope d'années dynamique calculé depuis les contrats actifs
+     * (chantier η Phase 3). Remplace l'ancienne config statique
+     * `floty.fiscal.available_years` qui était lue via `useFiscalYear`.
+     */
+    yearScope: App.Data.Shared.YearScopeData;
 }>();
 
-const { availableYears } = useFiscalYear();
+const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
 const filtersOpen = ref<boolean>(false);
 
 const tableState = useCompaniesTable({

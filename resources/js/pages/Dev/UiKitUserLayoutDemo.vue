@@ -67,14 +67,15 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
     { key: 'co2', label: 'CO₂', align: 'right', mono: true },
     { key: 'occupancy', label: 'Occup. 2026', align: 'right' },
 ];
+
+const year = new Date().getFullYear();
 </script>
 
 <template>
     <Head title="UI Kit · UserLayout" />
 
     <UserLayout>
-        <template #default="{ year }">
-            <div class="flex flex-col gap-6">
+        <div class="flex flex-col gap-6">
                 <header>
                     <p class="eyebrow mb-2">Tableau de bord · {{ year }}</p>
                     <h1
@@ -219,7 +220,6 @@ const columns: readonly DataTableColumn<VehicleRow>[] = [
                         </AlertRow>
                     </div>
                 </section>
-            </div>
-        </template>
+        </div>
     </UserLayout>
 </template>

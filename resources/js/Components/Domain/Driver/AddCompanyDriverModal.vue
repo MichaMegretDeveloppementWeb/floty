@@ -59,6 +59,7 @@ function submit(): void {
     if (form.driver_id === null) {
         return;
     }
+
     form.post(storeRoute(form.driver_id).url, {
         preserveScroll: true,
         onSuccess: () => close(),
