@@ -15,12 +15,22 @@
  * de barème au 01/01). Sans date, Légifrance ouvre la dernière version
  * (peut être 2026+ alors qu'on parle de la fiscalité 2024).
  *
- * **BOFiP** : on pointe vers la **page de recherche** BOFiP avec
- * l'identifiant en requête, plutôt que vers une URL article directe.
- * La raison : la BOFiP utilise un permalink interne préfixé numérique
- * (ex. `https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=
- * BOI-AIS-MOB-10-30-10-20240710`) instable d'une révision à l'autre.
- * La page de recherche met systématiquement la doctrine en tête de liste.
+ * **BOFiP** : pointage direct vers la version datée du permalink interne
+ * de la doctrine, pour ouvrir l'utilisateur exactement sur le document
+ * applicable à l'année fiscale en cours (et non sur la dernière version
+ * en vigueur, parfois postérieure à l'exercice considéré).
+ *
+ * Format : `https://bofip.impots.gouv.fr/bofip/{documentId}/identifiant=
+ * {IDENTIFIANT}-{YYYYMMDD}`
+ *
+ * `documentId` (ex. `13932-PGP.html`) est l'identifiant interne stable
+ * de la doctrine (un par doctrine). `{YYYYMMDD}` est la date de mise en
+ * vigueur de la version applicable à l'année fiscale donnée. Ces couples
+ * sont mappés explicitement dans `BOFIP_DOCUMENTS` ci-dessous (audités
+ * via la frise chronologique de chaque doctrine).
+ *
+ * Si la référence demandée n'est pas dans le map, fallback sur la page
+ * de recherche BOFiP filtrée sur l'identifiant.
  *
  * **CGI** : table des matières (le seeder ne référence pas le CGI en
  * 2024).
@@ -46,8 +56,31 @@ export type ResolvedLegalLink = {
 };
 
 const LEGIFRANCE_BASE = 'https://www.legifrance.gouv.fr';
+const BOFIP_BASE = 'https://bofip.impots.gouv.fr/bofip';
 const BOFIP_SEARCH = 'https://bofip.impots.gouv.fr/search/result';
 const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
+
+/**
+ * Mapping doctrine BOFiP → identifiant interne du document + versions
+ * datées par année fiscale. La frise chronologique de chaque doctrine
+ * (« ChronoBOFiP ») expose les dates de mise en vigueur successives ;
+ * on choisit pour chaque exercice fiscal la version la plus large qui
+ * couvre l'année.
+ *
+ * `BOI-AIS-MOB-10-30-10` (Dispositions communes — Taxes sur l'affectation
+ * des véhicules à des fins économiques) :
+ * - Version 2024-07-10 → 2025-05-28 (en vigueur sur la majeure partie
+ *   de 2024 et début 2025) : `20240710`. Vérifié contenir § 50/60/190
+ *   sur les indispos réductrices.
+ */
+const BOFIP_DOCUMENTS: Record<string, { documentId: string; versionsByYear: Record<number, string> }> = {
+    'BOI-AIS-MOB-10-30-10': {
+        documentId: '13932-PGP.html',
+        versionsByYear: {
+            2024: '20240710',
+        },
+    },
+};
 
 /**
  * Mapping article CIBS → LEGIARTI.
@@ -143,6 +176,31 @@ function cgiUrl(): string {
     return `${LEGIFRANCE_BASE}/codes/texte_lc/${CGI_LEGITEXT}`;
 }
 
+/**
+ * URL canonique pour une doctrine BOFiP, pointant vers la version
+ * applicable à l'année fiscale courante. Si la doctrine n'est pas
+ * mappée, fallback sur la page de recherche BOFiP filtrée sur
+ * l'identifiant.
+ */
+function bofipUrlFor(reference: string, year: number): string {
+    const doc = BOFIP_DOCUMENTS[reference];
+
+    if (doc !== undefined) {
+        const version = doc.versionsByYear[year];
+
+        if (version !== undefined) {
+            return `${BOFIP_BASE}/${doc.documentId}/identifiant=${reference}-${version}`;
+        }
+    }
+
+    const params = new URLSearchParams({
+        type_recherche: 'simple',
+        query: reference,
+    });
+
+    return `${BOFIP_SEARCH}?${params.toString()}`;
+}
+
 function resolveLegalLinkFor(
     ref: LegalReference,
     year: number,
@@ -165,14 +223,10 @@ function resolveLegalLinkFor(
 
     if (ref.type === 'BOFIP' && ref.reference) {
         const para = ref.paragraph ? ` ${ref.paragraph}` : '';
-        const params = new URLSearchParams({
-            type_recherche: 'simple',
-            query: ref.reference,
-        });
 
         return {
             label: `${ref.reference}${para}`,
-            url: `${BOFIP_SEARCH}?${params.toString()}`,
+            url: bofipUrlFor(ref.reference, year),
             title: `Doctrine BOFiP-Impôts ${ref.reference}${para}`,
         };
     }
