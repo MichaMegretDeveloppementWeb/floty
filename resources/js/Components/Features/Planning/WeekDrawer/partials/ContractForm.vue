@@ -119,13 +119,17 @@ async function submit(): Promise<void> {
     submitting.value = true;
 
     try {
-        const payload: App.Data.User.Contract.BulkStoreContractsData = {
-            vehicleIds: [props.vehicleId],
-            companyId: props.selectedCompanyId as number,
-            driverIds: selectedDriverIds.value,
-            startDate: props.selectedRange.startDate as string,
-            endDate: props.selectedRange.endDate as string,
-            contractReference: null,
+        // Le DTO `BulkStoreContractsData` déclare `MapInputName(SnakeCaseMapper)` :
+        // les clés du payload doivent être en snake_case côté requête. Le typage
+        // TS généré (camelCase) ne reflète pas cette contrainte de transport,
+        // d'où le `Record<string, unknown>` ici (cf. plan chantier A).
+        const payload: Record<string, unknown> = {
+            vehicle_ids: [props.vehicleId],
+            company_id: props.selectedCompanyId as number,
+            driver_ids: selectedDriverIds.value,
+            start_date: props.selectedRange.startDate as string,
+            end_date: props.selectedRange.endDate as string,
+            contract_reference: null,
             notes: null,
         };
 

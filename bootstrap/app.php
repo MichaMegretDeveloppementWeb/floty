@@ -11,6 +11,7 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -50,6 +51,58 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return back()->withInput()->with('toast-error', $e->getUserMessage());
+        });
+
+        // Render JSON ciblé pour ValidationException (endpoints `useApi.post`
+        // / `postJson`). Compose un `message` français explicite listant les
+        // champs invalides — sans dépendre de `lang:publish` ni des clés
+        // brutes Laravel comme `validation.required`. `errors` reste au
+        // format standard (map `field => list<message>`) pour permettre,
+        // plus tard, l'affichage inline par champ côté front.
+        //
+        // Guard `expectsJson()` : on ne touche pas le redirect-back-with-
+        // errors d'Inertia côté formulaires HTML classiques.
+        $exceptions->render(function (ValidationException $e, Request $request) {
+            if (! $request->expectsJson()) {
+                return null; // laisse Laravel gérer (redirect back + flash errors)
+            }
+
+            $errors = $e->errors();
+            $fields = array_keys($errors);
+            $count = count($fields);
+
+            if ($count === 0) {
+                $message = 'La requête est invalide.';
+            } elseif ($count === 1) {
+                $field = $fields[0];
+                $first = $errors[$field][0] ?? 'invalide';
+                // Si le message est encore une clé brute `validation.xxx`
+                // (pas de lang/fr publié), on tombe sur un format générique
+                // FR plutôt que d'exposer la clé.
+                $detail = str_starts_with($first, 'validation.')
+                    ? 'invalide ou manquant'
+                    : $first;
+                $message = sprintf('Le champ « %s » est %s.', $field, $detail);
+            } elseif ($count <= 3) {
+                $message = sprintf(
+                    'Plusieurs champs sont invalides : %s.',
+                    implode(', ', $fields),
+                );
+            } else {
+                $head = array_slice($fields, 0, 3);
+                $remaining = $count - 3;
+                $message = sprintf(
+                    'Plusieurs champs sont invalides : %s et %d autre%s.',
+                    implode(', ', $head),
+                    $remaining,
+                    $remaining > 1 ? 's' : '',
+                );
+            }
+
+            return response()->json([
+                'message' => $message,
+                'errors' => $errors,
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
         });
 
         // Réponses globales selon le statut HTTP final, après le render
