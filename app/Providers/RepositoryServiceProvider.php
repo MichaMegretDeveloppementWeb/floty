@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\Repositories\User\Billing\BillingSettingsReadRepositoryInterface;
+use App\Contracts\Repositories\User\Billing\BillingSettingsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Company\CompanyWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
@@ -13,12 +15,18 @@ use App\Contracts\Repositories\User\ContractDocument\ContractDocumentWriteReposi
 use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
 use App\Contracts\Repositories\User\Driver\DriverWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
+use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
+use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepositoryInterface;
+use App\Repositories\User\Billing\BillingSettingsReadRepository;
+use App\Repositories\User\Billing\BillingSettingsWriteRepository;
 use App\Repositories\User\Company\CompanyReadRepository;
 use App\Repositories\User\Company\CompanyWriteRepository;
 use App\Repositories\User\Contract\ContractReadRepository;
@@ -28,12 +36,16 @@ use App\Repositories\User\ContractDocument\ContractDocumentWriteRepository;
 use App\Repositories\User\Driver\DriverReadRepository;
 use App\Repositories\User\Driver\DriverWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
+use App\Repositories\User\Invoice\InvoiceReadRepository;
+use App\Repositories\User\Invoice\InvoiceWriteRepository;
 use App\Repositories\User\Unavailability\UnavailabilityReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityWriteRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepository;
 use App\Repositories\User\Vehicle\VehicleReadRepository;
 use App\Repositories\User\Vehicle\VehicleWriteRepository;
+use App\Repositories\User\Vehicle\VehicleYearlyPricingReadRepository;
+use App\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -61,6 +73,8 @@ final class RepositoryServiceProvider extends ServiceProvider
         VehicleWriteRepositoryInterface::class => VehicleWriteRepository::class,
         VehicleFiscalCharacteristicsReadRepositoryInterface::class => VehicleFiscalCharacteristicsReadRepository::class,
         VehicleFiscalCharacteristicsWriteRepositoryInterface::class => VehicleFiscalCharacteristicsWriteRepository::class,
+        VehicleYearlyPricingReadRepositoryInterface::class => VehicleYearlyPricingReadRepository::class,
+        VehicleYearlyPricingWriteRepositoryInterface::class => VehicleYearlyPricingWriteRepository::class,
 
         // Company
         CompanyReadRepositoryInterface::class => CompanyReadRepository::class,
@@ -80,6 +94,14 @@ final class RepositoryServiceProvider extends ServiceProvider
 
         // FiscalRule
         FiscalRuleReadRepositoryInterface::class => FiscalRuleReadRepository::class,
+
+        // Invoice (Phase 14.E V1.2) - facturation mensuelle immuable
+        InvoiceReadRepositoryInterface::class => InvoiceReadRepository::class,
+        InvoiceWriteRepositoryInterface::class => InvoiceWriteRepository::class,
+
+        // BillingSettings (Phase 14.G V1.2) - émetteur de facture (singleton)
+        BillingSettingsReadRepositoryInterface::class => BillingSettingsReadRepository::class,
+        BillingSettingsWriteRepositoryInterface::class => BillingSettingsWriteRepository::class,
 
         // Unavailability
         UnavailabilityReadRepositoryInterface::class => UnavailabilityReadRepository::class,

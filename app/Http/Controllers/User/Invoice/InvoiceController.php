@@ -1,0 +1,137 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Http\Controllers\User\Invoice;
+
+use App\Actions\Invoice\GenerateInvoiceAction;
+use App\Contracts\Repositories\User\Billing\BillingSettingsReadRepositoryInterface;
+use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
+use App\Data\User\Billing\BillingSettingsData;
+use App\Data\User\Invoice\InvoiceIndexQueryData;
+use App\Exceptions\Billing\MissingPricingException;
+use App\Exceptions\Invoice\InvoiceAlreadyExistsException;
+use App\Http\Controllers\Controller;
+use App\Models\Invoice;
+use App\Services\Invoice\InvoicePdfStorage;
+use App\Services\Invoice\InvoiceQueryService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Inertia\Inertia;
+use Inertia\Response as InertiaResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+
+/**
+ * Contrôleur des factures mensuelles (Phase 14.E V1.2). Slim conforme
+ * ADR-0013 — pas de logique métier, délégation à `GenerateInvoiceAction`
+ * pour la génération et `InvoicePdfStorage` pour le téléchargement.
+ *
+ * Les pages Index + Show (Inertia) sont livrées en chantier 14.F. Pour
+ * V1.2 on expose minimum :
+ *   - POST `generate` (déclenche la création + persistance + PDF)
+ *   - GET `download` (sert le PDF binaire en attachement)
+ *
+ * **Émetteur** : passé en placeholder constant pour V1.2 — sera lu
+ * depuis la table `billing_settings` en chantier 14.G.
+ */
+final class InvoiceController extends Controller
+{
+    public function __construct(
+        private readonly InvoiceQueryService $invoiceQuery,
+        private readonly InvoiceReadRepositoryInterface $invoiceRead,
+        private readonly BillingSettingsReadRepositoryInterface $billingSettings,
+    ) {}
+
+    public function index(InvoiceIndexQueryData $query): InertiaResponse
+    {
+        return Inertia::render('User/Invoices/Index/Index', [
+            'invoices' => $this->invoiceQuery->listPaginated($query),
+            'query' => $query,
+            // Cf. doctrine `hasAny` (ADR-0020 D9) : distingue table vide
+            // de filtre actif retournant 0.
+            'hasAnyInvoice' => $this->invoiceRead->existsAny(),
+        ]);
+    }
+
+    public function show(int $invoice): InertiaResponse
+    {
+        $data = $this->invoiceQuery->findInvoiceData($invoice);
+
+        if ($data === null) {
+            throw new NotFoundHttpException('Facture introuvable.');
+        }
+
+        return Inertia::render('User/Invoices/Show/Index', [
+            'invoice' => $data,
+        ]);
+    }
+
+    public function generate(
+        Request $request,
+        GenerateInvoiceAction $action,
+    ): RedirectResponse {
+        $validated = $request->validate([
+            'company_id' => ['required', 'integer', Rule::exists('companies', 'id')],
+            'year' => ['required', 'integer', 'between:2020,2099'],
+            'month' => ['required', 'integer', 'between:1,12'],
+        ]);
+
+        $user = $request->user();
+        if ($user === null) {
+            abort(Response::HTTP_UNAUTHORIZED);
+        }
+
+        try {
+            $invoice = $action->execute(
+                companyId: (int) $validated['company_id'],
+                year: (int) $validated['year'],
+                month: (int) $validated['month'],
+                generatedByUserId: $user->id,
+                issuer: BillingSettingsData::fromModel($this->billingSettings->get())->toIssuerPayload(),
+            );
+        } catch (InvoiceAlreadyExistsException $e) {
+            // Cas concurrence : un autre clic / un autre onglet a déjà
+            // émis la facture. Rebascule sur un toast-error explicite
+            // plutôt que sur un 500 — l'utilisateur peut ouvrir la
+            // facture existante depuis la même page.
+            return back()->with(
+                'toast-error',
+                "Une facture est déjà émise pour cette entreprise sur {$validated['year']}-".
+                str_pad((string) $validated['month'], 2, '0', STR_PAD_LEFT).'.',
+            );
+        } catch (MissingPricingException $e) {
+            // Tarif manquant : on affiche un toast clair invitant à
+            // renseigner les tarifs sur la fiche véhicule.
+            return back()->with(
+                'toast-error',
+                'Tarif annuel manquant pour au moins un véhicule du mois. '.
+                'Renseignez les tarifs depuis la fiche véhicule avant de générer la facture.',
+            );
+        }
+
+        return back()->with('toast-success', "Facture {$invoice->invoice_number} générée.");
+    }
+
+    public function download(Invoice $invoice, InvoicePdfStorage $storage): Response
+    {
+        $binary = $storage->read($invoice->pdf_path);
+
+        if ($binary === null) {
+            abort(Response::HTTP_NOT_FOUND, 'Fichier PDF introuvable sur le serveur.');
+        }
+
+        return new Response(
+            $binary,
+            Response::HTTP_OK,
+            [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => sprintf(
+                    'attachment; filename="%s.pdf"',
+                    $invoice->invoice_number,
+                ),
+            ],
+        );
+    }
+}

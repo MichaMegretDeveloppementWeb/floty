@@ -8,10 +8,13 @@ use App\Http\Controllers\User\Contract\ContractDocumentController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
 use App\Http\Controllers\User\Driver\DriverController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
+use App\Http\Controllers\User\Invoice\InvoiceController;
 use App\Http\Controllers\User\Planning\PlanningController;
+use App\Http\Controllers\User\Settings\BillingSettingsController;
 use App\Http\Controllers\User\Unavailability\UnavailabilityController;
 use App\Http\Controllers\User\Vehicle\VehicleController;
 use App\Http\Controllers\User\Vehicle\VehicleFiscalCharacteristicsController;
+use App\Http\Controllers\User\Vehicle\VehicleYearlyPricingController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -97,6 +100,45 @@ Route::middleware('auth')
             ->whereNumber('vehicleFiscalCharacteristic')
             ->middleware('throttle:60,1')
             ->name('vehicle-fiscal-characteristics.destroy');
+
+        // Vehicle yearly pricings (Phase 14 facturation V1.2) — tarifs
+        // jour/semaine/mois × véhicule × année. Upsert idempotent garanti
+        // par UNIQUE(vehicle_id, year). Endpoints opérés depuis la page
+        // Show véhicule (chantier 14.B intégrera un PricingEditor inline).
+        Route::post(
+            '/vehicles/{vehicle}/yearly-pricings',
+            [VehicleYearlyPricingController::class, 'store'],
+        )
+            ->whereNumber('vehicle')
+            ->middleware('throttle:60,1')
+            ->name('vehicle-yearly-pricings.store');
+        Route::delete(
+            '/vehicles/{vehicle}/yearly-pricings/{year}',
+            [VehicleYearlyPricingController::class, 'destroy'],
+        )
+            ->whereNumber('vehicle')
+            ->whereNumber('year')
+            ->middleware('throttle:60,1')
+            ->name('vehicle-yearly-pricings.destroy');
+
+        // Settings > Facturation (Phase 14.G V1.2) — émetteur de facture
+        Route::get('/settings/billing', [BillingSettingsController::class, 'edit'])
+            ->name('settings.billing.edit');
+        Route::post('/settings/billing', [BillingSettingsController::class, 'update'])
+            ->middleware('throttle:30,1')
+            ->name('settings.billing.update');
+
+        // Invoices — Phase 14 V1.2 (Index + Show + génération + téléchargement)
+        Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
+        Route::post('/invoices/generate', [InvoiceController::class, 'generate'])
+            ->middleware('throttle:30,1')
+            ->name('invoices.generate');
+        Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])
+            ->whereNumber('invoice')
+            ->name('invoices.show');
+        Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])
+            ->whereNumber('invoice')
+            ->name('invoices.download');
 
         // Unavailabilities — CRUD opéré depuis la page Show véhicule
         Route::post('/unavailabilities', [UnavailabilityController::class, 'store'])

@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
+use App\Data\User\Billing\ContractBillingBreakdownData;
 use App\Data\User\Company\CompanyContractsStatsData;
 use App\Data\User\Contract\ContractData;
 use App\Data\User\Contract\ContractDocumentData;
@@ -18,6 +19,7 @@ use App\Data\User\Contract\PaginatedContractListData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Models\Contract;
 use App\Models\Unavailability;
+use App\Services\Billing\BillingBreakdownService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -40,7 +42,25 @@ final readonly class ContractQueryService
         private UnavailabilityReadRepositoryInterface $unavailabilityRepository,
         private ContractDocumentReadRepositoryInterface $documentRepository,
         private FleetFiscalAggregator $aggregator,
+        private BillingBreakdownService $billingBreakdown,
     ) {}
+
+    /**
+     * Récap facturation contrat-isolé (Phase 14.D V1.2 — extension).
+     * Délègue à {@see App\Services\Billing\BillingBreakdownService::byContract}.
+     *
+     * Retourne `null` si le contrat est introuvable.
+     */
+    public function findContractBillingBreakdown(int $id): ?ContractBillingBreakdownData
+    {
+        $contract = $this->repository->findById($id);
+
+        if ($contract === null) {
+            return null;
+        }
+
+        return $this->billingBreakdown->byContract($contract);
+    }
 
     /**
      * Liste les documents PDF joints à un contrat (chantier 04.N).

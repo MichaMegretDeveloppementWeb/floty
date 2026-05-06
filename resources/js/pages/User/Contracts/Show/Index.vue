@@ -5,6 +5,7 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import { useContractDocuments } from '@/Composables/Contract/useContractDocuments';
 import { consumePendingDocuments } from '@/Composables/Contract/useContractFormPendingDocuments';
 import ActionsBar from './partials/ActionsBar.vue';
+import BillingBreakdownPanel from './partials/BillingBreakdownPanel.vue';
 import ContractDetails from './partials/ContractDetails.vue';
 import ContractDocumentsSection from './partials/ContractDocumentsSection.vue';
 import ContractEntityCards from './partials/ContractEntityCards.vue';
@@ -15,6 +16,7 @@ const props = defineProps<{
     contract: App.Data.User.Contract.ContractData;
     taxBreakdown: App.Data.User.Contract.ContractTaxBreakdownData | null;
     documents: App.Data.User.Contract.ContractDocumentData[];
+    billingBreakdown: App.Data.User.Billing.ContractBillingBreakdownData | null;
 }>();
 
 const { uploadMany } = useContractDocuments();
@@ -53,6 +55,7 @@ onMounted(async () => {
                     />
                     <ContractDetails :contract="props.contract" />
                     <TaxBreakdownPanel :tax-breakdown="props.taxBreakdown" />
+                    <BillingBreakdownPanel :breakdown="props.billingBreakdown" />
                     <!-- < xl : Documents en bas du main. ≥ xl : c'est l'aside qui les porte. -->
                     <ContractDocumentsSection
                         class="xl:hidden"

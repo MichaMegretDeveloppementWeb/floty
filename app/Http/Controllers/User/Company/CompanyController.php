@@ -98,6 +98,11 @@ final class CompanyController extends Controller
         // (Contrats). Default = année réelle courante.
         $fiscalYear = (int) $request->query('fiscalYear', (string) $detail->currentRealYear);
 
+        // Onglet Facturation (Phase 14.D V1.2) — sélecteur d'année
+        // **local** indépendant via `?billingYear=`. Mirroir du pattern
+        // `?fiscalYear=` pour cohérence UX.
+        $billingYear = (int) $request->query('billingYear', (string) $detail->currentRealYear);
+
         return Inertia::render('User/Companies/Show/Index', [
             'company' => $detail,
             'options' => [
@@ -136,6 +141,15 @@ final class CompanyController extends Controller
                 $company->id,
                 $fiscalYear,
             ),
+            // Onglet Facturation (Phase 14.D V1.2) — récap mensuel pour
+            // l'année sélectionnée + même plage que les contrats pour
+            // les pills (cohérence : on ne propose que les années où
+            // l'entreprise a au moins un contrat plausible).
+            'companyBilling' => $this->companies->billingForYear(
+                $company->id,
+                $billingYear,
+            ),
+            'billingYear' => $billingYear,
         ]);
     }
 

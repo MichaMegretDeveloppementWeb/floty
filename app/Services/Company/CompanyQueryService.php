@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\Shared\YearScopeData;
+use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Company\CompanyActivityYearData;
 use App\Data\User\Company\CompanyColorOptionData;
 use App\Data\User\Company\CompanyDetailData;
@@ -328,8 +329,18 @@ final class CompanyQueryService
             availableYears: $availableYears,
             currentRealYear: $currentRealYear,
             yearScope: YearScopeData::fromResolver($this->availableYears),
-            monthlyBilling: $this->billingBreakdown->byCompanyForYear($companyId, $kpiYear),
         );
+    }
+
+    /**
+     * Récap mensuel facturation pour une entreprise et une année donnée
+     * (Phase 14.D V1.2). Sépare l'agrégation `BillingBreakdownService`
+     * du flot principal `detail()` pour permettre un sélecteur d'année
+     * indépendant côté UI (pattern aligné avec `fiscalBreakdownForYear`).
+     */
+    public function billingForYear(int $companyId, int $year): MonthlyBillingBreakdownData
+    {
+        return $this->billingBreakdown->byCompanyForYear($companyId, $year);
     }
 
     /**

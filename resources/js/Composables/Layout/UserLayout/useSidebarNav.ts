@@ -5,7 +5,9 @@ import {
     FileText,
     LayoutDashboard,
     Receipt,
+    Settings,
     Users,
+    Wallet,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Component, ComputedRef, Ref } from 'vue';
@@ -15,7 +17,9 @@ import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
 import { index as driversIndexRoute } from '@/routes/user/drivers';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
+import { index as invoicesIndexRoute } from '@/routes/user/invoices';
 import { index as planningIndexRoute } from '@/routes/user/planning';
+import { edit as billingSettingsEditRoute } from '@/routes/user/settings/billing';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 
 export type NavItem = {
@@ -91,6 +95,26 @@ export function useSidebarNav(open: Ref<boolean>): {
                     label: 'Règles de calcul',
                     icon: Receipt,
                     href: fiscalRulesIndexRoute.url(),
+                },
+            ],
+        },
+        {
+            title: 'Facturation',
+            items: [
+                {
+                    label: 'Factures',
+                    icon: Wallet,
+                    href: invoicesIndexRoute.url(),
+                },
+            ],
+        },
+        {
+            title: 'Paramètres',
+            items: [
+                {
+                    label: 'Émetteur facture',
+                    icon: Settings,
+                    href: billingSettingsEditRoute.url(),
                 },
             ],
         },

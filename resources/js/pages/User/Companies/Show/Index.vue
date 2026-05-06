@@ -22,6 +22,8 @@ const props = defineProps<{
     contractsStats: App.Data.User.Company.CompanyContractsStatsData;
     contractsAvailableYears: number[];
     companyFiscal: App.Data.User.Company.CompanyFiscalYearData;
+    companyBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
+    billingYear: number;
 }>();
 
 const { activeTab, setTab } = useCompanyTabs();
@@ -59,7 +61,13 @@ const { activeTab, setTab } = useCompanyTabs();
                 v-else-if="activeTab === 'fiscal'"
                 :fiscal="props.companyFiscal"
             />
-            <CompanyBillingTab v-else-if="activeTab === 'billing'" />
+            <CompanyBillingTab
+                v-else-if="activeTab === 'billing'"
+                :company-id="props.company.id"
+                :monthly-billing="props.companyBilling"
+                :available-years="props.contractsAvailableYears"
+                :active-year="props.billingYear"
+            />
         </div>
     </UserLayout>
 </template>

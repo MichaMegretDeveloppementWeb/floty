@@ -9,6 +9,7 @@ use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryI
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\Shared\YearScopeData;
+use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Unavailability\UnavailabilityData;
 use App\Data\User\Vehicle\PaginatedVehicleListData;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
@@ -29,6 +30,7 @@ use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Company;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -60,6 +62,7 @@ final class VehicleQueryService
         private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
+        private readonly BillingBreakdownService $billingBreakdown,
     ) {}
 
     /**
@@ -187,6 +190,17 @@ final class VehicleQueryService
             selectedYear: $initialYear,
             yearScope: YearScopeData::fromResolver($this->availableYears),
         );
+    }
+
+    /**
+     * Récap mensuel facturation pour un véhicule et une année donnée
+     * (Phase 14.D V1.2). Sépare l'agrégation `BillingBreakdownService`
+     * du flot principal `findVehicleData()` pour permettre un sélecteur
+     * d'année indépendant côté UI.
+     */
+    public function billingForYear(int $vehicleId, int $year): MonthlyBillingBreakdownData
+    {
+        return $this->billingBreakdown->byVehicleForYear($vehicleId, $year);
     }
 
     /**

@@ -98,6 +98,7 @@ function handleDocumentMouseDown(event: MouseEvent): void {
     }
 
     const target = event.target as Node | null;
+
     if (target === null) {
         return;
     }

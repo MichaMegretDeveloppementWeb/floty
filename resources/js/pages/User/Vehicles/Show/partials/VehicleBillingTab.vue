@@ -1,30 +1,70 @@
 <script setup lang="ts">
 /**
- * Onglet Facturation de la fiche véhicule (chantier η Phase 2 onglets) —
- * placeholder V1.2 (le module facturation arrivera dans une roadmap
- * post-MVP ; cf. `roadmap_v12_facturation`). L'onglet est exposé dès
- * maintenant pour stabiliser la nav, mais le contenu reste vide.
+ * Onglet Facturation de la fiche véhicule (Phase 14 V1.2). Compose deux
+ * cartes :
+ *   - **Tarifs jour / semaine / mois par année** : édition des tarifs
+ *     annuels servant au calcul du panachage optimal.
+ *   - **Recettes mensuelles** : récap 12 mois de la recette facturée à
+ *     toutes les entreprises utilisatrices du véhicule sur l'année
+ *     sélectionnée. Le sélecteur d'année est piloté par `?billingYear=`
+ *     URL (cf. `VehicleController::show`).
+ *
+ * La génération de facture se fait depuis la fiche entreprise (cumul
+ * cross-véhicules par mois) ou depuis la liste Factures.
  */
-import Card from '@/Components/Ui/Card/Card.vue';
+import { router } from '@inertiajs/vue3';
+import MonthlyBillingBreakdownCard from '@/Components/Features/Billing/MonthlyBillingBreakdownCard.vue';
+import CompanyYearPills from '@/pages/User/Companies/Show/partials/CompanyYearPills.vue';
+import VehiclePricingsCard from './billing/VehiclePricingsCard.vue';
+
+const props = defineProps<{
+    vehicleId: number;
+    pricings: ReadonlyArray<App.Data.User.Vehicle.VehicleYearlyPricingData>;
+    monthlyBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
+    /**
+     * Scope global d'années (cf. `YearScopeData`). On utilise
+     * `availableYears` pour les pills.
+     */
+    yearScope: App.Data.Shared.YearScopeData;
+    activeYear: number;
+}>();
+
+function selectYear(year: number): void {
+    if (year === props.activeYear) {
+        return;
+    }
+
+    router.get(
+        window.location.pathname,
+        { billingYear: year, tab: 'billing' },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            only: ['vehicleBilling', 'billingYear'],
+            replace: true,
+        },
+    );
+}
 </script>
 
 <template>
-    <Card>
-        <template #header>
-            <h2 class="text-base font-semibold text-slate-900">
-                Facturation
-            </h2>
-        </template>
+    <div class="flex flex-col gap-6">
+        <VehiclePricingsCard
+            :vehicle-id="props.vehicleId"
+            :pricings="props.pricings"
+        />
 
-        <div class="py-12 text-center">
-            <p class="text-sm text-slate-500">
-                Module de facturation — à venir en V1.2.
-            </p>
-            <p class="mt-2 text-xs text-slate-400">
-                Tarifs jour/semaine/mois par véhicule, calcul mensuel par
-                entreprise, génération PDF custom, historique sans
-                modification manuelle.
-            </p>
-        </div>
-    </Card>
+        <CompanyYearPills
+            v-if="yearScope.availableYears.length > 0"
+            :years="yearScope.availableYears"
+            :active-year="activeYear"
+            @select="selectYear"
+        />
+
+        <MonthlyBillingBreakdownCard
+            :monthly-billing="monthlyBilling"
+            title="Recettes mensuelles"
+            description="Total cross-entreprises facturable, mois par mois, sur l'année sélectionnée."
+        />
+    </div>
 </template>

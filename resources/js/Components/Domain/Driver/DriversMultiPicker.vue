@@ -37,6 +37,7 @@ watch(
     (next) => {
         const current = slots.value.filter((v): v is number => v !== null);
         const same = next.length === current.length && next.every((v, i) => v === current[i]);
+
         if (!same) {
             slots.value = [...next];
         }

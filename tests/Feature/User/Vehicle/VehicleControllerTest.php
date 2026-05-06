@@ -9,6 +9,7 @@ use App\Models\Contract;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Models\VehicleYearlyPricing;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -658,6 +659,58 @@ final class VehicleControllerTest extends TestCase
                     ->where('minYear', 2024)
                     ->has('availableYears'))
                 ->where('vehicle.selectedYear', $currentYear),
+            );
+    }
+
+    #[Test]
+    public function show_expose_les_yearly_pricings_tries_par_annee_croissante(): void
+    {
+        // Phase 14.B facturation V1.2 — la page Show doit exposer la
+        // collection `yearlyPricings` (tarifs jour/semaine/mois par
+        // année) pour alimenter l'onglet Facturation. Tri par année
+        // ascendante garanti par le repo (cf.
+        // VehicleReadRepository::findByIdWithFiscalHistory).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        VehicleYearlyPricing::factory()
+            ->for($vehicle)
+            ->forYear(2025)
+            ->withRates(11_000, 65_000, 220_000)
+            ->create();
+        VehicleYearlyPricing::factory()
+            ->for($vehicle)
+            ->forYear(2024)
+            ->withRates(10_000, 60_000, 200_000)
+            ->create();
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicle.yearlyPricings', 2)
+                ->where('vehicle.yearlyPricings.0.year', 2024)
+                ->where('vehicle.yearlyPricings.0.dailyRateCents', 10_000)
+                ->where('vehicle.yearlyPricings.0.weeklyRateCents', 60_000)
+                ->where('vehicle.yearlyPricings.0.monthlyRateCents', 200_000)
+                ->where('vehicle.yearlyPricings.1.year', 2025)
+                ->where('vehicle.yearlyPricings.1.dailyRateCents', 11_000),
+            );
+    }
+
+    #[Test]
+    public function show_expose_yearly_pricings_vide_quand_aucun_tarif_defini(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicle.yearlyPricings', 0),
             );
     }
 

@@ -139,7 +139,10 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
     public function findByIdWithFiscalHistory(int $id): Vehicle
     {
         return Vehicle::query()
-            ->with(['fiscalCharacteristics' => fn ($q) => $q->orderByDesc('effective_from')])
+            ->with([
+                'fiscalCharacteristics' => fn ($q) => $q->orderByDesc('effective_from'),
+                'yearlyPricings' => fn ($q) => $q->orderBy('year'),
+            ])
             ->findOrFail($id);
     }
 

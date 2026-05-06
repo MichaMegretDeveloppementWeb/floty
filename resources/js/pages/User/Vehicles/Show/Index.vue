@@ -25,6 +25,8 @@ import VehicleTabsNav from './partials/VehicleTabsNav.vue';
 const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
+    vehicleBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
+    billingYear: number;
 }>();
 
 const { activeTab, setTab } = useVehicleTabs();
@@ -48,7 +50,14 @@ const { activeTab, setTab } = useVehicleTabs();
                 v-else-if="activeTab === 'fiscal'"
                 :vehicle="props.vehicle"
             />
-            <VehicleBillingTab v-else-if="activeTab === 'billing'" />
+            <VehicleBillingTab
+                v-else-if="activeTab === 'billing'"
+                :vehicle-id="props.vehicle.id"
+                :pricings="props.vehicle.yearlyPricings"
+                :monthly-billing="props.vehicleBilling"
+                :year-scope="props.vehicle.yearScope"
+                :active-year="props.billingYear"
+            />
         </div>
     </UserLayout>
 </template>

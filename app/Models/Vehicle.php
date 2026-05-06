@@ -116,6 +116,18 @@ final class Vehicle extends Model
     }
 
     /**
+     * Tarifs jour/semaine/mois du véhicule, indexés par année (Phase 14
+     * facturation V1.2). Une seule ligne par année grâce à la contrainte
+     * UNIQUE(vehicle_id, year) en base.
+     *
+     * @return HasMany<VehicleYearlyPricing, $this>
+     */
+    public function yearlyPricings(): HasMany
+    {
+        return $this->hasMany(VehicleYearlyPricing::class);
+    }
+
+    /**
      * Vrai ssi le véhicule est sorti de flotte (`exit_date IS NOT NULL`).
      * Sémantique purement booléenne ; pour les filtrations applicatives
      * **toujours préférer les scopes date-aware** ({@see scopeActiveAt},

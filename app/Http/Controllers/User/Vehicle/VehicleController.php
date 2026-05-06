@@ -84,16 +84,25 @@ final class VehicleController extends Controller
         return $this->availableYears->currentYear();
     }
 
-    public function show(int $vehicle): Response
+    public function show(int $vehicle, Request $request): Response
     {
         // Doctrine temporelle (chantier η Phase 2 — refonte onglets) :
         // `usageStats` est initialisé sur `currentYear`. Le sélecteur
         // d'année des cartes Utilisation et Fiscalité fetch en lazy via
         // `usageStatsForYear` / `fullYearBreakdownForYear` côté front
         // avec cache client.
+        $vehicleData = $this->vehicles->findVehicleData($vehicle);
+
+        // Onglet Facturation (Phase 14.D V1.2) — sélecteur d'année
+        // **local** indépendant via `?billingYear=`. Default = année KPI
+        // (currentYear).
+        $billingYear = (int) $request->query('billingYear', (string) $vehicleData->kpiYear);
+
         return Inertia::render('User/Vehicles/Show/Index', [
-            'vehicle' => $this->vehicles->findVehicleData($vehicle),
+            'vehicle' => $vehicleData,
             'options' => $this->buildFormOptions(),
+            'vehicleBilling' => $this->vehicles->billingForYear($vehicle, $billingYear),
+            'billingYear' => $billingYear,
         ]);
     }
 

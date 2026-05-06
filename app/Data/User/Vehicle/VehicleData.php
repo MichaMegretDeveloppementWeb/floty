@@ -39,6 +39,13 @@ final class VehicleData extends Data
      *                                               lignes neutres (zéros)
      *                                               comprises (cf. doctrine
      *                                               temporelle Phase 2).
+     * @param  list<VehicleYearlyPricingData>  $yearlyPricings  Tarifs
+     *                                                          jour/semaine/mois
+     *                                                          du véhicule par
+     *                                                          année, triés par
+     *                                                          année croissante.
+     *                                                          Phase 14 facturation
+     *                                                          V1.2.
      */
     public function __construct(
         public int $id,
@@ -73,6 +80,9 @@ final class VehicleData extends Data
         public array $history,
         public int $selectedYear,
         public YearScopeData $yearScope,
+        // Phase 14 facturation V1.2
+        #[DataCollectionOf(VehicleYearlyPricingData::class)]
+        public array $yearlyPricings,
     ) {}
 
     /**
@@ -108,6 +118,11 @@ final class VehicleData extends Data
         $current = $vehicle->fiscalCharacteristics
             ->firstWhere(static fn ($vfc): bool => $vfc->effective_to === null);
 
+        $yearlyPricings = $vehicle->yearlyPricings
+            ->map(static fn ($pricing): VehicleYearlyPricingData => VehicleYearlyPricingData::fromModel($pricing))
+            ->values()
+            ->all();
+
         return new self(
             id: $vehicle->id,
             licensePlate: $vehicle->license_plate,
@@ -139,6 +154,7 @@ final class VehicleData extends Data
             history: $history,
             selectedYear: $selectedYear,
             yearScope: $yearScope,
+            yearlyPricings: $yearlyPricings,
         );
     }
 }

@@ -1,0 +1,27 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Data\User\Billing;
+
+use Spatie\LaravelData\Data;
+use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+
+/**
+ * Une cellule du tableau récap facturation contrat — un mois civil.
+ *
+ * Si le tarif annuel n'est pas défini sur le véhicule pour l'année
+ * concernée, `totalCents` vaut `null` et `hasMissingPricing = true`.
+ */
+#[TypeScript]
+final class ContractBillingMonthData extends Data
+{
+    public function __construct(
+        public int $year,
+        public int $month,
+        /** Nombre de jours du contrat dans ce mois civil (intersection). */
+        public int $daysInMonth,
+        public ?int $totalCents,
+        public bool $hasMissingPricing,
+    ) {}
+}
