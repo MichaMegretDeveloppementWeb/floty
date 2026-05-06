@@ -67,12 +67,24 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
 
         // Intersection avec les jours des contrats taxables du couple
         // (= les contrats du couple qui ne sont PAS LCD).
+        //
+        // Si une `daysWindow` est posée (mode segmenté par VFC, cf.
+        // VfcSegmentedFiscalExecutor), on filtre les jours présents
+        // pour ne compter que ceux qui tombent dans le segment courant
+        // — sinon le count des jours réducteurs serait calculé sur
+        // l'année entière et soustrait à chaque segment, conduisant
+        // à un sur-décompte (chantier dette VFC, garantie cohérence
+        // multi-VFC + indispo réductrice).
+        $window = $context->daysWindow;
         $taxableDates = [];
         foreach ($context->contractsForPair as $contract) {
             if ($this->shortTermRental->isShortTermRental($contract)) {
                 continue;
             }
             foreach ($contract->expandToDaysInYear($context->fiscalYear) as $date) {
+                if ($window !== null && ! $window->contains(CarbonImmutable::parse($date))) {
+                    continue;
+                }
                 $taxableDates[$date] = true;
             }
         }

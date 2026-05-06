@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Fiscal\Pipeline;
 
 use App\Enums\Contract\ContractType;
+use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -19,6 +20,7 @@ use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor;
 use App\Models\Contract;
+use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
@@ -136,6 +138,44 @@ final class VfcSegmentedFiscalExecutorTest extends TestCase
         $this->assertSame(35, $result->daysAssigned, 'les 35 jours doivent rester comptés');
         $this->assertFalse($result->lcdExempt, 'un contrat 35j ne doit PAS être qualifié LCD');
         $this->assertGreaterThan(0.0, $result->co2Due, 'le contrat doit produire une taxe non nulle');
+    }
+
+    #[Test]
+    public function indispo_reductrice_dans_un_segment_n_est_pas_comptee_dans_l_autre(): void
+    {
+        // Verrouille le contrat « daysWindow » de R-2024-008 : une indispo
+        // réductrice ne doit être soustraite qu'au numérateur du segment
+        // qui la contient, pas répétée à chaque sub-pipeline.
+        //
+        // Setup : contrat LLD couvrant toute l'année (366 j en 2024
+        // bissextile), VFC qui change le 16/06/2024, indispo réductrice
+        // de 10 j en mars (entièrement dans seg1).
+        // Attendu : daysAssigned total = 366 - 10 = 356
+        // (et non 346 = 366 - 10 - 10 si l'indispo était comptée 2 fois).
+        $vehicle = $this->makeVehicleWithTwoDifferentVfcs(
+            v1Co2: 100,
+            v2Co2: 100,
+            switchDate: '2024-06-16',
+        );
+        $contracts = [$this->syntheticContract($vehicle, '2024-01-01', '2024-12-31', ContractType::Lld)];
+        $unavailabilities = [$this->syntheticUnavailability(
+            $vehicle,
+            '2024-03-05',
+            '2024-03-14',
+            UnavailabilityType::PoundPublic,
+        )];
+
+        $context = new PipelineContext(
+            vehicle: $vehicle,
+            fiscalYear: 2024,
+            daysInYear: $this->yearContext->daysInYear(2024),
+            contractsForPair: $contracts,
+            vehicleUnavailabilitiesInYear: $unavailabilities,
+        );
+        $result = $this->executor->execute($context);
+
+        $this->assertSame(356, $result->daysAssigned,
+            '366 jours année - 10 jours indispo (non comptés deux fois entre segments)');
     }
 
     #[Test]
@@ -280,6 +320,25 @@ final class VfcSegmentedFiscalExecutorTest extends TestCase
             'handicap_access' => false,
             'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
         ];
+    }
+
+    private function syntheticUnavailability(
+        Vehicle $vehicle,
+        string $start,
+        string $end,
+        UnavailabilityType $type,
+    ): Unavailability {
+        $unavailability = new Unavailability;
+        $unavailability->setRawAttributes([
+            'vehicle_id' => $vehicle->id,
+            'start_date' => $start,
+            'end_date' => $end,
+            'type' => $type->value,
+            'has_fiscal_impact' => $type->isFiscallyReductive(),
+            'note' => null,
+        ], true);
+
+        return $unavailability;
     }
 
     private function syntheticContract(Vehicle $vehicle, string $start, string $end, ContractType $type): Contract
