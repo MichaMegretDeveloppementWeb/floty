@@ -4,7 +4,7 @@
    est instancié dans le parent et passé tel quel pour éviter de
    pousser la logique submit dans ce partial purement présentationnel). */
 import { computed, ref, watch } from 'vue';
-import DriverSelector from '@/Components/Domain/Driver/DriverSelector.vue';
+import DriversMultiPicker from '@/Components/Domain/Driver/DriversMultiPicker.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
@@ -19,7 +19,7 @@ import { formatDateFr } from '@/Utils/format/formatDateFr';
 type FormShape = {
     vehicle_id: number | null;
     company_id: number | null;
-    driver_id: number | null;
+    driver_ids: number[];
     start_date: string;
     end_date: string;
     contract_reference: string | null;
@@ -225,15 +225,15 @@ watch(disabledDates, (newDisabled) => {
         </div>
 
         <div>
-            <FieldLabel for="driver_id">Conducteur (optionnel)</FieldLabel>
-            <DriverSelector
-                :model-value="form.driver_id"
+            <FieldLabel for="driver_ids">Conducteurs (optionnel)</FieldLabel>
+            <DriversMultiPicker
+                :model-value="form.driver_ids"
                 :company-id="form.company_id"
                 :start-date="form.start_date || null"
                 :end-date="form.end_date || null"
-                @update:model-value="(v) => (form.driver_id = v)"
+                @update:model-value="(v) => (form.driver_ids = v)"
             />
-            <InputError :message="form.errors.driver_id" />
+            <InputError :message="form.errors.driver_ids" />
         </div>
 
         <div>

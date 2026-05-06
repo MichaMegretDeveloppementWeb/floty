@@ -128,7 +128,7 @@ final class UpdateContractActionTest extends TestCase
         return new UpdateContractData(
             vehicleId: $vehicleId,
             companyId: $companyId,
-            driverId: null,
+            driverIds: [],
             startDate: $startDate,
             endDate: $endDate,
             contractReference: null,

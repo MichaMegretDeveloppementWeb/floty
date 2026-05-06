@@ -249,7 +249,6 @@ final class WeekDetailService
         $contract->setRawAttributes([
             'vehicle_id' => $vehicleId,
             'company_id' => $companyId,
-            'driver_id' => null,
             'start_date' => $startDate,
             'end_date' => $endDate,
             'contract_reference' => null,

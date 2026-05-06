@@ -72,7 +72,6 @@ final readonly class BulkCreateContractsAction
                 $rows[] = [
                     'vehicle_id' => $vehicleId,
                     'company_id' => $data->companyId,
-                    'driver_id' => $data->driverId,
                     'start_date' => $data->startDate,
                     'end_date' => $data->endDate,
                     'contract_reference' => $data->contractReference,
@@ -81,7 +80,17 @@ final readonly class BulkCreateContractsAction
                 ];
             }
 
-            return $this->writer->insertManyRows($rows);
+            $ids = $this->writer->insertManyRows($rows);
+
+            // Attache la même liste de conducteurs à chaque contrat créé
+            // (cf. chantier #3 multi-conducteurs). `syncDrivers` est appelé
+            // pour chaque contrat - inserts simples sur le pivot, pas de
+            // diff puisque nouvelle création.
+            foreach ($ids as $contractId) {
+                $this->writer->syncDrivers($contractId, $data->driverIds);
+            }
+
+            return $ids;
         });
     }
 }

@@ -35,7 +35,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->with([
                 'vehicle.fiscalCharacteristics',
                 'company',
-                'driver',
+                'drivers',
             ])
             ->find($id);
     }
@@ -73,7 +73,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->with([
                 'vehicle:id,license_plate,exit_date,exit_reason',
                 'company:id,short_code,legal_name,color',
-                'driver:id,first_name,last_name',
+                'drivers:id,first_name,last_name',
             ])
             ->where('company_id', $companyId)
             ->orderByDesc('start_date')
@@ -86,7 +86,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->with([
                 'vehicle:id,license_plate,exit_date,exit_reason',
                 'company:id,short_code,legal_name,color',
-                'driver:id,first_name,last_name',
+                'drivers:id,first_name,last_name',
             ])
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')
@@ -153,7 +153,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->with([
                 'vehicle:id,license_plate,exit_date,exit_reason',
                 'company:id,short_code,legal_name,color',
-                'driver:id,first_name,last_name',
+                'drivers:id,first_name,last_name',
             ]);
 
         // Filtres exact match.
@@ -164,7 +164,11 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             $eloquentQuery->where('contracts.company_id', $query->companyId);
         }
         if ($query->driverId !== null) {
-            $eloquentQuery->where('contracts.driver_id', $query->driverId);
+            // Pivot N:N : on cherche les contrats où ce driver figure
+            // parmi les conducteurs (`whereHas('drivers')`).
+            $driverId = $query->driverId;
+            $eloquentQuery->whereHas('drivers', fn (Builder $qd) => $qd
+                ->where('drivers.id', $driverId));
         }
         if ($query->type !== null) {
             $eloquentQuery->where('contracts.contract_type', $query->type);
@@ -193,7 +197,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
                     ->orWhereHas('company', fn (Builder $qc) => $qc
                         ->where('short_code', 'like', $term)
                         ->orWhere('legal_name', 'like', $term))
-                    ->orWhereHas('driver', fn (Builder $qd) => $qd
+                    ->orWhereHas('drivers', fn (Builder $qd) => $qd
                         ->where('first_name', 'like', $term)
                         ->orWhere('last_name', 'like', $term));
             });
@@ -238,7 +242,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
     public function countForDriverInCompany(int $driverId, int $companyId): int
     {
         return Contract::query()
-            ->where('driver_id', $driverId)
+            ->whereHas('drivers', fn (Builder $q) => $q->where('drivers.id', $driverId))
             ->where('company_id', $companyId)
             ->count();
     }
@@ -314,6 +318,21 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         }
 
         return (int) $row->first_year;
+    }
+
+    public function findForCompanyInPeriod(
+        int $companyId,
+        string $startDate,
+        string $endDate,
+    ): Collection {
+        return Contract::query()
+            ->with('vehicle:id,license_plate,brand,model')
+            ->where('company_id', $companyId)
+            ->where('start_date', '<=', $endDate)
+            ->where('end_date', '>=', $startDate)
+            ->orderBy('vehicle_id')
+            ->orderBy('start_date')
+            ->get();
     }
 
     public function yearBounds(): array

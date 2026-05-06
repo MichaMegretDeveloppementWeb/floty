@@ -9,6 +9,7 @@ use App\Data\User\Contract\StoreContractData;
 use App\Data\User\Contract\UpdateContractData;
 use App\Enums\Contract\ContractType;
 use App\Models\Contract;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Implémentation Eloquent des écritures Contract - slim conforme
@@ -27,7 +28,6 @@ final class ContractWriteRepository implements ContractWriteRepositoryInterface
         return Contract::create([
             'vehicle_id' => $data->vehicleId,
             'company_id' => $data->companyId,
-            'driver_id' => $data->driverId,
             'start_date' => $data->startDate,
             'end_date' => $data->endDate,
             'contract_reference' => $data->contractReference,
@@ -43,7 +43,6 @@ final class ContractWriteRepository implements ContractWriteRepositoryInterface
         $contract->update([
             'vehicle_id' => $data->vehicleId,
             'company_id' => $data->companyId,
-            'driver_id' => $data->driverId,
             'start_date' => $data->startDate,
             'end_date' => $data->endDate,
             'contract_reference' => $data->contractReference,
@@ -71,21 +70,28 @@ final class ContractWriteRepository implements ContractWriteRepositoryInterface
         return $ids;
     }
 
-    public function reassignDriver(int $contractId, ?int $driverId): void
+    public function syncDrivers(int $contractId, array $driverIds): void
     {
-        Contract::query()
-            ->where('id', $contractId)
-            ->update(['driver_id' => $driverId]);
+        $contract = Contract::findOrFail($contractId);
+        $contract->drivers()->sync($driverIds);
     }
 
-    public function bulkReassignDriver(array $contractIds, ?int $driverId): void
+    public function attachDriver(int $contractId, int $driverId): void
+    {
+        $contract = Contract::findOrFail($contractId);
+        // syncWithoutDetaching = idempotent : pas de duplicate si déjà attaché.
+        $contract->drivers()->syncWithoutDetaching([$driverId]);
+    }
+
+    public function bulkDetachDriver(array $contractIds, int $driverId): void
     {
         if ($contractIds === []) {
             return;
         }
 
-        Contract::query()
-            ->whereIn('id', $contractIds)
-            ->update(['driver_id' => $driverId]);
+        DB::table('contract_drivers')
+            ->whereIn('contract_id', $contractIds)
+            ->where('driver_id', $driverId)
+            ->delete();
     }
 }

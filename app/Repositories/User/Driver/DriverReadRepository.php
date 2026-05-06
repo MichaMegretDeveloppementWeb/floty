@@ -11,6 +11,7 @@ use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\Pivot\DriverCompany;
 use Carbon\CarbonInterface;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
@@ -163,7 +164,7 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
         CarbonInterface $leftAt,
     ): int {
         return Contract::query()
-            ->where('driver_id', $driverId)
+            ->whereHas('drivers', fn (Builder $q) => $q->where('drivers.id', $driverId))
             ->where('company_id', $companyId)
             ->where('start_date', '>', $leftAt->toDateString())
             ->count();
@@ -175,8 +176,12 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
         CarbonInterface $leftAt,
     ): Collection {
         return Contract::query()
-            ->with(['vehicle:id,license_plate', 'company:id,short_code,legal_name,color'])
-            ->where('driver_id', $driverId)
+            ->with([
+                'vehicle:id,license_plate',
+                'company:id,short_code,legal_name,color',
+                'drivers:id,first_name,last_name',
+            ])
+            ->whereHas('drivers', fn (Builder $q) => $q->where('drivers.id', $driverId))
             ->where('company_id', $companyId)
             ->where('start_date', '>', $leftAt->toDateString())
             ->orderBy('start_date')
@@ -186,7 +191,7 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
     public function countContractsForDriverGroupedByCompany(int $driverId): array
     {
         return Contract::query()
-            ->where('driver_id', $driverId)
+            ->whereHas('drivers', fn (Builder $q) => $q->where('drivers.id', $driverId))
             ->selectRaw('company_id, COUNT(*) as aggregate')
             ->groupBy('company_id')
             ->pluck('aggregate', 'company_id')
@@ -211,6 +216,8 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
 
     public function countContractsForDriver(int $driverId): int
     {
-        return Contract::query()->where('driver_id', $driverId)->count();
+        return Contract::query()
+            ->whereHas('drivers', fn (Builder $q) => $q->where('drivers.id', $driverId))
+            ->count();
     }
 }

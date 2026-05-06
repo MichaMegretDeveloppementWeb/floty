@@ -217,7 +217,7 @@ final class ExitVehicleControllerTest extends TestCase
             ->post('/app/contracts', [
                 'vehicle_id' => $vehicle->id,
                 'company_id' => $company->id,
-                'driver_id' => null,
+                'driver_ids' => [],
                 'start_date' => '2025-07-01',
                 'end_date' => '2025-07-31',
                 'contract_reference' => null,

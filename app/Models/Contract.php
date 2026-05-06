@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -36,7 +37,6 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $vehicle_id
  * @property int $company_id
- * @property int|null $driver_id
  * @property Carbon $start_date
  * @property Carbon $end_date
  * @property string|null $contract_reference
@@ -49,7 +49,6 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'vehicle_id',
     'company_id',
-    'driver_id',
     'start_date',
     'end_date',
     'contract_reference',
@@ -93,13 +92,19 @@ final class Contract extends Model
     }
 
     /**
-     * Conducteur désigné, optionnel à la création (cf. phase 06).
+     * Conducteurs désignés sur ce contrat (0, 1 ou plusieurs). Pivot
+     * pur égalitaire `contract_drivers` — pas de notion de conducteur
+     * principal/secondaire, tous les conducteurs sont équivalents.
      *
-     * @return BelongsTo<Driver, $this>
+     * Optionnel à la création (un contrat peut être créé sans conducteur
+     * et complété ensuite).
+     *
+     * @return BelongsToMany<Driver, $this>
      */
-    public function driver(): BelongsTo
+    public function drivers(): BelongsToMany
     {
-        return $this->belongsTo(Driver::class);
+        return $this->belongsToMany(Driver::class, 'contract_drivers')
+            ->withTimestamps();
     }
 
     /**

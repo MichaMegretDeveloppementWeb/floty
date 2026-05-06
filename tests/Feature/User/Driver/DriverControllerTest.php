@@ -165,17 +165,15 @@ final class DriverControllerTest extends TestCase
         $driverWith2 = Driver::factory()->create(['first_name' => 'Two', 'last_name' => 'Contracts']);
         $driverWith2->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
         // Dates fixes pour éviter le trigger d'overlap par hasard sur le même vehicle.
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driverWith2])->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => $driverWith2->id,
             'start_date' => '2025-01-01',
             'end_date' => '2025-01-31',
         ]);
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driverWith2])->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => $driverWith2->id,
             'start_date' => '2025-03-01',
             'end_date' => '2025-03-31',
         ]);
@@ -307,9 +305,7 @@ final class DriverControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
         $avecContrat = Driver::factory()->create(['first_name' => 'Avec', 'last_name' => 'A']);
-        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
-            'driver_id' => $avecContrat->id,
-        ]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->withDrivers([$avecContrat])->create();
 
         Driver::factory()->create(['first_name' => 'Sans', 'last_name' => 'S']);
 
@@ -460,10 +456,9 @@ final class DriverControllerTest extends TestCase
         $driver = Driver::factory()->create();
         $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => $driver->id,
             'start_date' => '2024-06-01',
             'end_date' => '2024-06-30',
         ]);
@@ -541,10 +536,9 @@ final class DriverControllerTest extends TestCase
         $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
         $pivotId = (int) DB::table('driver_company')->where('driver_id', $driver->id)->value('id');
 
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => $driver->id,
             'start_date' => '2024-06-01',
             'end_date' => '2024-06-30',
         ]);
@@ -587,10 +581,9 @@ final class DriverControllerTest extends TestCase
         $remplacant = Driver::factory()->create();
         $remplacant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        $contract = Contract::factory()->create([
+        $contract = Contract::factory()->withDrivers([$sortant])->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => $sortant->id,
             'start_date' => '2027-01-01',
             'end_date' => '2027-01-31',
         ]);
@@ -603,7 +596,13 @@ final class DriverControllerTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertSame($remplacant->id, $contract->fresh()->driver_id);
+        // Sortant retiré, remplaçant attaché
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $contract->id, 'driver_id' => $sortant->id,
+        ]);
+        $this->assertDatabaseHas('contract_drivers', [
+            'contract_id' => $contract->id, 'driver_id' => $remplacant->id,
+        ]);
         $this->assertDatabaseHas('driver_company', [
             'driver_id' => $sortant->id,
             'company_id' => $company->id,
@@ -612,7 +611,7 @@ final class DriverControllerTest extends TestCase
     }
 
     #[Test]
-    public function leave_company_avec_mode_detach_passe_les_contrats_a_venir_a_null(): void
+    public function leave_company_avec_mode_detach_retire_le_sortant_des_contrats_a_venir(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -620,10 +619,9 @@ final class DriverControllerTest extends TestCase
         $driver = Driver::factory()->create();
         $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        $contract = Contract::factory()->create([
+        $contract = Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => $driver->id,
             'start_date' => '2027-01-01',
             'end_date' => '2027-01-31',
         ]);
@@ -635,7 +633,12 @@ final class DriverControllerTest extends TestCase
             ])
             ->assertRedirect();
 
-        $this->assertNull($contract->fresh()->driver_id);
+        // Le sortant n'est plus attaché au contrat (cf. chantier #3
+        // multi-conducteurs : "detach" ne touche pas les autres
+        // conducteurs éventuels du même contrat).
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $contract->id, 'driver_id' => $driver->id,
+        ]);
     }
 
     #[Test]

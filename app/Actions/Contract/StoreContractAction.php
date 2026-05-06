@@ -52,7 +52,12 @@ final readonly class StoreContractAction
 
             $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
 
-            return $this->writer->create($data, $contractType);
+            $contract = $this->writer->create($data, $contractType);
+
+            // Sync pivot N:N drivers (cf. chantier #3 multi-conducteurs).
+            $this->writer->syncDrivers($contract->id, $data->driverIds);
+
+            return $contract->refresh();
         });
     }
 }

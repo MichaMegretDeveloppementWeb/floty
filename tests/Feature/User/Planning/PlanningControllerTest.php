@@ -237,7 +237,7 @@ final class PlanningControllerTest extends TestCase
             ->postJson('/app/planning/contracts', [
                 'vehicle_ids' => [$vehicle->id],
                 'company_id' => $company->id,
-                'driver_id' => null,
+                'driver_ids' => [],
                 'start_date' => "{$year}-04-10",
                 'end_date' => "{$year}-04-12",
                 'contract_reference' => null,

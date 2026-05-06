@@ -27,7 +27,6 @@ use App\Enums\Contract\ContractType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Company;
-use App\Models\Contract;
 use App\Models\Pivot\DriverCompany;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
@@ -36,6 +35,7 @@ use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Spatie\LaravelData\DataCollection;
 
 /**
@@ -189,12 +189,17 @@ final class CompanyQueryService
             $query->orderByPivot('joined_at');
         }]);
 
-        $contractsCountByDriver = Contract::query()
-            ->where('company_id', $companyId)
-            ->whereNotNull('driver_id')
-            ->selectRaw('driver_id, COUNT(*) as cnt')
-            ->groupBy('driver_id')
+        // Compte de contrats par driver dans la company donnée. Pivot
+        // N:N `contract_drivers` (cf. chantier #3 multi-conducteurs) :
+        // un contrat avec 2 drivers compte 1 fois pour chacun.
+        $contractsCountByDriver = DB::table('contract_drivers')
+            ->join('contracts', 'contracts.id', '=', 'contract_drivers.contract_id')
+            ->where('contracts.company_id', $companyId)
+            ->whereNull('contracts.deleted_at')
+            ->selectRaw('contract_drivers.driver_id, COUNT(*) as cnt')
+            ->groupBy('contract_drivers.driver_id')
             ->pluck('cnt', 'driver_id')
+            ->map(fn ($v): int => (int) $v)
             ->all();
 
         $driverRows = $company->drivers->map(function ($driver) use ($contractsCountByDriver, $today): CompanyDriverRowData {

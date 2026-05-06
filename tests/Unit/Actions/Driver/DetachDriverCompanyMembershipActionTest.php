@@ -57,10 +57,9 @@ final class DetachDriverCompanyMembershipActionTest extends TestCase
         $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
         $pivotId = (int) DB::table('driver_company')->where('driver_id', $driver->id)->value('id');
 
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => Vehicle::factory()->create()->id,
             'company_id' => $company->id,
-            'driver_id' => $driver->id,
             'start_date' => '2024-06-01',
             'end_date' => '2024-06-30',
         ]);

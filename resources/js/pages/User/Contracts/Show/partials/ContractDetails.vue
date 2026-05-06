@@ -60,12 +60,12 @@ defineProps<{
                     {{ contract.contractReference }}
                 </dd>
             </div>
-            <div v-if="contract.driverFullName">
+            <div v-if="contract.drivers.length > 0">
                 <dt class="text-xs font-medium uppercase text-slate-500">
-                    Conducteur
+                    Conducteur{{ contract.drivers.length > 1 ? 's' : '' }}
                 </dt>
                 <dd class="mt-1 text-sm text-slate-900">
-                    {{ contract.driverFullName }}
+                    {{ contract.drivers.map((d) => d.fullName).join(', ') }}
                 </dd>
             </div>
         </dl>

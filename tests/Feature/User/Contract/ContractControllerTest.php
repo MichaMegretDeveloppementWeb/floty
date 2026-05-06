@@ -168,21 +168,21 @@ final class ContractControllerTest extends TestCase
         $driver = Driver::factory()->create();
 
         // Match: c1 + driver + lcd
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => $vehicle->id, 'company_id' => $c1->id,
-            'driver_id' => $driver->id, 'contract_type' => ContractType::Lcd,
+            'contract_type' => ContractType::Lcd,
             'start_date' => '2025-01-01', 'end_date' => '2025-01-15',
         ]);
         // Pas match (c2)
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => $vehicle2->id, 'company_id' => $c2->id,
-            'driver_id' => $driver->id, 'contract_type' => ContractType::Lcd,
+            'contract_type' => ContractType::Lcd,
             'start_date' => '2025-02-01', 'end_date' => '2025-02-15',
         ]);
         // Pas match (lld)
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => $vehicle3->id, 'company_id' => $c1->id,
-            'driver_id' => $driver->id, 'contract_type' => ContractType::Lld,
+            'contract_type' => ContractType::Lld,
             'start_date' => '2025-03-01', 'end_date' => '2025-12-31',
         ]);
 
@@ -248,9 +248,8 @@ final class ContractControllerTest extends TestCase
             'vehicle_id' => $vehicle1->id, 'company_id' => $companyA->id,
             'start_date' => '2025-01-01', 'end_date' => '2025-01-31',
         ]);
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => $vehicle2->id, 'company_id' => $companyB->id,
-            'driver_id' => $driver->id,
             'start_date' => '2025-02-01', 'end_date' => '2025-02-28',
         ]);
         Contract::factory()->create([
@@ -473,7 +472,7 @@ final class ContractControllerTest extends TestCase
         $payload = [
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => null,
+            'driver_ids' => [],
             'start_date' => '2024-03-01',
             'end_date' => '2024-03-15',
             'contract_reference' => 'REF-001',
@@ -506,7 +505,7 @@ final class ContractControllerTest extends TestCase
             ->post('/app/contracts', [
                 'vehicle_id' => $vehicle->id,
                 'company_id' => $company->id,
-                'driver_id' => null,
+                'driver_ids' => [],
                 'start_date' => '2024-03-15',
                 'end_date' => '2024-03-01',
                 'contract_reference' => null,
@@ -536,7 +535,7 @@ final class ContractControllerTest extends TestCase
             ->post('/app/contracts', [
                 'vehicle_id' => $vehicle->id,
                 'company_id' => $company->id,
-                'driver_id' => null,
+                'driver_ids' => [],
                 'start_date' => '2024-03-10',
                 'end_date' => '2024-03-25',
                 'contract_reference' => null,
@@ -565,7 +564,7 @@ final class ContractControllerTest extends TestCase
             ->patch("/app/contracts/{$contract->id}", [
                 'vehicle_id' => $vehicle->id,
                 'company_id' => $company->id,
-                'driver_id' => null,
+                'driver_ids' => [],
                 'start_date' => '2024-03-05',
                 'end_date' => '2024-03-25',
                 'contract_reference' => null,
@@ -689,7 +688,7 @@ final class ContractControllerTest extends TestCase
             ->post('/app/contracts/bulk', [
                 'vehicle_ids' => [$vehicleA->id, $vehicleB->id],
                 'company_id' => $company->id,
-                'driver_id' => null,
+                'driver_ids' => [],
                 'start_date' => '2024-04-01',
                 'end_date' => '2024-04-15',
                 'contract_reference' => null,

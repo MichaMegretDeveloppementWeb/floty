@@ -7,6 +7,7 @@ namespace Database\Factories;
 use App\Enums\Contract\ContractType;
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\Driver;
 use App\Models\Vehicle;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -27,7 +28,6 @@ final class ContractFactory extends Factory
         return [
             'vehicle_id' => Vehicle::factory(),
             'company_id' => Company::factory(),
-            'driver_id' => null,
             'start_date' => $start->format('Y-m-d'),
             'end_date' => $end->format('Y-m-d'),
             'contract_reference' => null,
@@ -82,6 +82,23 @@ final class ContractFactory extends Factory
     public function forCompany(Company $company): static
     {
         return $this->state(fn (): array => ['company_id' => $company->id]);
+    }
+
+    /**
+     * Attache N conducteurs au contrat via le pivot `contract_drivers`
+     * après création. Pattern N:N (chantier #3 multi-conducteurs).
+     *
+     * Usage : `Contract::factory()->withDrivers([$d1, $d2])->create()`
+     *
+     * @param  list<Driver>  $drivers
+     */
+    public function withDrivers(array $drivers): static
+    {
+        return $this->afterCreating(function (Contract $contract) use ($drivers): void {
+            $contract->drivers()->attach(
+                array_map(static fn (Driver $d): int => $d->id, $drivers),
+            );
+        });
     }
 
     /**

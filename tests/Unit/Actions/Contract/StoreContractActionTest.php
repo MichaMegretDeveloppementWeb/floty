@@ -119,7 +119,7 @@ final class StoreContractActionTest extends TestCase
         return new StoreContractData(
             vehicleId: $vehicleId,
             companyId: $companyId,
-            driverId: null,
+            driverIds: [],
             startDate: $startDate,
             endDate: $endDate,
             contractReference: null,

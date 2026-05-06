@@ -124,7 +124,6 @@ final class MultiYearProrataTest extends TestCase
         $contract->setRawAttributes([
             'vehicle_id' => 1,
             'company_id' => 1,
-            'driver_id' => null,
             'start_date' => '2024-12-15',
             'end_date' => '2025-02-28',
             'contract_reference' => null,
@@ -141,7 +140,6 @@ final class MultiYearProrataTest extends TestCase
         $contract->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'company_id' => 0,
-            'driver_id' => null,
             'start_date' => '2024-12-15',
             'end_date' => '2025-02-28',
             'contract_reference' => null,

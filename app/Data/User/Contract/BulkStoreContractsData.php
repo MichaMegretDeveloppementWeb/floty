@@ -9,13 +9,17 @@ use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\AfterOrEqual;
 use Spatie\LaravelData\Attributes\Validation\ArrayType;
 use Spatie\LaravelData\Attributes\Validation\Date;
+use Spatie\LaravelData\Attributes\Validation\Distinct;
 use Spatie\LaravelData\Attributes\Validation\Exists;
 use Spatie\LaravelData\Attributes\Validation\IntegerType;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
+use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
+use Spatie\LaravelData\Attributes\Validation\Sometimes;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
+use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -34,6 +38,7 @@ final class BulkStoreContractsData extends Data
 {
     /**
      * @param  list<int>  $vehicleIds
+     * @param  list<int>  $driverIds  Conducteurs à associer à chacun des contrats créés (0, 1 ou plusieurs ; pivot `contract_drivers`).
      */
     public function __construct(
         #[Required, ArrayType, Min(1), Max(100)]
@@ -41,9 +46,6 @@ final class BulkStoreContractsData extends Data
 
         #[Required, IntegerType, Exists('companies', 'id')]
         public int $companyId,
-
-        #[IntegerType, Exists('drivers', 'id')]
-        public ?int $driverId,
 
         #[Required, Date]
         public string $startDate,
@@ -56,7 +58,24 @@ final class BulkStoreContractsData extends Data
 
         #[Max(5000)]
         public ?string $notes,
+
+        // Liste de conducteurs partagée appliquée à chaque contrat créé
+        // (cf. chantier #3 multi-conducteurs). Default `[]` cohérent avec
+        // {@see StoreContractData} - `Sometimes` évite l'auto-required.
+        #[Sometimes, Nullable, ArrayType, Distinct]
+        public array $driverIds = [],
     ) {}
+
+    /**
+     * @return array<string, array<int, mixed>>
+     */
+    public static function rules(ValidationContext $context): array
+    {
+        return [
+            'driver_ids' => ['sometimes', 'nullable', 'array'],
+            'driver_ids.*' => ['integer', 'exists:drivers,id'],
+        ];
+    }
 
     /**
      * @return array<string, string>
@@ -68,7 +87,8 @@ final class BulkStoreContractsData extends Data
             'vehicle_ids.min' => 'Sélectionnez au moins un véhicule.',
             'vehicle_ids.max' => 'Création limitée à 100 locations par opération.',
             'company_id.exists' => 'Entreprise introuvable.',
-            'driver_id.exists' => 'Conducteur introuvable.',
+            'driver_ids.*.exists' => 'Conducteur introuvable.',
+            'driver_ids.distinct' => "Un conducteur ne peut être ajouté qu'une seule fois sur la même location.",
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
         ];
     }

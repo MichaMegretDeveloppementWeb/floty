@@ -26,10 +26,14 @@ use Illuminate\Support\Facades\DB;
  * 2. Lister les contrats à venir (start_date > leftAt) du driver dans cette company.
  * 3. Selon `futureContractsResolution` :
  *    - None    : aucun contrat à résoudre, pose simple de left_at.
- *    - Replace : valider d'abord TOUT le replacementMap (driver actif sur la
- *      période exacte de chaque contrat), puis muter ; null = détacher
- *      individuellement ce contrat.
- *    - Detach  : tous les contrats à venir passent à `driver_id = NULL` (1 query batch).
+ *    - Replace : valider d'abord TOUT le replacementMap (remplaçant actif sur la
+ *      période exacte de chaque contrat), puis muter. Pour chaque contrat :
+ *      retire le driver sortant du pivot, et si un remplaçant est précisé
+ *      (non `null`), l'attache ; les autres conducteurs déjà présents sur
+ *      le contrat sont conservés. `null` = juste retirer, sans remplaçant.
+ *    - Detach  : retire le driver sortant de tous les contrats à venir
+ *      en 1 query batch ; les autres conducteurs sur ces contrats sont
+ *      conservés (cf. chantier #3 multi-conducteurs).
  * 4. Pose `left_at` sur la pivot.
  *
  * Validation et écritures sont scindées en 2 passes pour éviter un rollback
@@ -70,11 +74,12 @@ final class LeaveDriverCompanyMembershipAction
         }
 
         // 4. Mutations en transaction
-        DB::transaction(function () use ($pivot, $leftAt, $futureContracts, $data): void {
+        $sortantDriverId = $driver->id;
+        DB::transaction(function () use ($pivot, $leftAt, $futureContracts, $data, $sortantDriverId): void {
             if ($futureContracts->isNotEmpty()) {
                 match ($data->futureContractsResolution) {
-                    FutureContractsResolutionMode::Replace => $this->applyReplace($futureContracts, $data->replacementMap),
-                    FutureContractsResolutionMode::Detach => $this->applyDetach($futureContracts),
+                    FutureContractsResolutionMode::Replace => $this->applyReplace($sortantDriverId, $futureContracts, $data->replacementMap),
+                    FutureContractsResolutionMode::Detach => $this->applyDetach($sortantDriverId, $futureContracts),
                     FutureContractsResolutionMode::None => null,
                 };
             }
@@ -119,6 +124,14 @@ final class LeaveDriverCompanyMembershipAction
                 throw LeaveResolutionInvalidException::replacementDriverInvalid($contract->id, $replacementId);
             }
 
+            // Interdire un remplaçant déjà attaché au contrat (cf. chantier
+            // #3 multi-conducteurs - le « remplaçant » est nécessairement
+            // un nouveau driver à ajouter).
+            $alreadyAttachedIds = $contract->drivers->pluck('id')->all();
+            if (in_array($replacementId, $alreadyAttachedIds, true)) {
+                throw LeaveResolutionInvalidException::replacementDriverInvalid($contract->id, $replacementId);
+            }
+
             $replacement = $this->driverReadRepo->findById($replacementId);
             if ($replacement === null) {
                 throw LeaveResolutionInvalidException::replacementDriverInvalid($contract->id, $replacementId);
@@ -139,22 +152,36 @@ final class LeaveDriverCompanyMembershipAction
     /**
      * Deuxième passe : pure mutation, validation déjà faite en amont.
      *
+     * Pour chaque contrat : détache le driver sortant du pivot ; si un
+     * remplaçant est désigné (non `null`), l'attache. Les autres conducteurs
+     * déjà présents sur le contrat sont conservés.
+     *
      * @param  Collection<int, Contract>  $contracts
      * @param  array<int, ?int>  $replacementMap
      */
-    private function applyReplace(Collection $contracts, array $replacementMap): void
+    private function applyReplace(int $sortantDriverId, Collection $contracts, array $replacementMap): void
     {
         foreach ($contracts as $contract) {
-            $this->contractWriteRepo->reassignDriver($contract->id, $replacementMap[$contract->id]);
+            $contractId = (int) $contract->id;
+            $this->contractWriteRepo->bulkDetachDriver([$contractId], $sortantDriverId);
+
+            $replacementId = $replacementMap[$contractId] ?? null;
+            if ($replacementId !== null) {
+                $this->contractWriteRepo->attachDriver($contractId, $replacementId);
+            }
         }
     }
 
     /**
+     * Retire le driver sortant de tous les contrats à venir en 1 query
+     * batch sur le pivot. Les autres conducteurs présents sur ces contrats
+     * sont conservés.
+     *
      * @param  Collection<int, Contract>  $contracts
      */
-    private function applyDetach(Collection $contracts): void
+    private function applyDetach(int $sortantDriverId, Collection $contracts): void
     {
-        $ids = $contracts->pluck('id')->all();
-        $this->contractWriteRepo->bulkReassignDriver($ids, null);
+        $ids = $contracts->pluck('id')->map(fn ($v): int => (int) $v)->all();
+        $this->contractWriteRepo->bulkDetachDriver($ids, $sortantDriverId);
     }
 }

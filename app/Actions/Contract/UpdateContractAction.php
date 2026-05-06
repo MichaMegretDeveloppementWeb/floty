@@ -54,7 +54,14 @@ final readonly class UpdateContractAction
             // re-pose le même type.
             $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
 
-            return $this->writer->update($contractId, $data, $contractType);
+            $contract = $this->writer->update($contractId, $data, $contractType);
+
+            // Sync pivot N:N drivers (cf. chantier #3 multi-conducteurs).
+            // `sync()` remplace toute la liste : ajoute/retire/conserve
+            // selon le delta avec l'état courant.
+            $this->writer->syncDrivers($contractId, $data->driverIds);
+
+            return $contract->refresh();
         });
     }
 }

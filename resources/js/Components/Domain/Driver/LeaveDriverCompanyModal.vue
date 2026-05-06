@@ -2,16 +2,21 @@
 /**
  * Modal de sortie d'un driver d'une entreprise (workflow Q6).
  *
- * Workflow :
+ * Workflow (chantier #3 multi-conducteurs) :
  * 1. L'utilisateur saisit la date de sortie.
  * 2. Le composable charge automatiquement les contrats à venir (start_date
- *    > leftAt) du driver dans cette company, avec pour chacun la liste
- *    des drivers de remplacement éligibles (actifs sur la période exacte).
+ *    > leftAt) du driver dans cette company. Chaque ligne expose :
+ *    - `currentDrivers` : conducteurs actuellement attachés au contrat
+ *      (le sortant compris) — pour donner le contexte.
+ *    - `candidates` : drivers actifs sur la période, hors tous les
+ *      drivers déjà attachés.
  * 3a. Si 0 contrats → sortie directe (mode 'none').
  * 3b. Si ≥1 contrats → l'utilisateur choisit :
- *     - Mode 'detach'  : tous les contrats à venir passent à driver_id = null.
- *     - Mode 'replace' : pour chaque contrat, sélectionner un remplaçant
- *       parmi les candidats, ou null pour détacher individuellement.
+ *     - Mode 'detach'  : retire le sortant de tous les contrats à venir
+ *       (les autres conducteurs présents sur ces contrats restent).
+ *     - Mode 'replace' : pour chaque contrat, soit on retire juste le
+ *       sortant (= `null`), soit on retire le sortant ET on attache un
+ *       remplaçant en plus.
  * 4. Submit : construit `replacement_map = {contractId: driverId|null}`
  *    en mode replace ; sinon omet (Spatie Data refuse `[]` explicite).
  *
@@ -143,11 +148,11 @@ const resolutionOptions = computed<
     return [
         {
             value: 'detach',
-            label: `Détacher les ${count} location${count > 1 ? 's' : ''} à venir (driver vide)`,
+            label: `Retirer le conducteur des ${count} location${count > 1 ? 's' : ''} à venir`,
         },
         {
             value: 'replace',
-            label: 'Remplacer par un autre conducteur (à choisir par location)',
+            label: 'Au cas par cas : retirer + ajouter un remplaçant si besoin',
         },
     ];
 });
@@ -158,7 +163,7 @@ function candidateOptionsFor(contract: FutureContract): Array<{
 }> {
     const options: Array<{ value: number | string; label: string }>
         = contract.candidates.map((c) => ({ value: c.id, label: c.fullName }));
-    options.unshift({ value: '__detach__', label: '— Détacher cette location —' });
+    options.unshift({ value: '__detach__', label: '— Aucun remplaçant (juste retirer) —' });
 
     return options;
 }
@@ -294,7 +299,8 @@ function submit(): void {
                     class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3"
                 >
                     <p class="text-xs font-medium text-slate-700">
-                        Choisir un remplaçant pour chaque location
+                        Pour chaque location : retirer {{ driverFullName }} et,
+                        si besoin, ajouter un remplaçant
                     </p>
                     <div
                         v-for="contract in futureContracts"
@@ -317,6 +323,17 @@ function submit(): void {
                                 <span class="mx-1 text-slate-300">·</span>
                                 {{ contract.durationDays }} j
                             </p>
+                            <p
+                                v-if="contract.currentDrivers.length > 1"
+                                class="text-[11px] text-slate-500"
+                            >
+                                Conducteurs actuels :
+                                <span
+                                    v-for="(d, i) in contract.currentDrivers"
+                                    :key="d.id"
+                                    :class="d.id === driverId ? 'font-medium text-rose-700 line-through' : ''"
+                                >{{ d.fullName }}<span v-if="i < contract.currentDrivers.length - 1">, </span></span>
+                            </p>
                         </div>
                         <div class="w-full sm:w-72">
                             <SelectInput
@@ -336,7 +353,7 @@ function submit(): void {
                                 v-if="contract.candidates.length === 0"
                                 class="mt-1 text-[10px] text-amber-700"
                             >
-                                Aucun remplaçant éligible — choisissez « Détacher ».
+                                Aucun remplaçant disponible — choisissez « Aucun remplaçant ».
                             </p>
                         </div>
                     </div>

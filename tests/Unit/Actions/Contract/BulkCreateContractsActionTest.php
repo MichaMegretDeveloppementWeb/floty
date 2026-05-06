@@ -89,7 +89,7 @@ final class BulkCreateContractsActionTest extends TestCase
         return new BulkStoreContractsData(
             vehicleIds: $vehicleIds,
             companyId: $companyId,
-            driverId: null,
+            driverIds: [],
             startDate: '2024-03-01',
             endDate: '2024-03-15',
             contractReference: null,

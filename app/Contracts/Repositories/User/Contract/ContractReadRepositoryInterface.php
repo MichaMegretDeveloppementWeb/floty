@@ -196,6 +196,25 @@ interface ContractReadRepositoryInterface
     public function findActiveYearsForCompany(int $companyId): array;
 
     /**
+     * Contrats d'une entreprise chevauchant la fenêtre `[start, end]`,
+     * avec `vehicle` eager-loadé (license_plate, brand, model). Pivot
+     * du module Facturation V1.2 ({@see App\Services\Billing\BillingCalculator})
+     * pour énumérer les véhicules à facturer sur un mois donné.
+     *
+     * Tri par `vehicle_id` puis `start_date` pour permettre un
+     * regroupement linéaire côté service (un véhicule peut avoir
+     * plusieurs contrats successifs sur une même entreprise dans
+     * le même mois).
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findForCompanyInPeriod(
+        int $companyId,
+        string $startDate,
+        string $endDate,
+    ): Collection;
+
+    /**
      * Bornes globales des années sur les contrats **non soft-deletés**.
      *
      * Source de vérité du sélecteur d'année dynamique exposé par

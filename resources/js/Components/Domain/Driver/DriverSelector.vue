@@ -19,6 +19,12 @@ const props = defineProps<{
     companyId: number | null;
     startDate: string | null;
     endDate: string | null;
+    /**
+     * IDs de drivers à exclure des options affichées. Utilisé par le
+     * multi-picker pour empêcher un même driver d'apparaître sur deux
+     * lignes du même contrat (chantier #3 multi-conducteurs).
+     */
+    excludedIds?: number[];
 }>();
 
 const emit = defineEmits<{
@@ -38,9 +44,16 @@ const isReady = computed<boolean>(
         props.endDate !== '',
 );
 
-const items = computed(() =>
-    options.value.map((d) => ({ value: d.id, label: d.fullName })),
-);
+const items = computed(() => {
+    const excluded = new Set(props.excludedIds ?? []);
+
+    return options.value
+        // On garde toujours la valeur sélectionnée même si elle est dans
+        // `excludedIds` (sinon le label deviendrait vide), pour les
+        // autres on filtre.
+        .filter((d) => d.id === props.modelValue || !excluded.has(d.id))
+        .map((d) => ({ value: d.id, label: d.fullName }));
+});
 
 const valueModel = computed({
     get: () => props.modelValue,

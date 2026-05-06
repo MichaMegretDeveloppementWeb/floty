@@ -189,7 +189,6 @@ final class PipelineNoIntermediateRoundingTest extends TestCase
         $contract->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'company_id' => 0,
-            'driver_id' => null,
             'start_date' => $start,
             'end_date' => $end,
             'contract_reference' => null,

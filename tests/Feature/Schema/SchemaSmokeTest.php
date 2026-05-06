@@ -106,11 +106,11 @@ final class SchemaSmokeTest extends TestCase
         $contract = Contract::create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => $driver->id,
             'start_date' => '2024-03-15',
             'end_date' => '2024-03-15',
             'contract_type' => ContractType::Lcd,
         ]);
+        $contract->drivers()->attach($driver->id);
 
         $unavailability = Unavailability::create([
             'vehicle_id' => $vehicle->id,
@@ -193,7 +193,7 @@ final class SchemaSmokeTest extends TestCase
         $this->assertSame($vehicle->id, $fiscalVersion->vehicle->id);
         $this->assertSame($vehicle->id, $contract->vehicle->id);
         $this->assertSame($company->id, $contract->company->id);
-        $this->assertSame($driver->id, $contract->driver->id);
+        $this->assertTrue($contract->fresh()->drivers->contains('id', $driver->id));
         $this->assertSame($vehicle->id, $unavailability->vehicle->id);
         $this->assertSame($company->id, $declaration->company->id);
         $this->assertSame($user->id, $declaration->statusChangedBy->id);
@@ -261,7 +261,6 @@ final class SchemaSmokeTest extends TestCase
         $contract = Contract::create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => null,
             'start_date' => '2024-03-01',
             'end_date' => '2024-03-15',
             'contract_reference' => 'REF-001',

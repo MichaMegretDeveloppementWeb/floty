@@ -128,7 +128,6 @@ final class FiscalInvariantsTest extends TestCase
             $extended->setRawAttributes([
                 'vehicle_id' => $base->vehicle_id,
                 'company_id' => $base->company_id,
-                'driver_id' => null,
                 'start_date' => $base->start_date->toDateString(),
                 'end_date' => $newEnd,
                 'contract_reference' => null,
@@ -272,7 +271,6 @@ final class FiscalInvariantsTest extends TestCase
         $contract->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'company_id' => 1,
-            'driver_id' => null,
             'start_date' => $start,
             'end_date' => $end,
             'contract_reference' => null,

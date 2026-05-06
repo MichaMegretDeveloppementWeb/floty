@@ -160,9 +160,27 @@ final class DriverQueryService
         foreach ($contracts as $contract) {
             $start = $contract->start_date;
             $end = $contract->end_date;
+
+            // Conducteurs actuellement attachés au contrat (pivot N:N).
+            // Le driver sortant en fait partie : la modale affiche le
+            // contexte complet à l'utilisateur avant qu'il ne tranche.
+            $currentDriversList = $contract->drivers
+                ->map(fn (Driver $d): DriverOptionData => new DriverOptionData(
+                    id: $d->id,
+                    fullName: $d->full_name,
+                    initials: $d->initials,
+                ))
+                ->values()
+                ->all();
+            $alreadyAttachedIds = $contract->drivers->pluck('id')->all();
+
+            // Candidats remplaçants : actifs sur la période exacte du
+            // contrat, **hors tous les conducteurs déjà attachés** (cf.
+            // chantier #3 multi-conducteurs - on ne propose pas comme
+            // « remplaçant » quelqu'un déjà sur le contrat).
             $candidates = $this->driverReadRepo
                 ->listActiveInCompanyDuring($companyId, $start, $end)
-                ->reject(fn (Driver $d): bool => $d->id === $driverId)
+                ->reject(fn (Driver $d): bool => in_array($d->id, $alreadyAttachedIds, true))
                 ->map(fn (Driver $d): DriverOptionData => new DriverOptionData(
                     id: $d->id,
                     fullName: $d->full_name,
@@ -178,6 +196,7 @@ final class DriverQueryService
                 endDate: $end->toDateString(),
                 durationDays: (int) $start->diffInDays($end) + 1,
                 contractType: $contract->contract_type,
+                currentDrivers: $currentDriversList,
                 candidates: $candidates,
             );
         }

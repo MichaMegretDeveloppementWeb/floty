@@ -423,7 +423,6 @@ final class DemoSeeder extends Seeder
             Contract::create([
                 'vehicle_id' => $vehicle->id,
                 'company_id' => $company->id,
-                'driver_id' => null,
                 'start_date' => $start->toDateString(),
                 'end_date' => $end->toDateString(),
                 'contract_reference' => null,

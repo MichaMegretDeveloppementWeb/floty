@@ -8,11 +8,15 @@ use App\Rules\Vehicle\AvailableForPeriod;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\AfterOrEqual;
+use Spatie\LaravelData\Attributes\Validation\ArrayType;
 use Spatie\LaravelData\Attributes\Validation\Date;
+use Spatie\LaravelData\Attributes\Validation\Distinct;
 use Spatie\LaravelData\Attributes\Validation\Exists;
 use Spatie\LaravelData\Attributes\Validation\IntegerType;
 use Spatie\LaravelData\Attributes\Validation\Max;
+use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Required;
+use Spatie\LaravelData\Attributes\Validation\Sometimes;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
@@ -32,15 +36,15 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[MapInputName(SnakeCaseMapper::class)]
 final class UpdateContractData extends Data
 {
+    /**
+     * @param  list<int>  $driverIds  Identifiants des conducteurs à associer au contrat (0, 1 ou plusieurs ; pivot `contract_drivers`). Distincts.
+     */
     public function __construct(
         #[Required, IntegerType, Exists('vehicles', 'id')]
         public int $vehicleId,
 
         #[Required, IntegerType, Exists('companies', 'id')]
         public int $companyId,
-
-        #[IntegerType, Exists('drivers', 'id')]
-        public ?int $driverId,
 
         #[Required, Date]
         public string $startDate,
@@ -53,6 +57,12 @@ final class UpdateContractData extends Data
 
         #[Max(5000)]
         public ?string $notes,
+
+        // Driver IDs en N:N (cf. chantier #3 multi-conducteurs). Default
+        // `[]` pour rester cohérent avec {@see StoreContractData}. Cf.
+        // commentaire sur `Sometimes` là-bas.
+        #[Sometimes, Nullable, ArrayType, Distinct]
+        public array $driverIds = [],
     ) {}
 
     /**
@@ -69,18 +79,24 @@ final class UpdateContractData extends Data
         $startDate = (string) ($payload['start_date'] ?? '');
         $endDate = (string) ($payload['end_date'] ?? '');
 
+        $driverIdsRules = [
+            'driver_ids' => ['sometimes', 'nullable', 'array'],
+            'driver_ids.*' => ['integer', 'exists:drivers,id'],
+        ];
+
         if ($vehicleId === 0 || $startDate === '' || $endDate === '') {
-            return [];
+            return $driverIdsRules;
         }
 
         try {
             $start = CarbonImmutable::parse($startDate);
             $end = CarbonImmutable::parse($endDate);
         } catch (\Exception) {
-            return [];
+            return $driverIdsRules;
         }
 
         return [
+            ...$driverIdsRules,
             'end_date' => [
                 'required',
                 'date',
@@ -98,7 +114,8 @@ final class UpdateContractData extends Data
         return [
             'vehicle_id.exists' => 'Véhicule introuvable.',
             'company_id.exists' => 'Entreprise introuvable.',
-            'driver_id.exists' => 'Conducteur introuvable.',
+            'driver_ids.*.exists' => 'Conducteur introuvable.',
+            'driver_ids.distinct' => "Un conducteur ne peut être ajouté qu'une seule fois sur la même location.",
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',
         ];
     }

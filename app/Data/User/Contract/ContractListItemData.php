@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Data\User\Contract;
 
+use App\Data\User\Driver\DriverOptionData;
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
 use App\Models\Contract;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -18,6 +20,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 final class ContractListItemData extends Data
 {
+    /**
+     * @param  list<DriverOptionData>  $drivers  Conducteurs désignés sur ce contrat (pivot `contract_drivers`, 0 à N).
+     */
     public function __construct(
         public int $id,
         public int $vehicleId,
@@ -27,9 +32,8 @@ final class ContractListItemData extends Data
         public string $companyShortCode,
         public string $companyLegalName,
         public CompanyColor $companyColor,
-        public ?int $driverId,
-        public ?string $driverFullName,
-        public ?string $driverInitials,
+        #[DataCollectionOf(DriverOptionData::class)]
+        public array $drivers,
         public string $startDate,
         public string $endDate,
         public int $durationDays,
@@ -44,18 +48,14 @@ final class ContractListItemData extends Data
 
         $duration = (int) $start->diffInDays($end) + 1;
 
-        $driverFullName = null;
-        $driverInitials = null;
-        if ($contract->driver !== null) {
-            $first = (string) ($contract->driver->first_name ?? '');
-            $last = (string) ($contract->driver->last_name ?? '');
-            $driverFullName = trim($first.' '.$last);
-            if ($driverFullName === '') {
-                $driverFullName = null;
-            } else {
-                $driverInitials = mb_strtoupper(mb_substr($first, 0, 1).mb_substr($last, 0, 1));
-            }
-        }
+        $drivers = $contract->drivers
+            ->map(fn ($d): DriverOptionData => new DriverOptionData(
+                id: $d->id,
+                fullName: $d->full_name,
+                initials: $d->initials,
+            ))
+            ->values()
+            ->all();
 
         return new self(
             id: $contract->id,
@@ -66,9 +66,7 @@ final class ContractListItemData extends Data
             companyShortCode: $contract->company->short_code,
             companyLegalName: $contract->company->legal_name,
             companyColor: $contract->company->color,
-            driverId: $contract->driver_id,
-            driverFullName: $driverFullName,
-            driverInitials: $driverInitials,
+            drivers: $drivers,
             startDate: $start->toDateString(),
             endDate: $end->toDateString(),
             durationDays: $duration,

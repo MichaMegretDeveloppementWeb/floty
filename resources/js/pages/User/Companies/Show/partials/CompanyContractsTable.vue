@@ -77,10 +77,10 @@ const emit = defineEmits<{
                     </span>
                 </div>
                 <span
-                    v-if="row.driverFullName !== null"
+                    v-if="row.drivers.length > 0"
                     class="text-xs text-slate-500"
                 >
-                    {{ row.driverFullName }}
+                    {{ row.drivers.map((d) => d.fullName).join(', ') }}
                 </span>
             </div>
         </template>
@@ -124,10 +124,10 @@ const emit = defineEmits<{
                         </Badge>
                     </div>
                     <p
-                        v-if="row.driverFullName !== null"
+                        v-if="row.drivers.length > 0"
                         class="text-xs text-slate-500"
                     >
-                        {{ row.driverFullName }}
+                        {{ row.drivers.map((d) => d.fullName).join(', ') }}
                     </p>
                     <p class="text-xs text-slate-500">
                         {{ formatDateFr(row.startDate) }}

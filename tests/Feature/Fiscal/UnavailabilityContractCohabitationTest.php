@@ -162,11 +162,11 @@ final class UnavailabilityContractCohabitationTest extends TestCase
         $contract = $this->storeContract->execute(new StoreContractData(
             vehicleId: $vehicle->id,
             companyId: $company->id,
-            driverId: null,
             startDate: '2024-05-15',
             endDate: '2024-07-13',
             contractReference: null,
             notes: null,
+            driverIds: [],
         ));
 
         $this->assertDatabaseHas('contracts', [

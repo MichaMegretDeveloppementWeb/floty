@@ -78,10 +78,10 @@ const emit = defineEmits<{
                     :color="row.companyColor"
                 />
                 <span
-                    v-if="row.driverFullName !== null"
+                    v-if="row.drivers.length > 0"
                     class="text-xs text-slate-500"
                 >
-                    {{ row.driverFullName }}
+                    {{ row.drivers.map((d) => d.fullName).join(', ') }}
                 </span>
             </div>
         </template>

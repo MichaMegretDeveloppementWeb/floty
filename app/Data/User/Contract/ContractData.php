@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Data\User\Contract;
 
+use App\Data\User\Driver\DriverOptionData;
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
 use App\Models\Contract;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -20,6 +22,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 final class ContractData extends Data
 {
+    /**
+     * @param  list<DriverOptionData>  $drivers  Conducteurs désignés sur ce contrat (0, 1 ou plusieurs ; pivot pur égalitaire `contract_drivers`)
+     */
     public function __construct(
         public int $id,
         public int $vehicleId,
@@ -31,8 +36,8 @@ final class ContractData extends Data
         public string $companyShortCode,
         public string $companyLegalName,
         public CompanyColor $companyColor,
-        public ?int $driverId,
-        public ?string $driverFullName,
+        #[DataCollectionOf(DriverOptionData::class)]
+        public array $drivers,
         public string $startDate,
         public string $endDate,
         public int $durationDays,
@@ -49,9 +54,14 @@ final class ContractData extends Data
         // Durée inclusive : (end - start) en jours + 1
         $duration = (int) $start->diffInDays($end) + 1;
 
-        $driverFullName = $contract->driver !== null
-            ? trim(($contract->driver->first_name ?? '').' '.($contract->driver->last_name ?? ''))
-            : null;
+        $drivers = $contract->drivers
+            ->map(fn ($d): DriverOptionData => new DriverOptionData(
+                id: $d->id,
+                fullName: $d->full_name,
+                initials: $d->initials,
+            ))
+            ->values()
+            ->all();
 
         return new self(
             id: $contract->id,
@@ -64,8 +74,7 @@ final class ContractData extends Data
             companyShortCode: $contract->company->short_code,
             companyLegalName: $contract->company->legal_name,
             companyColor: $contract->company->color,
-            driverId: $contract->driver_id,
-            driverFullName: $driverFullName !== '' ? $driverFullName : null,
+            drivers: $drivers,
             startDate: $start->toDateString(),
             endDate: $end->toDateString(),
             durationDays: $duration,

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import DriverSelector from '@/Components/Domain/Driver/DriverSelector.vue';
+import DriversMultiPicker from '@/Components/Domain/Driver/DriversMultiPicker.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
@@ -53,13 +53,13 @@ const rangeProxy = computed<DateRange>({
 const ongoing = ref<boolean>(false);
 
 const submitting = ref<boolean>(false);
-const selectedDriverId = ref<number | null>(null);
+const selectedDriverIds = ref<number[]>([]);
 
-// Reset du driver sélectionné si l'entreprise change
+// Reset des drivers sélectionnés si l'entreprise change
 watch(
     () => props.selectedCompanyId,
     () => {
-        selectedDriverId.value = null;
+        selectedDriverIds.value = [];
     },
 );
 
@@ -122,7 +122,7 @@ async function submit(): Promise<void> {
         const payload: App.Data.User.Contract.BulkStoreContractsData = {
             vehicleIds: [props.vehicleId],
             companyId: props.selectedCompanyId as number,
-            driverId: selectedDriverId.value,
+            driverIds: selectedDriverIds.value,
             startDate: props.selectedRange.startDate as string,
             endDate: props.selectedRange.endDate as string,
             contractReference: null,
@@ -161,9 +161,9 @@ async function submit(): Promise<void> {
         />
 
         <div>
-            <p class="eyebrow mb-1">Conducteur (optionnel)</p>
-            <DriverSelector
-                v-model="selectedDriverId"
+            <p class="eyebrow mb-1">Conducteurs (optionnel)</p>
+            <DriversMultiPicker
+                v-model="selectedDriverIds"
                 :company-id="selectedCompanyId"
                 :start-date="selectedRange.startDate"
                 :end-date="selectedRange.endDate"

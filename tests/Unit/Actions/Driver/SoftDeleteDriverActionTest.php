@@ -40,10 +40,9 @@ final class SoftDeleteDriverActionTest extends TestCase
     public function refuse_la_suppression_si_le_driver_a_des_contrats(): void
     {
         $driver = Driver::factory()->create();
-        Contract::factory()->create([
+        Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => Vehicle::factory()->create()->id,
             'company_id' => Company::factory()->create()->id,
-            'driver_id' => $driver->id,
             'start_date' => '2024-06-01',
             'end_date' => '2024-06-30',
         ]);

@@ -11,7 +11,6 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -82,13 +81,16 @@ final class Driver extends Model
     }
 
     /**
-     * Contrats où ce conducteur est désigné (entité pivot post ADR-0014).
+     * Contrats où ce conducteur est désigné. Relation N:N via le pivot
+     * `contract_drivers` (un contrat peut avoir plusieurs conducteurs,
+     * un conducteur peut figurer sur plusieurs contrats).
      *
-     * @return HasMany<Contract, $this>
+     * @return BelongsToMany<Contract, $this>
      */
-    public function contracts(): HasMany
+    public function contracts(): BelongsToMany
     {
-        return $this->hasMany(Contract::class);
+        return $this->belongsToMany(Contract::class, 'contract_drivers')
+            ->withTimestamps();
     }
 
     /**

@@ -9,7 +9,7 @@ import {
 type ContractFormShape = {
     vehicle_id: number | null;
     company_id: number | null;
-    driver_id: number | null;
+    driver_ids: number[];
     start_date: string;
     end_date: string;
     contract_reference: string | null;
@@ -42,7 +42,7 @@ export function useContractForm(
     const initial: ContractFormShape = {
         vehicle_id: contract?.vehicleId ?? null,
         company_id: contract?.companyId ?? null,
-        driver_id: contract?.driverId ?? null,
+        driver_ids: contract?.drivers.map((d) => d.id) ?? [],
         start_date: contract?.startDate ?? '',
         end_date: contract?.endDate ?? '',
         contract_reference: contract?.contractReference ?? null,

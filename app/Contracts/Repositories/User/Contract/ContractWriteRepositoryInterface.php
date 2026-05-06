@@ -44,18 +44,29 @@ interface ContractWriteRepositoryInterface
     public function insertManyRows(array $rows): array;
 
     /**
-     * Réassigne (ou détache si null) le conducteur d'un contrat.
-     * Utilisé par le workflow Q6 (sortie d'un driver d'une entreprise)
-     * pour réaffecter individuellement les contrats à venir.
+     * Synchronise la liste des conducteurs d'un contrat (pivot N:N
+     * `contract_drivers`). Toute la liste est remplacée : passer `[]`
+     * détache tous les conducteurs.
+     *
+     * @param  list<int>  $driverIds
      */
-    public function reassignDriver(int $contractId, ?int $driverId): void;
+    public function syncDrivers(int $contractId, array $driverIds): void;
 
     /**
-     * Réassigne (ou détache si null) le conducteur de plusieurs contrats
-     * en une seule requête. Utilisé par le mode `detach` du workflow Q6
-     * pour traiter en batch tous les contrats à venir d'un coup.
+     * Attache un conducteur supplémentaire à un contrat sans toucher
+     * aux autres conducteurs déjà associés. Idempotent : si le driver
+     * est déjà attaché, no-op (pas de duplicate row grâce à la contrainte
+     * unique du pivot).
+     */
+    public function attachDriver(int $contractId, int $driverId): void;
+
+    /**
+     * Détache un conducteur précis de plusieurs contrats en une seule
+     * requête, sans toucher aux autres conducteurs présents sur ces
+     * contrats. Utilisé par le workflow Q6 (sortie d'un driver d'une
+     * entreprise) - le contrat conserve ses autres conducteurs.
      *
      * @param  list<int>  $contractIds
      */
-    public function bulkReassignDriver(array $contractIds, ?int $driverId): void;
+    public function bulkDetachDriver(array $contractIds, int $driverId): void;
 }

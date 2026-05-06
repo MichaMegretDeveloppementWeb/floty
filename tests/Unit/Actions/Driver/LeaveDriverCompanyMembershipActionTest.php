@@ -60,10 +60,9 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        $futureContract = Contract::factory()->create([
+        $futureContract = Contract::factory()->withDrivers([$driver])->create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
-            'driver_id' => $driver->id,
             'start_date' => '2027-01-01',
             'end_date' => '2027-01-31',
         ]);
@@ -82,23 +81,26 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             'driver_id' => $driver->id,
             'left_at' => '2026-06-30',
         ]);
-        $this->assertSame($driver->id, $futureContract->fresh()->driver_id);
+        $this->assertDatabaseHas('contract_drivers', [
+            'contract_id' => $futureContract->id,
+            'driver_id' => $driver->id,
+        ]);
     }
 
     #[Test]
-    public function mode_detach_passe_tous_les_contrats_a_venir_a_driver_id_null(): void
+    public function mode_detach_retire_le_sortant_de_tous_les_contrats_a_venir(): void
     {
         $driver = Driver::factory()->create();
         $company = Company::factory()->create();
         $vehicle = Vehicle::factory()->create();
         $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        $c1 = Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $driver->id,
+        $c1 = Contract::factory()->withDrivers([$driver])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
         ]);
-        $c2 = Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $driver->id,
+        $c2 = Contract::factory()->withDrivers([$driver])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-03-01', 'end_date' => '2027-03-31',
         ]);
 
@@ -111,12 +113,51 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             ),
         );
 
-        $this->assertNull($c1->fresh()->driver_id);
-        $this->assertNull($c2->fresh()->driver_id);
+        // Le sortant n'est plus attaché à aucun des deux contrats.
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $c1->id, 'driver_id' => $driver->id,
+        ]);
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $c2->id, 'driver_id' => $driver->id,
+        ]);
     }
 
     #[Test]
-    public function mode_replace_avec_remplacements_valides_reassigne_chaque_contrat(): void
+    public function mode_detach_preserve_les_autres_conducteurs_du_contrat(): void
+    {
+        // Cas multi-conducteurs : retirer X laisse les autres en place.
+        $driver = Driver::factory()->create();
+        $autre = Driver::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $driver->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+        $autre->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        $c1 = Contract::factory()->withDrivers([$driver, $autre])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
+            'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
+        ]);
+
+        $this->action->execute(
+            $driver,
+            $company->id,
+            new LeaveDriverCompanyMembershipData(
+                leftAt: '2026-06-30',
+                futureContractsResolution: FutureContractsResolutionMode::Detach,
+            ),
+        );
+
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $c1->id, 'driver_id' => $driver->id,
+        ]);
+        $this->assertDatabaseHas('contract_drivers', [
+            'contract_id' => $c1->id, 'driver_id' => $autre->id,
+        ]);
+    }
+
+    #[Test]
+    public function mode_replace_avec_remplacements_valides_substitue_chaque_contrat(): void
     {
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
@@ -127,8 +168,8 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
         $remplacant = Driver::factory()->create();
         $remplacant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        $c1 = Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $sortant->id,
+        $c1 = Contract::factory()->withDrivers([$sortant])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
         ]);
 
@@ -142,7 +183,13 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             ),
         );
 
-        $this->assertSame($remplacant->id, $c1->fresh()->driver_id);
+        // Sortant retiré, remplaçant attaché
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $c1->id, 'driver_id' => $sortant->id,
+        ]);
+        $this->assertDatabaseHas('contract_drivers', [
+            'contract_id' => $c1->id, 'driver_id' => $remplacant->id,
+        ]);
     }
 
     #[Test]
@@ -153,8 +200,8 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
         $sortant = Driver::factory()->create();
         $sortant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $sortant->id,
+        Contract::factory()->withDrivers([$sortant])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
         ]);
 
@@ -179,8 +226,8 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
         $sortant = Driver::factory()->create();
         $sortant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        $c1 = Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $sortant->id,
+        $c1 = Contract::factory()->withDrivers([$sortant])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
         ]);
 
@@ -210,8 +257,8 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
         // Le remplaçant sort de la company avant le contrat à remplacer
         $remplacant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => '2026-12-31']);
 
-        $c1 = Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $sortant->id,
+        $c1 = Contract::factory()->withDrivers([$sortant])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
         ]);
 
@@ -229,7 +276,7 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
     }
 
     #[Test]
-    public function mode_replace_avec_valeur_null_detache_individuellement_ce_contrat(): void
+    public function mode_replace_avec_valeur_null_retire_le_sortant_sans_remplacant(): void
     {
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
@@ -239,12 +286,12 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
         $remplacant = Driver::factory()->create();
         $remplacant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        $cDetache = Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $sortant->id,
+        $cDetache = Contract::factory()->withDrivers([$sortant])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
         ]);
-        $cReplace = Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $sortant->id,
+        $cReplace = Contract::factory()->withDrivers([$sortant])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-03-01', 'end_date' => '2027-03-31',
         ]);
 
@@ -261,8 +308,21 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             ),
         );
 
-        $this->assertNull($cDetache->fresh()->driver_id);
-        $this->assertSame($remplacant->id, $cReplace->fresh()->driver_id);
+        // cDetache : sortant retiré, aucun remplaçant ajouté
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $cDetache->id, 'driver_id' => $sortant->id,
+        ]);
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $cDetache->id, 'driver_id' => $remplacant->id,
+        ]);
+
+        // cReplace : sortant retiré + remplaçant attaché
+        $this->assertDatabaseMissing('contract_drivers', [
+            'contract_id' => $cReplace->id, 'driver_id' => $sortant->id,
+        ]);
+        $this->assertDatabaseHas('contract_drivers', [
+            'contract_id' => $cReplace->id, 'driver_id' => $remplacant->id,
+        ]);
     }
 
     #[Test]
@@ -315,8 +375,8 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
         $sortant = Driver::factory()->create();
         $sortant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
-        $c1 = Contract::factory()->create([
-            'vehicle_id' => $vehicle->id, 'company_id' => $company->id, 'driver_id' => $sortant->id,
+        $c1 = Contract::factory()->withDrivers([$sortant])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
             'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
         ]);
 
@@ -329,6 +389,38 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
                 leftAt: '2026-06-30',
                 futureContractsResolution: FutureContractsResolutionMode::Replace,
                 replacementMap: [$c1->id => $sortant->id], // pointage circulaire
+            ),
+        );
+    }
+
+    #[Test]
+    public function mode_replace_refuse_un_remplacant_deja_attache_au_contrat(): void
+    {
+        // Défense en profondeur : le remplaçant doit être un nouveau driver,
+        // pas quelqu'un déjà sur le contrat (cf. chantier #3 multi-conducteurs).
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+
+        $sortant = Driver::factory()->create();
+        $sortant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        $autre = Driver::factory()->create();
+        $autre->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
+
+        $c1 = Contract::factory()->withDrivers([$sortant, $autre])->create([
+            'vehicle_id' => $vehicle->id, 'company_id' => $company->id,
+            'start_date' => '2027-01-01', 'end_date' => '2027-01-31',
+        ]);
+
+        $this->expectException(LeaveResolutionInvalidException::class);
+
+        $this->action->execute(
+            $sortant,
+            $company->id,
+            new LeaveDriverCompanyMembershipData(
+                leftAt: '2026-06-30',
+                futureContractsResolution: FutureContractsResolutionMode::Replace,
+                replacementMap: [$c1->id => $autre->id], // déjà sur le contrat
             ),
         );
     }

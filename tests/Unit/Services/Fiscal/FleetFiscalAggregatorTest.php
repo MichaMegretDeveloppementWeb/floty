@@ -117,7 +117,6 @@ final class FleetFiscalAggregatorTest extends TestCase
         $contract->setRawAttributes([
             'vehicle_id' => $vehicleId,
             'company_id' => $companyId,
-            'driver_id' => null,
             'start_date' => $start,
             'end_date' => $end,
             'contract_reference' => null,

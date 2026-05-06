@@ -548,7 +548,6 @@ final class FleetFiscalAggregator
         $contract = new Contract([
             'vehicle_id' => 0,
             'company_id' => 0,
-            'driver_id' => null,
             'start_date' => sprintf('%04d-01-01', $year),
             'end_date' => sprintf('%04d-12-31', $year),
             'contract_reference' => null,
