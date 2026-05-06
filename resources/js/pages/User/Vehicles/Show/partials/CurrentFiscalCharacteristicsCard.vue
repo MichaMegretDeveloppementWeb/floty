@@ -1,18 +1,21 @@
 <script setup lang="ts">
-import { History } from 'lucide-vue-next';
+import { History, Plus } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import { useCurrentFiscalCharacteristicsCard } from '@/Composables/Vehicle/Show/useCurrentFiscalCharacteristicsCard';
+import { useVfcCreateModalState } from '@/Composables/Vehicle/Show/useVfcCreateForm';
 import { useVfcDeleteModalState } from '@/Composables/Vehicle/Show/useVfcDeleteForm';
 import { useVfcEditModalState } from '@/Composables/Vehicle/Show/useVfcEditForm';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import FiscalHistoryTimeline from './FiscalHistoryTimeline.vue';
+import VfcCreateModal from './VfcCreateModal.vue';
 import VfcDeleteConfirmModal from './VfcDeleteConfirmModal.vue';
 import VfcEditModal from './VfcEditModal.vue';
 
 const props = defineProps<{
+    vehicleId: number;
     fiscal: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData | null;
     history: App.Data.User.Vehicle.VehicleFiscalCharacteristicsData[];
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
@@ -21,6 +24,7 @@ const props = defineProps<{
 const { historyOpen, historyCount, stats, advancedFlags } =
     useCurrentFiscalCharacteristicsCard(props);
 
+const createState = useVfcCreateModalState();
 const editState = useVfcEditModalState();
 const deleteState = useVfcDeleteModalState();
 </script>
@@ -98,12 +102,31 @@ const deleteState = useVfcDeleteModalState();
             :description="`${historyCount} version${historyCount > 1 ? 's' : ''} enregistrée${historyCount > 1 ? 's' : ''}, de la plus récente à la plus ancienne.`"
             size="lg"
         >
+            <div class="mb-4 flex justify-end">
+                <Button
+                    variant="primary"
+                    size="sm"
+                    @click="createState.requestCreate"
+                >
+                    <template #icon-left>
+                        <Plus :size="14" :stroke-width="1.75" />
+                    </template>
+                    Ajouter une entrée
+                </Button>
+            </div>
             <FiscalHistoryTimeline
                 :history="props.history"
                 @edit="editState.requestEdit"
                 @delete="deleteState.requestDelete"
             />
         </Modal>
+
+        <VfcCreateModal
+            v-model:open="createState.open.value"
+            :history="props.history"
+            :options="props.options"
+            :vehicle-id="props.vehicleId"
+        />
 
         <VfcEditModal
             v-model:open="editState.open.value"

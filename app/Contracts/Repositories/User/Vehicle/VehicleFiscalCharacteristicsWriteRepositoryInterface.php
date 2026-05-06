@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\Vehicle;
 
+use App\Data\User\Vehicle\StoreFiscalCharacteristicsData;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Data\User\Vehicle\UpdateFiscalCharacteristicsData;
 use App\Data\User\Vehicle\UpdateVehicleData;
@@ -92,6 +93,17 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     public function updateBoundsAndFields(
         int $fiscalId,
         UpdateFiscalCharacteristicsData $data,
+    ): VehicleFiscalCharacteristics;
+
+    /**
+     * INSERT d'une nouvelle VFC ajoutée depuis la modale Historique
+     * (bouton « + Ajouter une entrée »). L'orchestration des impacts
+     * sur les voisines (Delete/Adjust) est gérée par l'Action appelante
+     * en amont — ce writer ne s'occupe que de l'insertion brute.
+     */
+    public function createFromBoundsAndFields(
+        int $vehicleId,
+        StoreFiscalCharacteristicsData $data,
     ): VehicleFiscalCharacteristics;
 
     /**

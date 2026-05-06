@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Vehicle;
 
 use App\DTO\Vehicle\FiscalCharacteristicsImpact;
+use App\Enums\Vehicle\FiscalCharacteristicsImpactType;
 use App\Models\VehicleFiscalCharacteristics;
 use Carbon\CarbonImmutable;
 
@@ -73,12 +74,22 @@ final readonly class FiscalCharacteristicsImpactComputer
             }
 
             // Chevauchement par la gauche : v commence avant newFrom et son
-            // effective_to tombe dans [newFrom, newTo]
+            // effective_to tombe dans [newFrom, newTo].
+            //
+            // Cas spécial inclus : v est la VFC courante (vTo=null) et la
+            // nouvelle plage devient la nouvelle courante (newTo=null).
+            // L'ancienne courante doit alors être raccourcie au jour
+            // précédant newFrom pour libérer la place — sans cette
+            // branche, le trigger DB rejette l'INSERT (chantier création
+            // VFC depuis la modale Historique).
             if (
                 $vFrom->lessThan($newFrom)
-                && $vTo !== null
-                && $vTo->greaterThanOrEqualTo($newFrom)
-                && ($newTo === null || $vTo->lessThanOrEqualTo($newTo))
+                && (
+                    ($vTo !== null
+                        && $vTo->greaterThanOrEqualTo($newFrom)
+                        && ($newTo === null || $vTo->lessThanOrEqualTo($newTo)))
+                    || ($vTo === null && $newTo === null)
+                )
             ) {
                 $impacts[] = FiscalCharacteristicsImpact::adjustEffectiveTo(
                     $v,
@@ -138,14 +149,21 @@ final readonly class FiscalCharacteristicsImpactComputer
             // ces cas exotiques.
         }
 
-        // Comblement immédiat du trou avec le prédécesseur retenu
+        // Comblement immédiat du trou avec le prédécesseur retenu, sauf
+        // si une autre VFC a déjà été raccourcie par chevauchement gauche
+        // jusqu'à la borne attendue (newFrom-1) — auquel cas elle occupe
+        // déjà le slot prédécesseur immédiat. Sans ce garde-fou, on
+        // produit deux adjusts vers la même borne et le trigger DB
+        // rejette pour chevauchement.
         if ($candidatePredecessor !== null) {
             $expectedTo = $newFrom->subDay();
             $currentTo = $candidatePredecessor->effective_to !== null
                 ? CarbonImmutable::parse($candidatePredecessor->effective_to->toDateString())
                 : null;
 
-            if ($currentTo === null || ! $currentTo->equalTo($expectedTo)) {
+            $slotAlreadyFilled = $this->anyAdjustEffectiveToMatches($impacts, $expectedTo);
+
+            if (! $slotAlreadyFilled && ($currentTo === null || ! $currentTo->equalTo($expectedTo))) {
                 $impacts[] = FiscalCharacteristicsImpact::adjustEffectiveTo(
                     $candidatePredecessor,
                     $expectedTo,
@@ -155,12 +173,16 @@ final readonly class FiscalCharacteristicsImpactComputer
 
         // Comblement immédiat du trou avec le successeur retenu
         // (uniquement si la nouvelle plage a une borne droite définie ;
-        // sinon il n'y a pas de "successeur" possible).
+        // sinon il n'y a pas de "successeur" possible). Même garde-fou
+        // qu'au-dessus contre une éventuelle collision avec un
+        // chevauchement droit déjà absorbé.
         if ($candidateSuccessor !== null && $newTo !== null) {
             $expectedFrom = $newTo->addDay();
             $currentFrom = CarbonImmutable::parse($candidateSuccessor->effective_from->toDateString());
 
-            if (! $currentFrom->equalTo($expectedFrom)) {
+            $slotAlreadyFilled = $this->anyAdjustEffectiveFromMatches($impacts, $expectedFrom);
+
+            if (! $slotAlreadyFilled && ! $currentFrom->equalTo($expectedFrom)) {
                 $impacts[] = FiscalCharacteristicsImpact::adjustEffectiveFrom(
                     $candidateSuccessor,
                     $expectedFrom,
@@ -169,6 +191,42 @@ final readonly class FiscalCharacteristicsImpactComputer
         }
 
         return $impacts;
+    }
+
+    /**
+     * @param  list<FiscalCharacteristicsImpact>  $impacts
+     */
+    private function anyAdjustEffectiveToMatches(array $impacts, CarbonImmutable $target): bool
+    {
+        foreach ($impacts as $impact) {
+            if (
+                $impact->type === FiscalCharacteristicsImpactType::AdjustEffectiveTo
+                && $impact->newEffectiveTo !== null
+                && $impact->newEffectiveTo->equalTo($target)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  list<FiscalCharacteristicsImpact>  $impacts
+     */
+    private function anyAdjustEffectiveFromMatches(array $impacts, CarbonImmutable $target): bool
+    {
+        foreach ($impacts as $impact) {
+            if (
+                $impact->type === FiscalCharacteristicsImpactType::AdjustEffectiveFrom
+                && $impact->newEffectiveFrom !== null
+                && $impact->newEffectiveFrom->equalTo($target)
+            ) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isEngulfedBy(

@@ -81,6 +81,8 @@ final class UpdateFiscalCharacteristicsAction
 
             $others = $this->reader->findOthersForVehicle($current->vehicle_id, $current->id);
 
+            $this->guardNotStrictlyInsideExisting($others, $newFrom, $newTo);
+
             $impacts = $this->impactComputer->compute($others, $newFrom, $newTo);
 
             $hasDestructive = $this->hasDestructiveImpact($impacts);
@@ -152,6 +154,49 @@ final class UpdateFiscalCharacteristicsAction
 
             if ($other !== null && $other->id !== $current->id) {
                 throw InvalidFiscalCharacteristicsBoundsException::cannotTransformHistoricToCurrent();
+            }
+        }
+    }
+
+    /**
+     * Refuse une édition dont la nouvelle plage [newFrom, newTo] est
+     * strictement contenue dans la plage d'une autre VFC du véhicule.
+     * Sans ce garde-fou, le trigger DB rejette l'UPDATE avec un message
+     * technique opaque. La résolution propre côté UX est de d'abord
+     * modifier la VFC concernée.
+     *
+     * @param  iterable<VehicleFiscalCharacteristics>  $others
+     */
+    private function guardNotStrictlyInsideExisting(
+        iterable $others,
+        CarbonImmutable $newFrom,
+        ?CarbonImmutable $newTo,
+    ): void {
+        // Voir le commentaire dans CreateFiscalCharacteristicsAction :
+        // une nouvelle plage ouverte (newTo === null) déborde toujours
+        // toute existante par la droite, donc ne peut pas être
+        // strictement contenue.
+        if ($newTo === null) {
+            return;
+        }
+
+        foreach ($others as $v) {
+            $vFrom = CarbonImmutable::parse($v->effective_from->toDateString());
+            $vTo = $v->effective_to === null
+                ? null
+                : CarbonImmutable::parse($v->effective_to->toDateString());
+
+            if (! $vFrom->lessThan($newFrom)) {
+                continue;
+            }
+
+            $endsAfterNewRange = $vTo === null || $vTo->greaterThan($newTo);
+
+            if ($endsAfterNewRange) {
+                throw InvalidFiscalCharacteristicsBoundsException::newRangeStrictlyInsideExisting(
+                    $vFrom->toDateString(),
+                    $vTo?->toDateString(),
+                );
             }
         }
     }

@@ -4,23 +4,48 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Vehicle;
 
+use App\Actions\Vehicle\CreateFiscalCharacteristicsAction;
 use App\Actions\Vehicle\DeleteFiscalCharacteristicsAction;
 use App\Actions\Vehicle\UpdateFiscalCharacteristicsAction;
 use App\Data\User\Vehicle\DeleteFiscalCharacteristicsData;
+use App\Data\User\Vehicle\StoreFiscalCharacteristicsData;
 use App\Data\User\Vehicle\UpdateFiscalCharacteristicsData;
 use App\DTO\Vehicle\FiscalCharacteristicsImpact;
 use App\Http\Controllers\Controller;
+use App\Models\Vehicle;
 use Illuminate\Http\RedirectResponse;
 
 /**
- * CRUD partiel sur l'historique fiscal d'un véhicule (modale
- * Historique de la page Show). Le store est porté par
- * `UpdateVehicleAction` (mode « Nouvelle version » du formulaire
- * d'édition véhicule), pas ici - ce controller ne gère que
- * l'update et le delete d'une VFC existante.
+ * CRUD complet sur l'historique fiscal d'un véhicule (modale
+ * Historique de la page Show). `store()` permet d'ajouter une nouvelle
+ * version VFC à n'importe quelle position de l'historique (avant la 1ʳᵉ,
+ * entre 2 existantes, comme nouvelle courante…) ; les versions adjacentes
+ * sont ajustées ou supprimées en cascade par
+ * {@see CreateFiscalCharacteristicsAction}. Cohabite avec le « mode
+ * Nouvelle version » du formulaire d'édition véhicule (qui crée
+ * également une VFC mais via `UpdateVehicleAction`, pour cohérence
+ * avec une mise à jour combinée identité + fiscalité).
  */
 final class VehicleFiscalCharacteristicsController extends Controller
 {
+    public function store(
+        Vehicle $vehicle,
+        StoreFiscalCharacteristicsData $data,
+        CreateFiscalCharacteristicsAction $action,
+    ): RedirectResponse {
+        $action->execute($vehicle, $data);
+
+        $impactSummary = $this->summarizeImpacts($action->lastImpacts());
+
+        $response = back()->with('toast-success', 'Nouvelle version fiscale ajoutée.');
+
+        if ($impactSummary !== null) {
+            $response = $response->with('toast-info', $impactSummary);
+        }
+
+        return $response;
+    }
+
     public function update(
         int $vehicleFiscalCharacteristic,
         UpdateFiscalCharacteristicsData $data,

@@ -57,4 +57,24 @@ final class InvalidFiscalCharacteristicsBoundsException extends BaseAppException
             userMessage: 'Impossible d\'étendre la version suivante : il n\'y a pas de version postérieure à celle-ci. Choisissez plutôt « Étendre la version précédente ».',
         );
     }
+
+    public static function effectiveFromCollidesExisting(string $date): self
+    {
+        return new self(
+            technicalMessage: "Another VFC already starts at {$date}; cannot create a new one with the same effective_from.",
+            userMessage: "Une version fiscale commence déjà au {$date}. Modifiez la version existante depuis l'historique ou choisissez une autre date de début.",
+        );
+    }
+
+    public static function newRangeStrictlyInsideExisting(string $existingFrom, ?string $existingTo): self
+    {
+        $existingPeriod = $existingTo === null
+            ? "depuis le {$existingFrom}"
+            : "du {$existingFrom} au {$existingTo}";
+
+        return new self(
+            technicalMessage: "New range is strictly contained inside existing version ({$existingFrom} → ".($existingTo ?? 'null').').',
+            userMessage: "Impossible d'insérer la nouvelle plage : elle est entièrement contenue dans la version {$existingPeriod}. Modifiez ou raccourcissez d'abord cette version depuis l'historique avant d'en ajouter une à l'intérieur.",
+        );
+    }
 }

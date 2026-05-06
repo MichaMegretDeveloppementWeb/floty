@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     computeVfcUpdateImpact,
+    findStrictlyContainingVfc,
     hasDestructiveImpact,
 } from '@/Composables/Vehicle/Show/computeVfcUpdateImpact';
 
@@ -158,5 +159,60 @@ describe('computeVfcUpdateImpact', () => {
         expect(byTarget.get(v1.id)!.type).toBe('adjust_effective_to');
         expect(byTarget.get(v2.id)!.type).toBe('delete');
         expect(byTarget.get(v3.id)!.type).toBe('delete');
+    });
+});
+
+describe('findStrictlyContainingVfc', () => {
+    it('retourne la VFC qui englobe strictement la nouvelle plage bornée', () => {
+        const v1 = makeVfc(1, '2023-08-20', '2024-06-15');
+        const v2 = makeVfc(2, '2024-06-16', null);
+
+        const blocker = findStrictlyContainingVfc(
+            [v1, v2],
+            null,
+            '2023-09-16',
+            '2023-12-20',
+        );
+
+        expect(blocker?.id).toBe(v1.id);
+    });
+
+    it("retourne la VFC courante si la nouvelle plage tombe entièrement dedans (vTo === null)", () => {
+        const current = makeVfc(2, '2024-06-16', null);
+
+        const blocker = findStrictlyContainingVfc(
+            [current],
+            null,
+            '2024-09-01',
+            '2024-12-31',
+        );
+
+        expect(blocker?.id).toBe(current.id);
+    });
+
+    it('retourne null quand la nouvelle plage borde proprement les versions existantes', () => {
+        const v1 = makeVfc(1, '2023-01-01', '2023-12-31');
+
+        const blocker = findStrictlyContainingVfc(
+            [v1],
+            null,
+            '2024-01-01',
+            null,
+        );
+
+        expect(blocker).toBeNull();
+    });
+
+    it("ignore la VFC en cours d'édition (mode update)", () => {
+        const editing = makeVfc(2, '2024-06-16', null);
+
+        const blocker = findStrictlyContainingVfc(
+            [editing],
+            editing.id,
+            '2024-09-01',
+            '2024-12-31',
+        );
+
+        expect(blocker).toBeNull();
     });
 });

@@ -16,6 +16,183 @@ final class VehicleFiscalCharacteristicsControllerTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
+    public function store_insere_nouvelle_vfc_a_la_fin_et_ferme_la_courante(): void
+    {
+        // Cas A de la cartographie : insertion en fin → vN.effective_to ← D-1, nv courante.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2022-01-01',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload($current, [
+            'effective_from' => '2024-06-01',
+            'effective_to' => null,
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/fiscal-characteristics", $payload)
+            ->assertRedirect();
+
+        // Précédente fermée au 2024-05-31
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_to' => '2024-05-31',
+        ]);
+        // Nouvelle créée comme courante
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-06-01',
+            'effective_to' => null,
+        ]);
+    }
+
+    #[Test]
+    public function store_refuse_si_effective_from_matche_existante(): void
+    {
+        // Cas R3 de la cartographie : collision exacte sur effective_from
+        // → exception InvalidFiscalCharacteristicsBoundsException → toast erreur, pas d'insertion.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $existing = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload($existing, [
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/fiscal-characteristics", $payload)
+            ->assertRedirect();
+
+        // Aucune création supplémentaire
+        $this->assertSame(1, VehicleFiscalCharacteristics::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->count());
+    }
+
+    #[Test]
+    public function store_avec_destructif_sans_confirmed_throw_confirmation_required(): void
+    {
+        // Cas G de la cartographie : insertion E=NULL avec D antérieur à
+        // la courante → engloutit la courante (Delete) → confirmation
+        // requise. Sans confirmed=true, l'Action throw et rien n'est persisté.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-06-01',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload($current, [
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'change_reason' => 'recharacterization',
+            'confirmed' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/fiscal-characteristics", $payload)
+            ->assertRedirect();
+
+        // VFC courante toujours présente (pas de Delete)
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+        ]);
+        // Aucune création
+        $this->assertSame(1, VehicleFiscalCharacteristics::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->count());
+    }
+
+    #[Test]
+    public function store_avec_destructif_et_confirmed_supprime_la_courante_et_insere(): void
+    {
+        // Suite du cas G : avec confirmed=true, l'Action applique la
+        // cascade : Delete v_courante + INSERT nouvelle courante.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-06-01',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload($current, [
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'change_reason' => 'recharacterization',
+            'confirmed' => true,
+        ]);
+
+        $this->actingAs($user)
+            ->post("/app/vehicles/{$vehicle->id}/fiscal-characteristics", $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseMissing('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+        ]);
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+        ]);
+    }
+
+    #[Test]
+    public function store_refuse_si_nouvelle_plage_est_strictement_contenue_dans_une_existante(): void
+    {
+        // R4 (parité TS) : insertion d'une plage [newFrom, newTo]
+        // strictement contenue dans une VFC existante → exception
+        // InvalidFiscalCharacteristicsBoundsException → toast erreur
+        // (sans ce garde-fou, le trigger DB rejette avec un message
+        // technique opaque).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $previous = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-08-20',
+            'effective_to' => '2024-06-15',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-06-16',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload($current, [
+            'effective_from' => '2023-09-16',
+            'effective_to' => '2023-12-20',
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $this->actingAs($user)
+            ->from("/app/vehicles/{$vehicle->id}")
+            ->post("/app/vehicles/{$vehicle->id}/fiscal-characteristics", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}")
+            ->assertSessionHas('toast-error');
+
+        // Aucune création supplémentaire et bornes existantes intactes
+        $this->assertSame(2, VehicleFiscalCharacteristics::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->count());
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $previous->id,
+            'effective_from' => '2023-08-20',
+            'effective_to' => '2024-06-15',
+        ]);
+    }
+
+    #[Test]
     public function update_modifie_une_vfc_isolee_depuis_la_modale_historique(): void
     {
         $user = User::factory()->create();

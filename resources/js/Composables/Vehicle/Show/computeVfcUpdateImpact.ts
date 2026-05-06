@@ -36,7 +36,7 @@ export type VfcImpact =
  */
 export function computeVfcUpdateImpact(
     history: ReadonlyArray<Vfc>,
-    editingId: number,
+    editingId: number | null,
     newFrom: string,
     newTo: string | null,
 ): VfcImpact[] {
@@ -46,7 +46,12 @@ export function computeVfcUpdateImpact(
         return impacts;
     }
 
-    const others = history.filter((v) => v.id !== editingId);
+    // editingId === null → mode création : aucune VFC à exclure de
+    // l'historique (on simule une nouvelle plage à insérer parmi les
+    // existantes). En édition, on exclut la VFC en cours d'édition.
+    const others = editingId === null
+        ? history
+        : history.filter((v) => v.id !== editingId);
 
     let candidatePredecessor: Vfc | null = null;
     let candidateSuccessor: Vfc | null = null;
@@ -65,12 +70,15 @@ export function computeVfcUpdateImpact(
             continue;
         }
 
-        // Chevauchement par la gauche : v commence avant newFrom et finit dans [newFrom, newTo]
+        // Chevauchement par la gauche : v commence avant newFrom et finit dans [newFrom, newTo].
+        // Cas spécial inclus : v est la courante (vTo=null) et la nouvelle plage devient la nouvelle
+        // courante (newTo=null) → raccourcir l'ancienne courante à newFrom-1.
         if (
             vFrom < newFrom
-            && vTo !== null
-            && vTo >= newFrom
-            && (newTo === null || vTo <= newTo)
+            && (
+                (vTo !== null && vTo >= newFrom && (newTo === null || vTo <= newTo))
+                || (vTo === null && newTo === null)
+            )
         ) {
             impacts.push({
                 type: 'adjust_effective_to',
@@ -203,6 +211,51 @@ export function describeImpact(impact: VfcImpact): string {
 
 export function hasDestructiveImpact(impacts: ReadonlyArray<VfcImpact>): boolean {
     return impacts.some((i) => i.type === 'delete');
+}
+
+/**
+ * Mirroir TS du garde-fou backend `guardNotStrictlyInsideExisting` (cf.
+ * `Create/UpdateFiscalCharacteristicsAction`). Retourne la VFC qui
+ * englobe strictement la nouvelle plage si une telle VFC existe, sinon
+ * `null`. Utilisé côté UI pour désactiver le submit et afficher un
+ * message explicite avant que l'utilisateur n'envoie le formulaire (le
+ * backend ré-attrape ce cas par défense en profondeur).
+ */
+export function findStrictlyContainingVfc(
+    history: ReadonlyArray<Vfc>,
+    editingId: number | null,
+    newFrom: string,
+    newTo: string | null,
+): Vfc | null {
+    if (newFrom === '') {
+        return null;
+    }
+
+    // newTo === null → la nouvelle plage est ouverte à droite et déborde
+    // toujours toute existante par la droite. Le cas est géré par
+    // l'ImpactComputer (chevauchement gauche), pas par R4.
+    if (newTo === null) {
+        return null;
+    }
+
+    const others = editingId === null
+        ? history
+        : history.filter((v) => v.id !== editingId);
+
+    for (const v of others) {
+        if (!(v.effectiveFrom < newFrom)) {
+            continue;
+        }
+
+        const endsAfterNewRange = v.effectiveTo === null
+            || v.effectiveTo > newTo;
+
+        if (endsAfterNewRange) {
+            return v;
+        }
+    }
+
+    return null;
 }
 
 function formatDate(date: string): string {

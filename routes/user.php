@@ -74,8 +74,15 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('vehicles.reactivate');
 
-        // Vehicle fiscal characteristics — édition/suppression d'une
-        // VFC depuis la modale Historique de la page Show véhicule.
+        // Vehicle fiscal characteristics — CRUD complet depuis la modale
+        // Historique de la page Show véhicule (création + édition + suppression).
+        Route::post(
+            '/vehicles/{vehicle}/fiscal-characteristics',
+            [VehicleFiscalCharacteristicsController::class, 'store'],
+        )
+            ->whereNumber('vehicle')
+            ->middleware('throttle:60,1')
+            ->name('vehicle-fiscal-characteristics.store');
         Route::patch(
             '/vehicle-fiscal-characteristics/{vehicleFiscalCharacteristic}',
             [VehicleFiscalCharacteristicsController::class, 'update'],

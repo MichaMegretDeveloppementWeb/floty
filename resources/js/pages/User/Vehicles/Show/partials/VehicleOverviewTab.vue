@@ -40,6 +40,7 @@ defineProps<{
         <VehicleYearHistoryCard :history="vehicle.history" />
 
         <CurrentFiscalCharacteristicsCard
+            :vehicle-id="vehicle.id"
             :fiscal="vehicle.currentFiscalCharacteristics"
             :history="vehicle.fiscalCharacteristicsHistory"
             :options="options"

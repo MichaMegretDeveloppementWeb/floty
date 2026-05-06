@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repositories\User\Vehicle;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepositoryInterface;
+use App\Data\User\Vehicle\StoreFiscalCharacteristicsData;
 use App\Data\User\Vehicle\StoreVehicleData;
 use App\Data\User\Vehicle\UpdateFiscalCharacteristicsData;
 use App\Data\User\Vehicle\UpdateVehicleData;
@@ -172,5 +173,40 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
         VehicleFiscalCharacteristics::query()
             ->where('id', $fiscalId)
             ->delete();
+    }
+
+    public function createFromBoundsAndFields(
+        int $vehicleId,
+        StoreFiscalCharacteristicsData $data,
+    ): VehicleFiscalCharacteristics {
+        return VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicleId,
+            'effective_from' => $data->effectiveFrom,
+            'effective_to' => $data->effectiveTo,
+            'reception_category' => $data->receptionCategory,
+            'vehicle_user_type' => $data->vehicleUserType,
+            'body_type' => $data->bodyType,
+            'seats_count' => $data->seatsCount,
+            'energy_source' => $data->energySource,
+            'underlying_combustion_engine_type' => $data->underlyingCombustionEngineType,
+            'euro_standard' => $data->euroStandard,
+            'pollutant_category' => PollutantCategory::derive(
+                $data->energySource,
+                $data->euroStandard,
+                $data->underlyingCombustionEngineType,
+            ),
+            'homologation_method' => $data->homologationMethod,
+            'co2_wltp' => $data->co2Wltp,
+            'co2_nedc' => $data->co2Nedc,
+            'taxable_horsepower' => $data->taxableHorsepower,
+            'kerb_mass' => $data->kerbMass,
+            'handicap_access' => $data->handicapAccess,
+            'm1_special_use' => $data->m1SpecialUse,
+            'n1_passenger_transport' => $data->n1PassengerTransport,
+            'n1_removable_second_row_seat' => $data->n1RemovableSecondRowSeat,
+            'n1_ski_lift_use' => $data->n1SkiLiftUse,
+            'change_reason' => $data->changeReason,
+            'change_note' => $data->changeNote,
+        ]);
     }
 }
