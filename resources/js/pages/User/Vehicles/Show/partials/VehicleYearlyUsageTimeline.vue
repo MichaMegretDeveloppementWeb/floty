@@ -55,7 +55,11 @@ const {
                             <div
                                 :class="[
                                     'relative flex h-10 w-[16px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
-                                    week.totalDays === 0 && week.unavailabilityDays === 0 ? 'bg-slate-100' : '',
+                                    week.totalDays === 0
+                                        && week.reductiveUnavailabilityDays === 0
+                                        && week.nonReductiveUnavailabilityDays === 0
+                                        ? 'bg-slate-100'
+                                        : '',
                                 ]"
                             >
                                 <div
@@ -64,17 +68,44 @@ const {
                                     :class="companyColorBgClass(segment.color)"
                                     :style="{ height: heightFor(segment) }"
                                 />
-                                <!-- Segment indispo empilé au-dessus des
-                                     attributions, hauteur proportionnelle
-                                     aux jours réels (sur 7). Croix en
-                                     lignes 1px pour rester subtile. -->
+                                <!-- Overlay indispo réductrice (rose) en
+                                     position absolue par-dessus la barre
+                                     d'attribution. ADR-0019 autorise la
+                                     cohabitation indispo↔contrat ; la
+                                     transparence laisse lire la couleur
+                                     entreprise en filigrane. -->
                                 <div
-                                    v-if="week.unavailabilityDays > 0"
-                                    :style="{ height: heightForDays(week.unavailabilityDays) }"
-                                    class="relative w-full bg-rose-50/60"
+                                    v-if="week.reductiveUnavailabilityDays > 0"
+                                    class="pointer-events-none absolute inset-x-0 top-0 bg-rose-50/70"
+                                    :style="{ height: heightForDays(week.reductiveUnavailabilityDays) }"
                                 >
                                     <svg
-                                        class="pointer-events-none absolute inset-0 h-full w-full text-rose-400"
+                                        class="h-full w-full text-rose-400"
+                                        preserveAspectRatio="none"
+                                        viewBox="0 0 16 16"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="1"
+                                        vector-effect="non-scaling-stroke"
+                                        aria-hidden="true"
+                                    >
+                                        <line x1="2" y1="2" x2="14" y2="14" />
+                                        <line x1="14" y1="2" x2="2" y2="14" />
+                                    </svg>
+                                </div>
+                                <!-- Overlay indispo non-réductrice (slate)
+                                     positionné juste sous la réductrice
+                                     pour autoriser les semaines mixtes. -->
+                                <div
+                                    v-if="week.nonReductiveUnavailabilityDays > 0"
+                                    class="pointer-events-none absolute inset-x-0 bg-slate-200/70"
+                                    :style="{
+                                        top: heightForDays(week.reductiveUnavailabilityDays),
+                                        height: heightForDays(week.nonReductiveUnavailabilityDays),
+                                    }"
+                                >
+                                    <svg
+                                        class="h-full w-full text-slate-400"
                                         preserveAspectRatio="none"
                                         viewBox="0 0 16 16"
                                         fill="none"
@@ -94,7 +125,9 @@ const {
                                     Semaine {{ week.weekNumber }}
                                 </p>
                                 <p
-                                    v-if="week.segments.length === 0 && week.unavailabilityDays === 0"
+                                    v-if="week.segments.length === 0
+                                        && week.reductiveUnavailabilityDays === 0
+                                        && week.nonReductiveUnavailabilityDays === 0"
                                     class="text-slate-300"
                                 >
                                     Pas d'utilisation
@@ -120,16 +153,29 @@ const {
                                         </span>
                                     </li>
                                     <li
-                                        v-if="week.unavailabilityDays > 0"
+                                        v-if="week.reductiveUnavailabilityDays > 0"
                                         class="flex items-center gap-2"
                                     >
                                         <span
                                             class="inline-block h-2 w-2 shrink-0 rounded-sm bg-rose-300"
                                             aria-hidden="true"
                                         />
-                                        <span class="font-medium">Indispo</span>
+                                        <span class="font-medium">Indispo réductrice</span>
                                         <span class="text-slate-300">
-                                            {{ week.unavailabilityDays }}j
+                                            {{ week.reductiveUnavailabilityDays }}j
+                                        </span>
+                                    </li>
+                                    <li
+                                        v-if="week.nonReductiveUnavailabilityDays > 0"
+                                        class="flex items-center gap-2"
+                                    >
+                                        <span
+                                            class="inline-block h-2 w-2 shrink-0 rounded-sm bg-slate-300"
+                                            aria-hidden="true"
+                                        />
+                                        <span class="font-medium">Indispo opérationnelle</span>
+                                        <span class="text-slate-300">
+                                            {{ week.nonReductiveUnavailabilityDays }}j
                                         </span>
                                     </li>
                                 </ul>

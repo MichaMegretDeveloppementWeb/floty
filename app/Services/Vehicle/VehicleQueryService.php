@@ -528,13 +528,16 @@ final class VehicleQueryService
      * de l'année) pour la timeline visuelle. Les semaines vides
      * sont matérialisées avec `segments = []` et `totalDays = 0`.
      *
-     * Le `unavailabilityDays` est borné à `7 - totalDays` pour éviter
-     * un dépassement visuel (cas exceptionnel d'une indispo et d'un
-     * contrat sur le même jour - la base interdit normalement ce
-     * scénario via le check overlap des Actions).
+     * Les jours d'indispo sont splittés en deux dimensions :
+     * `reductiveUnavailabilityDays` (R-2024-008) et
+     * `nonReductiveUnavailabilityDays` — la timeline les rend en
+     * overlay distinct (rose vs slate). ADR-0019 autorisant la
+     * cohabitation indispo↔contrat, on **ne clamp plus** à
+     * `7 - totalDays` : l'utilisateur doit voir une indispo de
+     * fourrière même quand le contrat couvre toute la semaine.
      *
      * @param  array<int, array<int, int>>  $weeklyMap  weekNumber → companyId → days
-     * @param  array<int, int>  $unavailabilityDaysByWeek  weekNumber → jours d'indispo
+     * @param  array<int, array{reductive: int, nonReductive: int}>  $unavailabilityDaysByWeek
      * @param  Collection<int, Company>  $companiesById
      * @return list<VehicleWeekUsageData>
      */
@@ -569,16 +572,14 @@ final class VehicleQueryService
                 static fn (VehicleWeekSegmentData $a, VehicleWeekSegmentData $b): int => $a->companyId <=> $b->companyId,
             );
 
-            $unavailabilityDays = min(
-                $unavailabilityDaysByWeek[$week] ?? 0,
-                7 - $totalDays,
-            );
+            $weekUnavailability = $unavailabilityDaysByWeek[$week] ?? ['reductive' => 0, 'nonReductive' => 0];
 
             $rows[] = new VehicleWeekUsageData(
                 weekNumber: $week,
                 segments: $segments,
                 totalDays: $totalDays,
-                unavailabilityDays: max(0, $unavailabilityDays),
+                reductiveUnavailabilityDays: $weekUnavailability['reductive'],
+                nonReductiveUnavailabilityDays: $weekUnavailability['nonReductive'],
             );
         }
 
@@ -586,22 +587,21 @@ final class VehicleQueryService
     }
 
     /**
-     * Comptage `weekNumber → jours d'indispo` à partir de la Collection
-     * brute déjà chargée (port PHP de
-     * `UnavailabilityReadRepository::findUnavailableDaysByWeekForVehicle`).
-     *
-     * Évite la requête supplémentaire qui partait sur la même table
-     * `unavailabilities` que `findForVehicle` quelques lignes plus haut.
+     * Comptage `weekNumber → {reductive, nonReductive}` à partir de la
+     * Collection brute déjà chargée. Une même date couverte par 2 indispos
+     * de types différents (cas autorisé par ADR-0019) est comptée une
+     * seule fois, avec priorité au caractère réducteur (impact fiscal R-2024-008
+     * étant l'info la plus parlante côté UI).
      *
      * @param  Collection<int, Unavailability>  $unavailabilityModels
-     * @return array<int, int> weekNumber (1-53) → jours d'indispo (1-7)
+     * @return array<int, array{reductive: int, nonReductive: int}> weekNumber → totaux par type
      */
     private function computeUnavailabilityDaysByWeek(Collection $unavailabilityModels, int $year): array
     {
         $yearStart = Carbon::create($year, 1, 1)->startOfDay();
         $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
 
-        /** @var array<int, array<string, bool>> $byWeekDays */
+        /** @var array<int, array<string, 'reductive'|'nonReductive'>> $byWeekDays */
         $byWeekDays = [];
         foreach ($unavailabilityModels as $row) {
             // Filtre indispo croisant l'année (équivalent du WHERE SQL).
@@ -612,6 +612,7 @@ final class VehicleQueryService
                 continue;
             }
 
+            $isReductive = $row->type->isFiscallyReductive();
             $start = $row->start_date->greaterThan($yearStart) ? $row->start_date : $yearStart;
             $end = $row->end_date === null || $row->end_date->greaterThan($yearEnd)
                 ? $yearEnd
@@ -621,16 +622,30 @@ final class VehicleQueryService
             while ($cursor->lessThanOrEqualTo($end)) {
                 if ($cursor->year === $year) {
                     $week = (int) $cursor->isoWeek;
-                    $byWeekDays[$week] ??= [];
-                    $byWeekDays[$week][$cursor->toDateString()] = true;
+                    $date = $cursor->toDateString();
+                    $existing = $byWeekDays[$week][$date] ?? null;
+
+                    // Priorité réductrice (impact fiscal) sur non-réductrice.
+                    if ($existing !== 'reductive') {
+                        $byWeekDays[$week][$date] = $isReductive ? 'reductive' : 'nonReductive';
+                    }
                 }
                 $cursor = $cursor->addDay();
             }
         }
 
         $byWeek = [];
-        foreach ($byWeekDays as $week => $days) {
-            $byWeek[$week] = count($days);
+        foreach ($byWeekDays as $week => $dates) {
+            $reductive = 0;
+            $nonReductive = 0;
+            foreach ($dates as $kind) {
+                if ($kind === 'reductive') {
+                    $reductive++;
+                } else {
+                    $nonReductive++;
+                }
+            }
+            $byWeek[$week] = ['reductive' => $reductive, 'nonReductive' => $nonReductive];
         }
         ksort($byWeek);
 

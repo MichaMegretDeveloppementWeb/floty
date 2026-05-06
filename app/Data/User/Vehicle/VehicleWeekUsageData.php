@@ -22,19 +22,24 @@ final class VehicleWeekUsageData extends Data
 {
     /**
      * @param  list<VehicleWeekSegmentData>  $segments
-     * @param  int  $unavailabilityDays  Nombre de jours d'indispo
-     *                                   (tous types) recoupant cette
-     *                                   semaine ISO de l'année. Sert
-     *                                   à dimensionner un segment
-     *                                   « indispo » empilé au-dessus
-     *                                   des attributions dans la
-     *                                   timeline (proportionnel sur 7).
+     * @param  int  $reductiveUnavailabilityDays  Jours d'indispo dont le type
+     *                                            réduit le numérateur du
+     *                                            prorata fiscal (R-2024-008).
+     *                                            Cf. `UnavailabilityType::isFiscallyReductive()`.
+     *                                            Rendus en overlay rose dans
+     *                                            la timeline (alerte fiscale).
+     * @param  int  $nonReductiveUnavailabilityDays  Jours d'indispo opérationnelle
+     *                                               sans impact fiscal (panne,
+     *                                               contrôle technique, etc.).
+     *                                               Rendus en overlay slate
+     *                                               (info neutre).
      */
     public function __construct(
         public int $weekNumber,
         #[DataCollectionOf(VehicleWeekSegmentData::class)]
         public array $segments,
         public int $totalDays,
-        public int $unavailabilityDays,
+        public int $reductiveUnavailabilityDays,
+        public int $nonReductiveUnavailabilityDays,
     ) {}
 }

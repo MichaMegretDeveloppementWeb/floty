@@ -102,16 +102,28 @@ const {
 
 <style scoped>
 /**
- * Indisponibilité : pattern de hachures diagonales rose +
- * background plein. Plus lisible que la croix SVG précédente
- * (visible même sur des bandes très étroites).
+ * Indispo réductrice (R-2024-008) : hachures rose, alerte fiscale.
+ * Indispo non-réductrice : hachures slate, info opérationnelle neutre.
+ * Les deux overlays sont positionnés en absolute pour autoriser la
+ * cohabitation indispo↔contrat (ADR-0019).
  */
-.unavailability-segment {
-    background-color: rgb(254 205 211); /* rose-200 */
+.unavailability-segment-reductive {
+    background-color: rgb(254 205 211 / 0.7); /* rose-200 transparent */
     background-image: repeating-linear-gradient(
         135deg,
         rgb(225 29 72 / 0.55) 0,
         rgb(225 29 72 / 0.55) 1.5px,
+        transparent 1.5px,
+        transparent 4px
+    );
+}
+
+.unavailability-segment-non-reductive {
+    background-color: rgb(226 232 240 / 0.7); /* slate-200 transparent */
+    background-image: repeating-linear-gradient(
+        135deg,
+        rgb(100 116 139 / 0.55) 0,
+        rgb(100 116 139 / 0.55) 1.5px,
         transparent 1.5px,
         transparent 4px
     );
@@ -166,7 +178,11 @@ const {
                                 <div
                                     :class="[
                                         'relative flex h-10 w-[16px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
-                                        week.totalDays === 0 && week.unavailabilityDays === 0 ? 'bg-slate-100' : '',
+                                        week.totalDays === 0
+                                            && week.reductiveUnavailabilityDays === 0
+                                            && week.nonReductiveUnavailabilityDays === 0
+                                            ? 'bg-slate-100'
+                                            : '',
                                     ]"
                                 >
                                     <div
@@ -175,10 +191,22 @@ const {
                                         :class="companyColorBgClass(segment.color)"
                                         :style="{ height: heightFor(segment) }"
                                     />
+                                    <!-- Overlays absolus pour cohabiter avec
+                                         la barre d'attribution. Réductrice
+                                         (rose) en haut, non-réductrice
+                                         (slate) juste en dessous. -->
                                     <div
-                                        v-if="week.unavailabilityDays > 0"
-                                        :style="{ height: heightForDays(week.unavailabilityDays) }"
-                                        class="unavailability-segment relative w-full"
+                                        v-if="week.reductiveUnavailabilityDays > 0"
+                                        class="unavailability-segment-reductive pointer-events-none absolute inset-x-0 top-0"
+                                        :style="{ height: heightForDays(week.reductiveUnavailabilityDays) }"
+                                    />
+                                    <div
+                                        v-if="week.nonReductiveUnavailabilityDays > 0"
+                                        class="unavailability-segment-non-reductive pointer-events-none absolute inset-x-0"
+                                        :style="{
+                                            top: heightForDays(week.reductiveUnavailabilityDays),
+                                            height: heightForDays(week.nonReductiveUnavailabilityDays),
+                                        }"
                                     />
                                 </div>
 
@@ -187,7 +215,9 @@ const {
                                         Semaine {{ week.weekNumber }}
                                     </p>
                                     <p
-                                        v-if="week.segments.length === 0 && week.unavailabilityDays === 0"
+                                        v-if="week.segments.length === 0
+                                            && week.reductiveUnavailabilityDays === 0
+                                            && week.nonReductiveUnavailabilityDays === 0"
                                         class="text-slate-300"
                                     >
                                         Pas d'utilisation
@@ -209,15 +239,26 @@ const {
                                             <span class="text-slate-300">{{ segment.days }}j</span>
                                         </li>
                                         <li
-                                            v-if="week.unavailabilityDays > 0"
+                                            v-if="week.reductiveUnavailabilityDays > 0"
                                             class="flex items-center gap-2"
                                         >
                                             <span
                                                 class="inline-block h-2 w-2 shrink-0 rounded-sm bg-rose-300"
                                                 aria-hidden="true"
                                             />
-                                            <span class="font-medium">Indispo</span>
-                                            <span class="text-slate-300">{{ week.unavailabilityDays }}j</span>
+                                            <span class="font-medium">Indispo réductrice</span>
+                                            <span class="text-slate-300">{{ week.reductiveUnavailabilityDays }}j</span>
+                                        </li>
+                                        <li
+                                            v-if="week.nonReductiveUnavailabilityDays > 0"
+                                            class="flex items-center gap-2"
+                                        >
+                                            <span
+                                                class="inline-block h-2 w-2 shrink-0 rounded-sm bg-slate-300"
+                                                aria-hidden="true"
+                                            />
+                                            <span class="font-medium">Indispo opérationnelle</span>
+                                            <span class="text-slate-300">{{ week.nonReductiveUnavailabilityDays }}j</span>
                                         </li>
                                     </ul>
                                 </template>
