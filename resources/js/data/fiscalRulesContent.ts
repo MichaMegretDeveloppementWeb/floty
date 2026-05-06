@@ -284,8 +284,8 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         tab: 'calcul',
         section: 'exoneration-inactive',
         title: 'Exonération entreprise individuelle',
-        pitch: 'Véhicules détenus par une personne physique exerçant en nom propre (BIC/BNC).',
-        body: 'Inactive par défaut : les entreprises utilisatrices sont des sociétés, jamais des personnes physiques en nom propre.',
+        pitch: 'Véhicule affecté par une personne physique exerçant en nom propre (entrepreneur individuel BIC/BNC) — exonération soumise aux conditions du règlement de minimis.',
+        body: "Inactive par défaut : si une entreprise utilisatrice est un entrepreneur individuel (personne physique en nom propre, régime BIC ou BNC), cette exonération devient applicable et peut être activée manuellement. Le bénéfice est subordonné aux conditions du règlement européen général de minimis (ou règlements sectoriels agricole/pêche).",
     },
 
     // ─────────────────────────────────────────────────────────────
@@ -304,8 +304,8 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         tab: 'cadre',
         section: 'cadre-implicite',
         title: 'Prorata journalier',
-        pitch: 'Base 366 jours en 2024 (année bissextile). Taxe due = tarif annuel plein × (jours attribués / 366).',
-        body: "Toutes les règles de tarification produisent d'abord un tarif annuel plein, qui est ensuite réduit au prorata du nombre de jours où le véhicule a été effectivement affecté à l'entreprise redevable.",
+        pitch: 'Base 366 jours en 2024 (année bissextile). Taxe due = tarif annuel plein × (jours d’affectation contractuelle / 366).',
+        body: "Toutes les règles de tarification produisent d'abord un tarif annuel plein, qui est ensuite réduit au prorata du nombre de jours de la période d'affectation contractuelle (date de début → date de fin du contrat ; cf. R-2024-022). Les indispos réductrices subies à la demande des pouvoirs publics (R-2024-008) et la qualification LCD du contrat (R-2024-021) sont les seuls mécanismes qui réduisent ce numérateur.",
     },
     'R-2024-003': {
         tab: 'cadre',
@@ -344,14 +344,14 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         section: 'cadre-evenement',
         title: 'Mise hors-service en cours d’année',
         pitch: 'Un véhicule vendu ou détruit en cours d’année n’est plus taxable à compter de sa date de sortie de flotte.',
-        body: "Si un véhicule sort de la flotte le 30 juin, aucune attribution postérieure à cette date n'est taxable. Le prorata est calculé uniquement sur les jours effectifs entre sa 1ère immatriculation et sa sortie (si toutes deux tombent dans l'année).",
+        body: "Si un véhicule sort de la flotte le 30 juin, aucune attribution postérieure à cette date n'est taxable. La proportion annuelle d'affectation est ramenée à la fraction d'année pendant laquelle l'entreprise détenait effectivement le véhicule. La doctrine BOFiP § 190 illustre ce principe avec l'exemple d'une entreprise qui acquiert un véhicule au 31 janvier et le revend au 30 novembre : la proportion annuelle vaut alors 304/365 = 83,3 %.",
     },
     'R-2024-006': {
         tab: 'cadre',
         section: 'cadre-evenement',
         title: 'Bascule automatique sur barème PA',
         pitch: "Quand la donnée CO₂ attendue est manquante, l'application bascule automatiquement sur le barème Puissance Administrative.",
-        body: 'Complémentaire de R-005 : si un véhicule post-2020 devrait relever du WLTP mais n’a pas de CO₂ WLTP saisi, le calcul se rabat sur les CV. Un indicateur UI signale ces véhicules pour incitation à compléter les données.',
+        body: "Complémentaire de la règle de sélection du barème CO₂ (R-2024-005) : si un véhicule post-2020 devrait relever du WLTP mais n’a pas de CO₂ WLTP saisi, le calcul se rabat sur les CV. Un indicateur UI signale ces véhicules pour inciter l'utilisateur à compléter les données.",
     },
 
     // Règles de fonctionnement interne ────────────────────────────
@@ -366,8 +366,8 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         tab: 'cadre',
         section: 'cadre-interne',
         title: 'Garde-fou Crit’Air',
-        pitch: 'Alerte UI non bloquante quand la vignette Crit’Air saisie ne correspond pas à la catégorie polluants calculée.',
-        body: "Contrôle de cohérence entre la vignette Crit'Air et la catégorie calculée à partir de motorisation + norme Euro. Une divergence déclenche une alerte mais n'empêche pas le calcul : l'application utilise la catégorie calculée, sauf modification manuelle.",
+        pitch: "Vérifie que la vignette Crit'Air saisie pour le véhicule est cohérente avec la catégorie polluants CIBS calculée. Alerte non bloquante uniquement.",
+        body: "Floty utilise deux classifications distinctes mais liées : la **catégorie polluants CIBS** (3 valeurs : E, 1, « plus polluants ») qui sert au calcul de la taxe annuelle polluants (R-2024-013), et la **vignette Crit'Air** (6 niveaux : E, 1, 2, 3, 4, 5) qui relève du Code de la route et de la circulation en zones à faibles émissions. Les deux dépendent toutes deux de la motorisation et de la norme Euro du véhicule, donc elles doivent être cohérentes : un Crit'Air 1 doit donner CIBS catégorie 1, un Crit'Air 5 (diesel ancien) doit donner CIBS « plus polluants », etc. Si la vignette saisie ne correspond pas à la catégorie calculée par Floty, c'est qu'au moins une donnée du véhicule est probablement erronée — Floty affiche une alerte pour inviter l'utilisateur à vérifier sa saisie. Le calcul de taxe utilise quand même la catégorie CIBS calculée (qui est la base légale de la taxe), pas la vignette Crit'Air.",
     },
 };
 
