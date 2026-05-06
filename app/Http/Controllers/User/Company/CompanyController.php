@@ -78,6 +78,20 @@ final class CompanyController extends Controller
             throw new NotFoundHttpException('Entreprise introuvable.');
         }
 
+        // Onglet Contrats — default année réelle courante au mount quand
+        // aucun paramètre période explicite (cohérence avec onglet
+        // Fiscalité, ADR-0020 D3). Liens partagés (`?year=`,
+        // `?periodStart=`, `?periodEnd=`) respectés tels quels.
+        $hasExplicitPeriod = $request->exists('year')
+            || $request->exists('periodStart')
+            || $request->exists('periodEnd');
+
+        if (! $hasExplicitPeriod) {
+            $contractsQuery->year = $detail->currentRealYear;
+            $contractsQuery->periodStart = sprintf('%d-01-01', $detail->currentRealYear);
+            $contractsQuery->periodEnd = sprintf('%d-12-31', $detail->currentRealYear);
+        }
+
         // Onglet Fiscalité (chantier N.2) — sélecteur d'année **local**
         // indépendant. Préfixe `?fiscalYear=` pour ne pas collide avec
         // `?year=` (Activité Vue d'ensemble) ni `?periodStart/End=`

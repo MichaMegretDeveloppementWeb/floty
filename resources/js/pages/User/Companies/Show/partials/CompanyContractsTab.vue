@@ -18,7 +18,7 @@
  *   indépendants par section »)
  */
 import { CalendarDays } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
@@ -162,11 +162,21 @@ function selectYear(year: number): void {
     });
 }
 
+// Mémorise la dernière année sélectionnée pour la restaurer quand
+// l'utilisateur efface une période custom via le X du chip. Évite que
+// le clear ne fasse retomber sur l'année courante (default backend) en
+// perdant le contexte si l'utilisateur était sur une autre année.
+const lastSelectedYear = ref<number | null>(activeYear.value);
+
+watch(activeYear, (newVal) => {
+    if (newVal !== null) {
+        lastSelectedYear.value = newVal;
+    }
+});
+
 function clearPeriod(): void {
-    tableState.state.patchFilters({
-        periodStart: null,
-        periodEnd: null,
-    });
+    const fallback = lastSelectedYear.value ?? props.company.currentRealYear;
+    selectYear(fallback);
 }
 </script>
 
@@ -255,8 +265,13 @@ function clearPeriod(): void {
                     </div>
                 </div>
 
-                <!-- Chip de filtre actif (smart label) -->
-                <div v-if="hasActivePeriodFilter">
+                <!--
+                    Chip de filtre actif (smart label).
+                    Masqué quand une année pleine est sélectionnée — la pill
+                    correspondante est déjà highlightée, le chip serait
+                    redondant. N'apparaît que pour les périodes custom.
+                -->
+                <div v-if="hasActivePeriodFilter && activeYear === null">
                     <CompanyContractsActiveFilterChip
                         :period-start="
                             tableState.state.filters.value.periodStart

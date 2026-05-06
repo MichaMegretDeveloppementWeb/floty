@@ -570,11 +570,18 @@ final class CompanyControllerTest extends TestCase
         $company = Company::factory()->create();
 
         // 25 contrats sur 25 véhicules distincts pour éviter le trigger
-        // SQL `contracts_no_overlap_*` (invariant ADR-0019 D3).
+        // SQL `contracts_no_overlap_*` (invariant ADR-0019 D3). Forcés
+        // dans l'année courante pour rester visibles avec le default
+        // période = année courante (chantier #5).
+        $currentYear = (int) Carbon::now()->year;
         for ($i = 0; $i < 25; $i++) {
             $vehicle = Vehicle::factory()->create();
             VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
-            Contract::factory()->forVehicle($vehicle)->forCompany($company)->create();
+            Contract::factory()
+                ->forVehicle($vehicle)
+                ->forCompany($company)
+                ->inYear($currentYear)
+                ->create();
         }
 
         $this->actingAs($user)
@@ -607,10 +614,13 @@ final class CompanyControllerTest extends TestCase
         $vB3 = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vB3->id]);
 
-        Contract::factory()->forVehicle($vA)->forCompany($companyA)->create();
-        Contract::factory()->forVehicle($vB1)->forCompany($companyB)->create();
-        Contract::factory()->forVehicle($vB2)->forCompany($companyB)->create();
-        Contract::factory()->forVehicle($vB3)->forCompany($companyB)->create();
+        // Force l'année pour rester déterministe avec le default
+        // période = année courante (chantier #5).
+        $currentYear = (int) Carbon::now()->year;
+        Contract::factory()->forVehicle($vA)->forCompany($companyA)->inYear($currentYear)->create();
+        Contract::factory()->forVehicle($vB1)->forCompany($companyB)->inYear($currentYear)->create();
+        Contract::factory()->forVehicle($vB2)->forCompany($companyB)->inYear($currentYear)->create();
+        Contract::factory()->forVehicle($vB3)->forCompany($companyB)->inYear($currentYear)->create();
 
         $this->actingAs($user)
             ->get('/app/companies/'.$companyA->id.'?companyId='.$companyB->id)
@@ -648,8 +658,11 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_expose_stats_contractuelles_lifetime_sans_filtre(): void
+    public function show_expose_stats_contractuelles_pour_l_annee_courante_par_default(): void
     {
+        // Chantier #5 : sans paramètre période, le default = année réelle
+        // courante (cohérence avec onglet Fiscalité). Les stats reflètent
+        // ce scope, pas le lifetime.
         $user = User::factory()->create();
         $company = Company::factory()->create();
         $v1 = Vehicle::factory()->create();
@@ -657,13 +670,28 @@ final class CompanyControllerTest extends TestCase
         $v2 = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2->id]);
 
-        // 10 jours LCD + 31 jours LLD = 41 jours, 1 LCD, 1 LLD
+        $currentYear = (int) Carbon::now()->year;
+
+        // Un contrat 2024 (hors scope par défaut) — ne doit pas peser
+        // sur les stats default.
+        $vOld = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vOld->id]);
+        Contract::factory()->forVehicle($vOld)->forCompany($company)->create([
+            'start_date' => '2024-04-01', 'end_date' => '2024-04-30',
+            'contract_type' => 'lld',
+        ]);
+
+        // 10 jours LCD + 31 jours LLD = 41 jours sur l'année courante.
+        // Dates calées sur des mois pleins pour rester indépendantes
+        // du caractère bissextile de l'année courante.
         Contract::factory()->forVehicle($v1)->forCompany($company)->create([
-            'start_date' => '2024-01-01', 'end_date' => '2024-01-10',
+            'start_date' => sprintf('%d-04-01', $currentYear),
+            'end_date' => sprintf('%d-04-10', $currentYear),
             'contract_type' => 'lcd',
         ]);
         Contract::factory()->forVehicle($v2)->forCompany($company)->create([
-            'start_date' => '2024-02-01', 'end_date' => '2024-03-02',
+            'start_date' => sprintf('%d-05-01', $currentYear),
+            'end_date' => sprintf('%d-05-31', $currentYear),
             'contract_type' => 'lld',
         ]);
 
@@ -736,6 +764,111 @@ final class CompanyControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contractsAvailableYears', []),
+            );
+    }
+
+    // ----------------------------------------------------------------
+    // Show — chantier #5 (default période = année courante au mount)
+    // ----------------------------------------------------------------
+
+    #[Test]
+    public function show_default_contracts_period_a_l_annee_courante_quand_aucun_param(): void
+    {
+        // Sans paramètre période (`year`, `periodStart`, `periodEnd`),
+        // l'onglet Contrats ouvre sur l'année réelle courante. Cohérence
+        // avec onglet Fiscalité (chantier N.2 + ADR-0020 D3).
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicleA = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleA->id]);
+        $vehicleB = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleB->id]);
+
+        $currentYear = (int) Carbon::now()->year;
+
+        // Un contrat 2024 (hors scope par défaut)
+        Contract::factory()->forVehicle($vehicleA)->forCompany($company)->inYear(2024)->create();
+        // Un contrat sur l'année courante (dans scope par défaut)
+        Contract::factory()->forVehicle($vehicleB)->forCompany($company)->inYear($currentYear)->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contracts.meta.total', 1)
+                ->where('contractsQuery.year', $currentYear)
+                ->where('contractsQuery.periodStart', sprintf('%d-01-01', $currentYear))
+                ->where('contractsQuery.periodEnd', sprintf('%d-12-31', $currentYear)),
+            );
+    }
+
+    #[Test]
+    public function show_default_contracts_period_respecte_year_explicite(): void
+    {
+        // Lien partagé `?year=2024` → respecte le scope choisi par
+        // l'utilisateur, sans appliquer le default année courante.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicleA = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleA->id]);
+        $vehicleB = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleB->id]);
+
+        $currentYear = (int) Carbon::now()->year;
+        Contract::factory()->forVehicle($vehicleA)->forCompany($company)->inYear(2024)->create();
+        Contract::factory()->forVehicle($vehicleB)->forCompany($company)->inYear($currentYear)->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?year=2024')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contracts.meta.total', 1)
+                ->where('contractsQuery.year', 2024),
+            );
+    }
+
+    #[Test]
+    public function show_default_contracts_period_respecte_periode_custom(): void
+    {
+        // Lien partagé `?periodStart=…&periodEnd=…` → respecte la plage
+        // custom, le default ne se déclenche pas. `year` reste null.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2025-06-15', 'end_date' => '2025-08-15',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?periodStart=2025-06-01&periodEnd=2025-09-30')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contracts.meta.total', 1)
+                ->where('contractsQuery.year', null)
+                ->where('contractsQuery.periodStart', '2025-06-01')
+                ->where('contractsQuery.periodEnd', '2025-09-30'),
+            );
+    }
+
+    #[Test]
+    public function show_default_contracts_period_ne_se_declenche_pas_si_periode_partielle(): void
+    {
+        // Si l'utilisateur passe seulement `?periodStart=…` (sans
+        // periodEnd), on respecte son intention sans appliquer le
+        // default. La détection est sur la présence d'au moins un
+        // paramètre période dans l'URL.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?periodStart=2025-06-01')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contractsQuery.year', null)
+                ->where('contractsQuery.periodStart', '2025-06-01')
+                ->where('contractsQuery.periodEnd', null),
             );
     }
 
