@@ -66,9 +66,13 @@ const form = useForm<FormShape>({
     replacement_map: {},
 });
 
-// Liste auto-chargée des contrats à venir + replacement choisi par contrat
+// Liste auto-chargée des contrats à venir + replacement choisi par contrat.
+// `loadingContracts` part à `true` : le watch debounce le 1er fetch de
+// 250ms après l'ouverture, et on ne veut pas montrer un message
+// transitoire « Aucune location à venir » avant que la requête réponde
+// (sursaut UX visible côté utilisateur).
 const futureContracts = ref<FutureContract[]>([]);
-const loadingContracts = ref<boolean>(false);
+const loadingContracts = ref<boolean>(true);
 const fetchError = ref<string | null>(null);
 // Map locale contractId -> driverId | null. `null` = détacher ce contrat.
 // `undefined` = pas encore choisi (= disabled submit en mode 'replace').

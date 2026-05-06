@@ -118,7 +118,7 @@ function submit(): void {
                     class="mt-1 text-xs text-slate-500"
                 >
                     Vide = rattachement actif. Effacer la date de sortie
-                    posée réactive la membership.
+                    posée réactive le rattachement.
                 </p>
             </div>
 
