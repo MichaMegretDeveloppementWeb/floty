@@ -62,7 +62,7 @@ export function useSidebarNav(open: Ref<boolean>): {
                     href: planningIndexRoute.url(),
                 },
                 {
-                    label: 'Contrats',
+                    label: 'Locations',
                     icon: FileText,
                     href: contractsIndexRoute.url(),
                 },

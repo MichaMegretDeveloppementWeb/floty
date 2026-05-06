@@ -53,7 +53,7 @@ export function useDriversTable(
     const columns: readonly DataTableColumn<DriverRow>[] = [
         { key: 'driver', label: 'Conducteur' },
         { key: 'companies', label: 'Entreprises' },
-        { key: 'contractsCount', label: 'Contrats', mono: true },
+        { key: 'contractsCount', label: 'Locations', mono: true },
     ];
 
     const state = useServerTableState<DriverFilters>({

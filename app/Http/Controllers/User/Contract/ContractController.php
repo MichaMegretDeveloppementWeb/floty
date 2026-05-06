@@ -95,7 +95,7 @@ final class ContractController extends Controller
 
         return redirect()
             ->route('user.contracts.show', ['contract' => $contract->id])
-            ->with('toast-success', 'Contrat enregistré.');
+            ->with('toast-success', 'Location enregistrée.');
     }
 
     public function edit(int $contract): Response
@@ -137,7 +137,7 @@ final class ContractController extends Controller
 
         return redirect()
             ->route('user.contracts.show', ['contract' => $contract])
-            ->with('toast-success', 'Contrat mis à jour.');
+            ->with('toast-success', 'Location mise à jour.');
     }
 
     public function destroy(int $contract): RedirectResponse
@@ -146,7 +146,7 @@ final class ContractController extends Controller
 
         return redirect()
             ->route('user.contracts.index')
-            ->with('toast-success', 'Contrat supprimé.');
+            ->with('toast-success', 'Location supprimée.');
     }
 
     public function bulkStore(BulkStoreContractsData $data): RedirectResponse
@@ -156,7 +156,7 @@ final class ContractController extends Controller
 
         return back()->with(
             'toast-success',
-            sprintf('%d contrat%s enregistré%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : ''),
+            sprintf('%d location%s enregistrée%s.', $count, $count > 1 ? 's' : '', $count > 1 ? 's' : ''),
         );
     }
 }

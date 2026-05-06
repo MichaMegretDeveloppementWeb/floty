@@ -17,8 +17,8 @@ final class DriverDeletionBlockedException extends BaseAppException
         return new self(
             sprintf('Driver %d cannot be deleted: %d contracts associated.', $driverId, $contractsCount),
             sprintf(
-                'Impossible de supprimer ce conducteur : %d contrat(s) lui sont associés. '
-                .'La suppression complète n\'est possible que si aucun contrat ne référence le conducteur.',
+                'Impossible de supprimer ce conducteur : %d location(s) lui sont associées. '
+                .'La suppression complète n\'est possible que si aucune location ne référence le conducteur.',
                 $contractsCount,
             ),
         );

@@ -30,7 +30,7 @@ const {
         <template #header>
             <div>
                 <h2 class="text-base font-semibold text-slate-900">
-                    Taxes générées par ce contrat
+                    Taxes générées par cette location
                 </h2>
                 <p class="mt-0.5 text-xs text-slate-500">
                     Calcul fiscal exact selon les règles de l'année concernée.
@@ -68,7 +68,7 @@ const {
                     v-if="year.daysAssigned === 0"
                     class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
                 >
-                    Contrat exonéré pour {{ year.year }} : 0 €.
+                    Location exonérée pour {{ year.year }} : 0 €.
                     <span class="block text-xs text-emerald-700/80 mt-0.5">
                         Aucun jour retenu au numérateur du prorata après application
                         des règles d'exonération.
@@ -130,7 +130,7 @@ const {
                     >
                         <span class="text-xs text-slate-500">
                             Sous-total {{ year.year }}
-                            ({{ year.daysInContractInYear }} jour{{ year.daysInContractInYear > 1 ? 's' : '' }} de contrat)
+                            ({{ year.daysInContractInYear }} jour{{ year.daysInContractInYear > 1 ? 's' : '' }} de location)
                         </span>
                         <span class="font-mono text-sm font-semibold text-slate-900">
                             {{ formatEur(year.totalDue) }}
@@ -194,7 +194,7 @@ const {
                 <span
                     class="text-xs font-semibold tracking-wider text-slate-700 uppercase"
                 >
-                    Total contrat
+                    Total location
                 </span>
                 <span class="font-mono text-lg font-semibold text-slate-700">
                     {{ formatEur(taxBreakdown.totalDue) }}

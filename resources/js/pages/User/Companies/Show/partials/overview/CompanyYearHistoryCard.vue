@@ -50,7 +50,7 @@ const sortedHistory = computed<YearStats[]>(() =>
                     <tr class="border-b border-slate-200 text-left text-xs font-medium uppercase tracking-wide text-slate-500">
                         <th class="py-2 pr-4">Année</th>
                         <th class="py-2 pr-4 text-right">Jours</th>
-                        <th class="py-2 pr-4 text-right">Contrats</th>
+                        <th class="py-2 pr-4 text-right">Locations</th>
                         <th class="py-2 pr-4 text-right">Taxes</th>
                         <th class="py-2 text-right">Loyer</th>
                     </tr>
@@ -83,7 +83,7 @@ const sortedHistory = computed<YearStats[]>(() =>
                 </tbody>
             </table>
             <p class="mt-2 text-[11px] text-slate-400">
-                Format Contrats : total (LCD/LLD). Loyer : facturation V1.2.
+                Format Locations : total (LCD/LLD). Loyer : facturation V1.2.
             </p>
         </div>
     </Card>

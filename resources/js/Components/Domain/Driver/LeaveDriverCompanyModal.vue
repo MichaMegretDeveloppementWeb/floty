@@ -98,7 +98,7 @@ async function fetchFutureContracts(): Promise<void> {
         }
     } catch {
         fetchError.value
-            = 'Impossible de charger les contrats à venir. Veuillez réessayer.';
+            = 'Impossible de charger les locations à venir. Veuillez réessayer.';
     } finally {
         loadingContracts.value = false;
     }
@@ -143,11 +143,11 @@ const resolutionOptions = computed<
     return [
         {
             value: 'detach',
-            label: `Détacher les ${count} contrat${count > 1 ? 's' : ''} à venir (driver vide)`,
+            label: `Détacher les ${count} location${count > 1 ? 's' : ''} à venir (driver vide)`,
         },
         {
             value: 'replace',
-            label: 'Remplacer par un autre conducteur (à choisir par contrat)',
+            label: 'Remplacer par un autre conducteur (à choisir par location)',
         },
     ];
 });
@@ -158,7 +158,7 @@ function candidateOptionsFor(contract: FutureContract): Array<{
 }> {
     const options: Array<{ value: number | string; label: string }>
         = contract.candidates.map((c) => ({ value: c.id, label: c.fullName }));
-    options.unshift({ value: '__detach__', label: '— Détacher ce contrat —' });
+    options.unshift({ value: '__detach__', label: '— Détacher cette location —' });
 
     return options;
 }
@@ -229,7 +229,7 @@ function submit(): void {
         </p>
         <p class="mt-2 text-xs text-slate-500">
             Cette action pose une date de sortie sur le rattachement.
-            L'historique des contrats passés est conservé.
+            L'historique des locations passées est conservé.
         </p>
 
         <form class="mt-6 flex flex-col gap-4" @submit.prevent="submit">
@@ -249,7 +249,7 @@ function submit(): void {
                     :stroke-width="2"
                     class="animate-spin"
                 />
-                Chargement des contrats à venir…
+                Chargement des locations à venir…
             </div>
 
             <p
@@ -264,7 +264,7 @@ function submit(): void {
                 v-else-if="!hasFutureContracts"
                 class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800"
             >
-                Aucun contrat à venir après cette date — sortie directe sans
+                Aucune location à venir après cette date — sortie directe sans
                 résolution nécessaire.
             </div>
 
@@ -273,7 +273,7 @@ function submit(): void {
                 <div>
                     <FieldLabel for="leave-resolution">
                         Résolution des
-                        {{ futureContracts.length }} contrat{{
+                        {{ futureContracts.length }} location{{
                             futureContracts.length > 1 ? 's' : ''
                         }}
                         à venir
@@ -294,7 +294,7 @@ function submit(): void {
                     class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3"
                 >
                     <p class="text-xs font-medium text-slate-700">
-                        Choisir un remplaçant pour chaque contrat
+                        Choisir un remplaçant pour chaque location
                     </p>
                     <div
                         v-for="contract in futureContracts"
@@ -344,7 +344,7 @@ function submit(): void {
                         v-if="replaceModeIncomplete"
                         class="mt-1 text-xs text-amber-700"
                     >
-                        Faites un choix pour chaque contrat avant de confirmer.
+                        Faites un choix pour chaque location avant de confirmer.
                     </p>
                 </div>
             </template>

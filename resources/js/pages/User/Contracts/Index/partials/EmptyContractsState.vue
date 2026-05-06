@@ -12,10 +12,10 @@ import { create as contractsCreateRoute } from '@/routes/user/contracts';
         <FileText :size="32" class="text-slate-400" :stroke-width="1.5" />
         <div>
             <p class="text-base font-semibold text-slate-700">
-                Aucun contrat enregistré
+                Aucune location enregistrée
             </p>
             <p class="mt-1 text-sm text-slate-500">
-                Créez un contrat pour attribuer un véhicule à une
+                Créez une location pour attribuer un véhicule à une
                 entreprise utilisatrice sur une plage de dates.
             </p>
         </div>
@@ -24,7 +24,7 @@ import { create as contractsCreateRoute } from '@/routes/user/contracts';
                 <template #icon-left>
                     <Plus :size="14" :stroke-width="1.75" />
                 </template>
-                Nouveau contrat
+                Nouvelle location
             </Button>
         </Link>
     </div>

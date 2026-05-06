@@ -483,7 +483,7 @@ final class ContractControllerTest extends TestCase
 
         $this->actingAs($user)
             ->post('/app/contracts', $payload)
-            ->assertSessionHas('toast-success', 'Contrat enregistré.');
+            ->assertSessionHas('toast-success', 'Location enregistrée.');
 
         $this->assertDatabaseHas('contracts', [
             'vehicle_id' => $vehicle->id,
@@ -573,7 +573,7 @@ final class ContractControllerTest extends TestCase
                 'notes' => null,
             ])
             ->assertRedirect("/app/contracts/{$contract->id}")
-            ->assertSessionHas('toast-success', 'Contrat mis à jour.');
+            ->assertSessionHas('toast-success', 'Location mise à jour.');
 
         $this->assertDatabaseHas('contracts', [
             'id' => $contract->id,
@@ -594,7 +594,7 @@ final class ContractControllerTest extends TestCase
         $this->actingAs($user)
             ->delete("/app/contracts/{$contract->id}")
             ->assertRedirect('/app/contracts')
-            ->assertSessionHas('toast-success', 'Contrat supprimé.');
+            ->assertSessionHas('toast-success', 'Location supprimée.');
 
         $this->assertSoftDeleted($contract);
     }
@@ -696,7 +696,7 @@ final class ContractControllerTest extends TestCase
                 'contract_type' => 'lcd',
                 'notes' => null,
             ])
-            ->assertSessionHas('toast-success', '2 contrats enregistrés.');
+            ->assertSessionHas('toast-success', '2 locations enregistrées.');
 
         $this->assertSame(2, Contract::query()->count());
     }

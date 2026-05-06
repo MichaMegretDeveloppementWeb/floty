@@ -19,7 +19,7 @@ final class LeaveResolutionInvalidException extends BaseAppException
         return new self(
             sprintf('Replacement driver missing for contract %d.', $contractId),
             sprintf(
-                'Aucun conducteur de remplacement n\'a été choisi pour le contrat #%d. '
+                'Aucun conducteur de remplacement n\'a été choisi pour la location #%d. '
                 .'Choisissez un conducteur ou optez pour le détachement complet.',
                 $contractId,
             ),
@@ -31,8 +31,8 @@ final class LeaveResolutionInvalidException extends BaseAppException
         return new self(
             sprintf('Replacement driver %d invalid for contract %d period or company.', $driverId, $contractId),
             sprintf(
-                'Le conducteur de remplacement choisi pour le contrat #%d n\'est pas '
-                .'actif dans la bonne entreprise sur la période du contrat. Choisissez un autre conducteur.',
+                'Le conducteur de remplacement choisi pour la location #%d n\'est pas '
+                .'actif dans la bonne entreprise sur la période de la location. Choisissez un autre conducteur.',
                 $contractId,
             ),
         );

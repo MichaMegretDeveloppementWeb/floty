@@ -73,7 +73,7 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule
         return ExemptionVerdict::partialDays(
             $exemptDays,
             sprintf(
-                'Exonération LCD - %d contrat%s court%s (%d jour%s) (CIBS L. 421-129 / L. 421-141, BOFiP § 180-190)',
+                'Exonération LCD - %d location%s courte%s (%d jour%s) (CIBS L. 421-129 / L. 421-141, BOFiP § 180-190)',
                 $lcdContractsCount,
                 $lcdContractsCount > 1 ? 's' : '',
                 $lcdContractsCount > 1 ? 's' : '',

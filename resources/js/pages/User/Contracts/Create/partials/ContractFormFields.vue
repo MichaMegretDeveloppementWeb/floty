@@ -192,7 +192,7 @@ watch(disabledDates, (newDisabled) => {
 
         <div class="my-5">
             <p class="text-xs font-medium uppercase tracking-wide text-slate-600">
-                Plage du contrat
+                Plage de la location
             </p>
             <p class="mt-1 text-xs text-slate-500">
                 Le type LCD/LLD est déterminé automatiquement selon la durée
@@ -212,13 +212,13 @@ watch(disabledDates, (newDisabled) => {
                 class="mt-1 text-xs text-slate-500"
             >
                 Sélectionnez un véhicule pour voir les jours déjà occupés
-                par d'autres contrats actifs.
+                par d'autres locations actives.
             </p>
             <p
                 v-else-if="disabledDates.length > 0"
                 class="mt-1 text-xs text-slate-500"
             >
-                Les jours déjà occupés par un autre contrat de ce véhicule
+                Les jours déjà occupés par une autre location de ce véhicule
                 (barrés) ne peuvent pas être inclus dans la plage.
             </p>
             <InputError :message="form.errors.start_date || form.errors.end_date" />
@@ -238,7 +238,7 @@ watch(disabledDates, (newDisabled) => {
 
         <div>
             <FieldLabel for="contract_reference">
-                Référence contrat (optionnel)
+                Référence location (optionnel)
             </FieldLabel>
             <TextInput
                 id="contract_reference"

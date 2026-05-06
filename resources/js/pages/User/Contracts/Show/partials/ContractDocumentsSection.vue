@@ -110,7 +110,7 @@ async function confirmDelete(): Promise<void> {
             v-if="documents.length === 0"
             class="text-sm text-slate-500"
         >
-            Aucun document joint à ce contrat.
+            Aucun document joint à cette location.
         </p>
 
         <ul

@@ -864,7 +864,7 @@ const companyChips: Swatch[] = [
                                 label="Véhicule (erreur)"
                                 :options="searchableVehicleOptions"
                                 placeholder="Choisir un véhicule…"
-                                error="Sélection requise pour la création du contrat."
+                                error="Sélection requise pour la création de la location."
                             />
                             <SearchableSelect
                                 v-model="demoSearchableDisabled"

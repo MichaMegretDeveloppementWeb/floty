@@ -278,7 +278,7 @@ return 'Aucune période sélectionnée';
 </script>
 
 <template>
-    <Head title="Contrats" />
+    <Head title="Locations" />
 
     <UserLayout>
         <div class="flex flex-col gap-6">
@@ -372,7 +372,7 @@ return 'Aucune période sélectionnée';
                         <SearchInput
                             v-model="searchModel"
                             placeholder="Rechercher (immat, marque, modèle, entreprise, conducteur)"
-                            aria-label="Rechercher un contrat"
+                            aria-label="Rechercher une location"
                         />
                     </div>
                     <FilterPopover

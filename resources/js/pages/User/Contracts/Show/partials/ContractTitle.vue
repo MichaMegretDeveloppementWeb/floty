@@ -13,7 +13,7 @@ const props = defineProps<{
     contract: App.Data.User.Contract.ContractData;
 }>();
 
-const titleText = props.contract.contractReference ?? `Contrat #${props.contract.id}`;
+const titleText = props.contract.contractReference ?? `Location #${props.contract.id}`;
 </script>
 
 <template>
@@ -23,7 +23,7 @@ const titleText = props.contract.contractReference ?? `Contrat #${props.contract
             class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
         >
             <ArrowLeft :size="14" :stroke-width="1.75" />
-            Retour aux contrats
+            Retour aux locations
         </Link>
         <div>
             <h1

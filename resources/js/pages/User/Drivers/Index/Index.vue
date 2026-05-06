@@ -78,8 +78,8 @@ const activityStatusModel = computed<string | number>({
 });
 
 const contractsScopeOptions = [
-    { value: 'with', label: 'Avec contrats' },
-    { value: 'without', label: 'Sans contrats' },
+    { value: 'with', label: 'Avec locations' },
+    { value: 'without', label: 'Sans locations' },
 ];
 
 const contractsScopeModel = computed<string | number>({
@@ -142,7 +142,7 @@ const contractsScopeModel = computed<string | number>({
                 </p>
                 <p class="max-w-sm text-sm text-slate-500">
                     Commencez par créer votre premier conducteur. Vous pourrez
-                    ensuite l'affecter à un ou plusieurs contrats.
+                    ensuite l'affecter à une ou plusieurs locations.
                 </p>
                 <Link :href="createRoute().url" class="mt-2">
                     <Button>Créer un conducteur</Button>
@@ -189,7 +189,7 @@ const contractsScopeModel = computed<string | number>({
                             </div>
                             <div>
                                 <FieldLabel for="filter-contracts"
-                                    >Contrats</FieldLabel
+                                    >Locations</FieldLabel
                                 >
                                 <SelectInput
                                     id="filter-contracts"

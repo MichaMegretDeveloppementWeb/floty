@@ -66,7 +66,7 @@ final class BulkStoreContractsData extends Data
         return [
             'vehicle_ids.array' => 'La liste des véhicules est invalide.',
             'vehicle_ids.min' => 'Sélectionnez au moins un véhicule.',
-            'vehicle_ids.max' => 'Création limitée à 100 contrats par opération.',
+            'vehicle_ids.max' => 'Création limitée à 100 locations par opération.',
             'company_id.exists' => 'Entreprise introuvable.',
             'driver_id.exists' => 'Conducteur introuvable.',
             'end_date.after_or_equal' => 'La date de fin doit être postérieure ou égale à la date de début.',

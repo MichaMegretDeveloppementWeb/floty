@@ -70,7 +70,7 @@ const {
                 class="rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2 text-xs leading-snug text-amber-800"
                 role="note"
             >
-                Si des contrats ou indisponibilités actifs débordent la date
+                Si des locations ou indisponibilités actives débordent la date
                 de sortie proposée, l'opération sera bloquée. Vous devrez
                 d'abord raccourcir ou supprimer ces éléments.
             </p>

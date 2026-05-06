@@ -142,7 +142,7 @@ async function submit(): Promise<void> {
 
 <template>
     <section class="flex flex-col gap-3 border-t border-slate-100 pt-4">
-        <p class="eyebrow mb-0">Créer un contrat</p>
+        <p class="eyebrow mb-0">Créer une location</p>
 
         <SearchableSelect
             v-model="companyIdModel"
@@ -184,7 +184,7 @@ async function submit(): Promise<void> {
             :disabled="!canSubmit"
             @click="submit"
         >
-            Créer le contrat
+            Créer la location
         </Button>
     </section>
 </template>

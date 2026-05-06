@@ -87,7 +87,7 @@ const comparisonCaption = computed<string | null>(() => {
         </KpiCard>
 
         <KpiCard
-            label="Contrats"
+            label="Locations"
             :value="kpis.contracts.toLocaleString('fr-FR')"
             :trend="trendContracts?.text"
             :trend-direction="trendContracts?.direction"

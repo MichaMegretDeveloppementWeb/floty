@@ -12,7 +12,7 @@ import { create as contractsCreateRoute } from '@/routes/user/contracts';
             <h1
                 class="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl"
             >
-                Contrats
+                Locations
             </h1>
             <p class="mt-1 text-base text-slate-600">
                 Plages d'attribution véhicule × entreprise.
@@ -23,7 +23,7 @@ import { create as contractsCreateRoute } from '@/routes/user/contracts';
                 <template #icon-left>
                     <Plus :size="14" :stroke-width="1.75" />
                 </template>
-                Nouveau contrat
+                Nouvelle location
             </Button>
         </Link>
     </header>

@@ -76,8 +76,8 @@ const isActiveModel = computed<string | number>({
 });
 
 const contractsScopeOptions = [
-    { value: 'with', label: 'Avec contrats' },
-    { value: 'without', label: 'Sans contrats' },
+    { value: 'with', label: 'Avec locations' },
+    { value: 'without', label: 'Sans locations' },
 ];
 
 const contractsScopeModel = computed<string | number>({
@@ -191,7 +191,7 @@ const activeFiltersCount = computed<number>(() => {
                             </div>
                             <div>
                                 <FieldLabel for="filter-contracts"
-                                    >Contrats</FieldLabel
+                                    >Locations</FieldLabel
                                 >
                                 <SelectInput
                                     id="filter-contracts"

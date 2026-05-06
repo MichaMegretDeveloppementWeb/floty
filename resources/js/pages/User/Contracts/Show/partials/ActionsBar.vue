@@ -40,7 +40,7 @@ const {
 
         <ConfirmModal
             v-model:open="confirmOpen"
-            title="Supprimer ce contrat ?"
+            title="Supprimer cette location ?"
             message="La plage redevient disponible. La suppression est un soft-delete : les déclarations fiscales déjà émises ne sont pas modifiées."
             confirm-label="Supprimer"
             tone="danger"

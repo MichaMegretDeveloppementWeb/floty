@@ -35,7 +35,7 @@ onMounted(async () => {
 </script>
 
 <template>
-    <Head :title="`Contrat ${props.contract.vehicleLicensePlate} · ${props.contract.companyShortCode}`" />
+    <Head :title="`Location ${props.contract.vehicleLicensePlate} · ${props.contract.companyShortCode}`" />
 
     <UserLayout>
         <div class="flex flex-col gap-6">

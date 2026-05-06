@@ -54,7 +54,7 @@ defineProps<{
             </div>
             <div v-if="contract.contractReference">
                 <dt class="text-xs font-medium uppercase text-slate-500">
-                    Référence contrat
+                    Référence location
                 </dt>
                 <dd class="mt-1 text-sm text-slate-900">
                     {{ contract.contractReference }}

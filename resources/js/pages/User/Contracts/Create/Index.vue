@@ -45,7 +45,7 @@ async function submitWithDocuments(): Promise<void> {
 </script>
 
 <template>
-    <Head title="Nouveau contrat" />
+    <Head title="Nouvelle location" />
 
     <UserLayout>
         <div class="flex flex-col gap-6 max-w-[70em] m-auto">
@@ -55,14 +55,14 @@ async function submitWithDocuments(): Promise<void> {
                     class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
                 >
                     <ArrowLeft :size="14" :stroke-width="1.75" />
-                    Retour aux contrats
+                    Retour aux locations
                 </Link>
                 <div>
                     <p class="eyebrow mb-1">Données</p>
                     <h1
                         class="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl"
                     >
-                        Nouveau contrat
+                        Nouvelle location
                     </h1>
                 </div>
             </header>
@@ -84,7 +84,7 @@ async function submitWithDocuments(): Promise<void> {
                         </p>
                         <p class="mt-0.5 text-xs text-slate-500">
                             Joindre jusqu'à {{ MAX_DOCUMENTS }} PDF (10 Mo max chacun).
-                            Les documents seront uploadés après la création du contrat.
+                            Les documents seront uploadés après la création de la location.
                         </p>
                     </div>
 
@@ -144,7 +144,7 @@ async function submitWithDocuments(): Promise<void> {
                         :loading="form.processing"
                         :disabled="!canSubmit"
                     >
-                        Enregistrer le contrat
+                        Enregistrer la location
                     </Button>
                 </div>
             </form>

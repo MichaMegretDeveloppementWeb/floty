@@ -32,7 +32,7 @@ final class TooManyContractDocumentsException extends BaseAppException
                 $maxAllowed,
             ),
             userMessage: sprintf(
-                'Limite de %d documents par contrat atteinte. '
+                'Limite de %d documents par location atteinte. '
                 .'Supprimez un document existant avant d\'en ajouter un nouveau.',
                 $maxAllowed,
             ),

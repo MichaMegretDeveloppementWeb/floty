@@ -39,7 +39,7 @@ const DIMENSIONS: readonly DimensionMeta[] = [
     },
     {
         key: 'contracts',
-        label: 'Contrats',
+        label: 'Locations',
         color: '#0f766e', // teal-700
         format: (v) => v.toLocaleString('fr-FR'),
     },

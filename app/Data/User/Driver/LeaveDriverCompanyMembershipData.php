@@ -51,7 +51,7 @@ final class LeaveDriverCompanyMembershipData extends Data
     {
         return [
             'left_at.required' => 'La date de sortie est obligatoire.',
-            'future_contracts_resolution.required' => 'Choix de résolution des contrats à venir obligatoire.',
+            'future_contracts_resolution.required' => 'Choix de résolution des locations à venir obligatoire.',
             'future_contracts_resolution.enum' => 'Résolution invalide.',
         ];
     }

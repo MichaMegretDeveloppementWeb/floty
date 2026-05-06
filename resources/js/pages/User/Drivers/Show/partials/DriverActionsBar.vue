@@ -63,13 +63,13 @@ function confirmDelete(): void {
             </Button>
         </div>
         <p v-if="!props.canDelete" class="text-xs text-slate-500">
-            Suppression désactivée tant que le conducteur a des contrats.
+            Suppression désactivée tant que le conducteur a des locations.
         </p>
 
         <ConfirmModal
             v-model:open="confirmOpen"
             :title="`Supprimer ${props.driverFullName} ?`"
-            message="Le conducteur sera retiré de la liste mais reste consultable dans l'historique des contrats où il a déjà été affecté. Soft delete réversible."
+            message="Le conducteur sera retiré de la liste mais reste consultable dans l'historique des locations où il a déjà été affecté. Soft delete réversible."
             confirm-label="Supprimer"
             tone="danger"
             :loading="submitting"

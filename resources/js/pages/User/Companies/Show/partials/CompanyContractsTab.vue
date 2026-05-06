@@ -146,7 +146,7 @@ const isUnfilteredEmpty = computed<boolean>(
 const totalContractsLabel = computed<string>(() => {
     const total = props.contracts.meta.total;
 
-    return `${total} contrat${total > 1 ? 's' : ''}`;
+    return `${total} location${total > 1 ? 's' : ''}`;
 });
 
 const totalDaysLabel = computed<string>(() => {
@@ -187,7 +187,7 @@ function clearPeriod(): void {
             <div class="flex flex-col gap-4">
                 <div class="flex flex-col gap-1">
                     <h3 class="text-base font-semibold text-slate-900">
-                        Contrats
+                        Locations
                     </h3>
                     <p class="text-sm text-slate-500">
                         <span>{{ totalContractsLabel }}</span>
@@ -285,14 +285,14 @@ function clearPeriod(): void {
 
         <Card v-if="isUnfilteredEmpty">
             <p class="text-sm text-slate-500">
-                Aucun contrat n'a encore été enregistré pour cette entreprise.
+                Aucune location n'a encore été enregistrée pour cette entreprise.
             </p>
         </Card>
 
         <Card v-else-if="isFilteredEmpty">
             <p class="text-sm text-slate-500">
-                Aucun contrat sur la période sélectionnée. Modifiez ou retirez
-                le filtre période pour voir les autres contrats.
+                Aucune location sur la période sélectionnée. Modifiez ou retirez
+                le filtre période pour voir les autres locations.
             </p>
         </Card>
 

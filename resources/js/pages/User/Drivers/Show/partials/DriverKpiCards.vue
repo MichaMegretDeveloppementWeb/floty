@@ -26,8 +26,8 @@ const contractsHref = computed<string>(() =>
         >
             <StatCard
                 :value="props.driver.contractsCount"
-                label="Contrats"
-                caption="Voir les contrats du conducteur"
+                label="Locations"
+                caption="Voir les locations du conducteur"
                 tone="blue"
             >
                 <template #icon>

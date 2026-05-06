@@ -98,7 +98,7 @@ function onRowClick(companyId: number): void {
             </p>
             <p class="text-xs text-slate-500">
                 Ajoutez une première entreprise pour pouvoir affecter des
-                contrats à ce conducteur.
+                locations à ce conducteur.
             </p>
         </div>
 
@@ -110,7 +110,7 @@ function onRowClick(companyId: number): void {
                     <th class="pb-3 font-medium">Entreprise</th>
                     <th class="pb-3 font-medium">Entrée</th>
                     <th class="pb-3 font-medium">Sortie</th>
-                    <th class="pb-3 font-medium">Contrats</th>
+                    <th class="pb-3 font-medium">Locations</th>
                     <th class="pb-3 text-right font-medium">Actions</th>
                 </tr>
             </thead>

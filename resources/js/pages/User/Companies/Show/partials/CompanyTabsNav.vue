@@ -11,7 +11,7 @@ defineEmits<{
 
 const tabs: readonly { key: CompanyTabKey; label: string }[] = [
     { key: 'overview', label: 'Vue d\'ensemble' },
-    { key: 'contracts', label: 'Contrats' },
+    { key: 'contracts', label: 'Locations' },
     { key: 'drivers', label: 'Conducteurs' },
     { key: 'fiscal', label: 'Fiscalité' },
     { key: 'billing', label: 'Facturation' },

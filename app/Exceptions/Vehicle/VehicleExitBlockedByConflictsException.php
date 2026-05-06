@@ -35,7 +35,7 @@ final class VehicleExitBlockedByConflictsException extends BaseAppException
         $total = $contractsCount + $unavailabilitiesCount;
 
         $userMessage = sprintf(
-            'Impossible de retirer ce véhicule : %d élément(s) actif(s) débordent la date proposée (%d contrat(s), %d indisponibilité(s)). Veuillez les résoudre avant de retirer le véhicule.',
+            'Impossible de retirer ce véhicule : %d élément(s) actif(s) débordent la date proposée (%d location(s), %d indisponibilité(s)). Veuillez les résoudre avant de retirer le véhicule.',
             $total,
             $contractsCount,
             $unavailabilitiesCount,

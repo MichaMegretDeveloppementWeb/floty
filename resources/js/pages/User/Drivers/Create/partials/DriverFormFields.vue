@@ -32,7 +32,7 @@ defineProps<{
                         Identité
                     </h2>
                     <p class="text-sm text-slate-500">
-                        Le nom complet apparaîtra sur les contrats et dans les
+                        Le nom complet apparaîtra sur les locations et dans les
                         documents fiscaux.
                     </p>
                 </div>

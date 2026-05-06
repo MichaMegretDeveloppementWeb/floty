@@ -56,7 +56,7 @@ const { form, submit } = useEditDriverForm(props.driver);
                             </h2>
                             <p class="text-sm text-slate-500">
                                 La modification s'applique partout où le
-                                conducteur apparaît, y compris sur les contrats
+                                conducteur apparaît, y compris sur les locations
                                 déjà créés.
                             </p>
                         </div>

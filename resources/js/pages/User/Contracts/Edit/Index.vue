@@ -20,7 +20,7 @@ const { form, canSubmit, submit } = useContractForm(props.contract);
 </script>
 
 <template>
-    <Head :title="`Modifier contrat ${props.contract.vehicleLicensePlate}`" />
+    <Head :title="`Modifier location ${props.contract.vehicleLicensePlate}`" />
 
     <UserLayout>
         <div class="flex flex-col gap-6">
@@ -30,14 +30,14 @@ const { form, canSubmit, submit } = useContractForm(props.contract);
                     class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-900"
                 >
                     <ArrowLeft :size="14" :stroke-width="1.75" />
-                    Retour au contrat
+                    Retour à la location
                 </Link>
                 <div>
                     <p class="eyebrow mb-1">Données</p>
                     <h1
                         class="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl"
                     >
-                        Modifier le contrat #{{ props.contract.id }}
+                        Modifier la location #{{ props.contract.id }}
                     </h1>
                     <p class="mt-1 text-base text-slate-600">
                         {{ props.contract.vehicleLicensePlate }} ·
@@ -69,7 +69,7 @@ const { form, canSubmit, submit } = useContractForm(props.contract);
                         :loading="form.processing"
                         :disabled="!canSubmit"
                     >
-                        Mettre à jour le contrat
+                        Mettre à jour la location
                     </Button>
                 </div>
             </form>

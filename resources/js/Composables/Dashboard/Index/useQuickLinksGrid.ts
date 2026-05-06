@@ -35,7 +35,7 @@ export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
             icon: CalendarDays,
         },
         {
-            label: 'Contrats',
+            label: 'Locations',
             description:
                 'Plages d\'attribution véhicule × entreprise. Créer, modifier, supprimer (LCD per-contract).',
             href: contractsIndexRoute.url(),

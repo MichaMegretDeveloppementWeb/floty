@@ -57,9 +57,9 @@ final class ContractOverlapException extends BaseAppException
                 $conflictingEndDate,
             ),
             userMessage: sprintf(
-                'La plage du contrat (%s → %s) chevauche un contrat existant '
+                'La plage de la location (%s → %s) chevauche une location existante '
                 .'sur ce véhicule (du %s au %s). Ajustez les bornes ou supprimez '
-                .'le contrat en conflit avant d\'enregistrer.',
+                .'la location en conflit avant d\'enregistrer.',
                 $startFr,
                 $endFr,
                 $conflictStartFr,

@@ -36,8 +36,8 @@ const { form, submit } = useReactivateVehicleForm(props, open);
             </p>
             <p class="rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2 text-xs leading-snug text-slate-600">
                 Après réactivation, le véhicule redeviendra disponible pour
-                de nouveaux contrats et indisponibilités. Son historique
-                fiscal et ses contrats antérieurs sont conservés.
+                de nouvelles locations et indisponibilités. Son historique
+                fiscal et ses locations antérieures sont conservés.
             </p>
         </div>
 

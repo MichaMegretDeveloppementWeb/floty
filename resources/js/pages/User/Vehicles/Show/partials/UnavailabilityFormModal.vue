@@ -125,16 +125,16 @@ const {
                         <strong>{{ conflictDaysCount }}</strong>
                         jour{{ conflictDaysCount > 1 ? 's' : '' }}
                         déjà attribué{{ conflictDaysCount > 1 ? 's' : '' }}
-                        à un contrat. L'indisponibilité
+                        à une location. L'indisponibilité
                         <strong>réduira</strong> le prorata fiscal
-                        des contrats concernés (R-2024-008).
+                        des locations concernées (R-2024-008).
                     </p>
                     <p v-else>
                         Cette plage chevauche
                         <strong>{{ conflictDaysCount }}</strong>
                         jour{{ conflictDaysCount > 1 ? 's' : '' }}
                         déjà attribué{{ conflictDaysCount > 1 ? 's' : '' }}
-                        à un contrat.
+                        à une location.
                         <strong>Aucun impact</strong> sur le calcul fiscal.
                     </p>
                 </div>

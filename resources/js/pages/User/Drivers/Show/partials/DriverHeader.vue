@@ -18,7 +18,7 @@ const subTitle = computed<string>(() => {
     const totalLabel = `${total} entreprise${total > 1 ? 's' : ''}`;
     const activeLabel = `${activeMembershipsCount.value} active${activeMembershipsCount.value > 1 ? 's' : ''}`;
     const contracts = props.driver.contractsCount;
-    const contractsLabel = `${contracts} contrat${contracts > 1 ? 's' : ''}`;
+    const contractsLabel = `${contracts} location${contracts > 1 ? 's' : ''}`;
 
     return `${totalLabel} · ${activeLabel} · ${contractsLabel}`;
 });

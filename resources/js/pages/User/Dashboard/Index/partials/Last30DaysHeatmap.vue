@@ -53,7 +53,7 @@ function cellTitle(date: string, status: string): string {
     });
     const statusLabel
         = status === 'occupied'
-            ? 'Occupé (contrat actif)'
+            ? 'Occupé (location active)'
             : status === 'unavailable'
                 ? 'Indisponible'
                 : 'Libre';

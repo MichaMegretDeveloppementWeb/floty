@@ -58,7 +58,7 @@ const taxCaption = computed<string>(() => {
         <StatCard
             tone="slate"
             :value="props.kpiStats.contractsCount"
-            label="Contrats"
+            label="Locations"
             :caption="`actifs en ${props.kpiYear}`"
         >
             <template #icon>
