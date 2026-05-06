@@ -31,9 +31,10 @@ use Carbon\CarbonImmutable;
  * Les jours d'indispo qui tombent dans un contrat LCD sont déjà retirés
  * via R-2024-021 - les compter ici serait un double-décompte.
  *
- * **Source légale** : CIBS art. L. 421-118 (assiette en temps
- * d'utilisation effective) ; doctrine BOFiP § 50, § 60, § 190 (indispos
- * subies). Mapping enum → effet fiscal : ADR-0016 § 4 rev. 1.1.
+ * **Source légale** : CIBS art. L. 421-107 (numérateur du prorata =
+ * durée de l'affectation du véhicule en France à des fins économiques) ;
+ * doctrine BOFiP BOI-AIS-MOB-10-30-10 (Dispositions communes — règles
+ * de calcul + indispos subies). Mapping enum → effet fiscal : ADR-0016 § 4 rev. 1.1.
  */
 final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
 {
@@ -103,7 +104,7 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         return ExemptionVerdict::partialDays(
             $reductiveCount,
             sprintf(
-                'Indisponibilité réductrice - %d jour%s soustrait%s du numérateur (CIBS L. 421-118, BOFiP § 50/60/190)',
+                'Indisponibilité réductrice - %d jour%s soustrait%s du numérateur (CIBS L. 421-107, BOFiP BOI-AIS-MOB-10-30-10)',
                 $reductiveCount,
                 $reductiveCount > 1 ? 's' : '',
                 $reductiveCount > 1 ? 's' : '',

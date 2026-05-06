@@ -34,7 +34,7 @@ use Illuminate\Support\Collection;
  * flotte) qui étaient dupliquées dans 4 controllers (Vehicle, Company,
  * Dashboard, Planning).
  *
- * **Note R-2024-003 (sémantique BOFiP)** : l'arrondi half-up à l'euro
+ * **Note R-2024-003** : l'arrondi half-up au centime (`round(.., 2, ..)`)
  * est appliqué **une seule fois par redevable** (entreprise utilisatrice),
  * jamais par couple intermédiaire. L'aggregator somme les `*DueRaw` des
  * `PipelineResult` et arrondit en sortie. Cf. ADR-0006 § 2.

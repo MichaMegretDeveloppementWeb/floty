@@ -327,8 +327,8 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         tab: 'cadre',
         section: 'cadre-evenement',
         title: 'Indisponibilités fiscalement réductrices',
-        pitch: 'Les jours d’indisponibilité subie (V1 : fourrière) tombant dans un contrat taxable sont retirés du numérateur du prorata.',
-        body: "Règle souveraine (refonte ADR-0014) : le moteur fiscal applique R-2024-008 sur la matière brute (contrats × indispos), plus de filtrage SQL caché. Si un contrat de 91 j chevauche 10 j de fourrière, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà LCD-exonéré ne sont pas comptés (déjà retirés via R-2024-021). ADR-0016 raffinera la grille à 4 cas réducteurs en chantier 04.I.",
+        pitch: 'Les jours d’indisponibilité subie réductrice (3 cas ADR-0016) tombant dans un contrat taxable sont retirés du numérateur du prorata.',
+        body: "Règle souveraine (refonte ADR-0014, ADR-0016 rev. 1.1). Trois types d'indispo réduisent la base taxable : fourrière publique (C. route L. 325-1), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5). Si un contrat de 91 j chevauche 10 j de fourrière publique, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà LCD-exonéré ne sont pas comptés (déjà retirés via R-2024-021). Les autres types d'indispo (maintenance, contrôle technique, fourrière privée, etc.) restent taxables.",
     },
     'R-2024-009': {
         tab: 'cadre',

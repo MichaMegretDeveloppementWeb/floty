@@ -15,9 +15,12 @@
  * de barème au 01/01). Sans date, Légifrance ouvre la dernière version
  * (peut être 2026+ alors qu'on parle de la fiscalité 2024).
  *
- * **BOFiP** : `bofip.impots.gouv.fr/bofip/{IDENTIFIANT}` → la doctrine
- * porte sa propre date dans son identifiant (ex: …-20240710), pas de
- * versionnage à gérer côté URL.
+ * **BOFiP** : on pointe vers la **page de recherche** BOFiP avec
+ * l'identifiant en requête, plutôt que vers une URL article directe.
+ * La raison : la BOFiP utilise un permalink interne préfixé numérique
+ * (ex. `https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=
+ * BOI-AIS-MOB-10-30-10-20240710`) instable d'une révision à l'autre.
+ * La page de recherche met systématiquement la doctrine en tête de liste.
  *
  * **CGI** : table des matières (le seeder ne référence pas le CGI en
  * 2024).
@@ -43,7 +46,7 @@ export type ResolvedLegalLink = {
 };
 
 const LEGIFRANCE_BASE = 'https://www.legifrance.gouv.fr';
-const BOFIP_BASE = 'https://bofip.impots.gouv.fr/bofip';
+const BOFIP_SEARCH = 'https://bofip.impots.gouv.fr/search/result';
 const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
 
 /**
@@ -54,9 +57,9 @@ const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
  * passée en URL - on combine ces LEGIARTI avec une date dérivée de
  * l'année fiscale courante (cf. `articleUrlForYear`).
  *
- * Tous les LEGIARTI ont été audités par navigation Chrome live le
- * 2026-05-06 : chaque URL `/codes/article_lc/{LEGIARTI}/2024-06-01`
- * résout bien vers l'article CIBS attendu (titre Légifrance vérifié).
+ * Tous les LEGIARTI ont été audités sémantiquement (numéro + contenu
+ * de l'article) par navigation Chrome live le 2026-05-06 sur la version
+ * applicable au 2024-06-01.
  *
  * Source : Légifrance, Code des impositions sur les biens et services
  * (LEGITEXT000044595989). Articles couverts :
@@ -66,8 +69,6 @@ const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
  * - L. 421-94 à L. 421-95, L. 421-99, L. 421-105, L. 421-107, L. 421-110,
  *   L. 421-111 (assujettissement, fait générateur, territoire, proportion
  *   annuelle d'affectation, coefficient pondérateur, minoration 15 000 €) ;
- * - L. 421-118 (assiette en temps d'utilisation effective — base de
- *   l'exemption R-2024-008 indispo réductrice) ;
  * - L. 421-119 et L. 421-119-1 (règle générale tarifs CO₂ et bascule
  *   WLTP/NEDC/PA) ;
  * - L. 421-120 à L. 421-144 (tarifs et exonérations CO₂ + polluants) ;
@@ -84,7 +85,6 @@ const CIBS_ARTICLE_LEGIARTI: Record<string, string> = {
     'L. 421-107': 'LEGIARTI000044603019',
     'L. 421-110': 'LEGIARTI000046196651',
     'L. 421-111': 'LEGIARTI000044603007',
-    'L. 421-118': 'LEGIARTI000044602991',
     'L. 421-119': 'LEGIARTI000044602987',
     'L. 421-119-1': 'LEGIARTI000048802414',
     'L. 421-120': 'LEGIARTI000048844602',
@@ -163,10 +163,14 @@ function resolveLegalLinkFor(
 
     if (ref.type === 'BOFIP' && ref.reference) {
         const para = ref.paragraph ? ` ${ref.paragraph}` : '';
+        const params = new URLSearchParams({
+            type_recherche: 'simple',
+            query: ref.reference,
+        });
 
         return {
             label: `${ref.reference}${para}`,
-            url: `${BOFIP_BASE}/${encodeURIComponent(ref.reference)}`,
+            url: `${BOFIP_SEARCH}?${params.toString()}`,
             title: `Doctrine BOFiP-Impôts ${ref.reference}${para}`,
         };
     }

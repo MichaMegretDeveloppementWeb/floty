@@ -14,8 +14,10 @@ namespace App\Enums\Unavailability;
  * base garantit la cohérence avec les 3 cases réducteurs ci-dessous.
  *
  * **Bases légales** :
- *   - CIBS art. L. 421-118 (assiette en temps d'utilisation effective)
- *   - BOFiP BOI-AIS-MOB-10-30-10 § 50 / § 60 / § 190
+ *   - CIBS art. L. 421-107 (numérateur du prorata = durée d'affectation
+ *     du véhicule en France à des fins économiques)
+ *   - BOFiP BOI-AIS-MOB-10-30-10 (Dispositions communes — règles de
+ *     calcul des taxes annuelles + traitement des indispos subies)
  *   - C. route L. 325-1 → L. 325-1-2 (fourrière publique)
  *   - C. route L. 325-12 (fourrière privée - non réducteur)
  *   - C. route R. 322-6 (suspension CI)
@@ -64,13 +66,13 @@ enum UnavailabilityType: string
     public function legalReference(): string
     {
         return match ($this) {
-            self::AccidentNoCirculation => 'C. route L. 327-4 / L. 327-5 ; BOFiP § 50',
-            self::PoundPublic => 'C. route L. 325-1 à L. 325-1-2 ; BOFiP § 60 et § 190',
-            self::CiSuspension => 'C. route R. 322-6 ; BOFiP § 50',
-            self::AccidentRepair => 'BOFiP § 50 (réparation simple = taxable)',
-            self::PoundPrivate => 'C. route L. 325-12 ; BOFiP § 60 (exclusion explicite)',
+            self::AccidentNoCirculation => 'C. route L. 327-4 / L. 327-5 ; BOFiP BOI-AIS-MOB-10-30-10',
+            self::PoundPublic => 'C. route L. 325-1 à L. 325-1-2 ; BOFiP BOI-AIS-MOB-10-30-10',
+            self::CiSuspension => 'C. route R. 322-6 ; BOFiP BOI-AIS-MOB-10-30-10',
+            self::AccidentRepair => 'BOFiP BOI-AIS-MOB-10-30-10 (réparation simple = taxable)',
+            self::PoundPrivate => 'C. route L. 325-12 ; BOFiP BOI-AIS-MOB-10-30-10 (fourrière privée non réductrice)',
             self::Maintenance,
-            self::TechnicalInspection => 'BOFiP § 50 (immobilisation opérationnelle = taxable)',
+            self::TechnicalInspection => 'BOFiP BOI-AIS-MOB-10-30-10 (immobilisation opérationnelle = taxable)',
             self::Theft => 'doctrine V1 (vol non assimilé à mise hors-circulation administrative)',
             self::Other => 'indéterminé',
         };

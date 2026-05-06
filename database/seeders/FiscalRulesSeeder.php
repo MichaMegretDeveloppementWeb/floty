@@ -73,7 +73,7 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-003',
                 'name' => "Méthode d'arrondi half-up commercial",
-                'description' => 'Arrondi au centime commercial sur le montant total final du redevable, pas par calcul intermédiaire.',
+                'description' => 'Arrondi half-up au centime sur le montant total final par couple véhicule × entreprise (round half-up à 2 décimales). Les calculs intermédiaires conservent toute leur précision.',
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
@@ -128,11 +128,12 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-008',
                 'name' => 'Indisponibilités fiscalement réductrices',
-                'description' => "Les jours d'indisponibilité fourrière (V1) tombant dans un contrat taxable sont déduits du numérateur du prorata. ADR-0016 raffinera à 4 cas réducteurs en chantier 04.I.",
+                'description' => "Les jours d'indisponibilité subie (3 cas réducteurs ADR-0016 : fourrière publique, suspension du certificat d'immatriculation, interdiction de circuler post-sinistre) tombant dans un contrat taxable sont déduits du numérateur du prorata journalier (= durée d'affectation à des fins économiques).",
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
-                    $cibs('L. 421-118'),
+                    $cibs('L. 421-107'),
+                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10'],
                 ],
                 'display_order' => 8,
             ],
@@ -250,7 +251,7 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-019',
                 'name' => 'Exonération entreprise individuelle',
-                'description' => 'Entreprise individuelle relevant du régime micro-entreprise. INACTIVE par défaut en V1.',
+                'description' => 'Personne physique exerçant son activité professionnelle en nom propre (entrepreneur individuel BIC/BNC) — exonération soumise aux conditions de minimis. INACTIVE par défaut en V1.',
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
