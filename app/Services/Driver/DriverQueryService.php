@@ -19,7 +19,6 @@ use App\Models\Driver;
 use App\Models\Pivot\DriverCompany;
 use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Support\Carbon;
 
 /**
  * Composition des DTOs Driver à partir des Models bruts (ADR-0013 R3).
@@ -79,10 +78,9 @@ final class DriverQueryService
             return null;
         }
 
-        $today = Carbon::today();
         $contractsByCompany = $this->driverReadRepo->countContractsForDriverGroupedByCompany($driverId);
 
-        $memberships = $driver->companies->map(function ($company) use ($contractsByCompany, $today): DriverCompanyMembershipData {
+        $memberships = $driver->companies->map(function ($company) use ($contractsByCompany): DriverCompanyMembershipData {
             /** @var DriverCompany $pivot */
             $pivot = $company->getAttribute('pivot');
 
@@ -94,7 +92,12 @@ final class DriverQueryService
                 companyColor: $company->color,
                 joinedAt: $pivot->joined_at->toDateString(),
                 leftAt: $pivot->left_at?->toDateString(),
-                isCurrentlyActive: $pivot->left_at === null || $pivot->left_at->greaterThanOrEqualTo($today),
+                // Sémantique alignée sur le repo write `findActiveMembership`
+                // (`left_at IS NULL`). Une membership avec une date de sortie
+                // posée — passée, présente OU future — n'est plus considérée
+                // active. Les sorties planifiées s'affichent comme « Sorti
+                // le {date} » plutôt que « Actif » (cf. chantier B).
+                isCurrentlyActive: $pivot->left_at === null,
                 contractsCount: $contractsByCompany[$company->id] ?? 0,
             );
         });

@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import AddDriverCompanyModal from '@/Components/Domain/Driver/AddDriverCompanyModal.vue';
+import EditDriverCompanyMembershipModal from '@/Components/Domain/Driver/EditDriverCompanyMembershipModal.vue';
 import LeaveDriverCompanyModal from '@/Components/Domain/Driver/LeaveDriverCompanyModal.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import DriverActionsBar from './partials/DriverActionsBar.vue';
@@ -20,6 +21,7 @@ const props = defineProps<{
 
 const leaveCompanyId = ref<number | null>(null);
 const showAddModal = ref(false);
+const editMembership = ref<App.Data.User.Driver.DriverCompanyMembershipData | null>(null);
 
 const canDelete = computed<boolean>(() => props.driver.contractsCount === 0);
 </script>
@@ -49,6 +51,7 @@ const canDelete = computed<boolean>(() => props.driver.contractsCount === 0);
                             (companyId) => (leaveCompanyId = companyId)
                         "
                         @open-add="showAddModal = true"
+                        @open-edit="(m) => (editMembership = m)"
                     />
                 </div>
 
@@ -83,6 +86,16 @@ const canDelete = computed<boolean>(() => props.driver.contractsCount === 0);
                 "
                 :available-companies="props.options.companies"
                 @close="showAddModal = false"
+            />
+
+            <EditDriverCompanyMembershipModal
+                v-if="editMembership !== null"
+                :driver-id="props.driver.id"
+                :pivot-id="editMembership.pivotId"
+                :company-short-code="editMembership.companyShortCode"
+                :current-joined-at="editMembership.joinedAt"
+                :current-left-at="editMembership.leftAt"
+                @close="editMembership = null"
             />
         </div>
     </UserLayout>

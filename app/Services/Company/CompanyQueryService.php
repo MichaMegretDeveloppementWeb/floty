@@ -30,6 +30,7 @@ use App\Models\Company;
 use App\Models\Pivot\DriverCompany;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -56,6 +57,7 @@ final class CompanyQueryService
         private readonly FleetFiscalAggregator $aggregator,
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
+        private readonly BillingBreakdownService $billingBreakdown,
     ) {}
 
     /**
@@ -202,7 +204,7 @@ final class CompanyQueryService
             ->map(fn ($v): int => (int) $v)
             ->all();
 
-        $driverRows = $company->drivers->map(function ($driver) use ($contractsCountByDriver, $today): CompanyDriverRowData {
+        $driverRows = $company->drivers->map(function ($driver) use ($contractsCountByDriver): CompanyDriverRowData {
             /** @var DriverCompany $pivot */
             $pivot = $driver->getAttribute('pivot');
             $first = (string) ($driver->first_name ?? '');
@@ -217,7 +219,10 @@ final class CompanyQueryService
                 initials: $initials !== '' ? $initials : '-',
                 joinedAt: $pivot->joined_at->toDateString(),
                 leftAt: $pivot->left_at?->toDateString(),
-                isCurrentlyActive: $pivot->left_at === null || $pivot->left_at->greaterThanOrEqualTo($today),
+                // Sémantique alignée sur `findActiveMembership` write-side
+                // (`left_at IS NULL`). Cf. chantier B + cohérence avec
+                // `DriverQueryService::detail`.
+                isCurrentlyActive: $pivot->left_at === null,
                 contractsCount: (int) ($contractsCountByDriver[$driver->id] ?? 0),
             );
         })->values()->all();
@@ -323,6 +328,7 @@ final class CompanyQueryService
             availableYears: $availableYears,
             currentRealYear: $currentRealYear,
             yearScope: YearScopeData::fromResolver($this->availableYears),
+            monthlyBilling: $this->billingBreakdown->byCompanyForYear($companyId, $kpiYear),
         );
     }
 

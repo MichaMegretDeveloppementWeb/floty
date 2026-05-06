@@ -53,6 +53,16 @@ final class DriverWriteRepository implements DriverWriteRepositoryInterface
             ]);
     }
 
+    public function updateMembershipJoinedAt(int $pivotId, CarbonInterface $joinedAt): void
+    {
+        DB::table('driver_company')
+            ->where('id', $pivotId)
+            ->update([
+                'joined_at' => $joinedAt->toDateString(),
+                'updated_at' => now(),
+            ]);
+    }
+
     public function deleteMembership(int $pivotId): void
     {
         DB::table('driver_company')

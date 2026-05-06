@@ -195,6 +195,10 @@ Route::middleware('auth')
             ->whereNumber(['driver', 'companyId'])
             ->middleware('throttle:60,1')
             ->name('drivers.memberships.leave');
+        Route::patch('/drivers/{driver}/memberships/{pivotId}', [DriverController::class, 'updateMembership'])
+            ->whereNumber(['driver', 'pivotId'])
+            ->middleware('throttle:60,1')
+            ->name('drivers.memberships.update');
         Route::delete('/drivers/{driver}/memberships/{pivotId}', [DriverController::class, 'detachCompany'])
             ->whereNumber(['driver', 'pivotId'])
             ->middleware('throttle:60,1')

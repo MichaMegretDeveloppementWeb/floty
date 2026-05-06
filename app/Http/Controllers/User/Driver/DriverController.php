@@ -10,18 +10,21 @@ use App\Actions\Driver\DetachDriverCompanyMembershipAction;
 use App\Actions\Driver\LeaveDriverCompanyMembershipAction;
 use App\Actions\Driver\SoftDeleteDriverAction;
 use App\Actions\Driver\UpdateDriverAction;
+use App\Actions\Driver\UpdateDriverCompanyMembershipAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
 use App\Data\User\Driver\AddDriverCompanyMembershipData;
 use App\Data\User\Driver\DriverIndexQueryData;
 use App\Data\User\Driver\LeaveDriverCompanyMembershipData;
 use App\Data\User\Driver\StoreDriverData;
+use App\Data\User\Driver\UpdateDriverCompanyMembershipData;
 use App\Data\User\Driver\UpdateDriverData;
 use App\Exceptions\Driver\DriverCompanyMembershipBlockedException;
 use App\Exceptions\Driver\DriverDeletionBlockedException;
 use App\Exceptions\Driver\DriverMembershipNotFoundException;
 use App\Exceptions\Driver\DriverNotFoundException;
 use App\Exceptions\Driver\LeaveResolutionInvalidException;
+use App\Exceptions\Driver\MembershipChronologyException;
 use App\Http\Controllers\Controller;
 use App\Models\Driver;
 use App\Services\Driver\DriverQueryService;
@@ -166,6 +169,28 @@ final class DriverController extends Controller
         }
 
         return back()->with('toast-success', 'Rattachement supprimé.');
+    }
+
+    /**
+     * PATCH /drivers/{driver}/memberships/{pivotId} — édite une membership
+     * existante (chantier B). Scope V1 : `joined_at` uniquement (la
+     * gestion de `left_at` reste pilotée par le workflow Sortir).
+     */
+    public function updateMembership(
+        Driver $driver,
+        int $pivotId,
+        UpdateDriverCompanyMembershipData $data,
+        UpdateDriverCompanyMembershipAction $action,
+    ): RedirectResponse {
+        try {
+            $action->execute($pivotId, $data);
+        } catch (DriverMembershipNotFoundException $e) {
+            return back()->with('toast-error', $e->getUserMessage());
+        } catch (MembershipChronologyException $e) {
+            throw ValidationException::withMessages(['joined_at' => [$e->getUserMessage()]]);
+        }
+
+        return back()->with('toast-success', 'Rattachement mis à jour.');
     }
 
     /**

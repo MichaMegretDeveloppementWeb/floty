@@ -17,6 +17,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     'open-leave': [companyId: number];
     'open-add': [];
+    'open-edit': [membership: Membership];
 }>();
 
 const detaching = ref<number | null>(null);
@@ -149,23 +150,32 @@ function onRowClick(companyId: number): void {
                         {{ m.contractsCount }}
                     </td>
                     <td class="py-4 text-right">
-                        <Button
-                            v-if="m.isCurrentlyActive"
-                            variant="secondary"
-                            size="sm"
-                            @click.stop="emit('open-leave', m.companyId)"
-                        >
-                            Sortir
-                        </Button>
-                        <Button
-                            v-else-if="m.contractsCount === 0"
-                            variant="ghost"
-                            size="sm"
-                            :loading="detaching === m.pivotId"
-                            @click.stop="detach(m)"
-                        >
-                            Détacher
-                        </Button>
+                        <div class="flex items-center justify-end gap-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                @click.stop="emit('open-edit', m)"
+                            >
+                                Éditer
+                            </Button>
+                            <Button
+                                v-if="m.isCurrentlyActive"
+                                variant="secondary"
+                                size="sm"
+                                @click.stop="emit('open-leave', m.companyId)"
+                            >
+                                Sortir
+                            </Button>
+                            <Button
+                                v-else-if="m.contractsCount === 0"
+                                variant="ghost"
+                                size="sm"
+                                :loading="detaching === m.pivotId"
+                                @click.stop="detach(m)"
+                            >
+                                Détacher
+                            </Button>
+                        </div>
                     </td>
                 </tr>
             </tbody>

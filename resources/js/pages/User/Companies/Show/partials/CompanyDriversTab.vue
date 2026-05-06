@@ -19,6 +19,7 @@ import { Plus, Users } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import AddCompanyDriverModal from '@/Components/Domain/Driver/AddCompanyDriverModal.vue';
 import DriverBadge from '@/Components/Domain/Driver/DriverBadge.vue';
+import EditDriverCompanyMembershipModal from '@/Components/Domain/Driver/EditDriverCompanyMembershipModal.vue';
 import LeaveDriverCompanyModal from '@/Components/Domain/Driver/LeaveDriverCompanyModal.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -38,6 +39,7 @@ const showInactive = ref(false);
 const showAddModal = ref(false);
 const leaveDriverId = ref<number | null>(null);
 const leaveDriverFullName = ref<string>('');
+const editRow = ref<App.Data.User.Company.CompanyDriverRowData | null>(null);
 const detaching = ref<number | null>(null);
 
 const activeCount = computed<number>(
@@ -211,23 +213,32 @@ function onRowClick(driverId: number): void {
                         {{ d.contractsCount }}
                     </td>
                     <td class="py-4 text-right">
-                        <Button
-                            v-if="d.isCurrentlyActive"
-                            variant="secondary"
-                            size="sm"
-                            @click.stop="openLeave(d)"
-                        >
-                            Sortir
-                        </Button>
-                        <Button
-                            v-else-if="d.contractsCount === 0"
-                            variant="ghost"
-                            size="sm"
-                            :loading="detaching === d.pivotId"
-                            @click.stop="detach(d)"
-                        >
-                            Détacher
-                        </Button>
+                        <div class="flex items-center justify-end gap-2">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                @click.stop="editRow = d"
+                            >
+                                Éditer
+                            </Button>
+                            <Button
+                                v-if="d.isCurrentlyActive"
+                                variant="secondary"
+                                size="sm"
+                                @click.stop="openLeave(d)"
+                            >
+                                Sortir
+                            </Button>
+                            <Button
+                                v-else-if="d.contractsCount === 0"
+                                variant="ghost"
+                                size="sm"
+                                :loading="detaching === d.pivotId"
+                                @click.stop="detach(d)"
+                            >
+                                Détacher
+                            </Button>
+                        </div>
                     </td>
                 </tr>
             </tbody>
@@ -248,6 +259,16 @@ function onRowClick(driverId: number): void {
             :existing-driver-ids="existingDriverIds"
             :available-drivers="props.availableDrivers"
             @close="showAddModal = false"
+        />
+
+        <EditDriverCompanyMembershipModal
+            v-if="editRow !== null"
+            :driver-id="editRow.driverId"
+            :pivot-id="editRow.pivotId"
+            :company-short-code="props.companyLegalName"
+            :current-joined-at="editRow.joinedAt"
+            :current-left-at="editRow.leftAt"
+            @close="editRow = null"
         />
     </Card>
 </template>

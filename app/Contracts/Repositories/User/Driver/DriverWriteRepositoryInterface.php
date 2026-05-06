@@ -35,6 +35,13 @@ interface DriverWriteRepositoryInterface
     public function setLeaveDate(int $pivotId, CarbonInterface $leftAt): void;
 
     /**
+     * Met à jour `joined_at` sur la membership donnée. Édition de
+     * correction (date d'entrée mal saisie, etc.) — chantier B. La
+     * cohérence chronologique avec `left_at` est vérifiée côté Action.
+     */
+    public function updateMembershipJoinedAt(int $pivotId, CarbonInterface $joinedAt): void;
+
+    /**
      * Supprime une membership (uniquement si elle n'a aucun contrat
      * associé - la garde est faite côté Action).
      */

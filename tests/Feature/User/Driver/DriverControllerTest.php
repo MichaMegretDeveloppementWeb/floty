@@ -655,6 +655,82 @@ final class DriverControllerTest extends TestCase
     }
 
     #[Test]
+    public function update_membership_modifie_joined_at(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+        $company = Company::factory()->create();
+        $driver->companies()->attach($company->id, ['joined_at' => '2024-06-01', 'left_at' => null]);
+        $pivotId = (int) DB::table('driver_company')->where('driver_id', $driver->id)->value('id');
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id.'/memberships/'.$pivotId, [
+                'joined_at' => '2024-01-15',
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('toast-success', 'Rattachement mis à jour.');
+
+        $this->assertDatabaseHas('driver_company', [
+            'id' => $pivotId,
+            'joined_at' => '2024-01-15',
+        ]);
+    }
+
+    #[Test]
+    public function update_membership_refuse_joined_at_manquant(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+        $company = Company::factory()->create();
+        $driver->companies()->attach($company->id, ['joined_at' => '2024-06-01', 'left_at' => null]);
+        $pivotId = (int) DB::table('driver_company')->where('driver_id', $driver->id)->value('id');
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id.'/memberships/'.$pivotId, [])
+            ->assertSessionHasErrors(['joined_at']);
+    }
+
+    #[Test]
+    public function update_membership_refuse_joined_at_apres_left_at(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+        $company = Company::factory()->create();
+        $driver->companies()->attach($company->id, [
+            'joined_at' => '2024-06-01',
+            'left_at' => '2024-12-31',
+        ]);
+        $pivotId = (int) DB::table('driver_company')->where('driver_id', $driver->id)->value('id');
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id.'/memberships/'.$pivotId, [
+                'joined_at' => '2025-06-01',
+            ])
+            ->assertSessionHasErrors(['joined_at']);
+
+        // Le pivot n'est pas modifié.
+        $this->assertDatabaseHas('driver_company', [
+            'id' => $pivotId,
+            'joined_at' => '2024-06-01',
+        ]);
+    }
+
+    #[Test]
+    public function update_membership_renvoie_toast_error_si_pivot_inconnu(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+
+        $response = $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id.'/memberships/99999', [
+                'joined_at' => '2024-01-01',
+            ]);
+
+        $response->assertRedirect();
+        $response->assertSessionHas('toast-error', 'Rattachement introuvable.');
+    }
+
+    #[Test]
     public function contract_options_renvoie_drivers_actifs_sur_la_periode(): void
     {
         $user = User::factory()->create();
