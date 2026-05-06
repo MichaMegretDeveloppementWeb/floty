@@ -54,6 +54,10 @@ const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
  * passée en URL - on combine ces LEGIARTI avec une date dérivée de
  * l'année fiscale courante (cf. `articleUrlForYear`).
  *
+ * Tous les LEGIARTI ont été audités par navigation Chrome live le
+ * 2026-05-06 : chaque URL `/codes/article_lc/{LEGIARTI}/2024-06-01`
+ * résout bien vers l'article CIBS attendu (titre Légifrance vérifié).
+ *
  * Source : Légifrance, Code des impositions sur les biens et services
  * (LEGITEXT000044595989). Articles couverts :
  * - L. 131-1 (règle d'arrondi half-up, livre I) ;
@@ -62,6 +66,8 @@ const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
  * - L. 421-94 à L. 421-95, L. 421-99, L. 421-105, L. 421-107, L. 421-110,
  *   L. 421-111 (assujettissement, fait générateur, territoire, proportion
  *   annuelle d'affectation, coefficient pondérateur, minoration 15 000 €) ;
+ * - L. 421-118 (assiette en temps d'utilisation effective — base de
+ *   l'exemption R-2024-008 indispo réductrice) ;
  * - L. 421-119 et L. 421-119-1 (règle générale tarifs CO₂ et bascule
  *   WLTP/NEDC/PA) ;
  * - L. 421-120 à L. 421-144 (tarifs et exonérations CO₂ + polluants) ;
@@ -78,6 +84,7 @@ const CIBS_ARTICLE_LEGIARTI: Record<string, string> = {
     'L. 421-107': 'LEGIARTI000044603019',
     'L. 421-110': 'LEGIARTI000046196651',
     'L. 421-111': 'LEGIARTI000044603007',
+    'L. 421-118': 'LEGIARTI000044602991',
     'L. 421-119': 'LEGIARTI000044602987',
     'L. 421-119-1': 'LEGIARTI000048802414',
     'L. 421-120': 'LEGIARTI000048844602',
