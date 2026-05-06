@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Exceptions\Vehicle;
 
 use App\Exceptions\BaseAppException;
+use Carbon\CarbonImmutable;
 
 /**
  * Les bornes (`effective_from` / `effective_to`) soumises par
@@ -66,15 +67,43 @@ final class InvalidFiscalCharacteristicsBoundsException extends BaseAppException
         );
     }
 
-    public static function newRangeStrictlyInsideExisting(string $existingFrom, ?string $existingTo): self
+    public static function newRangeStrictlyInsideExisting(string $existingFrom, ?string $existingTo, string $newFrom): self
     {
-        $existingPeriod = $existingTo === null
-            ? "depuis le {$existingFrom}"
-            : "du {$existingFrom} au {$existingTo}";
+        $existingFromFr = self::formatFr($existingFrom);
+
+        // Branche courante (existingTo === null) : message guidant
+        // l'utilisateur vers le fix simple = retirer la date de fin de la
+        // nouvelle VFC. La précédente sera automatiquement clôturée à
+        // newFrom-1 par l'`ImpactComputer`. Le wording générique
+        // « modifier ou raccourcir d'abord cette version » est trompeur
+        // dans ce cas — il pousse vers une voie inutile.
+        //
+        // Branche finie : wording générique conservé (le seul fix possible
+        // côté UI est bien de modifier l'existante en amont).
+        if ($existingTo === null) {
+            $newFromMinus1Fr = self::formatFr(self::previousDay($newFrom));
+            $userMessage = "Cette plage est entièrement contenue dans la version courante (commencée le {$existingFromFr}). "
+                ."Pour l'insérer en tant que nouvelle version courante, retirez la date de fin : "
+                ."la version actuelle sera automatiquement clôturée au {$newFromMinus1Fr}.";
+        } else {
+            $existingToFr = self::formatFr($existingTo);
+            $userMessage = "Cette plage est entièrement contenue dans la version du {$existingFromFr} au {$existingToFr}. "
+                ."Modifiez ou raccourcissez d'abord cette version depuis l'historique avant d'en ajouter une à l'intérieur.";
+        }
 
         return new self(
             technicalMessage: "New range is strictly contained inside existing version ({$existingFrom} → ".($existingTo ?? 'null').').',
-            userMessage: "Impossible d'insérer la nouvelle plage : elle est entièrement contenue dans la version {$existingPeriod}. Modifiez ou raccourcissez d'abord cette version depuis l'historique avant d'en ajouter une à l'intérieur.",
+            userMessage: $userMessage,
         );
+    }
+
+    private static function formatFr(string $iso): string
+    {
+        return CarbonImmutable::parse($iso)->format('d/m/Y');
+    }
+
+    private static function previousDay(string $iso): string
+    {
+        return CarbonImmutable::parse($iso)->subDay()->toDateString();
     }
 }

@@ -190,6 +190,7 @@ final class CreateFiscalCharacteristicsAction
                 throw InvalidFiscalCharacteristicsBoundsException::newRangeStrictlyInsideExisting(
                     $vFrom->toDateString(),
                     $vTo?->toDateString(),
+                    $newFrom->toDateString(),
                 );
             }
         }

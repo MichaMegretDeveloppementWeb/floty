@@ -196,6 +196,7 @@ final class UpdateFiscalCharacteristicsAction
                 throw InvalidFiscalCharacteristicsBoundsException::newRangeStrictlyInsideExisting(
                     $vFrom->toDateString(),
                     $vTo?->toDateString(),
+                    $newFrom->toDateString(),
                 );
             }
         }

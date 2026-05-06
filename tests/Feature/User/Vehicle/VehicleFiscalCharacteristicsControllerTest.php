@@ -149,6 +149,88 @@ final class VehicleFiscalCharacteristicsControllerTest extends TestCase
     }
 
     #[Test]
+    public function store_message_propose_de_retirer_la_date_de_fin_quand_la_contenant_est_courante(): void
+    {
+        // Cas user-reporté (chantier D) : VFC courante (effective_to=null)
+        // contient la nouvelle plage saisie. Le toast-error doit guider
+        // vers le fix simple = retirer la date de fin (pas vers la modale
+        // d'historique pour raccourcir la courante).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-04-16',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload($current, [
+            'effective_from' => '2024-09-08',
+            'effective_to' => '2024-10-12',
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from("/app/vehicles/{$vehicle->id}")
+            ->post("/app/vehicles/{$vehicle->id}/fiscal-characteristics", $payload);
+
+        $response->assertRedirect("/app/vehicles/{$vehicle->id}");
+        /** @var string|null $message */
+        $message = session('toast-error');
+        $this->assertIsString($message);
+        // Mention de la solution simple
+        $this->assertStringContainsString('retirez la date de fin', $message);
+        // Date de clôture auto = newFrom-1 = 07/09/2024 (format FR)
+        $this->assertStringContainsString('07/09/2024', $message);
+        // La date de début existante en FR
+        $this->assertStringContainsString('16/04/2024', $message);
+        // Pas de pollution avec l'ancien wording
+        $this->assertStringNotContainsString('Modifiez ou raccourcissez', $message);
+    }
+
+    #[Test]
+    public function store_message_generique_quand_la_contenant_est_finie(): void
+    {
+        // Cas symétrique : la VFC contenante est bornée (finie). Le
+        // wording doit rester générique et NE PAS proposer « retirez la
+        // date de fin » (ce qui ne résoudrait rien : la nouvelle VFC
+        // ouverte chevaucherait toujours la finie par la gauche).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2023-01-01',
+            'effective_to' => '2024-12-31',
+        ]);
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2025-01-01',
+            'effective_to' => null,
+        ]);
+
+        $payload = $this->buildVfcPayload($current, [
+            'effective_from' => '2023-06-01',
+            'effective_to' => '2023-07-31',
+            'change_reason' => 'recharacterization',
+        ]);
+
+        $response = $this->actingAs($user)
+            ->from("/app/vehicles/{$vehicle->id}")
+            ->post("/app/vehicles/{$vehicle->id}/fiscal-characteristics", $payload);
+
+        $response->assertRedirect("/app/vehicles/{$vehicle->id}");
+        /** @var string|null $message */
+        $message = session('toast-error');
+        $this->assertIsString($message);
+        // Le message cite la plage finie complète en FR
+        $this->assertStringContainsString('01/01/2023', $message);
+        $this->assertStringContainsString('31/12/2024', $message);
+        // Ancien wording générique conservé
+        $this->assertStringContainsString('Modifiez ou raccourcissez', $message);
+        // Pas la mention courante
+        $this->assertStringNotContainsString('retirez la date de fin', $message);
+    }
+
+    #[Test]
     public function store_refuse_si_nouvelle_plage_est_strictement_contenue_dans_une_existante(): void
     {
         // R4 (parité TS) : insertion d'une plage [newFrom, newTo]
