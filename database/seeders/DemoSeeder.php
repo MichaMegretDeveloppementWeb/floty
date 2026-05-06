@@ -24,6 +24,7 @@ use App\Models\Driver;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Models\VehicleYearlyPricing;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -51,10 +52,75 @@ final class DemoSeeder extends Seeder
         DB::transaction(function (): void {
             $companies = $this->seedCompanies();
             $vehicles = $this->seedVehicles();
+            $this->seedPricings($vehicles);
             $this->seedContracts2024($vehicles, $companies);
             $this->seedUnavailabilities2024($vehicles);
             $this->seedDrivers($companies);
         });
+    }
+
+    /**
+     * Tarifs jour/semaine/mois par véhicule × année (Phase 14 facturation).
+     * Calibrés par catégorie pour produire une démo crédible :
+     *   - Citadine standard : 70 €/j
+     *   - Premium : 140-150 €/j
+     *   - Utilitaire : 80-100 €/j
+     *   - Économique/vintage : 45-50 €/j
+     * Triplet cohérent : S ≈ 5.7 × J et M ≈ 20 × J (encourage le moteur
+     * `OptimalRateBreakdown` à mixer mois + semaines + jours).
+     *
+     * Couvre 2024 → année courante avec +5 %/an arrondi à l'euro.
+     * Les véhicules sortis ne reçoivent pas de tarif pour les années
+     * postérieures à la sortie.
+     *
+     * @param  array<string, Vehicle>  $vehicles
+     */
+    private function seedPricings(array $vehicles): void
+    {
+        $baseRates2024 = [
+            'EA-001-AA' => [70, 400, 1400],
+            'EB-002-BB' => [95, 550, 1900],
+            'EC-003-CC' => [140, 800, 2800],
+            'ED-004-DD' => [50, 280, 950],
+            'EE-005-EE' => [45, 250, 850],
+            'EF-006-FF' => [65, 370, 1300],
+            'EG-007-GG' => [150, 870, 3000],
+            'EH-008-HH' => [80, 460, 1600],
+            'EI-009-II' => [100, 580, 2000],
+            'EJ-010-JJ' => [75, 430, 1500],
+            'EK-011-KK' => [60, 340, 1200],
+            'EL-012-LL' => [75, 430, 1500],
+        ];
+
+        $currentYear = Carbon::now()->year;
+        $years = range(2024, $currentYear);
+
+        foreach ($baseRates2024 as $plate => [$daily2024, $weekly2024, $monthly2024]) {
+            $vehicle = $vehicles[$plate] ?? null;
+            if ($vehicle === null) {
+                continue;
+            }
+
+            foreach ($years as $year) {
+                if ($vehicle->exit_date !== null && $year > $vehicle->exit_date->year) {
+                    continue;
+                }
+
+                $multiplier = 1 + 0.05 * ($year - 2024);
+                $daily = (int) round($daily2024 * $multiplier);
+                $weekly = (int) round($weekly2024 * $multiplier);
+                $monthly = (int) round($monthly2024 * $multiplier);
+
+                VehicleYearlyPricing::updateOrCreate(
+                    ['vehicle_id' => $vehicle->id, 'year' => $year],
+                    [
+                        'daily_rate_cents' => $daily * 100,
+                        'weekly_rate_cents' => $weekly * 100,
+                        'monthly_rate_cents' => $monthly * 100,
+                    ],
+                );
+            }
+        }
     }
 
     /**
@@ -203,7 +269,11 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::MostPolluting, // essence pré-Euro 5 → most_polluting
                 'method' => HomologationMethod::Nedc, 'co2Nedc' => 130, 'pa' => 5, 'kerb' => 1150,
             ],
-            // Renault 21 essence 7 CV - PA (trop vieux pour NEDC)
+            // Renault 21 essence 7 CV - PA (trop vieux pour NEDC).
+            // Cas multi-VFC riche (chantier E) : 4 VFC au total dont 2 en
+            // 2024 — exerce le segmenteur fiscal sur le calcul PA.
+            // Bascules : 8 PA (2020-01-01) → 7 PA (2024-03-15) → 8 PA
+            // (2024-09-10) — la 1ʳᵉ courante reste à 7 PA (initiale 2002).
             [
                 'plate' => 'EE-005-EE', 'brand' => 'Renault', 'model' => '21 Nevada',
                 'regFrench' => '2002-05-15', 'regOrigin' => '2002-05-15', 'econ' => '2002-05-15',
@@ -211,6 +281,11 @@ final class DemoSeeder extends Seeder
                 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro3,
                 'pollutant' => PollutantCategory::MostPolluting,
                 'method' => HomologationMethod::Pa, 'pa' => 7, 'kerb' => 1200,
+                'extraVfcs' => [
+                    ['from' => '2020-01-01', 'pa' => 8],
+                    ['from' => '2024-03-15', 'pa' => 7],
+                    ['from' => '2024-09-10', 'pa' => 8],
+                ],
             ],
             // Toyota Yaris hybride essence Euro 6 WLTP 95 g/km
             [
@@ -231,7 +306,11 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::MostPolluting,
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 155, 'pa' => 9, 'kerb' => 1700,
             ],
-            // Peugeot Partner camionnette Diesel Euro 6 - N1 transport personnes
+            // Peugeot Partner camionnette Diesel Euro 6 - N1 transport personnes.
+            // Cas multi-VFC sur la même année (chantier E) : 3 VFC dont
+            // 2 en 2024 — re-homologation CO₂ rétroactive en cours d'année.
+            // Bascules : 130 g/km (2024-04-01) → 150 g/km (2024-09-01).
+            // La 1ʳᵉ initiale reste à 145 g/km (saisie d'origine 2023).
             [
                 'plate' => 'EH-008-HH', 'brand' => 'Peugeot', 'model' => 'Partner 2 rangs',
                 'regFrench' => '2023-03-05', 'regOrigin' => '2023-03-05', 'econ' => '2023-03-05',
@@ -240,6 +319,10 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::MostPolluting,
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 145, 'pa' => 7, 'kerb' => 1500,
                 'n1PassengerTransport' => true,
+                'extraVfcs' => [
+                    ['from' => '2024-04-01', 'co2Wltp' => 130],
+                    ['from' => '2024-09-01', 'co2Wltp' => 150],
+                ],
             ],
             // Ford Transit Custom Diesel Euro 6 - utilitaire de transport
             [
@@ -287,12 +370,12 @@ final class DemoSeeder extends Seeder
                 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5,
                 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d,
                 'pollutant' => PollutantCategory::Category1,
-                'method' => HomologationMethod::Wltp, 'co2Wltp' => 145, 'pa' => 6, 'kerb' => 1380,
-                // Marqueur traité en post-boucle : la VFC initiale est
-                // fermée au 2024-06-15 et une 2ᵉ VFC démarre au 2024-06-16
-                // avec ce co2Wltp. La 1ʳᵉ VFC garde le co2InitialWltp.
-                'co2InitialWltp' => 102,
-                'splitVfcOn' => '2024-06-16',
+                'method' => HomologationMethod::Wltp, 'co2Wltp' => 102, 'pa' => 6, 'kerb' => 1380,
+                // 2 VFC : 1ʳᵉ à 102 g/km (initiale 2023-08-20 → 2024-06-15),
+                // 2ᵉ à 145 g/km (à partir du 2024-06-16, courante).
+                'extraVfcs' => [
+                    ['from' => '2024-06-16', 'co2Wltp' => 145],
+                ],
             ],
         ];
 
@@ -343,26 +426,23 @@ final class DemoSeeder extends Seeder
             $created[$spec['plate']] = $vehicle;
         }
 
-        // Cas multi-VFC (chantier dette VFC L4) : pour les véhicules
-        // marqués `splitVfcOn`, on ferme la VFC initiale au jour précédent
-        // avec son `co2InitialWltp`, puis on crée une 2ᵉ VFC à partir de
-        // la date de bascule avec le `co2Wltp` du spec. Permet d'exercer
-        // visuellement le segmenteur fiscal sur la fiche véhicule.
+        // Cas multi-VFC (chantier E) : pour les véhicules marqués
+        // `extraVfcs`, on ajoute N transitions VFC supplémentaires.
+        // Pour chaque entrée, on ferme la précédente courante au jour
+        // précédent et on crée une nouvelle VFC en reprenant les champs
+        // hérités de la spec puis en surchargeant les champs présents
+        // dans l'entrée (`co2Wltp`, `co2Nedc`, `pa`, `energy`, etc.).
+        // Permet d'exercer visuellement le segmenteur fiscal sur la
+        // fiche véhicule (1, 2, 3, N versions par véhicule).
         foreach ($specs as $spec) {
-            if (! isset($spec['splitVfcOn'])) {
+            if (! isset($spec['extraVfcs']) || $spec['extraVfcs'] === []) {
                 continue;
             }
             $vehicle = $created[$spec['plate']];
-            $splitDate = Carbon::parse($spec['splitVfcOn']);
-            $initial = $vehicle->fiscalCharacteristics()->latest('effective_from')->firstOrFail();
-            $initial->update([
-                'effective_to' => $splitDate->copy()->subDay(),
-                'co2_wltp' => $spec['co2InitialWltp'],
-            ]);
-            VehicleFiscalCharacteristics::create([
-                'vehicle_id' => $vehicle->id,
-                'effective_from' => $splitDate,
-                'effective_to' => null,
+
+            // Hérite des champs immuables du spec ; chaque extraVfc peut
+            // surcharger un sous-ensemble (CO₂, PA, énergie, etc.).
+            $inheritedFields = [
                 'reception_category' => $spec['cat'],
                 'vehicle_user_type' => $spec['user'],
                 'body_type' => $spec['body'],
@@ -382,7 +462,45 @@ final class DemoSeeder extends Seeder
                 'm1_special_use' => false,
                 'n1_ski_lift_use' => false,
                 'change_reason' => FiscalCharacteristicsChangeReason::Recharacterization,
-            ]);
+            ];
+
+            foreach ($spec['extraVfcs'] as $entry) {
+                $effectiveFrom = Carbon::parse($entry['from']);
+                // Ferme la VFC actuellement courante (effective_to=null)
+                // au jour précédent.
+                $current = $vehicle->fiscalCharacteristics()
+                    ->whereNull('effective_to')
+                    ->latest('effective_from')
+                    ->firstOrFail();
+                $current->update([
+                    'effective_to' => $effectiveFrom->copy()->subDay(),
+                ]);
+
+                $fields = $inheritedFields;
+                // Surcharges optionnelles côté entry.
+                if (array_key_exists('co2Wltp', $entry)) {
+                    $fields['co2_wltp'] = $entry['co2Wltp'];
+                }
+                if (array_key_exists('co2Nedc', $entry)) {
+                    $fields['co2_nedc'] = $entry['co2Nedc'];
+                }
+                if (array_key_exists('pa', $entry)) {
+                    $fields['taxable_horsepower'] = $entry['pa'];
+                }
+                if (array_key_exists('energy', $entry)) {
+                    $fields['energy_source'] = $entry['energy'];
+                }
+                if (array_key_exists('euro', $entry)) {
+                    $fields['euro_standard'] = $entry['euro'];
+                }
+
+                VehicleFiscalCharacteristics::create([
+                    'vehicle_id' => $vehicle->id,
+                    'effective_from' => $effectiveFrom,
+                    'effective_to' => null,
+                    ...$fields,
+                ]);
+            }
         }
 
         return $created;
@@ -433,10 +551,23 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Quelques indispos seedées pour exercer la grille ADR-0016 rev. 1.1
-     * en démo : au moins une de chaque type réducteur + un cas non
-     * réducteur. Les plages sont choisies pour ne pas chevaucher les
-     * contrats du plan (cf. trigger MySQL anti-overlap, ADR-0014).
+     * Indispos seedées pour exercer la grille ADR-0016 rev. 1.1 en démo.
+     * Couvre 2 axes :
+     *  - **Hors contrats** (4 entrées historiques) : indispos isolées —
+     *    exerce le calcul autonome.
+     *  - **Cohabitant avec contrats** (4 entrées chantier E) : indispo
+     *    sur une plage qui chevauche un contrat actif. Cas autorisé par
+     *    ADR-0019 — le moteur fiscal retire les jours d'indispo
+     *    réductrice du prorata du contrat (et ignore les non-réductrices).
+     *  - **Cas mixte** : 1 entrée chevauche À LA FOIS un contrat ET une
+     *    bascule VFC — exerce conjointement le segmenteur VFC + la
+     *    réduction prorata.
+     *
+     * Le trigger MySQL anti-overlap n'agit qu'entre contrats (pas entre
+     * indispos et contrats), donc la cohabitation ne pose aucun problème
+     * d'insertion. Les plages cohabitantes sont volontairement situées
+     * dans des contrats long-terme (LLD) où l'effet du retrait de jours
+     * est mesurable.
      *
      * @param  array<string, Vehicle>  $vehicles
      */
@@ -449,8 +580,10 @@ final class DemoSeeder extends Seeder
             })
             ->forceDelete();
 
-        // EJ-010-JJ Kangoo TPMR - créneau libre 01-10 → 03-10/2024
-        // (avant le 1er contrat COR du 03-04). Fourrière publique 8 j.
+        // === Indispos HORS contrats (cas standalone) ============================
+
+        // EJ-010-JJ Kangoo TPMR - créneau libre avant le 1er contrat COR
+        // du 03-04. Fourrière publique 8 j, réductrice.
         $this->createUnavailability(
             vehicle: $vehicles['EJ-010-JJ'],
             type: UnavailabilityType::PoundPublic,
@@ -460,7 +593,7 @@ final class DemoSeeder extends Seeder
         );
 
         // EI-009-II Ford Transit - créneau libre 06-01 → 09-30 (entre BTP et ECO).
-        // Interdiction de circuler post-sinistre 12 j.
+        // Interdiction de circuler post-sinistre 12 j, réductrice.
         $this->createUnavailability(
             vehicle: $vehicles['EI-009-II'],
             type: UnavailabilityType::AccidentNoCirculation,
@@ -469,7 +602,8 @@ final class DemoSeeder extends Seeder
             description: 'Choc latéral, expertise + interdiction préfectorale.',
         );
 
-        // EG-007-GG BMW Série 5 - créneau hors contrats. Suspension CI 25 j.
+        // EG-007-GG BMW Série 5 - créneau hors contrats. Suspension CI 25 j,
+        // réductrice (max BOFiP § 50).
         $this->createUnavailability(
             vehicle: $vehicles['EG-007-GG'],
             type: UnavailabilityType::CiSuspension,
@@ -478,13 +612,61 @@ final class DemoSeeder extends Seeder
             description: 'Suspension administrative du certificat d\'immatriculation.',
         );
 
-        // EH-008-HH Partner - maintenance courante 4 j (non réducteur).
+        // EH-008-HH Partner - maintenance courante 4 j, NON réductrice
+        // (BOFiP § 50 : entretien courant exclu).
         $this->createUnavailability(
             vehicle: $vehicles['EH-008-HH'],
             type: UnavailabilityType::Maintenance,
-            startDate: '2024-10-21',
-            endDate: '2024-10-24',
+            startDate: '2024-12-09',
+            endDate: '2024-12-12',
             description: 'Révision constructeur + remplacement pneus AV.',
+        );
+
+        // === Indispos COHABITANT avec contrats (chantier E) =====================
+
+        // EA-001-AA Peugeot 308 - chevauche le contrat ACM 01-08 → 02-29.
+        // Suspension CI 11 j → réductrice : la taxe ACM doit être réduite
+        // au prorata sur les 53 j du contrat.
+        $this->createUnavailability(
+            vehicle: $vehicles['EA-001-AA'],
+            type: UnavailabilityType::CiSuspension,
+            startDate: '2024-02-15',
+            endDate: '2024-02-25',
+            description: 'Cohabitation contrat ACM : suspension administrative pour défaut d\'assurance.',
+        );
+
+        // EB-002-BB Renault Trafic - chevauche le contrat BTP 01-15 → 04-30.
+        // Accident sans circulation 10 j → réductrice : la taxe BTP doit
+        // être réduite (utile car BTP est long, le delta est visible sur
+        // le breakdown fiscal).
+        $this->createUnavailability(
+            vehicle: $vehicles['EB-002-BB'],
+            type: UnavailabilityType::AccidentNoCirculation,
+            startDate: '2024-03-10',
+            endDate: '2024-03-19',
+            description: 'Cohabitation contrat BTP : choc à l\'arrière, attente expertise.',
+        );
+
+        // EE-005-EE Renault 21 - **cas mixte** : chevauche le contrat COR
+        // 03-04 → 03-28 ET la bascule VFC 03-15 (PA 8→7). Exerce
+        // simultanément le segmenteur VFC + la réduction prorata.
+        $this->createUnavailability(
+            vehicle: $vehicles['EE-005-EE'],
+            type: UnavailabilityType::CiSuspension,
+            startDate: '2024-03-10',
+            endDate: '2024-03-22',
+            description: 'Cohabitation contrat COR + bascule VFC : suspension CI 13 j à cheval sur 2 versions PA.',
+        );
+
+        // EH-008-HH Partner - chevauche le contrat BTP 01-08 → 03-15.
+        // Maintenance 4 j NON réductrice → le moteur doit l\'IGNORER :
+        // la taxe BTP ne doit PAS être réduite. Garde-fou anti-régression.
+        $this->createUnavailability(
+            vehicle: $vehicles['EH-008-HH'],
+            type: UnavailabilityType::Maintenance,
+            startDate: '2024-02-12',
+            endDate: '2024-02-15',
+            description: 'Cohabitation contrat BTP : entretien courant (NE doit PAS réduire la taxe).',
         );
     }
 
@@ -545,8 +727,12 @@ final class DemoSeeder extends Seeder
             ['plate' => 'ED-004-DD', 'company' => 'DRS', 'from' => '2024-09-02', 'to' => '2024-12-20'],
 
             // --- Renault 21 (PA 7 CV - taxe CO₂ lourde : 15 000 €/an) ---
-            ['plate' => 'EE-005-EE', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-03-28'], // 25 j ≤ 30 → LCD
+            // Multi-VFC : bascules 2024-03-15 (PA 8→7) et 2024-09-10 (PA 7→8).
+            // Le contrat COR chevauche la 1ʳᵉ bascule, le contrat ECO la 2ᵉ —
+            // exerce le segmenteur PA pour le calcul taxe CO₂.
+            ['plate' => 'EE-005-EE', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-03-28'], // 25 j ≤ 30, à cheval bascule 03-15
             ['plate' => 'EE-005-EE', 'company' => 'ACM', 'from' => '2024-07-01', 'to' => '2024-07-26'], // 26 j ≤ 30 → LCD
+            ['plate' => 'EE-005-EE', 'company' => 'ECO', 'from' => '2024-09-02', 'to' => '2024-10-31'], // 60 j, à cheval bascule 09-10
 
             // --- Toyota Yaris hybride essence Euro 6 WLTP 95 g/km ---
             ['plate' => 'EF-006-FF', 'company' => 'ACM', 'from' => '2024-01-02', 'to' => '2024-03-29'],
@@ -561,9 +747,15 @@ final class DemoSeeder extends Seeder
             ['plate' => 'EG-007-GG', 'company' => 'BTP', 'from' => '2024-10-14', 'to' => '2024-12-15'],
 
             // --- Peugeot Partner (utilitaire N1 transport pers.) ---
+            // Multi-VFC : bascules 2024-04-01 (CO₂ 145→130) et 2024-09-01
+            // (CO₂ 130→150). Le contrat COR démarre AU jour de la bascule
+            // 04-01 (entièrement sous la nouvelle VFC). Le contrat BTP
+            // 08-15 → 09-05 chevauche la bascule 09-01 — exerce le
+            // segmenteur CO₂.
             ['plate' => 'EH-008-HH', 'company' => 'BTP', 'from' => '2024-01-08', 'to' => '2024-03-15'],
             ['plate' => 'EH-008-HH', 'company' => 'COR', 'from' => '2024-04-01', 'to' => '2024-04-26'], // 26 j ≤ 30 → LCD
             ['plate' => 'EH-008-HH', 'company' => 'DRS', 'from' => '2024-05-13', 'to' => '2024-07-31'],
+            ['plate' => 'EH-008-HH', 'company' => 'BTP', 'from' => '2024-08-15', 'to' => '2024-09-05'], // 22 j ≤ 30, à cheval bascule 09-01
             ['plate' => 'EH-008-HH', 'company' => 'ACM', 'from' => '2024-09-09', 'to' => '2024-11-15'],
 
             // --- Ford Transit Custom Diesel Euro 6 ---
