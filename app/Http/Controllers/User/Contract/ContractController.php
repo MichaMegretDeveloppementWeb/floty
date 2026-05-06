@@ -54,6 +54,12 @@ final class ContractController extends Controller
 
     public function index(ContractIndexQueryData $query): Response
     {
+        // Sync pill UI ↔ filtre serveur (chantier C) : si l'utilisateur
+        // arrive sans `year` ni `periodStart/End`, on impose `year =
+        // currentYear` côté DTO. Cohérent avec CompanyController et
+        // VehicleController (doctrine temporelle chantier η Phase 3).
+        $this->applyDefaultYearIfMissing($query);
+
         return Inertia::render('User/Contracts/Index/Index', [
             'contracts' => $this->contracts->listPaginated($query),
             'options' => $this->buildFormOptions(),
@@ -64,6 +70,26 @@ final class ContractController extends Controller
             'hasAnyContract' => $this->contractRead->existsAny(),
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
         ]);
+    }
+
+    /**
+     * Mute `$query->year` vers `currentYear` quand l'utilisateur arrive
+     * sans aucun filtre temporel (`year` + `periodStart` + `periodEnd`
+     * tous null). Préserve le mode « Période personnalisée » (si
+     * `periodStart` ou `periodEnd` est posé, on ne touche pas à `year`).
+     *
+     * Spatie Data DTOs sont mutables (props publiques) — c'est le
+     * mécanisme prévu pour ce genre de post-traitement avant rendu.
+     */
+    private function applyDefaultYearIfMissing(ContractIndexQueryData $query): void
+    {
+        if (
+            $query->year === null
+            && $query->periodStart === null
+            && $query->periodEnd === null
+        ) {
+            $query->year = $this->availableYears->currentYear();
+        }
     }
 
     public function show(int $contract): Response
@@ -78,6 +104,8 @@ final class ContractController extends Controller
             'contract' => $contractData,
             'taxBreakdown' => $this->contracts->findContractTaxBreakdown($contract),
             'documents' => $this->contracts->listDocumentsForContract($contract),
+            // Phase 14.D V1.2 — récap facturation contrat-isolé.
+            'billingBreakdown' => $this->contracts->findContractBillingBreakdown($contract),
         ]);
     }
 

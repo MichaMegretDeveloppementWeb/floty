@@ -55,14 +55,24 @@ final class ContractControllerTest extends TestCase
     public function index_renvoie_la_liste_des_contrats(): void
     {
         $user = User::factory()->create();
+        // Force les dates dans l'année courante : sans `?year=`, le
+        // controller résout automatiquement `year = currentYear` (cf.
+        // chantier C : sync pill UI / filtre serveur).
+        $currentYear = (int) now()->year;
         Contract::factory()
             ->forVehicle(Vehicle::factory()->create())
             ->forCompany(Company::factory()->create())
-            ->create();
+            ->create([
+                'start_date' => sprintf('%d-03-01', $currentYear),
+                'end_date' => sprintf('%d-03-15', $currentYear),
+            ]);
         Contract::factory()
             ->forVehicle(Vehicle::factory()->create())
             ->forCompany(Company::factory()->create())
-            ->create();
+            ->create([
+                'start_date' => sprintf('%d-06-01', $currentYear),
+                'end_date' => sprintf('%d-06-15', $currentYear),
+            ]);
 
         $this->actingAs($user)
             ->get('/app/contracts')
@@ -79,27 +89,66 @@ final class ContractControllerTest extends TestCase
     }
 
     #[Test]
+    public function index_sans_params_filtre_par_defaut_sur_l_annee_courante(): void
+    {
+        // Garde-fou chantier C : la pill UI affiche par défaut l'année
+        // courante, le backend doit appliquer le même filtre. Les
+        // contrats hors année courante ne doivent PAS apparaître sans
+        // bascule explicite via la pill.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $currentYear = (int) now()->year;
+
+        // Contrat dans l'année courante → doit apparaître.
+        $current = Contract::factory()->create([
+            'vehicle_id' => Vehicle::factory()->create()->id,
+            'company_id' => $company->id,
+            'start_date' => sprintf('%d-04-01', $currentYear),
+            'end_date' => sprintf('%d-04-15', $currentYear),
+        ]);
+        // Contrat dans une autre année → ne doit PAS apparaître.
+        Contract::factory()->create([
+            'vehicle_id' => Vehicle::factory()->create()->id,
+            'company_id' => $company->id,
+            'start_date' => '2024-04-01',
+            'end_date' => '2024-04-15',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/contracts')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('contracts.meta.total', 1)
+                ->where('contracts.data.0.id', $current->id)
+                // Le DTO `query` exposé au front porte le `year` résolu
+                // pour la sync pill UI ↔ filtre serveur.
+                ->where('query.year', $currentYear),
+            );
+    }
+
+    #[Test]
     public function index_paginate_avec_per_page_personnalise(): void
     {
         $user = User::factory()->create();
-        $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
-        // 25 contrats sur le même vehicle avec dates non-overlap (1 par mois sur 25 mois)
+        // 25 contrats sur des véhicules distincts dans la même année 2025
+        // pour pouvoir tester le filtre `?year=2025` par défaut.
         for ($i = 0; $i < 25; $i++) {
-            $start = sprintf('2023-%02d-01', ($i % 12) + 1);
-            $end = sprintf('2023-%02d-15', ($i % 12) + 1);
-            // Étaler sur plusieurs years pour éviter overlap
-            $year = 2023 + intdiv($i, 12);
+            $monthStart = ($i % 12) + 1;
+            // Étaler les 25 contrats sur les 12 mois de 2025 (jusqu'à
+            // 2 contrats par mois, sur des plages distinctes du même mois).
+            $dayStart = ($i < 12) ? 1 : 16;
+            $dayEnd = ($i < 12) ? 15 : 28;
             Contract::factory()->create([
                 'vehicle_id' => Vehicle::factory()->create()->id,
                 'company_id' => $company->id,
-                'start_date' => sprintf('%04d-01-01', $year + $i),
-                'end_date' => sprintf('%04d-01-15', $year + $i),
+                'start_date' => sprintf('2025-%02d-%02d', $monthStart, $dayStart),
+                'end_date' => sprintf('2025-%02d-%02d', $monthStart, $dayEnd),
             ]);
         }
 
         $this->actingAs($user)
-            ->get('/app/contracts?perPage=10')
+            ->get('/app/contracts?perPage=10&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
                 $page,
@@ -146,7 +195,7 @@ final class ContractControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/contracts?vehicleId='.$v1->id)
+            ->get('/app/contracts?vehicleId='.$v1->id.'&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
                 $page,
@@ -187,7 +236,7 @@ final class ContractControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/contracts?companyId='.$c1->id.'&driverId='.$driver->id.'&type=lcd')
+            ->get('/app/contracts?companyId='.$c1->id.'&driverId='.$driver->id.'&type=lcd&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
                 $page,
@@ -259,7 +308,7 @@ final class ContractControllerTest extends TestCase
 
         // Search par plate
         $this->actingAs($user)
-            ->get('/app/contracts?search=BB-222')
+            ->get('/app/contracts?search=BB-222&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
                 $page, 'contracts', expectedDataCount: 1, expectedMeta: ['total' => 1],
@@ -267,7 +316,7 @@ final class ContractControllerTest extends TestCase
 
         // Search par brand
         $this->actingAs($user)
-            ->get('/app/contracts?search=Renault')
+            ->get('/app/contracts?search=Renault&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
                 $page, 'contracts', expectedDataCount: 1, expectedMeta: ['total' => 1],
@@ -275,7 +324,7 @@ final class ContractControllerTest extends TestCase
 
         // Search par company short_code
         $this->actingAs($user)
-            ->get('/app/contracts?search=ALP')
+            ->get('/app/contracts?search=ALP&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
                 $page, 'contracts', expectedDataCount: 2, expectedMeta: ['total' => 2],
@@ -283,7 +332,7 @@ final class ContractControllerTest extends TestCase
 
         // Search par driver name
         $this->actingAs($user)
-            ->get('/app/contracts?search=Sophie')
+            ->get('/app/contracts?search=Sophie&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
                 $page, 'contracts', expectedDataCount: 1, expectedMeta: ['total' => 1],
@@ -313,7 +362,7 @@ final class ContractControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/contracts?sortKey=startDate&sortDirection=desc')
+            ->get('/app/contracts?sortKey=startDate&sortDirection=desc&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.data.0.startDate', '2025-03-01')
@@ -342,7 +391,7 @@ final class ContractControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/contracts?sortKey=duration&sortDirection=desc')
+            ->get('/app/contracts?sortKey=duration&sortDirection=desc&year=2025')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.data.0.durationDays', 90)
