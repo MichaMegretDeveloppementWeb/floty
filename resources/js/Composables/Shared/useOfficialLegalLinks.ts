@@ -62,22 +62,38 @@ const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
 
 /**
  * Mapping doctrine BOFiP → identifiant interne du document + versions
- * datées par année fiscale. La frise chronologique de chaque doctrine
- * (« ChronoBOFiP ») expose les dates de mise en vigueur successives ;
- * on choisit pour chaque exercice fiscal la version la plus large qui
- * couvre l'année.
+ * datées par année fiscale + ancres HTML par paragraphe.
+ *
+ * **Pourquoi des ancres explicites** : la BOFiP attribue à chaque
+ * paragraphe un id arbitraire (slug textuel + suffixe numérique) qui
+ * n'a aucun rapport avec le numéro de paragraphe et qui change à chaque
+ * révision de la doctrine. Pour permettre un scroll direct à § 50, on
+ * mappe explicitement le numéro de paragraphe vers l'id HTML de la
+ * version concernée. Ces ancres ont été extraites par inspection DOM
+ * Chrome live de la page (`document.querySelectorAll('p[id]')`).
  *
  * `BOI-AIS-MOB-10-30-10` (Dispositions communes — Taxes sur l'affectation
  * des véhicules à des fins économiques) :
- * - Version 2024-07-10 → 2025-05-28 (en vigueur sur la majeure partie
- *   de 2024 et début 2025) : `20240710`. Vérifié contenir § 50/60/190
- *   sur les indispos réductrices.
+ * - Version 2024-07-10 → 2025-05-28 : `20240710`. Vérifié contenir
+ *   § 50/60/190 sur les indispos réductrices avec leurs ancres exactes.
  */
-const BOFIP_DOCUMENTS: Record<string, { documentId: string; versionsByYear: Record<number, string> }> = {
+type BofipVersion = {
+    date: string;
+    anchors: Record<string, string>;
+};
+
+const BOFIP_DOCUMENTS: Record<string, { documentId: string; versionsByYear: Record<number, BofipVersion> }> = {
     'BOI-AIS-MOB-10-30-10': {
         documentId: '13932-PGP.html',
         versionsByYear: {
-            2024: '20240710',
+            2024: {
+                date: '20240710',
+                anchors: {
+                    '50': 'il_en_ressort_qu_9929',
+                    '60': '60_1148',
+                    '190': '180_4641',
+                },
+            },
         },
     },
 };
@@ -178,18 +194,21 @@ function cgiUrl(): string {
 
 /**
  * URL canonique pour une doctrine BOFiP, pointant vers la version
- * applicable à l'année fiscale courante. Si la doctrine n'est pas
- * mappée, fallback sur la page de recherche BOFiP filtrée sur
- * l'identifiant.
+ * applicable à l'année fiscale courante avec un anchor sur le paragraphe
+ * cité (s'il est mappé). Sinon fallback sur la page de recherche.
  */
-function bofipUrlFor(reference: string, year: number): string {
+function bofipUrlFor(reference: string, year: number, paragraph?: string): string {
     const doc = BOFIP_DOCUMENTS[reference];
 
     if (doc !== undefined) {
         const version = doc.versionsByYear[year];
 
         if (version !== undefined) {
-            return `${BOFIP_BASE}/${doc.documentId}/identifiant=${reference}-${version}`;
+            const baseUrl = `${BOFIP_BASE}/${doc.documentId}/identifiant=${reference}-${version.date}`;
+            const paragraphNumber = paragraph?.match(/(\d+)/)?.[1];
+            const anchor = paragraphNumber !== undefined ? version.anchors[paragraphNumber] : undefined;
+
+            return anchor !== undefined ? `${baseUrl}#${anchor}` : baseUrl;
         }
     }
 
@@ -226,7 +245,7 @@ function resolveLegalLinkFor(
 
         return {
             label: `${ref.reference}${para}`,
-            url: bofipUrlFor(ref.reference, year),
+            url: bofipUrlFor(ref.reference, year, ref.paragraph),
             title: `Doctrine BOFiP-Impôts ${ref.reference}${para}`,
         };
     }
