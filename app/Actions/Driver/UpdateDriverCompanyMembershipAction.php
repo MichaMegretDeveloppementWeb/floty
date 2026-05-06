@@ -14,9 +14,21 @@ use Carbon\CarbonImmutable;
 /**
  * Édite les attributs d'une membership Driver↔Company existante.
  *
- * Scope V1 (chantier B) : seul `joined_at` est modifiable. Vérifie la
- * cohérence chronologique avec `left_at` posé sur la membership cible
- * (rejet si `joined_at > left_at`).
+ * Scope (chantier B + B-bis) :
+ *  - `joined_at` requis : nouvelle date d'entrée.
+ *  - `leftAt` optionnel :
+ *      - `null` (clé absente OU `null` explicite) → réactive la
+ *        membership (efface `left_at` en base, ré-bascule en « Actif »).
+ *      - non null → met à jour la date de sortie.
+ *
+ * Vérifie la cohérence chronologique : si `leftAt` est posé, alors
+ * `joined_at <= left_at`. Sinon, throw {@see MembershipChronologyException}.
+ *
+ * **Distinction avec `LeaveDriverCompanyMembershipAction`** : cet Action
+ * gère les *corrections post-facto* + la réactivation. Le workflow
+ * Sortir dédié (`Leave...Action`) reste responsable de la *première*
+ * pose de `left_at`, car il orchestre la résolution des contrats à
+ * venir (Q6).
  */
 final readonly class UpdateDriverCompanyMembershipAction
 {
@@ -33,16 +45,18 @@ final readonly class UpdateDriverCompanyMembershipAction
         }
 
         $newJoinedAt = CarbonImmutable::parse($data->joinedAt);
+        $newLeftAt = $data->leftAt !== null ? CarbonImmutable::parse($data->leftAt) : null;
 
-        // Cohérence chronologique : si la membership a déjà une date de
-        // sortie posée, la nouvelle date d'entrée doit lui être <=.
-        if ($pivot->left_at !== null && $newJoinedAt->greaterThan($pivot->left_at)) {
+        // Cohérence chronologique : si on pose un `left_at`, il doit
+        // être >= au nouveau `joined_at`. Si on réactive (`null`), pas
+        // de check à faire.
+        if ($newLeftAt !== null && $newJoinedAt->greaterThan($newLeftAt)) {
             throw MembershipChronologyException::joinedAtAfterLeftAt(
                 $newJoinedAt->toDateString(),
-                $pivot->left_at->toDateString(),
+                $newLeftAt->toDateString(),
             );
         }
 
-        $this->driverWriteRepo->updateMembershipJoinedAt($pivotId, $newJoinedAt);
+        $this->driverWriteRepo->updateMembership($pivotId, $newJoinedAt, $newLeftAt);
     }
 }

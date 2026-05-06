@@ -53,12 +53,16 @@ final class DriverWriteRepository implements DriverWriteRepositoryInterface
             ]);
     }
 
-    public function updateMembershipJoinedAt(int $pivotId, CarbonInterface $joinedAt): void
+    public function updateMembership(int $pivotId, CarbonInterface $joinedAt, ?CarbonInterface $leftAt): void
     {
         DB::table('driver_company')
             ->where('id', $pivotId)
             ->update([
                 'joined_at' => $joinedAt->toDateString(),
+                // `null` est explicite ici — réactivation d'une membership
+                // précédemment sortie. Le caller passe `null` ou un
+                // CarbonInterface après validation chronologique.
+                'left_at' => $leftAt?->toDateString(),
                 'updated_at' => now(),
             ]);
     }

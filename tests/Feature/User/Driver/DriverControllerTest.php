@@ -705,6 +705,7 @@ final class DriverControllerTest extends TestCase
         $this->actingAs($user)
             ->patch('/app/drivers/'.$driver->id.'/memberships/'.$pivotId, [
                 'joined_at' => '2025-06-01',
+                'left_at' => '2024-12-31',
             ])
             ->assertSessionHasErrors(['joined_at']);
 
@@ -712,6 +713,58 @@ final class DriverControllerTest extends TestCase
         $this->assertDatabaseHas('driver_company', [
             'id' => $pivotId,
             'joined_at' => '2024-06-01',
+        ]);
+    }
+
+    #[Test]
+    public function update_membership_reactive_quand_left_at_est_null(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+        $company = Company::factory()->create();
+        $driver->companies()->attach($company->id, [
+            'joined_at' => '2024-06-01',
+            'left_at' => '2024-12-31',
+        ]);
+        $pivotId = (int) DB::table('driver_company')->where('driver_id', $driver->id)->value('id');
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id.'/memberships/'.$pivotId, [
+                'joined_at' => '2024-06-01',
+                'left_at' => null,
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('toast-success', 'Rattachement mis à jour.');
+
+        $this->assertDatabaseHas('driver_company', [
+            'id' => $pivotId,
+            'left_at' => null,
+        ]);
+    }
+
+    #[Test]
+    public function update_membership_modifie_joined_at_et_left_at_simultanement(): void
+    {
+        $user = User::factory()->create();
+        $driver = Driver::factory()->create();
+        $company = Company::factory()->create();
+        $driver->companies()->attach($company->id, [
+            'joined_at' => '2024-06-01',
+            'left_at' => '2024-12-31',
+        ]);
+        $pivotId = (int) DB::table('driver_company')->where('driver_id', $driver->id)->value('id');
+
+        $this->actingAs($user)
+            ->patch('/app/drivers/'.$driver->id.'/memberships/'.$pivotId, [
+                'joined_at' => '2024-01-15',
+                'left_at' => '2025-06-30',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('driver_company', [
+            'id' => $pivotId,
+            'joined_at' => '2024-01-15',
+            'left_at' => '2025-06-30',
         ]);
     }
 

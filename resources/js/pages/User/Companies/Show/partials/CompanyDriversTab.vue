@@ -21,10 +21,11 @@ import AddCompanyDriverModal from '@/Components/Domain/Driver/AddCompanyDriverMo
 import DriverBadge from '@/Components/Domain/Driver/DriverBadge.vue';
 import EditDriverCompanyMembershipModal from '@/Components/Domain/Driver/EditDriverCompanyMembershipModal.vue';
 import LeaveDriverCompanyModal from '@/Components/Domain/Driver/LeaveDriverCompanyModal.vue';
+import ActionsMenu from '@/Components/Ui/ActionsMenu/ActionsMenu.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { show as driverShowRoute } from '@/routes/user/drivers';
-import { destroy as detachRoute } from '@/routes/user/drivers/memberships';
+import { destroy as detachRoute, update as updateRoute } from '@/routes/user/drivers/memberships';
 
 type DriverOption = { id: number; fullName: string; initials: string };
 
@@ -87,6 +88,22 @@ function detach(row: App.Data.User.Company.CompanyDriverRowData): void {
             detaching.value = null;
         },
     });
+}
+
+function reactivate(row: App.Data.User.Company.CompanyDriverRowData): void {
+    if (
+        !confirm(
+            `Réactiver le rattachement avec ${row.fullName} ? La date de sortie sera effacée.`,
+        )
+    ) {
+        return;
+    }
+
+    router.patch(
+        updateRoute([row.driverId, row.pivotId]).url,
+        { joined_at: row.joinedAt, left_at: null },
+        { preserveScroll: true },
+    );
 }
 
 function formatDate(value: string | null): string {
@@ -212,33 +229,32 @@ function onRowClick(driverId: number): void {
                     <td class="py-4 font-medium text-slate-700 tabular-nums">
                         {{ d.contractsCount }}
                     </td>
-                    <td class="py-4 text-right">
-                        <div class="flex items-center justify-end gap-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                @click.stop="editRow = d"
-                            >
+                    <td class="py-4 text-right" @click.stop>
+                        <ActionsMenu align="right">
+                            <button type="button" @click="editRow = d">
                                 Éditer
-                            </Button>
-                            <Button
+                            </button>
+                            <button
                                 v-if="d.isCurrentlyActive"
-                                variant="secondary"
-                                size="sm"
-                                @click.stop="openLeave(d)"
+                                type="button"
+                                @click="openLeave(d)"
                             >
-                                Sortir
-                            </Button>
-                            <Button
-                                v-else-if="d.contractsCount === 0"
-                                variant="ghost"
-                                size="sm"
-                                :loading="detaching === d.pivotId"
-                                @click.stop="detach(d)"
-                            >
-                                Détacher
-                            </Button>
-                        </div>
+                                Retirer
+                            </button>
+                            <template v-else>
+                                <button type="button" @click="reactivate(d)">
+                                    Réactiver
+                                </button>
+                                <button
+                                    type="button"
+                                    class="danger"
+                                    :disabled="d.contractsCount > 0 || detaching === d.pivotId"
+                                    @click="detach(d)"
+                                >
+                                    Détacher
+                                </button>
+                            </template>
+                        </ActionsMenu>
                     </td>
                 </tr>
             </tbody>

@@ -2,10 +2,11 @@
 import { router } from '@inertiajs/vue3';
 import { Building2, Plus } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
+import ActionsMenu from '@/Components/Ui/ActionsMenu/ActionsMenu.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import { show as companyShowRoute } from '@/routes/user/companies';
-import { destroy as detachRoute } from '@/routes/user/drivers/memberships';
+import { destroy as detachRoute, update as updateRoute } from '@/routes/user/drivers/memberships';
 
 type Membership = App.Data.User.Driver.DriverCompanyMembershipData;
 
@@ -46,6 +47,24 @@ function detach(membership: Membership): void {
             detaching.value = null;
         },
     });
+}
+
+function reactivate(membership: Membership): void {
+    if (
+        !confirm(
+            `Réactiver le rattachement avec ${membership.companyShortCode} ? La date de sortie sera effacée.`,
+        )
+    ) {
+        return;
+    }
+
+    // Réutilise l'endpoint update : `left_at: null` réactive la membership
+    // (cf. UpdateDriverCompanyMembershipAction). On préserve `joined_at`.
+    router.patch(
+        updateRoute([props.driverId, membership.pivotId]).url,
+        { joined_at: membership.joinedAt, left_at: null },
+        { preserveScroll: true },
+    );
 }
 
 function formatDate(value: string | null): string {
@@ -149,33 +168,32 @@ function onRowClick(companyId: number): void {
                     <td class="py-4 font-medium text-slate-700 tabular-nums">
                         {{ m.contractsCount }}
                     </td>
-                    <td class="py-4 text-right">
-                        <div class="flex items-center justify-end gap-2">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                @click.stop="emit('open-edit', m)"
-                            >
+                    <td class="py-4 text-right" @click.stop>
+                        <ActionsMenu align="right">
+                            <button type="button" @click="emit('open-edit', m)">
                                 Éditer
-                            </Button>
-                            <Button
+                            </button>
+                            <button
                                 v-if="m.isCurrentlyActive"
-                                variant="secondary"
-                                size="sm"
-                                @click.stop="emit('open-leave', m.companyId)"
+                                type="button"
+                                @click="emit('open-leave', m.companyId)"
                             >
-                                Sortir
-                            </Button>
-                            <Button
-                                v-else-if="m.contractsCount === 0"
-                                variant="ghost"
-                                size="sm"
-                                :loading="detaching === m.pivotId"
-                                @click.stop="detach(m)"
-                            >
-                                Détacher
-                            </Button>
-                        </div>
+                                Retirer
+                            </button>
+                            <template v-else>
+                                <button type="button" @click="reactivate(m)">
+                                    Réactiver
+                                </button>
+                                <button
+                                    type="button"
+                                    class="danger"
+                                    :disabled="m.contractsCount > 0 || detaching === m.pivotId"
+                                    @click="detach(m)"
+                                >
+                                    Détacher
+                                </button>
+                            </template>
+                        </ActionsMenu>
                     </td>
                 </tr>
             </tbody>

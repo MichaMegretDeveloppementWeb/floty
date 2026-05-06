@@ -1,24 +1,26 @@
 <script setup lang="ts">
 /**
- * Modal d'édition d'une membership Driver↔Company existante (chantier B).
+ * Modal d'édition d'une membership Driver↔Company existante (chantiers
+ * B + B-bis).
  *
- * Scope V1 : `joined_at` uniquement. La gestion de `left_at` reste pilotée
- * par le workflow Sortir dédié (qui orchestre la résolution des contrats
- * à venir) — voir `LeaveDriverCompanyModal`.
+ * Champs : `joined_at` (toujours requis) + `left_at` (optionnel).
+ *  - Membership active : `currentLeftAt` est `null`, le champ part vide,
+ *    l'utilisateur peut laisser vide ou poser une date de sortie (mais
+ *    pour la première sortie d'une membership active, le workflow Sortir
+ *    dédié — `LeaveDriverCompanyModal` — est préférable car il gère les
+ *    contrats à venir).
+ *  - Membership sortie : `currentLeftAt` est la date posée. L'utilisateur
+ *    peut la corriger ou l'effacer (réactivation).
  *
- * Pattern symétrique aux autres modaux memberships :
- * - props neutres (`driverId, pivotId, companyShortCode, currentJoinedAt,
- *   currentLeftAt`) → réutilisable depuis Driver Show ET Company Show
- * - submit `useForm.patch(updateRoute(...).url)`, `onSuccess: close()` —
- *   Inertia récupère les props fraîches via le redirect back() du
- *   controller, le tableau parent affiche la nouvelle date d'entrée.
+ * Validation chronologique côté serveur (`UpdateDriverCompanyMembershipAction`) :
+ * `joined_at <= left_at` si `left_at` est posé. Une violation est
+ * surfacée comme `ValidationException` sur le champ `joined_at`.
  *
- * Validation chronologique côté serveur : si `joined_at > left_at`, le
- * controller throw `ValidationException` avec un message FR explicite
- * sur le champ `joined_at`.
+ * Le composant est neutre quant au contexte — réutilisé depuis
+ * Driver Show ET Company Show.
  */
 import { useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
@@ -40,15 +42,29 @@ const open = ref(true);
 
 const form = useForm({
     joined_at: props.currentJoinedAt,
+    left_at: props.currentLeftAt as string | null,
 });
+
+const canSubmit = computed<boolean>(
+    () => form.joined_at !== '' && !form.processing,
+);
 
 function close(): void {
     open.value = false;
     emit('close');
 }
 
+function clearLeftAt(): void {
+    form.left_at = null;
+}
+
 function submit(): void {
-    form.patch(updateRoute([props.driverId, props.pivotId]).url, {
+    form.transform((data) => ({
+        joined_at: data.joined_at,
+        // Normalise les chaînes vides en `null` pour être interprété
+        // comme « pas de date de sortie » côté serveur (réactivation).
+        left_at: data.left_at === null || data.left_at === '' ? null : data.left_at,
+    })).patch(updateRoute([props.driverId, props.pivotId]).url, {
         preserveScroll: true,
         onSuccess: () => close(),
     });
@@ -62,15 +78,8 @@ function submit(): void {
         @close="emit('close')"
     >
         <p class="text-sm text-slate-700">
-            Modifier la date d'entrée de
+            Modifier les dates de rattachement avec
             <strong>{{ companyShortCode }}</strong>.
-        </p>
-        <p
-            v-if="currentLeftAt !== null"
-            class="mt-1 text-xs text-slate-500"
-        >
-            Sortie posée le <strong>{{ currentLeftAt }}</strong> — la nouvelle
-            date d'entrée doit lui être antérieure ou égale.
         </p>
 
         <form class="mt-6 flex flex-col gap-4" @submit.prevent="submit">
@@ -85,6 +94,34 @@ function submit(): void {
                 <InputError :message="form.errors.joined_at" />
             </div>
 
+            <div>
+                <div class="flex items-center justify-between gap-2">
+                    <FieldLabel for="edit-membership-left-at">
+                        Date de sortie
+                    </FieldLabel>
+                    <button
+                        v-if="form.left_at !== null && form.left_at !== ''"
+                        type="button"
+                        class="text-xs text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+                        @click="clearLeftAt"
+                    >
+                        Effacer
+                    </button>
+                </div>
+                <DateInput
+                    id="edit-membership-left-at"
+                    v-model="form.left_at"
+                />
+                <InputError :message="form.errors.left_at" />
+                <p
+                    v-if="form.left_at === null || form.left_at === ''"
+                    class="mt-1 text-xs text-slate-500"
+                >
+                    Vide = rattachement actif. Effacer la date de sortie
+                    posée réactive la membership.
+                </p>
+            </div>
+
             <div class="flex justify-end gap-2">
                 <Button variant="ghost" type="button" @click="close">
                     Annuler
@@ -92,7 +129,7 @@ function submit(): void {
                 <Button
                     type="submit"
                     :loading="form.processing"
-                    :disabled="form.joined_at === ''"
+                    :disabled="!canSubmit"
                 >
                     Mettre à jour
                 </Button>
