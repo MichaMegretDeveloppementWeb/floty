@@ -14,10 +14,12 @@ namespace App\Enums\Unavailability;
  * base garantit la cohérence avec les 3 cases réducteurs ci-dessous.
  *
  * **Bases légales** :
- *   - CIBS art. L. 421-107 (numérateur du prorata = durée d'affectation
- *     du véhicule en France à des fins économiques)
- *   - BOFiP BOI-AIS-MOB-10-30-10 (Dispositions communes — règles de
- *     calcul des taxes annuelles + traitement des indispos subies)
+ *   - CIBS art. L. 421-96 (« le véhicule immobilisé ou mis en fourrière
+ *     à la demande des pouvoirs publics est réputé ne pas être affecté
+ *     à des fins économiques »)
+ *   - BOFiP BOI-AIS-MOB-10-30-10 § 50 (suspension CI + interdiction
+ *     post-sinistre), § 60 (fourrière publique), § 190 (effet sur la
+ *     proportion annuelle d'affectation)
  *   - C. route L. 325-1 → L. 325-1-2 (fourrière publique)
  *   - C. route L. 325-12 (fourrière privée - non réducteur)
  *   - C. route R. 322-6 (suspension CI)
@@ -66,14 +68,14 @@ enum UnavailabilityType: string
     public function legalReference(): string
     {
         return match ($this) {
-            self::AccidentNoCirculation => 'C. route L. 327-4 / L. 327-5 ; BOFiP BOI-AIS-MOB-10-30-10',
-            self::PoundPublic => 'C. route L. 325-1 à L. 325-1-2 ; BOFiP BOI-AIS-MOB-10-30-10',
-            self::CiSuspension => 'C. route R. 322-6 ; BOFiP BOI-AIS-MOB-10-30-10',
-            self::AccidentRepair => 'BOFiP BOI-AIS-MOB-10-30-10 (réparation simple = taxable)',
-            self::PoundPrivate => 'C. route L. 325-12 ; BOFiP BOI-AIS-MOB-10-30-10 (fourrière privée non réductrice)',
+            self::AccidentNoCirculation => 'C. route L. 327-4 / L. 327-5 ; BOFiP BOI-AIS-MOB-10-30-10 § 50',
+            self::PoundPublic => 'C. route L. 325-1 à L. 325-1-2 ; BOFiP BOI-AIS-MOB-10-30-10 § 60',
+            self::CiSuspension => 'C. route R. 322-6 ; BOFiP BOI-AIS-MOB-10-30-10 § 50',
+            self::AccidentRepair => 'BOFiP BOI-AIS-MOB-10-30-10 § 50 (réparation simple = taxable, voir Remarque § 50)',
+            self::PoundPrivate => 'C. route L. 325-12 ; BOFiP BOI-AIS-MOB-10-30-10 § 60 (fourrière privée non réductrice — exclusion explicite)',
             self::Maintenance,
-            self::TechnicalInspection => 'BOFiP BOI-AIS-MOB-10-30-10 (immobilisation opérationnelle = taxable)',
-            self::Theft => 'doctrine V1 (vol non assimilé à mise hors-circulation administrative)',
+            self::TechnicalInspection => 'BOFiP BOI-AIS-MOB-10-30-10 (immobilisation opérationnelle = taxable, le § 50 ne couvre que les mises hors-circulation à la demande des pouvoirs publics)',
+            self::Theft => 'doctrine V1 (vol non assimilé à mise hors-circulation administrative au sens de L. 421-96)',
             self::Other => 'indéterminé',
         };
     }

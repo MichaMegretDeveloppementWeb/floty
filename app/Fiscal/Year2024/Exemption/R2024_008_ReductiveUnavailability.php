@@ -31,10 +31,14 @@ use Carbon\CarbonImmutable;
  * Les jours d'indispo qui tombent dans un contrat LCD sont déjà retirés
  * via R-2024-021 - les compter ici serait un double-décompte.
  *
- * **Source légale** : CIBS art. L. 421-107 (numérateur du prorata =
- * durée de l'affectation du véhicule en France à des fins économiques) ;
- * doctrine BOFiP BOI-AIS-MOB-10-30-10 (Dispositions communes — règles
- * de calcul + indispos subies). Mapping enum → effet fiscal : ADR-0016 § 4 rev. 1.1.
+ * **Source légale** : CIBS art. L. 421-96 — « le véhicule immobilisé ou
+ * mis en fourrière à la demande des pouvoirs publics est réputé ne pas
+ * être affecté à des fins économiques ». La doctrine BOI-AIS-MOB-10-30-10
+ * détaille les 3 cas réducteurs : § 50 (suspension du certificat
+ * d'immatriculation R. 322-6 + interdiction post-sinistre L. 327-4 / L. 327-5
+ * du C. route), § 60 (fourrière publique L. 325-1 à L. 325-1-2 du C. route),
+ * § 190 (effet sur la proportion annuelle d'affectation).
+ * Mapping enum → effet fiscal : ADR-0016 § 4 rev. 1.1.
  */
 final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
 {
@@ -104,7 +108,7 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         return ExemptionVerdict::partialDays(
             $reductiveCount,
             sprintf(
-                'Indisponibilité réductrice - %d jour%s soustrait%s du numérateur (CIBS L. 421-107, BOFiP BOI-AIS-MOB-10-30-10)',
+                'Indisponibilité réductrice - %d jour%s soustrait%s du numérateur (CIBS L. 421-96, BOFiP BOI-AIS-MOB-10-30-10 § 50/60/190)',
                 $reductiveCount,
                 $reductiveCount > 1 ? 's' : '',
                 $reductiveCount > 1 ? 's' : '',

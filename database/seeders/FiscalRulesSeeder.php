@@ -128,12 +128,14 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-008',
                 'name' => 'Indisponibilités fiscalement réductrices',
-                'description' => "Les jours d'indisponibilité subie (3 cas réducteurs ADR-0016 : fourrière publique, suspension du certificat d'immatriculation, interdiction de circuler post-sinistre) tombant dans un contrat taxable sont déduits du numérateur du prorata journalier (= durée d'affectation à des fins économiques).",
+                'description' => "Le véhicule immobilisé ou mis en fourrière à la demande des pouvoirs publics est réputé ne pas être affecté à des fins économiques (CIBS L. 421-96). Trois cas réducteurs (BOFiP § 50 et § 60) : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5). Les jours correspondants sont retirés du numérateur du prorata journalier (BOFiP § 190).",
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
-                    $cibs('L. 421-107'),
-                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10'],
+                    $cibs('L. 421-96'),
+                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 50'],
+                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 60'],
+                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 190'],
                 ],
                 'display_order' => 8,
             ],
