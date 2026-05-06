@@ -91,6 +91,7 @@ const BOFIP_DOCUMENTS: Record<string, { documentId: string; versionsByYear: Reco
                 anchors: {
                     '50': 'il_en_ressort_qu_9929',
                     '60': '60_1148',
+                    '170': '170_4136',
                     '190': '180_4641',
                 },
             },

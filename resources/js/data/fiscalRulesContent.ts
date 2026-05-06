@@ -264,7 +264,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         section: 'exoneration',
         title: 'Exonération location de courte durée (LCD)',
         pitch: 'Un contrat de location de 30 jours ou moins (ou couvrant exactement un mois civil entier) est totalement exonéré : ses jours sortent du calcul.',
-        body: "Qualification appréciée **par contrat individuel**, pas en cumul annuel par couple (correction ADR-0014 conforme BOFiP § 180-190). Un contrat est LCD si l'une des deux conditions est vérifiée : durée ≤ 30 jours consécutifs, OU contrat couvrant exactement un mois civil entier (1er → dernier jour du même mois). Tous les jours d'un contrat LCD sont retirés du numérateur du prorata.",
+        body: "Qualification appréciée **par contrat individuel**, pas en cumul annuel par couple. Un contrat est LCD si l'une des deux conditions est vérifiée : durée ≤ 30 jours consécutifs, OU contrat couvrant exactement un mois civil entier (1er → dernier jour du même mois). Tous les jours d'un contrat LCD sont retirés du numérateur du prorata.",
         appliesWhen:
             'Pour chaque contrat individuel : durée ≤ 30 jours consécutifs OU contrat = mois civil entier.',
         effect: "Les jours du contrat LCD sont soustraits du numérateur du prorata appliqué à ce couple (véhicule, entreprise). Si tous les contrats du couple sont LCD, daysAssignedToCompany = 0 → taxe CO₂ + polluants = 0 €.",
@@ -314,6 +314,15 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         pitch: 'Arrondi au centime, half-up commercial, appliqué au montant total final de chaque ligne fiscale.',
         body: "Les calculs intermédiaires (tarif plein, prorata) sont conservés en haute précision. Seul le montant final par ligne (taxe CO₂ d'un couple, taxe polluants d'un couple) est arrondi au centime supérieur lorsque le demi-centime est atteint (commercial half-up).",
     },
+    'R-2024-022': {
+        tab: 'cadre',
+        section: 'cadre-implicite',
+        title: 'Période contractuelle vs usage effectif',
+        pitch: 'Le numérateur du prorata compte les jours de la période contractuelle (début → fin du contrat), pas les jours d’utilisation réelle du véhicule.',
+        body: "Un contrat de 30 jours pendant lesquels le véhicule n'a roulé qu'une seule journée compte 30 jours au numérateur. La doctrine BOFiP § 170 le précise explicitement : « le nombre de jours pendant lesquels le véhicule a effectivement circulé n'est donc pas pris en compte ». Cette base contractuelle ne peut être réduite que par les indispos réductrices subies à la demande des pouvoirs publics (R-2024-008) ou par la qualification LCD du contrat (R-2024-021).",
+        example:
+            "Contrat 1er → 30 avril 2024 (30 j). Le véhicule n'est utilisé que les 5 et 12 avril. Au numérateur : 30 j (durée du contrat), pas 2 j (utilisation réelle).",
+    },
     'R-2024-023': {
         tab: 'cadre',
         section: 'cadre-implicite',
@@ -327,8 +336,8 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         tab: 'cadre',
         section: 'cadre-evenement',
         title: 'Indisponibilités fiscalement réductrices',
-        pitch: 'Les jours d’indisponibilité subie réductrice (3 cas ADR-0016) tombant dans un contrat taxable sont retirés du numérateur du prorata.',
-        body: "Règle souveraine (refonte ADR-0014, ADR-0016 rev. 1.1). Trois types d'indispo réduisent la base taxable : fourrière publique (C. route L. 325-1), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5). Si un contrat de 91 j chevauche 10 j de fourrière publique, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà LCD-exonéré ne sont pas comptés (déjà retirés via R-2024-021). Les autres types d'indispo (maintenance, contrôle technique, fourrière privée, etc.) restent taxables.",
+        pitch: 'Les jours pendant lesquels le véhicule est immobilisé ou mis en fourrière à la demande des pouvoirs publics sont retirés du numérateur du prorata.',
+        body: "Trois types d'indisponibilité réduisent la base taxable : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler après sinistre (C. route L. 327-4 / L. 327-5). Si un contrat de 91 j chevauche 10 j de fourrière publique, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà exonéré au titre de la location courte durée ne sont pas comptés deux fois. Les autres types d'indispo (maintenance, contrôle technique, fourrière privée, etc.) restent taxables.",
     },
     'R-2024-009': {
         tab: 'cadre',

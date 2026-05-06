@@ -142,10 +142,13 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-009',
                 'name' => "Mise hors-service en cours d'année",
-                'description' => "Gestion des véhicules sortis de flotte (vente, destruction) - prorata jusqu'à la date de sortie. Règle d'UX produit, sans fondement légal direct.",
+                'description' => "Un véhicule cédé ou détruit en cours d'année n'est plus affecté à des fins économiques à compter de sa date de sortie. La proportion annuelle d'affectation est ramenée à la fraction d'année pendant laquelle l'entreprise détenait effectivement le véhicule (date de 1ère immatriculation par l'entreprise → date de sortie). BOFiP § 190 explicite l'exemple d'une entreprise qui acquiert un véhicule au 31/01 et le revend au 30/11.",
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $both,
-                'legal_basis' => [],
+                'legal_basis' => [
+                    $cibs('L. 421-107'),
+                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 190'],
+                ],
                 'display_order' => 9,
             ],
             [
@@ -206,12 +209,11 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-015',
                 'name' => 'Exonération handicap',
-                'description' => 'Véhicules accessibles aux personnes à mobilité réduite - exonération totale CO₂ et polluants.',
+                'description' => 'Véhicules accessibles aux personnes à mobilité réduite — exonération totale CO₂ et polluants. Texte identique pour les deux taxes (L. 421-136 reprend L. 421-123 mot pour mot).',
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
                     $cibs('L. 421-123'),
-                    $cibs('L. 421-136'),
                 ],
                 'display_order' => 15,
             ],
@@ -240,12 +242,11 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-018',
                 'name' => "Exonération organisme d'intérêt général",
-                'description' => 'OIG (CGI art. 261, 7°) - exonération CO₂ et polluants. INACTIVE par défaut en V1.',
+                'description' => 'OIG (CGI art. 261, 7°) — exonération CO₂ et polluants. Texte identique pour les deux taxes (L. 421-138 reprend L. 421-126 mot pour mot). INACTIVE par défaut.',
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
                     $cibs('L. 421-126'),
-                    $cibs('L. 421-138'),
                 ],
                 'display_order' => 18,
                 'is_active' => false,
@@ -253,12 +254,11 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-019',
                 'name' => 'Exonération entreprise individuelle',
-                'description' => 'Personne physique exerçant son activité professionnelle en nom propre (entrepreneur individuel BIC/BNC) — exonération soumise aux conditions de minimis. INACTIVE par défaut en V1.',
+                'description' => 'Personne physique exerçant son activité professionnelle en nom propre (entrepreneur individuel BIC/BNC) — exonération soumise aux conditions de minimis. Texte identique pour les deux taxes (L. 421-139 reprend L. 421-127 mot pour mot). INACTIVE par défaut.',
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
                     $cibs('L. 421-127'),
-                    $cibs('L. 421-139'),
                 ],
                 'display_order' => 19,
                 'is_active' => false,
@@ -266,31 +266,41 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-020',
                 'name' => 'Exonération loueur - redevable = entreprise utilisatrice',
-                'description' => "Fondamentale pour Floty : le loueur n'est pas redevable, ce sont les entreprises utilisatrices qui le sont.",
+                'description' => "Le loueur (entreprise qui détient les véhicules pour les louer ou mettre à disposition de ses clients) n'est pas redevable de la taxe ; ce sont les entreprises utilisatrices qui le sont. Texte identique pour les deux taxes (L. 421-140 reprend L. 421-128 mot pour mot).",
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
                     $cibs('L. 421-128'),
-                    $cibs('L. 421-140'),
                 ],
                 'display_order' => 20,
             ],
             [
                 'rule_code' => 'R-2024-021',
                 'name' => 'Exonération LCD (location de courte durée)',
-                'description' => "Location de courte durée : durée d'un contrat ≤ 30 jours consécutifs OU contrat couvrant exactement un mois civil entier → tous les jours du contrat sont retirés du numérateur du prorata. Qualification per-contract (ADR-0014, BOFiP § 180-190).",
+                'description' => "Location de courte durée : durée d'un contrat ≤ 30 jours consécutifs OU contrat couvrant exactement un mois civil entier → tous les jours du contrat sont retirés du numérateur du prorata. La qualification s'apprécie par contrat individuel, pas en cumul annuel. Texte identique pour les deux taxes (L. 421-141 reprend L. 421-129 mot pour mot).",
                 'rule_type' => RuleType::Exemption,
                 'taxes_concerned' => $both,
                 'legal_basis' => [
                     $cibs('L. 421-129'),
-                    $cibs('L. 421-141'),
                 ],
                 'display_order' => 21,
             ],
             [
+                'rule_code' => 'R-2024-022',
+                'name' => 'Période contractuelle vs usage effectif',
+                'description' => "Le numérateur du prorata journalier compte le nombre de jours de la période d'affectation contractuelle (date de début → date de fin de contrat), pas le nombre de jours pendant lesquels le véhicule a effectivement circulé ou été utilisé. Un contrat de 30 jours pendant lesquels le véhicule n'a roulé qu'une journée compte 30 jours au numérateur. La doctrine BOFiP § 170 le précise : « le nombre de jours pendant lesquels le véhicule a effectivement circulé n'est donc pas pris en compte ». Seules les indispos réductrices (R-2024-008) viennent diminuer ce numérateur.",
+                'rule_type' => RuleType::Transversal,
+                'taxes_concerned' => $both,
+                'legal_basis' => [
+                    $cibs('L. 421-107'),
+                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 170'],
+                ],
+                'display_order' => 22,
+            ],
+            [
                 'rule_code' => 'R-2024-023',
                 'name' => 'Aucun abattement isolé applicable en 2024',
-                'description' => "2024 : aucun abattement isolé (ex. E85) applicable. Placeholder pour 2025+ où l'abattement E85 pourrait apparaître.",
+                'description' => '2024 : aucun abattement isolé (ex. E85) applicable aux deux taxes annuelles. Confirmé par lecture exhaustive du CIBS et du BOFiP.',
                 'rule_type' => RuleType::Abatement,
                 'taxes_concerned' => $both,
                 'legal_basis' => [],
@@ -299,10 +309,12 @@ final class FiscalRulesSeeder extends Seeder
             [
                 'rule_code' => 'R-2024-024',
                 'name' => "Garde-fou Crit'Air",
-                'description' => "Contrôle de cohérence entre la catégorie polluants calculée et la vignette Crit'Air attendue (alerte, non bloquant). Règle issue de la doctrine BOFiP, sans article CIBS direct.",
+                'description' => "Contrôle de cohérence entre la catégorie polluants CIBS calculée (E / 1 / les plus polluants — L. 421-134) et la vignette Crit'Air attendue pour le véhicule. La vignette Crit'Air relève du Code de la route (R. 318-2) et de l'arrêté du 21 juin 2016, indépendamment de la fiscalité. Le garde-fou émet une alerte non bloquante en cas d'incohérence afin que l'utilisateur vérifie la saisie.",
                 'rule_type' => RuleType::Transversal,
                 'taxes_concerned' => $pol,
-                'legal_basis' => [],
+                'legal_basis' => [
+                    $cibs('L. 421-134'),
+                ],
                 'display_order' => 24,
                 'code_reference' => 'resources/js/Composables/Vehicle/useCritAirCheck.ts',
             ],
