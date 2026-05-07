@@ -14,13 +14,12 @@ use Illuminate\Support\Carbon;
  * Reçoit en entrée :
  *   - le résultat brut de calcul ({@see BillingCalculationData})
  *   - les métadonnées entreprise destinataire (nom, SIREN, ville)
- *   - les métadonnées émetteur (Phase 14.G — pour V1.2 hardcodé en
- *     fallback sur l'utilisateur connecté ou des placeholders ; à
- *     remplacer en 14.G par lecture de la table `billing_settings`)
+ *   - les métadonnées émetteur (Phase 14.G : lues depuis la table
+ *     `billing_settings`, alimentées par la page Paramètres)
  *   - le numéro de facture pré-attribué et la date d'émission
  *
- * Retourne le binaire PDF (le caller — `GenerateInvoiceAction` —
- * persiste via {@see InvoicePdfStorage}).
+ * Retourne le binaire PDF (le caller `GenerateInvoiceAction` persiste
+ * via {@see InvoicePdfStorage}).
  *
  * **Format des lignes** : on transmet à la vue Blade des chaînes déjà
  * formatées en €, format FR (ex. `1 800,00 €`). Le service centralise
@@ -71,12 +70,6 @@ final readonly class InvoicePdfRenderer
             'generatedAtLabel' => $generatedAtLabel,
             'lines' => $lines,
             'totalLabel' => $totalLabel,
-            // Le hash réel est calculé après rendu sur le binaire ;
-            // on affiche un placeholder dans le footer (recalculé après
-            // hashing par convention de version V2 si besoin — pour V1.2
-            // on accepte que le footer ne contienne pas son propre hash,
-            // le `pdf_hash` étant stocké en base à part).
-            'pdfHashPlaceholder' => '',
         ])->setPaper('A4', 'portrait');
 
         return $pdf->output();

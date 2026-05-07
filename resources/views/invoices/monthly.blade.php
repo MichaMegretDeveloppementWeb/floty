@@ -186,10 +186,6 @@
             line-height: 1.5;
         }
         .footer .footer-line + .footer-line { margin-top: 0.5mm; }
-        .footer .hash {
-            font-family: 'Courier New', monospace;
-            font-size: 7pt;
-        }
     </style>
 </head>
 <body>
@@ -313,10 +309,6 @@
         <div class="footer-line">
             Facture générée automatiquement via Floty (outil de gestion de flotte partagée).
             Document numérique non modifiable après émission.
-        </div>
-        <div class="footer-line">
-            Empreinte d'intégrité (SHA-256)&nbsp;:
-            <span class="hash">{{ $pdfHashPlaceholder ? substr($pdfHashPlaceholder, 0, 32).'…' : 'calculée à l’émission' }}</span>
         </div>
     </footer>
 </body>
