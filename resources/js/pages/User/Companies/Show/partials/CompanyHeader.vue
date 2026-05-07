@@ -4,14 +4,15 @@
  *
  * Avatar coloré (CompanyTag style) + raison sociale en titre fort +
  * shortCode mono + statuts inline (Active / OIG / Indiv.) + actions
- * rapides à droite. Pas de KPIs ici — ils vivent dans la section
+ * rapides à droite. Pas de KPIs ici : ils vivent dans la section
  * « Aperçu par année » du corps de la fiche.
  */
 import { Link } from '@inertiajs/vue3';
-import { ChevronLeft } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import { index as indexRoute } from '@/routes/user/companies';
+import { index as planningCompaniesIndexRoute } from '@/routes/user/planning/companies';
 
 type Company = App.Data.User.Company.CompanyDetailData;
 type CompanyColor = App.Enums.Company.CompanyColor;
@@ -89,7 +90,15 @@ const avatarBgClass = computed<string>(() => {
                 </div>
             </div>
 
-            <div class="flex shrink-0 gap-2">
+            <div class="flex shrink-0 flex-wrap gap-2">
+                <Link :href="planningCompaniesIndexRoute({ company: company.id }).url">
+                    <Button variant="secondary" size="sm">
+                        <template #icon-left>
+                            <CalendarDays :size="14" :stroke-width="1.75" />
+                        </template>
+                        Voir le planning
+                    </Button>
+                </Link>
                 <Button variant="ghost" size="sm" disabled>
                     Modifier
                 </Button>
