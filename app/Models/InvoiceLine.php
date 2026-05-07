@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Ligne d'une facture mensuelle — un véhicule sur le mois (Phase 14.E
+ * Ligne d'une facture mensuelle · un véhicule sur le mois (Phase 14.E
  * V1.2).
  *
  * Snapshot complet à l'émission : `vehicle_label_snapshot` archive

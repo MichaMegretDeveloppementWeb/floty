@@ -20,7 +20,7 @@ use Illuminate\Support\Carbon;
  * `total_ht_cents`, `pdf_path`, `pdf_hash` capturent l'état au moment
  * de l'émission ; toute modification ultérieure des contrats / tarifs
  * ne propage **pas** sur la facture (responsabilité utilisateur de
- * regénérer si besoin — non automatique en V1.2, cf. mémoire
+ * regénérer si besoin · non automatique en V1.2, cf. mémoire
  * `roadmap_v12_facturation`).
  *
  * @property int $id

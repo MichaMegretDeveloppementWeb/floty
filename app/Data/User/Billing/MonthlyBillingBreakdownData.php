@@ -17,8 +17,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * `yearTotalCents` est `null` si **au moins un mois** a un tarif
  * manquant (`hasMissingPricing = true`) : on ne peut alors pas calculer
- * un cumul exact. Le frontend affichera un total partiel ou un message
- * « total indisponible » selon le contexte.
+ * un cumul exact.
+ *
+ * `yearTotalCentsPartial` est toujours peuplé : somme des mois sans
+ * tarif manquant. Égal à `yearTotalCents` si `hasAnyMissingPricing`
+ * vaut `false`, sinon donne une vue honnête de ce qui a été chiffré
+ * (T11 / E.17).
  */
 #[TypeScript]
 final class MonthlyBillingBreakdownData extends Data
@@ -34,6 +38,7 @@ final class MonthlyBillingBreakdownData extends Data
         public array $entries,
         public int $yearTotalDaysUsed,
         public ?int $yearTotalCents,
+        public int $yearTotalCentsPartial,
         public bool $hasAnyMissingPricing,
     ) {}
 }

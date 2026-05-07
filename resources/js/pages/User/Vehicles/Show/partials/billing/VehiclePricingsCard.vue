@@ -78,63 +78,68 @@ const sortedPricings = computed<Pricing[]>(() =>
             Aucun tarif renseigné pour ce véhicule.
         </p>
 
-        <table v-else class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">
-                    <th class="py-2 pr-3 font-medium">Année</th>
-                    <th class="py-2 px-3 font-medium">Jour</th>
-                    <th class="py-2 px-3 font-medium">Semaine</th>
-                    <th class="py-2 px-3 font-medium">Mois</th>
-                    <th class="py-2 pl-3 text-right font-medium">Actions</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                <tr
-                    v-for="pricing in sortedPricings"
-                    :key="pricing.year"
-                    class="text-slate-800"
-                >
-                    <td class="py-2.5 pr-3">
-                        <Badge tone="slate">
-                            {{ pricing.year }}
-                        </Badge>
-                    </td>
-                    <td class="py-2.5 px-3 font-mono tabular-nums">
-                        {{ formatEur(pricing.dailyRateCents / 100, 2) }}
-                    </td>
-                    <td class="py-2.5 px-3 font-mono tabular-nums">
-                        {{ formatEur(pricing.weeklyRateCents / 100, 2) }}
-                    </td>
-                    <td class="py-2.5 px-3 font-mono tabular-nums">
-                        {{ formatEur(pricing.monthlyRateCents / 100, 2) }}
-                    </td>
-                    <td class="py-2.5 pl-3">
-                        <div class="flex items-center justify-end gap-1">
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                aria-label="Modifier"
-                                @click="formState.requestEdit(pricing)"
-                            >
-                                <template #icon-left>
-                                    <Pencil :size="14" :stroke-width="1.75" />
-                                </template>
-                            </Button>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                aria-label="Supprimer"
-                                @click="deleteState.requestDelete(pricing)"
-                            >
-                                <template #icon-left>
-                                    <Trash2 :size="14" :stroke-width="1.75" />
-                                </template>
-                            </Button>
-                        </div>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div v-else class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <caption class="sr-only">
+                    Tarifs annuels du véhicule
+                </caption>
+                <thead>
+                    <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">
+                        <th scope="col" class="py-2 pr-3 font-medium">Année</th>
+                        <th scope="col" class="py-2 px-3 font-medium">Jour</th>
+                        <th scope="col" class="py-2 px-3 font-medium">Semaine</th>
+                        <th scope="col" class="py-2 px-3 font-medium">Mois</th>
+                        <th scope="col" class="py-2 pl-3 text-right font-medium">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr
+                        v-for="pricing in sortedPricings"
+                        :key="pricing.year"
+                        class="text-slate-800"
+                    >
+                        <td class="py-2.5 pr-3">
+                            <Badge tone="slate">
+                                {{ pricing.year }}
+                            </Badge>
+                        </td>
+                        <td class="py-2.5 px-3 font-mono tabular-nums">
+                            {{ formatEur(pricing.dailyRateCents / 100, 2) }}
+                        </td>
+                        <td class="py-2.5 px-3 font-mono tabular-nums">
+                            {{ formatEur(pricing.weeklyRateCents / 100, 2) }}
+                        </td>
+                        <td class="py-2.5 px-3 font-mono tabular-nums">
+                            {{ formatEur(pricing.monthlyRateCents / 100, 2) }}
+                        </td>
+                        <td class="py-2.5 pl-3">
+                            <div class="flex items-center justify-end gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    aria-label="Modifier"
+                                    @click="formState.requestEdit(pricing)"
+                                >
+                                    <template #icon-left>
+                                        <Pencil :size="14" :stroke-width="1.75" />
+                                    </template>
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    aria-label="Supprimer"
+                                    @click="deleteState.requestDelete(pricing)"
+                                >
+                                    <template #icon-left>
+                                        <Trash2 :size="14" :stroke-width="1.75" />
+                                    </template>
+                                </Button>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <VehiclePricingFormModal
             v-model:open="formState.open.value"

@@ -46,7 +46,7 @@ final readonly class BillingBreakdownService
         $hasAnyMissing = false;
 
         // Lookup unique des factures déjà émises pour le couple
-        // (entreprise × année), indexées par mois — sert au bouton UI
+        // (entreprise × année), indexées par mois · sert au bouton UI
         // « Voir #YYYY-MM-NNNN » sans payer 12 lookups.
         $existingInvoices = $this->invoiceRepository->findExistingByMonthForCompanyYear($companyId, $year);
 
@@ -72,7 +72,7 @@ final readonly class BillingBreakdownService
                 $totalDays += $monthDays;
                 $totalCents += $result->totalCents;
             } catch (MissingPricingException) {
-                // Mois bloqué — on conserve daysUsed à 0 pour ne pas
+                // Mois bloqué : on conserve daysUsed à 0 pour ne pas
                 // induire en erreur. La présence du flag suffit pour le
                 // tooltip « renseignez le tarif <X> sur la fiche
                 // véhicule » côté UI.
@@ -95,6 +95,8 @@ final readonly class BillingBreakdownService
             entries: $entries,
             yearTotalDaysUsed: $totalDays,
             yearTotalCents: $hasAnyMissing ? null : $totalCents,
+            // T11 / E.17 : total partiel (mois sans missing pricing) toujours peuplé.
+            yearTotalCentsPartial: $totalCents,
             hasAnyMissingPricing: $hasAnyMissing,
         );
     }
@@ -139,6 +141,8 @@ final readonly class BillingBreakdownService
             entries: $entries,
             yearTotalDaysUsed: $totalDays,
             yearTotalCents: $hasAnyMissing ? null : $totalCents,
+            // T11 / E.17 : total partiel (mois sans missing pricing) toujours peuplé.
+            yearTotalCentsPartial: $totalCents,
             hasAnyMissingPricing: $hasAnyMissing,
         );
     }
@@ -152,7 +156,7 @@ final readonly class BillingBreakdownService
      * le même mois pour la même entreprise, le coût isolé peut différer
      * de la facture mensuelle réelle (qui consolide via OptimalRateBreakdown
      * sur les jours unionés). C'est une approximation acceptée pour la
-     * fiche contrat — la facture reste la source de vérité.
+     * fiche contrat · la facture reste la source de vérité.
      */
     public function byContract(Contract $contract): ContractBillingBreakdownData
     {

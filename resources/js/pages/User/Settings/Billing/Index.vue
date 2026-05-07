@@ -138,8 +138,8 @@ function submit(): void {
 
                 <div class="flex justify-end">
                     <Button
+                        type="submit"
                         :loading="form.processing"
-                        @click="submit"
                     >
                         Enregistrer
                     </Button>

@@ -14,7 +14,7 @@ use App\Models\Vehicle;
 use Carbon\CarbonImmutable;
 
 /**
- * Cœur du module Facturation V1.2 — calcule, pour une triplette
+ * Cœur du module Facturation V1.2 · calcule, pour une triplette
  * (entreprise utilisatrice × année × mois civil), la facture mensuelle
  * détaillée par véhicule.
  *
@@ -24,7 +24,7 @@ use Carbon\CarbonImmutable;
  *      l'entreprise (eager-load `vehicle`).
  *   3. Pour chaque véhicule unique : énumération des dates utilisées
  *      (dédupliquées si plusieurs contrats successifs sur le mois).
- *   4. Vérification exhaustive de la présence des tarifs annuels —
+ *   4. Vérification exhaustive de la présence des tarifs annuels :
  *      tout véhicule sans tarif est collecté, et l'exception est levée
  *      **après** le scan complet (UX : voir tous les manquants en une
  *      fois plutôt que les corriger un à un).
@@ -150,12 +150,12 @@ final readonly class BillingCalculator
      * recettes** cross-entreprises (somme des facturations couples
      * `(vehicle × company × month)`). Sémantique : un véhicule loué à
      * deux entreprises distinctes le même mois génère deux factures
-     * indépendantes — chacune avec son propre choix de combo
-     * (jour/semaine/mois) optimal — et la recette véhicule du mois est
+     * indépendantes · chacune avec son propre choix de combo
+     * (jour/semaine/mois) optimal · et la recette véhicule du mois est
      * la somme des deux factures.
      *
      * **NB important** : on ne peut PAS sommer les jours cross-entreprises
-     * puis appliquer une seule fois `OptimalRateBreakdown` — ce serait
+     * puis appliquer une seule fois `OptimalRateBreakdown` · ce serait
      * sémantiquement faux car chaque facture est émise séparément
      * (10 j × 2 = 154 000 cts, ≠ 20 j en une fois = 150 000 cts avec
      * tarifs réalistes 90/500/1800).
@@ -167,7 +167,7 @@ final readonly class BillingCalculator
      *
      * @throws MissingPricingException si le véhicule n'a pas de tarif
      *                                 défini pour l'année (un seul item
-     *                                 dans la liste — c'est un calcul
+     *                                 dans la liste : c'est un calcul
      *                                 ciblé sur 1 véhicule).
      * @throws \InvalidArgumentException si le mois est hors [1, 12].
      */
@@ -193,7 +193,7 @@ final readonly class BillingCalculator
         $pricing = $this->pricingRepository->findForVehicleAndYear($vehicleId, $year);
 
         if ($pricing === null) {
-            // On a besoin d'une plaque pour le message UX — toutes les
+            // On a besoin d'une plaque pour le message UX : toutes les
             // contrats portent le même véhicule donc n'importe lequel
             // suffit (eager-load `vehicle` n'est pas garanti par
             // `findWindowContractsForVehicle` ; on requête explicitement).
@@ -236,7 +236,7 @@ final readonly class BillingCalculator
     /**
      * Agrège les jours utilisés par véhicule sur la fenêtre `[start, end]`,
      * en dédoublonnant les dates communes à plusieurs contrats. Préserve
-     * l'ordre d'apparition des véhicules (pas de tri ici — le tri par
+     * l'ordre d'apparition des véhicules (pas de tri ici · le tri par
      * plaque est appliqué en aval).
      *
      * @param  iterable<int, Contract>  $contracts

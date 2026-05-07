@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne d'une facture (snapshot immuable — Phase 14.E V1.2).
+ * Ligne d'une facture (snapshot immuable · Phase 14.E V1.2).
  *
  * Tous les champs reflètent l'état au moment de l'émission ; ne
  * suivent pas les mutations ultérieures du véhicule ou de ses tarifs.

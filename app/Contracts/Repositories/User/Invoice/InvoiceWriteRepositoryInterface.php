@@ -8,7 +8,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceLine;
 
 /**
- * Écritures Invoice — création seulement. Pas d'update : conformément
+ * Écritures Invoice · création seulement. Pas d'update : conformément
  * à la doctrine immuabilité (Phase 14.E V1.2), une facture émise est
  * figée. La seule mutation autorisée est `delete` (cascade des lignes).
  */

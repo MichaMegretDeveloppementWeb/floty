@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
  * Tarifs jour/semaine/mois d'un véhicule pour une année donnée. Pierre
  * angulaire du module Facturation (Phase 14 V1.2).
  *
- * Une seule ligne par couple (vehicle_id, year) — contrainte UNIQUE en
+ * Une seule ligne par couple (vehicle_id, year) · contrainte UNIQUE en
  * base, idempotence garantie via `updateOrCreate` côté repository.
  *
  * Cf. ADR-0006 (architecture du moteur fiscal), spec Phase 14

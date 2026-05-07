@@ -14,7 +14,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Page Paramètres > Facturation (Phase 14.G V1.2). Singleton — un seul
+ * Page Paramètres > Facturation (Phase 14.G V1.2). Singleton · un seul
  * émetteur de facture pour toute l'application. Update direct via le
  * Write repo (pas d'Action : pas de transaction multi-lignes, pas de
  * side-effects, conforme R1 d'ADR-0013).

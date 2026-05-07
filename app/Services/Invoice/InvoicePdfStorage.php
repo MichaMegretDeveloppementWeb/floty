@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Invoice;
 
+use App\Exceptions\Invoice\InvoicePdfAlreadyExistsException;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 
@@ -11,15 +12,15 @@ use Illuminate\Support\Facades\Storage;
  * Persistance immuable des PDF de factures (Phase 14.E V1.2).
  *
  * **Convention de chemin** : `invoices/{year}/{company_id}/{invoice_number}.pdf`
- *   - racine `private` (disque local — non public)
+ *   - racine `private` (disque local, non public)
  *   - le segment `{company_id}` permet un cleanup sélectif si nécessaire
  *
  * **Hash SHA-256 hex** retourné en même temps que le path pour stockage
- * en base ({@see App\Models\Invoice::pdf_hash}) — sert d'empreinte
+ * en base ({@see App\Models\Invoice::pdf_hash}) · sert d'empreinte
  * d'intégrité (détection de mutation post-émission).
  *
  * **Idempotence applicative** : `store()` refuse d'écraser un fichier
- * existant (cohérent doctrine immuabilité — l'unicité applicative est
+ * existant (cohérent doctrine immuabilité · l'unicité applicative est
  * portée par {@see App\Actions\Invoice\GenerateInvoiceAction}, ce
  * service est une défense en profondeur).
  */
@@ -45,9 +46,7 @@ final readonly class InvoicePdfStorage
         $disk = $this->disk();
 
         if ($disk->exists($path)) {
-            throw new \RuntimeException(
-                "Refusing to overwrite existing invoice PDF at {$path}.",
-            );
+            throw InvoicePdfAlreadyExistsException::forPath($path);
         }
 
         $disk->put($path, $pdfBinary);
@@ -76,7 +75,7 @@ final readonly class InvoicePdfStorage
      * Supprime le PDF du disque. Idempotent : aucune exception si le
      * fichier n'existe déjà plus (cas concurrence ou suppression
      * manuelle hors-app). Utilisé exclusivement par
-     * {@see App\Actions\Invoice\CancelInvoiceAction} — l'annulation
+     * {@see App\Actions\Invoice\CancelInvoiceAction} · l'annulation
      * d'une facture est la seule mutation autorisée par la doctrine
      * immuabilité (cf. ADR-0008).
      */

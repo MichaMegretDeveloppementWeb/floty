@@ -11,7 +11,7 @@ use App\Services\Billing\BillingCalculator;
 
 /**
  * Détecte la divergence entre une facture émise (snapshot figé) et la
- * réalité contractuelle actuelle (recalcul à l'instant T) — Phase 14.I+
+ * réalité contractuelle actuelle (recalcul à l'instant T) · Phase 14.I+
  * V1.2.
  *
  * **Doctrine immuabilité** (cf. ADR-0008) : la facture émise ne change
@@ -24,7 +24,7 @@ use App\Services\Billing\BillingCalculator;
  * pour le couple (entreprise × année × mois). Acceptable sur la fiche
  * Show (1 calcul) et sur le récap mensuel entreprise (jusqu'à 12 calculs
  * par page, déjà payés). Sur l'Index Invoices, on paie 1 calcul par
- * ligne paginée — acceptable pour V1.2 démo (max ~100 factures).
+ * ligne paginée · acceptable pour V1.2 démo (max ~100 factures).
  */
 final readonly class InvoiceDivergenceChecker
 {
@@ -64,7 +64,7 @@ final readonly class InvoiceDivergenceChecker
             );
         } catch (MissingPricingException) {
             // Tarif annuel manquant désormais (a été supprimé après
-            // l'émission). On considère ça comme une divergence forte —
+            // l'émission). On considère ça comme une divergence forte :
             // la facture ne peut plus être reproduite à l'identique.
             return new InvoiceDivergenceData(
                 hasDivergence: true,

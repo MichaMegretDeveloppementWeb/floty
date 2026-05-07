@@ -17,10 +17,14 @@ import { AlertTriangle } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
+import {
+    divergenceTooltip,
+    entryHasDivergence,
+} from '@/Composables/Billing/useDivergenceDetection';
 import { formatEur } from '@/Utils/format/formatEur';
+import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 type MonthlyBilling = App.Data.User.Billing.MonthlyBillingBreakdownData;
-type Entry = MonthlyBilling['entries'][number];
 
 const props = defineProps<{
     /** Récap pré-calculé par le backend pour l'année concernée. */
@@ -35,11 +39,6 @@ const props = defineProps<{
     description?: string;
 }>();
 
-const MONTH_LABELS = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-] as const;
-
 const totalLabel = computed<string>(() => {
     if (props.monthlyBilling.yearTotalCents === null) {
         return 'Total indisponible';
@@ -48,33 +47,16 @@ const totalLabel = computed<string>(() => {
     return formatEur(props.monthlyBilling.yearTotalCents / 100, 2);
 });
 
-function entryHasDivergence(entry: Entry): boolean {
-    if (entry.existingInvoiceId === null || entry.invoicedDaysUsed === null) {
-        return false;
+// T11 / E.17 : total partiel rendu en complément quand au moins un mois
+// est bloqué par un tarif manquant. Donne une vue honnête du chiffré
+// même si le total exact reste indisponible.
+const partialTotalLabel = computed<string | null>(() => {
+    if (!props.monthlyBilling.hasAnyMissingPricing) {
+        return null;
     }
 
-    if (entry.daysUsed !== entry.invoicedDaysUsed) {
-        return true;
-    }
-
-    return (
-        entry.totalCents !== null
-        && entry.invoicedTotalCents !== null
-        && entry.totalCents !== entry.invoicedTotalCents
-    );
-}
-
-function divergenceTooltip(entry: Entry): string {
-    const invoicedDays = entry.invoicedDaysUsed ?? 0;
-    const invoicedTotal = formatEur((entry.invoicedTotalCents ?? 0) / 100, 2);
-    const currentTotal = formatEur((entry.totalCents ?? 0) / 100, 2);
-
-    return (
-        `Données obsolètes. Facture émise sur ${invoicedDays} j / ${invoicedTotal}. `
-        + `Recalcul actuel : ${entry.daysUsed} j / ${currentTotal}. `
-        + 'Régénérez pour mettre à jour avec les données actuelles.'
-    );
-}
+    return formatEur(props.monthlyBilling.yearTotalCentsPartial / 100, 2);
+});
 </script>
 
 <template>
@@ -101,6 +83,13 @@ function divergenceTooltip(entry: Entry): string {
                     >
                         {{ totalLabel }}
                     </p>
+                    <p
+                        v-if="partialTotalLabel !== null"
+                        class="font-mono text-xs text-amber-700 tabular-nums whitespace-nowrap"
+                        title="Somme des mois chiffrés (mois sans tarif exclus)"
+                    >
+                        Partiel : {{ partialTotalLabel }}
+                    </p>
                     <p class="font-mono text-xs text-slate-500 tabular-nums whitespace-nowrap">
                         {{ monthlyBilling.yearTotalDaysUsed }} jour{{ monthlyBilling.yearTotalDaysUsed > 1 ? 's' : '' }} utilisé{{ monthlyBilling.yearTotalDaysUsed > 1 ? 's' : '' }}
                     </p>
@@ -109,15 +98,18 @@ function divergenceTooltip(entry: Entry): string {
         </template>
 
         <!-- Desktop ≥ md : table classique -->
-        <div class="hidden md:block">
+        <div class="hidden overflow-x-auto md:block">
             <table class="w-full text-sm">
+                <caption class="sr-only">
+                    Récap mensuel facturation {{ monthlyBilling.year }}
+                </caption>
                 <thead>
                     <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">
-                        <th class="py-2 pr-3 font-medium">Mois</th>
-                        <th class="py-2 px-3 font-medium text-right">Jours utilisés</th>
-                        <th class="py-2 px-3 font-medium text-right">Montant HT</th>
-                        <th class="py-2 px-3 font-medium">N° facture</th>
-                        <th v-if="$slots['row-actions']" class="py-2 pl-3 font-medium text-right">
+                        <th scope="col" class="py-2 pr-3 font-medium">Mois</th>
+                        <th scope="col" class="py-2 px-3 font-medium text-right">Jours utilisés</th>
+                        <th scope="col" class="py-2 px-3 font-medium text-right">Montant HT</th>
+                        <th scope="col" class="py-2 px-3 font-medium">N° facture</th>
+                        <th v-if="$slots['row-actions']" scope="col" class="py-2 pl-3 font-medium text-right">
                             Action
                         </th>
                     </tr>

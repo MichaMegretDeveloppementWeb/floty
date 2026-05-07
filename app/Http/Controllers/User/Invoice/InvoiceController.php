@@ -31,7 +31,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Contrôleur des factures mensuelles (Phase 14.E V1.2). Slim conforme
- * ADR-0013 — pas de logique métier, délégation à `GenerateInvoiceAction`
+ * ADR-0013 · pas de logique métier, délégation à `GenerateInvoiceAction`
  * pour la génération et `InvoicePdfStorage` pour le téléchargement.
  *
  * Les pages Index + Show (Inertia) sont livrées en chantier 14.F. Pour
@@ -39,7 +39,7 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  *   - POST `generate` (déclenche la création + persistance + PDF)
  *   - GET `download` (sert le PDF binaire en attachement)
  *
- * **Émetteur** : passé en placeholder constant pour V1.2 — sera lu
+ * **Émetteur** : passé en placeholder constant pour V1.2 · sera lu
  * depuis la table `billing_settings` en chantier 14.G.
  */
 final class InvoiceController extends Controller
@@ -78,7 +78,7 @@ final class InvoiceController extends Controller
         $data = $this->invoiceQuery->findInvoiceData($invoice->id);
 
         // Le route model binding garantit qu'on n'arrive ici qu'avec une
-        // facture existante — `findInvoiceData` ne peut donc pas être
+        // facture existante : `findInvoiceData` ne peut donc pas être
         // null. Guard défensif pour PHPStan + cohérence si la doctrine
         // évolue (e.g. soft-delete futur).
         if ($data === null) {
@@ -113,7 +113,7 @@ final class InvoiceController extends Controller
         } catch (InvoiceAlreadyExistsException) {
             // Cas concurrence : un autre clic / un autre onglet a déjà
             // émis la facture. Rebascule sur un toast-error explicite
-            // plutôt que sur un 500 — l'utilisateur peut ouvrir la
+            // plutôt que sur un 500 : l'utilisateur peut ouvrir la
             // facture existante depuis la même page.
             return back()->with(
                 'toast-error',

@@ -11,11 +11,10 @@
  * Le composant ne s'affiche que si `divergence.hasDivergence === true`.
  * Sur le détail facture, il est placé sous la ligne titre + bouton PDF.
  */
-import { router } from '@inertiajs/vue3';
 import { AlertTriangle, RefreshCw } from 'lucide-vue-next';
 import { ref } from 'vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
-import { regenerate as invoicesRegenerateRoute } from '@/routes/user/invoices';
+import { useInvoiceRegeneration } from '@/Composables/Billing/useInvoiceRegeneration';
 import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
@@ -24,26 +23,20 @@ const props = defineProps<{
     divergence: App.Data.User.Invoice.InvoiceDivergenceData;
 }>();
 
-const regenerating = ref<boolean>(false);
 const modalOpen = ref<boolean>(false);
 
-function regenerate(): void {
-    regenerating.value = true;
+// Le composant est rendu sur la page Show facture courante. Après
+// régénération, l'ID a changé : on redirige vers la nouvelle facture
+// (target `'show'`) pour ne pas tomber sur un 404 sur l'ancien ID.
+const { regenerating, regenerate: triggerRegeneration } = useInvoiceRegeneration({
+    redirectTarget: 'show',
+    onFinish: () => {
+        modalOpen.value = false;
+    },
+});
 
-    // Le composant est rendu sur la page Show facture courante. Après
-    // régénération, l'ID a changé : on redirige vers la nouvelle facture
-    // pour ne pas tomber sur un 404 sur l'ancien ID.
-    router.post(
-        invoicesRegenerateRoute.url({ invoice: props.invoiceId }),
-        { redirect_target: 'show' },
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                regenerating.value = false;
-                modalOpen.value = false;
-            },
-        },
-    );
+function regenerate(): void {
+    triggerRegeneration(props.invoiceId);
 }
 </script>
 

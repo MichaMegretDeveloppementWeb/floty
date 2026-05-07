@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Une cellule du tableau récap facturation contrat — un mois civil.
+ * Une cellule du tableau récap facturation contrat · un mois civil.
  *
  * Si le tarif annuel n'est pas défini sur le véhicule pour l'année
  * concernée, `totalCents` vaut `null` et `hasMissingPricing = true`.

@@ -131,6 +131,10 @@ final class BillingBreakdownServiceTest extends TestCase
         // Total annuel marqué null (au moins 1 mois bloqué).
         $this->assertTrue($result->hasAnyMissingPricing);
         $this->assertNull($result->yearTotalCents);
+
+        // T11 / E.17 : total partiel toujours peuplé · somme uniquement
+        // des mois sans tarif manquant (mars OK = 77 000, mai bloqué exclu).
+        $this->assertSame(77_000, $result->yearTotalCentsPartial);
     }
 
     #[Test]

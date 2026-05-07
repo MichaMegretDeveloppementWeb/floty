@@ -15,7 +15,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * de l'algorithme {@see App\Services\Billing\OptimalRateBreakdown}.
  * Les compteurs `monthsBilled` / `weeksBilled` / `daysBilled` reflètent
  * la **décomposition tarifaire** retenue (combo le moins cher pour le
- * client) et **non** le découpage civil — d'où la cohabitation avec
+ * client) et **non** le découpage civil · d'où la cohabitation avec
  * `daysUsed` qui, lui, est le brut métier (jours réellement utilisés
  * dans le mois).
  */

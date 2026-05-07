@@ -43,7 +43,7 @@ final class BillingSettings extends Model
      *
      * Implémenté via `firstOrCreate([], [])` (chantier T4 / Phase 14.P)
      * pour réduire la fenêtre de race condition entre deux requêtes
-     * concurrentes — l'ancienne version `first()` puis `new + save()` était
+     * concurrentes · l'ancienne version `first()` puis `new + save()` était
      * vulnérable à la double création. La query reste atomique côté Laravel.
      */
     public static function singleton(): self

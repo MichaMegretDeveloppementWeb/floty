@@ -8,6 +8,7 @@ use App\Actions\Invoice\GenerateInvoiceAction;
 use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
 use App\Exceptions\Billing\MissingPricingException;
 use App\Exceptions\Invoice\InvoiceAlreadyExistsException;
+use App\Exceptions\Invoice\InvoicePdfAlreadyExistsException;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Invoice;
@@ -231,8 +232,8 @@ final class GenerateInvoiceActionTest extends TestCase
     {
         // Simulons une collision filesystem en pré-créant le fichier
         // attendu : `InvoicePdfStorage::store()` refuse l'écrasement et
-        // remonte une RuntimeException → la transaction rollback les
-        // INSERT déjà passés.
+        // remonte InvoicePdfAlreadyExistsException (T11 / E.14) : la
+        // transaction rollback les INSERT déjà passés.
         $user = User::factory()->create();
         $company = Company::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -251,7 +252,7 @@ final class GenerateInvoiceActionTest extends TestCase
             'collision',
         );
 
-        $this->expectException(\RuntimeException::class);
+        $this->expectException(InvoicePdfAlreadyExistsException::class);
 
         try {
             $this->action->execute(

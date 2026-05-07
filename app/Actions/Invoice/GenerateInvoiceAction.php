@@ -22,14 +22,14 @@ use Illuminate\Support\Facades\DB;
  * Génère une facture mensuelle complète pour `(company × year × month)`
  * (Phase 14.E V1.2).
  *
- * Pipeline en transaction (atomicité — si l'une des étapes échoue,
+ * Pipeline en transaction (atomicité · si l'une des étapes échoue,
  * rollback complet, aucune corruption d'état) :
  *
  *   1. Vérifie l'unicité applicative (`InvoiceAlreadyExistsException`
  *      si une facture existe déjà pour ce couple)
  *   2. Calcule la facture via {@see BillingCalculator::calculate()}
  *      (peut lever `MissingPricingException` qui remonte non-attrapée
- *      à l'appelant — l'utilisateur verra la liste des tarifs manquants
+ *      à l'appelant : l'utilisateur verra la liste des tarifs manquants
  *      à renseigner)
  *   3. Pré-attribue le `invoice_number` séquentiel
  *   4. Rend le PDF via {@see InvoicePdfRenderer}

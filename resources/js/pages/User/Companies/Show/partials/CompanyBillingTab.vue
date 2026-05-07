@@ -13,6 +13,7 @@
 import { router } from '@inertiajs/vue3';
 import GenerateInvoiceButton from '@/Components/Domain/Billing/GenerateInvoiceButton.vue';
 import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
+import { show as companiesShowRoute } from '@/routes/user/companies';
 import CompanyYearPills from './CompanyYearPills.vue';
 
 const props = defineProps<{
@@ -33,7 +34,7 @@ function selectYear(year: number): void {
     }
 
     router.get(
-        window.location.pathname,
+        companiesShowRoute.url({ company: props.companyId }),
         { billingYear: year, tab: 'billing' },
         {
             preserveScroll: true,

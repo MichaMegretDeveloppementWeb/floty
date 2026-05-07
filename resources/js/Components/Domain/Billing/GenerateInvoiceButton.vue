@@ -17,9 +17,9 @@ import { Eye, FileText, Loader2, RefreshCw } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
+import { useInvoiceRegeneration } from '@/Composables/Billing/useInvoiceRegeneration';
 import {
     generate as invoicesGenerateRoute,
-    regenerate as invoicesRegenerateRoute,
     show as invoicesShowRoute,
 } from '@/routes/user/invoices';
 
@@ -43,8 +43,17 @@ const props = defineProps<{
 }>();
 
 const processing = ref<boolean>(false);
-const regenerating = ref<boolean>(false);
 const regenerateModalOpen = ref<boolean>(false);
+
+// Le composant est utilisé depuis la fiche entreprise (onglet
+// Facturation) ; on préfère y rester après régénération plutôt que
+// d'aller voir la nouvelle facture (target `'company-tab'`).
+const { regenerating, regenerate: triggerRegeneration } = useInvoiceRegeneration({
+    redirectTarget: 'company-tab',
+    onFinish: () => {
+        regenerateModalOpen.value = false;
+    },
+});
 
 const hasExisting = computed<boolean>(
     () => props.existingInvoiceId !== null && props.existingInvoiceId !== undefined,
@@ -124,22 +133,7 @@ function regenerate(): void {
         return;
     }
 
-    regenerating.value = true;
-
-    // Le composant est utilisé depuis la fiche entreprise (onglet
-    // Facturation) ; on préfère y rester après régénération plutôt que
-    // d'aller voir la nouvelle facture.
-    router.post(
-        invoicesRegenerateRoute.url({ invoice: props.existingInvoiceId }),
-        { redirect_target: 'company-tab' },
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                regenerating.value = false;
-                regenerateModalOpen.value = false;
-            },
-        },
-    );
+    triggerRegeneration(props.existingInvoiceId);
 }
 </script>
 

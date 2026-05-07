@@ -22,7 +22,7 @@ use Illuminate\Support\Facades\DB;
  * la régénération est une suppression-puis-création explicite, pas une
  * mutation in-place.
  *
- * **Doctrine T4 (Phase 14.P) — cohérence DB ↔ filesystem** : la
+ * **Doctrine T4 (Phase 14.P) · cohérence DB ↔ filesystem** : la
  * suppression de l'**ancien PDF** sur disque est différée APRÈS le commit
  * DB de la nouvelle facture. Si `Generate` throw (ex. `MissingPricingException`),
  * la transaction rollback restaure intégralement l'ancienne facture en DB

@@ -29,7 +29,7 @@ final class InvoiceListItemData extends Data
         /**
          * `true` si le périmètre contractuel a potentiellement changé
          * depuis l'émission. Lu directement sur la colonne matérialisée
-         * `invoices.is_divergent` (T6 / Phase 14.R) — flag posé par les
+         * `invoices.is_divergent` (T6 / Phase 14.R) · flag posé par les
          * observers (Contract / VehicleYearlyPricing / Vehicle.exit_date).
          * La liste se contente d'un signal binaire ; les valeurs détaillées
          * sont sur la fiche Show via `InvoiceDivergenceChecker`.

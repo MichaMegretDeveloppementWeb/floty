@@ -7,7 +7,7 @@ namespace App\Contracts\Repositories\User\Billing;
 use App\Models\BillingSettings;
 
 /**
- * Lecture de l'émetteur de facture (Phase 14.G V1.2 — singleton).
+ * Lecture de l'émetteur de facture (Phase 14.G V1.2 · singleton).
  */
 interface BillingSettingsReadRepositoryInterface
 {

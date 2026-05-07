@@ -9,7 +9,7 @@ use App\Models\Invoice;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Lectures Invoice — interface slim conforme ADR-0013 (zéro
+ * Lectures Invoice · interface slim conforme ADR-0013 (zéro
  * transformation, zéro décision métier ; les retours sont des Models /
  * Collections bruts).
  */
@@ -52,7 +52,7 @@ interface InvoiceReadRepositoryInterface
      * Liste paginée server-side de l'Index Invoices (cf. ADR-0020).
      *
      * Le filtre `divergentOnly` est appliqué en SQL natif (`WHERE
-     * is_divergent = 1`) — la flag matérialisée est posée par les
+     * is_divergent = 1`) · la flag matérialisée est posée par les
      * observers (T6 / Phase 14.R), supprimant le N+1
      * `BillingCalculator::calculate` qui dégradait l'Index.
      *

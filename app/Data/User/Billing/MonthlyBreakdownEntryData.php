@@ -16,7 +16,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * montant correctement, donc on le marque explicitement comme
  * « facturable mais bloqué » via `hasMissingPricing = true`.
  *
- * `daysUsed` reste défini dans tous les cas — c'est de l'agrégation
+ * `daysUsed` reste défini dans tous les cas · c'est de l'agrégation
  * pure de données métier qui n'a pas besoin des tarifs.
  *
  * `existingInvoiceId` / `existingInvoiceNumber` sont peuplés sur le

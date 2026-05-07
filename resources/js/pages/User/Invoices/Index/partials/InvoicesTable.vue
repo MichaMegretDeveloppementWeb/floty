@@ -6,6 +6,7 @@ import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
+import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 type InvoiceRow = App.Data.User.Invoice.InvoiceListItemData;
 
@@ -21,10 +22,6 @@ const emit = defineEmits<{
     'row-click': [row: InvoiceRow];
 }>();
 
-const MONTH_LABELS = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-] as const;
 </script>
 
 <template>

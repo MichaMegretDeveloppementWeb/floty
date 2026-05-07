@@ -10,11 +10,12 @@
 
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import type { ComputedRef } from 'vue';
+import type { ComputedRef, WritableComputedRef } from 'vue';
 import { useServerTableState } from '@/Composables/Shared/useServerTableState';
 import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { show as invoicesShowRoute } from '@/routes/user/invoices';
 import type { DataTableColumn } from '@/types/ui';
+import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 type InvoiceRow = App.Data.User.Invoice.InvoiceListItemData;
 
@@ -54,6 +55,12 @@ export function useInvoicesTable(opts: {
     activeSortColumnKey: ComputedRef<string | null>;
     activeFilterChips: ComputedRef<InvoiceFilterChip[]>;
     activeFiltersCount: ComputedRef<number>;
+    // V-models filtres (T11 / E.6 · push depuis Index.vue).
+    searchModel: WritableComputedRef<string>;
+    companyIdModel: WritableComputedRef<number | null>;
+    yearModel: WritableComputedRef<number | null>;
+    monthModel: WritableComputedRef<number | null>;
+    divergentOnlyModel: WritableComputedRef<boolean>;
     onHeaderClick: (columnKey: string) => void;
     onRowClick: (row: InvoiceRow) => void;
 } {
@@ -108,11 +115,6 @@ export function useInvoicesTable(opts: {
         return entry ? entry[0] : null;
     });
 
-    const MONTH_LABELS = [
-        'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-        'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-    ];
-
     const activeFilterChips = computed<InvoiceFilterChip[]>(() => {
         const chips: InvoiceFilterChip[] = [];
         const f = state.filters.value;
@@ -156,12 +158,54 @@ export function useInvoicesTable(opts: {
         router.visit(invoicesShowRoute.url({ invoice: row.id }));
     }
 
+    // V-models filtres : exposés depuis le composable pour libérer la
+    // page Index.vue de toute logique de plumbing (T11 / E.6).
+    const searchModel = computed<string>({
+        get: () => state.search.value,
+        set: (value: string) => {
+            state.search.value = value;
+        },
+    });
+
+    const companyIdModel = computed<number | null>({
+        get: () => state.filters.value.companyId,
+        set: (value: number | null) => {
+            state.setFilter('companyId', value);
+        },
+    });
+
+    const yearModel = computed<number | null>({
+        get: () => state.filters.value.year,
+        set: (value: number | null) => {
+            state.setFilter('year', value);
+        },
+    });
+
+    const monthModel = computed<number | null>({
+        get: () => state.filters.value.month,
+        set: (value: number | null) => {
+            state.setFilter('month', value);
+        },
+    });
+
+    const divergentOnlyModel = computed<boolean>({
+        get: () => state.filters.value.divergentOnly,
+        set: (value: boolean) => {
+            state.setFilter('divergentOnly', value);
+        },
+    });
+
     return {
         columns,
         state,
         activeSortColumnKey,
         activeFilterChips,
         activeFiltersCount,
+        searchModel,
+        companyIdModel,
+        yearModel,
+        monthModel,
+        divergentOnlyModel,
         onHeaderClick,
         onRowClick,
     };

@@ -37,12 +37,14 @@ const tableState = useInvoicesTable({
     companyOptions: companyOptions.value,
 });
 
-const searchModel = computed<string>({
-    get: () => tableState.state.search.value,
-    set: (value: string) => {
-        tableState.state.search.value = value;
-    },
-});
+// V-models filtres exposés par le composable (T11 / E.6).
+const {
+    searchModel,
+    companyIdModel,
+    yearModel,
+    monthModel,
+    divergentOnlyModel,
+} = tableState;
 
 const companySelectOptions = computed(() =>
     companyOptions.value.map((c) => ({
@@ -50,16 +52,6 @@ const companySelectOptions = computed(() =>
         label: `${c.shortCode} · ${c.legalName}`,
     })),
 );
-
-const companyIdModel = computed<number | null>({
-    get: () => tableState.state.filters.value.companyId,
-    set: (value: string | number | null) => {
-        tableState.state.setFilter(
-            'companyId',
-            typeof value === 'number' ? value : null,
-        );
-    },
-});
 
 // Liste des années à proposer dans le filtre :
 // `[min(plus ancienne facture)..max(année courante, max facture)]`,
@@ -82,16 +74,6 @@ const yearOptions = computed(() => {
     return years.map((y) => ({ value: y, label: String(y) }));
 });
 
-const yearModel = computed<number | null>({
-    get: () => tableState.state.filters.value.year,
-    set: (value: string | number | null) => {
-        tableState.state.setFilter(
-            'year',
-            typeof value === 'number' ? value : null,
-        );
-    },
-});
-
 const monthOptions = [
     { value: 1, label: 'Janvier' }, { value: 2, label: 'Février' },
     { value: 3, label: 'Mars' }, { value: 4, label: 'Avril' },
@@ -100,23 +82,6 @@ const monthOptions = [
     { value: 9, label: 'Septembre' }, { value: 10, label: 'Octobre' },
     { value: 11, label: 'Novembre' }, { value: 12, label: 'Décembre' },
 ];
-
-const monthModel = computed<number | null>({
-    get: () => tableState.state.filters.value.month,
-    set: (value: string | number | null) => {
-        tableState.state.setFilter(
-            'month',
-            typeof value === 'number' ? value : null,
-        );
-    },
-});
-
-const divergentOnlyModel = computed<boolean>({
-    get: () => tableState.state.filters.value.divergentOnly,
-    set: (value: boolean) => {
-        tableState.state.setFilter('divergentOnly', value);
-    },
-});
 </script>
 
 <template>

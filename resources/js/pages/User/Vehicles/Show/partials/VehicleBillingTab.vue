@@ -15,6 +15,7 @@
 import { router } from '@inertiajs/vue3';
 import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
 import CompanyYearPills from '@/pages/User/Companies/Show/partials/CompanyYearPills.vue';
+import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import VehiclePricingsCard from './billing/VehiclePricingsCard.vue';
 
 const props = defineProps<{
@@ -35,7 +36,7 @@ function selectYear(year: number): void {
     }
 
     router.get(
-        window.location.pathname,
+        vehiclesShowRoute.url({ vehicle: props.vehicleId }),
         { billingYear: year, tab: 'billing' },
         {
             preserveScroll: true,

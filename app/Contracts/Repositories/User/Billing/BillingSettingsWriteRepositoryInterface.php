@@ -8,7 +8,7 @@ use App\Data\User\Billing\BillingSettingsData;
 use App\Models\BillingSettings;
 
 /**
- * Mise à jour de l'émetteur de facture (Phase 14.G V1.2 — singleton).
+ * Mise à jour de l'émetteur de facture (Phase 14.G V1.2 · singleton).
  */
 interface BillingSettingsWriteRepositoryInterface
 {

@@ -14,15 +14,11 @@ import { download as downloadRoute } from '@/routes/user/invoices';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
+import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 const props = defineProps<{
     invoice: App.Data.User.Invoice.InvoiceData;
 }>();
-
-const MONTH_LABELS = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-] as const;
 
 const periodLabel = computed<string>(
     () => `${MONTH_LABELS[props.invoice.month - 1]} ${props.invoice.year}`,
@@ -117,65 +113,70 @@ const downloadUrl = computed<string>(() =>
                     </h2>
                 </template>
 
-                <table class="w-full text-sm">
-                    <thead>
-                        <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">
-                            <th class="py-2 pr-3 font-medium">Véhicule</th>
-                            <th class="py-2 px-3 font-medium text-right">Jours</th>
-                            <th class="py-2 px-3 font-medium">Décomposition</th>
-                            <th class="py-2 pl-3 font-medium text-right">Total HT</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100">
-                        <tr
-                            v-for="line in invoice.lines"
-                            :key="line.id"
-                            class="text-slate-800"
-                        >
-                            <td class="py-2.5 pr-3">
-                                <Link
-                                    :href="vehiclesShowRoute.url({ vehicle: line.vehicleId })"
-                                    class="font-medium text-slate-900 transition-colors duration-[120ms] hover:text-blue-600 hover:underline"
-                                >
-                                    {{ line.vehicleLabelSnapshot }}
-                                </Link>
-                            </td>
-                            <td class="py-2.5 px-3 text-right font-mono tabular-nums">
-                                {{ line.daysUsed }}
-                            </td>
-                            <td class="py-2.5 px-3 text-xs text-slate-600">
-                                <template v-if="line.monthsBilled > 0">
-                                    {{ line.monthsBilled }} mois × {{ formatEur(line.monthlyRateCents / 100, 2) }}
-                                </template>
-                                <template v-if="line.monthsBilled > 0 && (line.weeksBilled > 0 || line.daysBilled > 0)">
-                                    +
-                                </template>
-                                <template v-if="line.weeksBilled > 0">
-                                    {{ line.weeksBilled }} sem × {{ formatEur(line.weeklyRateCents / 100, 2) }}
-                                </template>
-                                <template v-if="line.weeksBilled > 0 && line.daysBilled > 0">
-                                    +
-                                </template>
-                                <template v-if="line.daysBilled > 0">
-                                    {{ line.daysBilled }} j × {{ formatEur(line.dailyRateCents / 100, 2) }}
-                                </template>
-                            </td>
-                            <td class="py-2.5 pl-3 text-right font-mono font-medium tabular-nums">
-                                {{ formatEur(line.totalHtCents / 100, 2) }}
-                            </td>
-                        </tr>
-                    </tbody>
-                    <tfoot>
-                        <tr class="border-t-2 border-slate-900">
-                            <td class="pt-3 pr-3 font-semibold text-slate-900" colspan="3">
-                                Total HT
-                            </td>
-                            <td class="pt-3 pl-3 text-right font-mono font-semibold text-slate-900 tabular-nums">
-                                {{ formatEur(invoice.totalHtCents / 100, 2) }}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <caption class="sr-only">
+                            Lignes de la facture {{ invoice.invoiceNumber }}
+                        </caption>
+                        <thead>
+                            <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">
+                                <th scope="col" class="py-2 pr-3 font-medium">Véhicule</th>
+                                <th scope="col" class="py-2 px-3 font-medium text-right">Jours</th>
+                                <th scope="col" class="py-2 px-3 font-medium">Décomposition</th>
+                                <th scope="col" class="py-2 pl-3 font-medium text-right">Total HT</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr
+                                v-for="line in invoice.lines"
+                                :key="line.id"
+                                class="text-slate-800"
+                            >
+                                <td class="py-2.5 pr-3">
+                                    <Link
+                                        :href="vehiclesShowRoute.url({ vehicle: line.vehicleId })"
+                                        class="font-medium text-slate-900 transition-colors duration-[120ms] hover:text-blue-600 hover:underline"
+                                    >
+                                        {{ line.vehicleLabelSnapshot }}
+                                    </Link>
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-mono tabular-nums">
+                                    {{ line.daysUsed }}
+                                </td>
+                                <td class="py-2.5 px-3 text-xs text-slate-600">
+                                    <template v-if="line.monthsBilled > 0">
+                                        {{ line.monthsBilled }} mois × {{ formatEur(line.monthlyRateCents / 100, 2) }}
+                                    </template>
+                                    <template v-if="line.monthsBilled > 0 && (line.weeksBilled > 0 || line.daysBilled > 0)">
+                                        +
+                                    </template>
+                                    <template v-if="line.weeksBilled > 0">
+                                        {{ line.weeksBilled }} sem × {{ formatEur(line.weeklyRateCents / 100, 2) }}
+                                    </template>
+                                    <template v-if="line.weeksBilled > 0 && line.daysBilled > 0">
+                                        +
+                                    </template>
+                                    <template v-if="line.daysBilled > 0">
+                                        {{ line.daysBilled }} j × {{ formatEur(line.dailyRateCents / 100, 2) }}
+                                    </template>
+                                </td>
+                                <td class="py-2.5 pl-3 text-right font-mono font-medium tabular-nums">
+                                    {{ formatEur(line.totalHtCents / 100, 2) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot>
+                            <tr class="border-t-2 border-slate-900">
+                                <td class="pt-3 pr-3 font-semibold text-slate-900" colspan="3">
+                                    Total HT
+                                </td>
+                                <td class="pt-3 pl-3 text-right font-mono font-semibold text-slate-900 tabular-nums">
+                                    {{ formatEur(invoice.totalHtCents / 100, 2) }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </Card>
 
             <!-- Empreinte d'intégrité -->

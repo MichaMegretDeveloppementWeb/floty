@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Récap facturation **contrat-isolé** — une ligne par mois civil que
+ * Récap facturation **contrat-isolé** · une ligne par mois civil que
  * le contrat couvre (Phase 14.D V1.2).
  *
  * **Convention de calcul (caveat important)** : ce récap calcule le

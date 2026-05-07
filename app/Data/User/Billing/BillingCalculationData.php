@@ -10,7 +10,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Résultat du calcul de facture mensuelle pour une (entreprise × année
- * × mois) — N lignes véhicule + total HT.
+ * × mois) · N lignes véhicule + total HT.
  *
  * Produit par {@see App\Services\Billing\BillingCalculator::calculate}.
  * En cas de tarif manquant pour au moins un véhicule, le service lève

@@ -32,7 +32,7 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
     public function findExistingByMonthForCompanyYear(int $companyId, int $year): array
     {
         // `withSum` matérialise une sub-query SQL pour le total `days_used`
-        // des `invoice_lines` rattachées — single query, pas de N+1.
+        // des `invoice_lines` rattachées · single query, pas de N+1.
         $rows = Invoice::query()
             ->select('id', 'month', 'invoice_number', 'total_ht_cents')
             ->where('company_id', $companyId)
@@ -58,7 +58,7 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         // `invoice_number` format `YYYY-MM-NNNN` ; la séquence est les
         // 4 derniers caractères. SQLite (tests) ne supporte pas le cast
         // SUBSTRING en int dans MAX() de manière portable ; on extrait
-        // côté PHP — coût O(n) acceptable (n = factures du mois, < 100).
+        // côté PHP · coût O(n) acceptable (n = factures du mois, < 100).
         //
         // `lockForUpdate()` (chantier T4 / Phase 14.P) : verrou pessimiste
         // pour empêcher deux générations concurrentes de calculer la même
