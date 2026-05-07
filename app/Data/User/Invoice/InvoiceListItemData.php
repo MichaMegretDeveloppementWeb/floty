@@ -26,9 +26,16 @@ final class InvoiceListItemData extends Data
         public int $totalHtCents,
         /** ISO 8601 (Y-m-d). */
         public string $generatedAt,
+        /**
+         * `true` si le périmètre contractuel a changé depuis l'émission.
+         * Calculé par `InvoiceQueryService::listPaginated` via
+         * `InvoiceDivergenceChecker`. La liste se contente d'un signal
+         * binaire — les valeurs détaillées sont sur la fiche Show.
+         */
+        public bool $hasDivergence = false,
     ) {}
 
-    public static function fromModel(Invoice $invoice): self
+    public static function fromModel(Invoice $invoice, bool $hasDivergence = false): self
     {
         return new self(
             id: $invoice->id,
@@ -40,6 +47,7 @@ final class InvoiceListItemData extends Data
             month: $invoice->month,
             totalHtCents: $invoice->total_ht_cents,
             generatedAt: $invoice->generated_at->toDateString(),
+            hasDivergence: $hasDivergence,
         );
     }
 }

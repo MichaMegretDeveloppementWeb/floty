@@ -6,6 +6,7 @@ namespace App\Http\Controllers\User\Invoice;
 
 use App\Actions\Invoice\CancelInvoiceAction;
 use App\Actions\Invoice\GenerateInvoiceAction;
+use App\Actions\Invoice\RegenerateInvoiceAction;
 use App\Contracts\Repositories\User\Billing\BillingSettingsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Data\User\Billing\BillingSettingsData;
@@ -130,6 +131,61 @@ final class InvoiceController extends Controller
         return back()->with(
             'toast-success',
             "Facture {$number} annulée. La regénération est désormais possible.",
+        );
+    }
+
+    /**
+     * Régénère une facture émise (Phase 14.I+ V1.2). Annule l'ancienne
+     * facture + son PDF puis génère une nouvelle facture pour le même
+     * couple (entreprise × année × mois) avec les données actuelles,
+     * le tout dans une transaction.
+     *
+     * Redirige sur la fiche **nouvelle** facture après succès — l'ID
+     * a changé puisque l'ancienne row est supprimée. `back()` enverrait
+     * sur /invoices/{ancien_id} qui n'existe plus (404).
+     */
+    public function regenerate(
+        Request $request,
+        Invoice $invoice,
+        RegenerateInvoiceAction $action,
+    ): RedirectResponse {
+        $user = $request->user();
+        if ($user === null) {
+            abort(Response::HTTP_UNAUTHORIZED);
+        }
+
+        $referer = $request->headers->get('referer');
+
+        try {
+            $newInvoice = $action->execute(
+                invoice: $invoice,
+                generatedByUserId: $user->id,
+                issuer: BillingSettingsData::fromModel($this->billingSettings->get())->toIssuerPayload(),
+            );
+        } catch (MissingPricingException) {
+            return back()->with(
+                'toast-error',
+                'Tarif annuel manquant pour au moins un véhicule du mois. '.
+                'Renseignez les tarifs depuis la fiche véhicule avant de regénérer.',
+            );
+        }
+
+        // Si on vient de la fiche Show (URL contient /invoices/{id}),
+        // l'ancien ID n'existe plus — rediriger sur la nouvelle facture.
+        // Sinon (onglet facturation entreprise, liste factures), back()
+        // suffit car on revient sur la page d'origine qui se rafraîchit.
+        if ($referer !== null && preg_match('~/app/invoices/\d+(?:[?\#]|$)~', $referer) === 1) {
+            return redirect()
+                ->route('user.invoices.show', ['invoice' => $newInvoice->id])
+                ->with(
+                    'toast-success',
+                    "Facture régénérée : {$newInvoice->invoice_number}.",
+                );
+        }
+
+        return back()->with(
+            'toast-success',
+            "Facture régénérée : {$newInvoice->invoice_number}.",
         );
     }
 

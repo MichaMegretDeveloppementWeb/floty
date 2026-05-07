@@ -37,6 +37,7 @@ export type InvoiceFilters = {
     companyId: number | null;
     year: number | null;
     month: number | null;
+    divergentOnly: boolean;
 };
 
 export type InvoiceFilterChip = {
@@ -75,16 +76,23 @@ export function useInvoicesTable(opts: {
             companyId: null,
             year: null,
             month: null,
+            divergentOnly: false,
         },
         initialFilters: {
             companyId: opts.query.companyId,
             year: opts.query.year,
             month: opts.query.month,
+            divergentOnly: opts.query.divergentOnly,
         },
         serializeFilters: (f) => ({
             companyId: f.companyId,
             year: f.year,
             month: f.month,
+            // `divergentOnly = false` est l'état par défaut — on le retire
+            // de l'URL pour rester propre. Seul `true` est sérialisé,
+            // sous forme de chaîne `'1'` (Laravel rule `boolean` accepte
+            // `'1'`, `1`, `true` indifféremment).
+            divergentOnly: f.divergentOnly ? '1' : null,
         }),
     });
 
@@ -123,6 +131,10 @@ export function useInvoicesTable(opts: {
 
         if (f.month !== null) {
             chips.push({ key: 'month', label: `Mois : ${MONTH_LABELS[f.month - 1] ?? f.month}` });
+        }
+
+        if (f.divergentOnly) {
+            chips.push({ key: 'divergentOnly', label: 'À régénérer uniquement' });
         }
 
         return chips;

@@ -9,6 +9,7 @@ use App\Data\Shared\Listing\SortDirection;
 use App\Data\User\Invoice\InvoiceIndexQueryData;
 use App\Models\Invoice;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
@@ -78,6 +79,36 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 
     public function paginateForIndex(InvoiceIndexQueryData $query): LengthAwarePaginator
     {
+        return $this->buildIndexQuery($query)->paginate(
+            perPage: $query->perPage,
+            page: $query->page,
+        );
+    }
+
+    public function findAllMatching(InvoiceIndexQueryData $query): Collection
+    {
+        // Pour le filtre divergent (post-traitement PHP), on a besoin
+        // des lignes pour calculer la somme des `days_used` du snapshot.
+        return $this->buildIndexQuery($query)
+            ->with('lines')
+            ->get();
+    }
+
+    public function existsAny(): bool
+    {
+        return Invoice::query()->exists();
+    }
+
+    /**
+     * Builder partagé entre `paginateForIndex` et `findAllMatching`.
+     * Applique tous les filtres SQL (company, year, month, search) et
+     * le tri whitelisté. Le filtre `divergentOnly` n'est pas appliqué
+     * ici (post-traitement PHP côté service).
+     *
+     * @return Builder<Invoice>
+     */
+    private function buildIndexQuery(InvoiceIndexQueryData $query): Builder
+    {
         $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';
 
         $eloquentQuery = Invoice::query()
@@ -124,14 +155,6 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
                 ->orderByDesc('invoices.id'),
         };
 
-        return $eloquentQuery->paginate(
-            perPage: $query->perPage,
-            page: $query->page,
-        );
-    }
-
-    public function existsAny(): bool
-    {
-        return Invoice::query()->exists();
+        return $eloquentQuery;
     }
 }

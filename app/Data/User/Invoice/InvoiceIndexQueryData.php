@@ -14,6 +14,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Filtres :
  *   - `companyId` : filtre exact match sur l'entreprise
  *   - `year` / `month` : période exacte (un mois civil)
+ *   - `divergentOnly` : ne retourne que les factures dont le périmètre
+ *     contractuel a changé depuis l'émission (filtre coûteux car
+ *     post-traitement PHP — cf. `InvoiceQueryService::listPaginated`)
  *
  * Whitelist sortKey : `invoiceNumber | company | period | totalHt |
  * generatedAt`. Toutes traduisibles en SQL pure.
@@ -25,6 +28,7 @@ final class InvoiceIndexQueryData extends IndexQueryData
         public ?int $companyId = null,
         public ?int $year = null,
         public ?int $month = null,
+        public bool $divergentOnly = false,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,
         ?string $search = null,
@@ -45,6 +49,7 @@ final class InvoiceIndexQueryData extends IndexQueryData
             'companyId' => ['nullable', 'integer', 'exists:companies,id'],
             'year' => ['nullable', 'integer', 'between:2020,2099'],
             'month' => ['nullable', 'integer', 'between:1,12'],
+            'divergentOnly' => ['nullable', 'boolean'],
         ]);
     }
 }

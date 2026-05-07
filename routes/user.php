@@ -146,6 +146,11 @@ Route::middleware('auth')
             ->whereNumber('invoice')
             ->middleware('throttle:30,1')
             ->name('invoices.destroy');
+        // Régénération (Phase 14.I+) — annule + recrée en une transaction.
+        Route::post('/invoices/{invoice}/regenerate', [InvoiceController::class, 'regenerate'])
+            ->whereNumber('invoice')
+            ->middleware('throttle:30,1')
+            ->name('invoices.regenerate');
 
         // Unavailabilities — CRUD opéré depuis la page Show véhicule
         Route::post('/unavailabilities', [UnavailabilityController::class, 'store'])

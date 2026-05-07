@@ -6,6 +6,7 @@
 import { Head } from '@inertiajs/vue3';
 import { Download, FileText } from 'lucide-vue-next';
 import { computed } from 'vue';
+import InvoiceDivergenceBanner from '@/Components/Features/Billing/InvoiceDivergenceBanner.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { download as downloadRoute } from '@/routes/user/invoices';
@@ -58,6 +59,14 @@ const downloadUrl = computed<string>(() =>
                     Télécharger le PDF
                 </a>
             </div>
+
+            <!-- Bandeau divergence (sous header + bouton PDF) -->
+            <InvoiceDivergenceBanner
+                v-if="invoice.divergence?.hasDivergence"
+                :invoice-id="invoice.id"
+                :invoice-number="invoice.invoiceNumber"
+                :divergence="invoice.divergence"
+            />
 
             <!-- Méta -->
             <Card>

@@ -37,9 +37,15 @@ final class InvoiceData extends Data
         public ?string $generatedByUserName,
         #[DataCollectionOf(InvoiceLineData::class)]
         public array $lines,
+        /**
+         * Comparaison snapshot figé vs réalité actuelle. Toujours
+         * exposée sur la fiche Show ; `null` ne devrait pas se produire
+         * en pratique (le service la calcule systématiquement).
+         */
+        public ?InvoiceDivergenceData $divergence = null,
     ) {}
 
-    public static function fromModel(Invoice $invoice): self
+    public static function fromModel(Invoice $invoice, ?InvoiceDivergenceData $divergence = null): self
     {
         $lines = $invoice->lines
             ->map(static fn ($l): InvoiceLineData => InvoiceLineData::fromModel($l))
@@ -59,6 +65,7 @@ final class InvoiceData extends Data
             generatedAt: $invoice->generated_at->toDateString(),
             generatedByUserName: trim($invoice->generatedBy->first_name.' '.$invoice->generatedBy->last_name),
             lines: $lines,
+            divergence: $divergence,
         );
     }
 }

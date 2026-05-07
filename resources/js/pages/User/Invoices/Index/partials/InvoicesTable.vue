@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { AlertTriangle } from 'lucide-vue-next';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import type { DataTableColumn } from '@/types/ui';
@@ -49,7 +50,17 @@ const MONTH_LABELS = [
         </template>
 
         <template #cell-invoiceNumber="{ row }">
-            <span class="font-mono text-sm">{{ row.invoiceNumber }}</span>
+            <div class="flex items-center gap-2">
+                <span class="font-mono text-sm">{{ row.invoiceNumber }}</span>
+                <span
+                    v-if="row.hasDivergence"
+                    title="Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez la facture pour la régénérer."
+                    class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
+                >
+                    <AlertTriangle :size="10" :stroke-width="2" />
+                    À régénérer
+                </span>
+            </div>
         </template>
 
         <template #cell-companyShortCode="{ row }">

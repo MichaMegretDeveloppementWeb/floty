@@ -7,6 +7,7 @@
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
@@ -101,6 +102,13 @@ const monthModel = computed<number | null>({
         );
     },
 });
+
+const divergentOnlyModel = computed<boolean>({
+    get: () => tableState.state.filters.value.divergentOnly,
+    set: (value: boolean) => {
+        tableState.state.setFilter('divergentOnly', value);
+    },
+});
 </script>
 
 <template>
@@ -172,6 +180,14 @@ const monthModel = computed<number | null>({
                                     placeholder="Tous les mois"
                                     :options="monthOptions"
                                     nullable
+                                />
+                            </div>
+                            <div class="border-t border-slate-100 pt-3">
+                                <CheckboxInput
+                                    id="filter-invoice-divergent"
+                                    v-model="divergentOnlyModel"
+                                    label="À régénérer uniquement"
+                                    hint="Périmètre contractuel modifié depuis l'émission"
                                 />
                             </div>
                         </div>
