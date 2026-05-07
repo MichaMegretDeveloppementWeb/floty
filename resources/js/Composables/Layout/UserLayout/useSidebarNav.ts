@@ -6,6 +6,7 @@ import {
     LayoutDashboard,
     Receipt,
     Settings,
+    ShieldAlert,
     Users,
     Wallet,
 } from 'lucide-vue-next';
@@ -21,6 +22,7 @@ import { index as invoicesIndexRoute } from '@/routes/user/invoices';
 import { index as planningIndexRoute } from '@/routes/user/planning';
 import { root as planningCompaniesRootRoute } from '@/routes/user/planning/companies';
 import { edit as billingSettingsEditRoute } from '@/routes/user/settings/billing';
+import { edit as fiscalRiskSettingsEditRoute } from '@/routes/user/settings/fiscal-risk';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 
 export type NavItem = {
@@ -121,6 +123,11 @@ export function useSidebarNav(open: Ref<boolean>): {
                     label: 'Émetteur facture',
                     icon: Settings,
                     href: billingSettingsEditRoute.url(),
+                },
+                {
+                    label: 'Détection de risque',
+                    icon: ShieldAlert,
+                    href: fiscalRiskSettingsEditRoute.url(),
                 },
             ],
         },

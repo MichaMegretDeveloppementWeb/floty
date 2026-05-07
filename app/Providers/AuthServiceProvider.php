@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\BillingSettings;
+use App\Models\FiscalRiskSettings;
 use App\Models\Invoice;
 use App\Models\VehicleYearlyPricing;
 use App\Policies\BillingSettingsPolicy;
+use App\Policies\FiscalRiskSettingsPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\VehicleYearlyPricingPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
@@ -31,6 +33,7 @@ final class AuthServiceProvider extends ServiceProvider
     protected $policies = [
         Invoice::class => InvoicePolicy::class,
         BillingSettings::class => BillingSettingsPolicy::class,
+        FiscalRiskSettings::class => FiscalRiskSettingsPolicy::class,
         VehicleYearlyPricing::class => VehicleYearlyPricingPolicy::class,
     ];
 }

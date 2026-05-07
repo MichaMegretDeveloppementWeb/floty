@@ -11,6 +11,7 @@ use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Invoice\InvoiceController;
 use App\Http\Controllers\User\Planning\PlanningController;
 use App\Http\Controllers\User\Settings\BillingSettingsController;
+use App\Http\Controllers\User\Settings\FiscalRiskSettingsController;
 use App\Http\Controllers\User\Unavailability\UnavailabilityController;
 use App\Http\Controllers\User\Vehicle\VehicleController;
 use App\Http\Controllers\User\Vehicle\VehicleFiscalCharacteristicsController;
@@ -127,6 +128,14 @@ Route::middleware('auth')
         Route::post('/settings/billing', [BillingSettingsController::class, 'update'])
             ->middleware('throttle:30,1')
             ->name('settings.billing.update');
+
+        // Settings > Détection de risque (Phase 11 D1, ADR-0015 § D7) —
+        // seuils paramétrables de la grille de classification fiscale.
+        Route::get('/settings/fiscal-risk', [FiscalRiskSettingsController::class, 'edit'])
+            ->name('settings.fiscal-risk.edit');
+        Route::post('/settings/fiscal-risk', [FiscalRiskSettingsController::class, 'update'])
+            ->middleware('throttle:30,1')
+            ->name('settings.fiscal-risk.update');
 
         // Invoices — Phase 14 V1.2 (Index + Show + génération + téléchargement)
         // Throttle 6/min sur les mutations PDF-générantes (generate /

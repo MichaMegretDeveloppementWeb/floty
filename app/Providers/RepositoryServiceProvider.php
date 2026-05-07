@@ -14,6 +14,12 @@ use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadReposit
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
 use App\Contracts\Repositories\User\Driver\DriverWriteRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionReadRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionWriteRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsReadRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
@@ -35,6 +41,12 @@ use App\Repositories\User\ContractDocument\ContractDocumentReadRepository;
 use App\Repositories\User\ContractDocument\ContractDocumentWriteRepository;
 use App\Repositories\User\Driver\DriverReadRepository;
 use App\Repositories\User\Driver\DriverWriteRepository;
+use App\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepository;
+use App\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepository;
+use App\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionReadRepository;
+use App\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionWriteRepository;
+use App\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsReadRepository;
+use App\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
 use App\Repositories\User\Invoice\InvoiceReadRepository;
 use App\Repositories\User\Invoice\InvoiceWriteRepository;
@@ -102,6 +114,18 @@ final class RepositoryServiceProvider extends ServiceProvider
         // BillingSettings (Phase 14.G V1.2) - émetteur de facture (singleton)
         BillingSettingsReadRepositoryInterface::class => BillingSettingsReadRepository::class,
         BillingSettingsWriteRepositoryInterface::class => BillingSettingsWriteRepository::class,
+
+        // FiscalRiskSettings (Phase 11 D1) - seuils détection de risque (singleton)
+        FiscalRiskSettingsReadRepositoryInterface::class => FiscalRiskSettingsReadRepository::class,
+        FiscalRiskSettingsWriteRepositoryInterface::class => FiscalRiskSettingsWriteRepository::class,
+
+        // FiscalDeclaration (Phase 11 D1) - déclaration fiscale annuelle, ADR-0015 rev. 1.1
+        FiscalDeclarationReadRepositoryInterface::class => FiscalDeclarationReadRepository::class,
+        FiscalDeclarationWriteRepositoryInterface::class => FiscalDeclarationWriteRepository::class,
+
+        // FiscalReviewDecision (Phase 11 D1) - décisions humaines de revue par cluster
+        FiscalReviewDecisionReadRepositoryInterface::class => FiscalReviewDecisionReadRepository::class,
+        FiscalReviewDecisionWriteRepositoryInterface::class => FiscalReviewDecisionWriteRepository::class,
 
         // Unavailability
         UnavailabilityReadRepositoryInterface::class => UnavailabilityReadRepository::class,
