@@ -3,9 +3,9 @@ import { Head } from '@inertiajs/vue3';
 import { CalendarDays } from 'lucide-vue-next';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import Button from '@/Components/Ui/Button/Button.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
+import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
@@ -190,6 +190,9 @@ function setScopeMode(mode: ScopeMode): void {
 
     if (mode === 'year') {
         // Bascule en année → applique l'année par défaut, efface period
+        // et referme le popover si ouvert.
+        periodPopoverOpen.value = false;
+
         if (tableState.state.filters.value.year === null) {
             tableState.state.patchFilters({
                 year: defaultYear.value,
@@ -211,6 +214,11 @@ function setScopeMode(mode: ScopeMode): void {
         } else {
             tableState.state.setFilter('year', null);
         }
+
+        // Auto-ouvre le date picker au passage en mode période — c'est
+        // le geste suivant logique (l'utilisateur veut saisir une plage),
+        // et le popover se ferme facilement (clic dehors / Escape).
+        periodPopoverOpen.value = true;
     }
 }
 
@@ -287,11 +295,18 @@ return 'Aucune période sélectionnée';
             <EmptyContractsState v-if="!props.hasAnyContract" />
 
             <template v-else>
-                <!-- Sélecteur scope hybride année/période (hors panneau filtres) -->
-                <div class="flex flex-wrap items-end justify-between gap-3">
-                    <div class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white p-1">
+                <!-- Sélecteur scope hybride année/période : toggle + sélecteur
+                     côte à côte pour faciliter la lecture (1 ligne, plus compact). -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div
+                        class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 shadow-sm"
+                        role="tablist"
+                        aria-label="Mode de filtre temporel"
+                    >
                         <button
                             type="button"
+                            role="tab"
+                            :aria-selected="scopeMode === 'year'"
                             :class="[
                                 'rounded-md px-3 py-1 text-xs font-medium transition-colors duration-[120ms]',
                                 scopeMode === 'year'
@@ -304,6 +319,8 @@ return 'Aucune période sélectionnée';
                         </button>
                         <button
                             type="button"
+                            role="tab"
+                            :aria-selected="scopeMode === 'period'"
                             :class="[
                                 'rounded-md px-3 py-1 text-xs font-medium transition-colors duration-[120ms]',
                                 scopeMode === 'period'
@@ -316,32 +333,31 @@ return 'Aucune période sélectionnée';
                         </button>
                     </div>
 
-                    <!-- Mode année : SelectInput compact -->
-                    <div v-if="scopeMode === 'year'" class="flex flex-col gap-1">
-                        <FieldLabel for="contracts-year">Exercice</FieldLabel>
-                        <SelectInput
-                            id="contracts-year"
-                            v-model.number="yearModel"
-                            :options="yearOptions"
-                            :disabled="yearOptions.length <= 1"
-                        />
-                    </div>
+                    <!-- Mode année : InlineYearSelector compact -->
+                    <InlineYearSelector
+                        v-if="scopeMode === 'year'"
+                        id="contracts-year"
+                        v-model="yearModel"
+                        :options="yearOptions"
+                    />
 
-                    <!-- Mode période : bouton + popover DateRangePicker -->
+                    <!-- Mode période : bouton pill + popover DateRangePicker -->
                     <div v-else ref="popoverRoot" class="relative">
-                        <Button
-                            variant="ghost"
-                            size="sm"
+                        <button
+                            type="button"
+                            class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white py-1.5 pr-3 pl-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors duration-[120ms] ease-out hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+                            :aria-expanded="periodPopoverOpen"
                             @click="periodPopoverOpen = !periodPopoverOpen"
                         >
-                            <template #icon-left>
-                                <CalendarDays
-                                    :size="14"
-                                    :stroke-width="1.75"
-                                />
-                            </template>
-                            {{ periodLabel }}
-                        </Button>
+                            <CalendarDays
+                                :size="14"
+                                :stroke-width="1.75"
+                                class="shrink-0 text-slate-500"
+                                aria-hidden="true"
+                            />
+                            <span class="text-slate-700">Période :</span>
+                            <span>{{ periodLabel }}</span>
+                        </button>
 
                         <div
                             v-if="periodPopoverOpen"
@@ -351,7 +367,7 @@ return 'Aucune période sélectionnée';
                         />
                         <div
                             v-if="periodPopoverOpen"
-                            class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[360px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"
+                            class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-auto sm:left-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[360px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"
                         >
                             <div
                                 class="flex flex-col gap-3 overflow-y-auto p-4"

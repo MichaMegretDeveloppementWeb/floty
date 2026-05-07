@@ -4,8 +4,7 @@ import { computed } from 'vue';
 import Heatmap from '@/Components/Features/Planning/Heatmap/Heatmap.vue';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
-import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
+import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import { useUserPlanningIndex } from '@/Composables/Planning/Index/useUserPlanningIndex';
 import { useLocalYearSelector } from '@/Composables/Shared/useLocalYearSelector';
 import PageHeader from './partials/PageHeader.vue';
@@ -43,16 +42,13 @@ const { week, onContractsCreated } = useUserPlanningIndex();
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <div class="flex flex-wrap items-end justify-between gap-3">
+            <div class="flex flex-wrap items-center justify-between gap-3">
                 <PageHeader :fiscal-year="selectedYear" />
-                <div class="flex flex-col gap-1">
-                    <FieldLabel for="planning-year">Exercice</FieldLabel>
-                    <SelectInput
-                        id="planning-year"
-                        v-model="yearModel"
-                        :options="yearOptions"
-                    />
-                </div>
+                <InlineYearSelector
+                    id="planning-year"
+                    v-model="yearModel"
+                    :options="yearOptions"
+                />
             </div>
 
             <Heatmap

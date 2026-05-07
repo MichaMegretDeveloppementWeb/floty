@@ -65,11 +65,6 @@ export function useSidebarNav(open: Ref<boolean>): {
                     icon: CalendarDays,
                     href: planningIndexRoute.url(),
                 },
-                {
-                    label: 'Locations',
-                    icon: FileText,
-                    href: contractsIndexRoute.url(),
-                },
             ],
         },
         {
@@ -85,6 +80,11 @@ export function useSidebarNav(open: Ref<boolean>): {
                     label: 'Conducteurs',
                     icon: Users,
                     href: driversIndexRoute.url(),
+                },
+                {
+                    label: 'Locations',
+                    icon: FileText,
+                    href: contractsIndexRoute.url(),
                 },
             ],
         },
