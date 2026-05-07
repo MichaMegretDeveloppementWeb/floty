@@ -5,7 +5,7 @@
  * Sépare clairement **mention informative** et **action utilisateur** :
  *   - **Chip « Données obsolètes »** (orange, non-cliquable) : signale
  *     que le périmètre contractuel a changé depuis l'émission de la
- *     facture. Purement décoratif — l'utilisateur ne peut rien cliquer
+ *     facture. Purement décoratif : l'utilisateur ne peut rien cliquer
  *     dessus.
  *   - **Bouton « Régénérer »** (cliquable) : ouvre une modal de
  *     confirmation. Sur confirmation, supprime la facture existante
@@ -107,7 +107,7 @@ const generateDisabled = computed<boolean>(
 
 const generateTooltip = computed<string>(() => {
     if (props.hasMissingPricing) {
-        return 'Tarif annuel manquant — renseignez les tarifs sur les fiches véhicule.';
+        return 'Tarif annuel manquant. Renseignez les tarifs sur les fiches véhicule.';
     }
 
     if (props.daysUsed === 0) {
@@ -167,26 +167,26 @@ function regenerate(): void {
         <template v-if="hasExisting && hasDivergence && existingInvoiceId">
             <span
                 :title="divergenceTooltip"
-                class="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800"
+                class="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 whitespace-nowrap"
             >
-                <AlertTriangle :size="12" :stroke-width="1.75" />
+                <AlertTriangle class="shrink-0" :size="12" :stroke-width="1.75" />
                 Données obsolètes
             </span>
             <Link
                 :href="invoicesShowRoute.url({ invoice: existingInvoiceId })"
                 :title="`Voir la facture ${existingInvoiceNumber}`"
-                class="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors duration-[120ms] hover:border-emerald-300 hover:bg-emerald-100"
+                class="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors duration-[120ms] hover:border-emerald-300 hover:bg-emerald-100 whitespace-nowrap"
             >
-                <Eye :size="12" :stroke-width="1.75" />
+                <Eye class="shrink-0" :size="12" :stroke-width="1.75" />
                 Voir #{{ existingInvoiceNumber }}
             </Link>
             <button
                 type="button"
                 title="Régénérer la facture avec les données actuelles"
-                class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
+                class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50 cursor-pointer whitespace-nowrap"
                 @click="regenerateModalOpen = true"
             >
-                <RefreshCw :size="12" :stroke-width="1.75" />
+                <RefreshCw class="shrink-0" :size="12" :stroke-width="1.75" />
                 Régénérer
             </button>
         </template>
@@ -196,9 +196,9 @@ function regenerate(): void {
             v-else-if="hasExisting && existingInvoiceId"
             :href="invoicesShowRoute.url({ invoice: existingInvoiceId })"
             :title="`Voir la facture ${existingInvoiceNumber}`"
-            class="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors duration-[120ms] hover:border-emerald-300 hover:bg-emerald-100"
+            class="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors duration-[120ms] hover:border-emerald-300 hover:bg-emerald-100 whitespace-nowrap"
         >
-            <Eye :size="12" :stroke-width="1.75" />
+            <Eye class="shrink-0" :size="12" :stroke-width="1.75" />
             Voir #{{ existingInvoiceNumber }}
         </Link>
 
@@ -209,7 +209,7 @@ function regenerate(): void {
             :disabled="generateDisabled"
             :title="generateTooltip"
             :class="[
-                'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors duration-[120ms]',
+                'inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors duration-[120ms] whitespace-nowrap',
                 generateDisabled
                     ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
                     : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 cursor-pointer',
@@ -220,7 +220,7 @@ function regenerate(): void {
                 :is="processing ? Loader2 : FileText"
                 :size="12"
                 :stroke-width="1.75"
-                :class="processing && 'animate-spin'"
+                :class="['shrink-0', processing && 'animate-spin']"
             />
             Générer
         </button>

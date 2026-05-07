@@ -5,7 +5,7 @@
     <title>Facture {{ $invoiceNumber }}</title>
     <style>
         /*
-         * Police DejaVu Sans — embarquée par dompdf et UTF-8 native (rend
+         * Police DejaVu Sans, embarquée par dompdf et UTF-8 native (rend
          * correctement é/è/à/É/€/etc. là où Helvetica les transforme en `?`).
          */
         @page { margin: 22mm 18mm; }
@@ -118,7 +118,12 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 6mm;
+            table-layout: fixed; /* largeurs explicites par <col> ci-dessous */
         }
+        .lines col.col-vehicle { width: 28%; }
+        .lines col.col-days { width: 12%; }
+        .lines col.col-detail { width: 42%; }
+        .lines col.col-total { width: 18%; }
         .lines thead th {
             background: #f8fafc;
             color: #475569;
@@ -139,6 +144,8 @@
             border-bottom: 1px solid #e2e8f0;
             font-size: 9pt;
             vertical-align: top;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
         }
         .lines tbody td.num {
             text-align: right;
@@ -151,6 +158,7 @@
         .lines tbody td.detail {
             color: #64748b;
             font-size: 8.5pt;
+            line-height: 1.45;
         }
         .total-block {
             margin-top: 4mm;
@@ -256,6 +264,12 @@
     </div>
 
     <table class="lines">
+        <colgroup>
+            <col class="col-vehicle">
+            <col class="col-days">
+            <col class="col-detail">
+            <col class="col-total">
+        </colgroup>
         <thead>
             <tr>
                 <th>Véhicule</th>
@@ -297,7 +311,7 @@
 
     <footer class="footer">
         <div class="footer-line">
-            Facture générée automatiquement par Floty — gestion de flotte partagée.
+            Facture générée automatiquement via Floty (outil de gestion de flotte partagée).
             Document numérique non modifiable après émission.
         </div>
         <div class="footer-line">

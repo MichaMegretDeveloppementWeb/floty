@@ -55,9 +55,9 @@ const MONTH_LABELS = [
                 <span
                     v-if="row.hasDivergence"
                     title="Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez la facture pour la régénérer."
-                    class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
+                    class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-sans font-medium text-amber-800 whitespace-nowrap"
                 >
-                    <AlertTriangle :size="10" :stroke-width="2" />
+                    <AlertTriangle class="shrink-0" :size="10" :stroke-width="2" />
                     À régénérer
                 </span>
             </div>

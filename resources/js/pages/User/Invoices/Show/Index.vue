@@ -3,13 +3,15 @@
  * Page Show Facture (Phase 14.F V1.2). Détail immuable + lien de
  * téléchargement du PDF généré à l'émission.
  */
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { Download, FileText } from 'lucide-vue-next';
 import { computed } from 'vue';
 import InvoiceDivergenceBanner from '@/Components/Features/Billing/InvoiceDivergenceBanner.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import { show as companiesShowRoute } from '@/routes/user/companies';
 import { download as downloadRoute } from '@/routes/user/invoices';
+import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
@@ -76,7 +78,12 @@ const downloadUrl = computed<string>(() =>
                             Entreprise
                         </dt>
                         <dd class="mt-1 text-sm">
-                            <span class="font-medium text-slate-900">{{ invoice.companyShortCode }}</span>
+                            <Link
+                                :href="companiesShowRoute.url({ company: invoice.companyId })"
+                                class="font-medium text-slate-900 transition-colors duration-[120ms] hover:text-blue-600 hover:underline"
+                            >
+                                {{ invoice.companyShortCode }}
+                            </Link>
                             <span class="block text-xs text-slate-500">{{ invoice.companyLegalName }}</span>
                         </dd>
                     </div>
@@ -126,7 +133,12 @@ const downloadUrl = computed<string>(() =>
                             class="text-slate-800"
                         >
                             <td class="py-2.5 pr-3">
-                                <span class="font-medium text-slate-900">{{ line.vehicleLabelSnapshot }}</span>
+                                <Link
+                                    :href="vehiclesShowRoute.url({ vehicle: line.vehicleId })"
+                                    class="font-medium text-slate-900 transition-colors duration-[120ms] hover:text-blue-600 hover:underline"
+                                >
+                                    {{ line.vehicleLabelSnapshot }}
+                                </Link>
                             </td>
                             <td class="py-2.5 px-3 text-right font-mono tabular-nums">
                                 {{ line.daysUsed }}

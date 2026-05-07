@@ -18,6 +18,7 @@ use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Models\BillingSettings;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Driver;
@@ -50,6 +51,7 @@ final class DemoSeeder extends Seeder
     public function run(): void
     {
         DB::transaction(function (): void {
+            $this->seedBillingSettings();
             $companies = $this->seedCompanies();
             $vehicles = $this->seedVehicles();
             $this->seedPricings($vehicles);
@@ -57,6 +59,28 @@ final class DemoSeeder extends Seeder
             $this->seedUnavailabilities2024($vehicles);
             $this->seedDrivers($companies);
         });
+    }
+
+    /**
+     * Émetteur de facture par défaut (Phase 14 facturation).
+     * `Sogema Rent` est l'entité juridique qui édite les factures :
+     * Floty n'est que l'outil. Singleton applicatif pré-rempli pour
+     * que la première facture émise soit déjà cohérente sans passage
+     * obligé par la page Paramètres.
+     */
+    private function seedBillingSettings(): void
+    {
+        $settings = BillingSettings::singleton();
+        $settings->fill([
+            'name' => 'Sogema Rent',
+            'address_line_1' => 'Vessac',
+            'address_line_2' => null,
+            'postal_code' => '12720',
+            'city' => 'Saint-André-de-Vézines',
+            'siren' => null,
+            'contact_email' => null,
+        ]);
+        $settings->save();
     }
 
     /**

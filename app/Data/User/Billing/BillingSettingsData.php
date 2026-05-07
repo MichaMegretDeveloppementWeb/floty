@@ -18,7 +18,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - en sortie pour la page Paramètres (lecture)
  *   - en entrée HTTP (validation Spatie via `rules`)
  *
- * Tous les champs sont optionnels — l'utilisateur peut sauvegarder une
+ * Tous les champs sont optionnels : l'utilisateur peut sauvegarder une
  * configuration partielle au démarrage et la compléter plus tard. Le
  * `InvoicePdfRenderer` gère gracieusement les champs manquants.
  */
@@ -29,7 +29,7 @@ final class BillingSettingsData extends Data
     public function __construct(
         #[Nullable, Max(128)]
         public ?string $name,
-        // Override explicite — `Str::snake('addressLine1')` produit
+        // Override explicite : `Str::snake('addressLine1')` produit
         // `address_line1` sans underscore avant le chiffre, mais la
         // colonne et le form utilisent `address_line_1`.
         #[MapInputName('address_line_1'), Nullable, Max(128)]
@@ -68,10 +68,11 @@ final class BillingSettingsData extends Data
     public function toIssuerPayload(): array
     {
         return [
-            // Le nom est obligatoire pour le rendu PDF — fallback sur
-            // l'app name si vide. Le caller peut afficher un warning UI
-            // pour inviter l'utilisateur à compléter ses paramètres.
-            'name' => $this->name ?? (string) config('app.name', 'Floty'),
+            // Le nom est obligatoire pour le rendu PDF. Si non configuré,
+            // on affiche un placeholder explicite invitant à renseigner
+            // les paramètres `Émetteur facture`. **Jamais** « Floty »
+            // (Floty est l'outil de gestion, pas l'émetteur des factures).
+            'name' => $this->name ?? 'Émetteur non configuré',
             'addressLine1' => $this->addressLine1,
             'addressLine2' => $this->addressLine2,
             'postalCode' => $this->postalCode,
