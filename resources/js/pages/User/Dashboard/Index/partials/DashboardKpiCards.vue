@@ -57,8 +57,8 @@ const trendContracts = computed(() =>
 const trendTaxes = computed(() =>
     comparison.value ? buildTrend(comparison.value.deltaTaxesDuesPercent, ' %') : null,
 );
-const trendOccupation = computed(() =>
-    comparison.value ? buildTrend(comparison.value.deltaTauxOccupationPoints, ' pt') : null,
+const trendRecettes = computed(() =>
+    comparison.value ? buildTrend(comparison.value.deltaRecettesLocativesPercent ?? null, ' %') : null,
 );
 
 const comparisonCaption = computed<string | null>(() => {
@@ -78,6 +78,14 @@ const comparisonCaption = computed<string | null>(() => {
             :trend="trendJours?.text"
             :trend-direction="trendJours?.direction"
         >
+            <template #aside>
+                <p class="font-mono text-base font-semibold text-slate-700 tabular-nums leading-none">
+                    {{ kpis.tauxOccupation.toLocaleString('fr-FR') }} %
+                </p>
+                <p class="mt-1 text-[0.625rem] font-medium tracking-wider uppercase text-slate-400">
+                    Occupation
+                </p>
+            </template>
             <template #caption>
                 Cumul du 1ᵉʳ janvier {{ kpis.year }} à aujourd'hui<span
                     v-if="comparisonCaption"
@@ -115,17 +123,16 @@ const comparisonCaption = computed<string | null>(() => {
         </KpiCard>
 
         <KpiCard
-            label="Taux d'occupation flotte"
-            :value="kpis.tauxOccupation.toLocaleString('fr-FR')"
-            suffix="%"
-            :trend="trendOccupation?.text"
-            :trend-direction="trendOccupation?.direction"
+            label="Recettes locatives"
+            :value="formatEur(kpis.recettesLocativesCents / 100)"
+            :trend="trendRecettes?.text"
+            :trend-direction="trendRecettes?.direction"
         >
             <template #caption>
-                Jours-véhicule réalisés / théoriques<span
+                Total HT {{ kpis.year }} · réalisé + prévu<span
                     v-if="comparisonCaption"
                 >
-                    · {{ comparisonCaption }}</span>
+                    · vs {{ comparison ? formatEur(comparison.recettesLocativesCents / 100) : '' }} en {{ comparison?.year }}</span>
             </template>
         </KpiCard>
     </div>

@@ -48,24 +48,32 @@ const trendClasses = computed<string>(() => {
         >
             {{ label }}
         </p>
-        <div class="flex flex-wrap items-baseline gap-1.5">
-            <p
-                class="font-mono text-4xl font-semibold tracking-tight text-slate-900 tabular-nums leading-none"
+        <div class="flex items-end justify-between gap-3">
+            <div class="flex flex-wrap items-baseline gap-1.5">
+                <p
+                    class="font-mono text-4xl font-semibold tracking-tight text-slate-900 tabular-nums leading-none"
+                >
+                    {{ value }}
+                </p>
+                <p
+                    v-if="suffix"
+                    class="text-sm text-slate-400"
+                >
+                    {{ suffix }}
+                </p>
+                <p
+                    v-if="hasTrend"
+                    :class="['ml-1 text-xs font-medium', trendClasses]"
+                >
+                    {{ trend }}
+                </p>
+            </div>
+            <aside
+                v-if="slots.aside"
+                class="shrink-0 text-right"
             >
-                {{ value }}
-            </p>
-            <p
-                v-if="suffix"
-                class="text-sm text-slate-400"
-            >
-                {{ suffix }}
-            </p>
-            <p
-                v-if="hasTrend"
-                :class="['ml-1 text-xs font-medium', trendClasses]"
-            >
-                {{ trend }}
-            </p>
+                <slot name="aside" />
+            </aside>
         </div>
         <p
             v-if="caption || slots.caption"

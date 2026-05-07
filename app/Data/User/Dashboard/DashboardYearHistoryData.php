@@ -8,17 +8,23 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Statistiques annuelles consolidées flotte — une ligne par exercice.
+ * Statistiques annuelles consolidées flotte · une ligne par exercice.
  * Alimente la lentille « Évolution » (graphique barres multi-années)
- * du Dashboard (chantier η Phase 4).
+ * du Dashboard (chantier η Phase 4, enrichi Phase 14.W avec recettes
+ * locatives).
  *
- * Les 4 dimensions sont les mêmes que `DashboardKpiData` (les 3
- * lentilles Présent/Évolution/Exploration partagent les mêmes pivots).
+ * Les dimensions sont alignées sur `DashboardKpiData` (les 3 lentilles
+ * Présent/Évolution/Exploration partagent les mêmes pivots).
  *
- * Les années passées sont calculées **complètes** (1er janvier au 31
- * décembre). L'année en cours est partielle (1er janvier à la date
- * courante) — l'utilisateur doit le savoir et l'UI l'indique
- * explicitement (label « 2026 (en cours) » par exemple).
+ * **Sémantique temporelle asymétrique** :
+ * - 4 dimensions YTD : `joursVehicule`, `contracts`, `taxesDues`,
+ *   `tauxOccupation`. Années passées = full year, année courante = du
+ *   1er janvier au jour courant (partielle, signalée « 2026 (en cours) »).
+ * - 1 dimension full year : `recettesLocativesCents`. Pour l'année en
+ *   cours, la valeur reflète le CA prévu sur l'année entière (mois
+ *   réalisés + mois futurs), cohérent avec la KPI card. La barre
+ *   « (en cours) » garde son opacité 60 % pour signaler la nature
+ *   prévisionnelle.
  */
 #[TypeScript]
 final class DashboardYearHistoryData extends Data
@@ -32,5 +38,10 @@ final class DashboardYearHistoryData extends Data
         public int $contracts,
         public float $taxesDues,
         public float $tauxOccupation,
+        /**
+         * Recettes locatives HT plein année (jan-déc) en centimes.
+         * Pour l'année courante, inclut les contrats futurs (CA prévu).
+         */
+        public int $recettesLocativesCents,
     ) {}
 }

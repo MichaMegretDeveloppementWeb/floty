@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Dashboard;
 
+use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Dashboard\DashboardActivityData;
 use App\Data\User\Dashboard\DashboardHeatmapDayData;
@@ -16,6 +17,7 @@ use App\Data\User\Dashboard\DashboardYearHistoryData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Vehicle;
+use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -63,6 +65,8 @@ final class DashboardStatsService
         private readonly FleetFiscalAggregator $aggregator,
         private readonly FiscalYearContext $yearContext,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly BillingBreakdownService $billingBreakdown,
+        private readonly CompanyReadRepositoryInterface $companies,
     ) {}
 
     /**
@@ -77,7 +81,13 @@ final class DashboardStatsService
         $previousYearEnd = $today->subYear();
         $previous = $this->computePeriodMetrics($year - 1, $previousYearEnd);
 
-        $comparison = $previous['hasData']
+        // Recettes locatives : full year (jan-déc), indépendant de upToDate.
+        // Pour Y courante, somme tous les mois 1..12 (réalisés + prévus).
+        // Pour Y-1, l'année est complète, somme directement les 12 mois.
+        $recettesCurrent = $this->computeRecettesLocativesCentsForYear($year);
+        $recettesPrevious = $this->computeRecettesLocativesCentsForYear($year - 1);
+
+        $comparison = $previous['hasData'] || $recettesPrevious > 0
             ? new DashboardKpiComparisonData(
                 year: $year - 1,
                 endDate: $previousYearEnd->toDateString(),
@@ -85,10 +95,12 @@ final class DashboardStatsService
                 contracts: $previous['contracts'],
                 taxesDues: $previous['taxesDues'],
                 tauxOccupation: $previous['tauxOccupation'],
+                recettesLocativesCents: $recettesPrevious,
                 deltaJoursVehiculePercent: self::deltaPercent($current['joursVehicule'], $previous['joursVehicule']),
                 deltaContractsPercent: self::deltaPercent($current['contracts'], $previous['contracts']),
                 deltaTaxesDuesPercent: self::deltaPercent($current['taxesDues'], $previous['taxesDues']),
                 deltaTauxOccupationPoints: round($current['tauxOccupation'] - $previous['tauxOccupation'], 1),
+                deltaRecettesLocativesPercent: self::deltaPercent($recettesCurrent, $recettesPrevious),
             )
             : null;
 
@@ -99,8 +111,32 @@ final class DashboardStatsService
             contractsActiveNow: $current['contractsActiveNow'],
             taxesDues: $current['taxesDues'],
             tauxOccupation: $current['tauxOccupation'],
+            recettesLocativesCents: $recettesCurrent,
             previousYearComparison: $comparison,
         );
+    }
+
+    /**
+     * Recettes locatives HT cumulées pour une année donnée, **plein
+     * année** (mois 1..12). Itère toutes les entreprises connues et
+     * somme `yearTotalCentsPartial` (mode partiel : véhicules sans
+     * tarif annuel exclus, cf. T11 E.17).
+     *
+     * Sémantique « total réalisé + prévu » pour l'année courante :
+     * `BillingBreakdownService::byCompanyForYear` calcule chaque mois
+     * via `BillingCalculator` qui prend en compte tous les contrats
+     * chevauchant le mois, qu'ils soient passés ou futurs. Aucun
+     * filtre temporel sur la date du jour.
+     */
+    private function computeRecettesLocativesCentsForYear(int $year): int
+    {
+        $total = 0;
+        foreach ($this->companies->findAllForOptions() as $company) {
+            $breakdown = $this->billingBreakdown->byCompanyForYear((int) $company->id, $year);
+            $total += $breakdown->yearTotalCentsPartial;
+        }
+
+        return $total;
     }
 
     /**
@@ -146,6 +182,10 @@ final class DashboardStatsService
                 contracts: $metrics['contracts'],
                 taxesDues: $metrics['taxesDues'],
                 tauxOccupation: $metrics['tauxOccupation'],
+                // Recettes locatives plein année (jan-déc), même pour
+                // l'année courante (CA prévu inclus). La barre opacifiée
+                // « (en cours) » signale la nature prévisionnelle.
+                recettesLocativesCents: $this->computeRecettesLocativesCentsForYear($year),
             );
         }
 

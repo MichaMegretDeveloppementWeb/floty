@@ -19,7 +19,7 @@ const props = defineProps<{
     history: App.Data.User.Dashboard.DashboardYearHistoryData[];
 }>();
 
-type Dimension = 'joursVehicule' | 'contracts' | 'taxesDues' | 'tauxOccupation';
+type Dimension = 'joursVehicule' | 'contracts' | 'taxesDues' | 'recettesLocativesCents';
 
 type DimensionMeta = {
     key: Dimension;
@@ -28,6 +28,11 @@ type DimensionMeta = {
     color: string;
     /** Formate la valeur Y pour l'axe et le tooltip. */
     format: (v: number) => string;
+    /**
+     * Transformation appliquée à la valeur brute du DTO avant injection
+     * dans le dataset Chart.js. Sert pour les centimes (cents → euros).
+     */
+    transform?: (v: number) => number;
 };
 
 const DIMENSIONS: readonly DimensionMeta[] = [
@@ -50,10 +55,11 @@ const DIMENSIONS: readonly DimensionMeta[] = [
         format: (v) => formatEur(v),
     },
     {
-        key: 'tauxOccupation',
-        label: "Taux d'occupation",
+        key: 'recettesLocativesCents',
+        label: 'Recettes',
         color: '#4338ca', // indigo-700
-        format: (v) => `${v.toLocaleString('fr-FR')} %`,
+        format: (v) => formatEur(v),
+        transform: (cents) => cents / 100,
     },
 ];
 
@@ -70,7 +76,13 @@ const chartData = computed(() => ({
     datasets: [
         {
             label: activeMeta.value.label,
-            data: props.history.map((h) => h[activeDimension.value]),
+            data: props.history.map((h) => {
+                const raw = h[activeDimension.value];
+
+                return activeMeta.value.transform
+                    ? activeMeta.value.transform(raw)
+                    : raw;
+            }),
             backgroundColor: props.history.map((h) =>
                 h.isCurrentYear
                     ? `${activeMeta.value.color}99` // 60% opacity sur année en cours

@@ -8,19 +8,24 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * KPIs « Présent » du Dashboard — 4 indicateurs clés de l'année en
- * cours, avec comparaison à la même période de l'année précédente
- * (chantier η Phase 4).
+ * KPIs « Présent » du Dashboard · 5 indicateurs de l'année en cours
+ * avec comparaison à l'année précédente (chantier η Phase 4, enrichi
+ * Phase 14.W avec `recettesLocativesCents`).
  *
- * Les 4 dimensions pivots couvrent : utilisation flotte
- * (`joursVehicule`), activité commerciale (`contractsActifs`),
- * fiscalité (`taxesDues`), santé business (`tauxOccupation`).
+ * **Sémantique temporelle** : 4 dimensions sont YTD (du 1er janvier au
+ * jour courant) : `joursVehicule`, `contracts`, `taxesDues`,
+ * `tauxOccupation`. Une dimension est **full year** (recettes
+ * locatives) : la facturation prévue sur toute l'année calendaire,
+ * mois passés + mois futurs. Cette asymétrie est volontaire : pour
+ * une société de location, le CA annuel attendu est plus parlant que
+ * le CA cumulé YTD (qui serait toujours sous-estimé en début
+ * d'année). Le caption frontend lève l'ambiguïté.
  *
  * `previousYearComparison` est `null` quand on n'a pas de données
  * exploitables sur l'année précédente (typiquement : première année
- * d'utilisation de l'app). Sinon il porte les 4 mêmes KPIs calculés sur
- * la même période Y-1 (du 1er janvier Y-1 au même jour-mois Y-1) pour
- * permettre une comparaison honnête à mi-année.
+ * d'utilisation de l'app). Sinon il porte les KPIs calculés sur la
+ * même fenêtre Y-1 (YTD à même jour-mois pour les 4 cumulatives,
+ * full year pour les recettes).
  */
 #[TypeScript]
 final class DashboardKpiData extends Data
@@ -39,7 +44,7 @@ final class DashboardKpiData extends Data
         /**
          * Sous-décompte des contrats encore en cours aujourd'hui
          * (date courante ∈ `[start, end]`). Affiché en sous-titre du KPI
-         * Contrats. Présent uniquement sur la lentille Présent — pas
+         * Contrats. Présent uniquement sur la lentille Présent · pas
          * dans la comparaison Y-1 (la notion « actif au 5 mai 2025 »
          * n'est pas exploitable, on ne compare que les totaux).
          */
@@ -49,10 +54,18 @@ final class DashboardKpiData extends Data
         /**
          * Taux d'occupation flotte = jours-véhicule réalisés / jours-véhicule
          * théoriques disponibles depuis le 1er janvier. En pourcentage entre
-         * 0 et 100, arrondi à 1 décimale.
+         * 0 et 100, arrondi à 1 décimale. Affiché en sous-ligne discrète
+         * sur la carte « Jours-véhicule occupés » (numérateur + ratio).
          */
         public float $tauxOccupation,
-        /** Comparaison vs même période Y-1, ou null si Y-1 vide. */
+        /**
+         * Recettes locatives HT **plein année** (toutes entreprises × tous
+         * mois 1..12). Calcul via `BillingBreakdownService` en mode partiel
+         * (mois sans tarif annuel exclus). Indépendant de l'émission des
+         * factures : reflète le CA contractuel, pas le facturé.
+         */
+        public int $recettesLocativesCents,
+        /** Comparaison vs Y-1 (YTD pour cumulatives, full year pour recettes), ou null si Y-1 vide. */
         public ?DashboardKpiComparisonData $previousYearComparison,
     ) {}
 }

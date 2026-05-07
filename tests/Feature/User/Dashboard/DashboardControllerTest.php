@@ -46,6 +46,7 @@ final class DashboardControllerTest extends TestCase
                     ->has('contractsActiveNow')
                     ->has('taxesDues')
                     ->has('tauxOccupation')
+                    ->has('recettesLocativesCents')
                     ->has('previousYearComparison'))
                 ->has('history')
                 ->has('activity', fn (AssertableInertia $a) => $a

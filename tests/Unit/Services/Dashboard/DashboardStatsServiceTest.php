@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Models\VehicleYearlyPricing;
 use App\Services\Dashboard\DashboardStatsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -52,6 +53,58 @@ final class DashboardStatsServiceTest extends TestCase
         self::assertSame(1, $kpis['contractsActiveNow']);
         self::assertGreaterThanOrEqual(0.0, $kpis['taxesDues']);
         self::assertGreaterThanOrEqual(0.0, $kpis['tauxOccupation']);
+        // Recettes locatives : véhicule sans tarif annuel → mode partiel = 0.
+        self::assertSame(0, $kpis['recettesLocativesCents']);
+    }
+
+    #[Test]
+    public function compute_kpis_recettes_locatives_full_year_somme_companies(): void
+    {
+        $today = CarbonImmutable::today();
+        $year = $today->year;
+
+        // 2 entreprises, 2 véhicules avec tarif annuel renseigné, 1 contrat
+        // chacun couvrant 10 jours dans l'année courante.
+        $vehicleA = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleA->id]);
+        VehicleYearlyPricing::factory()->create([
+            'vehicle_id' => $vehicleA->id,
+            'year' => $year,
+            'daily_rate_cents' => 9_000,
+            'weekly_rate_cents' => 50_000,
+            'monthly_rate_cents' => 180_000,
+        ]);
+        $vehicleB = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicleB->id]);
+        VehicleYearlyPricing::factory()->create([
+            'vehicle_id' => $vehicleB->id,
+            'year' => $year,
+            'daily_rate_cents' => 9_000,
+            'weekly_rate_cents' => 50_000,
+            'monthly_rate_cents' => 180_000,
+        ]);
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+
+        // Contrat 10 jours en mars (mois passé ou futur selon today, mais
+        // toujours dans l'année courante puisqu'on prend full year).
+        $marchStart = CarbonImmutable::create($year, 3, 1);
+        Contract::factory()->forVehicle($vehicleA)->forCompany($companyA)->create([
+            'start_date' => $marchStart->toDateString(),
+            'end_date' => $marchStart->addDays(9)->toDateString(),
+        ]);
+        Contract::factory()->forVehicle($vehicleB)->forCompany($companyB)->create([
+            'start_date' => $marchStart->toDateString(),
+            'end_date' => $marchStart->addDays(9)->toDateString(),
+        ]);
+
+        $kpis = $this->service->computeKpis($year)->toArray();
+
+        // Chaque contrat = 10 jours × 9 000 cts = 90 000 cts. Mais
+        // OptimalRateBreakdown choisit le combo le moins cher : 1 semaine
+        // (50 000) + 3 jours (27 000) = 77 000 cts. Avec 2 contrats sur
+        // 2 entreprises, total = 154 000 cts.
+        self::assertSame(154_000, $kpis['recettesLocativesCents']);
     }
 
     #[Test]
