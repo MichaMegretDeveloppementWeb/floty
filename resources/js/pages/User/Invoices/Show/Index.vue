@@ -44,7 +44,7 @@ const downloadUrl = computed<string>(() =>
                         <p class="text-xs font-medium tracking-wider uppercase text-slate-500">
                             Facture {{ periodLabel }}
                         </p>
-                        <h1 class="font-mono text-xl font-semibold text-slate-900">
+                        <h1 class="font-mono text-xl font-normal text-slate-900">
                             {{ invoice.invoiceNumber }}
                         </h1>
                     </div>
@@ -79,8 +79,8 @@ const downloadUrl = computed<string>(() =>
                                 class="font-medium text-slate-900 transition-colors duration-[120ms] hover:text-blue-600 hover:underline"
                             >
                                 {{ invoice.companyShortCode }}
+                                <span class="block text-xs text-slate-500">{{ invoice.companyLegalName }}</span>
                             </Link>
-                            <span class="block text-xs text-slate-500">{{ invoice.companyLegalName }}</span>
                         </dd>
                     </div>
                     <div>
@@ -132,7 +132,7 @@ const downloadUrl = computed<string>(() =>
                                 :key="line.id"
                                 class="text-slate-800"
                             >
-                                <td class="py-2.5 pr-3">
+                                <td class="py-4 pr-3">
                                     <Link
                                         :href="vehiclesShowRoute.url({ vehicle: line.vehicleId })"
                                         class="font-medium text-slate-900 transition-colors duration-[120ms] hover:text-blue-600 hover:underline"
@@ -140,10 +140,10 @@ const downloadUrl = computed<string>(() =>
                                         {{ line.vehicleLabelSnapshot }}
                                     </Link>
                                 </td>
-                                <td class="py-2.5 px-3 text-right font-mono tabular-nums">
+                                <td class="py-4 px-3 text-right font-mono tabular-nums">
                                     {{ line.daysUsed }}
                                 </td>
-                                <td class="py-2.5 px-3 text-xs text-slate-600">
+                                <td class="py-4 px-3 text-xs text-slate-600">
                                     <template v-if="line.monthsBilled > 0">
                                         {{ line.monthsBilled }} mois × {{ formatEur(line.monthlyRateCents / 100, 2) }}
                                     </template>
@@ -160,14 +160,14 @@ const downloadUrl = computed<string>(() =>
                                         {{ line.daysBilled }} j × {{ formatEur(line.dailyRateCents / 100, 2) }}
                                     </template>
                                 </td>
-                                <td class="py-2.5 pl-3 text-right font-mono font-medium tabular-nums">
+                                <td class="py-4 pl-3 text-right font-mono font-medium tabular-nums">
                                     {{ formatEur(line.totalHtCents / 100, 2) }}
                                 </td>
                             </tr>
                         </tbody>
                         <tfoot>
-                            <tr class="border-t-2 border-slate-900">
-                                <td class="pt-3 pr-3 font-semibold text-slate-900" colspan="3">
+                            <tr class="border-t-1 border-slate-700">
+                                <td class="pt-3 pr-4 font-semibold text-slate-900" colspan="3">
                                     Total HT
                                 </td>
                                 <td class="pt-3 pl-3 text-right font-mono font-semibold text-slate-900 tabular-nums">
