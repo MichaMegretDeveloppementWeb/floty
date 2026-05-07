@@ -129,9 +129,13 @@ Route::middleware('auth')
             ->name('settings.billing.update');
 
         // Invoices — Phase 14 V1.2 (Index + Show + génération + téléchargement)
+        // Throttle 6/min sur les mutations PDF-générantes (generate /
+        // regenerate) : chaque appel render dompdf + write fs (~0.5-2 s).
+        // 6/min = 1 toutes les 10 s, largement suffisant en usage normal,
+        // garde-fou contre la saturation serveur.
         Route::get('/invoices', [InvoiceController::class, 'index'])->name('invoices.index');
         Route::post('/invoices/generate', [InvoiceController::class, 'generate'])
-            ->middleware('throttle:30,1')
+            ->middleware('throttle:6,1')
             ->name('invoices.generate');
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])
             ->whereNumber('invoice')
@@ -144,12 +148,12 @@ Route::middleware('auth')
         // périmètre (contrat ajouté/modifié sur un mois déjà facturé).
         Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])
             ->whereNumber('invoice')
-            ->middleware('throttle:30,1')
+            ->middleware('throttle:6,1')
             ->name('invoices.destroy');
         // Régénération (Phase 14.I+) — annule + recrée en une transaction.
         Route::post('/invoices/{invoice}/regenerate', [InvoiceController::class, 'regenerate'])
             ->whereNumber('invoice')
-            ->middleware('throttle:30,1')
+            ->middleware('throttle:6,1')
             ->name('invoices.regenerate');
 
         // Unavailabilities — CRUD opéré depuis la page Show véhicule
@@ -176,6 +180,11 @@ Route::middleware('auth')
         Route::post('/planning/contracts', [PlanningController::class, 'storeBulk'])
             ->middleware('throttle:60,1')
             ->name('planning.contracts.store-bulk');
+
+        // Planning Vue Entreprise (chantier P1) : variante de la heatmap
+        // focalisée sur une entreprise donnée.
+        Route::get('/planning/companies/{company}', [PlanningController::class, 'companyIndex'])
+            ->name('planning.companies.index');
 
         // Contracts (ADR-0014) — entité pivot du domaine fiscal.
         Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');

@@ -10,6 +10,7 @@ use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Planning\PreviewTaxesInputData;
 use App\Data\User\Planning\WeekQueryData;
 use App\Http\Controllers\Controller;
+use App\Models\Company;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Planning\PlanningHeatmapService;
 use App\Services\Planning\WeekDetailService;
@@ -47,6 +48,30 @@ final class PlanningController extends Controller
             'User/Planning/Index/Index',
             [
                 ...$this->heatmap->buildHeatmap($year),
+                'selectedYear' => $year,
+                'yearScope' => YearScopeData::fromResolver($this->availableYears),
+            ],
+        );
+    }
+
+    /**
+     * Vue Entreprise (chantier P1) : variante de la heatmap focalisée
+     * sur une entreprise donnée. Cellule chiffre = jours utilisés par
+     * l'entreprise ; cellule couleur = taux d'occupation global du
+     * véhicule (signal de disponibilité, inchangé par rapport à
+     * `index`).
+     *
+     * Route Model Binding : 404 automatique si l'entreprise est
+     * introuvable.
+     */
+    public function companyIndex(Request $request, Company $company): Response
+    {
+        $year = $this->resolveYear($request);
+
+        return Inertia::render(
+            'User/Planning/Company/Index',
+            [
+                ...$this->heatmap->buildHeatmapForCompany($year, $company),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],

@@ -199,6 +199,41 @@ final class PlanningControllerTest extends TestCase
     }
 
     #[Test]
+    public function company_index_renvoie_la_heatmap_filtree_pour_l_entreprise(): void
+    {
+        // Vue Entreprise (chantier P1) : route
+        // GET /app/planning/companies/{company} renvoie le composant
+        // dédié + la heatmap company-scoped.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        $year = 2024;
+        $weekStart = Carbon::now()->setISODate($year, 10)->startOfWeek();
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => $weekStart->toDateString(),
+            'end_date' => $weekStart->toDateString(),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/planning/companies/'.$company->id.'?year='.$year)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Planning/Company/Index')
+                ->has('vehicles', 1)
+                ->where('vehicles.0.weeksGlobal.9', 1)
+                ->where('vehicles.0.weeksForCompany.9', 1)
+                ->where('vehicles.0.daysTotalForCompany', 1)
+                ->where('company.id', $company->id)
+                ->has('companies', 1)
+                ->where('selectedYear', $year),
+            );
+    }
+
+    #[Test]
     public function preview_taxes_renvoie_le_breakdown(): void
     {
         $user = User::factory()->create();

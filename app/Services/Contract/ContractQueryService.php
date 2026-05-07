@@ -459,6 +459,45 @@ final readonly class ContractQueryService
     }
 
     /**
+     * Variante de {@see loadWeekDensity} filtrée sur une entreprise
+     * donnée - alimente la heatmap Vue Entreprise (chantier P1) où le
+     * **chiffre cellule** ne reflète que les jours utilisés par cette
+     * entreprise (la couleur reste pilotée par la densité globale).
+     *
+     * Clé = `"vehicleId|weekNumber"` ; valeur = nombre de jours occupés
+     * par au moins un contrat de l'entreprise pour ce véhicule cette
+     * semaine.
+     *
+     * @return array<string, int>
+     */
+    public function loadWeekDensityForCompany(int $year, int $companyId): array
+    {
+        $contracts = $this->repository->findActiveForYear($year);
+
+        /** @var array<string, array<string, bool>> $byKeyDays */
+        $byKeyDays = [];
+        foreach ($contracts as $contract) {
+            if ($contract->company_id !== $companyId) {
+                continue;
+            }
+
+            foreach ($contract->expandToDaysInYear($year) as $date) {
+                $week = (int) (new \DateTimeImmutable($date))->format('W');
+                $key = $contract->vehicle_id.'|'.$week;
+                $byKeyDays[$key] ??= [];
+                $byKeyDays[$key][$date] = true;
+            }
+        }
+
+        $density = [];
+        foreach ($byKeyDays as $key => $days) {
+            $density[$key] = count($days);
+        }
+
+        return $density;
+    }
+
+    /**
      * Contrats du véhicule chevauchant la fenêtre [start, end] -
      * drawer semaine planning (avec relation `company` eager-loaded).
      *
