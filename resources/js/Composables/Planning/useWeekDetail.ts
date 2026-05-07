@@ -25,8 +25,14 @@ export type UseWeekDetailReturn = {
      * controller fallback sur `currentYear()` et le drawer ouvre
      * toujours sur l'année calendaire courante au lieu de l'année
      * sélectionnée par l'utilisateur dans le sélecteur top-right.
+     *
+     * `companyId` (chantier P3) : quand fourni, active le mode
+     * company-locked côté backend (anonymisation des contrats des
+     * autres entreprises + filtrage `companiesOnWeek`). Utilisé par la
+     * Vue Entreprise pour ne pas révéler quelles autres entreprises
+     * occupent les véhicules.
      */
-    open: (vehicleId: number, week: number, year: number) => Promise<void>;
+    open: (vehicleId: number, week: number, year: number, companyId?: number) => Promise<void>;
     /** Ferme le drawer (sans réinitialiser weekData pour éviter le flash). */
     close: () => void;
 };
@@ -37,13 +43,23 @@ export function useWeekDetail(): UseWeekDetailReturn {
     const weekData = ref<App.Data.User.Planning.PlanningWeekData | null>(null);
     const loading = ref(false);
 
-    const open = async (vehicleId: number, week: number, year: number): Promise<void> => {
+    const open = async (
+        vehicleId: number,
+        week: number,
+        year: number,
+        companyId?: number,
+    ): Promise<void> => {
         loading.value = true;
 
         try {
+            const params: Record<string, number> = { vehicleId, week, year };
+            if (companyId !== undefined) {
+                params.companyId = companyId;
+            }
+
             weekData.value = await api.get<App.Data.User.Planning.PlanningWeekData>(
                 planningWeekRoute.url(),
-                { vehicleId, week, year },
+                params,
             );
             drawerOpen.value = true;
         } catch {

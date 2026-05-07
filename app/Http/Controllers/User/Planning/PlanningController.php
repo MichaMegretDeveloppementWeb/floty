@@ -107,13 +107,21 @@ final class PlanningController extends Controller
     }
 
     /**
-     * GET /app/planning/week?vehicleId=X&week=N&year=Y
+     * GET /app/planning/week?vehicleId=X&week=N&year=Y[&companyId=Z]
+     *
+     * Quand `companyId` est fourni : mode company-locked (chantier P3).
+     * Anonymise les contrats des autres entreprises et filtre
+     * `companiesOnWeek` pour ne garder que l'entreprise demandée.
      */
     public function week(WeekQueryData $query, Request $request): JsonResponse
     {
-        return response()->json(
-            $this->weekDetail->buildWeek($query->vehicleId, $query->week, $this->resolveYear($request)),
-        );
+        $year = $this->resolveYear($request);
+
+        $payload = $query->companyId !== null
+            ? $this->weekDetail->buildWeekForCompany($query->vehicleId, $query->week, $year, $query->companyId)
+            : $this->weekDetail->buildWeek($query->vehicleId, $query->week, $year);
+
+        return response()->json($payload);
     }
 
     /**

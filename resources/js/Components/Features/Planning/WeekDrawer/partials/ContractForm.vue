@@ -16,16 +16,27 @@ import MoreOptionsSection from './MoreOptionsSection.vue';
 type Company = App.Data.User.Company.CompanyOptionData;
 type DateRange = { startDate: string | null; endDate: string | null };
 
-const props = defineProps<{
-    vehicleId: number;
-    companies: Company[];
-    fiscalYear: number;
-    startMonth: number;
-    weekDates: string[];
-    disabledDates: string[];
-    selectedCompanyId: number | null;
-    selectedRange: DateRange;
-}>();
+const props = withDefaults(
+    defineProps<{
+        vehicleId: number;
+        companies: Company[];
+        fiscalYear: number;
+        startMonth: number;
+        weekDates: string[];
+        disabledDates: string[];
+        selectedCompanyId: number | null;
+        selectedRange: DateRange;
+        /**
+         * Mode company-locked (chantier P3) : quand fourni, le sélecteur
+         * entreprise est masqué et l'entreprise est hardcodée. Le payload
+         * submit utilise `lockedCompany.id`.
+         */
+        lockedCompany?: Company | null;
+    }>(),
+    {
+        lockedCompany: null,
+    },
+);
 
 const emit = defineEmits<{
     'update:selectedCompanyId': [value: number | null];
@@ -152,7 +163,9 @@ async function submit(): Promise<void> {
     try {
         const payload: Record<string, unknown> = {
             vehicle_ids: [props.vehicleId],
-            company_id: props.selectedCompanyId as number,
+            // En mode company-locked, l'id vient de lockedCompany
+            // (sélecteur masqué). Sinon, on lit selectedCompanyId.
+            company_id: (props.lockedCompany?.id ?? props.selectedCompanyId) as number,
             driver_ids: selectedDriverIds.value,
             start_date: props.selectedRange.startDate as string,
             end_date: props.selectedRange.endDate as string,
@@ -188,7 +201,16 @@ async function submit(): Promise<void> {
         <!-- ── Entreprise ─────────────────────────────────────────── -->
         <div class="flex flex-col gap-2">
             <p class="eyebrow">Entreprise</p>
+            <!-- Mode company-locked (chantier P3) : entreprise verrouillée
+                 par la Vue Entreprise courante, pas de sélecteur. -->
+            <div
+                v-if="lockedCompany"
+                class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+            >
+                <CompanyOptionTag :company="lockedCompany" />
+            </div>
             <SearchableSelect
+                v-else
                 v-model="companyIdModel"
                 placeholder="Choisir une entreprise…"
                 :options="companyOptions"

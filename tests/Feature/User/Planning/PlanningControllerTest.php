@@ -199,6 +199,55 @@ final class PlanningControllerTest extends TestCase
     }
 
     #[Test]
+    public function week_anonymise_les_contrats_des_autres_entreprises_avec_company_id(): void
+    {
+        // Vue Entreprise (chantier P3) : la route GET /app/planning/week
+        // accepte un query param `companyId` optionnel. Quand fourni,
+        // le payload anonymise les contrats des autres entreprises.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+
+        $year = 2024;
+        $weekStart = Carbon::now()->setISODate($year, 10)->startOfWeek();
+
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $companyA->id,
+            'start_date' => $weekStart->toDateString(),
+            'end_date' => $weekStart->toDateString(),
+        ]);
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $companyB->id,
+            'start_date' => $weekStart->copy()->addDays(2)->toDateString(),
+            'end_date' => $weekStart->copy()->addDays(2)->toDateString(),
+        ]);
+
+        $response = $this->actingAs($user)
+            ->getJson("/app/planning/week?vehicleId={$vehicle->id}&week=10&year={$year}&companyId={$companyA->id}")
+            ->assertOk();
+
+        $days = $response->json('days');
+
+        // Lundi : contract companyA non-anonymisé.
+        self::assertNotNull($days[0]['contract']);
+        self::assertSame($companyA->id, $days[0]['contract']['company']['id']);
+        self::assertFalse($days[0]['isOccupiedByOther']);
+
+        // Mercredi : contract companyB anonymisé.
+        self::assertNull($days[2]['contract']);
+        self::assertTrue($days[2]['isOccupiedByOther']);
+
+        // companiesOnWeek filtré.
+        $companies = $response->json('companiesOnWeek');
+        self::assertCount(1, $companies);
+        self::assertSame($companyA->id, $companies[0]['company']['id']);
+    }
+
+    #[Test]
     public function company_index_renvoie_la_heatmap_filtree_pour_l_entreprise(): void
     {
         // Vue Entreprise (chantier P1) : route

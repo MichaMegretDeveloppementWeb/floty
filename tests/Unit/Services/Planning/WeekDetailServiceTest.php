@@ -51,6 +51,57 @@ final class WeekDetailServiceTest extends TestCase
     }
 
     #[Test]
+    public function build_week_for_company_anonymise_les_contrats_des_autres_entreprises(): void
+    {
+        // Vue Entreprise (chantier P3) : quand le drawer est ouvert
+        // depuis la Vue Entreprise (donc avec un companyId), les
+        // contrats d'autres entreprises sont anonymisés. Le frontend
+        // ne reçoit jamais l'identité/couleur de l'entreprise
+        // occupante.
+        $year = 2024;
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+
+        // Semaine 10 : lundi pour companyA, mercredi pour companyB.
+        $weekStart = Carbon::now()->setISODate($year, 10)->startOfWeek();
+        $monday = $weekStart->toDateString();
+        $wednesday = $weekStart->copy()->addDays(2)->toDateString();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($companyA)->create([
+            'start_date' => $monday,
+            'end_date' => $monday,
+        ]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($companyB)->create([
+            'start_date' => $wednesday,
+            'end_date' => $wednesday,
+        ]);
+
+        $week = $this->service->buildWeekForCompany($vehicle->id, 10, $year, $companyA->id);
+
+        // Lundi : contrat companyA visible (pas anonyme).
+        $mondaySlot = $week->days[0];
+        self::assertNotNull($mondaySlot->contract);
+        self::assertSame($companyA->id, $mondaySlot->contract->company->id);
+        self::assertFalse($mondaySlot->isOccupiedByOther);
+
+        // Mardi : libre.
+        $tuesdaySlot = $week->days[1];
+        self::assertNull($tuesdaySlot->contract);
+        self::assertFalse($tuesdaySlot->isOccupiedByOther);
+
+        // Mercredi : contrat companyB anonymisé.
+        $wednesdaySlot = $week->days[2];
+        self::assertNull($wednesdaySlot->contract);
+        self::assertTrue($wednesdaySlot->isOccupiedByOther);
+
+        // companiesOnWeek ne contient que companyA.
+        self::assertCount(1, $week->companiesOnWeek);
+        self::assertSame($companyA->id, $week->companiesOnWeek[0]->company->id);
+    }
+
+    #[Test]
     public function preview_taxes_renvoie_le_cout_standalone_du_contrat(): void
     {
         // Sémantique : LCD/LLD se calcule par contrat individuellement

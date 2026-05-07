@@ -32,9 +32,11 @@ function isSelected(date: string, selected: string[]): boolean {
                     'flex flex-col items-center gap-0.5 rounded-md p-1.5 text-center text-[10px]',
                     slot.contract
                         ? 'bg-slate-50'
-                        : isSelected(slot.date, selectedDates)
-                          ? 'bg-blue-600 text-white'
-                          : 'border border-dashed border-slate-200',
+                        : slot.isOccupiedByOther
+                          ? 'bg-slate-100'
+                          : isSelected(slot.date, selectedDates)
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-dashed border-slate-200',
                     slot.hasUnavailability && 'ring-1 ring-rose-500 ring-inset',
                 ]"
                 :aria-label="slot.hasUnavailability ? `${slot.dayLabel} : indisponibilité présente` : undefined"
@@ -42,7 +44,7 @@ function isSelected(date: string, selected: string[]): boolean {
                 <span
                     :class="[
                         'font-medium',
-                        isSelected(slot.date, selectedDates) && !slot.contract
+                        isSelected(slot.date, selectedDates) && !slot.contract && !slot.isOccupiedByOther
                             ? 'text-blue-100'
                             : 'text-slate-500',
                     ]"
@@ -52,7 +54,7 @@ function isSelected(date: string, selected: string[]): boolean {
                 <span
                     :class="[
                         'font-mono',
-                        isSelected(slot.date, selectedDates) && !slot.contract
+                        isSelected(slot.date, selectedDates) && !slot.contract && !slot.isOccupiedByOther
                             ? 'text-white'
                             : 'text-slate-400',
                     ]"
@@ -66,6 +68,12 @@ function isSelected(date: string, selected: string[]): boolean {
                     :color="slot.contract.company.color"
                     class="mt-1"
                 />
+                <span
+                    v-else-if="slot.isOccupiedByOther"
+                    class="mt-1 rounded-md bg-slate-200 px-1.5 py-0.5 text-[9px] font-medium text-slate-600"
+                >
+                    Indisponible
+                </span>
                 <span
                     v-else-if="isSelected(slot.date, selectedDates)"
                     class="mt-1 text-[10px] font-medium text-white"

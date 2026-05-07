@@ -19,12 +19,26 @@ type Company = App.Data.User.Company.CompanyOptionData;
 type WeekData = App.Data.User.Planning.PlanningWeekData;
 type DateRange = { startDate: string | null; endDate: string | null };
 
-const props = defineProps<{
-    open: boolean;
-    week: WeekData | null;
-    companies: Company[];
-    fiscalYear: number;
-}>();
+const props = withDefaults(
+    defineProps<{
+        open: boolean;
+        week: WeekData | null;
+        companies: Company[];
+        fiscalYear: number;
+        /**
+         * Mode company-locked (chantier P3) : quand fourni, le drawer
+         * est ouvert depuis la Vue Entreprise. L'entreprise est
+         * verrouillée dans le formulaire de création (sélecteur
+         * masqué, hardcodée sur cette company) et la grille semaine
+         * affiche les contrats des autres entreprises comme
+         * « Indisponible » anonyme (anonymisation backend).
+         */
+        lockedCompany?: Company | null;
+    }>(),
+    {
+        lockedCompany: null,
+    },
+);
 
 defineEmits<{
     close: [];
@@ -34,11 +48,12 @@ defineEmits<{
 const selectedCompanyId = ref<number | null>(null);
 const selectedRange = ref<DateRange>({ startDate: null, endDate: null });
 
-// Reset à chaque ouverture.
+// Reset à chaque ouverture. En mode company-locked, on pré-sélectionne
+// l'entreprise verrouillée (le sélecteur est caché côté ContractForm).
 watch(
     () => props.week,
     () => {
-        selectedCompanyId.value = null;
+        selectedCompanyId.value = props.lockedCompany?.id ?? null;
         selectedRange.value = { startDate: null, endDate: null };
     },
 );
@@ -135,6 +150,7 @@ const selectedDatesInWeek = computed((): string[] => {
                     :disabled-dates="disabledDates"
                     :selected-company-id="selectedCompanyId"
                     :selected-range="selectedRange"
+                    :locked-company="lockedCompany"
                     @update:selected-company-id="selectedCompanyId = $event"
                     @update:selected-range="selectedRange = $event"
                     @submitted="$emit('contracts-created')"

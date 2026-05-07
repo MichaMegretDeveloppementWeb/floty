@@ -124,6 +124,61 @@ final class WeekDetailService
     }
 
     /**
+     * Variante company-scoped de {@see buildWeek} pour la Vue Entreprise
+     * (chantier P3). Anonymise les contrats des autres entreprises dans
+     * la grille semaine et filtre `companiesOnWeek` pour ne garder que
+     * l'entreprise demandée.
+     *
+     * Sécurité : le frontend ne reçoit jamais l'identité ni la couleur
+     * de l'entreprise occupante quand le contrat n'est pas le sien.
+     */
+    public function buildWeekForCompany(
+        int $vehicleId,
+        int $weekNumber,
+        int $year,
+        int $companyId,
+    ): PlanningWeekData {
+        $week = $this->buildWeek($vehicleId, $weekNumber, $year);
+
+        $anonymizedDays = array_map(
+            static function (WeekDaySlotData $slot) use ($companyId): WeekDaySlotData {
+                if ($slot->contract === null) {
+                    return $slot;
+                }
+
+                if ($slot->contract->company->id === $companyId) {
+                    return $slot;
+                }
+
+                return new WeekDaySlotData(
+                    date: $slot->date,
+                    dayLabel: $slot->dayLabel,
+                    contract: null,
+                    hasUnavailability: $slot->hasUnavailability,
+                    isOccupiedByOther: true,
+                );
+            },
+            $week->days,
+        );
+
+        $filteredCompaniesOnWeek = array_values(array_filter(
+            $week->companiesOnWeek,
+            static fn (WeekCompanyPresenceData $entry): bool => $entry->company->id === $companyId,
+        ));
+
+        return new PlanningWeekData(
+            weekNumber: $week->weekNumber,
+            weekStart: $week->weekStart,
+            weekEnd: $week->weekEnd,
+            vehicleId: $week->vehicleId,
+            licensePlate: $week->licensePlate,
+            days: $anonymizedDays,
+            companiesOnWeek: $filteredCompaniesOnWeek,
+            vehicleBusyDates: $week->vehicleBusyDates,
+        );
+    }
+
+    /**
      * Aperçu fiscal **standalone** d'une attribution (location/contrat).
      *
      * Sémantique : LCD/LLD se qualifie **contrat par contrat
