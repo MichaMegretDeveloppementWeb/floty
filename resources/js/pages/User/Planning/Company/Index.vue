@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Vue Entreprise — stub minimal (chantier P1, fondations backend).
+ * Vue Entreprise · stub minimal (chantier P1, fondations backend).
  *
  * Sera remplacé en chantier P2 par la vraie page : sélecteur entreprise
  * en haut + heatmap company-scoped (cellules `weeksForCompany`, couleur
@@ -24,7 +24,7 @@ defineProps<{
     <UserLayout>
         <div class="flex flex-col gap-4 p-6">
             <h1 class="text-2xl font-semibold tracking-tight text-slate-900">
-                Vue Entreprise — {{ company.shortCode }}
+                Vue Entreprise · {{ company.shortCode }}
             </h1>
             <p class="text-sm text-slate-500">
                 Stub P1. La page complète arrive en chantier P2.
