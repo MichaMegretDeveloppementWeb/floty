@@ -156,7 +156,14 @@ function onTriggerKeyDown(event: KeyboardEvent): void {
                         selectedOption ? '' : 'text-slate-400',
                     ]"
                 >
-                    {{ selectedOption?.label ?? placeholder ?? '' }}
+                    <slot
+                        v-if="selectedOption"
+                        name="selected"
+                        :option="selectedOption"
+                    >
+                        {{ selectedOption.label }}
+                    </slot>
+                    <template v-else>{{ placeholder ?? '' }}</template>
                 </span>
             </button>
             <ChevronDown
@@ -204,7 +211,14 @@ function onTriggerKeyDown(event: KeyboardEvent): void {
                         @click="selectByIndex(idx)"
                         @mouseenter="highlightedIndex = idx"
                     >
-                        {{ option.label }}
+                        <slot
+                            name="option"
+                            :option="option"
+                            :is-highlighted="idx === highlightedIndex"
+                            :is-selected="option.value === modelValue"
+                        >
+                            {{ option.label }}
+                        </slot>
                     </li>
                     <li
                         v-if="filteredOptions.length === 0"

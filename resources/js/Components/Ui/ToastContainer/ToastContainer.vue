@@ -22,7 +22,7 @@ onMounted(() => {
         to="body"
     >
         <div
-            class="pointer-events-none fixed top-4 right-4 z-[60] flex flex-col gap-3"
+            class="pointer-events-none fixed top-4 left-1/2 z-[60] flex -translate-x-1/2 flex-col items-center gap-3"
             aria-live="polite"
             aria-atomic="false"
         >

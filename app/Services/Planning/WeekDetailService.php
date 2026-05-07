@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Planning;
 
-use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
@@ -33,7 +32,6 @@ final class WeekDetailService
 {
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
-        private readonly ContractReadRepositoryInterface $contractRepo,
         private readonly ContractQueryService $contractQuery,
         private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
         private readonly FiscalCalculator $calculator,
@@ -126,14 +124,20 @@ final class WeekDetailService
     }
 
     /**
-     * Aperçu fiscal des taxes induites par l'ajout d'une plage de
-     * dates pour un couple (véhicule, entreprise).
+     * Aperçu fiscal **standalone** d'une attribution (location/contrat).
      *
-     * Sémantique 04.F : on simule l'ajout d'un **contrat synthétique
-     * unique** sur la plage `[min(dates), max(dates)]`. Si la plage est
-     * en partie chevauchante avec un contrat existant du couple,
-     * l'aperçu reste indicatif (la création réelle passera par
-     * `BulkCreateContractsAction` qui détectera l'overlap).
+     * Sémantique : LCD/LLD se qualifie **contrat par contrat
+     * individuellement** d'après la durée du contrat seul (≤ 30 j → LCD,
+     * sinon LLD). Aucune notion de cumul annuel pour un couple véhicule
+     * × entreprise. Le preview calcule donc strictement le coût fiscal
+     * de **ce contrat précis** : ses jours, sa CO₂, ses polluants, son
+     * total, ses exonérations applicables.
+     *
+     * On simule un contrat synthétique unique sur `[min(dates),
+     * max(dates)]` sans tenir compte d'autres contrats existants pour
+     * le même couple. Si la plage est partiellement chevauchante avec
+     * un contrat existant, l'aperçu reste indicatif (la création réelle
+     * passera par `BulkCreateContractsAction` qui détectera l'overlap).
      */
     public function previewTaxes(PreviewTaxesInputData $input, int $year): FiscalPreviewData
     {
@@ -144,38 +148,16 @@ final class WeekDetailService
             static fn (string $d): bool => str_starts_with($d, $yearPrefix),
         ));
 
-        // Préparation : un seul aller-retour DB pour les 3 entités
-        // requises par le calculator quel que soit le chemin (avec ou
-        // sans nouvelles dates) - auparavant ces lectures partaient
-        // dans chaque branche du if.
         $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
         $unavailabilities = $this->unavailabilityRepo->findForVehicle($input->vehicleId)->all();
-        $existingContracts = $this->contractRepo
-            ->findByVehicleAndYear($input->vehicleId, $year)
-            ->all();
-        $existingForPair = array_values(array_filter(
-            $existingContracts,
-            static fn (Contract $c): bool => $c->company_id === $input->companyId,
-        ));
-
-        $existingDates = $this->collectDates($existingForPair, $year);
-        $existingCumul = count($existingDates);
-
-        $before = $existingCumul > 0
-            ? $this->calculator->calculate($vehicle, $existingForPair, $unavailabilities, $year)
-            : null;
 
         if ($newDates === []) {
-            $after = $this->calculator->calculate($vehicle, $existingForPair, $unavailabilities, $year);
+            $emptyBreakdown = $this->calculator->calculate($vehicle, [], $unavailabilities, $year);
 
             return new FiscalPreviewData(
                 fiscalYear: $year,
-                newDaysCount: 0,
-                existingCumul: $existingCumul,
-                futureCumul: $existingCumul,
-                before: $before !== null ? FiscalBreakdownData::fromBreakdown($before) : null,
-                after: FiscalBreakdownData::fromBreakdown($after),
-                incrementalDue: 0.0,
+                daysCount: 0,
+                breakdown: FiscalBreakdownData::fromBreakdown($emptyBreakdown),
             );
         }
 
@@ -190,50 +172,20 @@ final class WeekDetailService
             $rangeEnd,
         );
 
-        $newDatesSet = [];
-        foreach ($syntheticContract->expandToDaysInYear($year) as $date) {
-            if (! in_array($date, $existingDates, true)) {
-                $newDatesSet[] = $date;
-            }
-        }
-        $newDaysCount = count($newDatesSet);
-        $futureCumul = $existingCumul + $newDaysCount;
+        $daysCount = count($syntheticContract->expandToDaysInYear($year));
 
-        $after = $this->calculator->calculate(
+        $breakdown = $this->calculator->calculate(
             $vehicle,
-            [...$existingForPair, $syntheticContract],
+            [$syntheticContract],
             $unavailabilities,
             $year,
         );
 
-        $beforeDue = $before !== null ? $before->totalDue : 0.0;
-        $incrementalDue = $after->totalDue - $beforeDue;
-
         return new FiscalPreviewData(
             fiscalYear: $year,
-            newDaysCount: $newDaysCount,
-            existingCumul: $existingCumul,
-            futureCumul: $futureCumul,
-            before: $before !== null ? FiscalBreakdownData::fromBreakdown($before) : null,
-            after: FiscalBreakdownData::fromBreakdown($after),
-            incrementalDue: round($incrementalDue, 2),
+            daysCount: $daysCount,
+            breakdown: FiscalBreakdownData::fromBreakdown($breakdown),
         );
-    }
-
-    /**
-     * @param  iterable<Contract>  $contracts
-     * @return list<string>
-     */
-    private function collectDates(iterable $contracts, int $year): array
-    {
-        $dates = [];
-        foreach ($contracts as $contract) {
-            foreach ($contract->expandToDaysInYear($year) as $date) {
-                $dates[$date] = true;
-            }
-        }
-
-        return array_keys($dates);
     }
 
     /**

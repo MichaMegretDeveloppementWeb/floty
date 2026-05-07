@@ -1,0 +1,1 @@
+import{O as e,St as t,_ as n,u as r}from"./runtime-core.esm-bundler-ZxkLjTIG.js";var i={class:`font-mono font-medium tracking-[0.02em] text-slate-900 uppercase`},a=n({__name:`Plate`,props:{value:{}},setup(n){return(a,o)=>(e(),r(`span`,i,t(n.value),1))}});export{a as t};

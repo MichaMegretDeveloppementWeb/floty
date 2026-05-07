@@ -4,7 +4,7 @@ import { useApi } from '@/Composables/Shared/useApi';
 import { previewTaxes as previewTaxesRoute } from '@/routes/user/planning';
 
 /**
- * Aperçu fiscal en temps réel pour la création d'une attribution.
+ * Aperçu fiscal **standalone** d'une attribution (location/contrat).
  *
  * État debounced (200 ms) consommant
  * `POST /app/planning/preview-taxes`. Le composable gère son propre
@@ -13,6 +13,10 @@ import { previewTaxes as previewTaxesRoute } from '@/routes/user/planning';
  *
  * Pas de retour `error` séparé : `useApi` push automatiquement un
  * toast erreur ; côté composable on remet juste `preview = null`.
+ *
+ * Sémantique : LCD/LLD se calcule par contrat individuellement
+ * (pas de cumul annuel). Le preview répond donc strictement au coût
+ * fiscal du contrat seul.
  */
 export type FiscalPreviewInput = {
     vehicleId: number | null;

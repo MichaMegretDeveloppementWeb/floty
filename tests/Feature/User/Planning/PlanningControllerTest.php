@@ -217,11 +217,8 @@ final class PlanningControllerTest extends TestCase
             ->assertOk()
             ->assertJsonStructure([
                 'fiscalYear',
-                'newDaysCount',
-                'existingCumul',
-                'futureCumul',
-                'after' => ['totalDue', 'co2Due', 'pollutantsDue', 'co2Method'],
-                'incrementalDue',
+                'daysCount',
+                'breakdown' => ['totalDue', 'co2Due', 'pollutantsDue', 'co2Method', 'appliedExemptions'],
             ]);
     }
 

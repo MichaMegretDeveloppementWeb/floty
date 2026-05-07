@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import CompanyOptionTag from '@/Components/Domain/Company/CompanyOptionTag.vue';
+import ContractDocumentsModal from '@/Components/Domain/Contract/ContractDocumentsModal.vue';
 import DriversMultiPicker from '@/Components/Domain/Driver/DriversMultiPicker.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
+import { useContractDocuments } from '@/Composables/Contract/useContractDocuments';
 import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
 import { useApi } from '@/Composables/Shared/useApi';
 import { storeBulk as storeBulkRoute } from '@/routes/user/planning/contracts';
 import FiscalPreviewCard from './FiscalPreviewCard.vue';
+import MoreOptionsSection from './MoreOptionsSection.vue';
 
 type Company = App.Data.User.Company.CompanyOptionData;
 type DateRange = { startDate: string | null; endDate: string | null };
@@ -30,14 +34,22 @@ const emit = defineEmits<{
 }>();
 
 const api = useApi();
+const { uploadMany } = useContractDocuments();
 const { preview, loading: previewLoading, fetch: fetchPreview, reset: resetPreview } = useFiscalPreview();
 
+// ── Sélecteur entreprise enrichi ────────────────────────────────────
 const companyOptions = computed(() =>
     props.companies.map((c) => ({
         value: c.id,
         label: `${c.shortCode} · ${c.legalName}`,
     })),
 );
+
+const companyById = computed(() => {
+    const map = new Map<number, Company>();
+    for (const c of props.companies) map.set(c.id, c);
+    return map;
+});
 
 const companyIdModel = computed({
     get: (): number | null => props.selectedCompanyId,
@@ -46,20 +58,28 @@ const companyIdModel = computed({
     },
 });
 
+// ── Plage ───────────────────────────────────────────────────────────
 const rangeProxy = computed<DateRange>({
     get: () => props.selectedRange,
     set: (v: DateRange) => emit('update:selectedRange', v),
 });
 const ongoing = ref<boolean>(false);
 
+// ── State local ─────────────────────────────────────────────────────
 const submitting = ref<boolean>(false);
 const selectedDriverIds = ref<number[]>([]);
+const contractReference = ref<string | null>(null);
+const notes = ref<string | null>(null);
+const pendingFiles = ref<File[]>([]);
+const documentsModalOpen = ref<boolean>(false);
 
-// Reset des drivers sélectionnés si l'entreprise change
 watch(
     () => props.selectedCompanyId,
     () => {
         selectedDriverIds.value = [];
+        contractReference.value = null;
+        notes.value = null;
+        pendingFiles.value = [];
     },
 );
 
@@ -76,8 +96,28 @@ const canSubmit = computed(
         !submitting.value,
 );
 
-// Helper : expand la plage en liste de dates ISO (pour la preview qui
-// attend `dates: string[]` côté API actuelle).
+// Durée live affichée à côté du titre PÉRIODE.
+const durationDays = computed<number | null>(() => {
+    const start = props.selectedRange.startDate;
+    const end = props.selectedRange.endDate;
+    if (start === null || end === null) return null;
+
+    const days = Math.floor(
+        (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24),
+    ) + 1;
+
+    return days > 0 ? days : null;
+});
+
+const contractType = computed<'lcd' | 'lld' | null>(() => {
+    if (durationDays.value === null) return null;
+    return durationDays.value <= 30 ? 'lcd' : 'lld';
+});
+
+// ── Preview fiscale ─────────────────────────────────────────────────
+// Le backend prend min/max des dates pour reconstruire la plage du
+// contrat synthétique — pas besoin d'expandre tous les jours côté
+// front (et ça évite les bugs de timezone sur les transitions DST).
 const datesInRange = computed<string[]>(() => {
     const start = props.selectedRange.startDate;
     const end = props.selectedRange.endDate;
@@ -86,19 +126,9 @@ const datesInRange = computed<string[]>(() => {
         return [];
     }
 
-    const out: string[] = [];
-    const cursor = new Date(start);
-    const stop = new Date(end);
-
-    while (cursor <= stop) {
-        out.push(cursor.toISOString().slice(0, 10));
-        cursor.setDate(cursor.getDate() + 1);
-    }
-
-    return out;
+    return start === end ? [start] : [start, end];
 });
 
-// Re-déclenche la preview à chaque changement de couple ou de plage.
 watch(
     () => [props.selectedCompanyId, datesInRange.value] as const,
     ([companyId, dates]) => {
@@ -111,6 +141,7 @@ watch(
     { deep: true },
 );
 
+// ── Submit ──────────────────────────────────────────────────────────
 async function submit(): Promise<void> {
     if (!canSubmit.value) {
         return;
@@ -119,22 +150,30 @@ async function submit(): Promise<void> {
     submitting.value = true;
 
     try {
-        // Le DTO `BulkStoreContractsData` déclare `MapInputName(SnakeCaseMapper)` :
-        // les clés du payload doivent être en snake_case côté requête. Le typage
-        // TS généré (camelCase) ne reflète pas cette contrainte de transport,
-        // d'où le `Record<string, unknown>` ici (cf. plan chantier A).
         const payload: Record<string, unknown> = {
             vehicle_ids: [props.vehicleId],
             company_id: props.selectedCompanyId as number,
             driver_ids: selectedDriverIds.value,
             start_date: props.selectedRange.startDate as string,
             end_date: props.selectedRange.endDate as string,
-            contract_reference: null,
-            notes: null,
+            contract_reference: contractReference.value,
+            notes: notes.value,
         };
 
-        await api.post<{ createdIds: number[] }>(storeBulkRoute.url(), payload);
+        const response = await api.post<{ createdIds: number[] }>(
+            storeBulkRoute.url(),
+            payload,
+        );
+
+        if (pendingFiles.value.length > 0 && response.createdIds.length > 0) {
+            const contractId = response.createdIds[0]!;
+            await uploadMany(contractId, pendingFiles.value);
+        }
+
         resetPreview();
+        pendingFiles.value = [];
+        contractReference.value = null;
+        notes.value = null;
         emit('submitted');
     } catch {
         // Toast erreur déjà affiché par useApi
@@ -145,27 +184,71 @@ async function submit(): Promise<void> {
 </script>
 
 <template>
-    <section class="flex flex-col gap-3 border-t border-slate-100 pt-4">
-        <p class="eyebrow mb-0">Créer une location</p>
+    <section class="flex flex-col gap-5 border-t border-slate-100 pt-5">
+        <!-- ── Entreprise ─────────────────────────────────────────── -->
+        <div class="flex flex-col gap-2">
+            <p class="eyebrow">Entreprise</p>
+            <SearchableSelect
+                v-model="companyIdModel"
+                placeholder="Choisir une entreprise…"
+                :options="companyOptions"
+            >
+                <template #option="{ option }">
+                    <CompanyOptionTag
+                        v-if="companyById.get(Number(option.value))"
+                        :company="companyById.get(Number(option.value))!"
+                    />
+                    <template v-else>{{ option.label }}</template>
+                </template>
+                <template #selected="{ option }">
+                    <CompanyOptionTag
+                        v-if="companyById.get(Number(option.value))"
+                        :company="companyById.get(Number(option.value))!"
+                    />
+                    <template v-else>{{ option.label }}</template>
+                </template>
+            </SearchableSelect>
+        </div>
 
-        <SearchableSelect
-            v-model="companyIdModel"
-            label="Entreprise"
-            placeholder="Choisir une entreprise…"
-            :options="companyOptions"
-        />
+        <hr class="border-slate-100" />
 
-        <DateRangePicker
-            v-model:range="rangeProxy"
-            v-model:ongoing="ongoing"
-            :year="fiscalYear"
-            :start-month="startMonth"
-            :disabled-dates="disabledDates"
-            :highlight-dates="weekDates"
-        />
+        <!-- ── Période ────────────────────────────────────────────── -->
+        <div class="flex flex-col gap-2">
+            <div class="flex items-center justify-between gap-2">
+                <p class="eyebrow">Période</p>
+                <span
+                    v-if="durationDays !== null"
+                    class="inline-flex items-center gap-1.5 text-xs"
+                >
+                    <span class="font-mono text-slate-700">{{ durationDays }} j</span>
+                    <span class="text-slate-300">·</span>
+                    <span
+                        class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-slate-700 uppercase"
+                    >
+                        {{ contractType === 'lcd' ? 'LCD' : 'LLD' }}
+                    </span>
+                </span>
+            </div>
+            <DateRangePicker
+                v-model:range="rangeProxy"
+                v-model:ongoing="ongoing"
+                :year="fiscalYear"
+                :start-month="startMonth"
+                :disabled-dates="disabledDates"
+                :highlight-dates="weekDates"
+            />
+        </div>
 
-        <div>
-            <p class="eyebrow mb-1">Conducteurs (optionnel)</p>
+        <hr class="border-slate-100" />
+
+        <!-- ── Conducteurs ────────────────────────────────────────── -->
+        <div class="flex flex-col gap-2">
+            <p class="eyebrow">
+                Conducteurs
+                <span class="ml-1 font-normal normal-case tracking-normal text-slate-400">
+                    · optionnel
+                </span>
+            </p>
             <DriversMultiPicker
                 v-model="selectedDriverIds"
                 :company-id="selectedCompanyId"
@@ -174,21 +257,60 @@ async function submit(): Promise<void> {
             />
         </div>
 
-        <FiscalPreviewCard
-            v-if="hasRange && selectedCompanyId !== null"
-            :preview="preview"
-            :loading="previewLoading"
-            :year="fiscalYear"
+        <hr class="border-slate-100" />
+
+        <!-- ── Plus d'options (Référence + Notes + Documents) ─────── -->
+        <MoreOptionsSection
+            :reference="contractReference"
+            :notes="notes"
+            :files-count="pendingFiles.length"
+            @update:reference="contractReference = $event"
+            @update:notes="notes = $event"
+            @open-documents="documentsModalOpen = true"
         />
 
-        <Button
-            type="button"
-            block
-            :loading="submitting"
-            :disabled="!canSubmit"
-            @click="submit"
+        <!-- ── Récap fiscal + CTA ─────────────────────────────────── -->
+        <div
+            v-if="hasRange && selectedCompanyId !== null"
+            class="flex flex-col gap-3 border-t border-slate-100 pt-5"
         >
-            Créer la location
-        </Button>
+            <FiscalPreviewCard
+                :preview="preview"
+                :loading="previewLoading"
+                :year="fiscalYear"
+            />
+            <Button
+                type="button"
+                block
+                :loading="submitting"
+                :disabled="!canSubmit"
+                @click="submit"
+            >
+                Créer la location
+            </Button>
+        </div>
+        <div
+            v-else
+            class="flex flex-col gap-3 border-t border-slate-100 pt-5"
+        >
+            <p class="text-xs text-slate-500">
+                Choisis une entreprise et une plage de dates pour voir les taxes induites.
+            </p>
+            <Button
+                type="button"
+                block
+                :loading="submitting"
+                :disabled="!canSubmit"
+                @click="submit"
+            >
+                Créer la location
+            </Button>
+        </div>
+
+        <ContractDocumentsModal
+            v-model:open="documentsModalOpen"
+            :files="pendingFiles"
+            @update:files="pendingFiles = $event"
+        />
     </section>
 </template>

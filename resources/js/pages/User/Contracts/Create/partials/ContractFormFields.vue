@@ -4,7 +4,9 @@
    est instancié dans le parent et passé tel quel pour éviter de
    pousser la logique submit dans ce partial purement présentationnel). */
 import { computed, ref, watch } from 'vue';
+import CompanyOptionTag from '@/Components/Domain/Company/CompanyOptionTag.vue';
 import DriversMultiPicker from '@/Components/Domain/Driver/DriversMultiPicker.vue';
+import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
@@ -32,19 +34,10 @@ const props = defineProps<{
         vehicles: App.Data.User.Vehicle.VehicleOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
     };
-    /**
-     * Map véhicule → dates ISO déjà occupées par un autre contrat actif.
-     * Empêche l'utilisateur de saisir une plage en chevauchement (chantier
-     * H - l'erreur backend reste le filet de sécurité). Le picker grise
-     * les dates concernées dès qu'un véhicule est sélectionné.
-     */
     busyDatesByVehicleId: Record<number, string[]>;
 }>();
 
-// Tri Actifs en premier, puis Retirés ; les Retirés sont annotés
-// dans leur label pour rester identifiables dans le SearchableSelect
-// (qui ne gère pas natively les optgroups). Utile pour permettre
-// l'édition d'un contrat antérieur sur un véhicule sorti de flotte.
+// ── Sélecteur véhicule ──────────────────────────────────────────────
 const vehicleOptions = computed(() => {
     const decorate = (v: App.Data.User.Vehicle.VehicleOptionData): { value: number; label: string } => ({
         value: v.id,
@@ -59,6 +52,7 @@ const vehicleOptions = computed(() => {
     return [...active, ...exited];
 });
 
+// ── Sélecteur entreprise (enrichi) ──────────────────────────────────
 const companyOptions = computed(() =>
     props.options.companies.map((c) => ({
         value: c.id,
@@ -66,9 +60,12 @@ const companyOptions = computed(() =>
     })),
 );
 
-// Wrappers v-model : SearchableSelect émet `string | number | null` ;
-// on borne à `number | null` côté formulaire pour cohérence avec
-// VehicleOptionData.id / CompanyOptionData.id (typés number).
+const companyById = computed(() => {
+    const map = new Map<number, App.Data.User.Company.CompanyOptionData>();
+    for (const c of props.options.companies) map.set(c.id, c);
+    return map;
+});
+
 const vehicleIdModel = computed({
     get: (): number | null => props.form.vehicle_id,
     set: (v: string | number | null) => {
@@ -83,8 +80,7 @@ const companyIdModel = computed({
     },
 });
 
-// DateRangePicker pilote `range = { startDate, endDate }` ; on synchronise
-// avec form.start_date / form.end_date à chaque mutation.
+// ── Plage de dates ──────────────────────────────────────────────────
 const range = ref<{ startDate: string | null; endDate: string | null }>({
     startDate: props.form.start_date || null,
     endDate: props.form.end_date || null,
@@ -96,136 +92,186 @@ watch(range, (value) => {
     props.form.end_date = value.endDate ?? '';
 }, { deep: true });
 
-// Chantier J : année calendaire courante (le formulaire de création
-// d'un contrat n'a pas de contexte fiscal global ; le DateRangePicker
-// s'ouvre sur l'année courante par défaut, ou l'année du `start_date`
-// déjà saisi).
+const startDateModel = computed({
+    get: () => props.form.start_date,
+    set: (v: string) => {
+        props.form.start_date = v;
+        range.value = { ...range.value, startDate: v || null };
+    },
+});
+
+const endDateModel = computed({
+    get: () => props.form.end_date,
+    set: (v: string) => {
+        props.form.end_date = v;
+        range.value = { ...range.value, endDate: v || null };
+    },
+});
+
 const pickerYear = computed<number>(() => {
     if (props.form.start_date) {
         return Number(props.form.start_date.slice(0, 4));
     }
-
     return new Date().getFullYear();
 });
 
-// Chantier η Phase 3 : mois d'ouverture du DateRangePicker. Mois du
-// `start_date` saisi sinon mois calendaire courant — l'utilisateur
-// saisit dans son présent, pas en partant de janvier.
 const pickerStartMonth = computed<number>(() => {
     if (props.form.start_date) {
         return Number(props.form.start_date.slice(5, 7));
     }
-
     return new Date().getMonth() + 1;
 });
 
 const disabledDates = computed<string[]>(() => {
-    if (props.form.vehicle_id === null) {
-        return [];
-    }
-
+    if (props.form.vehicle_id === null) return [];
     return props.busyDatesByVehicleId[props.form.vehicle_id] ?? [];
 });
 
-// Quand l'utilisateur change de véhicule après avoir saisi une plage,
-// la nouvelle liste `disabledDates` peut chevaucher la plage actuelle.
-// Plutôt que de laisser une saisie invalide silencieuse (qui sera
-// refusée par le backend au submit), on ré-ajuste à la **plus longue
-// sous-plage libre** trouvée dans la plage actuelle. Aucune sous-plage
-// libre → on efface start_date et end_date.
-//
-// Le watch ne réagit qu'aux **changements** de `disabledDates` (pas au
-// mount) - donc l'ouverture en mode édition ne déclenche aucun reset
-// involontaire.
+// Quand on change de véhicule, on ré-ajuste la plage à la plus longue
+// sous-plage libre trouvée. Aucune sous-plage libre → on efface.
 watch(disabledDates, (newDisabled) => {
-    if (range.value.startDate === null || range.value.endDate === null) {
-        return;
-    }
+    if (range.value.startDate === null || range.value.endDate === null) return;
 
     const set = new Set(newDisabled);
-    const conflicts = rangeConflicts(
-        range.value.startDate,
-        range.value.endDate,
-        set,
-    );
+    const conflicts = rangeConflicts(range.value.startDate, range.value.endDate, set);
+    if (conflicts.length === 0) return;
 
-    if (conflicts.length === 0) {
-        return;
-    }
-
-    const sub = findLongestFreeSubrange(
-        range.value.startDate,
-        range.value.endDate,
-        set,
-    );
-
+    const sub = findLongestFreeSubrange(range.value.startDate, range.value.endDate, set);
     range.value = sub === null
         ? { startDate: null, endDate: null }
         : { startDate: sub.start, endDate: sub.end };
 });
+
+// ── Durée + type LCD/LLD live ───────────────────────────────────────
+const durationDays = computed<number | null>(() => {
+    const { startDate, endDate } = range.value;
+    if (!startDate || !endDate) return null;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    return days > 0 ? days : null;
+});
+
+// Type dérivé localement (purement informatif — le backend recalcule
+// via `Contract::deriveTypeFromDates` qui fait autorité). Règle
+// simplifiée : ≤ 30 jours → LCD, sinon LLD.
+const contractType = computed<'lcd' | 'lld' | null>(() => {
+    if (durationDays.value === null) return null;
+    return durationDays.value <= 30 ? 'lcd' : 'lld';
+});
 </script>
 
 <template>
-    <div class="flex flex-col gap-5">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div class="flex flex-col gap-8">
+        <!-- ── ATTRIBUTION ──────────────────────────────────────── -->
+        <section class="flex flex-col gap-4">
             <div>
-                <FieldLabel for="vehicle_id">Véhicule</FieldLabel>
-                <SearchableSelect
-                    id="vehicle_id"
-                    v-model="vehicleIdModel"
-                    placeholder="Choisir un véhicule…"
-                    :options="vehicleOptions"
-                />
-                <InputError :message="form.errors.vehicle_id" />
+                <p class="eyebrow">Attribution</p>
+                <p class="mt-1 text-sm text-slate-500">
+                    Quel véhicule, quelle entreprise.
+                </p>
             </div>
-            <div>
-                <FieldLabel for="company_id">Entreprise utilisatrice</FieldLabel>
-                <SearchableSelect
-                    id="company_id"
-                    v-model="companyIdModel"
-                    placeholder="Choisir une entreprise…"
-                    :options="companyOptions"
-                />
-                <InputError :message="form.errors.company_id" />
-            </div>
-        </div>
 
-        <div class="my-5">
-            <p class="text-xs font-medium uppercase tracking-wide text-slate-600">
-                Plage de la location
-            </p>
-            <p class="mt-1 text-xs text-slate-500">
-                Le type LCD/LLD est déterminé automatiquement selon la durée
-                (≤ 30 jours ou mois civil entier → LCD ; sinon LLD).
-            </p>
-            <div class="mt-2">
-                <DateRangePicker
-                    v-model:range="range"
-                    v-model:ongoing="ongoing"
-                    :year="pickerYear"
-                    :start-month="pickerStartMonth"
-                    :disabled-dates="disabledDates"
-                />
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                    <FieldLabel for="vehicle_id">Véhicule</FieldLabel>
+                    <SearchableSelect
+                        id="vehicle_id"
+                        v-model="vehicleIdModel"
+                        placeholder="Choisir un véhicule…"
+                        :options="vehicleOptions"
+                    />
+                    <InputError :message="form.errors.vehicle_id" />
+                </div>
+                <div>
+                    <FieldLabel for="company_id">Entreprise utilisatrice</FieldLabel>
+                    <SearchableSelect
+                        id="company_id"
+                        v-model="companyIdModel"
+                        placeholder="Choisir une entreprise…"
+                        :options="companyOptions"
+                    >
+                        <template #option="{ option }">
+                            <CompanyOptionTag
+                                v-if="companyById.get(Number(option.value))"
+                                :company="companyById.get(Number(option.value))!"
+                            />
+                            <template v-else>{{ option.label }}</template>
+                        </template>
+                        <template #selected="{ option }">
+                            <CompanyOptionTag
+                                v-if="companyById.get(Number(option.value))"
+                                :company="companyById.get(Number(option.value))!"
+                            />
+                            <template v-else>{{ option.label }}</template>
+                        </template>
+                    </SearchableSelect>
+                    <InputError :message="form.errors.company_id" />
+                </div>
             </div>
+        </section>
+
+        <hr class="border-slate-100" />
+
+        <!-- ── PÉRIODE ──────────────────────────────────────────── -->
+        <section class="flex flex-col gap-4">
+            <p class="eyebrow">Période</p>
+
+            <div class="flex flex-wrap items-end gap-3">
+                <div class="min-w-[140px] flex-1">
+                    <FieldLabel for="start_date">Du</FieldLabel>
+                    <DateInput id="start_date" v-model="startDateModel" />
+                </div>
+                <div class="min-w-[140px] flex-1">
+                    <FieldLabel for="end_date">Au</FieldLabel>
+                    <DateInput id="end_date" v-model="endDateModel" />
+                </div>
+                <div
+                    v-if="durationDays !== null"
+                    class="flex items-center gap-2 pb-2 text-sm"
+                >
+                    <span class="font-mono text-slate-700">{{ durationDays }} j</span>
+                    <span class="text-slate-300">·</span>
+                    <span
+                        class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold tracking-wide text-slate-700 uppercase"
+                    >
+                        {{ contractType === 'lcd' ? 'LCD' : 'LLD' }}
+                    </span>
+                </div>
+            </div>
+
+            <DateRangePicker
+                v-model:range="range"
+                v-model:ongoing="ongoing"
+                :year="pickerYear"
+                :start-month="pickerStartMonth"
+                :disabled-dates="disabledDates"
+            />
+
             <p
                 v-if="form.vehicle_id === null"
-                class="mt-1 text-xs text-slate-500"
+                class="text-xs text-slate-500"
             >
                 Sélectionnez un véhicule pour voir les jours déjà occupés
                 par d'autres locations actives.
             </p>
             <p
                 v-else-if="disabledDates.length > 0"
-                class="mt-1 text-xs text-slate-500"
+                class="text-xs text-slate-500"
             >
                 Les jours déjà occupés par une autre location de ce véhicule
                 (barrés) ne peuvent pas être inclus dans la plage.
             </p>
             <InputError :message="form.errors.start_date || form.errors.end_date" />
-        </div>
+        </section>
 
-        <div>
-            <FieldLabel for="driver_ids">Conducteurs (optionnel)</FieldLabel>
+        <hr class="border-slate-100" />
+
+        <!-- ── CONDUCTEURS ──────────────────────────────────────── -->
+        <section class="flex flex-col gap-4">
+            <p class="eyebrow">Conducteurs</p>
+
             <DriversMultiPicker
                 :model-value="form.driver_ids"
                 :company-id="form.company_id"
@@ -234,31 +280,36 @@ watch(disabledDates, (newDisabled) => {
                 @update:model-value="(v) => (form.driver_ids = v)"
             />
             <InputError :message="form.errors.driver_ids" />
-        </div>
+        </section>
 
-        <div>
-            <FieldLabel for="contract_reference">
-                Référence location (optionnel)
-            </FieldLabel>
-            <TextInput
-                id="contract_reference"
-                :model-value="form.contract_reference ?? ''"
-                placeholder="Ex. : CTR-2024-001"
-                @update:model-value="(v) => (form.contract_reference = v === '' ? null : v)"
-            />
-            <InputError :message="form.errors.contract_reference" />
-        </div>
+        <hr class="border-slate-100" />
 
-        <div>
-            <FieldLabel for="notes">Notes (optionnel)</FieldLabel>
-            <textarea
-                id="notes"
-                v-model="form.notes"
-                rows="3"
-                class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
-                placeholder="Conditions particulières, contact, etc."
-            />
-            <InputError :message="form.errors.notes" />
-        </div>
+        <!-- ── DÉTAILS ──────────────────────────────────────────── -->
+        <section class="flex flex-col gap-4">
+            <p class="eyebrow">Détails</p>
+
+            <div>
+                <FieldLabel for="contract_reference">Référence location</FieldLabel>
+                <TextInput
+                    id="contract_reference"
+                    :model-value="form.contract_reference ?? ''"
+                    placeholder="Ex. : CTR-2024-001"
+                    @update:model-value="(v) => (form.contract_reference = v === '' ? null : v)"
+                />
+                <InputError :message="form.errors.contract_reference" />
+            </div>
+
+            <div>
+                <FieldLabel for="notes">Notes</FieldLabel>
+                <textarea
+                    id="notes"
+                    v-model="form.notes"
+                    rows="3"
+                    class="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-100"
+                    placeholder="Conditions particulières, contact, etc."
+                />
+                <InputError :message="form.errors.notes" />
+            </div>
+        </section>
     </div>
 </template>
