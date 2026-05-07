@@ -85,12 +85,14 @@ const emit = defineEmits<{
             </div>
         </template>
         <template #cell-startDate="{ value }">
-            {{ formatDateFr(String(value)) }}
+            <span class="whitespace-nowrap">{{ formatDateFr(String(value)) }}</span>
         </template>
         <template #cell-endDate="{ value }">
-            {{ formatDateFr(String(value)) }}
+            <span class="whitespace-nowrap">{{ formatDateFr(String(value)) }}</span>
         </template>
-        <template #cell-durationDays="{ value }"> {{ value }} j </template>
+        <template #cell-durationDays="{ value }">
+            <span class="whitespace-nowrap">{{ value }} j</span>
+        </template>
         <template #cell-contractType="{ row }">
             <Badge :tone="badgeTone[row.contractType]">
                 {{ shortLabel[row.contractType] }}

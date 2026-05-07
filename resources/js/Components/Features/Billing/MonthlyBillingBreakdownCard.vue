@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Récap 12 mois × {jours utilisés, montant HT} pour la facturation
- * d'une entité (véhicule ou entreprise) — Phase 14.D V1.2.
+ * d'une entité (véhicule ou entreprise) · Phase 14.D V1.2.
  *
  * Composant **stateless / présentationnel** : aucune logique de
  * récupération, on consomme simplement le DTO `MonthlyBillingBreakdownData`
@@ -63,14 +63,14 @@ const totalLabel = computed<string>(() => {
                         Total annuel
                     </p>
                     <p
-                        class="font-mono text-base font-semibold tabular-nums"
+                        class="font-mono text-base font-semibold tabular-nums whitespace-nowrap"
                         :class="monthlyBilling.yearTotalCents === null
                             ? 'text-slate-400 italic'
                             : 'text-slate-900'"
                     >
                         {{ totalLabel }}
                     </p>
-                    <p class="font-mono text-xs text-slate-500 tabular-nums">
+                    <p class="font-mono text-xs text-slate-500 tabular-nums whitespace-nowrap">
                         {{ monthlyBilling.yearTotalDaysUsed }} jour{{ monthlyBilling.yearTotalDaysUsed > 1 ? 's' : '' }} utilisé{{ monthlyBilling.yearTotalDaysUsed > 1 ? 's' : '' }}
                     </p>
                 </div>
@@ -98,18 +98,18 @@ const totalLabel = computed<string>(() => {
                             ? 'text-slate-400'
                             : 'text-slate-800'"
                 >
-                    <td class="py-2 pr-3 text-sm">
+                    <td class="py-2 pr-3 text-sm whitespace-nowrap">
                         {{ MONTH_LABELS[idx] }}
                     </td>
-                    <td class="py-2 px-3 text-right font-mono tabular-nums">
+                    <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
                         {{ entry.daysUsed }}
                     </td>
-                    <td class="py-2 px-3 text-right font-mono tabular-nums">
+                    <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
                         <template v-if="entry.hasMissingPricing">
                             <span class="text-xs italic">Tarif manquant</span>
                         </template>
                         <template v-else-if="entry.daysUsed === 0">
-                            —
+                            ·
                         </template>
                         <template v-else>
                             {{ formatEur((entry.totalCents ?? 0) / 100, 2) }}

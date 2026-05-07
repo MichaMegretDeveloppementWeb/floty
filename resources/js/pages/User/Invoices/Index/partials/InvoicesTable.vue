@@ -51,7 +51,7 @@ const MONTH_LABELS = [
 
         <template #cell-invoiceNumber="{ row }">
             <div class="flex items-center gap-2">
-                <span class="font-mono text-sm">{{ row.invoiceNumber }}</span>
+                <span class="font-mono text-sm whitespace-nowrap">{{ row.invoiceNumber }}</span>
                 <span
                     v-if="row.hasDivergence"
                     title="Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez la facture pour la régénérer."
@@ -65,21 +65,21 @@ const MONTH_LABELS = [
 
         <template #cell-companyShortCode="{ row }">
             <div class="flex flex-col">
-                <span class="font-medium text-slate-900">{{ row.companyShortCode }}</span>
+                <span class="font-medium whitespace-nowrap text-slate-900">{{ row.companyShortCode }}</span>
                 <span class="text-xs text-slate-500">{{ row.companyLegalName }}</span>
             </div>
         </template>
 
         <template #cell-period="{ row }">
-            <span>{{ MONTH_LABELS[row.month - 1] }} {{ row.year }}</span>
+            <span class="whitespace-nowrap">{{ MONTH_LABELS[row.month - 1] }} {{ row.year }}</span>
         </template>
 
         <template #cell-totalHtCents="{ row }">
-            <span class="font-mono tabular-nums">{{ formatEur(row.totalHtCents / 100, 2) }}</span>
+            <span class="font-mono tabular-nums whitespace-nowrap">{{ formatEur(row.totalHtCents / 100, 2) }}</span>
         </template>
 
         <template #cell-generatedAt="{ row }">
-            <span class="font-mono text-sm text-slate-600">{{ formatDateFr(row.generatedAt) }}</span>
+            <span class="font-mono text-sm whitespace-nowrap text-slate-600">{{ formatDateFr(row.generatedAt) }}</span>
         </template>
 
         <template #empty>

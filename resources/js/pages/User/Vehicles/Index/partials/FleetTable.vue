@@ -110,14 +110,14 @@ function statusPalette(
             </span>
         </template>
         <template #cell-firstFrenchRegistrationDate="{ value }">
-            {{ formatDateFr(String(value)) }}
+            <span class="whitespace-nowrap">{{ formatDateFr(String(value)) }}</span>
         </template>
         <template #cell-fullYearTax="{ row }">
             <div class="flex flex-col items-end leading-tight">
-                <span class="font-mono font-normal text-slate-900">
+                <span class="font-mono font-normal whitespace-nowrap text-slate-900">
                     {{ formatEur(row.fullYearTax) }}
                 </span>
-                <span class="text-xs text-slate-400">
+                <span class="text-xs whitespace-nowrap text-slate-400">
                     {{ formatEur(row.dailyTaxRate, 2) }} / jour
                 </span>
             </div>
@@ -125,12 +125,12 @@ function statusPalette(
         <template #cell-rentalPriceFullYear="{ row }">
             <span
                 v-if="row.rentalPriceFullYear !== null"
-                class="font-mono font-normal text-slate-900"
+                class="font-mono font-normal whitespace-nowrap text-slate-900"
             >
                 {{ formatEur(row.rentalPriceFullYear) }}
             </span>
-            <span v-else class="text-slate-300" title="Module facturation V1.2 — à venir">
-                —
+            <span v-else class="text-slate-300" title="Module facturation V1.2 à venir">
+                ·
             </span>
         </template>
 

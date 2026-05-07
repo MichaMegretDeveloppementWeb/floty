@@ -49,18 +49,18 @@ const {
                 />
             </template>
             <template #cell-proratoPercent="{ value }">
-                <span class="text-slate-500">
+                <span class="whitespace-nowrap text-slate-500">
                     {{ Number(value).toFixed(1) }}%
                 </span>
             </template>
             <template #cell-taxCo2="{ value }">
-                {{ formatEur(Number(value)) }}
+                <span class="whitespace-nowrap">{{ formatEur(Number(value)) }}</span>
             </template>
             <template #cell-taxPollutants="{ value }">
-                {{ formatEur(Number(value)) }}
+                <span class="whitespace-nowrap">{{ formatEur(Number(value)) }}</span>
             </template>
             <template #cell-taxTotal="{ value }">
-                <span class="font-semibold text-slate-900">
+                <span class="font-semibold whitespace-nowrap text-slate-900">
                     {{ formatEur(Number(value)) }}
                 </span>
             </template>

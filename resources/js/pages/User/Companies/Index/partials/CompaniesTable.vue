@@ -70,7 +70,7 @@ const emit = defineEmits<{
             />
         </template>
         <template #cell-siren="{ value }">
-            <span :class="value ? '' : 'text-slate-300'">{{
+            <span :class="['whitespace-nowrap', value ? '' : 'text-slate-300']">{{
                 value ?? 'Non renseigné'
             }}</span>
         </template>
@@ -80,10 +80,10 @@ const emit = defineEmits<{
             }}</span>
         </template>
         <template #cell-daysUsed="{ value }">
-            <span class="text-slate-700">{{ value }} j</span>
+            <span class="whitespace-nowrap text-slate-700">{{ value }} j</span>
         </template>
         <template #cell-annualTaxDue="{ value }">
-            <span class="font-mono font-medium text-slate-900">
+            <span class="font-mono font-medium whitespace-nowrap text-slate-900">
                 {{ formatEur(Number(value)) }}
             </span>
         </template>

@@ -43,7 +43,7 @@ const dotClasses = computed<string>(() => {
 
 <template>
     <span
-        class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white py-0.5 pr-2.5 pl-0.5 text-xs text-slate-700"
+        class="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-white py-0.5 pr-2.5 pl-0.5 text-xs text-slate-700"
     >
         <span
             :class="[
