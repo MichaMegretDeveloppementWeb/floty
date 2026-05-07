@@ -139,6 +139,13 @@ Route::middleware('auth')
         Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])
             ->whereNumber('invoice')
             ->name('invoices.download');
+        // Annulation (Phase 14.I) — seule mutation autorisée par la
+        // doctrine immuabilité ; permet de regénérer après modif du
+        // périmètre (contrat ajouté/modifié sur un mois déjà facturé).
+        Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])
+            ->whereNumber('invoice')
+            ->middleware('throttle:30,1')
+            ->name('invoices.destroy');
 
         // Unavailabilities — CRUD opéré depuis la page Show véhicule
         Route::post('/unavailabilities', [UnavailabilityController::class, 'store'])

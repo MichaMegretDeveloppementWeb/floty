@@ -162,4 +162,28 @@ final class InvoiceControllerTest extends TestCase
             ->get("/app/invoices/{$invoice->id}/download")
             ->assertNotFound();
     }
+
+    #[Test]
+    public function destroy_supprime_la_facture_son_pdf_et_redirige_avec_toast(): void
+    {
+        Storage::fake('local');
+
+        $user = User::factory()->create();
+        $invoice = Invoice::factory()
+            ->for($user, 'generatedBy')
+            ->create([
+                'pdf_path' => 'invoices/2024/1/2024-01-0001.pdf',
+            ]);
+        InvoiceLine::factory()->count(2)->for($invoice)->create();
+        Storage::disk('local')->put($invoice->pdf_path, '%PDF-stub');
+
+        $this->actingAs($user)
+            ->delete("/app/invoices/{$invoice->id}")
+            ->assertRedirect()
+            ->assertSessionHas('toast-success');
+
+        $this->assertDatabaseMissing('invoices', ['id' => $invoice->id]);
+        $this->assertSame(0, InvoiceLine::query()->where('invoice_id', $invoice->id)->count());
+        Storage::disk('local')->assertMissing($invoice->pdf_path);
+    }
 }

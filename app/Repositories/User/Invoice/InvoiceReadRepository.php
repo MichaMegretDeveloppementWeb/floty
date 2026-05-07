@@ -31,10 +31,13 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 
     public function findExistingByMonthForCompanyYear(int $companyId, int $year): array
     {
+        // `withSum` matérialise une sub-query SQL pour le total `days_used`
+        // des `invoice_lines` rattachées — single query, pas de N+1.
         $rows = Invoice::query()
-            ->select('id', 'month', 'invoice_number')
+            ->select('id', 'month', 'invoice_number', 'total_ht_cents')
             ->where('company_id', $companyId)
             ->where('year', $year)
+            ->withSum('lines as invoiced_days_used', 'days_used')
             ->get();
 
         $map = [];
@@ -42,6 +45,8 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
             $map[(int) $row->month] = [
                 'id' => (int) $row->id,
                 'invoiceNumber' => (string) $row->invoice_number,
+                'totalHtCents' => (int) $row->total_ht_cents,
+                'invoicedDaysUsed' => (int) ($row->invoiced_days_used ?? 0),
             ];
         }
 

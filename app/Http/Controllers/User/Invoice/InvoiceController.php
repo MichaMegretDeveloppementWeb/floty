@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Invoice;
 
+use App\Actions\Invoice\CancelInvoiceAction;
 use App\Actions\Invoice\GenerateInvoiceAction;
 use App\Contracts\Repositories\User\Billing\BillingSettingsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
@@ -112,6 +113,24 @@ final class InvoiceController extends Controller
         }
 
         return back()->with('toast-success', "Facture {$invoice->invoice_number} générée.");
+    }
+
+    /**
+     * Annule une facture émise (Phase 14.I V1.2). Supprime la facture +
+     * son PDF + ses lignes (cascade DB). Permet de regénérer après une
+     * modification du périmètre (ajout/modif/suppression d'un contrat
+     * sur un mois déjà facturé).
+     */
+    public function destroy(Invoice $invoice, CancelInvoiceAction $action): RedirectResponse
+    {
+        $number = $invoice->invoice_number;
+
+        $action->execute($invoice);
+
+        return back()->with(
+            'toast-success',
+            "Facture {$number} annulée. La regénération est désormais possible.",
+        );
     }
 
     public function download(Invoice $invoice, InvoicePdfStorage $storage): Response

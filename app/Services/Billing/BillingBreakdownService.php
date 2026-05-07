@@ -66,6 +66,8 @@ final readonly class BillingBreakdownService
                     hasMissingPricing: false,
                     existingInvoiceId: $existing['id'] ?? null,
                     existingInvoiceNumber: $existing['invoiceNumber'] ?? null,
+                    invoicedDaysUsed: $existing['invoicedDaysUsed'] ?? null,
+                    invoicedTotalCents: $existing['totalHtCents'] ?? null,
                 );
                 $totalDays += $monthDays;
                 $totalCents += $result->totalCents;
@@ -81,6 +83,8 @@ final readonly class BillingBreakdownService
                     hasMissingPricing: true,
                     existingInvoiceId: $existing['id'] ?? null,
                     existingInvoiceNumber: $existing['invoiceNumber'] ?? null,
+                    invoicedDaysUsed: $existing['invoicedDaysUsed'] ?? null,
+                    invoicedTotalCents: $existing['totalHtCents'] ?? null,
                 );
                 $hasAnyMissing = true;
             }

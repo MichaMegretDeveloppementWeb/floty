@@ -72,6 +72,19 @@ final readonly class InvoicePdfStorage
         return $disk->get($path);
     }
 
+    /**
+     * Supprime le PDF du disque. Idempotent : aucune exception si le
+     * fichier n'existe déjà plus (cas concurrence ou suppression
+     * manuelle hors-app). Utilisé exclusivement par
+     * {@see App\Actions\Invoice\CancelInvoiceAction} — l'annulation
+     * d'une facture est la seule mutation autorisée par la doctrine
+     * immuabilité (cf. ADR-0008).
+     */
+    public function delete(string $path): void
+    {
+        $this->disk()->delete($path);
+    }
+
     public function buildPath(int $year, int $companyId, string $invoiceNumber): string
     {
         return sprintf('invoices/%d/%d/%s.pdf', $year, $companyId, $invoiceNumber);

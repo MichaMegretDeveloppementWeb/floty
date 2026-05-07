@@ -68,6 +68,9 @@ function selectYear(year: number): void {
                     :has-missing-pricing="entry.hasMissingPricing"
                     :existing-invoice-id="entry.existingInvoiceId"
                     :existing-invoice-number="entry.existingInvoiceNumber"
+                    :existing-invoice-total-cents="entry.invoicedTotalCents"
+                    :existing-invoiced-days-used="entry.invoicedDaysUsed"
+                    :current-total-cents="entry.totalCents"
                 />
             </template>
         </MonthlyBillingBreakdownCard>

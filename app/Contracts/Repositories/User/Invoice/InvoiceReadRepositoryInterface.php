@@ -26,11 +26,15 @@ interface InvoiceReadRepositoryInterface
 
     /**
      * Map des factures émises pour une (entreprise × année), indexée par
-     * mois civil. Sert au récap mensuel de la fiche entreprise pour
-     * basculer le bouton « Générer » → lien « Voir #YYYY-MM-NNNN » sans
-     * payer 12 lookups séparés.
+     * mois civil. Sert au récap mensuel de la fiche entreprise pour :
+     *   - basculer le bouton « Générer » → lien « Voir #YYYY-MM-NNNN »
+     *   - détecter une divergence facture vs réalité (ajout/modif de
+     *     contrat post-émission) en comparant le snapshot figé
+     *     (`totalHtCents`, `invoicedDaysUsed`) au recalcul dynamique
      *
-     * @return array<int, array{id: int, invoiceNumber: string}> map[month] => link
+     * Single query (pas de N+1 sur les 12 mois).
+     *
+     * @return array<int, array{id: int, invoiceNumber: string, totalHtCents: int, invoicedDaysUsed: int}> map[month] => snapshot
      */
     public function findExistingByMonthForCompanyYear(int $companyId, int $year): array;
 

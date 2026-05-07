@@ -25,6 +25,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * « Générer » en lien « Voir #YYYY-MM-NNNN ». Toujours `null` sur le
  * récap véhicule (plusieurs entreprises peuvent émettre une facture
  * sur le même mois).
+ *
+ * `invoicedDaysUsed` / `invoicedTotalCents` exposent le **snapshot
+ * figé** au moment de l'émission de la facture (jamais recalculé). La
+ * comparaison avec `daysUsed` / `totalCents` (recalcul dynamique)
+ * permet à l'UI de détecter une divergence et d'afficher un avertissement
+ * « données ont changé depuis l'émission ». Toujours `null` quand
+ * aucune facture n'existe pour ce mois.
  */
 #[TypeScript]
 final class MonthlyBreakdownEntryData extends Data
@@ -36,5 +43,7 @@ final class MonthlyBreakdownEntryData extends Data
         public bool $hasMissingPricing,
         public ?int $existingInvoiceId = null,
         public ?string $existingInvoiceNumber = null,
+        public ?int $invoicedDaysUsed = null,
+        public ?int $invoicedTotalCents = null,
     ) {}
 }

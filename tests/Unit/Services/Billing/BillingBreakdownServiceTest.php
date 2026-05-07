@@ -6,6 +6,9 @@ namespace Tests\Unit\Services\Billing;
 
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\Invoice;
+use App\Models\InvoiceLine;
+use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleYearlyPricing;
 use App\Services\Billing\BillingBreakdownService;
@@ -203,5 +206,70 @@ final class BillingBreakdownServiceTest extends TestCase
         $this->assertSame(7, $result->yearTotalDaysUsed);
         $this->assertSame(50_000, $result->yearTotalCents);
         $this->assertFalse($result->hasAnyMissingPricing);
+    }
+
+    #[Test]
+    public function company_breakdown_expose_le_snapshot_facture_et_detecte_la_divergence(): void
+    {
+        // Phase 14.I — quand une facture existe pour le couple
+        // (entreprise × année × mois), on expose le snapshot figé
+        // (`invoicedDaysUsed`, `invoicedTotalCents`) en plus du recalcul
+        // dynamique (`daysUsed`, `totalCents`). L'UI compare et affiche
+        // un avertissement si les deux divergent.
+
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create(['license_plate' => 'AA-001-AA']);
+        VehicleYearlyPricing::factory()
+            ->for($vehicle)
+            ->forYear(2024)
+            ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)
+            ->create();
+
+        // Contrat initial : 10 jours en janvier (snapshot facture).
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => '2024-01-01',
+            'end_date' => '2024-01-10',
+        ]);
+
+        // Facture émise figeant 10 j / 70 000 cents (10 × 7 000 par
+        // exemple — ici on stocke des valeurs fixées pour le test).
+        $invoice = Invoice::factory()
+            ->for($company)
+            ->for($user, 'generatedBy')
+            ->create([
+                'year' => 2024,
+                'month' => 1,
+                'invoice_number' => '2024-01-0001',
+                'total_ht_cents' => 70_000,
+            ]);
+        InvoiceLine::factory()->for($invoice)->for($vehicle)->create([
+            'days_used' => 10,
+            'months_billed' => 0,
+            'weeks_billed' => 1,
+            'days_billed' => 3,
+        ]);
+
+        // Ajout a posteriori d'un 2ᵉ contrat janvier (5 jours en plus).
+        Contract::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => '2024-01-20',
+            'end_date' => '2024-01-24',
+        ]);
+
+        $result = $this->service->byCompanyForYear($company->id, 2024);
+        $january = $result->entries[0];
+
+        // Recalcul dynamique : 15 jours total (10 + 5).
+        $this->assertSame(15, $january->daysUsed);
+
+        // Snapshot figé à l'émission : 10 j / 70 000 cents (immuable).
+        $this->assertSame(10, $january->invoicedDaysUsed);
+        $this->assertSame(70_000, $january->invoicedTotalCents);
+        $this->assertSame('2024-01-0001', $january->existingInvoiceNumber);
+        $this->assertSame($invoice->id, $january->existingInvoiceId);
     }
 }

@@ -4,153 +4,263 @@
     <meta charset="utf-8">
     <title>Facture {{ $invoiceNumber }}</title>
     <style>
-        @page { margin: 32mm 18mm; }
+        /*
+         * Police DejaVu Sans — embarquée par dompdf et UTF-8 native (rend
+         * correctement é/è/à/É/€/etc. là où Helvetica les transforme en `?`).
+         */
+        @page { margin: 22mm 18mm; }
         * { box-sizing: border-box; }
         body {
-            font-family: 'Helvetica', Arial, sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
             color: #0f172a;
-            font-size: 10pt;
-            line-height: 1.45;
+            font-size: 9.5pt;
+            line-height: 1.5;
             margin: 0;
         }
         h1 {
-            font-size: 18pt;
-            font-weight: 600;
-            margin: 0 0 4mm 0;
-            letter-spacing: -0.01em;
+            font-size: 24pt;
+            font-weight: bold;
+            margin: 0;
+            letter-spacing: -0.02em;
+            color: #0f172a;
         }
         h2 {
-            font-size: 9pt;
-            font-weight: 600;
+            font-size: 7.5pt;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: #64748b;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
             margin: 0 0 2mm 0;
         }
         .header {
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 8mm;
-            margin-bottom: 10mm;
+            margin-bottom: 12mm;
         }
-        .header-grid { display: table; width: 100%; }
-        .header-grid > div {
+        .header-top {
+            display: table;
+            width: 100%;
+            margin-bottom: 8mm;
+        }
+        .header-top > div {
+            display: table-cell;
+            vertical-align: top;
+        }
+        .header-top .title-cell { width: 60%; }
+        .header-top .ref-cell {
+            width: 40%;
+            text-align: right;
+        }
+        .invoice-ref {
+            font-size: 11pt;
+            font-weight: bold;
+            letter-spacing: 0.02em;
+            color: #475569;
+            margin-top: 2mm;
+        }
+        .invoice-tag {
+            display: inline-block;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            padding: 1.5mm 3mm;
+            border-radius: 1.5mm;
+            margin-bottom: 1.5mm;
+        }
+        .parties {
+            display: table;
+            width: 100%;
+            border-top: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 5mm 0;
+        }
+        .parties > div {
             display: table-cell;
             vertical-align: top;
             width: 50%;
         }
-        .header-grid > div + div { text-align: right; }
-        .meta-table { margin-bottom: 6mm; }
-        .meta-table td {
-            padding: 1mm 0;
-            font-size: 9pt;
+        .parties .party-name {
+            font-size: 11pt;
+            font-weight: bold;
+            color: #0f172a;
+            margin-bottom: 1mm;
         }
-        .meta-table td:first-child {
-            color: #64748b;
-            padding-right: 6mm;
+        .parties .party-line {
+            color: #475569;
+            font-size: 9pt;
+            line-height: 1.55;
+        }
+        .meta-block {
+            margin: 8mm 0;
+            display: table;
+            width: 100%;
+        }
+        .meta-block > div {
+            display: table-cell;
+            vertical-align: top;
+            padding-right: 10mm;
+        }
+        .meta-block .meta-label {
+            font-size: 7.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            margin-bottom: 1mm;
+        }
+        .meta-block .meta-value {
+            font-size: 10pt;
+            color: #0f172a;
+            font-weight: bold;
         }
         .lines {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 8mm;
+            margin-bottom: 6mm;
         }
         .lines thead th {
-            background: #f1f5f9;
+            background: #f8fafc;
             color: #475569;
-            font-size: 8pt;
-            font-weight: 600;
+            font-size: 7.5pt;
+            font-weight: bold;
             text-transform: uppercase;
-            letter-spacing: 0.05em;
-            padding: 3mm 2mm;
+            letter-spacing: 0.08em;
+            padding: 3mm 2.5mm;
             text-align: left;
+            border-top: 1px solid #cbd5e1;
             border-bottom: 1px solid #cbd5e1;
         }
-        .lines thead th.num,
-        .lines tbody td.num { text-align: right; font-family: 'Courier New', monospace; }
+        .lines thead th.num {
+            text-align: right;
+        }
         .lines tbody td {
-            padding: 3mm 2mm;
+            padding: 3.5mm 2.5mm;
             border-bottom: 1px solid #e2e8f0;
             font-size: 9pt;
+            vertical-align: top;
+        }
+        .lines tbody td.num {
+            text-align: right;
+            white-space: nowrap;
         }
         .lines tbody td.label {
             color: #0f172a;
+            font-weight: bold;
         }
         .lines tbody td.detail {
             color: #64748b;
-            font-size: 8pt;
+            font-size: 8.5pt;
         }
-        .total-row td {
-            border-top: 2px solid #0f172a;
-            border-bottom: none !important;
-            font-weight: 600;
-            padding-top: 4mm !important;
+        .total-block {
+            margin-top: 4mm;
+            text-align: right;
+        }
+        .total-block .total-label {
+            font-size: 8pt;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #94a3b8;
+            font-weight: bold;
+        }
+        .total-block .total-value {
+            font-size: 16pt;
+            font-weight: bold;
+            color: #0f172a;
+            margin-top: 1mm;
         }
         .footer {
             border-top: 1px solid #e2e8f0;
-            padding-top: 6mm;
-            margin-top: 8mm;
+            padding-top: 5mm;
+            margin-top: 12mm;
             color: #94a3b8;
             font-size: 7.5pt;
             line-height: 1.5;
+        }
+        .footer .footer-line + .footer-line { margin-top: 0.5mm; }
+        .footer .hash {
+            font-family: 'Courier New', monospace;
+            font-size: 7pt;
         }
     </style>
 </head>
 <body>
     <header class="header">
-        <h1>Facture</h1>
-        <div class="header-grid">
+        <div class="header-top">
+            <div class="title-cell">
+                <span class="invoice-tag">Facture</span>
+                <h1>{{ $periodLabel }}</h1>
+                <div class="invoice-ref">{{ $invoiceNumber }}</div>
+            </div>
+            <div class="ref-cell">
+                <div class="party-name">{{ $issuer['name'] }}</div>
+                <div class="party-line">
+                    @if(!empty($issuer['addressLine1']))
+                        {{ $issuer['addressLine1'] }}<br>
+                    @endif
+                    @if(!empty($issuer['addressLine2']))
+                        {{ $issuer['addressLine2'] }}<br>
+                    @endif
+                    @if(!empty($issuer['postalCode']) || !empty($issuer['city']))
+                        {{ trim(($issuer['postalCode'] ?? '').' '.($issuer['city'] ?? '')) }}<br>
+                    @endif
+                    @if(!empty($issuer['siren']))
+                        SIREN {{ $issuer['siren'] }}<br>
+                    @endif
+                    @if(!empty($issuer['contactEmail']))
+                        {{ $issuer['contactEmail'] }}
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <div class="parties">
             <div>
                 <h2>Émetteur</h2>
-                <strong>{{ $issuer['name'] }}</strong><br>
-                @if(!empty($issuer['addressLine1']))
-                    {{ $issuer['addressLine1'] }}<br>
-                @endif
-                @if(!empty($issuer['addressLine2']))
-                    {{ $issuer['addressLine2'] }}<br>
-                @endif
-                @if(!empty($issuer['postalCode']) || !empty($issuer['city']))
-                    {{ trim(($issuer['postalCode'] ?? '').' '.($issuer['city'] ?? '')) }}<br>
-                @endif
-                @if(!empty($issuer['siren']))
-                    SIREN&nbsp;: {{ $issuer['siren'] }}<br>
-                @endif
-                @if(!empty($issuer['contactEmail']))
-                    {{ $issuer['contactEmail'] }}
-                @endif
+                <div class="party-line">
+                    Document de facturation établi par <strong>{{ $issuer['name'] }}</strong>
+                    @if(!empty($issuer['siren']))
+                        (SIREN&nbsp;{{ $issuer['siren'] }})
+                    @endif
+                    pour la période ci-dessous.
+                </div>
             </div>
             <div>
                 <h2>Destinataire</h2>
-                <strong>{{ $company['legalName'] }}</strong><br>
-                @if(!empty($company['siren']))
-                    SIREN&nbsp;: {{ $company['siren'] }}<br>
-                @endif
-                @if(!empty($company['city']))
-                    {{ $company['city'] }}
-                @endif
+                <div class="party-name">{{ $company['legalName'] }}</div>
+                <div class="party-line">
+                    @if(!empty($company['siren']))
+                        SIREN {{ $company['siren'] }}<br>
+                    @endif
+                    @if(!empty($company['city']))
+                        {{ $company['city'] }}
+                    @endif
+                </div>
             </div>
         </div>
     </header>
 
-    <table class="meta-table">
-        <tr>
-            <td>Numéro de facture</td>
-            <td><strong>{{ $invoiceNumber }}</strong></td>
-        </tr>
-        <tr>
-            <td>Période facturée</td>
-            <td>{{ $periodLabel }}</td>
-        </tr>
-        <tr>
-            <td>Date d'émission</td>
-            <td>{{ $generatedAtLabel }}</td>
-        </tr>
-    </table>
+    <div class="meta-block">
+        <div>
+            <div class="meta-label">Numéro de facture</div>
+            <div class="meta-value">{{ $invoiceNumber }}</div>
+        </div>
+        <div>
+            <div class="meta-label">Période facturée</div>
+            <div class="meta-value">{{ $periodLabel }}</div>
+        </div>
+        <div>
+            <div class="meta-label">Date d'émission</div>
+            <div class="meta-value">{{ $generatedAtLabel }}</div>
+        </div>
+    </div>
 
     <table class="lines">
         <thead>
             <tr>
                 <th>Véhicule</th>
                 <th class="num">Jours utilisés</th>
-                <th>Décomposition</th>
+                <th>Décomposition tarifaire</th>
                 <th class="num">Total HT</th>
             </tr>
         </thead>
@@ -177,17 +287,23 @@
                     <td class="num">{{ $line['totalLabel'] }}</td>
                 </tr>
             @endforeach
-            <tr class="total-row">
-                <td colspan="3">Total HT</td>
-                <td class="num">{{ $totalLabel }}</td>
-            </tr>
         </tbody>
     </table>
 
+    <div class="total-block">
+        <div class="total-label">Total HT à régler</div>
+        <div class="total-value">{{ $totalLabel }}</div>
+    </div>
+
     <footer class="footer">
-        Facture générée automatiquement par Floty (gestion de flotte)&nbsp;·
-        Document numérique — non modifiable post-émission&nbsp;·
-        Empreinte d'intégrité&nbsp;: {{ substr($pdfHashPlaceholder, 0, 16) }}…
+        <div class="footer-line">
+            Facture générée automatiquement par Floty — gestion de flotte partagée.
+            Document numérique non modifiable après émission.
+        </div>
+        <div class="footer-line">
+            Empreinte d'intégrité (SHA-256)&nbsp;:
+            <span class="hash">{{ $pdfHashPlaceholder ? substr($pdfHashPlaceholder, 0, 32).'…' : 'calculée à l’émission' }}</span>
+        </div>
     </footer>
 </body>
 </html>
