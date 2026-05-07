@@ -13,7 +13,6 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * Filtres :
  *   - `companyId` : filtre exact match sur l'entreprise
- *   - `vehicleId` : filtre exact match sur un véhicule (via invoice_lines)
  *   - `year` / `month` : période exacte (un mois civil)
  *   - `divergentOnly` : ne retourne que les factures dont le périmètre
  *     contractuel a changé depuis l'émission (filtre coûteux car
@@ -27,7 +26,6 @@ final class InvoiceIndexQueryData extends IndexQueryData
 {
     public function __construct(
         public ?int $companyId = null,
-        public ?int $vehicleId = null,
         public ?int $year = null,
         public ?int $month = null,
         public bool $divergentOnly = false,
@@ -49,7 +47,6 @@ final class InvoiceIndexQueryData extends IndexQueryData
     {
         return array_merge(parent::rules(), [
             'companyId' => ['nullable', 'integer', 'exists:companies,id'],
-            'vehicleId' => ['nullable', 'integer', 'exists:vehicles,id'],
             'year' => ['nullable', 'integer', 'between:2020,2099'],
             'month' => ['nullable', 'integer', 'between:1,12'],
             'divergentOnly' => ['nullable', 'boolean'],

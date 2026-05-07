@@ -20,7 +20,6 @@ use App\Models\Invoice;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Invoice\InvoicePdfStorage;
 use App\Services\Invoice\InvoiceQueryService;
-use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -50,7 +49,6 @@ final class InvoiceController extends Controller
         private readonly InvoiceReadRepositoryInterface $invoiceRead,
         private readonly BillingSettingsReadRepositoryInterface $billingSettings,
         private readonly CompanyQueryService $companyQuery,
-        private readonly VehicleQueryService $vehicleQuery,
     ) {}
 
     public function index(InvoiceIndexQueryData $query): InertiaResponse
@@ -62,7 +60,6 @@ final class InvoiceController extends Controller
             'query' => $query,
             'options' => [
                 'companies' => $this->companyQuery->listForOptions(),
-                'vehicles' => $this->vehicleQuery->listForOptions(),
                 // Bornes des années couvertes par les factures émises.
                 // Le frontend les utilise pour générer la liste complète
                 // [min..max(currentYear, max)]. Null si aucune facture.

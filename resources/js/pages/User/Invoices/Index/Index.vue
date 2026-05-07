@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Page Index Factures (Phase 14.F V1.2). Liste paginée server-side
- * (cf. ADR-0020) avec filtres `?companyId`, `?vehicleId`, `?year`,
- * `?month` + search sur le numéro de facture / entreprise.
+ * (cf. ADR-0020) avec filtres `?companyId`, `?year`, `?month` + search
+ * sur le numéro de facture / entreprise.
  */
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -23,7 +23,6 @@ const props = defineProps<{
     hasAnyInvoice: boolean;
     options: {
         companies: App.Data.User.Company.CompanyOptionData[];
-        vehicles: App.Data.User.Vehicle.VehicleOptionData[];
         /** Bornes des années couvertes par les factures émises ; null si aucune. */
         yearBounds: { min: number; max: number } | null;
     };
@@ -32,12 +31,10 @@ const props = defineProps<{
 const filtersOpen = ref<boolean>(false);
 
 const companyOptions = computed(() => props.options.companies);
-const vehicleOptions = computed(() => props.options.vehicles);
 
 const tableState = useInvoicesTable({
     query: props.query,
     companyOptions: companyOptions.value,
-    vehicleOptions: vehicleOptions.value,
 });
 
 const searchModel = computed<string>({
@@ -54,25 +51,11 @@ const companySelectOptions = computed(() =>
     })),
 );
 
-const vehicleSelectOptions = computed(() =>
-    vehicleOptions.value.map((v) => ({ value: v.id, label: v.label })),
-);
-
 const companyIdModel = computed<number | null>({
     get: () => tableState.state.filters.value.companyId,
     set: (value: string | number | null) => {
         tableState.state.setFilter(
             'companyId',
-            typeof value === 'number' ? value : null,
-        );
-    },
-});
-
-const vehicleIdModel = computed<number | null>({
-    get: () => tableState.state.filters.value.vehicleId,
-    set: (value: string | number | null) => {
-        tableState.state.setFilter(
-            'vehicleId',
             typeof value === 'number' ? value : null,
         );
     },
@@ -185,15 +168,6 @@ const divergentOnlyModel = computed<boolean>({
                                     v-model="companyIdModel"
                                     placeholder="Toutes les entreprises"
                                     :options="companySelectOptions"
-                                />
-                            </div>
-                            <div v-if="vehicleSelectOptions.length > 0">
-                                <FieldLabel for="filter-invoice-vehicle">Véhicule</FieldLabel>
-                                <SearchableSelect
-                                    id="filter-invoice-vehicle"
-                                    v-model="vehicleIdModel"
-                                    placeholder="Tous les véhicules"
-                                    :options="vehicleSelectOptions"
                                 />
                             </div>
                             <div>

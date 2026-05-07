@@ -60,9 +60,16 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         // 4 derniers caractères. SQLite (tests) ne supporte pas le cast
         // SUBSTRING en int dans MAX() de manière portable ; on extrait
         // côté PHP — coût O(n) acceptable (n = factures du mois, < 100).
+        //
+        // `lockForUpdate()` (chantier T4 / Phase 14.P) : verrou pessimiste
+        // pour empêcher deux générations concurrentes de calculer la même
+        // séquence et de violer l'UNIQUE `invoice_number`. N'a d'effet
+        // qu'à l'intérieur d'une transaction (cas appelant garanti par
+        // `GenerateInvoiceAction::execute()` qui wrappe en `DB::transaction`).
         $rows = Invoice::query()
             ->where('year', $year)
             ->where('month', $month)
+            ->lockForUpdate()
             ->pluck('invoice_number');
 
         $max = 0;
@@ -99,8 +106,12 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         return Invoice::query()->exists();
     }
 
+    /**
+     * @return array{min: int, max: int}|null
+     */
     public function findYearBounds(): ?array
     {
+        /** @var object{min_year: int|null, max_year: int|null}|null $row */
         $row = Invoice::query()
             ->selectRaw('MIN(year) as min_year, MAX(year) as max_year')
             ->first();
@@ -134,15 +145,6 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         // Filtres exact match.
         if ($query->companyId !== null) {
             $eloquentQuery->where('invoices.company_id', $query->companyId);
-        }
-        if ($query->vehicleId !== null) {
-            // Le véhicule est rattaché via les lignes de facture
-            // (`invoice_lines.vehicle_id`). On filtre les factures qui
-            // ont au moins une ligne pour ce véhicule.
-            $eloquentQuery->whereHas(
-                'lines',
-                fn (Builder $q) => $q->where('vehicle_id', $query->vehicleId),
-            );
         }
         if ($query->year !== null) {
             $eloquentQuery->where('invoices.year', $query->year);

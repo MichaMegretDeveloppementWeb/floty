@@ -35,7 +35,6 @@ const COLUMN_TO_SORT_KEY: Partial<Record<string, InvoiceSortKey>> = {
 
 export type InvoiceFilters = {
     companyId: number | null;
-    vehicleId: number | null;
     year: number | null;
     month: number | null;
     divergentOnly: boolean;
@@ -49,7 +48,6 @@ export type InvoiceFilterChip = {
 export function useInvoicesTable(opts: {
     query: App.Data.User.Invoice.InvoiceIndexQueryData;
     companyOptions: readonly App.Data.User.Company.CompanyOptionData[];
-    vehicleOptions: readonly App.Data.User.Vehicle.VehicleOptionData[];
 }): {
     columns: readonly DataTableColumn<InvoiceRow>[];
     state: ServerTableState<InvoiceFilters>;
@@ -76,21 +74,18 @@ export function useInvoicesTable(opts: {
         initialSortDirection: opts.query.sortDirection,
         defaultFilters: {
             companyId: null,
-            vehicleId: null,
             year: null,
             month: null,
             divergentOnly: false,
         },
         initialFilters: {
             companyId: opts.query.companyId,
-            vehicleId: opts.query.vehicleId,
             year: opts.query.year,
             month: opts.query.month,
             divergentOnly: opts.query.divergentOnly,
         },
         serializeFilters: (f) => ({
             companyId: f.companyId,
-            vehicleId: f.vehicleId,
             year: f.year,
             month: f.month,
             // `divergentOnly = false` est l'état par défaut — on le retire
@@ -127,14 +122,6 @@ export function useInvoicesTable(opts: {
             chips.push({
                 key: 'companyId',
                 label: `Entreprise : ${c?.shortCode ?? '#' + f.companyId}`,
-            });
-        }
-
-        if (f.vehicleId !== null) {
-            const v = opts.vehicleOptions.find((x) => x.id === f.vehicleId);
-            chips.push({
-                key: 'vehicleId',
-                label: `Véhicule : ${v?.licensePlate ?? '#' + f.vehicleId}`,
             });
         }
 
