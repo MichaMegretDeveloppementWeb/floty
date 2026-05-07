@@ -133,8 +133,34 @@ export function useSidebarNav(open: Ref<boolean>): {
         return typeof url === 'string' ? url : '';
     });
 
-    const isActive = (href: string): boolean =>
-        currentPath.value.startsWith(href);
+    /**
+     * Item actif = celui dont le `href` est le préfixe le plus long du
+     * path courant. Évite la double-surbrillance quand deux items
+     * partagent un préfixe (ex. `/app/planning` et
+     * `/app/planning/companies` : sur `/app/planning/companies/1`,
+     * seule la 2ᵉ entrée est marquée active).
+     */
+    const activeHref = computed<string | null>(() => {
+        const path = currentPath.value.split('?')[0] ?? '';
+        let best: string | null = null;
+
+        for (const section of sections) {
+            for (const item of section.items) {
+                const itemPath = item.href.split('?')[0] ?? '';
+
+                const matches = path === itemPath
+                    || path.startsWith(itemPath + '/');
+
+                if (matches && (best === null || itemPath.length > best.length)) {
+                    best = item.href;
+                }
+            }
+        }
+
+        return best;
+    });
+
+    const isActive = (href: string): boolean => activeHref.value === href;
 
     const closeDrawer = (): void => {
         open.value = false;

@@ -42,13 +42,15 @@ const { week, onContractsCreated } = useUserPlanningIndex();
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="flex flex-col gap-3">
                 <PageHeader :fiscal-year="selectedYear" />
-                <InlineYearSelector
-                    id="planning-year"
-                    v-model="yearModel"
-                    :options="yearOptions"
-                />
+                <div class="flex justify-end">
+                    <InlineYearSelector
+                        id="planning-year"
+                        v-model="yearModel"
+                        :options="yearOptions"
+                    />
+                </div>
             </div>
 
             <Heatmap

@@ -63,7 +63,17 @@ const companyIdModel = computed<number | null>({
         if (typeof v !== 'number' || v === props.company.id) return;
         // Navigation full page : la heatmap et les data se recalculent
         // côté backend (pas de partial reload car le scope change).
-        router.visit(planningCompaniesIndexRoute.url({ company: v }), {
+        // Préserve le `?year=` actuel pour ne pas reset la sélection
+        // d'année au changement d'entreprise.
+        const target = new URL(
+            planningCompaniesIndexRoute.url({ company: v }),
+            window.location.origin,
+        );
+        const currentYear = new URL(window.location.href).searchParams.get('year');
+        if (currentYear !== null) {
+            target.searchParams.set('year', currentYear);
+        }
+        router.visit(target.pathname + target.search, {
             preserveState: false,
             preserveScroll: false,
         });
@@ -94,8 +104,8 @@ const { week, onContractsCreated } = useUserPlanningIndex();
                     </p>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-3">
-                    <div class="min-w-[260px] grow max-w-md">
+                <div class="flex flex-wrap items-center justify-end gap-3">
+                    <div class="min-w-[260px] max-w-md">
                         <SearchableSelect
                             id="company-planning-picker"
                             v-model="companyIdModel"
