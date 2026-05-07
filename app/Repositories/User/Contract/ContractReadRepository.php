@@ -67,6 +67,21 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
+    public function findForCompanyAndYear(int $companyId, int $year): Collection
+    {
+        $yearStart = sprintf('%04d-01-01', $year);
+        $yearEnd = sprintf('%04d-12-31', $year);
+
+        return Contract::query()
+            ->with(['vehicle'])
+            ->where('company_id', $companyId)
+            ->where('start_date', '<=', $yearEnd)
+            ->where('end_date', '>=', $yearStart)
+            ->orderBy('start_date')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function listForCompany(int $companyId): Collection
     {
         return Contract::query()

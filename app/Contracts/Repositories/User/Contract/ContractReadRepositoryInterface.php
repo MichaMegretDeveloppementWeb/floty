@@ -49,6 +49,21 @@ interface ContractReadRepositoryInterface
     public function listForCompany(int $companyId): Collection;
 
     /**
+     * Tous les contrats actifs d'une `(entreprise, année)` croisant
+     * l'année civile (`start_date <= 31/12 AND end_date >= 01/01`).
+     * Eager-load `vehicle` pour les services qui consomment les
+     * caractéristiques véhicule du contrat (libellé plate, etc.).
+     * Cas d'usage : moteur de détection de risque fiscal (Phase 11 D2).
+     *
+     * Tri déterministe `start_date ASC, id ASC` requis par les
+     * algorithmes de chaînage : deux contrats à dates de début égales
+     * sont ordonnés par id pour éviter toute ambiguïté.
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findForCompanyAndYear(int $companyId, int $year): Collection;
+
+    /**
      * Liste des contrats actifs d'un véhicule (toutes périodes).
      *
      * @return Collection<int, Contract>
