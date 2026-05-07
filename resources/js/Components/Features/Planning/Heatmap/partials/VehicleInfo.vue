@@ -1,8 +1,8 @@
 <script setup lang="ts">
-type Vehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
+import type { HeatmapVehicleView } from '@/Components/Features/Planning/Heatmap/types';
 
 defineProps<{
-    vehicle: Vehicle;
+    vehicleView: HeatmapVehicleView;
 }>();
 </script>
 
@@ -13,27 +13,27 @@ defineProps<{
         <span
             :class="[
                 'rounded-[3px] px-1 py-0.5 font-mono text-[10px] font-semibold uppercase',
-                vehicle.userType === 'VU'
+                vehicleView.userType === 'VU'
                     ? 'bg-amber-50 text-amber-700'
                     : 'bg-slate-100 text-slate-600',
             ]"
         >
-            {{ vehicle.userType }}
+            {{ vehicleView.userType }}
         </span>
         <div class="w-[200px] min-w-0">
             <div class="flex items-center gap-1.5">
                 <p class="truncate font-mono text-xs font-medium text-slate-900">
-                    {{ vehicle.licensePlate }}
+                    {{ vehicleView.licensePlate }}
                 </p>
                 <span
-                    v-if="vehicle.exitDate !== null"
+                    v-if="vehicleView.exitDate !== null"
                     class="shrink-0 rounded-[3px] bg-slate-200 px-1 py-0.5 text-[9px] font-semibold tracking-wide text-slate-700 uppercase"
                 >
                     Retiré
                 </span>
             </div>
             <p class="truncate text-[11px] text-slate-500">
-                {{ vehicle.brand }} {{ vehicle.model }}
+                {{ vehicleView.brand }} {{ vehicleView.model }}
             </p>
         </div>
     </div>

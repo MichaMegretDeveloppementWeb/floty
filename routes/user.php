@@ -181,8 +181,12 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('planning.contracts.store-bulk');
 
-        // Planning Vue Entreprise (chantier P1) : variante de la heatmap
-        // focalisée sur une entreprise donnée.
+        // Planning Vue Entreprise (chantier P1+P2) : variante de la
+        // heatmap focalisée sur une entreprise donnée.
+        // Racine sans param : redirige vers la 1ʳᵉ entreprise existante
+        // ou affiche la page Empty si aucune.
+        Route::get('/planning/companies', [PlanningController::class, 'companyIndexRoot'])
+            ->name('planning.companies.root');
         Route::get('/planning/companies/{company}', [PlanningController::class, 'companyIndex'])
             ->name('planning.companies.index');
 

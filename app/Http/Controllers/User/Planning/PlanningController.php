@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Planning;
 
 use App\Actions\Contract\BulkCreateContractsAction;
+use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Planning\PreviewTaxesInputData;
@@ -16,6 +17,7 @@ use App\Services\Planning\PlanningHeatmapService;
 use App\Services\Planning\WeekDetailService;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -38,6 +40,7 @@ final class PlanningController extends Controller
         private readonly WeekDetailService $weekDetail,
         private readonly BulkCreateContractsAction $bulkCreateContracts,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly CompanyReadRepositoryInterface $companies,
     ) {}
 
     public function index(Request $request): Response
@@ -52,6 +55,31 @@ final class PlanningController extends Controller
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
         );
+    }
+
+    /**
+     * Point d'entrée racine de la Vue Entreprise (chantier P2). Sans
+     * param d'entreprise dans l'URL, on redirige vers la 1ʳᵉ entreprise
+     * existante (1er ID croissant) ; si aucune entreprise n'existe, on
+     * affiche une page Empty avec lien vers la création d'entreprise.
+     *
+     * Le `?year=` éventuel est préservé dans la redirection.
+     */
+    public function companyIndexRoot(Request $request): RedirectResponse|Response
+    {
+        $first = $this->companies->findAllOrderedByName()->first();
+
+        if ($first === null) {
+            return Inertia::render('User/Planning/Company/Empty');
+        }
+
+        $params = ['company' => $first->id];
+        $rawYear = $request->query('year');
+        if (is_numeric($rawYear)) {
+            $params['year'] = (int) $rawYear;
+        }
+
+        return redirect()->route('user.planning.companies.index', $params);
     }
 
     /**

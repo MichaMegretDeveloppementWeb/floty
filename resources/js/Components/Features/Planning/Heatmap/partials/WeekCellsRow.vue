@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import type { HeatmapVehicleView } from '@/Components/Features/Planning/Heatmap/types';
 import {
     densityClass,
     textContrastClass,
@@ -7,10 +8,8 @@ import {
 import { isCellAfterExit } from '@/Components/Features/Planning/Heatmap/utils/exitedWeeks';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
-type Vehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
-
 const props = defineProps<{
-    vehicle: Vehicle;
+    vehicleView: HeatmapVehicleView;
     fiscalYear: number;
 }>();
 
@@ -19,25 +18,25 @@ const emit = defineEmits<{
 }>();
 
 const exitedWeekFlags = computed<boolean[]>(() =>
-    props.vehicle.weeks.map((_, idx) =>
-        isCellAfterExit(idx, props.vehicle.exitDate, props.fiscalYear),
+    props.vehicleView.weeksForCount.map((_, idx) =>
+        isCellAfterExit(idx, props.vehicleView.exitDate, props.fiscalYear),
     ),
 );
 
 const exitTooltip = computed<string | null>(() =>
-    props.vehicle.exitDate === null
+    props.vehicleView.exitDate === null
         ? null
-        : `Véhicule retiré le ${formatDateFr(props.vehicle.exitDate)}`,
+        : `Véhicule retiré le ${formatDateFr(props.vehicleView.exitDate)}`,
 );
 
-// ADR-0019 D5 - bordure rouge sur les cellules de semaines portant
+// ADR-0019 D5 : bordure rouge sur les cellules de semaines portant
 // au moins un jour d'indispo (avec ou sans contrat sur la même
 // semaine), pour rendre visible la cohabitation indispo↔contrat
 // désormais autorisée.
 const unavailabilityWeekFlags = computed<boolean[]>(() => {
-    const set = new Set(props.vehicle.weeksWithUnavailability);
+    const set = new Set(props.vehicleView.weeksWithUnavailability);
 
-    return props.vehicle.weeks.map((_, idx) => set.has(idx + 1));
+    return props.vehicleView.weeksForCount.map((_, idx) => set.has(idx + 1));
 });
 </script>
 
@@ -46,29 +45,29 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
         class="flex h-[40px] items-center gap-[1px] border-t border-slate-100 first:border-t-0"
     >
         <button
-            v-for="(days, weekIndex) in vehicle.weeks"
+            v-for="(daysCount, weekIndex) in vehicleView.weeksForCount"
             :key="weekIndex"
             type="button"
             :class="[
-                densityClass(days),
-                textContrastClass(days),
+                densityClass(vehicleView.weeksForColor[weekIndex] ?? 0),
+                textContrastClass(vehicleView.weeksForColor[weekIndex] ?? 0),
                 'flex h-7 w-5 items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
                 exitedWeekFlags[weekIndex] && 'pointer-events-none opacity-30',
                 unavailabilityWeekFlags[weekIndex] && 'ring-1 ring-rose-500 ring-inset',
             ]"
-            :aria-label="`Semaine ${weekIndex + 1} · ${vehicle.licensePlate} · ${days} jours utilisés${unavailabilityWeekFlags[weekIndex] ? ' (indisponibilité présente)' : ''}`"
+            :aria-label="`Semaine ${weekIndex + 1} · ${vehicleView.licensePlate} · ${daysCount} jours utilisés${unavailabilityWeekFlags[weekIndex] ? ' (indisponibilité présente)' : ''}`"
             :title="exitedWeekFlags[weekIndex] && exitTooltip
                 ? exitTooltip
-                : `S${weekIndex + 1} · ${days}j / 7${unavailabilityWeekFlags[weekIndex] ? ' · indisponibilité présente' : ''}`"
+                : `S${weekIndex + 1} · ${daysCount}j / 7${unavailabilityWeekFlags[weekIndex] ? ' · indisponibilité présente' : ''}`"
             :disabled="exitedWeekFlags[weekIndex]"
             @click="
                 emit('cell-click', {
-                    vehicleId: vehicle.id,
+                    vehicleId: vehicleView.id,
                     week: weekIndex + 1,
                 })
             "
         >
-            {{ days > 0 ? days : '' }}
+            {{ daysCount > 0 ? daysCount : '' }}
         </button>
     </div>
 </template>

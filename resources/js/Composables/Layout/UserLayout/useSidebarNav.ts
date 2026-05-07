@@ -19,6 +19,7 @@ import { index as driversIndexRoute } from '@/routes/user/drivers';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
 import { index as invoicesIndexRoute } from '@/routes/user/invoices';
 import { index as planningIndexRoute } from '@/routes/user/planning';
+import { root as planningCompaniesRootRoute } from '@/routes/user/planning/companies';
 import { edit as billingSettingsEditRoute } from '@/routes/user/settings/billing';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 
@@ -65,6 +66,11 @@ export function useSidebarNav(open: Ref<boolean>): {
                     icon: CalendarDays,
                     href: planningIndexRoute.url(),
                 },
+                {
+                    label: 'Vue par entreprise',
+                    icon: Building2,
+                    href: planningCompaniesRootRoute.url(),
+                },
             ],
         },
         {
@@ -89,22 +95,22 @@ export function useSidebarNav(open: Ref<boolean>): {
             ],
         },
         {
-            title: 'Fiscalité',
-            items: [
-                {
-                    label: 'Règles de calcul',
-                    icon: Receipt,
-                    href: fiscalRulesIndexRoute.url(),
-                },
-            ],
-        },
-        {
             title: 'Facturation',
             items: [
                 {
                     label: 'Factures',
                     icon: Wallet,
                     href: invoicesIndexRoute.url(),
+                },
+            ],
+        },
+        {
+            title: 'Fiscalité',
+            items: [
+                {
+                    label: 'Règles de calcul',
+                    icon: Receipt,
+                    href: fiscalRulesIndexRoute.url(),
                 },
             ],
         },

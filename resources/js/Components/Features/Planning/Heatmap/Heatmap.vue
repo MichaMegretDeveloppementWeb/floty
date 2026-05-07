@@ -9,7 +9,12 @@
  * (taxe annuelle + jours) sticky ; seule la bande centrale (52 semaines)
  * scrolle horizontalement quand la fenêtre est trop étroite.
  *
- * Clic sur une cellule → émet `cell-click` avec { vehicleId, week }.
+ * Clic sur une cellule émet `cell-click` avec { vehicleId, week }.
+ *
+ * Mode Vue Entreprise (chantier P2) : le composant accepte aussi les
+ * DTOs `PlanningHeatmapCompanyVehicleData` (variante company-scoped).
+ * Un computed `vehicleViews` normalise la shape avant de la passer aux
+ * partials, qui ne connaissent que le type unifié `HeatmapVehicleView`.
  */
 import { computed } from 'vue';
 import {
@@ -21,11 +26,13 @@ import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
 import VehicleSummary from './partials/VehicleSummary.vue';
 import WeekCellsRow from './partials/WeekCellsRow.vue';
+import type { HeatmapVehicleView } from './types';
 
-type Vehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
+type OverviewVehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
+type CompanyVehicle = App.Data.User.Planning.PlanningHeatmapCompanyVehicleData;
 
 const props = defineProps<{
-    vehicles: Vehicle[];
+    vehicles: OverviewVehicle[] | CompanyVehicle[];
     fiscalYear: number;
 }>();
 
@@ -48,11 +55,57 @@ const monthLabels = [
     { name: 'Déc', weeks: 5 },
 ];
 
+function isCompanyVariant(v: OverviewVehicle | CompanyVehicle): v is CompanyVehicle {
+    return 'weeksGlobal' in v;
+}
+
+const vehicleViews = computed<HeatmapVehicleView[]>(() =>
+    props.vehicles.map((v) => {
+        if (isCompanyVariant(v)) {
+            return {
+                id: v.id,
+                licensePlate: v.licensePlate,
+                brand: v.brand,
+                model: v.model,
+                userType: v.userType,
+                energy: v.energy,
+                co2Method: v.co2Method,
+                co2Value: v.co2Value,
+                taxableHorsepower: v.taxableHorsepower,
+                weeksForColor: v.weeksGlobal,
+                weeksForCount: v.weeksForCompany,
+                summaryDays: v.daysTotalForCompany,
+                summaryTax: v.annualTaxDueForCompany,
+                exitDate: v.exitDate,
+                weeksWithUnavailability: v.weeksWithUnavailability,
+            };
+        }
+
+        return {
+            id: v.id,
+            licensePlate: v.licensePlate,
+            brand: v.brand,
+            model: v.model,
+            userType: v.userType,
+            energy: v.energy,
+            co2Method: v.co2Method,
+            co2Value: v.co2Value,
+            taxableHorsepower: v.taxableHorsepower,
+            weeksForColor: v.weeks,
+            weeksForCount: v.weeks,
+            summaryDays: v.daysTotal,
+            summaryTax: v.annualTaxDue,
+            exitDate: v.exitDate,
+            weeksWithUnavailability: v.weeksWithUnavailability,
+        };
+    }),
+);
+
 const totalAnnualTax = computed((): number =>
-    props.vehicles.reduce((sum, v) => sum + v.annualTaxDue, 0),
+    vehicleViews.value.reduce((sum, v) => sum + v.summaryTax, 0),
 );
 const totalDays = computed((): number =>
-    props.vehicles.reduce((sum, v) => sum + v.daysTotal, 0),
+    vehicleViews.value.reduce((sum, v) => sum + v.summaryDays, 0),
 );
 </script>
 
@@ -61,7 +114,7 @@ const totalDays = computed((): number =>
         <!-- Bandeau résumé + légende -->
         <div class="flex flex-wrap items-center justify-between gap-3 pb-1">
             <HeatmapSummary
-                :vehicles-count="vehicles.length"
+                :vehicles-count="vehicleViews.length"
                 :total-days="totalDays"
                 :total-annual-tax="totalAnnualTax"
                 :fiscal-year="fiscalYear"
@@ -77,9 +130,9 @@ const totalDays = computed((): number =>
                     <div class="mb-2 h-4" />
                     <div class="flex flex-col">
                         <VehicleInfo
-                            v-for="vehicle in vehicles"
-                            :key="`left-${vehicle.id}`"
-                            :vehicle="vehicle"
+                            v-for="view in vehicleViews"
+                            :key="`left-${view.id}`"
+                            :vehicle-view="view"
                         />
                     </div>
                 </div>
@@ -103,9 +156,9 @@ const totalDays = computed((): number =>
 
                         <div class="flex flex-col">
                             <WeekCellsRow
-                                v-for="vehicle in vehicles"
-                                :key="`cells-${vehicle.id}`"
-                                :vehicle="vehicle"
+                                v-for="view in vehicleViews"
+                                :key="`cells-${view.id}`"
+                                :vehicle-view="view"
                                 :fiscal-year="fiscalYear"
                                 @cell-click="$emit('cell-click', $event)"
                             />
@@ -118,9 +171,9 @@ const totalDays = computed((): number =>
                     <div class="mb-2 h-4" />
                     <div class="flex flex-col">
                         <VehicleSummary
-                            v-for="vehicle in vehicles"
-                            :key="`right-${vehicle.id}`"
-                            :vehicle="vehicle"
+                            v-for="view in vehicleViews"
+                            :key="`right-${view.id}`"
+                            :vehicle-view="view"
                         />
                     </div>
                 </div>
