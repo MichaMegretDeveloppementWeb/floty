@@ -2,27 +2,18 @@
 /**
  * Actions sur une cellule mensuelle du récap entreprise (Phase 14.I+).
  *
- * Sépare clairement **mention informative** et **action utilisateur** :
- *   - **Chip « Données obsolètes »** (orange, non-cliquable) : signale
- *     que le périmètre contractuel a changé depuis l'émission de la
- *     facture. Purement décoratif : l'utilisateur ne peut rien cliquer
- *     dessus.
- *   - **Bouton « Régénérer »** (cliquable) : ouvre une modal de
- *     confirmation. Sur confirmation, supprime la facture existante
- *     puis en génère une nouvelle avec les données actuelles, en une
- *     seule transaction backend.
+ * Trois états affichés :
+ *   1. Pas de facture : bouton « Générer » (désactivé si non facturable)
+ *   2. Facture existante sans divergence : lien « Voir »
+ *   3. Facture existante avec divergence : lien « Voir » + bouton
+ *      « Régénérer » (modal de confirmation, transaction cancel + create)
  *
- * Quatre états possibles :
- *   1. **Pas de facture, mois facturable** → bouton « Générer »
- *   2. **Pas de facture, mois non facturable** → bouton « Générer »
- *      désactivé avec tooltip explicatif
- *   3. **Facture existante, sans divergence** → lien vert
- *      « Voir #YYYY-MM-NNNN »
- *   4. **Facture existante, avec divergence** → lien « Voir » + chip
- *      mention « Données obsolètes » + bouton « Régénérer »
+ * La mention « Données obsolètes » ne vit plus dans ce composant : elle
+ * est portée par un indicateur warning à côté du numéro de facture, dans
+ * la colonne dédiée du récap (cf. MonthlyBillingBreakdownCard).
  */
 import { Link, router } from '@inertiajs/vue3';
-import { AlertTriangle, Eye, FileText, Loader2, RefreshCw } from 'lucide-vue-next';
+import { Eye, FileText, Loader2, RefreshCw } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import {
@@ -30,7 +21,6 @@ import {
     regenerate as invoicesRegenerateRoute,
     show as invoicesShowRoute,
 } from '@/routes/user/invoices';
-import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
     companyId: number;
@@ -85,22 +75,6 @@ const hasDivergence = computed<boolean>(() => {
     return false;
 });
 
-const divergenceTooltip = computed<string>(() => {
-    if (!hasDivergence.value) {
-        return '';
-    }
-
-    const invoicedDays = props.existingInvoicedDaysUsed ?? 0;
-    const invoicedTotal = formatEur((props.existingInvoiceTotalCents ?? 0) / 100, 2);
-    const currentTotal = formatEur((props.currentTotalCents ?? 0) / 100, 2);
-
-    return (
-        `Facture émise sur ${invoicedDays} j / ${invoicedTotal}. `
-        + `Recalcul actuel : ${props.daysUsed} j / ${currentTotal}. `
-        + 'Régénérez la facture pour la mettre à jour avec les données actuelles.'
-    );
-});
-
 const generateDisabled = computed<boolean>(
     () => processing.value || props.daysUsed === 0 || props.hasMissingPricing,
 );
@@ -116,6 +90,10 @@ const generateTooltip = computed<string>(() => {
 
     return 'Générer la facture';
 });
+
+const viewTooltip = computed<string>(
+    () => `Voir la facture ${props.existingInvoiceNumber ?? ''}`.trim(),
+);
 
 function generate(): void {
     if (generateDisabled.value) {
@@ -163,48 +141,30 @@ function regenerate(): void {
 
 <template>
     <div class="inline-flex items-center gap-1.5">
-        <!-- État : facture existante, divergence détectée -->
-        <template v-if="hasExisting && hasDivergence && existingInvoiceId">
-            <span
-                :title="divergenceTooltip"
-                class="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-medium text-amber-800 whitespace-nowrap"
-            >
-                <AlertTriangle class="shrink-0" :size="12" :stroke-width="1.75" />
-                Données obsolètes
-            </span>
-            <Link
-                :href="invoicesShowRoute.url({ invoice: existingInvoiceId })"
-                :title="`Voir la facture ${existingInvoiceNumber}`"
-                class="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors duration-[120ms] hover:border-emerald-300 hover:bg-emerald-100 whitespace-nowrap"
-            >
-                <Eye class="shrink-0" :size="12" :stroke-width="1.75" />
-                Voir #{{ existingInvoiceNumber }}
-            </Link>
-            <button
-                type="button"
-                title="Régénérer la facture avec les données actuelles"
-                class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50 cursor-pointer whitespace-nowrap"
-                @click="regenerateModalOpen = true"
-            >
-                <RefreshCw class="shrink-0" :size="12" :stroke-width="1.75" />
-                Régénérer
-            </button>
-        </template>
-
-        <!-- État : facture existante, pas de divergence -->
+        <!-- État : facture existante (avec ou sans divergence) -->
         <Link
-            v-else-if="hasExisting && existingInvoiceId"
+            v-if="hasExisting && existingInvoiceId"
             :href="invoicesShowRoute.url({ invoice: existingInvoiceId })"
-            :title="`Voir la facture ${existingInvoiceNumber}`"
+            :title="viewTooltip"
             class="inline-flex items-center gap-1.5 rounded-md border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 transition-colors duration-[120ms] hover:border-emerald-300 hover:bg-emerald-100 whitespace-nowrap"
         >
             <Eye class="shrink-0" :size="12" :stroke-width="1.75" />
-            Voir #{{ existingInvoiceNumber }}
+            Voir
         </Link>
+        <button
+            v-if="hasExisting && hasDivergence && existingInvoiceId"
+            type="button"
+            title="Régénérer la facture avec les données actuelles"
+            class="inline-flex items-center gap-1.5 rounded-md border border-slate-200 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50 cursor-pointer whitespace-nowrap"
+            @click="regenerateModalOpen = true"
+        >
+            <RefreshCw class="shrink-0" :size="12" :stroke-width="1.75" />
+            Régénérer
+        </button>
 
         <!-- État : pas de facture (générer ou désactivé) -->
         <button
-            v-else
+            v-if="!hasExisting"
             type="button"
             :disabled="generateDisabled"
             :title="generateTooltip"

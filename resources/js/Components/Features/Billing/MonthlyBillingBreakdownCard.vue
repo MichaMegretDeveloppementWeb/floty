@@ -13,11 +13,13 @@
  * sur la fiche véhicule. Les autres lignes affichent le total formaté
  * en euros, clavier-friendly et en tabular-nums (lecture verticale).
  */
+import { AlertTriangle } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { formatEur } from '@/Utils/format/formatEur';
 
 type MonthlyBilling = App.Data.User.Billing.MonthlyBillingBreakdownData;
+type Entry = MonthlyBilling['entries'][number];
 
 const props = defineProps<{
     /** Récap pré-calculé par le backend pour l'année concernée. */
@@ -44,6 +46,34 @@ const totalLabel = computed<string>(() => {
 
     return formatEur(props.monthlyBilling.yearTotalCents / 100, 2);
 });
+
+function entryHasDivergence(entry: Entry): boolean {
+    if (entry.existingInvoiceId === null || entry.invoicedDaysUsed === null) {
+        return false;
+    }
+
+    if (entry.daysUsed !== entry.invoicedDaysUsed) {
+        return true;
+    }
+
+    return (
+        entry.totalCents !== null
+        && entry.invoicedTotalCents !== null
+        && entry.totalCents !== entry.invoicedTotalCents
+    );
+}
+
+function divergenceTooltip(entry: Entry): string {
+    const invoicedDays = entry.invoicedDaysUsed ?? 0;
+    const invoicedTotal = formatEur((entry.invoicedTotalCents ?? 0) / 100, 2);
+    const currentTotal = formatEur((entry.totalCents ?? 0) / 100, 2);
+
+    return (
+        `Données obsolètes. Facture émise sur ${invoicedDays} j / ${invoicedTotal}. `
+        + `Recalcul actuel : ${entry.daysUsed} j / ${currentTotal}. `
+        + 'Régénérez pour mettre à jour avec les données actuelles.'
+    );
+}
 </script>
 
 <template>
@@ -77,50 +107,69 @@ const totalLabel = computed<string>(() => {
             </div>
         </template>
 
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">
-                    <th class="py-2 pr-3 font-medium">Mois</th>
-                    <th class="py-2 px-3 font-medium text-right">Jours utilisés</th>
-                    <th class="py-2 px-3 font-medium text-right">Montant HT</th>
-                    <th v-if="$slots['row-actions']" class="py-2 pl-3 font-medium text-right">
-                        Action
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-                <tr
-                    v-for="(entry, idx) in monthlyBilling.entries"
-                    :key="entry.month"
-                    :class="entry.hasMissingPricing
-                        ? 'bg-amber-50/40 text-amber-700'
-                        : entry.daysUsed === 0
-                            ? 'text-slate-400'
-                            : 'text-slate-800'"
-                >
-                    <td class="py-2 pr-3 text-sm whitespace-nowrap">
-                        {{ MONTH_LABELS[idx] }}
-                    </td>
-                    <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
-                        {{ entry.daysUsed }}
-                    </td>
-                    <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
-                        <template v-if="entry.hasMissingPricing">
-                            <span class="text-xs italic">Tarif manquant</span>
-                        </template>
-                        <template v-else-if="entry.daysUsed === 0">
-                            ·
-                        </template>
-                        <template v-else>
-                            {{ formatEur((entry.totalCents ?? 0) / 100, 2) }}
-                        </template>
-                    </td>
-                    <td v-if="$slots['row-actions']" class="py-2 pl-3 text-right">
-                        <slot name="row-actions" :entry="entry" />
-                    </td>
-                </tr>
-            </tbody>
-        </table>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">
+                        <th class="py-2 pr-3 font-medium">Mois</th>
+                        <th class="py-2 px-3 font-medium text-right">Jours utilisés</th>
+                        <th class="py-2 px-3 font-medium text-right">Montant HT</th>
+                        <th class="py-2 px-3 font-medium">N° facture</th>
+                        <th v-if="$slots['row-actions']" class="py-2 pl-3 font-medium text-right">
+                            Action
+                        </th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    <tr
+                        v-for="(entry, idx) in monthlyBilling.entries"
+                        :key="entry.month"
+                        :class="entry.hasMissingPricing
+                            ? 'bg-amber-50/40 text-amber-700'
+                            : entry.daysUsed === 0
+                                ? 'text-slate-400'
+                                : 'text-slate-800'"
+                    >
+                        <td class="py-2 pr-3 text-sm whitespace-nowrap">
+                            {{ MONTH_LABELS[idx] }}
+                        </td>
+                        <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
+                            {{ entry.daysUsed }}
+                        </td>
+                        <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
+                            <template v-if="entry.hasMissingPricing">
+                                <span class="text-xs italic">Tarif manquant</span>
+                            </template>
+                            <template v-else-if="entry.daysUsed === 0">
+                                ·
+                            </template>
+                            <template v-else>
+                                {{ formatEur((entry.totalCents ?? 0) / 100, 2) }}
+                            </template>
+                        </td>
+                        <td class="py-2 px-3 whitespace-nowrap">
+                            <template v-if="entry.existingInvoiceNumber">
+                                <span class="inline-flex items-center gap-1.5">
+                                    <AlertTriangle
+                                        v-if="entryHasDivergence(entry)"
+                                        :title="divergenceTooltip(entry)"
+                                        class="shrink-0 text-amber-500"
+                                        :size="14"
+                                        :stroke-width="2"
+                                    />
+                                    <span class="font-mono text-xs text-slate-600">
+                                        {{ entry.existingInvoiceNumber }}
+                                    </span>
+                                </span>
+                            </template>
+                        </td>
+                        <td v-if="$slots['row-actions']" class="py-2 pl-3 text-right">
+                            <slot name="row-actions" :entry="entry" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
         <p
             v-if="monthlyBilling.hasAnyMissingPricing"
