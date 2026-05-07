@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Providers;
 
+use App\Contracts\Pdf\DeclarationPdfRendererInterface;
 use App\Services\Fiscal\AvailableYearsResolver;
+use App\Services\Pdf\NullDeclarationPdfRenderer;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -24,6 +26,10 @@ class AppServiceProvider extends ServiceProvider
         // (cache mémoire process partagé entre tous les consumers d'une
         // même requête). Cf. chantier η Phase 0.1.
         $this->app->singleton(AvailableYearsResolver::class);
+
+        // PDF annexe déclaration fiscale (Phase 11 D3) : binding vers le
+        // stub minimal. D5 swappera vers le renderer DomPDF complet.
+        $this->app->bind(DeclarationPdfRendererInterface::class, NullDeclarationPdfRenderer::class);
     }
 
     /**

@@ -14,16 +14,31 @@
  * Aucun lien avec le sélecteur global, ni avec celui de l'onglet
  * Contrats — chaque section a sa propre vie.
  */
+import { Link, router } from '@inertiajs/vue3';
+import { FileCheck2, FileText } from 'lucide-vue-next';
 import { computed } from 'vue';
+import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { useCompanyFiscalSelectedYear } from '@/Composables/Company/Show/useCompanyFiscalSelectedYear';
+import { prepare as prepareDeclarationRoute, review as reviewDeclarationRoute, show as showDeclarationRoute } from '@/routes/user/declarations';
+import { badgeForDeclaration } from '@/Utils/format/declarationStatus';
 import { formatEur } from '@/Utils/format/formatEur';
 import CompanyFiscalBreakdownTable from './CompanyFiscalBreakdownTable.vue';
 import CompanyYearPills from './CompanyYearPills.vue';
 
 const props = defineProps<{
     fiscal: App.Data.User.Company.CompanyFiscalYearData;
+    companyId: number;
+    activeDeclaration?: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
 }>();
+
+function handlePrepare(): void {
+    router.post(prepareDeclarationRoute.url(), {
+        company_id: props.companyId,
+        fiscal_year: props.fiscal.year,
+    });
+}
 
 const { selectedYear, selectYear } = useCompanyFiscalSelectedYear(
     props.fiscal.year,
@@ -91,6 +106,71 @@ const isCurrentYear = computed<boolean>(
                     :active-year="selectedYear"
                     @select="selectYear"
                 />
+            </div>
+        </Card>
+
+        <!-- Phase 11 D4 — Déclaration fiscale annuelle (encart par année) -->
+        <Card>
+            <div class="flex flex-wrap items-start justify-between gap-3">
+                <div class="flex items-start gap-3">
+                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+                        <FileCheck2 :size="18" :stroke-width="1.75" />
+                    </div>
+                    <div class="flex flex-col gap-0.5">
+                        <h4 class="text-sm font-semibold text-slate-900">
+                            Déclaration {{ props.fiscal.year }}
+                        </h4>
+                        <p class="text-xs text-slate-500">
+                            <template v-if="props.activeDeclaration">
+                                Statut courant
+                                <StatusPill
+                                    class="ml-1"
+                                    :tone="badgeForDeclaration(
+                                        props.activeDeclaration.status,
+                                        props.activeDeclaration.isObsolete,
+                                    ).tone"
+                                >
+                                    {{ badgeForDeclaration(
+                                        props.activeDeclaration.status,
+                                        props.activeDeclaration.isObsolete,
+                                    ).label }}
+                                </StatusPill>
+                            </template>
+                            <template v-else>
+                                Aucune déclaration préparée pour cette année.
+                                Préparer ouvre l'écran de revue où vous tranchez
+                                les éventuels clusters de risque avant génération.
+                            </template>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <template v-if="props.activeDeclaration">
+                        <Link
+                            v-if="props.activeDeclaration.status !== 'generated' && !props.activeDeclaration.isObsolete"
+                            :href="reviewDeclarationRoute.url({ declaration: props.activeDeclaration.id })"
+                        >
+                            <Button>
+                                <FileText :size="16" :stroke-width="1.75" />
+                                Reprendre la revue
+                            </Button>
+                        </Link>
+                        <Link
+                            v-else
+                            :href="showDeclarationRoute.url({ declaration: props.activeDeclaration.id })"
+                        >
+                            <Button variant="secondary">
+                                <FileText :size="16" :stroke-width="1.75" />
+                                Ouvrir la déclaration
+                            </Button>
+                        </Link>
+                    </template>
+                    <Button v-else @click="handlePrepare">
+                        <FileCheck2 :size="16" :stroke-width="1.75" />
+                        Préparer la déclaration
+                    </Button>
+                </div>
             </div>
         </Card>
 

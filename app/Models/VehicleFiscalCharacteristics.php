@@ -14,8 +14,10 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Observers\VehicleFiscalCharacteristicsObserver;
 use Database\Factories\VehicleFiscalCharacteristicsFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -91,6 +93,7 @@ use Illuminate\Support\Carbon;
     'change_reason',
     'change_note',
 ])]
+#[ObservedBy([VehicleFiscalCharacteristicsObserver::class])]
 final class VehicleFiscalCharacteristics extends Model
 {
     /** @use HasFactory<VehicleFiscalCharacteristicsFactory> */

@@ -22,14 +22,27 @@ import CompanyAddressCard from './overview/CompanyAddressCard.vue';
 import CompanyContactCard from './overview/CompanyContactCard.vue';
 import CompanyKpiCards from './overview/CompanyKpiCards.vue';
 import CompanyYearHistoryCard from './overview/CompanyYearHistoryCard.vue';
+import PendingDeclarationsAlert from './overview/PendingDeclarationsAlert.vue';
 
-defineProps<{
+const props = defineProps<{
     company: App.Data.User.Company.CompanyDetailData;
+    pendingDeclarations?: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
+}>();
+
+const emit = defineEmits<{
+    'goto-fiscal-year': [year: number];
 }>();
 </script>
 
 <template>
     <div class="flex flex-col gap-6">
+        <PendingDeclarationsAlert
+            v-if="props.pendingDeclarations && props.pendingDeclarations.length > 0"
+            :pending-declarations="props.pendingDeclarations"
+            :company-id="props.company.id"
+            @goto-fiscal-year="(year) => emit('goto-fiscal-year', year)"
+        />
+
         <CompanyKpiCards
             :kpi-stats="company.kpiStats"
             :kpi-year="company.kpiYear"

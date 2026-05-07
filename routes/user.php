@@ -7,6 +7,7 @@ use App\Http\Controllers\User\Contract\ContractController;
 use App\Http\Controllers\User\Contract\ContractDocumentController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
 use App\Http\Controllers\User\Driver\DriverController;
+use App\Http\Controllers\User\FiscalDeclaration\DeclarationController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Invoice\InvoiceController;
 use App\Http\Controllers\User\Planning\PlanningController;
@@ -282,4 +283,39 @@ Route::middleware('auth')
 
         // Fiscal rules — consultation only
         Route::get('/fiscal-rules', [FiscalRuleController::class, 'index'])->name('fiscal-rules.index');
+
+        // Déclarations fiscales (Phase 11 D4, ADR-0015 rev. 1.1).
+        // Throttle 30/min sur les mutations cluster (storeDecision,
+        // markDeferred). Throttle 6/min sur les mutations PDF-générantes
+        // (generate, regenerate) : chaque appel render DomPDF + write fs.
+        Route::get('/declarations', [DeclarationController::class, 'index'])
+            ->name('declarations.index');
+        Route::post('/declarations/prepare', [DeclarationController::class, 'prepare'])
+            ->middleware('throttle:30,1')
+            ->name('declarations.prepare');
+        Route::get('/declarations/{declaration}', [DeclarationController::class, 'show'])
+            ->whereNumber('declaration')
+            ->name('declarations.show');
+        Route::get('/declarations/{declaration}/review', [DeclarationController::class, 'review'])
+            ->whereNumber('declaration')
+            ->name('declarations.review');
+        Route::post('/declarations/{declaration}/decisions', [DeclarationController::class, 'storeDecision'])
+            ->whereNumber('declaration')
+            ->middleware('throttle:60,1')
+            ->name('declarations.decisions.store');
+        Route::post('/declarations/{declaration}/mark-deferred', [DeclarationController::class, 'markDeferred'])
+            ->whereNumber('declaration')
+            ->middleware('throttle:30,1')
+            ->name('declarations.mark-deferred');
+        Route::post('/declarations/{declaration}/generate', [DeclarationController::class, 'generate'])
+            ->whereNumber('declaration')
+            ->middleware('throttle:6,1')
+            ->name('declarations.generate');
+        Route::post('/declarations/{declaration}/regenerate', [DeclarationController::class, 'regenerate'])
+            ->whereNumber('declaration')
+            ->middleware('throttle:6,1')
+            ->name('declarations.regenerate');
+        Route::get('/declarations/{declaration}/download', [DeclarationController::class, 'download'])
+            ->whereNumber('declaration')
+            ->name('declarations.download');
     });

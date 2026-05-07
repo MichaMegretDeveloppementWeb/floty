@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Observers;
 
+use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use App\Models\Contract;
 use App\Services\Fiscal\AvailableYearsResolver;
+use App\Services\Fiscal\Declaration\DeclarationInvalidationDetector;
 use App\Services\Invoice\InvoiceDivergenceFlagger;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Invalide le cache des bornes d'années sélectionnables (chantier η,
@@ -50,6 +53,7 @@ final class ContractObserver
     public function __construct(
         private readonly AvailableYearsResolver $resolver,
         private readonly InvoiceDivergenceFlagger $flagger,
+        private readonly DeclarationInvalidationDetector $declarationDetector,
     ) {}
 
     public function created(Contract $contract): void
@@ -60,6 +64,12 @@ final class ContractObserver
             $contract->company_id,
             $contract->start_date->toDateString(),
             $contract->end_date->toDateString(),
+        );
+
+        $this->declarationDetector->flagForContract(
+            $contract,
+            InvalidationReasonType::ContractCreated,
+            $this->actorUserId(),
         );
     }
 
@@ -86,15 +96,26 @@ final class ContractObserver
                 $oldStart,
                 $oldEnd,
             );
-
-            return;
+        } else {
+            // Changement de company : flag les deux périmètres séparément
+            // (l'ancienne entreprise n'est plus liée mais ses factures
+            // doivent quand même refléter la perte du contrat).
+            $this->flagger->flagForContractRange($oldCompanyId, $oldStart, $oldEnd);
+            $this->flagger->flagForContractRange($newCompanyId, $newStart, $newEnd);
         }
 
-        // Changement de company : flag les deux périmètres séparément
-        // (l'ancienne entreprise n'est plus liée mais ses factures
-        // doivent quand même refléter la perte du contrat).
-        $this->flagger->flagForContractRange($oldCompanyId, $oldStart, $oldEnd);
-        $this->flagger->flagForContractRange($newCompanyId, $newStart, $newEnd);
+        $this->declarationDetector->flagForContract(
+            $contract,
+            InvalidationReasonType::ContractUpdated,
+            $this->actorUserId(),
+            previousStartDate: $oldStart,
+            previousEndDate: $oldEnd,
+            previousCompanyId: $oldCompanyId !== $newCompanyId ? $oldCompanyId : null,
+            fieldsChanged: array_values(array_intersect(
+                self::IMPACTING_FIELDS,
+                array_keys($contract->getChanges()),
+            )),
+        );
     }
 
     public function deleted(Contract $contract): void
@@ -105,6 +126,12 @@ final class ContractObserver
             $contract->company_id,
             $contract->start_date->toDateString(),
             $contract->end_date->toDateString(),
+        );
+
+        $this->declarationDetector->flagForContract(
+            $contract,
+            InvalidationReasonType::ContractDeleted,
+            $this->actorUserId(),
         );
     }
 
@@ -117,6 +144,14 @@ final class ContractObserver
             $contract->start_date->toDateString(),
             $contract->end_date->toDateString(),
         );
+
+        // Restoration = ré-ajout d'un contrat soft-deleted = mêmes
+        // implications fiscales qu'une création.
+        $this->declarationDetector->flagForContract(
+            $contract,
+            InvalidationReasonType::ContractCreated,
+            $this->actorUserId(),
+        );
     }
 
     public function forceDeleted(Contract $contract): void
@@ -128,6 +163,22 @@ final class ContractObserver
             $contract->start_date->toDateString(),
             $contract->end_date->toDateString(),
         );
+
+        $this->declarationDetector->flagForContract(
+            $contract,
+            InvalidationReasonType::ContractDeleted,
+            $this->actorUserId(),
+        );
+    }
+
+    /**
+     * Identifie l'utilisateur acteur de la mutation pour la traçabilité
+     * des motifs `obsolete_reasons`. `0` si contexte sans auth (CLI,
+     * factories, seeders, tests sans `actingAs()`).
+     */
+    private function actorUserId(): int
+    {
+        return (int) (Auth::id() ?? 0);
     }
 
     /**

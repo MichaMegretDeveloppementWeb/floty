@@ -6,10 +6,12 @@ namespace App\Http\Controllers\User\Company;
 
 use App\Actions\Company\CreateCompanyAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\StoreCompanyData;
 use App\Data\User\Contract\ContractIndexQueryData;
+use App\Data\User\FiscalDeclaration\DeclarationListItemData;
 use App\Exceptions\Company\CompanyShortCodeCollisionException;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
@@ -17,6 +19,7 @@ use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
+use App\Services\Fiscal\Declaration\PendingDeclarationsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -33,6 +36,8 @@ final class CompanyController extends Controller
         private readonly ContractQueryService $contracts,
         private readonly CreateCompanyAction $createCompany,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly PendingDeclarationsResolver $pendingDeclarations,
+        private readonly FiscalDeclarationReadRepositoryInterface $declarations,
     ) {}
 
     public function index(CompanyIndexQueryData $query): Response
@@ -150,7 +155,30 @@ final class CompanyController extends Controller
                 $billingYear,
             ),
             'billingYear' => $billingYear,
+            // Phase 11 D4 — Déclarations fiscales :
+            //   - `pendingDeclarations` : alerte « À finaliser » sur
+            //     onglet Vue d'ensemble (contrats existent + pas de
+            //     déclaration `generated` active, deadline 30/04/N+1)
+            //   - `fiscalActiveDeclaration` : déclaration active pour
+            //     l'année sélectionnée de l'onglet Fiscalité (sert le
+            //     CTA « Préparer la déclaration » ou le lien vers la
+            //     déclaration existante)
+            'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($company->id),
+            'fiscalActiveDeclaration' => $this->resolveActiveDeclarationForYear(
+                $company->id,
+                $fiscalYear,
+            ),
         ]);
+    }
+
+    private function resolveActiveDeclarationForYear(int $companyId, int $year): ?DeclarationListItemData
+    {
+        $active = $this->declarations->findActiveForCompanyYear($companyId, $year);
+        if ($active === null) {
+            return null;
+        }
+
+        return DeclarationListItemData::fromModel($active->load('company'));
     }
 
     public function create(): Response

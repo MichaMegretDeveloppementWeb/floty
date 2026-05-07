@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\BillingSettings;
+use App\Models\FiscalDeclaration;
 use App\Models\FiscalRiskSettings;
 use App\Models\Invoice;
 use App\Models\VehicleYearlyPricing;
 use App\Policies\BillingSettingsPolicy;
+use App\Policies\FiscalDeclarationPolicy;
 use App\Policies\FiscalRiskSettingsPolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\VehicleYearlyPricingPolicy;
@@ -34,6 +36,7 @@ final class AuthServiceProvider extends ServiceProvider
         Invoice::class => InvoicePolicy::class,
         BillingSettings::class => BillingSettingsPolicy::class,
         FiscalRiskSettings::class => FiscalRiskSettingsPolicy::class,
+        FiscalDeclaration::class => FiscalDeclarationPolicy::class,
         VehicleYearlyPricing::class => VehicleYearlyPricingPolicy::class,
     ];
 }

@@ -2,6 +2,7 @@ import { usePage } from '@inertiajs/vue3';
 import {
     Building2,
     CalendarDays,
+    FileCheck2,
     FileText,
     LayoutDashboard,
     Receipt,
@@ -16,6 +17,7 @@ import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { dashboard as dashboardRoute } from '@/routes/user';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
+import { index as declarationsIndexRoute } from '@/routes/user/declarations';
 import { index as driversIndexRoute } from '@/routes/user/drivers';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
 import { index as invoicesIndexRoute } from '@/routes/user/invoices';
@@ -109,6 +111,11 @@ export function useSidebarNav(open: Ref<boolean>): {
         {
             title: 'Fiscalité',
             items: [
+                {
+                    label: 'Déclarations',
+                    icon: FileCheck2,
+                    href: declarationsIndexRoute.url(),
+                },
                 {
                     label: 'Règles de calcul',
                     icon: Receipt,

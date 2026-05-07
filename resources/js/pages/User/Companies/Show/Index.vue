@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import { useCompanyTabs } from '@/Composables/Company/Show/useCompanyTabs';
 import CompanyBillingTab from './partials/CompanyBillingTab.vue';
@@ -24,9 +24,27 @@ const props = defineProps<{
     companyFiscal: App.Data.User.Company.CompanyFiscalYearData;
     companyBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
     billingYear: number;
+    // Phase 11 D4 — Déclarations fiscales
+    pendingDeclarations: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
+    fiscalActiveDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
 }>();
 
 const { activeTab, setTab } = useCompanyTabs();
+
+/**
+ * Phase 11 D4 — Navigation depuis l'alerte « Déclarations à finaliser »
+ * vers l'onglet Fiscalité de l'année concernée. URL `?tab=fiscal&fiscalYear=Y`
+ * pilote `useCompanyTabs` (lit `?tab=`) + `useCompanyFiscalSelectedYear`
+ * (lit `?fiscalYear=`).
+ */
+function handleGotoFiscalYear(year: number): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', 'fiscal');
+    url.searchParams.set('fiscalYear', String(year));
+    router.visit(url.pathname + '?' + url.searchParams.toString(), {
+        preserveScroll: true,
+    });
+}
 </script>
 
 <template>
@@ -41,6 +59,8 @@ const { activeTab, setTab } = useCompanyTabs();
             <CompanyOverviewTab
                 v-if="activeTab === 'overview'"
                 :company="props.company"
+                :pending-declarations="props.pendingDeclarations"
+                @goto-fiscal-year="handleGotoFiscalYear"
             />
             <CompanyContractsTab
                 v-else-if="activeTab === 'contracts'"
@@ -60,6 +80,8 @@ const { activeTab, setTab } = useCompanyTabs();
             <CompanyFiscalTab
                 v-else-if="activeTab === 'fiscal'"
                 :fiscal="props.companyFiscal"
+                :company-id="props.company.id"
+                :active-declaration="props.fiscalActiveDeclaration"
             />
             <CompanyBillingTab
                 v-else-if="activeTab === 'billing'"
