@@ -43,6 +43,13 @@ Route::middleware('auth')
         Route::get('/companies/{company}', [CompanyController::class, 'show'])
             ->whereNumber('company')
             ->name('companies.show');
+        Route::get('/companies/{company}/edit', [CompanyController::class, 'edit'])
+            ->whereNumber('company')
+            ->name('companies.edit');
+        Route::patch('/companies/{company}', [CompanyController::class, 'update'])
+            ->whereNumber('company')
+            ->middleware('throttle:60,1')
+            ->name('companies.update');
 
         // Vehicles
         Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');

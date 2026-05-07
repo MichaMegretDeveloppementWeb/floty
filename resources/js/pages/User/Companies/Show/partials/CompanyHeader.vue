@@ -8,10 +8,10 @@
  * « Aperçu par année » du corps de la fiche.
  */
 import { Link } from '@inertiajs/vue3';
-import { CalendarDays, ChevronLeft } from 'lucide-vue-next';
+import { CalendarDays, ChevronLeft, Pencil } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
-import { index as indexRoute } from '@/routes/user/companies';
+import { edit as editRoute, index as indexRoute } from '@/routes/user/companies';
 import { index as planningCompaniesIndexRoute } from '@/routes/user/planning/companies';
 
 type Company = App.Data.User.Company.CompanyDetailData;
@@ -99,9 +99,14 @@ const avatarBgClass = computed<string>(() => {
                         Voir le planning
                     </Button>
                 </Link>
-                <Button variant="ghost" size="sm" disabled>
-                    Modifier
-                </Button>
+                <Link :href="editRoute({ company: company.id }).url">
+                    <Button variant="ghost" size="sm">
+                        <template #icon-left>
+                            <Pencil :size="14" :stroke-width="1.75" />
+                        </template>
+                        Modifier
+                    </Button>
+                </Link>
             </div>
         </div>
     </div>

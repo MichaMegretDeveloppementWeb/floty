@@ -1036,4 +1036,78 @@ final class CompanyControllerTest extends TestCase
                 ->where('company.lifetime.contractsCount', 1),
             );
     }
+
+    #[Test]
+    public function edit_rend_la_page_avec_le_dto_company_et_les_couleurs(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create([
+            'legal_name' => 'ACME SAS',
+            'short_code' => 'ACM',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}/edit")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Companies/Edit/Index')
+                ->where('company.id', $company->id)
+                ->where('company.legalName', 'ACME SAS')
+                ->where('company.shortCode', 'ACM')
+                ->has('colors'),
+            );
+    }
+
+    #[Test]
+    public function update_modifie_les_champs_identite_adresse_contact(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create([
+            'legal_name' => 'ACME SAS',
+            'short_code' => 'ACM',
+            'siren' => '111111111',
+            'city' => 'Paris',
+            'contact_email' => 'old@acme.fr',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/companies/{$company->id}", [
+                'legal_name' => 'ACME Logistique',
+                'color' => 'emerald',
+                'siren' => '222222222',
+                'siret' => null,
+                'address_line_1' => '12 rue Nouvelle',
+                'address_line_2' => null,
+                'postal_code' => '69000',
+                'city' => 'Lyon',
+                'country' => 'FR',
+                'contact_name' => 'Jane Doe',
+                'contact_email' => 'new@acme.fr',
+                'contact_phone' => '+33 4 78 00 00 00',
+            ])
+            ->assertRedirect("/app/companies/{$company->id}");
+
+        $company->refresh();
+        self::assertSame('ACME Logistique', $company->legal_name);
+        self::assertSame('222222222', $company->siren);
+        self::assertSame('Lyon', $company->city);
+        self::assertSame('new@acme.fr', $company->contact_email);
+        // Le code court reste figé même si le legal_name a changé.
+        self::assertSame('ACM', $company->short_code);
+    }
+
+    #[Test]
+    public function update_rejette_un_legal_name_vide(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->patch("/app/companies/{$company->id}", [
+                'legal_name' => '',
+                'color' => 'indigo',
+                'country' => 'FR',
+            ])
+            ->assertSessionHasErrors(['legal_name']);
+    }
 }

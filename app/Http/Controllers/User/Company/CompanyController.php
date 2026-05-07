@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Company;
 
 use App\Actions\Company\CreateCompanyAction;
+use App\Actions\Company\UpdateCompanyAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\StoreCompanyData;
+use App\Data\User\Company\UpdateCompanyData;
 use App\Data\User\Contract\ContractIndexQueryData;
 use App\Data\User\FiscalDeclaration\DeclarationListItemData;
 use App\Exceptions\Company\CompanyShortCodeCollisionException;
@@ -35,6 +37,7 @@ final class CompanyController extends Controller
         private readonly DriverQueryService $drivers,
         private readonly ContractQueryService $contracts,
         private readonly CreateCompanyAction $createCompany,
+        private readonly UpdateCompanyAction $updateCompany,
         private readonly AvailableYearsResolver $availableYears,
         private readonly PendingDeclarationsResolver $pendingDeclarations,
         private readonly FiscalDeclarationReadRepositoryInterface $declarations,
@@ -201,5 +204,28 @@ final class CompanyController extends Controller
         return redirect()
             ->route('user.companies.index')
             ->with('toast-success', 'Entreprise créée.');
+    }
+
+    public function edit(Company $company): Response
+    {
+        $detail = $this->companies->detail($company->id);
+
+        if ($detail === null) {
+            throw new NotFoundHttpException('Entreprise introuvable.');
+        }
+
+        return Inertia::render('User/Companies/Edit/Index', [
+            'company' => $detail,
+            'colors' => $this->companies->colorOptions(),
+        ]);
+    }
+
+    public function update(Company $company, UpdateCompanyData $data): RedirectResponse
+    {
+        $this->updateCompany->execute($company->id, $data);
+
+        return redirect()
+            ->route('user.companies.show', ['company' => $company->id])
+            ->with('toast-success', 'Entreprise mise à jour.');
     }
 }
