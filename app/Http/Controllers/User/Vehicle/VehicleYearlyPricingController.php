@@ -9,7 +9,9 @@ use App\Actions\Vehicle\UpsertVehicleYearlyPricingAction;
 use App\Data\User\Vehicle\VehicleYearlyPricingData;
 use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
+use App\Models\VehicleYearlyPricing;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * CRUD léger sur les tarifs jour/semaine/mois d'un véhicule par année.
@@ -27,6 +29,8 @@ final class VehicleYearlyPricingController extends Controller
         VehicleYearlyPricingData $data,
         UpsertVehicleYearlyPricingAction $action,
     ): RedirectResponse {
+        Gate::authorize('create', VehicleYearlyPricing::class);
+
         $action->execute($vehicle->id, $data);
 
         return back()->with('toast-success', 'Tarif enregistré.');
@@ -37,6 +41,21 @@ final class VehicleYearlyPricingController extends Controller
         int $year,
         DeleteVehicleYearlyPricingAction $action,
     ): RedirectResponse {
+        // Charge l'instance pour passer à la Policy (signature `delete(User,
+        // VehicleYearlyPricing)`). Si le couple n'existe pas, l'Action lève
+        // `VehicleYearlyPricingNotFoundException` ; ici on charge le pricing
+        // d'abord pour un check d'autorisation précis avant l'effet.
+        $pricing = VehicleYearlyPricing::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->where('year', $year)
+            ->first();
+
+        if ($pricing !== null) {
+            Gate::authorize('delete', $pricing);
+        } else {
+            Gate::authorize('viewAny', VehicleYearlyPricing::class);
+        }
+
         $action->execute($vehicle->id, $year);
 
         return back()->with('toast-success', 'Tarif supprimé.');

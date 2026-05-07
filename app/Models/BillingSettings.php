@@ -37,22 +37,17 @@ final class BillingSettings extends Model
     protected $table = 'billing_settings';
 
     /**
-     * Singleton applicatif : retourne l'unique ligne (création
-     * automatique si la table est vide). Tous les caller du domaine
-     * Invoice passent par cette méthode pour lire les paramètres
-     * émetteur.
+     * Singleton applicatif : retourne l'unique ligne (création automatique
+     * si la table est vide). Tous les caller du domaine Invoice passent
+     * par cette méthode pour lire les paramètres émetteur.
+     *
+     * Implémenté via `firstOrCreate([], [])` (chantier T4 / Phase 14.P)
+     * pour réduire la fenêtre de race condition entre deux requêtes
+     * concurrentes — l'ancienne version `first()` puis `new + save()` était
+     * vulnérable à la double création. La query reste atomique côté Laravel.
      */
     public static function singleton(): self
     {
-        $instance = self::query()->first();
-
-        if ($instance instanceof self) {
-            return $instance;
-        }
-
-        $created = new self;
-        $created->save();
-
-        return $created;
+        return self::query()->firstOrCreate([], []);
     }
 }

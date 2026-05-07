@@ -90,6 +90,18 @@ final readonly class InvoicePdfStorage
         return sprintf('invoices/%d/%d/%s.pdf', $year, $companyId, $invoiceNumber);
     }
 
+    /**
+     * Restaure un PDF supprimé temporairement (chantier T4 / Phase 14.P).
+     * Bypass délibéré du check write-once de {@see store()} : utilisé
+     * exclusivement par {@see App\Actions\Invoice\RegenerateInvoiceAction}
+     * pour rétablir l'ancien PDF si la régénération échoue, garantissant
+     * la cohérence DB ↔ filesystem.
+     */
+    public function restoreFromBackup(string $path, string $binary): void
+    {
+        $this->disk()->put($path, $binary);
+    }
+
     private function disk(): Filesystem
     {
         return Storage::disk($this->disk);

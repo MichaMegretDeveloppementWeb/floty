@@ -4,13 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Billing;
 
+use App\Enums\Vehicle\VehicleExitReason;
 use App\Exceptions\Billing\MissingPricingException;
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleYearlyPricing;
 use App\Services\Billing\BillingCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -337,6 +340,217 @@ final class BillingCalculatorTest extends TestCase
         $this->assertSame(0, $result->lines[0]->weeksBilled);
         $this->assertSame(0, $result->lines[0]->daysBilled);
         $this->assertSame(180_000, $result->lines[0]->totalCents);
+    }
+
+    // ---------------------------------------------------------------
+    // Scénarios CDC § 9.1 — Audit auto-documenté pour le client (T5).
+    //
+    // Tarifs : 20 € / 100 € / 350 € (cents : 2 000 / 10 000 / 35 000).
+    // Ces 6 tests gravent dans la suite les comportements du brief CDC
+    // (règle « tarif le plus avantageux », bissextile, indispos non
+    // déduites, clip exit_date). Les invariants algorithmiques 0..31j
+    // sont déjà couverts par OptimalRateBreakdownTest.
+    // ---------------------------------------------------------------
+
+    private const int CDC_DAILY = 2_000;
+
+    private const int CDC_WEEKLY = 10_000;
+
+    private const int CDC_MONTHLY = 35_000;
+
+    #[Test]
+    public function cdc_vingt_deux_jours_facture_trois_semaines_plus_un_jour(): void
+    {
+        // 22 j × 20 = 440, 3 sem × 100 + 1 j × 20 = 320, 1 mois = 350.
+        // Optimal : 320 € (3 semaines + 1 jour).
+        [$company, $vehicle] = $this->seedCdcVehicle();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-22',
+        ]);
+
+        $result = $this->calculator->calculate($company->id, 2024, 3);
+
+        $this->assertSame(22, $result->lines[0]->daysUsed);
+        $this->assertSame(0, $result->lines[0]->monthsBilled);
+        $this->assertSame(3, $result->lines[0]->weeksBilled);
+        $this->assertSame(1, $result->lines[0]->daysBilled);
+        $this->assertSame(32_000, $result->totalCents);
+    }
+
+    #[Test]
+    public function cdc_vingt_six_jours_facture_un_mois_plein_car_plus_avantageux(): void
+    {
+        // 26 j × 20 = 520, 3 sem + 5 j = 300 + 100 = 400, 1 mois = 350.
+        // Optimal : 350 € (mois plein) — démontre la doctrine « tarif le
+        // plus avantageux » même quand on n'atteint pas 30 j d'utilisation.
+        [$company, $vehicle] = $this->seedCdcVehicle();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-26',
+        ]);
+
+        $result = $this->calculator->calculate($company->id, 2024, 3);
+
+        $this->assertSame(26, $result->lines[0]->daysUsed);
+        $this->assertSame(1, $result->lines[0]->monthsBilled);
+        $this->assertSame(0, $result->lines[0]->weeksBilled);
+        $this->assertSame(0, $result->lines[0]->daysBilled);
+        $this->assertSame(35_000, $result->totalCents);
+    }
+
+    /**
+     * @return array<string, array{0: int, 1: int, 2: int, 3: int}>
+     */
+    public static function huitATreizeJoursProvider(): array
+    {
+        // Combinaison optimale pour 8..13 jours avec tarifs CDC (20/100/350) :
+        //   8j  → 1 sem + 1 j = 12 000  (vs 8×20=160, 2 sem=200)
+        //   9j  → 1 sem + 2 j = 14 000
+        //  10j  → 1 sem + 3 j = 16 000
+        //  11j  → 1 sem + 4 j = 18 000
+        //  12j  → 1 sem + 5 j = 20 000  (égal à 2 sem ; algo retient la
+        //                                première combinaison en `<` strict)
+        //  13j  → 2 sem        = 20 000  (pivot : 1 sem + 6 j = 220 € > 200 €)
+        return [
+            '8 jours = 1 sem + 1 j' => [8, 12_000, 1, 1],
+            '9 jours = 1 sem + 2 j' => [9, 14_000, 1, 2],
+            '10 jours = 1 sem + 3 j' => [10, 16_000, 1, 3],
+            '11 jours = 1 sem + 4 j' => [11, 18_000, 1, 4],
+            '12 jours = 1 sem + 5 j' => [12, 20_000, 1, 5],
+            '13 jours = 2 sem (pivot)' => [13, 20_000, 2, 0],
+        ];
+    }
+
+    #[Test]
+    #[DataProvider('huitATreizeJoursProvider')]
+    public function cdc_huit_a_treize_jours_facture_la_combinaison_optimale(
+        int $endDay,
+        int $expectedTotalCents,
+        int $expectedWeeks,
+        int $expectedDays,
+    ): void {
+        [$company, $vehicle] = $this->seedCdcVehicle();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => sprintf('2024-03-%02d', $endDay),
+        ]);
+
+        $result = $this->calculator->calculate($company->id, 2024, 3);
+
+        $this->assertSame($endDay, $result->lines[0]->daysUsed);
+        $this->assertSame($expectedWeeks, $result->lines[0]->weeksBilled);
+        $this->assertSame($expectedDays, $result->lines[0]->daysBilled);
+        $this->assertSame($expectedTotalCents, $result->totalCents);
+    }
+
+    #[Test]
+    public function cdc_fevrier_2024_bissextile_facture_un_mois(): void
+    {
+        // 2024 est bissextile (29 jours en février). Le forfait mensuel
+        // couvre 30 jours d'utilisation par convention, donc 29 j ≤ 1 mois.
+        // 29 × 20 = 580, 4 sem + 1 j = 420, 1 mois = 350. Optimal : 350.
+        [$company, $vehicle] = $this->seedCdcVehicle();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-02-01',
+            'end_date' => '2024-02-29',
+        ]);
+
+        $result = $this->calculator->calculate($company->id, 2024, 2);
+
+        $this->assertSame(29, $result->lines[0]->daysUsed);
+        $this->assertSame(1, $result->lines[0]->monthsBilled);
+        $this->assertSame(0, $result->lines[0]->weeksBilled);
+        $this->assertSame(0, $result->lines[0]->daysBilled);
+        $this->assertSame(35_000, $result->totalCents);
+    }
+
+    #[Test]
+    public function cdc_indisponibilite_n_affecte_pas_le_calcul_de_facturation(): void
+    {
+        // Politique V1.2 (CDC § 9.1.2) : les indisponibilités ne sont pas
+        // déduites du facturable. Garde-fou contre une régression future
+        // qui introduirait silencieusement une déduction.
+        [$company, $vehicle] = $this->seedCdcVehicle();
+
+        // Contrat plein mois : 31 jours en mars. 31 j → 1 mois (35 000)
+        // + 1 j (2 000) = 37 000. (Le mois unitaire couvre 30 j, le 31e
+        // jour est facturé à l'unité — comportement déjà prouvé par les
+        // tests OptimalRateBreakdown.)
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-31',
+        ]);
+
+        // Indisponibilité de 5 jours au milieu du mois : ne doit pas
+        // diminuer le facturable.
+        Unavailability::factory()->for($vehicle)->maintenance()->create([
+            'start_date' => '2024-03-10',
+            'end_date' => '2024-03-14',
+        ]);
+
+        $result = $this->calculator->calculate($company->id, 2024, 3);
+
+        // 31 jours utilisés (les 5 jours d'indispo restent comptés),
+        // montant inchangé par rapport au scénario sans indispo.
+        $this->assertSame(31, $result->lines[0]->daysUsed);
+        $this->assertSame(1, $result->lines[0]->monthsBilled);
+        $this->assertSame(0, $result->lines[0]->weeksBilled);
+        $this->assertSame(1, $result->lines[0]->daysBilled);
+        $this->assertSame(37_000, $result->totalCents);
+    }
+
+    #[Test]
+    public function cdc_un_vehicule_sorti_clip_facturation_a_exit_date(): void
+    {
+        // ADR-0018 : un véhicule sorti définitivement (exit_date) n'est
+        // plus facturable au-delà de cette date. Defense in depth : la
+        // Validation Rule AvailableForPeriod bloque normalement la
+        // création d'un contrat débordant exit_date, mais le calculator
+        // protège aussi contre toute incohérence résiduelle.
+        //
+        // Véhicule sorti le 15 mars 2024 (vendu). Contrat couvre tout mars.
+        // Facturation mars : 15 jours (du 1er au 15 inclus), pas 31.
+        [$company, $vehicle] = $this->seedCdcVehicle();
+
+        $vehicle->update([
+            'exit_date' => '2024-03-15',
+            'exit_reason' => VehicleExitReason::Sold,
+        ]);
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-31',
+        ]);
+
+        $result = $this->calculator->calculate($company->id, 2024, 3);
+
+        // 15 jours optimaux : 2 sem + 1 j = 22 000 (vs 15 × 20 = 300,
+        // 1 sem + 8 j = 260, 3 sem = 300). Optimal : 220 €.
+        $this->assertSame(15, $result->lines[0]->daysUsed);
+        $this->assertSame(0, $result->lines[0]->monthsBilled);
+        $this->assertSame(2, $result->lines[0]->weeksBilled);
+        $this->assertSame(1, $result->lines[0]->daysBilled);
+        $this->assertSame(22_000, $result->totalCents);
+    }
+
+    /**
+     * Setup partagé pour les scénarios CDC : Company + Vehicle + Pricing
+     * 2024 aux tarifs CDC (20 € / 100 € / 350 €).
+     *
+     * @return array{0: Company, 1: Vehicle}
+     */
+    private function seedCdcVehicle(): array
+    {
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create(['license_plate' => 'AA-001-AA']);
+        $this->createPricing($vehicle, 2024, self::CDC_DAILY, self::CDC_WEEKLY, self::CDC_MONTHLY);
+
+        return [$company, $vehicle];
     }
 
     private function createPricing(

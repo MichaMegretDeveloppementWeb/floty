@@ -6,7 +6,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { Download, FileText } from 'lucide-vue-next';
 import { computed } from 'vue';
-import InvoiceDivergenceBanner from '@/Components/Features/Billing/InvoiceDivergenceBanner.vue';
+import InvoiceDivergenceBanner from '@/Components/Domain/Billing/InvoiceDivergenceBanner.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { show as companiesShowRoute } from '@/routes/user/companies';

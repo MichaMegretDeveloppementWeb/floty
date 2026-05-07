@@ -99,7 +99,10 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         CarbonInterface $end,
     ): Collection {
         return Contract::query()
-            ->with('company:id,short_code,legal_name,color')
+            ->with([
+                'vehicle:id,license_plate,exit_date',
+                'company:id,short_code,legal_name,color',
+            ])
             ->where('vehicle_id', $vehicleId)
             ->where('start_date', '<=', $end->toDateString())
             ->where('end_date', '>=', $start->toDateString())
@@ -325,8 +328,11 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         string $startDate,
         string $endDate,
     ): Collection {
+        // `exit_date` est inclus dans la sélection véhicule (chantier T5 /
+        // Phase 14.Q) pour que le `BillingCalculator` puisse clipper les
+        // jours facturables à la date de sortie sans N+1.
         return Contract::query()
-            ->with('vehicle:id,license_plate,brand,model')
+            ->with('vehicle:id,license_plate,brand,model,exit_date')
             ->where('company_id', $companyId)
             ->where('start_date', '<=', $endDate)
             ->where('end_date', '>=', $startDate)

@@ -207,27 +207,12 @@ final readonly class BillingCalculator
 
         // Group by company, dedup days, apply OptimalRateBreakdown per
         // (vehicle × company × month) couple, sum the totals.
-        /** @var array<int, array<string, true>> $datesByCompany */
-        $datesByCompany = [];
-
-        foreach ($contracts as $contract) {
-            $clipStart = $contract->start_date->isAfter($monthStart)
-                ? CarbonImmutable::parse($contract->start_date->toDateString())
-                : $monthStart;
-            $clipEnd = $contract->end_date->isBefore($monthEnd)
-                ? CarbonImmutable::parse($contract->end_date->toDateString())
-                : $monthEnd;
-
-            if ($clipStart->isAfter($clipEnd)) {
-                continue;
-            }
-
-            $cursor = $clipStart;
-            while (! $cursor->isAfter($clipEnd)) {
-                $datesByCompany[$contract->company_id][$cursor->toDateString()] = true;
-                $cursor = $cursor->addDay();
-            }
-        }
+        $datesByCompany = $this->expandContractsByKey(
+            $contracts,
+            $monthStart,
+            $monthEnd,
+            static fn (Contract $contract): int => $contract->company_id,
+        );
 
         $daysUsed = 0;
         $totalCents = 0;
@@ -262,8 +247,46 @@ final readonly class BillingCalculator
         CarbonImmutable $monthStart,
         CarbonImmutable $monthEnd,
     ): array {
-        /** @var array<int, array<string, true>> $datesByVehicle */
-        $datesByVehicle = [];
+        $datesByVehicle = $this->expandContractsByKey(
+            $contracts,
+            $monthStart,
+            $monthEnd,
+            static fn (Contract $contract): int => $contract->vehicle_id,
+        );
+
+        return array_map(static fn (array $set): int => count($set), $datesByVehicle);
+    }
+
+    /**
+     * Expansion d'une collection de contrats en `array<key, set-of-dates>`
+     * sur la fenêtre `[monthStart, monthEnd]`, en appliquant le clipping
+     * `exit_date` (cohérence ADR-0018) et la déduplication intra-clé.
+     *
+     * Helper partagé entre {@see aggregateDaysByVehicle} (clé
+     * `vehicle_id`, alimente le pipeline `calculate()` côté entreprise)
+     * et {@see calculateForVehicleAndMonth} (clé `company_id`, alimente
+     * le récap véhicule cross-entreprises).
+     *
+     * **Clip à `exit_date`** (defense in depth) : la Validation Rule
+     * `AvailableForPeriod` bloque normalement la création d'un contrat
+     * débordant `exit_date`, mais on protège contre toute incohérence
+     * résiduelle (modification post-création de `exit_date`, données
+     * héritées, etc.).
+     *
+     * @template TKey of int|string
+     *
+     * @param  iterable<int, Contract>  $contracts
+     * @param  callable(Contract): TKey  $keyOf
+     * @return array<TKey, array<string, true>>
+     */
+    private function expandContractsByKey(
+        iterable $contracts,
+        CarbonImmutable $monthStart,
+        CarbonImmutable $monthEnd,
+        callable $keyOf,
+    ): array {
+        /** @var array<TKey, array<string, true>> $byKey */
+        $byKey = [];
 
         foreach ($contracts as $contract) {
             $clipStart = $contract->start_date->isAfter($monthStart)
@@ -273,18 +296,30 @@ final readonly class BillingCalculator
                 ? CarbonImmutable::parse($contract->end_date->toDateString())
                 : $monthEnd;
 
+            $exitDate = $contract->vehicle?->exit_date;
+            if ($exitDate !== null) {
+                $exitDateImmutable = CarbonImmutable::parse($exitDate->toDateString());
+                if ($exitDateImmutable->isBefore($clipStart)) {
+                    continue;
+                }
+                if ($exitDateImmutable->isBefore($clipEnd)) {
+                    $clipEnd = $exitDateImmutable;
+                }
+            }
+
             if ($clipStart->isAfter($clipEnd)) {
                 continue;
             }
 
+            $key = $keyOf($contract);
             $cursor = $clipStart;
             while (! $cursor->isAfter($clipEnd)) {
-                $datesByVehicle[$contract->vehicle_id][$cursor->toDateString()] = true;
+                $byKey[$key][$cursor->toDateString()] = true;
                 $cursor = $cursor->addDay();
             }
         }
 
-        return array_map(static fn (array $set): int => count($set), $datesByVehicle);
+        return $byKey;
     }
 
     /**

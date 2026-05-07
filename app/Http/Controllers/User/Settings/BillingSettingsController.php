@@ -9,6 +9,7 @@ use App\Contracts\Repositories\User\Billing\BillingSettingsWriteRepositoryInterf
 use App\Data\User\Billing\BillingSettingsData;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,13 +28,18 @@ final class BillingSettingsController extends Controller
 
     public function edit(): Response
     {
+        $settings = $this->reader->get();
+        Gate::authorize('view', $settings);
+
         return Inertia::render('User/Settings/Billing/Index', [
-            'settings' => BillingSettingsData::fromModel($this->reader->get()),
+            'settings' => BillingSettingsData::fromModel($settings),
         ]);
     }
 
     public function update(BillingSettingsData $data): RedirectResponse
     {
+        Gate::authorize('update', $this->reader->get());
+
         $this->writer->update($data);
 
         return back()->with('toast-success', 'Paramètres facturation enregistrés.');

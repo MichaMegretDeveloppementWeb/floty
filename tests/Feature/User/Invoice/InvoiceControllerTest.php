@@ -113,13 +113,54 @@ final class InvoiceControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_renvoie_404_si_facture_inexistante(): void
+    public function show_redirige_avec_toast_si_facture_inexistante(): void
     {
+        // Convention UX (chantier T2 / Phase 14.N) : un id invalide n'envoie
+        // plus une page 404 mais redirige avec un toast-error explicite.
+        // Depuis T7 (Phase 14.S), le controller utilise le route model
+        // binding `Invoice $invoice` ; la `ModelNotFoundException` levée
+        // par Laravel est mappée vers l'index Invoices par
+        // `UserFacingExceptionRenderer::renderModelNotFound`.
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->get('/app/invoices/99999')
-            ->assertNotFound();
+            ->assertRedirect(route('user.invoices.index'))
+            ->assertSessionHas('toast-error');
+    }
+
+    #[Test]
+    public function generate_refuse_un_payload_avec_year_hors_plage(): void
+    {
+        // T7 (Phase 14.S) : `generate` valide via `GenerateInvoiceRequestData`
+        // (Spatie Data DTO). Un payload avec `year` hors `[2020, 2099]`
+        // doit être rejeté en 422 avec une erreur sur le champ.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/invoices/generate', [
+                'company_id' => $company->id,
+                'year' => 2010,
+                'month' => 3,
+            ])
+            ->assertSessionHasErrors('year');
+    }
+
+    #[Test]
+    public function generate_refuse_un_payload_avec_company_inexistante(): void
+    {
+        // L'attribut `Exists('companies', 'id')` doit rejeter un id
+        // inexistant et produire le message FR custom.
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/invoices/generate', [
+                'company_id' => 999999,
+                'year' => 2024,
+                'month' => 3,
+            ])
+            ->assertSessionHasErrors(['company_id' => 'Entreprise introuvable.']);
     }
 
     #[Test]
@@ -147,8 +188,11 @@ final class InvoiceControllerTest extends TestCase
     }
 
     #[Test]
-    public function download_renvoie_404_si_pdf_disparu_du_filesystem(): void
+    public function download_redirige_vers_dashboard_si_pdf_disparu_du_filesystem(): void
     {
+        // Le `abort(404)` du controller (PDF absent du disque) est
+        // intercepté par le handler UX (T2) qui redirige vers le
+        // dashboard avec un toast-error « page introuvable ».
         Storage::fake('local');
 
         $user = User::factory()->create();
@@ -160,7 +204,8 @@ final class InvoiceControllerTest extends TestCase
 
         $this->actingAs($user)
             ->get("/app/invoices/{$invoice->id}/download")
-            ->assertNotFound();
+            ->assertRedirect(route('user.dashboard'))
+            ->assertSessionHas('toast-error');
     }
 
     #[Test]

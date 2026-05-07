@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { AlertTriangle } from 'lucide-vue-next';
+import { AlertTriangle, ChevronRight } from 'lucide-vue-next';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
+import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -27,7 +28,9 @@ const MONTH_LABELS = [
 </script>
 
 <template>
+    <!-- Desktop ≥ md : DataTable classique -->
     <DataTable
+        class="hidden md:block"
         :columns="columns"
         :rows="invoices"
         :row-key="(row) => row.id"
@@ -52,14 +55,17 @@ const MONTH_LABELS = [
         <template #cell-invoiceNumber="{ row }">
             <div class="flex items-center gap-2">
                 <span class="font-mono text-sm whitespace-nowrap">{{ row.invoiceNumber }}</span>
-                <span
-                    v-if="row.hasDivergence"
-                    title="Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez la facture pour la régénérer."
-                    class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-sans font-medium text-amber-800 whitespace-nowrap"
-                >
-                    <AlertTriangle class="shrink-0" :size="10" :stroke-width="2" />
-                    À régénérer
-                </span>
+                <Tooltip v-if="row.hasDivergence" max-width="20rem">
+                    <span
+                        class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-sans font-medium text-amber-800 whitespace-nowrap"
+                    >
+                        <AlertTriangle class="shrink-0" :size="10" :stroke-width="2" />
+                        À régénérer
+                    </span>
+                    <template #content>
+                        Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez la facture pour la régénérer.
+                    </template>
+                </Tooltip>
             </div>
         </template>
 
@@ -93,4 +99,57 @@ const MONTH_LABELS = [
             </div>
         </template>
     </DataTable>
+
+    <!-- Mobile < md : cards verticales tactiles -->
+    <ul v-if="invoices.length > 0" class="flex flex-col gap-2 md:hidden">
+        <li v-for="row in invoices" :key="row.id">
+            <button
+                type="button"
+                class="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
+                @click="emit('row-click', row)"
+            >
+                <div class="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-mono text-sm">{{ row.invoiceNumber }}</span>
+                        <span
+                            v-if="row.hasDivergence"
+                            class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-medium text-amber-800"
+                        >
+                            <AlertTriangle :size="10" :stroke-width="2" />
+                            À régénérer
+                        </span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium text-slate-900">{{ row.companyShortCode }}</span>
+                        <span class="text-xs text-slate-500">{{ row.companyLegalName }}</span>
+                    </div>
+                    <p class="text-xs text-slate-500">
+                        {{ MONTH_LABELS[row.month - 1] }} {{ row.year }}
+                        <span class="mx-1 text-slate-300">·</span>
+                        <span class="font-mono tabular-nums text-slate-700">{{ formatEur(row.totalHtCents / 100, 2) }}</span>
+                    </p>
+                    <p class="font-mono text-[11px] text-slate-400">
+                        Émise le {{ formatDateFr(row.generatedAt) }}
+                    </p>
+                </div>
+                <ChevronRight
+                    :size="16"
+                    :stroke-width="1.75"
+                    class="shrink-0 text-slate-400"
+                    aria-hidden="true"
+                />
+            </button>
+        </li>
+    </ul>
+    <div
+        v-else
+        class="flex flex-col items-center gap-2 rounded-xl border border-slate-200 bg-white py-8 text-center md:hidden"
+    >
+        <p class="text-sm font-medium text-slate-700">
+            Aucune facture ne correspond à votre recherche.
+        </p>
+        <p class="text-xs text-slate-500">
+            Essayez d'élargir les filtres pour voir plus de résultats.
+        </p>
+    </div>
 </template>

@@ -114,44 +114,54 @@ final readonly class GenerateInvoiceAction
                 $pdfBinary,
             );
 
-            // Étape 6 : persiste la facture.
-            $invoice = $this->invoiceWriter->persist([
-                'company_id' => $companyId,
-                'year' => $year,
-                'month' => $month,
-                'invoice_number' => $invoiceNumber,
-                'total_ht_cents' => $calculation->totalCents,
-                'pdf_path' => $storage['path'],
-                'pdf_hash' => $storage['hash'],
-                'generated_at' => $generatedAt,
-                'generated_by_user_id' => $generatedByUserId,
-            ]);
+            try {
+                // Étape 6 : persiste la facture.
+                $invoice = $this->invoiceWriter->persist([
+                    'company_id' => $companyId,
+                    'year' => $year,
+                    'month' => $month,
+                    'invoice_number' => $invoiceNumber,
+                    'total_ht_cents' => $calculation->totalCents,
+                    'pdf_path' => $storage['path'],
+                    'pdf_hash' => $storage['hash'],
+                    'generated_at' => $generatedAt,
+                    'generated_by_user_id' => $generatedByUserId,
+                ]);
 
-            // Étape 7 : persiste les lignes.
-            $linesAttributes = array_map(
-                static fn (BillingLineData $line): array => [
-                    'vehicle_id' => $line->vehicleId,
-                    'vehicle_label_snapshot' => sprintf(
-                        '%s %s %s',
-                        $line->licensePlate,
-                        $line->brand,
-                        $line->model,
-                    ),
-                    'days_used' => $line->daysUsed,
-                    'months_billed' => $line->monthsBilled,
-                    'weeks_billed' => $line->weeksBilled,
-                    'days_billed' => $line->daysBilled,
-                    'daily_rate_cents' => $line->dailyRateCents,
-                    'weekly_rate_cents' => $line->weeklyRateCents,
-                    'monthly_rate_cents' => $line->monthlyRateCents,
-                    'total_ht_cents' => $line->totalCents,
-                ],
-                $calculation->lines,
-            );
-            $this->invoiceWriter->persistLines($invoice->id, $linesAttributes);
+                // Étape 7 : persiste les lignes.
+                $linesAttributes = array_map(
+                    static fn (BillingLineData $line): array => [
+                        'vehicle_id' => $line->vehicleId,
+                        'vehicle_label_snapshot' => sprintf(
+                            '%s %s %s',
+                            $line->licensePlate,
+                            $line->brand,
+                            $line->model,
+                        ),
+                        'days_used' => $line->daysUsed,
+                        'months_billed' => $line->monthsBilled,
+                        'weeks_billed' => $line->weeksBilled,
+                        'days_billed' => $line->daysBilled,
+                        'daily_rate_cents' => $line->dailyRateCents,
+                        'weekly_rate_cents' => $line->weeklyRateCents,
+                        'monthly_rate_cents' => $line->monthlyRateCents,
+                        'total_ht_cents' => $line->totalCents,
+                    ],
+                    $calculation->lines,
+                );
+                $this->invoiceWriter->persistLines($invoice->id, $linesAttributes);
 
-            return $invoice->fresh(['lines'])
-                ?? throw new \RuntimeException('Failed to reload invoice after persist.');
+                return $invoice->fresh(['lines'])
+                    ?? throw new \RuntimeException('Failed to reload invoice after persist.');
+            } catch (\Throwable $e) {
+                // Cleanup orphan PDF (chantier T4 / Phase 14.P) : si l'INSERT
+                // DB échoue après le `Storage::put`, la transaction rollback
+                // mais le fichier reste sur disque. On le supprime avant
+                // re-throw pour ne pas bloquer un éventuel retry (le storage
+                // refuserait l'écrasement) ni laisser d'orphan file.
+                $this->pdfStorage->delete($storage['path']);
+                throw $e;
+            }
         });
     }
 }

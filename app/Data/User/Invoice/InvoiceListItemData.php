@@ -27,15 +27,17 @@ final class InvoiceListItemData extends Data
         /** ISO 8601 (Y-m-d). */
         public string $generatedAt,
         /**
-         * `true` si le périmètre contractuel a changé depuis l'émission.
-         * Calculé par `InvoiceQueryService::listPaginated` via
-         * `InvoiceDivergenceChecker`. La liste se contente d'un signal
-         * binaire — les valeurs détaillées sont sur la fiche Show.
+         * `true` si le périmètre contractuel a potentiellement changé
+         * depuis l'émission. Lu directement sur la colonne matérialisée
+         * `invoices.is_divergent` (T6 / Phase 14.R) — flag posé par les
+         * observers (Contract / VehicleYearlyPricing / Vehicle.exit_date).
+         * La liste se contente d'un signal binaire ; les valeurs détaillées
+         * sont sur la fiche Show via `InvoiceDivergenceChecker`.
          */
         public bool $hasDivergence = false,
     ) {}
 
-    public static function fromModel(Invoice $invoice, bool $hasDivergence = false): self
+    public static function fromModel(Invoice $invoice): self
     {
         return new self(
             id: $invoice->id,
@@ -47,7 +49,7 @@ final class InvoiceListItemData extends Data
             month: $invoice->month,
             totalHtCents: $invoice->total_ht_cents,
             generatedAt: $invoice->generated_at->toDateString(),
-            hasDivergence: $hasDivergence,
+            hasDivergence: $invoice->is_divergent,
         );
     }
 }

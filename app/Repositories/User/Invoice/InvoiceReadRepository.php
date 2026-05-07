@@ -9,7 +9,6 @@ use App\Data\Shared\Listing\SortDirection;
 use App\Data\User\Invoice\InvoiceIndexQueryData;
 use App\Models\Invoice;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
@@ -92,15 +91,6 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         );
     }
 
-    public function findAllMatching(InvoiceIndexQueryData $query): Collection
-    {
-        // Pour le filtre divergent (post-traitement PHP), on a besoin
-        // des lignes pour calculer la somme des `days_used` du snapshot.
-        return $this->buildIndexQuery($query)
-            ->with('lines')
-            ->get();
-    }
-
     public function existsAny(): bool
     {
         return Invoice::query()->exists();
@@ -127,10 +117,13 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
     }
 
     /**
-     * Builder partagé entre `paginateForIndex` et `findAllMatching`.
-     * Applique tous les filtres SQL (company, year, month, search) et
-     * le tri whitelisté. Le filtre `divergentOnly` n'est pas appliqué
-     * ici (post-traitement PHP côté service).
+     * Builder de l'Index Invoices. Applique tous les filtres SQL
+     * (company, year, month, search, divergentOnly) et le tri
+     * whitelisté.
+     *
+     * Depuis T6 / Phase 14.R, `divergentOnly` est un simple
+     * `WHERE is_divergent = 1` SQL natif (la flag est posée par
+     * observers à l'écriture, plus de recalcul à la lecture).
      *
      * @return Builder<Invoice>
      */
@@ -151,6 +144,9 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         }
         if ($query->month !== null) {
             $eloquentQuery->where('invoices.month', $query->month);
+        }
+        if ($query->divergentOnly) {
+            $eloquentQuery->where('invoices.is_divergent', true);
         }
 
         // Search LIKE sur invoice_number + company short_code + legal_name.

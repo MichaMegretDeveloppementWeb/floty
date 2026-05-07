@@ -6,20 +6,22 @@ namespace App\Observers;
 
 use App\Models\Contract;
 use App\Services\Fiscal\AvailableYearsResolver;
+use App\Services\Invoice\InvoiceDivergenceFlagger;
 
 /**
  * Invalide le cache des bornes d'années sélectionnables (chantier η,
- * Phase 0.2) à chaque mutation d'un {@see Contract}.
+ * Phase 0.2) **et** marque divergentes les factures impactées (T6 /
+ * Phase 14.R) à chaque mutation d'un {@see Contract}.
  *
  * **Pourquoi un Observer plutôt qu'un Event Listener ou une invalidation
  * dans les Actions** :
  *   - **Couverture totale** : capte aussi les mutations passant par
  *     factories, seeders, console (`tinker`), tests, sans que ces
- *     chemins aient besoin de connaître le resolver.
+ *     chemins aient besoin de connaître les invalidations.
  *   - **Single source of truth** : 1 seul fichier porte la responsabilité
- *     « toute mutation de Contract = invalidation du cache des années ».
- *   - **Découplage** : les Actions Contract restent agnostiques du
- *     resolver (séparation des préoccupations ADR-0013).
+ *     « toute mutation de Contract = invalidations associées ».
+ *   - **Découplage** : les Actions Contract restent agnostiques des
+ *     consommateurs (séparation des préoccupations ADR-0013).
  *
  * **Branchement** : déclaré sur le modèle {@see Contract} via l'attribut
  * `#[ObservedBy([ContractObserver::class])]` (Laravel 11+, cohérent avec
@@ -30,35 +32,114 @@ use App\Services\Fiscal\AvailableYearsResolver;
  * forceDeleted. Couvre l'intégralité du cycle de vie possible (incluant
  * la pose et le retrait du `deleted_at` qui modifient le périmètre des
  * contrats actifs vu par {@see AvailableYearsResolver}).
+ *
+ * **Invalidation factures (T6)** : seules les mutations modifiant le
+ * périmètre facturable déclenchent un flag `is_divergent = true`.
+ * Les changements purement annotatifs (`notes`, `contract_reference`)
+ * sont skippés pour éviter les faux positifs.
  */
 final class ContractObserver
 {
+    private const array IMPACTING_FIELDS = [
+        'start_date',
+        'end_date',
+        'company_id',
+        'vehicle_id',
+    ];
+
     public function __construct(
         private readonly AvailableYearsResolver $resolver,
+        private readonly InvoiceDivergenceFlagger $flagger,
     ) {}
 
     public function created(Contract $contract): void
     {
         $this->resolver->forgetCache();
+
+        $this->flagger->flagForContractRange(
+            $contract->company_id,
+            $contract->start_date->toDateString(),
+            $contract->end_date->toDateString(),
+        );
     }
 
     public function updated(Contract $contract): void
     {
         $this->resolver->forgetCache();
+
+        if (! $contract->wasChanged(self::IMPACTING_FIELDS)) {
+            return;
+        }
+
+        $oldCompanyId = (int) ($contract->getOriginal('company_id') ?? $contract->company_id);
+        $newCompanyId = (int) $contract->company_id;
+        $oldStart = $this->dateToString($contract->getOriginal('start_date'));
+        $oldEnd = $this->dateToString($contract->getOriginal('end_date'));
+        $newStart = $contract->start_date->toDateString();
+        $newEnd = $contract->end_date->toDateString();
+
+        if ($oldCompanyId === $newCompanyId) {
+            $this->flagger->flagForContractRange(
+                $newCompanyId,
+                $newStart,
+                $newEnd,
+                $oldStart,
+                $oldEnd,
+            );
+
+            return;
+        }
+
+        // Changement de company : flag les deux périmètres séparément
+        // (l'ancienne entreprise n'est plus liée mais ses factures
+        // doivent quand même refléter la perte du contrat).
+        $this->flagger->flagForContractRange($oldCompanyId, $oldStart, $oldEnd);
+        $this->flagger->flagForContractRange($newCompanyId, $newStart, $newEnd);
     }
 
     public function deleted(Contract $contract): void
     {
         $this->resolver->forgetCache();
+
+        $this->flagger->flagForContractRange(
+            $contract->company_id,
+            $contract->start_date->toDateString(),
+            $contract->end_date->toDateString(),
+        );
     }
 
     public function restored(Contract $contract): void
     {
         $this->resolver->forgetCache();
+
+        $this->flagger->flagForContractRange(
+            $contract->company_id,
+            $contract->start_date->toDateString(),
+            $contract->end_date->toDateString(),
+        );
     }
 
     public function forceDeleted(Contract $contract): void
     {
         $this->resolver->forgetCache();
+
+        $this->flagger->flagForContractRange(
+            $contract->company_id,
+            $contract->start_date->toDateString(),
+            $contract->end_date->toDateString(),
+        );
+    }
+
+    /**
+     * `getOriginal` peut retourner un Carbon (cast) ou une string (avant
+     * cast). Normalise en `Y-m-d`.
+     */
+    private function dateToString(mixed $value): string
+    {
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        return (string) $value;
     }
 }

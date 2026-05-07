@@ -27,7 +27,7 @@ const props = defineProps<{
 
 const taxValue = computed<string>(() => {
     if (!props.kpiFiscalAvailable) {
-        return '—';
+        return '·';
     }
 
     return formatEur(props.kpiStats.annualTaxDue);
@@ -79,9 +79,9 @@ const taxCaption = computed<string>(() => {
 
         <StatCard
             tone="slate"
-            :value="props.kpiStats.rent !== null ? formatEur(props.kpiStats.rent) : '—'"
+            :value="props.kpiStats.rent !== null ? formatEur(props.kpiStats.rent) : '·'"
             label="Loyer facturé"
-            caption="V1.2 — facturation à venir"
+            caption="V1.2 · facturation à venir"
         >
             <template #icon>
                 <Banknote :size="18" :stroke-width="1.75" />

@@ -190,8 +190,11 @@ final class ContractDocumentControllerTest extends TestCase
     }
 
     #[Test]
-    public function download_renvoie_404_si_document_n_appartient_pas_au_contrat(): void
+    public function download_redirige_vers_dashboard_si_document_n_appartient_pas_au_contrat(): void
     {
+        // T2 (Phase 14.N) : un NotFoundHttpException nu (pas de Model
+        // chaîné) est rendu par `renderNotFoundHttp` → redirection
+        // dashboard avec un toast plutôt qu'une 404 nue.
         $user = User::factory()->create();
         $contractA = Contract::factory()
             ->forVehicle(Vehicle::factory()->create())
@@ -208,6 +211,6 @@ final class ContractDocumentControllerTest extends TestCase
 
         $this->actingAs($user)
             ->get("/app/contracts/{$contractB->id}/documents/{$doc->id}")
-            ->assertNotFound();
+            ->assertRedirect('/app/dashboard');
     }
 }

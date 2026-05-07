@@ -14,9 +14,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Filtres :
  *   - `companyId` : filtre exact match sur l'entreprise
  *   - `year` / `month` : période exacte (un mois civil)
- *   - `divergentOnly` : ne retourne que les factures dont le périmètre
- *     contractuel a changé depuis l'émission (filtre coûteux car
- *     post-traitement PHP — cf. `InvoiceQueryService::listPaginated`)
+ *   - `divergentOnly` : ne retourne que les factures avec
+ *     `is_divergent = true` (flag matérialisé posé par observers, cf.
+ *     {@see App\Services\Invoice\InvoiceDivergenceFlagger}). Filtre
+ *     SQL natif depuis T6 / Phase 14.R, plus de post-traitement PHP.
  *
  * Whitelist sortKey : `invoiceNumber | company | period | totalHt |
  * generatedAt`. Toutes traduisibles en SQL pure.

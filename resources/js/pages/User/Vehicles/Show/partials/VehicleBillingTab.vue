@@ -13,7 +13,7 @@
  * cross-véhicules par mois) ou depuis la liste Factures.
  */
 import { router } from '@inertiajs/vue3';
-import MonthlyBillingBreakdownCard from '@/Components/Features/Billing/MonthlyBillingBreakdownCard.vue';
+import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
 import CompanyYearPills from '@/pages/User/Companies/Show/partials/CompanyYearPills.vue';
 import VehiclePricingsCard from './billing/VehiclePricingsCard.vue';
 

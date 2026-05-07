@@ -11,8 +11,8 @@
  * cf. `CompanyController::show`).
  */
 import { router } from '@inertiajs/vue3';
-import GenerateInvoiceButton from '@/Components/Features/Billing/GenerateInvoiceButton.vue';
-import MonthlyBillingBreakdownCard from '@/Components/Features/Billing/MonthlyBillingBreakdownCard.vue';
+import GenerateInvoiceButton from '@/Components/Domain/Billing/GenerateInvoiceButton.vue';
+import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
 import CompanyYearPills from './CompanyYearPills.vue';
 
 const props = defineProps<{

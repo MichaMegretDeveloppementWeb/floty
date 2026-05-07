@@ -10,6 +10,7 @@ use App\Actions\Invoice\RegenerateInvoiceAction;
 use App\Contracts\Repositories\User\Billing\BillingSettingsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Data\User\Billing\BillingSettingsData;
+use App\Data\User\Invoice\GenerateInvoiceRequestData;
 use App\Data\User\Invoice\InvoiceIndexQueryData;
 use App\Data\User\Invoice\RegenerateInvoiceRequestData;
 use App\Enums\Invoice\RegenerateRedirectTarget;
@@ -23,7 +24,6 @@ use App\Services\Invoice\InvoiceQueryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -71,17 +71,19 @@ final class InvoiceController extends Controller
         ]);
     }
 
-    public function show(int $invoice): InertiaResponse
+    public function show(Invoice $invoice): InertiaResponse
     {
-        $data = $this->invoiceQuery->findInvoiceData($invoice);
+        Gate::authorize('view', $invoice);
 
+        $data = $this->invoiceQuery->findInvoiceData($invoice->id);
+
+        // Le route model binding garantit qu'on n'arrive ici qu'avec une
+        // facture existante — `findInvoiceData` ne peut donc pas être
+        // null. Guard défensif pour PHPStan + cohérence si la doctrine
+        // évolue (e.g. soft-delete futur).
         if ($data === null) {
-            throw new NotFoundHttpException('Facture introuvable.');
+            throw new NotFoundHttpException;
         }
-
-        // Le DTO ne porte pas le Model (data flow read-only) — on
-        // recharge l'instance pour matcher la Policy `view`.
-        Gate::authorize('view', Invoice::query()->findOrFail($invoice));
 
         return Inertia::render('User/Invoices/Show/Index', [
             'invoice' => $data,
@@ -89,16 +91,11 @@ final class InvoiceController extends Controller
     }
 
     public function generate(
+        GenerateInvoiceRequestData $data,
         Request $request,
         GenerateInvoiceAction $action,
     ): RedirectResponse {
         Gate::authorize('create', Invoice::class);
-
-        $validated = $request->validate([
-            'company_id' => ['required', 'integer', Rule::exists('companies', 'id')],
-            'year' => ['required', 'integer', 'between:2020,2099'],
-            'month' => ['required', 'integer', 'between:1,12'],
-        ]);
 
         $user = $request->user();
         if ($user === null) {
@@ -107,23 +104,23 @@ final class InvoiceController extends Controller
 
         try {
             $invoice = $action->execute(
-                companyId: (int) $validated['company_id'],
-                year: (int) $validated['year'],
-                month: (int) $validated['month'],
+                companyId: $data->companyId,
+                year: $data->year,
+                month: $data->month,
                 generatedByUserId: $user->id,
                 issuer: BillingSettingsData::fromModel($this->billingSettings->get())->toIssuerPayload(),
             );
-        } catch (InvoiceAlreadyExistsException $e) {
+        } catch (InvoiceAlreadyExistsException) {
             // Cas concurrence : un autre clic / un autre onglet a déjà
             // émis la facture. Rebascule sur un toast-error explicite
             // plutôt que sur un 500 — l'utilisateur peut ouvrir la
             // facture existante depuis la même page.
             return back()->with(
                 'toast-error',
-                "Une facture est déjà émise pour cette entreprise sur {$validated['year']}-".
-                str_pad((string) $validated['month'], 2, '0', STR_PAD_LEFT).'.',
+                "Une facture est déjà émise pour cette entreprise sur {$data->year}-".
+                str_pad((string) $data->month, 2, '0', STR_PAD_LEFT).'.',
             );
-        } catch (MissingPricingException $e) {
+        } catch (MissingPricingException) {
             // Tarif manquant : on affiche un toast clair invitant à
             // renseigner les tarifs sur la fiche véhicule.
             return back()->with(

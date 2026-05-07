@@ -3,8 +3,11 @@
 declare(strict_types=1);
 
 use App\Exceptions\BaseAppException;
+use App\Exceptions\UserFacingExceptionRenderer;
 use App\Http\Middleware\HandleInertiaRequests;
 use App\Http\Middleware\SecurityHeaders;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,6 +17,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -107,12 +111,26 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Réponses globales selon le statut HTTP final, après le render
         // par défaut de Laravel (pour 419 / 403 / 404 / 500 / 503).
+        //
+        // Doctrine UX Floty (chantier T2 / Phase 14.N) : pour les visites
+        // HTML/Inertia normales, on préfère un redirect transparent vers
+        // une page utile (index du domaine concerné ou dashboard) + un
+        // toast explicite, plutôt qu'une page d'erreur isolée. Les
+        // requêtes XHR/JSON conservent la sémantique HTTP standard.
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
+            // XHR/JSON : on laisse Laravel rendre le statut natif (404/403/etc.).
+            if ($request->expectsJson()) {
+                return $response;
+            }
+
             $status = $response->getStatusCode();
 
-            // Visites Inertia : intercepter 419 (CSRF) et 403 pour
-            // rester sur la page avec un toast plutôt qu'une page d'erreur.
-            if ($request->header('X-Inertia')) {
+            // Visites Inertia : intercepter 419 (CSRF) et 403 pour rester
+            // sur la page courante avec un toast (l'action a échoué mais
+            // on ne veut pas naviguer ailleurs depuis une simple soumission
+            // refusée). Le 404 Inertia retombe dans la logique générique
+            // ci-dessous (redirect domaine).
+            if ($request->header('X-Inertia') && in_array($status, [419, 403], true)) {
                 return match ($status) {
                     419 => back()->with('toast-warning', 'Votre session a expiré. Veuillez réessayer.'),
                     403 => back()->with('toast-error', 'Action non autorisée.'),
@@ -120,13 +138,44 @@ return Application::configure(basePath: dirname(__DIR__))
                 };
             }
 
-            // Pages d'erreur Inertia (404 / 500 / 503) en non-local et
+            // 404 ModelNotFoundException (route binding) : redirect vers
+            // l'index du domaine concerné. Laravel encapsule souvent la
+            // ModelNotFoundException dans une NotFoundHttpException — on
+            // remonte la chaîne `previous` pour récupérer le Model.
+            $modelNotFound = $e instanceof ModelNotFoundException
+                ? $e
+                : (
+                    $e instanceof NotFoundHttpException
+                    && $e->getPrevious() instanceof ModelNotFoundException
+                        ? $e->getPrevious()
+                        : null
+                );
+
+            if ($modelNotFound !== null) {
+                return UserFacingExceptionRenderer::renderModelNotFound($modelNotFound);
+            }
+
+            // 403 (toute origine) : redirect dashboard + toast.
+            if ($status === 403) {
+                return UserFacingExceptionRenderer::renderAuthorization(
+                    $e instanceof AuthorizationException ? $e : new AuthorizationException,
+                );
+            }
+
+            // 404 générique (URL inexistante, findOrFail manuel sans Model
+            // bind) : redirect dashboard + toast « page introuvable ».
+            if ($status === 404) {
+                return UserFacingExceptionRenderer::renderNotFoundHttp(
+                    $e instanceof NotFoundHttpException ? $e : new NotFoundHttpException,
+                );
+            }
+
+            // Pages d'erreur Inertia (500 / 503) en non-local et
             // non-testing uniquement — on garde Whoops Laravel en local
             // pour le debug, et le testing utilise le framework natif.
             if (
                 ! app()->environment(['local', 'testing'])
-                && in_array($status, [404, 500, 503], true)
-                && ! $request->expectsJson()
+                && in_array($status, [500, 503], true)
             ) {
                 return Inertia::render('Errors/Index', ['status' => $status])
                     ->toResponse($request)

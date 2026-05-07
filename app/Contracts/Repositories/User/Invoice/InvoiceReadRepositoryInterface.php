@@ -6,7 +6,6 @@ namespace App\Contracts\Repositories\User\Invoice;
 
 use App\Data\User\Invoice\InvoiceIndexQueryData;
 use App\Models\Invoice;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
@@ -52,22 +51,14 @@ interface InvoiceReadRepositoryInterface
     /**
      * Liste paginée server-side de l'Index Invoices (cf. ADR-0020).
      *
+     * Le filtre `divergentOnly` est appliqué en SQL natif (`WHERE
+     * is_divergent = 1`) — la flag matérialisée est posée par les
+     * observers (T6 / Phase 14.R), supprimant le N+1
+     * `BillingCalculator::calculate` qui dégradait l'Index.
+     *
      * @return LengthAwarePaginator<int, Invoice>
      */
     public function paginateForIndex(InvoiceIndexQueryData $query): LengthAwarePaginator;
-
-    /**
-     * Liste **non paginée** des factures matchant les filtres SQL
-     * (companyId, year, month, search, sort) — ignore `divergentOnly`
-     * qui est calculé en post-traitement PHP par le service.
-     *
-     * Utilisé exclusivement par {@see App\Services\Invoice\InvoiceQueryService::listPaginated}
-     * quand `divergentOnly = true` : le service charge tout, filtre
-     * en mémoire, puis pagine via `LengthAwarePaginator` manuel.
-     *
-     * @return Collection<int, Invoice>
-     */
-    public function findAllMatching(InvoiceIndexQueryData $query): Collection;
 
     /**
      * `true` ssi au moins une facture existe en base. Utilisé par

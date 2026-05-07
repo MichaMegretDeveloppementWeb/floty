@@ -504,11 +504,17 @@ final class ContractControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_renvoie_404_si_contrat_inexistant(): void
+    public function show_redirige_avec_toast_si_contrat_inexistant(): void
     {
+        // T2 (Phase 14.N) : `ContractController::show(int $contract)`
+        // throw un `NotFoundHttpException` nu (pas de Model chaîné car
+        // le controller n'utilise pas de route model binding mais un
+        // `findContractData(int)`). Rendu UX → redirection dashboard.
         $user = User::factory()->create();
 
-        $this->actingAs($user)->get('/app/contracts/999999')->assertNotFound();
+        $this->actingAs($user)
+            ->get('/app/contracts/999999')
+            ->assertRedirect('/app/dashboard');
     }
 
     #[Test]

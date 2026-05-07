@@ -88,4 +88,35 @@ final class CancelInvoiceActionTest extends TestCase
 
         $this->assertDatabaseMissing('invoices', ['id' => $invoice->id]);
     }
+
+    #[Test]
+    public function execute_keeping_pdf_supprime_la_row_db_mais_garde_le_pdf_sur_disque(): void
+    {
+        // Variante orchestrée pour `RegenerateInvoiceAction` (chantier T4) :
+        // la row + ses lignes sont supprimées dans la transaction, mais
+        // le PDF reste sur disque. Le caller (Regenerate) s'occupe de la
+        // suppression filesystem après son propre commit, ce qui garantit
+        // que si `Generate` échoue, l'ancien PDF est encore présent.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $invoice = Invoice::factory()
+            ->for($company)
+            ->for($user, 'generatedBy')
+            ->create(['pdf_path' => 'invoices/2024/1/keep-me.pdf']);
+
+        Storage::disk('local')->put($invoice->pdf_path, '%PDF-keep-me');
+        InvoiceLine::factory()->count(2)->for($invoice)->for($vehicle)->create();
+
+        $returnedPath = $this->action->executeKeepingPdf($invoice);
+
+        // DB : row + lignes supprimées (cascade FK).
+        $this->assertDatabaseMissing('invoices', ['id' => $invoice->id]);
+        $this->assertSame(0, InvoiceLine::query()->where('invoice_id', $invoice->id)->count());
+
+        // Filesystem : PDF toujours présent + path retourné au caller.
+        Storage::disk('local')->assertExists('invoices/2024/1/keep-me.pdf');
+        self::assertSame('invoices/2024/1/keep-me.pdf', $returnedPath);
+    }
 }

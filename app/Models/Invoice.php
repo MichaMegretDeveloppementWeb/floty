@@ -29,6 +29,7 @@ use Illuminate\Support\Carbon;
  * @property int $month
  * @property string $invoice_number
  * @property int $total_ht_cents
+ * @property bool $is_divergent
  * @property string $pdf_path
  * @property string $pdf_hash
  * @property Carbon $generated_at
@@ -45,6 +46,7 @@ use Illuminate\Support\Carbon;
     'month',
     'invoice_number',
     'total_ht_cents',
+    'is_divergent',
     'pdf_path',
     'pdf_hash',
     'generated_at',
@@ -64,6 +66,7 @@ final class Invoice extends Model
             'year' => 'integer',
             'month' => 'integer',
             'total_ht_cents' => 'integer',
+            'is_divergent' => 'boolean',
             'generated_at' => 'datetime',
         ];
     }
