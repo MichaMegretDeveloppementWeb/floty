@@ -35,6 +35,7 @@ onMounted(() => {
                     :tone="toast.tone"
                     :title="toast.title"
                     :description="toast.description"
+                    :duration="toast.duration"
                     @dismiss="dismiss(toast.id)"
                 />
             </div>

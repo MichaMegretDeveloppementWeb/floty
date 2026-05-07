@@ -16,10 +16,17 @@ const props = withDefaults(
         title: string;
         description?: string;
         dismissible?: boolean;
+        /**
+         * Durée d'affichage en ms (= TTL côté `useToasts`). Pilote la
+         * barre de progression bottom qui décroît de 100 % → 0 % pendant
+         * la durée d'affichage. 0 = persistant (pas de barre).
+         */
+        duration?: number;
     }>(),
     {
         tone: 'info',
         dismissible: true,
+        duration: 0,
     },
 );
 
@@ -37,6 +44,24 @@ const chipClasses = computed<string>(() => {
             return 'bg-amber-50 text-amber-700';
         case 'info':
             return 'bg-blue-50 text-blue-700';
+        default: {
+            const _exhaustive: never = props.tone;
+
+            throw new Error(`Tonalité non gérée : ${_exhaustive as string}`);
+        }
+    }
+});
+
+const progressClasses = computed<string>(() => {
+    switch (props.tone) {
+        case 'success':
+            return 'bg-emerald-500';
+        case 'error':
+            return 'bg-rose-500';
+        case 'warning':
+            return 'bg-amber-500';
+        case 'info':
+            return 'bg-blue-500';
         default: {
             const _exhaustive: never = props.tone;
 
@@ -66,13 +91,19 @@ const toneIcon = computed(() => {
 const ariaRole = computed<'status' | 'alert'>(() =>
     props.tone === 'error' || props.tone === 'warning' ? 'alert' : 'status',
 );
+
+// Barre de progression : keyframe `floty-toast-progress` qui anime
+// transform: scaleX(1) → scaleX(0) sur la durée du toast. On utilise
+// une animation CSS (vs une transition sur width) pour éviter le
+// timing dance inhérent aux transitions sur first-paint.
+const showProgress = computed<boolean>(() => props.duration > 0);
 </script>
 
 <template>
     <div
         :role="ariaRole"
         aria-live="polite"
-        class="flex w-80 items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-lg"
+        class="relative flex w-80 items-start gap-3 overflow-hidden rounded-xl border border-slate-200 bg-white p-4 shadow-lg"
     >
         <span
             :class="[
@@ -107,5 +138,34 @@ const ariaRole = computed<'status' | 'alert'>(() =>
         >
             <X :size="14" :stroke-width="1.75" />
         </button>
+
+        <span
+            v-if="showProgress"
+            :class="[
+                'toast-progress absolute bottom-0 left-0 h-0.5 w-full origin-left',
+                progressClasses,
+            ]"
+            :style="{
+                animationDuration: `${duration}ms`,
+            }"
+            aria-hidden="true"
+        />
     </div>
 </template>
+
+<style>
+@keyframes floty-toast-progress {
+    from {
+        transform: scaleX(1);
+    }
+    to {
+        transform: scaleX(0);
+    }
+}
+
+.toast-progress {
+    animation-name: floty-toast-progress;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+</style>
