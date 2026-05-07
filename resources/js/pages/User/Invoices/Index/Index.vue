@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Page Index Factures (Phase 14.F V1.2). Liste paginée server-side
- * (cf. ADR-0020) avec filtres `?companyId`, `?year`, `?month` + search
- * sur le numéro de facture / entreprise.
+ * (cf. ADR-0020) avec filtres `?companyId`, `?vehicleId`, `?year`,
+ * `?month` + search sur le numéro de facture / entreprise.
  */
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -21,22 +21,23 @@ const props = defineProps<{
     invoices: App.Data.User.Invoice.PaginatedInvoiceListData;
     query: App.Data.User.Invoice.InvoiceIndexQueryData;
     hasAnyInvoice: boolean;
-    options?: {
-        companies?: App.Data.User.Company.CompanyOptionData[];
+    options: {
+        companies: App.Data.User.Company.CompanyOptionData[];
+        vehicles: App.Data.User.Vehicle.VehicleOptionData[];
+        /** Bornes des années couvertes par les factures émises ; null si aucune. */
+        yearBounds: { min: number; max: number } | null;
     };
 }>();
 
 const filtersOpen = ref<boolean>(false);
 
-// Pour V1.2 minimum, les options company sont à charger plus tard
-// en 14.H si on veut le filtre exact-match. Pour ce premier jet on
-// affiche le filtre uniquement quand `options.companies` est passé
-// (ce sera le cas en 14.H + chantier intégrations).
-const companyOptions = computed(() => props.options?.companies ?? []);
+const companyOptions = computed(() => props.options.companies);
+const vehicleOptions = computed(() => props.options.vehicles);
 
 const tableState = useInvoicesTable({
     query: props.query,
     companyOptions: companyOptions.value,
+    vehicleOptions: vehicleOptions.value,
 });
 
 const searchModel = computed<string>({
@@ -53,6 +54,10 @@ const companySelectOptions = computed(() =>
     })),
 );
 
+const vehicleSelectOptions = computed(() =>
+    vehicleOptions.value.map((v) => ({ value: v.id, label: v.label })),
+);
+
 const companyIdModel = computed<number | null>({
     get: () => tableState.state.filters.value.companyId,
     set: (value: string | number | null) => {
@@ -63,11 +68,31 @@ const companyIdModel = computed<number | null>({
     },
 });
 
+const vehicleIdModel = computed<number | null>({
+    get: () => tableState.state.filters.value.vehicleId,
+    set: (value: string | number | null) => {
+        tableState.state.setFilter(
+            'vehicleId',
+            typeof value === 'number' ? value : null,
+        );
+    },
+});
+
+// Liste des années à proposer dans le filtre :
+// `[min(plus ancienne facture)..max(année courante, max facture)]`,
+// décroissante. Si pas de facture en base, on retombe sur l'année
+// courante seule (cas table vide, mais l'UI cache l'ensemble du
+// listing dans ce cas via `hasAnyInvoice`).
 const yearOptions = computed(() => {
     const currentYear = new Date().getFullYear();
+    const bounds = props.options.yearBounds;
+
+    const min = bounds?.min ?? currentYear;
+    const max = Math.max(bounds?.max ?? currentYear, currentYear);
+
     const years: number[] = [];
 
-    for (let y = currentYear; y >= currentYear - 5; y--) {
+    for (let y = max; y >= min; y--) {
         years.push(y);
     }
 
@@ -160,6 +185,15 @@ const divergentOnlyModel = computed<boolean>({
                                     v-model="companyIdModel"
                                     placeholder="Toutes les entreprises"
                                     :options="companySelectOptions"
+                                />
+                            </div>
+                            <div v-if="vehicleSelectOptions.length > 0">
+                                <FieldLabel for="filter-invoice-vehicle">Véhicule</FieldLabel>
+                                <SearchableSelect
+                                    id="filter-invoice-vehicle"
+                                    v-model="vehicleIdModel"
+                                    placeholder="Tous les véhicules"
+                                    :options="vehicleSelectOptions"
                                 />
                             </div>
                             <div>

@@ -99,6 +99,22 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         return Invoice::query()->exists();
     }
 
+    public function findYearBounds(): ?array
+    {
+        $row = Invoice::query()
+            ->selectRaw('MIN(year) as min_year, MAX(year) as max_year')
+            ->first();
+
+        if ($row === null || $row->min_year === null) {
+            return null;
+        }
+
+        return [
+            'min' => (int) $row->min_year,
+            'max' => (int) $row->max_year,
+        ];
+    }
+
     /**
      * Builder partagé entre `paginateForIndex` et `findAllMatching`.
      * Applique tous les filtres SQL (company, year, month, search) et
@@ -118,6 +134,15 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         // Filtres exact match.
         if ($query->companyId !== null) {
             $eloquentQuery->where('invoices.company_id', $query->companyId);
+        }
+        if ($query->vehicleId !== null) {
+            // Le véhicule est rattaché via les lignes de facture
+            // (`invoice_lines.vehicle_id`). On filtre les factures qui
+            // ont au moins une ligne pour ce véhicule.
+            $eloquentQuery->whereHas(
+                'lines',
+                fn (Builder $q) => $q->where('vehicle_id', $query->vehicleId),
+            );
         }
         if ($query->year !== null) {
             $eloquentQuery->where('invoices.year', $query->year);

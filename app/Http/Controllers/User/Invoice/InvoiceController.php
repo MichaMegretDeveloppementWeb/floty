@@ -11,14 +11,19 @@ use App\Contracts\Repositories\User\Billing\BillingSettingsReadRepositoryInterfa
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Data\User\Billing\BillingSettingsData;
 use App\Data\User\Invoice\InvoiceIndexQueryData;
+use App\Data\User\Invoice\RegenerateInvoiceRequestData;
+use App\Enums\Invoice\RegenerateRedirectTarget;
 use App\Exceptions\Billing\MissingPricingException;
 use App\Exceptions\Invoice\InvoiceAlreadyExistsException;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
+use App\Services\Company\CompanyQueryService;
 use App\Services\Invoice\InvoicePdfStorage;
 use App\Services\Invoice\InvoiceQueryService;
+use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -44,13 +49,25 @@ final class InvoiceController extends Controller
         private readonly InvoiceQueryService $invoiceQuery,
         private readonly InvoiceReadRepositoryInterface $invoiceRead,
         private readonly BillingSettingsReadRepositoryInterface $billingSettings,
+        private readonly CompanyQueryService $companyQuery,
+        private readonly VehicleQueryService $vehicleQuery,
     ) {}
 
     public function index(InvoiceIndexQueryData $query): InertiaResponse
     {
+        Gate::authorize('viewAny', Invoice::class);
+
         return Inertia::render('User/Invoices/Index/Index', [
             'invoices' => $this->invoiceQuery->listPaginated($query),
             'query' => $query,
+            'options' => [
+                'companies' => $this->companyQuery->listForOptions(),
+                'vehicles' => $this->vehicleQuery->listForOptions(),
+                // Bornes des années couvertes par les factures émises.
+                // Le frontend les utilise pour générer la liste complète
+                // [min..max(currentYear, max)]. Null si aucune facture.
+                'yearBounds' => $this->invoiceRead->findYearBounds(),
+            ],
             // Cf. doctrine `hasAny` (ADR-0020 D9) : distingue table vide
             // de filtre actif retournant 0.
             'hasAnyInvoice' => $this->invoiceRead->existsAny(),
@@ -65,6 +82,10 @@ final class InvoiceController extends Controller
             throw new NotFoundHttpException('Facture introuvable.');
         }
 
+        // Le DTO ne porte pas le Model (data flow read-only) — on
+        // recharge l'instance pour matcher la Policy `view`.
+        Gate::authorize('view', Invoice::query()->findOrFail($invoice));
+
         return Inertia::render('User/Invoices/Show/Index', [
             'invoice' => $data,
         ]);
@@ -74,6 +95,8 @@ final class InvoiceController extends Controller
         Request $request,
         GenerateInvoiceAction $action,
     ): RedirectResponse {
+        Gate::authorize('create', Invoice::class);
+
         $validated = $request->validate([
             'company_id' => ['required', 'integer', Rule::exists('companies', 'id')],
             'year' => ['required', 'integer', 'between:2020,2099'],
@@ -124,6 +147,8 @@ final class InvoiceController extends Controller
      */
     public function destroy(Invoice $invoice, CancelInvoiceAction $action): RedirectResponse
     {
+        Gate::authorize('delete', $invoice);
+
         $number = $invoice->invoice_number;
 
         $action->execute($invoice);
@@ -140,21 +165,22 @@ final class InvoiceController extends Controller
      * couple (entreprise × année × mois) avec les données actuelles,
      * le tout dans une transaction.
      *
-     * Redirige sur la fiche **nouvelle** facture après succès — l'ID
-     * a changé puisque l'ancienne row est supprimée. `back()` enverrait
-     * sur /invoices/{ancien_id} qui n'existe plus (404).
+     * La cible de redirection est passée explicitement par le client via
+     * {@see RegenerateInvoiceRequestData::$redirectTarget} ; le defaut
+     * (`Show`) correspond au cas usuel d'un appel depuis la fiche détail.
      */
     public function regenerate(
+        RegenerateInvoiceRequestData $data,
         Request $request,
         Invoice $invoice,
         RegenerateInvoiceAction $action,
     ): RedirectResponse {
+        Gate::authorize('update', $invoice);
+
         $user = $request->user();
         if ($user === null) {
             abort(Response::HTTP_UNAUTHORIZED);
         }
-
-        $referer = $request->headers->get('referer');
 
         try {
             $newInvoice = $action->execute(
@@ -170,27 +196,25 @@ final class InvoiceController extends Controller
             );
         }
 
-        // Si on vient de la fiche Show (URL contient /invoices/{id}),
-        // l'ancien ID n'existe plus — rediriger sur la nouvelle facture.
-        // Sinon (onglet facturation entreprise, liste factures), back()
-        // suffit car on revient sur la page d'origine qui se rafraîchit.
-        if ($referer !== null && preg_match('~/app/invoices/\d+(?:[?\#]|$)~', $referer) === 1) {
-            return redirect()
-                ->route('user.invoices.show', ['invoice' => $newInvoice->id])
-                ->with(
-                    'toast-success',
-                    "Facture régénérée : {$newInvoice->invoice_number}.",
-                );
-        }
+        $message = "Facture régénérée : {$newInvoice->invoice_number}.";
 
-        return back()->with(
-            'toast-success',
-            "Facture régénérée : {$newInvoice->invoice_number}.",
-        );
+        return match ($data->redirectTarget) {
+            RegenerateRedirectTarget::Show => redirect()
+                ->route('user.invoices.show', ['invoice' => $newInvoice->id])
+                ->with('toast-success', $message),
+            RegenerateRedirectTarget::Index => redirect()
+                ->route('user.invoices.index')
+                ->with('toast-success', $message),
+            RegenerateRedirectTarget::CompanyTab => redirect()
+                ->to(route('user.companies.show', ['company' => $newInvoice->company_id]).'?tab=billing')
+                ->with('toast-success', $message),
+        };
     }
 
     public function download(Invoice $invoice, InvoicePdfStorage $storage): Response
     {
+        Gate::authorize('view', $invoice);
+
         $binary = $storage->read($invoice->pdf_path);
 
         if ($binary === null) {

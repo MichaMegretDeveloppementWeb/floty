@@ -75,4 +75,16 @@ interface InvoiceReadRepositoryInterface
      * « filtre actif retournant 0 ».
      */
     public function existsAny(): bool;
+
+    /**
+     * Bornes des années couvertes par les factures émises. Utilisé pour
+     * piloter l'options list du sélecteur Année du filtre Index : on
+     * affiche toutes les années entre la plus ancienne facture et l'année
+     * en cours (ou l'année la plus tardive si supérieure).
+     *
+     * Retourne `null` s'il n'y a aucune facture (cas table vide).
+     *
+     * @return array{min: int, max: int}|null
+     */
+    public function findYearBounds(): ?array;
 }

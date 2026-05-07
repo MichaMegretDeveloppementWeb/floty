@@ -85,7 +85,11 @@ const selectStateClasses = computed<string>(() => {
                     selectStateClasses,
                 ]"
             >
-                <option v-if="placeholder" value="" :disabled="!nullable">
+                <option
+                    v-if="placeholder"
+                    :value="nullable ? null : ''"
+                    :disabled="!nullable"
+                >
                     {{ placeholder }}
                 </option>
                 <option

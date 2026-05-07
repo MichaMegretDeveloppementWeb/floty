@@ -3,6 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
+import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
@@ -143,20 +144,7 @@ const activeFiltersCount = computed<number>(() => {
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <div class="flex flex-wrap items-end justify-between gap-3">
-                <PageHeader :fiscal-year="props.selectedYear" />
-                <div class="flex flex-col gap-1">
-                    <FieldLabel for="companies-year">
-                        Année des colonnes financières
-                    </FieldLabel>
-                    <SelectInput
-                        id="companies-year"
-                        v-model.number="yearModel"
-                        :options="yearOptions"
-                        :disabled="yearOptions.length <= 1"
-                    />
-                </div>
-            </div>
+            <PageHeader :fiscal-year="props.selectedYear" />
 
             <div v-if="!props.hasAnyCompany">
                 <EmptyCompaniesState />
@@ -223,6 +211,15 @@ const activeFiltersCount = computed<number>(() => {
                             </div>
                         </div>
                     </FilterPopover>
+                    <div class="ml-auto">
+                        <InlineYearSelector
+                            id="companies-year"
+                            v-model="yearModel"
+                            label="Colonnes financières"
+                            :options="yearOptions"
+                            :disabled="yearOptions.length <= 1"
+                        />
+                    </div>
                 </div>
 
                 <CompaniesTable
