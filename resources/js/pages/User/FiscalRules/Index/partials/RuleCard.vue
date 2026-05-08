@@ -2,6 +2,7 @@
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { useRuleCard } from '@/Composables/FiscalRule/Index/useRuleCard';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 import RuleBracketsFlat from './RuleBracketsFlat.vue';
 import RuleBracketsProgressive from './RuleBracketsProgressive.vue';
 import RuleExample from './RuleExample.vue';
@@ -52,6 +53,14 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard(props);
         <h3 class="text-base font-semibold text-slate-900">
             {{ content?.title }}
         </h3>
+        <p
+            v-if="rule && !rule.isFullYear"
+            class="mt-0.5 text-xs text-slate-500"
+        >
+            Période d'application :
+            du {{ formatDateFr(rule.applicabilityStartInYear) }}
+            au {{ formatDateFr(rule.applicabilityEndInYear) }}
+        </p>
         <p class="mt-1 text-base leading-relaxed text-slate-700">
             {{ content?.pitch }}
         </p>

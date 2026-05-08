@@ -26,7 +26,7 @@ final class FiscalRuleQueryService
     public function listForYear(int $year): DataCollection
     {
         $rows = $this->fiscalRules->findAllForYear($year)
-            ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r))
+            ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r, $year))
             ->values()
             ->all();
 

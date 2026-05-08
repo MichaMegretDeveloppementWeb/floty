@@ -222,7 +222,7 @@ final class FleetFiscalAggregator
 
         $appliedRuleCodes = array_keys($ruleCodesSet);
         $appliedRules = $this->loadRulesByCodes($year, $appliedRuleCodes)
-            ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r))
+            ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r, $year))
             ->values()
             ->all();
 
@@ -274,7 +274,7 @@ final class FleetFiscalAggregator
             $yearTotalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);
 
             $appliedRules = $this->loadRulesByCodes($year, $result->appliedRuleCodes)
-                ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r))
+                ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r, $year))
                 ->values()
                 ->all();
 

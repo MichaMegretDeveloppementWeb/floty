@@ -18,6 +18,11 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * `legalBasis` est conservé en `array<string, mixed>` car la structure
  * varie selon le type (CIBS / BOFIP / NOTICE) - un futur DTO
  * polymorphe pourra le typer plus finement.
+ *
+ * **Granularité temporelle (chantier κ.7)** : les dates `applicabilityStart`
+ * / `applicabilityEnd` exposées sont **clippées à l'année consultée**.
+ * `isFullYear` permet à l'UI d'afficher silencieusement le cas standard
+ * (toute l'année) et de mettre en évidence les règles partielles.
  */
 #[TypeScript]
 final class FiscalRuleListItemData extends Data
@@ -35,10 +40,22 @@ final class FiscalRuleListItemData extends Data
         public array $taxesConcerned,
         public array $legalBasis,
         public bool $isActive,
+        public string $applicabilityStartInYear,
+        public string $applicabilityEndInYear,
+        public bool $isFullYear,
     ) {}
 
-    public static function fromModel(FiscalRule $rule): self
+    public static function fromModel(FiscalRule $rule, int $year): self
     {
+        $yearStart = sprintf('%d-01-01', $year);
+        $yearEnd = sprintf('%d-12-31', $year);
+
+        $ruleStart = $rule->applicability_start->toDateString();
+        $ruleEnd = $rule->applicability_end?->toDateString() ?? $yearEnd;
+
+        $startInYear = $ruleStart > $yearStart ? $ruleStart : $yearStart;
+        $endInYear = $ruleEnd < $yearEnd ? $ruleEnd : $yearEnd;
+
         return new self(
             id: $rule->id,
             ruleCode: $rule->rule_code,
@@ -51,6 +68,9 @@ final class FiscalRuleListItemData extends Data
             )),
             legalBasis: $rule->legal_basis,
             isActive: $rule->is_active,
+            applicabilityStartInYear: $startInYear,
+            applicabilityEndInYear: $endInYear,
+            isFullYear: $startInYear === $yearStart && $endInYear === $yearEnd,
         );
     }
 }
