@@ -6,6 +6,7 @@ namespace Tests\Feature\Seeders;
 
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
+use App\Fiscal\Year2024\Transversal\R2024_002_DailyProrata;
 use App\Models\FiscalRule;
 use Database\Seeders\FiscalRulesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -150,7 +151,10 @@ final class FiscalRulesSeederMirrorTest extends TestCase
             ->where('fiscal_year', 2024)
             ->firstOrFail();
         self::assertNotSame('BOGUS DESCRIPTION OVERRIDE', $restored->description);
-        self::assertStringContainsString('Mécanique du prorata journalier', $restored->description);
+        // Compare à la valeur produite par la classe PHP elle-même
+        // (source de vérité ADR-0022) plutôt qu'à un substring littéral :
+        // si la description évolue en PHP, le test reste valide.
+        self::assertSame((new R2024_002_DailyProrata)->description(), $restored->description);
     }
 
     #[Test]

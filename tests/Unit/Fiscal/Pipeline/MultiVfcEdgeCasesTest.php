@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Fiscal\Pipeline;
 
 use App\Enums\Contract\ContractType;
+use App\Enums\Fiscal\RuleType;
+use App\Enums\Fiscal\TaxType;
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
@@ -15,13 +17,19 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
+use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
+use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Fiscal\Year2024\Year2024Boot;
 use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\Test;
@@ -191,6 +199,69 @@ final class MultiVfcEdgeCasesTest extends TestCase
             'l\'exonération LCD doit annuler les deux taxes même en multi-VFC');
         $this->assertSame(0, $result->daysAssigned,
             'aucun jour taxable, l\'indispo en sept. ne crée pas de jour fantôme');
+    }
+
+    #[Test]
+    public function multi_vfc_avec_pivot_regle_partielle_et_lcd_chevauchant_les_2_pivots_n_a_pas_de_double_decompte(): void
+    {
+        // Sanity audit κ-bis (concern test 7) : valide la chaîne triple
+        // VFC × Règles × LCD. Cas extrême combinant les 3 axes :
+        //
+        //   - 2 VFC : pivot 16/06/2024 (v1 100 g WLTP, v2 150 g WLTP)
+        //   - 2 segments règles : pivot 01/07/2024 (stub partial pricing
+        //     ajouté par-dessus les 16 règles 2024 existantes)
+        //   - 1 contrat LCD 25 j du 16/06 au 10/07/2024 (chevauche les
+        //     2 pivots et est ≤ 30 jours → qualifié LCD)
+        //
+        // Cartesian non-vide attendu : 3 partials
+        //   (1) VFC1 × Rule1 (Jan-Jun30) → vide (VFC1 finit le 15/06, OK)
+        //       Wait → VFC1 = Jan→15/06, Rule1 = Jan→Jun30 : intersection
+        //       Jan→15/06. Mais aucun contrat dans cette plage → 0 jour.
+        //   (2) VFC2 × Rule1 (16/06→Jun30) → 15 jours dans la plage
+        //   (3) VFC2 × Rule2 (Jul→Dec) → 184 jours, contrat = 10 jours
+        //       (01-10 juillet) dans cette plage
+        //
+        // Tous les partials voient le même contrat LCD entier (R-2024-021
+        // n'utilise pas DaysWindow pour le verdict). Le verdict = 25
+        // jours exempts. R-2024-002 dans chaque partial filtre par
+        // DaysWindow et applique max(0, totalDays - 25). Avec un contrat
+        // LCD, chaque partial finit à daysAssigned = 0.
+        //
+        // Sanity attendue : daysAssigned total = 0, lcdExempt = true,
+        // totalDue = 0.
+
+        $registry = $this->app->make(FiscalRuleRegistry::class);
+        $boot = new Year2024Boot;
+        $registry->register(2024, [
+            ...$boot->rules(),
+            MultiVfcMultiRuleStubPricing::class,
+        ]);
+        $this->app->forgetInstance(RuleEffectiveSegmenter::class);
+        $this->executor = $this->app->make(FiscalSegmentedExecutor::class);
+
+        $vehicle = $this->makeVehicleWithTwoDifferentVfcs(
+            v1Co2: 100,
+            v2Co2: 150,
+            switchDate: '2024-06-16',
+        );
+        $contracts = [$this->syntheticContract($vehicle, '2024-06-16', '2024-07-10', ContractType::Lcd)];
+
+        $context = new PipelineContext(
+            vehicle: $vehicle,
+            fiscalYear: 2024,
+            daysInYear: $this->yearContext->daysInYear(2024),
+            contractsForPair: $contracts,
+            vehicleUnavailabilitiesInYear: [],
+        );
+
+        $result = $this->executor->execute($context);
+
+        $this->assertTrue($result->lcdExempt,
+            '25 jours ≤ 30 → contrat LCD, doit le rester en multi-VFC × multi-règles');
+        $this->assertSame(0, $result->daysAssigned,
+            'tous les jours du contrat LCD doivent être exonérés sur les 3 axes');
+        $this->assertSame(0.0, $result->totalDue,
+            'l\'exonération LCD annule la taxe sur la chaîne combinée');
     }
 
     // --- Helpers --------------------------------------------------------
@@ -395,5 +466,77 @@ final class MultiVfcEdgeCasesTest extends TestCase
         $n = ++self::$plateCounter;
 
         return sprintf('MVE-%03d-MVE', $n);
+    }
+}
+
+/**
+ * Stub de règle partielle 2024 (utilisée uniquement par le test
+ * « multi_vfc_avec_pivot_regle_partielle_et_lcd... »). Ajoute un
+ * pivot règle au 01/07/2024 pour tester le cartésien VFC × Règles
+ * combiné à la qualification LCD.
+ *
+ * **Hors scope production** : registrée à la volée dans le test, jamais
+ * dans le boot officiel.
+ */
+final readonly class MultiVfcMultiRuleStubPricing implements PricingRule
+{
+    use RuleActiveByDefaultTrait;
+
+    public function ruleCode(): string
+    {
+        return 'R-2024-MVEx-PARTIAL';
+    }
+
+    public function name(): string
+    {
+        return '[STUB κ-bis test] Tarif partiel 01/07/2024 → 31/12/2024';
+    }
+
+    public function description(): string
+    {
+        return 'Stub utilisé pour tester la chaîne VFC × Règles × LCD combinée.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Tariff;
+    }
+
+    public function displayOrder(): int
+    {
+        return 999;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [];
+    }
+
+    /**
+     * @return list<TaxType>
+     */
+    public function taxesConcerned(): array
+    {
+        return [TaxType::Co2];
+    }
+
+    public function applicabilityStart(): CarbonImmutable
+    {
+        return CarbonImmutable::create(2024, 7, 1);
+    }
+
+    public function applicabilityEnd(): ?CarbonImmutable
+    {
+        return CarbonImmutable::create(2024, 12, 31);
+    }
+
+    public function price(PipelineContext $context): PipelineContext
+    {
+        // No-op : ne touche pas au tarif. Seul intérêt : créer un pivot
+        // règle qui force le segmenteur à produire 2 segments en 2024.
+        return $context->withAppliedRule($this->ruleCode());
     }
 }
