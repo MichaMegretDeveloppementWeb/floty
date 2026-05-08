@@ -6,6 +6,7 @@ namespace App\Fiscal\Registry;
 
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Contracts\FiscalRule;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Container\Container;
 
 /**
@@ -59,5 +60,46 @@ final class FiscalRuleRegistry
     public function registeredYears(): array
     {
         return array_keys($this->byYear);
+    }
+
+    /**
+     * Filtre les règles de l'année par leur période d'applicabilité
+     * temporelle (chantier κ - granularité temporelle des règles).
+     *
+     * Retourne les règles dont la fenêtre `[applicabilityStart,
+     * applicabilityEnd]` contient `$date`. Comparaison à la
+     * granularité du jour (heures ignorées). Une règle dont
+     * `applicabilityEnd === null` est traitée comme « valide jusqu'à
+     * indéfini ».
+     *
+     * Si l'année n'est pas enregistrée, propage la même exception que
+     * {@see rulesForYear()} ({@see FiscalCalculationException::yearNotSupported()}).
+     *
+     * **Note** : ne contraint pas `$date` à appartenir à `$year` -
+     * l'appelant peut interroger une règle « hors année » ; dans ce cas
+     * la liste est typiquement vide. Cohérent avec la sémantique « date
+     * isolée », sans posture défensive.
+     *
+     * @return list<FiscalRule>
+     */
+    public function rulesEffectiveAt(int $year, CarbonImmutable $date): array
+    {
+        $day = $date->startOfDay();
+
+        return array_values(array_filter(
+            $this->rulesForYear($year),
+            static function (FiscalRule $rule) use ($day): bool {
+                $start = $rule->applicabilityStart()->startOfDay();
+                if ($day->lessThan($start)) {
+                    return false;
+                }
+                $end = $rule->applicabilityEnd();
+                if ($end === null) {
+                    return true;
+                }
+
+                return ! $day->greaterThan($end->startOfDay());
+            },
+        ));
     }
 }

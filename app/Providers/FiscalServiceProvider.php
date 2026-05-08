@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Fiscal\Contracts\FiscalYearBoot;
+use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use Illuminate\Contracts\Foundation\Application;
@@ -66,5 +67,11 @@ final class FiscalServiceProvider extends ServiceProvider
 
             return $registry;
         });
+
+        // RuleEffectiveSegmenter porte un cache mémoire process des
+        // segments par année (chantier κ.3). Il doit être singleton
+        // pour amortir le calcul sur plusieurs accès dans la même
+        // requête HTTP.
+        $this->app->singleton(RuleEffectiveSegmenter::class);
     }
 }
