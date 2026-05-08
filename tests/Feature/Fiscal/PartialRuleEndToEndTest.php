@@ -4,18 +4,16 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Fiscal;
 
-use App\Enums\Fiscal\RuleType;
-use App\Enums\Fiscal\TaxType;
-use App\Fiscal\Contracts\FiscalRule;
 use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\FiscalRule as FiscalRuleModel;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Database\Seeders\FiscalRulesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
+use Tests\Feature\Fiscal\PartialRuleEndToEndStubs\FullYearStub2090;
+use Tests\Feature\Fiscal\PartialRuleEndToEndStubs\PartialMidYearStub2090;
 use Tests\TestCase;
 
 /**
@@ -52,8 +50,8 @@ final class PartialRuleEndToEndTest extends TestCase
     public function regle_partielle_2090_apparait_avec_dates_clippees_et_is_full_year_false_dans_le_dto(): void
     {
         $this->registry->register(self::STUB_YEAR, [
-            FullYearStubForKappaEnd::class,
-            PartialMidYearStubForKappaEnd::class,
+            FullYearStub2090::class,
+            PartialMidYearStub2090::class,
         ]);
 
         $this->seed(FiscalRulesSeeder::class);
@@ -82,8 +80,8 @@ final class PartialRuleEndToEndTest extends TestCase
     {
         // Phase 1 : on enregistre 2 règles, seed → 2 lignes BDD pour 2090.
         $this->registry->register(self::STUB_YEAR, [
-            FullYearStubForKappaEnd::class,
-            PartialMidYearStubForKappaEnd::class,
+            FullYearStub2090::class,
+            PartialMidYearStub2090::class,
         ]);
         $this->seed(FiscalRulesSeeder::class);
 
@@ -96,7 +94,7 @@ final class PartialRuleEndToEndTest extends TestCase
         // Phase 2 : on retire la règle partielle du registry et on
         // re-seede. Le mirror doit supprimer la ligne orpheline.
         $this->registry->register(self::STUB_YEAR, [
-            FullYearStubForKappaEnd::class,
+            FullYearStub2090::class,
         ]);
         $this->seed(FiscalRulesSeeder::class);
 
@@ -112,130 +110,5 @@ final class PartialRuleEndToEndTest extends TestCase
                 ->exists(),
             'la règle partielle doit avoir été supprimée par le mirror',
         );
-    }
-}
-
-/**
- * Stub règle full-year année 2090 - utilisée par le test E2E ci-dessus.
- * Évite la dépendance à un Year2090Boot persistent dans le config.
- */
-final readonly class FullYearStubForKappaEnd implements FiscalRule
-{
-    public function ruleCode(): string
-    {
-        return 'R-2090-E2E-FULLYEAR';
-    }
-
-    public function name(): string
-    {
-        return 'E2E full-year stub 2090';
-    }
-
-    public function description(): string
-    {
-        return 'Stub permanent (test κ.8) : règle full-year 2090.';
-    }
-
-    public function ruleType(): RuleType
-    {
-        return RuleType::Transversal;
-    }
-
-    public function displayOrder(): int
-    {
-        return 1;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function legalBasis(): array
-    {
-        return [];
-    }
-
-    public function isActive(): bool
-    {
-        return true;
-    }
-
-    /**
-     * @return list<TaxType>
-     */
-    public function taxesConcerned(): array
-    {
-        return [TaxType::Co2];
-    }
-
-    public function applicabilityStart(): CarbonImmutable
-    {
-        return CarbonImmutable::create(2090, 1, 1);
-    }
-
-    public function applicabilityEnd(): ?CarbonImmutable
-    {
-        return CarbonImmutable::create(2090, 12, 31);
-    }
-}
-
-/**
- * Stub règle partielle (mid-year) année 2090 - apparaît au 01/07/2090.
- */
-final readonly class PartialMidYearStubForKappaEnd implements FiscalRule
-{
-    public function ruleCode(): string
-    {
-        return 'R-2090-E2E-PARTIAL';
-    }
-
-    public function name(): string
-    {
-        return 'E2E partial mid-year stub 2090';
-    }
-
-    public function description(): string
-    {
-        return 'Stub permanent (test κ.8) : règle partielle 01/07/2090 → 31/12/2090.';
-    }
-
-    public function ruleType(): RuleType
-    {
-        return RuleType::Tariff;
-    }
-
-    public function displayOrder(): int
-    {
-        return 2;
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    public function legalBasis(): array
-    {
-        return [];
-    }
-
-    public function isActive(): bool
-    {
-        return true;
-    }
-
-    /**
-     * @return list<TaxType>
-     */
-    public function taxesConcerned(): array
-    {
-        return [TaxType::Co2];
-    }
-
-    public function applicabilityStart(): CarbonImmutable
-    {
-        return CarbonImmutable::create(2090, 7, 1);
-    }
-
-    public function applicabilityEnd(): ?CarbonImmutable
-    {
-        return CarbonImmutable::create(2090, 12, 31);
     }
 }

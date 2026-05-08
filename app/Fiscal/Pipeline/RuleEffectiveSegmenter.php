@@ -95,6 +95,11 @@ final class RuleEffectiveSegmenter
         // Bornes uniques (start de chaque règle + end+1jour de chaque
         // règle). Le +1jour permet au sweep de produire des segments
         // adjacents sans recouvrement ni gap.
+        //
+        // Astuce d'indexation : on indexe par la string ISO `YYYY-MM-DD`
+        // qui est lexicographiquement = chronologiquement triée. `ksort`
+        // produit donc les bornes dans l'ordre temporel sans avoir à
+        // comparer des objets Carbon coûteux.
         $boundaryKeys = [];
         foreach ($clipped as $c) {
             $boundaryKeys[$c['start']->toDateString()] = $c['start'];

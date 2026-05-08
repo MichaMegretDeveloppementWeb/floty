@@ -46,6 +46,24 @@ final class FiscalCalculationException extends BaseAppException
         );
     }
 
+    /**
+     * Levée par {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} quand
+     * le produit cartésien VFC × Règles est entièrement vide pour
+     * l'année donnée (chantier κ.4). Cas dégénéré distinct de la VFC
+     * manquante : la VFC existe mais ne croise aucun segment de règles
+     * (ou aucune règle n'est applicable).
+     *
+     * Typiquement : règles 2025 effectives 01/07 → 31/12 + véhicule dont
+     * la VFC s'arrête le 15/06/2025 = 0 intersection.
+     */
+    public static function noViableCalculationWindow(int $vehicleId, int $year): self
+    {
+        return new self(
+            technicalMessage: "No viable calculation window for vehicle #{$vehicleId} in fiscal year {$year}: VFC × Rules cartesian product is empty (empty rules registry, or rule segments don't intersect the VFC effective period).",
+            userMessage: "Aucune période calculable pour ce véhicule sur l'année fiscale {$year}. Vérifiez les caractéristiques fiscales et les règles applicables.",
+        );
+    }
+
     public static function noYearsConfigured(): self
     {
         return new self(

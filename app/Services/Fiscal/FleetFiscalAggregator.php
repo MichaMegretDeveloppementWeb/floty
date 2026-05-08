@@ -194,7 +194,7 @@ final class FleetFiscalAggregator
             $taxSegments[] = new VehicleFullYearTaxSegmentData(
                 effectiveFromInYear: $breakdown->start->toDateString(),
                 effectiveToInYear: $breakdown->end->toDateString(),
-                daysInSegment: (int) $breakdown->start->diffInDays($breakdown->end) + 1,
+                daysInSegment: $breakdown->days(),
                 vfc: VehicleFiscalCharacteristicsData::fromModel($vfc),
                 co2Method: $result->co2Method,
                 co2FullYearTariff: $co2Tariff,

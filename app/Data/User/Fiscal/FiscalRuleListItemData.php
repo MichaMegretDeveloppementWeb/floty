@@ -53,6 +53,10 @@ final class FiscalRuleListItemData extends Data
         $ruleStart = $rule->applicability_start->toDateString();
         $ruleEnd = $rule->applicability_end?->toDateString() ?? $yearEnd;
 
+        // Comparaisons string sur dates ISO `YYYY-MM-DD` :
+        // l'ordre lexicographique est strictement = ordre chronologique
+        // pour ce format. Évite la conversion vers Carbon qui ne sert à
+        // rien ici (pas d'arithmétique, juste min/max).
         $startInYear = $ruleStart > $yearStart ? $ruleStart : $yearStart;
         $endInYear = $ruleEnd < $yearEnd ? $ruleEnd : $yearEnd;
 

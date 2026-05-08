@@ -34,12 +34,13 @@ use Carbon\CarbonImmutable;
  *
  * **Sémantique de la segmentation** :
  *   - 0 segment VFC dans l'année → throw `missingFiscalCharacteristics`.
- *   - 0 segment règles dans l'année (registry vide) → propagation de
- *     l'exception du registry.
+ *   - 0 segment règles dans l'année (registry vide pour cette année)
+ *     → throw `noViableCalculationWindow`.
  *   - Cartésien clippé : pour chaque couple `(vfcSeg, ruleSeg)`,
  *     intersection `[max(start), min(end)]`. Si vide, couple ignoré.
  *   - Si tous les couples ont une intersection vide → throw
- *     `missingFiscalCharacteristics` (cas dégénéré).
+ *     `noViableCalculationWindow` (cas dégénéré, distinct de VFC
+ *     manquante : on a la VFC mais aucune fenêtre calculable).
  *   - Court-circuit perf : si **1 seul** sous-segment résulte ET qu'il
  *     couvre exactement l'année entière, pas de DaysWindow posée
  *     (équivalent au mode mono pré-segmentation, perf : on évite le
@@ -103,9 +104,13 @@ final readonly class FiscalSegmentedExecutor
 
         if ($ruleSegments === []) {
             // Cas dégénéré : année déclarée dans le registry mais aucune
-            // règle effective sur l'année (intersections vides). Aligné
-            // avec le throw VFC manquante : on ne peut pas calculer.
-            throw FiscalCalculationException::missingFiscalCharacteristics($context->vehicle->id);
+            // règle effective sur l'année (registry vide pour l'année).
+            // Distinct de la VFC manquante : on a la VFC, mais pas de
+            // règle calculable.
+            throw FiscalCalculationException::noViableCalculationWindow(
+                $context->vehicle->id,
+                $context->fiscalYear,
+            );
         }
 
         // Produit cartésien clippé : on garde uniquement les couples dont
@@ -131,7 +136,13 @@ final readonly class FiscalSegmentedExecutor
         }
 
         if ($pairs === []) {
-            throw FiscalCalculationException::missingFiscalCharacteristics($context->vehicle->id);
+            // Le cartésien VFC × Règles a produit 0 intersection non-vide.
+            // Ex. règles 2025 effectives `01/07 → 31/12` + VFC qui s'arrête
+            // le 15/06/2025. Distinct de la VFC manquante.
+            throw FiscalCalculationException::noViableCalculationWindow(
+                $context->vehicle->id,
+                $context->fiscalYear,
+            );
         }
 
         $singleCoversYear = count($pairs) === 1

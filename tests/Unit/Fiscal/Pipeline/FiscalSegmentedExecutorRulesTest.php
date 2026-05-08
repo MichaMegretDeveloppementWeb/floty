@@ -144,12 +144,13 @@ final class FiscalSegmentedExecutorRulesTest extends TestCase
     }
 
     #[Test]
-    public function intersection_vide_entre_vfc_et_regle_skippe_le_couple(): void
+    public function intersection_vide_entre_vfc_et_regle_throw_no_viable_calculation_window(): void
     {
         // VFC unique 01/01 -> 15/06 (s'arrête mi-année).
         // Règle unique 01/07 -> 31/12 (apparait après l'arrêt VFC).
-        // Aucune intersection -> throw missingFiscalCharacteristics
-        // (pas de partial calculable).
+        // Aucune intersection -> throw `noViableCalculationWindow`
+        // (distinct de `missingFiscalCharacteristics` : on a une VFC,
+        // mais aucune fenêtre calculable).
         $this->registry->register(self::STUB_YEAR, [
             StubAppearsJuly1Rule2090::class,
         ]);
@@ -157,6 +158,7 @@ final class FiscalSegmentedExecutorRulesTest extends TestCase
         $context = $this->buildContext($vehicle, self::STUB_YEAR);
 
         $this->expectException(FiscalCalculationException::class);
+        $this->expectExceptionMessageMatches('/No viable calculation window/');
         $this->executor->executeWithSegments($context);
     }
 

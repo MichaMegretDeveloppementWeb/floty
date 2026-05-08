@@ -42,4 +42,14 @@ final readonly class FiscalSegmentBreakdown
         public RuleEffectiveSegment $ruleSegment,
         public PipelineResult $result,
     ) {}
+
+    /**
+     * Nombre de jours dans l'intersection (bornes inclusives, granularité
+     * jour). Helper pour les consommateurs UI qui exposent un libellé
+     * « X jours » ou un calcul prorata du segment.
+     */
+    public function days(): int
+    {
+        return (int) $this->start->diffInDays($this->end) + 1;
+    }
 }
