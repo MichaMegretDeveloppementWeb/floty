@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Fiscal\Fakes;
 
 use App\Enums\Fiscal\TaxType;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\PipelineContext;
 
@@ -19,11 +20,18 @@ use App\Fiscal\Pipeline\PipelineContext;
  */
 final readonly class FakeWltpProgressive implements PricingRule
 {
+    use AnnualRuleTrait;
+
     public const float FAKE_TARIFF = 1234.0;
 
     public function ruleCode(): string
     {
         return 'R-2099-FAKE-WLTP';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2099;
     }
 
     /**

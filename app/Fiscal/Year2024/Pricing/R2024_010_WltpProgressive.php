@@ -6,6 +6,7 @@ namespace App\Fiscal\Year2024\Pricing;
 
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\HomologationMethod;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\BracketRange;
@@ -22,6 +23,8 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
  */
 final readonly class R2024_010_WltpProgressive implements PricingRule
 {
+    use AnnualRuleTrait;
+
     private ProgressiveScale $scale;
 
     public function __construct()
@@ -42,6 +45,11 @@ final readonly class R2024_010_WltpProgressive implements PricingRule
     public function ruleCode(): string
     {
         return 'R-2024-010';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2024;
     }
 
     /**

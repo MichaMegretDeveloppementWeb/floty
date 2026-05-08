@@ -7,6 +7,7 @@ namespace App\Fiscal\Year2024\Classification;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Fiscal\Contracts\ClassificationRule;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Models\VehicleFiscalCharacteristics;
 
@@ -26,9 +27,16 @@ use App\Models\VehicleFiscalCharacteristics;
  */
 final readonly class R2024_005_Co2MethodSelection implements ClassificationRule
 {
+    use AnnualRuleTrait;
+
     public function ruleCode(): string
     {
         return 'R-2024-005';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2024;
     }
 
     /**

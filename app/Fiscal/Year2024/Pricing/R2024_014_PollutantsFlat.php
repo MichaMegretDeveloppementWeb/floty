@@ -6,6 +6,7 @@ namespace App\Fiscal\Year2024\Pricing;
 
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\PollutantTariff;
@@ -23,6 +24,8 @@ use App\Fiscal\ValueObjects\PollutantTariff;
  */
 final readonly class R2024_014_PollutantsFlat implements PricingRule
 {
+    use AnnualRuleTrait;
+
     private PollutantTariff $tariff;
 
     public function __construct()
@@ -37,6 +40,11 @@ final readonly class R2024_014_PollutantsFlat implements PricingRule
     public function ruleCode(): string
     {
         return 'R-2024-014';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2024;
     }
 
     /**

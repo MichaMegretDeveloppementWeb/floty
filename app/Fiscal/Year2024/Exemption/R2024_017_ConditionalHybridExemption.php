@@ -8,6 +8,7 @@ use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
@@ -38,6 +39,8 @@ use Illuminate\Support\Carbon;
  */
 final readonly class R2024_017_ConditionalHybridExemption implements ExemptionRule
 {
+    use AnnualRuleTrait;
+
     private const int THRESHOLD_WLTP_GENERAL = 60;
 
     private const int THRESHOLD_WLTP_ADJUSTED = 120;
@@ -55,6 +58,11 @@ final readonly class R2024_017_ConditionalHybridExemption implements ExemptionRu
     public function ruleCode(): string
     {
         return 'R-2024-017';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2024;
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Fiscal\Year2024\Transversal;
 
 use App\Enums\Fiscal\TaxType;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -27,9 +28,16 @@ use App\Services\Fiscal\FleetFiscalAggregator;
  */
 final readonly class R2024_003_FinalRounding implements TransversalRule
 {
+    use AnnualRuleTrait;
+
     public function ruleCode(): string
     {
         return 'R-2024-003';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2024;
     }
 
     /**

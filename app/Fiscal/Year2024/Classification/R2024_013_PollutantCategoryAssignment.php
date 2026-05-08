@@ -7,6 +7,7 @@ namespace App\Fiscal\Year2024\Classification;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Contracts\ClassificationRule;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Pipeline\PipelineContext;
 
 /**
@@ -24,9 +25,16 @@ use App\Fiscal\Pipeline\PipelineContext;
  */
 final readonly class R2024_013_PollutantCategoryAssignment implements ClassificationRule
 {
+    use AnnualRuleTrait;
+
     public function ruleCode(): string
     {
         return 'R-2024-013';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2024;
     }
 
     /**

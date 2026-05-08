@@ -8,6 +8,7 @@ use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Fiscal\Contracts\ClassificationRule;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Models\VehicleFiscalCharacteristics;
 
@@ -33,9 +34,16 @@ use App\Models\VehicleFiscalCharacteristics;
  */
 final readonly class R2024_004_FiscalTypeQualification implements ClassificationRule
 {
+    use AnnualRuleTrait;
+
     public function ruleCode(): string
     {
         return 'R-2024-004';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2024;
     }
 
     /**

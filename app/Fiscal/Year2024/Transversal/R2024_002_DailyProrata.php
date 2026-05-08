@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Fiscal\Year2024\Transversal;
 
 use App\Enums\Fiscal\TaxType;
+use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use Carbon\CarbonImmutable;
@@ -32,9 +33,16 @@ use Carbon\CarbonImmutable;
  */
 final readonly class R2024_002_DailyProrata implements TransversalRule
 {
+    use AnnualRuleTrait;
+
     public function ruleCode(): string
     {
         return 'R-2024-002';
+    }
+
+    public function fiscalYear(): int
+    {
+        return 2024;
     }
 
     /**
