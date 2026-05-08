@@ -130,4 +130,27 @@ final class RuleEffectiveSegmenter
 
         return $this->cache[$year] = $segments;
     }
+
+    /**
+     * Invalide le cache mémoire process des segments.
+     *
+     * **Usage** : à appeler explicitement quand le `FiscalRuleRegistry`
+     * est muté à la volée (typiquement dans les tests qui font
+     * `$registry->register($stubYear, [...])`). En production le registry
+     * est figé au boot via `FiscalServiceProvider`, donc `clearCache()`
+     * n'est jamais nécessaire.
+     *
+     * Si `$year` est fourni, seul ce slot est purgé ; sinon tout le
+     * cache est vidé.
+     */
+    public function clearCache(?int $year = null): void
+    {
+        if ($year === null) {
+            $this->cache = [];
+
+            return;
+        }
+
+        unset($this->cache[$year]);
+    }
 }

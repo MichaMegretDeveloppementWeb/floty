@@ -10,6 +10,7 @@ use App\Fiscal\Contracts\FiscalRule as FiscalRuleContract;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\FiscalRule;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Seeder de l'index `fiscal_rules` en **mode miroir** (chantier κ.6 / ADR-0022).
@@ -44,29 +45,35 @@ final class FiscalRulesSeeder extends Seeder
     public function run(FiscalRuleRegistry $registry): void
     {
         foreach ($registry->registeredYears() as $year) {
-            $syncedCodes = [];
+            // Atomicité par année : si un upsert plante, le mirror delete
+            // ne s'exécute pas et on évite un état BDD partiellement
+            // synchronisé. L'isolement par-année (vs global) garantit que
+            // les autres années restent cohérentes même si une année plante.
+            DB::transaction(function () use ($registry, $year): void {
+                $syncedCodes = [];
 
-            foreach ($registry->rulesForYear($year) as $rule) {
-                $row = $this->rowFromPhpClass($rule, $year);
-                FiscalRule::updateOrCreate(
-                    ['rule_code' => $row['rule_code'], 'fiscal_year' => $row['fiscal_year']],
-                    $row,
-                );
-                $syncedCodes[] = $row['rule_code'];
-            }
+                foreach ($registry->rulesForYear($year) as $rule) {
+                    $row = $this->rowFromPhpClass($rule, $year);
+                    FiscalRule::updateOrCreate(
+                        ['rule_code' => $row['rule_code'], 'fiscal_year' => $row['fiscal_year']],
+                        $row,
+                    );
+                    $syncedCodes[] = $row['rule_code'];
+                }
 
-            foreach ($this->informativeRulesForYear($year) as $informative) {
-                FiscalRule::updateOrCreate(
-                    ['rule_code' => $informative['rule_code'], 'fiscal_year' => $year],
-                    $informative,
-                );
-                $syncedCodes[] = $informative['rule_code'];
-            }
+                foreach ($this->informativeRulesForYear($year) as $informative) {
+                    FiscalRule::updateOrCreate(
+                        ['rule_code' => $informative['rule_code'], 'fiscal_year' => $year],
+                        $informative,
+                    );
+                    $syncedCodes[] = $informative['rule_code'];
+                }
 
-            FiscalRule::query()
-                ->where('fiscal_year', $year)
-                ->whereNotIn('rule_code', $syncedCodes)
-                ->delete();
+                FiscalRule::query()
+                    ->where('fiscal_year', $year)
+                    ->whereNotIn('rule_code', $syncedCodes)
+                    ->delete();
+            });
         }
     }
 

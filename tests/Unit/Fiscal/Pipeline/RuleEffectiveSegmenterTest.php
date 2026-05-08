@@ -179,6 +179,46 @@ final class RuleEffectiveSegmenterTest extends TestCase
         // la même référence (pas une nouvelle liste recalculée).
         self::assertSame($first, $second);
     }
+
+    #[Test]
+    public function clear_cache_force_le_recalcul_apres_mutation_du_registry(): void
+    {
+        // Phase 1 : peuple le cache avec 1 règle.
+        $this->registry->register(self::STUB_YEAR, [StubFullYearRuleA::class]);
+        $before = $this->segmenter->segmentsForYear(self::STUB_YEAR);
+        self::assertCount(1, $before[0]->rules);
+
+        // Phase 2 : muter le registry à la volée + invalider explicitement
+        // le cache du segmenteur (cas typique des tests qui muted le
+        // registry singleton entre deux assertions).
+        $this->registry->register(self::STUB_YEAR, [
+            StubFullYearRuleA::class,
+            StubFullYearRuleB::class,
+        ]);
+        $this->segmenter->clearCache(self::STUB_YEAR);
+
+        $after = $this->segmenter->segmentsForYear(self::STUB_YEAR);
+        self::assertCount(2, $after[0]->rules);
+        self::assertNotSame($before, $after, 'le cache a bien été invalidé, nouvelle liste produite');
+    }
+
+    #[Test]
+    public function clear_cache_sans_year_purge_tout_le_cache(): void
+    {
+        // Peuple deux années dans le cache.
+        $this->registry->register(2090, [StubFullYearRuleA::class]);
+        $this->registry->register(2091, [StubFullYearRuleB::class]);
+        $this->segmenter->segmentsForYear(2090);
+        $this->segmenter->segmentsForYear(2091);
+
+        // Mute les deux + clearCache global.
+        $this->registry->register(2090, [StubFullYearRuleA::class, StubFullYearRuleB::class]);
+        $this->registry->register(2091, []);
+        $this->segmenter->clearCache();
+
+        self::assertCount(2, $this->segmenter->segmentsForYear(2090)[0]->rules);
+        self::assertSame([], $this->segmenter->segmentsForYear(2091));
+    }
 }
 
 // ---------------------------------------------------------------------

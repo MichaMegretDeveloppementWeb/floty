@@ -7,6 +7,7 @@ namespace Tests\Feature\Fiscal;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -39,6 +40,17 @@ final class FiscalRegistryExtensibilityTest extends TestCase
     use RefreshDatabase;
 
     private const int FAKE_YEAR = 2099;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Cohérence avec les autres tests fiscaux qui mutent le registry :
+        // on invalide le cache du segmenteur singleton avant chaque test
+        // pour éviter qu'un cache stale d'un test précédent fasse fuir
+        // (futur-proof, le test actuel n'utilise pas le segmenteur).
+        $this->app->forgetInstance(RuleEffectiveSegmenter::class);
+    }
 
     #[Test]
     public function le_registry_accepte_une_annee_arbitraire_a_la_volee(): void
