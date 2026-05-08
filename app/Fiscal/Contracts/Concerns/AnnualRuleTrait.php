@@ -19,6 +19,10 @@ use Carbon\CarbonImmutable;
  * Pour une règle partielle (apparition ou disparition en cours d'année),
  * ne PAS utiliser ce trait : implémenter directement les méthodes
  * `applicabilityStart()` / `applicabilityEnd()` dans la classe.
+ *
+ * **Concern orthogonal** : le défaut « actif » de `isActive()` vit dans
+ * {@see RuleActiveByDefaultTrait} (séparé pour ne pas coupler temporalité
+ * et état actif).
  */
 trait AnnualRuleTrait
 {
@@ -32,15 +36,5 @@ trait AnnualRuleTrait
     public function applicabilityEnd(): ?CarbonImmutable
     {
         return CarbonImmutable::create($this->fiscalYear(), 12, 31, 23, 59, 59);
-    }
-
-    /**
-     * Défaut « actif ». Les règles désactivées (ex. R-2024-018 OIG,
-     * R-2024-019 IndividualBusiness, encore non opérantes en V1)
-     * overrident pour retourner `false`.
-     */
-    public function isActive(): bool
-    {
-        return true;
     }
 }

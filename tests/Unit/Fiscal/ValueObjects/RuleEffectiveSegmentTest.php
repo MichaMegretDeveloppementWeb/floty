@@ -7,6 +7,7 @@ namespace Tests\Unit\Fiscal\ValueObjects;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\FiscalRule;
 use App\Fiscal\ValueObjects\RuleEffectiveSegment;
 use Carbon\CarbonImmutable;
@@ -68,6 +69,7 @@ final class RuleEffectiveSegmentTest extends TestCase
 final class RuleEffectiveSegmentStubRule implements FiscalRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     public function __construct(private readonly string $code = 'R-2026-STUB') {}
 

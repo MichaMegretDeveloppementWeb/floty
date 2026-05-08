@@ -7,6 +7,7 @@ namespace Tests\Fiscal\Fakes;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\PipelineContext;
 
@@ -22,6 +23,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 final readonly class FakeWltpProgressive implements PricingRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     public const float FAKE_TARIFF = 1234.0;
 

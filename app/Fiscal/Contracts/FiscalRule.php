@@ -98,8 +98,10 @@ interface FiscalRule
     /**
      * Vrai si la règle est active (opérante et publiée). Les règles
      * inactives sont conservées en BDD pour rester référencées par les
-     * snapshots PDF historiques. {@see App\Fiscal\Contracts\Concerns\AnnualRuleTrait}
-     * fournit un défaut `true`.
+     * snapshots PDF historiques. Le trait
+     * {@see App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait}
+     * fournit le défaut `true` ; les règles désactivées implémentent
+     * directement `isActive(): bool { return false; }`.
      */
     public function isActive(): bool;
 }

@@ -7,6 +7,7 @@ namespace App\Fiscal\Year2024\Exemption;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
@@ -23,6 +24,7 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 final readonly class R2024_015_HandicapAccess implements ExemptionRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     public function ruleCode(): string
     {

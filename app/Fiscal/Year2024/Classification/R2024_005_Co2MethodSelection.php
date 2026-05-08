@@ -9,6 +9,7 @@ use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Fiscal\Contracts\ClassificationRule;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Models\VehicleFiscalCharacteristics;
 
@@ -29,6 +30,7 @@ use App\Models\VehicleFiscalCharacteristics;
 final readonly class R2024_005_Co2MethodSelection implements ClassificationRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     public function ruleCode(): string
     {

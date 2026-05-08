@@ -8,6 +8,7 @@ use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\PollutantTariff;
@@ -26,6 +27,7 @@ use App\Fiscal\ValueObjects\PollutantTariff;
 final readonly class R2024_014_PollutantsFlat implements PricingRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     private PollutantTariff $tariff;
 

@@ -9,6 +9,7 @@ use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Contracts\ClassificationRule;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Pipeline\PipelineContext;
 
 /**
@@ -27,6 +28,7 @@ use App\Fiscal\Pipeline\PipelineContext;
 final readonly class R2024_013_PollutantCategoryAssignment implements ClassificationRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     public function ruleCode(): string
     {

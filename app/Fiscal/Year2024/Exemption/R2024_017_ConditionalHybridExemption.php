@@ -10,6 +10,7 @@ use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
@@ -41,6 +42,7 @@ use Illuminate\Support\Carbon;
 final readonly class R2024_017_ConditionalHybridExemption implements ExemptionRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     private const int THRESHOLD_WLTP_GENERAL = 60;
 

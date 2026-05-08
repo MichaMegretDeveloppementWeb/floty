@@ -8,6 +8,7 @@ use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\BracketRange;
@@ -25,6 +26,7 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 final readonly class R2024_010_WltpProgressive implements PricingRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     private ProgressiveScale $scale;
 

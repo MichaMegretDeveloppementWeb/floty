@@ -8,6 +8,7 @@ use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
+use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
@@ -45,6 +46,7 @@ use Carbon\CarbonImmutable;
 final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
 {
     use AnnualRuleTrait;
+    use RuleActiveByDefaultTrait;
 
     public function __construct(
         private R2024_021_ShortTermRental $shortTermRental,

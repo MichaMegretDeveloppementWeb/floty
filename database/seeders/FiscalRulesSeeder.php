@@ -47,7 +47,7 @@ final class FiscalRulesSeeder extends Seeder
             $syncedCodes = [];
 
             foreach ($registry->rulesForYear($year) as $rule) {
-                $row = $this->rowFromPhpClass($rule);
+                $row = $this->rowFromPhpClass($rule, $year);
                 FiscalRule::updateOrCreate(
                     ['rule_code' => $row['rule_code'], 'fiscal_year' => $row['fiscal_year']],
                     $row,
@@ -73,9 +73,14 @@ final class FiscalRulesSeeder extends Seeder
     /**
      * Construit la ligne BDD à partir d'une instance PHP.
      *
+     * Le `$year` est passé depuis la boucle `registeredYears()` plutôt que
+     * dérivé de la règle (évite un `method_exists($rule, 'fiscalYear')`
+     * fragile côté seeder, sachant que `fiscalYear()` ne fait pas partie
+     * du contrat `FiscalRule` : il vit dans `AnnualRuleTrait`).
+     *
      * @return array<string, mixed>
      */
-    private function rowFromPhpClass(FiscalRuleContract $rule): array
+    private function rowFromPhpClass(FiscalRuleContract $rule, int $year): array
     {
         $reflection = new \ReflectionClass($rule);
         $relativePath = str_replace('\\', '/', $reflection->getName()).'.php';
@@ -87,7 +92,7 @@ final class FiscalRulesSeeder extends Seeder
             'rule_code' => $rule->ruleCode(),
             'name' => $rule->name(),
             'description' => $rule->description(),
-            'fiscal_year' => $this->resolveFiscalYear($rule),
+            'fiscal_year' => $year,
             'rule_type' => $rule->ruleType(),
             'taxes_concerned' => array_map(
                 static fn (TaxType $t): string => $t->value,
@@ -100,21 +105,6 @@ final class FiscalRulesSeeder extends Seeder
             'display_order' => $rule->displayOrder(),
             'is_active' => $rule->isActive(),
         ];
-    }
-
-    /**
-     * Année fiscale d'une règle. La majorité des règles utilisent
-     * `AnnualRuleTrait` qui expose `fiscalYear()`. Pour les règles
-     * partielles (κ.8 fake 2026) qui n'utilisent pas le trait, on
-     * dérive l'année depuis `applicabilityStart`.
-     */
-    private function resolveFiscalYear(FiscalRuleContract $rule): int
-    {
-        if (method_exists($rule, 'fiscalYear')) {
-            return $rule->fiscalYear();
-        }
-
-        return $rule->applicabilityStart()->year;
     }
 
     /**
