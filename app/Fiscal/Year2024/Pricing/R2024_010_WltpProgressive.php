@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Pricing;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
@@ -50,6 +51,36 @@ final readonly class R2024_010_WltpProgressive implements PricingRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Barème WLTP 2024';
+    }
+
+    public function description(): string
+    {
+        return 'Tarif progressif par tranches sur les émissions CO₂ WLTP.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Tariff;
+    }
+
+    public function displayOrder(): int
+    {
+        return 10;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-120'],
+        ];
     }
 
     /**

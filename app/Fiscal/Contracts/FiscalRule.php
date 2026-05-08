@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Contracts;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use Carbon\CarbonImmutable;
 
@@ -27,6 +28,12 @@ use Carbon\CarbonImmutable;
  * peuvent adopter {@see App\Fiscal\Contracts\Concerns\AnnualRuleTrait}.
  * Les règles partielles (apparition ou disparition en cours d'année)
  * implémentent ces méthodes directement.
+ *
+ * **Métadonnées (chantier κ.6 / ADR-0022)** : les classes PHP sont la
+ * source de vérité de toute la métadonnée d'une règle (nom, description,
+ * type fiscal, ordre d'affichage, base légale, état actif). La table
+ * `fiscal_rules` n'est qu'un index miroir synchronisé par
+ * {@see Database\Seeders\FiscalRulesSeeder} via ces accesseurs.
  */
 interface FiscalRule
 {
@@ -54,4 +61,45 @@ interface FiscalRule
      * jusqu'à indéfini.
      */
     public function applicabilityEnd(): ?CarbonImmutable;
+
+    /**
+     * Nom court de la règle (apparaît en titre dans la page « Règles de
+     * calcul » et dans les snapshots PDF).
+     */
+    public function name(): string;
+
+    /**
+     * Description longue (multi-paragraphes possibles, formatage texte
+     * brut). Affichée en accordéon sur la page Règles.
+     */
+    public function description(): string;
+
+    /**
+     * Sous-type fonctionnel - détermine le rôle de la règle dans le
+     * pipeline (ADR-0006 § 1).
+     */
+    public function ruleType(): RuleType;
+
+    /**
+     * Ordre d'affichage stable dans la page Règles. Une règle ajoutée
+     * en cours d'année fiscale prend le `displayOrder` suivant.
+     */
+    public function displayOrder(): int;
+
+    /**
+     * Base légale structurée. Chaque entrée est un tableau associatif
+     * (`type`, `article`, `paragraph`...). Format conforme au stockage
+     * JSON `fiscal_rules.legal_basis`.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array;
+
+    /**
+     * Vrai si la règle est active (opérante et publiée). Les règles
+     * inactives sont conservées en BDD pour rester référencées par les
+     * snapshots PDF historiques. {@see App\Fiscal\Contracts\Concerns\AnnualRuleTrait}
+     * fournit un défaut `true`.
+     */
+    public function isActive(): bool;
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\ExemptionRule;
@@ -37,6 +38,41 @@ final readonly class R2024_019_IndividualBusinessExemption implements ExemptionR
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Exonération entreprise individuelle';
+    }
+
+    public function description(): string
+    {
+        return 'Personne physique exerçant son activité professionnelle en nom propre (entrepreneur individuel BIC/BNC) : exonération soumise aux conditions de minimis. Texte identique pour les deux taxes (L. 421-139 reprend L. 421-127 mot pour mot). INACTIVE par défaut.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Exemption;
+    }
+
+    public function displayOrder(): int
+    {
+        return 19;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-127'],
+        ];
+    }
+
+    public function isActive(): bool
+    {
+        return false;
     }
 
     /**

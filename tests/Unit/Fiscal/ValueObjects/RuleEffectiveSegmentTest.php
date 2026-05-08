@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\ValueObjects;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\FiscalRule;
@@ -84,6 +85,34 @@ final class RuleEffectiveSegmentStubRule implements FiscalRule
      * @return list<TaxType>
      */
     public function taxesConcerned(): array
+    {
+        return [];
+    }
+
+    public function name(): string
+    {
+        return 'Stub';
+    }
+
+    public function description(): string
+    {
+        return 'Stub';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Transversal;
+    }
+
+    public function displayOrder(): int
+    {
+        return 1;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
     {
         return [];
     }

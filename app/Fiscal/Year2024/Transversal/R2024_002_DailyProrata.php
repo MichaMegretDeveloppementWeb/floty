@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Transversal;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\TransversalRule;
@@ -43,6 +44,36 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Prorata journalier (366 jours en 2024)';
+    }
+
+    public function description(): string
+    {
+        return 'Mécanique du prorata journalier : tarif annuel plein × (jours affectés / 366) en 2024.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Transversal;
+    }
+
+    public function displayOrder(): int
+    {
+        return 2;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-107'],
+        ];
     }
 
     /**

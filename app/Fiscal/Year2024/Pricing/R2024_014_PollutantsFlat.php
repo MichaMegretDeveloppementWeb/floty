@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Pricing;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
@@ -45,6 +46,36 @@ final readonly class R2024_014_PollutantsFlat implements PricingRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Tarif forfaitaire polluants 2024';
+    }
+
+    public function description(): string
+    {
+        return "Tarif annuel forfaitaire par catégorie d'émissions (E = 0 € / 1 = 100 € / plus polluants = 500 €).";
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Tariff;
+    }
+
+    public function displayOrder(): int
+    {
+        return 14;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-135'],
+        ];
     }
 
     /**

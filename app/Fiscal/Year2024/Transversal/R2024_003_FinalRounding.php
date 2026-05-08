@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Transversal;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\TransversalRule;
@@ -38,6 +39,36 @@ final readonly class R2024_003_FinalRounding implements TransversalRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return "Méthode d'arrondi half-up commercial";
+    }
+
+    public function description(): string
+    {
+        return 'Arrondi half-up au centime sur le montant total final par couple véhicule × entreprise (round half-up à 2 décimales). Les calculs intermédiaires conservent toute leur précision.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Transversal;
+    }
+
+    public function displayOrder(): int
+    {
+        return 3;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 131-1'],
+        ];
     }
 
     /**

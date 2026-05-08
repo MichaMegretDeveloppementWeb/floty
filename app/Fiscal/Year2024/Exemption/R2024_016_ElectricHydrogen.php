@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\EnergySource;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
@@ -33,6 +34,36 @@ final readonly class R2024_016_ElectricHydrogen implements ExemptionRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Exonération électrique / hydrogène (CO₂)';
+    }
+
+    public function description(): string
+    {
+        return 'Véhicules électriques, hydrogène, ou électrique + hydrogène exclusifs - exonération totale CO₂.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Exemption;
+    }
+
+    public function displayOrder(): int
+    {
+        return 16;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-124'],
+        ];
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\ExemptionRule;
@@ -51,6 +52,36 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Exonération LCD (location de courte durée)';
+    }
+
+    public function description(): string
+    {
+        return "Location de courte durée : durée d'un contrat ≤ 30 jours consécutifs OU contrat couvrant exactement un mois civil entier → tous les jours du contrat sont retirés du numérateur du prorata. La qualification s'apprécie par contrat individuel, pas en cumul annuel. Texte identique pour les deux taxes (L. 421-141 reprend L. 421-129 mot pour mot).";
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Exemption;
+    }
+
+    public function displayOrder(): int
+    {
+        return 21;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-129'],
+        ];
     }
 
     /**

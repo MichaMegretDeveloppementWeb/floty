@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\Pipeline;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
@@ -301,6 +302,8 @@ final class FiscalSegmentedExecutorRulesTest extends TestCase
  */
 final readonly class StubFullYearProrata2090 implements TransversalRule
 {
+    use StubMetadataDefaults2090;
+
     public function ruleCode(): string
     {
         return 'R-2090-PRORATA';
@@ -348,6 +351,8 @@ final readonly class StubFullYearProrata2090 implements TransversalRule
  */
 final readonly class StubAppearsJuly1Rule2090 implements PricingRule
 {
+    use StubMetadataDefaults2090;
+
     public function ruleCode(): string
     {
         return 'R-2090-APPEARS-0701';
@@ -382,6 +387,8 @@ final readonly class StubAppearsJuly1Rule2090 implements PricingRule
  */
 final readonly class StubEndsJune30Rule2090 implements PricingRule
 {
+    use StubMetadataDefaults2090;
+
     public function ruleCode(): string
     {
         return 'R-2090-ENDS-0630';
@@ -408,5 +415,44 @@ final readonly class StubEndsJune30Rule2090 implements PricingRule
     public function price(PipelineContext $context): PipelineContext
     {
         return $context->withAppliedRule($this->ruleCode());
+    }
+}
+
+/**
+ * Métadonnées par défaut pour les stubs 2090 (κ.6).
+ */
+trait StubMetadataDefaults2090
+{
+    public function name(): string
+    {
+        return 'Stub 2090';
+    }
+
+    public function description(): string
+    {
+        return 'Stub 2090';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Transversal;
+    }
+
+    public function displayOrder(): int
+    {
+        return 1;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [];
+    }
+
+    public function isActive(): bool
+    {
+        return true;
     }
 }

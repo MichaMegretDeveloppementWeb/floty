@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Classification;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Contracts\ClassificationRule;
@@ -35,6 +36,36 @@ final readonly class R2024_013_PollutantCategoryAssignment implements Classifica
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Catégorisation polluants';
+    }
+
+    public function description(): string
+    {
+        return 'Classement du véhicule dans les catégories E / 1 / « les plus polluants » selon motorisation et norme Euro.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Classification;
+    }
+
+    public function displayOrder(): int
+    {
+        return 13;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-134'],
+        ];
     }
 
     /**

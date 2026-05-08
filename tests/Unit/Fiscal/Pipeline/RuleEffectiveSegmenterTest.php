@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\Pipeline;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Contracts\FiscalRule;
@@ -194,6 +195,39 @@ abstract class StubBaseRule implements FiscalRule
     public function taxesConcerned(): array
     {
         return [];
+    }
+
+    public function name(): string
+    {
+        return 'Stub';
+    }
+
+    public function description(): string
+    {
+        return 'Stub';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Transversal;
+    }
+
+    public function displayOrder(): int
+    {
+        return 1;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [];
+    }
+
+    public function isActive(): bool
+    {
+        return true;
     }
 }
 

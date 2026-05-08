@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\ExemptionRule;
@@ -31,6 +32,36 @@ final readonly class R2024_015_HandicapAccess implements ExemptionRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Exonération handicap';
+    }
+
+    public function description(): string
+    {
+        return 'Véhicules accessibles aux personnes à mobilité réduite : exonération totale CO₂ et polluants. Texte identique pour les deux taxes (L. 421-136 reprend L. 421-123 mot pour mot).';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Exemption;
+    }
+
+    public function displayOrder(): int
+    {
+        return 15;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-123'],
+        ];
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Classification;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\ReceptionCategory;
@@ -44,6 +45,36 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Qualification M1 / N1';
+    }
+
+    public function description(): string
+    {
+        return 'Classification du type fiscal du véhicule : frontière M1 (VP) vs N1 (VU), cas particuliers N1 ≥ 5 places.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Classification;
+    }
+
+    public function displayOrder(): int
+    {
+        return 4;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-2'],
+        ];
     }
 
     /**

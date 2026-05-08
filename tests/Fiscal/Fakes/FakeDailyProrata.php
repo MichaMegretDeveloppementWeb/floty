@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Fiscal\Fakes;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\TransversalRule;
@@ -27,6 +28,34 @@ final readonly class FakeDailyProrata implements TransversalRule
     public function fiscalYear(): int
     {
         return 2099;
+    }
+
+    public function name(): string
+    {
+        return 'Fake Daily Prorata 2099';
+    }
+
+    public function description(): string
+    {
+        return 'Fake transversal rule for FiscalRegistryExtensibilityTest only.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Transversal;
+    }
+
+    public function displayOrder(): int
+    {
+        return 2;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [];
     }
 
     /**

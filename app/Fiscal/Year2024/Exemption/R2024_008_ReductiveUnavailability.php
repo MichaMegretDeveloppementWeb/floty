@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
@@ -52,6 +53,39 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Indisponibilités fiscalement réductrices';
+    }
+
+    public function description(): string
+    {
+        return "Le véhicule immobilisé ou mis en fourrière à la demande des pouvoirs publics est réputé ne pas être affecté à des fins économiques (CIBS L. 421-96). Trois cas réducteurs (BOFiP § 50 et § 60) : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5). Les jours correspondants sont retirés du numérateur du prorata journalier (BOFiP § 190).";
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Exemption;
+    }
+
+    public function displayOrder(): int
+    {
+        return 8;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-96'],
+            ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 50'],
+            ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 60'],
+            ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 190'],
+        ];
     }
 
     public function ruleCode(): string

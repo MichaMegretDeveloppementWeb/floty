@@ -6,53 +6,156 @@ namespace Database\Seeders;
 
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
+use App\Fiscal\Contracts\FiscalRule as FiscalRuleContract;
+use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\FiscalRule;
 use Illuminate\Database\Seeder;
 
 /**
- * Seeder des 24 règles du catalogue fiscal 2024 Floty.
+ * Seeder de l'index `fiscal_rules` en **mode miroir** (chantier κ.6 / ADR-0022).
  *
- * Ne seed que les **métadonnées** consultables (cf. 02-schema-fiscal.md § 1) :
- * la logique de calcul vit dans les classes PHP sous `app/Fiscal/Rules/2024/`
- * (à implémenter en phase 10). ADR-0002 : alimentation par seeder uniquement.
+ * Cf. 02-schema-fiscal.md § 1 + ADR-0006 + ADR-0009 + ADR-0022.
  *
- * Source : `project-management/taxes-rules/2024.md`.
+ * **Doctrine** : les classes PHP sont la source de vérité. Cette table
+ * n'est qu'un index miroir. Pour chaque année dans
+ * {@see FiscalRuleRegistry::registeredYears()}, le seeder :
+ *   1. lit les règles **pipeline** depuis le registry (instances PHP),
+ *      récupère leur métadonnée via les nouvelles méthodes du contrat
+ *      `FiscalRule` (`name`, `description`, `ruleType`, `displayOrder`,
+ *      `legalBasis`, `isActive`, `applicabilityStart/End`) et upsert ;
+ *   2. ajoute les règles **documentaires-only** (R-2024-001, 006, 007,
+ *      009, 020, 022, 023, 024 - règles « hors pipeline » qui n'ont pas
+ *      de classe PHP en V1) hard-codées dans
+ *      {@see informativeRulesForYear()} pour 2024 ;
+ *   3. supprime tout enregistrement BDD pour cette année dont le
+ *      `rule_code` n'apparaît ni dans les règles pipeline ni dans les
+ *      documentaires (mode miroir : suppression des orphelins).
+ *
+ * **Préservation historique** : les années qui ne sont **pas**
+ * enregistrées dans le registry ne sont pas touchées (lecture seule).
+ * Permet de purger une année expérimentale (κ.8 fake 2026) en retirant
+ * son boot du config et en ré-exécutant le seeder.
+ *
+ * Migration ADR-0022 complète des 8 documentaires-only vers des classes
+ * PHP : reportée à un chantier post-V1.
  */
 final class FiscalRulesSeeder extends Seeder
 {
-    public function run(): void
+    public function run(FiscalRuleRegistry $registry): void
     {
-        foreach ($this->rules() as $rule) {
-            $enriched = $this->enrich($rule);
+        foreach ($registry->registeredYears() as $year) {
+            $syncedCodes = [];
 
-            FiscalRule::updateOrCreate(
-                [
-                    'rule_code' => $enriched['rule_code'],
-                    'fiscal_year' => $enriched['fiscal_year'],
-                ],
-                $enriched,
-            );
+            foreach ($registry->rulesForYear($year) as $rule) {
+                $row = $this->rowFromPhpClass($rule);
+                FiscalRule::updateOrCreate(
+                    ['rule_code' => $row['rule_code'], 'fiscal_year' => $row['fiscal_year']],
+                    $row,
+                );
+                $syncedCodes[] = $row['rule_code'];
+            }
+
+            foreach ($this->informativeRulesForYear($year) as $informative) {
+                FiscalRule::updateOrCreate(
+                    ['rule_code' => $informative['rule_code'], 'fiscal_year' => $year],
+                    $informative,
+                );
+                $syncedCodes[] = $informative['rule_code'];
+            }
+
+            FiscalRule::query()
+                ->where('fiscal_year', $year)
+                ->whereNotIn('rule_code', $syncedCodes)
+                ->delete();
         }
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * Construit la ligne BDD à partir d'une instance PHP.
+     *
+     * @return array<string, mixed>
      */
-    private function rules(): array
+    private function rowFromPhpClass(FiscalRuleContract $rule): array
     {
-        $both = [TaxType::Co2->value, TaxType::Pollutants->value];
-        $co2 = [TaxType::Co2->value];
-        $pol = [TaxType::Pollutants->value];
-
-        $cibs = fn (string $article): array => ['type' => 'CIBS', 'article' => $article];
+        $reflection = new \ReflectionClass($rule);
+        $relativePath = str_replace('\\', '/', $reflection->getName()).'.php';
+        $codeReference = str_starts_with($relativePath, 'App/')
+            ? 'app/'.substr($relativePath, 4)
+            : $relativePath;
 
         return [
+            'rule_code' => $rule->ruleCode(),
+            'name' => $rule->name(),
+            'description' => $rule->description(),
+            'fiscal_year' => $this->resolveFiscalYear($rule),
+            'rule_type' => $rule->ruleType(),
+            'taxes_concerned' => array_map(
+                static fn (TaxType $t): string => $t->value,
+                $rule->taxesConcerned(),
+            ),
+            'applicability_start' => $rule->applicabilityStart()->toDateString(),
+            'applicability_end' => $rule->applicabilityEnd()?->toDateString(),
+            'legal_basis' => $rule->legalBasis(),
+            'code_reference' => $codeReference,
+            'display_order' => $rule->displayOrder(),
+            'is_active' => $rule->isActive(),
+        ];
+    }
+
+    /**
+     * Année fiscale d'une règle. La majorité des règles utilisent
+     * `AnnualRuleTrait` qui expose `fiscalYear()`. Pour les règles
+     * partielles (κ.8 fake 2026) qui n'utilisent pas le trait, on
+     * dérive l'année depuis `applicabilityStart`.
+     */
+    private function resolveFiscalYear(FiscalRuleContract $rule): int
+    {
+        if (method_exists($rule, 'fiscalYear')) {
+            return $rule->fiscalYear();
+        }
+
+        return $rule->applicabilityStart()->year;
+    }
+
+    /**
+     * Règles documentaires-only (hors pipeline) hard-codées par année.
+     *
+     * Ces règles existent dans `fiscal_rules` pour la page « Règles de
+     * calcul » mais n'ont pas de classe PHP en V1. Elles couvrent des
+     * principes architecturaux (R-001 redevable, R-007 historisation,
+     * R-009 mise hors-service, R-020 loueur, R-022 période contractuelle)
+     * ou des cas vides (R-023 abattements 2024) ou des contrôles UI
+     * (R-024 Crit'Air).
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function informativeRulesForYear(int $year): array
+    {
+        if ($year !== 2024) {
+            return [];
+        }
+
+        $cibs = static fn (string $article): array => ['type' => 'CIBS', 'article' => $article];
+        $bofip = static fn (string $reference, string $paragraph): array => [
+            'type' => 'BOFIP',
+            'reference' => $reference,
+            'paragraph' => $paragraph,
+        ];
+
+        $base = [
+            'fiscal_year' => 2024,
+            'applicability_start' => '2024-01-01',
+            'applicability_end' => '2024-12-31',
+            'is_active' => true,
+        ];
+
+        $entries = [
             [
                 'rule_code' => 'R-2024-001',
                 'name' => 'Redevable et fait générateur',
                 'description' => "Définit qui est redevable de la taxe (entreprise utilisatrice) et le fait générateur (affectation d'un véhicule à des fins économiques).",
                 'rule_type' => RuleType::Transversal,
-                'taxes_concerned' => $both,
+                'taxes_concerned' => [TaxType::Co2->value, TaxType::Pollutants->value],
                 'legal_basis' => [
                     $cibs('L. 421-95'),
                     $cibs('L. 421-99'),
@@ -60,55 +163,11 @@ final class FiscalRulesSeeder extends Seeder
                 'display_order' => 1,
             ],
             [
-                'rule_code' => 'R-2024-002',
-                'name' => 'Prorata journalier (366 jours en 2024)',
-                'description' => 'Mécanique du prorata journalier : tarif annuel plein × (jours affectés / 366) en 2024.',
-                'rule_type' => RuleType::Transversal,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 421-107'),
-                ],
-                'display_order' => 2,
-            ],
-            [
-                'rule_code' => 'R-2024-003',
-                'name' => "Méthode d'arrondi half-up commercial",
-                'description' => 'Arrondi half-up au centime sur le montant total final par couple véhicule × entreprise (round half-up à 2 décimales). Les calculs intermédiaires conservent toute leur précision.',
-                'rule_type' => RuleType::Transversal,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 131-1'),
-                ],
-                'display_order' => 3,
-            ],
-            [
-                'rule_code' => 'R-2024-004',
-                'name' => 'Qualification M1 / N1',
-                'description' => 'Classification du type fiscal du véhicule : frontière M1 (VP) vs N1 (VU), cas particuliers N1 ≥ 5 places.',
-                'rule_type' => RuleType::Classification,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 421-2'),
-                ],
-                'display_order' => 4,
-            ],
-            [
-                'rule_code' => 'R-2024-005',
-                'name' => 'Sélection du barème CO₂',
-                'description' => 'Détermine le barème applicable (WLTP / NEDC / PA) à partir des caractéristiques véhicule.',
-                'rule_type' => RuleType::Classification,
-                'taxes_concerned' => $co2,
-                'legal_basis' => [
-                    $cibs('L. 421-119-1'),
-                ],
-                'display_order' => 5,
-            ],
-            [
                 'rule_code' => 'R-2024-006',
                 'name' => 'Bascule sur barème PA (CO₂ manquant)',
                 'description' => 'Fallback vers le barème Puissance Administrative si la donnée CO₂ est manquante.',
                 'rule_type' => RuleType::Classification,
-                'taxes_concerned' => $co2,
+                'taxes_concerned' => [TaxType::Co2->value],
                 'legal_basis' => [
                     $cibs('L. 421-119-1'),
                 ],
@@ -119,181 +178,44 @@ final class FiscalRulesSeeder extends Seeder
                 'name' => 'Historisation des caractéristiques véhicule',
                 'description' => "Application de la version effective des caractéristiques fiscales à chaque jour d'affectation.",
                 'rule_type' => RuleType::Transversal,
-                'taxes_concerned' => $both,
+                'taxes_concerned' => [TaxType::Co2->value, TaxType::Pollutants->value],
                 'legal_basis' => [
                     $cibs('L. 421-164'),
                 ],
                 'display_order' => 7,
             ],
             [
-                'rule_code' => 'R-2024-008',
-                'name' => 'Indisponibilités fiscalement réductrices',
-                'description' => "Le véhicule immobilisé ou mis en fourrière à la demande des pouvoirs publics est réputé ne pas être affecté à des fins économiques (CIBS L. 421-96). Trois cas réducteurs (BOFiP § 50 et § 60) : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5). Les jours correspondants sont retirés du numérateur du prorata journalier (BOFiP § 190).",
-                'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 421-96'),
-                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 50'],
-                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 60'],
-                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 190'],
-                ],
-                'display_order' => 8,
-            ],
-            [
                 'rule_code' => 'R-2024-009',
                 'name' => "Mise hors-service en cours d'année",
                 'description' => "Un véhicule cédé ou détruit en cours d'année n'est plus affecté à des fins économiques à compter de sa date de sortie. La proportion annuelle d'affectation est ramenée à la fraction d'année pendant laquelle l'entreprise détenait effectivement le véhicule (date de 1ère immatriculation par l'entreprise → date de sortie). BOFiP § 190 explicite l'exemple d'une entreprise qui acquiert un véhicule au 31/01 et le revend au 30/11.",
                 'rule_type' => RuleType::Transversal,
-                'taxes_concerned' => $both,
+                'taxes_concerned' => [TaxType::Co2->value, TaxType::Pollutants->value],
                 'legal_basis' => [
                     $cibs('L. 421-107'),
-                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 190'],
+                    $bofip('BOI-AIS-MOB-10-30-10', '§ 190'),
                 ],
                 'display_order' => 9,
-            ],
-            [
-                'rule_code' => 'R-2024-010',
-                'name' => 'Barème WLTP 2024',
-                'description' => 'Tarif progressif par tranches sur les émissions CO₂ WLTP.',
-                'rule_type' => RuleType::Tariff,
-                'taxes_concerned' => $co2,
-                'legal_basis' => [
-                    $cibs('L. 421-120'),
-                ],
-                'display_order' => 10,
-            ],
-            [
-                'rule_code' => 'R-2024-011',
-                'name' => 'Barème NEDC 2024',
-                'description' => 'Tarif progressif par tranches sur les émissions CO₂ NEDC (véhicules antérieurs à WLTP).',
-                'rule_type' => RuleType::Tariff,
-                'taxes_concerned' => $co2,
-                'legal_basis' => [
-                    $cibs('L. 421-121'),
-                ],
-                'display_order' => 11,
-            ],
-            [
-                'rule_code' => 'R-2024-012',
-                'name' => 'Barème Puissance Administrative 2024',
-                'description' => 'Tarif forfaitaire sur la puissance fiscale (véhicules pré-2004 ou sans CO₂).',
-                'rule_type' => RuleType::Tariff,
-                'taxes_concerned' => $co2,
-                'legal_basis' => [
-                    $cibs('L. 421-122'),
-                ],
-                'display_order' => 12,
-            ],
-            [
-                'rule_code' => 'R-2024-013',
-                'name' => 'Catégorisation polluants',
-                'description' => 'Classement du véhicule dans les catégories E / 1 / « les plus polluants » selon motorisation et norme Euro.',
-                'rule_type' => RuleType::Classification,
-                'taxes_concerned' => $pol,
-                'legal_basis' => [
-                    $cibs('L. 421-134'),
-                ],
-                'display_order' => 13,
-            ],
-            [
-                'rule_code' => 'R-2024-014',
-                'name' => 'Tarif forfaitaire polluants 2024',
-                'description' => "Tarif annuel forfaitaire par catégorie d'émissions (E = 0 € / 1 = 100 € / plus polluants = 500 €).",
-                'rule_type' => RuleType::Tariff,
-                'taxes_concerned' => $pol,
-                'legal_basis' => [
-                    $cibs('L. 421-135'),
-                ],
-                'display_order' => 14,
-            ],
-            [
-                'rule_code' => 'R-2024-015',
-                'name' => 'Exonération handicap',
-                'description' => 'Véhicules accessibles aux personnes à mobilité réduite — exonération totale CO₂ et polluants. Texte identique pour les deux taxes (L. 421-136 reprend L. 421-123 mot pour mot).',
-                'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 421-123'),
-                ],
-                'display_order' => 15,
-            ],
-            [
-                'rule_code' => 'R-2024-016',
-                'name' => 'Exonération électrique / hydrogène (CO₂)',
-                'description' => 'Véhicules électriques, hydrogène, ou électrique + hydrogène exclusifs - exonération totale CO₂.',
-                'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $co2,
-                'legal_basis' => [
-                    $cibs('L. 421-124'),
-                ],
-                'display_order' => 16,
-            ],
-            [
-                'rule_code' => 'R-2024-017',
-                'name' => 'Exonération hybride conditionnelle (CO₂)',
-                'description' => "Véhicules hybrides 2024 respectant des seuils de CO₂ et d'ancienneté - exonération CO₂ totale.",
-                'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $co2,
-                'legal_basis' => [
-                    $cibs('L. 421-125'),
-                ],
-                'display_order' => 17,
-            ],
-            [
-                'rule_code' => 'R-2024-018',
-                'name' => "Exonération organisme d'intérêt général",
-                'description' => 'OIG (CGI art. 261, 7°) — exonération CO₂ et polluants. Texte identique pour les deux taxes (L. 421-138 reprend L. 421-126 mot pour mot). INACTIVE par défaut.',
-                'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 421-126'),
-                ],
-                'display_order' => 18,
-                'is_active' => false,
-            ],
-            [
-                'rule_code' => 'R-2024-019',
-                'name' => 'Exonération entreprise individuelle',
-                'description' => 'Personne physique exerçant son activité professionnelle en nom propre (entrepreneur individuel BIC/BNC) — exonération soumise aux conditions de minimis. Texte identique pour les deux taxes (L. 421-139 reprend L. 421-127 mot pour mot). INACTIVE par défaut.',
-                'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 421-127'),
-                ],
-                'display_order' => 19,
-                'is_active' => false,
             ],
             [
                 'rule_code' => 'R-2024-020',
                 'name' => 'Exonération loueur - redevable = entreprise utilisatrice',
                 'description' => "Le loueur (entreprise qui détient les véhicules pour les louer ou mettre à disposition de ses clients) n'est pas redevable de la taxe ; ce sont les entreprises utilisatrices qui le sont. Texte identique pour les deux taxes (L. 421-140 reprend L. 421-128 mot pour mot).",
                 'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $both,
+                'taxes_concerned' => [TaxType::Co2->value, TaxType::Pollutants->value],
                 'legal_basis' => [
                     $cibs('L. 421-128'),
                 ],
                 'display_order' => 20,
             ],
             [
-                'rule_code' => 'R-2024-021',
-                'name' => 'Exonération LCD (location de courte durée)',
-                'description' => "Location de courte durée : durée d'un contrat ≤ 30 jours consécutifs OU contrat couvrant exactement un mois civil entier → tous les jours du contrat sont retirés du numérateur du prorata. La qualification s'apprécie par contrat individuel, pas en cumul annuel. Texte identique pour les deux taxes (L. 421-141 reprend L. 421-129 mot pour mot).",
-                'rule_type' => RuleType::Exemption,
-                'taxes_concerned' => $both,
-                'legal_basis' => [
-                    $cibs('L. 421-129'),
-                ],
-                'display_order' => 21,
-            ],
-            [
                 'rule_code' => 'R-2024-022',
                 'name' => 'Période contractuelle vs usage effectif',
                 'description' => "Le numérateur du prorata journalier compte le nombre de jours de la période d'affectation contractuelle (date de début → date de fin de contrat), pas le nombre de jours pendant lesquels le véhicule a effectivement circulé ou été utilisé. Un contrat de 30 jours pendant lesquels le véhicule n'a roulé qu'une journée compte 30 jours au numérateur. La doctrine BOFiP § 170 le précise : « le nombre de jours pendant lesquels le véhicule a effectivement circulé n'est donc pas pris en compte ». Seules les indispos réductrices (R-2024-008) viennent diminuer ce numérateur.",
                 'rule_type' => RuleType::Transversal,
-                'taxes_concerned' => $both,
+                'taxes_concerned' => [TaxType::Co2->value, TaxType::Pollutants->value],
                 'legal_basis' => [
                     $cibs('L. 421-107'),
-                    ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 170'],
+                    $bofip('BOI-AIS-MOB-10-30-10', '§ 170'),
                 ],
                 'display_order' => 22,
             ],
@@ -302,16 +224,16 @@ final class FiscalRulesSeeder extends Seeder
                 'name' => 'Aucun abattement isolé applicable en 2024',
                 'description' => '2024 : aucun abattement isolé (ex. E85) applicable aux deux taxes annuelles. Confirmé par lecture exhaustive du CIBS et du BOFiP.',
                 'rule_type' => RuleType::Abatement,
-                'taxes_concerned' => $both,
+                'taxes_concerned' => [TaxType::Co2->value, TaxType::Pollutants->value],
                 'legal_basis' => [],
                 'display_order' => 23,
             ],
             [
                 'rule_code' => 'R-2024-024',
                 'name' => "Garde-fou Crit'Air",
-                'description' => "Contrôle de cohérence entre la catégorie polluants CIBS calculée (E / 1 / les plus polluants — L. 421-134) et la vignette Crit'Air attendue pour le véhicule. La vignette Crit'Air relève du Code de la route (R. 318-2) et de l'arrêté du 21 juin 2016, indépendamment de la fiscalité. Le garde-fou émet une alerte non bloquante en cas d'incohérence afin que l'utilisateur vérifie la saisie.",
+                'description' => "Contrôle de cohérence entre la catégorie polluants CIBS calculée (E / 1 / les plus polluants, L. 421-134) et la vignette Crit'Air attendue pour le véhicule. La vignette Crit'Air relève du Code de la route (R. 318-2) et de l'arrêté du 21 juin 2016, indépendamment de la fiscalité. Le garde-fou émet une alerte non bloquante en cas d'incohérence afin que l'utilisateur vérifie la saisie.",
                 'rule_type' => RuleType::Transversal,
-                'taxes_concerned' => $pol,
+                'taxes_concerned' => [TaxType::Pollutants->value],
                 'legal_basis' => [
                     $cibs('L. 421-134'),
                 ],
@@ -319,28 +241,12 @@ final class FiscalRulesSeeder extends Seeder
                 'code_reference' => 'resources/js/Composables/Vehicle/useCritAirCheck.ts',
             ],
         ];
-    }
 
-    /**
-     * Complète une ligne de règle avec les valeurs par défaut communes.
-     * (pas utilisé - inlined dans run() via updateOrCreate qui accepte la map.)
-     *
-     * Enrichi sur chaque entrée :
-     *   - fiscal_year = 2024
-     *   - applicability_start = '2024-01-01', applicability_end = '2024-12-31'
-     *   - code_reference = app/Fiscal/Rules/2024/...  (placeholder phase 10)
-     *   - is_active par défaut true (sauf override explicite)
-     */
-    private function enrich(array $rule): array
-    {
-        return [
-            ...$rule,
-            'fiscal_year' => 2024,
-            'applicability_start' => '2024-01-01',
-            'applicability_end' => '2024-12-31',
-            'code_reference' => $rule['code_reference']
-                ?? 'app/Fiscal/Year2024/'.str_replace('-', '_', $rule['rule_code']).'.php',
-            'is_active' => $rule['is_active'] ?? true,
-        ];
+        return array_map(static function (array $entry) use ($base): array {
+            $row = [...$base, ...$entry];
+            $row['code_reference'] ??= 'app/Fiscal/Year2024/'.str_replace('-', '_', $row['rule_code']).'.php';
+
+            return $row;
+        }, $entries);
     }
 }

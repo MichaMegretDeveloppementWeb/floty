@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\HomologationMethod;
@@ -63,6 +64,36 @@ final readonly class R2024_017_ConditionalHybridExemption implements ExemptionRu
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Exonération hybride conditionnelle (CO₂)';
+    }
+
+    public function description(): string
+    {
+        return "Véhicules hybrides 2024 respectant des seuils de CO₂ et d'ancienneté - exonération CO₂ totale.";
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Exemption;
+    }
+
+    public function displayOrder(): int
+    {
+        return 17;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-125'],
+        ];
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Classification;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Fiscal\Contracts\ClassificationRule;
@@ -37,6 +38,36 @@ final readonly class R2024_005_Co2MethodSelection implements ClassificationRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Sélection du barème CO₂';
+    }
+
+    public function description(): string
+    {
+        return 'Détermine le barème applicable (WLTP / NEDC / PA) à partir des caractéristiques véhicule.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Classification;
+    }
+
+    public function displayOrder(): int
+    {
+        return 5;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-119-1'],
+        ];
     }
 
     /**

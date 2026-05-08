@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Pricing;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
@@ -45,6 +46,36 @@ final readonly class R2024_012_PaProgressive implements PricingRule
     public function fiscalYear(): int
     {
         return 2024;
+    }
+
+    public function name(): string
+    {
+        return 'Barème Puissance Administrative 2024';
+    }
+
+    public function description(): string
+    {
+        return 'Tarif forfaitaire sur la puissance fiscale (véhicules pré-2004 ou sans CO₂).';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Tariff;
+    }
+
+    public function displayOrder(): int
+    {
+        return 12;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [
+            ['type' => 'CIBS', 'article' => 'L. 421-122'],
+        ];
     }
 
     /**

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Fiscal\Fakes;
 
+use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\PricingRule;
@@ -40,6 +41,34 @@ final readonly class FakeWltpProgressive implements PricingRule
     public function taxesConcerned(): array
     {
         return [TaxType::Co2];
+    }
+
+    public function name(): string
+    {
+        return 'Fake WLTP Progressive 2099';
+    }
+
+    public function description(): string
+    {
+        return 'Fake pricing rule for FiscalRegistryExtensibilityTest only.';
+    }
+
+    public function ruleType(): RuleType
+    {
+        return RuleType::Tariff;
+    }
+
+    public function displayOrder(): int
+    {
+        return 1;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function legalBasis(): array
+    {
+        return [];
     }
 
     public function price(PipelineContext $context): PipelineContext
