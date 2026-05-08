@@ -15,8 +15,8 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
-use App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor;
 use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
@@ -33,20 +33,20 @@ use Tests\TestCase;
  *
  * Les patterns helpers (`makeVehicle`, `vfcCommonFields`, `syntheticContract`,
  * `syntheticUnavailability`) sont alignés sur
- * {@see VfcSegmentedFiscalExecutorTest} pour cohérence du style.
+ * {@see FiscalSegmentedExecutorTest} pour cohérence du style.
  */
 final class MultiVfcEdgeCasesTest extends TestCase
 {
     use RefreshDatabase;
 
-    private VfcSegmentedFiscalExecutor $executor;
+    private FiscalSegmentedExecutor $executor;
 
     private FiscalYearContext $yearContext;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->executor = $this->app->make(VfcSegmentedFiscalExecutor::class);
+        $this->executor = $this->app->make(FiscalSegmentedExecutor::class);
         $this->yearContext = $this->app->make(FiscalYearContext::class);
     }
 

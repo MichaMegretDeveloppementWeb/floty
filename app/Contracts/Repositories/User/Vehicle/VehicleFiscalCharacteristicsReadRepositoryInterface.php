@@ -36,7 +36,7 @@ interface VehicleFiscalCharacteristicsReadRepositoryInterface
      *
      * Renvoie une liste vide si aucune VFC n'est active sur l'année
      * (véhicule créé après l'année calculée par exemple). C'est à
-     * l'appelant ({@see App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor})
+     * l'appelant ({@see App\Fiscal\Pipeline\FiscalSegmentedExecutor})
      * de décider quoi faire — typiquement throw
      * `FiscalCalculationException::missingFiscalCharacteristics`.
      *

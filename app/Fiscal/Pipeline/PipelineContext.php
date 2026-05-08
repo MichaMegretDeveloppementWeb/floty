@@ -65,7 +65,7 @@ final readonly class PipelineContext
         public array $appliedRuleCodes = [],
         /**
          * Fenêtre de jours posée par
-         * {@see App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor} quand
+         * {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} quand
          * un calcul est segmenté par VFC. Restreint le compte des
          * jours présents dans R-2024-002 sans clipper la définition
          * des contrats (R-2024-021 LCD juge sur la durée totale du

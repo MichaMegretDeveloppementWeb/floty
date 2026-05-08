@@ -18,7 +18,7 @@ use App\Enums\Vehicle\VehicleUserType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
-use App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor;
+use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
@@ -37,11 +37,11 @@ use Tests\TestCase;
  * conserve son verdict LCD basé sur sa durée totale (pas la portion
  * clippée).
  */
-final class VfcSegmentedFiscalExecutorTest extends TestCase
+final class FiscalSegmentedExecutorTest extends TestCase
 {
     use RefreshDatabase;
 
-    private VfcSegmentedFiscalExecutor $executor;
+    private FiscalSegmentedExecutor $executor;
 
     private FiscalPipeline $pipeline;
 
@@ -50,7 +50,7 @@ final class VfcSegmentedFiscalExecutorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->executor = $this->app->make(VfcSegmentedFiscalExecutor::class);
+        $this->executor = $this->app->make(FiscalSegmentedExecutor::class);
         $this->pipeline = $this->app->make(FiscalPipeline::class);
         $this->yearContext = $this->app->make(FiscalYearContext::class);
     }

@@ -82,7 +82,7 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         // (= les contrats du couple qui ne sont PAS LCD).
         //
         // Si une `daysWindow` est posée (mode segmenté par VFC, cf.
-        // VfcSegmentedFiscalExecutor), on filtre les jours présents
+        // FiscalSegmentedExecutor), on filtre les jours présents
         // pour ne compter que ceux qui tombent dans le segment courant
         // — sinon le count des jours réducteurs serait calculé sur
         // l'année entière et soustrait à chaque segment, conduisant

@@ -20,7 +20,7 @@ use Carbon\CarbonImmutable;
  * (l'intersection vide n'est pas matérialisée).
  *
  * Consommé par
- * {@see App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor} qui exécute
+ * {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} qui exécute
  * une sous-pipeline par segment, en posant la VFC + la
  * {@see DaysWindow} correspondante sur le contexte.
  */

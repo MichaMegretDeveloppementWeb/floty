@@ -11,6 +11,7 @@ use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Contracts\AbatementRule;
 use App\Fiscal\Contracts\ClassificationRule;
 use App\Fiscal\Contracts\ExemptionRule;
+use App\Fiscal\Contracts\FiscalRule;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Registry\FiscalRuleRegistry;
@@ -51,9 +52,25 @@ final class FiscalPipeline
 
     public function execute(PipelineContext $context): PipelineResult
     {
-        $this->validateInputs($context);
+        return $this->executeWithRules(
+            $context,
+            $this->registry->rulesForYear($context->fiscalYear),
+        );
+    }
 
-        $rules = $this->registry->rulesForYear($context->fiscalYear);
+    /**
+     * Variante de {@see execute()} qui consomme une **liste de règles
+     * pré-fournie** au lieu de la résoudre via le registry.
+     *
+     * Utilisée par {@see FiscalSegmentedExecutor} (chantier κ.4) pour
+     * exécuter le pipeline sur un sous-segment temporel avec uniquement
+     * les règles applicables sur ce sous-segment.
+     *
+     * @param  list<FiscalRule>  $rules
+     */
+    public function executeWithRules(PipelineContext $context, array $rules): PipelineResult
+    {
+        $this->validateInputs($context);
 
         // Étape 1 - récupération des caractéristiques fiscales courantes
         $context = $this->loadFiscalCharacteristics($context);

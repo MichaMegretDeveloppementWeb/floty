@@ -17,7 +17,7 @@ use App\Fiscal\Pipeline\PipelineContext;
  * elle est posée (intersection des dates avec la fenêtre). C'est
  * indispensable pour que le calcul reste correct quand le pipeline
  * est exécuté de façon segmentée par
- * {@see App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor} : chaque
+ * {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} : chaque
  * sous-exécution voit les contrats/indispos entiers (pour préserver
  * la sémantique des règles per-contract comme R-2024-021 LCD), mais
  * ne doit compter que les jours qui tombent dans le segment courant.

@@ -10,7 +10,7 @@ use Carbon\CarbonImmutable;
  * Fenêtre temporelle [start, end] (bornes inclusives) utilisée pour
  * restreindre le compte des jours présents dans le pipeline fiscal.
  *
- * Posée par {@see App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor} sur
+ * Posée par {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} sur
  * le {@see App\Fiscal\Pipeline\PipelineContext} quand un calcul est
  * segmenté par VFC : chaque sous-calcul reçoit la fenêtre du segment
  * VFC actif, mais voit toujours les contrats entiers (pour que les

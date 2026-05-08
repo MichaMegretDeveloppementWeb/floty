@@ -16,9 +16,9 @@ use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\PipelineResult;
-use App\Fiscal\Pipeline\VfcSegmentedFiscalExecutor;
 use App\Models\Contract;
 use App\Models\FiscalRule;
 use App\Models\Unavailability;
@@ -70,7 +70,7 @@ final class FleetFiscalAggregator
     private array $fullYearResultCache = [];
 
     public function __construct(
-        private readonly VfcSegmentedFiscalExecutor $pipeline,
+        private readonly FiscalSegmentedExecutor $pipeline,
         private readonly FiscalYearContext $yearContext,
         private readonly FiscalRuleReadRepositoryInterface $fiscalRules,
     ) {}
@@ -183,7 +183,7 @@ final class FleetFiscalAggregator
         $ruleCodesSet = [];
 
         foreach ($breakdowns as $breakdown) {
-            $segment = $breakdown->segment;
+            $vfc = $breakdown->vfcSegment->vfc;
             $result = $breakdown->result;
 
             $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
@@ -192,17 +192,17 @@ final class FleetFiscalAggregator
             $pollutantsDue = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
 
             $taxSegments[] = new VehicleFullYearTaxSegmentData(
-                effectiveFromInYear: $segment->start->toDateString(),
-                effectiveToInYear: $segment->end->toDateString(),
-                daysInSegment: (int) $segment->start->diffInDays($segment->end) + 1,
-                vfc: VehicleFiscalCharacteristicsData::fromModel($segment->vfc),
+                effectiveFromInYear: $breakdown->start->toDateString(),
+                effectiveToInYear: $breakdown->end->toDateString(),
+                daysInSegment: (int) $breakdown->start->diffInDays($breakdown->end) + 1,
+                vfc: VehicleFiscalCharacteristicsData::fromModel($vfc),
                 co2Method: $result->co2Method,
                 co2FullYearTariff: $co2Tariff,
-                co2Explanation: $this->buildCo2Explanation($segment->vfc, $result->co2Method, $co2Tariff, $year),
+                co2Explanation: $this->buildCo2Explanation($vfc, $result->co2Method, $co2Tariff, $year),
                 co2Due: $co2Due,
                 pollutantCategory: $result->pollutantCategory,
                 pollutantsFullYearTariff: $pollutantsTariff,
-                pollutantsExplanation: $this->buildPollutantsExplanation($segment->vfc, $result->pollutantCategory, $pollutantsTariff),
+                pollutantsExplanation: $this->buildPollutantsExplanation($vfc, $result->pollutantCategory, $pollutantsTariff),
                 pollutantsDue: $pollutantsDue,
                 appliedExemptions: array_map(
                     static fn ($e) => AppliedExemptionData::fromValueObject($e),

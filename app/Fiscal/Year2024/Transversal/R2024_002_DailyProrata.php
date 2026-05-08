@@ -61,7 +61,7 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
         // pour rester strict).
         //
         // Si une `daysWindow` est posée (mode segmenté par VFC, cf.
-        // VfcSegmentedFiscalExecutor), on filtre les jours présents
+        // FiscalSegmentedExecutor), on filtre les jours présents
         // pour ne compter que ceux qui tombent dans la fenêtre du
         // segment courant. Les contrats restent passés entiers au
         // pipeline (nécessaire pour que R-2024-021 LCD juge sur leur
