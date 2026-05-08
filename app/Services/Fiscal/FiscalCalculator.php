@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Fiscal;
 
 use App\DTO\Fiscal\FiscalBreakdown;
-use App\Fiscal\Pipeline\FiscalPipeline;
+use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\PipelineResult;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
@@ -17,17 +17,23 @@ use App\Services\Shared\Fiscal\FiscalYearContext;
 /**
  * Façade legacy du moteur fiscal Floty.
  *
- * Préserve l'API utilisée par {@see WeekDetailService} et
- * {@see FleetFiscalAggregator} (signature `calculate(Vehicle, ...,
+ * Préserve l'API utilisée par {@see WeekDetailService::previewTaxes()}
+ * (signature `calculate(Vehicle, list<Contract>, list<Unavailability>,
  * int): FiscalBreakdown`) tout en déléguant l'exécution réelle au
- * pipeline ADR-0006 (`FiscalPipeline`). La sortie est convertie depuis
- * un {@see PipelineResult} vers le DTO interne {@see FiscalBreakdown}
- * que les consommateurs connaissent déjà.
+ * {@see FiscalSegmentedExecutor} qui orchestre le pipeline ADR-0006
+ * sur le produit cartésien VFC × Règles. La sortie est convertie
+ * depuis un {@see PipelineResult} vers le DTO interne
+ * {@see FiscalBreakdown} que les consommateurs connaissent déjà.
  *
- * **Refonte 04.F (ADR-0014)** : la signature accepte désormais la
- * liste des contrats du couple et les indispos du véhicule au lieu de
- * deux entiers de cumul. Les règles souveraines R-2024-021 et
- * R-2024-008 décident des jours exonérés.
+ * **Refonte 04.F (ADR-0014)** : la signature accepte la liste des
+ * contrats du couple et les indispos du véhicule au lieu de deux
+ * entiers de cumul. Les règles souveraines R-2024-021 et R-2024-008
+ * décident des jours exonérés.
+ *
+ * **Refonte κ.5** : la dépendance interne passe de `FiscalPipeline` à
+ * {@see FiscalSegmentedExecutor}. Effet métier : la preview taxes du
+ * drawer planning devient correcte sur véhicule multi-VFC, et bénéficie
+ * automatiquement de la segmentation multi-règles (chantier κ).
  */
 final readonly class FiscalCalculator
 {
@@ -39,7 +45,7 @@ final readonly class FiscalCalculator
     public const int LCD_THRESHOLD_DAYS = 30;
 
     public function __construct(
-        private FiscalPipeline $pipeline,
+        private FiscalSegmentedExecutor $executor,
         private FiscalYearContext $yearContext,
     ) {}
 
@@ -61,7 +67,7 @@ final readonly class FiscalCalculator
             vehicleUnavailabilitiesInYear: $vehicleUnavailabilities,
         );
 
-        return $this->toBreakdown($this->pipeline->execute($context));
+        return $this->toBreakdown($this->executor->execute($context));
     }
 
     private function toBreakdown(PipelineResult $result): FiscalBreakdown

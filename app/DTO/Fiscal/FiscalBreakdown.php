@@ -9,15 +9,15 @@ use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\ValueObjects\AppliedExemption;
 use App\Services\Fiscal\FiscalCalculator;
-use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
  * Résultat détaillé d'un calcul fiscal pour un couple
  * (véhicule, entreprise utilisatrice) sur un nombre de jours donné.
  *
- * DTO interne - produit par {@see FiscalCalculator}
- * et consommé par les services métier (notamment
- * {@see FleetFiscalAggregator}).
+ * DTO interne, produit par {@see FiscalCalculator} pour la preview
+ * taxes du drawer planning. Les autres consommateurs métier
+ * (`FleetFiscalAggregator`, etc.) opèrent directement sur
+ * `PipelineResult` via le `FiscalSegmentedExecutor`.
  *
  * Pour exposition au front : convertir via
  * {@see FiscalBreakdownData::fromBreakdown()}.
