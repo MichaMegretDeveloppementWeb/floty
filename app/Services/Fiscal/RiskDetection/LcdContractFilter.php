@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal\RiskDetection;
 
-use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
+use App\Fiscal\Contracts\LcdQualifier;
 use App\Models\Contract;
 
 /**
  * Filtre la qualification LCD (Location de Courte Durée) sur une
  * collection de contrats (Phase 11 D2).
  *
- * Délègue strictement à la règle fiscale souveraine
- * {@see R2024_021_ShortTermRental::isShortTermRental} : la
- * qualification LCD au sens fiscal est portée par la règle (durée
+ * Délègue strictement au {@see LcdQualifier} (résolu par défaut vers
+ * `R2024_021_ShortTermRental` via le binding du `FiscalServiceProvider`).
+ * La qualification LCD au sens fiscal est portée par la règle (durée
  * ≤ 30 jours OU mois civil entier, ADR-0014 + BOFiP § 180-190),
  * pas par le libellé `contract_type` persisté en BDD qui n'est
  * qu'indicatif (mémoire `feedback_fiscal_rules_authority`).
@@ -25,7 +25,7 @@ use App\Models\Contract;
 final readonly class LcdContractFilter
 {
     public function __construct(
-        private R2024_021_ShortTermRental $rule,
+        private LcdQualifier $rule,
     ) {}
 
     /**

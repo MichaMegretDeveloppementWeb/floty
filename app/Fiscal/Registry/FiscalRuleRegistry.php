@@ -19,7 +19,7 @@ use Illuminate\Contracts\Container\Container;
  * instances via le container Laravel - chaque règle est instanciée en
  * singleton (les règles sont sans état).
  */
-final class FiscalRuleRegistry
+class FiscalRuleRegistry
 {
     /**
      * @var array<int, list<class-string<FiscalRule>>>
@@ -60,6 +60,23 @@ final class FiscalRuleRegistry
     public function registeredYears(): array
     {
         return array_keys($this->byYear);
+    }
+
+    /**
+     * Liste des `class-string` règles enregistrées pour une année,
+     * sans les résoudre en instances. Utilisée par
+     * {@see OverlayedRuleRegistry} (Phase 11 D5.1) pour substituer
+     * certaines instances tout en gardant la liste de référence.
+     *
+     * @return list<class-string<FiscalRule>>
+     */
+    public function classesForYear(int $year): array
+    {
+        if (! isset($this->byYear[$year])) {
+            throw FiscalCalculationException::yearNotSupported($year);
+        }
+
+        return $this->byYear[$year];
     }
 
     /**

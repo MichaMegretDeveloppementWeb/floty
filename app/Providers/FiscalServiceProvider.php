@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Fiscal\Contracts\FiscalYearBoot;
+use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -73,5 +75,12 @@ final class FiscalServiceProvider extends ServiceProvider
         // pour amortir le calcul sur plusieurs accès dans la même
         // requête HTTP.
         $this->app->singleton(RuleEffectiveSegmenter::class);
+
+        // Phase 11 D5.1 - le qualificateur LCD est résolu par défaut
+        // vers la règle canonique R-2024-021. Le `DeclarationFiscalEngine`
+        // (D5.2) construira un `OverlayedRuleRegistry` qui substitue
+        // localement cette implémentation par un decorator porteur des
+        // décisions « Requalified » du workflow de revue.
+        $this->app->bind(LcdQualifier::class, R2024_021_ShortTermRental::class);
     }
 }

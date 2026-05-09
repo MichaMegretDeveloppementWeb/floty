@@ -9,6 +9,7 @@ use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
+use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Models\Contract;
@@ -39,7 +40,7 @@ use Carbon\CarbonImmutable;
  * délègue à `isShortTermRental()` pour distinguer contrats taxables et
  * contrats déjà LCD-exonérés.
  */
-final readonly class R2024_021_ShortTermRental implements ExemptionRule
+final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQualifier
 {
     use AnnualRuleTrait;
     use RuleActiveByDefaultTrait;
