@@ -47,8 +47,12 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
         $declaration->save();
     }
 
-    public function markAsGenerated(int $declarationId, string $pdfPath, string $pdfHash): void
-    {
+    public function markAsGenerated(
+        int $declarationId,
+        string $pdfPath,
+        string $pdfHash,
+        string $reference,
+    ): void {
         $declaration = FiscalDeclaration::query()->findOrFail($declarationId);
 
         $declaration->fill([
@@ -56,6 +60,7 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
             'generated_at' => Carbon::now(),
             'generated_pdf_path' => $pdfPath,
             'generated_pdf_hash' => $pdfHash,
+            'reference' => $reference,
         ]);
         $declaration->save();
     }

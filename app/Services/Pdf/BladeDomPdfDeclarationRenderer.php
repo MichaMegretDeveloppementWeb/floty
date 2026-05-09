@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Pdf;
 
+use App\Contracts\Pdf\DeclarationPdfRendererInterface;
 use App\Fiscal\ValueObjects\AppliedDecisionEntry;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
 use App\Fiscal\ValueObjects\VehicleSnapshotEntry;
@@ -27,7 +28,7 @@ use Barryvdh\DomPDF\Facade\Pdf;
  *
  * Pattern aligné sur {@see App\Services\Invoice\InvoicePdfRenderer}.
  */
-final readonly class BladeDomPdfDeclarationRenderer
+final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRendererInterface
 {
     public function render(DeclarationRenderContext $context): string
     {

@@ -40,9 +40,16 @@ interface FiscalDeclarationWriteRepositoryInterface
 
     /**
      * Matérialise une déclaration `draft`/`deferred` en `generated` :
-     * passage du statut + pose des champs PDF.
+     * passage du statut + pose des champs PDF + persistance de la
+     * référence lisible `DECL-{shortCode}-{year}-{NNNN}` (Phase 11
+     * D5.5, calculée par {@see App\Services\Fiscal\Declaration\DeclarationReferenceGenerator}).
      */
-    public function markAsGenerated(int $declarationId, string $pdfPath, string $pdfHash): void;
+    public function markAsGenerated(
+        int $declarationId,
+        string $pdfPath,
+        string $pdfHash,
+        string $reference,
+    ): void;
 
     /**
      * Chaîne une déclaration obsolète vers sa version régénérée

@@ -142,4 +142,41 @@ final class GenerateDeclarationActionTest extends TestCase
         );
         self::assertStringEndsWith('.pdf', $generated->generated_pdf_path);
     }
+
+    #[Test]
+    public function la_reference_est_persistee_au_format_strict(): void
+    {
+        $company = Company::factory()->create(['short_code' => 'ACM']);
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $generated = $this->action->execute($declaration->id);
+
+        self::assertSame('DECL-ACM-2025-0001', $generated->reference);
+    }
+
+    #[Test]
+    public function la_reference_increments_a_la_regeneration_sur_le_meme_couple(): void
+    {
+        $company = Company::factory()->create(['short_code' => 'ACM']);
+        $first = FiscalDeclaration::factory()
+            ->forCompany($company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+        $generatedFirst = $this->action->execute($first->id);
+        self::assertSame('DECL-ACM-2025-0001', $generatedFirst->reference);
+
+        $second = FiscalDeclaration::factory()
+            ->forCompany($company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+        $generatedSecond = $this->action->execute($second->id);
+
+        self::assertSame('DECL-ACM-2025-0002', $generatedSecond->reference);
+    }
 }

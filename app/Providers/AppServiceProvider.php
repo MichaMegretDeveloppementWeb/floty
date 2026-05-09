@@ -6,7 +6,7 @@ namespace App\Providers;
 
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
 use App\Services\Fiscal\AvailableYearsResolver;
-use App\Services\Pdf\NullDeclarationPdfRenderer;
+use App\Services\Pdf\BladeDomPdfDeclarationRenderer;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -27,9 +27,10 @@ class AppServiceProvider extends ServiceProvider
         // même requête). Cf. chantier η Phase 0.1.
         $this->app->singleton(AvailableYearsResolver::class);
 
-        // PDF annexe déclaration fiscale (Phase 11 D3) : binding vers le
-        // stub minimal. D5 swappera vers le renderer DomPDF complet.
-        $this->app->bind(DeclarationPdfRendererInterface::class, NullDeclarationPdfRenderer::class);
+        // PDF annexe déclaration fiscale : binding vers le renderer
+        // production Blade + DomPDF (Phase 11 D5.5). NullDeclarationPdfRenderer
+        // reste disponible pour les tests qui le bindent explicitement.
+        $this->app->bind(DeclarationPdfRendererInterface::class, BladeDomPdfDeclarationRenderer::class);
     }
 
     /**
