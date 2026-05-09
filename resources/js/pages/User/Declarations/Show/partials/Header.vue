@@ -22,6 +22,12 @@ defineProps<{
                     {{ declaration.companyShortCode }} · {{ declaration.fiscalYear }}
                 </h1>
                 <p class="text-sm text-slate-500">{{ declaration.companyLegalName }}</p>
+                <p
+                    v-if="declaration.reference"
+                    class="mt-1 inline-flex w-fit items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs font-medium text-slate-700"
+                >
+                    {{ declaration.reference }}
+                </p>
             </div>
         </div>
 

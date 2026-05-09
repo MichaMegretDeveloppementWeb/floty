@@ -1,26 +1,28 @@
 <script setup lang="ts">
 /**
- * Page Review d'une déclaration fiscale (Phase 11 D4). Pilote la
- * génération sur place : pour chaque cluster détecté par D2 +
+ * Page Review d'une déclaration fiscale (Phase 11 D4 + D5.6). Pilote
+ * la génération sur place : pour chaque cluster détecté par D2 +
  * pré-appliqué par D3, l'utilisateur tranche conserver / requalifier
  * (justification obligatoire si conserver + niveau élevé). La barre
  * d'actions sticky en bas propose « Mettre de côté » et « Générer ».
  *
- * Le récapitulatif fiscal détaillé (montants par véhicule, totaux
- * CO2/polluants) arrive en D5 avec le PDF complet. D4 expose un stub.
+ * Le récapitulatif fiscal (FiscalSummaryCard, D5.6) prévisualise les
+ * totaux post-décisions : c'est exactement ce que le PDF généré
+ * contiendra si l'utilisateur clique « Générer ».
  */
 import { Head } from '@inertiajs/vue3';
 import { Building2, ShieldCheck } from 'lucide-vue-next';
 import { computed } from 'vue';
 import ClusterCard from '@/Components/Domain/Declaration/ClusterCard.vue';
+import FiscalSummaryCard from '@/Components/Domain/Declaration/FiscalSummaryCard.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import Card from '@/Components/Ui/Card/Card.vue';
 import { useReviewForm } from '@/Composables/Declaration/useReviewForm';
 import ReviewActionsBar from './partials/ReviewActionsBar.vue';
 
 const props = defineProps<{
     declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
     preview: App.Data.User.FiscalDeclaration.DeclarationPreviewData;
+    snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
 }>();
 
 const { submitting, submitDecision } = useReviewForm(props.declaration.id);
@@ -63,18 +65,7 @@ function handleSubmit(
                 </div>
             </header>
 
-            <Card>
-                <template #header>
-                    <h2 class="text-base font-semibold text-slate-900">
-                        Récapitulatif fiscal
-                    </h2>
-                </template>
-                <p class="text-sm text-slate-500">
-                    Le détail du calcul fiscal (montants par véhicule, totaux
-                    CO₂ et polluants) sera affiché ici en D5, en lien avec le
-                    contenu du PDF annexe documentaire.
-                </p>
-            </Card>
+            <FiscalSummaryCard :snapshot="snapshot" />
 
             <div class="flex flex-col gap-2">
                 <h2 class="text-base font-semibold text-slate-900">

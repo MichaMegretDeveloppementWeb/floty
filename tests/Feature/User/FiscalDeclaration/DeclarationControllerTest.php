@@ -106,7 +106,7 @@ final class DeclarationControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_render_inertia_avec_history(): void
+    public function show_render_inertia_avec_history_et_snapshot(): void
     {
         $declaration = FiscalDeclaration::factory()
             ->forCompany($this->company)
@@ -119,7 +119,28 @@ final class DeclarationControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Declarations/Show/Index')
                 ->where('declaration.id', $declaration->id)
-                ->has('history'));
+                ->has('history')
+                ->has('snapshot')
+                ->has('snapshot.totalDue')
+                ->has('snapshot.vehicleBreakdown')
+                ->has('snapshot.appliedDecisions')
+                ->has('snapshot.optOutContractIds'));
+    }
+
+    #[Test]
+    public function show_expose_la_reference_si_declaration_generee(): void
+    {
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->generated()
+            ->create(['reference' => 'DECL-ACM-2025-0001']);
+
+        $this->get(sprintf('/app/declarations/%d', $declaration->id))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Declarations/Show/Index')
+                ->where('declaration.reference', 'DECL-ACM-2025-0001'));
     }
 
     #[Test]
@@ -162,7 +183,11 @@ final class DeclarationControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Declarations/Review/Index')
                 ->where('declaration.id', $declaration->id)
-                ->has('preview'));
+                ->has('preview')
+                ->has('snapshot')
+                ->has('snapshot.totalDue')
+                ->has('snapshot.vehicleBreakdown')
+                ->has('snapshot.appliedDecisions'));
     }
 
     #[Test]

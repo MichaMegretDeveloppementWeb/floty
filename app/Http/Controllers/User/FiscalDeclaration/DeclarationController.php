@@ -14,12 +14,14 @@ use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\FiscalDeclaration\DeclarationIndexQueryData;
 use App\Data\User\FiscalDeclaration\DeclarationListItemData;
 use App\Data\User\FiscalDeclaration\FiscalDeclarationData;
+use App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData;
 use App\Data\User\FiscalDeclaration\PaginatedDeclarationListData;
 use App\Data\User\FiscalDeclaration\PrepareDeclarationData;
 use App\Data\User\FiscalReviewDecision\StoreReviewDecisionData;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\FiscalDeclaration;
+use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use App\Services\Fiscal\RiskDetection\DeclarationPreviewService;
 use App\Services\Pdf\DeclarationPdfStorage;
 use DomainException;
@@ -52,6 +54,7 @@ final class DeclarationController extends Controller
     public function __construct(
         private readonly FiscalDeclarationReadRepositoryInterface $reader,
         private readonly DeclarationPreviewService $previewService,
+        private readonly DeclarationFiscalEngine $engine,
     ) {}
 
     public function index(DeclarationIndexQueryData $query): InertiaResponse
@@ -89,8 +92,11 @@ final class DeclarationController extends Controller
     {
         Gate::authorize('view', $declaration);
 
+        $snapshot = $this->engine->compute($declaration->company_id, $declaration->fiscal_year);
+
         return Inertia::render('User/Declarations/Show/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
+            'snapshot' => FiscalDeclarationSnapshotData::fromValueObject($snapshot),
             'history' => $this->reader
                 ->findHistoryForCompanyYear($declaration->company_id, $declaration->fiscal_year)
                 ->map(static fn (FiscalDeclaration $d): DeclarationListItemData => DeclarationListItemData::fromModel($d->load('company')))
@@ -114,10 +120,12 @@ final class DeclarationController extends Controller
         }
 
         $preview = $this->previewService->preview($declaration->company_id, $declaration->fiscal_year);
+        $snapshot = $this->engine->compute($declaration->company_id, $declaration->fiscal_year);
 
         return Inertia::render('User/Declarations/Review/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
             'preview' => $preview,
+            'snapshot' => FiscalDeclarationSnapshotData::fromValueObject($snapshot),
         ]);
     }
 
