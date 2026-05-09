@@ -29,6 +29,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $company_id
  * @property int $fiscal_year
+ * @property string|null $reference
  * @property FiscalDeclarationStatus $status
  * @property Carbon|null $generated_at
  * @property string|null $generated_pdf_path
@@ -47,6 +48,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'company_id',
     'fiscal_year',
+    'reference',
     'status',
     'generated_at',
     'generated_pdf_path',
