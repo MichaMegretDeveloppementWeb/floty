@@ -128,6 +128,45 @@ final class DeclarationControllerTest extends TestCase
     }
 
     #[Test]
+    public function show_lit_le_snapshot_persiste_en_priorite_sans_recalculer(): void
+    {
+        // Crée une déclaration générée avec un snapshot persisté
+        // arbitraire qui ne correspond pas au calcul standard. Si le
+        // controller lit en priorité depuis BDD (audit B5 D5.7.5), il
+        // doit retourner ces valeurs littérales, pas un recalcul.
+        $persistedPayload = [
+            'companyId' => $this->company->id,
+            'companyShortCode' => $this->company->short_code,
+            'companyLegalName' => $this->company->legal_name,
+            'fiscalYear' => 2025,
+            'computedAt' => '2025-12-31T23:59:59+01:00',
+            'co2DueTotal' => 1234.56,
+            'pollutantsDueTotal' => 78.90,
+            'totalDue' => 1313.46,
+            'vehicleBreakdown' => [],
+            'appliedDecisions' => [],
+            'optOutContractIds' => [],
+        ];
+
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->generated()
+            ->create([
+                'reference' => 'DECL-TEST-2025-0001',
+                'generated_snapshot_payload' => $persistedPayload,
+            ]);
+
+        $this->get(sprintf('/app/declarations/%d', $declaration->id))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Declarations/Show/Index')
+                ->where('snapshot.totalDue', 1313.46)
+                ->where('snapshot.co2DueTotal', 1234.56)
+                ->where('snapshot.pollutantsDueTotal', 78.90));
+    }
+
+    #[Test]
     public function show_expose_la_reference_si_declaration_generee(): void
     {
         $declaration = FiscalDeclaration::factory()

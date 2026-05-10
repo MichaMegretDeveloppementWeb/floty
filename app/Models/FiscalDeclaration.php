@@ -34,6 +34,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $generated_at
  * @property string|null $generated_pdf_path
  * @property string|null $generated_pdf_hash
+ * @property array<string, mixed>|null $generated_snapshot_payload
  * @property bool $is_obsolete
  * @property Carbon|null $obsolete_at
  * @property array<int, array<string, mixed>>|null $obsolete_reasons
@@ -53,6 +54,7 @@ use Illuminate\Support\Carbon;
     'generated_at',
     'generated_pdf_path',
     'generated_pdf_hash',
+    'generated_snapshot_payload',
     'is_obsolete',
     'obsolete_at',
     'obsolete_reasons',
@@ -76,6 +78,7 @@ final class FiscalDeclaration extends Model
             'fiscal_year' => 'integer',
             'status' => FiscalDeclarationStatus::class,
             'generated_at' => 'datetime',
+            'generated_snapshot_payload' => 'array',
             'is_obsolete' => 'boolean',
             'obsolete_at' => 'datetime',
             'obsolete_reasons' => 'array',

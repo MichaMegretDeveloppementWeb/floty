@@ -145,6 +145,30 @@ final class GenerateDeclarationActionTest extends TestCase
     }
 
     #[Test]
+    public function le_snapshot_fiscal_est_persiste_en_bdd_au_moment_de_la_generation(): void
+    {
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $generated = $this->action->execute($declaration->id);
+
+        // Le payload JSON doit être un array (cast Eloquent), pas null,
+        // contenir les champs structurés du DTO.
+        self::assertIsArray($generated->generated_snapshot_payload);
+        self::assertArrayHasKey('totalDue', $generated->generated_snapshot_payload);
+        self::assertArrayHasKey('co2DueTotal', $generated->generated_snapshot_payload);
+        self::assertArrayHasKey('pollutantsDueTotal', $generated->generated_snapshot_payload);
+        self::assertArrayHasKey('vehicleBreakdown', $generated->generated_snapshot_payload);
+        self::assertArrayHasKey('appliedDecisions', $generated->generated_snapshot_payload);
+        self::assertArrayHasKey('optOutContractIds', $generated->generated_snapshot_payload);
+        self::assertSame($this->company->id, $generated->generated_snapshot_payload['companyId']);
+        self::assertSame(2025, $generated->generated_snapshot_payload['fiscalYear']);
+    }
+
+    #[Test]
     public function la_reference_est_persistee_au_format_strict(): void
     {
         $company = Company::factory()->create(['short_code' => 'ACM']);
@@ -185,6 +209,7 @@ final class GenerateDeclarationActionTest extends TestCase
             'declarations/test/x.pdf',
             str_repeat('a', 64),
             'DECL-TEST-2025-0001',
+            ['totalDue' => 0.0, 'companyId' => $this->company->id, 'fiscalYear' => 2025],
         );
     }
 

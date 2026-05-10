@@ -53,6 +53,7 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
         string $pdfPath,
         string $pdfHash,
         string $reference,
+        array $snapshotPayload,
     ): void {
         // Lock pessimiste + double-check atomique du statut/obsolescence
         // pour fermer la fenêtre TOCTOU entre la décision de générer
@@ -80,6 +81,7 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
             'generated_pdf_path' => $pdfPath,
             'generated_pdf_hash' => $pdfHash,
             'reference' => $reference,
+            'generated_snapshot_payload' => $snapshotPayload,
         ]);
         $declaration->save();
     }

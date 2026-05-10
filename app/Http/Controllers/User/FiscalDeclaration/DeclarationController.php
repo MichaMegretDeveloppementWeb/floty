@@ -92,17 +92,45 @@ final class DeclarationController extends Controller
     {
         Gate::authorize('view', $declaration);
 
-        $snapshot = $this->engine->compute($declaration->company_id, $declaration->fiscal_year);
-
         return Inertia::render('User/Declarations/Show/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
-            'snapshot' => FiscalDeclarationSnapshotData::fromValueObject($snapshot),
+            'snapshot' => $this->resolveSnapshotData($declaration),
             'history' => $this->reader
                 ->findHistoryForCompanyYear($declaration->company_id, $declaration->fiscal_year)
                 ->map(static fn (FiscalDeclaration $d): DeclarationListItemData => DeclarationListItemData::fromModel($d->load('company')))
                 ->values()
                 ->all(),
         ]);
+    }
+
+    /**
+     * Résout le snapshot fiscal d'une déclaration : priorité au
+     * payload persisté en BDD si présent (Phase 11 D5.7.5 audit B5),
+     * fallback recalcul via {@see DeclarationFiscalEngine} sinon.
+     *
+     * **Pourquoi la priorité au persisté** : le payload BDD a été figé
+     * au moment de `markAsGenerated()` et reflète **exactement** les
+     * montants du PDF historique. Le recalcul à la volée peut
+     * diverger si une mutation post-génération n'a pas déclenché
+     * l'invalidation. Pour une déclaration `Generated` non obsolète,
+     * les deux sources doivent normalement coïncider ; le persisté
+     * fait foi en cas d'écart.
+     *
+     * **Quand recalculer (fallback)** :
+     *   - Déclaration `Draft` ou `Deferred` : pas encore générée, donc
+     *     payload null, preview en direct.
+     *   - Déclaration historique générée pré-D5.7.5 : payload null
+     *     (pas de backfill auto), recalcul rétrocompat.
+     */
+    private function resolveSnapshotData(FiscalDeclaration $declaration): FiscalDeclarationSnapshotData
+    {
+        if (is_array($declaration->generated_snapshot_payload)) {
+            return FiscalDeclarationSnapshotData::from($declaration->generated_snapshot_payload);
+        }
+
+        $snapshot = $this->engine->compute($declaration->company_id, $declaration->fiscal_year);
+
+        return FiscalDeclarationSnapshotData::fromValueObject($snapshot);
     }
 
     public function review(FiscalDeclaration $declaration): InertiaResponse|RedirectResponse
@@ -120,6 +148,13 @@ final class DeclarationController extends Controller
         }
 
         $preview = $this->previewService->preview($declaration->company_id, $declaration->fiscal_year);
+
+        // En page Review, la déclaration est par construction `draft`
+        // ou `deferred` (cf. redirect ci-dessus pour Generated/Obsolète),
+        // donc pas de payload persisté. On recalcule toujours, ce qui
+        // est cohérent avec le rôle « prévisualisation interactive »
+        // de la page : les décisions Conserver/Requalifier en cours
+        // doivent se refléter en direct sur la `FiscalSummaryCard`.
         $snapshot = $this->engine->compute($declaration->company_id, $declaration->fiscal_year);
 
         return Inertia::render('User/Declarations/Review/Index', [

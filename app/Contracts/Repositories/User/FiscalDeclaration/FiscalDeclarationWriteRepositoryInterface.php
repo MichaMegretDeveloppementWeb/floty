@@ -42,13 +42,24 @@ interface FiscalDeclarationWriteRepositoryInterface
      * Matérialise une déclaration `draft`/`deferred` en `generated` :
      * passage du statut + pose des champs PDF + persistance de la
      * référence lisible `DECL-{shortCode}-{year}-{NNNN}` (Phase 11
-     * D5.5, calculée par {@see App\Services\Fiscal\Declaration\DeclarationReferenceGenerator}).
+     * D5.5, calculée par {@see App\Services\Fiscal\Declaration\DeclarationReferenceGenerator})
+     * + persistance du snapshot fiscal complet (Phase 11 D5.7.5,
+     * audit pré-livraison B5).
+     *
+     * **Lock pessimiste + double-check atomique** sur l'invariant
+     * `status=draft && is_obsolete=false` : ferme la fenêtre TOCTOU
+     * entre le guard de l'Action et la finalisation BDD. Throws
+     * `DomainException` si l'invariant n'est plus tenu (mutation
+     * concurrente).
+     *
+     * @param  array<string, mixed>  $snapshotPayload  Sérialisation JSON du DTO {@see App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData}
      */
     public function markAsGenerated(
         int $declarationId,
         string $pdfPath,
         string $pdfHash,
         string $reference,
+        array $snapshotPayload,
     ): void;
 
     /**

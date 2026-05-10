@@ -7,6 +7,7 @@ namespace App\Actions\FiscalDeclaration;
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
+use App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
 use App\Models\FiscalDeclaration;
@@ -93,13 +94,21 @@ final readonly class GenerateDeclarationAction
         $pdfBinary = $this->renderer->render($context);
         $stored = $this->storage->store($declaration, $pdfBinary);
 
+        // Sérialise le snapshot fiscal pour la persistance BDD
+        // (Phase 11 D5.7.5, audit B5). Garantit que la consultation
+        // future de la déclaration affiche **exactement** les montants
+        // calculés au moment de la génération, indépendamment des
+        // mutations contractuelles ultérieures.
+        $snapshotPayload = FiscalDeclarationSnapshotData::fromValueObject($snapshot)->toArray();
+
         try {
-            DB::transaction(function () use ($declaration, $stored, $reference): void {
+            DB::transaction(function () use ($declaration, $stored, $reference, $snapshotPayload): void {
                 $this->writer->markAsGenerated(
                     $declaration->id,
                     $stored['path'],
                     $stored['hash'],
                     $reference,
+                    $snapshotPayload,
                 );
             });
         } catch (Throwable $e) {
