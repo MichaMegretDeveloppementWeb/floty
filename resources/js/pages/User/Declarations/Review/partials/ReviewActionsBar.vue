@@ -3,6 +3,7 @@ import { router } from '@inertiajs/vue3';
 import { Clock, FileCheck2, LoaderCircle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
+import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
 import {
     generate as generateRoute,
@@ -20,6 +21,11 @@ const generating = ref<boolean>(false);
 const deferring = ref<boolean>(false);
 const isProcessing = computed<boolean>(() => generating.value || deferring.value);
 
+// Confirmation Mettre de côté · audit B21 pré-livraison.
+// Évite la perte accidentelle de contexte de revue après plusieurs
+// décisions tranchées (clic accidentel = retour à la liste).
+const deferConfirmOpen = ref<boolean>(false);
+
 const generateBlockedReason = computed<string | null>(() => {
     if (props.canGenerate) {
         return null;
@@ -31,10 +37,15 @@ const generateBlockedReason = computed<string | null>(() => {
     return 'Conditions de génération non remplies.';
 });
 
-function handleMarkDeferred(): void {
-    if (isProcessing.value) {
+function requestMarkDeferred(): void {
+    if (isProcessing.value || props.isDeferred) {
         return;
     }
+    deferConfirmOpen.value = true;
+}
+
+function confirmMarkDeferred(): void {
+    deferConfirmOpen.value = false;
     deferring.value = true;
     router.post(
         markDeferredRoute.url({ declaration: props.declarationId }),
@@ -85,7 +96,7 @@ function handleGenerate(): void {
             <Button
                 variant="ghost"
                 :disabled="isDeferred || isProcessing"
-                @click="handleMarkDeferred"
+                @click="requestMarkDeferred"
             >
                 <LoaderCircle v-if="deferring" :size="16" :stroke-width="1.75" class="animate-spin" />
                 <Clock v-else :size="16" :stroke-width="1.75" />
@@ -108,4 +119,13 @@ function handleGenerate(): void {
             </Button>
         </div>
     </div>
+
+    <ConfirmModal
+        v-model:open="deferConfirmOpen"
+        title="Mettre la déclaration de côté ?"
+        message="La déclaration passera en statut « différé ». Vous pourrez la reprendre à tout moment depuis cette même page. Aucune décision déjà prise ne sera perdue."
+        confirm-label="Mettre de côté"
+        cancel-label="Continuer la revue"
+        @confirm="confirmMarkDeferred"
+    />
 </template>

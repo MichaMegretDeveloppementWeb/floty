@@ -60,8 +60,28 @@ final readonly class StoreReviewDecisionAction
         return $decision;
     }
 
+    /**
+     * Limite la longueur d'une justification pour éviter le débordement
+     * du champ TEXT BDD et limiter la surface de stockage. 2000
+     * caractères suffit pour une justification fiscale détaillée
+     * (équivalent ~300 mots, audit B17 pré-livraison).
+     */
+    private const int JUSTIFICATION_MAX_LENGTH = 2000;
+
     private function guardJustificationIfRequired(StoreReviewDecisionData $data): void
     {
+        // Validation longueur : applicable même pour les Requalified
+        // ou clusters niveau moyen (audit B17). On veille à ne jamais
+        // accepter une justification de plusieurs MB (DOS du champ
+        // TEXT MySQL ou stockage disproportionné).
+        if ($data->justification !== null && mb_strlen($data->justification) > self::JUSTIFICATION_MAX_LENGTH) {
+            throw new InvalidArgumentException(sprintf(
+                'La justification ne peut pas dépasser %d caractères (longueur reçue : %d).',
+                self::JUSTIFICATION_MAX_LENGTH,
+                mb_strlen($data->justification),
+            ));
+        }
+
         if ($data->decision !== ReviewDecisionType::Conserved) {
             return;
         }

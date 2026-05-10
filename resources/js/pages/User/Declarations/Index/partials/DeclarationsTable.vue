@@ -71,8 +71,16 @@ const emit = defineEmits<{
         </template>
 
         <template #cell-isObsolete="{ row }">
-            <span v-if="row.isObsolete" class="text-rose-600">●</span>
-            <span v-else class="text-slate-300">·</span>
+            <span
+                v-if="row.isObsolete"
+                class="cursor-help text-rose-600"
+                title="Périmètre contractuel modifié depuis la génération · régénération recommandée"
+            >●</span>
+            <span
+                v-else
+                class="cursor-help text-slate-300"
+                title="Déclaration à jour · périmètre contractuel inchangé depuis la génération"
+            >·</span>
         </template>
 
         <template #cell-generatedAt="{ row }">

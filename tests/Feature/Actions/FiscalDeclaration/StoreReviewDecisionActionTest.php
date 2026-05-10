@@ -140,6 +140,41 @@ final class StoreReviewDecisionActionTest extends TestCase
         self::assertSame(ReviewDecisionType::Requalified, $decision->decision);
     }
 
+    #[Test]
+    public function refuse_si_justification_depasse_2000_caracteres(): void
+    {
+        // Audit B17 pré-livraison : limite défensive contre le
+        // débordement du champ TEXT BDD ou stockage disproportionné.
+        $longJustification = str_repeat('a', 2001);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/2000 caractères/');
+
+        $this->action->execute(
+            $this->makeData(
+                decision: ReviewDecisionType::Requalified,
+                justification: $longJustification,
+            ),
+            $this->user->id,
+        );
+    }
+
+    #[Test]
+    public function accepte_justification_a_la_limite_exacte_2000_caracteres(): void
+    {
+        $exactlyAtLimit = str_repeat('é', 2000); // 2000 caractères UTF-8
+
+        $decision = $this->action->execute(
+            $this->makeData(
+                decision: ReviewDecisionType::Requalified,
+                justification: $exactlyAtLimit,
+            ),
+            $this->user->id,
+        );
+
+        self::assertSame($exactlyAtLimit, $decision->justification);
+    }
+
     private function makeData(
         ?string $fingerprint = null,
         RiskCode $riskCode = RiskCode::Chain,
