@@ -15,7 +15,7 @@
 import { Calculator } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
-import { formatEuros } from '@/Utils/format/formatEuros';
+import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
@@ -55,15 +55,15 @@ const hasExempted = computed<boolean>(() => exemptedVehicles.value.length > 0);
             <dl class="flex flex-col gap-2 text-sm">
                 <div class="flex items-baseline justify-between border-b border-slate-100 pb-2">
                     <dt class="text-slate-600">Taxe CO₂ (CIBS L. 421-29)</dt>
-                    <dd class="font-medium text-slate-900 tabular-nums">{{ formatEuros(snapshot.co2DueTotal) }}</dd>
+                    <dd class="font-medium text-slate-900 tabular-nums">{{ formatEur(snapshot.co2DueTotal, 2) }}</dd>
                 </div>
                 <div class="flex items-baseline justify-between border-b border-slate-100 pb-2">
                     <dt class="text-slate-600">Taxe polluants atmosphériques (CIBS L. 421-58)</dt>
-                    <dd class="font-medium text-slate-900 tabular-nums">{{ formatEuros(snapshot.pollutantsDueTotal) }}</dd>
+                    <dd class="font-medium text-slate-900 tabular-nums">{{ formatEur(snapshot.pollutantsDueTotal, 2) }}</dd>
                 </div>
                 <div class="flex items-baseline justify-between pt-1">
                     <dt class="text-base font-semibold text-slate-900">Total dû</dt>
-                    <dd class="text-lg font-semibold text-slate-900 tabular-nums">{{ formatEuros(snapshot.totalDue) }}</dd>
+                    <dd class="text-lg font-semibold text-slate-900 tabular-nums">{{ formatEur(snapshot.totalDue, 2) }}</dd>
                 </div>
             </dl>
 
@@ -94,9 +94,9 @@ const hasExempted = computed<boolean>(() => exemptedVehicles.value.length > 0);
                                 >
                                     <td class="px-3 py-2">{{ row.vehicleLabel }}</td>
                                     <td class="px-3 py-2 text-right tabular-nums">{{ row.daysAssigned }}</td>
-                                    <td class="px-3 py-2 text-right tabular-nums">{{ formatEuros(row.co2Due) }}</td>
-                                    <td class="px-3 py-2 text-right tabular-nums">{{ formatEuros(row.pollutantsDue) }}</td>
-                                    <td class="px-3 py-2 text-right font-medium text-slate-900 tabular-nums">{{ formatEuros(row.totalDue) }}</td>
+                                    <td class="px-3 py-2 text-right tabular-nums">{{ formatEur(row.co2Due, 2) }}</td>
+                                    <td class="px-3 py-2 text-right tabular-nums">{{ formatEur(row.pollutantsDue, 2) }}</td>
+                                    <td class="px-3 py-2 text-right font-medium text-slate-900 tabular-nums">{{ formatEur(row.totalDue, 2) }}</td>
                                 </tr>
                             </tbody>
                         </table>
