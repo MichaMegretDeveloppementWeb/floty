@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Download, FileText, RefreshCcw } from 'lucide-vue-next';
+import { Download, FileText, LoaderCircle, RefreshCcw } from 'lucide-vue-next';
+import { ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { download as downloadRoute, regenerate as regenerateRoute } from '@/routes/user/declarations';
@@ -10,11 +11,22 @@ const props = defineProps<{
     declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
 }>();
 
+const regenerating = ref<boolean>(false);
+
 function handleRegenerate(): void {
+    if (regenerating.value) {
+        return;
+    }
+    regenerating.value = true;
     router.post(
         regenerateRoute.url({ declaration: props.declaration.id }),
         {},
-        { preserveScroll: true },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                regenerating.value = false;
+            },
+        },
     );
 }
 
@@ -49,9 +61,15 @@ function handleDownload(): void {
                     Télécharger le PDF
                 </Button>
 
-                <Button v-if="declaration.isObsolete" variant="destructive-soft" @click="handleRegenerate">
-                    <RefreshCcw :size="16" :stroke-width="1.75" />
-                    Régénérer
+                <Button
+                    v-if="declaration.isObsolete"
+                    variant="destructive-soft"
+                    :disabled="regenerating"
+                    @click="handleRegenerate"
+                >
+                    <LoaderCircle v-if="regenerating" :size="16" :stroke-width="1.75" class="animate-spin" />
+                    <RefreshCcw v-else :size="16" :stroke-width="1.75" />
+                    {{ regenerating ? 'Régénération…' : 'Régénérer' }}
                 </Button>
             </div>
         </div>

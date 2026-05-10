@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Clock, FileCheck2 } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { Clock, FileCheck2, LoaderCircle } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
 import {
@@ -16,6 +16,10 @@ const props = defineProps<{
     isDeferred: boolean;
 }>();
 
+const generating = ref<boolean>(false);
+const deferring = ref<boolean>(false);
+const isProcessing = computed<boolean>(() => generating.value || deferring.value);
+
 const generateBlockedReason = computed<string | null>(() => {
     if (props.canGenerate) {
         return null;
@@ -28,18 +32,36 @@ const generateBlockedReason = computed<string | null>(() => {
 });
 
 function handleMarkDeferred(): void {
+    if (isProcessing.value) {
+        return;
+    }
+    deferring.value = true;
     router.post(
         markDeferredRoute.url({ declaration: props.declarationId }),
         {},
-        { preserveScroll: true },
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                deferring.value = false;
+            },
+        },
     );
 }
 
 function handleGenerate(): void {
+    if (isProcessing.value) {
+        return;
+    }
+    generating.value = true;
     router.post(
         generateRoute.url({ declaration: props.declarationId }),
         {},
-        { preserveScroll: false },
+        {
+            preserveScroll: false,
+            onFinish: () => {
+                generating.value = false;
+            },
+        },
     );
 }
 </script>
@@ -62,10 +84,11 @@ function handleGenerate(): void {
         <div class="flex flex-wrap items-center gap-2">
             <Button
                 variant="ghost"
-                :disabled="isDeferred"
+                :disabled="isDeferred || isProcessing"
                 @click="handleMarkDeferred"
             >
-                <Clock :size="16" :stroke-width="1.75" />
+                <LoaderCircle v-if="deferring" :size="16" :stroke-width="1.75" class="animate-spin" />
+                <Clock v-else :size="16" :stroke-width="1.75" />
                 {{ isDeferred ? 'Mise de côté' : 'Mettre de côté' }}
             </Button>
 
@@ -78,9 +101,10 @@ function handleGenerate(): void {
                     {{ generateBlockedReason }}
                 </template>
             </Tooltip>
-            <Button v-else @click="handleGenerate">
-                <FileCheck2 :size="16" :stroke-width="1.75" />
-                Générer la déclaration
+            <Button v-else :disabled="isProcessing" @click="handleGenerate">
+                <LoaderCircle v-if="generating" :size="16" :stroke-width="1.75" class="animate-spin" />
+                <FileCheck2 v-else :size="16" :stroke-width="1.75" />
+                {{ generating ? 'Génération en cours…' : 'Générer la déclaration' }}
             </Button>
         </div>
     </div>

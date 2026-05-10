@@ -49,7 +49,7 @@ final class CreateDraftDeclarationActionTest extends TestCase
             ->create();
 
         $this->expectException(DomainException::class);
-        $this->expectExceptionMessage('déclaration active');
+        $this->expectExceptionMessageMatches('/déclaration 2025 existe déjà/');
 
         $this->action->execute($this->company->id, 2025);
     }

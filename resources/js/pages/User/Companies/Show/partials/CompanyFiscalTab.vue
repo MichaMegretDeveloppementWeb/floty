@@ -15,8 +15,8 @@
  * Contrats · chaque section a sa propre vie.
  */
 import { Link, router } from '@inertiajs/vue3';
-import { FileCheck2, FileText } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { FileCheck2, FileText, LoaderCircle } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
@@ -33,14 +33,24 @@ const props = defineProps<{
     activeDeclaration?: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
 }>();
 
+const preparing = ref<boolean>(false);
+
 function handlePrepare(): void {
+    if (preparing.value) {
+        return;
+    }
+    preparing.value = true;
     router.post(prepareDeclarationRoute.url(), {
         company_id: props.companyId,
         fiscal_year: props.fiscal.year,
+    }, {
+        onFinish: () => {
+            preparing.value = false;
+        },
     });
 }
 
-const { selectedYear, selectYear } = useCompanyFiscalSelectedYear(
+const { selectedYear, selectYear, loading: yearLoading } = useCompanyFiscalSelectedYear(
     props.fiscal.year,
 );
 
@@ -104,6 +114,7 @@ const isCurrentYear = computed<boolean>(
                     v-if="props.fiscal.availableYears.length > 0"
                     :years="props.fiscal.availableYears"
                     :active-year="selectedYear"
+                    :loading="yearLoading"
                     @select="selectYear"
                 />
             </div>
@@ -172,9 +183,10 @@ const isCurrentYear = computed<boolean>(
                             </Button>
                         </Link>
                     </template>
-                    <Button v-else @click="handlePrepare">
-                        <FileCheck2 :size="16" :stroke-width="1.75" />
-                        Préparer la déclaration
+                    <Button v-else :disabled="preparing" @click="handlePrepare">
+                        <LoaderCircle v-if="preparing" :size="16" :stroke-width="1.75" class="animate-spin" />
+                        <FileCheck2 v-else :size="16" :stroke-width="1.75" />
+                        {{ preparing ? 'Préparation…' : 'Préparer la déclaration' }}
                     </Button>
                 </div>
             </div>

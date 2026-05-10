@@ -11,8 +11,15 @@ defineProps<{
 </script>
 
 <template>
+    <!--
+        Une déclaration `Draft` ne devrait pas pouvoir devenir obsolète
+        (ADR-0015 D8 : invalidation seulement sur Generated/Deferred).
+        Guard défensif au cas où un trigger anormal poserait
+        `is_obsolete = true` sur une Draft - on évite l'affichage d'une
+        banner sans `obsoleteReasons` ni cohérence métier.
+    -->
     <div
-        v-if="declaration.isObsolete"
+        v-if="declaration.isObsolete && declaration.status !== 'draft'"
         class="flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 p-4"
     >
         <div class="flex items-start gap-3">

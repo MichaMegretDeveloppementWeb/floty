@@ -11,12 +11,17 @@
  */
 import { computed } from 'vue';
 
-const props = defineProps<{
-    /** Plage continue [firstYear..currentYear]. */
-    years: readonly number[];
-    /** Année active (ou null si filtre custom / pas de filtre). */
-    activeYear: number | null;
-}>();
+const props = withDefaults(
+    defineProps<{
+        /** Plage continue [firstYear..currentYear]. */
+        years: readonly number[];
+        /** Année active (ou null si filtre custom / pas de filtre). */
+        activeYear: number | null;
+        /** Désactive l'interaction pendant le partial reload Inertia. */
+        loading?: boolean;
+    }>(),
+    { loading: false },
+);
 
 const emit = defineEmits<{
     select: [year: number];
@@ -30,12 +35,16 @@ const reversedYears = computed<readonly number[]>(() =>
 
 function pillClass(year: number): string {
     const active = props.activeYear === year;
+    const disabled = props.loading;
+
+    const base = 'snap-start shrink-0 rounded-full border px-3 py-1 text-sm transition-colors duration-[120ms]';
+    const cursor = disabled ? 'cursor-wait opacity-60' : 'cursor-pointer';
 
     if (active) {
-        return 'snap-start shrink-0 rounded-full border border-blue-300 bg-blue-50 px-3 py-1 text-sm font-semibold text-blue-700 cursor-pointer transition-colors duration-[120ms]';
+        return `${base} ${cursor} border-blue-300 bg-blue-50 font-semibold text-blue-700`;
     }
 
-    return 'snap-start shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-sm font-medium text-slate-700 cursor-pointer transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50';
+    return `${base} ${cursor} border-slate-200 bg-white font-medium text-slate-700 ${disabled ? '' : 'hover:border-slate-300 hover:bg-slate-50'}`;
 }
 </script>
 
@@ -53,6 +62,7 @@ function pillClass(year: number): string {
                 v-for="year in reversedYears"
                 :key="year"
                 type="button"
+                :disabled="loading"
                 :class="pillClass(year)"
                 @click="emit('select', year)"
             >

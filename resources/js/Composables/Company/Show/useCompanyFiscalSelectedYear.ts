@@ -26,15 +26,18 @@ export function useCompanyFiscalSelectedYear(
 ): {
     selectedYear: Ref<number>;
     selectYear: (year: number) => void;
+    loading: Ref<boolean>;
 } {
     const selectedYear = ref<number>(initialYear);
+    const loading = ref<boolean>(false);
 
     function selectYear(year: number): void {
-        if (year === selectedYear.value) {
+        if (year === selectedYear.value || loading.value) {
             return;
         }
 
         selectedYear.value = year;
+        loading.value = true;
 
         // Préserve les autres query params existants (notamment `tab`,
         // `periodStart/End`, `page`...) en construisant l'URL à partir de
@@ -50,9 +53,12 @@ export function useCompanyFiscalSelectedYear(
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                onFinish: () => {
+                    loading.value = false;
+                },
             },
         );
     }
 
-    return { selectedYear, selectYear };
+    return { selectedYear, selectYear, loading };
 }

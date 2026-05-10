@@ -10,6 +10,7 @@ use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Crée le record initial d'une déclaration fiscale en statut `draft`
@@ -36,11 +37,19 @@ final readonly class CreateDraftDeclarationAction
         return DB::transaction(function () use ($companyId, $year): FiscalDeclaration {
             $existing = $this->reader->findActiveForCompanyYear($companyId, $year);
             if ($existing !== null) {
+                // Détails techniques loggués pour le debug (audit B4),
+                // pas exposés à l'utilisateur (audit B9).
+                Log::info('CreateDraftDeclaration refused: active declaration already exists', [
+                    'company_id' => $companyId,
+                    'fiscal_year' => $year,
+                    'existing_declaration_id' => $existing->id,
+                    'existing_status' => $existing->status->value,
+                    'existing_reference' => $existing->reference,
+                ]);
+
                 throw new DomainException(sprintf(
-                    'Une déclaration active existe déjà pour cette entreprise et l\'année %d (id=%d, statut=%s).',
+                    'Une déclaration %d existe déjà pour cette entreprise. Ouvrez-la pour la consulter ou la régénérer.',
                     $year,
-                    $existing->id,
-                    $existing->status->value,
                 ));
             }
 
