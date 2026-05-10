@@ -32,4 +32,10 @@ enum InvalidationReasonType: string
     case UnavailabilityCreated = 'unavailability_created';
     case UnavailabilityUpdated = 'unavailability_updated';
     case UnavailabilityDeleted = 'unavailability_deleted';
+
+    // Phase 11 D5.7.8 audit : Vehicle.exit_date modifie le périmètre
+    // taxable (clip des contrats post-clôture). Doit invalider les
+    // déclarations de l'année qui contiennent un contrat de ce
+    // véhicule. Cf. `VehicleObserver` + `DeclarationInvalidationDetector::flagForVehicle`.
+    case VehicleUpdated = 'vehicle_updated';
 }

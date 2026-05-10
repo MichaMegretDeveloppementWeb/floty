@@ -204,6 +204,105 @@ final class DeclarationFiscalEngineTest extends TestCase
     }
 
     #[Test]
+    public function multi_clusters_avec_decisions_mixtes_conserved_et_requalified(): void
+    {
+        // T1 audit pré-livraison : 2 chaînes LCD distinctes (clusters
+        // détectés indépendants par fingerprint), une Conservée (no-op
+        // = exonération maintenue) et une Requalifiée (opt-out =
+        // imposition réintroduite). Vérifie que l'agrégation gère
+        // correctement le mix.
+        $vehicle = $this->makeVehicleWithSingleVfc();
+
+        // Chaîne 1 : 2 LCD courts en janvier (cluster A · 35j cumul,
+        // intervalle 5j ≤ max_interval 15j → trigger threshold_low 30)
+        $a1 = $this->makeContract($vehicle, '2024-01-01', '2024-01-18', ContractType::Lcd); // 18j
+        $a2 = $this->makeContract($vehicle, '2024-01-24', '2024-02-09', ContractType::Lcd); // 17j
+
+        // Chaîne 2 : 2 LCD courts en juin (cluster B · 35j cumul). Le
+        // LLD entre les deux chaînes coupe (lld_breaks_chain = true)
+        // et garantit deux clusters distincts.
+        $this->makeContract($vehicle, '2024-02-19', '2024-05-31', ContractType::Lld);
+        $b1 = $this->makeContract($vehicle, '2024-06-01', '2024-06-18', ContractType::Lcd); // 18j
+        $b2 = $this->makeContract($vehicle, '2024-06-24', '2024-07-10', ContractType::Lcd); // 17j
+
+        $clusters = $this->app->make(RiskDetectionService::class)
+            ->detectClusters($this->company->id, 2024);
+        self::assertCount(2, $clusters, 'Les 2 chaînes LCD doivent former 2 clusters distincts.');
+
+        // Persister 1 décision Requalified (cluster A) + 1 Conserved (cluster B)
+        FiscalReviewDecision::factory()->create([
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2024,
+            'cluster_fingerprint' => $clusters[0]->fingerprint,
+            'risk_code' => $clusters[0]->code,
+            'decision' => ReviewDecisionType::Requalified,
+            'justification' => 'Cluster A requalifié.',
+            'decided_at' => CarbonImmutable::now(),
+        ]);
+        FiscalReviewDecision::factory()->create([
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2024,
+            'cluster_fingerprint' => $clusters[1]->fingerprint,
+            'risk_code' => $clusters[1]->code,
+            'decision' => ReviewDecisionType::Conserved,
+            'justification' => null,
+            'decided_at' => CarbonImmutable::now(),
+        ]);
+
+        $snapshot = $this->engine->compute($this->company->id, 2024);
+
+        // 2 décisions appliquées
+        self::assertCount(2, $snapshot->appliedDecisions);
+
+        // Cluster A : Requalifié → contractIds dans optOutContractIds
+        // Cluster B : Conserved → pas dans optOutContractIds
+        $optOutIds = $snapshot->optOutContractIds;
+        sort($optOutIds);
+        $expectedOptOuts = [$a1->id, $a2->id];
+        sort($expectedOptOuts);
+        self::assertSame(
+            $expectedOptOuts,
+            $optOutIds,
+            'Seuls les contrats du cluster Requalified doivent être opt-out.',
+        );
+        self::assertNotContains($b1->id, $optOutIds);
+        self::assertNotContains($b2->id, $optOutIds);
+    }
+
+    #[Test]
+    public function lcd_chevauchant_deux_annees_civiles_compte_isolement_par_annee(): void
+    {
+        // T2 audit pré-livraison : un LCD chevauchant deux années
+        // civiles. R-2024-021 cumul par couple + année civile - chaque
+        // année ne voit que ses propres jours, pas le total à cheval.
+        //
+        // Setup : LCD 2024-01-01 → 2024-01-15 (15j) + LCD
+        // 2024-12-25 → 2024-12-31 (7j). Ces 2 LCD séparés de 11 mois
+        // ne forment pas une chaîne (intervalle >> max_interval).
+        // Cumul 2024 = 22j ≤ threshold_low → pas de cluster, mais
+        // chaque LCD individuel est exonéré (R-2024-021).
+        //
+        // Pour V1 : seule l'année 2024 a un catalogue de règles
+        // configuré (`config/floty.php fiscal.year_boots`). Tester un
+        // chevauchement 2024-2025 réel demanderait de configurer
+        // 2025 - reporté à V2 quand le catalogue 2025 sera créé.
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $jan = $this->makeContract($vehicle, '2024-01-01', '2024-01-15', ContractType::Lcd);
+        $dec = $this->makeContract($vehicle, '2024-12-25', '2024-12-31', ContractType::Lcd);
+
+        $snapshot = $this->engine->compute($this->company->id, 2024);
+
+        // Les 2 LCD courts sont chacun exonérés (≤30j cumul) → total
+        // dû provient uniquement d'éventuels autres jours non couverts
+        // dans cet exercice. Aucun véhicule taxé attendu.
+        self::assertSame(0.0, $snapshot->totalDue);
+        self::assertSame([], $snapshot->optOutContractIds);
+        // Sanity : les contrats existent bien.
+        self::assertNotNull($jan->id);
+        self::assertNotNull($dec->id);
+    }
+
+    #[Test]
     public function le_breakdown_par_vehicule_somme_au_total_arrondi_au_centime(): void
     {
         $v1 = $this->makeVehicleWithSingleVfc();

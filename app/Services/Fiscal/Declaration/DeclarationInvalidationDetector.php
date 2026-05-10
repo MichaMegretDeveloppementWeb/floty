@@ -10,6 +10,7 @@ use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use App\Models\Contract;
 use App\Models\FiscalDeclaration;
 use App\Models\Unavailability;
+use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Invoice\InvoiceDivergenceFlagger;
 use Carbon\CarbonImmutable;
@@ -125,6 +126,55 @@ final readonly class DeclarationInvalidationDetector
                 entity: $entity,
                 actorUserId: $actorUserId,
                 fieldsChanged: [],
+            );
+        }
+    }
+
+    /**
+     * Invalide pour une mutation de Vehicle (Phase 11 D5.7.8 audit
+     * pré-livraison) : actuellement uniquement déclenché par
+     * {@see App\Observers\VehicleObserver::updated} sur changement
+     * d'`exit_date`. Le champ clôture les contrats au-delà de la date
+     * de sortie, donc le périmètre taxable change même si les
+     * contrats eux-mêmes n'ont pas été modifiés.
+     *
+     * Périmètre : les déclarations dont au moins un contrat utilise
+     * ce véhicule sur l'année.
+     *
+     * @param  list<string>  $fieldsChanged
+     */
+    public function flagForVehicle(
+        Vehicle $vehicle,
+        InvalidationReasonType $type,
+        int $actorUserId,
+        array $fieldsChanged = [],
+    ): void {
+        $tuples = DB::table('contracts')
+            ->where('vehicle_id', $vehicle->id)
+            ->whereNull('deleted_at')
+            ->select(['company_id', 'start_date', 'end_date'])
+            ->get();
+
+        $entity = [
+            'type' => 'vehicle',
+            'id' => $vehicle->id,
+            'label' => sprintf(
+                '%s · %s %s',
+                $vehicle->license_plate,
+                $vehicle->brand,
+                $vehicle->model,
+            ),
+        ];
+
+        foreach ($tuples as $tuple) {
+            $years = $this->yearsForRange((string) $tuple->start_date, (string) $tuple->end_date);
+            $this->flagDeclarationsForCompanyYears(
+                companyIds: [(int) $tuple->company_id],
+                years: $years,
+                type: $type,
+                entity: $entity,
+                actorUserId: $actorUserId,
+                fieldsChanged: $fieldsChanged,
             );
         }
     }

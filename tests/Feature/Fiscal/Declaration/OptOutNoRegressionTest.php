@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Fiscal\Declaration;
 
 use App\Enums\Contract\ContractType;
+use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -24,6 +25,7 @@ use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Fiscal\Year2024\Exemption\R2024_021_WithOptOuts;
 use App\Models\Company;
 use App\Models\Contract;
+use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
@@ -118,6 +120,90 @@ final class OptOutNoRegressionTest extends TestCase
             $standard->daysAssigned + 15,
             $withOptOut->daysAssigned,
             'exactement 15 jours supplémentaires (durée du LCD opt-out)',
+        );
+    }
+
+    #[Test]
+    public function r2024_008_indispos_reductrice_combinees_avec_opt_out_r2024_021(): void
+    {
+        // T6 audit pré-livraison : un LCD de 30j + 10j d'indispos
+        // réductrices `AccidentNoCirculation` (R-2024-008) qui chevauchent
+        // le LCD. Sans opt-out, le LCD est exonéré. Avec opt-out
+        // (Requalified), le LCD passe imposable, mais R-2024-008
+        // continue de réduire les jours non-circulants.
+        //
+        // Setup : LCD 30j en juin (2024-06-01 → 2024-06-30) + LLD
+        // full-year qui couvre l'année (assiette taxable). Indispo
+        // 2024-06-10 → 2024-06-19 (10j) sur ce véhicule.
+        //
+        // Cas A · Sans opt-out : standard. R-2024-021 exonère le LCD,
+        //   R-2024-008 ne s'applique qu'aux indispos hors-LCD (le LCD
+        //   est déjà exonéré). Total = LLD année - LCD jours -
+        //   indispos hors-LCD.
+        //
+        // Cas B · Avec opt-out (LCD requalifié) : R-2024-021 retire
+        //   l'exonération, le LCD redevient taxable. R-2024-008
+        //   continue de réduire les 10j d'indispos. Total = LLD
+        //   année - 10j indispos. La taxe doit augmenter par rapport
+        //   au cas A (les 30j LCD - 10j indispos = 20j net se rajoutent).
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        // LLD sur les 5 premiers mois + LCD juin + LLD aoû→déc
+        // pour respecter le trigger anti-overlap par véhicule.
+        $lldContract1 = $this->lldContract($vehicle, '2024-01-01', '2024-05-31');
+        $lcdContract = $this->lcdContract($vehicle, '2024-06-01', '2024-06-30');
+        $lldContract2 = $this->lldContract($vehicle, '2024-07-01', '2024-12-31');
+
+        $unavailability = new Unavailability;
+        $unavailability->setRawAttributes([
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2024-06-10',
+            'end_date' => '2024-06-19',
+            'type' => UnavailabilityType::AccidentNoCirculation->value,
+            'has_fiscal_impact' => true,
+            'description' => null,
+        ], true);
+        $unavailability->save();
+
+        $contracts = [$lldContract1, $lcdContract, $lldContract2];
+        $context = new PipelineContext(
+            vehicle: $vehicle,
+            fiscalYear: 2024,
+            daysInYear: $this->yearContext->daysInYear(2024),
+            contractsForPair: $contracts,
+            vehicleUnavailabilitiesInYear: [$unavailability],
+        );
+
+        // Cas A · standard sans opt-out
+        $standardExecutor = $this->makeOverlayedExecutor([]);
+        $standard = $standardExecutor->execute($context);
+
+        // Cas B · LCD requalifié (opt-out)
+        $requalifiedExecutor = $this->makeOverlayedExecutor([$lcdContract->id]);
+        $requalified = $requalifiedExecutor->execute($context);
+
+        // Avec LCD requalifié, le total dû doit être strictement
+        // supérieur (les 30j LCD réintégrés moins les 10j d'indispos
+        // = 20j taxables supplémentaires).
+        self::assertGreaterThan(
+            $standard->totalDue,
+            $requalified->totalDue,
+            'Requalifier le LCD doit augmenter la taxe.',
+        );
+
+        // Le delta exact devrait correspondre à 20j (30j LCD - 10j
+        // indispos R-2024-008). On valide la cohérence ordre de
+        // grandeur sans figer un montant exact (dépend du barème CO₂
+        // 2024 et des prorata précis).
+        $deltaDays = $requalified->daysAssigned - $standard->daysAssigned;
+        self::assertGreaterThanOrEqual(
+            15,
+            $deltaDays,
+            'Delta jours doit refléter ~20j (30j LCD - 10j indispos).',
+        );
+        self::assertLessThanOrEqual(
+            25,
+            $deltaDays,
+            'Delta jours ne doit pas dépasser la durée brute du LCD.',
         );
     }
 
