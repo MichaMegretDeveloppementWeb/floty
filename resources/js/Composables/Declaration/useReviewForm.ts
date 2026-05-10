@@ -1,7 +1,10 @@
 /**
  * Composable de soumission d'une décision de revue cluster (Phase 11
- * D4). Submit POST `/declarations/{id}/decisions` avec partial reload
- * sur `preview` après succès.
+ * D4 + D5.6). Submit POST `/declarations/{id}/decisions` avec partial
+ * reload sur `preview`, `declaration` et `snapshot` après succès -
+ * le snapshot reflète le total fiscal post-décision pour que la
+ * `FiscalSummaryCard` se mette à jour en direct (sinon les totaux
+ * affichés divergent des opt-outs en cours).
  */
 import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
@@ -31,7 +34,7 @@ export function useReviewForm(declarationId: number): {
             } as Record<string, unknown>,
             {
                 preserveScroll: true,
-                only: ['preview', 'declaration'],
+                only: ['preview', 'declaration', 'snapshot'],
                 onFinish: () => {
                     submitting.value = false;
                 },

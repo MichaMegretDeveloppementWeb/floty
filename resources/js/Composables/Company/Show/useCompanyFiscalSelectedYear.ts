@@ -9,8 +9,12 @@
  *  - `?tab=`            onglet actif
  *  - les params de pagination/tri standards (`page`, `sortKey`, …)
  *
- * Le partial reload Inertia recharge uniquement `companyFiscal` —
- * pas le DTO `company` complet, ni les contrats paginés.
+ * Le partial reload Inertia recharge **toutes les props dépendantes
+ * de `$fiscalYear`** côté controller : `companyFiscal` (breakdown
+ * véhicule), `fiscalActiveDeclaration` (déclaration active de
+ * l'année) et `pendingDeclarations` (alerte « À finaliser »). Ne
+ * recharge pas `company`, `contracts`, ni les autres props
+ * indépendantes du year fiscal.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -42,7 +46,7 @@ export function useCompanyFiscalSelectedYear(
             url.pathname + url.search,
             {},
             {
-                only: ['companyFiscal'],
+                only: ['companyFiscal', 'fiscalActiveDeclaration', 'pendingDeclarations'],
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
