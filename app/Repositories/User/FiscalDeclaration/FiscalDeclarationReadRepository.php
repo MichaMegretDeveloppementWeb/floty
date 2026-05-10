@@ -110,6 +110,7 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
                 ->leftJoin('companies', 'fiscal_declarations.company_id', '=', 'companies.id')
                 ->orderBy('companies.short_code', $direction),
             'fiscalYear' => $eloquentQuery->orderBy('fiscal_declarations.fiscal_year', $direction),
+            'reference' => $eloquentQuery->orderBy('fiscal_declarations.reference', $direction),
             'status' => $eloquentQuery->orderBy('fiscal_declarations.status', $direction),
             'generatedAt' => $eloquentQuery->orderBy('fiscal_declarations.generated_at', $direction),
             // Défaut : plus récente en premier (year DESC, company ASC).

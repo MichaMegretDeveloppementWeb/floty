@@ -5,14 +5,14 @@
  * UX cohérente avec l'onglet Contrats :
  * - Stats contextuelles sous le titre (jours cumulés + véhicules
  *   taxés + total CO₂/polluants/combiné), reflètent l'année active.
- * - Pills d'années cliquables (1 clic = exercice complet) — scalable
+ * - Pills d'années cliquables (1 clic = exercice complet) · scalable
  *   sur 20+ années via scroll horizontal.
  * - Pas de « période personnalisée » : la fiscalité raisonne
  *   strictement sur des exercices entiers.
  *
  * Le sélecteur d'année est **local et indépendant** (ADR-0020 D3).
  * Aucun lien avec le sélecteur global, ni avec celui de l'onglet
- * Contrats — chaque section a sa propre vie.
+ * Contrats · chaque section a sa propre vie.
  */
 import { Link, router } from '@inertiajs/vue3';
 import { FileCheck2, FileText } from 'lucide-vue-next';
@@ -74,7 +74,7 @@ const isCurrentYear = computed<boolean>(
                         <span
                             v-if="isCurrentYear"
                             class="ml-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-amber-700 uppercase"
-                            title="Exercice fiscal en cours — chiffres provisoires"
+                            title="Exercice fiscal en cours · chiffres provisoires"
                         >
                             En cours
                         </span>
@@ -109,7 +109,7 @@ const isCurrentYear = computed<boolean>(
             </div>
         </Card>
 
-        <!-- Phase 11 D4 — Déclaration fiscale annuelle (encart par année) -->
+        <!-- Phase 11 D4 + D5.7 · Déclaration fiscale annuelle (encart par année) -->
         <Card>
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="flex items-start gap-3">
@@ -141,6 +141,12 @@ const isCurrentYear = computed<boolean>(
                                 Préparer ouvre l'écran de revue où vous tranchez
                                 les éventuels clusters de risque avant génération.
                             </template>
+                        </p>
+                        <p
+                            v-if="props.activeDeclaration?.reference"
+                            class="font-mono text-[11px] text-slate-400"
+                        >
+                            {{ props.activeDeclaration.reference }}
                         </p>
                     </div>
                 </div>

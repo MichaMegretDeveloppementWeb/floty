@@ -57,6 +57,13 @@ const emit = defineEmits<{
             <span class="font-mono tabular-nums">{{ row.fiscalYear }}</span>
         </template>
 
+        <template #cell-reference="{ row }">
+            <span v-if="row.reference" class="font-mono text-xs whitespace-nowrap text-slate-700">
+                {{ row.reference }}
+            </span>
+            <span v-else class="text-slate-300">·</span>
+        </template>
+
         <template #cell-status="{ row }">
             <StatusPill :tone="badgeForDeclaration(row.status, row.isObsolete).tone">
                 {{ badgeForDeclaration(row.status, row.isObsolete).label }}
@@ -104,6 +111,9 @@ const emit = defineEmits<{
                         </StatusPill>
                     </div>
                     <span class="text-xs text-slate-500">{{ row.companyLegalName }}</span>
+                    <p v-if="row.reference" class="font-mono text-[11px] text-slate-500">
+                        {{ row.reference }}
+                    </p>
                     <p v-if="row.generatedAt" class="font-mono text-[11px] text-slate-400">
                         Générée le {{ formatDateFr(row.generatedAt) }}
                     </p>

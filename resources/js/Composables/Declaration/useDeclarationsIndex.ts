@@ -69,6 +69,7 @@ export function useDeclarationsIndex(opts: {
     const columns: readonly DataTableColumn<DeclarationRow>[] = [
         { key: 'companyShortCode', label: 'Entreprise' },
         { key: 'fiscalYear', label: 'Année', mono: true, align: 'center' },
+        { key: 'reference', label: 'Référence', mono: true },
         { key: 'status', label: 'Statut' },
         { key: 'isObsolete', label: 'Obsolète', align: 'center' },
         { key: 'generatedAt', label: 'Générée le', mono: true },

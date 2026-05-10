@@ -24,6 +24,8 @@ final class DeclarationListItemData extends Data
         public string $companyLegalName,
         public int $fiscalYear,
         public FiscalDeclarationStatus $status,
+        /** Numéro lisible `DECL-{shortCode}-{year}-{NNNN}` (Phase 11 D5.3). Null si pas encore générée. */
+        public ?string $reference,
         public bool $isObsolete,
         /** ISO 8601 (Y-m-d). Null si pas encore générée. */
         public ?string $generatedAt,
@@ -40,6 +42,7 @@ final class DeclarationListItemData extends Data
             companyLegalName: $declaration->company->legal_name,
             fiscalYear: $declaration->fiscal_year,
             status: $declaration->status,
+            reference: $declaration->reference,
             isObsolete: $declaration->is_obsolete,
             generatedAt: $declaration->generated_at?->toDateString(),
             generatedPdfHash: $declaration->generated_pdf_hash,
