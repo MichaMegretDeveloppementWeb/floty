@@ -11,6 +11,7 @@ use App\Enums\FiscalReviewDecision\RiskLevel;
 use App\Models\FiscalReviewDecision;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 /**
@@ -34,7 +35,7 @@ final readonly class StoreReviewDecisionAction
     {
         $this->guardJustificationIfRequired($data);
 
-        return DB::transaction(fn (): FiscalReviewDecision => $this->writer->upsert([
+        $decision = DB::transaction(fn (): FiscalReviewDecision => $this->writer->upsert([
             'company_id' => $data->companyId,
             'fiscal_year' => $data->fiscalYear,
             'risk_code' => $data->riskCode,
@@ -44,6 +45,19 @@ final readonly class StoreReviewDecisionAction
             'decided_by' => $userId,
             'decided_at' => Carbon::now(),
         ]));
+
+        Log::info('FiscalReviewDecision stored', [
+            'decision_id' => $decision->id,
+            'company_id' => $data->companyId,
+            'fiscal_year' => $data->fiscalYear,
+            'risk_code' => $data->riskCode->value,
+            'cluster_fingerprint_short' => substr($data->clusterFingerprint, 0, 12),
+            'decision' => $data->decision->value,
+            'has_justification' => $data->justification !== null && trim($data->justification) !== '',
+            'decided_by_user_id' => $userId,
+        ]);
+
+        return $decision;
     }
 
     private function guardJustificationIfRequired(StoreReviewDecisionData $data): void

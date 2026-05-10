@@ -9,6 +9,7 @@ use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Passe une déclaration `draft` en statut `deferred` (Phase 11 D3,
@@ -46,6 +47,12 @@ final readonly class MarkDeclarationAsDeferredAction
             }
 
             $declaration->fill(['status' => FiscalDeclarationStatus::Deferred])->save();
+
+            Log::info('FiscalDeclaration marked deferred', [
+                'declaration_id' => $declaration->id,
+                'company_id' => $declaration->company_id,
+                'fiscal_year' => $declaration->fiscal_year,
+            ]);
 
             return $declaration->fresh();
         });

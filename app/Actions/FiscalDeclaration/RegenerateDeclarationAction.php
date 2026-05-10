@@ -10,6 +10,7 @@ use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Régénère une déclaration obsolète : crée un nouveau record `draft`
@@ -54,6 +55,14 @@ final readonly class RegenerateDeclarationAction
             ]);
 
             $this->writer->linkSupersededBy($obsolete->id, $newDeclaration->id);
+
+            Log::info('FiscalDeclaration regenerated', [
+                'old_declaration_id' => $obsolete->id,
+                'new_declaration_id' => $newDeclaration->id,
+                'company_id' => $obsolete->company_id,
+                'fiscal_year' => $obsolete->fiscal_year,
+                'previous_reference' => $obsolete->reference,
+            ]);
 
             return $newDeclaration;
         });

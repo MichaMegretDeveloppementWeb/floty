@@ -7,6 +7,7 @@ namespace App\Actions\FiscalDeclaration;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
 use App\Data\User\FiscalDeclaration\InvalidationReasonData;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Marque une déclaration comme obsolète et empile un motif typé dans
@@ -33,5 +34,15 @@ final readonly class MarkDeclarationAsObsoleteAction
     public function execute(int $declarationId, InvalidationReasonData $reason): void
     {
         DB::transaction(fn () => $this->writer->markAsObsolete($declarationId, $reason));
+
+        Log::info('FiscalDeclaration marked obsolete', [
+            'declaration_id' => $declarationId,
+            'reason_type' => $reason->type->value,
+            'occurred_at' => $reason->occurredAt,
+            'actor_user_id' => $reason->actorUserId,
+            'entity_type' => $reason->entity['type'],
+            'entity_id' => $reason->entity['id'],
+            'fields_changed' => $reason->fieldsChanged,
+        ]);
     }
 }

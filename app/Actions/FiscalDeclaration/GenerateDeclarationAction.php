@@ -17,6 +17,7 @@ use App\Services\Pdf\DeclarationPdfStorage;
 use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Throwable;
 
 /**
@@ -102,9 +103,33 @@ final readonly class GenerateDeclarationAction
                 );
             });
         } catch (Throwable $e) {
-            // PDF orphelin laissé sur disque (pattern D8 conservation).
+            // PDF orphelin sur disque : la persistance disque a réussi mais
+            // la mise à jour BDD a échoué. Pattern D8 conservation : on
+            // **ne supprime pas** le PDF (immuabilité fiscale) mais on
+            // log critique pour permettre cleanup opérateur si nécessaire.
+            Log::critical('FiscalDeclaration: PDF stored on disk but database update failed (orphan PDF)', [
+                'declaration_id' => $declaration->id,
+                'company_id' => $declaration->company_id,
+                'fiscal_year' => $declaration->fiscal_year,
+                'reference' => $reference,
+                'pdf_path' => $stored['path'],
+                'pdf_hash' => $stored['hash'],
+                'error_message' => $e->getMessage(),
+                'error_class' => $e::class,
+            ]);
+
             throw $e;
         }
+
+        Log::info('FiscalDeclaration generated', [
+            'declaration_id' => $declaration->id,
+            'company_id' => $declaration->company_id,
+            'fiscal_year' => $declaration->fiscal_year,
+            'reference' => $reference,
+            'pdf_path' => $stored['path'],
+            'total_due' => $snapshot->totalDue,
+            'opt_outs_count' => count($snapshot->optOutContractIds),
+        ]);
 
         return $declaration->fresh();
     }
