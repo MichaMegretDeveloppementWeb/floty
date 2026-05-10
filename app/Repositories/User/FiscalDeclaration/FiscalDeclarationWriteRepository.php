@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepo
 use App\Data\User\FiscalDeclaration\InvalidationReasonData;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
+use DomainException;
 use Illuminate\Support\Carbon;
 
 final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRepositoryInterface
@@ -53,7 +54,25 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
         string $pdfHash,
         string $reference,
     ): void {
-        $declaration = FiscalDeclaration::query()->findOrFail($declarationId);
+        // Lock pessimiste + double-check atomique du statut/obsolescence
+        // pour fermer la fenêtre TOCTOU entre la décision de générer
+        // (`GenerateDeclarationAction::guardCanGenerate`) et la
+        // finalisation BDD. Si une mutation concurrente a fait passer
+        // la déclaration en `obsolete` ou changé son statut entre
+        // temps, l'INSERT échoue proprement.
+        $declaration = FiscalDeclaration::query()
+            ->whereKey($declarationId)
+            ->where('status', FiscalDeclarationStatus::Draft->value)
+            ->where('is_obsolete', false)
+            ->lockForUpdate()
+            ->first();
+
+        if ($declaration === null) {
+            throw new DomainException(sprintf(
+                'Génération impossible : la déclaration %d n\'est plus en statut « draft » non obsolète (mutation concurrente).',
+                $declarationId,
+            ));
+        }
 
         $declaration->fill([
             'status' => FiscalDeclarationStatus::Generated,

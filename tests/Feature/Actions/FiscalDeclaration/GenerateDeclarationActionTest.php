@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Actions\FiscalDeclaration;
 
 use App\Actions\FiscalDeclaration\GenerateDeclarationAction;
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
 use App\Enums\Contract\ContractType;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\Company;
@@ -156,6 +157,35 @@ final class GenerateDeclarationActionTest extends TestCase
         $generated = $this->action->execute($declaration->id);
 
         self::assertSame('DECL-ACM-2025-0001', $generated->reference);
+    }
+
+    #[Test]
+    public function repository_throws_si_mutation_concurrente_change_le_statut_avant_le_mark_as_generated(): void
+    {
+        // Simulate TOCTOU : une déclaration `draft` qui devient `obsolete`
+        // entre le guard d'Action et le `markAsGenerated` final. Le repo
+        // refuse l'INSERT pour préserver l'invariant statut/obsolescence.
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        // Pose `is_obsolete = true` directement en base (mutation
+        // concurrente simulée).
+        $declaration->fill(['is_obsolete' => true, 'obsolete_at' => now()])->save();
+
+        $writer = $this->app->make(FiscalDeclarationWriteRepositoryInterface::class);
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessageMatches('/mutation concurrente/');
+
+        $writer->markAsGenerated(
+            $declaration->id,
+            'declarations/test/x.pdf',
+            str_repeat('a', 64),
+            'DECL-TEST-2025-0001',
+        );
     }
 
     #[Test]
