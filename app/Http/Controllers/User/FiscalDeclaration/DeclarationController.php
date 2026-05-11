@@ -15,6 +15,7 @@ use App\Data\User\FiscalDeclaration\DeclarationIndexQueryData;
 use App\Data\User\FiscalDeclaration\DeclarationListItemData;
 use App\Data\User\FiscalDeclaration\FiscalDeclarationData;
 use App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData;
+use App\Data\User\FiscalDeclaration\InvalidationReasonData;
 use App\Data\User\FiscalDeclaration\PaginatedDeclarationListData;
 use App\Data\User\FiscalDeclaration\PrepareDeclarationData;
 use App\Data\User\FiscalReviewDecision\StoreReviewDecisionData;
@@ -92,6 +93,8 @@ final class DeclarationController extends Controller
     {
         Gate::authorize('view', $declaration);
 
+        $predecessor = $this->reader->findPredecessorOf($declaration->id);
+
         return Inertia::render('User/Declarations/Show/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
             'snapshot' => $this->resolveSnapshotData($declaration),
@@ -100,6 +103,12 @@ final class DeclarationController extends Controller
                 ->map(static fn (FiscalDeclaration $d): DeclarationListItemData => DeclarationListItemData::fromModel($d->load('company')))
                 ->values()
                 ->all(),
+            // Phase 11 D5.8.3 · si cette déclaration remplace une version
+            // obsolète (chaîne `superseded_by_id`), expose-la pour que la
+            // page rende un mini banner narratif rappelant la traçabilité.
+            'predecessorDeclaration' => $predecessor !== null
+                ? DeclarationListItemData::fromModel($predecessor->load('company'))
+                : null,
         ]);
     }
 
@@ -157,10 +166,27 @@ final class DeclarationController extends Controller
         // doivent se refléter en direct sur la `FiscalSummaryCard`.
         $snapshot = $this->engine->compute($declaration->company_id, $declaration->fiscal_year);
 
+        // Phase 11 D5.8.3 · si ce Draft est chaîné (régénération en
+        // cours), expose la version obsolète remplacée pour permettre
+        // au `<ReviewContextBanner>` de basculer en mode régénération
+        // avec le contexte des motifs d'obsolescence.
+        $predecessor = $this->reader->findPredecessorOf($declaration->id);
+        $obsoleteReasons = [];
+        if ($predecessor !== null && $predecessor->obsolete_reasons !== null) {
+            $obsoleteReasons = array_map(
+                static fn (array $raw): InvalidationReasonData => InvalidationReasonData::fromArray($raw),
+                $predecessor->obsolete_reasons,
+            );
+        }
+
         return Inertia::render('User/Declarations/Review/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
             'preview' => $preview,
             'snapshot' => FiscalDeclarationSnapshotData::fromValueObject($snapshot),
+            'predecessorDeclaration' => $predecessor !== null
+                ? DeclarationListItemData::fromModel($predecessor->load('company'))
+                : null,
+            'obsoleteReasons' => $obsoleteReasons,
         ]);
     }
 

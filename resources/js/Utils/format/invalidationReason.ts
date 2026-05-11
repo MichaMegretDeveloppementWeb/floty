@@ -19,6 +19,7 @@ const VERB_BY_TYPE: Record<Type, string> = {
     unavailability_created: 'Indisponibilité ajoutée',
     unavailability_updated: 'Indisponibilité modifiée',
     unavailability_deleted: 'Indisponibilité supprimée',
+    vehicle_updated: 'Véhicule modifié',
 };
 
 export function formatInvalidationReason(reason: Reason): string {
