@@ -964,7 +964,24 @@ final class CompanyControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->has('companyFiscal.rows', 2)
-                ->where('companyFiscal.totalDays', 39),
+                ->where('companyFiscal.totalDays', 39)
+                // Phase 12 D5.9.A · `contractsCount` agrège toutes les
+                // paires véhicule × company (ici 2 contrats sur 2 véhicules).
+                ->where('companyFiscal.contractsCount', 2),
+            );
+    }
+
+    #[Test]
+    public function show_company_fiscal_expose_contracts_count_a_zero_quand_aucun_contrat(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?fiscalYear=2024')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companyFiscal.contractsCount', 0),
             );
     }
 

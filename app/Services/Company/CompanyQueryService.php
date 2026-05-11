@@ -519,10 +519,14 @@ final class CompanyQueryService
 
         $vehicleIds = [];
         $daysPerVehicle = [];
+        // Phase 12 D5.9.A · compteur de contrats pour la carte recap
+        // (toutes paires véhicule × company sur l'exercice).
+        $totalContracts = 0;
         foreach ($contractsByPair->pairsForCompany($companyId) as $vehicleId => $pairContracts) {
             $vehicleIds[] = $vehicleId;
+            $totalContracts += count($pairContracts);
             // Compteur de jours en pré-calcul, indépendant du pipeline
-            // fiscal — utilisé pour la colonne `daysUsed` même si la
+            // fiscal · utilisé pour la colonne `daysUsed` même si la
             // config fiscale de l'année est absente (cas FiscalCalculationException).
             $days = 0;
             foreach ($pairContracts as $contract) {
@@ -541,6 +545,7 @@ final class CompanyQueryService
                 totalTaxCo2: 0.0,
                 totalTaxPollutants: 0.0,
                 totalTaxAll: 0.0,
+                contractsCount: 0,
             );
         }
 
@@ -619,6 +624,7 @@ final class CompanyQueryService
             totalTaxCo2: $totalTaxCo2,
             totalTaxPollutants: $totalTaxPollutants,
             totalTaxAll: round($totalTaxCo2 + $totalTaxPollutants, 2, PHP_ROUND_HALF_UP),
+            contractsCount: $totalContracts,
         );
     }
 
