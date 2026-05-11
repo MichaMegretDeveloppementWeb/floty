@@ -1,27 +1,27 @@
 <script setup lang="ts">
 /**
  * Table chronologique des contrats d'une déclaration fiscale avec
- * groupage visuel par cluster LCD à risque (Phase 11 D5.8).
+ * groupage visuel par cluster LCD à risque (Phase 11 D5.8, refondu
+ * D5.9.C avec modale de décision).
  *
  * Itère sur `contractBreakdown` (déjà trié `(vehicleLabel, startDate)`
  * côté backend), détecte les transitions de `clusterFingerprint` pour
  * regrouper les contrats consécutifs partageant le même cluster dans
  * une boîte visuelle (composant `<ClusterGroup>`). Les contrats sans
- * cluster sont rendus directement comme des `<ContractRow>` isolées.
+ * cluster sont rendus comme des `<ContractRow>` isolées.
  *
  * **Mode interactif** : quand `reviewClusters` est fourni (page
- * Review), le composant affiche les actions Conserver / Requalifier
- * + champ justification sur chaque cluster. L'événement `submit` est
- * émis avec les arguments nécessaires au useReviewForm appelant.
+ * Review), un bouton « Décider » apparaît dans le header de chaque
+ * cluster et ouvre `<ClusterDecisionModal>`. À la soumission, l'event
+ * `submit(cluster, decision, justification)` est ré-émis au parent.
  *
- * **Mode passif** (page Show) : `reviewClusters` est `undefined`, les
- * boutons d'action ne sont pas rendus. La décision déjà persistée
- * (portée par `contract.clusterDecision`) est affichée dans le
- * header du `ClusterGroup`.
+ * **Mode passif** (page Show) : `reviewClusters` est `undefined`,
+ * aucune modale n'est montée. Les ClusterGroup affichent la décision
+ * déjà prise (badge dans le header + justification persistée en
+ * dessous).
  */
-import { computed, ref, watch } from 'vue';
-import Button from '@/Components/Ui/Button/Button.vue';
-import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
+import { computed, ref } from 'vue';
+import ClusterDecisionModal from './ClusterDecisionModal.vue';
 import ClusterGroup from './ClusterGroup.vue';
 import ContractRow from './ContractRow.vue';
 
@@ -34,7 +34,7 @@ type Group =
 
 const props = defineProps<{
     contractBreakdown: Contract[];
-    /** Clusters fournis en page Review pour activer les boutons d'action. Absent en page Show (mode passif). */
+    /** Clusters fournis en page Review pour activer la modale de décision. Absent en page Show (mode passif). */
     reviewClusters?: ReviewCluster[];
     submitting?: boolean;
 }>();
@@ -48,6 +48,7 @@ const emit = defineEmits<{
 }>();
 
 const COLSPAN = 5;
+const CLUSTER_ROW_BG = 'bg-slate-50';
 
 const isInteractive = computed<boolean>(() => props.reviewClusters !== undefined);
 
@@ -171,48 +172,27 @@ function metaFromCluster(
 }
 
 /**
- * Justifications saisies en cours par fingerprint. Initialisées depuis
- * la justification existante du cluster, mises à jour à chaque saisie.
+ * État de la modale de décision (Phase 12 D5.9.C). La modale est
+ * partagée entre tous les clusters interactifs · seul le cluster
+ * sélectionné est passé en prop quand ouverte.
  */
-const justifications = ref<Record<string, string>>({});
+const modalOpen = ref<boolean>(false);
+const selectedCluster = ref<ReviewCluster | null>(null);
 
-watch(
-    () => props.reviewClusters,
-    (clusters) => {
-        if (clusters === undefined) {
-            return;
-        }
-
-        for (const cluster of clusters) {
-            if (!(cluster.fingerprint in justifications.value)) {
-                justifications.value[cluster.fingerprint] = cluster.justification ?? '';
-            }
-        }
-    },
-    { immediate: true, deep: true },
-);
-
-function isHighLevel(level: App.Enums.FiscalReviewDecision.RiskLevel): boolean {
-    return level === 'eleve';
+function openModalFor(cluster: ReviewCluster): void {
+    selectedCluster.value = cluster;
+    modalOpen.value = true;
 }
 
-function justificationRequired(level: App.Enums.FiscalReviewDecision.RiskLevel): boolean {
-    return isHighLevel(level);
-}
-
-function handleConserve(cluster: ReviewCluster): void {
-    const raw = justifications.value[cluster.fingerprint] ?? '';
-
-    if (justificationRequired(cluster.level) && raw.trim() === '') {
-        return;
+function handleModalSubmit(
+    decision: 'conserved' | 'requalified',
+    justification: string | null,
+): void {
+    if (selectedCluster.value !== null) {
+        emit('submit', selectedCluster.value, decision, justification);
     }
 
-    emit('submit', cluster, 'conserved', raw.trim() || null);
-}
-
-function handleRequalify(cluster: ReviewCluster): void {
-    const raw = justifications.value[cluster.fingerprint] ?? '';
-    emit('submit', cluster, 'requalified', raw.trim() || null);
+    modalOpen.value = false;
 }
 
 defineExpose({
@@ -230,7 +210,7 @@ defineExpose({
 <template>
     <div class="overflow-hidden rounded-lg border border-slate-200">
         <table class="w-full text-sm">
-            <thead class="bg-slate-50 text-xs font-medium tracking-wide text-slate-500 uppercase">
+            <thead class="bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
                 <tr>
                     <th class="px-3 py-2 text-left font-medium">Période</th>
                     <th class="px-3 py-2 text-left font-medium">Type</th>
@@ -256,53 +236,15 @@ defineExpose({
                                 :colspan="COLSPAN"
                                 :decision="metaFromCluster(group.fingerprint, group.contracts)!.decision"
                                 :vehicle-label="metaFromCluster(group.fingerprint, group.contracts)!.vehicleLabel"
+                                :interactive="isInteractive && reviewClusterByFingerprint.has(group.fingerprint)"
+                                :justification="metaFromCluster(group.fingerprint, group.contracts)!.justification"
+                                @edit-decision="openModalFor(reviewClusterByFingerprint.get(group.fingerprint)!)"
                             >
-                                <template v-if="isInteractive && reviewClusterByFingerprint.get(group.fingerprint)" #actions>
-                                    <Button
-                                        size="sm"
-                                        variant="secondary"
-                                        :loading="submitting"
-                                        :disabled="
-                                            justificationRequired(reviewClusterByFingerprint.get(group.fingerprint)!.level)
-                                                && (justifications[group.fingerprint] ?? '').trim() === ''
-                                        "
-                                        @click="handleConserve(reviewClusterByFingerprint.get(group.fingerprint)!)"
-                                    >
-                                        Conserver
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="destructive-soft"
-                                        :loading="submitting"
-                                        @click="handleRequalify(reviewClusterByFingerprint.get(group.fingerprint)!)"
-                                    >
-                                        Requalifier en LLD
-                                    </Button>
-                                </template>
-
-                                <template v-if="isInteractive && reviewClusterByFingerprint.get(group.fingerprint)" #justification-form>
-                                    <TextInput
-                                        :model-value="justifications[group.fingerprint] ?? ''"
-                                        :label="
-                                            justificationRequired(reviewClusterByFingerprint.get(group.fingerprint)!.level)
-                                                ? 'Justification (obligatoire si conservée)'
-                                                : 'Justification (optionnelle)'
-                                        "
-                                        placeholder="Décrivez le contexte qui justifie votre choix..."
-                                        @update:model-value="(v: string) => { justifications[group.fingerprint] = v; }"
-                                    />
-                                </template>
-
-                                <template v-else-if="metaFromCluster(group.fingerprint, group.contracts)!.justification" #justification-form>
-                                    <p class="text-xs italic text-slate-600">
-                                        {{ metaFromCluster(group.fingerprint, group.contracts)!.justification }}
-                                    </p>
-                                </template>
-
                                 <ContractRow
                                     v-for="contract in group.contracts"
                                     :key="contract.contractId"
                                     :contract="contract"
+                                    :bg-class="CLUSTER_ROW_BG"
                                 />
                             </ClusterGroup>
                         </template>
@@ -323,5 +265,13 @@ defineExpose({
                 </tr>
             </tbody>
         </table>
+
+        <ClusterDecisionModal
+            v-if="isInteractive"
+            v-model:open="modalOpen"
+            :cluster="selectedCluster"
+            :submitting="props.submitting ?? false"
+            @submit="handleModalSubmit"
+        />
     </div>
 </template>
