@@ -83,14 +83,14 @@ watch(isOpen, async (open) => {
 
 const triggerStateClasses = computed<string>(() => {
     if (props.error) {
-        return 'border-rose-600 text-rose-700 focus-visible:shadow-[0_0_0_3px_var(--color-rose-50)]';
+        return 'cursor-pointer border-rose-600 text-rose-700 focus-visible:ring-2 focus-visible:ring-rose-200';
     }
 
     if (props.disabled) {
-        return 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed';
+        return 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400';
     }
 
-    return 'border-slate-200 text-slate-900 focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]';
+    return 'cursor-pointer border-slate-200 text-slate-900 hover:border-slate-300 focus-visible:border-slate-400 focus-visible:ring-2 focus-visible:ring-slate-200';
 });
 
 function onTriggerClick(): void {

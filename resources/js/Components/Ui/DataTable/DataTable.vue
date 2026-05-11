@@ -93,13 +93,16 @@ const alignClass = (align: DataTableColumnAlign | undefined): string => {
                     <tr
                         v-for="row in rows"
                         :key="rowKey(row)"
+                        :tabindex="clickable ? 0 : undefined"
                         :class="[
                             'border-b border-slate-100 last:border-b-0 transition-colors duration-[120ms] ease-out',
                             clickable || slots['row-actions']
-                                ? 'cursor-pointer hover:bg-slate-50'
+                                ? 'cursor-pointer hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-200'
                                 : '',
                         ]"
                         @click="emit('row-click', row)"
+                        @keydown.enter="clickable && emit('row-click', row)"
+                        @keydown.space.prevent="clickable && emit('row-click', row)"
                     >
                         <td
                             v-for="column in columns"

@@ -75,7 +75,7 @@ const label = computed<string | null>(() => {
         {{ label }}
         <button
             type="button"
-            class="inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-blue-700 transition-colors duration-[120ms] hover:bg-blue-100"
+            class="inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full text-blue-700 transition-colors duration-[120ms] hover:bg-blue-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
             aria-label="Retirer le filtre"
             @click="emit('clear')"
         >

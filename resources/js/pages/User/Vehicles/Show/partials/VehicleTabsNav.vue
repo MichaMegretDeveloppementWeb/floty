@@ -28,7 +28,7 @@ const tabs: readonly { key: VehicleTabKey; label: string }[] = [
             role="tab"
             :aria-selected="activeTab === tab.key"
             :class="[
-                'shrink-0 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                'inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200',
                 activeTab === tab.key
                     ? 'border-blue-600 text-blue-700'
                     : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900',

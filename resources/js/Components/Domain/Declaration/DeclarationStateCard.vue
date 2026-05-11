@@ -27,8 +27,6 @@ import {
     AlertTriangle,
     ArrowUpRight,
     CheckCircle2,
-    ChevronDown,
-    ChevronUp,
     Clock,
     Download,
     FileCheck2,
@@ -61,7 +59,6 @@ const props = defineProps<{
 
 const preparing = ref<boolean>(false);
 const regenerating = ref<boolean>(false);
-const historyExpanded = ref<boolean>(false);
 
 const current = computed(() => props.lifecycle.currentDeclaration);
 const predecessor = computed(() => props.lifecycle.predecessorDeclaration);
@@ -242,38 +239,13 @@ function handleRegenerate(): void {
                 </div>
             </div>
 
-            <div v-if="lifecycle.historyChain.length > 0" class="border-t border-slate-100 pt-2">
-                <button
-                    type="button"
-                    class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 hover:text-slate-700"
-                    @click="historyExpanded = !historyExpanded"
-                >
-                    <component
-                        :is="historyExpanded ? ChevronUp : ChevronDown"
-                        :size="14"
-                        :stroke-width="1.75"
-                    />
-                    Historique des versions ({{ lifecycle.historyChain.length }})
-                </button>
-                <ul v-if="historyExpanded" class="mt-2 flex flex-col gap-1">
-                    <li
-                        v-for="version in lifecycle.historyChain"
-                        :key="version.id"
-                        class="flex items-center gap-2 text-xs text-slate-500"
-                    >
-                        <Link
-                            :href="showDeclarationRoute.url({ declaration: version.id })"
-                            class="font-mono text-slate-600 hover:text-slate-900 hover:underline"
-                        >
-                            {{ version.reference ?? `Version #${version.id}` }}
-                        </Link>
-                        <StatusPill tone="rose">Obsolète</StatusPill>
-                        <span v-if="version.generatedAt" class="text-slate-400">
-                            · {{ new Date(version.generatedAt).toLocaleDateString('fr-FR') }}
-                        </span>
-                    </li>
-                </ul>
-            </div>
+            <!--
+                Phase 12 D5.9.E · accordion historique retiré.
+                Information disponible et plus complète sur la page Show
+                de la déclaration (composant `<HistoryChainCard>`),
+                accessible via le bouton « Ouvrir » juste au-dessus.
+                Évite le doublon visuel sur l'onglet Fiscalité.
+            -->
         </div>
     </Card>
 

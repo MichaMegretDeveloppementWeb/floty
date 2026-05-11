@@ -107,7 +107,7 @@ const emit = defineEmits<{
         <li v-for="row in declarations" :key="row.id">
             <button
                 type="button"
-                class="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
+                class="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-left transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-100"
                 @click="emit('row-click', row)"
             >
                 <div class="flex min-w-0 flex-1 flex-col gap-1.5">

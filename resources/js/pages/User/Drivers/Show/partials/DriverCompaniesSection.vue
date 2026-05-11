@@ -138,8 +138,11 @@ function onRowClick(companyId: number): void {
                 <tr
                     v-for="m in memberships"
                     :key="m.pivotId"
-                    class="cursor-pointer border-b border-slate-100 transition-colors duration-[120ms] ease-out last:border-0 hover:bg-slate-50"
+                    tabindex="0"
+                    class="cursor-pointer border-b border-slate-100 transition-colors duration-[120ms] ease-out last:border-0 hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-200"
                     @click="onRowClick(m.companyId)"
+                    @keydown.enter="onRowClick(m.companyId)"
+                    @keydown.space.prevent="onRowClick(m.companyId)"
                 >
                     <td class="py-4">
                         <CompanyTag

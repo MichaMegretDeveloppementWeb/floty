@@ -136,7 +136,7 @@ function onRowClick(driverId: number): void {
             <div class="flex items-center gap-2">
                 <button
                     type="button"
-                    class="text-sm text-slate-600 hover:underline"
+                    class="cursor-pointer text-sm text-slate-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
                     @click="showInactive = !showInactive"
                 >
                     {{
@@ -200,8 +200,11 @@ function onRowClick(driverId: number): void {
                 <tr
                     v-for="d in visibleDrivers"
                     :key="d.pivotId"
-                    class="cursor-pointer border-b border-slate-100 transition-colors duration-[120ms] ease-out last:border-0 hover:bg-slate-50"
+                    tabindex="0"
+                    class="cursor-pointer border-b border-slate-100 transition-colors duration-[120ms] ease-out last:border-0 hover:bg-slate-50 focus:outline-none focus-visible:bg-slate-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-slate-200"
                     @click="onRowClick(d.driverId)"
+                    @keydown.enter="onRowClick(d.driverId)"
+                    @keydown.space.prevent="onRowClick(d.driverId)"
                 >
                     <td class="py-4">
                         <DriverBadge
