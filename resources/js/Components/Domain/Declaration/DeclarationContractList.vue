@@ -50,6 +50,21 @@ const emit = defineEmits<{
 const COLSPAN = 5;
 const CLUSTER_ROW_BG = 'bg-slate-50';
 
+/**
+ * Calcule la classe d'accent (`border-l-2` + couleur) à propager aux
+ * `<ContractRow>` enfants d'un cluster (Phase 13 D5.10.C). Cohérent
+ * avec la couleur appliquée par `<ClusterGroup>` sur son header et sa
+ * row de fermeture · le résultat visuel est une bordure verticale
+ * continue du haut au bas du cluster.
+ */
+function accentBorderClassFor(
+    level: App.Enums.FiscalReviewDecision.RiskLevel,
+): string {
+    return level === 'eleve'
+        ? 'border-l-2 border-l-rose-400'
+        : 'border-l-2 border-l-amber-400';
+}
+
 const isInteractive = computed<boolean>(() => props.reviewClusters !== undefined);
 
 const groups = computed<Group[]>(() => {
@@ -208,8 +223,8 @@ defineExpose({
 </script>
 
 <template>
-    <div class="overflow-hidden rounded-lg border border-slate-200">
-        <table class="w-full text-sm">
+    <div class="overflow-x-auto rounded-lg border border-slate-200">
+        <table class="w-full min-w-[640px] text-sm">
             <thead class="bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
                 <tr>
                     <th class="px-3 py-2 text-left font-medium">Période</th>
@@ -245,6 +260,9 @@ defineExpose({
                                     :key="contract.contractId"
                                     :contract="contract"
                                     :bg-class="CLUSTER_ROW_BG"
+                                    :accent-border-class="accentBorderClassFor(
+                                        metaFromCluster(group.fingerprint, group.contracts)!.riskLevel,
+                                    )"
                                 />
                             </ClusterGroup>
                         </template>

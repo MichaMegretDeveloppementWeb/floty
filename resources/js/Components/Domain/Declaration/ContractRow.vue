@@ -35,9 +35,18 @@ const props = withDefaults(
          * aux contrats appartenant à un cluster (encadrement continu).
          */
         bgClass?: string;
+        /**
+         * Classe d'accent (border-l-2 + couleur) appliquée sur la 1ère
+         * `<td>` quand le contrat appartient à un cluster. Permet la
+         * matérialisation continue du cluster sur l'axe vertical, en
+         * cohérence avec le header et la row de fermeture rendus par
+         * `<ClusterGroup>` (Phase 13 D5.10.C).
+         */
+        accentBorderClass?: string;
     }>(),
     {
         bgClass: '',
+        accentBorderClass: '',
     },
 );
 
@@ -87,7 +96,13 @@ const decisionIndicator = computed<DecisionIndicator | null>(() => {
 
 <template>
     <tr :class="['text-sm text-slate-700', bgClass]">
-        <td class="border-x border-slate-200 px-3 py-2 align-top" :class="{ 'border-x-transparent': bgClass === '' }">
+        <td
+            class="px-3 py-2 align-top"
+            :class="[
+                bgClass === '' ? 'border-x border-x-transparent' : 'border-x border-slate-200',
+                accentBorderClass,
+            ]"
+        >
             <div class="flex flex-col gap-0.5">
                 <span class="font-mono text-xs tabular-nums text-slate-700">
                     {{ periodLabel }}

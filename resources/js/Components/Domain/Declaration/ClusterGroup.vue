@@ -93,8 +93,11 @@ const editButtonLabel = computed<string>(
 
 <template>
     <!-- Header de cluster · row dédiée avec bouton Décider à droite -->
-    <tr :class="['bg-slate-50', accentBorderClass]">
-        <td :colspan="props.colspan" class="border-x border-t border-slate-200 px-3 py-2.5">
+    <tr class="bg-slate-50">
+        <td
+            :colspan="props.colspan"
+            :class="['border-x border-t border-slate-200 px-3 py-2.5', accentBorderClass]"
+        >
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex flex-wrap items-center gap-2">
                     <component
@@ -143,8 +146,11 @@ const editButtonLabel = computed<string>(
     <slot />
 
     <!-- Row de fermeture · matérialise la bordure bas + closing pour le HTML strict -->
-    <tr :class="['bg-slate-50', accentBorderClass]">
-        <td :colspan="props.colspan" class="border-x border-b border-slate-200 p-0">
+    <tr class="bg-slate-50">
+        <td
+            :colspan="props.colspan"
+            :class="['border-x border-b border-slate-200 p-0', accentBorderClass]"
+        >
             <div class="h-1" />
         </td>
     </tr>
