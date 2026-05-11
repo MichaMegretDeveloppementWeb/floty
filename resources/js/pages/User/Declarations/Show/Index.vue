@@ -62,7 +62,7 @@ const otherVersions = computed<ItemData[]>(() => {
     <Head :title="`Déclaration ${declaration.companyShortCode} ${declaration.fiscalYear} · Floty`" />
 
     <UserLayout>
-        <div class="m-auto flex w-full max-w-[64em] flex-col gap-6">
+        <div class="m-auto flex w-full max-w-[64em] flex-col gap-6 border-l-2 border-l-transparent pl-3">
             <Header :declaration="props.declaration" />
 
             <ObsolescenceBanner :declaration="props.declaration" />

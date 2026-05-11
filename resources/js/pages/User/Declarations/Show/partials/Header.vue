@@ -18,6 +18,7 @@ defineProps<{
                 <p class="text-xs font-medium tracking-wider text-slate-500 uppercase">
                     Déclaration fiscale
                 </p>
+                <StatusPill tone="slate" class="w-fit">Lecture</StatusPill>
                 <h1 class="text-2xl font-semibold text-slate-900">
                     {{ declaration.companyShortCode }} · {{ declaration.fiscalYear }}
                 </h1>

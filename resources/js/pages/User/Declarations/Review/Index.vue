@@ -17,6 +17,7 @@ import DeclarationClustersRecap from '@/Components/Domain/Declaration/Declaratio
 import FiscalSummaryCard from '@/Components/Domain/Declaration/FiscalSummaryCard.vue';
 import ReviewContextBanner from '@/Components/Domain/Declaration/ReviewContextBanner.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { useReviewForm } from '@/Composables/Declaration/useReviewForm';
 import ReviewActionsBar from './partials/ReviewActionsBar.vue';
 
@@ -72,17 +73,18 @@ function handleScrollTo(fingerprint: string): void {
     <Head :title="`Revue ${declaration.companyShortCode} ${declaration.fiscalYear} · Floty`" />
 
     <UserLayout>
-        <div class="m-auto flex w-full max-w-[64em] flex-col gap-6 pb-24">
+        <div class="m-auto flex w-full max-w-[64em] flex-col gap-6 border-l-2 border-l-amber-400 pb-24 pl-3">
             <header class="flex items-start gap-3">
                 <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
+                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"
                 >
                     <Building2 :size="22" :stroke-width="1.75" />
                 </div>
                 <div class="flex flex-col gap-1">
                     <p class="text-xs font-medium tracking-wider text-slate-500 uppercase">
-                        Revue fiscale
+                        Déclaration fiscale
                     </p>
+                    <StatusPill tone="amber" class="w-fit">Revue interactive</StatusPill>
                     <h1 class="text-2xl font-semibold text-slate-900">
                         {{ declaration.companyShortCode }} · {{ declaration.fiscalYear }}
                     </h1>
