@@ -62,11 +62,11 @@ function vehicleSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterDa
 <template>
     <div
         v-if="hasPending"
-        class="sticky top-3 z-10 flex flex-col gap-2 rounded-xl border border-amber-200 bg-amber-50/95 p-3 shadow-sm backdrop-blur"
+        class="sticky top-3 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/95 p-3 shadow-sm backdrop-blur"
     >
         <div class="flex items-center gap-2">
-            <ShieldAlert :size="16" :stroke-width="1.75" class="text-amber-600" />
-            <p class="text-sm font-semibold text-amber-900">
+            <ShieldAlert :size="16" :stroke-width="1.75" class="text-slate-600" />
+            <p class="text-sm font-semibold text-slate-900">
                 {{ pendingClusters.length }}
                 décision<template v-if="pendingClusters.length > 1">s</template>
                 à prendre avant génération
@@ -76,13 +76,13 @@ function vehicleSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterDa
             <li
                 v-for="cluster in pendingClusters"
                 :key="cluster.fingerprint"
-                class="flex flex-wrap items-center gap-2 rounded-lg border border-amber-200 bg-white px-3 py-2"
+                class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
             >
                 <component
                     :is="cluster.level === 'eleve' ? ShieldAlert : ShieldCheck"
                     :size="14"
                     :stroke-width="1.75"
-                    :class="cluster.level === 'eleve' ? 'text-rose-600' : 'text-amber-600'"
+                    :class="cluster.level === 'eleve' ? 'text-rose-500' : 'text-amber-500'"
                 />
                 <span class="text-xs font-medium text-slate-900">
                     {{ codeLabel(cluster.code) }}

@@ -56,14 +56,12 @@ const decisionPill = computed<{ tone: StatusTone; label: string } | null>(() => 
 });
 
 const borderClass = computed<string>(() =>
-    isHighLevel.value ? 'border-l-4 border-l-rose-400' : 'border-l-4 border-l-amber-400',
+    isHighLevel.value ? 'border-l-2 border-l-rose-400' : 'border-l-2 border-l-amber-400',
 );
-
-const headerBgClass = computed<string>(() => (isHighLevel.value ? 'bg-rose-50/60' : 'bg-amber-50/60'));
 </script>
 
 <template>
-    <tr :class="[headerBgClass, borderClass]">
+    <tr :class="['bg-slate-50', borderClass]">
         <td :colspan="props.colspan" class="px-3 py-2.5">
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <div class="flex flex-wrap items-center gap-2">
@@ -71,7 +69,7 @@ const headerBgClass = computed<string>(() => (isHighLevel.value ? 'bg-rose-50/60
                         :is="isHighLevel ? ShieldAlert : ShieldCheck"
                         :size="16"
                         :stroke-width="1.75"
-                        :class="isHighLevel ? 'text-rose-600' : 'text-amber-600'"
+                        :class="isHighLevel ? 'text-rose-500' : 'text-amber-500'"
                     />
                     <span class="text-sm font-semibold text-slate-900">
                         {{ codeLabel }}
@@ -92,7 +90,7 @@ const headerBgClass = computed<string>(() => (isHighLevel.value ? 'bg-rose-50/60
                     <slot name="actions" />
                 </div>
             </div>
-            <div v-if="$slots['justification-form']" class="mt-2 border-t border-slate-200/60 pt-2">
+            <div v-if="$slots['justification-form']" class="mt-2 border-t border-slate-200 pt-2">
                 <slot name="justification-form" />
             </div>
         </td>

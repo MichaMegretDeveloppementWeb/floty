@@ -491,7 +491,9 @@ final readonly class DeclarationFiscalEngine
         $segments[] = $co2Method;
 
         if ($vfc->euro_standard !== null) {
-            $segments[] = $vfc->euro_standard->value;
+            // Phase 12 D5.9.B · libellé humain (« Euro 6 ») au lieu de
+            // l'enum value brut (« euro_6 »).
+            $segments[] = $vfc->euro_standard->label();
         }
 
         return implode(' · ', $segments);

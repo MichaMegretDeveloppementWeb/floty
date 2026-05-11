@@ -116,7 +116,7 @@ function handleRegenerate(): void {
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="flex items-start gap-3">
                 <div
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600"
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-blue-500"
                 >
                     <FilePlus2 :size="18" :stroke-width="1.75" />
                 </div>
@@ -178,7 +178,7 @@ function handleRegenerate(): void {
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div class="flex items-start gap-3">
                 <div
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600"
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-amber-500"
                 >
                     <Clock :size="18" :stroke-width="1.75" />
                 </div>
@@ -208,7 +208,7 @@ function handleRegenerate(): void {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="flex items-start gap-3">
                     <div
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600"
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-emerald-500"
                     >
                         <CheckCircle2 :size="18" :stroke-width="1.75" />
                     </div>
@@ -283,7 +283,7 @@ function handleRegenerate(): void {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="flex items-start gap-3">
                     <div
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-rose-600"
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-rose-500"
                     >
                         <AlertTriangle :size="18" :stroke-width="1.75" />
                     </div>
@@ -308,11 +308,11 @@ function handleRegenerate(): void {
                 </Link>
             </div>
 
-            <div class="rounded-lg border border-rose-200 bg-rose-50 p-3">
-                <p class="text-sm font-semibold text-rose-900">
+            <div class="rounded-lg border border-slate-200 border-l-2 border-l-rose-400 bg-slate-50 p-3">
+                <p class="text-sm font-semibold text-slate-900">
                     Cette déclaration est périmée
                 </p>
-                <p class="mt-0.5 text-xs text-rose-800">
+                <p class="mt-0.5 text-xs text-slate-600">
                     Le périmètre fiscal {{ fiscalYear }} a évolué depuis la
                     génération. Régénérer pour reprendre le calcul à jour.
                 </p>
@@ -323,14 +323,17 @@ function handleRegenerate(): void {
                     <li
                         v-for="(reason, index) in reasonsToShow"
                         :key="index"
-                        class="text-xs text-rose-800"
+                        class="flex items-baseline gap-1.5 text-xs text-slate-700"
                     >
-                        <span class="font-medium">{{ formatInvalidationReason(reason) }}</span>
-                        <span class="text-rose-600">
-                            · {{ formatInvalidationOccurredAt(reason.occurredAt) }}
+                        <span class="inline-block size-1.5 shrink-0 translate-y-[-1px] rounded-full bg-rose-400" />
+                        <span>
+                            <span class="font-medium">{{ formatInvalidationReason(reason) }}</span>
+                            <span class="text-slate-500">
+                                · {{ formatInvalidationOccurredAt(reason.occurredAt) }}
+                            </span>
                         </span>
                     </li>
-                    <li v-if="extraReasonsCount > 0" class="text-[11px] italic text-rose-700">
+                    <li v-if="extraReasonsCount > 0" class="pl-3 text-[11px] italic text-slate-500">
                         +{{ extraReasonsCount }} autre<template v-if="extraReasonsCount > 1">s</template> motif<template v-if="extraReasonsCount > 1">s</template>
                     </li>
                 </ul>
@@ -356,7 +359,7 @@ function handleRegenerate(): void {
             <div class="flex flex-wrap items-start justify-between gap-3">
                 <div class="flex items-start gap-3">
                     <div
-                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-600"
+                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-amber-500"
                     >
                         <Recycle :size="18" :stroke-width="1.75" />
                     </div>
