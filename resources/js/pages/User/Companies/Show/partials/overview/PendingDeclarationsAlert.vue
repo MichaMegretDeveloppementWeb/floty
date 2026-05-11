@@ -143,24 +143,73 @@ const headerTitle = computed<string>(() => {
     return `${n} déclarations à traiter`;
 });
 
-function formatDeadlineFr(deadline: string): string {
-    return new Date(deadline).toLocaleDateString('fr-FR', {
+function formatDateFr(dateIso: string): string {
+    return new Date(dateIso).toLocaleDateString('fr-FR', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
     });
 }
 
-function deadlineText(entry: PendingEntry): string | null {
-    if (entry.state === 'untouched') {
-        return `Échéance ${formatDeadlineFr(entry.deadline)}`;
-    }
+interface SubtitleResult {
+    text: string;
+    toneClass: string;
+}
 
-    if (entry.isOverdue) {
-        return `Échéance dépassée le ${formatDeadlineFr(entry.deadline)}`;
-    }
+/**
+ * Phase 13 D5.10.A · sous-mention contextuelle par état de cycle de
+ * vie. Pour Untouched / Draft / Deferred · on garde la mention
+ * d'échéance (la déclaration n'a pas encore été produite). Pour
+ * GeneratedObsoleteOrphan / RegenerationInProgress · on **retire**
+ * la mention d'échéance (la déclaration a été produite à temps,
+ * c'est une mutation de périmètre qui l'a invalidée depuis) et on
+ * affiche le contexte d'obsolescence (motifs + date).
+ */
+function subtitleFor(entry: PendingEntry): SubtitleResult {
+    switch (entry.state) {
+        case 'untouched':
+        case 'draft_pending':
+        case 'draft_ready_to_generate':
+        case 'deferred': {
+            const prefix = entry.isOverdue ? 'Échéance dépassée le' : 'Échéance le';
 
-    return `À finaliser avant le ${formatDeadlineFr(entry.deadline)}`;
+            return {
+                text: `${prefix} ${formatDateFr(entry.deadline)}`,
+                toneClass: entry.isOverdue ? 'text-rose-600' : 'text-slate-500',
+            };
+        }
+        case 'generated_obsolete_orphan': {
+            if (entry.obsoleteReasonsCount === 0 || entry.obsoleteSinceDate === null) {
+                return { text: 'Périmètre modifié', toneClass: 'text-slate-500' };
+            }
+
+            const plural = entry.obsoleteReasonsCount > 1 ? 's' : '';
+
+            return {
+                text: `${entry.obsoleteReasonsCount} motif${plural} depuis le ${formatDateFr(entry.obsoleteSinceDate)}`,
+                toneClass: 'text-slate-500',
+            };
+        }
+        case 'regeneration_in_progress': {
+            const parts: string[] = [];
+
+            if (entry.pendingClustersCount > 0) {
+                const plural = entry.pendingClustersCount > 1 ? 's' : '';
+                parts.push(`${entry.pendingClustersCount} décision${plural} à trancher`);
+            } else {
+                parts.push('Prêt à générer la nouvelle version');
+            }
+
+            if (entry.obsoleteSinceDate !== null) {
+                parts.push(`obsolète depuis le ${formatDateFr(entry.obsoleteSinceDate)}`);
+            }
+
+            return { text: parts.join(' · '), toneClass: 'text-slate-500' };
+        }
+        case 'generated_active':
+            // Théoriquement jamais ici (filtré côté backend)
+            return { text: '', toneClass: 'text-slate-500' };
+    }
 }
 
 function handleClick(year: number): void {
@@ -219,13 +268,10 @@ function handleClick(year: number): void {
                                 </span>
                             </span>
                             <span
-                                v-if="deadlineText(entry)"
-                                :class="[
-                                    'text-xs',
-                                    entry.isOverdue ? 'text-rose-600' : 'text-slate-500',
-                                ]"
+                                v-if="subtitleFor(entry).text"
+                                :class="['text-xs', subtitleFor(entry).toneClass]"
                             >
-                                {{ deadlineText(entry) }}
+                                {{ subtitleFor(entry).text }}
                             </span>
                         </div>
                     </div>

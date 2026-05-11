@@ -42,5 +42,21 @@ final class PendingDeclarationData extends Data
          */
         public ?int $currentDeclarationId,
         public int $pendingClustersCount,
+        /**
+         * Phase 13 D5.10.A · contexte d'obsolescence pour l'affichage
+         * adaptatif des sous-mentions dans `PendingDeclarationsAlert`.
+         *
+         * Renseignés uniquement pour les états S6 (GeneratedObsolete
+         * Orphan) et S7 (RegenerationInProgress) · permet d'afficher
+         * « 3 motifs depuis le 14/03/2025 » au lieu d'une mention
+         * d'échéance trompeuse (la déclaration a été produite à temps,
+         * c'est une mutation de périmètre qui l'a invalidée depuis).
+         *
+         * `null` / `0` pour Untouched, Draft, Deferred (les états qui
+         * n'ont pas encore produit de déclaration et pour lesquels la
+         * deadline reste pertinente).
+         */
+        public ?string $obsoleteSinceDate,
+        public int $obsoleteReasonsCount,
     ) {}
 }

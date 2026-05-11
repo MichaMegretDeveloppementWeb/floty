@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal\Declaration;
 
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\User\FiscalDeclaration\PendingDeclarationData;
 use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use Carbon\CarbonImmutable;
@@ -39,6 +40,7 @@ final readonly class PendingDeclarationsResolver
 {
     public function __construct(
         private DeclarationLifecycleResolver $lifecycleResolver,
+        private FiscalDeclarationReadRepositoryInterface $declarations,
     ) {}
 
     /**
@@ -75,6 +77,13 @@ final readonly class PendingDeclarationsResolver
             $deadline = sprintf('%04d-04-30', $year + 1);
             $isOverdue = $now->isAfter(CarbonImmutable::parse($deadline));
 
+            [$obsoleteSinceDate, $obsoleteReasonsCount] = $this->resolveObsoleteContext(
+                $companyId,
+                $year,
+                $lifecycle->state,
+                $lifecycle->currentDeclaration?->id,
+            );
+
             $pending[] = new PendingDeclarationData(
                 fiscalYear: $year,
                 deadline: $deadline,
@@ -82,6 +91,8 @@ final readonly class PendingDeclarationsResolver
                 state: $lifecycle->state,
                 currentDeclarationId: $lifecycle->currentDeclaration?->id,
                 pendingClustersCount: $lifecycle->pendingClustersCount,
+                obsoleteSinceDate: $obsoleteSinceDate,
+                obsoleteReasonsCount: $obsoleteReasonsCount,
             );
         }
 
@@ -91,6 +102,44 @@ final readonly class PendingDeclarationsResolver
         );
 
         return $pending;
+    }
+
+    /**
+     * Résout `(obsoleteSinceDate, obsoleteReasonsCount)` pour les
+     * états S6 et S7 (Phase 13 D5.10.A). Pour S6, la déclaration
+     * courante elle-même porte l'obsolescence. Pour S7, c'est son
+     * prédécesseur (la version Generated obsolète remplacée par le
+     * Draft chaîné).
+     *
+     * @return array{0: ?string, 1: int}
+     */
+    private function resolveObsoleteContext(
+        int $companyId,
+        int $year,
+        DeclarationLifecycleState $state,
+        ?int $currentDeclarationId,
+    ): array {
+        if ($state === DeclarationLifecycleState::GeneratedObsoleteOrphan) {
+            $current = $this->declarations->findCurrentForCompanyYear($companyId, $year);
+
+            return [
+                $current?->obsolete_at?->toDateString(),
+                count($current?->obsolete_reasons ?? []),
+            ];
+        }
+
+        if ($state === DeclarationLifecycleState::RegenerationInProgress
+            && $currentDeclarationId !== null
+        ) {
+            $predecessor = $this->declarations->findPredecessorOf($currentDeclarationId);
+
+            return [
+                $predecessor?->obsolete_at?->toDateString(),
+                count($predecessor?->obsolete_reasons ?? []),
+            ];
+        }
+
+        return [null, 0];
     }
 
     /**
