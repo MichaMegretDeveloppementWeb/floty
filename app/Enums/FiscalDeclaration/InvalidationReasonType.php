@@ -38,4 +38,14 @@ enum InvalidationReasonType: string
     // déclarations de l'année qui contiennent un contrat de ce
     // véhicule. Cf. `VehicleObserver` + `DeclarationInvalidationDetector::flagForVehicle`.
     case VehicleUpdated = 'vehicle_updated';
+
+    // Phase 13 D5.10.E : l'utilisateur déclenche manuellement la
+    // régénération d'une déclaration active depuis Show (S5 → S7) sans
+    // mutation de périmètre. La déclaration précédente devient
+    // obsolète mais reste consultable. Distinction utilisée par
+    // `DiscardDraftDeclarationAction` pour la réversibilité de
+    // l'opération : si `obsolete_reasons` ne contient que des entrées
+    // VoluntaryModification, la suppression du brouillon ré-active
+    // le predecessor.
+    case VoluntaryModification = 'voluntary_modification';
 }

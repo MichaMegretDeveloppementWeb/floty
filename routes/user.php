@@ -322,6 +322,17 @@ Route::middleware('auth')
             ->whereNumber('declaration')
             ->middleware('throttle:6,1')
             ->name('declarations.regenerate');
+        // Phase 13 D5.10.E · modification volontaire depuis Show (S5 → S7)
+        // et suppression d'un brouillon (avec gestion intelligente du
+        // predecessor selon la nature des motifs d'obsolescence).
+        Route::post('/declarations/{declaration}/modify', [DeclarationController::class, 'modify'])
+            ->whereNumber('declaration')
+            ->middleware('throttle:6,1')
+            ->name('declarations.modify');
+        Route::delete('/declarations/{declaration}', [DeclarationController::class, 'destroy'])
+            ->whereNumber('declaration')
+            ->middleware('throttle:30,1')
+            ->name('declarations.destroy');
         Route::get('/declarations/{declaration}/download', [DeclarationController::class, 'download'])
             ->whereNumber('declaration')
             ->name('declarations.download');

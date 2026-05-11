@@ -37,6 +37,30 @@ const bannerMode = computed<'preparation' | 'regeneration'>(
     () => (props.predecessorDeclaration !== null ? 'regeneration' : 'preparation'),
 );
 
+/**
+ * Phase 13 D5.10.E · si tous les motifs d'obsolescence du predecessor
+ * sont du type `voluntary_modification`, la suppression de ce brouillon
+ * ré-activera le predecessor (cas typique · l'utilisateur abandonne
+ * une modification volontaire et retombe sur la version active
+ * précédente). Sinon, le predecessor reste obsolète.
+ */
+const predecessorWillReactivate = computed<boolean>(() => {
+    if (props.predecessorDeclaration === null || props.obsoleteReasons.length === 0) {
+        return false;
+    }
+
+    return props.obsoleteReasons.every((r) => r.type === 'voluntary_modification');
+});
+
+const predecessorReference = computed<string | null>(() => {
+    const pred = props.predecessorDeclaration;
+    if (pred === null) {
+        return null;
+    }
+
+    return pred.reference ?? `#${pred.id}`;
+});
+
 const fiscalSummaryRef = ref<InstanceType<typeof FiscalSummaryCard> | null>(null);
 
 function handleSubmit(
@@ -138,6 +162,8 @@ function handleScrollTo(fingerprint: string): void {
                 :pending-clusters-count="preview.pendingClustersCount"
                 :can-generate="preview.canGenerate"
                 :is-deferred="isDeferred"
+                :predecessor-reference="predecessorReference"
+                :predecessor-will-reactivate="predecessorWillReactivate"
             />
         </div>
     </UserLayout>

@@ -92,4 +92,29 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
             ->whereKey($oldId)
             ->update(['superseded_by_id' => $newId]);
     }
+
+    public function softDelete(int $declarationId): void
+    {
+        $declaration = FiscalDeclaration::query()->findOrFail($declarationId);
+        $declaration->delete();
+    }
+
+    public function reactivate(int $declarationId): void
+    {
+        FiscalDeclaration::query()
+            ->whereKey($declarationId)
+            ->update([
+                'is_obsolete' => false,
+                'obsolete_at' => null,
+                'obsolete_reasons' => null,
+                'superseded_by_id' => null,
+            ]);
+    }
+
+    public function unlinkSupersededBy(int $declarationId): void
+    {
+        FiscalDeclaration::query()
+            ->whereKey($declarationId)
+            ->update(['superseded_by_id' => null]);
+    }
 }

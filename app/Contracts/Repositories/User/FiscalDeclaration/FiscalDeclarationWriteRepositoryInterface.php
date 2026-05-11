@@ -68,4 +68,33 @@ interface FiscalDeclarationWriteRepositoryInterface
      * (D3) après création de la nouvelle ligne.
      */
     public function linkSupersededBy(int $oldId, int $newId): void;
+
+    /**
+     * Soft delete une déclaration. Pose `deleted_at` sans purger les
+     * données (auditabilité préservée, ADR-0015 doctrine immuabilité).
+     * Utilisé par `DiscardDraftDeclarationAction` (Phase 13 D5.10.E)
+     * pour annuler un brouillon créé par erreur ou abandonné.
+     */
+    public function softDelete(int $declarationId): void;
+
+    /**
+     * Ré-active une déclaration obsolète : remet `is_obsolete = false`,
+     * vide `obsolete_at`, `obsolete_reasons` et `superseded_by_id`.
+     * Utilisé par `DiscardDraftDeclarationAction` (Phase 13 D5.10.E)
+     * quand la suppression d'un brouillon qui était une régénération
+     * volontaire doit rendre son predecessor à nouveau actif. **Ne
+     * réactive PAS** si l'obsolescence avait des motifs réels
+     * (mutation périmètre) · la décision revient à l'Action.
+     */
+    public function reactivate(int $declarationId): void;
+
+    /**
+     * Délie une déclaration de son successeur (`superseded_by_id = NULL`)
+     * sans toucher au flag `is_obsolete` ni aux motifs. Utilisé par
+     * `DiscardDraftDeclarationAction` (Phase 13 D5.10.E) quand la
+     * suppression d'un brouillon de régénération doit laisser le
+     * predecessor obsolète mais permettre de relancer une nouvelle
+     * régénération.
+     */
+    public function unlinkSupersededBy(int $declarationId): void;
 }

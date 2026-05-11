@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\FiscalDeclaration;
 
 use App\Actions\FiscalDeclaration\CreateDraftDeclarationAction;
+use App\Actions\FiscalDeclaration\DiscardDraftDeclarationAction;
 use App\Actions\FiscalDeclaration\GenerateDeclarationAction;
 use App\Actions\FiscalDeclaration\MarkDeclarationAsDeferredAction;
+use App\Actions\FiscalDeclaration\ModifyGeneratedDeclarationAction;
 use App\Actions\FiscalDeclaration\RegenerateDeclarationAction;
 use App\Actions\FiscalDeclaration\StoreReviewDecisionAction;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
@@ -48,6 +50,8 @@ use Symfony\Component\HttpFoundation\Response;
  *   - POST   /declarations/{declaration}/mark-deferred passe draft → deferred
  *   - POST   /declarations/{declaration}/generate      verrouille en generated + PDF
  *   - POST   /declarations/{declaration}/regenerate    crée nouveau draft + chaîne
+ *   - POST   /declarations/{declaration}/modify        S5 → S7 volontaire (D5.10.E)
+ *   - DELETE /declarations/{declaration}                supprime un brouillon (D5.10.E)
  *   - GET    /declarations/{declaration}/download      sert le PDF binaire
  */
 final class DeclarationController extends Controller
@@ -306,6 +310,66 @@ final class DeclarationController extends Controller
         return redirect()
             ->route('user.declarations.review', ['declaration' => $newDeclaration->id])
             ->with('toast-success', 'Nouvelle déclaration créée. Reprise des décisions par fingerprint.');
+    }
+
+    /**
+     * Phase 13 D5.10.E · transition volontaire S5 → S7. Permet à
+     * l'utilisateur de modifier une déclaration générée et active sans
+     * attendre une mutation involontaire de périmètre. La déclaration
+     * courante devient obsolète avec le motif `VoluntaryModification`,
+     * un nouveau brouillon est créé et chaîné. Si l'utilisateur change
+     * d'avis, `destroy` saura ré-activer la déclaration précédente.
+     */
+    public function modify(
+        Request $request,
+        FiscalDeclaration $declaration,
+        ModifyGeneratedDeclarationAction $action,
+    ): RedirectResponse {
+        Gate::authorize('update', $declaration);
+
+        $user = $request->user();
+        if ($user === null) {
+            abort(Response::HTTP_UNAUTHORIZED);
+        }
+
+        try {
+            $newDraft = $action->execute(
+                $declaration->id,
+                $user->id,
+                $user->full_name,
+            );
+        } catch (DomainException $e) {
+            return back()->with('toast-error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('user.declarations.review', ['declaration' => $newDraft->id])
+            ->with('toast-success', sprintf(
+                'Nouveau brouillon de modification créé. La déclaration %s est désormais obsolète mais reste consultable.',
+                $declaration->reference ?? sprintf('#%d', $declaration->id),
+            ));
+    }
+
+    /**
+     * Phase 13 D5.10.E · suppression d'un brouillon. Soft delete +
+     * gestion intelligente du predecessor : ré-activation si l'obsolescence
+     * était purement volontaire, simple unlink sinon.
+     */
+    public function destroy(
+        FiscalDeclaration $declaration,
+        DiscardDraftDeclarationAction $action,
+    ): RedirectResponse {
+        Gate::authorize('update', $declaration);
+
+        try {
+            $action->execute($declaration->id);
+        } catch (DomainException $e) {
+            return back()->with('toast-error', $e->getMessage());
+        }
+
+        return redirect()
+            ->route('user.declarations.index')
+            ->with('toast-success', 'Brouillon supprimé.');
     }
 
     public function download(FiscalDeclaration $declaration, DeclarationPdfStorage $storage): Response

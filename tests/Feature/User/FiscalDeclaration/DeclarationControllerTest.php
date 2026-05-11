@@ -358,4 +358,76 @@ final class DeclarationControllerTest extends TestCase
         // L'invariant est : le PDF n'est pas servi (pas 200).
         self::assertNotSame(200, $response->status());
     }
+
+    #[Test]
+    public function modify_cree_nouveau_brouillon_et_obsolete_la_courante(): void
+    {
+        $generated = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->generated()
+            ->create();
+
+        $this->post(sprintf('/app/declarations/%d/modify', $generated->id))
+            ->assertRedirect()
+            ->assertSessionHas('toast-success');
+
+        $previous = $generated->fresh();
+        self::assertTrue($previous->is_obsolete);
+        self::assertNotNull($previous->superseded_by_id);
+
+        $newDraft = FiscalDeclaration::query()
+            ->where('status', FiscalDeclarationStatus::Draft->value)
+            ->where('company_id', $this->company->id)
+            ->where('fiscal_year', 2025)
+            ->firstOrFail();
+        self::assertSame($newDraft->id, $previous->superseded_by_id);
+    }
+
+    #[Test]
+    public function modify_refuse_si_declaration_deja_obsolete(): void
+    {
+        $obsolete = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->obsolete()
+            ->create();
+
+        $this->post(sprintf('/app/declarations/%d/modify', $obsolete->id))
+            ->assertSessionHas('toast-error');
+
+        // Pas de nouveau brouillon créé.
+        self::assertSame(1, FiscalDeclaration::query()->count());
+    }
+
+    #[Test]
+    public function destroy_soft_delete_le_brouillon(): void
+    {
+        $draft = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $this->delete(sprintf('/app/declarations/%d', $draft->id))
+            ->assertRedirect(route('user.declarations.index'))
+            ->assertSessionHas('toast-success');
+
+        self::assertNotNull($draft->fresh()->deleted_at);
+    }
+
+    #[Test]
+    public function destroy_refuse_si_declaration_generated(): void
+    {
+        $generated = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->generated()
+            ->create();
+
+        $this->delete(sprintf('/app/declarations/%d', $generated->id))
+            ->assertSessionHas('toast-error');
+
+        self::assertNull($generated->fresh()->deleted_at);
+    }
 }

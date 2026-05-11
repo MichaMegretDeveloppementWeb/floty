@@ -18,12 +18,14 @@
  *     périmètre.
  */
 import { Link, router } from '@inertiajs/vue3';
-import { Download, FileText, LoaderCircle, Recycle, RefreshCcw } from 'lucide-vue-next';
+import { Download, FileText, LoaderCircle, Pencil, Recycle, RefreshCcw } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import {
     download as downloadRoute,
+    modify as modifyRoute,
     regenerate as regenerateRoute,
     review as reviewRoute,
 } from '@/routes/user/declarations';
@@ -40,6 +42,8 @@ const props = defineProps<{
 }>();
 
 const regenerating = ref<boolean>(false);
+const modifying = ref<boolean>(false);
+const modifyConfirmOpen = ref<boolean>(false);
 
 const hasOngoingRegeneration = computed<boolean>(
     () => props.successorDeclaration !== null
@@ -50,6 +54,25 @@ const hasOngoingRegeneration = computed<boolean>(
 const canRegenerate = computed<boolean>(
     () => props.declaration.isObsolete && !hasOngoingRegeneration.value,
 );
+
+/**
+ * Phase 13 D5.10.E · le bouton « Modifier la déclaration » apparaît
+ * uniquement quand la déclaration est S5 GeneratedActive (générée et
+ * non obsolète) sans régénération en cours. Permet de déclencher
+ * volontairement une transition S5 → S7 sans attendre une mutation
+ * automatique de périmètre.
+ */
+const canModify = computed<boolean>(
+    () => props.declaration.status === 'generated'
+        && !props.declaration.isObsolete
+        && !hasOngoingRegeneration.value,
+);
+
+const modifyConfirmMessage = computed<string>(() => {
+    const ref = props.declaration.reference ?? `#${props.declaration.id}`;
+
+    return `Cette action rendra la déclaration ${ref} obsolète et créera un nouveau brouillon pour modification. ${ref} restera consultable mais ne sera plus active. Vous pourrez annuler en supprimant le brouillon.`;
+});
 
 function handleRegenerate(): void {
     if (regenerating.value) {
@@ -71,6 +94,28 @@ function handleRegenerate(): void {
 
 function handleDownload(): void {
     window.location.href = downloadRoute.url({ declaration: props.declaration.id });
+}
+
+function requestModify(): void {
+    if (modifying.value) {
+        return;
+    }
+    modifyConfirmOpen.value = true;
+}
+
+function confirmModify(): void {
+    modifyConfirmOpen.value = false;
+    modifying.value = true;
+    router.post(
+        modifyRoute.url({ declaration: props.declaration.id }),
+        {},
+        {
+            preserveScroll: false,
+            onFinish: () => {
+                modifying.value = false;
+            },
+        },
+    );
 }
 </script>
 
@@ -120,6 +165,17 @@ function handleDownload(): void {
                     <RefreshCcw v-else :size="16" :stroke-width="1.75" />
                     {{ regenerating ? 'Régénération…' : 'Régénérer' }}
                 </Button>
+
+                <Button
+                    v-else-if="canModify"
+                    variant="secondary"
+                    :disabled="modifying"
+                    @click="requestModify"
+                >
+                    <LoaderCircle v-if="modifying" :size="16" :stroke-width="1.75" class="animate-spin" />
+                    <Pencil v-else :size="16" :stroke-width="1.75" />
+                    {{ modifying ? 'Création du brouillon…' : 'Modifier la déclaration' }}
+                </Button>
             </div>
         </div>
 
@@ -130,5 +186,14 @@ function handleDownload(): void {
                 immuable consultable et téléchargeable ici.
             </p>
         </div>
+
+        <ConfirmModal
+            v-model:open="modifyConfirmOpen"
+            title="Modifier la déclaration ?"
+            :message="modifyConfirmMessage"
+            confirm-label="Créer le brouillon"
+            cancel-label="Annuler"
+            @confirm="confirmModify"
+        />
     </Card>
 </template>
