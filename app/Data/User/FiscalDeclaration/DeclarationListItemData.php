@@ -54,6 +54,27 @@ final class DeclarationListItemData extends Data
             generatedAt: $declaration->generated_at?->toDateString(),
             generatedPdfHash: $declaration->generated_pdf_hash,
             supersededById: $declaration->superseded_by_id,
+            hasRegenerationInProgress: self::computeRegenerationFlag($declaration),
         );
+    }
+
+    /**
+     * `true` ssi la relation `supersededBy` est chargée et pointe vers
+     * un Draft (Phase 11 D5.8.5). `null` quand la relation n'est pas
+     * eager-loadée (économise une requête SQL N+1 quand l'info n'est
+     * pas pertinente, par exemple sur la page Show).
+     */
+    private static function computeRegenerationFlag(FiscalDeclaration $declaration): ?bool
+    {
+        if (! $declaration->relationLoaded('supersededBy')) {
+            return null;
+        }
+
+        $successor = $declaration->supersededBy;
+        if ($successor === null) {
+            return false;
+        }
+
+        return $successor->status === FiscalDeclarationStatus::Draft;
     }
 }

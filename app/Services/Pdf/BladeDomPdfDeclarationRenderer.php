@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace App\Services\Pdf;
 
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
-use App\Fiscal\ValueObjects\AppliedDecisionEntry;
+use App\Enums\Contract\ContractType;
+use App\Enums\FiscalReviewDecision\ReviewDecisionType;
+use App\Enums\FiscalReviewDecision\RiskCode;
+use App\Enums\FiscalReviewDecision\RiskLevel;
 use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
  * Rendu HTML → PDF de l'annexe documentaire d'une déclaration fiscale
- * (Phase 11 D5.4, ADR-0015 § D6).
- *
- * Service production qui remplacera le {@see NullDeclarationPdfRenderer}
- * stub en D5.5 (swap binding + refonte interface). Pour l'instant,
- * livré en standalone et testable en isolation.
+ * (Phase 11 D5.4, refondu D5.8.5 avec breakdown par contrat et
+ * clusters LCD groupés visuellement).
  *
  * **Format PDF** : A4 portrait, police DejaVu Sans (UTF-8 native
  * DomPDF), CSS basé sur `display: table` (DomPDF ne supporte pas
@@ -54,21 +54,6 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
     {
         $snapshot = $context->snapshot;
 
-        // Phase 11 D5.8.1 · agrégation contrat → véhicule pour préserver
-        // le template PDF actuel (refonte par contrat livrée en D5.8.7).
-        $vehicleRows = $this->aggregateContractsByVehicle($snapshot->contractBreakdown);
-
-        $decisionRows = array_map(
-            fn (AppliedDecisionEntry $entry): array => [
-                'fingerprintShort' => substr($entry->clusterFingerprint, 0, 12),
-                'riskCodeLabel' => $entry->riskCode->value,
-                'decisionLabel' => $entry->decision->value,
-                'contractsCount' => count($entry->contractIds),
-                'justification' => $entry->justification,
-            ],
-            $snapshot->appliedDecisions,
-        );
-
         return [
             'reference' => $context->reference,
             'generatedAtLabel' => $context->generatedAt->format('d/m/Y H:i'),
@@ -78,10 +63,174 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
             'co2DueTotal' => $this->formatEuros($snapshot->co2DueTotal),
             'pollutantsDueTotal' => $this->formatEuros($snapshot->pollutantsDueTotal),
             'totalDue' => $this->formatEuros($snapshot->totalDue),
-            'vehicleRows' => $vehicleRows,
-            'decisionRows' => $decisionRows,
+            'contractRows' => $this->buildContractRows($snapshot->contractBreakdown),
             'optOutContractsCount' => count($snapshot->optOutContractIds),
         ];
+    }
+
+    /**
+     * Itère sur le breakdown trié `(vehicleLabel, startDate)` et produit
+     * une liste de rows prête à l'affichage : chaque row porte
+     * `clusterHeader` rempli uniquement quand elle ouvre un nouveau
+     * cluster (premier contrat consécutif partageant le `fingerprint`).
+     * Cette structure permet au template Blade de rendre le header en
+     * une ligne séparée (bordure + agrégats) sans recalcul côté vue.
+     *
+     * @param  list<ContractSnapshotEntry>  $contractBreakdown
+     * @return list<array{
+     *     period: string,
+     *     contractTypeLabel: string,
+     *     vehicleLabel: string,
+     *     vehicleFiscalSummary: string,
+     *     daysInYearAssigned: int,
+     *     totalDue: string,
+     *     isInCluster: bool,
+     *     clusterRiskLevel: ?string,
+     *     clusterDecisionRetained: bool,
+     *     clusterHeader: ?array{
+     *         codeLabel: string,
+     *         levelLabel: string,
+     *         levelClass: string,
+     *         contractsCount: int,
+     *         cumulativeDaysInYear: int,
+     *         decisionLabel: ?string,
+     *         decisionClass: ?string,
+     *         justification: ?string,
+     *     }
+     * }>
+     */
+    private function buildContractRows(array $contractBreakdown): array
+    {
+        $clusterAggregates = $this->aggregateClustersByFingerprint($contractBreakdown);
+
+        $rows = [];
+        $previousFingerprint = null;
+        foreach ($contractBreakdown as $entry) {
+            $fingerprint = $entry->clusterFingerprint;
+            $isFirstInCluster = $fingerprint !== null
+                && $fingerprint !== $previousFingerprint;
+
+            $clusterHeader = null;
+            if ($isFirstInCluster) {
+                $aggregate = $clusterAggregates[$fingerprint];
+                $clusterHeader = [
+                    'codeLabel' => $this->codeLabel($entry->clusterRiskCode),
+                    'levelLabel' => $this->levelLabel($entry->clusterRiskLevel),
+                    'levelClass' => $this->levelClass($entry->clusterRiskLevel),
+                    'contractsCount' => $aggregate['contractsCount'],
+                    'cumulativeDaysInYear' => $aggregate['cumulativeDaysInYear'],
+                    'decisionLabel' => $this->decisionLabel($entry->clusterDecision),
+                    'decisionClass' => $this->decisionClass($entry->clusterDecision),
+                    'justification' => $entry->clusterJustification,
+                ];
+            }
+
+            $rows[] = [
+                'period' => $this->formatPeriod($entry->startDate, $entry->endDate),
+                'contractTypeLabel' => $entry->contractType === ContractType::Lcd ? 'LCD' : 'LLD',
+                'vehicleLabel' => $entry->vehicleLabel,
+                'vehicleFiscalSummary' => $entry->vehicleFiscalSummary,
+                'daysInYearAssigned' => $entry->daysInYearAssigned,
+                'totalDue' => $this->formatEuros($entry->totalDue),
+                'isInCluster' => $fingerprint !== null,
+                'clusterRiskLevel' => $entry->clusterRiskLevel?->value,
+                'clusterDecisionRetained' => $entry->clusterDecisionRetainedFrom !== null,
+                'clusterHeader' => $clusterHeader,
+            ];
+
+            $previousFingerprint = $fingerprint;
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  list<ContractSnapshotEntry>  $contractBreakdown
+     * @return array<string, array{contractsCount: int, cumulativeDaysInYear: int}>
+     */
+    private function aggregateClustersByFingerprint(array $contractBreakdown): array
+    {
+        $aggregates = [];
+        foreach ($contractBreakdown as $entry) {
+            $fingerprint = $entry->clusterFingerprint;
+            if ($fingerprint === null) {
+                continue;
+            }
+            if (! isset($aggregates[$fingerprint])) {
+                $aggregates[$fingerprint] = [
+                    'contractsCount' => 0,
+                    'cumulativeDaysInYear' => 0,
+                ];
+            }
+            $aggregates[$fingerprint]['contractsCount']++;
+            $aggregates[$fingerprint]['cumulativeDaysInYear'] += $entry->daysInYearAssigned;
+        }
+
+        return $aggregates;
+    }
+
+    private function codeLabel(?RiskCode $code): string
+    {
+        return match ($code) {
+            RiskCode::ChainFort => 'Chaîne LCD forte',
+            RiskCode::Chain => 'Chaîne LCD',
+            null => '',
+        };
+    }
+
+    private function levelLabel(?RiskLevel $level): string
+    {
+        return match ($level) {
+            RiskLevel::Eleve => 'Risque élevé',
+            RiskLevel::Moyen => 'Risque moyen',
+            null => '',
+        };
+    }
+
+    private function levelClass(?RiskLevel $level): string
+    {
+        return match ($level) {
+            RiskLevel::Eleve => 'level-eleve',
+            RiskLevel::Moyen => 'level-moyen',
+            null => '',
+        };
+    }
+
+    private function decisionLabel(?ReviewDecisionType $decision): ?string
+    {
+        return match ($decision) {
+            ReviewDecisionType::Requalified => 'Requalifié',
+            ReviewDecisionType::Conserved => 'Conservé',
+            null => null,
+        };
+    }
+
+    private function decisionClass(?ReviewDecisionType $decision): ?string
+    {
+        return match ($decision) {
+            ReviewDecisionType::Requalified => 'pill-requalified',
+            ReviewDecisionType::Conserved => 'pill-conserved',
+            null => null,
+        };
+    }
+
+    private function formatPeriod(string $startDate, string $endDate): string
+    {
+        return sprintf(
+            '%s → %s',
+            $this->formatDateFr($startDate),
+            $this->formatDateFr($endDate),
+        );
+    }
+
+    private function formatDateFr(string $isoDate): string
+    {
+        $parts = explode('-', $isoDate);
+        if (count($parts) !== 3) {
+            return $isoDate;
+        }
+
+        return sprintf('%s/%s/%s', $parts[2], $parts[1], $parts[0]);
     }
 
     private function formatEuros(float $amount): string
@@ -89,45 +238,5 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
         $formatted = number_format($amount, 2, ',', "\u{202F}");
 
         return $formatted."\u{202F}€";
-    }
-
-    /**
-     * Agrège le breakdown par contrat (D5.8.1) en vue véhicule pour
-     * préserver le rendu PDF actuel le temps du refactor template
-     * (D5.8.7 livrera la refonte par contrat avec clusters in-line).
-     *
-     * @param  list<ContractSnapshotEntry>  $contractBreakdown
-     * @return list<array{label: string, daysAssigned: int, co2Due: string, pollutantsDue: string, totalDue: string}>
-     */
-    private function aggregateContractsByVehicle(array $contractBreakdown): array
-    {
-        $byVehicle = [];
-        foreach ($contractBreakdown as $entry) {
-            $vehicleId = $entry->vehicleId;
-            if (! isset($byVehicle[$vehicleId])) {
-                $byVehicle[$vehicleId] = [
-                    'label' => $entry->vehicleLabel,
-                    'daysAssigned' => 0,
-                    'co2DueRaw' => 0.0,
-                    'pollutantsDueRaw' => 0.0,
-                    'totalDueRaw' => 0.0,
-                ];
-            }
-            $byVehicle[$vehicleId]['daysAssigned'] += $entry->daysInYearAssigned;
-            $byVehicle[$vehicleId]['co2DueRaw'] += $entry->co2Due;
-            $byVehicle[$vehicleId]['pollutantsDueRaw'] += $entry->pollutantsDue;
-            $byVehicle[$vehicleId]['totalDueRaw'] += $entry->totalDue;
-        }
-
-        return array_values(array_map(
-            fn (array $agg): array => [
-                'label' => $agg['label'],
-                'daysAssigned' => $agg['daysAssigned'],
-                'co2Due' => $this->formatEuros(round($agg['co2DueRaw'], 2, PHP_ROUND_HALF_UP)),
-                'pollutantsDue' => $this->formatEuros(round($agg['pollutantsDueRaw'], 2, PHP_ROUND_HALF_UP)),
-                'totalDue' => $this->formatEuros(round($agg['totalDueRaw'], 2, PHP_ROUND_HALF_UP)),
-            ],
-            $byVehicle,
-        ));
     }
 }

@@ -31,16 +31,31 @@ export function formatDeclarationStatus(status: Status): DeclarationStatusBadge 
 }
 
 /**
- * Tone du badge global d'une ligne : si obsolète, on prend tone
- * `rose` indépendamment du statut sous-jacent (le flag d'obsolescence
- * est plus critique pour l'utilisateur que la transition d'état).
+ * Tone du badge global d'une ligne (Phase 11 D5.8.5, enrichi pour
+ * distinguer S6 « Générée · obsolète » d'une S7 « Régénération en
+ * cours » qui sont visuellement très différents : le premier exige
+ * une action de l'utilisateur (régénérer), le second indique qu'une
+ * régénération est déjà engagée mais pas finalisée.
+ *
+ * Priorité de résolution :
+ *   1. `hasRegenerationInProgress = true` ⇒ « Régénération en cours »
+ *      (orange) : un Draft chaîné existe, l'utilisateur l'a déjà
+ *      initiée mais pas encore générée.
+ *   2. `isObsolete = true` ⇒ « Générée · obsolète » (rouge) :
+ *      version périmée sans régénération démarrée.
+ *   3. Statut sous-jacent (`draft`, `deferred`, `generated`).
  */
 export function badgeForDeclaration(
     status: Status,
     isObsolete: boolean,
+    hasRegenerationInProgress?: boolean | null,
 ): DeclarationStatusBadge {
+    if (hasRegenerationInProgress === true) {
+        return { label: 'Régénération en cours', tone: 'amber' };
+    }
+
     if (isObsolete) {
-        return { label: 'Obsolète', tone: 'rose' };
+        return { label: 'Générée · obsolète', tone: 'rose' };
     }
 
     return formatDeclarationStatus(status);

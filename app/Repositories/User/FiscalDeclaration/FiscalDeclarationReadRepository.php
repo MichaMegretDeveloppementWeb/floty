@@ -118,7 +118,13 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
 
         $eloquentQuery = FiscalDeclaration::query()
             ->select('fiscal_declarations.*')
-            ->with('company:id,short_code,legal_name,color');
+            ->with([
+                'company:id,short_code,legal_name,color',
+                // Phase 11 D5.8.5 · charge le successeur pour pouvoir
+                // distinguer S6 (obsolète orphan) de S7 (Draft chaîné)
+                // dans la pill statut de l'Index.
+                'supersededBy:id,status',
+            ]);
 
         if ($query->companyId !== null) {
             $eloquentQuery->where('fiscal_declarations.company_id', $query->companyId);

@@ -8,6 +8,7 @@ use App\Data\User\FiscalDeclaration\DeclarationPreviewData;
 use App\Enums\Contract\ContractType;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
+use App\Enums\FiscalReviewDecision\RiskLevel;
 use App\Fiscal\ValueObjects\AppliedDecisionEntry;
 use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
@@ -18,7 +19,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre {@see BladeDomPdfDeclarationRenderer} (Phase 11 D5.4).
+ * Couvre {@see BladeDomPdfDeclarationRenderer} (Phase 11 D5.4, refondu
+ * D5.8.5 avec breakdown par contrat + clusters groupés visuellement).
  *
  * Stratégie : tests d'isolation pure du renderer avec un
  * `DeclarationRenderContext` fabriqué en mémoire (pas de BDD).
@@ -29,9 +31,6 @@ use Tests\TestCase;
  *   - Tests de contenu via `renderHtml()` : on vérifie la présence de
  *     chaînes attendues dans le HTML intermédiaire, plus simple et plus
  *     robuste que parser le PDF binaire.
- *
- * Pas de `RefreshDatabase` : on injecte un context fabriqué sans aucune
- * dépendance DB.
  */
 final class BladeDomPdfDeclarationRendererTest extends TestCase
 {
@@ -72,27 +71,51 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
     }
 
     #[Test]
-    public function html_contient_les_lignes_du_breakdown_par_vehicule(): void
+    public function html_contient_les_lignes_du_breakdown_par_contrat_avec_periode_et_vehicule(): void
     {
         $html = $this->renderer->renderHtml($this->buildContext());
 
+        // Section header
+        self::assertStringContainsString('Détail chronologique par contrat', $html);
+        // Période formatée FR
+        self::assertStringContainsString('01/01/2024 → 19/07/2024', $html);
+        // Type contrat
+        self::assertStringContainsString('LLD', $html);
+        // Véhicule + résumé fiscal
         self::assertStringContainsString('Peugeot 308 · AB-123-CD', $html);
-        self::assertStringContainsString('200', $html); // daysAssigned
+        self::assertStringContainsString('M1 · WLTP 100 g · Euro 6', $html);
+        // Jours
+        self::assertStringContainsString('200', $html);
     }
 
     #[Test]
-    public function html_contient_les_decisions_appliquees_avec_justification(): void
+    public function html_groupe_les_contrats_d_un_meme_cluster_avec_header(): void
     {
-        $html = $this->renderer->renderHtml($this->buildContext());
+        $html = $this->renderer->renderHtml($this->buildContextWithCluster());
 
-        self::assertStringContainsString('Locations professionnelles répétées.', $html);
-        self::assertStringContainsString('Requalifié', $html);
-        // Les 12 premiers chars du fingerprint exemple (caractère 'a' répété).
-        self::assertStringContainsString('aaaaaaaaaaaa', $html);
+        // Header de cluster visible (label + niveau + cumul)
+        self::assertStringContainsString('Chaîne LCD', $html);
+        self::assertStringContainsString('Risque moyen', $html);
+        self::assertStringContainsString('2 contrats LCD', $html);
+        self::assertStringContainsString('cumul 30', $html);
+        // Décision conservée affichée dans le header de cluster
+        self::assertStringContainsString('Conservé', $html);
+        // Justification dans le header
+        self::assertStringContainsString('Décision justifiée par le métier.', $html);
+        // Marque cluster-row sur les lignes contrats
+        self::assertStringContainsString('cluster-row', $html);
     }
 
     #[Test]
-    public function html_gere_gracieusement_les_cas_vides_sans_vehicule_ni_decision(): void
+    public function html_marque_les_contrats_dont_la_decision_a_ete_reprise(): void
+    {
+        $html = $this->renderer->renderHtml($this->buildContextWithCluster());
+
+        self::assertStringContainsString('décision reprise', $html);
+    }
+
+    #[Test]
+    public function html_gere_gracieusement_le_cas_vide_sans_contrat(): void
     {
         $emptySnapshot = new FiscalDeclarationSnapshot(
             companyId: 7,
@@ -127,7 +150,6 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
         $html = $this->renderer->renderHtml($context);
 
         self::assertStringContainsString('Aucun véhicule attribué', $html);
-        self::assertStringContainsString('Aucune chaîne LCD', $html);
     }
 
     #[Test]
@@ -173,16 +195,8 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
                     isOptedOut: false,
                 ),
             ],
-            appliedDecisions: [
-                new AppliedDecisionEntry(
-                    clusterFingerprint: str_repeat('a', 64),
-                    riskCode: RiskCode::Chain,
-                    decision: ReviewDecisionType::Requalified,
-                    contractIds: [10, 11, 12],
-                    justification: 'Locations professionnelles répétées.',
-                ),
-            ],
-            optOutContractIds: [10, 11, 12],
+            appliedDecisions: [],
+            optOutContractIds: [],
         );
 
         $preview = new DeclarationPreviewData(
@@ -200,6 +214,100 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
             preview: $preview,
             snapshot: $snapshot,
             reference: 'DECL-ACM-2024-0001',
+            generatedAt: CarbonImmutable::parse('2025-01-15 09:30:00'),
+        );
+    }
+
+    /**
+     * Fixture avec 2 contrats LCD enchaînés sur le même véhicule formant
+     * un cluster R-LCD-CHAIN décidé Conserved (avec justification +
+     * `clusterDecisionRetainedFrom` posé pour matérialiser une décision
+     * reprise par fingerprint).
+     */
+    private function buildContextWithCluster(): DeclarationRenderContext
+    {
+        $fingerprint = str_repeat('c', 64);
+
+        $snapshot = new FiscalDeclarationSnapshot(
+            companyId: 7,
+            companyShortCode: 'ACM',
+            companyLegalName: 'ACM SARL',
+            fiscalYear: 2024,
+            computedAt: CarbonImmutable::parse('2024-12-31 23:59:59'),
+            co2DueTotal: 0.0,
+            pollutantsDueTotal: 0.0,
+            totalDue: 0.0,
+            contractBreakdown: [
+                new ContractSnapshotEntry(
+                    contractId: 11,
+                    contractReference: 'LCD-A',
+                    contractType: ContractType::Lcd,
+                    startDate: '2024-03-01',
+                    endDate: '2024-03-15',
+                    daysInYearAssigned: 15,
+                    vehicleId: 42,
+                    vehicleLabel: 'BMW Série 5 · EG-007-GG',
+                    vehicleFiscalSummary: 'M1 · WLTP 130 g · Euro 6',
+                    co2Due: 0.0,
+                    pollutantsDue: 0.0,
+                    totalDue: 0.0,
+                    clusterFingerprint: $fingerprint,
+                    clusterRiskCode: RiskCode::Chain,
+                    clusterRiskLevel: RiskLevel::Moyen,
+                    clusterDecision: ReviewDecisionType::Conserved,
+                    clusterJustification: 'Décision justifiée par le métier.',
+                    clusterDecisionRetainedFrom: 99,
+                    isOptedOut: false,
+                ),
+                new ContractSnapshotEntry(
+                    contractId: 12,
+                    contractReference: 'LCD-B',
+                    contractType: ContractType::Lcd,
+                    startDate: '2024-04-01',
+                    endDate: '2024-04-15',
+                    daysInYearAssigned: 15,
+                    vehicleId: 42,
+                    vehicleLabel: 'BMW Série 5 · EG-007-GG',
+                    vehicleFiscalSummary: 'M1 · WLTP 130 g · Euro 6',
+                    co2Due: 0.0,
+                    pollutantsDue: 0.0,
+                    totalDue: 0.0,
+                    clusterFingerprint: $fingerprint,
+                    clusterRiskCode: RiskCode::Chain,
+                    clusterRiskLevel: RiskLevel::Moyen,
+                    clusterDecision: ReviewDecisionType::Conserved,
+                    clusterJustification: 'Décision justifiée par le métier.',
+                    clusterDecisionRetainedFrom: 99,
+                    isOptedOut: false,
+                ),
+            ],
+            appliedDecisions: [
+                new AppliedDecisionEntry(
+                    clusterFingerprint: $fingerprint,
+                    riskCode: RiskCode::Chain,
+                    decision: ReviewDecisionType::Conserved,
+                    contractIds: [11, 12],
+                    justification: 'Décision justifiée par le métier.',
+                ),
+            ],
+            optOutContractIds: [],
+        );
+
+        $preview = new DeclarationPreviewData(
+            companyId: 7,
+            companyShortCode: 'ACM',
+            companyLegalName: 'ACM SARL',
+            fiscalYear: 2024,
+            clusters: [],
+            pendingClustersCount: 0,
+            canGenerate: true,
+            declaration: null,
+        );
+
+        return new DeclarationRenderContext(
+            preview: $preview,
+            snapshot: $snapshot,
+            reference: 'DECL-ACM-2024-0002',
             generatedAt: CarbonImmutable::parse('2025-01-15 09:30:00'),
         );
     }

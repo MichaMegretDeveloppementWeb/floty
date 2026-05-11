@@ -65,8 +65,8 @@ const emit = defineEmits<{
         </template>
 
         <template #cell-status="{ row }">
-            <StatusPill :tone="badgeForDeclaration(row.status, row.isObsolete).tone">
-                {{ badgeForDeclaration(row.status, row.isObsolete).label }}
+            <StatusPill :tone="badgeForDeclaration(row.status, row.isObsolete, row.hasRegenerationInProgress).tone">
+                {{ badgeForDeclaration(row.status, row.isObsolete, row.hasRegenerationInProgress).label }}
             </StatusPill>
         </template>
 
@@ -114,8 +114,8 @@ const emit = defineEmits<{
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="font-medium text-slate-900">{{ row.companyShortCode }}</span>
                         <span class="font-mono text-xs text-slate-500">· {{ row.fiscalYear }}</span>
-                        <StatusPill :tone="badgeForDeclaration(row.status, row.isObsolete).tone">
-                            {{ badgeForDeclaration(row.status, row.isObsolete).label }}
+                        <StatusPill :tone="badgeForDeclaration(row.status, row.isObsolete, row.hasRegenerationInProgress).tone">
+                            {{ badgeForDeclaration(row.status, row.isObsolete, row.hasRegenerationInProgress).label }}
                         </StatusPill>
                     </div>
                     <span class="text-xs text-slate-500">{{ row.companyLegalName }}</span>

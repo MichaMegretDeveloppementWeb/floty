@@ -176,6 +176,56 @@
         }
         .pill-requalified { background: #fee2e2; color: #991b1b; }
         .pill-conserved { background: #dcfce7; color: #166534; }
+        .pill-level-moyen { background: #fef3c7; color: #92400e; }
+        .pill-level-eleve { background: #fee2e2; color: #991b1b; }
+        /*
+         * Cluster groups · DomPDF ne propage pas border-left sur tr,
+         * donc on l'applique à la première td de chaque ligne du cluster
+         * via les classes `cluster-row.level-*`. Le header de groupe a
+         * son propre fond pour matérialiser visuellement le regroupement.
+         */
+        tr.cluster-header td {
+            font-size: 8.5pt;
+            padding: 1.5mm 3mm;
+            background: #f8fafc;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        tr.cluster-header.level-eleve td { background: #fef2f2; }
+        tr.cluster-header.level-moyen td { background: #fffbeb; }
+        tr.cluster-header .cluster-title {
+            font-weight: bold;
+            color: #0f172a;
+        }
+        tr.cluster-header .cluster-meta {
+            color: #475569;
+            font-size: 8pt;
+        }
+        tr.cluster-header .cluster-justification {
+            display: block;
+            color: #475569;
+            font-style: italic;
+            font-size: 8pt;
+            margin-top: 1mm;
+        }
+        tr.cluster-row td:first-child {
+            border-left: 3px solid #e2e8f0;
+            padding-left: 4mm;
+        }
+        tr.cluster-row.level-eleve td:first-child { border-left-color: #f87171; }
+        tr.cluster-row.level-moyen td:first-child { border-left-color: #f59e0b; }
+        .retained-tag {
+            display: inline-block;
+            margin-left: 1.5mm;
+            font-size: 7pt;
+            color: #64748b;
+            font-style: italic;
+        }
+        .vehicle-summary {
+            display: block;
+            color: #94a3b8;
+            font-size: 8pt;
+            margin-top: 0.5mm;
+        }
         .legal {
             margin-top: 8mm;
             padding-top: 4mm;
@@ -249,64 +299,63 @@
     </section>
 
     <section>
-        <h2>Détail par véhicule</h2>
-        @if (count($vehicleRows) === 0)
+        <h2>Détail chronologique par contrat</h2>
+        @if (count($contractRows) === 0)
             <p class="empty">Aucun véhicule attribué sur cet exercice.</p>
         @else
             <table class="lines">
                 <thead>
                     <tr>
+                        <th>Période</th>
+                        <th>Type</th>
                         <th>Véhicule</th>
                         <th class="numeric">Jours</th>
-                        <th class="numeric">CO₂</th>
-                        <th class="numeric">Polluants</th>
-                        <th class="numeric">Total</th>
+                        <th class="numeric">Taxe</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach ($vehicleRows as $row)
-                        <tr>
-                            <td>{{ $row['label'] }}</td>
-                            <td class="numeric">{{ $row['daysAssigned'] }}</td>
-                            <td class="numeric">{{ $row['co2Due'] }}</td>
-                            <td class="numeric">{{ $row['pollutantsDue'] }}</td>
-                            <td class="numeric">{{ $row['totalDue'] }}</td>
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        @endif
-    </section>
-
-    <section>
-        <h2>Décisions de revue appliquées</h2>
-        @if (count($decisionRows) === 0)
-            <p class="empty">Aucune chaîne LCD à risque détectée sur cet exercice.</p>
-        @else
-            <table class="lines">
-                <thead>
-                    <tr>
-                        <th>Cluster</th>
-                        <th>Risque</th>
-                        <th>Décision</th>
-                        <th class="numeric">Contrats</th>
-                        <th>Justification</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach ($decisionRows as $row)
-                        <tr>
-                            <td class="mono">{{ $row['fingerprintShort'] }}…</td>
-                            <td>{{ $row['riskCodeLabel'] }}</td>
+                    @foreach ($contractRows as $row)
+                        @if ($row['clusterHeader'] !== null)
+                            <tr class="cluster-header level-{{ $row['clusterRiskLevel'] }}">
+                                <td colspan="5">
+                                    <span class="cluster-title">
+                                        {{ $row['clusterHeader']['codeLabel'] }}
+                                    </span>
+                                    <span class="pill pill-{{ $row['clusterHeader']['levelClass'] }}">
+                                        {{ $row['clusterHeader']['levelLabel'] }}
+                                    </span>
+                                    <span class="cluster-meta">
+                                        · {{ $row['clusterHeader']['contractsCount'] }} contrats LCD ·
+                                        cumul {{ $row['clusterHeader']['cumulativeDaysInYear'] }}
+                                        @if ($row['clusterHeader']['cumulativeDaysInYear'] > 1) jours @else jour @endif
+                                    </span>
+                                    @if ($row['clusterHeader']['decisionLabel'] !== null)
+                                        <span class="pill {{ $row['clusterHeader']['decisionClass'] }}" style="float: right;">
+                                            {{ $row['clusterHeader']['decisionLabel'] }}
+                                        </span>
+                                    @endif
+                                    @if ($row['clusterHeader']['justification'])
+                                        <span class="cluster-justification">
+                                            {{ $row['clusterHeader']['justification'] }}
+                                        </span>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endif
+                        <tr class="@if ($row['isInCluster']) cluster-row level-{{ $row['clusterRiskLevel'] }} @endif">
+                            <td class="mono">{{ $row['period'] }}</td>
+                            <td>{{ $row['contractTypeLabel'] }}</td>
                             <td>
-                                @if ($row['decisionLabel'] === 'requalified')
-                                    <span class="pill pill-requalified">Requalifié</span>
-                                @else
-                                    <span class="pill pill-conserved">Conservé</span>
+                                {{ $row['vehicleLabel'] }}
+                                <span class="vehicle-summary">{{ $row['vehicleFiscalSummary'] }}</span>
+                            </td>
+                            <td class="numeric">{{ $row['daysInYearAssigned'] }}</td>
+                            <td class="numeric">
+                                {{ $row['totalDue'] }}
+                                @if ($row['clusterDecisionRetained'])
+                                    <span class="retained-tag">décision reprise</span>
                                 @endif
                             </td>
-                            <td class="numeric">{{ $row['contractsCount'] }}</td>
-                            <td>{{ $row['justification'] ?? '·' }}</td>
                         </tr>
                     @endforeach
                 </tbody>
