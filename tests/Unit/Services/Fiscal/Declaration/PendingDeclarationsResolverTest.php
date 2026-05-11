@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Fiscal\Declaration;
 
 use App\Enums\Contract\ContractType;
+use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\FiscalDeclaration;
@@ -16,12 +17,12 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre la résolution des déclarations en attente (Phase 11 D4) :
- *   - années avec contrats sans déclaration `generated` → pending
- *   - année en cours exclue (pas encore due)
- *   - déclaration `draft` ou `deferred` ne suffit pas (= encore pending)
- *   - déclaration `generated` active = year retiré
- *   - déclaration `generated` mais obsolète = year toujours pending
+ * Couvre la résolution des déclarations en attente (Phase 11 D4,
+ * enrichi Phase 12 D5.9.D avec lifecycle state) :
+ *   - années avec contrats sans déclaration `generated_active` → pending
+ *   - année en cours exclue uniquement pour Untouched
+ *   - chaque état lifecycle exposé via `state` pour permettre au
+ *     composant frontend de proposer le bon CTA
  *   - tri plus ancienne en premier
  *   - deadline 30/04/N+1 + isOverdue
  */
@@ -64,7 +65,10 @@ final class PendingDeclarationsResolverTest extends TestCase
 
         self::assertCount(2, $pending);
         self::assertSame(2024, $pending[0]->fiscalYear);
+        self::assertSame(DeclarationLifecycleState::Untouched, $pending[0]->state);
+        self::assertNull($pending[0]->currentDeclarationId);
         self::assertSame(2025, $pending[1]->fiscalYear);
+        self::assertSame(DeclarationLifecycleState::Untouched, $pending[1]->state);
 
         Carbon::setTestNow();
     }
@@ -97,11 +101,11 @@ final class PendingDeclarationsResolverTest extends TestCase
     }
 
     #[Test]
-    public function declaration_obsolete_garde_l_annee_en_pending(): void
+    public function declaration_obsolete_orphan_garde_l_annee_en_pending_avec_state(): void
     {
         Carbon::setTestNow('2026-06-01');
         $this->makeContract('2025-03-01', '2025-04-15');
-        FiscalDeclaration::factory()
+        $obsolete = FiscalDeclaration::factory()
             ->forCompany($this->company)
             ->forYear(2025)
             ->obsolete()
@@ -111,16 +115,21 @@ final class PendingDeclarationsResolverTest extends TestCase
 
         self::assertCount(1, $pending);
         self::assertSame(2025, $pending[0]->fiscalYear);
+        self::assertSame(
+            DeclarationLifecycleState::GeneratedObsoleteOrphan,
+            $pending[0]->state,
+        );
+        self::assertSame($obsolete->id, $pending[0]->currentDeclarationId);
 
         Carbon::setTestNow();
     }
 
     #[Test]
-    public function declaration_draft_ou_deferred_garde_l_annee_en_pending(): void
+    public function declaration_deferred_garde_l_annee_en_pending_avec_state(): void
     {
         Carbon::setTestNow('2026-06-01');
         $this->makeContract('2025-03-01', '2025-04-15');
-        FiscalDeclaration::factory()
+        $deferred = FiscalDeclaration::factory()
             ->forCompany($this->company)
             ->forYear(2025)
             ->deferred()
@@ -129,7 +138,63 @@ final class PendingDeclarationsResolverTest extends TestCase
         $pending = $this->resolver->pendingForCompany($this->company->id);
 
         self::assertCount(1, $pending);
-        self::assertSame(2025, $pending[0]->fiscalYear);
+        self::assertSame(DeclarationLifecycleState::Deferred, $pending[0]->state);
+        self::assertSame($deferred->id, $pending[0]->currentDeclarationId);
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function declaration_draft_garde_l_annee_en_pending_avec_state(): void
+    {
+        Carbon::setTestNow('2026-06-01');
+        $this->makeContract('2025-03-01', '2025-04-15');
+        $draft = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $pending = $this->resolver->pendingForCompany($this->company->id);
+
+        self::assertCount(1, $pending);
+        // Draft sans cluster pending = DraftReadyToGenerate (rien à
+        // trancher dans la fixture par défaut).
+        self::assertSame(
+            DeclarationLifecycleState::DraftReadyToGenerate,
+            $pending[0]->state,
+        );
+        self::assertSame($draft->id, $pending[0]->currentDeclarationId);
+
+        Carbon::setTestNow();
+    }
+
+    #[Test]
+    public function declaration_regeneration_en_cours_garde_l_annee_avec_state(): void
+    {
+        Carbon::setTestNow('2026-06-01');
+        $this->makeContract('2025-03-01', '2025-04-15');
+
+        $previous = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->obsolete()
+            ->create();
+        $draft = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+        $previous->update(['superseded_by_id' => $draft->id]);
+
+        $pending = $this->resolver->pendingForCompany($this->company->id);
+
+        self::assertCount(1, $pending);
+        self::assertSame(
+            DeclarationLifecycleState::RegenerationInProgress,
+            $pending[0]->state,
+        );
+        self::assertSame($draft->id, $pending[0]->currentDeclarationId);
 
         Carbon::setTestNow();
     }

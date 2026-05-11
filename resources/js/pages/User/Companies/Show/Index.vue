@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import { useCompanyTabs } from '@/Composables/Company/Show/useCompanyTabs';
 import CompanyBillingTab from './partials/CompanyBillingTab.vue';
@@ -32,6 +33,15 @@ const props = defineProps<{
 const { activeTab, setTab } = useCompanyTabs();
 
 /**
+ * Phase 12 D5.9.D · `true` quand au moins une déclaration de
+ * l'entreprise est en attente d'action (lifecycle ≠ GeneratedActive).
+ * Sert au dot discret de l'onglet « Fiscalité » dans `CompanyTabsNav`.
+ */
+const fiscalHasTodo = computed<boolean>(
+    () => props.pendingDeclarations.length > 0,
+);
+
+/**
  * Phase 11 D4 — Navigation depuis l'alerte « Déclarations à finaliser »
  * vers l'onglet Fiscalité de l'année concernée. URL `?tab=fiscal&fiscalYear=Y`
  * pilote `useCompanyTabs` (lit `?tab=`) + `useCompanyFiscalSelectedYear`
@@ -54,7 +64,11 @@ function handleGotoFiscalYear(year: number): void {
         <div class="flex flex-col gap-6">
             <CompanyHeader :company="props.company" />
 
-            <CompanyTabsNav :active-tab="activeTab" @change="setTab" />
+            <CompanyTabsNav
+                :active-tab="activeTab"
+                :fiscal-has-todo="fiscalHasTodo"
+                @change="setTab"
+            />
 
             <CompanyOverviewTab
                 v-if="activeTab === 'overview'"

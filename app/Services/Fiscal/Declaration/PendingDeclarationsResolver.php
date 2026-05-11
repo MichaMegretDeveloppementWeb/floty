@@ -4,34 +4,41 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal\Declaration;
 
-use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\User\FiscalDeclaration\PendingDeclarationData;
+use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Résout la liste des `(company, year)` pour lesquels une déclaration
- * fiscale est attendue mais pas encore finalisée (Phase 11 D4).
+ * Résout la liste des `(company, year)` qui méritent l'attention de
+ * l'utilisateur sur l'onglet Vue d'ensemble d'une fiche entreprise
+ * (Phase 11 D4, refondu Phase 12 D5.9.D).
  *
- * **Règle métier** : pour une entreprise donnée, on attend une
- * déclaration pour chaque année **passée** (year < currentYear) où il
- * existe au moins un contrat couvrant cette année, et où il n'existe
- * pas de déclaration `generated` active (`is_obsolete = false`).
+ * **Sémantique « pending » élargie (D5.9.D)** : la liste contient toute
+ * année qui n'est pas en `GeneratedActive` (= finalisée et à jour).
+ * Sont donc inclus :
+ *   - Untouched (jamais préparée), sauf l'année en cours qui n'est pas
+ *     encore due.
+ *   - DraftPending / DraftReadyToGenerate (préparation en cours).
+ *   - Deferred (mise de côté volontaire).
+ *   - GeneratedObsoleteOrphan (déclaration périmée sans régénération).
+ *   - RegenerationInProgress (Draft chaîné en cours).
  *
- * **Année en cours exclue** : la déclaration N peut techniquement être
- * préparée à tout moment, mais elle n'est « due » qu'à partir de N+1.
- * On n'alerte donc pas pendant l'année en cours.
+ * Chaque entry porte le `state` de cycle de vie résolu par
+ * {@see DeclarationLifecycleResolver}, permettant au composant
+ * frontend de proposer le bon CTA adaptatif (Préparer / Reprendre /
+ * Régénérer / Reprendre la régénération).
  *
  * **Deadline** : 30 avril N+1 (CIBS officiel France). `isOverdue` est
  * dérivé via comparaison avec `now()`.
  *
  * Sortie triée plus ancienne année en premier (les retards les plus
- * critiques en haut de l'alerte UI).
+ * critiques en haut de la card UI).
  */
 final readonly class PendingDeclarationsResolver
 {
     public function __construct(
-        private FiscalDeclarationReadRepositoryInterface $declarations,
+        private DeclarationLifecycleResolver $lifecycleResolver,
     ) {}
 
     /**
@@ -49,14 +56,19 @@ final readonly class PendingDeclarationsResolver
 
         $pending = [];
         foreach ($contractYears as $year) {
-            // L'année en cours n'est pas due tant qu'elle n'est pas
-            // close.
-            if ($year >= $currentYear) {
+            $lifecycle = $this->lifecycleResolver->resolveForCompanyYear($companyId, $year);
+
+            if ($lifecycle->state === DeclarationLifecycleState::GeneratedActive) {
                 continue;
             }
-
-            $active = $this->declarations->findActiveForCompanyYear($companyId, $year);
-            if ($active !== null && $active->status->value === 'generated') {
+            // Untouched sur l'année en cours · pas encore due tant que
+            // l'exercice n'est pas clos. Les autres états (Draft,
+            // Deferred, ObsoleteOrphan, Regen) méritent toujours
+            // l'attention, même sur l'année courante.
+            if (
+                $lifecycle->state === DeclarationLifecycleState::Untouched
+                && $year >= $currentYear
+            ) {
                 continue;
             }
 
@@ -67,11 +79,12 @@ final readonly class PendingDeclarationsResolver
                 fiscalYear: $year,
                 deadline: $deadline,
                 isOverdue: $isOverdue,
+                state: $lifecycle->state,
+                currentDeclarationId: $lifecycle->currentDeclaration?->id,
+                pendingClustersCount: $lifecycle->pendingClustersCount,
             );
         }
 
-        // Plus ancienne année en premier (le retard le plus critique
-        // remonte en haut de l'alerte UI).
         usort(
             $pending,
             static fn (PendingDeclarationData $a, PendingDeclarationData $b): int => $a->fiscalYear <=> $b->fiscalYear,

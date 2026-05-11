@@ -1,9 +1,22 @@
 <script setup lang="ts">
 import type { CompanyTabKey } from '@/Composables/Company/Show/useCompanyTabs';
 
-defineProps<{
-    activeTab: CompanyTabKey;
-}>();
+withDefaults(
+    defineProps<{
+        activeTab: CompanyTabKey;
+        /**
+         * Phase 12 D5.9.D · affiche un petit dot ambre à droite du
+         * libellé « Fiscalité » quand au moins une déclaration de
+         * l'entreprise est en attente d'action (lifecycle ≠ Generated
+         * Active). Signale subtilement « quelque chose à faire » sans
+         * crier comme une alerte rouge.
+         */
+        fiscalHasTodo?: boolean;
+    }>(),
+    {
+        fiscalHasTodo: false,
+    },
+);
 
 defineEmits<{
     change: [tab: CompanyTabKey];
@@ -35,7 +48,7 @@ const tabs: readonly { key: CompanyTabKey; label: string }[] = [
             role="tab"
             :aria-selected="activeTab === tab.key"
             :class="[
-                'shrink-0 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors',
+                'inline-flex shrink-0 cursor-pointer items-center gap-1.5 border-b-2 px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors',
                 activeTab === tab.key
                     ? 'border-blue-600 text-blue-700'
                     : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-slate-900',
@@ -43,6 +56,12 @@ const tabs: readonly { key: CompanyTabKey; label: string }[] = [
             @click="$emit('change', tab.key)"
         >
             {{ tab.label }}
+            <span
+                v-if="tab.key === 'fiscal' && fiscalHasTodo"
+                class="inline-block size-1.5 rounded-full bg-amber-400"
+                title="Déclarations en attente"
+                aria-hidden="true"
+            />
         </button>
     </div>
 </template>

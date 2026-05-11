@@ -29,6 +29,7 @@ const props = defineProps<{
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
     history: Array<App.Data.User.FiscalDeclaration.DeclarationListItemData>;
     predecessorDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
+    successorDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
 }>();
 </script>
 
@@ -48,7 +49,10 @@ const props = defineProps<{
 
             <FiscalSummaryCard :snapshot="props.snapshot" />
 
-            <PdfCard :declaration="props.declaration" />
+            <PdfCard
+                :declaration="props.declaration"
+                :successor-declaration="props.successorDeclaration"
+            />
 
             <HistoryChainCard :history="props.history" :current-id="props.declaration.id" />
         </div>

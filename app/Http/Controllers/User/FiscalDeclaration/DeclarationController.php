@@ -93,10 +93,12 @@ final class DeclarationController extends Controller
     {
         Gate::authorize('view', $declaration);
 
+        $declaration->load('company', 'supersededBy.company');
         $predecessor = $this->reader->findPredecessorOf($declaration->id);
+        $successor = $declaration->supersededBy;
 
         return Inertia::render('User/Declarations/Show/Index', [
-            'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
+            'declaration' => FiscalDeclarationData::fromModel($declaration),
             'snapshot' => $this->resolveSnapshotData($declaration),
             'history' => $this->reader
                 ->findHistoryForCompanyYear($declaration->company_id, $declaration->fiscal_year)
@@ -108,6 +110,15 @@ final class DeclarationController extends Controller
             // page rende un mini banner narratif rappelant la traçabilité.
             'predecessorDeclaration' => $predecessor !== null
                 ? DeclarationListItemData::fromModel($predecessor->load('company'))
+                : null,
+            // Phase 12 D5.9.D · si cette déclaration est elle-même
+            // remplacée (un Draft chaîné en cours de régénération
+            // pointe vers une autre déclaration), expose-le pour que
+            // `<PdfCard>` propose « Reprendre la régénération en cours »
+            // au lieu d'un nouveau « Régénérer » qui créerait un
+            // brouillon orphelin.
+            'successorDeclaration' => $successor !== null
+                ? DeclarationListItemData::fromModel($successor)
                 : null,
         ]);
     }
