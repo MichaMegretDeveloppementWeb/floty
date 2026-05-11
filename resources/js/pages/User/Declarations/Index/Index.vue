@@ -15,6 +15,7 @@ import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
+import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import { useDeclarationsIndex } from '@/Composables/Declaration/useDeclarationsIndex';
@@ -43,6 +44,7 @@ const {
     fiscalYearModel,
     statusModel,
     obsoleteOnlyModel,
+    searchModel,
 } = tableState;
 
 const companySelectOptions = computed(() =>
@@ -91,6 +93,13 @@ const statusOptions = [
 
             <template v-else>
                 <div class="flex flex-wrap items-center gap-3">
+                    <div class="max-w-md grow">
+                        <SearchInput
+                            v-model="searchModel"
+                            placeholder="Rechercher par référence (ex. DECL-ACM-2024)"
+                            aria-label="Rechercher par référence de déclaration"
+                        />
+                    </div>
                     <FilterPopover
                         v-model:open="filtersOpen"
                         :active-count="tableState.activeFiltersCount.value"

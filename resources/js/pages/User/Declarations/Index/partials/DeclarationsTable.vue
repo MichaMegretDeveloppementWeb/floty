@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { ChevronRight } from 'lucide-vue-next';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
+import { show as declarationsShowRoute } from '@/routes/user/declarations';
 import type { DataTableColumn } from '@/types/ui';
-import { badgeForDeclaration } from '@/Utils/format/declarationStatus';
+import { pillForIndexRow, subMentionForRow } from '@/Utils/format/declarationStatus';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 type DeclarationRow = App.Data.User.FiscalDeclaration.DeclarationListItemData;
@@ -65,17 +67,23 @@ const emit = defineEmits<{
         </template>
 
         <template #cell-status="{ row }">
-            <StatusPill :tone="badgeForDeclaration(row.status, row.isObsolete, row.hasRegenerationInProgress).tone">
-                {{ badgeForDeclaration(row.status, row.isObsolete, row.hasRegenerationInProgress).label }}
-            </StatusPill>
+            <div class="flex flex-col items-start gap-1">
+                <StatusPill :tone="pillForIndexRow(row).tone">
+                    {{ pillForIndexRow(row).label }}
+                </StatusPill>
+                <Link
+                    v-if="subMentionForRow(row)"
+                    :href="declarationsShowRoute.url({ declaration: subMentionForRow(row)!.targetDeclarationId })"
+                    class="cursor-pointer text-xs text-slate-500 transition-colors duration-[120ms] hover:text-slate-800 hover:underline"
+                    @click.stop
+                >
+                    {{ subMentionForRow(row)!.text }}
+                </Link>
+            </div>
         </template>
 
         <template #cell-isObsolete="{ row }">
-            <span
-                v-if="row.isObsolete"
-                class="cursor-help text-rose-600"
-                title="Périmètre contractuel modifié depuis la génération · régénération recommandée"
-            >●</span>
+            <StatusPill v-if="row.isObsolete" tone="rose">Obsolète</StatusPill>
             <span
                 v-else
                 class="cursor-help text-slate-300"
@@ -114,13 +122,20 @@ const emit = defineEmits<{
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="font-medium text-slate-900">{{ row.companyShortCode }}</span>
                         <span class="font-mono text-xs text-slate-500">· {{ row.fiscalYear }}</span>
-                        <StatusPill :tone="badgeForDeclaration(row.status, row.isObsolete, row.hasRegenerationInProgress).tone">
-                            {{ badgeForDeclaration(row.status, row.isObsolete, row.hasRegenerationInProgress).label }}
+                        <StatusPill v-if="row.isObsolete" tone="rose">Obsolète</StatusPill>
+                        <StatusPill :tone="pillForIndexRow(row).tone">
+                            {{ pillForIndexRow(row).label }}
                         </StatusPill>
                     </div>
                     <span class="text-xs text-slate-500">{{ row.companyLegalName }}</span>
                     <p v-if="row.reference" class="font-mono text-[11px] text-slate-500">
                         {{ row.reference }}
+                    </p>
+                    <p
+                        v-if="subMentionForRow(row)"
+                        class="text-[11px] text-slate-500"
+                    >
+                        {{ subMentionForRow(row)!.text }}
                     </p>
                     <p v-if="row.generatedAt" class="font-mono text-[11px] text-slate-400">
                         Générée le {{ formatDateFr(row.generatedAt) }}

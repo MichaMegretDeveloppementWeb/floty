@@ -1,1 +1,0 @@
-var e={draft:`Brouillon`,deferred:`Mise de côté`,generated:`Générée`},t={draft:`slate`,deferred:`amber`,generated:`emerald`};function n(n){return{label:e[n],tone:t[n]}}function r(e,t,r){return r===!0?{label:`Régénération en cours`,tone:`amber`}:t?{label:`Générée · obsolète`,tone:`rose`}:n(e)}export{r as t};

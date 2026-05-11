@@ -1,12 +1,13 @@
 /**
  * Configuration de la table Index Déclarations (server-side, cf.
- * ADR-0020). Phase 11 D4.
+ * ADR-0020). Phase 11 D4, refondu Phase 13 D5.10.F.
  *
- * Filtres : `companyId`, `fiscalYear`, `status`, `obsoleteOnly`. Pas de
- * search texte (peu utile sur les déclarations).
+ * Filtres : `companyId`, `fiscalYear`, `status`, `obsoleteOnly`.
+ * Recherche par référence avec expansion chaîne backend depuis
+ * D5.10.F (1 référence trouvée → toute la chaîne historique).
  *
- * Whitelist sortKey backend : `company`, `fiscalYear`, `status`,
- * `generatedAt`.
+ * Whitelist sortKey backend : `company`, `fiscalYear`, `reference`,
+ * `status`, `generatedAt`.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -22,12 +23,14 @@ type DeclarationRow = App.Data.User.FiscalDeclaration.DeclarationListItemData;
 export type DeclarationSortKey =
     | 'company'
     | 'fiscalYear'
+    | 'reference'
     | 'status'
     | 'generatedAt';
 
 const COLUMN_TO_SORT_KEY: Partial<Record<string, DeclarationSortKey>> = {
     companyShortCode: 'company',
     fiscalYear: 'fiscalYear',
+    reference: 'reference',
     status: 'status',
     generatedAt: 'generatedAt',
 };
@@ -63,15 +66,19 @@ export function useDeclarationsIndex(opts: {
     fiscalYearModel: WritableComputedRef<number | null>;
     statusModel: WritableComputedRef<App.Enums.FiscalDeclaration.FiscalDeclarationStatus | null>;
     obsoleteOnlyModel: WritableComputedRef<boolean>;
+    searchModel: WritableComputedRef<string>;
     onHeaderClick: (columnKey: string) => void;
     onRowClick: (row: DeclarationRow) => void;
 } {
+    // Phase 13 D5.10.F · colonne `isObsolete` reordonnée AVANT `status`
+    // pour que l'œil croise l'obsolescence avant le statut (signal
+    // primaire « faut-il agir ? » avant le secondaire « quel état »).
     const columns: readonly DataTableColumn<DeclarationRow>[] = [
         { key: 'companyShortCode', label: 'Entreprise' },
         { key: 'fiscalYear', label: 'Année', mono: true, align: 'center' },
         { key: 'reference', label: 'Référence', mono: true },
-        { key: 'status', label: 'Statut' },
         { key: 'isObsolete', label: 'Obsolète', align: 'center' },
+        { key: 'status', label: 'Statut' },
         { key: 'generatedAt', label: 'Générée le', mono: true },
     ];
 
@@ -79,6 +86,7 @@ export function useDeclarationsIndex(opts: {
         only: ['declarations', 'query'],
         initialPage: opts.query.page,
         initialPerPage: opts.query.perPage,
+        initialSearch: opts.query.search ?? '',
         initialSortKey: opts.query.sortKey,
         initialSortDirection: opts.query.sortDirection,
         defaultFilters: {
@@ -145,6 +153,18 @@ export function useDeclarationsIndex(opts: {
         return chips;
     });
 
+    /**
+     * Phase 13 D5.10.F · `searchModel` v-model pour le `<SearchInput>`
+     * de l'Index. La mutation passe par `state.search.value` qui est
+     * watch-debouncé (300ms) côté `useServerTableState`.
+     */
+    const searchModel = computed<string>({
+        get: () => state.search.value,
+        set: (value: string) => {
+            state.search.value = value;
+        },
+    });
+
     const activeFiltersCount = computed<number>(
         () => activeFilterChips.value.length,
     );
@@ -190,6 +210,7 @@ export function useDeclarationsIndex(opts: {
         fiscalYearModel,
         statusModel,
         obsoleteOnlyModel,
+        searchModel,
         onHeaderClick,
         onRowClick,
     };

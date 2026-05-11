@@ -38,10 +38,38 @@ final class DeclarationListItemData extends Data
          * `null` par défaut : non calculé par `fromModel()`.
          */
         public ?bool $hasRegenerationInProgress = null,
+        /**
+         * Phase 13 D5.10.F · référence du predecessor (déclaration que
+         * celle-ci remplace). Populée depuis la relation `supersedes`
+         * quand chargée. Sert à la sous-mention « Remplace DECL-XXX »
+         * sur l'Index Déclarations.
+         */
+        public ?string $predecessorReference = null,
+        /**
+         * Phase 13 D5.10.F · id du predecessor pour rendre la sous-mention
+         * cliquable (navigation Show).
+         */
+        public ?int $predecessorId = null,
+        /**
+         * Phase 13 D5.10.F · référence du successor (déclaration qui
+         * remplace celle-ci). Populée depuis la relation `supersededBy`
+         * quand chargée. Sert aux sous-mentions « Régénération en cours
+         * · DECL-XXX » et « Remplacée par DECL-XXX » sur l'Index.
+         */
+        public ?string $successorReference = null,
+        /**
+         * Phase 13 D5.10.F · statut du successor. Permet de distinguer
+         * « Régénération en cours » (Draft) de « Remplacée par »
+         * (Generated) côté UI.
+         */
+        public ?FiscalDeclarationStatus $successorStatus = null,
     ) {}
 
     public static function fromModel(FiscalDeclaration $declaration): self
     {
+        $predecessor = self::resolvePredecessor($declaration);
+        $successor = self::resolveSuccessor($declaration);
+
         return new self(
             id: $declaration->id,
             companyId: $declaration->company_id,
@@ -55,6 +83,10 @@ final class DeclarationListItemData extends Data
             generatedPdfHash: $declaration->generated_pdf_hash,
             supersededById: $declaration->superseded_by_id,
             hasRegenerationInProgress: self::computeRegenerationFlag($declaration),
+            predecessorReference: $predecessor?->reference,
+            predecessorId: $predecessor?->id,
+            successorReference: $successor?->reference,
+            successorStatus: $successor?->status,
         );
     }
 
@@ -76,5 +108,23 @@ final class DeclarationListItemData extends Data
         }
 
         return $successor->status === FiscalDeclarationStatus::Draft;
+    }
+
+    private static function resolvePredecessor(FiscalDeclaration $declaration): ?FiscalDeclaration
+    {
+        if (! $declaration->relationLoaded('supersedes')) {
+            return null;
+        }
+
+        return $declaration->supersedes;
+    }
+
+    private static function resolveSuccessor(FiscalDeclaration $declaration): ?FiscalDeclaration
+    {
+        if (! $declaration->relationLoaded('supersededBy')) {
+            return null;
+        }
+
+        return $declaration->supersededBy;
     }
 }

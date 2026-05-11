@@ -41,7 +41,7 @@ final class DeclarationIndexQueryData extends IndexQueryData
 
     public static function allowedSortKeys(): array
     {
-        return ['company', 'fiscalYear', 'status', 'generatedAt'];
+        return ['company', 'fiscalYear', 'reference', 'status', 'generatedAt'];
     }
 
     public static function rules(): array

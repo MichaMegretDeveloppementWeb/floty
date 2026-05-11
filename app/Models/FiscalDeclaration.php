@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -114,6 +115,20 @@ final class FiscalDeclaration extends Model
     public function obsoletes(): HasMany
     {
         return $this->hasMany(FiscalDeclaration::class, 'superseded_by_id');
+    }
+
+    /**
+     * Déclaration prédécesseur unique que celle-ci remplace (Phase 13
+     * D5.10.F). Variante ergonomique HasOne de `obsoletes()` · la chaîne
+     * d'obsolescence étant strictement linéaire (1 ancien → 1 nouveau),
+     * il y a au plus une déclaration X telle que `X.superseded_by_id =
+     * $this->id`. Utile pour l'eager-load côté Index Déclarations.
+     *
+     * @return HasOne<FiscalDeclaration, $this>
+     */
+    public function supersedes(): HasOne
+    {
+        return $this->hasOne(FiscalDeclaration::class, 'superseded_by_id');
     }
 
     /**

@@ -44,6 +44,12 @@ export function formatDeclarationStatus(status: Status): DeclarationStatusBadge 
  *   2. `isObsolete = true` ⇒ « Générée · obsolète » (rouge) :
  *      version périmée sans régénération démarrée.
  *   3. Statut sous-jacent (`draft`, `deferred`, `generated`).
+ *
+ * **Conservé pour compatibilité** avec la page Show qui veut un pill
+ * unique combinant statut + obsolescence. La page Index Déclarations
+ * utilise `pillForIndexRow` + `subMentionForRow` depuis Phase 13
+ * D5.10.F pour découpler ces informations (colonne Obsolète dédiée +
+ * sous-mention contextuelle).
  */
 export function badgeForDeclaration(
     status: Status,
@@ -59,4 +65,65 @@ export function badgeForDeclaration(
     }
 
     return formatDeclarationStatus(status);
+}
+
+type DeclarationRow = App.Data.User.FiscalDeclaration.DeclarationListItemData;
+
+export type IndexSubMention = { text: string; targetDeclarationId: number } | null;
+
+/**
+ * Pill principal de la colonne « Statut » sur l'Index Déclarations
+ * (Phase 13 D5.10.F). Refonte de `badgeForDeclaration` qui ne porte
+ * **plus** l'obsolescence (désormais dans sa propre colonne). Le seul
+ * enrichissement maintenu dans le pill est le cas « Brouillon ·
+ * régénération » qui distingue visuellement un draft initial d'un
+ * draft de régénération chaîné à un predecessor.
+ */
+export function pillForIndexRow(row: DeclarationRow): DeclarationStatusBadge {
+    if (row.status === 'draft' && row.predecessorReference !== null) {
+        return { label: 'Brouillon · régénération', tone: 'amber' };
+    }
+
+    return formatDeclarationStatus(row.status);
+}
+
+/**
+ * Sous-mention contextuelle sous le pill `Statut` sur l'Index
+ * Déclarations (Phase 13 D5.10.F). Décrit la position de la ligne
+ * dans sa chaîne d'obsolescence, avec une cible cliquable pour
+ * naviguer vers la déclaration référencée.
+ *
+ * Priorité de résolution :
+ *   1. Ligne obsolète avec un successor · décrit le successor
+ *      (« Régénération en cours · DECL-XXX » si Draft, « Remplacée
+ *      par DECL-XXX » sinon).
+ *   2. Ligne ayant un predecessor · décrit le predecessor
+ *      (« Remplace DECL-XXX », cliquable vers le predecessor).
+ *   3. Sinon `null` (pas de sous-mention).
+ */
+export function subMentionForRow(row: DeclarationRow): IndexSubMention {
+    if (row.isObsolete && row.supersededById !== null && row.successorStatus !== null) {
+        // Fallback `Brouillon #ID` quand le successor Draft n'a pas
+        // encore de référence assignée (références posées seulement
+        // à la génération · cf. `DeclarationReferenceGenerator`).
+        const successorLabel = row.successorReference
+            ?? (row.successorStatus === 'draft' ? `Brouillon #${row.supersededById}` : `#${row.supersededById}`);
+
+        const text = row.successorStatus === 'draft'
+            ? `Régénération en cours · ${successorLabel}`
+            : `Remplacée par ${successorLabel}`;
+
+        return { text, targetDeclarationId: row.supersededById };
+    }
+
+    if (row.predecessorId !== null) {
+        const predecessorLabel = row.predecessorReference ?? `Brouillon #${row.predecessorId}`;
+
+        return {
+            text: `Remplace ${predecessorLabel}`,
+            targetDeclarationId: row.predecessorId,
+        };
+    }
+
+    return null;
 }

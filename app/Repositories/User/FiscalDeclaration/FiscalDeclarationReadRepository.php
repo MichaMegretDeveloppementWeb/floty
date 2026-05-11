@@ -122,8 +122,14 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
                 'company:id,short_code,legal_name,color',
                 // Phase 11 D5.8.5 · charge le successeur pour pouvoir
                 // distinguer S6 (obsolète orphan) de S7 (Draft chaîné)
-                // dans la pill statut de l'Index.
-                'supersededBy:id,status',
+                // dans la pill statut de l'Index. Phase 13 D5.10.F · on
+                // ajoute la `reference` pour rendre les sous-mentions
+                // « Régénération en cours · DECL-XXX » et « Remplacée
+                // par DECL-XXX ».
+                'supersededBy:id,status,reference',
+                // Phase 13 D5.10.F · charge le predecessor pour rendre
+                // la sous-mention « Remplace DECL-XXX » côté Index.
+                'supersedes:id,status,reference,superseded_by_id',
             ]);
 
         if ($query->companyId !== null) {
@@ -137,6 +143,38 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
         }
         if ($query->obsoleteOnly) {
             $eloquentQuery->where('fiscal_declarations.is_obsolete', true);
+        }
+
+        // Phase 13 D5.10.F · recherche par référence avec expansion de
+        // chaîne (algorithme 2-queries). L'utilisateur tape une
+        // référence (ou un fragment), on identifie les couples
+        // `(company_id, fiscal_year)` qui contiennent au moins une
+        // déclaration matchant, puis on retourne **toutes** les
+        // déclarations de ces couples. Résultat · une référence
+        // retrouvée affiche toute la chaîne historique (predecessors
+        // obsolètes + draft de régénération + successor active).
+        if ($query->search !== null && trim($query->search) !== '') {
+            $term = trim($query->search);
+
+            $pairs = FiscalDeclaration::query()
+                ->whereNotNull('reference')
+                ->where('reference', 'LIKE', '%'.$term.'%')
+                ->select('company_id', 'fiscal_year')
+                ->distinct()
+                ->get();
+
+            if ($pairs->isEmpty()) {
+                $eloquentQuery->whereRaw('1 = 0');
+            } else {
+                $eloquentQuery->where(function ($q) use ($pairs): void {
+                    foreach ($pairs as $pair) {
+                        $q->orWhere(function ($q2) use ($pair): void {
+                            $q2->where('fiscal_declarations.company_id', $pair->company_id)
+                                ->where('fiscal_declarations.fiscal_year', $pair->fiscal_year);
+                        });
+                    }
+                });
+            }
         }
 
         match ($query->sortKey) {
