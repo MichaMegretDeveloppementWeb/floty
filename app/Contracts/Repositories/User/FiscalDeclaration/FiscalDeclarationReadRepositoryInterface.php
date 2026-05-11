@@ -28,6 +28,33 @@ interface FiscalDeclarationReadRepositoryInterface
     public function findActiveForCompanyYear(int $companyId, int $year): ?FiscalDeclaration;
 
     /**
+     * Déclaration **courante** pour le couple `(company, year)` : la
+     * version **la plus avancée** de la chaîne, même obsolète (Phase
+     * 11 D5.8 audit). Diffère de `findActiveForCompanyYear` qui filtre
+     * `is_obsolete = false` et masque ainsi les déclarations
+     * obsolètes orphelines.
+     *
+     * Définition : la déclaration courante est la « head » de la
+     * chaîne `superseded_by_id`, c'est-à-dire le dernier maillon
+     * (`superseded_by_id IS NULL`), la version qui n'a encore été
+     * remplacée par personne. Si une régénération est en cours (un
+     * Draft chaîné), c'est ce Draft qui est courant. Sinon c'est la
+     * dernière Generated (active ou obsolète orpheline) ou un Draft
+     * initial.
+     *
+     * Retourne null si aucune déclaration n'existe pour ce couple.
+     */
+    public function findCurrentForCompanyYear(int $companyId, int $year): ?FiscalDeclaration;
+
+    /**
+     * Déclaration prédécesseur immédiate dans la chaîne `superseded_by_id`
+     * (Phase 11 D5.8). Si `$declaration` est un Draft chaîné en cours de
+     * régénération, retourne la version obsolète qu'il remplace.
+     * Utile pour `<ReviewContextBanner>` et `<DeclarationStateCard>`.
+     */
+    public function findPredecessorOf(int $declarationId): ?FiscalDeclaration;
+
+    /**
      * Historique chronologique (ancienne → récente) des déclarations
      * pour le couple, obsolètes incluses. Sert à la fiche entreprise et
      * à la page Show pour la trace d'audit.

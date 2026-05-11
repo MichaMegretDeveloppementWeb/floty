@@ -7,6 +7,7 @@ namespace Tests\Feature\User\Company;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Driver;
+use App\Models\FiscalDeclaration;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -1034,6 +1035,52 @@ final class CompanyControllerTest extends TestCase
                 ->where('company.history.0.daysUsed', 15)
                 // 2025 (si dans la plage) doit être présente, neutre.
                 ->where('company.lifetime.contractsCount', 1),
+            );
+    }
+
+    // ----------------------------------------------------------------
+    // Show · Phase 11 D5.8 (declarationLifecycle prop)
+    // ----------------------------------------------------------------
+
+    #[Test]
+    public function show_expose_declaration_lifecycle_untouched_si_aucune_declaration(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}?fiscalYear=2024")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('declarationLifecycle.state', 'untouched')
+                ->where('declarationLifecycle.currentDeclaration', null)
+                ->where('declarationLifecycle.predecessorDeclaration', null)
+                ->where('declarationLifecycle.pendingClustersCount', 0)
+                ->where('declarationLifecycle.canGenerate', false)
+                ->where('declarationLifecycle.obsoleteReasons', [])
+                ->where('declarationLifecycle.historyChain', []),
+            );
+    }
+
+    #[Test]
+    public function show_expose_declaration_lifecycle_generated_active_pour_une_declaration_existante(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $generated = FiscalDeclaration::factory()
+            ->forCompany($company)
+            ->forYear(2024)
+            ->generated()
+            ->create();
+
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}?fiscalYear=2024")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('declarationLifecycle.state', 'generated_active')
+                ->where('declarationLifecycle.currentDeclaration.id', $generated->id)
+                ->where('declarationLifecycle.currentDeclaration.isObsolete', false),
             );
     }
 

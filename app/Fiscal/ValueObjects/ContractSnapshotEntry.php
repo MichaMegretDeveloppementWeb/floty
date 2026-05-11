@@ -67,6 +67,19 @@ final readonly class ContractSnapshotEntry
         public ?RiskLevel $clusterRiskLevel,
         public ?ReviewDecisionType $clusterDecision,
         public ?string $clusterJustification,
+        /**
+         * ID de la déclaration prédécesseur d'où la décision a été
+         * **reprise auto** par fingerprint matching (Phase 11 D5.8.2,
+         * amélioration B audit). Null si :
+         *  - aucune décision sur ce cluster, OU
+         *  - décision prise pendant la session de revue courante.
+         *
+         * Permet au composant frontend `<ClusterGroup>` de matérialiser
+         * un badge `🔁 Décision reprise de la version précédente` qui
+         * distingue les décisions héritées des décisions à
+         * trancher dans la session courante.
+         */
+        public ?int $clusterDecisionRetainedFrom,
         public bool $isOptedOut,
     ) {}
 }

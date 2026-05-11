@@ -7,13 +7,11 @@ namespace App\Http\Controllers\User\Company;
 use App\Actions\Company\CreateCompanyAction;
 use App\Actions\Company\UpdateCompanyAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
-use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\StoreCompanyData;
 use App\Data\User\Company\UpdateCompanyData;
 use App\Data\User\Contract\ContractIndexQueryData;
-use App\Data\User\FiscalDeclaration\DeclarationListItemData;
 use App\Exceptions\Company\CompanyShortCodeCollisionException;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
@@ -21,6 +19,7 @@ use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
+use App\Services\Fiscal\Declaration\DeclarationLifecycleResolver;
 use App\Services\Fiscal\Declaration\PendingDeclarationsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -40,7 +39,7 @@ final class CompanyController extends Controller
         private readonly UpdateCompanyAction $updateCompany,
         private readonly AvailableYearsResolver $availableYears,
         private readonly PendingDeclarationsResolver $pendingDeclarations,
-        private readonly FiscalDeclarationReadRepositoryInterface $declarations,
+        private readonly DeclarationLifecycleResolver $declarationLifecycle,
     ) {}
 
     public function index(CompanyIndexQueryData $query): Response
@@ -158,30 +157,22 @@ final class CompanyController extends Controller
                 $billingYear,
             ),
             'billingYear' => $billingYear,
-            // Phase 11 D4 — Déclarations fiscales :
+            // Phase 11 D4 + D5.8 · Déclarations fiscales :
             //   - `pendingDeclarations` : alerte « À finaliser » sur
             //     onglet Vue d'ensemble (contrats existent + pas de
-            //     déclaration `generated` active, deadline 30/04/N+1)
-            //   - `fiscalActiveDeclaration` : déclaration active pour
-            //     l'année sélectionnée de l'onglet Fiscalité (sert le
-            //     CTA « Préparer la déclaration » ou le lien vers la
-            //     déclaration existante)
+            //     déclaration `generated` active, deadline 30/04/N+1).
+            //   - `declarationLifecycle` : état complet du cycle de
+            //     vie pour l'année Fiscalité sélectionnée (S1 vierge
+            //     ... S7 régénération en cours). Remplace le legacy
+            //     `fiscalActiveDeclaration` qui filtrait `is_obsolete`
+            //     et masquait les déclarations obsolètes orphelines.
+            //     Source unique de vérité pour `<DeclarationStateCard>`.
             'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($company->id),
-            'fiscalActiveDeclaration' => $this->resolveActiveDeclarationForYear(
+            'declarationLifecycle' => $this->declarationLifecycle->resolveForCompanyYear(
                 $company->id,
                 $fiscalYear,
             ),
         ]);
-    }
-
-    private function resolveActiveDeclarationForYear(int $companyId, int $year): ?DeclarationListItemData
-    {
-        $active = $this->declarations->findActiveForCompanyYear($companyId, $year);
-        if ($active === null) {
-            return null;
-        }
-
-        return DeclarationListItemData::fromModel($active->load('company'));
     }
 
     public function create(): Response

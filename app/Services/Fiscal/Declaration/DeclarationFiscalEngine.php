@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Fiscal\Declaration;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
@@ -85,6 +86,7 @@ final readonly class DeclarationFiscalEngine
         private ContractQueryService $contracts,
         private VehicleReadRepositoryInterface $vehicles,
         private VehicleFiscalCharacteristicsReadRepositoryInterface $vfcRepository,
+        private FiscalDeclarationReadRepositoryInterface $declarations,
         private FiscalRuleRegistry $baseRegistry,
         private FiscalRuleReadRepositoryInterface $fiscalRules,
         private FiscalYearContext $yearContext,
@@ -106,7 +108,22 @@ final readonly class DeclarationFiscalEngine
             $persistedDecisions,
         );
 
-        $contractClusterMap = $this->buildContractClusterMap($clusters, $appliedDecisions);
+        // Phase D5.8.2 amélioration B · résout la traçabilité des
+        // décisions « reprises auto par fingerprint » depuis le
+        // prédécesseur de la déclaration courante. Permet au composant
+        // frontend `<ClusterGroup>` d'afficher le badge 🔁 distinguant
+        // décisions héritées vs décisions prises dans la session.
+        $retainedFromByFingerprint = $this->resolveRetainedFromMap(
+            $companyId,
+            $year,
+            $persistedDecisions,
+        );
+
+        $contractClusterMap = $this->buildContractClusterMap(
+            $clusters,
+            $appliedDecisions,
+            $retainedFromByFingerprint,
+        );
 
         $contractsByPair = $this->contracts->loadContractsByPair($year);
         $vehicleIds = array_keys($contractsByPair->pairsForCompany($companyId));
@@ -206,6 +223,7 @@ final readonly class DeclarationFiscalEngine
                     clusterRiskLevel: $clusterInfo['riskLevel'] ?? null,
                     clusterDecision: $clusterInfo['decision'] ?? null,
                     clusterJustification: $clusterInfo['justification'] ?? null,
+                    clusterDecisionRetainedFrom: $clusterInfo['retainedFrom'] ?? null,
                     isOptedOut: in_array($contract->id, $optOutContractIds, true),
                 );
             }
@@ -258,16 +276,19 @@ final readonly class DeclarationFiscalEngine
     /**
      * Construit la map `contractId => clusterInfo` pour enrichir
      * chaque {@see ContractSnapshotEntry} avec son cluster
-     * d'appartenance + décision persistée si présente. Permet au
-     * frontend de matérialiser les chaînes LCD à risque directement
-     * dans la liste contrats.
+     * d'appartenance + décision persistée si présente + flag
+     * `retainedFrom` (D5.8.2 amélioration B audit).
      *
      * @param  list<ReviewClusterData>  $clusters
      * @param  list<AppliedDecisionEntry>  $appliedDecisions
-     * @return array<int, array{fingerprint: string, riskCode: RiskCode, riskLevel: RiskLevel, decision: ?ReviewDecisionType, justification: ?string}>
+     * @param  array<string, int>  $retainedFromByFingerprint  Map fingerprint → id de la déclaration prédécesseur d'où la décision a été reprise
+     * @return array<int, array{fingerprint: string, riskCode: RiskCode, riskLevel: RiskLevel, decision: ?ReviewDecisionType, justification: ?string, retainedFrom: ?int}>
      */
-    private function buildContractClusterMap(array $clusters, array $appliedDecisions): array
-    {
+    private function buildContractClusterMap(
+        array $clusters,
+        array $appliedDecisions,
+        array $retainedFromByFingerprint,
+    ): array {
         $decisionsByFingerprint = [];
         foreach ($appliedDecisions as $applied) {
             $decisionsByFingerprint[$applied->clusterFingerprint] = $applied;
@@ -276,6 +297,7 @@ final readonly class DeclarationFiscalEngine
         $map = [];
         foreach ($clusters as $cluster) {
             $applied = $decisionsByFingerprint[$cluster->fingerprint] ?? null;
+            $retainedFrom = $retainedFromByFingerprint[$cluster->fingerprint] ?? null;
             foreach ($cluster->contracts as $clusterContract) {
                 $map[$clusterContract->contractId] = [
                     'fingerprint' => $cluster->fingerprint,
@@ -283,11 +305,61 @@ final readonly class DeclarationFiscalEngine
                     'riskLevel' => $cluster->level,
                     'decision' => $applied?->decision,
                     'justification' => $applied?->justification,
+                    'retainedFrom' => $retainedFrom,
                 ];
             }
         }
 
         return $map;
+    }
+
+    /**
+     * Résout les décisions « reprises auto par fingerprint » du
+     * prédécesseur (Phase 11 D5.8.2 amélioration B audit).
+     *
+     * Une décision est dite « reprise » si la déclaration courante du
+     * couple `(company, year)` a un prédécesseur (= régénération en
+     * cours ou achevée) ET que la décision matchée par fingerprint a
+     * été persistée **avant** la création de la déclaration courante
+     * (`decided_at < currentDeclaration.created_at`).
+     *
+     * Retourne une map `fingerprint => predecessorDeclarationId` qui
+     * permet au frontend d'afficher le badge `🔁 Décision reprise`.
+     * Map vide si la déclaration courante n'est pas une régénération
+     * (= première préparation) ou si aucune décision n'a été
+     * persistée avant la session courante.
+     *
+     * @param  iterable<FiscalReviewDecision>  $persistedDecisions
+     * @return array<string, int>
+     */
+    private function resolveRetainedFromMap(
+        int $companyId,
+        int $year,
+        iterable $persistedDecisions,
+    ): array {
+        $current = $this->declarations->findCurrentForCompanyYear($companyId, $year);
+        if ($current === null) {
+            return [];
+        }
+
+        $predecessor = $this->declarations->findPredecessorOf($current->id);
+        if ($predecessor === null) {
+            return [];
+        }
+
+        $currentCreatedAt = $current->created_at;
+        if ($currentCreatedAt === null) {
+            return [];
+        }
+
+        $retainedMap = [];
+        foreach ($persistedDecisions as $decision) {
+            if ($decision->decided_at !== null && $decision->decided_at->lessThan($currentCreatedAt)) {
+                $retainedMap[$decision->cluster_fingerprint] = $predecessor->id;
+            }
+        }
+
+        return $retainedMap;
     }
 
     /**

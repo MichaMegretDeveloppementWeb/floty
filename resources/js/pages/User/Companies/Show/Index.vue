@@ -24,9 +24,9 @@ const props = defineProps<{
     companyFiscal: App.Data.User.Company.CompanyFiscalYearData;
     companyBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
     billingYear: number;
-    // Phase 11 D4 — Déclarations fiscales
+    // Phase 11 D4 + D5.8 · Déclarations fiscales
     pendingDeclarations: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
-    fiscalActiveDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
+    declarationLifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
 }>();
 
 const { activeTab, setTab } = useCompanyTabs();
@@ -81,7 +81,7 @@ function handleGotoFiscalYear(year: number): void {
                 v-else-if="activeTab === 'fiscal'"
                 :fiscal="props.companyFiscal"
                 :company-id="props.company.id"
-                :active-declaration="props.fiscalActiveDeclaration"
+                :active-declaration="props.declarationLifecycle.currentDeclaration"
             />
             <CompanyBillingTab
                 v-else-if="activeTab === 'billing'"

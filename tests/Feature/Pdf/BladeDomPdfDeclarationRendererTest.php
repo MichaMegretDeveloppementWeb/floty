@@ -169,6 +169,7 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
                     clusterRiskLevel: null,
                     clusterDecision: null,
                     clusterJustification: null,
+                    clusterDecisionRetainedFrom: null,
                     isOptedOut: false,
                 ),
             ],

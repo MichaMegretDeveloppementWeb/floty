@@ -31,6 +31,13 @@ final class DeclarationListItemData extends Data
         public ?string $generatedAt,
         public ?string $generatedPdfHash,
         public ?int $supersededById,
+        /**
+         * Vrai ssi un Draft chaîné existe et pointe vers cette déclaration
+         * via `superseded_by_id`. Sert au pill « Régénération en cours »
+         * de l'Index Déclarations (amélioration F, populé en D5.8.5).
+         * `null` par défaut : non calculé par `fromModel()`.
+         */
+        public ?bool $hasRegenerationInProgress = null,
     ) {}
 
     public static function fromModel(FiscalDeclaration $declaration): self

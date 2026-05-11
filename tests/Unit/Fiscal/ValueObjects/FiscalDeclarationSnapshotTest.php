@@ -43,6 +43,7 @@ final class FiscalDeclarationSnapshotTest extends TestCase
             clusterRiskLevel: RiskLevel::Moyen,
             clusterDecision: ReviewDecisionType::Requalified,
             clusterJustification: 'Justification.',
+            clusterDecisionRetainedFrom: null,
             isOptedOut: true,
         );
 
@@ -128,6 +129,7 @@ final class FiscalDeclarationSnapshotTest extends TestCase
             clusterRiskLevel: null,
             clusterDecision: null,
             clusterJustification: null,
+            clusterDecisionRetainedFrom: null,
             isOptedOut: false,
         );
 

@@ -45,6 +45,7 @@ final class ContractSnapshotEntryData extends Data
         public ?RiskLevel $clusterRiskLevel,
         public ?ReviewDecisionType $clusterDecision,
         public ?string $clusterJustification,
+        public ?int $clusterDecisionRetainedFrom,
         public bool $isOptedOut,
     ) {}
 
@@ -68,6 +69,7 @@ final class ContractSnapshotEntryData extends Data
             clusterRiskLevel: $vo->clusterRiskLevel,
             clusterDecision: $vo->clusterDecision,
             clusterJustification: $vo->clusterJustification,
+            clusterDecisionRetainedFrom: $vo->clusterDecisionRetainedFrom,
             isOptedOut: $vo->isOptedOut,
         );
     }

@@ -31,6 +31,34 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
             ->first();
     }
 
+    public function findCurrentForCompanyYear(int $companyId, int $year): ?FiscalDeclaration
+    {
+        // « Head » de la chaîne · dernier maillon, la déclaration qui
+        // ne pointe vers aucune autre via `superseded_by_id` (donc
+        // n'a pas encore été remplacée). Une déclaration obsolète
+        // orpheline (S6) reste « head » jusqu'à ce qu'un Draft de
+        // régénération soit créé et lui assigne `superseded_by_id`,
+        // moment où le Draft devient la nouvelle head (S7).
+        return FiscalDeclaration::query()
+            ->with(['company:id,short_code,legal_name,color'])
+            ->where('company_id', $companyId)
+            ->where('fiscal_year', $year)
+            ->whereNull('superseded_by_id')
+            ->orderByDesc('id')
+            ->first();
+    }
+
+    public function findPredecessorOf(int $declarationId): ?FiscalDeclaration
+    {
+        // Déclaration X telle que X.superseded_by_id = $declarationId.
+        // En pratique 1 seule (chaîne linéaire 1 ancien → 1 nouveau).
+        return FiscalDeclaration::query()
+            ->with(['company:id,short_code,legal_name,color'])
+            ->where('superseded_by_id', $declarationId)
+            ->orderByDesc('id')
+            ->first();
+    }
+
     public function findHistoryForCompanyYear(int $companyId, int $year): Collection
     {
         return FiscalDeclaration::query()

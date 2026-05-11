@@ -11,10 +11,10 @@
  *
  * Le partial reload Inertia recharge **toutes les props dépendantes
  * de `$fiscalYear`** côté controller : `companyFiscal` (breakdown
- * véhicule), `fiscalActiveDeclaration` (déclaration active de
- * l'année) et `pendingDeclarations` (alerte « À finaliser »). Ne
- * recharge pas `company`, `contracts`, ni les autres props
- * indépendantes du year fiscal.
+ * véhicule), `declarationLifecycle` (état complet du cycle de vie
+ * pour l'année, Phase 11 D5.8) et `pendingDeclarations` (alerte
+ * « À finaliser »). Ne recharge pas `company`, `contracts`, ni les
+ * autres props indépendantes du year fiscal.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -49,7 +49,7 @@ export function useCompanyFiscalSelectedYear(
             url.pathname + url.search,
             {},
             {
-                only: ['companyFiscal', 'fiscalActiveDeclaration', 'pendingDeclarations'],
+                only: ['companyFiscal', 'declarationLifecycle', 'pendingDeclarations'],
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
