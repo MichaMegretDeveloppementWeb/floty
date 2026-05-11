@@ -81,7 +81,7 @@ function handleGotoFiscalYear(year: number): void {
                 v-else-if="activeTab === 'fiscal'"
                 :fiscal="props.companyFiscal"
                 :company-id="props.company.id"
-                :active-declaration="props.declarationLifecycle.currentDeclaration"
+                :declaration-lifecycle="props.declarationLifecycle"
             />
             <CompanyBillingTab
                 v-else-if="activeTab === 'billing'"

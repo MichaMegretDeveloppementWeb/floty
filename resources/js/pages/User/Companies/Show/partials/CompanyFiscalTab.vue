@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Onglet « Fiscalité » de la page Show Company (chantier N.2).
+ * Onglet « Fiscalité » de la page Show Company (chantier N.2, refondu
+ * Phase 11 D5.8.4).
  *
  * UX cohérente avec l'onglet Contrats :
  * - Stats contextuelles sous le titre (jours cumulés + véhicules
@@ -13,16 +14,17 @@
  * Le sélecteur d'année est **local et indépendant** (ADR-0020 D3).
  * Aucun lien avec le sélecteur global, ni avec celui de l'onglet
  * Contrats · chaque section a sa propre vie.
+ *
+ * Le bloc « Déclaration {année} » est désormais rendu par
+ * `<DeclarationStateCard>`, composant adaptatif qui choisit la
+ * présentation selon l'état du cycle de vie (S1 vierge ... S7
+ * régénération en cours) calculé côté backend par le
+ * `DeclarationLifecycleResolver`.
  */
-import { Link, router } from '@inertiajs/vue3';
-import { FileCheck2, FileText, LoaderCircle } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import Button from '@/Components/Ui/Button/Button.vue';
+import { computed } from 'vue';
+import DeclarationStateCard from '@/Components/Domain/Declaration/DeclarationStateCard.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
-import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { useCompanyFiscalSelectedYear } from '@/Composables/Company/Show/useCompanyFiscalSelectedYear';
-import { prepare as prepareDeclarationRoute, review as reviewDeclarationRoute, show as showDeclarationRoute } from '@/routes/user/declarations';
-import { badgeForDeclaration } from '@/Utils/format/declarationStatus';
 import { formatEur } from '@/Utils/format/formatEur';
 import CompanyFiscalBreakdownTable from './CompanyFiscalBreakdownTable.vue';
 import CompanyYearPills from './CompanyYearPills.vue';
@@ -30,25 +32,8 @@ import CompanyYearPills from './CompanyYearPills.vue';
 const props = defineProps<{
     fiscal: App.Data.User.Company.CompanyFiscalYearData;
     companyId: number;
-    activeDeclaration?: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
+    declarationLifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
 }>();
-
-const preparing = ref<boolean>(false);
-
-function handlePrepare(): void {
-    if (preparing.value) {
-        return;
-    }
-    preparing.value = true;
-    router.post(prepareDeclarationRoute.url(), {
-        company_id: props.companyId,
-        fiscal_year: props.fiscal.year,
-    }, {
-        onFinish: () => {
-            preparing.value = false;
-        },
-    });
-}
 
 const { selectedYear, selectYear, loading: yearLoading } = useCompanyFiscalSelectedYear(
     props.fiscal.year,
@@ -120,77 +105,12 @@ const isCurrentYear = computed<boolean>(
             </div>
         </Card>
 
-        <!-- Phase 11 D4 + D5.7 · Déclaration fiscale annuelle (encart par année) -->
-        <Card>
-            <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="flex items-start gap-3">
-                    <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-                        <FileCheck2 :size="18" :stroke-width="1.75" />
-                    </div>
-                    <div class="flex flex-col gap-0.5">
-                        <h4 class="text-sm font-semibold text-slate-900">
-                            Déclaration {{ props.fiscal.year }}
-                        </h4>
-                        <p class="text-xs text-slate-500">
-                            <template v-if="props.activeDeclaration">
-                                Statut courant
-                                <StatusPill
-                                    class="ml-1"
-                                    :tone="badgeForDeclaration(
-                                        props.activeDeclaration.status,
-                                        props.activeDeclaration.isObsolete,
-                                    ).tone"
-                                >
-                                    {{ badgeForDeclaration(
-                                        props.activeDeclaration.status,
-                                        props.activeDeclaration.isObsolete,
-                                    ).label }}
-                                </StatusPill>
-                            </template>
-                            <template v-else>
-                                Aucune déclaration préparée pour cette année.
-                                Préparer ouvre l'écran de revue où vous tranchez
-                                les éventuels clusters de risque avant génération.
-                            </template>
-                        </p>
-                        <p
-                            v-if="props.activeDeclaration?.reference"
-                            class="font-mono text-[11px] text-slate-400"
-                        >
-                            {{ props.activeDeclaration.reference }}
-                        </p>
-                    </div>
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2">
-                    <template v-if="props.activeDeclaration">
-                        <Link
-                            v-if="props.activeDeclaration.status !== 'generated' && !props.activeDeclaration.isObsolete"
-                            :href="reviewDeclarationRoute.url({ declaration: props.activeDeclaration.id })"
-                        >
-                            <Button>
-                                <FileText :size="16" :stroke-width="1.75" />
-                                Reprendre la revue
-                            </Button>
-                        </Link>
-                        <Link
-                            v-else
-                            :href="showDeclarationRoute.url({ declaration: props.activeDeclaration.id })"
-                        >
-                            <Button variant="secondary">
-                                <FileText :size="16" :stroke-width="1.75" />
-                                Ouvrir la déclaration
-                            </Button>
-                        </Link>
-                    </template>
-                    <Button v-else :disabled="preparing" @click="handlePrepare">
-                        <LoaderCircle v-if="preparing" :size="16" :stroke-width="1.75" class="animate-spin" />
-                        <FileCheck2 v-else :size="16" :stroke-width="1.75" />
-                        {{ preparing ? 'Préparation…' : 'Préparer la déclaration' }}
-                    </Button>
-                </div>
-            </div>
-        </Card>
+        <!-- Phase 11 D5.8.4 · Déclaration fiscale annuelle (carte adaptative S1..S7) -->
+        <DeclarationStateCard
+            :lifecycle="props.declarationLifecycle"
+            :company-id="props.companyId"
+            :fiscal-year="props.fiscal.year"
+        />
 
         <!-- Empty state local : aucun véhicule taxé sur l'année sélectionnée -->
         <Card v-if="!hasRows">
