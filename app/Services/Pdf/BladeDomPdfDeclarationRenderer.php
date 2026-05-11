@@ -6,8 +6,8 @@ namespace App\Services\Pdf;
 
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
 use App\Fiscal\ValueObjects\AppliedDecisionEntry;
+use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
-use App\Fiscal\ValueObjects\VehicleSnapshotEntry;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
@@ -54,16 +54,9 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
     {
         $snapshot = $context->snapshot;
 
-        $vehicleRows = array_map(
-            fn (VehicleSnapshotEntry $entry): array => [
-                'label' => $entry->vehicleLabel,
-                'daysAssigned' => $entry->daysAssigned,
-                'co2Due' => $this->formatEuros($entry->co2Due),
-                'pollutantsDue' => $this->formatEuros($entry->pollutantsDue),
-                'totalDue' => $this->formatEuros($entry->totalDue),
-            ],
-            $snapshot->vehicleBreakdown,
-        );
+        // Phase 11 D5.8.1 · agrégation contrat → véhicule pour préserver
+        // le template PDF actuel (refonte par contrat livrée en D5.8.7).
+        $vehicleRows = $this->aggregateContractsByVehicle($snapshot->contractBreakdown);
 
         $decisionRows = array_map(
             fn (AppliedDecisionEntry $entry): array => [
@@ -96,5 +89,45 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
         $formatted = number_format($amount, 2, ',', "\u{202F}");
 
         return $formatted."\u{202F}€";
+    }
+
+    /**
+     * Agrège le breakdown par contrat (D5.8.1) en vue véhicule pour
+     * préserver le rendu PDF actuel le temps du refactor template
+     * (D5.8.7 livrera la refonte par contrat avec clusters in-line).
+     *
+     * @param  list<ContractSnapshotEntry>  $contractBreakdown
+     * @return list<array{label: string, daysAssigned: int, co2Due: string, pollutantsDue: string, totalDue: string}>
+     */
+    private function aggregateContractsByVehicle(array $contractBreakdown): array
+    {
+        $byVehicle = [];
+        foreach ($contractBreakdown as $entry) {
+            $vehicleId = $entry->vehicleId;
+            if (! isset($byVehicle[$vehicleId])) {
+                $byVehicle[$vehicleId] = [
+                    'label' => $entry->vehicleLabel,
+                    'daysAssigned' => 0,
+                    'co2DueRaw' => 0.0,
+                    'pollutantsDueRaw' => 0.0,
+                    'totalDueRaw' => 0.0,
+                ];
+            }
+            $byVehicle[$vehicleId]['daysAssigned'] += $entry->daysInYearAssigned;
+            $byVehicle[$vehicleId]['co2DueRaw'] += $entry->co2Due;
+            $byVehicle[$vehicleId]['pollutantsDueRaw'] += $entry->pollutantsDue;
+            $byVehicle[$vehicleId]['totalDueRaw'] += $entry->totalDue;
+        }
+
+        return array_values(array_map(
+            fn (array $agg): array => [
+                'label' => $agg['label'],
+                'daysAssigned' => $agg['daysAssigned'],
+                'co2Due' => $this->formatEuros(round($agg['co2DueRaw'], 2, PHP_ROUND_HALF_UP)),
+                'pollutantsDue' => $this->formatEuros(round($agg['pollutantsDueRaw'], 2, PHP_ROUND_HALF_UP)),
+                'totalDue' => $this->formatEuros(round($agg['totalDueRaw'], 2, PHP_ROUND_HALF_UP)),
+            ],
+            $byVehicle,
+        ));
     }
 }

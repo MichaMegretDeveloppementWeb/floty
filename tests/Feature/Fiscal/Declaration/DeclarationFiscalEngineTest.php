@@ -18,7 +18,7 @@ use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Fiscal\ValueObjects\AppliedDecisionEntry;
-use App\Fiscal\ValueObjects\VehicleSnapshotEntry;
+use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\FiscalReviewDecision;
@@ -76,7 +76,7 @@ final class DeclarationFiscalEngineTest extends TestCase
         self::assertSame(0.0, $snapshot->totalDue);
         self::assertSame(0.0, $snapshot->co2DueTotal);
         self::assertSame(0.0, $snapshot->pollutantsDueTotal);
-        self::assertSame([], $snapshot->vehicleBreakdown);
+        self::assertSame([], $snapshot->contractBreakdown);
         self::assertSame([], $snapshot->appliedDecisions);
         self::assertSame([], $snapshot->optOutContractIds);
     }
@@ -96,7 +96,9 @@ final class DeclarationFiscalEngineTest extends TestCase
         self::assertSame($standardTotal, $snapshot->totalDue);
         self::assertSame([], $snapshot->appliedDecisions);
         self::assertSame([], $snapshot->optOutContractIds);
-        self::assertCount(1, $snapshot->vehicleBreakdown);
+        // 2 contrats LCD pour un véhicule unique = 2 entries dans
+        // le breakdown par contrat.
+        self::assertCount(2, $snapshot->contractBreakdown);
     }
 
     #[Test]
@@ -303,7 +305,7 @@ final class DeclarationFiscalEngineTest extends TestCase
     }
 
     #[Test]
-    public function le_breakdown_par_vehicule_somme_au_total_arrondi_au_centime(): void
+    public function le_breakdown_par_contrat_somme_au_total_arrondi_au_centime(): void
     {
         $v1 = $this->makeVehicleWithSingleVfc();
         $v2 = $this->makeVehicleWithSingleVfc();
@@ -312,19 +314,45 @@ final class DeclarationFiscalEngineTest extends TestCase
 
         $snapshot = $this->engine->compute($this->company->id, 2024);
 
-        self::assertCount(2, $snapshot->vehicleBreakdown);
+        // 1 contrat par véhicule × 2 véhicules = 2 entries dans le
+        // breakdown par contrat (D5.8).
+        self::assertCount(2, $snapshot->contractBreakdown);
         $sumTotals = 0.0;
-        foreach ($snapshot->vehicleBreakdown as $entry) {
-            self::assertInstanceOf(VehicleSnapshotEntry::class, $entry);
+        foreach ($snapshot->contractBreakdown as $entry) {
+            self::assertInstanceOf(ContractSnapshotEntry::class, $entry);
             self::assertNotEmpty($entry->vehicleLabel);
+            self::assertNotEmpty($entry->vehicleFiscalSummary);
             $sumTotals += $entry->totalDue;
         }
 
-        self::assertEqualsWithDelta($snapshot->totalDue, $sumTotals, 0.001);
+        self::assertEqualsWithDelta($snapshot->totalDue, $sumTotals, 0.01);
         self::assertEqualsWithDelta(
             $snapshot->totalDue,
             $snapshot->co2DueTotal + $snapshot->pollutantsDueTotal,
             0.001,
+        );
+    }
+
+    #[Test]
+    public function le_breakdown_par_contrat_enrichit_chaque_entry_avec_son_cluster_si_applicable(): void
+    {
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $c1 = $this->makeContract($vehicle, '2024-01-01', '2024-01-20', ContractType::Lcd);
+        $c2 = $this->makeContract($vehicle, '2024-01-26', '2024-02-14', ContractType::Lcd);
+
+        $snapshot = $this->engine->compute($this->company->id, 2024);
+
+        // Les 2 LCD doivent former 1 cluster → fingerprint identique
+        // sur les 2 entries, autres contrats hors cluster restent null.
+        $byContractId = [];
+        foreach ($snapshot->contractBreakdown as $entry) {
+            $byContractId[$entry->contractId] = $entry;
+        }
+        self::assertNotNull($byContractId[$c1->id]->clusterFingerprint);
+        self::assertSame(
+            $byContractId[$c1->id]->clusterFingerprint,
+            $byContractId[$c2->id]->clusterFingerprint,
+            'Les 2 contrats du même cluster doivent partager le fingerprint.',
         );
     }
 

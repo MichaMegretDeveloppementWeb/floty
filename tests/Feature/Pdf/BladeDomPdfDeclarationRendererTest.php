@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Tests\Feature\Pdf;
 
 use App\Data\User\FiscalDeclaration\DeclarationPreviewData;
+use App\Enums\Contract\ContractType;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
 use App\Fiscal\ValueObjects\AppliedDecisionEntry;
+use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
 use App\Fiscal\ValueObjects\FiscalDeclarationSnapshot;
-use App\Fiscal\ValueObjects\VehicleSnapshotEntry;
 use App\Services\Pdf\BladeDomPdfDeclarationRenderer;
 use Carbon\CarbonImmutable;
 use PHPUnit\Framework\Attributes\Test;
@@ -102,7 +103,7 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
             co2DueTotal: 0.0,
             pollutantsDueTotal: 0.0,
             totalDue: 0.0,
-            vehicleBreakdown: [],
+            contractBreakdown: [],
             appliedDecisions: [],
             optOutContractIds: [],
         );
@@ -149,14 +150,26 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
             co2DueTotal: 150.50,
             pollutantsDueTotal: 80.25,
             totalDue: 230.75,
-            vehicleBreakdown: [
-                new VehicleSnapshotEntry(
+            contractBreakdown: [
+                new ContractSnapshotEntry(
+                    contractId: 10,
+                    contractReference: 'REF-001',
+                    contractType: ContractType::Lld,
+                    startDate: '2024-01-01',
+                    endDate: '2024-07-19',
+                    daysInYearAssigned: 200,
                     vehicleId: 42,
                     vehicleLabel: 'Peugeot 308 · AB-123-CD',
-                    daysAssigned: 200,
+                    vehicleFiscalSummary: 'M1 · WLTP 100 g · Euro 6',
                     co2Due: 150.50,
                     pollutantsDue: 80.25,
                     totalDue: 230.75,
+                    clusterFingerprint: null,
+                    clusterRiskCode: null,
+                    clusterRiskLevel: null,
+                    clusterDecision: null,
+                    clusterJustification: null,
+                    isOptedOut: false,
                 ),
             ],
             appliedDecisions: [

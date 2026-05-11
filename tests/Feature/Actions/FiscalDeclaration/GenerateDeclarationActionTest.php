@@ -161,7 +161,7 @@ final class GenerateDeclarationActionTest extends TestCase
         self::assertArrayHasKey('totalDue', $generated->generated_snapshot_payload);
         self::assertArrayHasKey('co2DueTotal', $generated->generated_snapshot_payload);
         self::assertArrayHasKey('pollutantsDueTotal', $generated->generated_snapshot_payload);
-        self::assertArrayHasKey('vehicleBreakdown', $generated->generated_snapshot_payload);
+        self::assertArrayHasKey('contractBreakdown', $generated->generated_snapshot_payload);
         self::assertArrayHasKey('appliedDecisions', $generated->generated_snapshot_payload);
         self::assertArrayHasKey('optOutContractIds', $generated->generated_snapshot_payload);
         self::assertSame($this->company->id, $generated->generated_snapshot_payload['companyId']);

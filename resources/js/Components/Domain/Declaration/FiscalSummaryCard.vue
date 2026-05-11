@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Carte de synthèse fiscale d'une déclaration (Phase 11 D5.6).
+ * Carte de synthèse fiscale d'une déclaration (Phase 11 D5.6, refondu
+ * D5.8 avec breakdown par contrat agrégé temporairement par véhicule).
  *
  * Affiche les totaux fiscaux annuels (CO₂, polluants, total dû) et le
  * détail par véhicule. Consomme un `FiscalDeclarationSnapshotData`
@@ -9,8 +10,11 @@
  * snapshot, donc les montants affichés correspondent à ce que le PDF
  * généré contiendra.
  *
- * Utilisée dans la page Review (prévisualisation avant génération) et
- * la page Show (snapshot recalculé).
+ * **Shim D5.8.1** : le backend produit désormais `contractBreakdown`
+ * (par contrat). Ce composant re-agrège par véhicule pour préserver
+ * l'affichage actuel. Le composant `<DeclarationContractList>`
+ * livré en D5.8.3 prendra le relais avec une vue chronologique par
+ * contrat + clusters in-line, et ce shim sera retiré.
  */
 import { Calculator } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -21,23 +25,54 @@ const props = defineProps<{
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
 }>();
 
-type VehicleEntry = App.Data.User.FiscalDeclaration.VehicleSnapshotEntryData;
+type ContractEntry = App.Data.User.FiscalDeclaration.ContractSnapshotEntryData;
+type VehicleAggregate = {
+    vehicleId: number;
+    vehicleLabel: string;
+    daysAssigned: number;
+    co2Due: number;
+    pollutantsDue: number;
+    totalDue: number;
+};
 
 /**
- * Sépare les véhicules « réellement taxés » (totalDue > 0 et au moins
- * 1 jour attribué) des « exonérés ou non utilisés » (electric, hybride,
- * 0 jour, etc.). Affichage en deux blocs distincts pour ne pas polluer
- * le tableau principal de lignes à 0,00 €. Audit B13/B14.
+ * Re-agrège les rows par contrat (backend D5.8.1) en vue véhicule.
+ * Shim temporaire : sera supprimé quand `<DeclarationContractList>`
+ * remplacera ce composant en D5.8.3.
  */
-const taxedVehicles = computed<VehicleEntry[]>(() =>
-    props.snapshot.vehicleBreakdown.filter((v) => v.totalDue > 0 && v.daysAssigned > 0),
+const vehicleAggregates = computed<VehicleAggregate[]>(() => {
+    const map = new Map<number, VehicleAggregate>();
+    for (const entry of props.snapshot.contractBreakdown as ContractEntry[]) {
+        const existing = map.get(entry.vehicleId);
+        if (existing) {
+            existing.daysAssigned += entry.daysInYearAssigned;
+            existing.co2Due += entry.co2Due;
+            existing.pollutantsDue += entry.pollutantsDue;
+            existing.totalDue += entry.totalDue;
+        } else {
+            map.set(entry.vehicleId, {
+                vehicleId: entry.vehicleId,
+                vehicleLabel: entry.vehicleLabel,
+                daysAssigned: entry.daysInYearAssigned,
+                co2Due: entry.co2Due,
+                pollutantsDue: entry.pollutantsDue,
+                totalDue: entry.totalDue,
+            });
+        }
+    }
+
+    return Array.from(map.values());
+});
+
+const taxedVehicles = computed<VehicleAggregate[]>(() =>
+    vehicleAggregates.value.filter((v) => v.totalDue > 0 && v.daysAssigned > 0),
 );
 
-const exemptedVehicles = computed<VehicleEntry[]>(() =>
-    props.snapshot.vehicleBreakdown.filter((v) => v.totalDue === 0 || v.daysAssigned === 0),
+const exemptedVehicles = computed<VehicleAggregate[]>(() =>
+    vehicleAggregates.value.filter((v) => v.totalDue === 0 || v.daysAssigned === 0),
 );
 
-const hasVehicles = computed<boolean>(() => props.snapshot.vehicleBreakdown.length > 0);
+const hasVehicles = computed<boolean>(() => vehicleAggregates.value.length > 0);
 const hasTaxed = computed<boolean>(() => taxedVehicles.value.length > 0);
 const hasExempted = computed<boolean>(() => exemptedVehicles.value.length > 0);
 </script>

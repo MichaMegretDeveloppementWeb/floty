@@ -122,7 +122,7 @@ final class DeclarationControllerTest extends TestCase
                 ->has('history')
                 ->has('snapshot')
                 ->has('snapshot.totalDue')
-                ->has('snapshot.vehicleBreakdown')
+                ->has('snapshot.contractBreakdown')
                 ->has('snapshot.appliedDecisions')
                 ->has('snapshot.optOutContractIds'));
     }
@@ -143,7 +143,7 @@ final class DeclarationControllerTest extends TestCase
             'co2DueTotal' => 1234.56,
             'pollutantsDueTotal' => 78.90,
             'totalDue' => 1313.46,
-            'vehicleBreakdown' => [],
+            'contractBreakdown' => [],
             'appliedDecisions' => [],
             'optOutContractIds' => [],
         ];
@@ -225,7 +225,7 @@ final class DeclarationControllerTest extends TestCase
                 ->has('preview')
                 ->has('snapshot')
                 ->has('snapshot.totalDue')
-                ->has('snapshot.vehicleBreakdown')
+                ->has('snapshot.contractBreakdown')
                 ->has('snapshot.appliedDecisions'));
     }
 

@@ -11,15 +11,16 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Représentation frontend du snapshot fiscal d'une déclaration
- * (Phase 11 D5.6). Miroir DTO du VO domaine
- * {@see FiscalDeclarationSnapshot}.
+ * (Phase 11 D5.6, refondu D5.8 avec breakdown par contrat). Miroir
+ * DTO du VO domaine {@see FiscalDeclarationSnapshot}.
  *
  * Calculé à la volée par
  * {@see App\Http\Controllers\User\FiscalDeclaration\DeclarationController}
  * via {@see App\Services\Fiscal\Declaration\DeclarationFiscalEngine},
  * passé aux pages Inertia Show et Review pour alimenter
  * {@see resources/js/Components/Domain/Declaration/FiscalSummaryCard.vue}
- * et {@see resources/js/Components/Domain/Declaration/ClustersHistoryList.vue}.
+ * (synthèse) et {@see resources/js/Components/Domain/Declaration/DeclarationContractList.vue}
+ * (liste contrats avec groupage cluster automatique).
  *
  * Les montants `co2DueTotal, pollutantsDueTotal, totalDue` sont déjà
  * arrondis au centime (R-2024-003 invariant).
@@ -40,8 +41,8 @@ final class FiscalDeclarationSnapshotData extends Data
         public float $co2DueTotal,
         public float $pollutantsDueTotal,
         public float $totalDue,
-        #[DataCollectionOf(VehicleSnapshotEntryData::class)]
-        public array $vehicleBreakdown,
+        #[DataCollectionOf(ContractSnapshotEntryData::class)]
+        public array $contractBreakdown,
         #[DataCollectionOf(AppliedDecisionEntryData::class)]
         public array $appliedDecisions,
         public array $optOutContractIds,
@@ -58,9 +59,9 @@ final class FiscalDeclarationSnapshotData extends Data
             co2DueTotal: $vo->co2DueTotal,
             pollutantsDueTotal: $vo->pollutantsDueTotal,
             totalDue: $vo->totalDue,
-            vehicleBreakdown: array_map(
-                static fn ($entry): VehicleSnapshotEntryData => VehicleSnapshotEntryData::fromValueObject($entry),
-                $vo->vehicleBreakdown,
+            contractBreakdown: array_map(
+                static fn ($entry): ContractSnapshotEntryData => ContractSnapshotEntryData::fromValueObject($entry),
+                $vo->contractBreakdown,
             ),
             appliedDecisions: array_map(
                 static fn ($entry): AppliedDecisionEntryData => AppliedDecisionEntryData::fromValueObject($entry),
