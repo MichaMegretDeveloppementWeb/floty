@@ -16,21 +16,46 @@
  * du même cluster, avec leur décision affichée au header.
  */
 import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
+import DeclarationHistoryTimeline from '@/Components/Domain/Declaration/DeclarationHistoryTimeline.vue';
 import FiscalSummaryCard from '@/Components/Domain/Declaration/FiscalSummaryCard.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import Card from '@/Components/Ui/Card/Card.vue';
 import Header from './partials/Header.vue';
-import HistoryChainCard from './partials/HistoryChainCard.vue';
 import ObsolescenceBanner from './partials/ObsolescenceBanner.vue';
 import PdfCard from './partials/PdfCard.vue';
 import PredecessorNoticeBanner from './partials/PredecessorNoticeBanner.vue';
 
+type ItemData = App.Data.User.FiscalDeclaration.DeclarationListItemData;
+
 const props = defineProps<{
     declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
-    history: Array<App.Data.User.FiscalDeclaration.DeclarationListItemData>;
-    predecessorDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
-    successorDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
+    history: ItemData[];
+    predecessorDeclaration: ItemData | null;
+    successorDeclaration: ItemData | null;
 }>();
+
+/**
+ * Phase 13 D5.10.B · la déclaration courante (que l'utilisateur
+ * consulte) est extraite du tableau `history` qui contient toutes
+ * les versions du couple `(company, year)` sous le format
+ * `DeclarationListItemData`.
+ */
+const currentAsListItem = computed<ItemData | null>(
+    () => props.history.find((d) => d.id === props.declaration.id) ?? null,
+);
+
+/**
+ * Versions à afficher en historique (toutes sauf celle consultée),
+ * triées récent → ancien pour cohérence avec la timeline de l'onglet
+ * Fiscalité.
+ */
+const otherVersions = computed<ItemData[]>(() => {
+    return [...props.history]
+        .filter((d) => d.id !== props.declaration.id)
+        .sort((a, b) => b.id - a.id);
+});
 </script>
 
 <template>
@@ -54,7 +79,12 @@ const props = defineProps<{
                 :successor-declaration="props.successorDeclaration"
             />
 
-            <HistoryChainCard :history="props.history" :current-id="props.declaration.id" />
+            <Card v-if="currentAsListItem">
+                <DeclarationHistoryTimeline
+                    :current-declaration="currentAsListItem"
+                    :history-chain="otherVersions"
+                />
+            </Card>
         </div>
     </UserLayout>
 </template>

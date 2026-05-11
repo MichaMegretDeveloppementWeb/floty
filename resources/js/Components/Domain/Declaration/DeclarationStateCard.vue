@@ -50,6 +50,7 @@ import {
     formatInvalidationOccurredAt,
     formatInvalidationReason,
 } from '@/Utils/format/invalidationReason';
+import DeclarationHistoryTimeline from './DeclarationHistoryTimeline.vue';
 
 const props = defineProps<{
     lifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
@@ -231,7 +232,7 @@ function handleRegenerate(): void {
                     </Link>
                     <a
                         :href="downloadDeclarationRoute.url({ declaration: current.id })"
-                        class="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 h-[34px] text-base font-medium leading-none text-slate-700 transition-colors duration-[120ms] hover:bg-slate-50 hover:border-slate-300"
+                        class="inline-flex h-[34px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-base font-medium leading-none text-slate-700 transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-100"
                     >
                         <Download :size="16" :stroke-width="1.75" />
                         Télécharger PDF
@@ -239,13 +240,12 @@ function handleRegenerate(): void {
                 </div>
             </div>
 
-            <!--
-                Phase 12 D5.9.E · accordion historique retiré.
-                Information disponible et plus complète sur la page Show
-                de la déclaration (composant `<HistoryChainCard>`),
-                accessible via le bouton « Ouvrir » juste au-dessus.
-                Évite le doublon visuel sur l'onglet Fiscalité.
-            -->
+            <DeclarationHistoryTimeline
+                v-if="lifecycle.historyChain.length > 0"
+                :current-declaration="current"
+                :history-chain="lifecycle.historyChain"
+                class="border-t border-slate-100 pt-3"
+            />
         </div>
     </Card>
 
@@ -322,6 +322,13 @@ function handleRegenerate(): void {
                     </Button>
                 </div>
             </div>
+
+            <DeclarationHistoryTimeline
+                v-if="lifecycle.historyChain.length > 0"
+                :current-declaration="current"
+                :history-chain="lifecycle.historyChain"
+                class="border-t border-slate-100 pt-3"
+            />
         </div>
     </Card>
 
@@ -378,6 +385,13 @@ function handleRegenerate(): void {
                     </Link>
                 </div>
             </div>
+
+            <DeclarationHistoryTimeline
+                v-if="lifecycle.historyChain.length > 0"
+                :current-declaration="current"
+                :history-chain="lifecycle.historyChain"
+                class="border-t border-slate-100 pt-3"
+            />
         </div>
     </Card>
 </template>
