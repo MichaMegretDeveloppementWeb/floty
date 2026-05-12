@@ -49,7 +49,8 @@ const sortedHistory = computed<YearStats[]>(() =>
                         <th class="py-2 pr-4 text-right">Jours</th>
                         <th class="py-2 pr-4 text-right">Locations</th>
                         <th class="py-2 pr-4 text-right">Taxe réelle</th>
-                        <th class="py-2 text-right">Coût plein</th>
+                        <th class="py-2 pr-4 text-right">Coût plein</th>
+                        <th class="py-2 text-right">Prix location</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -70,8 +71,14 @@ const sortedHistory = computed<YearStats[]>(() =>
                         <td class="py-2 pr-4 text-right tabular-nums text-slate-700">
                             {{ formatEur(entry.actualTax) }}
                         </td>
-                        <td class="py-2 text-right tabular-nums text-slate-500">
+                        <td class="py-2 pr-4 text-right tabular-nums text-slate-500">
                             {{ formatEur(entry.fullYearTax) }}
+                        </td>
+                        <td class="py-2 text-right tabular-nums text-slate-500">
+                            <template v-if="entry.rentalPrice !== null">
+                                {{ formatEur(entry.rentalPrice) }}
+                            </template>
+                            <span v-else class="text-slate-300">·</span>
                         </td>
                     </tr>
                 </tbody>

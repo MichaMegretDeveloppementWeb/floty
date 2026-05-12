@@ -32,6 +32,7 @@ use App\Models\Pivot\DriverCompany;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Services\Billing\BillingBreakdownService;
+use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -59,6 +60,7 @@ final class CompanyQueryService
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
         private readonly BillingBreakdownService $billingBreakdown,
+        private readonly RentalPriceCalculator $rentalPrice,
     ) {}
 
     /**
@@ -132,6 +134,12 @@ final class CompanyQueryService
             $annualTaxDue = 0.0;
         }
 
+        // Phase 13 D5.10.L · prix location annuel total (somme des 12
+        // facturations mensuelles). Null si au moins 1 véhicule a un
+        // tarif annuel manquant.
+        $rentalCents = $this->rentalPrice->forCompanyAndYear($company->id, $year);
+        $rentalPriceTotal = $rentalCents === null ? null : $rentalCents / 100;
+
         return new CompanyListItemData(
             id: $company->id,
             legalName: $company->legal_name,
@@ -142,6 +150,7 @@ final class CompanyQueryService
             isActive: $company->is_active,
             daysUsed: $contractsByPair->daysByCompany($company->id, $year),
             annualTaxDue: $annualTaxDue,
+            rentalPriceTotal: $rentalPriceTotal,
         );
     }
 

@@ -66,6 +66,8 @@ export function useCompanyContractsTable(opts: {
         { key: 'endDate', label: 'Au', mono: true },
         { key: 'durationDays', label: 'Durée', align: 'right', mono: true },
         { key: 'contractType', label: 'Type' },
+        { key: 'totalTax', label: 'Taxe', align: 'right', mono: true },
+        { key: 'rentalPrice', label: 'Prix location', align: 'right', mono: true },
     ];
 
     const state = useServerTableState<CompanyContractFilters>({

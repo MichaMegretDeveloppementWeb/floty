@@ -18,7 +18,7 @@
  *   - La KPI « Jours d'utilisation » reste toujours significative
  *     (donnée brute, indépendante des règles fiscales).
  */
-import { Calendar, Coins, Receipt } from 'lucide-vue-next';
+import { Calendar, Coins, Receipt, Wallet } from 'lucide-vue-next';
 import { computed } from 'vue';
 import StatCard from '@/Components/Ui/StatCard/StatCard.vue';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -36,16 +36,26 @@ const fiscalCaption = computed<string>(() =>
 );
 
 const actualTaxValue = computed<string>(() =>
-    props.kpiFiscalAvailable ? formatEur(props.kpiStats.actualTax) : '—',
+    props.kpiFiscalAvailable ? formatEur(props.kpiStats.actualTax) : '·',
 );
 
 const fullYearTaxValue = computed<string>(() =>
-    props.kpiFiscalAvailable ? formatEur(props.kpiStats.fullYearTax) : '—',
+    props.kpiFiscalAvailable ? formatEur(props.kpiStats.fullYearTax) : '·',
+);
+
+const rentalPriceValue = computed<string>(() =>
+    props.kpiStats.rentalPrice !== null ? formatEur(props.kpiStats.rentalPrice) : '·',
+);
+
+const rentalPriceCaption = computed<string>(() =>
+    props.kpiStats.rentalPrice !== null
+        ? `année ${props.kpiYear}`
+        : 'Tarif annuel non défini',
 );
 </script>
 
 <template>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
             tone="slate"
             :value="`${props.kpiStats.daysUsed} j`"
@@ -76,6 +86,17 @@ const fullYearTaxValue = computed<string>(() =>
         >
             <template #icon>
                 <Coins :size="18" :stroke-width="1.75" />
+            </template>
+        </StatCard>
+
+        <StatCard
+            tone="slate"
+            :value="rentalPriceValue"
+            label="Prix location"
+            :caption="rentalPriceCaption"
+        >
+            <template #icon>
+                <Wallet :size="18" :stroke-width="1.75" />
             </template>
         </StatCard>
     </div>

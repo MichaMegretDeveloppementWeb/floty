@@ -33,4 +33,18 @@ final class VehicleYearlyPricingReadRepository implements VehicleYearlyPricingRe
             ->get()
             ->all();
     }
+
+    public function findForVehiclesAndYear(array $vehicleIds, int $year): array
+    {
+        if ($vehicleIds === []) {
+            return [];
+        }
+
+        return VehicleYearlyPricing::query()
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->where('year', $year)
+            ->get()
+            ->keyBy('vehicle_id')
+            ->all();
+    }
 }

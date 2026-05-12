@@ -30,5 +30,12 @@ final class VehicleYearStatsData extends Data
         public int $contractsCount,
         public float $actualTax,
         public float $fullYearTax,
+        /**
+         * Prix location annuel (somme cross-entreprises des 12 facturations
+         * mensuelles) en euros. `null` si au moins 1 mois lève
+         * MissingPricing (= tarif annuel manquant pour le véhicule).
+         * Phase 13 D5.10.L.
+         */
+        public ?float $rentalPrice = null,
     ) {}
 }

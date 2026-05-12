@@ -39,6 +39,17 @@ final class ContractListItemData extends Data
         public int $durationDays,
         public ContractType $contractType,
         public ?string $contractReference,
+        /**
+         * Phase 13 D5.10.L · taxe fiscale due par ce contrat (somme CO₂ +
+         * polluants), arrondie en cents puis convertie en euros. Calcul
+         * effectué côté backend lors du chargement de la liste.
+         */
+        public float $totalTax = 0.0,
+        /**
+         * Phase 13 D5.10.L · prix location du contrat (cents → euros).
+         * Null si tarif annuel manquant pour le véhicule.
+         */
+        public ?float $rentalPrice = null,
     ) {}
 
     public static function fromModel(Contract $contract): self

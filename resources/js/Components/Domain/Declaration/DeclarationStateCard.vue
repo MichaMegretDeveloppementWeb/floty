@@ -122,8 +122,8 @@ function handleRegenerate(): void {
 <template>
     <!-- S1 · aucune déclaration préparée -->
     <Card v-if="state === 'untouched'">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex items-start gap-4">
+        <div class="flex flex-col gap-10 items-center py-8">
+            <div class="flex items-start gap-4 self-start max-w-[60em]">
                 <div
                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600"
                 >
@@ -151,8 +151,8 @@ function handleRegenerate(): void {
 
     <!-- S2 + S3 · Draft (en cours / prêt à générer) -->
     <Card v-else-if="(state === 'draft_pending' || state === 'draft_ready_to_generate') && current">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex items-start gap-4">
+        <div class="flex flex-col gap-10 items-center py-8">
+            <div class="flex items-start gap-4 self-start max-w-[60em]">
                 <div
                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-50 text-slate-600"
                 >
@@ -190,8 +190,8 @@ function handleRegenerate(): void {
 
     <!-- S4 · Mise de côté -->
     <Card v-else-if="state === 'deferred' && current">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div class="flex items-start gap-4">
+        <div class="flex flex-col gap-10 items-center py-8">
+            <div class="flex items-start gap-4 self-start max-w-[60em]">
                 <div
                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"
                 >
@@ -222,9 +222,9 @@ function handleRegenerate(): void {
 
     <!-- S4-bis · Mise de côté · régénération en attente (Phase 13 D5.10.H, aérée D5.10.I) -->
     <Card v-else-if="state === 'deferred_regeneration' && current">
-        <div class="flex flex-col gap-5">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div class="flex items-start gap-4">
+        <div class="flex flex-col gap-5 py-8">
+            <div class="flex flex-col gap-10 items-center">
+                <div class="flex items-start gap-4 self-start max-w-[60em]">
                     <div
                         class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"
                     >
@@ -253,7 +253,7 @@ function handleRegenerate(): void {
                         </p>
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
+                <div class="flex flex-wrap items-center gap-6 sm:shrink-0">
                     <Link
                         v-if="predecessor"
                         :href="showDeclarationRoute.url({ declaration: predecessor.id })"
@@ -275,9 +275,9 @@ function handleRegenerate(): void {
 
     <!-- S5 · Generated active -->
     <Card v-else-if="state === 'generated_active' && current">
-        <div class="flex flex-col gap-5">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div class="flex items-start gap-4">
+        <div class="flex flex-col gap-5 py-8">
+            <div class="flex flex-col gap-10 items-center">
+                <div class="flex items-start gap-4 self-start max-w-[60em]">
                     <div
                         class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600"
                     >
@@ -303,7 +303,7 @@ function handleRegenerate(): void {
                         </p>
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
+                <div class="flex flex-wrap items-center gap-6 sm:shrink-0">
                     <Link :href="showDeclarationRoute.url({ declaration: current.id })">
                         <Button variant="secondary">
                             <FileText :size="16" :stroke-width="1.75" />
@@ -331,9 +331,9 @@ function handleRegenerate(): void {
 
     <!-- S6 · Generated obsolète orphan (la version est périmée, pas de Draft chaîné) -->
     <Card v-else-if="state === 'generated_obsolete_orphan' && current">
-        <div class="flex flex-col gap-5">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div class="flex items-start gap-4">
+        <div class="flex flex-col gap-5 py-8">
+            <div class="flex flex-col gap-10 items-center">
+                <div class="flex items-start gap-4 self-start max-w-[60em]">
                     <div
                         class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-rose-50 text-rose-600"
                     >
@@ -424,9 +424,9 @@ function handleRegenerate(): void {
 
     <!-- S7 · Régénération en cours (Draft chaîné, version obsolète remplacée) -->
     <Card v-else-if="state === 'regeneration_in_progress' && current">
-        <div class="flex flex-col gap-5">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                <div class="flex items-start gap-4">
+        <div class="flex flex-col gap-5 py-8">
+            <div class="flex flex-col gap-10 items-center">
+                <div class="flex items-start gap-4 self-start max-w-[60em]">
                     <div
                         class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"
                     >
@@ -462,7 +462,7 @@ function handleRegenerate(): void {
                         </p>
                     </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-2 sm:shrink-0">
+                <div class="flex flex-wrap items-center gap-6 sm:shrink-0">
                     <Link
                         v-if="predecessor"
                         :href="showDeclarationRoute.url({ declaration: predecessor.id })"

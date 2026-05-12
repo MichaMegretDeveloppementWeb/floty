@@ -14,6 +14,7 @@ import Plate from '@/Components/Ui/Plate/Plate.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { formatEur } from '@/Utils/format/formatEur';
 import type {
     contractTypeBadgeTone,
     contractTypeShortLabel,
@@ -97,6 +98,22 @@ const emit = defineEmits<{
             <Badge :tone="badgeTone[row.contractType]">
                 {{ shortLabel[row.contractType] }}
             </Badge>
+        </template>
+        <template #cell-totalTax="{ row }">
+            <span class="font-mono whitespace-nowrap tabular-nums text-slate-700">
+                {{ formatEur(row.totalTax) }}
+            </span>
+        </template>
+        <template #cell-rentalPrice="{ row }">
+            <span
+                v-if="row.rentalPrice !== null"
+                class="font-mono whitespace-nowrap tabular-nums text-slate-900"
+            >
+                {{ formatEur(row.rentalPrice) }}
+            </span>
+            <span v-else class="text-slate-300" title="Tarif annuel non défini">
+                ·
+            </span>
         </template>
     </DataTable>
 

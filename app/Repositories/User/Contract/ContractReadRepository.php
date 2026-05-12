@@ -108,6 +108,25 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
+    public function findForVehiclesInYear(array $vehicleIds, int $year): Collection
+    {
+        if ($vehicleIds === []) {
+            return new Collection;
+        }
+
+        $start = sprintf('%04d-01-01', $year);
+        $end = sprintf('%04d-12-31', $year);
+
+        return Contract::query()
+            ->with(['vehicle:id,exit_date'])
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->where('start_date', '<=', $end)
+            ->where('end_date', '>=', $start)
+            ->orderBy('start_date')
+            ->orderBy('id')
+            ->get();
+    }
+
     public function findWindowContractsForVehicle(
         int $vehicleId,
         CarbonInterface $start,

@@ -20,6 +20,7 @@ use App\DTO\Fiscal\ContractsByPair;
 use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Services\Billing\BillingBreakdownService;
+use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -43,6 +44,7 @@ final readonly class ContractQueryService
         private ContractDocumentReadRepositoryInterface $documentRepository,
         private FleetFiscalAggregator $aggregator,
         private BillingBreakdownService $billingBreakdown,
+        private RentalPriceCalculator $rentalPrice,
     ) {}
 
     /**
@@ -121,13 +123,59 @@ final readonly class ContractQueryService
         $paginator = $this->repository->paginateForIndex($query);
 
         $items = array_map(
-            static fn (Contract $c): ContractListItemData => ContractListItemData::fromModel($c),
+            fn (Contract $c): ContractListItemData => $this->enrichContractDto($c),
             $paginator->items(),
         );
 
         return new PaginatedContractListData(
             data: $items,
             meta: PaginationMetaData::fromPaginator($paginator),
+        );
+    }
+
+    /**
+     * Phase 13 D5.10.L · enrichit le DTO de base avec `totalTax` et
+     * `rentalPrice` calculés en direct. Le totalTax utilise
+     * l'approximation `vehicleDailyTaxRate × durationDays` cohérente
+     * avec le rendu Index Véhicules, suffisante pour une vue
+     * d'ensemble (la valeur exacte par contrat reste accessible via la
+     * déclaration générée).
+     */
+    private function enrichContractDto(Contract $contract): ContractListItemData
+    {
+        $base = ContractListItemData::fromModel($contract);
+
+        $year = $contract->start_date->year;
+
+        $fullYearTax = 0.0;
+        try {
+            $fullYearTax = $this->aggregator->vehicleFullYearTax($contract->vehicle, $year);
+        } catch (\Throwable) {
+            // Année hors registry fiscal · totalTax laissé à 0.
+        }
+
+        $totalTax = round($fullYearTax * ($base->durationDays / 365), 2, PHP_ROUND_HALF_UP);
+
+        $rentalCents = $this->rentalPrice->forContract($contract->id);
+        $rentalPrice = $rentalCents === null ? null : $rentalCents / 100;
+
+        return new ContractListItemData(
+            id: $base->id,
+            vehicleId: $base->vehicleId,
+            vehicleLicensePlate: $base->vehicleLicensePlate,
+            vehicleIsExited: $base->vehicleIsExited,
+            companyId: $base->companyId,
+            companyShortCode: $base->companyShortCode,
+            companyLegalName: $base->companyLegalName,
+            companyColor: $base->companyColor,
+            drivers: $base->drivers,
+            startDate: $base->startDate,
+            endDate: $base->endDate,
+            durationDays: $base->durationDays,
+            contractType: $base->contractType,
+            contractReference: $base->contractReference,
+            totalTax: $totalTax,
+            rentalPrice: $rentalPrice,
         );
     }
 
@@ -218,7 +266,7 @@ final readonly class ContractQueryService
 
         /** @var DataCollection<int, ContractListItemData> */
         return ContractListItemData::collect(
-            $contracts->map(static fn (Contract $c): ContractListItemData => ContractListItemData::fromModel($c)),
+            $contracts->map(fn (Contract $c): ContractListItemData => $this->enrichContractDto($c)),
             DataCollection::class,
         );
     }

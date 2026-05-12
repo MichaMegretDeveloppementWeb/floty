@@ -129,7 +129,7 @@ function statusPalette(
             >
                 {{ formatEur(row.rentalPriceFullYear) }}
             </span>
-            <span v-else class="text-slate-300" title="Module facturation V1.2 à venir">
+            <span v-else class="text-slate-300" title="Tarif annuel non défini pour ce véhicule">
                 ·
             </span>
         </template>

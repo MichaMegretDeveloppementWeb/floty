@@ -87,6 +87,17 @@ const emit = defineEmits<{
                 {{ formatEur(Number(value)) }}
             </span>
         </template>
+        <template #cell-rentalPriceTotal="{ row }">
+            <span
+                v-if="row.rentalPriceTotal !== null"
+                class="font-mono whitespace-nowrap tabular-nums text-slate-900"
+            >
+                {{ formatEur(row.rentalPriceTotal) }}
+            </span>
+            <span v-else class="text-slate-300" title="Tarif annuel manquant pour au moins 1 véhicule">
+                ·
+            </span>
+        </template>
 
         <template #empty>
             <div class="flex flex-col items-center gap-2 py-8 text-center">

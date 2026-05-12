@@ -18,10 +18,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * taux d'utilisation. La taxe réelle (compte tenu des attributions
  * existantes) est disponible sur la fiche détail Show.
  *
- * `rentalPriceFullYear` est un **placeholder V1.2** (module facturation
- * non encore implémenté, cf. roadmap_v12_facturation). Toujours `null`
- * en V1, exposé dès maintenant pour que la colonne UI puisse afficher
- * « — » plutôt que d'apparaître plus tard et déstabiliser la table.
+ * `rentalPriceFullYear` est calculé via {@see RentalPriceCalculator}
+ * depuis V1.2 (Phase 13 D5.10.L) · prix location annuel cross-entreprises
+ * du véhicule. `null` si tarif annuel manquant.
  */
 #[TypeScript]
 final class VehicleListItemData extends Data

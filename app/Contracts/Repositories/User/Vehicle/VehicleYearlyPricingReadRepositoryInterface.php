@@ -33,4 +33,14 @@ interface VehicleYearlyPricingReadRepositoryInterface
      * @return list<VehicleYearlyPricing>
      */
     public function findAllForVehicle(int $vehicleId): array;
+
+    /**
+     * Variante batched pour usage Index/Listings (Phase 13 D5.10.L) ·
+     * récupère les tarifs de plusieurs véhicules pour une année en
+     * une seule SQL. Évite les N+1 sur les pages paginées.
+     *
+     * @param  list<int>  $vehicleIds
+     * @return array<int, VehicleYearlyPricing> vehicleId → pricing (clé manquante si pas de tarif)
+     */
+    public function findForVehiclesAndYear(array $vehicleIds, int $year): array;
 }

@@ -578,7 +578,8 @@ final class VehicleControllerTest extends TestCase
                     ->where('daysUsed', 0)
                     ->where('contractsCount', 0)
                     ->has('actualTax')
-                    ->has('fullYearTax')),
+                    ->has('fullYearTax')
+                    ->has('rentalPrice')),
             );
     }
 

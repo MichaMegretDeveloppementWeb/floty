@@ -31,6 +31,7 @@ use App\Models\Company;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Services\Billing\BillingBreakdownService;
+use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -63,6 +64,7 @@ final class VehicleQueryService
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
         private readonly BillingBreakdownService $billingBreakdown,
+        private readonly RentalPriceCalculator $rentalPrice,
     ) {}
 
     /**
@@ -79,10 +81,22 @@ final class VehicleQueryService
     {
         $daysInYear = $this->yearContext->daysInYear($year);
         $paginator = $this->vehicles->paginateForIndex($query);
+        /** @var list<Vehicle> $vehicles */
+        $vehicles = $paginator->items();
+
+        // Phase 13 D5.10.L · prix location batched · 2 SQL pour la page
+        // entière au lieu de 12 × N SQL.
+        $vehicleIds = array_map(static fn (Vehicle $v): int => $v->id, $vehicles);
+        $rentalPricesByVehicle = $this->rentalPrice->forVehiclesAndYear($vehicleIds, $year);
 
         $items = array_map(
-            fn (Vehicle $v): VehicleListItemData => $this->mapVehicleToListItem($v, $year, $daysInYear),
-            $paginator->items(),
+            fn (Vehicle $v): VehicleListItemData => $this->mapVehicleToListItem(
+                $v,
+                $year,
+                $daysInYear,
+                $rentalPricesByVehicle[$v->id] ?? null,
+            ),
+            $vehicles,
         );
 
         return new PaginatedVehicleListData(
@@ -91,7 +105,7 @@ final class VehicleQueryService
         );
     }
 
-    private function mapVehicleToListItem(Vehicle $v, int $year, int $daysInYear): VehicleListItemData
+    private function mapVehicleToListItem(Vehicle $v, int $year, int $daysInYear, ?int $rentalCents): VehicleListItemData
     {
         // Tolère une année hors registry fiscal (cohérent doctrine
         // « données métier ⊥ règles fiscales » Phase 2) : si le pipeline
@@ -116,11 +130,10 @@ final class VehicleQueryService
             isExited: $v->is_exited,
             fullYearTax: $fullYearTax,
             dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
-            // Placeholder V1.2 (cf. roadmap_v12_facturation) : la colonne
-            // « Prix location » est exposée dès maintenant pour stabiliser
-            // le contrat DTO/UI, mais reste null tant que le module
-            // facturation n'est pas livré.
-            rentalPriceFullYear: null,
+            // Phase 13 D5.10.L · prix location annuel cross-entreprises
+            // pré-calculé en mode batched par `forVehiclesAndYear`. Null
+            // si tarif annuel manquant.
+            rentalPriceFullYear: $rentalCents === null ? null : $rentalCents / 100,
         );
     }
 
@@ -284,12 +297,18 @@ final class VehicleQueryService
             // Année hors registry fiscal — chiffres taxes laissés à 0.
         }
 
+        // Phase 13 D5.10.L · prix location single-vehicle · usage Show ·
+        // pas besoin du batched ici (1 véhicule = 2 SQL acceptables).
+        $rentalCents = $this->rentalPrice->forVehicleAndYear($vehicle->id, $year);
+        $rentalPrice = $rentalCents === null ? null : $rentalCents / 100;
+
         return new VehicleYearStatsData(
             year: $year,
             daysUsed: $daysUsed,
             contractsCount: $contractsCount,
             actualTax: round($actualTax, 2, PHP_ROUND_HALF_UP),
             fullYearTax: round($fullYearTax, 2, PHP_ROUND_HALF_UP),
+            rentalPrice: $rentalPrice,
         );
     }
 

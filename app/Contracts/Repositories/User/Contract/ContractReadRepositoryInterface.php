@@ -71,6 +71,20 @@ interface ContractReadRepositoryInterface
     public function listForVehicle(int $vehicleId): Collection;
 
     /**
+     * Variante batched pour usage Index/Listings (Phase 13 D5.10.L) ·
+     * récupère en une seule SQL tous les contrats actifs des véhicules
+     * fournis qui chevauchent l'année civile demandée. Évite les N+1
+     * sur les pages paginées qui calculent un prix location annuel.
+     *
+     * Tri déterministe `start_date ASC, id ASC`. Eager-load `vehicle` +
+     * `company` minimal pour l'agrégation côté service.
+     *
+     * @param  list<int>  $vehicleIds
+     * @return Collection<int, Contract>
+     */
+    public function findForVehiclesInYear(array $vehicleIds, int $year): Collection;
+
+    /**
      * Liste des contrats actifs d'un véhicule chevauchant la fenêtre
      * `[start, end]`. Eager-load `company` pour le drawer semaine.
      *

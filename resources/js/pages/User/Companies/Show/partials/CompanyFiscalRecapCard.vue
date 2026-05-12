@@ -79,7 +79,7 @@ const pollutantsPercent = computed<number>(() => {
                     <div class="flex items-center gap-2">
                         <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                             <div
-                                class="h-full rounded-full bg-rose-400 transition-[width] duration-300"
+                                class="h-full rounded-full bg-slate-800 transition-[width] duration-300"
                                 :style="{ width: `${co2Percent}%` }"
                             />
                         </div>
@@ -98,7 +98,7 @@ const pollutantsPercent = computed<number>(() => {
                     <div class="flex items-center gap-2">
                         <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
                             <div
-                                class="h-full rounded-full bg-amber-400 transition-[width] duration-300"
+                                class="h-full rounded-full bg-slate-800 transition-[width] duration-300"
                                 :style="{ width: `${pollutantsPercent}%` }"
                             />
                         </div>
@@ -114,7 +114,7 @@ const pollutantsPercent = computed<number>(() => {
                     <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Jours cumulés
                     </dt>
-                    <dd class="mt-1 font-mono text-lg font-semibold tabular-nums text-slate-900">
+                    <dd class="mt-1 font-mono text-xl font-normal tabular-nums text-slate-900">
                         {{ fiscal.totalDays }}
                     </dd>
                 </div>
@@ -122,7 +122,7 @@ const pollutantsPercent = computed<number>(() => {
                     <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Véhicules taxés
                     </dt>
-                    <dd class="mt-1 font-mono text-lg font-semibold tabular-nums text-slate-900">
+                    <dd class="mt-1 font-mono text-xl font-normal tabular-nums text-slate-900">
                         {{ vehiclesCount }}
                     </dd>
                 </div>
@@ -130,7 +130,7 @@ const pollutantsPercent = computed<number>(() => {
                     <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">
                         Locations
                     </dt>
-                    <dd class="mt-1 font-mono text-lg font-semibold tabular-nums text-slate-900">
+                    <dd class="mt-1 font-mono text-xl font-normal tabular-nums text-slate-900">
                         {{ fiscal.contractsCount }}
                     </dd>
                 </div>
