@@ -49,7 +49,7 @@ export type FleetFilters = {
     handicapAccess: boolean | null;
     firstRegistrationYearMin: number | null;
     firstRegistrationYearMax: number | null;
-    /** Année des colonnes financières (Coût plein, Montant loyer). */
+    /** Année des colonnes financières (Taxe pleine, Montant loyer). */
     year: number;
 };
 
@@ -122,7 +122,7 @@ export function useFleetTable(opts: {
             { key: 'firstFrenchRegistrationDate', label: '1ʳᵉ immat.', mono: true },
             {
                 key: 'fullYearTax',
-                label: `Coût plein ${year}`,
+                label: `Taxe pleine ${year}`,
                 align: 'right',
             },
             {

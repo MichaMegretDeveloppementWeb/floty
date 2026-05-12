@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail du calcul du « Coût plein {année} » d'un véhicule — exposé
+ * Détail du calcul du « Taxe pleine {année} » d'un véhicule — exposé
  * par segment VFC depuis le chantier dette VFC pour garantir la
  * cohérence affichage/total quand un véhicule a plusieurs versions
  * actives sur l'année.

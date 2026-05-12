@@ -3,7 +3,7 @@
  * (chantier η Phase 2 — refonte onglets fiche véhicule).
  *
  * **Pattern** : une carte/section porte des données paramétrées par une
- * année (Timeline + Breakdown sur véhicule, Coût plein détaillé, etc.).
+ * année (Timeline + Breakdown sur véhicule, Taxe pleine détaillé, etc.).
  * L'année initiale est passée dans le payload Inertia normal de la page.
  * Quand l'utilisateur change l'année dans le sélecteur de la carte :
  *

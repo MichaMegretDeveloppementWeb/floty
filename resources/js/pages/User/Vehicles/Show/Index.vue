@@ -5,7 +5,7 @@
  *
  *   - **Vue d'ensemble** : KPIs + Caractéristiques + Historique +
  *     Utilisation & Répartition + Indispos
- *   - **Fiscalité** : détail du Coût plein (méthode CO₂, polluants,
+ *   - **Fiscalité** : détail de la Taxe pleine (méthode CO₂, polluants,
  *     exonérations, règles appliquées) — sélecteur d'année dédié
  *   - **Facturation** : placeholder V1.2
  *

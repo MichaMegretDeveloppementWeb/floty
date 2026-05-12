@@ -5,7 +5,7 @@ type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
 type Breakdown = App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
 
 /**
- * Vue + interactions de la sidebar « Détail Coût plein » : raccourci
+ * Vue + interactions de la sidebar « Détail Taxe pleine » : raccourci
  * `breakdown` vers `stats.fullYearTaxBreakdown`, indexation des
  * règles par code pour résolution O(1) au clic, et état du modal
  * d'inspection d'une règle (ouverture pilotée par `selectedCode`).

@@ -15,7 +15,7 @@
  * « aside » (Indispos seules sont souvent vides ou très courtes →
  * déséquilibre visuel). On préfère la lecture descendante naturelle.
  *
- * Le panel détaillé du Coût plein vit dans l'onglet Fiscalité.
+ * Le panel détaillé de la Taxe pleine vit dans l'onglet Fiscalité.
  */
 import CurrentFiscalCharacteristicsCard from './CurrentFiscalCharacteristicsCard.vue';
 import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';

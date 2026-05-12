@@ -12,7 +12,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail tarifaire d'un segment VFC dans le calcul du Coût plein
+ * Détail tarifaire d'un segment VFC dans le calcul de la Taxe pleine
  * d'un véhicule sur une année (chantier dette VFC).
  *
  * Quand un véhicule a une seule VFC sur l'année → un unique segment

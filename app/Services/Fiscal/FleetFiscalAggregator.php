@@ -58,7 +58,7 @@ final class FleetFiscalAggregator
     private array $rulesCache = [];
 
     /**
-     * Cache mémoire intra-instance des `PipelineResult` du « coût plein
+     * Cache mémoire intra-instance des `PipelineResult` du « taxe pleine
      * année théorique » indexé par `"{vehicleId}|{year}"`. Le résultat
      * dépend exclusivement du véhicule et de l'année (contrat full-year
      * synthétique, indispos vides), il est donc partageable entre
@@ -138,7 +138,7 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * **Coût plein année théorique** d'un véhicule : ce qu'il
+     * **Taxe pleine année théorique** d'un véhicule : ce qu'il
      * coûterait s'il était attribué 100 % du temps à une seule
      * entreprise (sans LCD, sans indispo, prorata = 1.0).
      *
@@ -156,7 +156,7 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Détail complet du calcul du coût plein année d'un véhicule -
+     * Détail complet du calcul de la taxe pleine année d'un véhicule -
      * affiché dans la sidebar de la page Show pour expliquer comment
      * le total a été obtenu (méthode CO₂, catégorie polluants,
      * exonérations appliquées, codes règles).
@@ -164,7 +164,7 @@ final class FleetFiscalAggregator
     public function vehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
         // On exécute le pipeline avec un contrat synthétique full-year
-        // (1ᵉʳ jan → 31 déc) pour calculer le coût plein. L'orchestrateur
+        // (1ᵉʳ jan → 31 déc) pour calculer le taxe pleine. L'orchestrateur
         // segmente automatiquement par VFC : 1 breakdown en mono-VFC,
         // N en multi-VFC.
         $context = $this->buildContext(
@@ -540,7 +540,7 @@ final class FleetFiscalAggregator
 
     /**
      * Contrat synthétique non-persisté couvrant toute l'année (1er jan
-     * → 31 déc), utilisé pour calculer le coût plein année théorique.
+     * → 31 déc), utilisé pour calculer le taxe pleine année théorique.
      * Par construction non LCD (durée > 30 j, pas un mois civil entier).
      */
     private function fullYearSyntheticContract(int $year): Contract

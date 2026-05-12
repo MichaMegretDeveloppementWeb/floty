@@ -18,7 +18,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *     neutres (zéros) pour les années sans contrat sur le véhicule.
  *
  * Les calculs détaillés (timeline 52 semaines, breakdown par entreprise,
- * coût plein) restent dans {@see VehicleUsageStatsData}, alimentés par
+ * taxe pleine) restent dans {@see VehicleUsageStatsData}, alimentés par
  * la lentille « Exploration » (sélecteur d'année partagé).
  */
 #[TypeScript]

@@ -3,7 +3,7 @@
  * Rangée de 3 KPIs **Présent** — reflète l'année calendaire courante
  * uniquement (chantier η Phase 2, doctrine temporelle).
  *
- * Refonte : avant le bouton « Voir le détail » du KPI Coût plein
+ * Refonte : avant le bouton « Voir le détail » du KPI Taxe pleine
  * pointait vers le `FullYearTaxBreakdownPanel`, lui-même calé sur
  * l'année active de la page (= une seule année). Désormais, le panel
  * vit dans la section Exploration et est piloté par le sélecteur
@@ -12,7 +12,7 @@
  *
  * Spécificités :
  *   - Si `kpiFiscalAvailable === false` (règles fiscales pas codées
- *     pour l'année courante), les KPIs « Taxe réelle » et « Coût plein »
+ *     pour l'année courante), les KPIs « Taxe réelle » et « Taxe pleine »
  *     affichent un `—` neutre + caption « Règles {YYYY} non implémentées »
  *     (cohérent CompanyKpiCards, doctrine HD6).
  *   - La KPI « Jours d'utilisation » reste toujours significative
@@ -81,7 +81,7 @@ const rentalPriceCaption = computed<string>(() =>
         <StatCard
             tone="slate"
             :value="fullYearTaxValue"
-            label="Coût plein"
+            label="Taxe pleine"
             :caption="fiscalCaption"
         >
             <template #icon>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Détail du « Coût plein {année} » par segment VFC.
+ * Détail du « Taxe pleine {année} » par segment VFC.
  *
  * Quand le véhicule a une seule VFC sur l'année → un seul bloc de
  * détails (CO₂ + polluants + total). Quand la VFC change en cours
@@ -43,7 +43,7 @@ function segmentPeriodLabel(seg: Segment): string {
         <template #header>
             <div>
                 <h2 class="text-base font-semibold text-slate-900">
-                    Détail du Coût plein {{ props.stats.fiscalYear }}
+                    Détail de la Taxe pleine {{ props.stats.fiscalYear }}
                 </h2>
                 <p class="mt-0.5 text-xs text-slate-500">
                     Calcul théorique pour 100 % d'utilisation

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Onglet Fiscalité de la fiche véhicule (chantier η Phase 2 onglets) :
- * détail du calcul Coût plein pour une année (méthode CO₂, polluants,
+ * détail du calcul Taxe pleine pour une année (méthode CO₂, polluants,
  * exonérations, règles fiscales appliquées).
  *
  * Sélecteur d'année **indépendant** de celui de Vue d'ensemble — chaque
@@ -67,7 +67,7 @@ const statsLike = computed<UsageStats>(() => ({
                 <div class="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h2 class="text-base font-semibold text-slate-900">
-                            Calcul du Coût plein
+                            Calcul de la Taxe pleine
                         </h2>
                         <p class="mt-0.5 text-xs text-slate-500">
                             Détail théorique pour 100 % d'utilisation —

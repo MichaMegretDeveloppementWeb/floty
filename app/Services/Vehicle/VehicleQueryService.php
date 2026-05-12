@@ -254,7 +254,7 @@ final class VehicleQueryService
 
     /**
      * Calcule les stats annuelles d'un véhicule pour une année donnée
-     * (jours utilisés, nombre de contrats, taxe réelle, coût plein).
+     * (jours utilisés, nombre de contrats, taxe réelle, taxe pleine).
      * Utilisé pour les KPI Présent et chaque ligne de history.
      *
      * Tolère l'absence de configuration fiscale sur l'année : retourne

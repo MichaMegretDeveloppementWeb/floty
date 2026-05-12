@@ -588,7 +588,7 @@ final class VehicleControllerTest extends TestCase
     {
         // En 2026, seules les règles 2024 sont codées dans le registry.
         // `kpiFiscalAvailable` doit être false pour qu'à l'UI les KPI
-        // Taxes/Coût plein affichent "—" + caption "Règles non implémentées".
+        // Taxes/Taxe pleine affichent "—" + caption "Règles non implémentées".
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);

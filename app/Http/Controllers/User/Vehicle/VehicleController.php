@@ -111,7 +111,7 @@ final class VehicleController extends Controller
      * l'utilisateur change l'année dans la carte Utilisation & Répartition
      * de la fiche véhicule. Retourne `VehicleUsageStatsData` pour
      * l'année demandée — Timeline + Breakdown par entreprise + breakdown
-     * Coût plein imbriqué.
+     * Taxe pleine imbriqué.
      */
     public function usageStats(int $vehicle, Request $request): JsonResponse
     {
@@ -121,7 +121,7 @@ final class VehicleController extends Controller
     }
 
     /**
-     * Endpoint lazy JSON pour le panel Coût plein de l'onglet Fiscalité.
+     * Endpoint lazy JSON pour le panel Taxe pleine de l'onglet Fiscalité.
      * Retourne uniquement `VehicleFullYearTaxBreakdownData` (panel détaillé
      * du calcul théorique 100 % d'utilisation).
      */
