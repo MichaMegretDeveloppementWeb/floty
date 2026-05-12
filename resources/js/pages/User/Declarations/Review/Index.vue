@@ -26,6 +26,7 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { useReviewForm } from '@/Composables/Declaration/useReviewForm';
+import { show as companyShowRoute } from '@/routes/user/companies';
 import {
     destroy as destroyRoute,
     show as showDeclarationRoute,
@@ -153,10 +154,17 @@ function handleScrollTo(fingerprint: string): void {
                             Déclaration fiscale
                         </p>
                         <StatusPill tone="amber" class="w-fit">Revue interactive</StatusPill>
-                        <h1 class="text-2xl font-semibold text-slate-900">
-                            {{ declaration.companyShortCode }} · {{ declaration.fiscalYear }}
-                        </h1>
-                        <p class="text-sm text-slate-500">{{ declaration.companyLegalName }}</p>
+                        <Link
+                            :href="companyShowRoute.url({ company: declaration.companyId })"
+                            class="group flex w-fit cursor-pointer flex-col gap-0.5 transition-colors duration-[120ms]"
+                        >
+                            <h1 class="text-2xl font-semibold text-slate-900 group-hover:underline">
+                                {{ declaration.companyShortCode }} · {{ declaration.fiscalYear }}
+                            </h1>
+                            <p class="text-sm text-slate-500 group-hover:text-slate-700">
+                                {{ declaration.companyLegalName }}
+                            </p>
+                        </Link>
                     </div>
                 </div>
 

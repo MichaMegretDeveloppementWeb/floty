@@ -104,12 +104,12 @@ const sortedEntries = computed<TimelineEntry[]>(() => {
             >
                 <span
                     v-if="index < sortedEntries.length - 1"
-                    class="absolute left-[13px] top-3 h-full w-px bg-slate-200"
+                    class="absolute left-[13px] top-3 z-0 h-full w-px bg-slate-200"
                     aria-hidden="true"
                 />
                 <span
                     :class="[
-                        'mt-1.5 inline-block size-2.5 shrink-0 rounded-full',
+                        'relative z-10 mt-1.5 inline-block size-2.5 shrink-0 rounded-full',
                         entry.isCurrent ? 'ring-4' : 'ring-2',
                         entry.dotClass,
                     ]"
