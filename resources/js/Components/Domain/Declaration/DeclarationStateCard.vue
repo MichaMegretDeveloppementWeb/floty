@@ -241,9 +241,9 @@ function handleRegenerate(): void {
             </div>
 
             <DeclarationHistoryTimeline
-                v-if="lifecycle.historyChain.length > 0"
-                :current-declaration="current"
-                :history-chain="lifecycle.historyChain"
+                v-if="lifecycle.historyChain.length > 0 && current"
+                :entries="[current, ...lifecycle.historyChain]"
+                :current-declaration-id="current.id"
                 class="border-t border-slate-100 pt-3"
             />
         </div>
@@ -324,9 +324,9 @@ function handleRegenerate(): void {
             </div>
 
             <DeclarationHistoryTimeline
-                v-if="lifecycle.historyChain.length > 0"
-                :current-declaration="current"
-                :history-chain="lifecycle.historyChain"
+                v-if="lifecycle.historyChain.length > 0 && current"
+                :entries="[current, ...lifecycle.historyChain]"
+                :current-declaration-id="current.id"
                 class="border-t border-slate-100 pt-3"
             />
         </div>
@@ -387,9 +387,9 @@ function handleRegenerate(): void {
             </div>
 
             <DeclarationHistoryTimeline
-                v-if="lifecycle.historyChain.length > 0"
-                :current-declaration="current"
-                :history-chain="lifecycle.historyChain"
+                v-if="lifecycle.historyChain.length > 0 && current"
+                :entries="[current, ...lifecycle.historyChain]"
+                :current-declaration-id="current.id"
                 class="border-t border-slate-100 pt-3"
             />
         </div>

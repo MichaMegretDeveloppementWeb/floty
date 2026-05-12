@@ -16,7 +16,6 @@
  * du même cluster, avec leur décision affichée au header.
  */
 import { Head } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import DeclarationHistoryTimeline from '@/Components/Domain/Declaration/DeclarationHistoryTimeline.vue';
 import FiscalSummaryCard from '@/Components/Domain/Declaration/FiscalSummaryCard.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
@@ -28,34 +27,13 @@ import PredecessorNoticeBanner from './partials/PredecessorNoticeBanner.vue';
 
 type ItemData = App.Data.User.FiscalDeclaration.DeclarationListItemData;
 
-const props = defineProps<{
+defineProps<{
     declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
     history: ItemData[];
     predecessorDeclaration: ItemData | null;
     successorDeclaration: ItemData | null;
 }>();
-
-/**
- * Phase 13 D5.10.B · la déclaration courante (que l'utilisateur
- * consulte) est extraite du tableau `history` qui contient toutes
- * les versions du couple `(company, year)` sous le format
- * `DeclarationListItemData`.
- */
-const currentAsListItem = computed<ItemData | null>(
-    () => props.history.find((d) => d.id === props.declaration.id) ?? null,
-);
-
-/**
- * Versions à afficher en historique (toutes sauf celle consultée),
- * triées récent → ancien pour cohérence avec la timeline de l'onglet
- * Fiscalité.
- */
-const otherVersions = computed<ItemData[]>(() => {
-    return [...props.history]
-        .filter((d) => d.id !== props.declaration.id)
-        .sort((a, b) => b.id - a.id);
-});
 </script>
 
 <template>
@@ -63,26 +41,26 @@ const otherVersions = computed<ItemData[]>(() => {
 
     <UserLayout>
         <div class="m-auto flex w-full max-w-[64em] flex-col gap-6 border-l-2 border-l-transparent pl-3">
-            <Header :declaration="props.declaration" />
+            <Header :declaration="declaration" />
 
-            <ObsolescenceBanner :declaration="props.declaration" />
+            <ObsolescenceBanner :declaration="declaration" />
 
             <PredecessorNoticeBanner
-                v-if="props.predecessorDeclaration"
-                :predecessor="props.predecessorDeclaration"
+                v-if="predecessorDeclaration"
+                :predecessor="predecessorDeclaration"
             />
 
-            <FiscalSummaryCard :snapshot="props.snapshot" />
+            <FiscalSummaryCard :snapshot="snapshot" />
 
             <PdfCard
-                :declaration="props.declaration"
-                :successor-declaration="props.successorDeclaration"
+                :declaration="declaration"
+                :successor-declaration="successorDeclaration"
             />
 
-            <Card v-if="currentAsListItem">
+            <Card v-if="history.length > 0">
                 <DeclarationHistoryTimeline
-                    :current-declaration="currentAsListItem"
-                    :history-chain="otherVersions"
+                    :entries="history"
+                    :current-declaration-id="declaration.id"
                 />
             </Card>
         </div>

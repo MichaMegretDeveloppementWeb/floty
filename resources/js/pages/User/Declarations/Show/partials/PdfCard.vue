@@ -179,12 +179,22 @@ function confirmModify(): void {
             </div>
         </div>
 
-        <div v-else class="flex flex-col gap-2 text-sm text-slate-500">
-            <p>
-                Aucun PDF n'a encore été produit pour cette déclaration. Une
-                fois la revue achevée, la génération produira un document
-                immuable consultable et téléchargeable ici.
+        <div v-else class="flex flex-col gap-4">
+            <p class="text-sm text-slate-500">
+                Aucun PDF n'a encore été produit. La revue est en cours ·
+                reprenez les décisions et générez le document quand vous
+                êtes prêt.
             </p>
+            <Link :href="reviewRoute.url({ declaration: declaration.id })">
+                <Button>
+                    <Pencil :size="16" :stroke-width="1.75" />
+                    {{
+                        declaration.status === 'deferred'
+                            ? 'Reprendre la déclaration mise de côté'
+                            : 'Reprendre la revue'
+                    }}
+                </Button>
+            </Link>
         </div>
 
         <ConfirmModal

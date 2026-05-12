@@ -1,19 +1,25 @@
 <script setup lang="ts">
 /**
  * Timeline chronologique des versions d'une déclaration fiscale pour
- * un couple `(company, year)` (Phase 13 D5.10.B). Rendu visuel en
- * liste verticale de cercles d'état connectés par un trait vertical.
+ * un couple `(company, year)` (Phase 13 D5.10.B, refondu D5.10.G).
  *
  * Lecture · plus récent en haut, plus ancien en bas (lecture
  * descendante = retour dans le temps). Cohérent avec un fil
  * d'événements `git log` ou un changelog moderne.
  *
+ * **Tri stable** (D5.10.G) · le composant trie en interne par `id
+ * DESC` peu importe l'ordre d'entrée, pour que l'ordre d'affichage
+ * ne dépende JAMAIS de la version actuellement consultée. La
+ * version consultée est repérée par `currentDeclarationId` (id à
+ * mettre en évidence) plutôt que de la déplacer en tête de liste.
+ *
  * Pour chaque entrée :
  *   - Cercle coloré selon le statut (emerald = générée active, rose
  *     = obsolète, amber = mise de côté, slate = brouillon).
- *   - Référence en `font-mono` cliquable · Link vers la page Show de
- *     cette version. Si la référence est null (brouillon non encore
- *     généré), on affiche « Brouillon » + l'identifiant interne.
+ *   - Référence en `font-mono` cliquable (Link vers Show) sauf si
+ *     c'est la version actuellement consultée · dans ce cas, rendu
+ *     en `<span>` non cliquable + badge « Version consultée » + ring
+ *     plus épais sur le dot.
  *   - Libellé d'état explicite.
  *   - Date de génération si disponible.
  *
@@ -22,20 +28,22 @@
  */
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { show as showDeclarationRoute } from '@/routes/user/declarations';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 type ItemData = App.Data.User.FiscalDeclaration.DeclarationListItemData;
 
 const props = defineProps<{
-    currentDeclaration: ItemData;
-    historyChain: ItemData[];
+    entries: ItemData[];
+    currentDeclarationId: number;
 }>();
 
 interface TimelineEntry {
     declaration: ItemData;
     dotClass: string;
     label: string;
+    isCurrent: boolean;
 }
 
 function dotClassFor(d: ItemData): string {
@@ -71,12 +79,15 @@ function labelFor(d: ItemData): string {
     return 'Brouillon';
 }
 
-const entries = computed<TimelineEntry[]>(() => {
-    return [props.currentDeclaration, ...props.historyChain].map((d) => ({
-        declaration: d,
-        dotClass: dotClassFor(d),
-        label: labelFor(d),
-    }));
+const sortedEntries = computed<TimelineEntry[]>(() => {
+    return [...props.entries]
+        .sort((a, b) => b.id - a.id)
+        .map((d) => ({
+            declaration: d,
+            dotClass: dotClassFor(d),
+            label: labelFor(d),
+            isCurrent: d.id === props.currentDeclarationId,
+        }));
 });
 </script>
 
@@ -87,23 +98,33 @@ const entries = computed<TimelineEntry[]>(() => {
         </p>
         <ol class="flex flex-col">
             <li
-                v-for="(entry, index) in entries"
+                v-for="(entry, index) in sortedEntries"
                 :key="entry.declaration.id"
                 class="relative flex items-start gap-3 pl-2"
             >
                 <span
-                    v-if="index < entries.length - 1"
+                    v-if="index < sortedEntries.length - 1"
                     class="absolute left-[15px] top-3 h-full w-px bg-slate-200"
                     aria-hidden="true"
                 />
                 <span
-                    :class="['mt-1.5 inline-block size-2.5 shrink-0 rounded-full ring-2', entry.dotClass]"
+                    :class="[
+                        'mt-1.5 inline-block size-2.5 shrink-0 rounded-full',
+                        entry.isCurrent ? 'ring-4' : 'ring-2',
+                        entry.dotClass,
+                    ]"
                     aria-hidden="true"
                 />
                 <div class="flex flex-1 flex-col gap-0.5 pb-3">
                     <div class="flex flex-wrap items-baseline gap-2">
+                        <span
+                            v-if="entry.isCurrent"
+                            class="cursor-default font-mono text-sm font-medium text-slate-900"
+                        >
+                            {{ entry.declaration.reference ?? `Brouillon #${entry.declaration.id}` }}
+                        </span>
                         <Link
-                            v-if="entry.declaration.reference"
+                            v-else-if="entry.declaration.reference"
                             :href="showDeclarationRoute.url({ declaration: entry.declaration.id })"
                             class="cursor-pointer font-mono text-sm font-medium text-slate-800 transition-colors duration-[120ms] hover:text-slate-900 hover:underline"
                         >
@@ -117,6 +138,9 @@ const entries = computed<TimelineEntry[]>(() => {
                             Brouillon #{{ entry.declaration.id }}
                         </Link>
                         <span class="text-xs text-slate-500">· {{ entry.label }}</span>
+                        <StatusPill v-if="entry.isCurrent" tone="slate">
+                            Version consultée
+                        </StatusPill>
                     </div>
                     <p v-if="entry.declaration.generatedAt" class="text-xs text-slate-400">
                         Générée le {{ formatDateFr(entry.declaration.generatedAt) }}
