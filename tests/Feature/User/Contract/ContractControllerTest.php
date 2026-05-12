@@ -255,17 +255,17 @@ final class ContractControllerTest extends TestCase
         $vehicle3 = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
-        // Avant la fenêtre — pas match
+        // Avant la fenêtre · pas match
         Contract::factory()->create([
             'vehicle_id' => $vehicle1->id, 'company_id' => $company->id,
             'start_date' => '2025-01-01', 'end_date' => '2025-01-31',
         ]);
-        // Chevauche fenêtre [2025-03-01, 2025-03-31] — match
+        // Chevauche fenêtre [2025-03-01, 2025-03-31] · match
         Contract::factory()->create([
             'vehicle_id' => $vehicle2->id, 'company_id' => $company->id,
             'start_date' => '2025-03-15', 'end_date' => '2025-04-15',
         ]);
-        // Après la fenêtre — pas match
+        // Après la fenêtre · pas match
         Contract::factory()->create([
             'vehicle_id' => $vehicle3->id, 'company_id' => $company->id,
             'start_date' => '2025-05-01', 'end_date' => '2025-05-31',

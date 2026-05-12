@@ -52,7 +52,7 @@ const props = defineProps<{
 const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
 const filtersOpen = ref<boolean>(false);
 
-// Année calendaire courante (front) — distincte de `selectedYear` qui
+// Année calendaire courante (front) · distincte de `selectedYear` qui
 // est pilotée par l'utilisateur. Sert de borne de référence dans
 // `useFleetTable` (ex. pour afficher des badges « En cours »).
 const currentRealYear = new Date().getFullYear();
@@ -63,7 +63,7 @@ const tableState = useFleetTable({
     currentRealYear,
 });
 
-// Sélecteur d'année local à la page (chantier η anticipé) — pilote
+// Sélecteur d'année local à la page (chantier η anticipé) · pilote
 // uniquement les colonnes financières. Le label explicite évite la
 // confusion d'un sélecteur global anonyme (cf. arbitrage chantier θ.4).
 const selectedYearModel = computed<number>({

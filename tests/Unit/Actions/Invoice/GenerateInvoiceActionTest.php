@@ -26,7 +26,7 @@ use Tests\TestCase;
 /**
  * Tests d'intégration de `GenerateInvoiceAction` (Phase 14.E V1.2).
  *
- * Le PDF est rendu via dompdf — coût ~200ms par test, on couvre les
+ * Le PDF est rendu via dompdf · coût ~200ms par test, on couvre les
  * cas critiques sans exhaustivité (les calculs financiers sont déjà
  * couverts par `BillingCalculatorTest`).
  */

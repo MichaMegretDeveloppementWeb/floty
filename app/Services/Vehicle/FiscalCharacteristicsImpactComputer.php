@@ -79,7 +79,7 @@ final readonly class FiscalCharacteristicsImpactComputer
             // Cas spécial inclus : v est la VFC courante (vTo=null) et la
             // nouvelle plage devient la nouvelle courante (newTo=null).
             // L'ancienne courante doit alors être raccourcie au jour
-            // précédant newFrom pour libérer la place — sans cette
+            // précédant newFrom pour libérer la place · sans cette
             // branche, le trigger DB rejette l'INSERT (chantier création
             // VFC depuis la modale Historique).
             if (
@@ -151,7 +151,7 @@ final readonly class FiscalCharacteristicsImpactComputer
 
         // Comblement immédiat du trou avec le prédécesseur retenu, sauf
         // si une autre VFC a déjà été raccourcie par chevauchement gauche
-        // jusqu'à la borne attendue (newFrom-1) — auquel cas elle occupe
+        // jusqu'à la borne attendue (newFrom-1) · auquel cas elle occupe
         // déjà le slot prédécesseur immédiat. Sans ce garde-fou, on
         // produit deux adjusts vers la même borne et le trigger DB
         // rejette pour chevauchement.

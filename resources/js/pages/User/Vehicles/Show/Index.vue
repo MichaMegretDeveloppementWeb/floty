@@ -1,16 +1,16 @@
 <script setup lang="ts">
 /**
- * Page Show Véhicule — composition en **3 onglets** (chantier η
+ * Page Show Véhicule · composition en **3 onglets** (chantier η
  * Phase 2 refonte) :
  *
  *   - **Vue d'ensemble** : KPIs + Caractéristiques + Historique +
  *     Utilisation & Répartition + Indispos
  *   - **Fiscalité** : détail de la Taxe pleine (méthode CO₂, polluants,
- *     exonérations, règles appliquées) — sélecteur d'année dédié
+ *     exonérations, règles appliquées) · sélecteur d'année dédié
  *   - **Facturation** : placeholder V1.2
  *
  * Les sélecteurs d'année des cartes Utilisation et Fiscalité sont
- * **indépendants** — chacun a son propre cache `useYearLazy` (lazy
+ * **indépendants** · chacun a son propre cache `useYearLazy` (lazy
  * loading + cache client). Pattern aligné Company.
  */
 import { Head } from '@inertiajs/vue3';

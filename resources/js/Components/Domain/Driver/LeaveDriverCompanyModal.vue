@@ -7,7 +7,7 @@
  * 2. Le composable charge automatiquement les contrats à venir (start_date
  *    > leftAt) du driver dans cette company. Chaque ligne expose :
  *    - `currentDrivers` : conducteurs actuellement attachés au contrat
- *      (le sortant compris) — pour donner le contexte.
+ *      (le sortant compris) · pour donner le contexte.
  *    - `candidates` : drivers actifs sur la période, hors tous les
  *      drivers déjà attachés.
  * 3a. Si 0 contrats → sortie directe (mode 'none').
@@ -21,7 +21,7 @@
  *    en mode replace ; sinon omet (Spatie Data refuse `[]` explicite).
  *
  * Symétrique : utilisé depuis la fiche Driver Show ET la fiche Company
- * Show — props neutres (driverId, companyId, fullName, companyName).
+ * Show · props neutres (driverId, companyId, fullName, companyName).
  */
 import { useForm } from '@inertiajs/vue3';
 import { Loader2 } from 'lucide-vue-next';
@@ -95,7 +95,7 @@ async function fetchFutureContracts(): Promise<void> {
             { leftAt: form.left_at },
         );
         futureContracts.value = response.contracts;
-        // Reset des sélections — l'utilisateur doit re-choisir si la
+        // Reset des sélections · l'utilisateur doit re-choisir si la
         // date change (les candidats peuvent varier selon la période).
         replacementMap.value = {};
 
@@ -113,7 +113,7 @@ async function fetchFutureContracts(): Promise<void> {
     }
 }
 
-// Debounce 250ms sur changement de date — évite un fetch par caractère
+// Debounce 250ms sur changement de date · évite un fetch par caractère
 watch(
     () => form.left_at,
     () => {
@@ -167,7 +167,7 @@ function candidateOptionsFor(contract: FutureContract): Array<{
 }> {
     const options: Array<{ value: number | string; label: string }>
         = contract.candidates.map((c) => ({ value: c.id, label: c.fullName }));
-    options.unshift({ value: '__detach__', label: '— Aucun remplaçant (juste retirer) —' });
+    options.unshift({ value: '__detach__', label: '· Aucun remplaçant (juste retirer) ·' });
 
     return options;
 }
@@ -201,7 +201,7 @@ function submit(): void {
 
         if (data.future_contracts_resolution !== 'replace') {
             // Spatie Data + Laravel rejettent `replacement_map: {}` explicite
-            // en JSON (validation.required) — on omet la clé sauf en mode
+            // en JSON (validation.required) · on omet la clé sauf en mode
             // 'replace' où elle porte le mapping.
             return base;
         }
@@ -273,7 +273,7 @@ function submit(): void {
                 v-else-if="!hasFutureContracts"
                 class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800"
             >
-                Aucune location à venir après cette date — sortie directe sans
+                Aucune location à venir après cette date · sortie directe sans
                 résolution nécessaire.
             </div>
 
@@ -357,7 +357,7 @@ function submit(): void {
                                 v-if="contract.candidates.length === 0"
                                 class="mt-1 text-[10px] text-amber-700"
                             >
-                                Aucun remplaçant disponible — choisissez « Aucun remplaçant ».
+                                Aucun remplaçant disponible · choisissez « Aucun remplaçant ».
                             </p>
                         </div>
                     </div>

@@ -35,7 +35,7 @@ use Carbon\CarbonImmutable;
  * Les jours d'indispo qui tombent dans un contrat LCD sont déjà retirés
  * via R-2024-021 - les compter ici serait un double-décompte.
  *
- * **Source légale** : CIBS art. L. 421-96 — « le véhicule immobilisé ou
+ * **Source légale** : CIBS art. L. 421-96 · « le véhicule immobilisé ou
  * mis en fourrière à la demande des pouvoirs publics est réputé ne pas
  * être affecté à des fins économiques ». La doctrine BOI-AIS-MOB-10-30-10
  * détaille les 3 cas réducteurs : § 50 (suspension du certificat
@@ -121,7 +121,7 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         // Si une `daysWindow` est posée (mode segmenté par VFC, cf.
         // FiscalSegmentedExecutor), on filtre les jours présents
         // pour ne compter que ceux qui tombent dans le segment courant
-        // — sinon le count des jours réducteurs serait calculé sur
+        // · sinon le count des jours réducteurs serait calculé sur
         // l'année entière et soustrait à chaque segment, conduisant
         // à un sur-décompte (chantier dette VFC, garantie cohérence
         // multi-VFC + indispo réductrice).

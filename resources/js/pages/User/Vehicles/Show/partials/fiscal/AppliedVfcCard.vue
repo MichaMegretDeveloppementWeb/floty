@@ -2,7 +2,7 @@
 /**
  * Encart « Caractéristiques fiscales appliquées au calcul » de l'onglet
  * Fiscalité : matérialise la (les) VFC effective(s) sur l'année
- * calculée — un bloc par période effective (un seul en mono-VFC, N en
+ * calculée · un bloc par période effective (un seul en mono-VFC, N en
  * multi-VFC).
  *
  * Complémentaire de
@@ -45,7 +45,7 @@ function co2Display(vfc: Vfc): string {
         return `${hp} CV (PA)`;
     }
 
-    return '—';
+    return '·';
 }
 
 function segmentPeriodLabel(seg: Segment): string {
@@ -71,7 +71,7 @@ function segmentPeriodLabel(seg: Segment): string {
                             Historique complet sur l'onglet Vue d'ensemble.
                         </template>
                         <template v-else>
-                            {{ segments.length }} versions VFC se succèdent sur l'année —
+                            {{ segments.length }} versions VFC se succèdent sur l'année ·
                             le calcul est segmenté pour appliquer la bonne version à chaque période.
                         </template>
                     </p>
@@ -106,7 +106,7 @@ function segmentPeriodLabel(seg: Segment): string {
                     <div>
                         <dt class="text-xs text-slate-500">Norme Euro</dt>
                         <dd class="font-medium text-slate-900">
-                            {{ segment.vfc.euroStandard !== null ? euroStandardLabel[segment.vfc.euroStandard] : '—' }}
+                            {{ segment.vfc.euroStandard !== null ? euroStandardLabel[segment.vfc.euroStandard] : '·' }}
                         </dd>
                     </div>
                     <div>

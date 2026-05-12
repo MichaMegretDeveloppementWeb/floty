@@ -36,7 +36,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Unit Part A.1 — combler les trous identifiés sur multi-VFC ≥3
+ * Tests Unit Part A.1 · combler les trous identifiés sur multi-VFC ≥3
  * dans une même année (audit confiance 7/10 → 9/10).
  *
  * Les patterns helpers (`makeVehicle`, `vfcCommonFields`, `syntheticContract`,

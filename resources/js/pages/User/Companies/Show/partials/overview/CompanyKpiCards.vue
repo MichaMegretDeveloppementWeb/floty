@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Rangée de 4 KPIs **Présent** — reflète l'année calendaire courante
+ * Rangée de 4 KPIs **Présent** · reflète l'année calendaire courante
  * uniquement (chantier η Phase 1, doctrine temporelle).
  *
  * **Renomme `CompanyLifetimeStatsCards` (lifetime tous exercices) →
@@ -9,7 +9,7 @@
  *
  * Spécificités :
  *   - Si `kpiFiscalAvailable === false` (règles fiscales pas codées
- *     pour l'année courante), la KPI Taxes affiche un `—` neutre avec
+ *     pour l'année courante), la KPI Taxes affiche un `·` neutre avec
  *     caption « Règles {YYYY} non implémentées » (cf. doctrine HD6 :
  *     « pas de règles ≠ pas de données »).
  *   - Montant loyer : somme des 12 facturations mensuelles de l'année,

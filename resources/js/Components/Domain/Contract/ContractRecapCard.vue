@@ -178,7 +178,7 @@ const showBody = computed<boolean>(
                 <div class="flex items-center justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
                     <span class="text-slate-600">Conducteurs</span>
                     <span class="font-mono text-slate-900">
-                        {{ driversCount === 0 ? '—' : driversCount + (driversCount > 1 ? ' désignés' : ' désigné') }}
+                        {{ driversCount === 0 ? '·' : driversCount + (driversCount > 1 ? ' désignés' : ' désigné') }}
                     </span>
                 </div>
 

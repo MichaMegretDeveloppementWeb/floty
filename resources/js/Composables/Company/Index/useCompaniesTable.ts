@@ -4,7 +4,7 @@
  * Particularités vs Drivers :
  *  - Filtre `isActive` (boolean tri-state : true / false / null)
  *  - Colonnes `daysUsed` et `annualTaxDue` affichées mais NON triables
- *    (valeurs calculées par l'aggregator fiscal — règle ADR-0020 D6)
+ *    (valeurs calculées par l'aggregator fiscal · règle ADR-0020 D6)
  *
  * Le rendu reste dans `CompaniesTable.vue` (slots cell-*).
  */
@@ -79,7 +79,7 @@ export function useCompaniesTable(opts: {
         }),
     });
 
-    // Labels dépendant de l'année du sélecteur — recalculés automatiquement
+    // Labels dépendant de l'année du sélecteur · recalculés automatiquement
     // quand `state.filters.value.year` change (chantier η Phase 3 fix). Sans
     // ça, les colonnes restaient figées sur l'année initiale.
     const columns = computed<readonly DataTableColumn<CompanyRow>[]>(() => {
@@ -114,7 +114,7 @@ export function useCompaniesTable(opts: {
             state.setSort(sortKey);
         }
         // Les colonnes sans entrée dans COLUMN_TO_SORT_KEY (daysUsed,
-        // annualTaxDue) sont volontairement no-op au clic — pas de tri
+        // annualTaxDue) sont volontairement no-op au clic · pas de tri
         // possible côté serveur sur ces valeurs calculées.
     }
 

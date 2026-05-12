@@ -5,13 +5,13 @@
  * Symétrique de `DriverCompaniesSection` côté Driver Show : permet
  * d'ajouter, sortir et détacher un driver depuis la fiche Company.
  *
- * Les modals (Add, Leave) vivent localement à cet onglet — ils
+ * Les modals (Add, Leave) vivent localement à cet onglet · ils
  * persistent tant que l'utilisateur reste sur l'onglet et sont
  * remontés au démontage. Cela évite de polluer `Companies/Show/Index`
  * avec un state propre à un seul onglet.
  *
  * Les actions (POST/PATCH/DELETE) réutilisent les routes côté Driver
- * (`/drivers/{driver}/memberships`) — le pivot est unique, pas besoin
+ * (`/drivers/{driver}/memberships`) · le pivot est unique, pas besoin
  * de doubler les endpoints.
  */
 import { router } from '@inertiajs/vue3';

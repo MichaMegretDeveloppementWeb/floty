@@ -58,7 +58,7 @@ function cellTitle(date: string, status: string): string {
                 ? 'Indisponible'
                 : 'Libre';
 
-    return `${formatted} — ${statusLabel}`;
+    return `${formatted} · ${statusLabel}`;
 }
 </script>
 

@@ -10,7 +10,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Stats contextuelles affichées sous le titre de l'onglet Contrats
  * de la fiche Company Show (chantier N.1.fixes). Reflètent le filtre
- * période actif — bougent avec le filtre, aident l'utilisateur à se
+ * période actif · bougent avec le filtre, aident l'utilisateur à se
  * situer dans l'historique de l'entreprise.
  *
  * `totalDays` est calculé en intersection avec la fenêtre filtrée :

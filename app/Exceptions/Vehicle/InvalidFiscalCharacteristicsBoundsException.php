@@ -76,7 +76,7 @@ final class InvalidFiscalCharacteristicsBoundsException extends BaseAppException
         // nouvelle VFC. La précédente sera automatiquement clôturée à
         // newFrom-1 par l'`ImpactComputer`. Le wording générique
         // « modifier ou raccourcir d'abord cette version » est trompeur
-        // dans ce cas — il pousse vers une voie inutile.
+        // dans ce cas · il pousse vers une voie inutile.
         //
         // Branche finie : wording générique conservé (le seul fix possible
         // côté UI est bien de modifier l'existante en amont).

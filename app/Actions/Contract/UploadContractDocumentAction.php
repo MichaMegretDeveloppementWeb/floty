@@ -24,7 +24,7 @@ use Throwable;
  * compense en supprimant le fichier physique pour éviter de laisser un
  * orphelin disque (chantier γ.2). C'est un best-effort : si la
  * compensation échoue à son tour, on relance quand même l'exception
- * d'origine — l'utilisateur voit l'erreur, et un orphelin disque reste
+ * d'origine · l'utilisateur voit l'erreur, et un orphelin disque reste
  * récupérable par un job de cleanup, contrairement à un orphelin DB
  * qui serait visible dans l'UI.
  */

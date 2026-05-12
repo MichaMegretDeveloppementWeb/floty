@@ -4,7 +4,7 @@
  * (chantier UX-Loc suite). Remplace l'ancien pattern « FieldLabel
  * au-dessus + SelectInput » qui prenait 2 lignes et était trop discret.
  *
- * Toute la pill est cliquable (icône + label + select) — un clic
+ * Toute la pill est cliquable (icône + label + select) · un clic
  * n'importe où ouvre le picker via `HTMLSelectElement.showPicker()`,
  * pour étendre la zone d'interaction au-delà du seul `<select>`.
  *
@@ -47,7 +47,7 @@ function onContainerClick(event: MouseEvent): void {
     try {
         selectRef.value?.showPicker();
     } catch {
-        // showPicker peut throw si non supporté ou hors user-activation —
+        // showPicker peut throw si non supporté ou hors user-activation ·
         // dans ce cas on tombe simplement sur le focus, l'utilisateur
         // peut ouvrir avec Espace/Alt+Bas.
     }

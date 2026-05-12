@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail d'activité d'une entreprise pour un exercice — alimente la
+ * Détail d'activité d'une entreprise pour un exercice · alimente la
  * section « Activité » de la fiche entreprise (chantier K L2,
  * ADR-0020 D3) avec deux visualisations complémentaires :
  *

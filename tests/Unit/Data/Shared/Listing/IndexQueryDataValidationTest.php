@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Unit pour {@see IndexQueryData} — validation des paramètres
+ * Tests Unit pour {@see IndexQueryData} · validation des paramètres
  * partagés (page, perPage, search, sortKey, sortDirection) et de la
  * whitelist `sortKey` via late static binding sur les sous-classes.
  *

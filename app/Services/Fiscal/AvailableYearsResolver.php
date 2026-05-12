@@ -18,7 +18,7 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
  *
  *   - `minYear()` = `MIN(YEAR(start_date))` sur les contrats non
  *     soft-deletés ; si la table est vide → `currentYear()`.
- *   - `maxYear()` = `MAX(currentYear(), MAX(YEAR(start_date)))` — capture
+ *   - `maxYear()` = `MAX(currentYear(), MAX(YEAR(start_date)))` · capture
  *     les contrats anticipés (saisis pour une année future).
  *   - `availableYears()` = range continu `[minYear, …, maxYear]`.
  *
@@ -38,7 +38,7 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
  * Garantit qu'au sein d'une même requête HTTP, plusieurs appels à
  * `availableYears()` partagent le même cache mémoire process.
  *
- * **Scope** : global (pas par entité). Décision HD4 du chantier η —
+ * **Scope** : global (pas par entité). Décision HD4 du chantier η ·
  * cohérence UX : tous les sélecteurs de l'app affichent la même liste
  * d'années, peu importe la fiche consultée.
  */
@@ -90,7 +90,7 @@ final class AvailableYearsResolver
     }
 
     /**
-     * Range continu [minYear, …, maxYear] — toutes les années
+     * Range continu [minYear, …, maxYear] · toutes les années
      * sélectionnables côté UI.
      *
      * @return list<int>

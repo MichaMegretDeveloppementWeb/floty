@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Carte unifiée **Utilisation annuelle + Répartition fiscale par
- * entreprise** pour la fiche véhicule (chantier η Phase 2 — onglet
+ * entreprise** pour la fiche véhicule (chantier η Phase 2 · onglet
  * Vue d'ensemble).
  *
  * Avant : 2 cards distinctes (`VehicleYearlyUsageTimeline` +
@@ -139,7 +139,7 @@ const {
                         Utilisation annuelle &amp; répartition
                     </h2>
                     <p class="mt-0.5 text-xs text-slate-500">
-                        Timeline 52 semaines + ventilation fiscale par entreprise —
+                        Timeline 52 semaines + ventilation fiscale par entreprise ·
                         {{ totalVehicleDays }}
                         jour{{ totalVehicleDays > 1 ? 's' : '' }}-véhicule
                     </p>

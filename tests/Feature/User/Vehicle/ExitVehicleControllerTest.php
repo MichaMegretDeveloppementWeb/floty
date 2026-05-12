@@ -267,7 +267,7 @@ final class ExitVehicleControllerTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $exited->id]);
 
         // Override explicite : la case décochée envoie `includeExited=0`
-        // (cf. useFleetTable.serializeFilters — on n'envoie le param
+        // (cf. useFleetTable.serializeFilters · on n'envoie le param
         // que si l'utilisateur a override le défaut backend `true`).
         $this->actingAs($user)
             ->get('/app/vehicles?includeExited=0')

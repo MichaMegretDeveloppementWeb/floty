@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Aperçu opérationnel du Dashboard — lentille « Exploration » (état
+ * Aperçu opérationnel du Dashboard · lentille « Exploration » (état
  * immédiat). Chantier η Phase 4.
  *
  * Compose deux blocs visuels :

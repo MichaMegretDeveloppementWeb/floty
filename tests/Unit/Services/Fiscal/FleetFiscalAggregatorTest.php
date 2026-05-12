@@ -140,7 +140,7 @@ final class FleetFiscalAggregatorTest extends TestCase
 
         // Mono-VFC : un seul segment couvrant l'année entière. Les
         // tarifs et méthodes/catégories vivent désormais dans le segment
-        // (chantier dette VFC L3 — cohérence affichage par segment).
+        // (chantier dette VFC L3 · cohérence affichage par segment).
         self::assertCount(1, $breakdown->taxSegments);
         $segment = $breakdown->taxSegments[0];
         self::assertSame(173.0, $segment->co2FullYearTariff);

@@ -59,7 +59,7 @@ final class DriverWriteRepository implements DriverWriteRepositoryInterface
             ->where('id', $pivotId)
             ->update([
                 'joined_at' => $joinedAt->toDateString(),
-                // `null` est explicite ici — réactivation d'une membership
+                // `null` est explicite ici · réactivation d'une membership
                 // précédemment sortie. Le caller passe `null` ou un
                 // CarbonInterface après validation chronologique.
                 'left_at' => $leftAt?->toDateString(),

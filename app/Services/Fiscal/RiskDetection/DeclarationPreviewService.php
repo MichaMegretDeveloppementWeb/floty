@@ -18,7 +18,7 @@ use RuntimeException;
  * ADR-0015 § 6.1).
  *
  * Pipeline :
- *   1. Détection des clusters (D2 — `RiskDetectionService`)
+ *   1. Détection des clusters (D2 · `RiskDetectionService`)
  *   2. Pré-application des décisions persistées par fingerprint
  *      (cf. ADR § D5 + § 6.5 reprise auto à la régénération)
  *   3. Lookup de la déclaration active courante (D1)

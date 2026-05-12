@@ -99,7 +99,7 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
      * INSERT d'une nouvelle VFC ajoutée depuis la modale Historique
      * (bouton « + Ajouter une entrée »). L'orchestration des impacts
      * sur les voisines (Delete/Adjust) est gérée par l'Action appelante
-     * en amont — ce writer ne s'occupe que de l'insertion brute.
+     * en amont · ce writer ne s'occupe que de l'insertion brute.
      */
     public function createFromBoundsAndFields(
         int $vehicleId,

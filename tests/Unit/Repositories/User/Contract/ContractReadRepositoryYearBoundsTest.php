@@ -12,12 +12,12 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre le calcul des bornes d'années sur les contrats — méthode
+ * Couvre le calcul des bornes d'années sur les contrats · méthode
  * fondatrice de la doctrine temporelle (chantier η Phase 0.1) consommée
  * par {@see AvailableYearsResolver}.
  *
  * Vérifie en particulier l'exclusion explicite des soft-deletes
- * (décision HD2 du chantier η — la requête attaque la table via
+ * (décision HD2 du chantier η · la requête attaque la table via
  * `DB::table()` qui n'applique pas le scope global SoftDeletes).
  */
 final class ContractReadRepositoryYearBoundsTest extends TestCase
@@ -67,7 +67,7 @@ final class ContractReadRepositoryYearBoundsTest extends TestCase
     #[Test]
     public function les_contrats_soft_deletes_sont_exclus_du_calcul(): void
     {
-        // Contrat soft-deleté en 2022 (donc en théorie min) — doit être ignoré.
+        // Contrat soft-deleté en 2022 (donc en théorie min) · doit être ignoré.
         $deleted = Contract::factory()->create([
             'start_date' => '2022-01-15',
             'end_date' => '2022-02-15',

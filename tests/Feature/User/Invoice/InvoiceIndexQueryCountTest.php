@@ -18,7 +18,7 @@ use Tests\TestCase;
  * Vérifie que l'Index ne paie **aucun** coût lié à la divergence (plus
  * de N+1 `BillingCalculator::calculate`). La détection de divergence
  * est désormais lue sur la colonne matérialisée `is_divergent`,
- * flippée à l'écriture par les observers — plus de recalcul à la
+ * flippée à l'écriture par les observers · plus de recalcul à la
  * lecture.
  */
 final class InvoiceIndexQueryCountTest extends TestCase

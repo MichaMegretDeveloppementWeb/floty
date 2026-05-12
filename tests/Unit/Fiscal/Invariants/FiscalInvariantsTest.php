@@ -19,7 +19,7 @@ use Tests\TestCase;
  *
  * **Pourquoi** : un test « par cas » ne couvre que les configurations
  * explicitement écrites. Un test d'invariant exécute la même propriété
- * mathématique sur N scénarios aléatoires valides — il vaut donc pour
+ * mathématique sur N scénarios aléatoires valides · il vaut donc pour
  * l'**infinité** des combinaisons couvertes par les contraintes du
  * domaine. C'est ce qui permet d'affirmer « tous les cas de figure »
  * avec une confiance bien supérieure à un sweep de tests par cas.
@@ -36,7 +36,7 @@ use Tests\TestCase;
  * spécification ajustable.
  *
  * **Volume** : N=30 scénarios par invariant (soit ~150 calculs fiscaux
- * par run de la suite). Compromis vitesse/couverture — un audit
+ * par run de la suite). Compromis vitesse/couverture · un audit
  * périodique pourra augmenter à N=100 si besoin de durcir.
  */
 final class FiscalInvariantsTest extends TestCase
@@ -104,7 +104,7 @@ final class FiscalInvariantsTest extends TestCase
         $this->forEachScenario(function (FiscalScenario $scenario): void {
             // On prend le premier contrat LLD (ignorer les LCD : ajouter
             // un jour à un LCD < 30j peut basculer en LLD taxable et le
-            // saut n'est pas monotone — c'est la sémantique souveraine
+            // saut n'est pas monotone · c'est la sémantique souveraine
             // de R-2024-021).
             $base = null;
             foreach ($scenario->contracts as $c) {
@@ -123,7 +123,7 @@ final class FiscalInvariantsTest extends TestCase
             $newEnd = $this->shiftDate($base->end_date->toDateString(), 1);
             $yearEnd = sprintf('%04d-12-31', $scenario->year);
             if ($newEnd > $yearEnd) {
-                return; // extension hors année cible — invariant non testable
+                return; // extension hors année cible · invariant non testable
             }
             $extended->setRawAttributes([
                 'vehicle_id' => $base->vehicle_id,
@@ -156,7 +156,7 @@ final class FiscalInvariantsTest extends TestCase
                 $rExtended->totalDue,
                 "seed={$scenario->seed} : étendre un contrat d'1 jour a DIMINUÉ la taxe ".
                 "(base={$rBase->totalDue}, étendu={$rExtended->totalDue}). ".
-                'Violation de monotonie — possible bug d\'arrondi ou exonération qui se déclenche.',
+                'Violation de monotonie · possible bug d\'arrondi ou exonération qui se déclenche.',
             );
         });
     }
@@ -170,7 +170,7 @@ final class FiscalInvariantsTest extends TestCase
         // mais contigu). Tolérance : ±0,10 € (arrondi half-up cumulé).
         //
         // Cet invariant teste la pure additivité du prorata
-        // jour-par-jour de R-2024-002 — toute violation = bug
+        // jour-par-jour de R-2024-002 · toute violation = bug
         // d'arithmétique dans le moteur.
         $this->forEachScenario(function (FiscalScenario $scenario): void {
             $year = $scenario->year;

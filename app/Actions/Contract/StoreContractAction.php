@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\DB;
  * (défense en profondeur avant le trigger DB, cf. ADR-0014 D5).
  *
  * Le trigger MySQL `contracts_no_overlap_*` reste la **source de vérité**
- * de l'invariant — il garantit la cohérence même en cas de race
+ * de l'invariant · il garantit la cohérence même en cas de race
  * inter-requêtes que la transaction Laravel ne couvre pas (READ
  * COMMITTED par défaut). La pré-vérification applicative ici sert à
  * produire un message FR explicite quand le check passe en amont, et la

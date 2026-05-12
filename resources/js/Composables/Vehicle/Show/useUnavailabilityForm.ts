@@ -158,7 +158,7 @@ export function useUnavailabilityForm(
     // Mois initial du DateRangePicker - dérivé du startDate de
     // l'indispo en cours d'édition pour que le calendrier s'ouvre sur
     // le bon mois. Création = mois calendaire courant (chantier η Phase 3
-    // doctrine — l'utilisateur saisit dans son présent, pas en partant
+    // doctrine · l'utilisateur saisit dans son présent, pas en partant
     // du début d'année).
     const initialMonth = ref<number>(new Date().getMonth() + 1);
 

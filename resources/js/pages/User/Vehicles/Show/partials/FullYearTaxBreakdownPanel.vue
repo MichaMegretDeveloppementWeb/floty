@@ -48,7 +48,7 @@ function segmentPeriodLabel(seg: Segment): string {
                 <p class="mt-0.5 text-xs text-slate-500">
                     Calcul théorique pour 100 % d'utilisation
                     <template v-if="breakdown.taxSegments.length > 1">
-                        — segmenté par version VFC, le total agrège tous les segments.
+                        · segmenté par version VFC, le total agrège tous les segments.
                     </template>
                 </p>
             </div>

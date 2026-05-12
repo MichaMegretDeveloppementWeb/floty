@@ -284,7 +284,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         tab: 'calcul',
         section: 'exoneration-inactive',
         title: 'Exonération entreprise individuelle',
-        pitch: 'Véhicule affecté par une personne physique exerçant en nom propre (entrepreneur individuel BIC/BNC) — exonération soumise aux conditions du règlement de minimis.',
+        pitch: 'Véhicule affecté par une personne physique exerçant en nom propre (entrepreneur individuel BIC/BNC) · exonération soumise aux conditions du règlement de minimis.',
         body: "Inactive par défaut : si une entreprise utilisatrice est un entrepreneur individuel (personne physique en nom propre, régime BIC ou BNC), cette exonération devient applicable et peut être activée manuellement. Le bénéfice est subordonné aux conditions du règlement européen général de minimis (ou règlements sectoriels agricole/pêche).",
     },
 
@@ -367,7 +367,7 @@ export const fiscalRulesContent2024: Record<string, RuleContent> = {
         section: 'cadre-interne',
         title: 'Garde-fou Crit’Air',
         pitch: "Vérifie que la vignette Crit'Air saisie pour le véhicule est cohérente avec la catégorie polluants CIBS calculée. Alerte non bloquante uniquement.",
-        body: "Floty utilise deux classifications distinctes mais liées : la **catégorie polluants CIBS** (3 valeurs : E, 1, « plus polluants ») qui sert au calcul de la taxe annuelle polluants (R-2024-013), et la **vignette Crit'Air** (6 niveaux : E, 1, 2, 3, 4, 5) qui relève du Code de la route et de la circulation en zones à faibles émissions. Les deux dépendent toutes deux de la motorisation et de la norme Euro du véhicule, donc elles doivent être cohérentes : un Crit'Air 1 doit donner CIBS catégorie 1, un Crit'Air 5 (diesel ancien) doit donner CIBS « plus polluants », etc. Si la vignette saisie ne correspond pas à la catégorie calculée par Floty, c'est qu'au moins une donnée du véhicule est probablement erronée — Floty affiche une alerte pour inviter l'utilisateur à vérifier sa saisie. Le calcul de taxe utilise quand même la catégorie CIBS calculée (qui est la base légale de la taxe), pas la vignette Crit'Air.",
+        body: "Floty utilise deux classifications distinctes mais liées : la **catégorie polluants CIBS** (3 valeurs : E, 1, « plus polluants ») qui sert au calcul de la taxe annuelle polluants (R-2024-013), et la **vignette Crit'Air** (6 niveaux : E, 1, 2, 3, 4, 5) qui relève du Code de la route et de la circulation en zones à faibles émissions. Les deux dépendent toutes deux de la motorisation et de la norme Euro du véhicule, donc elles doivent être cohérentes : un Crit'Air 1 doit donner CIBS catégorie 1, un Crit'Air 5 (diesel ancien) doit donner CIBS « plus polluants », etc. Si la vignette saisie ne correspond pas à la catégorie calculée par Floty, c'est qu'au moins une donnée du véhicule est probablement erronée · Floty affiche une alerte pour inviter l'utilisateur à vérifier sa saisie. Le calcul de taxe utilise quand même la catégorie CIBS calculée (qui est la base légale de la taxe), pas la vignette Crit'Air.",
     },
 };
 

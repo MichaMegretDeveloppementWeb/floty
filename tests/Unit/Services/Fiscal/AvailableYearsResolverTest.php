@@ -97,7 +97,7 @@ final class AvailableYearsResolverTest extends TestCase
 
         $resolver = new AvailableYearsResolver($repo, $this->arrayCache());
 
-        // 4 appels successifs — le cache absorbe tout après le 1er.
+        // 4 appels successifs · le cache absorbe tout après le 1er.
         self::assertSame(2024, $resolver->minYear());
         self::assertSame(2026, $resolver->maxYear());
         self::assertSame([2024, 2025, 2026], $resolver->availableYears());

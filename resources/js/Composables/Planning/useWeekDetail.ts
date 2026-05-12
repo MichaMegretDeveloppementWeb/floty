@@ -21,7 +21,7 @@ export type UseWeekDetailReturn = {
     /**
      * Charge la semaine et ouvre le drawer en cas de succès.
      *
-     * `year` est requis depuis chantier η Phase 5 — sans lui le
+     * `year` est requis depuis chantier η Phase 5 · sans lui le
      * controller fallback sur `currentYear()` et le drawer ouvre
      * toujours sur l'année calendaire courante au lieu de l'année
      * sélectionnée par l'utilisateur dans le sélecteur top-right.

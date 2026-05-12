@@ -153,7 +153,7 @@ const durationDays = computed<number | null>(() => {
     return days > 0 ? days : null;
 });
 
-// Type dérivé localement (purement informatif — le backend recalcule
+// Type dérivé localement (purement informatif · le backend recalcule
 // via `Contract::deriveTypeFromDates` qui fait autorité). Règle
 // simplifiée : ≤ 30 jours → LCD, sinon LLD.
 const contractType = computed<'lcd' | 'lld' | null>(() => {

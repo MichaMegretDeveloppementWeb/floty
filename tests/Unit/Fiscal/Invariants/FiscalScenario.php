@@ -41,7 +41,7 @@ final readonly class FiscalScenario
 
     /**
      * Variante du scénario sans les indispos non-réductrices
-     * (Maintenance, etc.). Utilisée par l'invariant de neutralité —
+     * (Maintenance, etc.). Utilisée par l'invariant de neutralité ·
      * supprimer une indispo non-réductrice ne doit pas changer la taxe.
      */
     public function withoutNonReductiveUnavailabilities(): self

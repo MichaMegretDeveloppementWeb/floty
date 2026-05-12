@@ -63,7 +63,7 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             });
         }
 
-        // Filtre entreprise — drivers ACTIVEMENT rattachés à l'entreprise
+        // Filtre entreprise · drivers ACTIVEMENT rattachés à l'entreprise
         // (membership ouvert, left_at IS NULL). Les rattachements clos ne
         // sont pas remontés : si un conducteur a quitté l'entreprise, on
         // ne le voit plus apparaître quand on filtre sur celle-ci.
@@ -75,7 +75,7 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             });
         }
 
-        // Filtre statut activité — au moins un membership ouvert / aucun.
+        // Filtre statut activité · au moins un membership ouvert / aucun.
         if ($query->activityStatus === 'active') {
             $eloquentQuery->whereHas('companies', function ($q): void {
                 $q->whereNull('driver_company.left_at');
@@ -86,7 +86,7 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             });
         }
 
-        // Filtre périmètre contrats — avec / sans contrat.
+        // Filtre périmètre contrats · avec / sans contrat.
         if ($query->contractsScope === 'with') {
             $eloquentQuery->has('contracts');
         } elseif ($query->contractsScope === 'without') {

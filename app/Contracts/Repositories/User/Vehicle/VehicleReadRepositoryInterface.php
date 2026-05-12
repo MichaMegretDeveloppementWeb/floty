@@ -30,7 +30,7 @@ interface VehicleReadRepositoryInterface
      *                               Flotte par défaut "aujourd'hui").
      * @return Collection<int, Vehicle>
      *
-     * @deprecated Conservé temporairement — sera retiré en L6 du chantier
+     * @deprecated Conservé temporairement · sera retiré en L6 du chantier
      *             ADR-0020. Utiliser {@see paginateForIndex()}.
      */
     public function findAllForFleetView(bool $includeExited = false): Collection;

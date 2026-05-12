@@ -46,7 +46,7 @@ describe('filterAvailableCompanies', () => {
     });
 
     it('ignore silencieusement les ids exclus inconnus', () => {
-        // 999 n'existe pas dans la liste source — pas de side effect
+        // 999 n'existe pas dans la liste source · pas de side effect
         const result = filterAvailableCompanies(companies, [999, 1]);
 
         expect(result).toEqual([

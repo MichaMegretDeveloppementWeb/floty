@@ -167,7 +167,7 @@ final class VehicleQueryService
             ->values()
             ->all();
 
-        // Présent — KPI sur l'année calendaire courante.
+        // Présent · KPI sur l'année calendaire courante.
         $kpiYear = $this->availableYears->currentYear();
         $kpiStats = $this->computeVehicleYearStats($vehicle, $kpiYear, $unavailabilityModels);
         $kpiFiscalAvailable = in_array(
@@ -176,7 +176,7 @@ final class VehicleQueryService
             true,
         );
 
-        // Évolution — couvre `[minYear..kpiYear-1]`, lignes neutres
+        // Évolution · couvre `[minYear..kpiYear-1]`, lignes neutres
         // pour les années sans contrat (cohérent avec Phase 1 Company).
         $history = [];
         $minYear = $this->availableYears->minYear();
@@ -184,7 +184,7 @@ final class VehicleQueryService
             $history[] = $this->computeVehicleYearStats($vehicle, $year, $unavailabilityModels);
         }
 
-        // Exploration — `usageStats` initialisé sur `currentYear`. Les
+        // Exploration · `usageStats` initialisé sur `currentYear`. Les
         // autres années sont fetchées à la demande côté front via les
         // endpoints lazy `usageStatsForYear` / `fullYearBreakdownForYear`
         // avec cache client (composable `useYearLazy`). Évite le pré-calcul
@@ -259,7 +259,7 @@ final class VehicleQueryService
      *
      * Tolère l'absence de configuration fiscale sur l'année : retourne
      * `actualTax = 0` et `fullYearTax = 0` plutôt que de crasher la page
-     * — l'utilisateur voit quand même les jours et le compte de contrats.
+     * · l'utilisateur voit quand même les jours et le compte de contrats.
      *
      * @param  Collection<int, Unavailability>  $unavailabilityModels  Indispos pré-chargées (toutes années).
      */
@@ -294,7 +294,7 @@ final class VehicleQueryService
             }
             $fullYearTax = $this->aggregator->vehicleFullYearTax($vehicle, $year);
         } catch (FiscalCalculationException) {
-            // Année hors registry fiscal — chiffres taxes laissés à 0.
+            // Année hors registry fiscal · chiffres taxes laissés à 0.
         }
 
         // Phase 13 D5.10.L · prix location single-vehicle · usage Show ·
@@ -367,7 +367,7 @@ final class VehicleQueryService
         $weeklyMap = $this->contracts->loadVehicleWeeklyBreakdown($vehicle->id, $year);
         $unavailabilityDaysByWeek = $this->computeUnavailabilityDaysByWeek($unavailabilityModels, $year);
 
-        // Calcul fiscal — encadré pour tolérer une année hors registry
+        // Calcul fiscal · encadré pour tolérer une année hors registry
         // (doctrine « données métier ⊥ règles fiscales » : la Timeline et
         // les jours bruts restent toujours affichables, seuls les
         // chiffres de taxe tombent à 0 + breakdown FullYear neutre).
@@ -437,7 +437,7 @@ final class VehicleQueryService
     /**
      * Compose un breakdown par entreprise à partir des contrats seuls
      * (jours uniquement, sans calcul fiscal). Utilisé en fallback quand
-     * le pipeline fiscal n'est pas disponible pour l'année — la colonne
+     * le pipeline fiscal n'est pas disponible pour l'année · la colonne
      * « Jours » reste informative, les colonnes Tax CO₂/Polluants/Total
      * sont à 0.
      *
@@ -464,7 +464,7 @@ final class VehicleQueryService
     }
 
     /**
-     * DTO `VehicleFullYearTaxBreakdownData` neutre — tarifs à 0 et
+     * DTO `VehicleFullYearTaxBreakdownData` neutre · tarifs à 0 et
      * messages explicites pour l'UI quand l'année n'a pas de règles
      * fiscales codées. Les enums `co2Method` / `pollutantCategory` sont
      * pris du current VFC du véhicule (ou défaut WLTP/Category1).
@@ -563,7 +563,7 @@ final class VehicleQueryService
      *
      * Les jours d'indispo sont splittés en deux dimensions :
      * `reductiveUnavailabilityDays` (R-2024-008) et
-     * `nonReductiveUnavailabilityDays` — la timeline les rend en
+     * `nonReductiveUnavailabilityDays` · la timeline les rend en
      * overlay distinct (rose vs slate). ADR-0019 autorisant la
      * cohabitation indispo↔contrat, on **ne clamp plus** à
      * `7 - totalDays` : l'utilisateur doit voir une indispo de

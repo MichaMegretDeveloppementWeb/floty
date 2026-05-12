@@ -26,7 +26,7 @@ interface CompanyReadRepositoryInterface
      *
      * @return Collection<int, Company>
      *
-     * @deprecated Conservé temporairement — sera retiré en L6 du
+     * @deprecated Conservé temporairement · sera retiré en L6 du
      *             chantier ADR-0020 une fois les pages migrées.
      *             Utiliser {@see paginateForIndex()}.
      */

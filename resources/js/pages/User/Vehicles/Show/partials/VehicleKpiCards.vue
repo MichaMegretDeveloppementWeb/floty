@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Rangée de 3 KPIs **Présent** — reflète l'année calendaire courante
+ * Rangée de 3 KPIs **Présent** · reflète l'année calendaire courante
  * uniquement (chantier η Phase 2, doctrine temporelle).
  *
  * Refonte : avant le bouton « Voir le détail » du KPI Taxe pleine
@@ -13,7 +13,7 @@
  * Spécificités :
  *   - Si `kpiFiscalAvailable === false` (règles fiscales pas codées
  *     pour l'année courante), les KPIs « Taxe réelle » et « Taxe pleine »
- *     affichent un `—` neutre + caption « Règles {YYYY} non implémentées »
+ *     affichent un `·` neutre + caption « Règles {YYYY} non implémentées »
  *     (cohérent CompanyKpiCards, doctrine HD6).
  *   - La KPI « Jours d'utilisation » reste toujours significative
  *     (donnée brute, indépendante des règles fiscales).

@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
  * Modale de détail du calcul fiscal **standalone** d'une attribution
- * (chantier UX-Loc). Ouverte depuis `ContractRecapCard` — affiche le
+ * (chantier UX-Loc). Ouverte depuis `ContractRecapCard` · affiche le
  * breakdown CO₂ + polluants, les exonérations appliquées et le total.
  *
  * Sémantique : LCD/LLD se calcule contrat par contrat individuellement
- * (pas de cumul annuel) — ce qui compte est ce que **ce contrat
+ * (pas de cumul annuel) · ce qui compte est ce que **ce contrat
  * précisément** coûte fiscalement.
  */
 import Modal from '@/Components/Ui/Modal/Modal.vue';

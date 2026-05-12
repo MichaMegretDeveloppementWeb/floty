@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Statistiques cumulées « depuis le début » d'une entreprise — tous
+ * Statistiques cumulées « depuis le début » d'une entreprise · tous
  * exercices confondus.
  *
  * Alimente la rangée de 4 KPIs lifetime de la fiche entreprise
@@ -24,7 +24,7 @@ final class CompanyLifetimeStatsData extends Data
         public int $contractsCount,
         /** Somme des taxes calculées sur tous les exercices (€, arrondi 2 décimales). */
         public float $taxesGenerated,
-        /** Total cumulé des loyers facturés tous exercices — null tant que la facturation V1.2 n'est pas livrée. */
+        /** Total cumulé des loyers facturés tous exercices · null tant que la facturation V1.2 n'est pas livrée. */
         public ?float $rentTotal,
     ) {}
 }

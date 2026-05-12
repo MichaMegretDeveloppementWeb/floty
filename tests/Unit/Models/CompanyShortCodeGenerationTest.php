@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests Unit du helper Company::generateShortCode() — algo validé chantier A.
+ * Tests Unit du helper Company::generateShortCode() · algo validé chantier A.
  */
 final class CompanyShortCodeGenerationTest extends TestCase
 {

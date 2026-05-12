@@ -80,7 +80,7 @@ describe('useServerTableState', () => {
         expect(router.get).not.toHaveBeenCalled();
     });
 
-    it('debounce setSearch — pas de reload avant 300ms', async () => {
+    it('debounce setSearch · pas de reload avant 300ms', async () => {
         const state = createState();
         state.setSearch('foo');
         await nextTick();
@@ -92,7 +92,7 @@ describe('useServerTableState', () => {
         expect(router.get).toHaveBeenCalledTimes(1);
     });
 
-    it("debounce setSearch — frappe rapide ne déclenche qu'un reload", async () => {
+    it("debounce setSearch · frappe rapide ne déclenche qu'un reload", async () => {
         const state = createState();
 
         state.setSearch('f');
@@ -269,7 +269,7 @@ describe('useServerTableState', () => {
         const state = createState({ only: ['contracts', 'meta'] });
         state.setPage(2);
 
-        // router.get(url, {}, options) — paramètres dans l'URL, pas dans le 2e arg
+        // router.get(url, {}, options) · paramètres dans l'URL, pas dans le 2e arg
         expect(router.get).toHaveBeenCalledWith(
             expect.stringContaining('page=2'),
             {},

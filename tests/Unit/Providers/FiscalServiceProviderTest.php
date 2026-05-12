@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 /**
  * Garantit que `FiscalServiceProvider` peuple le registry **uniquement**
- * via `config('floty.fiscal.year_boots')` — sans aucune référence en dur
+ * via `config('floty.fiscal.year_boots')` · sans aucune référence en dur
  * à une année particulière (chantier ζ).
  *
  * Une régression qui ramènerait du code spécifique à 2024 dans le
@@ -54,7 +54,7 @@ final class FiscalServiceProviderTest extends TestCase
 
     public function test_le_registry_supporte_plusieurs_year_boots(): void
     {
-        // Stub nommé pour simuler un futur Year2025Boot — pas besoin
+        // Stub nommé pour simuler un futur Year2025Boot · pas besoin
         // d'attendre la vraie classe pour valider la mécanique multi-
         // année. Le FQCN doit être résolvable par `class_exists` depuis
         // le provider (cf. validation dans FiscalServiceProvider).

@@ -20,7 +20,7 @@ const props = defineProps<{
     /**
      * `true` ssi au moins une entreprise existe en base. Source de vérité
      * unique pour décider du placeholder. Évite le flash lors du reset de
-     * filtre — cf. note backend sur le bug placeholder.
+     * filtre · cf. note backend sur le bug placeholder.
      */
     hasAnyCompany: boolean;
     selectedYear: number;

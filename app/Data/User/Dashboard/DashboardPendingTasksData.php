@@ -10,7 +10,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 /**
  * Compteurs des tâches opérationnelles en attente (chantier η Phase 4).
  *
- * Pour le MVP les deux compteurs sont des **placeholders à 0** —
+ * Pour le MVP les deux compteurs sont des **placeholders à 0** ·
  * chacun sera alimenté par une vraie query quand les features
  * correspondantes seront livrées :
  *   - `pendingDeclarations` : alimenté par chantier δ (workflow

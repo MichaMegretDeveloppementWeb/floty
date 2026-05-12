@@ -85,7 +85,7 @@ final class PipelineNoIntermediateRoundingTest extends TestCase
         self::assertSame(round($expectedPollutantsRaw, 2, PHP_ROUND_HALF_UP), $result->pollutantsDue);
 
         // Et `totalDue` somme les arrondis affichables 2 décimales (pas
-        // les raw) — c'est l'arrondi par couple, distinct de l'arrondi
+        // les raw) · c'est l'arrondi par couple, distinct de l'arrondi
         // par redevable de R-2024-003 qui se fait au niveau aggregator.
         self::assertSame(
             round($result->co2Due + $result->pollutantsDue, 2, PHP_ROUND_HALF_UP),

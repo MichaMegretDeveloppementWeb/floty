@@ -81,7 +81,7 @@ final class FiscalRegistryExtensibilityTest extends TestCase
     #[Test]
     public function le_pipeline_execute_un_calcul_complet_sur_une_annee_fake(): void
     {
-        // Enregistre l'année 2099 dans le registry — `FiscalYearContext`
+        // Enregistre l'année 2099 dans le registry · `FiscalYearContext`
         // s'appuie sur `registeredYears()` (chantier η Phase 5), donc
         // l'année devient supportée dès qu'au moins une règle est posée.
         $registry = $this->app->make(FiscalRuleRegistry::class);

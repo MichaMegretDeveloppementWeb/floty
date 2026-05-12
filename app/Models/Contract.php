@@ -93,7 +93,7 @@ final class Contract extends Model
 
     /**
      * Conducteurs désignés sur ce contrat (0, 1 ou plusieurs). Pivot
-     * pur égalitaire `contract_drivers` — pas de notion de conducteur
+     * pur égalitaire `contract_drivers` · pas de notion de conducteur
      * principal/secondaire, tous les conducteurs sont équivalents.
      *
      * Optionnel à la création (un contrat peut être créé sans conducteur

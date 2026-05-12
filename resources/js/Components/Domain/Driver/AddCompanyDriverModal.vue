@@ -9,7 +9,7 @@
  * filtrés pour éviter de proposer une membership active dupliquée.
  *
  * Réutilise la route POST /drivers/{driver}/memberships côté Driver
- * — le pivot est unique, pas besoin de doubler les endpoints. Le
+ * · le pivot est unique, pas besoin de doubler les endpoints. Le
  * driver_id sélectionné par l'utilisateur sert à construire l'URL,
  * et company_id voyage dans le payload.
  *

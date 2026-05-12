@@ -8,7 +8,7 @@
  * Le détail (exemptions, breakdown CO₂/polluants, total) s'affiche
  * inline en dessous quand la ligne est dépliée.
  *
- * Sémantique : calcul standalone du contrat — la durée du contrat
+ * Sémantique : calcul standalone du contrat · la durée du contrat
  * seule qualifie LCD vs LLD (pas de cumul annuel).
  */
 import { ChevronDown } from 'lucide-vue-next';

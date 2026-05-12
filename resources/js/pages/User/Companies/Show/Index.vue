@@ -42,7 +42,7 @@ const fiscalHasTodo = computed<boolean>(
 );
 
 /**
- * Phase 11 D4 — Navigation depuis l'alerte « Déclarations à finaliser »
+ * Phase 11 D4 · Navigation depuis l'alerte « Déclarations à finaliser »
  * vers l'onglet Fiscalité de l'année concernée. URL `?tab=fiscal&fiscalYear=Y`
  * pilote `useCompanyTabs` (lit `?tab=`) + `useCompanyFiscalSelectedYear`
  * (lit `?fiscalYear=`).

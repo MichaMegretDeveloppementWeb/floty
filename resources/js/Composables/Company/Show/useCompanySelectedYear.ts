@@ -20,7 +20,7 @@ type ActivityYear = App.Data.User.Company.CompanyActivityYearData;
  *     vide (12 cases à 0 + topVehicles vide) pour permettre à l'UI
  *     d'afficher un état vide cohérent.
  *
- * Pas de dépendance au sélecteur d'année global (cf. ADR-0020 D3 —
+ * Pas de dépendance au sélecteur d'année global (cf. ADR-0020 D3 ·
  * la fiche entreprise est par essence intemporelle ; seule la section
  * Activité est filtrable localement par année).
  */

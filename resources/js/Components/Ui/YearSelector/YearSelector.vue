@@ -10,7 +10,7 @@ import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
  * **Usage typique** : couplé au composable
  * {@link useYearScope} qui pilote la logique de sélection (URL sync,
  * reload Inertia, validation). Ce composant n'a aucune logique métier
- * — il se contente de rendre les années en select.
+ * · il se contente de rendre les années en select.
  *
  * **Mono-année** : si `availableYears` ne contient qu'une seule entrée,
  * le sélecteur est automatiquement désactivé (rien à choisir).
@@ -27,7 +27,7 @@ const props = defineProps<{
     label?: string;
     /** Désactive explicitement (en plus du mono-année auto). */
     disabled?: boolean;
-    /** ID HTML — auto-généré si omis. */
+    /** ID HTML · auto-généré si omis. */
     id?: string;
 }>();
 

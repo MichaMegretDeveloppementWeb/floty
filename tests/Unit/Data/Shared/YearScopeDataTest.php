@@ -20,7 +20,7 @@ use Tests\TestCase;
  *
  * Tests purs (pas de framework Laravel booté ni de DB). Le test de
  * `fromResolver()` injecte un vrai `AvailableYearsResolver` (classe
- * `final`) avec ses dépendances mockées — pattern aligné sur
+ * `final`) avec ses dépendances mockées · pattern aligné sur
  * `AvailableYearsResolverTest`.
  */
 final class YearScopeDataTest extends TestCase

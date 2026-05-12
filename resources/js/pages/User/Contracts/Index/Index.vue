@@ -28,7 +28,7 @@ const props = defineProps<{
     /**
      * `true` ssi au moins un contrat existe en base. Source de vérité
      * unique pour décider du placeholder. Évite le flash lors du reset
-     * de filtre — cf. note backend sur le bug placeholder.
+     * de filtre · cf. note backend sur le bug placeholder.
      */
     hasAnyContract: boolean;
     /**
@@ -216,7 +216,7 @@ function setScopeMode(mode: ScopeMode): void {
             tableState.state.setFilter('year', null);
         }
 
-        // Auto-ouvre le date picker au passage en mode période — c'est
+        // Auto-ouvre le date picker au passage en mode période · c'est
         // le geste suivant logique (l'utilisateur veut saisir une plage),
         // et le popover se ferme facilement (clic dehors / Escape).
         periodPopoverOpen.value = true;

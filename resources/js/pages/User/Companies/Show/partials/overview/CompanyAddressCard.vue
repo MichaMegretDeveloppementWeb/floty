@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Carte Adresse — affichage minimal, pas de lien externe (Maps retiré
+ * Carte Adresse · affichage minimal, pas de lien externe (Maps retiré
  * car peu utile dans le contexte Floty).
  */
 import { MapPin } from 'lucide-vue-next';

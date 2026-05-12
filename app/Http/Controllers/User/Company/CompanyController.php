@@ -44,7 +44,7 @@ final class CompanyController extends Controller
 
     public function index(CompanyIndexQueryData $query): Response
     {
-        // Sélecteur année **local** à la page (chantier η Phase 3) —
+        // Sélecteur année **local** à la page (chantier η Phase 3) ·
         // bornes alimentées par `AvailableYearsResolver` (scope global
         // dynamique calculé depuis les contrats, pas la config statique
         // morte). `?year=` URL validé contre ce scope, fallback
@@ -64,7 +64,7 @@ final class CompanyController extends Controller
     }
 
     /**
-     * Doctrine temporelle (chantier η Phase 3) — résolution `?year=`
+     * Doctrine temporelle (chantier η Phase 3) · résolution `?year=`
      * URL contre le scope global dynamique, fallback `currentYear` si
      * invalide ou absent.
      */
@@ -85,7 +85,7 @@ final class CompanyController extends Controller
             throw new NotFoundHttpException('Entreprise introuvable.');
         }
 
-        // Onglet Contrats — default année réelle courante au mount quand
+        // Onglet Contrats · default année réelle courante au mount quand
         // aucun paramètre période explicite (cohérence avec onglet
         // Fiscalité, ADR-0020 D3). Liens partagés (`?year=`,
         // `?periodStart=`, `?periodEnd=`) respectés tels quels.
@@ -99,13 +99,13 @@ final class CompanyController extends Controller
             $contractsQuery->periodEnd = sprintf('%d-12-31', $detail->currentRealYear);
         }
 
-        // Onglet Fiscalité (chantier N.2) — sélecteur d'année **local**
+        // Onglet Fiscalité (chantier N.2) · sélecteur d'année **local**
         // indépendant. Préfixe `?fiscalYear=` pour ne pas collide avec
         // `?year=` (Activité Vue d'ensemble) ni `?periodStart/End=`
         // (Contrats). Default = année réelle courante.
         $fiscalYear = (int) $request->query('fiscalYear', (string) $detail->currentRealYear);
 
-        // Onglet Facturation (Phase 14.D V1.2) — sélecteur d'année
+        // Onglet Facturation (Phase 14.D V1.2) · sélecteur d'année
         // **local** indépendant via `?billingYear=`. Mirroir du pattern
         // `?fiscalYear=` pour cohérence UX.
         $billingYear = (int) $request->query('billingYear', (string) $detail->currentRealYear);
@@ -118,18 +118,18 @@ final class CompanyController extends Controller
                 // filtre côté front les drivers déjà rattachés à la company.
                 'drivers' => $this->drivers->listForOptions(),
             ],
-            // Onglet Contrats — table paginée server-side (chantier N.1).
+            // Onglet Contrats · table paginée server-side (chantier N.1).
             // Le query DTO standard `ContractIndexQueryData` est consommé
             // directement (filtres `periodStart`/`periodEnd`, `type`,
             // pagination, tri). Le `companyId` est forcé côté service à
             // `$company->id` indépendamment de ce qui pourrait venir de
-            // l'URL — la fiche Company impose son propre scope.
+            // l'URL · la fiche Company impose son propre scope.
             'contracts' => $this->contracts->listPaginatedForCompany(
                 $company->id,
                 $contractsQuery,
             ),
             'contractsQuery' => $contractsQuery,
-            // Stats contextuelles affichées sous le titre de l'onglet —
+            // Stats contextuelles affichées sous le titre de l'onglet ·
             // bougent avec le filtre période (chantier N.1.fixes).
             'contractsStats' => $this->contracts->statsForCompany(
                 $company->id,
@@ -142,13 +142,13 @@ final class CompanyController extends Controller
                 $company->id,
                 $detail->currentRealYear,
             ),
-            // Onglet Fiscalité — breakdown par véhicule pour l'année
+            // Onglet Fiscalité · breakdown par véhicule pour l'année
             // sélectionnée + plage continue d'années pour les pills.
             'companyFiscal' => $this->companies->fiscalBreakdownForYear(
                 $company->id,
                 $fiscalYear,
             ),
-            // Onglet Facturation (Phase 14.D V1.2) — récap mensuel pour
+            // Onglet Facturation (Phase 14.D V1.2) · récap mensuel pour
             // l'année sélectionnée + même plage que les contrats pour
             // les pills (cohérence : on ne propose que les années où
             // l'entreprise a au moins un contrat plausible).

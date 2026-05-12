@@ -31,7 +31,7 @@ use App\Providers\FiscalServiceProvider;
  * {@see FiscalServiceProvider} au boot.
  *
  * Pour modifier le périmètre des règles 2024 (ajout, retrait, réordonnance),
- * éditer la liste {@see rules()} ci-dessous — sans toucher au provider.
+ * éditer la liste {@see rules()} ci-dessous · sans toucher au provider.
  */
 final class Year2024Boot implements FiscalYearBoot
 {

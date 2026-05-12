@@ -12,11 +12,11 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Scope d'années sélectionnables exposé en **prop par page** Inertia
- * (pas en shared props) — fondation de la doctrine temporelle
+ * (pas en shared props) · fondation de la doctrine temporelle
  * (chantier η Phase 0.3).
  *
  * **Pourquoi un DTO par page plutôt qu'un shared global** : décision HD3
- * du chantier η — pas de carry-over d'année entre pages, chaque section
+ * du chantier η · pas de carry-over d'année entre pages, chaque section
  * choisit son défaut. Centraliser en shared encouragerait un couplage
  * implicite (« la page A modifie l'année, la page B en hérite ») qu'on
  * veut éviter.
@@ -47,7 +47,7 @@ final class YearScopeData extends Data
     ) {}
 
     /**
-     * Construit le DTO depuis le service singleton fiscal — chemin
+     * Construit le DTO depuis le service singleton fiscal · chemin
      * recommandé en production. Les 3 méthodes du resolver sont appelées
      * exactement une fois (cache process-level via le singleton).
      */

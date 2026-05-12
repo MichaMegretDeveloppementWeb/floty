@@ -18,11 +18,11 @@ use InvalidArgumentException;
  * Enregistre le {@see FiscalRuleRegistry} en singleton et y déclare les
  * classes règles applicables par année.
  *
- * **Architecture (chantier ζ — extensibilité multi-année)** : la liste
+ * **Architecture (chantier ζ · extensibilité multi-année)** : la liste
  * des années supportées vit dans `config('floty.fiscal.year_boots')`.
  * Chaque année a sa classe `Year{YYYY}Boot` qui implémente
  * {@see FiscalYearBoot} et déclare ses propres règles. Le provider se
- * contente de boucler dessus — il ne **connaît plus** d'année particulière.
+ * contente de boucler dessus · il ne **connaît plus** d'année particulière.
  *
  * **Pour ajouter une nouvelle année** : créer `app/Fiscal/Year{YYYY}/Year{YYYY}Boot.php`
  * + ajouter la classe dans la config. Procédure complète dans

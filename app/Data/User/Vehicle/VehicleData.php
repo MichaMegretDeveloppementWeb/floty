@@ -72,7 +72,7 @@ final class VehicleData extends Data
         #[DataCollectionOf(UnavailabilityData::class)]
         public array $unavailabilities,
         public array $busyDates,
-        // Doctrine temporelle (chantier η Phase 2) — 3 lentilles distinctes :
+        // Doctrine temporelle (chantier η Phase 2) · 3 lentilles distinctes :
         public int $kpiYear,
         public VehicleYearStatsData $kpiStats,
         public bool $kpiFiscalAvailable,

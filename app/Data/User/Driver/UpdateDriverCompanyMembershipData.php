@@ -25,7 +25,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * La gestion de `left_at` qui *crée* une sortie reste pilotée par
  * `LeaveDriverCompanyMembershipData` (workflow Q6 avec résolution des
  * contrats à venir). Cette modale-ci ne gère que les corrections post-
- * facto — pas d'orchestration contrats.
+ * facto · pas d'orchestration contrats.
  *
  * La cohérence chronologique (`joined_at <= left_at`) est vérifiée par
  * {@see UpdateDriverCompanyMembershipAction} au moment de l'exécution,

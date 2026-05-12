@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Tableau récapitulatif des **exercices passés** du véhicule — un objet
+ * Tableau récapitulatif des **exercices passés** du véhicule · un objet
  * par année dans `[minYear..currentYear-1]` du scope global, lignes
  * neutres comprises pour les années sans contrat sur ce véhicule.
  *
@@ -8,10 +8,10 @@
  * l'année calendaire courante n'apparaît pas ici (déjà dans les KPIs en
  * haut). On regarde le passé, pas le présent.
  *
- * Tri DESC (le plus récent en haut — convention dashboard rétrospectif).
+ * Tri DESC (le plus récent en haut · convention dashboard rétrospectif).
  *
  * État vide (pas d'exercice passé, typiquement véhicule créé cette
- * année) : message neutre plutôt que masquage de la carte — l'utilisateur
+ * année) : message neutre plutôt que masquage de la carte · l'utilisateur
  * sait que la section existe et pourquoi elle est vide.
  */
 import { computed } from 'vue';

@@ -7,7 +7,7 @@
  *  - Membership active : `currentLeftAt` est `null`, le champ part vide,
  *    l'utilisateur peut laisser vide ou poser une date de sortie (mais
  *    pour la première sortie d'une membership active, le workflow Sortir
- *    dédié — `LeaveDriverCompanyModal` — est préférable car il gère les
+ *    dédié · `LeaveDriverCompanyModal` · est préférable car il gère les
  *    contrats à venir).
  *  - Membership sortie : `currentLeftAt` est la date posée. L'utilisateur
  *    peut la corriger ou l'effacer (réactivation).
@@ -16,7 +16,7 @@
  * `joined_at <= left_at` si `left_at` est posé. Une violation est
  * surfacée comme `ValidationException` sur le champ `joined_at`.
  *
- * Le composant est neutre quant au contexte — réutilisé depuis
+ * Le composant est neutre quant au contexte · réutilisé depuis
  * Driver Show ET Company Show.
  */
 import { useForm } from '@inertiajs/vue3';

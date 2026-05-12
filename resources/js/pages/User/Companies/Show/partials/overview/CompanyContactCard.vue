@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Carte Contact — toujours visible (même si aucun champ renseigné),
+ * Carte Contact · toujours visible (même si aucun champ renseigné),
  * avec un message explicite en état vide. La majorité des entreprises
  * n'ont pas de contact dédié, mais le DTO et la DB conservent les
  * colonnes comme champs optionnels (cf. Q2 utilisateur, chantier K).

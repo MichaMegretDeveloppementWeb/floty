@@ -5,7 +5,7 @@
  * Affiche un récap 12 mois × {jours utilisés, montant HT facturable}
  * pour cette entreprise sur l'année sélectionnée + un bouton d'action
  * par mois : « Générer » si aucune facture n'est encore émise, ou
- * « Voir #YYYY-MM-NNNN » si une facture existe déjà (immuabilité —
+ * « Voir #YYYY-MM-NNNN » si une facture existe déjà (immuabilité ·
  * la regénération n'est pas autorisée). Le sélecteur d'année est
  * piloté par `?billingYear=` URL (mirroir du pattern fiscal / activité,
  * cf. `CompanyController::show`).
@@ -21,7 +21,7 @@ const props = defineProps<{
     monthlyBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
     /**
      * Plage continue [firstYear..currentYear] partagée avec l'onglet
-     * Contrats — cohérence UX : on ne propose que les années où
+     * Contrats · cohérence UX : on ne propose que les années où
      * l'entreprise a un contrat plausible.
      */
     availableYears: readonly number[];

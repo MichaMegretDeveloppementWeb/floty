@@ -78,7 +78,7 @@ final class ContractController extends Controller
      * tous null). Préserve le mode « Période personnalisée » (si
      * `periodStart` ou `periodEnd` est posé, on ne touche pas à `year`).
      *
-     * Spatie Data DTOs sont mutables (props publiques) — c'est le
+     * Spatie Data DTOs sont mutables (props publiques) · c'est le
      * mécanisme prévu pour ce genre de post-traitement avant rendu.
      */
     private function applyDefaultYearIfMissing(ContractIndexQueryData $query): void
@@ -104,7 +104,7 @@ final class ContractController extends Controller
             'contract' => $contractData,
             'taxBreakdown' => $this->contracts->findContractTaxBreakdown($contract),
             'documents' => $this->contracts->listDocumentsForContract($contract),
-            // Phase 14.D V1.2 — récap facturation contrat-isolé.
+            // Phase 14.D V1.2 · récap facturation contrat-isolé.
             'billingBreakdown' => $this->contracts->findContractBillingBreakdown($contract),
         ]);
     }

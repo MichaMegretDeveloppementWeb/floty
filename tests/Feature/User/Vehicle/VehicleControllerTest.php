@@ -558,7 +558,7 @@ final class VehicleControllerTest extends TestCase
     }
 
     // ----------------------------------------------------------------
-    // Show — chantier η Phase 2 (doctrine temporelle 3 lentilles)
+    // Show · chantier η Phase 2 (doctrine temporelle 3 lentilles)
     // ----------------------------------------------------------------
 
     #[Test]
@@ -588,7 +588,7 @@ final class VehicleControllerTest extends TestCase
     {
         // En 2026, seules les règles 2024 sont codées dans le registry.
         // `kpiFiscalAvailable` doit être false pour qu'à l'UI les KPI
-        // Taxes/Taxe pleine affichent "—" + caption "Règles non implémentées".
+        // Taxes/Taxe pleine affichent "·" + caption "Règles non implémentées".
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -636,7 +636,7 @@ final class VehicleControllerTest extends TestCase
     public function show_year_scope_et_selected_year_exposes(): void
     {
         // `yearScope` = scope global (currentYear/minYear/availableYears)
-        // — toutes les années où il y a au moins un contrat en BDD.
+        // · toutes les années où il y a au moins un contrat en BDD.
         // `selectedYear` = `currentYear` par défaut (cohérent doctrine
         // « année par défaut = année en cours, navigable sur scope global »).
         $user = User::factory()->create();
@@ -666,7 +666,7 @@ final class VehicleControllerTest extends TestCase
     #[Test]
     public function show_expose_les_yearly_pricings_tries_par_annee_croissante(): void
     {
-        // Phase 14.B facturation V1.2 — la page Show doit exposer la
+        // Phase 14.B facturation V1.2 · la page Show doit exposer la
         // collection `yearlyPricings` (tarifs jour/semaine/mois par
         // année) pour alimenter l'onglet Facturation. Tri par année
         // ascendante garanti par le repo (cf.

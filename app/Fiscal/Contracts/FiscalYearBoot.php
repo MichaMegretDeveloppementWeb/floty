@@ -23,13 +23,13 @@ use App\Providers\FiscalServiceProvider;
  * - Une implémentation par année (ex. {@see Year2024Boot}).
  * - `year()` retourne l'année civile de référence (ex. 2024).
  * - `rules()` retourne la liste des **classes** de règles (FQCN), pas des
- *   instances — la résolution est faite par le registry via le container.
+ *   instances · la résolution est faite par le registry via le container.
  * - L'ordre n'est pas significatif côté registry, mais on garde l'ordre
  *   logique (Classification → Exemption → Pricing → Transversal) pour
  *   lisibilité (cf. `taxes-rules/2024.md`).
  *
  * **Hors scope** : les règles « architecturales » qui vivent hors pipeline
- * (R-2024-001, 007, 009, 020, 023, 024 — cf. ADR-0006 § 2 et docblock du
+ * (R-2024-001, 007, 009, 020, 023, 024 · cf. ADR-0006 § 2 et docblock du
  * provider) ne sont pas listées ici. Elles sont gérées ailleurs dans
  * l'application.
  */

@@ -175,7 +175,7 @@ final class CompanyQueryService
     }
 
     /**
-     * Détail complet d'une entreprise pour la page Show — alimente :
+     * Détail complet d'une entreprise pour la page Show · alimente :
      *  - le hero d'identité (intemporel)
      *  - les KPIs lifetime cumulés (`lifetime`)
      *  - la section « Historique par année » (`history`)
@@ -244,7 +244,7 @@ final class CompanyQueryService
             }
         }
 
-        // ADR-0020 D3 — calcul des stats temporelles (lifetime + history)
+        // ADR-0020 D3 · calcul des stats temporelles (lifetime + history)
         $contractsCount = $this->contracts->countContractsForCompany($companyId);
         $availableYears = $this->contracts->findActiveYearsForCompany($companyId);
 
@@ -264,7 +264,7 @@ final class CompanyQueryService
                 2,
                 PHP_ROUND_HALF_UP,
             ),
-            // V1.2 — la facturation des loyers n'est pas livrée. Le champ
+            // V1.2 · la facturation des loyers n'est pas livrée. Le champ
             // est exposé en placeholder null pour que l'UI le rende dès
             // maintenant (carte KPI, branchement réel quand le module
             // facturation arrive).
@@ -273,9 +273,9 @@ final class CompanyQueryService
 
         // **Doctrine temporelle (chantier η Phase 1)** : 3 lentilles distinctes.
         //
-        // Présent — KPIs en haut de page, toujours sur l'année calendaire
+        // Présent · KPIs en haut de page, toujours sur l'année calendaire
         // courante. Si l'entreprise n'a pas de contrat sur cette année,
-        // on retourne un CompanyYearStatsData neutre (zéros) — l'UI
+        // on retourne un CompanyYearStatsData neutre (zéros) · l'UI
         // affichera "0 j / 0 contrats / 0 €" sans crash.
         $kpiYear = $this->availableYears->currentYear();
         $kpiStats = $allYearStats[$kpiYear] ?? $this->emptyYearStats($kpiYear);
@@ -290,7 +290,7 @@ final class CompanyQueryService
             true,
         );
 
-        // Évolution — section Historique : toutes les années passées du
+        // Évolution · section Historique : toutes les années passées du
         // scope global `[minYear..kpiYear-1]`, MÊME celles où cette
         // entreprise n'a aucun contrat (lignes neutres à zéros). Une
         // année à 0 sur la fiche Entreprise est une info utile (« cette
@@ -358,7 +358,7 @@ final class CompanyQueryService
      * véhicules (triés desc par jours utilisés).
      *
      * Cette méthode dépend des informations véhicule (licensePlate,
-     * brand, model) — les charge via le repo en bulk pour éviter les
+     * brand, model) · les charge via le repo en bulk pour éviter les
      * N+1 lors de l'itération. Si l'entreprise n'a aucun pair sur
      * l'année (cas `availableYears` partiellement vide), retourne un
      * `CompanyActivityYearData` à zéros (12 cases vides + top vide).
@@ -393,12 +393,12 @@ final class CompanyQueryService
             );
         }
 
-        // Top 3 véhicules — tri desc, limite 3.
+        // Top 3 véhicules · tri desc, limite 3.
         arsort($daysPerVehicle);
         $topVehicleIds = array_slice(array_keys($daysPerVehicle), 0, 3, preserve_keys: true);
 
         // Lookup bulk pour récupérer license_plate + brand + model des
-        // véhicules du top (au plus 3 — coût négligeable).
+        // véhicules du top (au plus 3 · coût négligeable).
         $vehiclesById = $this->vehicles->findByIdsIndexed($topVehicleIds);
 
         $totalVehicleDays = (int) array_sum($daysPerVehicle);
@@ -487,7 +487,7 @@ final class CompanyQueryService
             } catch (FiscalCalculationException) {
                 // L'année n'est pas configurée dans le calculateur
                 // (cf. `config/floty.fiscal.available_years`). On laisse
-                // `annualTaxDue: 0.0` plutôt que faire crasher la page —
+                // `annualTaxDue: 0.0` plutôt que faire crasher la page ·
                 // l'utilisateur voit quand même les jours et le compte
                 // de contrats pour cet exercice. Cas typique : contrats
                 // antérieurs à la config fiscale, ou en avance sur
@@ -517,7 +517,7 @@ final class CompanyQueryService
      *
      * Si l'année n'est pas configurée dans le calculateur fiscal
      * (`config/floty.fiscal.available_years`), retourne des montants
-     * à 0 plutôt que de faire crasher la page — l'utilisateur voit
+     * à 0 plutôt que de faire crasher la page · l'utilisateur voit
      * quand même les jours et le compte de véhicules.
      */
     public function fiscalBreakdownForYear(int $companyId, int $year): CompanyFiscalYearData
@@ -564,7 +564,7 @@ final class CompanyQueryService
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
 
-        // Calcul du pipeline fiscal — encadré pour tolérer l'absence de
+        // Calcul du pipeline fiscal · encadré pour tolérer l'absence de
         // config fiscale sur l'année (cf. doc).
         $taxRowsByVehicleId = [];
         try {

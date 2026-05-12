@@ -11,7 +11,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Réponse de l'endpoint `POST /app/planning/preview-taxes` :
  * **coût fiscal standalone** d'une attribution (location/contrat).
  *
- * La LCD/LLD se calcule **contrat par contrat individuellement** —
+ * La LCD/LLD se calcule **contrat par contrat individuellement** ·
  * la durée du contrat seul détermine la qualification (≤ 30 j → LCD,
  * sinon LLD). Aucune notion de cumul annuel d'un couple véhicule ×
  * entreprise. Le preview répond donc strictement à la question :

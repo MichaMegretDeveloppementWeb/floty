@@ -14,12 +14,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Filtres spécifiques :
  *  - `vehicleId`, `companyId`, `driverId` : filtres exact match sur FK
  *  - `type: 'lcd'|'lld'|null` : filtre exact sur enum
- *  - `year` (chantier J) : sélecteur **mode année** — exercice complet,
+ *  - `year` (chantier J) : sélecteur **mode année** · exercice complet,
  *    mutuellement exclusif avec `periodStart`/`periodEnd` côté front
  *    (le toggle UI choisit l'un OU l'autre). Côté backend, si `year`
  *    présent on dérive `periodStart=YYYY-01-01, periodEnd=YYYY-12-31`
  *    avant filtrage SQL.
- *  - `periodStart` + `periodEnd` (Y-m-d) : filtre **chevauchement** —
+ *  - `periodStart` + `periodEnd` (Y-m-d) : filtre **chevauchement** ·
  *    le contrat doit chevaucher la fenêtre `[periodStart, periodEnd]`
  *    (start_date <= periodEnd ET end_date >= periodStart).
  *

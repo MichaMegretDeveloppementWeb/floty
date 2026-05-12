@@ -189,7 +189,7 @@ const {
 
             <!-- Total agrégé (visible seulement en multi-année) -->
             <section
-                class="flex items-center justify-between gap-2 rounded-lg bg-transparent px-4 py-3 shadow-[0_0_3px_silver]"
+                class="flex items-center justify-between gap-2 rounded-lg bg-transparent px-4 py-3 shadow-[0_0_2px_silver]"
             >
                 <span
                     class="text-xs font-semibold tracking-wider text-slate-700 uppercase"

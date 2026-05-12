@@ -38,7 +38,7 @@ final class DashboardStatsServiceTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
-        // Contrat actif aujourd'hui — 30 jours autour du « now »
+        // Contrat actif aujourd'hui · 30 jours autour du « now »
         $today = CarbonImmutable::today();
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => $today->subDays(15)->toDateString(),
@@ -148,7 +148,7 @@ final class DashboardStatsServiceTest extends TestCase
     #[Test]
     public function compute_activity_top_vehicules_tries_par_taxe_ytd_desc(): void
     {
-        // 2 véhicules avec contrats — l'un a un contrat plus long
+        // 2 véhicules avec contrats · l'un a un contrat plus long
         $today = CarbonImmutable::today();
         $v1 = Vehicle::factory()->create(['license_plate' => 'AA-001-AA']);
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v1->id]);

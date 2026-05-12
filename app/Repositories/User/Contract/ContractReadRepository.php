@@ -308,7 +308,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
 
         // Intersection (clamp) start/end à la fenêtre filtrée pour le
         // cumul de jours. Sans fenêtre, on prend la durée brute du contrat.
-        // Bindings paramétrés (défense en profondeur — le DTO valide déjà
+        // Bindings paramétrés (défense en profondeur · le DTO valide déjà
         // `date_format:Y-m-d`).
         $clampedEndExpr = $periodEnd !== null ? 'LEAST(end_date, ?)' : 'end_date';
         $clampedStartExpr = $periodStart !== null ? 'GREATEST(start_date, ?)' : 'start_date';

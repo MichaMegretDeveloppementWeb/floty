@@ -24,7 +24,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Part A.4 — couvre deux trous identifiés par l'audit :
+ * Tests Part A.4 · couvre deux trous identifiés par l'audit :
  *
  *  1. **Cross-year sur 3 années civiles** : `MultiYearProrataTest` couvre
  *     déjà 2 années (2024 + 2025). Ce test étend à 3 (2023 + 2024 + 2025)
@@ -64,7 +64,7 @@ final class MultiYearAndExtremeBoundsTest extends TestCase
         $vehicle = $this->makeVehicleWltp(co2: 100, vfcStartsAt: '2022-01-01');
         $contract = $this->syntheticContract($vehicle, '2023-12-15', '2025-02-28');
 
-        // Borneur pur — pas de pipeline, juste expansion mathématique
+        // Borneur pur · pas de pipeline, juste expansion mathématique
         $days2023 = $contract->expandToDaysInYear(2023);
         $days2024 = $contract->expandToDaysInYear(2024);
         $days2025 = $contract->expandToDaysInYear(2025);

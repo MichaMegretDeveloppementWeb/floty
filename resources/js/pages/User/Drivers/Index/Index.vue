@@ -29,7 +29,7 @@ const props = defineProps<{
     /**
      * `true` ssi au moins un driver existe en base. Source de vérité unique
      * pour décider du placeholder « Aucun conducteur » (vs. empty filtré).
-     * Évite le flash placeholder lors du reset de filtre — cf. note backend.
+     * Évite le flash placeholder lors du reset de filtre · cf. note backend.
      */
     hasAnyDriver: boolean;
 }>();

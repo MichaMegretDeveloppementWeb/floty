@@ -49,7 +49,7 @@ final class R2024_016_ElectricHydrogenTest extends TestCase
     public function rule_code_et_taxes_concernees(): void
     {
         self::assertSame('R-2024-016', $this->rule->ruleCode());
-        // **Périmètre CO₂ uniquement** — invariant clé du couple CIBS
+        // **Périmètre CO₂ uniquement** · invariant clé du couple CIBS
         // L. 421-124 : si on étend un jour à `Pollutants`, la cohérence
         // avec R-2024-013 (cascade polluants) doit être ré-évaluée.
         self::assertSame([TaxType::Co2], $this->rule->taxesConcerned());
@@ -118,7 +118,7 @@ final class R2024_016_ElectricHydrogenTest extends TestCase
     public function vehicule_hybride_rechargeable_n_a_pas_d_exoneration_via_cette_regle(): void
     {
         // L'hybride relève éventuellement de R-2024-017 (régime conditionnel),
-        // jamais de R-2024-016 — cette règle est strictement réservée aux
+        // jamais de R-2024-016 · cette règle est strictement réservée aux
         // véhicules à propulsion full-électrique ou full-hydrogène.
         $vfc = $this->makeVfc(['energy_source' => EnergySource::PluginHybrid]);
 
@@ -131,7 +131,7 @@ final class R2024_016_ElectricHydrogenTest extends TestCase
     public function contexte_sans_vfc_n_a_pas_d_exoneration(): void
     {
         // Cas race : pipeline appelé avant la classification VFC. La
-        // règle doit retourner notExempt sans lever — elle se taira et
+        // règle doit retourner notExempt sans lever · elle se taira et
         // une autre étape lèvera l'erreur applicative si VFC manque.
         $context = new PipelineContext(
             vehicle: Vehicle::factory()->create(),

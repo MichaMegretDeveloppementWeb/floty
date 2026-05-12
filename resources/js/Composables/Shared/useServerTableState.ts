@@ -54,7 +54,7 @@ export type ServerTableStateOptions<F extends Record<string, unknown>> = {
     initialSortKey: string | null;
     initialSortDirection: SortDirection;
     /**
-     * Filtres "tout neutre" — état cible de `clearFilters`. Doit
+     * Filtres "tout neutre" · état cible de `clearFilters`. Doit
      * représenter l'absence totale de filtre (typiquement `null` pour
      * chaque clé).
      */

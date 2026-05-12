@@ -13,7 +13,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Dashboard utilisateur — page d'accueil de l'app.
+ * Dashboard utilisateur · page d'accueil de l'app.
  *
  * Refondu chantier η Phase 4 selon doctrine 3 lentilles :
  *   - Présent (`kpis`) : 4 KPIs YTD figés sur l'année calendaire

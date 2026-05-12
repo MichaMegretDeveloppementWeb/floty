@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Statistiques annuelles d'une entreprise — exercice par exercice.
+ * Statistiques annuelles d'une entreprise · exercice par exercice.
  *
  * Utilisé deux fois côté `CompanyDetailData` :
  *   - `byYear` : exercice unique sélectionné par le sélecteur local
@@ -33,7 +33,7 @@ final class CompanyYearStatsData extends Data
         public int $lldCount,
         /** Taxe annuelle due par l'entreprise pour cet exercice (€, arrondi 2 décimales). */
         public float $annualTaxDue,
-        /** Loyer annuel facturé — null tant que la facturation V1.2 n'est pas livrée. */
+        /** Loyer annuel facturé · null tant que la facturation V1.2 n'est pas livrée. */
         public ?float $rent,
     ) {}
 }

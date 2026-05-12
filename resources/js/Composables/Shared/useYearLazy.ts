@@ -1,6 +1,6 @@
 /**
  * Composable générique de chargement année par année avec cache client
- * (chantier η Phase 2 — refonte onglets fiche véhicule).
+ * (chantier η Phase 2 · refonte onglets fiche véhicule).
  *
  * **Pattern** : une carte/section porte des données paramétrées par une
  * année (Timeline + Breakdown sur véhicule, Taxe pleine détaillé, etc.).
@@ -16,13 +16,15 @@
  * tout en gardant l'UX d'un sélecteur local instantané pour les années
  * déjà visitées.
  *
- * **Pas de sync URL** : les sélecteurs sont locaux à leur composant et
- * indépendants entre eux (ex. carte Utilisation vs onglet Fiscalité ont
- * chacun leur propre cache et leur propre année courante). F5 reset le
- * cache et retombe sur l'année initiale.
+ * **Sync URL (opt-in)** : si `urlParam` est fourni, l'année courante est
+ * synchronisée avec le query string correspondant via `history.replaceState`
+ * (pas de navigation, pas de reload Inertia). Au mount, si le param URL
+ * est présent et valide, l'année initiale est ajustée et un `selectYear()`
+ * est déclenché en arrière-plan pour aligner les données. Sinon, comportement
+ * historique : sélecteurs locaux, F5 retombe sur l'année initiale.
  */
 
-import { computed, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import type { Ref, WritableComputedRef } from 'vue';
 
 export type UseYearLazyReturn<T> = {
@@ -52,12 +54,29 @@ export function useYearLazy<T>(
     initialYear: number,
     initialData: T,
     fetchFn: (year: number) => Promise<T>,
+    options: { urlParam?: string } = {},
 ): UseYearLazyReturn<T> {
     const year = ref<number>(initialYear);
     const cache = new Map<number, T>([[initialYear, initialData]]);
     const data = ref<T | null>(initialData) as Ref<T | null>;
     const isLoading = ref<boolean>(false);
     const error = ref<string | null>(null);
+
+    function syncUrl(target: number): void {
+        if (options.urlParam === undefined || typeof window === 'undefined') {
+            return;
+        }
+
+        const url = new URL(window.location.href);
+
+        if (target === initialYear) {
+            url.searchParams.delete(options.urlParam);
+        } else {
+            url.searchParams.set(options.urlParam, String(target));
+        }
+
+        window.history.replaceState(window.history.state, '', url.toString());
+    }
 
     async function selectYear(target: number): Promise<void> {
         if (target === year.value) {
@@ -69,6 +88,7 @@ export function useYearLazy<T>(
         if (cached !== undefined) {
             year.value = target;
             data.value = cached;
+            syncUrl(target);
 
             return;
         }
@@ -81,11 +101,39 @@ export function useYearLazy<T>(
             cache.set(target, fetched);
             year.value = target;
             data.value = fetched;
+            syncUrl(target);
         } catch (e) {
             error.value = e instanceof Error ? e.message : 'Erreur inconnue';
         } finally {
             isLoading.value = false;
         }
+    }
+
+    // Hydratation depuis l'URL au mount : si le param est présent et
+    // diffère de l'année initiale, on aligne via selectYear(). Le fetch
+    // est asynchrone, l'UI affiche d'abord initialData puis se met à jour.
+    if (options.urlParam !== undefined) {
+        onMounted(() => {
+            if (typeof window === 'undefined') {
+                return;
+            }
+
+            const raw = new URL(window.location.href).searchParams.get(
+                options.urlParam as string,
+            );
+
+            if (raw === null) {
+                return;
+            }
+
+            const parsed = Number.parseInt(raw, 10);
+
+            if (Number.isNaN(parsed) || parsed === initialYear) {
+                return;
+            }
+
+            void selectYear(parsed);
+        });
     }
 
     const yearModel = computed<number>({

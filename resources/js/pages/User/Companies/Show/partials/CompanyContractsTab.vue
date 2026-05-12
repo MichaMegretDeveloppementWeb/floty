@@ -5,7 +5,7 @@
  * UX raffinée (chantier N.1.fixes) :
  * - Stats contextuelles sous le titre (jours cumulés + répartition LCD/LLD),
  *   refletant le filtre actif.
- * - Pills d'années cliquables (1 clic = année complète) — scalable jusqu'à
+ * - Pills d'années cliquables (1 clic = année complète) · scalable jusqu'à
  *   N années via scroll horizontal.
  * - Bouton « Période personnalisée » ouvre le DateRangePicker dans un
  *   popover masqué par défaut (ne pollue plus l'écran en permanence).
@@ -267,7 +267,7 @@ function clearPeriod(): void {
 
                 <!--
                     Chip de filtre actif (smart label).
-                    Masqué quand une année pleine est sélectionnée — la pill
+                    Masqué quand une année pleine est sélectionnée · la pill
                     correspondante est déjà highlightée, le chip serait
                     redondant. N'apparaît que pour les périodes custom.
                 -->

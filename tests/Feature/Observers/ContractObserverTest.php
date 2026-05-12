@@ -20,7 +20,7 @@ use Tests\TestCase;
  *   2. Mutation du Contract (create / update / delete / restore /
  *      forceDelete)
  *   3. Nouvelle lecture → doit refléter la mutation (si le cache n'était
- *      pas invalidé, on aurait l'ancienne valeur — test rouge)
+ *      pas invalidé, on aurait l'ancienne valeur · test rouge)
  *
  * Année calendaire fixée à 2026 pour stabilité (cf.
  * {@see CarbonImmutable::setTestNow()}).
@@ -72,7 +72,7 @@ final class ContractObserverTest extends TestCase
 
         self::assertSame([2024, 2025, 2026], $this->resolver->availableYears());
 
-        // On recule la start_date à 2022 — le cache doit refléter la
+        // On recule la start_date à 2022 · le cache doit refléter la
         // nouvelle borne min.
         $contract->update([
             'start_date' => '2022-01-15',

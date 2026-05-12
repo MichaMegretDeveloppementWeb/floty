@@ -95,7 +95,7 @@ export function useInvoicesTable(opts: {
             companyId: f.companyId,
             year: f.year,
             month: f.month,
-            // `divergentOnly = false` est l'état par défaut — on le retire
+            // `divergentOnly = false` est l'état par défaut · on le retire
             // de l'URL pour rester propre. Seul `true` est sérialisé,
             // sous forme de chaîne `'1'` (Laravel rule `boolean` accepte
             // `'1'`, `1`, `true` indifféremment).

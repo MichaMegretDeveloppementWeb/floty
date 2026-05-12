@@ -62,7 +62,7 @@ final class VehicleQueryServiceTest extends TestCase
     }
 
     // ----------------------------------------------------------------
-    // Timeline 52 semaines — split indispos réductrices vs non-réductrices
+    // Timeline 52 semaines · split indispos réductrices vs non-réductrices
     // (chantier #1, ADR-0016 + ADR-0019).
     // ----------------------------------------------------------------
 

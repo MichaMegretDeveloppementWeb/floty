@@ -9,11 +9,11 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Une ligne du top des véhicules les plus attribués à une entreprise
- * sur un exercice — alimente la liste « Top véhicules » de la section
+ * sur un exercice · alimente la liste « Top véhicules » de la section
  * Activité de la fiche entreprise (chantier K L2).
  *
  * Le `percentage` est calculé sur la **somme des jours-véhicules** de
- * l'entreprise pour l'année (pas sur les jours calendaires) — ce qui
+ * l'entreprise pour l'année (pas sur les jours calendaires) · ce qui
  * permet la lecture comparative « ce véhicule représente X % de
  * l'activité de l'entreprise ».
  */

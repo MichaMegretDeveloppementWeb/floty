@@ -13,7 +13,7 @@ import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
  * un fetch debouncé (200 ms hérités de `useFiscalPreview`). Si un des
  * 4 champs manque, le preview est mis à `null`.
  *
- * Sémantique : calcul standalone du contrat, pas de cumul annuel —
+ * Sémantique : calcul standalone du contrat, pas de cumul annuel ·
  * la durée du contrat seul détermine LCD vs LLD.
  */
 export type UseContractFiscalPreviewReturn = {
@@ -31,7 +31,7 @@ export function useContractFiscalPreview(opts: {
     const { preview, loading, fetch, reset } = useFiscalPreview();
 
     // Le backend prend min/max des dates pour reconstruire la plage du
-    // contrat synthétique — pas besoin d'expandre tous les jours côté
+    // contrat synthétique · pas besoin d'expandre tous les jours côté
     // front (et ça évite les bugs de timezone sur les transitions DST).
     const dates = computed<string[]>(() => {
         const start = opts.startDate.value;

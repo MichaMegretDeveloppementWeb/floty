@@ -28,7 +28,7 @@ use Inertia\Middleware;
  *
  * **Chantier η Phase 5** : la shared prop `fiscal.availableYears` a été
  * supprimée. Chaque page consommatrice reçoit désormais sa prop locale
- * `yearScope` ({@see App\Data\Shared\YearScopeData}) — alimentée soit par
+ * `yearScope` ({@see App\Data\Shared\YearScopeData}) · alimentée soit par
  * `AvailableYearsResolver` (scope contrats), soit par
  * `FiscalRuleRegistry::registeredYears()` (scope moteur fiscal).
  */

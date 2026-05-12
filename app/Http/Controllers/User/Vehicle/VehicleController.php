@@ -48,7 +48,7 @@ final class VehicleController extends Controller
 
     public function index(VehicleIndexQueryData $query): Response
     {
-        // Sélecteur année **local** à la page (chantier η Phase 3) —
+        // Sélecteur année **local** à la page (chantier η Phase 3) ·
         // bornes alimentées par `AvailableYearsResolver` (scope global
         // dynamique calculé depuis les contrats, pas la config statique
         // morte). `?year=` URL validé contre ce scope, fallback
@@ -71,7 +71,7 @@ final class VehicleController extends Controller
     }
 
     /**
-     * Doctrine temporelle (chantier η Phase 3) — résolution `?year=`
+     * Doctrine temporelle (chantier η Phase 3) · résolution `?year=`
      * URL contre le scope global dynamique, fallback `currentYear` si
      * invalide ou absent.
      */
@@ -86,14 +86,14 @@ final class VehicleController extends Controller
 
     public function show(int $vehicle, Request $request): Response
     {
-        // Doctrine temporelle (chantier η Phase 2 — refonte onglets) :
+        // Doctrine temporelle (chantier η Phase 2 · refonte onglets) :
         // `usageStats` est initialisé sur `currentYear`. Le sélecteur
         // d'année des cartes Utilisation et Fiscalité fetch en lazy via
         // `usageStatsForYear` / `fullYearBreakdownForYear` côté front
         // avec cache client.
         $vehicleData = $this->vehicles->findVehicleData($vehicle);
 
-        // Onglet Facturation (Phase 14.D V1.2) — sélecteur d'année
+        // Onglet Facturation (Phase 14.D V1.2) · sélecteur d'année
         // **local** indépendant via `?billingYear=`. Default = année KPI
         // (currentYear).
         $billingYear = (int) $request->query('billingYear', (string) $vehicleData->kpiYear);
@@ -110,7 +110,7 @@ final class VehicleController extends Controller
      * Endpoint lazy JSON appelé par `useYearLazy` côté front quand
      * l'utilisateur change l'année dans la carte Utilisation & Répartition
      * de la fiche véhicule. Retourne `VehicleUsageStatsData` pour
-     * l'année demandée — Timeline + Breakdown par entreprise + breakdown
+     * l'année demandée · Timeline + Breakdown par entreprise + breakdown
      * Taxe pleine imbriqué.
      */
     public function usageStats(int $vehicle, Request $request): JsonResponse

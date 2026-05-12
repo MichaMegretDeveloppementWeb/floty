@@ -24,7 +24,7 @@ type SelectOption = { value: string; label: string };
  *   - réinitialise le formulaire à chaque ouverture de la modale
  *     (vs Edit qui re-remplit avec la VFC en cours d'édition),
  *   - expose les motifs sélectionnables (tous sauf `initial_creation`
- *     qui est réservé au système — création réelle au moment de la
+ *     qui est réservé au système · création réelle au moment de la
  *     première VFC du véhicule, faite par CreateVehicleAction),
  *   - calcule en live l'impact sur les voisines via
  *     `computeVfcUpdateImpact()` en passant `editingId = null` (pas

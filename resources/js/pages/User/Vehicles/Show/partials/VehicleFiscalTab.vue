@@ -4,7 +4,7 @@
  * détail du calcul Taxe pleine pour une année (méthode CO₂, polluants,
  * exonérations, règles fiscales appliquées).
  *
- * Sélecteur d'année **indépendant** de celui de Vue d'ensemble — chaque
+ * Sélecteur d'année **indépendant** de celui de Vue d'ensemble · chaque
  * onglet a son propre cache `useYearLazy` et sa propre année courante.
  *
  * Le panel `FullYearTaxBreakdownPanel` consomme `stats.fiscalYear` +
@@ -46,9 +46,10 @@ const { yearModel, year, data, isLoading } = useYearLazy<Breakdown>(
 
         return (await response.json()) as Breakdown;
     },
+    { urlParam: 'fiscalYear' },
 );
 
-// Reconstruction stats-like pour le panel — il ne lit que `fiscalYear`
+// Reconstruction stats-like pour le panel · il ne lit que `fiscalYear`
 // et `fullYearTaxBreakdown`. Les autres champs ne sont pas accédés
 // par ce composant, on peut les laisser indéfinis.
 const statsLike = computed<UsageStats>(() => ({
@@ -70,7 +71,7 @@ const statsLike = computed<UsageStats>(() => ({
                             Calcul de la Taxe pleine
                         </h2>
                         <p class="mt-0.5 text-xs text-slate-500">
-                            Détail théorique pour 100 % d'utilisation —
+                            Détail théorique pour 100 % d'utilisation ·
                             méthode CO₂, polluants, exonérations, règles
                             appliquées.
                         </p>

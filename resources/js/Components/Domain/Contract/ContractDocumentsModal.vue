@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Modale de gestion des PDF en queue avant création d'une location
- * (chantier UX-Loc — utilisée par le drawer planning).
+ * (chantier UX-Loc · utilisée par le drawer planning).
  *
  * Maintient une queue locale de fichiers File[] qu'on remonte au
  * parent via `update:files`. Le parent (drawer ou page) est

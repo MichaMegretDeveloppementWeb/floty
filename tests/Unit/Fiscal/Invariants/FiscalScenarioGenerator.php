@@ -36,7 +36,7 @@ use Illuminate\Support\Carbon;
  *     peuvent se chevaucher, c'est la sémantique métier)
  *   - 0 à 3 indispos non-chevauchantes dans l'année
  *   - Tous les véhicules sont M1 essence Euro 6 WLTP (config la plus
- *     courante du parc) — le but n'est pas de varier les classifications
+ *     courante du parc) · le but n'est pas de varier les classifications
  *     (couvertes par les tests de règles individuelles) mais d'exercer
  *     les invariants de prorata, segmentation et arrondi.
  *
@@ -53,7 +53,7 @@ final class FiscalScenarioGenerator
 
     public function __construct(private readonly int $seed)
     {
-        // Initialise le générateur déterministe — toute construction
+        // Initialise le générateur déterministe · toute construction
         // d'une nouvelle instance avec la même seed reproduit le scénario.
         mt_srand($seed);
     }

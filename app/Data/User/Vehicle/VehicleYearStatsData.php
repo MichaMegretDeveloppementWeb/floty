@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Stats annuelles d'un véhicule pour une année donnée — alimente à la
+ * Stats annuelles d'un véhicule pour une année donnée · alimente à la
  * fois les KPIs « Présent » (carte du haut, année calendaire courante)
  * et le mini-tableau « Évolution » (section Historique, années passées).
  *

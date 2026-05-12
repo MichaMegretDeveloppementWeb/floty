@@ -25,7 +25,7 @@ use Tests\TestCase;
 
 /**
  * Garantit qu'un contrat **traversant deux exercices fiscaux** est
- * prorata-isé indépendamment sur chaque année — aucun jour n'est compté
+ * prorata-isé indépendamment sur chaque année · aucun jour n'est compté
  * deux fois, aucun jour de l'autre année ne contamine le calcul.
  *
  * Cas étudié : contrat du 2024-12-15 au 2025-02-28 (76 jours bruts).
@@ -37,10 +37,10 @@ use Tests\TestCase;
  * Helper testé : `Contract::expandToDaysInYear()` qui borne le contrat
  * à l'année cible avant expansion. Toute régression qui ferait fuiter
  * des jours de l'autre année (mauvais clamping de la borne supérieure
- * ou inférieure) ferait échouer ce test — et propagerait silencieusement
+ * ou inférieure) ferait échouer ce test · et propagerait silencieusement
  * une erreur fiscale d'une dizaine de pourcents sur la déclaration.
  *
- * Cf. audit produit 2026-05-04 § C2.c (M19) — couverture identifiée
+ * Cf. audit produit 2026-05-04 § C2.c (M19) · couverture identifiée
  * manquante.
  */
 final class MultiYearProrataTest extends TestCase
@@ -119,7 +119,7 @@ final class MultiYearProrataTest extends TestCase
     private function buildCrossYearContract(): Contract
     {
         // Contrat sans persistance (pas besoin de respecter les triggers
-        // d'overlap — on teste juste l'expansion mathématique).
+        // d'overlap · on teste juste l'expansion mathématique).
         $contract = new Contract;
         $contract->setRawAttributes([
             'vehicle_id' => 1,

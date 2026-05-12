@@ -48,7 +48,7 @@ final readonly class ContractQueryService
     ) {}
 
     /**
-     * Récap facturation contrat-isolé (Phase 14.D V1.2 — extension).
+     * Récap facturation contrat-isolé (Phase 14.D V1.2 · extension).
      * Délègue à {@see App\Services\Billing\BillingBreakdownService::byContract}.
      *
      * Retourne `null` si le contrat est introuvable.
@@ -205,7 +205,7 @@ final readonly class ContractQueryService
     /**
      * Plage continue `[firstYear..currentRealYear]` pour les pills de
      * filtre rapide année (chantier N.1.fixes). Si l'entreprise n'a
-     * aucun contrat, retourne un tableau vide — les pills ne sont
+     * aucun contrat, retourne un tableau vide · les pills ne sont
      * pas affichées (l'empty state suffit).
      *
      * Différent de `availableYears` (= années avec ≥ 1 contrat) :
@@ -229,7 +229,7 @@ final readonly class ContractQueryService
 
     /**
      * Variante de `listPaginated` qui force le `companyId` à la valeur
-     * passée en paramètre — utilisée par l'onglet Contrats de la fiche
+     * passée en paramètre · utilisée par l'onglet Contrats de la fiche
      * Company (chantier N.1). On ne fait pas confiance au query param
      * de l'URL : la fiche Company impose son propre `companyId`.
      */

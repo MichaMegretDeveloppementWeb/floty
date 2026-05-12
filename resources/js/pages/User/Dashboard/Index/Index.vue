@@ -9,11 +9,11 @@ import PageHeader from './partials/PageHeader.vue';
 import QuickLinksGrid from './partials/QuickLinksGrid.vue';
 
 defineProps<{
-    /** Lentille Présent — KPIs YTD + comparaison vs même période Y-1. */
+    /** Lentille Présent · KPIs YTD + comparaison vs même période Y-1. */
     kpis: App.Data.User.Dashboard.DashboardKpiData;
-    /** Lentille Évolution — historique multi-années pour graphique barres. */
+    /** Lentille Évolution · historique multi-années pour graphique barres. */
     history: App.Data.User.Dashboard.DashboardYearHistoryData[];
-    /** Lentille Exploration — heatmap 30j flotte + top véhicules coûteux. */
+    /** Lentille Exploration · heatmap 30j flotte + top véhicules coûteux. */
     activity: App.Data.User.Dashboard.DashboardActivityData;
     /** Compteurs tâches en attente (placeholders MVP). */
     pendingTasks: App.Data.User.Dashboard.DashboardPendingTasksData;

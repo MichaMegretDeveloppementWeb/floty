@@ -127,7 +127,7 @@ const contractType = computed<'lcd' | 'lld' | null>(() => {
 
 // ── Preview fiscale ─────────────────────────────────────────────────
 // Le backend prend min/max des dates pour reconstruire la plage du
-// contrat synthétique — pas besoin d'expandre tous les jours côté
+// contrat synthétique · pas besoin d'expandre tous les jours côté
 // front (et ça évite les bugs de timezone sur les transitions DST).
 const datesInRange = computed<string[]>(() => {
     const start = props.selectedRange.startDate;

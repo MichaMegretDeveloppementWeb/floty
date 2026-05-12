@@ -72,7 +72,7 @@ enum UnavailabilityType: string
             self::PoundPublic => 'C. route L. 325-1 à L. 325-1-2 ; BOFiP BOI-AIS-MOB-10-30-10 § 60',
             self::CiSuspension => 'C. route R. 322-6 ; BOFiP BOI-AIS-MOB-10-30-10 § 50',
             self::AccidentRepair => 'BOFiP BOI-AIS-MOB-10-30-10 § 50 (réparation simple = taxable, voir Remarque § 50)',
-            self::PoundPrivate => 'C. route L. 325-12 ; BOFiP BOI-AIS-MOB-10-30-10 § 60 (fourrière privée non réductrice — exclusion explicite)',
+            self::PoundPrivate => 'C. route L. 325-12 ; BOFiP BOI-AIS-MOB-10-30-10 § 60 (fourrière privée non réductrice · exclusion explicite)',
             self::Maintenance,
             self::TechnicalInspection => 'BOFiP BOI-AIS-MOB-10-30-10 (immobilisation opérationnelle = taxable, le § 50 ne couvre que les mises hors-circulation à la demande des pouvoirs publics)',
             self::Theft => 'doctrine V1 (vol non assimilé à mise hors-circulation administrative au sens de L. 421-96)',

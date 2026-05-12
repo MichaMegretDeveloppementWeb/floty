@@ -18,7 +18,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * Whitelist sortKey : `shortCode | legalName | siren | city`. Les valeurs
  * calculées `daysUsed` et `annualTaxDue` sont volontairement exclues
- * (cf. ADR-0020 D6 — à matérialiser pour réactiver le tri).
+ * (cf. ADR-0020 D6 · à matérialiser pour réactiver le tri).
  */
 #[TypeScript]
 final class CompanyIndexQueryData extends IndexQueryData

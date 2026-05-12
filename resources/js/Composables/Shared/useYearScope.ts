@@ -11,26 +11,26 @@
  *
  * **Deux modes d'usage** suivant la structure de la page consommatrice :
  *
- *   1. **Mode reload** (`opts.reloadKeys` défini) — typique pour pages
+ *   1. **Mode reload** (`opts.reloadKeys` défini) · typique pour pages
  *      Index / Show qui doivent recharger les données depuis le backend
  *      (Vehicles Index, Vehicle Show, Planning, FiscalRules…). Délègue
  *      à `useLocalYearSelector` qui appelle `router.get()` avec partial
  *      reload.
  *
- *   2. **Mode local** (`opts` omis ou `reloadKeys` vide) — typique pour
+ *   2. **Mode local** (`opts` omis ou `reloadKeys` vide) · typique pour
  *      sections où toutes les années sont déjà pré-calculées côté front
- *      (ex. section Activité fiche Entreprise — l'array `activityByYear`
+ *      (ex. section Activité fiche Entreprise · l'array `activityByYear`
  *      contient déjà toutes les années). Sync URL via
  *      `window.history.replaceState`, pas de reload Inertia.
  *
  * **Composant compagnon** : {@link YearSelector} (présentationnel pur).
  *
- * **Exemple — mode reload** :
+ * **Exemple · mode reload** :
  *   const scope = useYearScope(props.yearScope, {
  *     reloadKeys: ['vehicles', 'query'],
  *   });
  *
- * **Exemple — mode local** :
+ * **Exemple · mode local** :
  *   const scope = useYearScope(props.yearScope);
  */
 
@@ -48,7 +48,7 @@ export type UseYearScopeReturn = {
     /** Range continu `[minYear, …, max]`. */
     availableYears: ComputedRef<readonly number[]>;
     /**
-     * Année actuellement sélectionnée. Lecture seule conseillée — pour
+     * Année actuellement sélectionnée. Lecture seule conseillée · pour
      * un binding `v-model` côté composant, utiliser plutôt
      * {@see selectedYearModel} qui passe systématiquement par
      * {@see selectYear} (validation + sync URL/reload).
@@ -57,7 +57,7 @@ export type UseYearScopeReturn = {
     /**
      * Wrapper `v-model` autour de `selectedYear`. Le setter appelle
      * `selectYear()` plutôt que de muter `selectedYear.value`
-     * directement — garantit que la sync URL (mode local) ou le partial
+     * directement · garantit que la sync URL (mode local) ou le partial
      * reload (mode reload) est toujours déclenché, même quand la
      * mutation vient d'un binding `v-model`.
      */

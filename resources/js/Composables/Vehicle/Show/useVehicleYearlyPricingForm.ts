@@ -21,7 +21,7 @@ export type PricingFormShape = {
  *   - création : on précharge `currentYear` si elle est dans la liste
  *     des années disponibles, sinon on prend la première année dispo,
  *     en dernier recours `currentYear` (cas dégénéré où la liste est
- *     vide — le bouton sera désactivé en amont).
+ *     vide · le bouton sera désactivé en amont).
  *
  * Fonction pure (testable sans mocker Inertia).
  */
@@ -52,7 +52,7 @@ export function buildPricingFormInitialState(
 }
 
 /**
- * Règle de validation côté UI — exécutée à chaque frappe pour activer /
+ * Règle de validation côté UI · exécutée à chaque frappe pour activer /
  * désactiver le bouton « Enregistrer ». Le backend ré-attrape ces cas
  * via Spatie Data, mais bloquer en amont évite l'aller-retour serveur
  * sur les saisies évidentes (champs vides, négatifs).
@@ -94,7 +94,7 @@ export function isPricingFormValid(form: PricingFormShape, processing: boolean):
  * (snake_case, attendu par Spatie Data via `MapInputName(SnakeCaseMapper)`).
  *
  * `Math.round()` est crucial : `1.10 * 100 === 110.00000000000001` en
- * IEEE 754 et `Math.trunc()` retournerait 109 — on perd un centime sur
+ * IEEE 754 et `Math.trunc()` retournerait 109 · on perd un centime sur
  * tous les tarifs « ronds » saisis avec décimales.
  */
 export function transformPricingFormToPayload(form: PricingFormShape): {

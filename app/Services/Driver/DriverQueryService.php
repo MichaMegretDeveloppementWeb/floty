@@ -95,7 +95,7 @@ final class DriverQueryService
                 leftAt: $pivot->left_at?->toDateString(),
                 // Sémantique alignée sur le repo write `findActiveMembership`
                 // (`left_at IS NULL`). Une membership avec une date de sortie
-                // posée — passée, présente OU future — n'est plus considérée
+                // posée · passée, présente OU future · n'est plus considérée
                 // active. Les sorties planifiées s'affichent comme « Sorti
                 // le {date} » plutôt que « Actif » (cf. chantier B).
                 isCurrentlyActive: $pivot->left_at === null,
@@ -137,12 +137,12 @@ final class DriverQueryService
 
     /**
      * Aperçu des contrats à venir d'un driver dans une company après
-     * une `leftAt` donnée — utilisé par la modal de sortie pour offrir
+     * une `leftAt` donnée · utilisé par la modal de sortie pour offrir
      * une UX complète de résolution des contrats à venir (workflow Q6).
      *
      * Pour chaque contrat à venir, la liste des `candidates` (drivers
      * actifs dans la company sur la période exacte du contrat) est
-     * pré-calculée — cohérent avec le check
+     * pré-calculée · cohérent avec le check
      * `LeaveDriverCompanyMembershipAction::validateReplacementMap`. Le
      * driver sortant lui-même est exclu (interdit comme remplaçant de
      * lui-même).

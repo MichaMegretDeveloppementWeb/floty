@@ -314,7 +314,7 @@ final class CompanyControllerTest extends TestCase
     }
 
     // ----------------------------------------------------------------
-    // Show — chantier K (refonte fiche entreprise, ADR-0020 D3)
+    // Show · chantier K (refonte fiche entreprise, ADR-0020 D3)
     // ----------------------------------------------------------------
 
     #[Test]
@@ -428,7 +428,7 @@ final class CompanyControllerTest extends TestCase
     }
 
     // ----------------------------------------------------------------
-    // Show — chantier η Phase 1 (doctrine temporelle KPIs/Historique/Activité)
+    // Show · chantier η Phase 1 (doctrine temporelle KPIs/Historique/Activité)
     // ----------------------------------------------------------------
 
     #[Test]
@@ -537,7 +537,7 @@ final class CompanyControllerTest extends TestCase
     }
 
     // ----------------------------------------------------------------
-    // Show — chantier N.1 (onglet Contrats avec table paginée server-side)
+    // Show · chantier N.1 (onglet Contrats avec table paginée server-side)
     // ----------------------------------------------------------------
 
     #[Test]
@@ -649,7 +649,7 @@ final class CompanyControllerTest extends TestCase
 
         $currentYear = (int) Carbon::now()->year;
 
-        // Un contrat 2024 (hors scope par défaut) — ne doit pas peser
+        // Un contrat 2024 (hors scope par défaut) · ne doit pas peser
         // sur les stats default.
         $vOld = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vOld->id]);
@@ -745,7 +745,7 @@ final class CompanyControllerTest extends TestCase
     }
 
     // ----------------------------------------------------------------
-    // Show — chantier #5 (default période = année courante au mount)
+    // Show · chantier #5 (default période = année courante au mount)
     // ----------------------------------------------------------------
 
     #[Test]
@@ -873,7 +873,7 @@ final class CompanyControllerTest extends TestCase
     }
 
     // ----------------------------------------------------------------
-    // Show — chantier N.2 (onglet Fiscalité)
+    // Show · chantier N.2 (onglet Fiscalité)
     // ----------------------------------------------------------------
 
     #[Test]

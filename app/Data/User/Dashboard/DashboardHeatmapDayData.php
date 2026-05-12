@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Cellule de la heatmap « 30 derniers jours » — un jour pour un
+ * Cellule de la heatmap « 30 derniers jours » · un jour pour un
  * véhicule donné (chantier η Phase 4).
  *
  * `status` ∈ { 'occupied', 'unavailable', 'free' }.

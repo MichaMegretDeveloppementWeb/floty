@@ -215,7 +215,7 @@ final class BillingBreakdownServiceTest extends TestCase
     #[Test]
     public function company_breakdown_expose_le_snapshot_facture_et_detecte_la_divergence(): void
     {
-        // Phase 14.I — quand une facture existe pour le couple
+        // Phase 14.I · quand une facture existe pour le couple
         // (entreprise × année × mois), on expose le snapshot figé
         // (`invoicedDaysUsed`, `invoicedTotalCents`) en plus du recalcul
         // dynamique (`daysUsed`, `totalCents`). L'UI compare et affiche
@@ -239,7 +239,7 @@ final class BillingBreakdownServiceTest extends TestCase
         ]);
 
         // Facture émise figeant 10 j / 70 000 cents (10 × 7 000 par
-        // exemple — ici on stocke des valeurs fixées pour le test).
+        // exemple · ici on stocke des valeurs fixées pour le test).
         $invoice = Invoice::factory()
             ->for($company)
             ->for($user, 'generatedBy')

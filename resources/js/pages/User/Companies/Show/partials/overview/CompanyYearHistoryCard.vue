@@ -1,20 +1,20 @@
 <script setup lang="ts">
 /**
- * Tableau récapitulatif des **exercices passés** de l'entreprise — un
+ * Tableau récapitulatif des **exercices passés** de l'entreprise · un
  * objet par année avec ≥ 1 contrat (chantier η Phase 1, doctrine
  * temporelle « Évolution »).
  *
- * **L'année calendaire courante n'apparaît pas ici** — elle vit dans
+ * **L'année calendaire courante n'apparaît pas ici** · elle vit dans
  * les KPIs en haut de page (`CompanyKpiCards`). Cette section est
  * exclusivement dédiée à l'évolution dans le temps : on regarde le
  * passé, pas le présent.
  *
- * Tri DESC (le plus récent en haut — convention dashboard rétrospectif).
+ * Tri DESC (le plus récent en haut · convention dashboard rétrospectif).
  *
  * État vide : si l'entreprise n'a aucun contrat sur les exercices
  * passés (typiquement : entreprise créée cette année, ou jamais utilisée
  * historiquement), la carte affiche un message neutre plutôt que d'être
- * masquée — l'utilisateur sait que la section existe et pourquoi elle
+ * masquée · l'utilisateur sait que la section existe et pourquoi elle
  * est vide.
  */
 import { computed } from 'vue';
@@ -78,7 +78,7 @@ const sortedHistory = computed<YearStats[]>(() =>
                         </td>
                         <td class="py-2 text-right tabular-nums text-slate-700">
                             <span v-if="entry.rent !== null">{{ formatEur(entry.rent) }}</span>
-                            <span v-else class="text-slate-400">—</span>
+                            <span v-else class="text-slate-400">·</span>
                         </td>
                     </tr>
                 </tbody>

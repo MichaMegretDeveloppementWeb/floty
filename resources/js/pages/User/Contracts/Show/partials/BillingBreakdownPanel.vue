@@ -1,11 +1,11 @@
 <script setup lang="ts">
 /**
- * Section Facturation de la fiche Location (Phase 14.D V1.2 — extension).
+ * Section Facturation de la fiche Location (Phase 14.D V1.2 · extension).
  *
  * Affiche le coût de location **isolé** du contrat, mois civil par
  * mois civil. Si plusieurs contrats du même véhicule × entreprise
  * cohabitent sur un même mois, le total contrat-isolé peut différer
- * de la facture réelle (qui consolide les jours via combo optimal) —
+ * de la facture réelle (qui consolide les jours via combo optimal) ·
  * c'est documenté côté backend et signalé subtilement à l'utilisateur
  * dans le footer de la card.
  */
@@ -101,11 +101,5 @@ const MONTH_LABELS = [
             depuis la fiche véhicule pour débloquer le calcul.
         </p>
 
-        <p class="mt-3 text-xs text-slate-400">
-            Coût isolé pour cette location uniquement. Si le véhicule a
-            d'autres locations sur les mêmes mois pour la même entreprise,
-            la facture mensuelle réelle peut différer (combo tarifaire
-            optimal consolidé).
-        </p>
     </Card>
 </template>

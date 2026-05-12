@@ -43,7 +43,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  */
 // **Note V1** : `is_oig` et `is_individual_business` volontairement
-// **exclus du Fillable** — les règles d'exonération R-2024-018 (OIG) et
+// **exclus du Fillable** · les règles d'exonération R-2024-018 (OIG) et
 // R-2024-019 (EIRL) sont des stubs en V1 (cf.
 // `R2024_018And019_StubExemptionsTest`). Tant qu'elles ne sont pas
 // finalisées, autoriser une création/update mass-assignment de ces flags

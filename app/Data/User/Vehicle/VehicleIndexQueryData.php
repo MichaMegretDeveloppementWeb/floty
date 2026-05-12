@@ -15,23 +15,23 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * DTO d'entrée pour l'Index Vehicles server-side (cf. ADR-0020).
  *
  * Filtres :
- *  - `includeExited: bool` (défaut **true**) — inclut les véhicules dont
+ *  - `includeExited: bool` (défaut **true**) · inclut les véhicules dont
  *     `exit_date` est passée. Décision UX : par défaut on affiche tous
  *     les véhicules historiques pour permettre la consultation et
  *     l'édition rétroactive (cf. ADR-0018 § 4). L'utilisateur peut
  *     décocher pour ne voir que les véhicules actifs aujourd'hui.
- *  - `status: VehicleStatus|null` — filtre par statut courant
- *  - `energySource: EnergySource|null` — sur la VFC active
- *  - `pollutantCategory: PollutantCategory|null` — sur la VFC active
- *  - `handicapAccess: bool|null` — sur la VFC active (true = uniquement
+ *  - `status: VehicleStatus|null` · filtre par statut courant
+ *  - `energySource: EnergySource|null` · sur la VFC active
+ *  - `pollutantCategory: PollutantCategory|null` · sur la VFC active
+ *  - `handicapAccess: bool|null` · sur la VFC active (true = uniquement
  *     les véhicules accessibles handicapés)
- *  - `firstRegistrationYearMin/Max: int|null` —
+ *  - `firstRegistrationYearMin/Max: int|null` ·
  *     `YEAR(first_french_registration_date)` dans la fourchette
  *     (date de 1ʳᵉ immatriculation, plus pertinente que la date
  *     d'acquisition pour borner l'âge fiscal du véhicule)
  *
  * Dimension annuelle :
- *  - `year: int|null` — année qui pilote les colonnes financières de la
+ *  - `year: int|null` · année qui pilote les colonnes financières de la
  *     table (Taxe pleine, Montant loyer). Préfigure le pattern « année
  *     par page » de l'ADR-0020 (chantier η à venir). Null → fallback
  *     fallback année calendaire courante côté controller. Borné par `available_years`.

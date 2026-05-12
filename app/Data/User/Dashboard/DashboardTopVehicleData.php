@@ -8,7 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne du « Top véhicules par taxe YTD » — Dashboard, lentille
+ * Ligne du « Top véhicules par taxe YTD » · Dashboard, lentille
  * Exploration (chantier η Phase 4).
  *
  * Le calcul de `taxYearToDate` agrège CO₂ + polluants pour le véhicule

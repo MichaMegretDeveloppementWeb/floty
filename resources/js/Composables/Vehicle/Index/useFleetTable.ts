@@ -5,7 +5,7 @@
  *  - Filtres `includeExited` (boolean) + `status` (VehicleStatus | null)
  *  - Colonnes `fullYearTax` et `rentalPriceFullYear` affichées mais NON
  *    triables (valeurs calculées par l'aggregator fiscal et le module
- *    facturation V1.2 — règle ADR-0020 D6)
+ *    facturation V1.2 · règle ADR-0020 D6)
  *  - Sélecteur d'année **local à la page** (chantier η anticipé) :
  *    pilote uniquement les colonnes financières. Géré comme un filtre
  *    `year` dans `useServerTableState` pour bénéficier de la sérialisation
@@ -111,7 +111,7 @@ export function useFleetTable(opts: {
         }),
     });
 
-    // Labels dépendant de l'année courante du sélecteur — recalculés
+    // Labels dépendant de l'année courante du sélecteur · recalculés
     // automatiquement quand `state.filters.value.year` change.
     const columns = computed<readonly DataTableColumn<VehicleRow>[]>(() => {
         const year = state.filters.value.year;

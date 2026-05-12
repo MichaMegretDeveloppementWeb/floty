@@ -13,7 +13,7 @@ use Tests\TestCase;
  * Couvre le custom render `ValidationException` JSON ajouté dans
  * `bootstrap/app.php` (chantier A) : pour les requêtes JSON, le `message`
  * de la réponse 422 doit être un texte FR explicite citant le(s) champ(s)
- * en erreur — pas la clé brute `validation.required` que Laravel renvoie
+ * en erreur · pas la clé brute `validation.required` que Laravel renvoie
  * par défaut quand `lang/fr/` n'est pas publié.
  *
  * Le test vise un endpoint `useApi`-friendly (`/app/planning/contracts`,
@@ -79,7 +79,7 @@ final class ValidationExceptionRenderingTest extends TestCase
     public function les_requetes_html_continuent_a_etre_redirigees_avec_session_errors(): void
     {
         // Garde-fou : le custom render ne doit PAS intercepter les
-        // soumissions formulaires HTML (Inertia / classiques) — Laravel
+        // soumissions formulaires HTML (Inertia / classiques) · Laravel
         // doit garder son comportement redirect-back-with-errors.
         $user = User::factory()->create();
 

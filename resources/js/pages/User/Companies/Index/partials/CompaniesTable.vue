@@ -9,7 +9,7 @@ type CompanyRow = App.Data.User.Company.CompanyListItemData;
 
 // Colonnes triables côté serveur (cf. CompanyIndexQueryData::allowedSortKeys()).
 // daysUsed et annualTaxDue sont volontairement absents (valeurs calculées
-// non triables en SQL — règle ADR-0020 D6).
+// non triables en SQL · règle ADR-0020 D6).
 const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
     'company',
     'siren',

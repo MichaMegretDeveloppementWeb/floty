@@ -2,7 +2,7 @@
 /**
  * Dropdown générique « Actions » pour cellules de tableau ou cartes
  * (chantier B-bis). Affiche un trigger compact et révèle les actions
- * via un menu **téléporté vers `body`** + position fixed — évite tout
+ * via un menu **téléporté vers `body`** + position fixed · évite tout
  * clipping par les `overflow-auto` parents (tables, cards). Pattern
  * inspiré de `Tooltip.vue:22-60`.
  *

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 /**
- * Section « Activité » de la fiche entreprise — lentille **Exploration**
+ * Section « Activité » de la fiche entreprise · lentille **Exploration**
  * de la doctrine temporelle (chantier η Phase 1, 2026-05-05).
  *
  * Une carte unique, deux visualisations empilées pilotées par un
- * sélecteur d'année **local** (mode local — pas de reload Inertia, les
+ * sélecteur d'année **local** (mode local · pas de reload Inertia, les
  * données de toutes années sont déjà pré-calculées dans
  * `company.activityByYear`) :
  *
@@ -37,7 +37,7 @@ const props = defineProps<{
     company: Company;
 }>();
 
-// Mode local : pas de `reloadKeys` — toutes les années sont déjà
+// Mode local : pas de `reloadKeys` · toutes les années sont déjà
 // pré-calculées côté backend dans `activityByYear`. Le changement
 // d'année met juste à jour l'URL (deep-link / refresh F5 préservé).
 //
@@ -48,7 +48,7 @@ const { selectedYear, selectedYearModel, availableYears } = useYearScope(
     props.company.yearScope,
 );
 
-// Le scope front (`company.yearScope.availableYears`) est global —
+// Le scope front (`company.yearScope.availableYears`) est global ·
 // toutes les années où le système a au moins un contrat. C'est ce que
 // le sélecteur expose. Si la company spécifique n'a pas de contrat sur
 // une année donnée, on rendra l'état vide ci-dessous.
@@ -97,7 +97,7 @@ const isEmpty = computed<boolean>(
 );
 
 function formatPercentage(value: number): string {
-    // Locale FR — virgule décimale, 1 chiffre après
+    // Locale FR · virgule décimale, 1 chiffre après
     return value.toLocaleString('fr-FR', {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,

@@ -1,7 +1,7 @@
 /**
  * Sync de l'onglet actif sur Show Véhicule avec le query param
  * `?tab=...` pour permettre le deep-link et préserver F5 (chantier η
- * Phase 2 — refonte fiche véhicule en onglets).
+ * Phase 2 · refonte fiche véhicule en onglets).
  *
  * Pattern symétrique à `useCompanyTabs` (Phase 06 L4 Q8).
  */

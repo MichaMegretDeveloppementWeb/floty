@@ -72,7 +72,7 @@ const IMPOTS_SEARCH = 'https://www.impots.gouv.fr/recherche/all';
  * version concernée. Ces ancres ont été extraites par inspection DOM
  * Chrome live de la page (`document.querySelectorAll('p[id]')`).
  *
- * `BOI-AIS-MOB-10-30-10` (Dispositions communes — Taxes sur l'affectation
+ * `BOI-AIS-MOB-10-30-10` (Dispositions communes · Taxes sur l'affectation
  * des véhicules à des fins économiques) :
  * - Version 2024-07-10 → 2025-05-28 : `20240710`. Vérifié contenir
  *   § 50/60/190 sur les indispos réductrices avec leurs ancres exactes.

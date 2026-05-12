@@ -141,7 +141,7 @@ final class DashboardStatsService
 
     /**
      * Historique des 4 KPIs **dans le scope dynamique des contrats**
-     * (cf. `AvailableYearsResolver` — doctrine "données métier"). Si
+     * (cf. `AvailableYearsResolver` · doctrine "données métier"). Si
      * le scope remonte au-delà de {@see HISTORY_MAX_YEARS}, on tronque
      * aux N dernières années pour préserver la lisibilité visuelle.
      *
@@ -156,7 +156,7 @@ final class DashboardStatsService
         $currentYear = $this->availableYears->currentYear();
         $scope = $this->availableYears->availableYears();
         // Garantit que l'année courante figure dans l'historique
-        // (même si scope contrats vide — cas appli neuve).
+        // (même si scope contrats vide · cas appli neuve).
         if (! in_array($currentYear, $scope, true)) {
             $scope[] = $currentYear;
             sort($scope);
@@ -193,7 +193,7 @@ final class DashboardStatsService
     }
 
     /**
-     * Aperçu opérationnel immédiat — heatmap 30 derniers jours flotte +
+     * Aperçu opérationnel immédiat · heatmap 30 derniers jours flotte +
      * top 3 véhicules par taxe YTD.
      */
     public function computeActivity(): DashboardActivityData
@@ -208,7 +208,7 @@ final class DashboardStatsService
     }
 
     /**
-     * Compteurs des tâches en attente — placeholders MVP à `0`. Voir
+     * Compteurs des tâches en attente · placeholders MVP à `0`. Voir
      * {@see DashboardPendingTasksData} pour la roadmap d'alimentation.
      */
     public function computePendingTasks(): DashboardPendingTasksData

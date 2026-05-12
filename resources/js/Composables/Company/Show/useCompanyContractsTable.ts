@@ -6,7 +6,7 @@
  * sur les seules clés `contracts` + `contractsQuery`.
  *
  * **Périmètre filtres (V1)** : période uniquement. Pas de search, pas
- * de filtre type/véhicule/conducteur — la fiche Company est déjà
+ * de filtre type/véhicule/conducteur · la fiche Company est déjà
  * scope-restreinte à une entreprise, on garde dense et focal. Si le
  * besoin émerge, ajouter ici.
  *

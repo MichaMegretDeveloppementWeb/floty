@@ -11,7 +11,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail du calcul du « Taxe pleine {année} » d'un véhicule — exposé
+ * Détail du calcul du « Taxe pleine {année} » d'un véhicule · exposé
  * par segment VFC depuis le chantier dette VFC pour garantir la
  * cohérence affichage/total quand un véhicule a plusieurs versions
  * actives sur l'année.
@@ -26,7 +26,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - taxSegments : un {@see VehicleFullYearTaxSegmentData} par
  *     période VFC active. Liste à 1 segment en mono-VFC, à N en
  *     multi-VFC. Vide ssi le véhicule n'avait pas de VFC sur l'année
- *     calculée (cas véhicule créé après l'exercice — service
+ *     calculée (cas véhicule créé après l'exercice · service
  *     responsable de poser un placeholder explicite).
  */
 #[TypeScript]

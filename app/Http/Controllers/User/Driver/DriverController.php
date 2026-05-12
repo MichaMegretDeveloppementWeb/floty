@@ -172,7 +172,7 @@ final class DriverController extends Controller
     }
 
     /**
-     * PATCH /drivers/{driver}/memberships/{pivotId} — édite une membership
+     * PATCH /drivers/{driver}/memberships/{pivotId} · édite une membership
      * existante (chantier B). Scope V1 : `joined_at` uniquement (la
      * gestion de `left_at` reste pilotée par le workflow Sortir).
      */

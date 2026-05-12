@@ -27,7 +27,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Feature Part A.3 — invariants additifs critiques (audit confiance
+ * Tests Feature Part A.3 · invariants additifs critiques (audit confiance
  * 7/10 → 9/10).
  *
  * Vérifient que :

@@ -29,7 +29,7 @@ use Inertia\Response;
  * **Refonte 04.F (ADR-0014)** : `storeBulk` crée désormais des contrats
  * (plage `[start_date, end_date]`) au lieu de jours individuels.
  *
- * **Chantier J (ADR-0020)** : sélecteur d'année **local** à la page —
+ * **Chantier J (ADR-0020)** : sélecteur d'année **local** à la page ·
  * `?year=YYYY` URL avec fallback année calendaire courante. Plus de
  * dépendance à `FiscalYearResolver` (supprimé).
  */
@@ -157,7 +157,7 @@ final class PlanningController extends Controller
     }
 
     /**
-     * Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 5) —
+     * Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 5) ·
      * l'utilisateur pilote n'importe quelle année calendaire raisonnable
      * (range 1900-2100). Le sélecteur UI affiche `yearScope` (scope
      * contrats), mais un deep-link `?year=` libre reste honoré. Fallback
