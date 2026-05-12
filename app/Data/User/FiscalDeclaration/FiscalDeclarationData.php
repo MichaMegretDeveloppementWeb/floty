@@ -6,6 +6,7 @@ namespace App\Data\User\FiscalDeclaration;
 
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
+use App\Services\Fiscal\SnapshotHashCalculator;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -43,6 +44,15 @@ final class FiscalDeclarationData extends Data
         public ?int $supersededById,
         #[DataCollectionOf(InvalidationReasonData::class)]
         public ?array $obsoleteReasons,
+        /**
+         * Phase 13 D5.10.J · SHA-256 du snapshot canonique = empreinte
+         * fiscale du document. Affichée à l'identique sur le PDF (bloc
+         * sceau) et sur la page Show de la déclaration · permet à toute
+         * partie qui dispose du snapshot de vérifier l'intégrité du
+         * document fiscal. Null pour les déclarations non encore
+         * générées (pas de snapshot persisté).
+         */
+        public ?string $snapshotHash = null,
     ) {}
 
     public static function fromModel(FiscalDeclaration $declaration): self
@@ -54,6 +64,10 @@ final class FiscalDeclarationData extends Data
                 $declaration->obsolete_reasons,
             ));
         }
+
+        $snapshotHash = is_array($declaration->generated_snapshot_payload)
+            ? SnapshotHashCalculator::compute($declaration->generated_snapshot_payload)
+            : null;
 
         return new self(
             id: $declaration->id,
@@ -69,6 +83,7 @@ final class FiscalDeclarationData extends Data
             obsoleteAt: $declaration->obsolete_at?->toIso8601String(),
             supersededById: $declaration->superseded_by_id,
             obsoleteReasons: $reasons,
+            snapshotHash: $snapshotHash,
         );
     }
 }

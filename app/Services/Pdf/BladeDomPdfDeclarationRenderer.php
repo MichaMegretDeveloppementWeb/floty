@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Services\Pdf;
 
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
+use App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData;
 use App\Enums\Contract\ContractType;
-use App\Enums\FiscalReviewDecision\ReviewDecisionType;
-use App\Enums\FiscalReviewDecision\RiskCode;
-use App\Enums\FiscalReviewDecision\RiskLevel;
 use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
+use App\Services\Fiscal\SnapshotHashCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
@@ -54,6 +53,13 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
     {
         $snapshot = $context->snapshot;
 
+        // Le hash doit matcher exactement celui calculé côté Show depuis le
+        // payload JSON persisté en BDD · on canonise via la même
+        // sérialisation Spatie Data utilisée par
+        // GenerateDeclarationAction lors de l'enregistrement de
+        // `generated_snapshot_payload`.
+        $canonicalPayload = FiscalDeclarationSnapshotData::fromValueObject($snapshot)->toArray();
+
         return [
             'reference' => $context->reference,
             'generatedAtLabel' => $context->generatedAt->format('d/m/Y H:i'),
@@ -64,17 +70,17 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
             'pollutantsDueTotal' => $this->formatEuros($snapshot->pollutantsDueTotal),
             'totalDue' => $this->formatEuros($snapshot->totalDue),
             'contractRows' => $this->buildContractRows($snapshot->contractBreakdown),
-            'optOutContractsCount' => count($snapshot->optOutContractIds),
+            'snapshotHash' => SnapshotHashCalculator::compute($canonicalPayload),
         ];
     }
 
     /**
      * Itère sur le breakdown trié `(vehicleLabel, startDate)` et produit
-     * une liste de rows prête à l'affichage : chaque row porte
-     * `clusterHeader` rempli uniquement quand elle ouvre un nouveau
-     * cluster (premier contrat consécutif partageant le `fingerprint`).
-     * Cette structure permet au template Blade de rendre le header en
-     * une ligne séparée (bordure + agrégats) sans recalcul côté vue.
+     * une liste plate de rows prête à l'affichage. Phase 13 D5.10.J · le
+     * PDF officiel ne porte plus les annotations de revue interne
+     * (cluster headers, niveaux de risque, décisions, justifications) ·
+     * uniquement le détail par contrat avec son traitement fiscal final
+     * déjà appliqué.
      *
      * @param  list<ContractSnapshotEntry>  $contractBreakdown
      * @return list<array{
@@ -84,47 +90,12 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
      *     vehicleFiscalSummary: string,
      *     daysInYearAssigned: int,
      *     totalDue: string,
-     *     isInCluster: bool,
-     *     clusterRiskLevel: ?string,
-     *     clusterDecisionRetained: bool,
-     *     clusterHeader: ?array{
-     *         codeLabel: string,
-     *         levelLabel: string,
-     *         levelClass: string,
-     *         contractsCount: int,
-     *         cumulativeDaysInYear: int,
-     *         decisionLabel: ?string,
-     *         decisionClass: ?string,
-     *         justification: ?string,
-     *     }
      * }>
      */
     private function buildContractRows(array $contractBreakdown): array
     {
-        $clusterAggregates = $this->aggregateClustersByFingerprint($contractBreakdown);
-
         $rows = [];
-        $previousFingerprint = null;
         foreach ($contractBreakdown as $entry) {
-            $fingerprint = $entry->clusterFingerprint;
-            $isFirstInCluster = $fingerprint !== null
-                && $fingerprint !== $previousFingerprint;
-
-            $clusterHeader = null;
-            if ($isFirstInCluster) {
-                $aggregate = $clusterAggregates[$fingerprint];
-                $clusterHeader = [
-                    'codeLabel' => $this->codeLabel($entry->clusterRiskCode),
-                    'levelLabel' => $this->levelLabel($entry->clusterRiskLevel),
-                    'levelClass' => $this->levelClass($entry->clusterRiskLevel),
-                    'contractsCount' => $aggregate['contractsCount'],
-                    'cumulativeDaysInYear' => $aggregate['cumulativeDaysInYear'],
-                    'decisionLabel' => $this->decisionLabel($entry->clusterDecision),
-                    'decisionClass' => $this->decisionClass($entry->clusterDecision),
-                    'justification' => $entry->clusterJustification,
-                ];
-            }
-
             $rows[] = [
                 'period' => $this->formatPeriod($entry->startDate, $entry->endDate),
                 'contractTypeLabel' => $entry->contractType === ContractType::Lcd ? 'LCD' : 'LLD',
@@ -132,86 +103,10 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
                 'vehicleFiscalSummary' => $entry->vehicleFiscalSummary,
                 'daysInYearAssigned' => $entry->daysInYearAssigned,
                 'totalDue' => $this->formatEuros($entry->totalDue),
-                'isInCluster' => $fingerprint !== null,
-                'clusterRiskLevel' => $entry->clusterRiskLevel?->value,
-                'clusterDecisionRetained' => $entry->clusterDecisionRetainedFrom !== null,
-                'clusterHeader' => $clusterHeader,
             ];
-
-            $previousFingerprint = $fingerprint;
         }
 
         return $rows;
-    }
-
-    /**
-     * @param  list<ContractSnapshotEntry>  $contractBreakdown
-     * @return array<string, array{contractsCount: int, cumulativeDaysInYear: int}>
-     */
-    private function aggregateClustersByFingerprint(array $contractBreakdown): array
-    {
-        $aggregates = [];
-        foreach ($contractBreakdown as $entry) {
-            $fingerprint = $entry->clusterFingerprint;
-            if ($fingerprint === null) {
-                continue;
-            }
-            if (! isset($aggregates[$fingerprint])) {
-                $aggregates[$fingerprint] = [
-                    'contractsCount' => 0,
-                    'cumulativeDaysInYear' => 0,
-                ];
-            }
-            $aggregates[$fingerprint]['contractsCount']++;
-            $aggregates[$fingerprint]['cumulativeDaysInYear'] += $entry->daysInYearAssigned;
-        }
-
-        return $aggregates;
-    }
-
-    private function codeLabel(?RiskCode $code): string
-    {
-        return match ($code) {
-            RiskCode::ChainFort => 'Chaîne LCD forte',
-            RiskCode::Chain => 'Chaîne LCD',
-            null => '',
-        };
-    }
-
-    private function levelLabel(?RiskLevel $level): string
-    {
-        return match ($level) {
-            RiskLevel::Eleve => 'Risque élevé',
-            RiskLevel::Moyen => 'Risque moyen',
-            null => '',
-        };
-    }
-
-    private function levelClass(?RiskLevel $level): string
-    {
-        return match ($level) {
-            RiskLevel::Eleve => 'level-eleve',
-            RiskLevel::Moyen => 'level-moyen',
-            null => '',
-        };
-    }
-
-    private function decisionLabel(?ReviewDecisionType $decision): ?string
-    {
-        return match ($decision) {
-            ReviewDecisionType::Requalified => 'Requalifié',
-            ReviewDecisionType::Conserved => 'Conservé',
-            null => null,
-        };
-    }
-
-    private function decisionClass(?ReviewDecisionType $decision): ?string
-    {
-        return match ($decision) {
-            ReviewDecisionType::Requalified => 'pill-requalified',
-            ReviewDecisionType::Conserved => 'pill-conserved',
-            null => null,
-        };
     }
 
     private function formatPeriod(string $startDate, string $endDate): string

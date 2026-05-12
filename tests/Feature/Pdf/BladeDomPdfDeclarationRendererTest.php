@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Pdf;
 
 use App\Data\User\FiscalDeclaration\DeclarationPreviewData;
+use App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData;
 use App\Enums\Contract\ContractType;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
@@ -13,6 +14,7 @@ use App\Fiscal\ValueObjects\AppliedDecisionEntry;
 use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
 use App\Fiscal\ValueObjects\FiscalDeclarationSnapshot;
+use App\Services\Fiscal\SnapshotHashCalculator;
 use App\Services\Pdf\BladeDomPdfDeclarationRenderer;
 use Carbon\CarbonImmutable;
 use PHPUnit\Framework\Attributes\Test;
@@ -89,29 +91,60 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
     }
 
     #[Test]
-    public function html_groupe_les_contrats_d_un_meme_cluster_avec_header(): void
+    public function html_ne_contient_aucune_annotation_interne_de_revue(): void
     {
+        // Phase 13 D5.10.J · le PDF officiel ne doit plus exposer les
+        // mentions de revue interne (cluster headers, niveaux de risque,
+        // décisions, justifications, marques de décision reprise). Seuls
+        // les contrats avec leur traitement fiscal final apparaissent.
         $html = $this->renderer->renderHtml($this->buildContextWithCluster());
 
-        // Header de cluster visible (label + niveau + cumul)
-        self::assertStringContainsString('Chaîne LCD', $html);
-        self::assertStringContainsString('Risque moyen', $html);
-        self::assertStringContainsString('2 contrats LCD', $html);
-        self::assertStringContainsString('cumul 30', $html);
-        // Décision conservée affichée dans le header de cluster
-        self::assertStringContainsString('Conservé', $html);
-        // Justification dans le header
-        self::assertStringContainsString('Décision justifiée par le métier.', $html);
-        // Marque cluster-row sur les lignes contrats
-        self::assertStringContainsString('cluster-row', $html);
+        self::assertStringNotContainsString('Chaîne LCD', $html);
+        self::assertStringNotContainsString('Risque moyen', $html);
+        self::assertStringNotContainsString('contrats LCD', $html);
+        self::assertStringNotContainsString('cumul', $html);
+        self::assertStringNotContainsString('Conservé', $html);
+        self::assertStringNotContainsString('Décision justifiée par le métier.', $html);
+        self::assertStringNotContainsString('cluster-row', $html);
+        self::assertStringNotContainsString('décision reprise', $html);
     }
 
     #[Test]
-    public function html_marque_les_contrats_dont_la_decision_a_ete_reprise(): void
+    public function html_ne_contient_pas_le_bloc_mentions_legales(): void
     {
-        $html = $this->renderer->renderHtml($this->buildContextWithCluster());
+        // Phase 13 D5.10.J · le bloc « mentions légales » pédagogique
+        // (CIBS / BOFiP / R-2024-021) est retiré du document officiel.
+        $html = $this->renderer->renderHtml($this->buildContext());
 
-        self::assertStringContainsString('décision reprise', $html);
+        self::assertStringNotContainsString('Mentions légales', $html);
+        self::assertStringNotContainsString('R-2024-021', $html);
+    }
+
+    #[Test]
+    public function html_ne_contient_pas_de_tag_annexe_documentaire(): void
+    {
+        // Phase 13 D5.10.J · plus de tag « Annexe documentaire » dans
+        // l'entête · le document est officiel.
+        $html = $this->renderer->renderHtml($this->buildContext());
+
+        self::assertStringNotContainsString('Annexe documentaire', $html);
+        self::assertStringNotContainsString('doc-tag', $html);
+    }
+
+    #[Test]
+    public function html_expose_le_sha256_du_snapshot_dans_le_sceau(): void
+    {
+        // Phase 13 D5.10.J · empreinte fiscale déterministe imprimée
+        // dans le sceau de génération · doit matcher le hash calculé
+        // côté Show pour permettre la vérification d'intégrité.
+        $context = $this->buildContext();
+        $expectedHash = SnapshotHashCalculator::compute(
+            FiscalDeclarationSnapshotData::fromValueObject($context->snapshot)->toArray(),
+        );
+        $html = $this->renderer->renderHtml($context);
+
+        self::assertStringContainsString('SHA-256', $html);
+        self::assertStringContainsString($expectedHash, $html);
     }
 
     #[Test]
@@ -158,7 +191,7 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
         $html = $this->renderer->renderHtml($this->buildContext());
 
         self::assertStringContainsString('Sceau de génération', $html);
-        self::assertStringContainsString('Annexe documentaire', $html);
+        self::assertStringContainsString('DECL-ACM-2024-0001', $html);
     }
 
     private function buildContext(): DeclarationRenderContext

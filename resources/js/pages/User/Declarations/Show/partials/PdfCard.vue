@@ -18,7 +18,16 @@
  *     périmètre.
  */
 import { Link, router } from '@inertiajs/vue3';
-import { Download, FileText, LoaderCircle, Pencil, Recycle, RefreshCcw } from 'lucide-vue-next';
+import {
+    Check,
+    Copy,
+    Download,
+    FileText,
+    LoaderCircle,
+    Pencil,
+    Recycle,
+    RefreshCcw,
+} from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -96,6 +105,22 @@ const isIntermediateDraft = computed<boolean>(
         && (props.declaration.status === 'draft' || props.declaration.status === 'deferred'),
 );
 
+// Phase 13 D5.10.J · empreinte SHA-256 du snapshot (cohérent avec le
+// hash imprimé dans le sceau du PDF). Bouton copy avec feedback visuel
+// éphémère de 2s.
+const copied = ref<boolean>(false);
+
+function copyHash(): void {
+    if (props.declaration.snapshotHash === null) {
+        return;
+    }
+    void navigator.clipboard.writeText(props.declaration.snapshotHash);
+    copied.value = true;
+    setTimeout(() => {
+        copied.value = false;
+    }, 2000);
+}
+
 const modifyConfirmMessage = computed<string>(() => {
     const ref = props.declaration.reference ?? `#${props.declaration.id}`;
 
@@ -157,14 +182,30 @@ function confirmModify(): void {
         </template>
 
         <div v-if="declaration.generatedAt" class="flex flex-col gap-4">
-            <div class="flex flex-col gap-1">
+            <div class="flex flex-col gap-1.5">
                 <p class="text-sm text-slate-600">
                     Document généré le
                     <span class="font-medium text-slate-900">{{ formatDateFr(declaration.generatedAt) }}</span>.
                 </p>
-                <p v-if="declaration.generatedPdfHash" class="font-mono text-[11px] text-slate-400">
-                    Hash · {{ declaration.generatedPdfHash.slice(0, 16) }}…
-                </p>
+                <div v-if="declaration.snapshotHash" class="flex flex-wrap items-start gap-2">
+                    <p class="font-mono text-xs break-all text-slate-500">
+                        SHA-256 · {{ declaration.snapshotHash }}
+                    </p>
+                    <button
+                        type="button"
+                        class="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md border border-slate-200 px-1.5 py-0.5 text-xs text-slate-600 transition-colors duration-[120ms] hover:bg-slate-50"
+                        :title="copied ? 'Copié !' : 'Copier l\'empreinte'"
+                        @click="copyHash"
+                    >
+                        <Check
+                            v-if="copied"
+                            :size="12"
+                            :stroke-width="1.75"
+                            class="text-emerald-600"
+                        />
+                        <Copy v-else :size="12" :stroke-width="1.75" />
+                    </button>
+                </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">

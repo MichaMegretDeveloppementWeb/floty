@@ -8,6 +8,10 @@
          * Police DejaVu Sans embarquée par dompdf, UTF-8 native (rend
          * correctement é/è/à/É/€/etc. là où Helvetica les transforme en `?`).
          * CSS basé sur display: table car DomPDF ne supporte ni flexbox ni grid.
+         *
+         * Phase 13 D5.10.J · refonte officielle · suppression des mentions
+         * internes (annexe, audit, clusters, mentions légales pédagogiques)
+         * + allègement des titres + sceau enrichi d'une empreinte SHA-256.
          */
         @page { margin: 22mm 18mm; }
         * { box-sizing: border-box; }
@@ -19,7 +23,7 @@
             margin: 0;
         }
         h1 {
-            font-size: 22pt;
+            font-size: 18pt;
             font-weight: bold;
             margin: 0;
             letter-spacing: -0.02em;
@@ -50,20 +54,8 @@
             width: 40%;
             text-align: right;
         }
-        .doc-tag {
-            display: inline-block;
-            background: #f1f5f9;
-            color: #475569;
-            font-size: 7.5pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            padding: 1.5mm 3mm;
-            border-radius: 1.5mm;
-            margin-bottom: 1.5mm;
-        }
         .doc-ref {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
             letter-spacing: 0.02em;
             color: #475569;
@@ -91,7 +83,7 @@
             margin-bottom: 1mm;
         }
         .meta-block .meta-value {
-            font-size: 11pt;
+            font-size: 10.5pt;
             color: #0f172a;
             font-weight: bold;
         }
@@ -128,11 +120,11 @@
         table.summary tr.total td {
             border-top: 2px solid #0f172a;
             border-bottom: none;
-            font-size: 11pt;
+            font-size: 10.5pt;
             padding-top: 3mm;
         }
         table.summary tr.total td.amount {
-            font-size: 13pt;
+            font-size: 12pt;
             color: #0f172a;
         }
         table.lines th {
@@ -165,78 +157,14 @@
             color: #94a3b8;
             padding: 3mm 0;
         }
-        .pill {
-            display: inline-block;
-            padding: 0.5mm 2mm;
-            border-radius: 1mm;
-            font-size: 7.5pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-        .pill-requalified { background: #fee2e2; color: #991b1b; }
-        .pill-conserved { background: #dcfce7; color: #166534; }
-        .pill-level-moyen { background: #fef3c7; color: #92400e; }
-        .pill-level-eleve { background: #fee2e2; color: #991b1b; }
-        /*
-         * Cluster groups · DomPDF ne propage pas border-left sur tr,
-         * donc on l'applique à la première td de chaque ligne du cluster
-         * via les classes `cluster-row.level-*`. Le header de groupe a
-         * son propre fond pour matérialiser visuellement le regroupement.
-         */
-        tr.cluster-header td {
-            font-size: 8.5pt;
-            padding: 1.5mm 3mm;
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        tr.cluster-header.level-eleve td { background: #fef2f2; }
-        tr.cluster-header.level-moyen td { background: #fffbeb; }
-        tr.cluster-header .cluster-title {
-            font-weight: bold;
-            color: #0f172a;
-        }
-        tr.cluster-header .cluster-meta {
-            color: #475569;
-            font-size: 8pt;
-        }
-        tr.cluster-header .cluster-justification {
-            display: block;
-            color: #475569;
-            font-style: italic;
-            font-size: 8pt;
-            margin-top: 1mm;
-        }
-        tr.cluster-row td:first-child {
-            border-left: 3px solid #e2e8f0;
-            padding-left: 4mm;
-        }
-        tr.cluster-row.level-eleve td:first-child { border-left-color: #f87171; }
-        tr.cluster-row.level-moyen td:first-child { border-left-color: #f59e0b; }
-        .retained-tag {
-            display: inline-block;
-            margin-left: 1.5mm;
-            font-size: 7pt;
-            color: #64748b;
-            font-style: italic;
-        }
         .vehicle-summary {
             display: block;
             color: #94a3b8;
             font-size: 8pt;
             margin-top: 0.5mm;
         }
-        .legal {
-            margin-top: 8mm;
-            padding-top: 4mm;
-            border-top: 1px solid #e2e8f0;
-            font-size: 8pt;
-            color: #64748b;
-            line-height: 1.6;
-        }
-        .legal strong { color: #475569; }
         .seal {
-            margin-top: 4mm;
+            margin-top: 6mm;
             padding: 3mm 4mm;
             background: #f8fafc;
             border-left: 3px solid #475569;
@@ -246,6 +174,13 @@
         .seal strong {
             color: #0f172a;
             font-size: 9pt;
+        }
+        .seal .hash {
+            margin-top: 1.5mm;
+            font-family: 'DejaVu Sans Mono', monospace;
+            font-size: 7.5pt;
+            color: #475569;
+            word-break: break-all;
         }
         .mono {
             font-family: 'DejaVu Sans Mono', monospace;
@@ -257,7 +192,6 @@
     <header class="header">
         <div class="header-top">
             <div class="title-cell">
-                <span class="doc-tag">Annexe documentaire</span>
                 <h1>Déclaration fiscale</h1>
             </div>
             <div class="ref-cell">
@@ -315,34 +249,7 @@
                 </thead>
                 <tbody>
                     @foreach ($contractRows as $row)
-                        @if ($row['clusterHeader'] !== null)
-                            <tr class="cluster-header level-{{ $row['clusterRiskLevel'] }}">
-                                <td colspan="5">
-                                    <span class="cluster-title">
-                                        {{ $row['clusterHeader']['codeLabel'] }}
-                                    </span>
-                                    <span class="pill pill-{{ $row['clusterHeader']['levelClass'] }}">
-                                        {{ $row['clusterHeader']['levelLabel'] }}
-                                    </span>
-                                    <span class="cluster-meta">
-                                        · {{ $row['clusterHeader']['contractsCount'] }} contrats LCD ·
-                                        cumul {{ $row['clusterHeader']['cumulativeDaysInYear'] }}
-                                        @if ($row['clusterHeader']['cumulativeDaysInYear'] > 1) jours @else jour @endif
-                                    </span>
-                                    @if ($row['clusterHeader']['decisionLabel'] !== null)
-                                        <span class="pill {{ $row['clusterHeader']['decisionClass'] }}" style="float: right;">
-                                            {{ $row['clusterHeader']['decisionLabel'] }}
-                                        </span>
-                                    @endif
-                                    @if ($row['clusterHeader']['justification'])
-                                        <span class="cluster-justification">
-                                            {{ $row['clusterHeader']['justification'] }}
-                                        </span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @endif
-                        <tr class="@if ($row['isInCluster']) cluster-row level-{{ $row['clusterRiskLevel'] }} @endif">
+                        <tr>
                             <td class="mono">{{ $row['period'] }}</td>
                             <td>{{ $row['contractTypeLabel'] }}</td>
                             <td>
@@ -350,41 +257,18 @@
                                 <span class="vehicle-summary">{{ $row['vehicleFiscalSummary'] }}</span>
                             </td>
                             <td class="numeric">{{ $row['daysInYearAssigned'] }}</td>
-                            <td class="numeric">
-                                {{ $row['totalDue'] }}
-                                @if ($row['clusterDecisionRetained'])
-                                    <span class="retained-tag">décision reprise</span>
-                                @endif
-                            </td>
+                            <td class="numeric">{{ $row['totalDue'] }}</td>
                         </tr>
                     @endforeach
                 </tbody>
             </table>
-            @if ($optOutContractsCount > 0)
-                <p style="margin-top: 3mm; font-size: 8.5pt; color: #475569;">
-                    {{ $optOutContractsCount }} contrat(s) requalifié(s) ont été retirés de l'exonération
-                    R-2024-021 (locations courtes durées).
-                </p>
-            @endif
         @endif
     </section>
-
-    <div class="legal">
-        <strong>Mentions légales.</strong>
-        Le présent document est une <strong>annexe documentaire interne</strong> à valeur
-        d'audit. Il ne se substitue pas à la déclaration officielle de la
-        Contribution sur la mise en service de véhicules (CIBS) à effectuer sur
-        impots.gouv.fr conformément aux articles CIBS L. 421-29 (taxe CO₂) et
-        CIBS L. 421-58 (taxe polluants atmosphériques). Les montants exposés
-        ci-dessus sont calculés au prorata des jours d'attribution réelle par
-        entreprise utilisatrice (R-2024-002) avec un arrondi half-up unique en
-        sortie (R-2024-003). Les décisions de revue « Requalifié » retirent
-        l'exonération LCD aux contrats concernés (CIBS L. 421-141, BOFiP § 180-190).
-    </div>
 
     <div class="seal">
         <strong>Sceau de génération.</strong>
         Document {{ $reference }} produit le {{ $generatedAtLabel }}.
+        <div class="hash">SHA-256 · {{ $snapshotHash }}</div>
     </div>
 </body>
 </html>
