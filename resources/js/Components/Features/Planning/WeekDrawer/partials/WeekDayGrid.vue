@@ -63,9 +63,10 @@ function isSelected(date: string, selected: string[]): boolean {
                 </span>
                 <CompanyTag
                     v-if="slot.contract"
-                    :name="slot.contract.company.shortCode"
+                    :name="slot.contract.company.legalName"
                     :initials="slot.contract.company.shortCode"
                     :color="slot.contract.company.color"
+                    compact
                     class="mt-1"
                 />
                 <span

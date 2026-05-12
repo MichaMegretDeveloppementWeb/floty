@@ -13,6 +13,7 @@
  */
 import { Info } from 'lucide-vue-next';
 import Card from '@/Components/Ui/Card/Card.vue';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 import {
     energySourceLabel,
     euroStandardLabel,
@@ -47,14 +48,8 @@ function co2Display(vfc: Vfc): string {
     return '—';
 }
 
-function formatDate(iso: string): string {
-    const [year, month, day] = iso.split('-');
-
-    return `${day}/${month}/${year}`;
-}
-
 function segmentPeriodLabel(seg: Segment): string {
-    return `Du ${formatDate(seg.effectiveFromInYear)} au ${formatDate(seg.effectiveToInYear)}`;
+    return `Du ${formatDateFr(seg.effectiveFromInYear)} au ${formatDateFr(seg.effectiveToInYear)}`;
 }
 </script>
 

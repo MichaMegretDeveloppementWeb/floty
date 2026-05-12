@@ -58,7 +58,7 @@ const companySelectOptions = computed(() =>
 // décroissante. Si pas de facture en base, on retombe sur l'année
 // courante seule (cas table vide, mais l'UI cache l'ensemble du
 // listing dans ce cas via `hasAnyInvoice`).
-const yearOptions = computed(() => {
+const yearOptions = computed<{ value: number | null; label: string }[]>(() => {
     const currentYear = new Date().getFullYear();
     const bounds = props.options.yearBounds;
 
@@ -71,10 +71,14 @@ const yearOptions = computed(() => {
         years.push(y);
     }
 
-    return years.map((y) => ({ value: y, label: String(y) }));
+    return [
+        { value: null, label: 'Toutes les années' },
+        ...years.map((y) => ({ value: y, label: String(y) })),
+    ];
 });
 
-const monthOptions = [
+const monthOptions: { value: number | null; label: string }[] = [
+    { value: null, label: 'Tous les mois' },
     { value: 1, label: 'Janvier' }, { value: 2, label: 'Février' },
     { value: 3, label: 'Mars' }, { value: 4, label: 'Avril' },
     { value: 5, label: 'Mai' }, { value: 6, label: 'Juin' },
@@ -139,20 +143,16 @@ const monthOptions = [
                                 <FieldLabel for="filter-invoice-year">Année</FieldLabel>
                                 <SelectInput
                                     id="filter-invoice-year"
-                                    v-model.number="yearModel"
-                                    placeholder="Toutes les années"
+                                    v-model="yearModel"
                                     :options="yearOptions"
-                                    nullable
                                 />
                             </div>
                             <div>
                                 <FieldLabel for="filter-invoice-month">Mois</FieldLabel>
                                 <SelectInput
                                     id="filter-invoice-month"
-                                    v-model.number="monthModel"
-                                    placeholder="Tous les mois"
+                                    v-model="monthModel"
                                     :options="monthOptions"
-                                    nullable
                                 />
                             </div>
                             <div class="border-t border-slate-100 pt-3">

@@ -16,9 +16,10 @@ defineProps<{
                 class="flex items-center justify-between gap-3 rounded-md bg-slate-50 px-3 py-2 text-sm"
             >
                 <CompanyTag
-                    :name="entry.company.shortCode"
+                    :name="entry.company.legalName"
                     :initials="entry.company.shortCode"
                     :color="entry.company.color"
+                    compact
                 />
                 <div class="flex-1 truncate text-slate-700">
                     {{ entry.company.legalName }}

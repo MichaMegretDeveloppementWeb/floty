@@ -57,6 +57,7 @@ final class DriverQueryService
             ->map(fn ($company): DriverListItemCompanyTagData => new DriverListItemCompanyTagData(
                 companyId: $company->id,
                 shortCode: $company->short_code,
+                legalName: $company->legal_name,
                 color: $company->color,
             ))
             ->all();

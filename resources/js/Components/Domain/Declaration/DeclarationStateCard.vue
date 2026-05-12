@@ -48,6 +48,7 @@ import {
     review as reviewDeclarationRoute,
     show as showDeclarationRoute,
 } from '@/routes/user/declarations';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 import {
     formatInvalidationOccurredAt,
     formatInvalidationReason,
@@ -77,7 +78,7 @@ const generatedAtFormatted = computed<string | null>(() => {
         return null;
     }
 
-    return new Date(current.value.generatedAt).toLocaleDateString('fr-FR');
+    return formatDateFr(current.value.generatedAt);
 });
 
 function handlePrepare(): void {

@@ -62,6 +62,7 @@ const companyIdModel = computed<number | null>({
 });
 
 const activityStatusOptions = [
+    { value: '', label: 'Tous' },
     { value: 'active', label: 'Actuellement actif' },
     { value: 'inactive', label: 'Inactif partout' },
 ];
@@ -78,6 +79,7 @@ const activityStatusModel = computed<string | number>({
 });
 
 const contractsScopeOptions = [
+    { value: '', label: 'Tous' },
     { value: 'with', label: 'Avec locations' },
     { value: 'without', label: 'Sans locations' },
 ];
@@ -182,9 +184,7 @@ const contractsScopeModel = computed<string | number>({
                                 <SelectInput
                                     id="filter-activity"
                                     v-model="activityStatusModel"
-                                    placeholder="Tous"
                                     :options="activityStatusOptions"
-                                    nullable
                                 />
                             </div>
                             <div>
@@ -194,9 +194,7 @@ const contractsScopeModel = computed<string | number>({
                                 <SelectInput
                                     id="filter-contracts"
                                     v-model="contractsScopeModel"
-                                    placeholder="Tous"
                                     :options="contractsScopeOptions"
-                                    nullable
                                 />
                             </div>
                         </div>

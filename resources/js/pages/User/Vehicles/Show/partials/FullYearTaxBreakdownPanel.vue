@@ -14,6 +14,7 @@ import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import { useFullYearTaxBreakdownPanel } from '@/Composables/Vehicle/Show/useFullYearTaxBreakdownPanel';
 import RuleCard from '@/pages/User/FiscalRules/Index/partials/RuleCard.vue';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 import {
     homologationMethodLabel,
@@ -30,16 +31,10 @@ const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
     useFullYearTaxBreakdownPanel(props);
 
 function segmentPeriodLabel(seg: Segment): string {
-    const from = formatDmy(seg.effectiveFromInYear);
-    const to = formatDmy(seg.effectiveToInYear);
+    const from = formatDateFr(seg.effectiveFromInYear);
+    const to = formatDateFr(seg.effectiveToInYear);
 
     return `Du ${from} au ${to} · ${seg.daysInSegment} j`;
-}
-
-function formatDmy(iso: string): string {
-    const [year, month, day] = iso.split('-');
-
-    return `${day}/${month}/${year}`;
 }
 </script>
 

@@ -71,6 +71,7 @@ const driverSelectOptions = computed(() =>
 );
 
 const typeOptions = [
+    { value: '', label: 'Tous les types' },
     { value: 'lcd', label: 'LCD (≤ 30 jours)' },
     { value: 'lld', label: 'LLD (> 30 jours)' },
 ];
@@ -429,9 +430,7 @@ return 'Aucune période sélectionnée';
                                 <SelectInput
                                     id="filter-type"
                                     v-model="typeModel"
-                                    placeholder="Tous les types"
                                     :options="typeOptions"
-                                    nullable
                                 />
                             </div>
                         </div>

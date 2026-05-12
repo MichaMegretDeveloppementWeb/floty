@@ -57,6 +57,7 @@ const searchModel = computed<string>({
 });
 
 const isActiveOptions = [
+    { value: '', label: 'Toutes' },
     { value: 'yes', label: 'Active' },
     { value: 'no', label: 'Inactive' },
 ];
@@ -77,6 +78,7 @@ const isActiveModel = computed<string | number>({
 });
 
 const contractsScopeOptions = [
+    { value: '', label: 'Toutes' },
     { value: 'with', label: 'Avec locations' },
     { value: 'without', label: 'Sans locations' },
 ];
@@ -88,22 +90,6 @@ const contractsScopeModel = computed<string | number>({
         tableState.state.setFilter(
             'contractsScope',
             v === 'with' || v === 'without' ? v : null,
-        );
-    },
-});
-
-const companyTypeOptions = [
-    { value: 'corporate', label: 'Personne morale' },
-    { value: 'individual', label: 'Entrepreneur individuel' },
-];
-
-const companyTypeModel = computed<string | number>({
-    get: () => tableState.state.filters.value.companyType ?? '',
-    set: (value: string | number) => {
-        const v = String(value);
-        tableState.state.setFilter(
-            'companyType',
-            v === 'corporate' || v === 'individual' ? v : null,
         );
     },
 });
@@ -124,10 +110,6 @@ const activeFiltersCount = computed<number>(() => {
     }
 
     if (f.contractsScope !== null) {
-        n += 1;
-    }
-
-    if (f.companyType !== null) {
         n += 1;
     }
 
@@ -172,9 +154,7 @@ const activeFiltersCount = computed<number>(() => {
                                 <SelectInput
                                     id="filter-active"
                                     v-model="isActiveModel"
-                                    placeholder="Toutes"
                                     :options="isActiveOptions"
-                                    nullable
                                 />
                             </div>
                             <div>
@@ -184,21 +164,7 @@ const activeFiltersCount = computed<number>(() => {
                                 <SelectInput
                                     id="filter-contracts"
                                     v-model="contractsScopeModel"
-                                    placeholder="Toutes"
                                     :options="contractsScopeOptions"
-                                    nullable
-                                />
-                            </div>
-                            <div>
-                                <FieldLabel for="filter-type"
-                                    >Type juridique</FieldLabel
-                                >
-                                <SelectInput
-                                    id="filter-type"
-                                    v-model="companyTypeModel"
-                                    placeholder="Tous"
-                                    :options="companyTypeOptions"
-                                    nullable
                                 />
                             </div>
                             <div>

@@ -52,9 +52,10 @@ const emit = defineEmits<{
                 <CompanyTag
                     v-for="tag in row.activeCompanies"
                     :key="tag.companyId"
-                    :name="tag.shortCode"
+                    :name="tag.legalName"
                     :initials="tag.shortCode"
                     :color="tag.color"
+                    compact
                 />
                 <span
                     v-if="

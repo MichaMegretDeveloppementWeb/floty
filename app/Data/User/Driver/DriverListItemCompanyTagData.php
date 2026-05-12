@@ -17,6 +17,7 @@ final class DriverListItemCompanyTagData extends Data
     public function __construct(
         public int $companyId,
         public string $shortCode,
+        public string $legalName,
         public CompanyColor $color,
     ) {}
 }

@@ -32,7 +32,6 @@ const COLUMN_TO_SORT_KEY: Partial<Record<string, CompanySortKey>> = {
 export type CompanyFilters = {
     isActive: boolean | null;
     contractsScope: 'with' | 'without' | null;
-    companyType: 'corporate' | 'individual' | null;
     city: string | null;
     /** Année qui pilote les colonnes financières (chantier J). */
     year: number;
@@ -58,7 +57,6 @@ export function useCompaniesTable(opts: {
         defaultFilters: {
             isActive: null,
             contractsScope: null,
-            companyType: null,
             city: null,
             year: opts.selectedYear,
         },
@@ -68,10 +66,6 @@ export function useCompaniesTable(opts: {
                 | 'with'
                 | 'without'
                 | null,
-            companyType: opts.query.companyType as
-                | 'corporate'
-                | 'individual'
-                | null,
             city: opts.query.city,
             year: opts.query.year ?? opts.selectedYear,
         },
@@ -80,7 +74,6 @@ export function useCompaniesTable(opts: {
             // Spatie Data ?isActive=1 / ?isActive=0 / absent.
             isActive: f.isActive === null ? null : f.isActive ? 1 : 0,
             contractsScope: f.contractsScope,
-            companyType: f.companyType,
             city: f.city,
             year: f.year,
         }),

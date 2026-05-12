@@ -196,30 +196,6 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
-    public function index_filtre_company_type(): void
-    {
-        $user = User::factory()->create();
-        Company::factory()->create(['is_individual_business' => false, 'legal_name' => 'Société']);
-        Company::factory()->create(['is_individual_business' => true, 'legal_name' => 'EI Dupont']);
-
-        $this->actingAs($user)
-            ->get('/app/companies?companyType=corporate')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('companies.meta.total', 1)
-                ->where('companies.data.0.legalName', 'Société'),
-            );
-
-        $this->actingAs($user)
-            ->get('/app/companies?companyType=individual')
-            ->assertOk()
-            ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('companies.meta.total', 1)
-                ->where('companies.data.0.legalName', 'EI Dupont'),
-            );
-    }
-
-    #[Test]
     public function index_filtre_city_like(): void
     {
         $user = User::factory()->create();

@@ -47,12 +47,6 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
             $eloquentQuery->doesntHave('contracts');
         }
 
-        if ($query->companyType === 'corporate') {
-            $eloquentQuery->where('is_individual_business', false);
-        } elseif ($query->companyType === 'individual') {
-            $eloquentQuery->where('is_individual_business', true);
-        }
-
         if ($query->city !== null && $query->city !== '') {
             $eloquentQuery->where('city', 'like', '%'.$query->city.'%');
         }

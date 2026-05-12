@@ -14,8 +14,6 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Filtres (tous SQL purs) :
  *  - `isActive` : statut activité (true/false/null)
  *  - `contractsScope` : 'with' = au moins un contrat ; 'without' = aucun
- *  - `companyType` : 'corporate' (personne morale) | 'individual'
- *     (entrepreneur individuel) — basé sur `is_individual_business`
  *  - `city` : LIKE sur `city`
  *
  * Whitelist sortKey : `shortCode | legalName | siren | city`. Les valeurs
@@ -28,7 +26,6 @@ final class CompanyIndexQueryData extends IndexQueryData
     public function __construct(
         public ?bool $isActive = null,
         public ?string $contractsScope = null,
-        public ?string $companyType = null,
         public ?string $city = null,
         /**
          * Année qui pilote les colonnes financières (`daysUsed`,
@@ -63,7 +60,6 @@ final class CompanyIndexQueryData extends IndexQueryData
         return array_merge(parent::rules(), [
             'isActive' => ['nullable', 'boolean'],
             'contractsScope' => ['nullable', 'string', 'in:with,without'],
-            'companyType' => ['nullable', 'string', 'in:corporate,individual'],
             'city' => ['nullable', 'string', 'max:255'],
             'year' => $yearRule,
         ]);

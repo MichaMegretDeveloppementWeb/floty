@@ -54,7 +54,7 @@ const companySelectOptions = computed(() =>
     })),
 );
 
-const yearOptions = computed(() => {
+const yearOptions = computed<{ value: number | null; label: string }[]>(() => {
     const currentYear = new Date().getFullYear();
     const bounds = props.options.yearBounds;
     const min = bounds?.min ?? currentYear;
@@ -63,10 +63,14 @@ const yearOptions = computed(() => {
     for (let y = max; y >= min; y--) {
         years.push(y);
     }
-    return years.map((y) => ({ value: y, label: String(y) }));
+    return [
+        { value: null, label: 'Toutes les années' },
+        ...years.map((y) => ({ value: y, label: String(y) })),
+    ];
 });
 
-const statusOptions = [
+const statusOptions: { value: string | null; label: string }[] = [
+    { value: null, label: 'Tous les statuts' },
     { value: 'draft', label: 'Brouillon' },
     { value: 'deferred', label: 'Mise de côté' },
     { value: 'generated', label: 'Générée' },
@@ -119,10 +123,8 @@ const statusOptions = [
                                 <FieldLabel for="filter-decl-year">Année fiscale</FieldLabel>
                                 <SelectInput
                                     id="filter-decl-year"
-                                    v-model.number="fiscalYearModel"
-                                    placeholder="Toutes les années"
+                                    v-model="fiscalYearModel"
                                     :options="yearOptions"
-                                    nullable
                                 />
                             </div>
                             <div>
@@ -130,9 +132,7 @@ const statusOptions = [
                                 <SelectInput
                                     id="filter-decl-status"
                                     v-model="statusModel"
-                                    placeholder="Tous les statuts"
                                     :options="statusOptions"
-                                    nullable
                                 />
                             </div>
                             <div class="border-t border-slate-100 pt-3">

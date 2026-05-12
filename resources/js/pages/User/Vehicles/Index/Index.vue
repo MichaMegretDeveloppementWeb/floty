@@ -84,9 +84,12 @@ const searchModel = computed<string>({
     },
 });
 
-const statusOptions = (
-    Object.keys(vehicleStatusLabel) as App.Enums.Vehicle.VehicleStatus[]
-).map((value) => ({ value, label: vehicleStatusLabel[value] }));
+const statusOptions = [
+    { value: '', label: 'Tous les statuts' },
+    ...(Object.keys(vehicleStatusLabel) as App.Enums.Vehicle.VehicleStatus[]).map(
+        (value) => ({ value, label: vehicleStatusLabel[value] }),
+    ),
+];
 
 const statusModel = computed<string | number>({
     get: () => tableState.state.filters.value.status ?? '',
@@ -105,9 +108,12 @@ const statusModel = computed<string | number>({
     },
 });
 
-const energySourceOptions = (
-    Object.keys(energySourceLabel) as App.Enums.Vehicle.EnergySource[]
-).map((value) => ({ value, label: energySourceLabel[value] }));
+const energySourceOptions = [
+    { value: '', label: 'Toutes les énergies' },
+    ...(Object.keys(energySourceLabel) as App.Enums.Vehicle.EnergySource[]).map(
+        (value) => ({ value, label: energySourceLabel[value] }),
+    ),
+];
 
 const energySourceModel = computed<string | number>({
     get: () => tableState.state.filters.value.energySource ?? '',
@@ -123,11 +129,14 @@ const energySourceModel = computed<string | number>({
     },
 });
 
-const pollutantCategoryOptions = (
-    Object.keys(
-        pollutantCategoryLabel,
-    ) as App.Enums.Vehicle.PollutantCategory[]
-).map((value) => ({ value, label: pollutantCategoryLabel[value] }));
+const pollutantCategoryOptions = [
+    { value: '', label: 'Toutes catégories' },
+    ...(
+        Object.keys(
+            pollutantCategoryLabel,
+        ) as App.Enums.Vehicle.PollutantCategory[]
+    ).map((value) => ({ value, label: pollutantCategoryLabel[value] })),
+];
 
 const pollutantCategoryModel = computed<string | number>({
     get: () => tableState.state.filters.value.pollutantCategory ?? '',
@@ -241,9 +250,7 @@ const activeFiltersCount = computed<number>(() => {
                                 <SelectInput
                                     id="filter-status"
                                     v-model="statusModel"
-                                    placeholder="Tous les statuts"
                                     :options="statusOptions"
-                                    nullable
                                 />
                             </div>
                             <div>
@@ -253,9 +260,7 @@ const activeFiltersCount = computed<number>(() => {
                                 <SelectInput
                                     id="filter-energy"
                                     v-model="energySourceModel"
-                                    placeholder="Toutes les énergies"
                                     :options="energySourceOptions"
-                                    nullable
                                 />
                             </div>
                             <div>
@@ -265,9 +270,7 @@ const activeFiltersCount = computed<number>(() => {
                                 <SelectInput
                                     id="filter-pollutant"
                                     v-model="pollutantCategoryModel"
-                                    placeholder="Toutes catégories"
                                     :options="pollutantCategoryOptions"
-                                    nullable
                                 />
                             </div>
                             <div v-if="options.firstRegistrationYearBounds">

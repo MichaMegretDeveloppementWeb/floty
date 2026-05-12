@@ -8,9 +8,17 @@ const props = withDefaults(
         name: string;
         initials: string;
         color?: CompanyColor;
+        /**
+         * Variant cercle seul (sans pill ni nom à côté). Le nom complet
+         * reste exposé via aria-label + title pour l'accessibilité et le
+         * hover. À utiliser dans les contextes denses (cellules de table
+         * étroite, cartes compactes).
+         */
+        compact?: boolean;
     }>(),
     {
         color: 'indigo',
+        compact: false,
     },
 );
 
@@ -43,6 +51,18 @@ const dotClasses = computed<string>(() => {
 
 <template>
     <span
+        v-if="compact"
+        :class="[
+            'inline-flex min-h-[25px] min-w-[25px] items-center justify-center rounded-full text-[10px] font-semibold tracking-tight text-white uppercase',
+            dotClasses,
+        ]"
+        :aria-label="name"
+        :title="name"
+    >
+        {{ initials }}
+    </span>
+    <span
+        v-else
         class="inline-flex w-fit max-w-full items-center gap-1.5 rounded-full border border-slate-200 bg-white py-0.5 pr-2.5 pl-0.5 text-xs text-slate-700"
     >
         <span

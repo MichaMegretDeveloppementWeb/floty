@@ -5,7 +5,7 @@ import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 
 type SelectOption = {
-    value: string | number;
+    value: string | number | null;
     label: string;
 };
 
@@ -94,7 +94,7 @@ const selectStateClasses = computed<string>(() => {
                 </option>
                 <option
                     v-for="option in options"
-                    :key="option.value"
+                    :key="option.value === null ? '__null__' : option.value"
                     :value="option.value"
                 >
                     {{ option.label }}
