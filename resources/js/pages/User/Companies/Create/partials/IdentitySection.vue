@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
-import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
+import CompanyColorPicker from '@/Components/Domain/Company/CompanyColorPicker.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import type { CompanyFormShape } from '@/pages/User/Companies/Create/forms';
 
@@ -20,15 +20,13 @@ defineProps<{
             :error="form.errors.legal_name"
             required
         />
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <SelectInput
-                v-model="form.color"
-                label="Couleur"
-                :options="colorOptions"
-                :error="form.errors.color"
-                required
-            />
-        </div>
+        <CompanyColorPicker
+            v-model="form.color"
+            :options="colorOptions"
+            label="Couleur"
+            :error="form.errors.color"
+            required
+        />
         <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
             <TextInput
                 v-model="form.siren"
