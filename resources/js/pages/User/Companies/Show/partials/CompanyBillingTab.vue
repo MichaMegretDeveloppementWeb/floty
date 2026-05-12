@@ -14,7 +14,7 @@ import { router } from '@inertiajs/vue3';
 import GenerateInvoiceButton from '@/Components/Domain/Billing/GenerateInvoiceButton.vue';
 import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
 import { show as companiesShowRoute } from '@/routes/user/companies';
-import CompanyYearPills from './CompanyYearPills.vue';
+import YearPills from "@/Components/Ui/YearPills/YearPills.vue";
 
 const props = defineProps<{
     companyId: number;
@@ -48,7 +48,7 @@ function selectYear(year: number): void {
 
 <template>
     <div class="flex flex-col gap-6">
-        <CompanyYearPills
+        <YearPills
             v-if="availableYears.length > 0"
             :years="availableYears"
             :active-year="activeYear"

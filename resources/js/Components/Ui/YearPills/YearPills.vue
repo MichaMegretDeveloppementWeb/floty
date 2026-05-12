@@ -1,13 +1,11 @@
 <script setup lang="ts">
 /**
- * Pills d'années cliquables pour filtre rapide « année complète »
- * (chantier N.1.fixes). 1 clic = `periodStart=YYYY-01-01`,
- * `periodEnd=YYYY-12-31`. La pill correspondant à l'année active
- * est highlighted.
+ * Pills d'années cliquables pour sélecteur rapide d'exercice. Conçu pour
+ * les onglets fiscaux (entreprise, véhicule) où un utilisateur navigue
+ * entre exercices avec un partial reload Inertia.
  *
- * Scalable : pour les entreprises avec 20+ années d'historique, le
- * conteneur scrolle horizontalement (snap-x au repos pour un alignement
- * doux). Scrollbar masquée pour rester dense.
+ * Plus récent à gauche (consultation la plus probable). Scrollable
+ * horizontalement pour les entités avec 20+ exercices d'historique.
  */
 import { computed } from 'vue';
 
@@ -19,16 +17,16 @@ const props = withDefaults(
         activeYear: number | null;
         /** Désactive l'interaction pendant le partial reload Inertia. */
         loading?: boolean;
+        /** Libellé optionnel à gauche des pills. Défaut « Année ». */
+        label?: string;
     }>(),
-    { loading: false },
+    { loading: false, label: 'Année' },
 );
 
 const emit = defineEmits<{
     select: [year: number];
 }>();
 
-// Plus récent à gauche : on inverse pour que la pill par défaut visible
-// soit l'année courante (consultation la plus probable).
 const reversedYears = computed<readonly number[]>(() =>
     [...props.years].reverse(),
 );
@@ -53,7 +51,7 @@ function pillClass(year: number): string {
         <span
             class="shrink-0 text-xs font-medium tracking-wide text-slate-500 uppercase"
         >
-            Année
+            {{ label }}
         </span>
         <div
             class="flex flex-1 snap-x snap-mandatory gap-1.5 overflow-x-auto scrollbar-hide"

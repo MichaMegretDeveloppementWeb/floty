@@ -27,6 +27,8 @@ const props = defineProps<{
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
     vehicleBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
     billingYear: number;
+    fiscalYearBreakdown: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
+    fiscalYear: number;
 }>();
 
 const { activeTab, setTab } = useVehicleTabs();
@@ -49,6 +51,8 @@ const { activeTab, setTab } = useVehicleTabs();
             <VehicleFiscalTab
                 v-else-if="activeTab === 'fiscal'"
                 :vehicle="props.vehicle"
+                :fiscal-year-breakdown="props.fiscalYearBreakdown"
+                :fiscal-year="props.fiscalYear"
             />
             <VehicleBillingTab
                 v-else-if="activeTab === 'billing'"

@@ -24,8 +24,8 @@ import { computed } from 'vue';
 import DeclarationStateCard from '@/Components/Domain/Declaration/DeclarationStateCard.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { useCompanyFiscalSelectedYear } from '@/Composables/Company/Show/useCompanyFiscalSelectedYear';
+import YearPills from '@/Components/Ui/YearPills/YearPills.vue';
 import CompanyFiscalRecapCard from './CompanyFiscalRecapCard.vue';
-import CompanyYearPills from './CompanyYearPills.vue';
 
 const props = defineProps<{
     fiscal: App.Data.User.Company.CompanyFiscalYearData;
@@ -63,7 +63,7 @@ const isCurrentYear = computed<boolean>(
                     </p>
                 </div>
 
-                <CompanyYearPills
+                <YearPills
                     v-if="props.fiscal.availableYears.length > 0"
                     :years="props.fiscal.availableYears"
                     :active-year="selectedYear"

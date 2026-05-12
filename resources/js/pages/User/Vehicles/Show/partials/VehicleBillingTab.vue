@@ -14,7 +14,7 @@
  */
 import { router } from '@inertiajs/vue3';
 import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
-import CompanyYearPills from '@/pages/User/Companies/Show/partials/CompanyYearPills.vue';
+import YearPills from "@/Components/Ui/YearPills/YearPills.vue";
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import VehiclePricingsCard from './billing/VehiclePricingsCard.vue';
 
@@ -55,7 +55,7 @@ function selectYear(year: number): void {
             :pricings="props.pricings"
         />
 
-        <CompanyYearPills
+        <YearPills
             v-if="yearScope.availableYears.length > 0"
             :years="yearScope.availableYears"
             :active-year="activeYear"

@@ -1,22 +1,17 @@
 <script setup lang="ts">
 /**
- * Onglet Fiscalité de la fiche véhicule (chantier η Phase 2 onglets) :
- * détail du calcul Taxe pleine pour une année (méthode CO₂, polluants,
- * exonérations, règles fiscales appliquées).
+ * Onglet Fiscalité de la fiche véhicule. Affiche les caractéristiques
+ * fiscales appliquées au calcul + le détail de la Taxe pleine pour
+ * l'année sélectionnée (méthode CO₂, polluants, exonérations, règles).
  *
- * Sélecteur d'année **indépendant** de celui de Vue d'ensemble · chaque
- * onglet a son propre cache `useYearLazy` et sa propre année courante.
- *
- * Le panel `FullYearTaxBreakdownPanel` consomme `stats.fiscalYear` +
- * `stats.fullYearTaxBreakdown`. On lui passe un objet stats-like
- * minimal construit à partir du DTO `VehicleFullYearTaxBreakdownData`
- * fetché.
+ * Sélecteur d'année **local** via `?fiscalYear=` (pattern aligné
+ * Company Fiscal Tab) · partial reload Inertia sur les seules props
+ * `fiscalYearBreakdown` + `fiscalYear` au changement d'année.
  */
 import { computed } from 'vue';
-import { fullYearBreakdown as fullYearBreakdownRoute } from '@/actions/App/Http/Controllers/User/Vehicle/VehicleController';
 import Card from '@/Components/Ui/Card/Card.vue';
-import YearSelector from '@/Components/Ui/YearSelector/YearSelector.vue';
-import { useYearLazy } from '@/Composables/Shared/useYearLazy';
+import YearPills from '@/Components/Ui/YearPills/YearPills.vue';
+import { useVehicleFiscalSelectedYear } from '@/Composables/Vehicle/Show/useVehicleFiscalSelectedYear';
 import AppliedVfcCard from './fiscal/AppliedVfcCard.vue';
 import FullYearTaxBreakdownPanel from './FullYearTaxBreakdownPanel.vue';
 
@@ -25,66 +20,75 @@ type UsageStats = App.Data.User.Vehicle.VehicleUsageStatsData;
 
 const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
+    fiscalYearBreakdown: Breakdown;
+    fiscalYear: number;
 }>();
 
-const initialBreakdown = props.vehicle.usageStats.fullYearTaxBreakdown;
-const initialYear = props.vehicle.usageStats.fiscalYear;
+const { selectedYear, selectYear, loading } = useVehicleFiscalSelectedYear(
+    props.fiscalYear,
+);
 
-const { yearModel, year, data, isLoading } = useYearLazy<Breakdown>(
-    initialYear,
-    initialBreakdown,
-    async (target) => {
-        const url = fullYearBreakdownRoute.url(props.vehicle.id, { query: { year: target } });
-        const response = await fetch(url, {
-            headers: { Accept: 'application/json' },
-            credentials: 'same-origin',
-        });
-
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}`);
-        }
-
-        return (await response.json()) as Breakdown;
-    },
-    { urlParam: 'fiscalYear' },
+const isCurrentYear = computed<boolean>(
+    () => selectedYear.value === props.vehicle.kpiYear,
 );
 
 // Reconstruction stats-like pour le panel · il ne lit que `fiscalYear`
 // et `fullYearTaxBreakdown`. Les autres champs ne sont pas accédés
-// par ce composant, on peut les laisser indéfinis.
+// par ce composant.
 const statsLike = computed<UsageStats>(() => ({
     ...props.vehicle.usageStats,
-    fiscalYear: year.value,
-    fullYearTaxBreakdown: data.value ?? initialBreakdown,
+    fiscalYear: props.fiscalYear,
+    fullYearTaxBreakdown: props.fiscalYearBreakdown,
 }));
 </script>
 
 <template>
     <div class="flex flex-col gap-6">
-        <AppliedVfcCard :segments="(data ?? initialBreakdown).taxSegments" />
+        <Card>
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
+                    <h3 class="text-base font-semibold text-slate-900">
+                        Fiscalité
+                        <span
+                            v-if="isCurrentYear"
+                            class="ml-1 inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700"
+                            title="Exercice fiscal en cours · chiffres provisoires"
+                        >
+                            En cours
+                        </span>
+                    </h3>
+                    <p class="text-sm text-slate-500">
+                        Exercice {{ props.fiscalYear }}
+                    </p>
+                </div>
+
+                <YearPills
+                    v-if="props.vehicle.yearScope.availableYears.length > 0"
+                    :years="props.vehicle.yearScope.availableYears"
+                    :active-year="selectedYear"
+                    :loading="loading"
+                    @select="selectYear"
+                />
+            </div>
+        </Card>
+
+        <AppliedVfcCard :segments="props.fiscalYearBreakdown.taxSegments" />
 
         <Card>
             <template #header>
-                <div class="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <h2 class="text-base font-semibold text-slate-900">
-                            Calcul de la Taxe pleine
-                        </h2>
-                        <p class="mt-0.5 text-xs text-slate-500">
-                            Détail théorique pour 100 % d'utilisation ·
-                            méthode CO₂, polluants, exonérations, règles
-                            appliquées.
-                        </p>
-                    </div>
-                    <YearSelector
-                        v-model="yearModel"
-                        :available-years="vehicle.yearScope.availableYears"
-                        :disabled="isLoading"
-                    />
+                <div>
+                    <h2 class="text-base font-semibold text-slate-900">
+                        Calcul de la Taxe pleine
+                    </h2>
+                    <p class="mt-0.5 text-xs text-slate-500">
+                        Détail théorique pour 100 % d'utilisation ·
+                        méthode CO₂, polluants, exonérations, règles
+                        appliquées.
+                    </p>
                 </div>
             </template>
 
-            <div :class="{ 'opacity-60': isLoading }">
+            <div :class="{ 'opacity-60': loading }">
                 <FullYearTaxBreakdownPanel :stats="statsLike" />
             </div>
         </Card>

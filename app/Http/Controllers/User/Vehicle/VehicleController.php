@@ -88,9 +88,8 @@ final class VehicleController extends Controller
     {
         // Doctrine temporelle (chantier η Phase 2 · refonte onglets) :
         // `usageStats` est initialisé sur `currentYear`. Le sélecteur
-        // d'année des cartes Utilisation et Fiscalité fetch en lazy via
-        // `usageStatsForYear` / `fullYearBreakdownForYear` côté front
-        // avec cache client.
+        // de la carte Utilisation (Vue d'ensemble) reste en lazy fetch
+        // JSON via `usageStatsForYear` (cache client `useYearLazy`).
         $vehicleData = $this->vehicles->findVehicleData($vehicle);
 
         // Onglet Facturation (Phase 14.D V1.2) · sélecteur d'année
@@ -98,11 +97,18 @@ final class VehicleController extends Controller
         // (currentYear).
         $billingYear = (int) $request->query('billingYear', (string) $vehicleData->kpiYear);
 
+        // Onglet Fiscalité · sélecteur d'année **local** indépendant via
+        // `?fiscalYear=` (pattern aligné Company). Partial reload Inertia
+        // sur `fiscalYearBreakdown` + `fiscalYear` au changement d'année.
+        $fiscalYear = (int) $request->query('fiscalYear', (string) $vehicleData->kpiYear);
+
         return Inertia::render('User/Vehicles/Show/Index', [
             'vehicle' => $vehicleData,
             'options' => $this->buildFormOptions(),
             'vehicleBilling' => $this->vehicles->billingForYear($vehicle, $billingYear),
             'billingYear' => $billingYear,
+            'fiscalYearBreakdown' => $this->vehicles->fullYearBreakdownForYear($vehicle, $fiscalYear),
+            'fiscalYear' => $fiscalYear,
         ]);
     }
 
