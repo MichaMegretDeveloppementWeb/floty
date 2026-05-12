@@ -12,7 +12,8 @@
  *     pour l'année courante), la KPI Taxes affiche un `—` neutre avec
  *     caption « Règles {YYYY} non implémentées » (cf. doctrine HD6 :
  *     « pas de règles ≠ pas de données »).
- *   - Loyer : placeholder V1.2 (facturation à venir, `rent` toujours null).
+ *   - Montant loyer : somme des 12 facturations mensuelles de l'année,
+ *     `null` si au moins un véhicule de la flotte a un pricing manquant.
  */
 import { Banknote, Calendar, FileText, Receipt } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -36,6 +37,14 @@ const taxValue = computed<string>(() => {
 const taxCaption = computed<string>(() => {
     if (!props.kpiFiscalAvailable) {
         return `Règles fiscales ${props.kpiYear} non implémentées`;
+    }
+
+    return `année ${props.kpiYear}`;
+});
+
+const rentCaption = computed<string>(() => {
+    if (props.kpiStats.rent === null) {
+        return 'Tarif véhicule manquant';
     }
 
     return `année ${props.kpiYear}`;
@@ -80,8 +89,8 @@ const taxCaption = computed<string>(() => {
         <StatCard
             tone="slate"
             :value="props.kpiStats.rent !== null ? formatEur(props.kpiStats.rent) : '·'"
-            label="Loyer facturé"
-            caption="V1.2 · facturation à venir"
+            label="Montant loyer"
+            :caption="rentCaption"
         >
             <template #icon>
                 <Banknote :size="18" :stroke-width="1.75" />

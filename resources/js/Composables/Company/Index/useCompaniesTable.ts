@@ -91,7 +91,7 @@ export function useCompaniesTable(opts: {
             { key: 'city', label: 'Ville' },
             { key: 'daysUsed', label: `Jours ${year}`, mono: true },
             { key: 'annualTaxDue', label: `Taxe ${year}` },
-            { key: 'rentalPriceTotal', label: `Prix location ${year}` },
+            { key: 'rentalPriceTotal', label: `Montant loyer ${year}` },
         ];
     });
 

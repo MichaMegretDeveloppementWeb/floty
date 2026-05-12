@@ -496,6 +496,9 @@ final class CompanyQueryService
             }
         }
 
+        $rentCents = $this->rentalPrice->forCompanyAndYear($companyId, $year);
+        $rent = $rentCents === null ? null : $rentCents / 100;
+
         return new CompanyYearStatsData(
             year: $year,
             daysUsed: $daysUsed,
@@ -503,7 +506,7 @@ final class CompanyQueryService
             lcdCount: $lcdCount,
             lldCount: $lldCount,
             annualTaxDue: $annualTaxDue,
-            rent: null,
+            rent: $rent,
         );
     }
 

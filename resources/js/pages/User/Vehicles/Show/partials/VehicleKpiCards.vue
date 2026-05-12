@@ -92,7 +92,7 @@ const rentalPriceCaption = computed<string>(() =>
         <StatCard
             tone="slate"
             :value="rentalPriceValue"
-            label="Prix location"
+            label="Montant loyer"
             :caption="rentalPriceCaption"
         >
             <template #icon>

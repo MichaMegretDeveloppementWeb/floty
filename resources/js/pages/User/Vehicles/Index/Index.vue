@@ -30,7 +30,7 @@ const props = defineProps<{
      * Année résolue par le backend pour les colonnes financières
      * (cf. `VehicleController::index`). Sert à initialiser le sélecteur
      * d'année local au premier rendu, puis pilote le label des colonnes
-     * « Coût plein » / « Prix location ».
+     * « Coût plein » / « Montant loyer ».
      */
     selectedYear: number;
     /**

@@ -50,7 +50,7 @@ const sortedHistory = computed<YearStats[]>(() =>
                         <th class="py-2 pr-4 text-right">Locations</th>
                         <th class="py-2 pr-4 text-right">Taxe réelle</th>
                         <th class="py-2 pr-4 text-right">Coût plein</th>
-                        <th class="py-2 text-right">Prix location</th>
+                        <th class="py-2 text-right">Montant loyer</th>
                     </tr>
                 </thead>
                 <tbody>

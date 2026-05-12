@@ -40,7 +40,7 @@ final readonly class RentalPriceCalculator
     ) {}
 
     /**
-     * Prix location pour un contrat individuel · split par mois civils
+     * Montant loyer pour un contrat individuel · split par mois civils
      * (clipping `exit_date` cohérent ADR-0018), OptimalRateBreakdown par
      * mois, somme finale. Le tarif annuel utilisé est celui de l'année
      * de `start_date` (les contrats qui croisent une année civile sont
@@ -113,7 +113,7 @@ final readonly class RentalPriceCalculator
     }
 
     /**
-     * Prix location pour 1 véhicule sur 1 année (somme cross-entreprises
+     * Montant loyer pour 1 véhicule sur 1 année (somme cross-entreprises
      * des 12 facturations mensuelles). Null si tarif annuel manquant.
      *
      * Délègue à `forVehiclesAndYear` (2 SQL au total) plutôt que de
@@ -127,7 +127,7 @@ final readonly class RentalPriceCalculator
     }
 
     /**
-     * Prix location pour 1 entreprise sur 1 année (somme des 12 factures
+     * Montant loyer pour 1 entreprise sur 1 année (somme des 12 factures
      * mensuelles). Null si au moins 1 véhicule de la company a un pricing
      * manquant pour l'année · l'utilisateur doit corriger avant de
      * pouvoir lire le total.

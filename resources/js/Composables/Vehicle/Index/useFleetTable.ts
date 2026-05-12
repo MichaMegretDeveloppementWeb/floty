@@ -49,7 +49,7 @@ export type FleetFilters = {
     handicapAccess: boolean | null;
     firstRegistrationYearMin: number | null;
     firstRegistrationYearMax: number | null;
-    /** Année des colonnes financières (Coût plein, Prix location). */
+    /** Année des colonnes financières (Coût plein, Montant loyer). */
     year: number;
 };
 
@@ -127,7 +127,7 @@ export function useFleetTable(opts: {
             },
             {
                 key: 'rentalPriceFullYear',
-                label: `Prix location ${year}`,
+                label: `Montant loyer ${year}`,
                 align: 'right',
             },
         ];

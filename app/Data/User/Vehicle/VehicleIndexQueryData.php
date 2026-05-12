@@ -32,7 +32,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  * Dimension annuelle :
  *  - `year: int|null` — année qui pilote les colonnes financières de la
- *     table (Coût plein, Prix location). Préfigure le pattern « année
+ *     table (Coût plein, Montant loyer). Préfigure le pattern « année
  *     par page » de l'ADR-0020 (chantier η à venir). Null → fallback
  *     fallback année calendaire courante côté controller. Borné par `available_years`.
  *

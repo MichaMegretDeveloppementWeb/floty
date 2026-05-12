@@ -52,7 +52,7 @@ const sortedHistory = computed<YearStats[]>(() =>
                         <th class="py-2 pr-4 text-right">Jours</th>
                         <th class="py-2 pr-4 text-right">Locations</th>
                         <th class="py-2 pr-4 text-right">Taxes</th>
-                        <th class="py-2 text-right">Loyer</th>
+                        <th class="py-2 text-right">Montant loyer</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -76,14 +76,15 @@ const sortedHistory = computed<YearStats[]>(() =>
                         <td class="py-2 pr-4 text-right tabular-nums text-slate-700">
                             {{ formatEur(entry.annualTaxDue) }}
                         </td>
-                        <td class="py-2 text-right tabular-nums text-slate-400">
-                            —
+                        <td class="py-2 text-right tabular-nums text-slate-700">
+                            <span v-if="entry.rent !== null">{{ formatEur(entry.rent) }}</span>
+                            <span v-else class="text-slate-400">—</span>
                         </td>
                     </tr>
                 </tbody>
             </table>
             <p class="mt-2 text-[11px] text-slate-400">
-                Format Locations : total (LCD/LLD). Loyer : facturation V1.2.
+                Format Locations : total (LCD/LLD). Montant loyer absent si au moins un véhicule a un tarif manquant sur l'année.
             </p>
         </div>
     </Card>
