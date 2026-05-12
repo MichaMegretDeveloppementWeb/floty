@@ -156,13 +156,9 @@ final readonly class DeclarationFiscalEngine
             $year,
         );
 
-        // Tri stable par vehicleId pour reproductibilité (la boucle
-        // interne trie ensuite chronologiquement par startDate).
-        usort(
-            $rowsByVehicle,
-            static fn (array $a, array $b): int => $a['vehicleId'] <=> $b['vehicleId'],
-        );
-
+        // Phase 13 D5.10.N · l'ordre intermédiaire par vehicleId n'a
+        // plus d'importance · le tri final est strictement
+        // chronologique en bout de boucle (cf. usort plus bas).
         $contractEntries = [];
         $totalCo2Raw = 0.0;
         $totalPollutantsRaw = 0.0;
@@ -228,6 +224,26 @@ final readonly class DeclarationFiscalEngine
                 );
             }
         }
+
+        // Phase 13 D5.10.N · tri snapshot strictement chronologique
+        // pour un breakdown plat lisible (plus de pseudo-groupes par
+        // véhicule qui éparpillaient les clusters multi-véhicules).
+        // Ordre stable · `(startDate, vehicleId, contractId)` ASC.
+        usort(
+            $contractEntries,
+            static function (ContractSnapshotEntry $a, ContractSnapshotEntry $b): int {
+                $cmp = strcmp($a->startDate, $b->startDate);
+                if ($cmp !== 0) {
+                    return $cmp;
+                }
+                $cmp = $a->vehicleId <=> $b->vehicleId;
+                if ($cmp !== 0) {
+                    return $cmp;
+                }
+
+                return $a->contractId <=> $b->contractId;
+            },
+        );
 
         return new FiscalDeclarationSnapshot(
             companyId: $company->id,

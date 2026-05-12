@@ -62,14 +62,10 @@ const canConserve = computed<boolean>(
     () => !justificationRequired.value || justification.value.trim().length > 0,
 );
 
-const vehicleSummary = computed<string | null>(() => {
-    const first = props.cluster?.contracts[0];
+const vehiclesLabel = computed<string>(() => {
+    const count = props.cluster?.distinctVehiclesCount ?? 0;
 
-    if (first === undefined) {
-        return null;
-    }
-
-    return first.vehiclePlate ?? `Véhicule ${first.vehicleId}`;
+    return count > 1 ? `${count} véhicules` : '1 véhicule';
 });
 
 function handleClose(): void {
@@ -117,44 +113,41 @@ function handleRequalify(): void {
                     </StatusPill>
                 </div>
                 <p class="text-sm text-slate-600">
-                    {{ cluster.contractsCount }} contrats LCD
-                    <template v-if="vehicleSummary">
-                        sur le véhicule
-                        <span class="font-mono text-slate-700">{{ vehicleSummary }}</span>
-                    </template>
-                    cumulent
-                    <span class="font-semibold text-slate-900">
-                        {{ cluster.cumulativeDaysInYear }} jours
-                    </span>
-                    d'usage sur l'exercice.
+                    <span class="font-semibold text-slate-900">{{ cluster.contractsCount }} contrats LCD</span>
+                    couvrent une plage allant du
+                    <span class="font-mono text-slate-700">{{ formatDateFr(cluster.coverageStartDate) }}</span>
+                    au
+                    <span class="font-mono text-slate-700">{{ formatDateFr(cluster.coverageEndDate) }}</span>
+                    sur l'exercice
+                    (<span class="font-semibold text-slate-900">{{ cluster.coveragePeriodDays }} jours</span>
+                    couverts ·
+                    <span class="text-slate-700">{{ vehiclesLabel }}</span>).
                 </p>
             </div>
 
-            <!-- Calendrier visuel -->
+            <!-- Détail tabulaire des contrats du cluster (multi-véhicules supporté) -->
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
                     Contrats du cluster
                 </p>
-                <ul class="flex flex-col gap-2">
-                    <template v-for="(contract, index) in cluster.contracts" :key="contract.contractId">
-                        <li
-                            v-if="contract.intervalBeforeDays !== null && index > 0"
-                            class="pl-2 text-[10px] italic text-slate-400"
-                        >
-                            ↓ {{ contract.intervalBeforeDays }} j d'intervalle
-                        </li>
-                        <li class="flex flex-wrap items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5">
+                <ul class="flex flex-col gap-1.5">
+                    <li
+                        v-for="contract in cluster.contracts"
+                        :key="contract.contractId"
+                        class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5"
+                    >
+                        <div class="flex flex-wrap items-center gap-2">
                             <span class="font-mono text-xs tabular-nums text-slate-700">
                                 {{ formatDateFr(contract.startDate) }} → {{ formatDateFr(contract.endDate) }}
-                            </span>
-                            <span class="text-xs font-medium text-slate-900">
-                                {{ contract.durationDaysInYear }} jours
                             </span>
                             <span class="font-mono text-[10px] text-slate-400">
                                 #{{ contract.contractId }} · {{ contract.vehiclePlate ?? `véh. ${contract.vehicleId}` }}
                             </span>
-                        </li>
-                    </template>
+                        </div>
+                        <span class="text-xs font-medium text-slate-900">
+                            {{ contract.durationDaysInYear }} j
+                        </span>
+                    </li>
                 </ul>
             </div>
 
@@ -162,10 +155,12 @@ function handleRequalify(): void {
             <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
                 <p class="mb-1 font-semibold text-slate-900">Pourquoi cette chaîne est à risque</p>
                 <p>
-                    Au-delà de 30 jours cumulés (chaîne moyenne) ou 90 jours
-                    / 4 contrats (chaîne forte) sur l'exercice, l'administration
+                    Quand des contrats LCD courts forment une chaîne dont la
+                    plage couverte dépasse 30 jours (chaîne moyenne) ou 90 jours
+                    / 5 contrats (chaîne forte) sur l'exercice, l'administration
                     peut requalifier ces locations courtes en location longue
-                    durée (CIBS L. 421-141, BOFiP § 190).
+                    durée (CIBS L. 421-141, BOFiP § 190), même si la chaîne
+                    traverse plusieurs véhicules.
                 </p>
                 <ul class="mt-2 flex flex-col gap-1 pl-1">
                     <li class="flex items-baseline gap-1.5">

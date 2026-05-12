@@ -102,7 +102,10 @@ final readonly class DeclarationPreviewService
                 fingerprint: $cluster->fingerprint,
                 contracts: $cluster->contracts,
                 contractsCount: $cluster->contractsCount,
-                cumulativeDaysInYear: $cluster->cumulativeDaysInYear,
+                coveragePeriodDays: $cluster->coveragePeriodDays,
+                coverageStartDate: $cluster->coverageStartDate,
+                coverageEndDate: $cluster->coverageEndDate,
+                distinctVehiclesCount: $cluster->distinctVehiclesCount,
                 decision: $match->decision,
                 justification: $match->justification,
             );

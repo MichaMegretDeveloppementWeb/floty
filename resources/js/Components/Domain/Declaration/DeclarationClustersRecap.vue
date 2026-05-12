@@ -17,6 +17,7 @@ import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import type { StatusTone } from '@/types/ui';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 const props = defineProps<{
     clusters: App.Data.User.FiscalDeclaration.ReviewClusterData[];
@@ -48,14 +49,19 @@ function codeLabel(code: App.Enums.FiscalReviewDecision.RiskCode): string {
     return code === 'R-LCD-CHAIN-FORT' ? 'Chaîne forte' : 'Chaîne';
 }
 
-function vehicleSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterData): string {
-    const plate = cluster.contracts[0]?.vehiclePlate;
+/**
+ * Phase 13 D5.10.N · libellé plage couverte + nb véhicules · l'ancien
+ * `vehicleSummary` ne renvoyait que la 1ère plaque (faux pour un
+ * cluster multi-véhicules). On utilise désormais `distinctVehiclesCount`
+ * + dates de plage canoniques exposées par le backend.
+ */
+function coverageSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterData): string {
+    const period = `du ${formatDateFr(cluster.coverageStartDate)} au ${formatDateFr(cluster.coverageEndDate)}`;
+    const vehicles = cluster.distinctVehiclesCount > 1
+        ? `${cluster.distinctVehiclesCount} véhicules`
+        : '1 véhicule';
 
-    if (!plate) {
-        return '';
-    }
-
-    return plate;
+    return `${cluster.contractsCount} contrats ${period} · ${cluster.coveragePeriodDays} jours couverts · ${vehicles}`;
 }
 </script>
 
@@ -91,8 +97,7 @@ function vehicleSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterDa
                     {{ levelLabel(cluster.level) }}
                 </StatusPill>
                 <span class="text-[11px] text-slate-500">
-                    <template v-if="vehicleSummary(cluster)">{{ vehicleSummary(cluster) }} · </template>
-                    {{ cluster.cumulativeDaysInYear }}j cumul
+                    {{ coverageSummary(cluster) }}
                 </span>
                 <Button size="sm" variant="ghost" :disabled="submitting" @click="emit('scrollTo', cluster.fingerprint)">
                     Voir le cluster

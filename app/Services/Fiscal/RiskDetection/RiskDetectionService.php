@@ -11,6 +11,7 @@ use App\Data\User\FiscalDeclaration\ReviewClusterData;
 use App\Enums\FiscalReviewDecision\RiskCode;
 use App\Models\Contract;
 use App\Models\FiscalRiskSettings;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
@@ -131,20 +132,49 @@ final readonly class RiskDetectionService
     /**
      * Qualifie une chaîne en R-LCD-CHAIN, R-LCD-CHAIN-FORT ou rien.
      *
+     * **Phase 13 D5.10.N · critère plage couverte** · le code ne somme
+     * plus les `expandToDaysInYear` (qui surcompte en cas de
+     * chevauchements ou de chaînes multi-véhicules) mais calcule la
+     * plage continue allant de la date de début la plus précoce à la
+     * date de fin la plus tardive, bornée à l'année fiscale stricte.
+     * Reflète la doctrine R-LCD-CHAIN qui vise la continuité temporelle
+     * d'usage et non la somme des durées contractuelles.
+     *
      * @param  list<Contract>  $chain
      */
     private function qualifyChain(array $chain, int $year, FiscalRiskSettings $settings): ?ReviewClusterData
     {
-        $cumul = 0;
+        $minStart = $chain[0]->start_date;
+        $maxEnd = $chain[0]->end_date;
         foreach ($chain as $contract) {
-            $cumul += count($contract->expandToDaysInYear($year));
+            if ($contract->start_date->lt($minStart)) {
+                $minStart = $contract->start_date;
+            }
+            if ($contract->end_date->gt($maxEnd)) {
+                $maxEnd = $contract->end_date;
+            }
         }
 
+        $yearStart = CarbonImmutable::create($year, 1, 1);
+        $yearEnd = CarbonImmutable::create($year, 12, 31);
+        $effectiveMin = $minStart->lt($yearStart) ? $yearStart : CarbonImmutable::parse($minStart);
+        $effectiveMax = $maxEnd->gt($yearEnd) ? $yearEnd : CarbonImmutable::parse($maxEnd);
+
+        // Cas dégénéré · chaîne entièrement hors année fiscale.
+        if ($effectiveMax->lt($effectiveMin)) {
+            return null;
+        }
+
+        $coveragePeriodDays = (int) $effectiveMin->diffInDays($effectiveMax) + 1;
         $count = count($chain);
+        $distinctVehiclesCount = count(array_unique(array_map(
+            static fn (Contract $c): int => $c->vehicle_id,
+            $chain,
+        )));
 
         $code = match (true) {
-            $cumul > $settings->threshold_high || $count >= $settings->count_high => RiskCode::ChainFort,
-            $cumul > $settings->threshold_low => RiskCode::Chain,
+            $coveragePeriodDays > $settings->threshold_high || $count >= $settings->count_high => RiskCode::ChainFort,
+            $coveragePeriodDays > $settings->threshold_low => RiskCode::Chain,
             default => null,
         };
 
@@ -158,7 +188,10 @@ final readonly class RiskDetectionService
             fingerprint: $this->fingerprint->compute($chain),
             contracts: $this->buildContractDtos($chain, $year),
             contractsCount: $count,
-            cumulativeDaysInYear: $cumul,
+            coveragePeriodDays: $coveragePeriodDays,
+            coverageStartDate: $effectiveMin->toDateString(),
+            coverageEndDate: $effectiveMax->toDateString(),
+            distinctVehiclesCount: $distinctVehiclesCount,
             decision: null,
             justification: null,
         );

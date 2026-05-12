@@ -58,6 +58,8 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function cas2_2_lcd_20j_separes_5j_chain_moyen(): void
     {
+        // 2 LCD de 20j séparés de 5j · plage couverte = 2025-01-01 → 2025-02-14 = 45 jours
+        // 45 > 30 (threshold_low) → ChainMoyen.
         $this->makeContract('2025-01-01', '2025-01-20'); // 20 j
         $this->makeContract('2025-01-26', '2025-02-14'); // 20 j, intervalle 5
 
@@ -66,16 +68,18 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertCount(1, $clusters);
         self::assertSame(RiskCode::Chain, $clusters[0]->code);
         self::assertSame(RiskLevel::Moyen, $clusters[0]->level);
-        self::assertSame(40, $clusters[0]->cumulativeDaysInYear);
+        self::assertSame(45, $clusters[0]->coveragePeriodDays);
+        self::assertSame('2025-01-01', $clusters[0]->coverageStartDate);
+        self::assertSame('2025-02-14', $clusters[0]->coverageEndDate);
         self::assertSame(2, $clusters[0]->contractsCount);
     }
 
     #[Test]
     public function cas3_5_lcd_15j_separes_7j_chain_fort(): void
     {
-        // 5 contrats de 15 j chacun, séparés de 7 jours pleins
-        // Cumul = 75 j (> threshold_low 30, < threshold_high 90)
-        // Mais count = 5 ≥ count_high (5) → CHAIN-FORT
+        // 5 contrats de 15 j chacun, séparés de 7 jours pleins.
+        // count = 5 ≥ count_high (5) → ChainFort (peu importe la plage).
+        // Plage 2025-01-01 → 2025-04-13 = 103 jours.
         $this->makeContract('2025-01-01', '2025-01-15');
         $this->makeContract('2025-01-23', '2025-02-06');
         $this->makeContract('2025-02-14', '2025-02-28');
@@ -88,12 +92,14 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertSame(RiskCode::ChainFort, $clusters[0]->code);
         self::assertSame(RiskLevel::Eleve, $clusters[0]->level);
         self::assertSame(5, $clusters[0]->contractsCount);
+        self::assertSame(103, $clusters[0]->coveragePeriodDays);
     }
 
     #[Test]
-    public function cas4_4_lcd_cumul_100j_chain_fort(): void
+    public function cas4_4_lcd_plage_118j_chain_fort(): void
     {
-        // 4 contrats de 25 j enchaînés (cumul 100 > 90)
+        // 4 contrats de 25 j enchaînés. Plage 2025-01-01 → 2025-04-28 = 118 jours.
+        // 118 > 90 (threshold_high) → ChainFort.
         $this->makeContract('2025-01-01', '2025-01-25');
         $this->makeContract('2025-02-01', '2025-02-25'); // intervalle 6
         $this->makeContract('2025-03-04', '2025-03-28'); // intervalle 6
@@ -103,7 +109,7 @@ final class RiskDetectionServiceTest extends TestCase
 
         self::assertCount(1, $clusters);
         self::assertSame(RiskCode::ChainFort, $clusters[0]->code);
-        self::assertSame(100, $clusters[0]->cumulativeDaysInYear);
+        self::assertSame(118, $clusters[0]->coveragePeriodDays);
     }
 
     #[Test]
@@ -164,31 +170,30 @@ final class RiskDetectionServiceTest extends TestCase
     }
 
     #[Test]
-    public function cumul_egal_au_threshold_low_pas_de_cluster(): void
+    public function plage_egale_au_threshold_low_pas_de_cluster(): void
     {
-        // Cumul exactement 30 j → strict `>` donc PAS de cluster (R-LCD-CHAIN nécessite > 30)
+        // Plage exactement 30 j → strict `>` donc PAS de cluster (R-LCD-CHAIN nécessite > 30)
+        // 2 LCD 15j contigus = plage 2025-01-01 → 2025-01-30 = 30 jours.
         $this->makeContract('2025-01-01', '2025-01-15'); // 15 j
-        $this->makeContract('2025-01-23', '2025-02-06'); // 15 j, intervalle 7
+        $this->makeContract('2025-01-16', '2025-01-30'); // 15 j, intervalle 0
 
         self::assertSame([], $this->service->detectClusters($this->company->id, 2025));
     }
 
     #[Test]
-    public function cumul_egal_au_threshold_high_classe_chain_pas_chain_fort(): void
+    public function plage_egale_au_threshold_high_classe_chain_pas_chain_fort(): void
     {
-        // Cumul exactement 90 j → > 30 mais pas > 90 → CHAIN, pas CHAIN-FORT
-        $this->makeContract('2025-01-01', '2025-02-14'); // 45 j... mais long contrat: c'est du LLD
-        // Reformulons : 3 LCD de 30 j chacun, cumul 90
-        Contract::query()->delete();
+        // Plage exactement 90 j → > 30 mais pas > 90 → CHAIN, pas CHAIN-FORT
+        // 3 LCD avec intervalles, plage 2025-01-01 → 2025-03-31 = 90 jours, count 3 < 5.
         $this->makeContract('2025-01-01', '2025-01-30'); // 30 j
         $this->makeContract('2025-02-06', '2025-03-07'); // 30 j, intervalle 7
-        $this->makeContract('2025-03-15', '2025-04-13'); // 30 j, intervalle 7
+        $this->makeContract('2025-03-15', '2025-03-31'); // 17 j, intervalle 7
 
         $clusters = $this->service->detectClusters($this->company->id, 2025);
 
         self::assertCount(1, $clusters);
         self::assertSame(RiskCode::Chain, $clusters[0]->code);
-        self::assertSame(90, $clusters[0]->cumulativeDaysInYear);
+        self::assertSame(90, $clusters[0]->coveragePeriodDays);
     }
 
     #[Test]
@@ -332,19 +337,62 @@ final class RiskDetectionServiceTest extends TestCase
     }
 
     #[Test]
-    public function cumul_n_inclut_que_les_jours_dans_l_annee_cible(): void
+    public function plage_bornee_a_l_annee_fiscale_quand_la_chaine_deborde(): void
     {
-        // Contrat à cheval 2024 → 2025 : seuls les jours 2025 comptent
-        // 2024-12-26 → 2025-01-15 = 21 jours total dont 15 en 2025
+        // Chaîne à cheval 2024 → 2025 · seule la portion 2025 compte.
+        // LCD 1 : 2024-12-26 → 2025-01-15 · LCD 2 : 2025-01-22 → 2025-02-10
+        // Plage bornée = max(2024-12-26, 2025-01-01) → min(2025-02-10, 2025-12-31)
+        //              = 2025-01-01 → 2025-02-10 = 41 jours
+        // 41 > 30 → ChainMoyen.
         $this->makeContract('2024-12-26', '2025-01-15');
-        $this->makeContract('2025-01-22', '2025-02-10'); // 20 j, intervalle 6
+        $this->makeContract('2025-01-22', '2025-02-10'); // intervalle 6
 
         $clusters = $this->service->detectClusters($this->company->id, 2025);
 
         self::assertCount(1, $clusters);
-        // Cumul 2025 = 15 (jours du 1er en 2025) + 20 (2nd) = 35 > 30 → CHAIN
-        self::assertSame(35, $clusters[0]->cumulativeDaysInYear);
+        self::assertSame(41, $clusters[0]->coveragePeriodDays);
+        self::assertSame('2025-01-01', $clusters[0]->coverageStartDate);
+        self::assertSame('2025-02-10', $clusters[0]->coverageEndDate);
         self::assertSame(RiskCode::Chain, $clusters[0]->code);
+    }
+
+    #[Test]
+    public function distinct_vehicles_count_reflete_les_vehicules_du_cluster(): void
+    {
+        // Chaîne multi-véhicules · 3 LCD chevauchants sur 3 véhicules différents.
+        // Plage 2025-04-01 → 2025-05-03 = 33 jours · 33 > 30 → ChainMoyen.
+        // distinctVehiclesCount = 3.
+        $vehicleB = Vehicle::factory()->create();
+        $vehicleC = Vehicle::factory()->create();
+
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $this->vehicle->id,
+            'start_date' => '2025-04-01',
+            'end_date' => '2025-04-26',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleB->id,
+            'start_date' => '2025-04-02',
+            'end_date' => '2025-04-21',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleC->id,
+            'start_date' => '2025-04-22',
+            'end_date' => '2025-05-03',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        $clusters = $this->service->detectClusters($this->company->id, 2025);
+
+        self::assertCount(1, $clusters);
+        self::assertSame(33, $clusters[0]->coveragePeriodDays);
+        self::assertSame(3, $clusters[0]->distinctVehiclesCount);
+        self::assertSame(3, $clusters[0]->contractsCount);
     }
 
     private function makeContract(
