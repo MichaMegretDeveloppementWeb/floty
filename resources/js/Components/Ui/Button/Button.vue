@@ -86,7 +86,7 @@ return;
         :disabled="isInert"
         :aria-busy="loading || undefined"
         :class="[
-            'inline-flex items-center justify-center rounded-lg border font-medium leading-none',
+            'inline-flex cursor-pointer items-center justify-center rounded-lg border font-medium leading-none',
             'transition-colors duration-[120ms] ease-out',
             'focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-100 focus-visible:ring-offset-0',
             variantClasses,
