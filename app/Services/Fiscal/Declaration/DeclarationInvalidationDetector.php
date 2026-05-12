@@ -113,7 +113,7 @@ final readonly class DeclarationInvalidationDetector
                 'VFC #%d · véhicule %d · effective %s',
                 $vfc->id,
                 $vfc->vehicle_id,
-                $vfc->effective_from?->toDateString() ?? '?',
+                $vfc->effective_from?->format('d/m/Y') ?? '?',
             ),
         ];
 
@@ -199,9 +199,9 @@ final readonly class DeclarationInvalidationDetector
 
         // Périmètre : les déclarations dont au moins un contrat
         // utilise ce véhicule sur l'année croisée par l'indispo.
-        $start = $unavailability->start_date->toDateString();
-        $end = ($unavailability->end_date ?? Carbon::now()->endOfYear())->toDateString();
-        $years = $this->yearsForRange($start, $end);
+        $startCarbon = $unavailability->start_date;
+        $endCarbon = $unavailability->end_date ?? Carbon::now()->endOfYear();
+        $years = $this->yearsForRange($startCarbon->toDateString(), $endCarbon->toDateString());
 
         $tuples = DB::table('contracts')
             ->where('vehicle_id', $unavailability->vehicle_id)
@@ -216,8 +216,8 @@ final readonly class DeclarationInvalidationDetector
                 'Indispo #%d · véhicule %d · %s → %s',
                 $unavailability->id,
                 $unavailability->vehicle_id,
-                $start,
-                $end,
+                $startCarbon->format('d/m/Y'),
+                $endCarbon->format('d/m/Y'),
             ),
         ];
 
@@ -330,8 +330,8 @@ final readonly class DeclarationInvalidationDetector
             'Contrat #%d · véhicule %d · %s → %s',
             $contract->id,
             $contract->vehicle_id,
-            $contract->start_date->toDateString(),
-            $contract->end_date->toDateString(),
+            $contract->start_date->format('d/m/Y'),
+            $contract->end_date->format('d/m/Y'),
         );
     }
 }
