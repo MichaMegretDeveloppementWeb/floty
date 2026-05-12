@@ -37,12 +37,19 @@ export function formatDeclarationStatus(status: Status): DeclarationStatusBadge 
  * une action de l'utilisateur (régénérer), le second indique qu'une
  * régénération est déjà engagée mais pas finalisée.
  *
- * Priorité de résolution :
+ * Priorité de résolution ·
  *   1. `hasRegenerationInProgress = true` ⇒ « Régénération en cours »
  *      (orange) : un Draft chaîné existe, l'utilisateur l'a déjà
  *      initiée mais pas encore générée.
- *   2. `isObsolete = true` ⇒ « Générée · obsolète » (rouge) :
- *      version périmée sans régénération démarrée.
+ *   2. `isObsolete = true` ET `status = generated` ⇒ « Générée ·
+ *      obsolète » (rouge) · version périmée sans régénération
+ *      démarrée. Phase 13 D5.10.O · le flag d'obsolescence ne
+ *      s'applique plus aux brouillons (`draft` / `deferred`) côté
+ *      backend, donc cette branche ne se déclenche que pour les
+ *      générées. Cas safety net si une instance résiduelle
+ *      remontait avec un brouillon flaggé · on retourne le label
+ *      statut normal sans mention obsolète qui serait sémantiquement
+ *      faux pour un brouillon.
  *   3. Statut sous-jacent (`draft`, `deferred`, `generated`).
  *
  * **Conservé pour compatibilité** avec la page Show qui veut un pill
@@ -60,7 +67,7 @@ export function badgeForDeclaration(
         return { label: 'Régénération en cours', tone: 'amber' };
     }
 
-    if (isObsolete) {
+    if (isObsolete && status === 'generated') {
         return { label: 'Générée · obsolète', tone: 'rose' };
     }
 

@@ -215,6 +215,64 @@ final class DeclarationInvalidationDetectorTest extends TestCase
     }
 
     #[Test]
+    public function flag_for_contract_n_invalide_pas_les_brouillons_draft(): void
+    {
+        // Phase 13 D5.10.O · un brouillon n'est jamais marqué obsolète.
+        $draft = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+        $contract = $this->makeContract('2025-03-01', '2025-03-15');
+
+        $this->detector->flagForContract($contract, InvalidationReasonType::ContractCreated, $this->user->id);
+
+        $fresh = $draft->fresh();
+        self::assertFalse($fresh->is_obsolete);
+        self::assertNull($fresh->obsolete_reasons);
+        self::assertNull($fresh->obsolete_at);
+    }
+
+    #[Test]
+    public function flag_for_contract_n_invalide_pas_les_brouillons_deferred(): void
+    {
+        // Phase 13 D5.10.O · un brouillon mis de côté reste à jour
+        // dynamiquement à chaque ouverture en Review, donc pas de flag.
+        $deferred = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->deferred()
+            ->create();
+        $contract = $this->makeContract('2025-03-01', '2025-03-15');
+
+        $this->detector->flagForContract($contract, InvalidationReasonType::ContractCreated, $this->user->id);
+
+        $fresh = $deferred->fresh();
+        self::assertFalse($fresh->is_obsolete);
+        self::assertNull($fresh->obsolete_reasons);
+        self::assertNull($fresh->obsolete_at);
+    }
+
+    #[Test]
+    public function flag_for_contract_invalide_la_generee_meme_si_brouillon_coexiste(): void
+    {
+        // Phase 13 D5.10.O · garantit que la coexistence d'un brouillon
+        // ne neutralise pas l'invalidation de la générée.
+        $generated = $this->makeDeclaration(2025);
+        $draft = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+        $contract = $this->makeContract('2025-03-01', '2025-03-15');
+
+        $this->detector->flagForContract($contract, InvalidationReasonType::ContractCreated, $this->user->id);
+
+        self::assertTrue($generated->fresh()->is_obsolete);
+        self::assertFalse($draft->fresh()->is_obsolete);
+    }
+
+    #[Test]
     public function le_motif_empile_contient_le_payload_complet(): void
     {
         $declaration = $this->makeDeclaration(2025);

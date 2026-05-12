@@ -6,6 +6,7 @@ namespace App\Services\Fiscal\Declaration;
 
 use App\Actions\FiscalDeclaration\MarkDeclarationAsObsoleteAction;
 use App\Data\User\FiscalDeclaration\InvalidationReasonData;
+use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use App\Models\Contract;
 use App\Models\FiscalDeclaration;
@@ -20,7 +21,8 @@ use Illuminate\Support\Facades\Session;
 
 /**
  * Service centralisé d'invalidation des déclarations fiscales suite
- * à une mutation d'entité fiscalement liée (Phase 11 D3, ADR-0015 § D8).
+ * à une mutation d'entité fiscalement liée (Phase 11 D3, ADR-0015 § D8,
+ * refondu D5.10.O · un brouillon n'est jamais obsolète).
  *
  * Source unique de vérité de la liste des actions invalidantes /
  * non-invalidantes. Les Observers (Contract, VFC, Unavailability)
@@ -29,6 +31,14 @@ use Illuminate\Support\Facades\Session;
  * `MarkDeclarationAsObsoleteAction` pour chaque déclaration impactée.
  *
  * Pattern direct {@see InvoiceDivergenceFlagger}.
+ *
+ * **Périmètre d'invalidation D5.10.O** · seules les déclarations
+ * `status=generated` sont marquées obsolètes. Les brouillons
+ * (`draft`, `deferred`) sont par essence en cours et recalculent
+ * leur périmètre à chaque ouverture en Review (via
+ * `DeclarationPreviewService::preview`) · le flag d'obsolescence n'a
+ * pas de sens pour eux et créait des bugs UX (label faux « Générée ·
+ * obsolète » sur un brouillon, accès Review bloqué).
  *
  * **Cross-année** : une mutation contrat invalide les déclarations de
  * toutes les années croisées par le contrat (avant ET après la
@@ -256,16 +266,18 @@ final readonly class DeclarationInvalidationDetector
             return;
         }
 
-        // Une déclaration est « impactable » si :
-        //   - statut `generated` (normal post-génération), OU
-        //   - statut `draft`/`deferred` (impacte la prochaine génération)
-        //   - et n'est pas soft-deleted
-        // L'obsolescence multiple est autorisée par doctrine D8 (motifs
-        // s'empilent), pas de filtre sur is_obsolete.
+        // Phase 13 D5.10.O · seules les déclarations `generated` sont
+        // marquées obsolètes. Un brouillon (`draft` / `deferred`) est
+        // par essence en cours · son périmètre est recalculé live à
+        // chaque ouverture en Review, donc le flag d'obsolescence n'a
+        // pas de sens. L'obsolescence multiple est autorisée par
+        // doctrine D8 (motifs s'empilent), pas de filtre sur
+        // is_obsolete.
         $declarations = FiscalDeclaration::query()
             ->with('company:id,short_code,legal_name')
             ->whereIn('company_id', $companyIds)
             ->whereIn('fiscal_year', $years)
+            ->where('status', FiscalDeclarationStatus::Generated)
             ->get();
 
         foreach ($declarations as $declaration) {

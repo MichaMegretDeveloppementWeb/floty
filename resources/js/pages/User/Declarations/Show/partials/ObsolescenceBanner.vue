@@ -12,14 +12,16 @@ defineProps<{
 
 <template>
     <!--
-        Une déclaration `Draft` ne devrait pas pouvoir devenir obsolète
-        (ADR-0015 D8 : invalidation seulement sur Generated/Deferred).
-        Guard défensif au cas où un trigger anormal poserait
-        `is_obsolete = true` sur une Draft - on évite l'affichage d'une
-        banner sans `obsoleteReasons` ni cohérence métier.
+        Phase 13 D5.10.O · seules les déclarations `generated` peuvent
+        être obsolètes. Les brouillons (`draft` / `deferred`) sont par
+        essence en cours · leur périmètre est recalculé live à chaque
+        ouverture en Review, donc le flag n'a pas de sens pour eux. Le
+        backend ne les flag plus, mais on garde un guard défensif côté
+        UI pour éviter l'affichage d'une banner sans cohérence métier
+        si une donnée résiduelle remontait.
     -->
     <div
-        v-if="declaration.isObsolete && declaration.status !== 'draft'"
+        v-if="declaration.isObsolete && declaration.status === 'generated'"
         class="flex flex-col gap-3 rounded-sm border border-slate-200 border-l-2 border-l-rose-400 bg-white p-4"
     >
         <div class="flex items-start gap-3">
