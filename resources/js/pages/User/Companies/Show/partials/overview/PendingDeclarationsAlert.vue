@@ -91,6 +91,14 @@ function configFor(entry: PendingEntry): EntryConfig {
                 iconTone: 'text-slate-500',
                 dotTone: 'bg-slate-400',
             };
+        case 'deferred_regeneration':
+            return {
+                icon: Clock,
+                title: 'Mise de côté · régénération en attente',
+                cta: 'Reprendre',
+                iconTone: 'text-amber-500',
+                dotTone: 'bg-amber-400',
+            };
         case 'generated_obsolete_orphan':
             return {
                 icon: AlertTriangle,
@@ -206,6 +214,18 @@ function subtitleFor(entry: PendingEntry): SubtitleResult {
 
             return { text: parts.join(' · '), toneClass: 'text-slate-500' };
         }
+        case 'deferred_regeneration': {
+            // Phase 13 D5.10.H · même sémantique d'affichage que
+            // regeneration_in_progress, sauf que le brouillon est
+            // mis de côté (pas activement en cours de révision).
+            const parts: string[] = ['Brouillon mis de côté'];
+
+            if (entry.obsoleteSinceDate !== null) {
+                parts.push(`obsolète depuis le ${formatDateFr(entry.obsoleteSinceDate)}`);
+            }
+
+            return { text: parts.join(' · '), toneClass: 'text-slate-500' };
+        }
         case 'generated_active':
             // Théoriquement jamais ici (filtré côté backend)
             return { text: '', toneClass: 'text-slate-500' };
@@ -221,7 +241,7 @@ function handleClick(year: number): void {
     <div
         v-if="pendingDeclarations.length > 0"
         :class="[
-            'flex flex-col gap-3 rounded-xl border border-slate-200 border-l-2 bg-slate-50 p-4',
+            'flex flex-col gap-3 rounded-sm border border-slate-200 border-l-2 bg-white p-4',
             accentBorderClass,
         ]"
     >

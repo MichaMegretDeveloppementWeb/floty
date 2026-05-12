@@ -20,9 +20,11 @@
  * `<DeclarationContractList>`) de marquer la row d'un fond slate-50
  * uniforme pour visualiser l'appartenance au cluster.
  */
+import { router } from '@inertiajs/vue3';
 import { ArrowUpRight, CheckCircle2, History } from 'lucide-vue-next';
 import { computed } from 'vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
+import { show as showContractRoute } from '@/routes/user/contracts';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
@@ -69,6 +71,10 @@ interface DecisionIndicator {
     title: string;
 }
 
+function handleRowClick(): void {
+    router.visit(showContractRoute.url({ contract: props.contract.contractId }));
+}
+
 const decisionIndicator = computed<DecisionIndicator | null>(() => {
     const contract = props.contract;
 
@@ -95,7 +101,13 @@ const decisionIndicator = computed<DecisionIndicator | null>(() => {
 </script>
 
 <template>
-    <tr :class="['text-sm text-slate-700', bgClass]">
+    <tr
+        :class="[
+            'cursor-pointer text-sm text-slate-700 transition-colors duration-[120ms] hover:bg-slate-50',
+            bgClass,
+        ]"
+        @click="handleRowClick"
+    >
         <td
             class="px-3 py-2 align-top"
             :class="[
@@ -135,6 +147,12 @@ const decisionIndicator = computed<DecisionIndicator | null>(() => {
         </td>
         <td class="px-3 py-2 text-right align-top tabular-nums">
             {{ contract.daysInYearAssigned }}
+        </td>
+        <td class="px-3 py-2 text-right align-top tabular-nums text-slate-600">
+            {{ formatEur(contract.co2Due, 2) }}
+        </td>
+        <td class="px-3 py-2 text-right align-top tabular-nums text-slate-600">
+            {{ formatEur(contract.pollutantsDue, 2) }}
         </td>
         <td class="border-x border-slate-200 px-3 py-2 text-right align-top" :class="{ 'border-x-transparent': bgClass === '' }">
             <div class="flex flex-col items-end gap-0.5">

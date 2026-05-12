@@ -104,7 +104,7 @@ const sortedEntries = computed<TimelineEntry[]>(() => {
             >
                 <span
                     v-if="index < sortedEntries.length - 1"
-                    class="absolute left-[15px] top-3 h-full w-px bg-slate-200"
+                    class="absolute left-[13px] top-3 h-full w-px bg-slate-200"
                     aria-hidden="true"
                 />
                 <span
@@ -121,21 +121,19 @@ const sortedEntries = computed<TimelineEntry[]>(() => {
                             v-if="entry.isCurrent"
                             class="cursor-default font-mono text-sm font-medium text-slate-900"
                         >
-                            {{ entry.declaration.reference ?? `Brouillon #${entry.declaration.id}` }}
+                            {{ entry.declaration.internalLabel }}
                         </span>
-                        <Link
-                            v-else-if="entry.declaration.reference"
-                            :href="showDeclarationRoute.url({ declaration: entry.declaration.id })"
-                            class="cursor-pointer font-mono text-sm font-medium text-slate-800 transition-colors duration-[120ms] hover:text-slate-900 hover:underline"
-                        >
-                            {{ entry.declaration.reference }}
-                        </Link>
                         <Link
                             v-else
                             :href="showDeclarationRoute.url({ declaration: entry.declaration.id })"
-                            class="cursor-pointer font-mono text-sm italic text-slate-500 transition-colors duration-[120ms] hover:text-slate-700 hover:underline"
+                            :class="[
+                                'cursor-pointer font-mono text-sm transition-colors duration-[120ms] hover:underline',
+                                entry.declaration.reference !== null
+                                    ? 'font-medium text-slate-800 hover:text-slate-900'
+                                    : 'italic text-slate-500 hover:text-slate-700',
+                            ]"
                         >
-                            Brouillon #{{ entry.declaration.id }}
+                            {{ entry.declaration.internalLabel }}
                         </Link>
                         <span class="text-xs text-slate-500">· {{ entry.label }}</span>
                         <StatusPill v-if="entry.isCurrent" tone="slate">

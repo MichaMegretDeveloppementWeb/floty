@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * Page Show Déclaration fiscale (Phase 11 D4 + D5.6, refondu D5.8.3).
+ * Page Show Déclaration fiscale (Phase 11 D4 + D5.6, refondu D5.10.G/H).
  * Affiche l'identité, la référence lisible, le statut, la synthèse
  * fiscale (snapshot avec breakdown contrats + clusters in-line via
  * `<FiscalSummaryCard>`), les motifs d'obsolescence si applicable, le
@@ -9,13 +9,12 @@
  * remplace une version antérieure, un mini banner narratif rappelle
  * la traçabilité.
  *
- * L'ancien composant `<ClustersHistoryList>` (D5.6) a été retiré : son
- * information (décisions reprises par fingerprint, contrats requalifiés)
- * est désormais visible in-line dans le tableau contrats du
- * `<FiscalSummaryCard>` via les `<ClusterGroup>` groupant les contrats
- * du même cluster, avec leur décision affichée au header.
+ * Phase 13 D5.10.H · `canonicalHeadDeclarationId` distingue le head
+ * éditable des brouillons intermédiaires (orphelins) qui ne sont que
+ * supprimables.
  */
 import { Head } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import DeclarationHistoryTimeline from '@/Components/Domain/Declaration/DeclarationHistoryTimeline.vue';
 import FiscalSummaryCard from '@/Components/Domain/Declaration/FiscalSummaryCard.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
@@ -27,21 +26,53 @@ import PredecessorNoticeBanner from './partials/PredecessorNoticeBanner.vue';
 
 type ItemData = App.Data.User.FiscalDeclaration.DeclarationListItemData;
 
-defineProps<{
+const props = defineProps<{
     declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
     history: ItemData[];
     predecessorDeclaration: ItemData | null;
     successorDeclaration: ItemData | null;
+    canonicalHeadDeclarationId: number | null;
 }>();
+
+/**
+ * Le predecessor sera ré-activé à la suppression si ses motifs
+ * d'obsolescence sont **uniquement** des VoluntaryModification (cas
+ * du brouillon de régénération volontaire abandonné). Ces motifs
+ * sont portés par le predecessor lui-même · on les lit via la
+ * relation déjà chargée dans `predecessorDeclaration` quand exposée.
+ *
+ * Note · le DTO `DeclarationListItemData` n'expose pas les motifs
+ * (ils sont disponibles côté Review via prop séparée). Pour Show,
+ * on calcule simplement sur la base · si le statut current est draft
+ * et qu'il a un predecessor, c'est généralement une modification
+ * volontaire. Approximation acceptable pour le message UX.
+ */
+const predecessorWillReactivate = computed<boolean>(() => {
+    // Heuristique simple · si on est sur un brouillon avec
+    // predecessor, on présume volontaire. Le backend décide vraiment.
+    return props.declaration.status === 'draft' && props.predecessorDeclaration !== null;
+});
+
+const predecessorReference = computed<string | null>(
+    () => props.predecessorDeclaration?.internalLabel ?? null,
+);
+
+const isCanonicalHead = computed<boolean>(
+    () => props.declaration.id === props.canonicalHeadDeclarationId,
+);
 </script>
 
 <template>
     <Head :title="`Déclaration ${declaration.companyShortCode} ${declaration.fiscalYear} · Floty`" />
 
     <UserLayout>
-        <div class="m-auto flex w-full max-w-[64em] flex-col gap-6 border-l-2 border-l-transparent pl-3">
-            <Header :declaration="declaration" />
+        <div class="m-auto flex w-full max-w-[64em] flex-col gap-6">
+            <Header
+                :declaration="declaration"
+                :predecessor-reference="predecessorReference"
+                :predecessor-will-reactivate="predecessorWillReactivate"
+            />
 
             <ObsolescenceBanner :declaration="declaration" />
 
@@ -55,6 +86,7 @@ defineProps<{
             <PdfCard
                 :declaration="declaration"
                 :successor-declaration="successorDeclaration"
+                :is-canonical-head="isCanonicalHead"
             />
 
             <Card v-if="history.length > 0">

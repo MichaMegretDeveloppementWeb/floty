@@ -103,11 +103,11 @@ export function pillForIndexRow(row: DeclarationRow): DeclarationStatusBadge {
  */
 export function subMentionForRow(row: DeclarationRow): IndexSubMention {
     if (row.isObsolete && row.supersededById !== null && row.successorStatus !== null) {
-        // Fallback `Brouillon #ID` quand le successor Draft n'a pas
-        // encore de référence assignée (références posées seulement
-        // à la génération · cf. `DeclarationReferenceGenerator`).
+        // Phase 13 D5.10.H · `internalLabel` est calculé backend ·
+        // « DECL-XXX » si générée, sinon « Brouillon #N ». Cohérent
+        // partout dans l'UI.
         const successorLabel = row.successorReference
-            ?? (row.successorStatus === 'draft' ? `Brouillon #${row.supersededById}` : `#${row.supersededById}`);
+            ?? `Brouillon #${row.supersededById}`;
 
         const text = row.successorStatus === 'draft'
             ? `Régénération en cours · ${successorLabel}`

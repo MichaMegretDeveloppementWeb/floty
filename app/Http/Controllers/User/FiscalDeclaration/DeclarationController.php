@@ -101,6 +101,15 @@ final class DeclarationController extends Controller
         $predecessor = $this->reader->findPredecessorOf($declaration->id);
         $successor = $declaration->supersededBy;
 
+        // Phase 13 D5.10.H · head canonique du couple (= la déclaration
+        // « current » au sens de `findCurrentForCompanyYear`). Permet à
+        // l'UI Show de distinguer le head (édition autorisée) des
+        // brouillons intermédiaires/orphelins (suppression uniquement).
+        $canonicalHead = $this->reader->findCurrentForCompanyYear(
+            $declaration->company_id,
+            $declaration->fiscal_year,
+        );
+
         return Inertia::render('User/Declarations/Show/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration),
             'snapshot' => $this->resolveSnapshotData($declaration),
@@ -124,6 +133,7 @@ final class DeclarationController extends Controller
             'successorDeclaration' => $successor !== null
                 ? DeclarationListItemData::fromModel($successor)
                 : null,
+            'canonicalHeadDeclarationId' => $canonicalHead?->id,
         ]);
     }
 
@@ -171,6 +181,19 @@ final class DeclarationController extends Controller
             return redirect()->route('user.declarations.show', ['declaration' => $declaration->id]);
         }
 
+        // Phase 13 D5.10.H · brouillon intermédiaire orphelin (un autre
+        // brouillon plus récent existe et est le head canonique) ·
+        // l'édition n'a aucun sens, l'utilisateur ne peut que le
+        // supprimer. On redirige vers Show pour exposer le message
+        // explicite + le bouton Supprimer du header.
+        $canonicalHead = $this->reader->findCurrentForCompanyYear(
+            $declaration->company_id,
+            $declaration->fiscal_year,
+        );
+        if ($canonicalHead !== null && $canonicalHead->id !== $declaration->id) {
+            return redirect()->route('user.declarations.show', ['declaration' => $declaration->id]);
+        }
+
         $preview = $this->previewService->preview($declaration->company_id, $declaration->fiscal_year);
 
         // En page Review, la déclaration est par construction `draft`
@@ -194,6 +217,11 @@ final class DeclarationController extends Controller
             );
         }
 
+        $canonicalHead = $this->reader->findCurrentForCompanyYear(
+            $declaration->company_id,
+            $declaration->fiscal_year,
+        );
+
         return Inertia::render('User/Declarations/Review/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
             'preview' => $preview,
@@ -202,6 +230,7 @@ final class DeclarationController extends Controller
                 ? DeclarationListItemData::fromModel($predecessor->load('company'))
                 : null,
             'obsoleteReasons' => $obsoleteReasons,
+            'canonicalHeadDeclarationId' => $canonicalHead?->id,
         ]);
     }
 

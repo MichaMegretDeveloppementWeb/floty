@@ -200,6 +200,55 @@ function handleRegenerate(): void {
         </div>
     </Card>
 
+    <!-- S4-bis · Mise de côté · régénération en attente (Phase 13 D5.10.H) -->
+    <Card v-else-if="state === 'deferred_regeneration' && current">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+            <div class="flex items-start gap-3">
+                <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-amber-500"
+                >
+                    <Clock :size="18" :stroke-width="1.75" />
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    <h4 class="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900">
+                        Régénération de la déclaration {{ fiscalYear }}
+                        <StatusPill tone="amber">Mise de côté</StatusPill>
+                    </h4>
+                    <p class="text-xs text-slate-500">
+                        Brouillon de régénération mis de côté. La déclaration
+                        précédente reste obsolète tant que la nouvelle version
+                        n'est pas générée.
+                        <span
+                            v-if="predecessor?.reference"
+                            class="block font-mono text-[11px] text-slate-400"
+                        >
+                            Remplace {{ predecessor.reference }}<template
+                                v-if="firstReasonOccurredAt"
+                            > · obsolète depuis le
+                                {{ formatInvalidationOccurredAt(firstReasonOccurredAt) }}</template>
+                        </span>
+                    </p>
+                </div>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+                <Link
+                    v-if="predecessor"
+                    :href="showDeclarationRoute.url({ declaration: predecessor.id })"
+                    class="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline"
+                >
+                    Voir la version obsolète
+                    <ArrowUpRight :size="12" :stroke-width="1.75" />
+                </Link>
+                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                    <Button>
+                        <FileText :size="16" :stroke-width="1.75" />
+                        Reprendre la régénération
+                    </Button>
+                </Link>
+            </div>
+        </div>
+    </Card>
+
     <!-- S5 · Generated active -->
     <Card v-else-if="state === 'generated_active' && current">
         <div class="flex flex-col gap-3">
@@ -372,7 +421,7 @@ function handleRegenerate(): void {
                     <Link
                         v-if="predecessor"
                         :href="showDeclarationRoute.url({ declaration: predecessor.id })"
-                        class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline"
+                        class="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline"
                     >
                         Voir la version obsolète
                         <ArrowUpRight :size="12" :stroke-width="1.75" />

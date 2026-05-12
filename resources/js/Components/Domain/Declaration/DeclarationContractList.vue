@@ -47,7 +47,10 @@ const emit = defineEmits<{
     ];
 }>();
 
-const COLSPAN = 5;
+// Phase 13 D5.10.H · 7 colonnes (Période, Type, Véhicule, Jours, CO₂,
+// Polluants, Taxe totale). Le colspan est propagé au header/footer de
+// `<ClusterGroup>`.
+const COLSPAN = 7;
 const CLUSTER_ROW_BG = 'bg-slate-50';
 
 /**
@@ -224,13 +227,15 @@ defineExpose({
 
 <template>
     <div class="overflow-x-auto rounded-lg border border-slate-200">
-        <table class="w-full min-w-[640px] text-sm">
+        <table class="w-full min-w-[820px] text-sm">
             <thead class="bg-slate-50 text-xs font-medium uppercase tracking-wide text-slate-500">
                 <tr>
                     <th class="px-3 py-2 text-left font-medium">Période</th>
                     <th class="px-3 py-2 text-left font-medium">Type</th>
                     <th class="px-3 py-2 text-left font-medium">Véhicule</th>
                     <th class="px-3 py-2 text-right font-medium">Jours</th>
+                    <th class="px-3 py-2 text-right font-medium">CO₂</th>
+                    <th class="px-3 py-2 text-right font-medium">Polluants</th>
                     <th class="px-3 py-2 text-right font-medium">Taxe</th>
                 </tr>
             </thead>

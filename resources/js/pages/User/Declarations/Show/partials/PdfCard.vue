@@ -31,15 +31,29 @@ import {
 } from '@/routes/user/declarations';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
-const props = defineProps<{
-    declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
-    /**
-     * Déclaration qui remplace la courante (chaîne aval). Si présent
-     * et de statut `draft`, on est en cours de régénération · on
-     * propose « Reprendre la régénération » au lieu de « Régénérer ».
-     */
-    successorDeclaration?: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
-}>();
+const props = withDefaults(
+    defineProps<{
+        declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
+        /**
+         * Déclaration qui remplace la courante (chaîne aval). Si présent
+         * et de statut `draft`, on est en cours de régénération · on
+         * propose « Reprendre la régénération » au lieu de « Régénérer ».
+         */
+        successorDeclaration?: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
+        /**
+         * Phase 13 D5.10.H · vrai si la déclaration consultée est le head
+         * canonique du couple `(company, year)`. Faux si c'est un brouillon
+         * intermédiaire orphelin · dans ce cas, on n'expose pas les CTA
+         * d'édition (Reprendre, Régénérer, Modifier), seulement la
+         * suppression (gérée par le header).
+         */
+        isCanonicalHead?: boolean;
+    }>(),
+    {
+        successorDeclaration: null,
+        isCanonicalHead: true,
+    },
+);
 
 const regenerating = ref<boolean>(false);
 const modifying = ref<boolean>(false);
@@ -52,20 +66,34 @@ const hasOngoingRegeneration = computed<boolean>(
 );
 
 const canRegenerate = computed<boolean>(
-    () => props.declaration.isObsolete && !hasOngoingRegeneration.value,
+    () => props.declaration.isObsolete
+        && !hasOngoingRegeneration.value
+        && props.isCanonicalHead,
 );
 
 /**
  * Phase 13 D5.10.E · le bouton « Modifier la déclaration » apparaît
  * uniquement quand la déclaration est S5 GeneratedActive (générée et
- * non obsolète) sans régénération en cours. Permet de déclencher
- * volontairement une transition S5 → S7 sans attendre une mutation
- * automatique de périmètre.
+ * non obsolète) sans régénération en cours, ET qu'elle est le head
+ * canonique du couple (D5.10.H · pas de modification possible sur
+ * une déclaration déjà supersédée).
  */
 const canModify = computed<boolean>(
     () => props.declaration.status === 'generated'
         && !props.declaration.isObsolete
-        && !hasOngoingRegeneration.value,
+        && !hasOngoingRegeneration.value
+        && props.isCanonicalHead,
+);
+
+/**
+ * Phase 13 D5.10.H · brouillon intermédiaire (orphelin) · pas le head
+ * canonique alors que c'est un brouillon. UI restreinte à la
+ * suppression (gérée par le header). On affiche un message
+ * d'avertissement explicite à la place du CTA « Reprendre la revue ».
+ */
+const isIntermediateDraft = computed<boolean>(
+    () => !props.isCanonicalHead
+        && (props.declaration.status === 'draft' || props.declaration.status === 'deferred'),
 );
 
 const modifyConfirmMessage = computed<string>(() => {
@@ -177,6 +205,16 @@ function confirmModify(): void {
                     {{ modifying ? 'Création du brouillon…' : 'Modifier la déclaration' }}
                 </Button>
             </div>
+        </div>
+
+        <div v-else-if="isIntermediateDraft" class="flex flex-col gap-3">
+            <p class="text-sm text-slate-600">
+                Ce brouillon est un intermédiaire orphelin de la chaîne ·
+                un brouillon plus récent existe et porte la régénération
+                en cours. Cette version ne peut plus être éditée ni
+                générée. Vous pouvez la supprimer pour nettoyer
+                l'historique.
+            </p>
         </div>
 
         <div v-else class="flex flex-col gap-4">

@@ -95,7 +95,15 @@ final readonly class DeclarationLifecycleResolver
         }
 
         if ($current->status === FiscalDeclarationStatus::Deferred) {
-            return DeclarationLifecycleState::Deferred;
+            // Phase 13 D5.10.H · distinction sémantique entre une mise
+            // de côté initiale (pas de predecessor) et une mise de côté
+            // de régénération (predecessor obsolète). Les 2 réclament
+            // une UX différente · le second cas doit rappeler à
+            // l'utilisateur qu'une déclaration obsolète attend toujours
+            // sa nouvelle version.
+            return $hasPredecessor
+                ? DeclarationLifecycleState::DeferredRegeneration
+                : DeclarationLifecycleState::Deferred;
         }
 
         // FiscalDeclarationStatus::Generated
@@ -150,7 +158,8 @@ final readonly class DeclarationLifecycleResolver
     ): array {
         $source = match ($state) {
             DeclarationLifecycleState::GeneratedObsoleteOrphan => $current,
-            DeclarationLifecycleState::RegenerationInProgress => $predecessor,
+            DeclarationLifecycleState::RegenerationInProgress,
+            DeclarationLifecycleState::DeferredRegeneration => $predecessor,
             default => null,
         };
 

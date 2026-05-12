@@ -128,7 +128,15 @@ final readonly class PendingDeclarationsResolver
             ];
         }
 
-        if ($state === DeclarationLifecycleState::RegenerationInProgress
+        // Phase 13 D5.10.H · DeferredRegeneration partage la sémantique
+        // de RegenerationInProgress · les motifs sont sur le predecessor
+        // (la version Generated obsolète remplacée par ce Draft mis de
+        // côté).
+        if (
+            in_array($state, [
+                DeclarationLifecycleState::RegenerationInProgress,
+                DeclarationLifecycleState::DeferredRegeneration,
+            ], true)
             && $currentDeclarationId !== null
         ) {
             $predecessor = $this->declarations->findPredecessorOf($currentDeclarationId);

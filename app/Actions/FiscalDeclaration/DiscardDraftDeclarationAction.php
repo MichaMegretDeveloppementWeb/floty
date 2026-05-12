@@ -17,9 +17,10 @@ use Illuminate\Support\Facades\Log;
  * la chaîne `superseded_by_id` côté predecessor (Phase 13 D5.10.E).
  *
  * Pipeline atomique :
- *   1. Vérifie que la déclaration cible est bien un Draft (S2/S3/S4
- *      brouillon). Refuse toute suppression d'une Generated active /
- *      obsolète.
+ *   1. Vérifie que la déclaration cible est un brouillon non finalisé
+ *      (status Draft OU Deferred). Refuse toute suppression d'une
+ *      Generated (active ou obsolète) · les déclarations émises sont
+ *      immuables conformément à ADR-0008 et l'audit Doctrine.
  *   2. Recherche un éventuel predecessor (`X.superseded_by_id = draft.id`).
  *   3. Soft delete le brouillon.
  *   4. Si predecessor existe :
@@ -54,9 +55,12 @@ final readonly class DiscardDraftDeclarationAction
                 throw new DomainException(sprintf('Déclaration %d introuvable.', $draftDeclarationId));
             }
 
-            if ($draft->status !== FiscalDeclarationStatus::Draft) {
+            // Phase 13 D5.10.H · Draft ET Deferred sont supprimables ·
+            // ce sont des brouillons non finalisés. Seules les Generated
+            // sont protégées par l'immuabilité fiscale.
+            if (! in_array($draft->status, [FiscalDeclarationStatus::Draft, FiscalDeclarationStatus::Deferred], true)) {
                 throw new DomainException(
-                    'Seul un brouillon peut être supprimé. Les déclarations générées ou différées doivent passer par un autre workflow.',
+                    'Seul un brouillon (statut Draft ou Deferred) peut être supprimé. Les déclarations générées sont immuables.',
                 );
             }
 

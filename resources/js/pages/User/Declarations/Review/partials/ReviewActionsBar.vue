@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Clock, FileCheck2, LoaderCircle, Trash2 } from 'lucide-vue-next';
+import { Clock, FileCheck2, LoaderCircle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
 import {
-    destroy as destroyRoute,
     generate as generateRoute,
     markDeferred as markDeferredRoute,
 } from '@/routes/user/declarations';
@@ -16,47 +15,16 @@ const props = defineProps<{
     pendingClustersCount: number;
     canGenerate: boolean;
     isDeferred: boolean;
-    /**
-     * Phase 13 D5.10.E · référence du predecessor à afficher dans le
-     * message de confirmation de suppression. Null si ce brouillon
-     * n'est pas issu d'une régénération.
-     */
-    predecessorReference?: string | null;
-    /**
-     * Phase 13 D5.10.E · vrai si la suppression du brouillon ré-activera
-     * le predecessor (cas d'obsolescence purement volontaire). Faux
-     * sinon (predecessor restera obsolète).
-     */
-    predecessorWillReactivate?: boolean;
 }>();
 
 const generating = ref<boolean>(false);
 const deferring = ref<boolean>(false);
-const discarding = ref<boolean>(false);
-const isProcessing = computed<boolean>(
-    () => generating.value || deferring.value || discarding.value,
-);
+const isProcessing = computed<boolean>(() => generating.value || deferring.value);
 
 // Confirmation Mettre de côté · audit B21 pré-livraison.
 // Évite la perte accidentelle de contexte de revue après plusieurs
 // décisions tranchées (clic accidentel = retour à la liste).
 const deferConfirmOpen = ref<boolean>(false);
-
-// Phase 13 D5.10.E · confirmation pour la suppression du brouillon.
-const discardConfirmOpen = ref<boolean>(false);
-
-const discardConfirmMessage = computed<string>(() => {
-    const predRef = props.predecessorReference;
-    if (predRef === null || predRef === undefined) {
-        return 'Ce brouillon sera supprimé. Aucune autre déclaration n\'est concernée. Cette action est irréversible.';
-    }
-
-    if (props.predecessorWillReactivate) {
-        return `Ce brouillon sera supprimé et la déclaration ${predRef} redeviendra active (la modification volontaire en cours sera annulée).`;
-    }
-
-    return `Ce brouillon sera supprimé. La déclaration ${predRef} restera obsolète et pourra être régénérée plus tard.`;
-});
 
 const generateBlockedReason = computed<string | null>(() => {
     if (props.canGenerate) {
@@ -107,24 +75,6 @@ function handleGenerate(): void {
         },
     );
 }
-
-function requestDiscard(): void {
-    if (isProcessing.value) {
-        return;
-    }
-    discardConfirmOpen.value = true;
-}
-
-function confirmDiscard(): void {
-    discardConfirmOpen.value = false;
-    discarding.value = true;
-    router.delete(destroyRoute.url({ declaration: props.declarationId }), {
-        preserveScroll: false,
-        onFinish: () => {
-            discarding.value = false;
-        },
-    });
-}
 </script>
 
 <template>
@@ -143,15 +93,6 @@ function confirmDiscard(): void {
         </div>
 
         <div class="flex flex-wrap items-center gap-2">
-            <Button
-                variant="ghost"
-                :disabled="isProcessing"
-                @click="requestDiscard"
-            >
-                <LoaderCircle v-if="discarding" :size="16" :stroke-width="1.75" class="animate-spin" />
-                <Trash2 v-else :size="16" :stroke-width="1.75" />
-                Supprimer
-            </Button>
             <Button
                 variant="ghost"
                 :disabled="isDeferred || isProcessing"
@@ -186,15 +127,5 @@ function confirmDiscard(): void {
         confirm-label="Mettre de côté"
         cancel-label="Continuer la revue"
         @confirm="confirmMarkDeferred"
-    />
-
-    <ConfirmModal
-        v-model:open="discardConfirmOpen"
-        title="Supprimer le brouillon ?"
-        :message="discardConfirmMessage"
-        confirm-label="Supprimer"
-        cancel-label="Annuler"
-        tone="danger"
-        @confirm="confirmDiscard"
     />
 </template>

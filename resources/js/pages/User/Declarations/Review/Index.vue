@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Page Review d'une déclaration fiscale (Phase 11 D5.8 refonte) :
+ * Page Review d'une déclaration fiscale (Phase 11 D5.8 refonte, enrichi
+ * D5.10.D/E/H) :
  * synthèse fiscale prévisualisée + tableau chronologique des contrats
  * avec clusters LCD groupés visuellement (`<ClusterGroup>`) et
  * actions Conserver / Requalifier in-line.
@@ -9,16 +10,26 @@
  * (première version) vs Régénération (remplace une version obsolète).
  * Le `<DeclarationClustersRecap>` sticky permet de trancher les
  * décisions sans scroller jusqu'au cluster correspondant.
+ *
+ * Phase 13 D5.10.H · bouton Supprimer dans le header (top right
+ * responsive), toggle « Voir en lecture » au-dessus du header,
+ * suppression de l'accent border-l-2 amber sur le main container.
  */
-import { Head } from '@inertiajs/vue3';
-import { Building2, ShieldCheck } from 'lucide-vue-next';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ArrowLeft, Building2, LoaderCircle, ShieldCheck, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import DeclarationClustersRecap from '@/Components/Domain/Declaration/DeclarationClustersRecap.vue';
 import FiscalSummaryCard from '@/Components/Domain/Declaration/FiscalSummaryCard.vue';
 import ReviewContextBanner from '@/Components/Domain/Declaration/ReviewContextBanner.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
+import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { useReviewForm } from '@/Composables/Declaration/useReviewForm';
+import {
+    destroy as destroyRoute,
+    show as showDeclarationRoute,
+} from '@/routes/user/declarations';
 import ReviewActionsBar from './partials/ReviewActionsBar.vue';
 
 const props = defineProps<{
@@ -27,6 +38,7 @@ const props = defineProps<{
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
     predecessorDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
     obsoleteReasons: App.Data.User.FiscalDeclaration.InvalidationReasonData[];
+    canonicalHeadDeclarationId: number | null;
 }>();
 
 const { submitting, submitDecision } = useReviewForm(props.declaration.id);
@@ -40,28 +52,53 @@ const bannerMode = computed<'preparation' | 'regeneration'>(
 /**
  * Phase 13 D5.10.E · si tous les motifs d'obsolescence du predecessor
  * sont du type `voluntary_modification`, la suppression de ce brouillon
- * ré-activera le predecessor (cas typique · l'utilisateur abandonne
- * une modification volontaire et retombe sur la version active
- * précédente). Sinon, le predecessor reste obsolète.
+ * ré-activera le predecessor.
  */
 const predecessorWillReactivate = computed<boolean>(() => {
     if (props.predecessorDeclaration === null || props.obsoleteReasons.length === 0) {
         return false;
     }
-
     return props.obsoleteReasons.every((r) => r.type === 'voluntary_modification');
 });
 
-const predecessorReference = computed<string | null>(() => {
-    const pred = props.predecessorDeclaration;
-    if (pred === null) {
-        return null;
-    }
-
-    return pred.reference ?? `#${pred.id}`;
-});
+const predecessorReference = computed<string | null>(
+    () => props.predecessorDeclaration?.internalLabel ?? null,
+);
 
 const fiscalSummaryRef = ref<InstanceType<typeof FiscalSummaryCard> | null>(null);
+
+// Phase 13 D5.10.H · bouton Supprimer dans le header Review.
+const discarding = ref<boolean>(false);
+const discardConfirmOpen = ref<boolean>(false);
+
+const discardConfirmMessage = computed<string>(() => {
+    const predRef = predecessorReference.value;
+    if (predRef === null) {
+        return 'Ce brouillon sera supprimé. Aucune autre déclaration n\'est concernée. Cette action est irréversible.';
+    }
+    if (predecessorWillReactivate.value) {
+        return `Ce brouillon sera supprimé et la déclaration ${predRef} redeviendra active (la modification volontaire en cours sera annulée).`;
+    }
+    return `Ce brouillon sera supprimé. La déclaration ${predRef} restera obsolète et pourra être régénérée plus tard.`;
+});
+
+function requestDiscard(): void {
+    if (discarding.value) {
+        return;
+    }
+    discardConfirmOpen.value = true;
+}
+
+function confirmDiscard(): void {
+    discardConfirmOpen.value = false;
+    discarding.value = true;
+    router.delete(destroyRoute.url({ declaration: props.declaration.id }), {
+        preserveScroll: false,
+        onFinish: () => {
+            discarding.value = false;
+        },
+    });
+}
 
 function handleSubmit(
     cluster: App.Data.User.FiscalDeclaration.ReviewClusterData,
@@ -80,11 +117,9 @@ function handleSubmit(
 
 function handleQuickRequalify(fingerprint: string): void {
     const cluster = props.preview.clusters.find((c) => c.fingerprint === fingerprint);
-
     if (cluster === undefined) {
         return;
     }
-
     handleSubmit(cluster, 'requalified', null);
 }
 
@@ -97,22 +132,44 @@ function handleScrollTo(fingerprint: string): void {
     <Head :title="`Revue ${declaration.companyShortCode} ${declaration.fiscalYear} · Floty`" />
 
     <UserLayout>
-        <div class="m-auto flex w-full max-w-[64em] flex-col gap-6 border-l-2 border-l-amber-400 pb-24 pl-3">
-            <header class="flex items-start gap-3">
-                <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"
-                >
-                    <Building2 :size="22" :stroke-width="1.75" />
+        <div class="m-auto flex w-full max-w-[64em] flex-col gap-6 pb-24">
+            <Link
+                :href="showDeclarationRoute.url({ declaration: declaration.id })"
+                class="inline-flex w-fit cursor-pointer items-center gap-1 text-xs font-medium text-slate-500 underline-offset-2 transition-colors duration-[120ms] hover:text-slate-800 hover:underline"
+            >
+                <ArrowLeft :size="14" :stroke-width="1.75" />
+                Voir en lecture seule
+            </Link>
+
+            <header class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div class="flex items-start gap-3">
+                    <div
+                        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600"
+                    >
+                        <Building2 :size="22" :stroke-width="1.75" />
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <p class="text-xs font-medium tracking-wider text-slate-500 uppercase">
+                            Déclaration fiscale
+                        </p>
+                        <StatusPill tone="amber" class="w-fit">Revue interactive</StatusPill>
+                        <h1 class="text-2xl font-semibold text-slate-900">
+                            {{ declaration.companyShortCode }} · {{ declaration.fiscalYear }}
+                        </h1>
+                        <p class="text-sm text-slate-500">{{ declaration.companyLegalName }}</p>
+                    </div>
                 </div>
-                <div class="flex flex-col gap-1">
-                    <p class="text-xs font-medium tracking-wider text-slate-500 uppercase">
-                        Déclaration fiscale
-                    </p>
-                    <StatusPill tone="amber" class="w-fit">Revue interactive</StatusPill>
-                    <h1 class="text-2xl font-semibold text-slate-900">
-                        {{ declaration.companyShortCode }} · {{ declaration.fiscalYear }}
-                    </h1>
-                    <p class="text-sm text-slate-500">{{ declaration.companyLegalName }}</p>
+
+                <div class="flex flex-wrap items-center gap-2">
+                    <Button
+                        variant="destructive-soft"
+                        :disabled="discarding"
+                        @click="requestDiscard"
+                    >
+                        <LoaderCircle v-if="discarding" :size="16" :stroke-width="1.75" class="animate-spin" />
+                        <Trash2 v-else :size="16" :stroke-width="1.75" />
+                        Supprimer
+                    </Button>
                 </div>
             </header>
 
@@ -162,9 +219,17 @@ function handleScrollTo(fingerprint: string): void {
                 :pending-clusters-count="preview.pendingClustersCount"
                 :can-generate="preview.canGenerate"
                 :is-deferred="isDeferred"
-                :predecessor-reference="predecessorReference"
-                :predecessor-will-reactivate="predecessorWillReactivate"
             />
         </div>
+
+        <ConfirmModal
+            v-model:open="discardConfirmOpen"
+            title="Supprimer le brouillon ?"
+            :message="discardConfirmMessage"
+            confirm-label="Supprimer"
+            cancel-label="Annuler"
+            tone="danger"
+            @confirm="confirmDiscard"
+        />
     </UserLayout>
 </template>

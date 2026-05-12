@@ -26,6 +26,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - **Deferred** (S4) : déclaration mise de côté volontairement.
  *     CTA « Reprendre ».
  *
+ *   - **DeferredRegeneration** (S4-bis, Phase 13 D5.10.H) : déclaration
+ *     mise de côté qui remplace une déclaration obsolète (chaîne de
+ *     régénération mise en pause). Distinct de Deferred simple ·
+ *     l'utilisateur doit comprendre que la déclaration précédente
+ *     reste obsolète tant que la régénération n'est pas finalisée.
+ *
  *   - **GeneratedActive** (S5) : déclaration générée, à jour, non
  *     obsolète. CTA « Ouvrir » + « Télécharger PDF ».
  *
@@ -49,6 +55,7 @@ enum DeclarationLifecycleState: string
     case DraftPending = 'draft_pending';
     case DraftReadyToGenerate = 'draft_ready_to_generate';
     case Deferred = 'deferred';
+    case DeferredRegeneration = 'deferred_regeneration';
     case GeneratedActive = 'generated_active';
     case GeneratedObsoleteOrphan = 'generated_obsolete_orphan';
     case RegenerationInProgress = 'regeneration_in_progress';

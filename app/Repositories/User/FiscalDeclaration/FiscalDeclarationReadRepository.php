@@ -145,23 +145,50 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
             $eloquentQuery->where('fiscal_declarations.is_obsolete', true);
         }
 
-        // Phase 13 D5.10.F · recherche par référence avec expansion de
-        // chaîne (algorithme 2-queries). L'utilisateur tape une
-        // référence (ou un fragment), on identifie les couples
-        // `(company_id, fiscal_year)` qui contiennent au moins une
-        // déclaration matchant, puis on retourne **toutes** les
-        // déclarations de ces couples. Résultat · une référence
-        // retrouvée affiche toute la chaîne historique (predecessors
-        // obsolètes + draft de régénération + successor active).
+        // Phase 13 D5.10.F + D5.10.H · recherche par référence avec
+        // expansion de chaîne (algorithme 2-branches). L'utilisateur
+        // tape une référence (fragment de DECL-XXX-YYYY-NNNN) OU un
+        // label brouillon (« Brouillon #4 » / « #4 » / « 4 ») · on
+        // identifie les couples `(company_id, fiscal_year)` qui
+        // matchent, puis on retourne **toutes** les déclarations de
+        // ces couples (expansion chaîne).
+        //
+        // Branche Q1 · LIKE %term% sur la colonne reference. Le
+        // domaine fiscal Floty est structurellement borné (~300
+        // lignes max sur 10 ans pour un client), donc le full scan
+        // est sub-100ms. Pas de FULLTEXT, pas de dette · c'est le bon
+        // choix architectural pour ce domaine.
+        //
+        // Branche Q2 · si `term` matche un pattern brouillon, on fait
+        // un lookup PK direct (instantané) sur l'id extrait.
         if ($query->search !== null && trim($query->search) !== '') {
             $term = trim($query->search);
 
-            $pairs = FiscalDeclaration::query()
+            // Q1 · couples avec une reference matchante. `toBase()` pour
+            // que `merge()` utilise la déduplication d'Illuminate Collection
+            // (sur clés) au lieu de l'Eloquent Collection (sur PK · qui
+            // exige `id` dans le select).
+            $pairsFromReference = FiscalDeclaration::query()
                 ->whereNotNull('reference')
                 ->where('reference', 'LIKE', '%'.$term.'%')
                 ->select('company_id', 'fiscal_year')
                 ->distinct()
-                ->get();
+                ->get()
+                ->toBase();
+
+            $pairsFromId = collect();
+            if (preg_match('/^(?:[Bb]rouillon\s*)?#?(\d+)$/', $term, $matches) === 1) {
+                $extractedId = (int) $matches[1];
+                $pairsFromId = FiscalDeclaration::query()
+                    ->whereKey($extractedId)
+                    ->select('company_id', 'fiscal_year')
+                    ->get()
+                    ->toBase();
+            }
+
+            $pairs = $pairsFromReference
+                ->merge($pairsFromId)
+                ->unique(fn ($p): string => $p->company_id.'|'.$p->fiscal_year);
 
             if ($pairs->isEmpty()) {
                 $eloquentQuery->whereRaw('1 = 0');

@@ -20,7 +20,7 @@ defineProps<{
     -->
     <div
         v-if="declaration.isObsolete && declaration.status !== 'draft'"
-        class="flex flex-col gap-3 rounded-xl border border-slate-200 border-l-2 border-l-rose-400 bg-slate-50 p-4"
+        class="flex flex-col gap-3 rounded-sm border border-slate-200 border-l-2 border-l-rose-400 bg-white p-4"
     >
         <div class="flex items-start gap-3">
             <AlertTriangle :size="20" :stroke-width="1.75" class="shrink-0 text-rose-500" />

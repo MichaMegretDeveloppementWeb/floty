@@ -59,7 +59,7 @@ const extraReasonsCount = computed<number>(() => {
 <template>
     <div
         v-if="isRegeneration"
-        class="flex flex-col gap-3 rounded-xl border border-slate-200 border-l-2 border-l-amber-400 bg-slate-50 p-4"
+        class="flex flex-col gap-3 rounded-sm border border-slate-200 border-l-2 border-l-amber-400 bg-white p-4"
     >
         <div class="flex items-start gap-3">
             <Recycle :size="20" :stroke-width="1.75" class="shrink-0 text-amber-500" />
@@ -115,7 +115,7 @@ const extraReasonsCount = computed<number>(() => {
 
     <div
         v-else
-        class="flex items-start gap-3 rounded-xl border border-slate-200 border-l-2 border-l-emerald-400 bg-slate-50 p-4"
+        class="flex items-start gap-3 rounded-sm border border-slate-200 border-l-2 border-l-emerald-400 bg-white p-4"
     >
         <FilePlus2 :size="20" :stroke-width="1.75" class="shrink-0 text-emerald-500" />
         <div class="flex flex-col gap-1">

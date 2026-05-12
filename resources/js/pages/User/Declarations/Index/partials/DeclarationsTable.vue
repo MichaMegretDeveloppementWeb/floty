@@ -68,9 +68,14 @@ const emit = defineEmits<{
 
         <template #cell-status="{ row }">
             <div class="flex flex-col items-start gap-1">
-                <StatusPill :tone="pillForIndexRow(row).tone">
-                    {{ pillForIndexRow(row).label }}
-                </StatusPill>
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <StatusPill :tone="pillForIndexRow(row).tone">
+                        {{ pillForIndexRow(row).label }}
+                    </StatusPill>
+                    <StatusPill v-if="row.status === 'deferred'" tone="slate">
+                        Brouillon
+                    </StatusPill>
+                </div>
                 <Link
                     v-if="subMentionForRow(row)"
                     :href="declarationsShowRoute.url({ declaration: subMentionForRow(row)!.targetDeclarationId })"
@@ -125,6 +130,9 @@ const emit = defineEmits<{
                         <StatusPill v-if="row.isObsolete" tone="rose">Obsolète</StatusPill>
                         <StatusPill :tone="pillForIndexRow(row).tone">
                             {{ pillForIndexRow(row).label }}
+                        </StatusPill>
+                        <StatusPill v-if="row.status === 'deferred'" tone="slate">
+                            Brouillon
                         </StatusPill>
                     </div>
                     <span class="text-xs text-slate-500">{{ row.companyLegalName }}</span>
