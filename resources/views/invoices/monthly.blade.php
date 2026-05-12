@@ -18,7 +18,7 @@
             margin: 0;
         }
         h1 {
-            font-size: 24pt;
+            font-size: 18pt;
             font-weight: bold;
             margin: 0;
             letter-spacing: -0.02em;
@@ -33,12 +33,12 @@
             margin: 0 0 2mm 0;
         }
         .header {
-            margin-bottom: 12mm;
+            margin-bottom: 8mm;
         }
         .header-top {
             display: table;
             width: 100%;
-            margin-bottom: 8mm;
+            margin-bottom: 5mm;
         }
         .header-top > div {
             display: table-cell;
@@ -50,7 +50,7 @@
             text-align: right;
         }
         .invoice-ref {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
             letter-spacing: 0.02em;
             color: #475569;
@@ -73,7 +73,7 @@
             width: 100%;
             border-top: 1px solid #e2e8f0;
             border-bottom: 1px solid #e2e8f0;
-            padding: 5mm 0;
+            padding: 3mm 0;
         }
         .parties > div {
             display: table-cell;
@@ -81,18 +81,18 @@
             width: 50%;
         }
         .parties .party-name {
-            font-size: 11pt;
+            font-size: 10pt;
             font-weight: bold;
             color: #0f172a;
             margin-bottom: 1mm;
         }
         .parties .party-line {
             color: #475569;
-            font-size: 9pt;
+            font-size: 8.5pt;
             line-height: 1.55;
         }
         .meta-block {
-            margin: 8mm 0;
+            margin: 6mm 0;
             display: table;
             width: 100%;
         }
@@ -131,7 +131,7 @@
             font-weight: bold;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            padding: 3mm 2.5mm;
+            padding: 2mm 2.5mm;
             text-align: left;
             border-top: 1px solid #cbd5e1;
             border-bottom: 1px solid #cbd5e1;
@@ -140,7 +140,7 @@
             text-align: right;
         }
         .lines tbody td {
-            padding: 3.5mm 2.5mm;
+            padding: 2.2mm 2.5mm;
             border-bottom: 1px solid #e2e8f0;
             font-size: 9pt;
             vertical-align: top;
@@ -157,22 +157,22 @@
         }
         .lines tbody td.detail {
             color: #64748b;
-            font-size: 8.5pt;
+            font-size: 8pt;
             line-height: 1.45;
         }
         .total-block {
-            margin-top: 4mm;
+            margin-top: 3mm;
             text-align: right;
         }
         .total-block .total-label {
-            font-size: 8pt;
+            font-size: 7.5pt;
             text-transform: uppercase;
             letter-spacing: 0.08em;
             color: #94a3b8;
             font-weight: bold;
         }
         .total-block .total-value {
-            font-size: 16pt;
+            font-size: 13pt;
             font-weight: bold;
             color: #0f172a;
             margin-top: 1mm;
@@ -180,7 +180,7 @@
         .footer {
             border-top: 1px solid #e2e8f0;
             padding-top: 5mm;
-            margin-top: 12mm;
+            margin-top: 6mm;
             color: #94a3b8;
             font-size: 7.5pt;
             line-height: 1.5;
