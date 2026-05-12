@@ -47,6 +47,23 @@ describe('formatInvalidationReason', () => {
 
         expect(formatInvalidationReason(reason)).toBe('Contrat modifié');
     });
+
+    it('reformate les dates ISO YYYY-MM-DD éventuelles du label en DD/MM/YYYY', () => {
+        // Cas des labels persistés en base avant la bascule format
+        // français côté `DeclarationInvalidationDetector`.
+        const reason = {
+            ...makeReason('contract_created'),
+            entity: {
+                type: 'contract',
+                id: 44,
+                label: 'Contrat #44 · véhicule 4 · 2024-07-08 → 2024-07-26',
+            },
+        };
+
+        expect(formatInvalidationReason(reason)).toBe(
+            'Contrat ajouté · Contrat #44 · véhicule 4 · 08/07/2024 → 26/07/2024',
+        );
+    });
 });
 
 describe('formatInvalidationOccurredAt', () => {

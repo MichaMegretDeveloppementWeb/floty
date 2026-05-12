@@ -27,7 +27,17 @@ export function formatInvalidationReason(reason: Reason): string {
     const verb = VERB_BY_TYPE[reason.type] ?? reason.type;
     const label = reason.entity?.label ?? '';
 
-    return label ? `${verb} · ${label}` : verb;
+    return label ? `${verb} · ${frenchifyIsoDates(label)}` : verb;
+}
+
+/**
+ * Reformate les dates ISO `YYYY-MM-DD` éventuellement présentes dans
+ * une chaîne en format français `DD/MM/YYYY`. Sert à rattraper les
+ * anciens labels d'invalidation persistés en base avant la bascule
+ * du formatage côté `DeclarationInvalidationDetector`.
+ */
+function frenchifyIsoDates(label: string): string {
+    return label.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1');
 }
 
 export function formatInvalidationOccurredAt(occurredAt: string): string {
