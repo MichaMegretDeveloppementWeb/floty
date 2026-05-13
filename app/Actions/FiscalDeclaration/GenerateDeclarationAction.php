@@ -27,8 +27,9 @@ use Throwable;
  * annexe documentaire complet + persistance disque + hash SHA-256 +
  * référence lisible `DECL-{shortCode}-{year}-{NNNN}`.
  *
- * **Pipeline D5.5** :
- *   1. Guards : déclaration existante, statut `draft`, non obsolète.
+ * **Pipeline D5.5** (élargi D5.10.Z) :
+ *   1. Guards : déclaration existante, statut `draft` **ou** `deferred`
+ *      (un deferred est un draft mis volontairement de côté), non obsolète.
  *   2. Recalcul de la `preview` (clusters re-détectés enrichis decisions)
  *      pour vérifier qu'aucun cluster pending n'a été ajouté par une
  *      mutation concurrente entre l'affichage et la génération.
@@ -149,9 +150,12 @@ final readonly class GenerateDeclarationAction
             throw new DomainException('Une déclaration obsolète doit être régénérée, pas générée.');
         }
 
-        if ($declaration->status !== FiscalDeclarationStatus::Draft) {
+        // Phase 13 D5.10.Z · `deferred` est un draft volontairement mis
+        // de côté · il reste éligible à la génération sans transition
+        // intermédiaire vers `draft`.
+        if (! in_array($declaration->status, [FiscalDeclarationStatus::Draft, FiscalDeclarationStatus::Deferred], true)) {
             throw new DomainException(sprintf(
-                'Génération impossible : seule une déclaration en statut « draft » peut être générée (statut courant : %s).',
+                'Génération impossible : seule une déclaration en brouillon (« draft » ou « deferred ») peut être générée (statut courant : %s).',
                 $declaration->status->value,
             ));
         }

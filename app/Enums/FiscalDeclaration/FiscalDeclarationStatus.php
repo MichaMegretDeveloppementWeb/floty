@@ -11,8 +11,10 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *
  *  - `draft` : en cours de revue, peut être éditée.
  *  - `deferred` : marqueur visuel volontaire posé par l'utilisateur
- *    pour mémoriser une déclaration en attente de consultation EC.
- *    N'autorise pas la génération.
+ *    pour mémoriser une déclaration mise de côté en attente de
+ *    consultation EC. Sémantiquement c'est **un draft**, donc la
+ *    génération du PDF reste autorisée depuis ce statut (Phase 13
+ *    D5.10.Z).
  *  - `generated` : PDF annexe produit, snapshot immuable. Peut devenir
  *    obsolète (cf. flag `is_obsolete` orthogonal) mais ne revient
  *    jamais en `draft`.

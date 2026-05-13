@@ -60,17 +60,22 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
         // (`GenerateDeclarationAction::guardCanGenerate`) et la
         // finalisation BDD. Si une mutation concurrente a fait passer
         // la déclaration en `obsolete` ou changé son statut entre
-        // temps, l'INSERT échoue proprement.
+        // temps, l'INSERT échoue proprement. Phase 13 D5.10.Z · accepte
+        // aussi `deferred` (= brouillon mis de côté) car la génération
+        // peut être déclenchée directement depuis ce statut.
         $declaration = FiscalDeclaration::query()
             ->whereKey($declarationId)
-            ->where('status', FiscalDeclarationStatus::Draft->value)
+            ->whereIn('status', [
+                FiscalDeclarationStatus::Draft->value,
+                FiscalDeclarationStatus::Deferred->value,
+            ])
             ->where('is_obsolete', false)
             ->lockForUpdate()
             ->first();
 
         if ($declaration === null) {
             throw new DomainException(sprintf(
-                'Génération impossible : la déclaration %d n\'est plus en statut « draft » non obsolète (mutation concurrente).',
+                'Génération impossible : la déclaration %d n\'est plus en brouillon non obsolète (mutation concurrente).',
                 $declarationId,
             ));
         }

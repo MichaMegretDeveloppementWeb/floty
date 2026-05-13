@@ -88,7 +88,7 @@ final class GenerateDeclarationActionTest extends TestCase
     }
 
     #[Test]
-    public function refus_si_pas_draft(): void
+    public function refus_si_deja_generee(): void
     {
         $declaration = FiscalDeclaration::factory()
             ->forCompany($this->company)
@@ -99,6 +99,25 @@ final class GenerateDeclarationActionTest extends TestCase
         $this->expectException(DomainException::class);
 
         $this->action->execute($declaration->id);
+    }
+
+    #[Test]
+    public function genere_aussi_depuis_un_brouillon_mis_de_cote_deferred(): void
+    {
+        // Phase 13 D5.10.Z · un `deferred` est sémantiquement un draft
+        // mis volontairement de côté · la génération doit aboutir
+        // directement sans transition intermédiaire.
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->deferred()
+            ->create();
+
+        $generated = $this->action->execute($declaration->id);
+
+        self::assertSame(FiscalDeclarationStatus::Generated, $generated->status);
+        self::assertNotNull($generated->generated_at);
+        self::assertNotNull($generated->generated_pdf_path);
     }
 
     #[Test]
