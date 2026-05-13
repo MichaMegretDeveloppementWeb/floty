@@ -101,10 +101,9 @@ function confirmDiscard(): void {
                     </p>
                 </Link>
                 <p
-                    v-if="declaration.reference"
                     class="mt-1 inline-flex w-fit items-center rounded-md bg-slate-100 px-2 py-0.5 font-mono text-xs font-medium text-slate-700"
                 >
-                    {{ declaration.reference }}
+                    {{ declaration.internalLabel }}
                 </p>
             </div>
         </div>

@@ -245,12 +245,17 @@ function handleModalSubmit(
 }
 
 defineExpose({
-    /** Permet à `<DeclarationClustersRecap>` de faire défiler la page jusqu'au cluster ciblé. */
+    /**
+     * Permet à `<DeclarationClustersRecap>` de faire défiler la page
+     * jusqu'au cluster ciblé. Phase 13 D5.10.P · `block: 'center'`
+     * pour éviter que le header de cluster soit masqué par le recap
+     * sticky positionné en haut du viewport.
+     */
     scrollToCluster(fingerprint: string): void {
         const el = document.getElementById(`cluster-${fingerprint}`);
 
         if (el !== null) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }
     },
 });
@@ -279,7 +284,7 @@ defineExpose({
                     <template v-else>
                         <template v-if="metaFromCluster(group.fingerprint, group.contracts)">
                             <ClusterGroup
-                                :id="`cluster-${group.fingerprint}`"
+                                :cluster-id="`cluster-${group.fingerprint}`"
                                 :risk-code="metaFromCluster(group.fingerprint, group.contracts)!.riskCode"
                                 :risk-level="metaFromCluster(group.fingerprint, group.contracts)!.riskLevel"
                                 :contracts-count="metaFromCluster(group.fingerprint, group.contracts)!.contractsCount"

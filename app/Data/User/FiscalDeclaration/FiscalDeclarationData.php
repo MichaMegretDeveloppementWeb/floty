@@ -35,6 +35,13 @@ final class FiscalDeclarationData extends Data
         public FiscalDeclarationStatus $status,
         /** Numéro lisible `DECL-{shortCode}-{year}-{NNNN}`. Null si pas encore générée (Phase 11 D5.3). */
         public ?string $reference,
+        /**
+         * Phase 13 D5.10.P · libellé d'affichage interne · « DECL-XXX »
+         * si générée, sinon « Brouillon #N ». Centralise la logique
+         * `?? Brouillon #N` pour éviter sa duplication côté frontend.
+         * Aligné sur `DeclarationListItemData::internalLabel`.
+         */
+        public string $internalLabel,
         /** ISO 8601 (Y-m-d). Null si pas encore générée. */
         public ?string $generatedAt,
         public ?string $generatedPdfHash,
@@ -77,6 +84,7 @@ final class FiscalDeclarationData extends Data
             fiscalYear: $declaration->fiscal_year,
             status: $declaration->status,
             reference: $declaration->reference,
+            internalLabel: $declaration->reference ?? sprintf('Brouillon #%d', $declaration->id),
             generatedAt: $declaration->generated_at?->toDateString(),
             generatedPdfHash: $declaration->generated_pdf_hash,
             isObsolete: $declaration->is_obsolete,

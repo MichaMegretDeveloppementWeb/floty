@@ -65,10 +65,18 @@ const props = withDefaults(
          * modale).
          */
         justification?: string | null;
+        /**
+         * Phase 13 D5.10.P · id HTML à appliquer sur le premier <tr>
+         * (header) pour permettre à `scrollToCluster()` de cibler le
+         * cluster · un composant multi-root Vue 3 ne propage pas les
+         * attributs implicites donc on passe explicitement via prop.
+         */
+        clusterId?: string;
     }>(),
     {
         interactive: false,
         justification: null,
+        clusterId: undefined,
     },
 );
 
@@ -114,7 +122,7 @@ const vehiclesLabel = computed<string>(() =>
 
 <template>
     <!-- Header de cluster · row dédiée avec bouton Décider à droite -->
-    <tr class="bg-slate-50">
+    <tr :id="clusterId" class="bg-slate-50">
         <td
             :colspan="props.colspan"
             :class="['border-x border-t border-slate-200 px-3 py-2.5', accentBorderClass]"
