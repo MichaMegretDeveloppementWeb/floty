@@ -189,6 +189,10 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->select('contracts.*')
             ->with([
                 'vehicle:id,license_plate,exit_date,exit_reason',
+                // Eager load des VFC nécessaires au pipeline fiscal
+                // exécuté lors de l'enrichissement DTO (`fullYearTax`) ·
+                // sans cela, lazy load N+1 par contrat (Phase D5.10.V).
+                'vehicle.fiscalCharacteristics' => fn ($q) => $q->orderByDesc('effective_from'),
                 'company:id,short_code,legal_name,color',
                 'drivers:id,first_name,last_name',
             ]);

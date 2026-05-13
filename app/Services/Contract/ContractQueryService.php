@@ -121,10 +121,15 @@ final readonly class ContractQueryService
     public function listPaginated(ContractIndexQueryData $query): PaginatedContractListData
     {
         $paginator = $this->repository->paginateForIndex($query);
+        $contracts = $paginator->items();
+
+        // Batch unique pour les loyers de la page · évite le N+1
+        // (`forContract` × 25 items × M mois lookups pricings).
+        $rentalByContractId = $this->rentalPrice->forContracts($contracts);
 
         $items = array_map(
-            fn (Contract $c): ContractListItemData => $this->enrichContractDto($c),
-            $paginator->items(),
+            fn (Contract $c): ContractListItemData => $this->enrichContractDto($c, $rentalByContractId[$c->id] ?? null),
+            $contracts,
         );
 
         return new PaginatedContractListData(
@@ -140,8 +145,12 @@ final readonly class ContractQueryService
      * avec le rendu Index Véhicules, suffisante pour une vue
      * d'ensemble (la valeur exacte par contrat reste accessible via la
      * déclaration générée).
+     *
+     * `$preComputedRentalCents` : utilisé par les Index paginés qui ont
+     * batché les loyers en amont · si `null`, fallback au lookup
+     * individuel (utilisé sur fiche Contract isolée).
      */
-    private function enrichContractDto(Contract $contract): ContractListItemData
+    private function enrichContractDto(Contract $contract, ?int $preComputedRentalCents = null): ContractListItemData
     {
         $base = ContractListItemData::fromModel($contract);
 
@@ -156,7 +165,7 @@ final readonly class ContractQueryService
 
         $totalTax = round($fullYearTax * ($base->durationDays / 365), 2, PHP_ROUND_HALF_UP);
 
-        $rentalCents = $this->rentalPrice->forContract($contract->id);
+        $rentalCents = $preComputedRentalCents ?? $this->rentalPrice->forContract($contract->id);
         $rentalPrice = $rentalCents === null ? null : $rentalCents / 100;
 
         return new ContractListItemData(
@@ -263,10 +272,16 @@ final readonly class ContractQueryService
     public function listForCompany(int $companyId): DataCollection
     {
         $contracts = $this->repository->listForCompany($companyId);
+        $rentalByContractId = $this->rentalPrice->forContracts($contracts->all());
 
         /** @var DataCollection<int, ContractListItemData> */
         return ContractListItemData::collect(
-            $contracts->map(fn (Contract $c): ContractListItemData => $this->enrichContractDto($c)),
+            $contracts->map(
+                fn (Contract $c): ContractListItemData => $this->enrichContractDto(
+                    $c,
+                    $rentalByContractId[$c->id] ?? null,
+                ),
+            ),
             DataCollection::class,
         );
     }

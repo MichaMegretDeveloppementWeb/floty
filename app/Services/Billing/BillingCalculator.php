@@ -75,25 +75,22 @@ final readonly class BillingCalculator
         // Étape 3 : daysUsed par véhicule (dédoublonnage par set de dates).
         $daysByVehicle = $this->aggregateDaysByVehicle($contracts, $monthStart, $monthEnd);
 
-        // Étape 4 : vérification exhaustive des tarifs.
+        // Étape 4 : vérification exhaustive des tarifs · batch lookup
+        // unique sur tous les véhicules présents ce mois (élimine N+1
+        // sur boucles `byCompanyForYear` × 12 mois).
         $vehicles = $this->indexVehiclesById($contracts);
+        $vehicleIds = array_keys($daysByVehicle);
+        $pricings = $this->pricingRepository->findForVehiclesAndYear($vehicleIds, $year);
+
         $missing = [];
-        $pricings = [];
-
-        foreach ($daysByVehicle as $vehicleId => $_days) {
-            $pricing = $this->pricingRepository->findForVehicleAndYear($vehicleId, $year);
-
-            if ($pricing === null) {
+        foreach ($vehicleIds as $vehicleId) {
+            if (! isset($pricings[$vehicleId])) {
                 $missing[] = [
                     'vehicleId' => $vehicleId,
                     'licensePlate' => $vehicles[$vehicleId]->license_plate,
                     'year' => $year,
                 ];
-
-                continue;
             }
-
-            $pricings[$vehicleId] = $pricing;
         }
 
         if ($missing !== []) {
@@ -105,6 +102,160 @@ final readonly class BillingCalculator
         foreach ($daysByVehicle as $vehicleId => $daysUsed) {
             $vehicle = $vehicles[$vehicleId];
             $pricing = $pricings[$vehicleId];
+
+            $breakdown = OptimalRateBreakdown::compute(
+                daysUsed: $daysUsed,
+                dailyCents: $pricing->daily_rate_cents,
+                weeklyCents: $pricing->weekly_rate_cents,
+                monthlyCents: $pricing->monthly_rate_cents,
+            );
+
+            $lines[] = new BillingLineData(
+                vehicleId: $vehicleId,
+                licensePlate: $vehicle->license_plate,
+                brand: $vehicle->brand,
+                model: $vehicle->model,
+                daysUsed: $daysUsed,
+                monthsBilled: $breakdown->months,
+                weeksBilled: $breakdown->weeks,
+                daysBilled: $breakdown->days,
+                dailyRateCents: $pricing->daily_rate_cents,
+                weeklyRateCents: $pricing->weekly_rate_cents,
+                monthlyRateCents: $pricing->monthly_rate_cents,
+                totalCents: $breakdown->totalCents,
+            );
+        }
+
+        usort(
+            $lines,
+            static fn (BillingLineData $a, BillingLineData $b): int => strcmp($a->licensePlate, $b->licensePlate),
+        );
+
+        $total = array_sum(array_map(static fn (BillingLineData $l): int => $l->totalCents, $lines));
+
+        return new BillingCalculationData(
+            companyId: $companyId,
+            year: $year,
+            month: $month,
+            lines: $lines,
+            totalCents: $total,
+        );
+    }
+
+    /**
+     * Calcule en batch les 12 factures mensuelles d'une entreprise sur
+     * une année · 1 SQL pour les contrats de l'année + 1 SQL batched
+     * pour les pricings des véhicules impliqués, puis itération
+     * in-memory mois par mois.
+     *
+     * Sémantique strictement identique à 12 appels successifs à
+     * `calculate()` mais sans les 12 round-trips SQL (utile pour
+     * `byCompanyForYear` et les résolveurs « pending »).
+     *
+     * @return array<int, BillingCalculationData|MissingPricingException>
+     *                                                                    Clé : mois `[1..12]`. Une `MissingPricingException` à la place
+     *                                                                    de la `BillingCalculationData` quand le mois aurait levé.
+     */
+    public function calculateYear(int $companyId, int $year): array
+    {
+        $yearStart = CarbonImmutable::create($year, 1, 1);
+        $yearEnd = $yearStart->endOfYear();
+
+        $allContracts = $this->contractRepository->findForCompanyInPeriod(
+            $companyId,
+            $yearStart->toDateString(),
+            $yearEnd->toDateString(),
+        );
+
+        // Pré-batch les pricings de tous les véhicules de l'année (1 SQL).
+        $allVehicleIds = [];
+        foreach ($allContracts as $contract) {
+            $allVehicleIds[$contract->vehicle_id] = true;
+        }
+        $pricingsAll = $allVehicleIds === []
+            ? []
+            : $this->pricingRepository->findForVehiclesAndYear(array_keys($allVehicleIds), $year);
+
+        $vehiclesAll = $this->indexVehiclesById($allContracts);
+
+        $results = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $results[$month] = $this->calculateMonthFromPreloaded(
+                $companyId,
+                $year,
+                $month,
+                $allContracts,
+                $pricingsAll,
+                $vehiclesAll,
+            );
+        }
+
+        return $results;
+    }
+
+    /**
+     * Variante in-memory de `calculate()` qui prend les contrats/pricings
+     * pré-chargés en amont · sert au mode batched `calculateYear`.
+     *
+     * @param  iterable<int, Contract>  $allContracts  contrats year-scoped (déjà filtrés sur company)
+     * @param  array<int, mixed>  $pricingsAll  vehicleId → VehicleYearlyPricing
+     * @param  array<int, Vehicle>  $vehiclesAll  vehicleId → Vehicle
+     */
+    private function calculateMonthFromPreloaded(
+        int $companyId,
+        int $year,
+        int $month,
+        iterable $allContracts,
+        array $pricingsAll,
+        array $vehiclesAll,
+    ): BillingCalculationData|MissingPricingException {
+        $monthStart = CarbonImmutable::create($year, $month, 1);
+        $monthEnd = $monthStart->endOfMonth();
+
+        // Filtre les contrats qui chevauchent le mois.
+        $monthContracts = [];
+        foreach ($allContracts as $contract) {
+            if ($contract->start_date->toDateString() > $monthEnd->toDateString()) {
+                continue;
+            }
+            if ($contract->end_date->toDateString() < $monthStart->toDateString()) {
+                continue;
+            }
+            $monthContracts[] = $contract;
+        }
+
+        if ($monthContracts === []) {
+            return new BillingCalculationData(
+                companyId: $companyId,
+                year: $year,
+                month: $month,
+                lines: [],
+                totalCents: 0,
+            );
+        }
+
+        $daysByVehicle = $this->aggregateDaysByVehicle($monthContracts, $monthStart, $monthEnd);
+        $vehicleIds = array_keys($daysByVehicle);
+
+        $missing = [];
+        foreach ($vehicleIds as $vehicleId) {
+            if (! isset($pricingsAll[$vehicleId])) {
+                $missing[] = [
+                    'vehicleId' => $vehicleId,
+                    'licensePlate' => $vehiclesAll[$vehicleId]->license_plate ?? "#{$vehicleId}",
+                    'year' => $year,
+                ];
+            }
+        }
+
+        if ($missing !== []) {
+            return MissingPricingException::forMissingItems($missing);
+        }
+
+        $lines = [];
+        foreach ($daysByVehicle as $vehicleId => $daysUsed) {
+            $vehicle = $vehiclesAll[$vehicleId];
+            $pricing = $pricingsAll[$vehicleId];
 
             $breakdown = OptimalRateBreakdown::compute(
                 daysUsed: $daysUsed,

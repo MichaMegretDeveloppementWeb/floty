@@ -6,7 +6,8 @@ namespace App\Services\Billing;
 
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
-use App\Exceptions\Billing\MissingPricingException;
+use App\Models\Contract;
+use App\Models\VehicleYearlyPricing;
 use Carbon\CarbonImmutable;
 
 /**
@@ -34,7 +35,6 @@ use Carbon\CarbonImmutable;
 final readonly class RentalPriceCalculator
 {
     public function __construct(
-        private BillingCalculator $billingCalculator,
         private ContractReadRepositoryInterface $contractRepo,
         private VehicleYearlyPricingReadRepositoryInterface $pricingRepo,
     ) {}
@@ -55,10 +55,24 @@ final readonly class RentalPriceCalculator
             return null;
         }
 
+        return $this->forContractModel($contract);
+    }
+
+    /**
+     * Variante de `forContract` qui prend un model déjà chargé en
+     * mémoire · évite le re-fetch côté repository quand l'appelant
+     * dispose déjà du model (typiquement les Index paginés). Pricings
+     * récupérés par batch sur tous les contrats du même appelant via
+     * `forContracts`.
+     *
+     * @param  array<int, VehicleYearlyPricing>|null  $pricingsByVehicleYearKey
+     *                                                                           Clé : `vehicleId.year`. Si fourni, pas de SQL.
+     */
+    public function forContractModel(Contract $contract, ?array $pricingsByVehicleYearKey = null): ?int
+    {
         $start = CarbonImmutable::parse($contract->start_date->toDateString());
         $end = CarbonImmutable::parse($contract->end_date->toDateString());
 
-        // Clipping exit_date (defense in depth, cohérent ADR-0018).
         $exitDate = $contract->vehicle?->exit_date;
         if ($exitDate !== null) {
             $exitImmutable = CarbonImmutable::parse($exitDate->toDateString());
@@ -88,10 +102,9 @@ final readonly class RentalPriceCalculator
 
             $daysUsed = (int) $clipStart->diffInDays($clipEnd) + 1;
 
-            $pricing = $this->pricingRepo->findForVehicleAndYear(
-                $contract->vehicle_id,
-                $monthStart->year,
-            );
+            $pricing = $pricingsByVehicleYearKey !== null
+                ? ($pricingsByVehicleYearKey[$contract->vehicle_id.'.'.$monthStart->year] ?? null)
+                : $this->pricingRepo->findForVehicleAndYear($contract->vehicle_id, $monthStart->year);
 
             if ($pricing === null) {
                 return null;
@@ -113,6 +126,64 @@ final readonly class RentalPriceCalculator
     }
 
     /**
+     * Calcule en batch les loyers d'une liste de contrats déjà chargés
+     * en mémoire · 1 SQL pour tous les pricings (vehicle × year)
+     * impliqués, puis agrégation in-memory contrat par contrat.
+     *
+     * Cas d'usage : Index Contrats paginé (cf. `ContractQueryService::
+     * listPaginated`) qui enrichit 25 contrats par page · sans batch
+     * c'est ~25 × N mois requêtes pricings, avec batch c'est 1.
+     *
+     * @param  iterable<Contract>  $contracts
+     * @return array<int, ?int> contractId → cents (null si tarif manquant)
+     */
+    public function forContracts(iterable $contracts): array
+    {
+        $vehicleYearKeys = [];
+        $contractsList = [];
+
+        foreach ($contracts as $contract) {
+            $contractsList[] = $contract;
+            $start = CarbonImmutable::parse($contract->start_date->toDateString());
+            $end = CarbonImmutable::parse($contract->end_date->toDateString());
+
+            $cursor = $start->startOfMonth();
+            while (! $cursor->isAfter($end)) {
+                $vehicleYearKeys[$contract->vehicle_id][$cursor->year] = true;
+                $cursor = $cursor->addMonth();
+            }
+        }
+
+        if ($contractsList === []) {
+            return [];
+        }
+
+        // Batch lookup groupé par année (1 SQL par année traversée par
+        // au moins un contrat · en pratique 1, parfois 2 sur des
+        // contrats cross-year).
+        $pricingsByKey = [];
+        $yearToVehicleIds = [];
+        foreach ($vehicleYearKeys as $vehicleId => $yearsSet) {
+            foreach (array_keys($yearsSet) as $year) {
+                $yearToVehicleIds[$year][] = $vehicleId;
+            }
+        }
+        foreach ($yearToVehicleIds as $year => $vehicleIds) {
+            $pricings = $this->pricingRepo->findForVehiclesAndYear(array_values(array_unique($vehicleIds)), (int) $year);
+            foreach ($pricings as $vehicleId => $pricing) {
+                $pricingsByKey[$vehicleId.'.'.$year] = $pricing;
+            }
+        }
+
+        $results = [];
+        foreach ($contractsList as $contract) {
+            $results[$contract->id] = $this->forContractModel($contract, $pricingsByKey);
+        }
+
+        return $results;
+    }
+
+    /**
      * Montant loyer pour 1 véhicule sur 1 année (somme cross-entreprises
      * des 12 facturations mensuelles). Null si tarif annuel manquant.
      *
@@ -131,20 +202,89 @@ final readonly class RentalPriceCalculator
      * mensuelles). Null si au moins 1 véhicule de la company a un pricing
      * manquant pour l'année · l'utilisateur doit corriger avant de
      * pouvoir lire le total.
+     *
+     * **Performance** · 2 SQL totales (1 contrats année + 1 pricings batch)
+     * puis agrégation in-memory par (vehicle × month). Évite le N+1 sur
+     * les pages qui appellent cette méthode par année historique
+     * (`computeYearStats` × N années sur la fiche entreprise).
      */
     public function forCompanyAndYear(int $companyId, int $year): ?int
     {
-        try {
-            $total = 0;
-            for ($month = 1; $month <= 12; $month++) {
-                $calculation = $this->billingCalculator->calculate($companyId, $year, $month);
-                $total += $calculation->totalCents;
+        $yearStart = CarbonImmutable::create($year, 1, 1);
+        $yearEnd = $yearStart->endOfYear();
+
+        $contracts = $this->contractRepo->findForCompanyInPeriod(
+            $companyId,
+            $yearStart->toDateString(),
+            $yearEnd->toDateString(),
+        );
+
+        if ($contracts->isEmpty()) {
+            return 0;
+        }
+
+        // Expansion par (mois × véhicule), déduplication des jours.
+        $datesByMonthAndVehicle = [];
+        $vehicleIds = [];
+
+        foreach ($contracts as $contract) {
+            $clipStart = $contract->start_date->isAfter($yearStart)
+                ? CarbonImmutable::parse($contract->start_date->toDateString())
+                : $yearStart;
+            $clipEnd = $contract->end_date->isBefore($yearEnd)
+                ? CarbonImmutable::parse($contract->end_date->toDateString())
+                : $yearEnd;
+
+            // Clipping `exit_date` (cohérence ADR-0018, defense in depth).
+            $exitDate = $contract->vehicle?->exit_date;
+            if ($exitDate !== null) {
+                $exitImmutable = CarbonImmutable::parse($exitDate->toDateString());
+                if ($exitImmutable->isBefore($clipStart)) {
+                    continue;
+                }
+                if ($exitImmutable->isBefore($clipEnd)) {
+                    $clipEnd = $exitImmutable;
+                }
             }
 
-            return $total;
-        } catch (MissingPricingException) {
-            return null;
+            if ($clipStart->isAfter($clipEnd)) {
+                continue;
+            }
+
+            $vehicleIds[$contract->vehicle_id] = true;
+
+            $cursor = $clipStart;
+            while (! $cursor->isAfter($clipEnd)) {
+                $monthKey = $cursor->month;
+                $datesByMonthAndVehicle[$monthKey][$contract->vehicle_id][$cursor->toDateString()] = true;
+                $cursor = $cursor->addDay();
+            }
         }
+
+        $vehicleIdsList = array_keys($vehicleIds);
+        $pricings = $this->pricingRepo->findForVehiclesAndYear($vehicleIdsList, $year);
+
+        foreach ($vehicleIdsList as $vehicleId) {
+            if (! isset($pricings[$vehicleId])) {
+                return null;
+            }
+        }
+
+        $total = 0;
+        foreach ($datesByMonthAndVehicle as $byVehicle) {
+            foreach ($byVehicle as $vehicleId => $datesSet) {
+                $pricing = $pricings[$vehicleId];
+                $breakdown = OptimalRateBreakdown::compute(
+                    daysUsed: count($datesSet),
+                    dailyCents: $pricing->daily_rate_cents,
+                    weeklyCents: $pricing->weekly_rate_cents,
+                    monthlyCents: $pricing->monthly_rate_cents,
+                );
+                $total += $breakdown->totalCents;
+            }
+        }
+
+        return $total;
     }
 
     /**

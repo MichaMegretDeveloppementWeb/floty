@@ -50,28 +50,15 @@ final readonly class BillingBreakdownService
         // « Voir #YYYY-MM-NNNN » sans payer 12 lookups.
         $existingInvoices = $this->invoiceRepository->findExistingByMonthForCompanyYear($companyId, $year);
 
+        // Batch des 12 mois en 2 SQL totales (contrats année + pricings
+        // batched) · au lieu de 12× findForCompanyInPeriod + N pricings.
+        $monthlyResults = $this->calculator->calculateYear($companyId, $year);
+
         for ($month = 1; $month <= 12; $month++) {
             $existing = $existingInvoices[$month] ?? null;
+            $result = $monthlyResults[$month];
 
-            try {
-                $result = $this->calculator->calculate($companyId, $year, $month);
-                $monthDays = array_sum(array_map(
-                    static fn ($l) => $l->daysUsed,
-                    $result->lines,
-                ));
-                $entries[] = new MonthlyBreakdownEntryData(
-                    month: $month,
-                    daysUsed: $monthDays,
-                    totalCents: $result->totalCents,
-                    hasMissingPricing: false,
-                    existingInvoiceId: $existing['id'] ?? null,
-                    existingInvoiceNumber: $existing['invoiceNumber'] ?? null,
-                    invoicedDaysUsed: $existing['invoicedDaysUsed'] ?? null,
-                    invoicedTotalCents: $existing['totalHtCents'] ?? null,
-                );
-                $totalDays += $monthDays;
-                $totalCents += $result->totalCents;
-            } catch (MissingPricingException) {
+            if ($result instanceof MissingPricingException) {
                 // Mois bloqué : on conserve daysUsed à 0 pour ne pas
                 // induire en erreur. La présence du flag suffit pour le
                 // tooltip « renseignez le tarif <X> sur la fiche
@@ -87,7 +74,26 @@ final readonly class BillingBreakdownService
                     invoicedTotalCents: $existing['totalHtCents'] ?? null,
                 );
                 $hasAnyMissing = true;
+
+                continue;
             }
+
+            $monthDays = array_sum(array_map(
+                static fn ($l) => $l->daysUsed,
+                $result->lines,
+            ));
+            $entries[] = new MonthlyBreakdownEntryData(
+                month: $month,
+                daysUsed: $monthDays,
+                totalCents: $result->totalCents,
+                hasMissingPricing: false,
+                existingInvoiceId: $existing['id'] ?? null,
+                existingInvoiceNumber: $existing['invoiceNumber'] ?? null,
+                invoicedDaysUsed: $existing['invoicedDaysUsed'] ?? null,
+                invoicedTotalCents: $existing['totalHtCents'] ?? null,
+            );
+            $totalDays += $monthDays;
+            $totalCents += $result->totalCents;
         }
 
         return new MonthlyBillingBreakdownData(
