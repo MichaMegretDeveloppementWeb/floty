@@ -26,18 +26,28 @@ import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 type MonthlyBilling = App.Data.User.Billing.MonthlyBillingBreakdownData;
 
-const props = defineProps<{
-    /** Récap pré-calculé par le backend pour l'année concernée. */
-    monthlyBilling: MonthlyBilling;
-    /**
-     * Légende dans le header. Permet d'adapter le wording au contexte
-     * (ex. « Recettes mensuelles » sur véhicule vs « Facturation
-     * mensuelle » sur entreprise).
-     */
-    title: string;
-    /** Sous-titre court sous le titre (optionnel). */
-    description?: string;
-}>();
+const props = withDefaults(
+    defineProps<{
+        /** Récap pré-calculé par le backend pour l'année concernée. */
+        monthlyBilling: MonthlyBilling;
+        /**
+         * Légende dans le header. Permet d'adapter le wording au contexte
+         * (ex. « Recettes mensuelles » sur véhicule vs « Facturation
+         * mensuelle » sur entreprise).
+         */
+        title: string;
+        /** Sous-titre court sous le titre (optionnel). */
+        description?: string;
+        /**
+         * Affiche la colonne « N° facture » (desktop) ou la pastille de
+         * numéro (mobile). Sur la table véhicule, une ligne = un mois
+         * cross-entreprises et peut donc référencer N factures différentes :
+         * la colonne perd son sens · on la désactive depuis le parent.
+         */
+        showInvoiceNumberColumn?: boolean;
+    }>(),
+    { showInvoiceNumberColumn: true },
+);
 
 const totalLabel = computed<string>(() => {
     if (props.monthlyBilling.yearTotalCents === null) {
@@ -108,7 +118,7 @@ const partialTotalLabel = computed<string | null>(() => {
                         <th scope="col" class="py-2 pr-3 font-medium">Mois</th>
                         <th scope="col" class="py-2 px-3 font-medium text-right">Jours utilisés</th>
                         <th scope="col" class="py-2 px-3 font-medium text-right">Montant HT</th>
-                        <th scope="col" class="py-2 px-3 font-medium">N° facture</th>
+                        <th v-if="showInvoiceNumberColumn" scope="col" class="py-2 px-3 font-medium">N° facture</th>
                         <th v-if="$slots['row-actions']" scope="col" class="py-2 pl-3 font-medium text-right">
                             Action
                         </th>
@@ -141,7 +151,7 @@ const partialTotalLabel = computed<string | null>(() => {
                                 {{ formatEur((entry.totalCents ?? 0) / 100, 2) }}
                             </template>
                         </td>
-                        <td class="py-2 px-3 whitespace-nowrap">
+                        <td v-if="showInvoiceNumberColumn" class="py-2 px-3 whitespace-nowrap">
                             <template v-if="entry.existingInvoiceNumber">
                                 <span class="inline-flex items-center gap-1.5">
                                     <Tooltip
@@ -202,7 +212,7 @@ const partialTotalLabel = computed<string | null>(() => {
                 </div>
                 <div class="mt-1 flex items-center justify-between gap-2 text-xs">
                     <span class="font-mono tabular-nums">{{ entry.daysUsed }} j</span>
-                    <span v-if="entry.existingInvoiceNumber" class="inline-flex items-center gap-1.5">
+                    <span v-if="showInvoiceNumberColumn && entry.existingInvoiceNumber" class="inline-flex items-center gap-1.5">
                         <Tooltip
                             v-if="entryHasDivergence(entry)"
                             max-width="22rem"

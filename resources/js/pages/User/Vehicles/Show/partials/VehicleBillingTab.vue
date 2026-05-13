@@ -66,6 +66,7 @@ function selectYear(year: number): void {
             :monthly-billing="monthlyBilling"
             title="Recettes mensuelles"
             description="Total cross-entreprises facturable, mois par mois, sur l'année sélectionnée."
+            :show-invoice-number-column="false"
         />
     </div>
 </template>
