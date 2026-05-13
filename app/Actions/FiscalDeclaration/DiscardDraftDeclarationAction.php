@@ -6,6 +6,7 @@ namespace App\Actions\FiscalDeclaration;
 
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionWriteRepositoryInterface;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use DomainException;
@@ -44,6 +45,7 @@ final readonly class DiscardDraftDeclarationAction
     public function __construct(
         private FiscalDeclarationReadRepositoryInterface $reader,
         private FiscalDeclarationWriteRepositoryInterface $writer,
+        private FiscalReviewDecisionWriteRepositoryInterface $decisionsWriter,
     ) {}
 
     public function execute(int $draftDeclarationId): void
@@ -67,6 +69,24 @@ final readonly class DiscardDraftDeclarationAction
             $predecessor = $this->reader->findPredecessorOf($draft->id);
 
             $this->writer->softDelete($draft->id);
+
+            // D5.10.R · Efface les décisions de revue (clusters tranchés,
+            // exclusions de contrats, justifications) du couple
+            // `(company, fiscal_year)`. Sans ça, `DeclarationPreviewService`
+            // les rechargerait automatiquement au prochain brouillon créé
+            // (la clé d'unicité est `(company, year, fingerprint)`, pas
+            // l'id de déclaration · cf. ADR-0015 § 6.5 « reprise auto à
+            // la régénération »).
+            //
+            // OK même si une déclaration générée co-existe pour le même
+            // couple · ses décisions sont déjà figées dans son
+            // `generated_snapshot_payload`. Les rows
+            // `fiscal_review_decisions` servent uniquement à reprendre
+            // un brouillon en cours.
+            $deletedDecisions = $this->decisionsWriter->deleteByCompanyYear(
+                $draft->company_id,
+                $draft->fiscal_year,
+            );
 
             $predecessorReactivated = false;
             if ($predecessor !== null) {
@@ -93,6 +113,7 @@ final readonly class DiscardDraftDeclarationAction
                 'fiscal_year' => $draft->fiscal_year,
                 'predecessor_id' => $predecessor?->id,
                 'predecessor_reactivated' => $predecessorReactivated,
+                'review_decisions_deleted' => $deletedDecisions,
             ]);
         });
     }

@@ -7,8 +7,12 @@ namespace Tests\Feature\Actions\FiscalDeclaration;
 use App\Actions\FiscalDeclaration\DiscardDraftDeclarationAction;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
+use App\Enums\FiscalReviewDecision\ReviewDecisionType;
+use App\Enums\FiscalReviewDecision\RiskCode;
 use App\Models\Company;
 use App\Models\FiscalDeclaration;
+use App\Models\FiscalReviewDecision;
+use App\Models\User;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -171,5 +175,76 @@ final class DiscardDraftDeclarationActionTest extends TestCase
         $this->expectException(DomainException::class);
 
         $this->action->execute(99_999);
+    }
+
+    #[Test]
+    public function efface_les_decisions_de_revue_du_couple_company_year(): void
+    {
+        // D5.10.R · une décision de cluster (Conserved / Requalified) ne
+        // doit pas survivre à la suppression du brouillon · sinon elle
+        // se rechargerait automatiquement au prochain brouillon créé sur
+        // le même (company, year).
+        $user = User::factory()->create();
+        $draft = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        // Persiste 2 décisions du couple (company, 2025).
+        FiscalReviewDecision::query()->create([
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2025,
+            'risk_code' => RiskCode::Chain,
+            'cluster_fingerprint' => str_repeat('a', 64),
+            'decision' => ReviewDecisionType::Conserved,
+            'justification' => 'Pas d\'abus',
+            'excluded_contract_ids' => null,
+            'decided_by' => $user->id,
+            'decided_at' => now(),
+        ]);
+        FiscalReviewDecision::query()->create([
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2025,
+            'risk_code' => RiskCode::Chain,
+            'cluster_fingerprint' => str_repeat('b', 64),
+            'decision' => ReviewDecisionType::Requalified,
+            'justification' => null,
+            'excluded_contract_ids' => null,
+            'decided_by' => $user->id,
+            'decided_at' => now(),
+        ]);
+
+        // Décision d'un AUTRE couple (autre année) · ne doit PAS être affectée.
+        FiscalReviewDecision::query()->create([
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2024,
+            'risk_code' => RiskCode::Chain,
+            'cluster_fingerprint' => str_repeat('c', 64),
+            'decision' => ReviewDecisionType::Conserved,
+            'justification' => null,
+            'excluded_contract_ids' => null,
+            'decided_by' => $user->id,
+            'decided_at' => now(),
+        ]);
+
+        self::assertSame(2, FiscalReviewDecision::query()
+            ->where('company_id', $this->company->id)
+            ->where('fiscal_year', 2025)
+            ->count());
+
+        $this->action->execute($draft->id);
+
+        // Les 2 décisions du couple (company, 2025) sont effacées.
+        self::assertSame(0, FiscalReviewDecision::query()
+            ->where('company_id', $this->company->id)
+            ->where('fiscal_year', 2025)
+            ->count());
+
+        // La décision d'une autre année reste intacte.
+        self::assertSame(1, FiscalReviewDecision::query()
+            ->where('company_id', $this->company->id)
+            ->where('fiscal_year', 2024)
+            ->count());
     }
 }

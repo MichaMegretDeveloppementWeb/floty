@@ -24,4 +24,17 @@ interface FiscalReviewDecisionWriteRepositoryInterface
      * @param  array<string, mixed>  $attributes
      */
     public function upsert(array $attributes): FiscalReviewDecision;
+
+    /**
+     * Supprime toutes les décisions de revue d'un couple
+     * `(company, fiscal_year)`. Appelé par {@see DiscardDraftDeclarationAction}
+     * pour garantir qu'un brouillon supprimé ne laisse pas ses décisions
+     * persister · sinon elles seraient automatiquement rechargées par
+     * `DeclarationPreviewService` lors du prochain brouillon créé sur
+     * le même couple (la clé d'unicité étant `(company, year, fingerprint)`,
+     * pas l'id de déclaration).
+     *
+     * Retourne le nombre de décisions effacées (audit / log).
+     */
+    public function deleteByCompanyYear(int $companyId, int $fiscalYear): int;
 }

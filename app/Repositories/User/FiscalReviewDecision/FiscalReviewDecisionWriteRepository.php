@@ -20,4 +20,12 @@ final class FiscalReviewDecisionWriteRepository implements FiscalReviewDecisionW
             $attributes,
         );
     }
+
+    public function deleteByCompanyYear(int $companyId, int $fiscalYear): int
+    {
+        return FiscalReviewDecision::query()
+            ->where('company_id', $companyId)
+            ->where('fiscal_year', $fiscalYear)
+            ->delete();
+    }
 }
