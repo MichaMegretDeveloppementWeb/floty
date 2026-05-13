@@ -49,7 +49,7 @@ final class ClusterContractData extends Data
         return new self(
             contractId: $contract->id,
             vehicleId: $contract->vehicle_id,
-            vehiclePlate: $contract->vehicle?->license_plate ?? '',
+            vehiclePlate: $contract->vehicle->license_plate,
             startDate: $contract->start_date->toDateString(),
             endDate: $contract->end_date->toDateString(),
             durationDaysInYear: $durationDaysInYear,

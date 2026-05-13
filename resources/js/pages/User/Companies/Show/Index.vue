@@ -27,6 +27,8 @@ const props = defineProps<{
     billingYear: number;
     // Phase 11 D4 + D5.8 · Déclarations fiscales
     pendingDeclarations: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
+    // Phase D5.10.S · factures à générer (1 ligne par année)
+    pendingInvoices: App.Data.User.Billing.PendingInvoiceYearData[];
     declarationLifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
 }>();
 
@@ -55,6 +57,19 @@ function handleGotoFiscalYear(year: number): void {
         preserveScroll: true,
     });
 }
+
+/**
+ * D5.10.S · Navigation depuis l'alerte « N factures à générer pour YYYY »
+ * vers l'onglet Facturation de l'année concernée.
+ */
+function handleGotoBillingYear(year: number): void {
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', 'billing');
+    url.searchParams.set('billingYear', String(year));
+    router.visit(url.pathname + '?' + url.searchParams.toString(), {
+        preserveScroll: true,
+    });
+}
 </script>
 
 <template>
@@ -74,7 +89,9 @@ function handleGotoFiscalYear(year: number): void {
                 v-if="activeTab === 'overview'"
                 :company="props.company"
                 :pending-declarations="props.pendingDeclarations"
+                :pending-invoices="props.pendingInvoices"
                 @goto-fiscal-year="handleGotoFiscalYear"
+                @goto-billing-year="handleGotoBillingYear"
             />
             <CompanyContractsTab
                 v-else-if="activeTab === 'contracts'"

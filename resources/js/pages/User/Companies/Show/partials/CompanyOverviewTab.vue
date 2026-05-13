@@ -17,30 +17,39 @@
  *   - < xl : Contact + Adresse passent dans le flux principal sous
  *     l'historique (déjà rendus dans le main, l'aside disparaît)
  */
+import { computed } from 'vue';
 import CompanyActivityCard from './overview/CompanyActivityCard.vue';
 import CompanyAddressCard from './overview/CompanyAddressCard.vue';
 import CompanyContactCard from './overview/CompanyContactCard.vue';
 import CompanyKpiCards from './overview/CompanyKpiCards.vue';
 import CompanyYearHistoryCard from './overview/CompanyYearHistoryCard.vue';
-import PendingDeclarationsAlert from './overview/PendingDeclarationsAlert.vue';
+import PendingActionsAlert from './overview/PendingActionsAlert.vue';
 
 const props = defineProps<{
     company: App.Data.User.Company.CompanyDetailData;
     pendingDeclarations?: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
+    pendingInvoices?: App.Data.User.Billing.PendingInvoiceYearData[];
 }>();
 
 const emit = defineEmits<{
     'goto-fiscal-year': [year: number];
+    'goto-billing-year': [year: number];
 }>();
+
+const hasAnyPending = computed<boolean>(
+    () => (props.pendingDeclarations?.length ?? 0) + (props.pendingInvoices?.length ?? 0) > 0,
+);
 </script>
 
 <template>
     <div class="flex flex-col gap-6">
-        <PendingDeclarationsAlert
-            v-if="props.pendingDeclarations && props.pendingDeclarations.length > 0"
-            :pending-declarations="props.pendingDeclarations"
+        <PendingActionsAlert
+            v-if="hasAnyPending"
+            :pending-declarations="props.pendingDeclarations ?? []"
+            :pending-invoices="props.pendingInvoices ?? []"
             :company-id="props.company.id"
             @goto-fiscal-year="(year) => emit('goto-fiscal-year', year)"
+            @goto-billing-year="(year) => emit('goto-billing-year', year)"
         />
 
         <CompanyKpiCards

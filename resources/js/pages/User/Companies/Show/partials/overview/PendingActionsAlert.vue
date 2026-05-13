@@ -1,28 +1,19 @@
 <script setup lang="ts">
 /**
- * Card adaptative « Déclarations à traiter » sur l'onglet Vue
- * d'ensemble de la fiche entreprise (Phase 11 D4, refondu Phase 12
- * D5.9.D en composant adaptatif multi-états).
+ * Card adaptative « À traiter » sur l'onglet Vue d'ensemble de la fiche
+ * entreprise (Phase D5.10.S · refonte multi-actions).
  *
- * Affiche une liste d'items adaptatifs · 1 par année qui mérite
- * l'attention, avec :
- *   - Pictogramme d'état (FilePlus2 / FileText / Clock / AlertTriangle
- *     / Recycle).
- *   - Libellé d'état explicite (« Jamais préparée », « Brouillon · N
- *     décisions à trancher », « Mise de côté », « Périmètre modifié »,
- *     « Régénération en cours »).
- *   - CTA contextuel approprié (« Préparer », « Reprendre », « Voir »
- *     selon le state).
- *   - Deadline réglementaire si non-Untouched.
+ * Affiche les actions en attente (déclarations + factures) intercalées
+ * par année, de la plus ancienne à la plus récente. Pour chaque année :
+ *   - 0 ou 1 ligne « Déclaration YYYY · état » (selon le cycle de vie)
+ *   - 0 ou 1 ligne « N facture(s) à générer pour YYYY »
  *
- * Tous les CTA mènent vers l'onglet Fiscalité de l'année concernée
- * (via `goto-fiscal-year`), où la `<DeclarationStateCard>` adaptative
- * propose ensuite l'action complète avec sa pédagogie (notamment le
- * bouton « Régénérer » sur S6 avec liste des motifs d'obsolescence).
+ * Les CTAs naviguent vers l'onglet Fiscalité ou Facturation de l'année
+ * concernée (URL `?tab=fiscal&fiscalYear=Y` ou `?tab=billing&billingYear=Y`).
  *
  * **Pourquoi pas de POST inline** · garder la pleine pédagogie côté
- * onglet Fiscalité évite les clics destructeurs sans confirmation
- * depuis le Vue d'ensemble.
+ * onglet cible évite les clics destructeurs sans confirmation depuis
+ * le Vue d'ensemble.
  */
 import {
     AlertTriangle,
@@ -31,20 +22,24 @@ import {
     FileCheck2,
     FilePlus2,
     FileText,
+    Receipt,
     Recycle,
 } from 'lucide-vue-next';
 import { computed } from 'vue';
 import type { Component } from 'vue';
 
-type PendingEntry = App.Data.User.FiscalDeclaration.PendingDeclarationData;
+type PendingDeclaration = App.Data.User.FiscalDeclaration.PendingDeclarationData;
+type PendingInvoice = App.Data.User.Billing.PendingInvoiceYearData;
 
 const props = defineProps<{
-    pendingDeclarations: PendingEntry[];
+    pendingDeclarations: PendingDeclaration[];
+    pendingInvoices: PendingInvoice[];
     companyId: number;
 }>();
 
 const emit = defineEmits<{
     'goto-fiscal-year': [year: number];
+    'goto-billing-year': [year: number];
 }>();
 
 interface EntryConfig {
@@ -52,10 +47,9 @@ interface EntryConfig {
     title: string;
     cta: string;
     iconTone: string;
-    dotTone: string;
 }
 
-function configFor(entry: PendingEntry): EntryConfig {
+function declarationConfig(entry: PendingDeclaration): EntryConfig {
     switch (entry.state) {
         case 'untouched':
             return {
@@ -63,7 +57,6 @@ function configFor(entry: PendingEntry): EntryConfig {
                 title: 'Jamais préparée',
                 cta: 'Préparer',
                 iconTone: 'text-slate-500',
-                dotTone: 'bg-amber-400',
             };
         case 'draft_pending':
             return {
@@ -73,7 +66,6 @@ function configFor(entry: PendingEntry): EntryConfig {
                     : 'Brouillon en cours',
                 cta: 'Reprendre',
                 iconTone: 'text-slate-500',
-                dotTone: 'bg-amber-400',
             };
         case 'draft_ready_to_generate':
             return {
@@ -81,7 +73,6 @@ function configFor(entry: PendingEntry): EntryConfig {
                 title: 'Brouillon prêt à générer',
                 cta: 'Reprendre',
                 iconTone: 'text-emerald-500',
-                dotTone: 'bg-emerald-400',
             };
         case 'deferred':
             return {
@@ -89,7 +80,6 @@ function configFor(entry: PendingEntry): EntryConfig {
                 title: 'Mise de côté',
                 cta: 'Reprendre',
                 iconTone: 'text-slate-500',
-                dotTone: 'bg-slate-400',
             };
         case 'deferred_regeneration':
             return {
@@ -97,7 +87,6 @@ function configFor(entry: PendingEntry): EntryConfig {
                 title: 'Mise de côté · régénération en attente',
                 cta: 'Reprendre',
                 iconTone: 'text-amber-500',
-                dotTone: 'bg-amber-400',
             };
         case 'generated_obsolete_orphan':
             return {
@@ -105,7 +94,6 @@ function configFor(entry: PendingEntry): EntryConfig {
                 title: 'Périmètre modifié · obsolète',
                 cta: 'Régénérer',
                 iconTone: 'text-rose-500',
-                dotTone: 'bg-rose-400',
             };
         case 'regeneration_in_progress':
             return {
@@ -113,7 +101,6 @@ function configFor(entry: PendingEntry): EntryConfig {
                 title: 'Régénération en cours',
                 cta: 'Reprendre',
                 iconTone: 'text-amber-500',
-                dotTone: 'bg-amber-400',
             };
         case 'generated_active':
             // Théoriquement jamais dans la liste (filtré côté backend)
@@ -122,34 +109,9 @@ function configFor(entry: PendingEntry): EntryConfig {
                 title: 'Générée',
                 cta: 'Ouvrir',
                 iconTone: 'text-emerald-500',
-                dotTone: 'bg-emerald-400',
             };
     }
 }
-
-const oldestIsOverdue = computed<boolean>(
-    () => props.pendingDeclarations[0]?.isOverdue ?? false,
-);
-
-const accentBorderClass = computed<string>(
-    () => (oldestIsOverdue.value
-        ? 'border-l-rose-400'
-        : 'border-l-amber-400'),
-);
-
-const headerTitle = computed<string>(() => {
-    const n = props.pendingDeclarations.length;
-
-    if (n === 0) {
-        return '';
-    }
-
-    if (n === 1) {
-        return '1 déclaration à traiter';
-    }
-
-    return `${n} déclarations à traiter`;
-});
 
 function formatDateFr(dateIso: string): string {
     return new Date(dateIso).toLocaleDateString('fr-FR', {
@@ -164,16 +126,7 @@ interface SubtitleResult {
     toneClass: string;
 }
 
-/**
- * Phase 13 D5.10.A · sous-mention contextuelle par état de cycle de
- * vie. Pour Untouched / Draft / Deferred · on garde la mention
- * d'échéance (la déclaration n'a pas encore été produite). Pour
- * GeneratedObsoleteOrphan / RegenerationInProgress · on **retire**
- * la mention d'échéance (la déclaration a été produite à temps,
- * c'est une mutation de périmètre qui l'a invalidée depuis) et on
- * affiche le contexte d'obsolescence (motifs + date).
- */
-function subtitleFor(entry: PendingEntry): SubtitleResult {
+function declarationSubtitle(entry: PendingDeclaration): SubtitleResult {
     switch (entry.state) {
         case 'untouched':
         case 'draft_pending':
@@ -215,9 +168,6 @@ function subtitleFor(entry: PendingEntry): SubtitleResult {
             return { text: parts.join(' · '), toneClass: 'text-slate-500' };
         }
         case 'deferred_regeneration': {
-            // Phase 13 D5.10.H · même sémantique d'affichage que
-            // regeneration_in_progress, sauf que le brouillon est
-            // mis de côté (pas activement en cours de révision).
             const parts: string[] = ['Brouillon mis de côté'];
 
             if (entry.obsoleteSinceDate !== null) {
@@ -227,19 +177,80 @@ function subtitleFor(entry: PendingEntry): SubtitleResult {
             return { text: parts.join(' · '), toneClass: 'text-slate-500' };
         }
         case 'generated_active':
-            // Théoriquement jamais ici (filtré côté backend)
             return { text: '', toneClass: 'text-slate-500' };
     }
 }
 
-function handleClick(year: number): void {
-    emit('goto-fiscal-year', year);
+/**
+ * Construit une liste plate d'items triés par année (croissant), avec
+ * pour chaque année : déclaration d'abord puis facture. Les types sont
+ * discriminés par `kind`.
+ */
+type FlatItem =
+    | { kind: 'declaration'; year: number; data: PendingDeclaration }
+    | { kind: 'invoice'; year: number; data: PendingInvoice };
+
+const items = computed<FlatItem[]>(() => {
+    const years = new Set<number>();
+    for (const d of props.pendingDeclarations) {
+        years.add(d.fiscalYear);
+    }
+    for (const i of props.pendingInvoices) {
+        years.add(i.fiscalYear);
+    }
+
+    const sortedYears = [...years].sort((a, b) => a - b);
+    const result: FlatItem[] = [];
+
+    for (const year of sortedYears) {
+        const decl = props.pendingDeclarations.find((d) => d.fiscalYear === year);
+        if (decl) {
+            result.push({ kind: 'declaration', year, data: decl });
+        }
+        const inv = props.pendingInvoices.find((i) => i.fiscalYear === year);
+        if (inv) {
+            result.push({ kind: 'invoice', year, data: inv });
+        }
+    }
+
+    return result;
+});
+
+const oldestIsOverdue = computed<boolean>(() => {
+    const firstDecl = props.pendingDeclarations[0];
+    return firstDecl?.isOverdue ?? false;
+});
+
+const accentBorderClass = computed<string>(
+    () => (oldestIsOverdue.value ? 'border-l-rose-400' : 'border-l-amber-400'),
+);
+
+const headerTitle = computed<string>(() => {
+    const n = items.value.length;
+
+    if (n === 0) {
+        return '';
+    }
+
+    if (n === 1) {
+        return '1 action à traiter';
+    }
+
+    return `${n} actions à traiter`;
+});
+
+function handleClick(item: FlatItem): void {
+    if (item.kind === 'declaration') {
+        emit('goto-fiscal-year', item.year);
+    } else {
+        emit('goto-billing-year', item.year);
+    }
 }
 </script>
 
 <template>
     <div
-        v-if="pendingDeclarations.length > 0"
+        v-if="items.length > 0"
         :class="[
             'flex flex-col gap-3 rounded-sm border border-slate-200 border-l-2 bg-white p-4',
             accentBorderClass,
@@ -265,42 +276,71 @@ function handleClick(year: number): void {
 
         <ul class="flex flex-col gap-1.5">
             <li
-                v-for="entry in pendingDeclarations"
-                :key="entry.fiscalYear"
+                v-for="item in items"
+                :key="`${item.kind}-${item.year}`"
             >
                 <button
                     type="button"
                     class="flex w-full cursor-pointer items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
-                    @click="handleClick(entry.fiscalYear)"
+                    @click="handleClick(item)"
                 >
-                    <div class="flex items-start gap-3">
-                        <component
-                            :is="configFor(entry).icon"
-                            :size="16"
-                            :stroke-width="1.75"
-                            :class="['mt-0.5 shrink-0', configFor(entry).iconTone]"
-                        />
-                        <div class="flex flex-col items-start gap-0.5">
-                            <span class="font-medium">
-                                Déclaration {{ entry.fiscalYear }}
-                                <span class="ml-1 font-normal text-slate-500">
-                                    · {{ configFor(entry).title }}
+                    <template v-if="item.kind === 'declaration'">
+                        <div class="flex items-start gap-3">
+                            <component
+                                :is="declarationConfig(item.data).icon"
+                                :size="16"
+                                :stroke-width="1.75"
+                                :class="['mt-0.5 shrink-0', declarationConfig(item.data).iconTone]"
+                            />
+                            <div class="flex flex-col items-start gap-0.5">
+                                <span class="font-medium">
+                                    Déclaration {{ item.year }}
+                                    <span class="ml-1 font-normal text-slate-500">
+                                        · {{ declarationConfig(item.data).title }}
+                                    </span>
                                 </span>
-                            </span>
-                            <span
-                                v-if="subtitleFor(entry).text"
-                                :class="['text-xs', subtitleFor(entry).toneClass]"
-                            >
-                                {{ subtitleFor(entry).text }}
-                            </span>
+                                <span
+                                    v-if="declarationSubtitle(item.data).text"
+                                    :class="['text-xs', declarationSubtitle(item.data).toneClass]"
+                                >
+                                    {{ declarationSubtitle(item.data).text }}
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="flex shrink-0 items-center gap-2">
-                        <span class="hidden text-xs font-medium text-slate-600 sm:inline">
-                            {{ configFor(entry).cta }}
-                        </span>
-                        <ChevronRight :size="16" :stroke-width="1.75" class="text-slate-400" />
-                    </div>
+                        <div class="flex shrink-0 items-center gap-2">
+                            <span class="hidden text-xs font-medium text-slate-600 sm:inline">
+                                {{ declarationConfig(item.data).cta }}
+                            </span>
+                            <ChevronRight :size="16" :stroke-width="1.75" class="text-slate-400" />
+                        </div>
+                    </template>
+
+                    <template v-else>
+                        <div class="flex items-start gap-3">
+                            <Receipt
+                                :size="16"
+                                :stroke-width="1.75"
+                                class="mt-0.5 shrink-0 text-slate-500"
+                            />
+                            <div class="flex flex-col items-start gap-0.5">
+                                <span class="font-medium">
+                                    {{ item.data.missingInvoicesCount }} facture{{ item.data.missingInvoicesCount > 1 ? 's' : '' }} à générer
+                                    <span class="ml-1 font-normal text-slate-500">
+                                        · {{ item.year }}
+                                    </span>
+                                </span>
+                                <span class="text-xs text-slate-500">
+                                    Mois écoulés non encore facturés
+                                </span>
+                            </div>
+                        </div>
+                        <div class="flex shrink-0 items-center gap-2">
+                            <span class="hidden text-xs font-medium text-slate-600 sm:inline">
+                                Générer
+                            </span>
+                            <ChevronRight :size="16" :stroke-width="1.75" class="text-slate-400" />
+                        </div>
+                    </template>
                 </button>
             </li>
         </ul>

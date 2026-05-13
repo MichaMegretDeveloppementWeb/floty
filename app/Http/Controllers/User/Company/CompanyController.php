@@ -15,6 +15,7 @@ use App\Data\User\Contract\ContractIndexQueryData;
 use App\Exceptions\Company\CompanyShortCodeCollisionException;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Services\Billing\PendingInvoicesResolver;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
@@ -39,6 +40,7 @@ final class CompanyController extends Controller
         private readonly UpdateCompanyAction $updateCompany,
         private readonly AvailableYearsResolver $availableYears,
         private readonly PendingDeclarationsResolver $pendingDeclarations,
+        private readonly PendingInvoicesResolver $pendingInvoices,
         private readonly DeclarationLifecycleResolver $declarationLifecycle,
     ) {}
 
@@ -168,6 +170,10 @@ final class CompanyController extends Controller
             //     et masquait les déclarations obsolètes orphelines.
             //     Source unique de vérité pour `<DeclarationStateCard>`.
             'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($company->id),
+            // D5.10.S · synthèse 1-ligne par année des factures à
+            // générer · symétrique de `pendingDeclarations` côté
+            // facturation. Encart « À faire » de l'onglet Vue d'ensemble.
+            'pendingInvoices' => $this->pendingInvoices->pendingForCompany($company->id),
             'declarationLifecycle' => $this->declarationLifecycle->resolveForCompanyYear(
                 $company->id,
                 $fiscalYear,

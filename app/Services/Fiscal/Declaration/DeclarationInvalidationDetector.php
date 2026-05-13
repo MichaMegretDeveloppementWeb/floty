@@ -59,6 +59,8 @@ final readonly class DeclarationInvalidationDetector
      *
      * Pour `updated` : passer aussi les bornes ancienne (via
      * `getOriginal()`) pour couvrir les changements de plage.
+     *
+     * @param  list<string>  $fieldsChanged
      */
     public function flagForContract(
         Contract $contract,
@@ -123,7 +125,7 @@ final readonly class DeclarationInvalidationDetector
                 'VFC #%d · véhicule %d · effective %s',
                 $vfc->id,
                 $vfc->vehicle_id,
-                $vfc->effective_from?->format('d/m/Y') ?? '?',
+                $vfc->effective_from->format('d/m/Y'),
             ),
         ];
 

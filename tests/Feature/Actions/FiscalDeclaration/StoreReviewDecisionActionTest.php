@@ -44,10 +44,10 @@ final class StoreReviewDecisionActionTest extends TestCase
 
         $decision = $this->action->execute($data, $this->user->id);
 
-        self::assertNotNull($decision->id);
+        self::assertGreaterThan(0, $decision->id);
         self::assertSame(ReviewDecisionType::Requalified, $decision->decision);
         self::assertSame($this->user->id, $decision->decided_by);
-        self::assertNotNull($decision->decided_at);
+        self::assertTrue($decision->decided_at->lessThanOrEqualTo(now()));
     }
 
     #[Test]

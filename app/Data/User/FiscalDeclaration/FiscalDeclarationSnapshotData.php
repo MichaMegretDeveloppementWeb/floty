@@ -29,6 +29,8 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 final class FiscalDeclarationSnapshotData extends Data
 {
     /**
+     * @param  list<ContractSnapshotEntryData>  $contractBreakdown
+     * @param  list<AppliedDecisionEntryData>  $appliedDecisions
      * @param  list<int>  $optOutContractIds
      */
     public function __construct(

@@ -14,6 +14,7 @@ use App\Data\User\FiscalDeclaration\ReviewClusterData;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
 use App\Enums\FiscalReviewDecision\RiskLevel;
+use App\Enums\Vehicle\HomologationMethod;
 use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
@@ -410,7 +411,7 @@ final readonly class DeclarationFiscalEngine
 
         $retainedMap = [];
         foreach ($persistedDecisions as $decision) {
-            if ($decision->decided_at !== null && $decision->decided_at->lessThan($currentCreatedAt)) {
+            if ($decision->decided_at->lessThan($currentCreatedAt)) {
                 $retainedMap[$decision->cluster_fingerprint] = $predecessor->id;
             }
         }
@@ -551,11 +552,10 @@ final readonly class DeclarationFiscalEngine
 
         $segments = [$vfc->reception_category->value];
 
-        $co2Method = match ($vfc->homologation_method->value) {
-            'wltp' => $vfc->co2_wltp !== null ? sprintf('WLTP %d g', $vfc->co2_wltp) : 'WLTP',
-            'nedc' => $vfc->co2_nedc !== null ? sprintf('NEDC %d g', $vfc->co2_nedc) : 'NEDC',
-            'pa' => $vfc->taxable_horsepower !== null ? sprintf('%d CV', $vfc->taxable_horsepower) : 'PA',
-            default => $vfc->homologation_method->value,
+        $co2Method = match ($vfc->homologation_method) {
+            HomologationMethod::Wltp => $vfc->co2_wltp !== null ? sprintf('WLTP %d g', $vfc->co2_wltp) : 'WLTP',
+            HomologationMethod::Nedc => $vfc->co2_nedc !== null ? sprintf('NEDC %d g', $vfc->co2_nedc) : 'NEDC',
+            HomologationMethod::Pa => $vfc->taxable_horsepower !== null ? sprintf('%d CV', $vfc->taxable_horsepower) : 'PA',
         };
         $segments[] = $co2Method;
 

@@ -548,13 +548,18 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_renvoie_404_si_vehicule_inexistant(): void
+    public function show_redirige_vers_index_si_vehicule_inexistant(): void
     {
+        // Phase 14.N · doctrine UX Floty · les ModelNotFoundException sur
+        // visites HTML/Inertia redirigent vers l'index du domaine concerné
+        // + toast d'erreur, plutôt que renvoyer un 404 isolé (cf.
+        // `bootstrap/app.php` + `UserFacingExceptionRenderer::renderModelNotFound`).
         $user = User::factory()->create();
 
         $this->actingAs($user)
             ->get('/app/vehicles/999999')
-            ->assertNotFound();
+            ->assertRedirect('/app/vehicles')
+            ->assertSessionHas('toast-error');
     }
 
     // ----------------------------------------------------------------

@@ -121,10 +121,13 @@ final readonly class PendingDeclarationsResolver
     ): array {
         if ($state === DeclarationLifecycleState::GeneratedObsoleteOrphan) {
             $current = $this->declarations->findCurrentForCompanyYear($companyId, $year);
+            if ($current === null) {
+                return [null, 0];
+            }
 
             return [
-                $current?->obsolete_at?->toDateString(),
-                count($current?->obsolete_reasons ?? []),
+                $current->obsolete_at?->toDateString(),
+                count($current->obsolete_reasons ?? []),
             ];
         }
 
@@ -140,10 +143,13 @@ final readonly class PendingDeclarationsResolver
             && $currentDeclarationId !== null
         ) {
             $predecessor = $this->declarations->findPredecessorOf($currentDeclarationId);
+            if ($predecessor === null) {
+                return [null, 0];
+            }
 
             return [
-                $predecessor?->obsolete_at?->toDateString(),
-                count($predecessor?->obsolete_reasons ?? []),
+                $predecessor->obsolete_at?->toDateString(),
+                count($predecessor->obsolete_reasons ?? []),
             ];
         }
 

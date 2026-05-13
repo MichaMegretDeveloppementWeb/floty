@@ -302,8 +302,8 @@ final class DeclarationFiscalEngineTest extends TestCase
         self::assertSame(0.0, $snapshot->totalDue);
         self::assertSame([], $snapshot->optOutContractIds);
         // Sanity : les contrats existent bien.
-        self::assertNotNull($jan->id);
-        self::assertNotNull($dec->id);
+        self::assertGreaterThan(0, $jan->id);
+        self::assertGreaterThan(0, $dec->id);
     }
 
     #[Test]
