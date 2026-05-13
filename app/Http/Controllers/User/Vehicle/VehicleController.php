@@ -92,24 +92,42 @@ final class VehicleController extends Controller
         // JSON via `usageStatsForYear` (cache client `useYearLazy`).
         $vehicleData = $this->vehicles->findVehicleData($vehicle);
 
-        // Onglet Facturation (Phase 14.D V1.2) · sélecteur d'année
-        // **local** indépendant via `?billingYear=`. Default = année KPI
-        // (currentYear).
-        $billingYear = (int) $request->query('billingYear', (string) $vehicleData->kpiYear);
+        // D5.10.U · param URL **unifié** `?year=` partagé entre les
+        // onglets Fiscalité et Facturation de la fiche véhicule.
+        $selectedYear = (int) $request->query('year', (string) $vehicleData->kpiYear);
 
-        // Onglet Fiscalité · sélecteur d'année **local** indépendant via
-        // `?fiscalYear=` (pattern aligné Company). Partial reload Inertia
-        // sur `fiscalYearBreakdown` + `fiscalYear` au changement d'année.
-        $fiscalYear = (int) $request->query('fiscalYear', (string) $vehicleData->kpiYear);
+        // D5.10.V · onglets à chargement lazy + cumulatif. Lit `?tab=`
+        // pour décider quelles props sont eager au mount initial. Les
+        // autres tirent leur SQL QUE sur partial reload côté front.
+        $activeTab = (string) $request->query('tab', 'overview');
 
         return Inertia::render('User/Vehicles/Show/Index', [
+            // Eager · props partagées (Vue d'ensemble + header + sync URL year).
             'vehicle' => $vehicleData,
             'options' => $this->buildFormOptions(),
-            'vehicleBilling' => $this->vehicles->billingForYear($vehicle, $billingYear),
-            'billingYear' => $billingYear,
-            'fiscalYearBreakdown' => $this->vehicles->fullYearBreakdownForYear($vehicle, $fiscalYear),
-            'fiscalYear' => $fiscalYear,
+            'billingYear' => $selectedYear,
+            'fiscalYear' => $selectedYear,
+
+            // Onglet "fiscal" · breakdown taxe pleine.
+            'fiscalYearBreakdown' => $this->eagerForTab(
+                $activeTab === 'fiscal',
+                fn () => $this->vehicles->fullYearBreakdownForYear($vehicle, $selectedYear),
+            ),
+
+            // Onglet "billing" · récap mensuel.
+            'vehicleBilling' => $this->eagerForTab(
+                $activeTab === 'billing',
+                fn () => $this->vehicles->billingForYear($vehicle, $selectedYear),
+            ),
         ]);
+    }
+
+    /**
+     * D5.10.V · Helper pour le chargement lazy + cumulatif des onglets.
+     */
+    private function eagerForTab(bool $isActive, callable $resolver): mixed
+    {
+        return $isActive ? $resolver() : Inertia::optional($resolver);
     }
 
     /**

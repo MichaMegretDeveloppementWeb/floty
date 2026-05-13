@@ -9,7 +9,8 @@
  *   - 0 ou 1 ligne « N facture(s) à générer pour YYYY »
  *
  * Les CTAs naviguent vers l'onglet Fiscalité ou Facturation de l'année
- * concernée (URL `?tab=fiscal&fiscalYear=Y` ou `?tab=billing&billingYear=Y`).
+ * concernée (URL `?tab=fiscal&year=Y` ou `?tab=billing&year=Y` ·
+ * D5.10.U param unifié).
  *
  * **Pourquoi pas de POST inline** · garder la pleine pédagogie côté
  * onglet cible évite les clics destructeurs sans confirmation depuis

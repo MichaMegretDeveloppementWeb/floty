@@ -4,9 +4,9 @@
  * fiscales appliquées au calcul + le détail de la Taxe pleine pour
  * l'année sélectionnée (méthode CO₂, polluants, exonérations, règles).
  *
- * Sélecteur d'année **local** via `?fiscalYear=` (pattern aligné
- * Company Fiscal Tab) · partial reload Inertia sur les seules props
- * `fiscalYearBreakdown` + `fiscalYear` au changement d'année.
+ * D5.10.U · sélecteur d'année piloté par le param URL **unifié**
+ * `?year=` partagé avec l'onglet Facturation (cf. `VehicleController::
+ * show`). Partial reload Inertia sur les props dépendantes du year.
  */
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';

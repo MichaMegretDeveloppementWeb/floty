@@ -87,6 +87,14 @@ final class CompanyController extends Controller
             throw new NotFoundHttpException('Entreprise introuvable.');
         }
 
+        // D5.10.V · onglets à chargement lazy + cumulatif. Lit `?tab=`
+        // pour décider quelles props sont eager au mount initial · les
+        // autres onglets passent par `Inertia::optional()` et ne tirent
+        // leur SQL QUE lors d'un partial reload déclenché côté front
+        // par `useCompanyTabs` au moment où l'utilisateur clique
+        // l'onglet pour la première fois de la session.
+        $activeTab = (string) $request->query('tab', 'overview');
+
         // Onglet Contrats · default année réelle courante au mount quand
         // aucun paramètre période explicite (cohérence avec onglet
         // Fiscalité, ADR-0020 D3). Liens partagés (`?year=`,
@@ -101,84 +109,77 @@ final class CompanyController extends Controller
             $contractsQuery->periodEnd = sprintf('%d-12-31', $detail->currentRealYear);
         }
 
-        // Onglet Fiscalité (chantier N.2) · sélecteur d'année **local**
-        // indépendant. Préfixe `?fiscalYear=` pour ne pas collide avec
-        // `?year=` (Activité Vue d'ensemble) ni `?periodStart/End=`
-        // (Contrats). Default = année réelle courante.
-        $fiscalYear = (int) $request->query('fiscalYear', (string) $detail->currentRealYear);
-
-        // Onglet Facturation (Phase 14.D V1.2) · sélecteur d'année
-        // **local** indépendant via `?billingYear=`. Mirroir du pattern
-        // `?fiscalYear=` pour cohérence UX.
-        $billingYear = (int) $request->query('billingYear', (string) $detail->currentRealYear);
+        // D5.10.U · param URL **unifié** `?year=` partagé entre les
+        // onglets Fiscalité et Facturation.
+        $selectedYear = (int) $request->query('year', (string) $detail->currentRealYear);
+        $companyId = $company->id;
 
         return Inertia::render('User/Companies/Show/Index', [
+            // Eager · props partagées (Vue d'ensemble + dots TabsNav +
+            // alertes « À faire » + état URL contrats + pills années
+            // partagées Billing/Contracts).
             'company' => $detail,
-            'options' => [
-                // Liste plate des drivers pour peupler le picker du modal
-                // d'ajout de membership (`AddCompanyDriverModal`). La modale
-                // filtre côté front les drivers déjà rattachés à la company.
-                'drivers' => $this->drivers->listForOptions(),
-            ],
-            // Onglet Contrats · table paginée server-side (chantier N.1).
-            // Le query DTO standard `ContractIndexQueryData` est consommé
-            // directement (filtres `periodStart`/`periodEnd`, `type`,
-            // pagination, tri). Le `companyId` est forcé côté service à
-            // `$company->id` indépendamment de ce qui pourrait venir de
-            // l'URL · la fiche Company impose son propre scope.
-            'contracts' => $this->contracts->listPaginatedForCompany(
-                $company->id,
-                $contractsQuery,
-            ),
             'contractsQuery' => $contractsQuery,
-            // Stats contextuelles affichées sous le titre de l'onglet ·
-            // bougent avec le filtre période (chantier N.1.fixes).
-            'contractsStats' => $this->contracts->statsForCompany(
-                $company->id,
-                $contractsQuery->periodStart,
-                $contractsQuery->periodEnd,
-            ),
-            // Plage continue `[firstYear..currentRealYear]` pour les pills
-            // de filtre rapide année. Tableau vide si aucun contrat.
+            'billingYear' => $selectedYear,
+            'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($companyId),
+            'pendingInvoices' => $this->pendingInvoices->pendingForCompany($companyId),
+            // Plage continue d'années · partagée entre les pills Billing
+            // (CompanyBillingTab) et Contracts (CompanyContractsTab) ·
+            // 1 SQL très léger (min year), garder en eager.
             'contractsAvailableYears' => $this->contracts->availableYearsRangeForCompany(
-                $company->id,
+                $companyId,
                 $detail->currentRealYear,
             ),
-            // Onglet Fiscalité · breakdown par véhicule pour l'année
-            // sélectionnée + plage continue d'années pour les pills.
-            'companyFiscal' => $this->companies->fiscalBreakdownForYear(
-                $company->id,
-                $fiscalYear,
+
+            // Onglet "contracts" · table paginée + stats.
+            'contracts' => $this->eagerForTab(
+                $activeTab === 'contracts',
+                fn () => $this->contracts->listPaginatedForCompany($companyId, $contractsQuery),
             ),
-            // Onglet Facturation (Phase 14.D V1.2) · récap mensuel pour
-            // l'année sélectionnée + même plage que les contrats pour
-            // les pills (cohérence : on ne propose que les années où
-            // l'entreprise a au moins un contrat plausible).
-            'companyBilling' => $this->companies->billingForYear(
-                $company->id,
-                $billingYear,
+            'contractsStats' => $this->eagerForTab(
+                $activeTab === 'contracts',
+                fn () => $this->contracts->statsForCompany(
+                    $companyId,
+                    $contractsQuery->periodStart,
+                    $contractsQuery->periodEnd,
+                ),
             ),
-            'billingYear' => $billingYear,
-            // Phase 11 D4 + D5.8 · Déclarations fiscales :
-            //   - `pendingDeclarations` : alerte « À finaliser » sur
-            //     onglet Vue d'ensemble (contrats existent + pas de
-            //     déclaration `generated` active, deadline 30/04/N+1).
-            //   - `declarationLifecycle` : état complet du cycle de
-            //     vie pour l'année Fiscalité sélectionnée (S1 vierge
-            //     ... S7 régénération en cours). Remplace le legacy
-            //     `fiscalActiveDeclaration` qui filtrait `is_obsolete`
-            //     et masquait les déclarations obsolètes orphelines.
-            //     Source unique de vérité pour `<DeclarationStateCard>`.
-            'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($company->id),
-            // D5.10.S · synthèse 1-ligne par année des factures à
-            // générer · symétrique de `pendingDeclarations` côté
-            // facturation. Encart « À faire » de l'onglet Vue d'ensemble.
-            'pendingInvoices' => $this->pendingInvoices->pendingForCompany($company->id),
-            'declarationLifecycle' => $this->declarationLifecycle->resolveForCompanyYear(
-                $company->id,
-                $fiscalYear,
+
+            // Onglet "drivers" · liste plate pour picker AddCompanyDriverModal.
+            'options' => [
+                'drivers' => $this->eagerForTab(
+                    $activeTab === 'drivers',
+                    fn () => $this->drivers->listForOptions(),
+                ),
+            ],
+
+            // Onglet "fiscal" · breakdown par véhicule + cycle de vie déclaration.
+            'companyFiscal' => $this->eagerForTab(
+                $activeTab === 'fiscal',
+                fn () => $this->companies->fiscalBreakdownForYear($companyId, $selectedYear),
+            ),
+            'declarationLifecycle' => $this->eagerForTab(
+                $activeTab === 'fiscal',
+                fn () => $this->declarationLifecycle->resolveForCompanyYear($companyId, $selectedYear),
+            ),
+
+            // Onglet "billing" · récap mensuel.
+            'companyBilling' => $this->eagerForTab(
+                $activeTab === 'billing',
+                fn () => $this->companies->billingForYear($companyId, $selectedYear),
             ),
         ]);
+    }
+
+    /**
+     * D5.10.V · Helper pour le chargement lazy + cumulatif des onglets.
+     * Retourne la valeur immédiatement quand l'onglet ciblé est l'onglet
+     * actif au mount (props eager), sinon retourne un `OptionalProp` qui
+     * ne s'exécute QUE sur partial reload `only: [...]`.
+     */
+    private function eagerForTab(bool $isActive, callable $resolver): mixed
+    {
+        return $isActive ? $resolver() : Inertia::optional($resolver);
     }
 
     public function create(): Response

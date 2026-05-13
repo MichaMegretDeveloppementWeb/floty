@@ -10,29 +10,34 @@ import CompanyFiscalTab from './partials/CompanyFiscalTab.vue';
 import CompanyHeader from './partials/CompanyHeader.vue';
 import CompanyOverviewTab from './partials/CompanyOverviewTab.vue';
 import CompanyTabsNav from './partials/CompanyTabsNav.vue';
+import TabLoadingSkeleton from './partials/TabLoadingSkeleton.vue';
 
 type DriverOption = { id: number; fullName: string; initials: string };
 
+// D5.10.V · chargement lazy + cumulatif des onglets. Seules les props
+// de l'onglet actif au mount sont eager (cf. `CompanyController::show`)
+// · les autres sont `undefined` jusqu'au premier partial reload
+// déclenché par `useCompanyTabs.setTab(...)`. Les guards `v-if` ci-bas
+// affichent `<TabLoadingSkeleton/>` pendant le partial reload.
 const props = defineProps<{
+    // Eager · toujours présentes.
     company: App.Data.User.Company.CompanyDetailData;
-    options: {
-        drivers: DriverOption[];
-    };
-    contracts: App.Data.User.Contract.PaginatedContractListData;
     contractsQuery: App.Data.User.Contract.ContractIndexQueryData;
-    contractsStats: App.Data.User.Company.CompanyContractsStatsData;
     contractsAvailableYears: number[];
-    companyFiscal: App.Data.User.Company.CompanyFiscalYearData;
-    companyBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
     billingYear: number;
-    // Phase 11 D4 + D5.8 · Déclarations fiscales
     pendingDeclarations: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
-    // Phase D5.10.S · factures à générer (1 ligne par année)
     pendingInvoices: App.Data.User.Billing.PendingInvoiceYearData[];
-    declarationLifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
+
+    // Lazy · présentes uniquement après visite de leur onglet respectif.
+    options?: { drivers: DriverOption[] };
+    contracts?: App.Data.User.Contract.PaginatedContractListData;
+    contractsStats?: App.Data.User.Company.CompanyContractsStatsData;
+    companyFiscal?: App.Data.User.Company.CompanyFiscalYearData;
+    companyBilling?: App.Data.User.Billing.MonthlyBillingBreakdownData;
+    declarationLifecycle?: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
 }>();
 
-const { activeTab, setTab } = useCompanyTabs();
+const { activeTab, setTab, loadingTab } = useCompanyTabs();
 
 /**
  * Phase 12 D5.9.D · `true` quand au moins une déclaration de
@@ -44,28 +49,37 @@ const fiscalHasTodo = computed<boolean>(
 );
 
 /**
- * Phase 11 D4 · Navigation depuis l'alerte « Déclarations à finaliser »
- * vers l'onglet Fiscalité de l'année concernée. URL `?tab=fiscal&fiscalYear=Y`
- * pilote `useCompanyTabs` (lit `?tab=`) + `useCompanyFiscalSelectedYear`
- * (lit `?fiscalYear=`).
+ * D5.10.U · idem pour l'onglet « Facturation » quand au moins une
+ * facture est à générer pour cette entreprise.
+ */
+const billingHasTodo = computed<boolean>(
+    () => props.pendingInvoices.length > 0,
+);
+
+/**
+ * D5.10.U · Navigation depuis l'alerte « À faire » vers l'onglet
+ * Fiscalité de l'année concernée. URL `?tab=fiscal&year=Y` pilote
+ * `useCompanyTabs` (lit `?tab=`) + `useCompanyFiscalSelectedYear`
+ * (lit `?year=` unifié).
  */
 function handleGotoFiscalYear(year: number): void {
     const url = new URL(window.location.href);
     url.searchParams.set('tab', 'fiscal');
-    url.searchParams.set('fiscalYear', String(year));
+    url.searchParams.set('year', String(year));
     router.visit(url.pathname + '?' + url.searchParams.toString(), {
         preserveScroll: true,
     });
 }
 
 /**
- * D5.10.S · Navigation depuis l'alerte « N factures à générer pour YYYY »
- * vers l'onglet Facturation de l'année concernée.
+ * D5.10.U · Navigation depuis l'alerte « N factures à générer pour YYYY »
+ * vers l'onglet Facturation de l'année concernée · même param `?year=`
+ * unifié.
  */
 function handleGotoBillingYear(year: number): void {
     const url = new URL(window.location.href);
     url.searchParams.set('tab', 'billing');
-    url.searchParams.set('billingYear', String(year));
+    url.searchParams.set('year', String(year));
     router.visit(url.pathname + '?' + url.searchParams.toString(), {
         preserveScroll: true,
     });
@@ -82,6 +96,7 @@ function handleGotoBillingYear(year: number): void {
             <CompanyTabsNav
                 :active-tab="activeTab"
                 :fiscal-has-todo="fiscalHasTodo"
+                :billing-has-todo="billingHasTodo"
                 @change="setTab"
             />
 
@@ -93,34 +108,52 @@ function handleGotoBillingYear(year: number): void {
                 @goto-fiscal-year="handleGotoFiscalYear"
                 @goto-billing-year="handleGotoBillingYear"
             />
-            <CompanyContractsTab
-                v-else-if="activeTab === 'contracts'"
-                :company="props.company"
-                :contracts="props.contracts"
-                :contracts-query="props.contractsQuery"
-                :contracts-stats="props.contractsStats"
-                :contracts-available-years="props.contractsAvailableYears"
-            />
-            <CompanyDriversTab
-                v-else-if="activeTab === 'drivers'"
-                :company-id="props.company.id"
-                :company-legal-name="props.company.legalName"
-                :drivers="props.company.drivers"
-                :available-drivers="props.options.drivers"
-            />
-            <CompanyFiscalTab
-                v-else-if="activeTab === 'fiscal'"
-                :fiscal="props.companyFiscal"
-                :company-id="props.company.id"
-                :declaration-lifecycle="props.declarationLifecycle"
-            />
-            <CompanyBillingTab
-                v-else-if="activeTab === 'billing'"
-                :company-id="props.company.id"
-                :monthly-billing="props.companyBilling"
-                :available-years="props.contractsAvailableYears"
-                :active-year="props.billingYear"
-            />
+
+            <template v-else-if="activeTab === 'contracts'">
+                <CompanyContractsTab
+                    v-if="props.contracts && props.contractsStats"
+                    :company="props.company"
+                    :contracts="props.contracts"
+                    :contracts-query="props.contractsQuery"
+                    :contracts-stats="props.contractsStats"
+                    :contracts-available-years="props.contractsAvailableYears"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
+
+            <template v-else-if="activeTab === 'drivers'">
+                <CompanyDriversTab
+                    v-if="props.options"
+                    :company-id="props.company.id"
+                    :company-legal-name="props.company.legalName"
+                    :drivers="props.company.drivers"
+                    :available-drivers="props.options.drivers"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
+
+            <template v-else-if="activeTab === 'fiscal'">
+                <CompanyFiscalTab
+                    v-if="props.companyFiscal && props.declarationLifecycle"
+                    :fiscal="props.companyFiscal"
+                    :company-id="props.company.id"
+                    :declaration-lifecycle="props.declarationLifecycle"
+                    :pending-declarations="props.pendingDeclarations"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
+
+            <template v-else-if="activeTab === 'billing'">
+                <CompanyBillingTab
+                    v-if="props.companyBilling"
+                    :company-id="props.company.id"
+                    :monthly-billing="props.companyBilling"
+                    :available-years="props.contractsAvailableYears"
+                    :active-year="props.billingYear"
+                    :pending-invoices="props.pendingInvoices"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
         </div>
     </UserLayout>
 </template>

@@ -1,6 +1,24 @@
-import type { Ref } from 'vue';
-import { computed, onMounted, watch } from 'vue';
-import { ref } from 'vue';
+/**
+ * Onglets de la fiche Show Company · sync `?tab=` URL + chargement
+ * lazy + cumulatif des props par-onglet (D5.10.V).
+ *
+ * **Doctrine** · au mount initial, seul l'onglet actif a ses props
+ * eager (cf. `CompanyController::show`). Les autres onglets sont en
+ * `Inertia::optional()` côté backend · leur SQL ne s'exécute QUE
+ * lors d'un partial reload déclenché par `setTab(...)` la première
+ * fois que l'utilisateur clique l'onglet. Un `Set<TabKey>` tracke
+ * les onglets déjà visités · ils sont instant au retour (preserveState
+ * conserve les props en mémoire client).
+ *
+ * Les sélecteurs d'année (cf. `useCompanyFiscalSelectedYear` et
+ * `CompanyBillingTab::selectYear`) appellent `markStale(...)` sur les
+ * autres onglets year-dépendants après changement d'année · ces
+ * onglets se rechargeront automatiquement au prochain clic.
+ */
+
+import { router } from '@inertiajs/vue3';
+import type { InjectionKey, Ref } from 'vue';
+import { computed, inject, onMounted, provide, ref, watch } from 'vue';
 
 export type CompanyTabKey =
     | 'overview'
@@ -29,15 +47,40 @@ const LEGACY_TAB_ALIASES: Readonly<Record<string, CompanyTabKey>> = {
 };
 
 /**
- * Sync de l'onglet actif sur Show Company avec le query param `?tab=...`
- * pour permettre le deep-link (Phase 06 L4 - Q8).
+ * Props Inertia à charger pour chaque onglet · keys de `Inertia::
+ * optional()` côté `CompanyController::show`. Si la liste est vide
+ * (`overview`), l'onglet n'a pas de prop spécifique · ses données
+ * sont dans les props eager partagées.
  */
-export function useCompanyTabs(): {
+const TAB_PROPS: Readonly<Record<CompanyTabKey, readonly string[]>> = {
+    overview: [],
+    contracts: ['contracts', 'contractsStats'],
+    drivers: ['options'],
+    fiscal: ['companyFiscal', 'declarationLifecycle'],
+    billing: ['companyBilling'],
+};
+
+export interface CompanyTabsState {
     activeTab: Ref<CompanyTabKey>;
     setTab: (tab: CompanyTabKey) => void;
     isActive: (tab: CompanyTabKey) => boolean;
-} {
+    /** Tab actuellement en cours de partial reload (null si aucun). */
+    loadingTab: Ref<CompanyTabKey | null>;
+    /**
+     * Invalide les onglets passés · ils repasseront par un partial
+     * reload au prochain `setTab(...)` qui les ciblera. Appelé par les
+     * sélecteurs d'année quand la donnée d'un onglet non-actif devient
+     * obsolète (ex. changement de year sur Fiscal invalide Billing).
+     */
+    markStale: (tabs: readonly CompanyTabKey[]) => void;
+}
+
+const COMPANY_TABS_KEY: InjectionKey<CompanyTabsState> = Symbol('companyTabs');
+
+export function useCompanyTabs(): CompanyTabsState {
     const activeTab = ref<CompanyTabKey>(DEFAULT_TAB);
+    const visitedTabs = ref<Set<CompanyTabKey>>(new Set());
+    const loadingTab = ref<CompanyTabKey | null>(null);
 
     function readFromUrl(): CompanyTabKey {
         if (typeof window === 'undefined') {
@@ -51,8 +94,6 @@ export function useCompanyTabs(): {
             return DEFAULT_TAB;
         }
 
-        // Remap silencieux des anciens noms d'onglets pour compat
-        // bookmarks (ex. `?tab=infos` post-chantier K).
         if (value in LEGACY_TAB_ALIASES) {
             return LEGACY_TAB_ALIASES[value]!;
         }
@@ -80,13 +121,40 @@ export function useCompanyTabs(): {
         window.history.replaceState({}, '', url.toString());
     }
 
-    onMounted(() => {
-        activeTab.value = readFromUrl();
-    });
+    function ensureTabLoaded(tab: CompanyTabKey): void {
+        if (visitedTabs.value.has(tab)) {
+            return;
+        }
 
-    watch(activeTab, (value) => {
-        writeToUrl(value);
-    });
+        const propsToLoad = TAB_PROPS[tab];
+        if (propsToLoad.length === 0) {
+            visitedTabs.value.add(tab);
+
+            return;
+        }
+
+        loadingTab.value = tab;
+        const url = new URL(window.location.href);
+
+        router.get(
+            url.pathname + url.search,
+            {},
+            {
+                only: [...propsToLoad],
+                preserveState: true,
+                preserveScroll: true,
+                replace: true,
+                onSuccess: () => {
+                    visitedTabs.value.add(tab);
+                },
+                onFinish: () => {
+                    if (loadingTab.value === tab) {
+                        loadingTab.value = null;
+                    }
+                },
+            },
+        );
+    }
 
     function setTab(tab: CompanyTabKey): void {
         activeTab.value = tab;
@@ -96,12 +164,47 @@ export function useCompanyTabs(): {
         return activeTab.value === tab;
     }
 
-    return {
+    function markStale(tabs: readonly CompanyTabKey[]): void {
+        tabs.forEach((t) => visitedTabs.value.delete(t));
+    }
+
+    onMounted(() => {
+        const initialTab = readFromUrl();
+        activeTab.value = initialTab;
+        // L'onglet initial est rendu eager côté backend · pas besoin
+        // de partial reload pour lui.
+        visitedTabs.value.add(initialTab);
+    });
+
+    watch(activeTab, (value) => {
+        writeToUrl(value);
+        ensureTabLoaded(value);
+    });
+
+    const state: CompanyTabsState = {
         activeTab: computed({
             get: () => activeTab.value,
             set: (v: CompanyTabKey) => (activeTab.value = v),
-        }),
+        }) as unknown as Ref<CompanyTabKey>,
         setTab,
         isActive,
+        loadingTab,
+        markStale,
     };
+
+    provide(COMPANY_TABS_KEY, state);
+
+    return state;
+}
+
+/**
+ * Injecte l'état partagé depuis n'importe quel descendant de la page
+ * Show Company · utilisé par les sélecteurs d'année pour appeler
+ * `markStale(...)` sur les onglets year-dépendants après changement.
+ *
+ * Retourne `null` si appelé hors arbre Show Company (ex. tests
+ * unitaires) · le caller doit gérer ce cas gracieusement.
+ */
+export function injectCompanyTabsState(): CompanyTabsState | null {
+    return inject(COMPANY_TABS_KEY, null);
 }

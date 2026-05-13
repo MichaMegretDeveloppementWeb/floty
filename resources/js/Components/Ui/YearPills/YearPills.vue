@@ -19,8 +19,15 @@ const props = withDefaults(
         loading?: boolean;
         /** Libellé optionnel à gauche des pills. Défaut « Année ». */
         label?: string;
+        /**
+         * D5.10.U · liste des années qui ont au moins une action en
+         * attente sur le contexte courant. Affiche un dot ambre en
+         * exposant de la pill · guide l'utilisateur jusqu'à l'année
+         * concernée sans l'obliger à les tester toutes.
+         */
+        yearsWithTodo?: readonly number[];
     }>(),
-    { loading: false, label: 'Année' },
+    { loading: false, label: 'Année', yearsWithTodo: () => [] },
 );
 
 const emit = defineEmits<{
@@ -31,11 +38,13 @@ const reversedYears = computed<readonly number[]>(() =>
     [...props.years].reverse(),
 );
 
+const yearsWithTodoSet = computed<Set<number>>(() => new Set(props.yearsWithTodo));
+
 function pillClass(year: number): string {
     const active = props.activeYear === year;
     const disabled = props.loading;
 
-    const base = 'snap-start shrink-0 rounded-full border px-3 py-1 text-sm transition-colors duration-[120ms]';
+    const base = 'inline-flex items-center gap-1.5 snap-start shrink-0 rounded-full border px-3 py-1 text-sm transition-colors duration-[120ms]';
     const cursor = disabled ? 'cursor-wait opacity-60' : 'cursor-pointer';
 
     if (active) {
@@ -64,7 +73,13 @@ function pillClass(year: number): string {
                 :class="pillClass(year)"
                 @click="emit('select', year)"
             >
-                {{ year }}
+                <span>{{ year }}</span>
+                <span
+                    v-if="yearsWithTodoSet.has(year)"
+                    class="inline-block size-1.5 shrink-0 rounded-full bg-amber-400"
+                    title="Action en attente sur cet exercice"
+                    aria-hidden="true"
+                />
             </button>
         </div>
     </div>

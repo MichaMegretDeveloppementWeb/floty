@@ -12,9 +12,15 @@ withDefaults(
          * crier comme une alerte rouge.
          */
         fiscalHasTodo?: boolean;
+        /**
+         * D5.10.U · même pattern pour l'onglet « Facturation » quand au
+         * moins une facture est à générer.
+         */
+        billingHasTodo?: boolean;
     }>(),
     {
         fiscalHasTodo: false,
+        billingHasTodo: false,
     },
 );
 
@@ -60,6 +66,12 @@ const tabs: readonly { key: CompanyTabKey; label: string }[] = [
                 v-if="tab.key === 'fiscal' && fiscalHasTodo"
                 class="inline-block size-1.5 rounded-full bg-amber-400"
                 title="Déclarations en attente"
+                aria-hidden="true"
+            />
+            <span
+                v-if="tab.key === 'billing' && billingHasTodo"
+                class="inline-block size-1.5 rounded-full bg-amber-400"
+                title="Factures à générer"
                 aria-hidden="true"
             />
         </button>

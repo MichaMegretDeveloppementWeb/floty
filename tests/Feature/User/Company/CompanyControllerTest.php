@@ -562,7 +562,7 @@ final class CompanyControllerTest extends TestCase
         }
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id)
+            ->get('/app/companies/'.$company->id.'?tab=contracts')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $this->assertPaginatedShape(
                 $page,
@@ -600,7 +600,7 @@ final class CompanyControllerTest extends TestCase
         Contract::factory()->forVehicle($vB3)->forCompany($companyB)->inYear($currentYear)->create();
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$companyA->id.'?companyId='.$companyB->id)
+            ->get('/app/companies/'.$companyA->id.'?tab=contracts&companyId='.$companyB->id)
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.meta.total', 1)
@@ -626,7 +626,7 @@ final class CompanyControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id.'?periodStart=2025-01-01&periodEnd=2025-12-31')
+            ->get('/app/companies/'.$company->id.'?tab=contracts&periodStart=2025-01-01&periodEnd=2025-12-31')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.meta.total', 1)
@@ -673,7 +673,7 @@ final class CompanyControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id)
+            ->get('/app/companies/'.$company->id.'?tab=contracts')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contractsStats.totalDays', 41)
@@ -698,7 +698,7 @@ final class CompanyControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id.'?periodStart=2024-07-01&periodEnd=2024-09-30')
+            ->get('/app/companies/'.$company->id.'?tab=contracts&periodStart=2024-07-01&periodEnd=2024-09-30')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contractsStats.totalDays', 92) // 31 + 31 + 30
@@ -769,7 +769,7 @@ final class CompanyControllerTest extends TestCase
         Contract::factory()->forVehicle($vehicleB)->forCompany($company)->inYear($currentYear)->create();
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id)
+            ->get('/app/companies/'.$company->id.'?tab=contracts')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.meta.total', 1)
@@ -796,7 +796,7 @@ final class CompanyControllerTest extends TestCase
         Contract::factory()->forVehicle($vehicleB)->forCompany($company)->inYear($currentYear)->create();
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id.'?year=2024')
+            ->get('/app/companies/'.$company->id.'?tab=contracts&year=2024')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.meta.total', 1)
@@ -819,7 +819,7 @@ final class CompanyControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id.'?periodStart=2025-06-01&periodEnd=2025-09-30')
+            ->get('/app/companies/'.$company->id.'?tab=contracts&periodStart=2025-06-01&periodEnd=2025-09-30')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.meta.total', 1)
@@ -860,7 +860,7 @@ final class CompanyControllerTest extends TestCase
         Driver::factory()->count(3)->create();
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id)
+            ->get('/app/companies/'.$company->id.'?tab=drivers')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->has('options.drivers', 3)
@@ -883,7 +883,7 @@ final class CompanyControllerTest extends TestCase
         $company = Company::factory()->create();
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id)
+            ->get('/app/companies/'.$company->id.'?tab=fiscal')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('companyFiscal.year', (int) Carbon::now()->year)
@@ -906,9 +906,9 @@ final class CompanyControllerTest extends TestCase
         ]);
 
         // Sans query : default = current year (pas 2024 sauf si on est en 2024)
-        // Avec query `fiscalYear=2024` : on doit avoir 1 ligne avec 31 jours
+        // Avec query `year=2024` (D5.10.U) : on doit avoir 1 ligne avec 31 jours
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id.'?fiscalYear=2024')
+            ->get('/app/companies/'.$company->id.'?tab=fiscal&year=2024')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('companyFiscal.year', 2024)
@@ -936,7 +936,7 @@ final class CompanyControllerTest extends TestCase
         ]);
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id.'?fiscalYear=2024')
+            ->get('/app/companies/'.$company->id.'?tab=fiscal&year=2024')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->has('companyFiscal.rows', 2)
@@ -954,7 +954,7 @@ final class CompanyControllerTest extends TestCase
         $company = Company::factory()->create();
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id.'?fiscalYear=2024')
+            ->get('/app/companies/'.$company->id.'?tab=fiscal&year=2024')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('companyFiscal.contractsCount', 0),
@@ -976,7 +976,7 @@ final class CompanyControllerTest extends TestCase
         $expectedRange = range(2022, (int) Carbon::now()->year);
 
         $this->actingAs($user)
-            ->get('/app/companies/'.$company->id)
+            ->get('/app/companies/'.$company->id.'?tab=fiscal')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('companyFiscal.availableYears', $expectedRange),
@@ -1042,7 +1042,7 @@ final class CompanyControllerTest extends TestCase
         $company = Company::factory()->create();
 
         $this->actingAs($user)
-            ->get("/app/companies/{$company->id}?fiscalYear=2024")
+            ->get("/app/companies/{$company->id}?tab=fiscal&year=2024")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('declarationLifecycle.state', 'untouched')
@@ -1068,7 +1068,7 @@ final class CompanyControllerTest extends TestCase
             ->create();
 
         $this->actingAs($user)
-            ->get("/app/companies/{$company->id}?fiscalYear=2024")
+            ->get("/app/companies/{$company->id}?tab=fiscal&year=2024")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('declarationLifecycle.state', 'generated_active')

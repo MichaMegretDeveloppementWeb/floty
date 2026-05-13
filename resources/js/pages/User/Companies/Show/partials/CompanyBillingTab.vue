@@ -6,13 +6,17 @@
  * pour cette entreprise sur l'année sélectionnée + un bouton d'action
  * par mois : « Générer » si aucune facture n'est encore émise, ou
  * « Voir #YYYY-MM-NNNN » si une facture existe déjà (immuabilité ·
- * la regénération n'est pas autorisée). Le sélecteur d'année est
- * piloté par `?billingYear=` URL (mirroir du pattern fiscal / activité,
- * cf. `CompanyController::show`).
+ * la regénération n'est pas autorisée).
+ *
+ * D5.10.U · sélecteur d'année piloté par le param URL **unifié**
+ * `?year=` partagé avec les onglets Fiscalité / Activité de la fiche
+ * entreprise (cf. `CompanyController::show`).
  */
 import { router } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import GenerateInvoiceButton from '@/Components/Domain/Billing/GenerateInvoiceButton.vue';
 import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
+import { injectCompanyTabsState } from '@/Composables/Company/Show/useCompanyTabs';
 import { show as companiesShowRoute } from '@/routes/user/companies';
 import YearPills from "@/Components/Ui/YearPills/YearPills.vue";
 
@@ -26,21 +30,40 @@ const props = defineProps<{
      */
     availableYears: readonly number[];
     activeYear: number;
+    /** Années avec factures à générer · alimente le dot des pills (D5.10.U). */
+    pendingInvoices?: App.Data.User.Billing.PendingInvoiceYearData[];
 }>();
+
+const yearsWithTodo = computed<readonly number[]>(
+    () => props.pendingInvoices?.map((p) => p.fiscalYear) ?? [],
+);
+
+const tabsState = injectCompanyTabsState();
 
 function selectYear(year: number): void {
     if (year === props.activeYear) {
         return;
     }
 
+    // D5.10.U · param URL unifié `?year=` partagé entre les onglets.
+    // D5.10.V · ne recharge QUE les props de l'onglet Billing actif ·
+    // les autres onglets year-dépendants (fiscal, contracts) sont
+    // marqués stale et se rechargeront au prochain clic.
+    const url = new URL(window.location.href);
+    url.searchParams.set('year', String(year));
+    url.searchParams.set('tab', 'billing');
+
     router.get(
-        companiesShowRoute.url({ company: props.companyId }),
-        { billingYear: year, tab: 'billing' },
+        url.pathname + url.search,
+        {},
         {
             preserveScroll: true,
             preserveState: true,
             only: ['companyBilling', 'billingYear'],
             replace: true,
+            onSuccess: () => {
+                tabsState?.markStale(['fiscal', 'contracts']);
+            },
         },
     );
 }
@@ -52,6 +75,7 @@ function selectYear(year: number): void {
             v-if="availableYears.length > 0"
             :years="availableYears"
             :active-year="activeYear"
+            :years-with-todo="yearsWithTodo"
             @select="selectYear"
         />
 

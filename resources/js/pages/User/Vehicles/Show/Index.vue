@@ -5,17 +5,17 @@
  *
  *   - **Vue d'ensemble** : KPIs + Caractéristiques + Historique +
  *     Utilisation & Répartition + Indispos
- *   - **Fiscalité** : détail de la Taxe pleine (méthode CO₂, polluants,
- *     exonérations, règles appliquées) · sélecteur d'année dédié
- *   - **Facturation** : placeholder V1.2
+ *   - **Fiscalité** : détail de la Taxe pleine · sélecteur d'année dédié
+ *   - **Facturation** : tarifs annuels + recettes mensuelles
  *
- * Les sélecteurs d'année des cartes Utilisation et Fiscalité sont
- * **indépendants** · chacun a son propre cache `useYearLazy` (lazy
- * loading + cache client). Pattern aligné Company.
+ * D5.10.V · chargement lazy + cumulatif des onglets. Seules les props
+ * de l'onglet actif au mount sont eager (cf. `VehicleController::show`).
+ * Cf. doctrine `useCompanyTabs` pour le détail.
  */
 import { Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import { useVehicleTabs } from '@/Composables/Vehicle/Show/useVehicleTabs';
+import TabLoadingSkeleton from '@/pages/User/Companies/Show/partials/TabLoadingSkeleton.vue';
 import VehicleBillingTab from './partials/VehicleBillingTab.vue';
 import VehicleFiscalTab from './partials/VehicleFiscalTab.vue';
 import VehicleHeader from './partials/VehicleHeader.vue';
@@ -23,12 +23,15 @@ import VehicleOverviewTab from './partials/VehicleOverviewTab.vue';
 import VehicleTabsNav from './partials/VehicleTabsNav.vue';
 
 const props = defineProps<{
+    // Eager · toujours présentes.
     vehicle: App.Data.User.Vehicle.VehicleData;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
-    vehicleBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
     billingYear: number;
-    fiscalYearBreakdown: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
     fiscalYear: number;
+
+    // Lazy · présentes uniquement après visite de leur onglet.
+    vehicleBilling?: App.Data.User.Billing.MonthlyBillingBreakdownData;
+    fiscalYearBreakdown?: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
 }>();
 
 const { activeTab, setTab } = useVehicleTabs();
@@ -48,20 +51,28 @@ const { activeTab, setTab } = useVehicleTabs();
                 :vehicle="props.vehicle"
                 :options="props.options"
             />
-            <VehicleFiscalTab
-                v-else-if="activeTab === 'fiscal'"
-                :vehicle="props.vehicle"
-                :fiscal-year-breakdown="props.fiscalYearBreakdown"
-                :fiscal-year="props.fiscalYear"
-            />
-            <VehicleBillingTab
-                v-else-if="activeTab === 'billing'"
-                :vehicle-id="props.vehicle.id"
-                :pricings="props.vehicle.yearlyPricings"
-                :monthly-billing="props.vehicleBilling"
-                :year-scope="props.vehicle.yearScope"
-                :active-year="props.billingYear"
-            />
+
+            <template v-else-if="activeTab === 'fiscal'">
+                <VehicleFiscalTab
+                    v-if="props.fiscalYearBreakdown"
+                    :vehicle="props.vehicle"
+                    :fiscal-year-breakdown="props.fiscalYearBreakdown"
+                    :fiscal-year="props.fiscalYear"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
+
+            <template v-else-if="activeTab === 'billing'">
+                <VehicleBillingTab
+                    v-if="props.vehicleBilling"
+                    :vehicle-id="props.vehicle.id"
+                    :pricings="props.vehicle.yearlyPricings"
+                    :monthly-billing="props.vehicleBilling"
+                    :year-scope="props.vehicle.yearScope"
+                    :active-year="props.billingYear"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
         </div>
     </UserLayout>
 </template>

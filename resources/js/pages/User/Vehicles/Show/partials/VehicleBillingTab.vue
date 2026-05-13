@@ -6,16 +6,18 @@
  *     annuels servant au calcul du panachage optimal.
  *   - **Recettes mensuelles** : récap 12 mois de la recette facturée à
  *     toutes les entreprises utilisatrices du véhicule sur l'année
- *     sélectionnée. Le sélecteur d'année est piloté par `?billingYear=`
- *     URL (cf. `VehicleController::show`).
+ *     sélectionnée.
+ *
+ * D5.10.U · sélecteur d'année piloté par le param URL **unifié** `?year=`
+ * partagé avec l'onglet Fiscalité (cf. `VehicleController::show`).
  *
  * La génération de facture se fait depuis la fiche entreprise (cumul
  * cross-véhicules par mois) ou depuis la liste Factures.
  */
 import { router } from '@inertiajs/vue3';
 import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
+import { injectVehicleTabsState } from '@/Composables/Vehicle/Show/useVehicleTabs';
 import YearPills from "@/Components/Ui/YearPills/YearPills.vue";
-import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import VehiclePricingsCard from './billing/VehiclePricingsCard.vue';
 
 const props = defineProps<{
@@ -30,19 +32,31 @@ const props = defineProps<{
     activeYear: number;
 }>();
 
+const tabsState = injectVehicleTabsState();
+
 function selectYear(year: number): void {
     if (year === props.activeYear) {
         return;
     }
 
+    // D5.10.U · param URL unifié `?year=` partagé avec Fiscalité.
+    // D5.10.V · ne recharge QUE les props de l'onglet Billing actif ·
+    // Fiscal marqué stale (re-fetch au prochain clic).
+    const url = new URL(window.location.href);
+    url.searchParams.set('year', String(year));
+    url.searchParams.set('tab', 'billing');
+
     router.get(
-        vehiclesShowRoute.url({ vehicle: props.vehicleId }),
-        { billingYear: year, tab: 'billing' },
+        url.pathname + url.search,
+        {},
         {
             preserveScroll: true,
             preserveState: true,
-            only: ['vehicleBilling', 'billingYear'],
+            only: ['vehicleBilling', 'billingYear', 'fiscalYear'],
             replace: true,
+            onSuccess: () => {
+                tabsState?.markStale(['fiscal']);
+            },
         },
     );
 }
