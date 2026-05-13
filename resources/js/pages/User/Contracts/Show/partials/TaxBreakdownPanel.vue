@@ -64,16 +64,54 @@ const {
                 </h3>
 
                 <!-- Cas LCD pur ou autre exonération totale : 0 € -->
-                <p
-                    v-if="year.daysAssigned === 0"
-                    class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
-                >
-                    Location exonérée pour {{ year.year }} : 0 €.
-                    <span class="block text-xs text-emerald-700/80 mt-0.5">
-                        Aucun jour retenu au numérateur du prorata après application
-                        des règles d'exonération.
-                    </span>
-                </p>
+                <div v-if="year.daysAssigned === 0" class="flex flex-col gap-3">
+                    <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                        Location exonérée pour {{ year.year }} : 0 €.
+                        <span class="block text-xs text-emerald-700/80 mt-0.5">
+                            Aucun jour retenu au numérateur du prorata après application
+                            des règles d'exonération.
+                        </span>
+                    </p>
+
+                    <!-- D5.10.T · montant hypothétique « si pas LCD ».
+                         Affiché uniquement quand R-2024-021 a été
+                         effectivement appliquée (les autres exonérations
+                         totales ne génèrent pas cet indicateur). -->
+                    <section
+                        v-if="year.hypotheticalTotalDueIfNoLcd !== null"
+                        class="rounded-md border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2.5"
+                    >
+                        <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                            À titre indicatif · si requalifié en LLD
+                        </p>
+                        <div class="mt-2 flex flex-col gap-1 text-sm text-slate-700">
+                            <p class="flex items-baseline justify-between gap-2">
+                                <span class="text-xs text-slate-500">Taxe CO₂</span>
+                                <span class="font-mono">
+                                    {{ formatEur(year.hypotheticalCo2DueIfNoLcd ?? 0) }}
+                                </span>
+                            </p>
+                            <p class="flex items-baseline justify-between gap-2">
+                                <span class="text-xs text-slate-500">Taxe polluants</span>
+                                <span class="font-mono">
+                                    {{ formatEur(year.hypotheticalPollutantsDueIfNoLcd ?? 0) }}
+                                </span>
+                            </p>
+                            <p class="flex items-baseline justify-between gap-2 border-t border-slate-200 pt-1.5">
+                                <span class="text-xs font-semibold text-slate-700">Total</span>
+                                <span class="font-mono font-semibold text-slate-900">
+                                    {{ formatEur(year.hypotheticalTotalDueIfNoLcd) }}
+                                </span>
+                            </p>
+                        </div>
+                        <p class="mt-2 text-[11px] leading-snug text-slate-500">
+                            Estimation du montant qui serait dû si ce contrat
+                            était requalifié en LLD (cluster). Le calcul exact
+                            sera produit par le moteur lors de la revue
+                            fiscale de la déclaration.
+                        </p>
+                    </section>
+                </div>
 
                 <!-- Cas taxable : formule explicite -->
                 <div

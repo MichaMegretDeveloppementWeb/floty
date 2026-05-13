@@ -286,7 +286,7 @@ final class RiskDetectionServiceTest extends TestCase
         // Cumul 11+16 = 27 j, < threshold_low 30 → pas de cluster détecté
         // mais on vérifie que le service exécute bien sans erreur sur ce cas
         // (validation déterministe = repo trie par id en cas d'égalité).
-        self::assertIsArray($clusters);
+        self::assertCount(0, $clusters);
         self::assertContains($first->id, [$first->id, $second->id]);
     }
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Fiscal\Declaration;
 
-use App\Enums\Contract\ContractType;
 use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use App\Models\Company;
 use App\Models\Contract;
@@ -264,7 +263,7 @@ final class PendingDeclarationsResolverTest extends TestCase
             'vehicle_id' => $this->vehicle->id,
             'start_date' => $start,
             'end_date' => $end,
-            'contract_type' => Contract::deriveTypeFromDates($start, $end) ?? ContractType::Lcd,
+            'contract_type' => Contract::deriveTypeFromDates($start, $end),
         ]);
     }
 }

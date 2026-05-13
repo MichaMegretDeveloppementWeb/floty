@@ -278,6 +278,23 @@ final class FleetFiscalAggregator
                 ->values()
                 ->all();
 
+            // D5.10.T · montant hypothétique « si pas LCD » · seulement
+            // pour les contrats effectivement exonérés par R-2024-021.
+            // Calcul direct (tariff × prorata jours-contrat / jours-année)
+            // sans 2e passe pipeline · l'approximation suffit comme aide
+            // à la décision de requalification cluster, le calcul exact
+            // étant fait par `DeclarationFiscalEngine` lors de la revue.
+            $lcdExempted = in_array('R-2024-021', $result->appliedRuleCodes, true);
+            $hypoCo2 = null;
+            $hypoPollutants = null;
+            $hypoTotal = null;
+            if ($lcdExempted && $result->daysInYear > 0) {
+                $proratio = $daysInContractInYear / $result->daysInYear;
+                $hypoCo2 = round($co2Tariff * $proratio, 2, PHP_ROUND_HALF_UP);
+                $hypoPollutants = round($pollutantsTariff * $proratio, 2, PHP_ROUND_HALF_UP);
+                $hypoTotal = round($hypoCo2 + $hypoPollutants, 2, PHP_ROUND_HALF_UP);
+            }
+
             $years[] = new ContractTaxYearBreakdownData(
                 year: $year,
                 daysInContractInYear: $daysInContractInYear,
@@ -296,6 +313,9 @@ final class FleetFiscalAggregator
                 ),
                 appliedRuleCodes: $result->appliedRuleCodes,
                 appliedRules: $appliedRules,
+                hypotheticalCo2DueIfNoLcd: $hypoCo2,
+                hypotheticalPollutantsDueIfNoLcd: $hypoPollutants,
+                hypotheticalTotalDueIfNoLcd: $hypoTotal,
             );
 
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;

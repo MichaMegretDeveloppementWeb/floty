@@ -56,5 +56,16 @@ final class ContractTaxYearBreakdownData extends Data
         public array $appliedRuleCodes,
         #[DataCollectionOf(FiscalRuleListItemData::class)]
         public array $appliedRules,
+        /**
+         * Montant CO₂ hypothétique « si pas LCD » (D5.10.T) · peuplé
+         * uniquement quand l'exonération R-2024-021 est effectivement
+         * appliquée sur ce contrat (sinon `null`, info redondante).
+         * Aide à la décision de requalification cluster.
+         */
+        public ?float $hypotheticalCo2DueIfNoLcd = null,
+        /** Montant Polluants hypothétique « si pas LCD ». */
+        public ?float $hypotheticalPollutantsDueIfNoLcd = null,
+        /** Total hypothétique = co2 + polluants. */
+        public ?float $hypotheticalTotalDueIfNoLcd = null,
     ) {}
 }
