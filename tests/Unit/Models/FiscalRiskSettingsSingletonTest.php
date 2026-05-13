@@ -30,7 +30,6 @@ final class FiscalRiskSettingsSingletonTest extends TestCase
         self::assertSame(30, $settings->threshold_low);
         self::assertSame(90, $settings->threshold_high);
         self::assertSame(5, $settings->count_high);
-        self::assertTrue($settings->lld_breaks_chain);
     }
 
     #[Test]

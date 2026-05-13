@@ -3,21 +3,23 @@
  * Table chronologique des contrats d'une déclaration fiscale avec
  * groupage visuel par cluster LCD à risque (Phase 11 D5.8, refondu
  * D5.9.C avec modale de décision, refondu D5.10.N · critère plage
- * couverte + tri snapshot strictement chronologique).
+ * couverte + tri snapshot strictement chronologique, refondu
+ * D5.10.Q · réorganisation locale pour clusters intercalés).
  *
  * Itère sur `contractBreakdown` (déjà trié backend par
- * `(startDate, vehicleId, contractId)` ASC depuis D5.10.N), détecte
- * les transitions de `clusterFingerprint` pour regrouper les contrats
- * consécutifs partageant le même cluster dans une boîte visuelle
- * (composant `<ClusterGroup>`). Les contrats sans cluster sont rendus
- * comme des `<ContractRow>` isolées.
+ * `(startDate, vehicleId, contractId)` ASC depuis D5.10.N), regroupe
+ * les contrats appartenant à un même `clusterFingerprint` dans une
+ * boîte visuelle (composant `<ClusterGroup>`). Les contrats sans
+ * cluster sont rendus comme des `<ContractRow>` isolées.
  *
- * **Contiguïté garantie par construction (D5.10.N)** · un cluster est
- * par définition une chaîne temporelle (LCD séparés de ≤ max_interval
- * jours), donc ses contrats sont naturellement adjacents dans le tri
- * chronologique. Le bug antérieur d'éparpillement multi-véhicules
- * (causé par le tri `(vehicleId, startDate)`) est résolu côté backend
- * par la bascule en `(startDate, vehicleId, contractId)`.
+ * **Réorganisation locale (D5.10.Q)** · les contrats d'un même cluster
+ * sont rendus physiquement collés (header + N rows + footer en bloc)
+ * à la position du premier contrat du cluster dans le tri reçu. Si un
+ * contrat hors-cluster (LLD intercalé sur autre véhicule) sépare
+ * temporellement deux contrats du cluster, il est déplacé après le
+ * bloc cluster · cohérence visuelle prime sur ordre chronologique
+ * strict global. Le tri backend reste inchangé · seul le rendu Vue
+ * réorganise.
  *
  * **Mode interactif** · quand `reviewClusters` est fourni (page
  * Review), un bouton « Décider » apparaît dans le header de chaque
@@ -80,48 +82,43 @@ function accentBorderClassFor(
 const isInteractive = computed<boolean>(() => props.reviewClusters !== undefined);
 
 const groups = computed<Group[]>(() => {
+    // Phase 13 D5.10.Q · réorganisation locale · les contrats d'un
+    // même cluster sont rendus collés en bloc (header + N rows + footer)
+    // à la position du premier contrat du cluster dans le tri reçu.
+    // Les contrats hors-cluster intercalés sont rendus normalement
+    // à leur position (donc APRÈS le bloc cluster s'ils étaient
+    // chronologiquement entre deux contrats du cluster).
+
+    // Index par fingerprint pour résoudre en O(1).
+    const byFingerprint = new Map<string, Contract[]>();
+    for (const c of props.contractBreakdown) {
+        if (c.clusterFingerprint !== null) {
+            const arr = byFingerprint.get(c.clusterFingerprint) ?? [];
+            arr.push(c);
+            byFingerprint.set(c.clusterFingerprint, arr);
+        }
+    }
+
     const result: Group[] = [];
-    let currentCluster: { fingerprint: string; contracts: Contract[] } | null = null;
+    const rendered = new Set<string>();
 
     for (const contract of props.contractBreakdown) {
         const fp = contract.clusterFingerprint;
 
         if (fp === null) {
-            if (currentCluster !== null) {
-                result.push({
-                    kind: 'cluster',
-                    fingerprint: currentCluster.fingerprint,
-                    contracts: currentCluster.contracts,
-                });
-                currentCluster = null;
-            }
-
             result.push({ kind: 'single', contract });
 
             continue;
         }
 
-        if (currentCluster === null || currentCluster.fingerprint !== fp) {
-            if (currentCluster !== null) {
-                result.push({
-                    kind: 'cluster',
-                    fingerprint: currentCluster.fingerprint,
-                    contracts: currentCluster.contracts,
-                });
-            }
-
-            currentCluster = { fingerprint: fp, contracts: [contract] };
-        } else {
-            currentCluster.contracts.push(contract);
+        if (rendered.has(fp)) {
+            // Déjà rendu en bloc lors de la 1ère rencontre · skip.
+            continue;
         }
-    }
 
-    if (currentCluster !== null) {
-        result.push({
-            kind: 'cluster',
-            fingerprint: currentCluster.fingerprint,
-            contracts: currentCluster.contracts,
-        });
+        const contracts = byFingerprint.get(fp) ?? [contract];
+        result.push({ kind: 'cluster', fingerprint: fp, contracts });
+        rendered.add(fp);
     }
 
     return result;

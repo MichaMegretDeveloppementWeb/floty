@@ -21,7 +21,7 @@ final class FiscalRiskSettingsDataTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function from_model_mappe_les_5_champs_correctement(): void
+    public function from_model_mappe_les_champs_correctement(): void
     {
         $settings = FiscalRiskSettings::singleton();
         $settings->fill([
@@ -29,7 +29,6 @@ final class FiscalRiskSettingsDataTest extends TestCase
             'threshold_low' => 20,
             'threshold_high' => 60,
             'count_high' => 3,
-            'lld_breaks_chain' => false,
         ])->save();
 
         $dto = FiscalRiskSettingsData::fromModel($settings->fresh());
@@ -38,7 +37,6 @@ final class FiscalRiskSettingsDataTest extends TestCase
         self::assertSame(20, $dto->thresholdLow);
         self::assertSame(60, $dto->thresholdHigh);
         self::assertSame(3, $dto->countHigh);
-        self::assertFalse($dto->lldBreaksChain);
     }
 
     #[Test]
@@ -50,7 +48,6 @@ final class FiscalRiskSettingsDataTest extends TestCase
             'threshold_low' => 30,
             'threshold_high' => 90,
             'count_high' => 5,
-            'lld_breaks_chain' => true,
         ], $rules);
 
         self::assertTrue($validator->fails());
@@ -66,7 +63,6 @@ final class FiscalRiskSettingsDataTest extends TestCase
             'threshold_low' => 50,
             'threshold_high' => 30,
             'count_high' => 5,
-            'lld_breaks_chain' => true,
         ], $rules);
 
         self::assertTrue($validator->fails());
@@ -82,7 +78,6 @@ final class FiscalRiskSettingsDataTest extends TestCase
             'threshold_low' => 30,
             'threshold_high' => 90,
             'count_high' => 5,
-            'lld_breaks_chain' => true,
         ], $rules);
 
         self::assertFalse($validator->fails(), (string) $validator->errors());
@@ -97,7 +92,6 @@ final class FiscalRiskSettingsDataTest extends TestCase
             'threshold_low' => -1,
             'threshold_high' => 90,
             'count_high' => 5,
-            'lld_breaks_chain' => true,
         ], $rules);
 
         self::assertTrue($validator->fails());

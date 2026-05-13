@@ -220,9 +220,11 @@ final class DeclarationFiscalEngineTest extends TestCase
         $a1 = $this->makeContract($vehicle, '2024-01-01', '2024-01-18', ContractType::Lcd); // 18j
         $a2 = $this->makeContract($vehicle, '2024-01-24', '2024-02-09', ContractType::Lcd); // 17j
 
-        // Chaîne 2 : 2 LCD courts en juin (cluster B · 35j cumul). Le
-        // LLD entre les deux chaînes coupe (lld_breaks_chain = true)
-        // et garantit deux clusters distincts.
+        // Chaîne 2 · 2 LCD courts en juin (cluster B). Les 2 chaînes
+        // restent distinctes parce que l'intervalle direct LCD-LCD
+        // entre a2 (fin 02-09) et b1 (début 06-01) dépasse largement
+        // max_interval=15 (phase D5.10.Q · les LLD sont ignorés, c'est
+        // l'intervalle LCD direct qui décide).
         $this->makeContract($vehicle, '2024-02-19', '2024-05-31', ContractType::Lld);
         $b1 = $this->makeContract($vehicle, '2024-06-01', '2024-06-18', ContractType::Lcd); // 18j
         $b2 = $this->makeContract($vehicle, '2024-06-24', '2024-07-10', ContractType::Lcd); // 17j

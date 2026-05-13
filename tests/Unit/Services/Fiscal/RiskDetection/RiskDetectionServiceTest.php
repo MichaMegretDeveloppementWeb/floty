@@ -18,12 +18,13 @@ use Tests\TestCase;
 
 /**
  * Couvre l'algorithme de détection des clusters de risque fiscal
- * (Phase 11 D2, ADR-0015 § 4 + cas-tests permanents § 7).
+ * (Phase 11 D2, ADR-0015 § 4 + cas-tests permanents § 7, refondu
+ * D5.10.Q · les LLD sont silencieusement ignorés).
  *
- * Service piloté par les seuils du singleton `FiscalRiskSettings` :
+ * Service piloté par les seuils du singleton `FiscalRiskSettings` ·
  * sauf indication contraire, les tests utilisent les valeurs par
  * défaut (`max_interval=15, threshold_low=30, threshold_high=90,
- * count_high=5, lld_breaks_chain=true`).
+ * count_high=5`).
  */
 final class RiskDetectionServiceTest extends TestCase
 {
@@ -113,14 +114,60 @@ final class RiskDetectionServiceTest extends TestCase
     }
 
     #[Test]
-    public function cas5_lld_intercale_rompt_la_chaine_par_defaut(): void
+    public function cas5_lld_intercale_n_interrompt_pas_la_chaine(): void
     {
-        // LCD 20j → LLD 40j → LCD 20j (intervalles 5j)
+        // Phase 13 D5.10.Q · les LLD sont silencieusement ignorés
+        // lors du chaînage. Les 2 LCD séparés de 51 jours pleins
+        // (au-delà de max_interval=15) ne forment pas de chaîne, mais
+        // c'est l'intervalle inter-LCD qui le décide, pas le LLD
+        // intercalé.
         $this->makeContract('2025-01-01', '2025-01-20', type: ContractType::Lcd);
-        $this->makeContract('2025-01-26', '2025-03-06', type: ContractType::Lld); // 40 j → LLD
+        $this->makeContract('2025-01-26', '2025-03-06', type: ContractType::Lld); // 40j LLD
         $this->makeContract('2025-03-12', '2025-03-31', type: ContractType::Lcd);
 
+        // Intervalle LCD-LCD direct = 2025-01-20 → 2025-03-12 = 50j > 15 → pas de chaîne.
         self::assertSame([], $this->service->detectClusters($this->company->id, 2025));
+    }
+
+    #[Test]
+    public function lld_intercale_sur_autre_vehicule_n_interrompt_pas_la_chaine(): void
+    {
+        // Phase 13 D5.10.Q · cas régression ECO 2024 ·
+        // LCD Nevada → LLD Toyota (autre véhicule, intercalé) → LCD Nevada.
+        // Le LLD doit être silencieusement ignoré · les 2 LCD à
+        // intervalle 3j forment une chaîne sur Nevada.
+        // Plage couverte = 2024-04-01 → 2024-05-18 = 48 jours > 30 → ChainMoyen.
+        $vehicleNevada = $this->vehicle;
+        $vehicleToyota = Vehicle::factory()->create();
+
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleNevada->id,
+            'start_date' => '2024-04-01',
+            'end_date' => '2024-04-23',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleToyota->id,
+            'start_date' => '2024-04-15',
+            'end_date' => '2024-07-31',
+            'contract_type' => ContractType::Lld,
+        ]);
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleNevada->id,
+            'start_date' => '2024-04-26',
+            'end_date' => '2024-05-18',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        $clusters = $this->service->detectClusters($this->company->id, 2024);
+
+        self::assertCount(1, $clusters);
+        self::assertSame(RiskCode::Chain, $clusters[0]->code);
+        self::assertSame(2, $clusters[0]->contractsCount);
+        self::assertSame(48, $clusters[0]->coveragePeriodDays);
     }
 
     #[Test]
@@ -213,30 +260,6 @@ final class RiskDetectionServiceTest extends TestCase
     }
 
     #[Test]
-    public function lld_breaks_chain_false_garde_la_chaine_a_travers_un_lld(): void
-    {
-        $settings = FiscalRiskSettings::singleton();
-        $settings->lld_breaks_chain = false;
-        $settings->save();
-
-        // LCD 20j → LLD 40j (n'interrompt plus) → LCD 20j (intervalle au précédent LCD = 46j > 15)
-        $this->makeContract('2025-01-01', '2025-01-20', type: ContractType::Lcd);
-        $this->makeContract('2025-01-26', '2025-03-06', type: ContractType::Lld);
-        $this->makeContract('2025-03-12', '2025-03-31', type: ContractType::Lcd);
-
-        // Le LLD ne casse plus la chaîne mais l'intervalle entre les
-        // 2 LCD reste >> max_interval donc pas de chaîne malgré tout.
-        self::assertSame([], $this->service->detectClusters($this->company->id, 2025));
-
-        // En revanche, deux LCD très proches séparés par un LLD non
-        // interruptif : la chaîne se maintient si l'intervalle LCD-LCD
-        // direct reste ≤ max_interval (cas théorique avec plages
-        // chevauchantes, non testable proprement ici car le trigger DB
-        // empêche les chevauchements). On valide simplement le toggle.
-        self::assertFalse($settings->fresh()->lld_breaks_chain);
-    }
-
-    #[Test]
     public function tri_par_start_date_puis_id_deterministe(): void
     {
         // 2 LCD à la même start_date sur 2 véhicules distincts (pour
@@ -276,7 +299,6 @@ final class RiskDetectionServiceTest extends TestCase
             'threshold_low' => 10,
             'threshold_high' => 200,
             'count_high' => 99,
-            'lld_breaks_chain' => true,
         ])->save();
 
         // Avec threshold_low = 10, deux LCD de 8 j (cumul 16) déclenchent CHAIN

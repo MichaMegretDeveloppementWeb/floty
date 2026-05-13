@@ -60,10 +60,9 @@ const emit = defineEmits<{
         </template>
 
         <template #cell-reference="{ row }">
-            <span v-if="row.reference" class="font-mono text-xs whitespace-nowrap text-slate-700">
-                {{ row.reference }}
+            <span class="font-mono text-xs whitespace-nowrap text-slate-700">
+                {{ row.internalLabel }}
             </span>
-            <span v-else class="text-slate-300">·</span>
         </template>
 
         <template #cell-status="{ row }">
@@ -136,8 +135,8 @@ const emit = defineEmits<{
                         </StatusPill>
                     </div>
                     <span class="text-xs text-slate-500">{{ row.companyLegalName }}</span>
-                    <p v-if="row.reference" class="font-mono text-[11px] text-slate-500">
-                        {{ row.reference }}
+                    <p class="font-mono text-[11px] text-slate-500">
+                        {{ row.internalLabel }}
                     </p>
                     <p
                         v-if="subMentionForRow(row)"

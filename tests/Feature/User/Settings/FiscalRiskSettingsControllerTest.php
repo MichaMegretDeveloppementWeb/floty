@@ -34,7 +34,6 @@ final class FiscalRiskSettingsControllerTest extends TestCase
                     ->where('thresholdLow', 30)
                     ->where('thresholdHigh', 90)
                     ->where('countHigh', 5)
-                    ->where('lldBreaksChain', true)
                     ->etc()));
 
         // Le singleton est créé à la volée par le repo lors du premier hit.
@@ -52,7 +51,6 @@ final class FiscalRiskSettingsControllerTest extends TestCase
                 'threshold_low' => 20,
                 'threshold_high' => 60,
                 'count_high' => 3,
-                'lld_breaks_chain' => false,
             ])
             ->assertRedirect()
             ->assertSessionHas('toast-success');
@@ -62,7 +60,6 @@ final class FiscalRiskSettingsControllerTest extends TestCase
         self::assertSame(20, $settings->threshold_low);
         self::assertSame(60, $settings->threshold_high);
         self::assertSame(3, $settings->count_high);
-        self::assertFalse($settings->lld_breaks_chain);
     }
 
     #[Test]
@@ -96,7 +93,6 @@ final class FiscalRiskSettingsControllerTest extends TestCase
                 'threshold_low' => 50,
                 'threshold_high' => 30,
                 'count_high' => 5,
-                'lld_breaks_chain' => true,
             ])
             ->assertSessionHasErrors(['threshold_high']);
     }
@@ -112,7 +108,6 @@ final class FiscalRiskSettingsControllerTest extends TestCase
                 'threshold_low' => 30,
                 'threshold_high' => 90,
                 'count_high' => 5,
-                'lld_breaks_chain' => true,
             ])
             ->assertSessionHasErrors(['max_interval']);
     }
