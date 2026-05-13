@@ -48,6 +48,7 @@ final class FiscalDeclarationSnapshotData extends Data
         #[DataCollectionOf(AppliedDecisionEntryData::class)]
         public array $appliedDecisions,
         public array $optOutContractIds,
+        public ?string $companyAddress = null,
     ) {}
 
     public static function fromValueObject(FiscalDeclarationSnapshot $vo): self
@@ -70,6 +71,7 @@ final class FiscalDeclarationSnapshotData extends Data
                 $vo->appliedDecisions,
             ),
             optOutContractIds: $vo->optOutContractIds,
+            companyAddress: $vo->companyAddress,
         );
     }
 }

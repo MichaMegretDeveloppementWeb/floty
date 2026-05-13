@@ -100,6 +100,23 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
     }
 
     #[Test]
+    public function html_affiche_l_adresse_de_l_entreprise_si_renseignee_sans_le_code_court(): void
+    {
+        // Phase 13 D5.10.Y · le bloc « Entreprise utilisatrice » doit
+        // afficher le nom complet + l'adresse postale capturée dans le
+        // snapshot, sans le code court interne (uniquement utile aux
+        // références de document, déjà visibles dans la cellule
+        // référence).
+        $context = $this->buildContextWithAddress();
+        $html = $this->renderer->renderHtml($context);
+
+        self::assertStringContainsString('ACM SARL', $html);
+        self::assertStringContainsString('12 rue de la Paix', $html);
+        self::assertStringContainsString('75001 Paris', $html);
+        self::assertStringNotContainsString('Code court', $html);
+    }
+
+    #[Test]
     public function html_affiche_la_mention_exoneration_pour_un_contrat_exonere(): void
     {
         // Phase 13 D5.10.W · les contrats LCD individuels non opt-out
@@ -277,6 +294,42 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
             preview: $preview,
             snapshot: $snapshot,
             reference: 'DECL-ACM-2024-0001',
+            generatedAt: CarbonImmutable::parse('2025-01-15 09:30:00'),
+        );
+    }
+
+    private function buildContextWithAddress(): DeclarationRenderContext
+    {
+        $snapshot = new FiscalDeclarationSnapshot(
+            companyId: 7,
+            companyShortCode: 'ACM',
+            companyLegalName: 'ACM SARL',
+            fiscalYear: 2024,
+            computedAt: CarbonImmutable::parse('2024-12-31 23:59:59'),
+            co2DueTotal: 0.0,
+            pollutantsDueTotal: 0.0,
+            totalDue: 0.0,
+            contractBreakdown: [],
+            appliedDecisions: [],
+            optOutContractIds: [],
+            companyAddress: "12 rue de la Paix\n75001 Paris",
+        );
+
+        $preview = new DeclarationPreviewData(
+            companyId: 7,
+            companyShortCode: 'ACM',
+            companyLegalName: 'ACM SARL',
+            fiscalYear: 2024,
+            clusters: [],
+            pendingClustersCount: 0,
+            canGenerate: true,
+            declaration: null,
+        );
+
+        return new DeclarationRenderContext(
+            preview: $preview,
+            snapshot: $snapshot,
+            reference: 'DECL-ACM-2024-0004',
             generatedAt: CarbonImmutable::parse('2025-01-15 09:30:00'),
         );
     }

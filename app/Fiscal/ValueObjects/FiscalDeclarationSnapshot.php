@@ -51,5 +51,12 @@ final readonly class FiscalDeclarationSnapshot
         public array $contractBreakdown,
         public array $appliedDecisions,
         public array $optOutContractIds,
+        /**
+         * Phase 13 D5.10.Y · adresse postale formatée de l'entreprise
+         * utilisatrice, capturée au moment de la génération pour figer
+         * l'identité fiscale dans le PDF. Lignes séparées par `\n`.
+         * Null si aucune partie de l'adresse n'est renseignée.
+         */
+        public ?string $companyAddress = null,
     ) {}
 }

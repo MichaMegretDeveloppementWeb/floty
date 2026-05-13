@@ -26,6 +26,7 @@ use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\FiscalDeclarationSnapshot;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Fiscal\Year2024\Exemption\R2024_021_WithOptOuts;
+use App\Models\Company;
 use App\Models\Contract;
 use App\Models\FiscalReviewDecision;
 use App\Models\Vehicle;
@@ -131,6 +132,8 @@ final readonly class DeclarationFiscalEngine
         $contractsByPair = $this->contracts->loadContractsByPair($year);
         $vehicleIds = array_keys($contractsByPair->pairsForCompany($companyId));
 
+        $companyAddress = $this->formatCompanyAddress($company);
+
         if ($vehicleIds === []) {
             return new FiscalDeclarationSnapshot(
                 companyId: $company->id,
@@ -144,6 +147,7 @@ final readonly class DeclarationFiscalEngine
                 contractBreakdown: [],
                 appliedDecisions: $appliedDecisions,
                 optOutContractIds: $optOutContractIds,
+                companyAddress: $companyAddress,
             );
         }
 
@@ -300,7 +304,46 @@ final readonly class DeclarationFiscalEngine
             contractBreakdown: $contractEntries,
             appliedDecisions: $appliedDecisions,
             optOutContractIds: $optOutContractIds,
+            companyAddress: $companyAddress,
         );
+    }
+
+    /**
+     * Construit l'adresse postale formatée de l'entreprise utilisatrice
+     * (Phase 13 D5.10.Y) à figer dans le snapshot pour le PDF. Concatène
+     * les composants renseignés avec un saut de ligne entre :
+     *   - voie (line_1 + line_2 sur la même ligne s'ils sont tous deux
+     *     renseignés)
+     *   - localité (`{postal_code} {city}`)
+     *   - pays (si différent de FR, pour éviter le bruit du cas par
+     *     défaut)
+     * Retourne null si aucune partie n'est renseignée.
+     */
+    private function formatCompanyAddress(Company $company): ?string
+    {
+        $lines = [];
+
+        $street = trim(implode(' ', array_filter([
+            $company->address_line_1,
+            $company->address_line_2,
+        ])));
+        if ($street !== '') {
+            $lines[] = $street;
+        }
+
+        $locality = trim(implode(' ', array_filter([
+            $company->postal_code,
+            $company->city,
+        ])));
+        if ($locality !== '') {
+            $lines[] = $locality;
+        }
+
+        if ($company->country !== '' && strtoupper($company->country) !== 'FR') {
+            $lines[] = strtoupper($company->country);
+        }
+
+        return $lines === [] ? null : implode("\n", $lines);
     }
 
     /**

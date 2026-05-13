@@ -238,7 +238,9 @@
             <div>
                 <div class="meta-label">Entreprise utilisatrice</div>
                 <div class="meta-value">{{ $companyLegalName }}</div>
-                <div class="meta-secondary">Code court : {{ $companyShortCode }}</div>
+                @foreach ($companyAddressLines as $line)
+                    <div class="meta-secondary">{{ $line }}</div>
+                @endforeach
             </div>
             <div>
                 <div class="meta-label">Exercice fiscal</div>

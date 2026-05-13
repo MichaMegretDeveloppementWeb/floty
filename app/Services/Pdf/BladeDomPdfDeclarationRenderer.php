@@ -64,6 +64,7 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
             'generatedAtLabel' => $context->generatedAt->format('d/m/Y H:i'),
             'companyShortCode' => $snapshot->companyShortCode,
             'companyLegalName' => $snapshot->companyLegalName,
+            'companyAddressLines' => $this->splitAddressLines($snapshot->companyAddress),
             'fiscalYear' => $snapshot->fiscalYear,
             'co2DueTotal' => $this->formatEuros($snapshot->co2DueTotal),
             'pollutantsDueTotal' => $this->formatEuros($snapshot->pollutantsDueTotal),
@@ -71,6 +72,24 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
             'contractRows' => $this->buildContractRows($snapshot->contractBreakdown),
             'snapshotHash' => SnapshotHashCalculator::compute($canonicalPayload),
         ];
+    }
+
+    /**
+     * Coupe l'adresse multi-lignes du snapshot en `list<string>` pour
+     * que la Blade itère sans avoir à parser le saut de ligne elle-même.
+     *
+     * @return list<string>
+     */
+    private function splitAddressLines(?string $address): array
+    {
+        if ($address === null || $address === '') {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map('trim', explode("\n", $address)),
+            static fn (string $line): bool => $line !== '',
+        ));
     }
 
     /**
