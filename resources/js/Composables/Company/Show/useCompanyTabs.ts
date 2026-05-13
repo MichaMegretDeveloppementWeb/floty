@@ -52,12 +52,19 @@ const LEGACY_TAB_ALIASES: Readonly<Record<string, CompanyTabKey>> = {
  * (`overview`), l'onglet n'a pas de prop spécifique · ses données
  * sont dans les props eager partagées.
  */
+/**
+ * `billingYear` (eager) sert à highlighter la pill active sur les
+ * onglets Fiscalité et Facturation · doit être inclus dans le partial
+ * reload sinon le client garde la valeur du mount initial alors que les
+ * props year-dép sont à jour (mismatch entre titre « Facturation 2024 »
+ * et pill highlightée 2026).
+ */
 const TAB_PROPS: Readonly<Record<CompanyTabKey, readonly string[]>> = {
     overview: [],
-    contracts: ['contracts', 'contractsStats'],
+    contracts: ['contracts', 'contractsStats', 'contractsQuery', 'billingYear'],
     drivers: ['options'],
-    fiscal: ['companyFiscal', 'declarationLifecycle'],
-    billing: ['companyBilling'],
+    fiscal: ['companyFiscal', 'declarationLifecycle', 'billingYear'],
+    billing: ['companyBilling', 'billingYear'],
 };
 
 export interface CompanyTabsState {

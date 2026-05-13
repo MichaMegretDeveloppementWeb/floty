@@ -24,6 +24,7 @@ import Card from '@/Components/Ui/Card/Card.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import { useCompanyContractsTable } from '@/Composables/Company/Show/useCompanyContractsTable';
+import { injectCompanyTabsState } from '@/Composables/Company/Show/useCompanyTabs';
 import CompanyContractsActiveFilterChip from './CompanyContractsActiveFilterChip.vue';
 import CompanyContractsTable from './CompanyContractsTable.vue';
 import YearPills from "@/Components/Ui/YearPills/YearPills.vue";
@@ -38,6 +39,17 @@ const props = defineProps<{
 }>();
 
 const tableState = useCompanyContractsTable({ query: props.contractsQuery });
+const tabsState = injectCompanyTabsState();
+
+/**
+ * D5.10.U/V · marque Fiscalité et Facturation comme stales · ils
+ * tireront leurs props au prochain `setTab(...)` au lieu de servir des
+ * données pour l'ancienne année. Appelé après tout changement de
+ * période sur Contrats (pill année ou plage custom).
+ */
+function invalidateYearDependentTabs(): void {
+    tabsState?.markStale(['fiscal', 'billing']);
+}
 
 // État popover "Période personnalisée"
 const periodPopoverOpen = ref<boolean>(false);
@@ -83,6 +95,10 @@ const periodRange = computed({
         endDate: tableState.state.filters.value.periodEnd,
     }),
     set: (range: { startDate: string | null; endDate: string | null }) => {
+        // D5.10.U · plage custom · ne touche PAS `?year=` qui reste
+        // l'exercice partagé entre onglets. Backend priorise
+        // `periodStart`/`periodEnd` quand présentes (cf.
+        // `ContractIndexQueryData::effectivePeriod()`).
         tableState.state.patchFilters({
             periodStart: range.startDate,
             periodEnd: range.endDate,
@@ -91,35 +107,33 @@ const periodRange = computed({
 });
 const periodOngoing = ref<boolean>(false);
 
-// Année active : si la fenêtre filtrée correspond exactement à
-// `YYYY-01-01..YYYY-12-31`, on considère cette année comme active
-// (highlight la pill correspondante). Sinon null (filtre custom).
+// Année active (highlight pill correspondante) :
+//   - Si plage custom active → null (chip custom à la place).
+//   - Sinon prioritairement le filtre `year` partagé (D5.10.U).
+//   - Sinon legacy : période = exercice complet `YYYY-01-01..YYYY-12-31`.
 const activeYear = computed<number | null>(() => {
     const start = tableState.state.filters.value.periodStart;
     const end = tableState.state.filters.value.periodEnd;
 
-    if (start === null || end === null) {
+    // Plage custom active · pas de pill highlightée.
+    if (start !== null || end !== null) {
         return null;
     }
 
-    const startMatch = /^(\d{4})-01-01$/.exec(start);
-    const endMatch = /^(\d{4})-12-31$/.exec(end);
-
-    if (startMatch === null || endMatch === null) {
-        return null;
+    const yearFilter = tableState.state.filters.value.year;
+    if (yearFilter !== null) {
+        return yearFilter;
     }
 
-    const startYear = startMatch[1];
-    const endYear = endMatch[1];
-
-    if (startYear === undefined || endYear === undefined || startYear !== endYear) {
-        return null;
-    }
-
-    return Number.parseInt(startYear, 10);
+    return null;
 });
 
 const pickerYear = computed<number>(() => {
+    const yearFilter = tableState.state.filters.value.year;
+    if (yearFilter !== null) {
+        return yearFilter;
+    }
+
     const start = tableState.state.filters.value.periodStart;
 
     if (start !== null) {
@@ -131,7 +145,8 @@ const pickerYear = computed<number>(() => {
 
 const hasActivePeriodFilter = computed<boolean>(
     () =>
-        tableState.state.filters.value.periodStart !== null
+        tableState.state.filters.value.year !== null
+        || tableState.state.filters.value.periodStart !== null
         || tableState.state.filters.value.periodEnd !== null,
 );
 
@@ -156,10 +171,16 @@ const totalDaysLabel = computed<string>(() => {
 });
 
 function selectYear(year: number): void {
+    // D5.10.U · pousse `?year=` (unifié avec Fiscalité/Facturation) ·
+    // efface toute plage custom active. Le backend dérive
+    // `periodStart`/`periodEnd` via `ContractIndexQueryData::
+    // effectivePeriod()` quand `year` est présent.
     tableState.state.patchFilters({
-        periodStart: `${year}-01-01`,
-        periodEnd: `${year}-12-31`,
+        year,
+        periodStart: null,
+        periodEnd: null,
     });
+    invalidateYearDependentTabs();
 }
 
 // Mémorise la dernière année sélectionnée pour la restaurer quand
@@ -175,8 +196,17 @@ watch(activeYear, (newVal) => {
 });
 
 function clearPeriod(): void {
-    const fallback = lastSelectedYear.value ?? props.company.currentRealYear;
-    selectYear(fallback);
+    // D5.10.U · garde l'exercice partagé `?year=` actif (ou retombe sur
+    // le fallback) et efface uniquement la plage custom. Évite que le
+    // X du chip ne touche au year partagé entre les onglets.
+    const fallbackYear = tableState.state.filters.value.year
+        ?? lastSelectedYear.value
+        ?? props.company.currentRealYear;
+    tableState.state.patchFilters({
+        year: fallbackYear,
+        periodStart: null,
+        periodEnd: null,
+    });
 }
 </script>
 

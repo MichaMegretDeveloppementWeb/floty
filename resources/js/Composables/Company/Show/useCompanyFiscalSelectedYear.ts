@@ -39,6 +39,11 @@ export function useCompanyFiscalSelectedYear(
 
         const url = new URL(window.location.href);
         url.searchParams.set('year', String(year));
+        // D5.10.U · efface tout filtre custom Contracts d'un précédent
+        // état · sinon l'utilisateur retomberait sur une plage de
+        // l'ancien exercice en switchant sur l'onglet Contracts.
+        url.searchParams.delete('periodStart');
+        url.searchParams.delete('periodEnd');
 
         router.get(
             url.pathname + url.search,

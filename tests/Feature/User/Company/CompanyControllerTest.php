@@ -773,9 +773,13 @@ final class CompanyControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.meta.total', 1)
+                // D5.10.U · default sans param URL ne pose QUE `year` ·
+                // periodStart/End restent null · backend dérive l'exercice
+                // complet via `effectivePeriod()`. Permet à l'UI de
+                // distinguer « mode année » vs « plage custom ».
                 ->where('contractsQuery.year', $currentYear)
-                ->where('contractsQuery.periodStart', sprintf('%d-01-01', $currentYear))
-                ->where('contractsQuery.periodEnd', sprintf('%d-12-31', $currentYear)),
+                ->where('contractsQuery.periodStart', null)
+                ->where('contractsQuery.periodEnd', null),
             );
     }
 

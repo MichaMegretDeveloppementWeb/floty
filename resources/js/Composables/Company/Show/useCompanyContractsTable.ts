@@ -45,6 +45,14 @@ const COLUMN_TO_SORT_KEY: Partial<Record<string, CompanyContractSortKey>> = {
 };
 
 export type CompanyContractFilters = {
+    /**
+     * D5.10.U · sélecteur « année pleine » via les pills · partagé
+     * avec les onglets Fiscalité/Facturation pour préserver l'exercice
+     * en switchant d'onglet. Mutuellement exclusif avec
+     * `periodStart`/`periodEnd` côté UI (toggle YearPills vs picker
+     * personnalisé).
+     */
+    year: number | null;
     periodStart: string | null;
     periodEnd: string | null;
 };
@@ -78,14 +86,17 @@ export function useCompanyContractsTable(opts: {
         initialSortKey: opts.query.sortKey,
         initialSortDirection: opts.query.sortDirection,
         defaultFilters: {
+            year: null,
             periodStart: null,
             periodEnd: null,
         },
         initialFilters: {
+            year: opts.query.year,
             periodStart: opts.query.periodStart,
             periodEnd: opts.query.periodEnd,
         },
         serializeFilters: (f) => ({
+            year: f.year === null ? null : String(f.year),
             periodStart: f.periodStart,
             periodEnd: f.periodEnd,
         }),

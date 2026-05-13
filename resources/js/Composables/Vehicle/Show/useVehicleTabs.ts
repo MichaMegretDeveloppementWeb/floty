@@ -17,10 +17,15 @@ const VALID_TABS: readonly VehicleTabKey[] = ['overview', 'fiscal', 'billing'];
 
 const DEFAULT_TAB: VehicleTabKey = 'overview';
 
+/**
+ * `billingYear` / `fiscalYear` (eager) servent au highlight pill ·
+ * doivent être inclus dans le partial reload sinon mismatch entre
+ * titre rendu et pill active après tab switch (cf. `useCompanyTabs`).
+ */
 const TAB_PROPS: Readonly<Record<VehicleTabKey, readonly string[]>> = {
     overview: [],
-    fiscal: ['fiscalYearBreakdown'],
-    billing: ['vehicleBilling'],
+    fiscal: ['fiscalYearBreakdown', 'fiscalYear', 'billingYear'],
+    billing: ['vehicleBilling', 'billingYear', 'fiscalYear'],
 };
 
 export interface VehicleTabsState {

@@ -52,6 +52,10 @@ function selectYear(year: number): void {
     const url = new URL(window.location.href);
     url.searchParams.set('year', String(year));
     url.searchParams.set('tab', 'billing');
+    // D5.10.U · efface tout filtre custom Contracts d'un précédent
+    // état · cohérence avec le year-change Fiscal.
+    url.searchParams.delete('periodStart');
+    url.searchParams.delete('periodEnd');
 
     router.get(
         url.pathname + url.search,

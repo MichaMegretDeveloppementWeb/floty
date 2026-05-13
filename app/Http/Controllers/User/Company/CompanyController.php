@@ -97,16 +97,16 @@ final class CompanyController extends Controller
 
         // Onglet Contrats · default année réelle courante au mount quand
         // aucun paramètre période explicite (cohérence avec onglet
-        // Fiscalité, ADR-0020 D3). Liens partagés (`?year=`,
-        // `?periodStart=`, `?periodEnd=`) respectés tels quels.
+        // Fiscalité, ADR-0020 D3). D5.10.U · ne pose QUE `year` ·
+        // backend dérive periodStart/End via `effectivePeriod()` ·
+        // l'UI distingue ainsi « mode année » vs « plage custom » sans
+        // ambiguité.
         $hasExplicitPeriod = $request->exists('year')
             || $request->exists('periodStart')
             || $request->exists('periodEnd');
 
         if (! $hasExplicitPeriod) {
             $contractsQuery->year = $detail->currentRealYear;
-            $contractsQuery->periodStart = sprintf('%d-01-01', $detail->currentRealYear);
-            $contractsQuery->periodEnd = sprintf('%d-12-31', $detail->currentRealYear);
         }
 
         // D5.10.U · param URL **unifié** `?year=` partagé entre les
@@ -140,8 +140,11 @@ final class CompanyController extends Controller
                 $activeTab === 'contracts',
                 fn () => $this->contracts->statsForCompany(
                     $companyId,
-                    $contractsQuery->periodStart,
-                    $contractsQuery->periodEnd,
+                    // D5.10.U · `effectivePeriod()` retombe sur l'exercice
+                    // dérivé de `year` quand pas de plage custom · cohérent
+                    // avec le filtrage SQL du listing contrats.
+                    $contractsQuery->effectivePeriod()['periodStart'],
+                    $contractsQuery->effectivePeriod()['periodEnd'],
                 ),
             ),
 

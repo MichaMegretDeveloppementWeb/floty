@@ -70,14 +70,24 @@ final class ContractIndexQueryData extends IndexQueryData
     }
 
     /**
-     * Période effective : si `year` présent, dérive l'exercice complet ;
-     * sinon retourne `periodStart`/`periodEnd` tels quels. Utilisé par
-     * le service pour appliquer le filtre SQL.
+     * Période effective. Priorité (D5.10.U) :
+     *   1. Plage custom `periodStart`/`periodEnd` si présente · permet à
+     *      la fiche Company de garder `?year=` comme exercice partagé
+     *      entre onglets sans écraser un filtre custom Contrats.
+     *   2. À défaut, dérivation de l'exercice complet depuis `year`.
+     *   3. Sinon, périodes nulles (pas de filtre période).
      *
      * @return array{periodStart: ?string, periodEnd: ?string}
      */
     public function effectivePeriod(): array
     {
+        if ($this->periodStart !== null || $this->periodEnd !== null) {
+            return [
+                'periodStart' => $this->periodStart,
+                'periodEnd' => $this->periodEnd,
+            ];
+        }
+
         if ($this->year !== null) {
             return [
                 'periodStart' => sprintf('%d-01-01', $this->year),
@@ -86,8 +96,8 @@ final class ContractIndexQueryData extends IndexQueryData
         }
 
         return [
-            'periodStart' => $this->periodStart,
-            'periodEnd' => $this->periodEnd,
+            'periodStart' => null,
+            'periodEnd' => null,
         ];
     }
 }
