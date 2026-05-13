@@ -1,5 +1,7 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import type { HeatmapVehicleView } from '@/Components/Features/Planning/Heatmap/types';
+import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { formatEur } from '@/Utils/format/formatEur';
 
 defineProps<{
@@ -21,9 +23,12 @@ defineProps<{
         >
             {{ vehicleView.userType }}
         </span>
-        <div class="w-[240px] min-w-0">
+        <Link
+            :href="vehiclesShowRoute.url({ vehicle: vehicleView.id })"
+            class="group flex w-[180px] min-w-0 flex-col cursor-pointer"
+        >
             <div class="flex items-center gap-1.5">
-                <p class="truncate font-mono text-xs font-medium text-slate-900">
+                <p class="truncate font-mono text-xs font-medium text-slate-900 group-hover:underline">
                     {{ vehicleView.licensePlate }}
                 </p>
                 <span
@@ -33,19 +38,17 @@ defineProps<{
                     Retiré
                 </span>
             </div>
-            <p class="truncate text-[11px] text-slate-500">
+            <p class="truncate text-[11px] text-slate-500 group-hover:text-slate-700">
                 {{ vehicleView.brand }} {{ vehicleView.model }}
-                <span
-                    v-if="vehicleView.fullYearTax > 0"
-                    class="ml-1 font-mono text-slate-400 tabular-nums"
-                    :title="`Taxe pleine ${formatEur(vehicleView.fullYearTax, 0)} · ${formatEur(vehicleView.dailyTaxRate, 2)}/jour`"
-                >
-                    · {{ formatEur(vehicleView.fullYearTax, 0) }}
-                    <span class="text-slate-400/70">
-                        ({{ formatEur(vehicleView.dailyTaxRate, 2) }}/j)
-                    </span>
-                </span>
             </p>
+        </Link>
+        <div
+            v-if="vehicleView.fullYearTax > 0"
+            class="flex w-[80px] shrink-0 flex-col items-end font-mono text-[10px] leading-tight text-slate-500 tabular-nums"
+            :title="`Taxe pleine ${formatEur(vehicleView.fullYearTax, 0)} · prorata ${formatEur(vehicleView.dailyTaxRate, 2)}/jour`"
+        >
+            <span>{{ formatEur(vehicleView.fullYearTax, 0) }}</span>
+            <span class="text-slate-400">{{ formatEur(vehicleView.dailyTaxRate, 2) }}/j</span>
         </div>
     </div>
 </template>
