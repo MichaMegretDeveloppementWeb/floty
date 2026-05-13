@@ -34,7 +34,7 @@ const props = defineProps<{
     fiscalYearBreakdown?: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
 }>();
 
-const { activeTab, setTab } = useVehicleTabs();
+const { activeTab, setTab, loadingTab } = useVehicleTabs();
 </script>
 
 <template>
@@ -52,9 +52,16 @@ const { activeTab, setTab } = useVehicleTabs();
                 :options="props.options"
             />
 
+            <!--
+                D5.10.V · `loadingTab !== '<key>'` force le skeleton
+                pendant un partial reload (onglet stale) · remount frais
+                après reload, sinon les sélecteurs d'année initialisés
+                sur les vieux props ne se resyncent pas avec les
+                nouveaux. Cf. doctrine `useCompanyTabs`.
+            -->
             <template v-else-if="activeTab === 'fiscal'">
                 <VehicleFiscalTab
-                    v-if="props.fiscalYearBreakdown"
+                    v-if="props.fiscalYearBreakdown && loadingTab !== 'fiscal'"
                     :vehicle="props.vehicle"
                     :fiscal-year-breakdown="props.fiscalYearBreakdown"
                     :fiscal-year="props.fiscalYear"
@@ -64,7 +71,7 @@ const { activeTab, setTab } = useVehicleTabs();
 
             <template v-else-if="activeTab === 'billing'">
                 <VehicleBillingTab
-                    v-if="props.vehicleBilling"
+                    v-if="props.vehicleBilling && loadingTab !== 'billing'"
                     :vehicle-id="props.vehicle.id"
                     :pricings="props.vehicle.yearlyPricings"
                     :monthly-billing="props.vehicleBilling"

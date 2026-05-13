@@ -109,9 +109,19 @@ function handleGotoBillingYear(year: number): void {
                 @goto-billing-year="handleGotoBillingYear"
             />
 
+            <!--
+                D5.10.V · `loadingTab !== '<key>'` force le skeleton
+                pendant un partial reload même si les props précédentes
+                sont déjà chargées (onglet stale). Sans cela, le tab
+                rendrait avec les ANCIENS props pendant la latence du
+                reload · les composables internes (sélecteurs d'année)
+                initialisés sur les vieux props ne re-synchroniseraient
+                pas après l'arrivée des nouveaux (cf. bug pills désync).
+                Le skeleton garantit un remount frais avec les bons props.
+            -->
             <template v-else-if="activeTab === 'contracts'">
                 <CompanyContractsTab
-                    v-if="props.contracts && props.contractsStats"
+                    v-if="props.contracts && props.contractsStats && loadingTab !== 'contracts'"
                     :company="props.company"
                     :contracts="props.contracts"
                     :contracts-query="props.contractsQuery"
@@ -123,7 +133,7 @@ function handleGotoBillingYear(year: number): void {
 
             <template v-else-if="activeTab === 'drivers'">
                 <CompanyDriversTab
-                    v-if="props.options"
+                    v-if="props.options && loadingTab !== 'drivers'"
                     :company-id="props.company.id"
                     :company-legal-name="props.company.legalName"
                     :drivers="props.company.drivers"
@@ -134,7 +144,7 @@ function handleGotoBillingYear(year: number): void {
 
             <template v-else-if="activeTab === 'fiscal'">
                 <CompanyFiscalTab
-                    v-if="props.companyFiscal && props.declarationLifecycle"
+                    v-if="props.companyFiscal && props.declarationLifecycle && loadingTab !== 'fiscal'"
                     :fiscal="props.companyFiscal"
                     :company-id="props.company.id"
                     :declaration-lifecycle="props.declarationLifecycle"
@@ -145,7 +155,7 @@ function handleGotoBillingYear(year: number): void {
 
             <template v-else-if="activeTab === 'billing'">
                 <CompanyBillingTab
-                    v-if="props.companyBilling"
+                    v-if="props.companyBilling && loadingTab !== 'billing'"
                     :company-id="props.company.id"
                     :monthly-billing="props.companyBilling"
                     :available-years="props.contractsAvailableYears"
