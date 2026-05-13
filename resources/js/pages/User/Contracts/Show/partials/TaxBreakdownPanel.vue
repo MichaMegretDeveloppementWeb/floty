@@ -106,9 +106,7 @@ const {
                         </div>
                         <p class="mt-2 text-[11px] leading-snug text-slate-500">
                             Estimation du montant qui serait dû si ce contrat
-                            était requalifié en LLD (cluster). Le calcul exact
-                            sera produit par le moteur lors de la revue
-                            fiscale de la déclaration.
+                            était requalifié en LLD.
                         </p>
                     </section>
                 </div>
