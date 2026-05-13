@@ -44,6 +44,7 @@ const {
     yearModel,
     monthModel,
     divergentOnlyModel,
+    includeObsoleteModel,
 } = tableState;
 
 const companySelectOptions = computed(() =>
@@ -155,12 +156,18 @@ const monthOptions: { value: number | null; label: string }[] = [
                                     :options="monthOptions"
                                 />
                             </div>
-                            <div class="border-t border-slate-100 pt-3">
+                            <div class="border-t border-slate-100 pt-3 flex flex-col gap-3">
                                 <CheckboxInput
                                     id="filter-invoice-divergent"
                                     v-model="divergentOnlyModel"
                                     label="À régénérer uniquement"
                                     hint="Périmètre contractuel modifié depuis l'émission"
+                                />
+                                <CheckboxInput
+                                    id="filter-invoice-obsolete"
+                                    v-model="includeObsoleteModel"
+                                    label="Inclure les versions obsolètes"
+                                    hint="Anciennes factures remplacées par régénération"
                                 />
                             </div>
                         </div>

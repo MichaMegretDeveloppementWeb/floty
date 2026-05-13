@@ -39,6 +39,7 @@ export type InvoiceFilters = {
     year: number | null;
     month: number | null;
     divergentOnly: boolean;
+    includeObsolete: boolean;
 };
 
 export type InvoiceFilterChip = {
@@ -61,6 +62,7 @@ export function useInvoicesTable(opts: {
     yearModel: WritableComputedRef<number | null>;
     monthModel: WritableComputedRef<number | null>;
     divergentOnlyModel: WritableComputedRef<boolean>;
+    includeObsoleteModel: WritableComputedRef<boolean>;
     onHeaderClick: (columnKey: string) => void;
     onRowClick: (row: InvoiceRow) => void;
 } {
@@ -84,12 +86,14 @@ export function useInvoicesTable(opts: {
             year: null,
             month: null,
             divergentOnly: false,
+            includeObsolete: false,
         },
         initialFilters: {
             companyId: opts.query.companyId,
             year: opts.query.year,
             month: opts.query.month,
             divergentOnly: opts.query.divergentOnly,
+            includeObsolete: opts.query.includeObsolete,
         },
         serializeFilters: (f) => ({
             companyId: f.companyId,
@@ -100,6 +104,7 @@ export function useInvoicesTable(opts: {
             // sous forme de chaîne `'1'` (Laravel rule `boolean` accepte
             // `'1'`, `1`, `true` indifféremment).
             divergentOnly: f.divergentOnly ? '1' : null,
+            includeObsolete: f.includeObsolete ? '1' : null,
         }),
     });
 
@@ -137,6 +142,10 @@ export function useInvoicesTable(opts: {
 
         if (f.divergentOnly) {
             chips.push({ key: 'divergentOnly', label: 'À régénérer uniquement' });
+        }
+
+        if (f.includeObsolete) {
+            chips.push({ key: 'includeObsolete', label: 'Versions obsolètes incluses' });
         }
 
         return chips;
@@ -195,6 +204,13 @@ export function useInvoicesTable(opts: {
         },
     });
 
+    const includeObsoleteModel = computed<boolean>({
+        get: () => state.filters.value.includeObsolete,
+        set: (value: boolean) => {
+            state.setFilter('includeObsolete', value);
+        },
+    });
+
     return {
         columns,
         state,
@@ -206,6 +222,7 @@ export function useInvoicesTable(opts: {
         yearModel,
         monthModel,
         divergentOnlyModel,
+        includeObsoleteModel,
         onHeaderClick,
         onRowClick,
     };

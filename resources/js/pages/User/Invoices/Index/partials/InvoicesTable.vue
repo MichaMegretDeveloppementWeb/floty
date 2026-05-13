@@ -50,19 +50,38 @@ const emit = defineEmits<{
         </template>
 
         <template #cell-invoiceNumber="{ row }">
-            <div class="flex items-center gap-2">
-                <span class="font-mono text-sm whitespace-nowrap">{{ row.invoiceNumber }}</span>
-                <Tooltip v-if="row.hasDivergence" max-width="20rem">
+            <div class="flex flex-col gap-0.5">
+                <div class="flex items-center gap-2">
                     <span
-                        class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-sans font-medium text-amber-800 whitespace-nowrap"
+                        :class="[
+                            'font-mono text-sm whitespace-nowrap',
+                            row.isObsolete ? 'text-slate-400 line-through' : '',
+                        ]"
+                    >{{ row.invoiceNumber }}</span>
+                    <Tooltip v-if="row.hasDivergence && !row.isObsolete" max-width="20rem">
+                        <span
+                            class="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-sans font-medium text-amber-800 whitespace-nowrap"
+                        >
+                            <AlertTriangle class="shrink-0" :size="10" :stroke-width="2" />
+                            À régénérer
+                        </span>
+                        <template #content>
+                            Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez la facture pour la régénérer.
+                        </template>
+                    </Tooltip>
+                    <span
+                        v-if="row.isObsolete"
+                        class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[10px] font-sans font-medium text-slate-600 whitespace-nowrap"
                     >
-                        <AlertTriangle class="shrink-0" :size="10" :stroke-width="2" />
-                        À régénérer
+                        Obsolète
                     </span>
-                    <template #content>
-                        Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez la facture pour la régénérer.
-                    </template>
-                </Tooltip>
+                </div>
+                <span
+                    v-if="row.isObsolete && row.supersededByInvoiceNumber"
+                    class="font-mono text-[11px] text-slate-500"
+                >
+                    Remplacée par {{ row.supersededByInvoiceNumber }}
+                </span>
             </div>
         </template>
 

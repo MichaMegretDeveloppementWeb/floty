@@ -15,13 +15,41 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 {
     public function findById(int $id): ?Invoice
     {
+        // `withTrashed()` : la page Show est navigable même pour les
+        // versions obsolètes (soft-deletées par régénération) · l'UI
+        // affichera un bandeau « Remplacée par #XXX ». Les listings
+        // utilisent leur propre builder via `paginateForIndex` qui gère
+        // le filtre `includeObsolete` séparément.
         return Invoice::query()
-            ->with(['lines', 'company:id,short_code,legal_name,color', 'generatedBy:id,first_name,last_name'])
+            ->withTrashed()
+            ->with([
+                'lines',
+                'company:id,short_code,legal_name,color',
+                'generatedBy:id,first_name,last_name',
+                'supersededBy:id,invoice_number',
+            ])
             ->find($id);
+    }
+
+    public function findPredecessor(int $invoiceId): ?Invoice
+    {
+        // Une facture est « predecessor » de $invoiceId si elle pointe
+        // vers $invoiceId via `superseded_by_id`. Si plusieurs versions
+        // ont été chaînées (cas multi-régénération), on prend la plus
+        // récente directement remplacée · l'historique antérieur est
+        // accessible via le predecessor du predecessor.
+        return Invoice::query()
+            ->withTrashed()
+            ->where('superseded_by_id', $invoiceId)
+            ->orderByDesc('id')
+            ->first();
     }
 
     public function findForCompanyYearMonth(int $companyId, int $year, int $month): ?Invoice
     {
+        // `withoutTrashed()` (défaut) : seules les factures actives
+        // bloquent une nouvelle génération · les versions obsolètes
+        // soft-deletées ne sont plus considérées comme « existantes ».
         return Invoice::query()
             ->where('company_id', $companyId)
             ->where('year', $year)
@@ -65,7 +93,12 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
         // séquence et de violer l'UNIQUE `invoice_number`. N'a d'effet
         // qu'à l'intérieur d'une transaction (cas appelant garanti par
         // `GenerateInvoiceAction::execute()` qui wrappe en `DB::transaction`).
+        // `withTrashed()` : on inclut les factures soft-deletées (versions
+        // obsolètes après régénération) pour ne JAMAIS réutiliser un
+        // numéro déjà attribué · conforme à l'art. 242 nonies A annexe II
+        // CGI (numérotation continue sans rupture, jamais de réutilisation).
         $rows = Invoice::query()
+            ->withTrashed()
             ->where('year', $year)
             ->where('month', $month)
             ->lockForUpdate()
@@ -133,7 +166,19 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 
         $eloquentQuery = Invoice::query()
             ->select('invoices.*')
-            ->with('company:id,short_code,legal_name,color');
+            ->with([
+                'company:id,short_code,legal_name,color',
+                'supersededBy:id,invoice_number',
+            ]);
+
+        // Inclusion des versions obsolètes (soft-deletées). Défaut `false`
+        // pour garder la liste dense · le user a expliqué qu'avec ~12
+        // factures/an/entreprise, masquer les obsolètes par défaut est
+        // crucial. La case « Inclure les versions obsolètes » du filtre
+        // débraye le scope global SoftDeletes.
+        if ($query->includeObsolete) {
+            $eloquentQuery->withTrashed();
+        }
 
         // Filtres exact match.
         if ($query->companyId !== null) {

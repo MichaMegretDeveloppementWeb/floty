@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
@@ -30,15 +31,19 @@ use Illuminate\Support\Carbon;
  * @property string $invoice_number
  * @property int $total_ht_cents
  * @property bool $is_divergent
+ * @property int|null $superseded_by_id
+ * @property Carbon|null $obsolete_at
  * @property string $pdf_path
  * @property string $pdf_hash
  * @property Carbon $generated_at
  * @property int $generated_by_user_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  * @property-read Company $company
  * @property-read User $generatedBy
  * @property-read Collection<int, InvoiceLine> $lines
+ * @property-read Invoice|null $supersededBy
  */
 #[Fillable([
     'company_id',
@@ -47,6 +52,8 @@ use Illuminate\Support\Carbon;
     'invoice_number',
     'total_ht_cents',
     'is_divergent',
+    'superseded_by_id',
+    'obsolete_at',
     'pdf_path',
     'pdf_hash',
     'generated_at',
@@ -56,6 +63,8 @@ final class Invoice extends Model
 {
     /** @use HasFactory<InvoiceFactory> */
     use HasFactory;
+
+    use SoftDeletes;
 
     /**
      * @return array<string, string>
@@ -68,6 +77,7 @@ final class Invoice extends Model
             'total_ht_cents' => 'integer',
             'is_divergent' => 'boolean',
             'generated_at' => 'datetime',
+            'obsolete_at' => 'datetime',
         ];
     }
 
@@ -93,5 +103,17 @@ final class Invoice extends Model
     public function lines(): HasMany
     {
         return $this->hasMany(InvoiceLine::class);
+    }
+
+    /**
+     * Facture qui remplace celle-ci (NULL pour la dernière version
+     * active). Permet de tracer la chaîne « v1 → v2 → v3 » suite à
+     * une ou plusieurs régénérations.
+     *
+     * @return BelongsTo<Invoice, $this>
+     */
+    public function supersededBy(): BelongsTo
+    {
+        return $this->belongsTo(Invoice::class, 'superseded_by_id');
     }
 }

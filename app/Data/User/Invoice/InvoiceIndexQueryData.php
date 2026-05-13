@@ -30,6 +30,13 @@ final class InvoiceIndexQueryData extends IndexQueryData
         public ?int $year = null,
         public ?int $month = null,
         public bool $divergentOnly = false,
+        /**
+         * Inclut les versions obsolètes (factures soft-deletées après
+         * régénération) dans la liste. Défaut `false` · la liste cache
+         * les anciennes versions par défaut pour rester dense (12
+         * factures actives / an / entreprise vs déclarations N=1).
+         */
+        public bool $includeObsolete = false,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,
         ?string $search = null,
@@ -51,6 +58,7 @@ final class InvoiceIndexQueryData extends IndexQueryData
             'year' => ['nullable', 'integer', 'between:2020,2099'],
             'month' => ['nullable', 'integer', 'between:1,12'],
             'divergentOnly' => ['nullable', 'boolean'],
+            'includeObsolete' => ['nullable', 'boolean'],
         ]);
     }
 }

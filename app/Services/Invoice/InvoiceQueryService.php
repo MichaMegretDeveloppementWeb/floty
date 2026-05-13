@@ -53,9 +53,19 @@ final readonly class InvoiceQueryService
             return null;
         }
 
-        return InvoiceData::fromModel(
-            $invoice,
-            $this->divergenceChecker->check($invoice),
-        );
+        // Predecessor : si cette facture remplace une version antérieure
+        // (chaînage `superseded_by_id` inverse), on l'expose pour le
+        // bandeau « Remplace #YYYY ».
+        $predecessor = $this->repository->findPredecessor($id);
+
+        // Divergence : non pertinente pour les versions obsolètes
+        // (elles sont figées dans leur état au moment de la régénération).
+        // On évite l'appel coûteux à `BillingCalculator` qui pourrait
+        // d'ailleurs lever `MissingPricingException` rétroactivement.
+        $divergence = $invoice->deleted_at === null
+            ? $this->divergenceChecker->check($invoice)
+            : null;
+
+        return InvoiceData::fromModel($invoice, $divergence, $predecessor);
     }
 }

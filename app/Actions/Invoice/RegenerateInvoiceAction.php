@@ -5,39 +5,38 @@ declare(strict_types=1);
 namespace App\Actions\Invoice;
 
 use App\Models\Invoice;
-use App\Services\Invoice\InvoicePdfStorage;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Régénère une facture émise (Phase 14.I+ V1.2). Combine en une seule
- * transaction DB l'annulation de la facture existante (suppression de la
- * row + ses lignes en cascade) puis la génération d'une nouvelle facture
- * pour le même couple (entreprise × année × mois) avec les données
- * contractuelles actuelles.
+ * Régénère une facture émise (Phase 14.I+ V1.2 · refonte historique
+ * D5.10.P · option C).
  *
- * **Cas d'usage** : un contrat est ajouté/modifié/supprimé sur un mois
- * déjà facturé. L'UI signale la divergence à l'utilisateur, qui clique
- * « Régénérer » et obtient une nouvelle facture cohérente avec la
- * réalité actuelle. La doctrine immuabilité (ADR-0008) est respectée :
- * la régénération est une suppression-puis-création explicite, pas une
- * mutation in-place.
+ * Sémantique « régénération » : l'ancienne facture n'est PAS supprimée
+ * mais soft-deletée et marquée obsolète, sa colonne `superseded_by_id`
+ * pointant vers la nouvelle facture. Son PDF reste sur disque pour
+ * préserver l'audit trail (cf. art. 286 quater CGI · obligation de
+ * conservation des pièces facturées).
+ *
+ * Chaîne historique reconstituable à tout moment :
+ * `v1.superseded_by → v2.superseded_by → v3 (courante)`.
+ *
+ * **Numérotation** : la nouvelle facture obtient un **nouveau numéro
+ * séquentiel** dans la suite chronologique (pas de suffixe « bis »),
+ * conforme à l'art. 242 nonies A annexe II CGI (numérotation continue
+ * sans rupture) et à la doctrine BOFiP BOI-TVA-DECLA-30-20-20-10
+ * (facture rectificative = nouveau numéro + mention de remplacement).
  *
  * **Doctrine T4 (Phase 14.P) · cohérence DB ↔ filesystem** : la
- * suppression de l'**ancien PDF** sur disque est différée APRÈS le commit
- * DB de la nouvelle facture. Si `Generate` throw (ex. `MissingPricingException`),
- * la transaction rollback restaure intégralement l'ancienne facture en DB
- * **et** l'ancien PDF n'a jamais été touché : état cohérent garanti.
- *
- * **Composition** : délègue à {@see CancelInvoiceAction::executeKeepingPdf}
- * (suppression DB sans toucher au PDF) puis {@see GenerateInvoiceAction::execute}
- * dans la transaction commune ; supprime l'ancien PDF hors transaction.
+ * suppression hard du PDF n'a plus lieu (préservation systématique).
+ * Si `Generate` throw, la transaction rollback restaure l'ancienne
+ * facture (le softDelete et l'`obsolete_at` sont annulés). Aucun
+ * filesystem cleanup nécessaire.
  */
 final readonly class RegenerateInvoiceAction
 {
     public function __construct(
-        private CancelInvoiceAction $cancel,
         private GenerateInvoiceAction $generate,
-        private InvoicePdfStorage $pdfStorage,
     ) {}
 
     /**
@@ -48,41 +47,36 @@ final readonly class RegenerateInvoiceAction
         $companyId = (int) $invoice->company_id;
         $year = (int) $invoice->year;
         $month = (int) $invoice->month;
-        $oldPdfPath = $invoice->pdf_path;
 
-        // Sauvegarde l'ancien PDF en mémoire avant de le retirer du disque.
-        // Justification : le `Generate` qui suit calcule un `pdf_path` à
-        // partir de `(year, companyId, invoice_number)` ; après suppression
-        // de la row, le séquenceur peut réattribuer le même numéro et donc
-        // le même path. Pour libérer le path, on doit supprimer l'ancien
-        // PDF ; pour garantir la cohérence en cas d'échec, on garde sa
-        // copie en mémoire et on la restaure lors d'un rollback.
-        $oldPdfBinary = $this->pdfStorage->read($oldPdfPath);
+        return DB::transaction(function () use ($invoice, $generatedByUserId, $issuer, $companyId, $year, $month): Invoice {
+            // 1. Soft-delete l'ancienne facture + marque l'instant d'obsolescence.
+            //    Note : `is_divergent` reste à sa valeur · c'était un flag
+            //    instantané de divergence, distinct du marqueur définitif
+            //    de remplacement (`superseded_by_id`).
+            $invoice->obsolete_at = Carbon::now();
+            $invoice->save();
+            $invoice->delete(); // softDelete grâce au trait SoftDeletes.
 
-        // Libère le path pour permettre au `Generate` de réutiliser le même.
-        $this->pdfStorage->delete($oldPdfPath);
+            // 2. Génère la nouvelle facture (numéro séquentiel suivant
+            //    dans la suite chronologique, conforme aux exigences
+            //    légales françaises de numérotation continue).
+            $newInvoice = $this->generate->execute(
+                companyId: $companyId,
+                year: $year,
+                month: $month,
+                generatedByUserId: $generatedByUserId,
+                issuer: $issuer,
+            );
 
-        try {
-            return DB::transaction(function () use ($invoice, $generatedByUserId, $issuer, $companyId, $year, $month): Invoice {
-                $this->cancel->executeKeepingPdf($invoice);
+            // 3. Chaîne historique : l'ancienne pointe vers la nouvelle.
+            //    Mise à jour via QueryBuilder pour bypass le scope
+            //    SoftDeletes (l'instance Eloquent est soft-deletée et
+            //    ne se laisserait pas re-save sans `restore()`).
+            DB::table('invoices')
+                ->where('id', $invoice->id)
+                ->update(['superseded_by_id' => $newInvoice->id]);
 
-                return $this->generate->execute(
-                    companyId: $companyId,
-                    year: $year,
-                    month: $month,
-                    generatedByUserId: $generatedByUserId,
-                    issuer: $issuer,
-                );
-            });
-        } catch (\Throwable $e) {
-            // Generate a échoué → rollback DB restaure la row Invoice qui
-            // pointe vers `$oldPdfPath`. On restaure le binaire pour ne
-            // pas laisser la facture pointer vers un fichier disparu.
-            if ($oldPdfBinary !== null) {
-                $this->pdfStorage->restoreFromBackup($oldPdfPath, $oldPdfBinary);
-            }
-
-            throw $e;
-        }
+            return $newInvoice;
+        });
     }
 }

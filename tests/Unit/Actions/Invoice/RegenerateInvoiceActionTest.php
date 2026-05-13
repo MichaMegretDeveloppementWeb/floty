@@ -18,14 +18,12 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests de `RegenerateInvoiceAction` (chantier T4 / Phase 14.P).
+ * Tests de `RegenerateInvoiceAction` (refonte D5.10.P · option C historique).
  *
- * Vérifie l'orchestration `Cancel → Generate` :
- * - Happy path : ancienne facture remplacée par une nouvelle, ancien PDF
- *   supprimé du disque, nouveau numéro séquentiel attribué.
- * - Rollback : si `Generate` échoue (ex. `MissingPricingException`),
- *   l'ancienne facture est intégralement préservée (row DB + PDF disque),
- *   l'utilisateur peut réessayer après correction du périmètre.
+ * La régénération soft-delete l'ancienne facture et la marque obsolète +
+ * `superseded_by_id` pointant vers la nouvelle. Le PDF de l'ancienne
+ * reste sur disque pour l'audit trail. La nouvelle facture obtient un
+ * nouveau numéro séquentiel (cf. art. 242 nonies A annexe II CGI).
  */
 final class RegenerateInvoiceActionTest extends TestCase
 {
@@ -51,11 +49,11 @@ final class RegenerateInvoiceActionTest extends TestCase
     }
 
     #[Test]
-    public function happy_path_supprime_ancienne_facture_creee_nouvelle(): void
+    public function softdelete_ancienne_facture_et_cree_nouvelle_chainee(): void
     {
         [$user, $invoice] = $this->seedRegeneratableInvoice();
         $oldId = $invoice->id;
-        $oldPdfBinary = Storage::disk('local')->get($invoice->pdf_path);
+        $oldPath = $invoice->pdf_path;
 
         $newInvoice = $this->action->execute(
             invoice: $invoice,
@@ -63,31 +61,31 @@ final class RegenerateInvoiceActionTest extends TestCase
             issuer: self::ISSUER,
         );
 
-        // L'ancienne row n'existe plus, la nouvelle est différente.
-        $this->assertDatabaseMissing('invoices', ['id' => $oldId]);
+        // L'ancienne row existe toujours en base (soft-delete) avec son
+        // marqueur d'obsolescence et `superseded_by_id` posé.
+        $this->assertDatabaseHas('invoices', [
+            'id' => $oldId,
+            'superseded_by_id' => $newInvoice->id,
+        ]);
+        $oldRow = Invoice::query()->withTrashed()->find($oldId);
+        self::assertNotNull($oldRow);
+        self::assertNotNull($oldRow->deleted_at);
+        self::assertNotNull($oldRow->obsolete_at);
+
+        // La nouvelle est un id distinct, non soft-deletée.
         self::assertNotSame($oldId, $newInvoice->id);
+        self::assertNull($newInvoice->deleted_at);
 
-        // Une seule facture pour le couple (company × year × month).
-        self::assertSame(1, Invoice::query()
-            ->where('company_id', $newInvoice->company_id)
-            ->where('year', $newInvoice->year)
-            ->where('month', $newInvoice->month)
-            ->count());
+        // Le PDF de l'ancienne est préservé sur disque (audit trail).
+        Storage::disk('local')->assertExists($oldPath);
 
-        // Le nouveau PDF existe (au même path si la séquence repart à 0001
-        // ou à un path différent si la séquence avait déjà augmenté).
+        // Le PDF de la nouvelle existe à un path distinct (nouveau numéro).
         Storage::disk('local')->assertExists($newInvoice->pdf_path);
-
-        // Quand le path est identique (cas usuel : seule facture du mois),
-        // le contenu binaire doit avoir été remplacé (nouveau hash).
-        if ($newInvoice->pdf_path === $invoice->pdf_path) {
-            $newPdfBinary = Storage::disk('local')->get($newInvoice->pdf_path);
-            self::assertNotSame($oldPdfBinary, $newPdfBinary);
-        }
+        self::assertNotSame($oldPath, $newInvoice->pdf_path);
     }
 
     #[Test]
-    public function attribue_un_nouveau_numero_sequentiel(): void
+    public function attribue_un_nouveau_numero_sequentiel_distinct(): void
     {
         [$user, $invoice] = $this->seedRegeneratableInvoice(invoiceNumber: '2024-03-0001');
 
@@ -97,13 +95,9 @@ final class RegenerateInvoiceActionTest extends TestCase
             issuer: self::ISSUER,
         );
 
-        // L'ancienne séquence 0001 ayant été supprimée, le nouveau numéro
-        // recalculé `MAX(seq) + 1` repart à 0001 (cas où la regen est la
-        // 1ère facture du mois après suppression de l'ancienne).
-        // Note : dans la vraie vie, si d'autres factures du même mois
-        // (autres entreprises) existent, le numéro continuera à incrémenter.
-        self::assertMatchesRegularExpression('/^2024-03-\d{4}$/', $newInvoice->invoice_number);
-        self::assertNotSame('2024-03-0001-old', $newInvoice->invoice_number);
+        // Numérotation séquentielle continue (jamais de réutilisation,
+        // jamais de suffixe « bis ») · conforme à l'art. 242 nonies A.
+        self::assertSame('2024-03-0002', $newInvoice->invoice_number);
     }
 
     #[Test]
@@ -152,16 +146,20 @@ final class RegenerateInvoiceActionTest extends TestCase
             // attendu
         }
 
-        // L'ancienne facture est intégralement préservée (DB + filesystem).
-        $this->assertDatabaseHas('invoices', [
-            'id' => $oldId,
-            'invoice_number' => $oldNumber,
-            'company_id' => $company->id,
-        ]);
+        // L'ancienne facture est intégralement préservée et non
+        // soft-deletée (transaction rollback).
+        $oldRow = Invoice::query()->withTrashed()->find($oldId);
+        self::assertNotNull($oldRow);
+        self::assertNull($oldRow->deleted_at);
+        self::assertNull($oldRow->obsolete_at);
+        self::assertNull($oldRow->superseded_by_id);
+        self::assertSame($oldNumber, $oldRow->invoice_number);
+
         Storage::disk('local')->assertExists($oldPath);
 
         // Aucune nouvelle facture n'a été créée.
         self::assertSame(1, Invoice::query()
+            ->withTrashed()
             ->where('company_id', $company->id)
             ->where('year', 2024)
             ->where('month', 3)

@@ -35,10 +35,31 @@ final class InvoiceListItemData extends Data
          * sont sur la fiche Show via `InvoiceDivergenceChecker`.
          */
         public bool $hasDivergence = false,
+        /**
+         * `true` ssi cette ligne est une version soft-deletée (régénération
+         * antérieure). Visible uniquement quand le filtre Index
+         * `includeObsolete = true`. Permet de griser la ligne et d'afficher
+         * la mention « Remplacée par #YYYY-MM-NNNN ».
+         */
+        public bool $isObsolete = false,
+        /**
+         * Numéro de la facture qui remplace celle-ci · `null` pour les
+         * factures actives et pour les obsolètes orphelines (rare).
+         */
+        public ?string $supersededByInvoiceNumber = null,
+        /** ID de la facture qui remplace · pour générer le lien navigation. */
+        public ?int $supersededByInvoiceId = null,
     ) {}
 
     public static function fromModel(Invoice $invoice): self
     {
+        $supersededBy = null;
+        $supersededById = null;
+        if ($invoice->superseded_by_id !== null && $invoice->relationLoaded('supersededBy')) {
+            $supersededBy = $invoice->supersededBy?->invoice_number;
+            $supersededById = $invoice->supersededBy?->id;
+        }
+
         return new self(
             id: $invoice->id,
             invoiceNumber: $invoice->invoice_number,
@@ -50,6 +71,9 @@ final class InvoiceListItemData extends Data
             totalHtCents: $invoice->total_ht_cents,
             generatedAt: $invoice->generated_at->toDateString(),
             hasDivergence: $invoice->is_divergent,
+            isObsolete: $invoice->deleted_at !== null,
+            supersededByInvoiceNumber: $supersededBy,
+            supersededByInvoiceId: $supersededById,
         );
     }
 }

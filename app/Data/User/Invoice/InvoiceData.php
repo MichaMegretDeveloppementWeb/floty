@@ -43,14 +43,35 @@ final class InvoiceData extends Data
          * en pratique (le service la calcule systématiquement).
          */
         public ?InvoiceDivergenceData $divergence = null,
+        /**
+         * `true` ssi la facture est une version obsolète (soft-deletée
+         * par une régénération). Permet l'affichage bandeau « Cette
+         * facture a été remplacée par #XXX ».
+         */
+        public bool $isObsolete = false,
+        /** Numéro de la facture qui remplace celle-ci. */
+        public ?string $supersededByInvoiceNumber = null,
+        /** ID de la facture qui remplace · pour la navigation. */
+        public ?int $supersededByInvoiceId = null,
+        /** Numéro de la facture remplacée par celle-ci · bandeau inverse. */
+        public ?string $supersedesInvoiceNumber = null,
+        /** ID de la facture remplacée · pour la navigation. */
+        public ?int $supersedesInvoiceId = null,
     ) {}
 
-    public static function fromModel(Invoice $invoice, ?InvoiceDivergenceData $divergence = null): self
+    public static function fromModel(Invoice $invoice, ?InvoiceDivergenceData $divergence = null, ?Invoice $predecessor = null): self
     {
         $lines = $invoice->lines
             ->map(static fn ($l): InvoiceLineData => InvoiceLineData::fromModel($l))
             ->values()
             ->all();
+
+        $supersededBy = null;
+        $supersededById = null;
+        if ($invoice->superseded_by_id !== null && $invoice->relationLoaded('supersededBy')) {
+            $supersededBy = $invoice->supersededBy?->invoice_number;
+            $supersededById = $invoice->supersededBy?->id;
+        }
 
         return new self(
             id: $invoice->id,
@@ -66,6 +87,11 @@ final class InvoiceData extends Data
             generatedByUserName: trim($invoice->generatedBy->first_name.' '.$invoice->generatedBy->last_name),
             lines: $lines,
             divergence: $divergence,
+            isObsolete: $invoice->deleted_at !== null,
+            supersededByInvoiceNumber: $supersededBy,
+            supersededByInvoiceId: $supersededById,
+            supersedesInvoiceNumber: $predecessor?->invoice_number,
+            supersedesInvoiceId: $predecessor?->id,
         );
     }
 }

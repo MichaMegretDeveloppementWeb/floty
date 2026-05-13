@@ -15,7 +15,21 @@ use Illuminate\Pagination\LengthAwarePaginator;
  */
 interface InvoiceReadRepositoryInterface
 {
+    /**
+     * Inclut les factures soft-deletées (versions obsolètes après
+     * régénération) pour permettre la navigation sur la page Show de
+     * n'importe quelle version historique. L'UI affichera le bandeau
+     * « Remplacée par #XXX » sur les obsolètes.
+     */
     public function findById(int $id): ?Invoice;
+
+    /**
+     * Récupère la facture qui a été remplacée par celle d'id `$invoiceId`
+     * via une régénération (la « predecessor »). Retourne `null` pour
+     * les factures qui n'ont pas remplacé de version antérieure. Inclut
+     * les soft-deletées · une predecessor est par construction obsolète.
+     */
+    public function findPredecessor(int $invoiceId): ?Invoice;
 
     /**
      * Lookup applicatif d'unicité (entreprise × année × mois). Utilisé

@@ -36,4 +36,9 @@ final class InvoiceWriteRepository implements InvoiceWriteRepositoryInterface
     {
         $invoice->delete();
     }
+
+    public function forceDelete(Invoice $invoice): void
+    {
+        $invoice->forceDelete();
+    }
 }
