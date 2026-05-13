@@ -101,6 +101,19 @@ function onTriggerClick(): void {
     toggle();
 }
 
+// Exposé pour permettre l'ouverture programmatique (ex.
+// `DriverSelector` qui auto-ouvre quand `autoOpenOnMount=true` · UX
+// D5.10.Q · pas de double-clic après ajout d'une ligne conducteur).
+defineExpose({
+    open(): void {
+        if (props.disabled) {
+            return;
+        }
+
+        open();
+    },
+});
+
 function onTriggerKeyDown(event: KeyboardEvent): void {
     if (props.disabled) {
         return;

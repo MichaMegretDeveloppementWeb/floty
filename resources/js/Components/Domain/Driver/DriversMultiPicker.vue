@@ -60,7 +60,14 @@ function selectorModel(index: number): { value: number | null; update: (v: numbe
     };
 }
 
+// Marque les slots qui doivent ouvrir leur dropdown automatiquement
+// au mount (UX D5.10.Q : pas de double-clic après « Ajouter un conducteur »).
+// `Set<index>` plutôt qu'array pour gérer proprement le splice de removeSlot.
+const autoOpenIndices = ref<Set<number>>(new Set());
+
 function addSlot(): void {
+    const newIndex = slots.value.length;
+    autoOpenIndices.value.add(newIndex);
     slots.value.push(null);
 }
 
@@ -105,6 +112,7 @@ const canAddMore = computed<boolean>(() => {
                     :start-date="startDate"
                     :end-date="endDate"
                     :excluded-ids="excludedIdsForRow(index)"
+                    :auto-open-on-mount="autoOpenIndices.has(index)"
                     @update:model-value="selectorModel(index).update"
                 />
             </div>
