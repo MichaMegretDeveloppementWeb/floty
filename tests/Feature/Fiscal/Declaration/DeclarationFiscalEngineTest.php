@@ -358,6 +358,87 @@ final class DeclarationFiscalEngineTest extends TestCase
         );
     }
 
+    #[Test]
+    public function lcd_court_conserve_a_taxe_zero_sur_le_breakdown_par_contrat(): void
+    {
+        // Phase 13 D5.10.R · un contrat LCD ≤ 30 jours est exonéré
+        // R-2024-021 individuellement. La répartition de la taxe couple
+        // doit pondérer par les jours taxables (= 0 pour LCD exempté).
+        // Sans cette pondération, le LCD recevait illégitimement une
+        // part de taxe au prorata des jours bruts.
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $lcd = $this->makeContract($vehicle, '2024-01-01', '2024-01-20', ContractType::Lcd); // 20j exempté
+        $lld = $this->makeContract($vehicle, '2024-02-01', '2024-12-31', ContractType::Lld);
+
+        $snapshot = $this->engine->compute($this->company->id, 2024);
+
+        $byContractId = [];
+        foreach ($snapshot->contractBreakdown as $entry) {
+            $byContractId[$entry->contractId] = $entry;
+        }
+
+        // Le LCD exempté doit afficher 0€ (pas de part de taxe).
+        self::assertSame(0.0, $byContractId[$lcd->id]->co2Due);
+        self::assertSame(0.0, $byContractId[$lcd->id]->pollutantsDue);
+        self::assertSame(0.0, $byContractId[$lcd->id]->totalDue);
+
+        // Le LLD reçoit l'intégralité de la taxe couple · sa part
+        // somme au total dû.
+        self::assertGreaterThan(0.0, $byContractId[$lld->id]->totalDue);
+        self::assertEqualsWithDelta(
+            $snapshot->totalDue,
+            $byContractId[$lld->id]->totalDue,
+            0.01,
+            'La taxe couple est entièrement allouée au LLD (le LCD est exempté).',
+        );
+    }
+
+    #[Test]
+    public function lcd_court_requalifie_recupere_sa_part_de_taxe(): void
+    {
+        // Phase 13 D5.10.R · un contrat LCD requalifié (opt-out
+        // R-2024-021 via décision Requalified) perd l'exonération · ses
+        // jours redeviennent taxables et il reçoit sa part au prorata.
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $lcd1 = $this->makeContract($vehicle, '2024-01-01', '2024-01-20', ContractType::Lcd);
+        $lcd2 = $this->makeContract($vehicle, '2024-01-26', '2024-02-14', ContractType::Lcd);
+        $lld = $this->makeContract($vehicle, '2024-03-01', '2024-12-31', ContractType::Lld);
+
+        // Persister la décision Requalified · les LCD sont opt-out.
+        $clusters = $this->app->make(RiskDetectionService::class)
+            ->detectClusters($this->company->id, 2024);
+        self::assertCount(1, $clusters);
+
+        FiscalReviewDecision::factory()->create([
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2024,
+            'cluster_fingerprint' => $clusters[0]->fingerprint,
+            'risk_code' => $clusters[0]->code,
+            'decision' => ReviewDecisionType::Requalified,
+            'justification' => 'Requalifié pour test.',
+            'decided_at' => CarbonImmutable::now(),
+        ]);
+
+        $snapshot = $this->engine->compute($this->company->id, 2024);
+
+        $byContractId = [];
+        foreach ($snapshot->contractBreakdown as $entry) {
+            $byContractId[$entry->contractId] = $entry;
+        }
+
+        // Les LCD requalifiés perdent l'exonération et reçoivent une
+        // part de taxe non-zéro.
+        self::assertGreaterThan(0.0, $byContractId[$lcd1->id]->totalDue);
+        self::assertGreaterThan(0.0, $byContractId[$lcd2->id]->totalDue);
+        self::assertGreaterThan(0.0, $byContractId[$lld->id]->totalDue);
+
+        // La somme des parts est égale au total dû (à l'arrondi près).
+        $sumParts = $byContractId[$lcd1->id]->totalDue
+            + $byContractId[$lcd2->id]->totalDue
+            + $byContractId[$lld->id]->totalDue;
+        self::assertEqualsWithDelta($snapshot->totalDue, $sumParts, 0.02);
+    }
+
     private function standardAggregatorTotalFor(Vehicle $vehicle, int $year): float
     {
         $contracts = $this->app->make(ContractQueryService::class)

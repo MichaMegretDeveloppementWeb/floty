@@ -14,6 +14,7 @@ use App\Data\User\FiscalDeclaration\ReviewClusterData;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
 use App\Enums\FiscalReviewDecision\RiskLevel;
+use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
@@ -90,6 +91,7 @@ final readonly class DeclarationFiscalEngine
         private FiscalRuleRegistry $baseRegistry,
         private FiscalRuleReadRepositoryInterface $fiscalRules,
         private FiscalYearContext $yearContext,
+        private LcdQualifier $lcdQualifier,
         private Container $container,
     ) {}
 
@@ -177,7 +179,6 @@ final readonly class DeclarationFiscalEngine
             $contractsForVehicle = $pairsForCompany[$vehicleId] ?? [];
             $contractsWithDays = $this->prepareContractsWithDays($contractsForVehicle, $year);
 
-            $coupleTotalDays = array_sum(array_column($contractsWithDays, 'days'));
             $coupleCo2 = (float) $row['taxCo2'];
             $couplePollutants = (float) $row['taxPollutants'];
 
@@ -189,12 +190,41 @@ final readonly class DeclarationFiscalEngine
             $totalCo2Raw += $coupleCo2;
             $totalPollutantsRaw += $couplePollutants;
 
+            // Phase 13 D5.10.R · 1ère passe · calcul des jours taxables
+            // par contrat. Un contrat LCD bénéficie de l'exonération
+            // R-2024-021 sauf s'il a été opt-out (Requalified) par une
+            // décision de cluster. La taxe couple `$coupleCo2` est déjà
+            // calculée avec R-2024-021 appliqué via le pipeline · elle
+            // ne porte que sur les jours non-exonérés du couple. La
+            // répartition par contrat doit donc se faire au prorata des
+            // jours taxables, pas des jours bruts, sinon les contrats
+            // LCD exemptés reçoivent illégitimement une part de taxe.
+            $contractsWithTaxableDays = [];
+            $coupleTaxableDays = 0;
             foreach ($contractsWithDays as $entry) {
                 /** @var Contract $contract */
                 $contract = $entry['contract'];
                 $daysInYear = $entry['days'];
 
-                $share = $coupleTotalDays > 0 ? $daysInYear / $coupleTotalDays : 0.0;
+                $isLcd = $this->lcdQualifier->isShortTermRental($contract);
+                $isExempted = $isLcd && ! in_array($contract->id, $optOutContractIds, true);
+                $taxableDays = $isExempted ? 0 : $daysInYear;
+
+                $contractsWithTaxableDays[] = [
+                    'contract' => $contract,
+                    'days' => $daysInYear,
+                    'taxableDays' => $taxableDays,
+                ];
+                $coupleTaxableDays += $taxableDays;
+            }
+
+            foreach ($contractsWithTaxableDays as $entry) {
+                /** @var Contract $contract */
+                $contract = $entry['contract'];
+                $daysInYear = $entry['days'];
+                $taxableDays = $entry['taxableDays'];
+
+                $share = $coupleTaxableDays > 0 ? $taxableDays / $coupleTaxableDays : 0.0;
                 $co2Due = round($coupleCo2 * $share, 2, PHP_ROUND_HALF_UP);
                 $pollutantsDue = round($couplePollutants * $share, 2, PHP_ROUND_HALF_UP);
                 $totalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);
