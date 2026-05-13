@@ -94,6 +94,19 @@
         }
         section {
             margin-bottom: 8mm;
+        }
+        /*
+         * Phase 13 D5.10.X · seule la synthèse (compacte) reste
+         * insécable pour éviter de couper le total. Le détail
+         * chronologique laisse ses rows flotter naturellement entre
+         * les pages, sinon DomPDF pousse toute la table à la page
+         * suivante dès qu'elle ne tient pas après la synthèse,
+         * laissant le bas de la page 1 vide.
+         */
+        section.summary-section {
+            page-break-inside: avoid;
+        }
+        table.lines tr {
             page-break-inside: avoid;
         }
         section h2 {
@@ -102,6 +115,9 @@
         table.summary, table.lines {
             width: 100%;
             border-collapse: collapse;
+        }
+        table.lines thead {
+            display: table-header-group;
         }
         table.summary td {
             padding: 2mm 3mm;
@@ -138,8 +154,16 @@
             text-align: left;
             border-bottom: 1px solid #cbd5e1;
         }
+        /*
+         * Phase 13 D5.10.X · largeurs explicites pour que « Période »
+         * tienne sur 1 ligne (mono `JJ/MM/AAAA → JJ/MM/AAAA` = ~22ch)
+         * et que le véhicule récupère le reste de l'espace.
+         */
+        table.lines col.col-period { width: 36mm; }
+        table.lines col.col-days { width: 14mm; }
+        table.lines col.col-tax { width: 22mm; }
         table.lines td {
-            padding: 2mm 3mm;
+            padding: 1.5mm 3mm;
             border-bottom: 1px solid #e2e8f0;
             font-size: 9pt;
             color: #0f172a;
@@ -148,6 +172,9 @@
         table.lines td.numeric {
             text-align: right;
             font-variant-numeric: tabular-nums;
+        }
+        table.lines td.period {
+            white-space: nowrap;
         }
         table.lines tr:last-child td {
             border-bottom: none;
@@ -160,14 +187,14 @@
         .vehicle-summary {
             display: block;
             color: #94a3b8;
-            font-size: 8pt;
-            margin-top: 0.5mm;
+            font-size: 7.5pt;
+            margin-top: 0.3mm;
         }
         .exemption-mention {
             display: block;
             color: #475569;
-            font-size: 8pt;
-            margin-top: 0.8mm;
+            font-size: 7.5pt;
+            margin-top: 0.5mm;
             font-style: italic;
         }
         .seal {
@@ -191,7 +218,7 @@
         }
         .mono {
             font-family: 'DejaVu Sans Mono', monospace;
-            font-size: 8.5pt;
+            font-size: 8pt;
         }
     </style>
 </head>
@@ -221,7 +248,7 @@
         </div>
     </header>
 
-    <section>
+    <section class="summary-section">
         <h2>Synthèse fiscale</h2>
         <table class="summary">
             <tr>
@@ -245,6 +272,12 @@
             <p class="empty">Aucun véhicule attribué sur cet exercice.</p>
         @else
             <table class="lines">
+                <colgroup>
+                    <col class="col-period">
+                    <col>
+                    <col class="col-days">
+                    <col class="col-tax">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Période</th>
@@ -256,7 +289,7 @@
                 <tbody>
                     @foreach ($contractRows as $row)
                         <tr>
-                            <td class="mono">{{ $row['period'] }}</td>
+                            <td class="mono period">{{ $row['period'] }}</td>
                             <td>
                                 {{ $row['vehicleLabel'] }}
                                 <span class="vehicle-summary">{{ $row['vehicleFiscalSummary'] }}</span>
