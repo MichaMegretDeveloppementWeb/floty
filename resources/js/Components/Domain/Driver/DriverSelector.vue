@@ -8,7 +8,7 @@
  * invalide après changement (company/dates), on émet `update:modelValue`
  * avec `null` pour la retirer du formulaire.
  */
-import { computed, onMounted, ref, useTemplateRef, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import { contractOptions as optionsRoute } from '@/routes/user/drivers';
 
@@ -117,42 +117,10 @@ watch(
     { immediate: true },
 );
 
-// Ref sur le SearchableSelect interne pour ouvrir la dropdown
-// programmatiquement au mount quand `autoOpenOnMount=true`.
-const selectRef = useTemplateRef<{ open: () => void }>('selectRef');
-
-function openWhenReady(): void {
-    if (!loading.value && isReady.value) {
-        selectRef.value?.open();
-
-        return;
-    }
-
-    // Attend la fin du chargement initial avant d'ouvrir · l'utilisateur
-    // n'a pas à cliquer une 2e fois après ajout d'une ligne. Le watcher
-    // s'autodétruit après la première ouverture pour ne pas réouvrir
-    // sur chaque reload ultérieur (changement period par exemple).
-    const stop = watch(
-        () => loading.value,
-        (isLoading) => {
-            if (!isLoading && isReady.value) {
-                selectRef.value?.open();
-                stop();
-            }
-        },
-    );
-}
-
-onMounted(() => {
-    if (props.autoOpenOnMount) {
-        openWhenReady();
-    }
-});
 </script>
 
 <template>
     <SearchableSelect
-        ref="selectRef"
         v-model="valueModel"
         :options="items"
         :placeholder="
@@ -165,5 +133,6 @@ onMounted(() => {
                     : 'Choisir un conducteur'
         "
         :disabled="!isReady || loading"
+        :auto-open-on-mount="autoOpenOnMount"
     />
 </template>

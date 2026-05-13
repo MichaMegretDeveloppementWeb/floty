@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ChevronDown } from 'lucide-vue-next';
-import { computed, nextTick, ref, useId, watch } from 'vue';
+import { computed, nextTick, onMounted, ref, useId, watch } from 'vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import { useSearchableSelect } from '@/Composables/Ui/SearchableSelect/useSearchableSelect';
@@ -18,12 +18,21 @@ const props = withDefaults(
         id?: string;
         searchPlaceholder?: string;
         noResultsLabel?: string;
+        /**
+         * Ouvre automatiquement la dropdown au mount. Patient : si le
+         * composant est `disabled` au mount, attend jusqu'à ce que ça
+         * passe à `false` puis ouvre (max 1 fois · watcher auto-détruit).
+         * UX : utilisé par `DriversMultiPicker` pour éviter le double
+         * clic après « + Ajouter un conducteur ».
+         */
+        autoOpenOnMount?: boolean;
     }>(),
     {
         disabled: false,
         required: false,
         searchPlaceholder: 'Rechercher…',
         noResultsLabel: 'Aucun résultat',
+        autoOpenOnMount: false,
     },
 );
 
@@ -101,17 +110,31 @@ function onTriggerClick(): void {
     toggle();
 }
 
-// Exposé pour permettre l'ouverture programmatique (ex.
-// `DriverSelector` qui auto-ouvre quand `autoOpenOnMount=true` · UX
-// D5.10.Q · pas de double-clic après ajout d'une ligne conducteur).
-defineExpose({
-    open(): void {
-        if (props.disabled) {
-            return;
-        }
+// Auto-open au mount (UX D5.10.Q · pas de double-clic après ajout
+// d'une ligne conducteur). Patient sur le `disabled` initial.
+onMounted(() => {
+    if (!props.autoOpenOnMount) {
+        return;
+    }
 
+    if (!props.disabled) {
         open();
-    },
+
+        return;
+    }
+
+    // Attend la fin du chargement initial (typiquement DriverSelector
+    // qui fetche async). Watcher s'autodétruit après la 1ère ouverture
+    // pour ne pas réouvrir sur chaque toggle ultérieur de `disabled`.
+    const stop = watch(
+        () => props.disabled,
+        (isDisabled) => {
+            if (!isDisabled) {
+                open();
+                stop();
+            }
+        },
+    );
 });
 
 function onTriggerKeyDown(event: KeyboardEvent): void {
