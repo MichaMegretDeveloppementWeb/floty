@@ -344,7 +344,7 @@ final readonly class DeclarationFiscalEngine
         foreach ($clusters as $cluster) {
             $applied = $decisionsByFingerprint[$cluster->fingerprint] ?? null;
             $retainedFrom = $retainedFromByFingerprint[$cluster->fingerprint] ?? null;
-            $excludedIds = $applied?->excludedContractIds ?? [];
+            $excludedIds = $applied !== null ? $applied->excludedContractIds : [];
             foreach ($cluster->contracts as $clusterContract) {
                 // Phase 13 D5.10.S · les contrats explicitement exclus
                 // par l'utilisateur sortent du cluster côté snapshot ·
