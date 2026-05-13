@@ -43,7 +43,6 @@ defineProps<{
             </p>
         </Link>
         <div
-            v-if="vehicleView.fullYearTax > 0"
             class="flex shrink-0 items-baseline gap-2"
             :title="`Taxe pleine ${formatEur(vehicleView.fullYearTax, 0)} · prorata ${formatEur(vehicleView.dailyTaxRate, 2)}/jour`"
         >
