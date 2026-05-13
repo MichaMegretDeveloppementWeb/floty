@@ -44,11 +44,16 @@ defineProps<{
         </Link>
         <div
             v-if="vehicleView.fullYearTax > 0"
-            class="flex w-[80px] shrink-0 flex-col items-end font-mono text-[10px] leading-tight text-slate-500 tabular-nums"
+            class="flex shrink-0 items-baseline gap-2"
             :title="`Taxe pleine ${formatEur(vehicleView.fullYearTax, 0)} · prorata ${formatEur(vehicleView.dailyTaxRate, 2)}/jour`"
         >
-            <span>{{ formatEur(vehicleView.fullYearTax, 0) }}</span>
-            <span class="text-slate-400">{{ formatEur(vehicleView.dailyTaxRate, 2) }}/j</span>
+            <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                Taxe pleine
+            </span>
+            <div class="flex flex-col items-end font-mono text-[10px] leading-tight text-slate-500 tabular-nums">
+                <span>{{ formatEur(vehicleView.fullYearTax, 0) }}</span>
+                <span class="text-slate-400">{{ formatEur(vehicleView.dailyTaxRate, 2) }}/j</span>
+            </div>
         </div>
     </div>
 </template>
