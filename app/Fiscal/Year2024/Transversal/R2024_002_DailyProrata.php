@@ -74,7 +74,12 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 421-107'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-107',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044603019/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 

@@ -28,10 +28,13 @@ use App\Providers\FiscalServiceProvider;
  *   logique (Classification → Exemption → Pricing → Transversal) pour
  *   lisibilité (cf. `taxes-rules/2024.md`).
  *
- * **Hors scope** : les règles « architecturales » qui vivent hors pipeline
- * (R-2024-001, 007, 009, 020, 023, 024 · cf. ADR-0006 § 2 et docblock du
- * provider) ne sont pas listées ici. Elles sont gérées ailleurs dans
- * l'application.
+ * **Règles documentaires-only** (Phase 13 D5.11 · complément ADR-0022) ·
+ * les règles « architecturales » qui ne participent pas au pipeline de
+ * calcul (R-2024-001 redevable, R-2024-024 garde-fou Crit'Air, etc.)
+ * sont déclarées via {@see informativeRules()}. Elles partagent les
+ * métadonnées des règles pipeline mais ne sont jamais résolues par le
+ * registry · uniquement consommées par le seeder pour peupler l'index
+ * `fiscal_rules`.
  */
 interface FiscalYearBoot
 {
@@ -41,11 +44,22 @@ interface FiscalYearBoot
     public function year(): int;
 
     /**
-     * Liste des classes de règles fiscales à enregistrer pour cette
-     * année. Les classes sont résolues par le container Laravel via
-     * {@see FiscalRuleRegistry::rulesForYear()}.
+     * Liste des classes de règles fiscales **pipeline** (calculatoires)
+     * à enregistrer pour cette année. Les classes sont résolues par le
+     * container Laravel via {@see FiscalRuleRegistry::rulesForYear()}.
      *
      * @return list<class-string<FiscalRule>>
      */
     public function rules(): array;
+
+    /**
+     * Liste des classes de règles fiscales **documentaires-only**
+     * (Phase 13 D5.11 · complément ADR-0022). Ces règles ne sont pas
+     * exécutées par le pipeline · uniquement seedées dans `fiscal_rules`
+     * pour alimenter la page « Règles de calcul ». Une année sans
+     * règles documentaires retourne `[]`.
+     *
+     * @return list<class-string<InformativeRule>>
+     */
+    public function informativeRules(): array;
 }

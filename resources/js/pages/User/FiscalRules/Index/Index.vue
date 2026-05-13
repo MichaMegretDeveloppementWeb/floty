@@ -82,7 +82,6 @@ const { activeTab, tabs, rulesByCode, currentGroups } = useFiscalRulesIndex(prop
                     :subtitle="group.subtitle"
                     :codes="group.codes"
                     :rules-by-code="rulesByCode"
-                    :year="selectedYear"
                 />
             </div>
         </div>

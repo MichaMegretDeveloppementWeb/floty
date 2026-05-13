@@ -109,4 +109,9 @@ final class FiscalServiceProviderTestStub2025Boot implements FiscalYearBoot
     {
         return [];
     }
+
+    public function informativeRules(): array
+    {
+        return [];
+    }
 }

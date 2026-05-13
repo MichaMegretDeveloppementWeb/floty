@@ -84,10 +84,33 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 421-96'],
-            ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 50'],
-            ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 60'],
-            ['type' => 'BOFIP', 'reference' => 'BOI-AIS-MOB-10-30-10', 'paragraph' => '§ 190'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-96',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044603053/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
+            [
+                'type' => 'BOFIP',
+                'reference' => 'BOI-AIS-MOB-10-30-10',
+                'paragraph' => '§ 50',
+                'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20240710#il_en_ressort_qu_9929',
+                'consulted_at' => '2026-05-06',
+            ],
+            [
+                'type' => 'BOFIP',
+                'reference' => 'BOI-AIS-MOB-10-30-10',
+                'paragraph' => '§ 60',
+                'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20240710#60_1148',
+                'consulted_at' => '2026-05-06',
+            ],
+            [
+                'type' => 'BOFIP',
+                'reference' => 'BOI-AIS-MOB-10-30-10',
+                'paragraph' => '§ 190',
+                'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20240710#180_4641',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 

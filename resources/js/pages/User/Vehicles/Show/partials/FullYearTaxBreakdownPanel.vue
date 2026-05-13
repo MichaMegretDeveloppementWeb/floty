@@ -198,7 +198,6 @@ function segmentPeriodLabel(seg: Segment): string {
                 v-if="selectedCode"
                 :code="selectedCode"
                 :rule="selectedRule ?? undefined"
-                :year="props.stats.fiscalYear"
             />
         </Modal>
     </Card>

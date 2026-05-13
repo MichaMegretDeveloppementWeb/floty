@@ -81,7 +81,12 @@ final readonly class R2024_010_WltpProgressive implements PricingRule
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 421-120'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-120',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844602/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 

@@ -100,8 +100,12 @@ final class FiscalRulesSeederMirrorTest extends TestCase
     }
 
     #[Test]
-    public function metadonnees_documentaires_hard_codees_present_dans_la_bdd(): void
+    public function metadonnees_documentaires_lues_depuis_php_correspondent_aux_classes(): void
     {
+        // Phase 13 D5.11 · les 8 règles documentaires-only sont
+        // désormais des classes PHP (ADR-0022 finalisée), seedées via
+        // `Year2024Boot::informativeRules()`. Plus aucun hardcoding
+        // dans le seeder.
         $this->seed(FiscalRulesSeeder::class);
 
         // R-2024-001 : règle documentaire (hors pipeline)
@@ -111,12 +115,42 @@ final class FiscalRulesSeederMirrorTest extends TestCase
             ->firstOrFail();
         self::assertSame('Redevable et fait générateur', $r001->name);
 
-        // R-2024-024 : Crit'Air avec code_reference custom (UI)
+        // R-2024-024 : Crit'Air avec code_reference custom (UI · override
+        // via méthode `codeReference()` sur la classe).
         $r024 = FiscalRule::query()
             ->where('rule_code', 'R-2024-024')
             ->where('fiscal_year', 2024)
             ->firstOrFail();
         self::assertSame('resources/js/Composables/Vehicle/useCritAirCheck.ts', $r024->code_reference);
+    }
+
+    #[Test]
+    public function chaque_legal_basis_entry_porte_url_et_consulted_at(): void
+    {
+        // Phase 13 D5.11 · ADR-0022 finalisée · chaque entrée du
+        // tableau `legal_basis` d'une règle 2024 doit porter une URL
+        // officielle (Légifrance ou BOFiP) auditée Chrome live, ainsi
+        // que la date de consultation. Seule exception · R-2024-023
+        // qui retourne `[]` (placeholder vide pour 2024).
+        $this->seed(FiscalRulesSeeder::class);
+
+        $rules = FiscalRule::query()
+            ->where('fiscal_year', 2024)
+            ->where('rule_code', '!=', 'R-2024-023')
+            ->get();
+
+        self::assertGreaterThan(0, $rules->count());
+
+        foreach ($rules as $rule) {
+            self::assertNotEmpty($rule->legal_basis, sprintf('%s doit avoir au moins une référence légale.', $rule->rule_code));
+
+            foreach ($rule->legal_basis as $entry) {
+                self::assertArrayHasKey('url', $entry, sprintf('%s a une entrée legal_basis sans url.', $rule->rule_code));
+                self::assertNotEmpty($entry['url'], sprintf('%s a une entrée legal_basis avec url vide.', $rule->rule_code));
+                self::assertArrayHasKey('consulted_at', $entry, sprintf('%s a une entrée legal_basis sans consulted_at.', $rule->rule_code));
+                self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $entry['consulted_at']);
+            }
+        }
     }
 
     #[Test]

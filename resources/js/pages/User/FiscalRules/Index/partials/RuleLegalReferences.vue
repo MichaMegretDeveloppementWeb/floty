@@ -1,21 +1,95 @@
 <script setup lang="ts">
-import { useOfficialLegalLinks } from '@/Composables/Shared/useOfficialLegalLinks';
-import type { LegalReference } from '@/Composables/Shared/useOfficialLegalLinks';
+/**
+ * Rend la liste des références légales d'une règle fiscale (Phase 13
+ * D5.11 · ADR-0022 finalisée).
+ *
+ * **Source de vérité** · les URLs viennent directement du backend, qui
+ * les lit depuis les classes PHP de chaque règle. Plus aucune
+ * construction d'URL côté front · ce composant lit simplement
+ * `entry.url` et fabrique un label cosmétique pour l'affichage.
+ *
+ * Les entrées sans `url` (cas rare où une référence légale n'aurait pas
+ * encore été auditée) sont rendues en texte non-cliquable.
+ */
+import { computed } from 'vue';
+
+type LegalRef = {
+    type?: string;
+    article?: string;
+    reference?: string;
+    paragraph?: string;
+    url?: string;
+    consulted_at?: string;
+};
 
 const props = defineProps<{
     refs: App.Data.User.Fiscal.FiscalRuleListItemData['legalBasis'];
-    /** Année qui pilote la résolution des versions Légifrance (chantier J). */
-    year: number;
 }>();
 
-const { resolveAll } = useOfficialLegalLinks(() => props.year);
+type Display = {
+    label: string;
+    title: string;
+    url: string;
+};
 
-const links = resolveAll(props.refs as unknown as LegalReference[]);
+function buildLabel(entry: LegalRef): string {
+    if (entry.type === 'CIBS' && entry.article) {
+        return `CIBS ${entry.article}`;
+    }
+
+    if (entry.type === 'CGI' && entry.article) {
+        return `CGI ${entry.article}`;
+    }
+
+    if (entry.type === 'BOFIP' && entry.reference) {
+        return entry.paragraph
+            ? `${entry.reference} ${entry.paragraph}`
+            : entry.reference;
+    }
+
+    if (entry.type === 'NOTICE' && entry.reference) {
+        return `Notice ${entry.reference}`;
+    }
+
+    return entry.article ?? entry.reference ?? entry.type ?? '';
+}
+
+function buildTitle(entry: LegalRef): string {
+    if (entry.type === 'CIBS' && entry.article) {
+        return `Article ${entry.article} du Code des impositions sur les biens et services (Légifrance)`;
+    }
+
+    if (entry.type === 'CGI' && entry.article) {
+        return `Article ${entry.article} du Code général des impôts (Légifrance)`;
+    }
+
+    if (entry.type === 'BOFIP' && entry.reference) {
+        const para = entry.paragraph ? ` ${entry.paragraph}` : '';
+
+        return `Doctrine BOFiP-Impôts ${entry.reference}${para}`;
+    }
+
+    if (entry.type === 'NOTICE' && entry.reference) {
+        return `Notice DGFiP ${entry.reference} (impots.gouv.fr)`;
+    }
+
+    return buildLabel(entry);
+}
+
+const links = computed<Display[]>(() =>
+    (props.refs as unknown as LegalRef[])
+        .map((entry) => ({
+            label: buildLabel(entry),
+            title: buildTitle(entry),
+            url: entry.url ?? '',
+        }))
+        .filter((d) => d.label !== ''),
+);
 </script>
 
 <template>
     <p
-        v-if="refs.length > 0"
+        v-if="links.length > 0"
         class="mt-3 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs text-slate-500"
     >
         <template v-for="(link, idx) in links" :key="idx">

@@ -64,7 +64,12 @@ final readonly class R2024_016_ElectricHydrogen implements ExemptionRule
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 421-124'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-124',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602971/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 

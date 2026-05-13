@@ -75,7 +75,12 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 421-2'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-2',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844510/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 

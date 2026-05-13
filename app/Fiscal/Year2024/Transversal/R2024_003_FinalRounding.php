@@ -69,7 +69,12 @@ final readonly class R2024_003_FinalRounding implements TransversalRule
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 131-1'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 131-1',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044604185/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 

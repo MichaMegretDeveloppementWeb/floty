@@ -44,9 +44,11 @@ export function useTaxBreakdownPanel(props: {
     });
 
     const selectedCode = ref<string | null>(null);
-    // Chantier η Phase 3 : tracé pour transmettre le contexte temporel
-    // au RuleCard (les liens Légifrance résolvent une version d'article
-    // datée de l'année concernée).
+    // Conservé pour le filtre "rule appartient à cette année" appliqué
+    // au modal de détail (cf. v-if dans TaxBreakdownPanel.vue). Les URLs
+    // officielles ne dépendent plus de cet état · elles vivent dans la
+    // règle PHP et arrivent prêtes à l'emploi via les props Inertia
+    // (ADR-0022 finalisée · Phase 13 D5.11).
     const selectedYear = ref<number | null>(null);
 
     const selectedRule = computed<Rule | null>(() => {

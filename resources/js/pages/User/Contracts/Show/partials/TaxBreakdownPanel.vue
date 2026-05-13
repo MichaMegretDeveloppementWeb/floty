@@ -249,7 +249,6 @@ const {
                 v-if="selectedCode && selectedYear !== null"
                 :code="selectedCode"
                 :rule="selectedRule ?? undefined"
-                :year="selectedYear"
             />
         </Modal>
     </Card>

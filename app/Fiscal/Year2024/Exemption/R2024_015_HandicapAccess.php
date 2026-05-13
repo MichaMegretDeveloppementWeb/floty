@@ -62,7 +62,12 @@ final readonly class R2024_015_HandicapAccess implements ExemptionRule
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 421-123'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-123',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602975/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 

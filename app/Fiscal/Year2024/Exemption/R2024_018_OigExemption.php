@@ -69,7 +69,12 @@ final readonly class R2024_018_OigExemption implements ExemptionRule
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 421-126'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-126',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602965/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 

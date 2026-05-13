@@ -68,7 +68,12 @@ final readonly class R2024_005_Co2MethodSelection implements ClassificationRule
     public function legalBasis(): array
     {
         return [
-            ['type' => 'CIBS', 'article' => 'L. 421-119-1'],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-119-1',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048802414/2024-06-01',
+                'consulted_at' => '2026-05-06',
+            ],
         ];
     }
 
