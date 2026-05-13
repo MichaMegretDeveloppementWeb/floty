@@ -33,4 +33,8 @@ export type HeatmapVehicleView = {
     summaryTax: number;
     exitDate: string | null;
     weeksWithUnavailability: number[];
+    /** Taxe pleine annuelle théorique € (à 100 % d'utilisation). */
+    fullYearTax: number;
+    /** Prorata journalier = fullYearTax / daysInYear (€/jour). */
+    dailyTaxRate: number;
 };

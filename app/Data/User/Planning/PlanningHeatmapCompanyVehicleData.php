@@ -54,5 +54,13 @@ final class PlanningHeatmapCompanyVehicleData extends Data
         public float $annualTaxDueForCompany,
         public ?string $exitDate,
         public array $weeksWithUnavailability,
+        /**
+         * Taxe pleine annuelle théorique (€) pour le véhicule à 100 %
+         * d'utilisation sur l'année courante du planning. Aide à la
+         * décision lors de l'attribution.
+         */
+        public float $fullYearTax,
+        /** Prorata journalier = `fullYearTax / daysInYear`. */
+        public float $dailyTaxRate,
     ) {}
 }

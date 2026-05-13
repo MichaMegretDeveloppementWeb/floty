@@ -15,7 +15,6 @@ import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
-import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import { update as updateRoute } from '@/routes/user/settings/fiscal-risk';
 
@@ -28,7 +27,6 @@ const form = useForm({
     thresholdLow: props.settings.thresholdLow,
     thresholdHigh: props.settings.thresholdHigh,
     countHigh: props.settings.countHigh,
-    lldBreaksChain: props.settings.lldBreaksChain,
 });
 
 // Le projet n'embarque pas de fichier de traduction Laravel : les
@@ -68,7 +66,6 @@ function submit(): void {
         threshold_low: data.thresholdLow,
         threshold_high: data.thresholdHigh,
         count_high: data.countHigh,
-        lld_breaks_chain: data.lldBreaksChain,
     })).post(updateRoute.url(), {
         preserveScroll: true,
     });
@@ -112,19 +109,12 @@ function submit(): void {
                         <NumberInput
                             v-model="form.maxInterval"
                             label="Intervalle maximal entre 2 LCD"
-                            hint="Au-delà de cette durée, deux contrats successifs ne sont plus considérés comme chaînés."
+                            hint="Au-delà de cette durée, deux contrats successifs ne sont plus considérés comme chaînés. Les contrats LLD intercalés (sur n'importe quel véhicule) sont silencieusement ignorés · ils n'affectent pas la chaîne LCD."
                             :min="1"
                             :error="fieldError('max_interval')"
                         >
                             <template #unit>jours</template>
                         </NumberInput>
-
-                        <CheckboxInput
-                            v-model="form.lldBreaksChain"
-                            label="Un LLD intercalé brise la chaîne"
-                            hint="Si activé : un contrat LLD entre deux LCD interrompt la séquence et redémarre le compteur. Recommandé."
-                            :error="fieldError('lld_breaks_chain')"
-                        />
                     </div>
                 </Card>
 

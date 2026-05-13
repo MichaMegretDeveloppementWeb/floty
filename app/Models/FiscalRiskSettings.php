@@ -12,7 +12,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * Seuils paramétrables de la grille de détection des zones de risque
- * fiscal (Phase 11 D1, ADR-0015 § D7 rev. 1.1). Singleton applicatif :
+ * fiscal (Phase 11 D1, ADR-0015 § D7 rev. 1.1, refondu D5.10.Q ·
+ * suppression de `lld_breaks_chain`). Singleton applicatif ·
  * `id=1` toujours, créé à la volée au premier accès.
  *
  * @property int $id
@@ -20,7 +21,6 @@ use Illuminate\Support\Carbon;
  * @property int $threshold_low
  * @property int $threshold_high
  * @property int $count_high
- * @property bool $lld_breaks_chain
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -29,7 +29,6 @@ use Illuminate\Support\Carbon;
     'threshold_low',
     'threshold_high',
     'count_high',
-    'lld_breaks_chain',
 ])]
 final class FiscalRiskSettings extends Model
 {
@@ -55,7 +54,6 @@ final class FiscalRiskSettings extends Model
             'threshold_low' => 30,
             'threshold_high' => 90,
             'count_high' => 5,
-            'lld_breaks_chain' => true,
         ]);
     }
 
@@ -69,7 +67,6 @@ final class FiscalRiskSettings extends Model
             'threshold_low' => 'integer',
             'threshold_high' => 'integer',
             'count_high' => 'integer',
-            'lld_breaks_chain' => 'boolean',
         ];
     }
 }

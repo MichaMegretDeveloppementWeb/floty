@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HeatmapVehicleView } from '@/Components/Features/Planning/Heatmap/types';
+import { formatEur } from '@/Utils/format/formatEur';
 
 defineProps<{
     vehicleView: HeatmapVehicleView;
@@ -20,7 +21,7 @@ defineProps<{
         >
             {{ vehicleView.userType }}
         </span>
-        <div class="w-[200px] min-w-0">
+        <div class="w-[240px] min-w-0">
             <div class="flex items-center gap-1.5">
                 <p class="truncate font-mono text-xs font-medium text-slate-900">
                     {{ vehicleView.licensePlate }}
@@ -34,6 +35,16 @@ defineProps<{
             </div>
             <p class="truncate text-[11px] text-slate-500">
                 {{ vehicleView.brand }} {{ vehicleView.model }}
+                <span
+                    v-if="vehicleView.fullYearTax > 0"
+                    class="ml-1 font-mono text-slate-400 tabular-nums"
+                    :title="`Taxe pleine ${formatEur(vehicleView.fullYearTax, 0)} · ${formatEur(vehicleView.dailyTaxRate, 2)}/jour`"
+                >
+                    · {{ formatEur(vehicleView.fullYearTax, 0) }}
+                    <span class="text-slate-400/70">
+                        ({{ formatEur(vehicleView.dailyTaxRate, 2) }}/j)
+                    </span>
+                </span>
             </p>
         </div>
     </div>

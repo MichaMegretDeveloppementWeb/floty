@@ -24,7 +24,6 @@ final class FiscalRiskSettingsFactory extends Factory
             'threshold_low' => 30,
             'threshold_high' => 90,
             'count_high' => 5,
-            'lld_breaks_chain' => true,
         ];
     }
 }

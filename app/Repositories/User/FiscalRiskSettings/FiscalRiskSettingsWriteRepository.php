@@ -19,7 +19,6 @@ final class FiscalRiskSettingsWriteRepository implements FiscalRiskSettingsWrite
             'threshold_low' => $data->thresholdLow,
             'threshold_high' => $data->thresholdHigh,
             'count_high' => $data->countHigh,
-            'lld_breaks_chain' => $data->lldBreaksChain,
         ]);
         $settings->save();
 

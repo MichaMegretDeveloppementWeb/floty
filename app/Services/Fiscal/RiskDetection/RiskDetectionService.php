@@ -71,9 +71,13 @@ final readonly class RiskDetectionService
     }
 
     /**
-     * Algorithme de chaînage (ADR-0015 § 4) : une chaîne regroupe des
-     * LCD successifs séparés au plus de `max_interval` jours pleins.
-     * Un LLD intercalé rompt la chaîne ssi `lld_breaks_chain = true`.
+     * Algorithme de chaînage (ADR-0015 § 4, refondu D5.10.Q) · une
+     * chaîne regroupe des LCD successifs séparés au plus de
+     * `max_interval` jours pleins. Les contrats LLD intercalés sont
+     * silencieusement ignorés · ils n'ont aucun rapport métier avec
+     * une chaîne LCD (cohérence doctrine D5.10.N · la chaîne vise la
+     * continuité temporelle d'usage en LCD, indépendamment d'autres
+     * contrats LLD parallèles sur d'autres véhicules).
      *
      * @param  Collection<int, Contract>  $contracts
      * @return list<list<Contract>>
@@ -86,25 +90,24 @@ final readonly class RiskDetectionService
         $current = [];
 
         foreach ($contracts as $contract) {
-            if ($this->lcdFilter->isLcd($contract)) {
-                if ($current === []) {
-                    $current = [$contract];
+            if (! $this->lcdFilter->isLcd($contract)) {
+                continue;
+            }
 
-                    continue;
-                }
+            if ($current === []) {
+                $current = [$contract];
 
-                $previous = $current[count($current) - 1];
-                $interval = $this->intervalDays($previous, $contract);
+                continue;
+            }
 
-                if ($interval <= $settings->max_interval) {
-                    $current[] = $contract;
-                } else {
-                    $this->flushChain($chains, $current);
-                    $current = [$contract];
-                }
-            } elseif ($settings->lld_breaks_chain) {
+            $previous = $current[count($current) - 1];
+            $interval = $this->intervalDays($previous, $contract);
+
+            if ($interval <= $settings->max_interval) {
+                $current[] = $contract;
+            } else {
                 $this->flushChain($chains, $current);
-                $current = [];
+                $current = [$contract];
             }
         }
 

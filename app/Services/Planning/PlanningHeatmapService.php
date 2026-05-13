@@ -10,6 +10,7 @@ use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Planning\PlanningHeatmapCompanyVehicleData;
 use App\Data\User\Planning\PlanningHeatmapVehicleData;
 use App\DTO\Fiscal\ContractsByPair;
+use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
 use App\Models\Unavailability;
 use App\Services\Contract\ContractQueryService;
@@ -61,6 +62,20 @@ final class PlanningHeatmapService
 
             $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
 
+            // Tolère une année hors règles fiscales codées (cf. doctrine
+            // « données métier ⊥ règles fiscales »). On affiche 0/0 plutôt
+            // que de crasher la heatmap.
+            try {
+                $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
+                $fullYearTax = $fullYear->total;
+                $dailyTaxRate = $fullYear->daysInYear > 0
+                    ? round($fullYear->total / $fullYear->daysInYear, 2, PHP_ROUND_HALF_UP)
+                    : 0.0;
+            } catch (FiscalCalculationException) {
+                $fullYearTax = 0.0;
+                $dailyTaxRate = 0.0;
+            }
+
             $vehicleRows[] = new PlanningHeatmapVehicleData(
                 id: $vehicle->id,
                 licensePlate: $vehicle->license_plate,
@@ -81,6 +96,8 @@ final class PlanningHeatmapService
                 ),
                 exitDate: $vehicle->exit_date?->toDateString(),
                 weeksWithUnavailability: $this->collectWeeksWithUnavailability($vehicleUnavailabilities, $year),
+                fullYearTax: $fullYearTax,
+                dailyTaxRate: $dailyTaxRate,
             );
         }
 
@@ -155,6 +172,17 @@ final class PlanningHeatmapService
 
             $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
 
+            try {
+                $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
+                $fullYearTax = $fullYear->total;
+                $dailyTaxRate = $fullYear->daysInYear > 0
+                    ? round($fullYear->total / $fullYear->daysInYear, 2, PHP_ROUND_HALF_UP)
+                    : 0.0;
+            } catch (FiscalCalculationException) {
+                $fullYearTax = 0.0;
+                $dailyTaxRate = 0.0;
+            }
+
             $vehicleRows[] = new PlanningHeatmapCompanyVehicleData(
                 id: $vehicle->id,
                 licensePlate: $vehicle->license_plate,
@@ -176,6 +204,8 @@ final class PlanningHeatmapService
                 ),
                 exitDate: $vehicle->exit_date?->toDateString(),
                 weeksWithUnavailability: $this->collectWeeksWithUnavailability($vehicleUnavailabilities, $year),
+                fullYearTax: $fullYearTax,
+                dailyTaxRate: $dailyTaxRate,
             );
         }
 

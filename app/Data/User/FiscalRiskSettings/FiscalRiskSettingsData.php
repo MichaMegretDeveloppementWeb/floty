@@ -39,7 +39,6 @@ final class FiscalRiskSettingsData extends Data
         public int $thresholdHigh,
         #[Min(1)]
         public int $countHigh,
-        public bool $lldBreaksChain,
     ) {}
 
     public static function fromModel(FiscalRiskSettings $settings): self
@@ -49,7 +48,6 @@ final class FiscalRiskSettingsData extends Data
             thresholdLow: $settings->threshold_low,
             thresholdHigh: $settings->threshold_high,
             countHigh: $settings->count_high,
-            lldBreaksChain: $settings->lld_breaks_chain,
         );
     }
 }

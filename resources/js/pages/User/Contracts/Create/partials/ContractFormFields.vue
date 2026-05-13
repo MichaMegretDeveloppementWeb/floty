@@ -17,6 +17,7 @@ import {
     rangeConflicts,
 } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { formatEur } from '@/Utils/format/formatEur';
 
 type FormShape = {
     vehicle_id: number | null;
@@ -71,6 +72,47 @@ const vehicleIdModel = computed({
     set: (v: string | number | null) => {
         props.form.vehicle_id = typeof v === 'number' ? v : null;
     },
+});
+
+const vehicleById = computed(() => {
+    const map = new Map<number, App.Data.User.Vehicle.VehicleOptionData>();
+    for (const v of props.options.vehicles) map.set(v.id, v);
+    return map;
+});
+
+// Taxe pleine annuelle du véhicule sélectionné, basée sur l'année de
+// `start_date` saisie (fallback année courante quand la date n'est pas
+// encore renseignée). Aide à la décision lors de la sélection · les
+// règles fiscales évoluant d'une année à l'autre, on cale sur l'année
+// de la location pour éviter d'afficher une valeur caduque.
+//
+// Fallback : si l'année cible n'a pas de règles fiscales codées (map
+// vide pour cette année), on prend l'année la plus récente disponible
+// et on flag le label avec `fallback: true` pour le rendu.
+const selectedVehicleFullYearTax = computed<{ year: number; tax: number; fallback: boolean } | null>(() => {
+    const id = props.form.vehicle_id;
+    if (id === null) return null;
+
+    const vehicle = vehicleById.value.get(id);
+    if (!vehicle) return null;
+
+    const targetYear = props.form.start_date
+        ? Number.parseInt(props.form.start_date.slice(0, 4), 10)
+        : new Date().getFullYear();
+
+    const taxByYear = vehicle.fullYearTaxByYear as Record<number, number>;
+    const exact = taxByYear[targetYear];
+    if (typeof exact === 'number') {
+        return { year: targetYear, tax: exact, fallback: false };
+    }
+
+    const availableYears = Object.keys(taxByYear).map(Number).sort((a, b) => b - a);
+    if (availableYears.length === 0) return null;
+
+    const fallbackYear = availableYears[0];
+    if (fallbackYear === undefined) return null;
+
+    return { year: fallbackYear, tax: taxByYear[fallbackYear]!, fallback: true };
 });
 
 const companyIdModel = computed({
@@ -182,6 +224,17 @@ const contractType = computed<'lcd' | 'lld' | null>(() => {
                         placeholder="Choisir un véhicule…"
                         :options="vehicleOptions"
                     />
+                    <p
+                        v-if="selectedVehicleFullYearTax"
+                        class="mt-1.5 font-mono text-[11px] text-slate-500 tabular-nums"
+                    >
+                        Taxe pleine
+                        <span class="text-slate-700">{{ formatEur(selectedVehicleFullYearTax.tax, 0) }}</span>
+                        <span v-if="selectedVehicleFullYearTax.fallback" class="text-slate-400">
+                            (dernière année connue : {{ selectedVehicleFullYearTax.year }})
+                        </span>
+                        <span v-else>({{ selectedVehicleFullYearTax.year }})</span>
+                    </p>
                     <InputError :message="form.errors.vehicle_id" />
                 </div>
                 <div>

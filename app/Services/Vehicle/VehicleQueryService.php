@@ -324,21 +324,45 @@ final class VehicleQueryService
      */
     public function listForOptions(): DataCollection
     {
-        $rows = $this->vehicles->findAllForOptions()
-            ->map(static function (Vehicle $v): VehicleOptionData {
-                $exitDate = $v->exit_date?->format('Y-m-d');
-                $label = sprintf('%s - %s %s', $v->license_plate, $v->brand, $v->model);
+        // Scope d'années dynamique (basé sur les contrats existants).
+        // Pour chaque véhicule, on calcule la Taxe pleine de chaque année
+        // du scope : le form Contrat affichera la valeur de l'année de
+        // `start_date` saisie (fallback année courante). Coût borné par
+        // O(N véhicules × M années) avec M typiquement 3-5 · acceptable
+        // car l'aggregator cache les résultats par (vehicleId, year).
+        //
+        // On bypass `findAllForOptions()` (sélection limitée à 6 colonnes)
+        // car le pipeline fiscal a besoin des colonnes complètes du
+        // véhicule + de toute la VFC history (multi-VFC supportée).
+        $availableYears = $this->availableYears->availableYears();
+        $vehiclesFull = $this->vehicles->findAllForOptionsWithFiscalHistory();
 
-                return new VehicleOptionData(
-                    id: $v->id,
-                    licensePlate: $v->license_plate,
-                    label: $label,
-                    isExited: $exitDate !== null,
-                    exitDate: $exitDate,
-                );
-            })
-            ->values()
-            ->all();
+        $rows = [];
+        foreach ($vehiclesFull as $v) {
+            $exitDate = $v->exit_date?->format('Y-m-d');
+            $label = sprintf('%s - %s %s', $v->license_plate, $v->brand, $v->model);
+
+            $fullYearTaxByYear = [];
+            foreach ($availableYears as $year) {
+                try {
+                    $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($v, $year);
+                    $fullYearTaxByYear[$year] = $breakdown->total;
+                } catch (FiscalCalculationException) {
+                    // Année hors règles fiscales codées · on omet
+                    // pour rester silencieux côté UI (le form
+                    // retombera sur l'année par défaut affichée).
+                }
+            }
+
+            $rows[] = new VehicleOptionData(
+                id: $v->id,
+                licensePlate: $v->license_plate,
+                label: $label,
+                isExited: $exitDate !== null,
+                exitDate: $exitDate,
+                fullYearTaxByYear: $fullYearTaxByYear,
+            );
+        }
 
         return VehicleOptionData::collect($rows, DataCollection::class);
     }

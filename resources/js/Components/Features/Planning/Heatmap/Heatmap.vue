@@ -78,6 +78,8 @@ const vehicleViews = computed<HeatmapVehicleView[]>(() =>
                 summaryTax: v.annualTaxDueForCompany,
                 exitDate: v.exitDate,
                 weeksWithUnavailability: v.weeksWithUnavailability,
+                fullYearTax: v.fullYearTax,
+                dailyTaxRate: v.dailyTaxRate,
             };
         }
 
@@ -97,6 +99,8 @@ const vehicleViews = computed<HeatmapVehicleView[]>(() =>
             summaryTax: v.annualTaxDue,
             exitDate: v.exitDate,
             weeksWithUnavailability: v.weeksWithUnavailability,
+            fullYearTax: v.fullYearTax,
+            dailyTaxRate: v.dailyTaxRate,
         };
     }),
 );
