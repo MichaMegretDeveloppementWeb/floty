@@ -4,13 +4,14 @@
  * téléchargement du PDF généré à l'émission.
  */
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowRight, Download, FileText, History } from 'lucide-vue-next';
+import { Download, FileText } from 'lucide-vue-next';
 import { computed } from 'vue';
 import InvoiceDivergenceBanner from '@/Components/Domain/Billing/InvoiceDivergenceBanner.vue';
+import InvoiceHistoryTimeline from '@/Components/Domain/Billing/InvoiceHistoryTimeline.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { show as companiesShowRoute } from '@/routes/user/companies';
-import { download as downloadRoute, show as invoicesShowRoute } from '@/routes/user/invoices';
+import { download as downloadRoute } from '@/routes/user/invoices';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -44,9 +45,18 @@ const downloadUrl = computed<string>(() =>
                         <p class="text-xs font-medium tracking-wider uppercase text-slate-500">
                             Facture {{ periodLabel }}
                         </p>
-                        <h1 class="font-mono text-xl font-normal text-slate-900">
-                            {{ invoice.invoiceNumber }}
-                        </h1>
+                        <div class="flex flex-wrap items-baseline gap-2">
+                            <h1 class="font-mono text-xl font-normal text-slate-900">
+                                {{ invoice.invoiceNumber }}
+                            </h1>
+                            <span
+                                v-if="invoice.isObsolete"
+                                class="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700"
+                                title="Cette version a été remplacée par une régénération. Son PDF reste consultable pour l'audit."
+                            >
+                                Version obsolète
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <a
@@ -58,61 +68,10 @@ const downloadUrl = computed<string>(() =>
                 </a>
             </div>
 
-            <!-- Bandeau « Cette facture a été remplacée » : si on consulte
-                 une version obsolète. -->
-            <div
-                v-if="invoice.isObsolete && invoice.supersededByInvoiceId"
-                class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
-            >
-                <History
-                    :size="18"
-                    :stroke-width="1.75"
-                    class="mt-0.5 shrink-0 text-slate-500"
-                />
-                <div class="flex flex-1 flex-col gap-1 text-sm">
-                    <p class="font-medium text-slate-900">
-                        Version obsolète
-                    </p>
-                    <p class="text-slate-600">
-                        Cette facture a été remplacée par
-                        <Link
-                            :href="invoicesShowRoute.url({ invoice: invoice.supersededByInvoiceId })"
-                            class="inline-flex items-center gap-1 font-mono font-medium text-blue-600 hover:underline"
-                        >
-                            {{ invoice.supersededByInvoiceNumber }}
-                            <ArrowRight :size="12" :stroke-width="1.75" />
-                        </Link>
-                        suite à une régénération. Son PDF reste consultable pour l'audit.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Bandeau « Remplace la facture #YYY » : si cette facture
-                 est elle-même la régénération d'une version antérieure. -->
-            <div
-                v-else-if="invoice.supersedesInvoiceId"
-                class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3"
-            >
-                <History
-                    :size="18"
-                    :stroke-width="1.75"
-                    class="mt-0.5 shrink-0 text-slate-500"
-                />
-                <p class="text-sm text-slate-600">
-                    Remplace la facture
-                    <Link
-                        :href="invoicesShowRoute.url({ invoice: invoice.supersedesInvoiceId })"
-                        class="font-mono font-medium text-blue-600 hover:underline"
-                    >
-                        {{ invoice.supersedesInvoiceNumber }}
-                    </Link>
-                    (régénérée à partir du périmètre contractuel actuel).
-                </p>
-            </div>
-
-            <!-- Bandeau divergence (sous header + bouton PDF) -->
+            <!-- Bandeau divergence (sous header + bouton PDF) · uniquement
+                 sur la version active. -->
             <InvoiceDivergenceBanner
-                v-if="invoice.divergence?.hasDivergence"
+                v-if="invoice.divergence?.hasDivergence && !invoice.isObsolete"
                 :invoice-id="invoice.id"
                 :invoice-number="invoice.invoiceNumber"
                 :divergence="invoice.divergence"
@@ -229,6 +188,16 @@ const downloadUrl = computed<string>(() =>
                         </tfoot>
                     </table>
                 </div>
+            </Card>
+
+            <!-- Timeline historique (visible dès qu'il existe ≥ 2 versions
+                 pour le couple entreprise × année × mois) · permet de
+                 naviguer entre versions actives et obsolètes. -->
+            <Card v-if="invoice.historyChain.length > 1">
+                <InvoiceHistoryTimeline
+                    :entries="invoice.historyChain"
+                    :current-invoice-id="invoice.id"
+                />
             </Card>
 
             <!-- Empreinte d'intégrité -->

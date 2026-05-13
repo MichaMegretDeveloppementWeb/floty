@@ -31,6 +31,19 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
             ->find($id);
     }
 
+    public function findHistoryChainFor(Invoice $invoice): array
+    {
+        // Toutes les versions du même couple (company, year, month),
+        // incluant les soft-deletées. Une seule requête, pas de N+1.
+        return Invoice::query()
+            ->withTrashed()
+            ->where('company_id', $invoice->company_id)
+            ->where('year', $invoice->year)
+            ->where('month', $invoice->month)
+            ->get()
+            ->all();
+    }
+
     public function findPredecessor(int $invoiceId): ?Invoice
     {
         // Une facture est « predecessor » de $invoiceId si elle pointe

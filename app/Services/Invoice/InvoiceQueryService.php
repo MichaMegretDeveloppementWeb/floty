@@ -58,6 +58,10 @@ final readonly class InvoiceQueryService
         // bandeau « Remplace #YYYY ».
         $predecessor = $this->repository->findPredecessor($id);
 
+        // Chaîne historique complète des versions du même couple
+        // (company × year × month) · alimente la timeline UI.
+        $historyChain = $this->repository->findHistoryChainFor($invoice);
+
         // Divergence : non pertinente pour les versions obsolètes
         // (elles sont figées dans leur état au moment de la régénération).
         // On évite l'appel coûteux à `BillingCalculator` qui pourrait
@@ -66,6 +70,6 @@ final readonly class InvoiceQueryService
             ? $this->divergenceChecker->check($invoice)
             : null;
 
-        return InvoiceData::fromModel($invoice, $divergence, $predecessor);
+        return InvoiceData::fromModel($invoice, $divergence, $predecessor, $historyChain);
     }
 }

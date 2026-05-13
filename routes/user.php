@@ -154,11 +154,16 @@ Route::middleware('auth')
         Route::post('/invoices/generate', [InvoiceController::class, 'generate'])
             ->middleware('throttle:6,1')
             ->name('invoices.generate');
+        // `withTrashed` (D5.10.P) : les versions obsolètes (soft-deletées
+        // par régénération) restent navigables via leur fiche Show et
+        // leur PDF reste téléchargeable · audit trail légal.
         Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])
             ->whereNumber('invoice')
+            ->withTrashed()
             ->name('invoices.show');
         Route::get('/invoices/{invoice}/download', [InvoiceController::class, 'download'])
             ->whereNumber('invoice')
+            ->withTrashed()
             ->name('invoices.download');
         // Annulation (Phase 14.I) — seule mutation autorisée par la
         // doctrine immuabilité ; permet de regénérer après modif du

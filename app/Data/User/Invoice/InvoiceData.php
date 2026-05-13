@@ -57,10 +57,26 @@ final class InvoiceData extends Data
         public ?string $supersedesInvoiceNumber = null,
         /** ID de la facture remplacée · pour la navigation. */
         public ?int $supersedesInvoiceId = null,
+        /**
+         * Chaîne historique complète des versions du couple (entreprise ×
+         * année × mois) · liste non triée (le front trie par `id DESC`
+         * = plus récent en haut). Inclut la version courante elle-même.
+         * Vide ou singleton si jamais régénérée.
+         *
+         * @var list<InvoiceHistoryEntryData>
+         */
+        public array $historyChain = [],
     ) {}
 
-    public static function fromModel(Invoice $invoice, ?InvoiceDivergenceData $divergence = null, ?Invoice $predecessor = null): self
-    {
+    /**
+     * @param  list<Invoice>  $historyChain  les versions du couple, dans un ordre quelconque (trié front)
+     */
+    public static function fromModel(
+        Invoice $invoice,
+        ?InvoiceDivergenceData $divergence = null,
+        ?Invoice $predecessor = null,
+        array $historyChain = [],
+    ): self {
         $lines = $invoice->lines
             ->map(static fn ($l): InvoiceLineData => InvoiceLineData::fromModel($l))
             ->values()
@@ -72,6 +88,11 @@ final class InvoiceData extends Data
             $supersededBy = $invoice->supersededBy?->invoice_number;
             $supersededById = $invoice->supersededBy?->id;
         }
+
+        $historyEntries = array_map(
+            static fn (Invoice $i): InvoiceHistoryEntryData => InvoiceHistoryEntryData::fromModel($i),
+            $historyChain,
+        );
 
         return new self(
             id: $invoice->id,
@@ -92,6 +113,7 @@ final class InvoiceData extends Data
             supersededByInvoiceId: $supersededById,
             supersedesInvoiceNumber: $predecessor?->invoice_number,
             supersedesInvoiceId: $predecessor?->id,
+            historyChain: $historyEntries,
         );
     }
 }

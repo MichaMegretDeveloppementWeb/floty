@@ -32,6 +32,17 @@ interface InvoiceReadRepositoryInterface
     public function findPredecessor(int $invoiceId): ?Invoice;
 
     /**
+     * Reconstitue la chaîne complète des versions pour le couple
+     * (entreprise × année × mois) d'une facture donnée. Inclut la
+     * facture courante elle-même et toutes les versions obsolètes
+     * (soft-deletées). Aucun ordre garanti · le tri est fait par
+     * le composant front (`InvoiceHistoryTimeline`).
+     *
+     * @return list<Invoice>
+     */
+    public function findHistoryChainFor(Invoice $invoice): array;
+
+    /**
      * Lookup applicatif d'unicité (entreprise × année × mois). Utilisé
      * par {@see App\Actions\Invoice\GenerateInvoiceAction} pour rejeter
      * la regénération avant d'atteindre la contrainte UNIQUE en base.
