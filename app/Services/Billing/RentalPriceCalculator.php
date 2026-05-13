@@ -65,8 +65,8 @@ final readonly class RentalPriceCalculator
      * récupérés par batch sur tous les contrats du même appelant via
      * `forContracts`.
      *
-     * @param  array<int, VehicleYearlyPricing>|null  $pricingsByVehicleYearKey
-     *                                                                           Clé : `vehicleId.year`. Si fourni, pas de SQL.
+     * @param  array<string, VehicleYearlyPricing>|null  $pricingsByVehicleYearKey
+     *                                                                              Clé : `vehicleId.year` (string). Si fourni, pas de SQL.
      */
     public function forContractModel(Contract $contract, ?array $pricingsByVehicleYearKey = null): ?int
     {

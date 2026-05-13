@@ -81,5 +81,15 @@ final readonly class ContractSnapshotEntry
          */
         public ?int $clusterDecisionRetainedFrom,
         public bool $isOptedOut,
+        /**
+         * Phase 13 D5.10.W · raison d'exonération du contrat formatée
+         * pour affichage utilisateur (PDF + UI). Null si le contrat
+         * est taxé. Format · `« Exonéré R-XXXX-YYY · {nom court}
+         * (CIBS L. {article}) »`. Calculé par
+         * {@see App\Services\Fiscal\Declaration\DeclarationFiscalEngine}
+         * d'après la qualification fiscale du contrat (LCD individuel
+         * non opt-out → R-2024-021 ; autres cas à venir).
+         */
+        public ?string $exemptionReason,
     ) {}
 }

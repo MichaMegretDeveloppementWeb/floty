@@ -163,6 +163,13 @@
             font-size: 8pt;
             margin-top: 0.5mm;
         }
+        .exemption-mention {
+            display: block;
+            color: #475569;
+            font-size: 8pt;
+            margin-top: 0.8mm;
+            font-style: italic;
+        }
         .seal {
             margin-top: 6mm;
             padding: 3mm 4mm;
@@ -241,7 +248,6 @@
                 <thead>
                     <tr>
                         <th>Période</th>
-                        <th>Type</th>
                         <th>Véhicule</th>
                         <th class="numeric">Jours</th>
                         <th class="numeric">Taxe</th>
@@ -251,10 +257,12 @@
                     @foreach ($contractRows as $row)
                         <tr>
                             <td class="mono">{{ $row['period'] }}</td>
-                            <td>{{ $row['contractTypeLabel'] }}</td>
                             <td>
                                 {{ $row['vehicleLabel'] }}
                                 <span class="vehicle-summary">{{ $row['vehicleFiscalSummary'] }}</span>
+                                @if ($row['exemptionReason'] !== null)
+                                    <span class="exemption-mention">{{ $row['exemptionReason'] }}</span>
+                                @endif
                             </td>
                             <td class="numeric">{{ $row['daysInYearAssigned'] }}</td>
                             <td class="numeric">{{ $row['totalDue'] }}</td>

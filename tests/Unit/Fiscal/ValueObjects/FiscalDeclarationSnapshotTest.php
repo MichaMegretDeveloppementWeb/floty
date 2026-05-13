@@ -45,6 +45,7 @@ final class FiscalDeclarationSnapshotTest extends TestCase
             clusterJustification: 'Justification.',
             clusterDecisionRetainedFrom: null,
             isOptedOut: true,
+            exemptionReason: null,
         );
 
         $decisionEntry = new AppliedDecisionEntry(
@@ -131,6 +132,7 @@ final class FiscalDeclarationSnapshotTest extends TestCase
             clusterJustification: null,
             clusterDecisionRetainedFrom: null,
             isOptedOut: false,
+            exemptionReason: null,
         );
 
         $this->expectException(\Error::class);

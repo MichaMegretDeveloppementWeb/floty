@@ -211,10 +211,20 @@ final readonly class DeclarationFiscalEngine
                 $isExempted = $isLcd && ! in_array($contract->id, $optOutContractIds, true);
                 $taxableDays = $isExempted ? 0 : $daysInYear;
 
+                // Phase 13 D5.10.W · raison d'exonération formatée pour
+                // affichage utilisateur (PDF + UI). Aujourd'hui seul le
+                // motif R-2024-021 (LCD individuel non opt-out) est
+                // matérialisé ; les autres motifs (véhicule EV, etc.)
+                // viendront quand le moteur les exposera.
+                $exemptionReason = $isExempted
+                    ? 'Exonéré R-2024-021 · LCD courte durée (CIBS L. 421-129)'
+                    : null;
+
                 $contractsWithTaxableDays[] = [
                     'contract' => $contract,
                     'days' => $daysInYear,
                     'taxableDays' => $taxableDays,
+                    'exemptionReason' => $exemptionReason,
                 ];
                 $coupleTaxableDays += $taxableDays;
             }
@@ -224,6 +234,7 @@ final readonly class DeclarationFiscalEngine
                 $contract = $entry['contract'];
                 $daysInYear = $entry['days'];
                 $taxableDays = $entry['taxableDays'];
+                $exemptionReason = $entry['exemptionReason'];
 
                 $share = $coupleTaxableDays > 0 ? $taxableDays / $coupleTaxableDays : 0.0;
                 $co2Due = round($coupleCo2 * $share, 2, PHP_ROUND_HALF_UP);
@@ -252,6 +263,7 @@ final readonly class DeclarationFiscalEngine
                     clusterJustification: $clusterInfo['justification'] ?? null,
                     clusterDecisionRetainedFrom: $clusterInfo['retainedFrom'] ?? null,
                     isOptedOut: in_array($contract->id, $optOutContractIds, true),
+                    exemptionReason: $exemptionReason,
                 );
             }
         }

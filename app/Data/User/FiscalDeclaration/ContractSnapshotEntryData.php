@@ -47,6 +47,7 @@ final class ContractSnapshotEntryData extends Data
         public ?string $clusterJustification,
         public ?int $clusterDecisionRetainedFrom,
         public bool $isOptedOut,
+        public ?string $exemptionReason,
     ) {}
 
     public static function fromValueObject(ContractSnapshotEntry $vo): self
@@ -71,6 +72,7 @@ final class ContractSnapshotEntryData extends Data
             clusterJustification: $vo->clusterJustification,
             clusterDecisionRetainedFrom: $vo->clusterDecisionRetainedFrom,
             isOptedOut: $vo->isOptedOut,
+            exemptionReason: $vo->exemptionReason,
         );
     }
 }

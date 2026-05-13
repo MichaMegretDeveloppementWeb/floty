@@ -146,6 +146,13 @@ const decisionIndicator = computed<DecisionIndicator | null>(() => {
             <div class="flex flex-col gap-0.5">
                 <span class="font-medium text-slate-900">{{ contract.vehicleLabel }}</span>
                 <span class="text-[11px] text-slate-500">{{ contract.vehicleFiscalSummary }}</span>
+                <span
+                    v-if="contract.exemptionReason"
+                    class="mt-0.5 text-[11px] italic text-slate-500"
+                    :title="contract.exemptionReason"
+                >
+                    {{ contract.exemptionReason }}
+                </span>
             </div>
         </td>
         <td class="px-3 py-2 text-right align-top tabular-nums">

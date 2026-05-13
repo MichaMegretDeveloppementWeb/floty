@@ -81,13 +81,38 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
         self::assertStringContainsString('Détail chronologique par contrat', $html);
         // Période formatée FR
         self::assertStringContainsString('01/01/2024 → 19/07/2024', $html);
-        // Type contrat
-        self::assertStringContainsString('LLD', $html);
         // Véhicule + résumé fiscal
         self::assertStringContainsString('Peugeot 308 · AB-123-CD', $html);
         self::assertStringContainsString('M1 · WLTP 100 g · Euro 6', $html);
         // Jours
         self::assertStringContainsString('200', $html);
+    }
+
+    #[Test]
+    public function html_ne_contient_pas_de_colonne_type_lcd_lld(): void
+    {
+        // Phase 13 D5.10.W · la colonne « Type » (LCD/LLD) est retirée
+        // du PDF officiel · elle ajoutait du bruit sans valeur pour
+        // l'administration qui lit uniquement la période et le montant.
+        $html = $this->renderer->renderHtml($this->buildContext());
+
+        self::assertStringNotContainsString('<th>Type</th>', $html);
+    }
+
+    #[Test]
+    public function html_affiche_la_mention_exoneration_pour_un_contrat_exonere(): void
+    {
+        // Phase 13 D5.10.W · les contrats LCD individuels non opt-out
+        // sont exonérés au titre de R-2024-021 et doivent porter une
+        // mention compacte sous le véhicule indiquant le motif et
+        // l'article CIBS associé, pour permettre à l'administration
+        // d'auditer la déclaration sans page d'annexes.
+        $html = $this->renderer->renderHtml($this->buildContextWithExemption());
+
+        self::assertStringContainsString(
+            'Exonéré R-2024-021 · LCD courte durée (CIBS L. 421-129)',
+            $html,
+        );
     }
 
     #[Test]
@@ -114,6 +139,10 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
     {
         // Phase 13 D5.10.J · le bloc « mentions légales » pédagogique
         // (CIBS / BOFiP / R-2024-021) est retiré du document officiel.
+        // Phase 13 D5.10.W · le motif R-2024-021 peut désormais
+        // apparaître localement sous un contrat exonéré (mention
+        // courte) · on garde une fixture sans exonération pour
+        // garantir que l'ancien bloc pédagogique n'a pas resurgi.
         $html = $this->renderer->renderHtml($this->buildContext());
 
         self::assertStringNotContainsString('Mentions légales', $html);
@@ -226,6 +255,7 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
                     clusterJustification: null,
                     clusterDecisionRetainedFrom: null,
                     isOptedOut: false,
+                    exemptionReason: null,
                 ),
             ],
             appliedDecisions: [],
@@ -247,6 +277,64 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
             preview: $preview,
             snapshot: $snapshot,
             reference: 'DECL-ACM-2024-0001',
+            generatedAt: CarbonImmutable::parse('2025-01-15 09:30:00'),
+        );
+    }
+
+    private function buildContextWithExemption(): DeclarationRenderContext
+    {
+        $snapshot = new FiscalDeclarationSnapshot(
+            companyId: 7,
+            companyShortCode: 'ACM',
+            companyLegalName: 'ACM SARL',
+            fiscalYear: 2024,
+            computedAt: CarbonImmutable::parse('2024-12-31 23:59:59'),
+            co2DueTotal: 0.0,
+            pollutantsDueTotal: 0.0,
+            totalDue: 0.0,
+            contractBreakdown: [
+                new ContractSnapshotEntry(
+                    contractId: 20,
+                    contractReference: 'LCD-EXEMPT',
+                    contractType: ContractType::Lcd,
+                    startDate: '2024-05-10',
+                    endDate: '2024-05-19',
+                    daysInYearAssigned: 10,
+                    vehicleId: 42,
+                    vehicleLabel: 'Peugeot 308 · AB-123-CD',
+                    vehicleFiscalSummary: 'M1 · WLTP 100 g · Euro 6',
+                    co2Due: 0.0,
+                    pollutantsDue: 0.0,
+                    totalDue: 0.0,
+                    clusterFingerprint: null,
+                    clusterRiskCode: null,
+                    clusterRiskLevel: null,
+                    clusterDecision: null,
+                    clusterJustification: null,
+                    clusterDecisionRetainedFrom: null,
+                    isOptedOut: false,
+                    exemptionReason: 'Exonéré R-2024-021 · LCD courte durée (CIBS L. 421-129)',
+                ),
+            ],
+            appliedDecisions: [],
+            optOutContractIds: [],
+        );
+
+        $preview = new DeclarationPreviewData(
+            companyId: 7,
+            companyShortCode: 'ACM',
+            companyLegalName: 'ACM SARL',
+            fiscalYear: 2024,
+            clusters: [],
+            pendingClustersCount: 0,
+            canGenerate: true,
+            declaration: null,
+        );
+
+        return new DeclarationRenderContext(
+            preview: $preview,
+            snapshot: $snapshot,
+            reference: 'DECL-ACM-2024-0003',
             generatedAt: CarbonImmutable::parse('2025-01-15 09:30:00'),
         );
     }
@@ -291,6 +379,7 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
                     clusterJustification: 'Décision justifiée par le métier.',
                     clusterDecisionRetainedFrom: 99,
                     isOptedOut: false,
+                    exemptionReason: null,
                 ),
                 new ContractSnapshotEntry(
                     contractId: 12,
@@ -312,6 +401,7 @@ final class BladeDomPdfDeclarationRendererTest extends TestCase
                     clusterJustification: 'Décision justifiée par le métier.',
                     clusterDecisionRetainedFrom: 99,
                     isOptedOut: false,
+                    exemptionReason: null,
                 ),
             ],
             appliedDecisions: [

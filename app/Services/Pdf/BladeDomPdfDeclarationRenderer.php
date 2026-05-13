@@ -6,7 +6,6 @@ namespace App\Services\Pdf;
 
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
 use App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData;
-use App\Enums\Contract\ContractType;
 use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\DeclarationRenderContext;
 use App\Services\Fiscal\SnapshotHashCalculator;
@@ -82,14 +81,20 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
      * uniquement le détail par contrat avec son traitement fiscal final
      * déjà appliqué.
      *
+     * Phase 13 D5.10.W · la colonne « Type » (LCD/LLD) est retirée :
+     * elle ajoute du bruit sans valeur pour l'administration, qui
+     * lit uniquement le montant taxé et la période. À sa place, les
+     * contrats exonérés affichent une mention compacte sous le
+     * véhicule indiquant le motif et l'article CIBS associé.
+     *
      * @param  list<ContractSnapshotEntry>  $contractBreakdown
      * @return list<array{
      *     period: string,
-     *     contractTypeLabel: string,
      *     vehicleLabel: string,
      *     vehicleFiscalSummary: string,
      *     daysInYearAssigned: int,
      *     totalDue: string,
+     *     exemptionReason: ?string,
      * }>
      */
     private function buildContractRows(array $contractBreakdown): array
@@ -98,11 +103,11 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
         foreach ($contractBreakdown as $entry) {
             $rows[] = [
                 'period' => $this->formatPeriod($entry->startDate, $entry->endDate),
-                'contractTypeLabel' => $entry->contractType === ContractType::Lcd ? 'LCD' : 'LLD',
                 'vehicleLabel' => $entry->vehicleLabel,
                 'vehicleFiscalSummary' => $entry->vehicleFiscalSummary,
                 'daysInYearAssigned' => $entry->daysInYearAssigned,
                 'totalDue' => $this->formatEuros($entry->totalDue),
+                'exemptionReason' => $entry->exemptionReason,
             ];
         }
 

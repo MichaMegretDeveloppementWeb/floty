@@ -382,6 +382,15 @@ final class DeclarationFiscalEngineTest extends TestCase
         self::assertSame(0.0, $byContractId[$lcd->id]->pollutantsDue);
         self::assertSame(0.0, $byContractId[$lcd->id]->totalDue);
 
+        // Phase 13 D5.10.W · le LCD exempté porte la mention
+        // R-2024-021 (CIBS L. 421-129) pour le PDF / la future UI.
+        self::assertSame(
+            'Exonéré R-2024-021 · LCD courte durée (CIBS L. 421-129)',
+            $byContractId[$lcd->id]->exemptionReason,
+        );
+        // Le LLD n'a aucune exonération à matérialiser.
+        self::assertNull($byContractId[$lld->id]->exemptionReason);
+
         // Le LLD reçoit l'intégralité de la taxe couple · sa part
         // somme au total dû.
         self::assertGreaterThan(0.0, $byContractId[$lld->id]->totalDue);
