@@ -11,6 +11,7 @@ use App\Data\User\FiscalDeclaration\DeclarationPreviewData;
 use App\Data\User\FiscalDeclaration\FiscalDeclarationData;
 use App\Data\User\FiscalDeclaration\ReviewClusterData;
 use App\Models\FiscalReviewDecision;
+use Carbon\CarbonImmutable;
 use RuntimeException;
 
 /**
@@ -96,21 +97,109 @@ final readonly class DeclarationPreviewService
                 continue;
             }
 
+            $excluded = array_values(array_map(
+                static fn ($v): int => (int) $v,
+                $match->excluded_contract_ids ?? [],
+            ));
+
+            if ($excluded === []) {
+                $enriched[] = new ReviewClusterData(
+                    code: $cluster->code,
+                    level: $cluster->level,
+                    fingerprint: $cluster->fingerprint,
+                    contracts: $cluster->contracts,
+                    contractsCount: $cluster->contractsCount,
+                    coveragePeriodDays: $cluster->coveragePeriodDays,
+                    coverageStartDate: $cluster->coverageStartDate,
+                    coverageEndDate: $cluster->coverageEndDate,
+                    distinctVehiclesCount: $cluster->distinctVehiclesCount,
+                    decision: $match->decision,
+                    justification: $match->justification,
+                    excludedContractIds: [],
+                );
+
+                continue;
+            }
+
+            // Phase 13 D5.10.S · recalcul des stats effectives en
+            // filtrant les contrats exclus · la liste `contracts`
+            // reste brute (= tous les contrats du cluster détecté)
+            // pour permettre à la modale de toggler chacun.
+            $stats = $this->computeEffectiveStats($cluster, $excluded);
+
             $enriched[] = new ReviewClusterData(
                 code: $cluster->code,
                 level: $cluster->level,
                 fingerprint: $cluster->fingerprint,
                 contracts: $cluster->contracts,
-                contractsCount: $cluster->contractsCount,
-                coveragePeriodDays: $cluster->coveragePeriodDays,
-                coverageStartDate: $cluster->coverageStartDate,
-                coverageEndDate: $cluster->coverageEndDate,
-                distinctVehiclesCount: $cluster->distinctVehiclesCount,
+                contractsCount: $stats['count'],
+                coveragePeriodDays: $stats['days'],
+                coverageStartDate: $stats['start'],
+                coverageEndDate: $stats['end'],
+                distinctVehiclesCount: $stats['vehicles'],
                 decision: $match->decision,
                 justification: $match->justification,
+                excludedContractIds: $excluded,
             );
         }
 
         return $enriched;
+    }
+
+    /**
+     * Recalcule les stats effectives d'un cluster après exclusion de
+     * certains contrats (Phase 13 D5.10.S). Reflète ce que le cluster
+     * « effectif » est aux yeux du calcul fiscal · les exclus sont
+     * traités comme LCD individuels hors chaîne.
+     *
+     * Si tous les contrats sont exclus, les stats retombent à 0/dates
+     * brutes · cas dégénéré peu probable, géré sans crash.
+     *
+     * @param  list<int>  $excludedContractIds
+     * @return array{count: int, days: int, start: string, end: string, vehicles: int}
+     */
+    private function computeEffectiveStats(ReviewClusterData $cluster, array $excludedContractIds): array
+    {
+        $included = array_values(array_filter(
+            $cluster->contracts,
+            static fn ($c) => ! in_array($c->contractId, $excludedContractIds, true),
+        ));
+
+        if ($included === []) {
+            return [
+                'count' => 0,
+                'days' => 0,
+                'start' => $cluster->coverageStartDate,
+                'end' => $cluster->coverageEndDate,
+                'vehicles' => 0,
+            ];
+        }
+
+        $minStart = $included[0]->startDate;
+        $maxEnd = $included[0]->endDate;
+        foreach ($included as $c) {
+            if (strcmp($c->startDate, $minStart) < 0) {
+                $minStart = $c->startDate;
+            }
+            if (strcmp($c->endDate, $maxEnd) > 0) {
+                $maxEnd = $c->endDate;
+            }
+        }
+
+        $effectiveDays = (int) CarbonImmutable::parse($minStart)
+            ->diffInDays(CarbonImmutable::parse($maxEnd)) + 1;
+
+        $vehicleIds = array_unique(array_map(
+            static fn ($c): int => $c->vehicleId,
+            $included,
+        ));
+
+        return [
+            'count' => count($included),
+            'days' => $effectiveDays,
+            'start' => $minStart,
+            'end' => $maxEnd,
+            'vehicles' => count($vehicleIds),
+        ];
     }
 }

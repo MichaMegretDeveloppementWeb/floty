@@ -31,6 +31,7 @@ export function useReviewForm(declarationId: number): {
                 cluster_fingerprint: data.clusterFingerprint,
                 decision: data.decision,
                 justification: data.justification ?? '',
+                excluded_contract_ids: data.excludedContractIds ?? [],
             } as Record<string, unknown>,
             {
                 preserveScroll: true,

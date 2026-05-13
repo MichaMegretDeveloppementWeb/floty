@@ -22,6 +22,7 @@ final class AppliedDecisionEntryData extends Data
 {
     /**
      * @param  list<int>  $contractIds
+     * @param  list<int>  $excludedContractIds  Phase 13 D5.10.S · contrats exclus du cluster par l'utilisateur
      */
     public function __construct(
         public string $clusterFingerprint,
@@ -29,6 +30,7 @@ final class AppliedDecisionEntryData extends Data
         public ReviewDecisionType $decision,
         public array $contractIds,
         public ?string $justification,
+        public array $excludedContractIds = [],
     ) {}
 
     public static function fromValueObject(AppliedDecisionEntry $vo): self
@@ -39,6 +41,7 @@ final class AppliedDecisionEntryData extends Data
             decision: $vo->decision,
             contractIds: $vo->contractIds,
             justification: $vo->justification,
+            excludedContractIds: $vo->excludedContractIds,
         );
     }
 }

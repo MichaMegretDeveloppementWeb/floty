@@ -33,16 +33,34 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { required: true });
 
 const emit = defineEmits<{
-    submit: [decision: 'conserved' | 'requalified', justification: string | null];
+    submit: [
+        decision: 'conserved' | 'requalified',
+        justification: string | null,
+        excludedContractIds: number[],
+    ];
 }>();
 
 const justification = ref<string>('');
+
+/**
+ * Phase 13 D5.10.S · état local d'inclusion par contrat. Initialisé
+ * depuis `cluster.excludedContractIds` à l'ouverture · permet de
+ * pré-cocher correctement quand l'utilisateur rouvre une décision déjà
+ * persistée.
+ */
+const contractIncluded = ref<Record<number, boolean>>({});
 
 watch(
     () => [open.value, props.cluster?.fingerprint],
     () => {
         if (open.value && props.cluster !== null) {
             justification.value = props.cluster.justification ?? '';
+            const initial: Record<number, boolean> = {};
+            const excluded = new Set(props.cluster.excludedContractIds ?? []);
+            for (const contract of props.cluster.contracts) {
+                initial[contract.contractId] = !excluded.has(contract.contractId);
+            }
+            contractIncluded.value = initial;
         }
     },
     { immediate: true },
@@ -58,15 +76,52 @@ const justificationRequired = computed<boolean>(
     () => isHighRisk.value && true,
 );
 
-const canConserve = computed<boolean>(
-    () => !justificationRequired.value || justification.value.trim().length > 0,
+const includedCount = computed<number>(
+    () => Object.values(contractIncluded.value).filter((v) => v).length,
 );
 
+/**
+ * Phase 13 D5.10.S · une chaîne nécessite ≥ 2 contrats pour exister.
+ * Si l'utilisateur en décoche trop, la décision n'est plus applicable.
+ */
+const canSubmit = computed<boolean>(() => includedCount.value >= 2);
+
+const canConserve = computed<boolean>(
+    () => canSubmit.value
+        && (!justificationRequired.value || justification.value.trim().length > 0),
+);
+
+const canRequalify = computed<boolean>(() => canSubmit.value);
+
+const effectiveVehiclesCount = computed<number>(() => {
+    if (props.cluster === null) {
+        return 0;
+    }
+    const includedVehicleIds = new Set<number>();
+    for (const contract of props.cluster.contracts) {
+        if (contractIncluded.value[contract.contractId]) {
+            includedVehicleIds.add(contract.vehicleId);
+        }
+    }
+
+    return includedVehicleIds.size;
+});
+
 const vehiclesLabel = computed<string>(() => {
-    const count = props.cluster?.distinctVehiclesCount ?? 0;
+    const count = effectiveVehiclesCount.value;
 
     return count > 1 ? `${count} véhicules` : '1 véhicule';
 });
+
+function computeExcludedIds(): number[] {
+    if (props.cluster === null) {
+        return [];
+    }
+
+    return props.cluster.contracts
+        .filter((c) => !contractIncluded.value[c.contractId])
+        .map((c) => c.contractId);
+}
 
 function handleClose(): void {
     open.value = false;
@@ -77,15 +132,15 @@ function handleConserve(): void {
         return;
     }
 
-    emit('submit', 'conserved', justification.value.trim() || null);
+    emit('submit', 'conserved', justification.value.trim() || null, computeExcludedIds());
 }
 
 function handleRequalify(): void {
-    if (props.submitting) {
+    if (!canRequalify.value || props.submitting) {
         return;
     }
 
-    emit('submit', 'requalified', justification.value.trim() || null);
+    emit('submit', 'requalified', justification.value.trim() || null, computeExcludedIds());
 }
 </script>
 
@@ -125,30 +180,64 @@ function handleRequalify(): void {
                 </p>
             </div>
 
-            <!-- Détail tabulaire des contrats du cluster (multi-véhicules supporté) -->
+            <!--
+                Phase 13 D5.10.S · contrats du cluster avec case à
+                cocher « Inclure dans la chaîne ». Décocher un contrat
+                le sort du cluster · il est traité comme LCD individuel
+                exempté R-2024-021 et ne participe pas à l'opt-out en
+                cas de décision Requalified.
+            -->
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                <p class="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                    Contrats du cluster
+                <div class="mb-2 flex items-baseline justify-between gap-2">
+                    <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                        Contrats inclus dans la chaîne
+                    </p>
+                    <p class="text-[10px] text-slate-500">
+                        {{ includedCount }} sur {{ cluster.contracts.length }} inclus
+                    </p>
+                </div>
+                <p class="mb-2 text-[11px] text-slate-500">
+                    Décochez un contrat pour le sortir de la chaîne ·
+                    il sera traité comme un LCD individuel exempté
+                    (R-2024-021).
                 </p>
                 <ul class="flex flex-col gap-1.5">
                     <li
                         v-for="contract in cluster.contracts"
                         :key="contract.contractId"
                         class="flex flex-wrap items-center justify-between gap-2 rounded-md border border-slate-200 bg-white px-3 py-1.5"
+                        :class="{ 'opacity-60': !contractIncluded[contract.contractId] }"
                     >
                         <div class="flex flex-wrap items-center gap-2">
-                            <span class="font-mono text-xs tabular-nums text-slate-700">
-                                {{ formatDateFr(contract.startDate) }} → {{ formatDateFr(contract.endDate) }}
-                            </span>
-                            <span class="font-mono text-[10px] text-slate-400">
-                                #{{ contract.contractId }} · {{ contract.vehiclePlate ?? `véh. ${contract.vehicleId}` }}
-                            </span>
+                            <input
+                                :id="`include-${contract.contractId}`"
+                                v-model="contractIncluded[contract.contractId]"
+                                type="checkbox"
+                                class="size-3.5 cursor-pointer rounded border-slate-300 text-slate-900 focus:ring-1 focus:ring-slate-400"
+                            />
+                            <label
+                                :for="`include-${contract.contractId}`"
+                                class="flex cursor-pointer flex-wrap items-center gap-2"
+                            >
+                                <span class="font-mono text-xs tabular-nums text-slate-700">
+                                    {{ formatDateFr(contract.startDate) }} → {{ formatDateFr(contract.endDate) }}
+                                </span>
+                                <span class="font-mono text-[10px] text-slate-400">
+                                    #{{ contract.contractId }} · {{ contract.vehiclePlate ?? `véh. ${contract.vehicleId}` }}
+                                </span>
+                            </label>
                         </div>
                         <span class="text-xs font-medium text-slate-900">
                             {{ contract.durationDaysInYear }} j
                         </span>
                     </li>
                 </ul>
+                <p
+                    v-if="!canSubmit"
+                    class="mt-2 text-[11px] font-medium text-rose-600"
+                >
+                    Au moins 2 contrats doivent être inclus pour former une chaîne.
+                </p>
             </div>
 
             <!-- Explication réglementaire -->
@@ -212,7 +301,7 @@ function handleRequalify(): void {
             </Button>
             <Button
                 variant="destructive-soft"
-                :disabled="submitting"
+                :disabled="!canRequalify || submitting"
                 :loading="submitting"
                 @click="handleRequalify"
             >

@@ -439,6 +439,82 @@ final class DeclarationFiscalEngineTest extends TestCase
         self::assertEqualsWithDelta($snapshot->totalDue, $sumParts, 0.02);
     }
 
+    #[Test]
+    public function requalified_avec_contrat_exclu_garde_son_exoneration_lcd(): void
+    {
+        // Phase 13 D5.10.S · décision Requalified avec un contrat
+        // explicitement exclu · le contrat exclu reste LCD exempté
+        // R-2024-021, les autres LCD du cluster opt-out comme prévu.
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $c1 = $this->makeContract($vehicle, '2024-01-01', '2024-01-20', ContractType::Lcd);
+        $c2 = $this->makeContract($vehicle, '2024-01-26', '2024-02-14', ContractType::Lcd);
+        $this->makeContract($vehicle, '2024-03-01', '2024-12-31', ContractType::Lld);
+
+        $clusters = $this->app->make(RiskDetectionService::class)
+            ->detectClusters($this->company->id, 2024);
+        self::assertCount(1, $clusters);
+
+        FiscalReviewDecision::factory()->create([
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2024,
+            'cluster_fingerprint' => $clusters[0]->fingerprint,
+            'risk_code' => $clusters[0]->code,
+            'decision' => ReviewDecisionType::Requalified,
+            'justification' => 'Test exclusion partielle.',
+            'excluded_contract_ids' => [$c1->id], // exclure c1
+            'decided_at' => CarbonImmutable::now(),
+        ]);
+
+        $snapshot = $this->engine->compute($this->company->id, 2024);
+
+        // c1 est exclu · pas d'opt-out · garde son exonération R-2024-021
+        self::assertNotContains($c1->id, $snapshot->optOutContractIds);
+        // c2 reste opt-out (dans le cluster, pas exclu, décision Requalified)
+        self::assertContains($c2->id, $snapshot->optOutContractIds);
+
+        // L'AppliedDecisionEntry trace les exclusions.
+        self::assertCount(1, $snapshot->appliedDecisions);
+        self::assertSame([$c1->id], $snapshot->appliedDecisions[0]->excludedContractIds);
+    }
+
+    #[Test]
+    public function contrat_exclu_du_cluster_n_a_pas_de_cluster_fingerprint_dans_le_snapshot(): void
+    {
+        // Phase 13 D5.10.S · un contrat exclu sort visuellement du
+        // bloc cluster côté frontend · son ContractSnapshotEntry doit
+        // avoir clusterFingerprint=null pour être rendu comme row simple.
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $c1 = $this->makeContract($vehicle, '2024-01-01', '2024-01-20', ContractType::Lcd);
+        $c2 = $this->makeContract($vehicle, '2024-01-26', '2024-02-14', ContractType::Lcd);
+
+        $clusters = $this->app->make(RiskDetectionService::class)
+            ->detectClusters($this->company->id, 2024);
+        self::assertCount(1, $clusters);
+
+        FiscalReviewDecision::factory()->create([
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2024,
+            'cluster_fingerprint' => $clusters[0]->fingerprint,
+            'risk_code' => $clusters[0]->code,
+            'decision' => ReviewDecisionType::Conserved,
+            'justification' => 'Test marker.',
+            'excluded_contract_ids' => [$c1->id],
+            'decided_at' => CarbonImmutable::now(),
+        ]);
+
+        $snapshot = $this->engine->compute($this->company->id, 2024);
+
+        $byContractId = [];
+        foreach ($snapshot->contractBreakdown as $entry) {
+            $byContractId[$entry->contractId] = $entry;
+        }
+
+        // c1 exclu · pas de mapping cluster · fingerprint null
+        self::assertNull($byContractId[$c1->id]->clusterFingerprint);
+        // c2 toujours dans le cluster · fingerprint set
+        self::assertNotNull($byContractId[$c2->id]->clusterFingerprint);
+    }
+
     private function standardAggregatorTotalFor(Vehicle $vehicle, int $year): float
     {
         $contracts = $this->app->make(ContractQueryService::class)

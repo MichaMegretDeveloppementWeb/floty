@@ -35,6 +35,10 @@ final readonly class StoreReviewDecisionAction
     {
         $this->guardJustificationIfRequired($data);
 
+        $excludedIds = $data->excludedContractIds !== null && $data->excludedContractIds !== []
+            ? array_values(array_unique(array_map(static fn ($v): int => (int) $v, $data->excludedContractIds)))
+            : null;
+
         $decision = DB::transaction(fn (): FiscalReviewDecision => $this->writer->upsert([
             'company_id' => $data->companyId,
             'fiscal_year' => $data->fiscalYear,
@@ -42,6 +46,7 @@ final readonly class StoreReviewDecisionAction
             'cluster_fingerprint' => $data->clusterFingerprint,
             'decision' => $data->decision,
             'justification' => $data->justification,
+            'excluded_contract_ids' => $excludedIds,
             'decided_by' => $userId,
             'decided_at' => Carbon::now(),
         ]));

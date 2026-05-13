@@ -19,6 +19,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 final class FiscalReviewDecisionData extends Data
 {
+    /**
+     * @param  list<int>  $excludedContractIds
+     */
     public function __construct(
         public int $id,
         public int $companyId,
@@ -27,6 +30,8 @@ final class FiscalReviewDecisionData extends Data
         public string $clusterFingerprint,
         public ReviewDecisionType $decision,
         public ?string $justification,
+        /** Phase 13 D5.10.S · contractIds explicitement exclus du cluster par l'utilisateur. */
+        public array $excludedContractIds,
         /** ISO 8601 (Y-m-d\TH:i:sP). */
         public string $decidedAt,
         public string $decidedByUserName,
@@ -42,6 +47,7 @@ final class FiscalReviewDecisionData extends Data
             clusterFingerprint: $decision->cluster_fingerprint,
             decision: $decision->decision,
             justification: $decision->justification,
+            excludedContractIds: $decision->excluded_contract_ids ?? [],
             decidedAt: $decision->decided_at->toIso8601String(),
             decidedByUserName: trim($decision->decidedBy->first_name.' '.$decision->decidedBy->last_name),
         );

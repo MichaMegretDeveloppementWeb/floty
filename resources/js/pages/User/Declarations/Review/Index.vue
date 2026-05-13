@@ -105,6 +105,7 @@ function handleSubmit(
     cluster: App.Data.User.FiscalDeclaration.ReviewClusterData,
     decision: 'conserved' | 'requalified',
     justification: string | null,
+    excludedContractIds: number[],
 ): void {
     submitDecision({
         companyId: props.declaration.companyId,
@@ -113,6 +114,7 @@ function handleSubmit(
         clusterFingerprint: cluster.fingerprint,
         decision,
         justification,
+        excludedContractIds,
     });
 }
 
@@ -121,7 +123,9 @@ function handleQuickRequalify(fingerprint: string): void {
     if (cluster === undefined) {
         return;
     }
-    handleSubmit(cluster, 'requalified', null);
+    // Phase 13 D5.10.S · le quick requalify depuis le recap reprend
+    // l'état d'inclusion actuel (vide par défaut = tous inclus).
+    handleSubmit(cluster, 'requalified', null, cluster.excludedContractIds ?? []);
 }
 
 function handleScrollTo(fingerprint: string): void {
@@ -205,7 +209,7 @@ function handleScrollTo(fingerprint: string): void {
                 :snapshot="snapshot"
                 :review-clusters="preview.clusters"
                 :submitting="submitting"
-                @submit="(cluster, decision, justification) => handleSubmit(cluster, decision, justification)"
+                @submit="(cluster, decision, justification, excludedIds) => handleSubmit(cluster, decision, justification, excludedIds)"
             />
 
             <div

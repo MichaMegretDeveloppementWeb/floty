@@ -29,6 +29,9 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[MapInputName(SnakeCaseMapper::class)]
 final class StoreReviewDecisionData extends Data
 {
+    /**
+     * @param  list<int>|null  $excludedContractIds
+     */
     public function __construct(
         #[Min(1)]
         public int $companyId,
@@ -40,5 +43,13 @@ final class StoreReviewDecisionData extends Data
         public ReviewDecisionType $decision,
         #[Nullable, Max(2000)]
         public ?string $justification = null,
+        /**
+         * Phase 13 D5.10.S · contractIds explicitement exclus du
+         * cluster · ils sont traités comme LCD individuels exemptés
+         * R-2024-021 et ne participent pas à l'opt-out si la décision
+         * globale est Requalified.
+         */
+        #[Nullable]
+        public ?array $excludedContractIds = null,
     ) {}
 }

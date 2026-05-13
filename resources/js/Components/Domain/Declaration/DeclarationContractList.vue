@@ -55,6 +55,7 @@ const emit = defineEmits<{
         cluster: ReviewCluster,
         decision: 'conserved' | 'requalified',
         justification: string | null,
+        excludedContractIds: number[],
     ];
 }>();
 
@@ -233,9 +234,10 @@ function openModalFor(cluster: ReviewCluster): void {
 function handleModalSubmit(
     decision: 'conserved' | 'requalified',
     justification: string | null,
+    excludedContractIds: number[],
 ): void {
     if (selectedCluster.value !== null) {
-        emit('submit', selectedCluster.value, decision, justification);
+        emit('submit', selectedCluster.value, decision, justification, excludedContractIds);
     }
 
     modalOpen.value = false;

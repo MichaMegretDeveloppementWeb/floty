@@ -344,7 +344,17 @@ final readonly class DeclarationFiscalEngine
         foreach ($clusters as $cluster) {
             $applied = $decisionsByFingerprint[$cluster->fingerprint] ?? null;
             $retainedFrom = $retainedFromByFingerprint[$cluster->fingerprint] ?? null;
+            $excludedIds = $applied?->excludedContractIds ?? [];
             foreach ($cluster->contracts as $clusterContract) {
+                // Phase 13 D5.10.S · les contrats explicitement exclus
+                // par l'utilisateur sortent du cluster côté snapshot ·
+                // pas de mapping = `clusterFingerprint=null` dans
+                // `ContractSnapshotEntry`, rendu comme une row simple
+                // hors du bloc cluster côté frontend.
+                if (in_array($clusterContract->contractId, $excludedIds, true)) {
+                    continue;
+                }
+
                 $map[$clusterContract->contractId] = [
                     'fingerprint' => $cluster->fingerprint,
                     'riskCode' => $cluster->code,
@@ -438,16 +448,29 @@ final readonly class DeclarationFiscalEngine
                 $cluster->contracts,
             );
 
+            // Phase 13 D5.10.S · contrats explicitement exclus du
+            // cluster par l'utilisateur · ils sont traités comme LCD
+            // individuels exemptés R-2024-021 et ne participent pas à
+            // l'opt-out même si la décision globale est Requalified.
+            $excludedContractIds = array_values(array_map(
+                static fn ($v): int => (int) $v,
+                $match->excluded_contract_ids ?? [],
+            ));
+
             $applied[] = new AppliedDecisionEntry(
                 clusterFingerprint: $cluster->fingerprint,
                 riskCode: $cluster->code,
                 decision: $match->decision,
                 contractIds: $contractIds,
                 justification: $match->justification,
+                excludedContractIds: $excludedContractIds,
             );
 
             if ($match->decision === ReviewDecisionType::Requalified) {
                 foreach ($contractIds as $contractId) {
+                    if (in_array($contractId, $excludedContractIds, true)) {
+                        continue;
+                    }
                     $optOuts[] = $contractId;
                 }
             }

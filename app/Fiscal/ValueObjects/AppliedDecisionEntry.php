@@ -22,6 +22,7 @@ final readonly class AppliedDecisionEntry
 {
     /**
      * @param  list<int>  $contractIds  IDs des contrats membres du cluster (source du fingerprint)
+     * @param  list<int>  $excludedContractIds  Phase 13 D5.10.S · IDs des contrats explicitement exclus du cluster par l'utilisateur
      */
     public function __construct(
         public string $clusterFingerprint,
@@ -29,5 +30,6 @@ final readonly class AppliedDecisionEntry
         public ReviewDecisionType $decision,
         public array $contractIds,
         public ?string $justification,
+        public array $excludedContractIds = [],
     ) {}
 }

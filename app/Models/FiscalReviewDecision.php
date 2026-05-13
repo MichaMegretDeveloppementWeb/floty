@@ -29,6 +29,7 @@ use Illuminate\Support\Carbon;
  * @property string $cluster_fingerprint
  * @property ReviewDecisionType $decision
  * @property string|null $justification
+ * @property array<int>|null $excluded_contract_ids
  * @property int $decided_by
  * @property Carbon $decided_at
  * @property Carbon|null $created_at
@@ -43,6 +44,7 @@ use Illuminate\Support\Carbon;
     'cluster_fingerprint',
     'decision',
     'justification',
+    'excluded_contract_ids',
     'decided_by',
     'decided_at',
 ])]
@@ -62,6 +64,7 @@ final class FiscalReviewDecision extends Model
             'fiscal_year' => 'integer',
             'risk_code' => RiskCode::class,
             'decision' => ReviewDecisionType::class,
+            'excluded_contract_ids' => 'array',
             'decided_at' => 'datetime',
         ];
     }
