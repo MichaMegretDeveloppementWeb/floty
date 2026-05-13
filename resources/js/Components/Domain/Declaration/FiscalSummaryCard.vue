@@ -33,6 +33,7 @@ const emit = defineEmits<{
         cluster: App.Data.User.FiscalDeclaration.ReviewClusterData,
         decision: 'conserved' | 'requalified',
         justification: string | null,
+        excludedContractIds: number[],
     ];
 }>();
 
@@ -87,7 +88,7 @@ defineExpose({
                     :contract-breakdown="props.snapshot.contractBreakdown"
                     :review-clusters="props.reviewClusters"
                     :submitting="props.submitting"
-                    @submit="(cluster, decision, justification) => emit('submit', cluster, decision, justification)"
+                    @submit="(cluster, decision, justification, excludedIds) => emit('submit', cluster, decision, justification, excludedIds)"
                 />
             </div>
         </div>
