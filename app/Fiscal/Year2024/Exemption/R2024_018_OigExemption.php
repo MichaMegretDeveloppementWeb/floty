@@ -69,11 +69,35 @@ final readonly class R2024_018_OigExemption implements ExemptionRule
     public function legalBasis(): array
     {
         return [
+            // CIBS L. 421-126 · exonération taxe CO₂ pour les véhicules
+            // affectés aux opérations exonérées de TVA mentionnées au
+            // 9° du 4 et au 7 de l'article 261 du CGI.
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-126',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602965/2024-06-01',
                 'consulted_at' => '2026-05-06',
+            ],
+            // Phase 13 D5.11 (audit sémantique) · jumeau strict de
+            // L. 421-126 pour la taxe polluants (texte identique
+            // mot pour mot · cf. description PHP). Indispensable pour
+            // la traçabilité fiscale sur les 2 taxes.
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-138',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602927/2024-06-01',
+                'consulted_at' => '2026-05-13',
+            ],
+            // Phase 13 D5.11 (audit sémantique) · texte source du
+            // périmètre OIG · le 7 de l'art. 261 CGI définit les
+            // organismes d'utilité générale exonérés de TVA, auxquels
+            // les exonérations CIBS L. 421-126 / L. 421-138 renvoient.
+            [
+                'type' => 'CGI',
+                'article' => '261',
+                'paragraph' => '7',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051764761/2024-06-01',
+                'consulted_at' => '2026-05-13',
             ],
         ];
     }

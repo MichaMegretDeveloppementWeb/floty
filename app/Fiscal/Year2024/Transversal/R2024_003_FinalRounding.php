@@ -69,11 +69,28 @@ final readonly class R2024_003_FinalRounding implements TransversalRule
     public function legalBasis(): array
     {
         return [
+            // CIBS L. 131-1 · article pivot du Livre I qui dispose que
+            // les bases d'imposition CIBS sont arrondies « dans les
+            // conditions prévues à l'article 1649 undecies du CGI ».
             [
                 'type' => 'CIBS',
                 'article' => 'L. 131-1',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044604185/2024-06-01',
                 'consulted_at' => '2026-05-06',
+            ],
+            // Phase 13 D5.11 (audit sémantique) · article cible du
+            // renvoi de L. 131-1 · principe half-up arithmétique
+            // (« la fraction d'euro égale à 0,50 est comptée pour 1 »).
+            // À noter · 1649 undecies arrondit les bases à **l'euro**
+            // au sens général · l'arrondi **au centime** par couple
+            // appliqué par Floty (R-2024-003) en dérive par analogie
+            // de la règle half-up, formalisé par la pratique BOFiP des
+            // taxes CIBS sur les véhicules (BOI-AIS-MOB-10-30-10).
+            [
+                'type' => 'CGI',
+                'article' => '1649 undecies',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006306979/2024-06-01',
+                'consulted_at' => '2026-05-13',
             ],
         ];
     }

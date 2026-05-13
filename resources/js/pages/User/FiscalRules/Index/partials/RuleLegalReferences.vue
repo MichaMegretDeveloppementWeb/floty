@@ -38,7 +38,9 @@ function buildLabel(entry: LegalRef): string {
     }
 
     if (entry.type === 'CGI' && entry.article) {
-        return `CGI ${entry.article}`;
+        const para = entry.paragraph ? ` (${entry.paragraph}°)` : '';
+
+        return `CGI ${entry.article}${para}`;
     }
 
     if (entry.type === 'BOFIP' && entry.reference) {
@@ -60,7 +62,9 @@ function buildTitle(entry: LegalRef): string {
     }
 
     if (entry.type === 'CGI' && entry.article) {
-        return `Article ${entry.article} du Code général des impôts (Légifrance)`;
+        const para = entry.paragraph ? `, ${entry.paragraph}°` : '';
+
+        return `Article ${entry.article}${para} du Code général des impôts (Légifrance)`;
     }
 
     if (entry.type === 'BOFIP' && entry.reference) {
