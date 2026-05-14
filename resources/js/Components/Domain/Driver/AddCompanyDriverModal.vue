@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Modal d'ajout d'une membership Driver↔Company depuis la fiche
- * Company Show (chantier M.2, ADR-0020 D3).
+ * Company Show (chantier M.2, ADR-0023 D3).
  *
  * Le picker de driver est peuplé par la prop `availableDrivers`
  * exposée par `CompanyController::show` via `options.drivers`. Les

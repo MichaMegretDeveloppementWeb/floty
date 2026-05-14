@@ -31,7 +31,7 @@ use Inertia\Response;
  * **Refonte 04.F (ADR-0014)** : `storeBulk` crée désormais des contrats
  * (plage `[start_date, end_date]`) au lieu de jours individuels.
  *
- * **Chantier J (ADR-0020)** : sélecteur d'année **local** à la page ·
+ * **Chantier J (ADR-0023)** : sélecteur d'année **local** à la page ·
  * `?year=YYYY` URL avec fallback année calendaire courante. Plus de
  * dépendance à `FiscalYearResolver` (supprimé).
  */

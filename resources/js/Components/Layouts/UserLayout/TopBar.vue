@@ -4,7 +4,7 @@ import UserMenu from '@/Components/Layouts/UserLayout/UserMenu.vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import { useTopBar } from '@/Composables/Layout/UserLayout/useTopBar';
 
-// Chantier J (ADR-0020) : le sélecteur d'année global a été retiré.
+// Chantier J (ADR-0023) : le sélecteur d'année global a été retiré.
 // Chaque page consommatrice gère désormais son sélecteur local.
 
 const emit = defineEmits<{
