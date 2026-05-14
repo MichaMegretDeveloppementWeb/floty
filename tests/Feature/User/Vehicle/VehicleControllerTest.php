@@ -816,6 +816,61 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
+    public function store_rejette_les_dates_dans_le_futur(): void
+    {
+        $user = User::factory()->create();
+
+        $basePayload = [
+            'license_plate' => 'AA-999-ZZ',
+            'brand' => 'Renault',
+            'model' => 'Clio',
+            'vin' => 'VF1ABCD12345EFGHX',
+            'color' => 'Bleu',
+            'first_french_registration_date' => '2020-01-15',
+            'first_origin_registration_date' => '2020-01-15',
+            'first_economic_use_date' => '2020-01-15',
+            'acquisition_date' => '2020-01-15',
+            'mileage_current' => 50000,
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VP',
+            'body_type' => 'BB',
+            'seats_count' => 5,
+            'energy_source' => 'gasoline',
+            'euro_standard' => 'euro_6d_isc_fcm',
+            'homologation_method' => 'WLTP',
+            'co2_wltp' => 110,
+        ];
+
+        $future = now()->addYear()->toDateString();
+
+        // Cas 1 · first_french_registration_date future → rejet + message FR
+        $this->actingAs($user)
+            ->post('/app/vehicles', [...$basePayload, 'first_french_registration_date' => $future])
+            ->assertSessionHasErrors([
+                'first_french_registration_date' => 'La date de 1ère immatriculation française ne peut pas être dans le futur.',
+            ]);
+
+        // Cas 2 · first_economic_use_date future → rejet + message FR
+        $this->actingAs($user)
+            ->post('/app/vehicles', [...$basePayload, 'first_economic_use_date' => $future])
+            ->assertSessionHasErrors([
+                'first_economic_use_date' => 'La date de 1ère affectation économique ne peut pas être dans le futur.',
+            ]);
+
+        // Cas 3 · acquisition_date future → rejet + message FR
+        $this->actingAs($user)
+            ->post('/app/vehicles', [...$basePayload, 'acquisition_date' => $future])
+            ->assertSessionHasErrors([
+                'acquisition_date' => "La date d'acquisition ne peut pas être dans le futur.",
+            ]);
+
+        // Garde-fou · aucun vehicle créé après les 3 tentatives
+        $this->assertDatabaseMissing('vehicles', [
+            'license_plate' => 'AA-999-ZZ',
+        ]);
+    }
+
+    #[Test]
     public function edit_renvoie_la_page_d_edition_avec_le_vehicule_et_les_options(): void
     {
         $user = User::factory()->create();

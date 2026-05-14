@@ -53,16 +53,16 @@ final class StoreVehicleData extends Data
         #[Max(30)]
         public ?string $color,
 
-        #[Required, Date]
+        #[Required, Date, BeforeOrEqual('today')]
         public string $firstFrenchRegistrationDate,
 
         #[Required, Date, BeforeOrEqual('first_french_registration_date')]
         public string $firstOriginRegistrationDate,
 
-        #[Required, Date]
+        #[Required, Date, BeforeOrEqual('today')]
         public string $firstEconomicUseDate,
 
-        #[Required, Date]
+        #[Required, Date, BeforeOrEqual('today')]
         public string $acquisitionDate,
 
         #[IntegerType, Min(0)]
@@ -183,7 +183,10 @@ final class StoreVehicleData extends Data
     {
         return [
             'license_plate.unique' => 'Une autre immatriculation active est déjà enregistrée.',
+            'first_french_registration_date.before_or_equal' => 'La date de 1ère immatriculation française ne peut pas être dans le futur.',
             'first_origin_registration_date.before_or_equal' => "La date d'origine doit être antérieure ou égale à la date française.",
+            'first_economic_use_date.before_or_equal' => 'La date de 1ère affectation économique ne peut pas être dans le futur.',
+            'acquisition_date.before_or_equal' => "La date d'acquisition ne peut pas être dans le futur.",
             'co2_wltp.required' => 'Le CO₂ WLTP est obligatoire quand la méthode d\'homologation est WLTP.',
             'co2_nedc.required' => 'Le CO₂ NEDC est obligatoire quand la méthode d\'homologation est NEDC.',
             'taxable_horsepower.required' => 'La puissance administrative est obligatoire quand la méthode d\'homologation est PA.',
