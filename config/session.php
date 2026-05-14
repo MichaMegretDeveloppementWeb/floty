@@ -175,7 +175,19 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Défaut sûr · si SESSION_SECURE_COOKIE n'est pas défini, on émet le
+    // cookie en mode Secure dès que `APP_ENV=production`. Évite que le
+    // cookie de session voyage en HTTP clair si l'admin de prod oublie
+    // de poser la variable. En dev local Herd HTTP, poser explicitement
+    // SESSION_SECURE_COOKIE=false dans .env.
+    //
+    // Note · on lit `APP_ENV` directement plutôt que d'appeler
+    // `app()->environment()` car le container n'est pas encore bootstrappé
+    // au moment où ce fichier est évalué (sinon erreur "Class env does
+    // not exist" pendant la résolution).
+    //
+    // Cf. ADR-0011 § 2 + plan-remédiation Vague 1 Lot 1 D5.
+    'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*
     |--------------------------------------------------------------------------

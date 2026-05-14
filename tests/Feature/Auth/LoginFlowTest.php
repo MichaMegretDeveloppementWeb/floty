@@ -8,11 +8,13 @@ use App\Models\User;
 use App\Services\Auth\LoginAttemptService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -129,6 +131,15 @@ final class LoginFlowTest extends TestCase
     {
         // Chaque tentative utilise un email différent → seul le compteur
         // IP s'incrémente à 50, le compteur email+IP reste sous 5.
+        //
+        // On désactive le middleware `throttle:10,2` (couche réseau,
+        // Lot 1 D4) pour pouvoir atteindre la 50e tentative et exercer
+        // la couche applicative `LoginAttemptService`. Sinon la requête
+        // serait coupée par le throttle Laravel dès la 11e itération
+        // avant d'atteindre l'Action. Le throttle middleware reste vérifié
+        // séparément par `la_route_login_store_porte_le_middleware_throttle`.
+        $this->withoutMiddleware(ThrottleRequests::class);
+
         Event::fake([Lockout::class]);
 
         for ($i = 0; $i < LoginAttemptService::MAX_ATTEMPTS_PER_IP; $i++) {
@@ -173,5 +184,21 @@ final class LoginFlowTest extends TestCase
         $this->actingAs($user)
             ->get('/login')
             ->assertRedirect('/');
+    }
+
+    #[Test]
+    public function la_route_login_store_porte_le_middleware_throttle(): void
+    {
+        // Anti-régression · le middleware `throttle:10,2` doit rester posé sur
+        // la route POST /login (double couche anti brute-force avec le service
+        // LoginAttemptService applicatif). Cf. ADR-0011 § 3.
+        $route = Route::getRoutes()->getByName('login.store');
+
+        $this->assertNotNull($route, 'La route `login.store` doit exister.');
+        $this->assertContains(
+            'throttle:10,2',
+            $route->gatherMiddleware(),
+            'La route POST /login doit porter le middleware `throttle:10,2` (anti brute-force IP).',
+        );
     }
 }
