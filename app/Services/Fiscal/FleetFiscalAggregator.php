@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal;
 
-use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Data\User\Contract\ContractTaxBreakdownData;
 use App\Data\User\Contract\ContractTaxYearBreakdownData;
 use App\Data\User\Fiscal\AppliedExemptionData;
@@ -20,10 +19,10 @@ use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\PipelineResult;
 use App\Models\Contract;
-use App\Models\FiscalRule;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Services\FiscalRule\FiscalRuleQueryService;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Support\Collection;
 
@@ -46,14 +45,14 @@ use Illuminate\Support\Collection;
 final class FleetFiscalAggregator
 {
     /**
-     * Cache mémoire intra-instance des Collections de règles fiscales
-     * indexé par `"{year}|{sortedCodes}"`. Évite les lectures DB
-     * répétées quand l'aggregator est réutilisé sur plusieurs
-     * véhicules / contrats à l'intérieur d'une même requête (ex.
-     * VehicleQueryService::buildUsageStats appelle
-     * vehicleFullYearTaxBreakdown plusieurs fois indirectement).
+     * Cache mémoire intra-instance des projections DTO des règles
+     * fiscales indexé par `"{year}|{sortedCodes}"`. Évite la
+     * re-construction répétée quand l'aggregator est réutilisé sur
+     * plusieurs véhicules / contrats à l'intérieur d'une même
+     * requête. Phase 13 D5.14 · les DTOs viennent désormais du
+     * registry (classes PHP), plus de lecture BDD.
      *
-     * @var array<string, Collection<int, FiscalRule>>
+     * @var array<string, list<FiscalRuleListItemData>>
      */
     private array $rulesCache = [];
 
@@ -72,7 +71,7 @@ final class FleetFiscalAggregator
     public function __construct(
         private readonly FiscalSegmentedExecutor $pipeline,
         private readonly FiscalYearContext $yearContext,
-        private readonly FiscalRuleReadRepositoryInterface $fiscalRules,
+        private readonly FiscalRuleQueryService $rulesQuery,
     ) {}
 
     /**
@@ -221,10 +220,7 @@ final class FleetFiscalAggregator
         }
 
         $appliedRuleCodes = array_keys($ruleCodesSet);
-        $appliedRules = $this->loadRulesByCodes($year, $appliedRuleCodes)
-            ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r, $year))
-            ->values()
-            ->all();
+        $appliedRules = $this->loadRulesByCodes($year, $appliedRuleCodes);
 
         return new VehicleFullYearTaxBreakdownData(
             daysInYear: $this->yearContext->daysInYear($year),
@@ -273,10 +269,7 @@ final class FleetFiscalAggregator
             $pollutantsDue = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
             $yearTotalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);
 
-            $appliedRules = $this->loadRulesByCodes($year, $result->appliedRuleCodes)
-                ->map(static fn (FiscalRule $r): FiscalRuleListItemData => FiscalRuleListItemData::fromModel($r, $year))
-                ->values()
-                ->all();
+            $appliedRules = $this->loadRulesByCodes($year, $result->appliedRuleCodes);
 
             // D5.10.T · montant hypothétique « si pas LCD » · seulement
             // pour les contrats effectivement exonérés par R-2024-021.
@@ -533,15 +526,19 @@ final class FleetFiscalAggregator
      * année - clé `"{year}|{sortedCodes}"` afin que des appels avec un
      * ordre de codes différent (mais même contenu) partagent l'entrée.
      *
+     * Phase 13 D5.14 · les DTOs viennent désormais du registry (classes
+     * PHP), plus de lecture BDD. Le cache stocke des DTOs directement,
+     * plus de transformation `fromModel` côté caller.
+     *
      * @param  list<string>  $codes
-     * @return Collection<int, FiscalRule>
+     * @return list<FiscalRuleListItemData>
      */
-    private function loadRulesByCodes(int $year, array $codes): Collection
+    private function loadRulesByCodes(int $year, array $codes): array
     {
         sort($codes);
         $key = $year.'|'.implode(',', $codes);
 
-        return $this->rulesCache[$key] ??= $this->fiscalRules->findByCodesForYear($year, $codes);
+        return $this->rulesCache[$key] ??= $this->rulesQuery->listByCodesForYear($year, $codes);
     }
 
     /**

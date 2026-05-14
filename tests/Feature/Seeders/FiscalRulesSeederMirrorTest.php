@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Seeders;
 
-use App\Enums\Fiscal\RuleType;
-use App\Enums\Fiscal\TaxType;
-use App\Fiscal\Year2024\Transversal\R2024_002_DailyProrata;
 use App\Models\FiscalRule;
 use Database\Seeders\FiscalRulesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -14,20 +11,20 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre le mode miroir du `FiscalRulesSeeder` (chantier κ.6 / ADR-0022).
+ * Couvre le mode miroir du `FiscalRulesSeeder` (Phase 13 D5.14 ·
+ * ADR-0022 finalisée v1.4 · BDD = index minimal).
  *
- * Vérifie :
- *  - Post-seed : 24 lignes pour 2024 (16 pipeline lus depuis PHP + 8
- *    documentaires hard-codées).
- *  - Métadonnées strictement identiques au pré-κ.6 sur des règles
- *    représentatives (pipeline transversal, exemption longue, inactive,
- *    informative).
- *  - Idempotence : un second run produit le même état.
- *  - Update : la valeur PHP écrase une modification BDD manuelle.
- *  - Mirror delete : un orphelin pour 2024 est supprimé.
- *  - Préservation : les règles d'une année non enregistrée (2090) ne
- *    sont pas touchées.
- *  - Inactive flag : R-2024-018 et R-2024-019 ont `is_active = false`.
+ * Depuis D5.14, la table `fiscal_rules` ne contient plus que les
+ * colonnes d'index (`id`, `rule_code`, `fiscal_year`, `code_reference`).
+ * Les métadonnées fiscales (name, description, legal_basis, etc.)
+ * vivent exclusivement dans les classes PHP, lues via le registry.
+ *
+ * Le seeder en mode miroir garantit donc uniquement ·
+ *   - 24 entrées d'index pour 2024 (16 pipeline + 8 documentaires)
+ *   - chaque entrée pointe vers la bonne classe PHP via `code_reference`
+ *   - idempotence (seed → seed → état identique)
+ *   - mode miroir · entrée orpheline supprimée au reseed
+ *   - préservation · années non enregistrées non touchées
  */
 final class FiscalRulesSeederMirrorTest extends TestCase
 {
@@ -42,153 +39,49 @@ final class FiscalRulesSeederMirrorTest extends TestCase
     }
 
     #[Test]
-    public function metadonnees_pipeline_lues_depuis_php_correspondent_aux_classes(): void
+    public function code_reference_pointe_vers_la_classe_php_attendue(): void
     {
         $this->seed(FiscalRulesSeeder::class);
 
-        // R-2024-002 : transversal court (de PHP)
-        $r002 = FiscalRule::query()
-            ->where('rule_code', 'R-2024-002')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail();
-        self::assertSame('Prorata journalier (366 jours en 2024)', $r002->name);
-        self::assertSame(RuleType::Transversal, $r002->rule_type);
-        self::assertSame(2, $r002->display_order);
-        self::assertTrue($r002->is_active);
-        self::assertSame([TaxType::Co2->value, TaxType::Pollutants->value], $r002->taxes_concerned);
+        // R-2024-002 · classe pipeline standard
+        $r002 = FiscalRule::query()->where('rule_code', 'R-2024-002')->firstOrFail();
+        self::assertSame(
+            'app/Fiscal/Year2024/Transversal/R2024_002_DailyProrata.php',
+            $r002->code_reference,
+        );
 
-        // R-2024-008 : exemption avec description longue (de PHP)
-        $r008 = FiscalRule::query()
-            ->where('rule_code', 'R-2024-008')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail();
-        self::assertStringContainsString('réputé ne pas être affecté à des fins économiques', $r008->description);
-        self::assertCount(4, $r008->legal_basis);
+        // R-2024-021 · classe pipeline avec wrapper LCD
+        $r021 = FiscalRule::query()->where('rule_code', 'R-2024-021')->firstOrFail();
+        self::assertSame(
+            'app/Fiscal/Year2024/Exemption/R2024_021_ShortTermRental.php',
+            $r021->code_reference,
+        );
 
-        // R-2024-021 : LCD (de PHP)
-        $r021 = FiscalRule::query()
-            ->where('rule_code', 'R-2024-021')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail();
-        self::assertSame('Exonération LCD (location de courte durée)', $r021->name);
-        self::assertSame(RuleType::Exemption, $r021->rule_type);
-    }
+        // R-2024-001 · classe documentaire
+        $r001 = FiscalRule::query()->where('rule_code', 'R-2024-001')->firstOrFail();
+        self::assertSame(
+            'app/Fiscal/Year2024/Transversal/R2024_001_TaxpayerAndTriggeringEvent.php',
+            $r001->code_reference,
+        );
 
-    #[Test]
-    public function regles_inactives_ont_is_active_false(): void
-    {
-        $this->seed(FiscalRulesSeeder::class);
-
-        $r018 = FiscalRule::query()
-            ->where('rule_code', 'R-2024-018')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail();
-        $r019 = FiscalRule::query()
-            ->where('rule_code', 'R-2024-019')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail();
-
-        self::assertFalse($r018->is_active);
-        self::assertFalse($r019->is_active);
-
-        // Sanity : les autres règles sont actives.
-        self::assertTrue(FiscalRule::query()
-            ->where('rule_code', 'R-2024-002')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail()
-            ->is_active);
-    }
-
-    #[Test]
-    public function metadonnees_documentaires_lues_depuis_php_correspondent_aux_classes(): void
-    {
-        // Phase 13 D5.11 · les 8 règles documentaires-only sont
-        // désormais des classes PHP (ADR-0022 finalisée), seedées via
-        // `Year2024Boot::informativeRules()`. Plus aucun hardcoding
-        // dans le seeder.
-        $this->seed(FiscalRulesSeeder::class);
-
-        // R-2024-001 : règle documentaire (hors pipeline)
-        $r001 = FiscalRule::query()
-            ->where('rule_code', 'R-2024-001')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail();
-        self::assertSame('Redevable et fait générateur', $r001->name);
-
-        // R-2024-024 : Crit'Air avec code_reference custom (UI · override
-        // via méthode `codeReference()` sur la classe).
-        $r024 = FiscalRule::query()
-            ->where('rule_code', 'R-2024-024')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail();
-        self::assertSame('resources/js/Composables/Vehicle/useCritAirCheck.ts', $r024->code_reference);
-    }
-
-    #[Test]
-    public function chaque_legal_basis_entry_porte_url_et_consulted_at(): void
-    {
-        // Phase 13 D5.11 · ADR-0022 finalisée · chaque entrée du
-        // tableau `legal_basis` d'une règle 2024 doit porter une URL
-        // officielle (Légifrance ou BOFiP) auditée Chrome live, ainsi
-        // que la date de consultation. Seule exception · R-2024-023
-        // qui retourne `[]` (placeholder vide pour 2024).
-        $this->seed(FiscalRulesSeeder::class);
-
-        $rules = FiscalRule::query()
-            ->where('fiscal_year', 2024)
-            ->where('rule_code', '!=', 'R-2024-023')
-            ->get();
-
-        self::assertGreaterThan(0, $rules->count());
-
-        foreach ($rules as $rule) {
-            self::assertNotEmpty($rule->legal_basis, sprintf('%s doit avoir au moins une référence légale.', $rule->rule_code));
-
-            foreach ($rule->legal_basis as $entry) {
-                self::assertArrayHasKey('url', $entry, sprintf('%s a une entrée legal_basis sans url.', $rule->rule_code));
-                self::assertNotEmpty($entry['url'], sprintf('%s a une entrée legal_basis avec url vide.', $rule->rule_code));
-                self::assertArrayHasKey('consulted_at', $entry, sprintf('%s a une entrée legal_basis sans consulted_at.', $rule->rule_code));
-                self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}$/', $entry['consulted_at']);
-            }
-        }
+        // R-2024-024 · override `codeReference()` vers le composable Vue
+        $r024 = FiscalRule::query()->where('rule_code', 'R-2024-024')->firstOrFail();
+        self::assertSame(
+            'resources/js/Composables/Vehicle/useCritAirCheck.ts',
+            $r024->code_reference,
+        );
     }
 
     #[Test]
     public function idempotence_re_seed_produit_le_meme_etat(): void
     {
         $this->seed(FiscalRulesSeeder::class);
-        $countAfterFirst = FiscalRule::query()->count();
-        $hashAfterFirst = $this->hashAllRows();
+        $hashFirst = $this->hashAllRows();
 
         $this->seed(FiscalRulesSeeder::class);
-        $countAfterSecond = FiscalRule::query()->count();
-        $hashAfterSecond = $this->hashAllRows();
+        $hashSecond = $this->hashAllRows();
 
-        self::assertSame($countAfterFirst, $countAfterSecond);
-        self::assertSame($hashAfterFirst, $hashAfterSecond);
-    }
-
-    #[Test]
-    public function reseed_restaure_une_modification_manuelle_de_description(): void
-    {
-        $this->seed(FiscalRulesSeeder::class);
-
-        FiscalRule::query()
-            ->where('rule_code', 'R-2024-002')
-            ->where('fiscal_year', 2024)
-            ->update(['description' => 'BOGUS DESCRIPTION OVERRIDE']);
-
-        $this->seed(FiscalRulesSeeder::class);
-
-        $restored = FiscalRule::query()
-            ->where('rule_code', 'R-2024-002')
-            ->where('fiscal_year', 2024)
-            ->firstOrFail();
-        self::assertNotSame('BOGUS DESCRIPTION OVERRIDE', $restored->description);
-        // Compare à la valeur produite par la classe PHP elle-même
-        // (source de vérité ADR-0022) plutôt qu'à un substring littéral :
-        // si la description évolue en PHP, le test reste valide.
-        self::assertSame((new R2024_002_DailyProrata)->description(), $restored->description);
+        self::assertSame($hashFirst, $hashSecond);
     }
 
     #[Test]
@@ -199,6 +92,7 @@ final class FiscalRulesSeederMirrorTest extends TestCase
         FiscalRule::factory()->create([
             'rule_code' => 'R-2024-999',
             'fiscal_year' => 2024,
+            'code_reference' => 'app/Fake.php',
         ]);
 
         self::assertSame(25, FiscalRule::query()->where('fiscal_year', 2024)->count());
@@ -206,38 +100,39 @@ final class FiscalRulesSeederMirrorTest extends TestCase
         $this->seed(FiscalRulesSeeder::class);
 
         self::assertSame(24, FiscalRule::query()->where('fiscal_year', 2024)->count());
-        self::assertFalse(FiscalRule::query()
-            ->where('rule_code', 'R-2024-999')
-            ->where('fiscal_year', 2024)
-            ->exists());
+        self::assertFalse(
+            FiscalRule::query()
+                ->where('rule_code', 'R-2024-999')
+                ->where('fiscal_year', 2024)
+                ->exists(),
+        );
     }
 
     #[Test]
     public function annee_non_enregistree_dans_le_registry_n_est_pas_touchee(): void
     {
-        // Pose une règle pour 2090, année non enregistrée dans le
-        // registry de production (config floty.fiscal.year_boots = [2024]).
         FiscalRule::factory()->create([
             'rule_code' => 'R-2090-LEGACY',
             'fiscal_year' => 2090,
+            'code_reference' => 'app/Fake.php',
         ]);
 
         $this->seed(FiscalRulesSeeder::class);
 
-        // La règle 2090 doit toujours exister - le mirror ne l'a pas touchée.
-        self::assertTrue(FiscalRule::query()
-            ->where('rule_code', 'R-2090-LEGACY')
-            ->where('fiscal_year', 2090)
-            ->exists());
+        self::assertTrue(
+            FiscalRule::query()
+                ->where('rule_code', 'R-2090-LEGACY')
+                ->where('fiscal_year', 2090)
+                ->exists(),
+        );
     }
 
     private function hashAllRows(): string
     {
         $rows = FiscalRule::query()
             ->orderBy('fiscal_year')
-            ->orderBy('display_order')
             ->orderBy('rule_code')
-            ->get(['rule_code', 'fiscal_year', 'name', 'description', 'rule_type', 'taxes_concerned', 'legal_basis', 'display_order', 'is_active'])
+            ->get(['rule_code', 'fiscal_year', 'code_reference'])
             ->toArray();
 
         return md5(json_encode($rows, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));

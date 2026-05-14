@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Frontend;
 
+use App\Fiscal\Year2024\Year2024Boot;
 use App\Models\FiscalRule;
 use Database\Seeders\FiscalRulesSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -11,56 +12,58 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Garantit qu'**aucune règle seedée** ne se retrouve sans contenu
- * pédagogique (Phase 13 D5.12 · ADR-0022 finalisée v1.2).
+ * Garantit qu'aucune règle Year2024 ne se retrouve sans contenu
+ * pédagogique (Phase 13 D5.14 · ADR-0022 finalisée v1.4).
  *
- * Historique · ce test couvrait initialement la cohérence entre
- * `fiscal_rules` BDD et `resources/js/data/fiscalRulesContent.ts`
- * (couche TS séparée). Depuis la migration D5.12, le contenu
- * pédagogique vit dans la classe PHP de chaque règle et est projeté
- * dans la colonne `fiscal_rules.pedagogical_content`. Le fichier TS
- * a disparu. Ce test garantit désormais ·
- *   - chaque règle seedée a un `pedagogical_content` non-null
- *   - chaque payload contient les champs structurels requis
- *     (tab, section, title, pitch) · les autres sont optionnels
+ * **Historique** ·
+ * - D5.11 · le test vérifiait la cohérence BDD ↔ `fiscalRulesContent.ts`
+ * - D5.12 · contenu pédagogique migré dans les classes PHP, test
+ *   vérifiait la colonne `fiscal_rules.pedagogical_content`
+ * - **D5.14** · colonnes miroir droppées, le test vérifie maintenant
+ *   directement les classes PHP (qui sont la seule source de vérité)
  *
- * Sans ce test, une régression future (ex. ajout d'une nouvelle
- * règle PHP sans `pedagogicalContent()` correctement renseigné)
- * ferait silencieusement passer une carte vide à l'UI.
+ * Le test reste bidirectionnel · pour chaque règle seedée (24 codes
+ * 2024 en BDD), l'instance PHP correspondante doit exposer un
+ * `pedagogicalContent()` non-null avec ses champs structurels.
+ * Inversement, l'index BDD doit contenir exactement les 24 codes
+ * des classes (garanti par le mirror delete du seeder).
  */
 final class FiscalRulesContentCoverageTest extends TestCase
 {
     use RefreshDatabase;
 
     #[Test]
-    public function chaque_regle_seedee_a_un_pedagogical_content_complet(): void
+    public function chaque_regle_php_a_un_pedagogical_content_complet(): void
     {
         $this->seed(FiscalRulesSeeder::class);
 
-        $rules = FiscalRule::query()
+        $boot = app(Year2024Boot::class);
+        $allClasses = array_merge($boot->rules(), $boot->informativeRules());
+
+        self::assertCount(24, $allClasses);
+
+        $codesInDb = FiscalRule::query()
             ->where('fiscal_year', 2024)
-            ->orderBy('rule_code')
-            ->get();
+            ->pluck('rule_code')
+            ->all();
+        self::assertCount(24, $codesInDb);
 
-        self::assertCount(24, $rules);
+        foreach ($allClasses as $class) {
+            $rule = app($class);
+            $code = $rule->ruleCode();
 
-        foreach ($rules as $rule) {
-            self::assertNotNull(
-                $rule->pedagogical_content,
-                sprintf('%s · pedagogical_content est null en BDD.', $rule->rule_code),
+            self::assertContains(
+                $code,
+                $codesInDb,
+                sprintf('%s · classe PHP existante mais absente de l\'index BDD.', $code),
             );
 
-            $content = $rule->pedagogical_content;
+            $content = $rule->pedagogicalContent();
 
-            foreach (['tab', 'section', 'title', 'pitch'] as $key) {
-                self::assertArrayHasKey(
-                    $key,
-                    $content,
-                    sprintf('%s · champ %s absent du pedagogical_content.', $rule->rule_code, $key),
-                );
+            foreach (['title', 'pitch'] as $field) {
                 self::assertNotEmpty(
-                    $content[$key],
-                    sprintf('%s · champ %s vide.', $rule->rule_code, $key),
+                    $content->{$field},
+                    sprintf('%s · champ %s vide dans pedagogicalContent().', $code, $field),
                 );
             }
         }

@@ -4,46 +4,23 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\FiscalRule;
 
-use App\Models\FiscalRule;
-use Illuminate\Support\Collection;
-
 /**
- * Lectures sur le domaine FiscalRule.
+ * Lectures sur le domaine FiscalRule (Phase 13 D5.14 · ADR-0022 v1.4).
  *
- * Bien que la requête principale soit triviale (cf. R3-bis), elle est
- * encapsulée ici par cohérence avec les autres domaines : un service
- * de lecture n'instancie jamais une requête Eloquent directement.
+ * La table `fiscal_rules` ne sert plus qu'à indexer les règles
+ * fiscales avec un id stable et leur `code_reference` pointant vers
+ * la classe PHP de la règle. Toutes les méthodes de lecture qui
+ * exposaient les colonnes miroir (name, description, legal_basis,
+ * pedagogical_content, etc.) ont été supprimées · ces données vivent
+ * désormais exclusivement dans les classes PHP, lues via le registry.
  */
 interface FiscalRuleReadRepositoryInterface
 {
     /**
-     * Liste de toutes les règles fiscales d'une année donnée, triées par
-     * `display_order`.
-     *
-     * @return Collection<int, FiscalRule>
-     */
-    public function findAllForYear(int $year): Collection;
-
-    /**
-     * Compte les règles fiscales actives pour une année donnée.
-     */
-    public function countActiveForYear(int $year): int;
-
-    /**
-     * Sous-ensemble des règles d'une année filtré par codes (utilisé
-     * par l'aggregator pour exposer les règles ayant participé au
-     * calcul d'un véhicule dans le payload de la page Show).
-     *
-     * @param  list<string>  $codes
-     * @return Collection<int, FiscalRule>
-     */
-    public function findByCodesForYear(int $year, array $codes): Collection;
-
-    /**
-     * Map `rule_code => id` pour une année (Phase 13 D5.13 · ADR-0022
-     * v1.3). Utilisé par `FiscalRuleQueryService::listForYear()` qui
-     * construit ses DTOs depuis les classes PHP et n'a besoin de la
-     * BDD que pour récupérer l'id stable de l'index.
+     * Map `rule_code => id` pour une année. C'est l'unique méthode
+     * de lecture exposée par ce repository · l'id stable suffit pour
+     * relier les classes PHP à l'index BDD (FK potentielles, audit
+     * SQL, etc.).
      *
      * @return array<string, int>
      */

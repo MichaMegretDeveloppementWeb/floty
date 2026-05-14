@@ -40,6 +40,48 @@ final class FiscalRuleQueryService
     ) {}
 
     /**
+     * Liste affichable des règles fiscales d'une année **filtrée par
+     * un sous-ensemble de codes** (Phase 13 D5.14). Utilisée par
+     * `FleetFiscalAggregator` pour exposer les `appliedRules` d'un
+     * calcul fiscal (breakdown véhicule + contrat) sans relire la BDD.
+     *
+     * Ordre stable · même tri que `listForYear()` (par suffixe
+     * numérique du rule code).
+     *
+     * @param  list<string>  $codes
+     * @return list<FiscalRuleListItemData>
+     */
+    public function listByCodesForYear(int $year, array $codes): array
+    {
+        if ($codes === []) {
+            return [];
+        }
+
+        $codesSet = array_flip($codes);
+        $rules = $this->collectAllRulesForYear($year);
+        $idsByCode = $this->fiscalRules->findIdsByCodeForYear($year);
+
+        $items = [];
+        foreach ($rules as $rule) {
+            if (! isset($codesSet[$rule->ruleCode()])) {
+                continue;
+            }
+            $items[] = FiscalRuleListItemData::fromRule(
+                $rule,
+                $year,
+                $idsByCode[$rule->ruleCode()] ?? 0,
+            );
+        }
+
+        usort(
+            $items,
+            static fn (FiscalRuleListItemData $a, FiscalRuleListItemData $b): int => (int) substr($a->ruleCode, -3) <=> (int) substr($b->ruleCode, -3),
+        );
+
+        return $items;
+    }
+
+    /**
      * Liste affichable des règles fiscales pour une année donnée,
      * triées par `displayOrder` croissant.
      *

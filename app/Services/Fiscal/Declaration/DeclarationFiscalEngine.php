@@ -7,7 +7,6 @@ namespace App\Services\Fiscal\Declaration;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionReadRepositoryInterface;
-use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\FiscalDeclaration\ReviewClusterData;
@@ -34,6 +33,7 @@ use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Fiscal\RiskDetection\RiskDetectionService;
+use App\Services\FiscalRule\FiscalRuleQueryService;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Container\Container;
@@ -91,7 +91,7 @@ final readonly class DeclarationFiscalEngine
         private VehicleFiscalCharacteristicsReadRepositoryInterface $vfcRepository,
         private FiscalDeclarationReadRepositoryInterface $declarations,
         private FiscalRuleRegistry $baseRegistry,
-        private FiscalRuleReadRepositoryInterface $fiscalRules,
+        private FiscalRuleQueryService $fiscalRules,
         private FiscalYearContext $yearContext,
         private LcdQualifier $lcdQualifier,
         private Container $container,

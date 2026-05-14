@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
-use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\FiscalRule as FiscalRuleContract;
 use App\Fiscal\Contracts\FiscalYearBoot;
 use App\Fiscal\Registry\FiscalRuleRegistry;
@@ -14,37 +13,22 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Seeder de l'index `fiscal_rules` en **mode miroir** (chantier κ.6 +
- * Phase 13 D5.11 · ADR-0022 finalisée).
+ * Seeder de l'index `fiscal_rules` en mode miroir minimal (Phase 13
+ * D5.14 · ADR-0022 finalisée v1.4).
  *
- * Cf. 02-schema-fiscal.md § 1 + ADR-0006 + ADR-0009 + ADR-0022.
+ * **Doctrine** · la table `fiscal_rules` est un INDEX strictement
+ * minimal qui relie l'id BDD à la classe PHP via `code_reference`.
+ * Toute la métadonnée fiscale (name, description, legal_basis,
+ * pedagogical_content, etc.) vit exclusivement dans les classes PHP
+ * et est lue via le registry au runtime. Plus aucun miroir BDD.
  *
- * **Doctrine** · les classes PHP sont la source de vérité unique. Cette
- * table n'est qu'un index miroir. Pour chaque année dans
- * {@see FiscalRuleRegistry::registeredYears()}, le seeder ·
- *   1. récupère le {@see FiscalYearBoot} de l'année (depuis le container
- *      via la config `floty.fiscal.year_boots`) ;
- *   2. lit les règles **pipeline** via `$boot->rules()` (calculatoires,
- *      utilisées par le moteur fiscal), instancie chaque classe et upsert
- *      sa métadonnée ;
- *   3. lit les règles **documentaires-only** via `$boot->informativeRules()`
- *      (Phase 13 D5.11 · règles qui portent une connaissance fiscale
- *      mais ne participent pas au pipeline · cf. {@see InformativeRule}),
- *      instancie et upsert avec le même process ;
- *   4. supprime tout enregistrement BDD pour cette année dont le
- *      `rule_code` n'apparaît dans aucune des deux listes (mode miroir ·
- *      suppression des orphelins).
+ * **Algorithme** · pour chaque année déclarée dans `floty.fiscal.year_boots`,
+ * lire pipeline rules + informative rules, et upsert l'index `(rule_code,
+ * fiscal_year, code_reference)`. Mode miroir conservé · les entrées
+ * orphelines de l'année sont supprimées.
  *
- * **Plus aucune donnée hardcodée** · contrairement à la version Phase 11,
- * le seeder ne contient plus de métadonnée fiscale en clair (description,
- * base légale, URLs, ordre d'affichage). Toute l'information vit dans la
- * classe PHP de chaque règle (cf. {@see App\Fiscal\Year2024} et le détail
- * du format dans {@see App\Fiscal\Contracts\FiscalRule::legalBasis()}).
- *
- * **Préservation historique** · les années qui ne sont **pas** enregistrées
- * dans le registry ne sont pas touchées (lecture seule). Permet de purger
- * une année expérimentale en retirant son boot du config et en
- * ré-exécutant le seeder.
+ * **Effet net** · `seed → seed → seed` produit toujours le même état
+ * BDD. Retirer une classe PHP + `seed` = entrée index disparaît.
  */
 final class FiscalRulesSeeder extends Seeder
 {
@@ -54,13 +38,6 @@ final class FiscalRulesSeeder extends Seeder
 
     public function run(FiscalRuleRegistry $registry): void
     {
-        // Indexe les boots déclarés via config pour récupérer les
-        // règles documentaires par année. Le registry, lui, ne connaît
-        // que les règles **pipeline** (cf. ADR-0006 · le pipeline ne
-        // touche jamais aux règles documentaires). Si une année est
-        // enregistrée dans le registry sans boot associé (cas du
-        // test end-to-end qui injecte des stubs via `register()`), le
-        // seeder seede uniquement ses règles pipeline.
         $bootClasses = (array) config('floty.fiscal.year_boots', []);
         $bootsByYear = [];
         foreach ($bootClasses as $bootClass) {
@@ -74,15 +51,11 @@ final class FiscalRulesSeeder extends Seeder
         foreach ($registry->registeredYears() as $year) {
             $boot = $bootsByYear[$year] ?? null;
 
-            // Atomicité par année · si un upsert plante, le mirror delete
-            // ne s'exécute pas et on évite un état BDD partiellement
-            // synchronisé. L'isolement par-année garantit que les autres
-            // années restent cohérentes même si une année plante.
             DB::transaction(function () use ($registry, $boot, $year): void {
                 $syncedCodes = [];
 
                 foreach ($registry->rulesForYear($year) as $rule) {
-                    $row = $this->rowFromPhpClass($rule);
+                    $row = $this->rowFromPhpClass($rule, $year);
                     FiscalRule::updateOrCreate(
                         ['rule_code' => $row['rule_code'], 'fiscal_year' => $row['fiscal_year']],
                         $row,
@@ -93,7 +66,7 @@ final class FiscalRulesSeeder extends Seeder
                 if ($boot !== null) {
                     foreach ($boot->informativeRules() as $informativeClass) {
                         $informative = $this->resolver->make($informativeClass);
-                        $row = $this->rowFromPhpClass($informative);
+                        $row = $this->rowFromPhpClass($informative, $year);
                         FiscalRule::updateOrCreate(
                             ['rule_code' => $row['rule_code'], 'fiscal_year' => $row['fiscal_year']],
                             $row,
@@ -111,55 +84,25 @@ final class FiscalRulesSeeder extends Seeder
     }
 
     /**
-     * Construit la ligne BDD à partir d'une instance PHP.
+     * Construit la ligne BDD à partir d'une instance PHP · index
+     * minimal (rule_code · fiscal_year · code_reference).
      *
-     * L'année fiscale est lue via `applicabilityStart()` plutôt que via
-     * une méthode dédiée `fiscalYear()` · `applicabilityStart()` fait
-     * partie du contrat `FiscalRule` (alors que `fiscalYear()` vit dans
-     * `AnnualRuleTrait` et n'est pas garanti par le contrat).
-     *
-     * Le `code_reference` est dérivé automatiquement du FQCN de la
-     * classe. Cas spécial · R-2024-024 (Crit'Air) pointe vers le
-     * composable Vue qui porte l'implémentation effective · l'override
-     * est porté par la classe elle-même via la méthode publique
-     * `codeReference()` si elle existe.
+     * Le `code_reference` est dérivé automatiquement du FQCN. Une
+     * règle peut **override** en exposant `codeReference(): string`
+     * (utile pour les règles dont l'implémentation effective vit
+     * hors PHP, ex. R-2024-024 Crit'Air dans `useCritAirCheck.ts`).
      *
      * @return array<string, mixed>
      */
-    private function rowFromPhpClass(FiscalRuleContract $rule): array
+    private function rowFromPhpClass(FiscalRuleContract $rule, int $year): array
     {
-        $year = $rule->applicabilityStart()->year;
-
         return [
             'rule_code' => $rule->ruleCode(),
-            'name' => $rule->name(),
-            'description' => $rule->description(),
             'fiscal_year' => $year,
-            'rule_type' => $rule->ruleType(),
-            'taxes_concerned' => array_map(
-                static fn (TaxType $t): string => $t->value,
-                $rule->taxesConcerned(),
-            ),
-            'applicability_start' => $rule->applicabilityStart()->toDateString(),
-            'applicability_end' => $rule->applicabilityEnd()?->toDateString(),
-            'legal_basis' => $rule->legalBasis(),
-            'pedagogical_content' => $this->pedagogicalContentArray($rule),
             'code_reference' => $this->codeReferenceFor($rule),
-            'display_order' => $rule->displayOrder(),
-            'is_active' => $rule->isActive(),
         ];
     }
 
-    /**
-     * Résout le chemin du code source pour une règle. Par défaut · path
-     * relatif dérivé du FQCN (`App\Fiscal\Year2024\X` → `app/Fiscal/Year2024/X.php`).
-     *
-     * Une règle peut **override** ce comportement en exposant une
-     * méthode publique `codeReference(): string` retournant un chemin
-     * arbitraire (utile pour les règles dont l'implémentation effective
-     * vit hors PHP, ex. R-2024-024 Crit'Air implémenté dans
-     * `resources/js/Composables/Vehicle/useCritAirCheck.ts`).
-     */
     private function codeReferenceFor(FiscalRuleContract $rule): string
     {
         if (method_exists($rule, 'codeReference')) {
@@ -171,50 +114,5 @@ final class FiscalRulesSeeder extends Seeder
         return str_starts_with($relativePath, 'App/')
             ? 'app/'.substr($relativePath, 4)
             : $relativePath;
-    }
-
-    /**
-     * Sérialise le VO `RulePedagogicalContent` en array JSON-able
-     * (Phase 13 D5.12 · ADR-0022 v1.2). Format stable consommé par le
-     * DTO `FiscalRuleListItemData` et la page « Règles de calcul ».
-     *
-     * @return array<string, mixed>
-     */
-    private function pedagogicalContentArray(FiscalRuleContract $rule): array
-    {
-        $content = $rule->pedagogicalContent();
-
-        return [
-            'tab' => $content->tab->value,
-            'section' => $content->section->value,
-            'title' => $content->title,
-            'pitch' => $content->pitch,
-            'body' => $content->body,
-            'appliesWhen' => $content->appliesWhen,
-            'effect' => $content->effect,
-            'progressiveBrackets' => $content->progressiveBrackets === null ? null : [
-                'unit' => $content->progressiveBrackets->unit,
-                'header' => $content->progressiveBrackets->header,
-                'rows' => array_map(
-                    static fn ($row): array => [
-                        'label' => $row->label,
-                        'rate' => $row->rate,
-                    ],
-                    $content->progressiveBrackets->rows,
-                ),
-            ],
-            'flatBrackets' => $content->flatBrackets === null ? null : [
-                'header' => $content->flatBrackets->header,
-                'rows' => array_map(
-                    static fn ($row): array => [
-                        'category' => $row->category,
-                        'amount' => $row->amount,
-                        'note' => $row->note,
-                    ],
-                    $content->flatBrackets->rows,
-                ),
-            ],
-            'example' => $content->example,
-        ];
     }
 }

@@ -7,7 +7,6 @@ namespace Tests\Feature\Schema;
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
 use App\Enums\Declaration\DeclarationStatus;
-use App\Enums\Fiscal\RuleType;
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
@@ -142,19 +141,14 @@ final class SchemaSmokeTest extends TestCase
             'version_number' => 1,
         ]);
 
+        // Phase 13 D5.14 · `fiscal_rules` est un index minimal · ne
+        // porte plus que rule_code, fiscal_year et code_reference. Les
+        // métadonnées (name, description, etc.) vivent dans les classes
+        // PHP, lues via le registry au runtime.
         $rule = FiscalRule::create([
             'rule_code' => 'R-2024-010',
-            'name' => 'Tarification WLTP 2024',
-            'description' => 'Barème progressif CO₂ WLTP 2024.',
             'fiscal_year' => 2024,
-            'rule_type' => RuleType::Tariff,
-            'taxes_concerned' => ['co2'],
-            'applicability_start' => '2024-01-01',
-            'legal_basis' => [['type' => 'CIBS', 'article' => 'L. 421-120']],
-            'vehicle_characteristics_consumed' => ['co2_wltp'],
-            'code_reference' => 'rules/2024/tarification/wltp.php',
-            'display_order' => 10,
-            'is_active' => true,
+            'code_reference' => 'app/Fiscal/Year2024/Pricing/R2024_010_WltpProgressive.php',
         ]);
 
         // --- Assertions sur les casts enum (round-trip base → modèle) ---
@@ -177,8 +171,12 @@ final class SchemaSmokeTest extends TestCase
         $this->assertSame(DeclarationStatus::Draft, $declaration->status);
 
         $rule->refresh();
-        $this->assertSame(RuleType::Tariff, $rule->rule_type);
-        $this->assertSame(['co2'], $rule->taxes_concerned);
+        $this->assertSame('R-2024-010', $rule->rule_code);
+        $this->assertSame(2024, $rule->fiscal_year);
+        $this->assertSame(
+            'app/Fiscal/Year2024/Pricing/R2024_010_WltpProgressive.php',
+            $rule->code_reference,
+        );
 
         $pdf->refresh();
         // assertEquals : MySQL `JSON` ne garantit pas l'ordre des clés après
