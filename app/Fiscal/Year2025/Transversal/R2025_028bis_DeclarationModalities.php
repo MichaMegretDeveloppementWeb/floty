@@ -79,7 +79,7 @@ final readonly class R2025_028bis_DeclarationModalities implements InformativeRu
         return [
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-159 (version 01/03/2025 → 31/12/2025, modif LF 2025 art. 28)',
+                'article' => 'L. 421-159',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048637675/2025-03-01',
                 'consulted_at' => '2026-05-14',
             ],
@@ -97,7 +97,7 @@ final readonly class R2025_028bis_DeclarationModalities implements InformativeRu
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-164 (version 01/03/2025 → 31/12/2025, modif LF 2025 art. 28)',
+                'article' => 'L. 421-164',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214908/2025-03-01',
                 'consulted_at' => '2026-05-14',
             ],

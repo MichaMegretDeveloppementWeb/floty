@@ -73,6 +73,11 @@ final readonly class R2025_005_Co2MethodSelection implements ClassificationRule
     public function legalBasis(): array
     {
         return [
+            // Cascade de sélection du barème CO₂ · seuls les articles
+            // chapeau (L. 421-119) et de date de référence (L. 421-119-1)
+            // sont cités ici. Les barèmes eux-mêmes (L. 421-120 WLTP,
+            // L. 421-121 NEDC, L. 421-122 PA) sont cités sur leurs
+            // règles dédiées (R-2025-010/011/012).
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-119',
@@ -83,24 +88,6 @@ final readonly class R2025_005_Co2MethodSelection implements ClassificationRule
                 'type' => 'CIBS',
                 'article' => 'L. 421-119-1',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048802414/2025-01-01',
-                'consulted_at' => '2026-05-14',
-            ],
-            [
-                'type' => 'CIBS',
-                'article' => 'L. 421-120',
-                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048886183/2025-01-01',
-                'consulted_at' => '2026-05-14',
-            ],
-            [
-                'type' => 'CIBS',
-                'article' => 'L. 421-121',
-                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048886368/2025-01-01',
-                'consulted_at' => '2026-05-14',
-            ],
-            [
-                'type' => 'CIBS',
-                'article' => 'L. 421-122',
-                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048886433/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],
         ];

@@ -27,6 +27,12 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
             <span class="font-mono text-xs font-semibold text-slate-500">
                 {{ code }}
             </span>
+            <span
+                v-if="rule"
+                class="font-mono text-xs text-slate-400"
+            >
+                {{ formatDateFr(rule.applicabilityStartInYear) }} → {{ formatDateFr(rule.applicabilityEndInYear) }}
+            </span>
             <Badge
                 v-if="rule?.taxesConcerned.length"
                 :tone="taxBadgeTone(rule.taxesConcerned)"
@@ -52,16 +58,6 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
         <h3 class="text-base font-semibold text-slate-900">
             {{ content?.title }}
         </h3>
-        <p
-            v-if="rule"
-            class="mt-0.5 text-xs text-slate-500"
-        >
-            <span class="font-medium">Période d'application :</span>
-            du {{ formatDateFr(rule.applicabilityStartInYear) }}
-            au {{ formatDateFr(rule.applicabilityEndInYear) }}<span
-                v-if="rule.isFullYear"
-            > (année entière)</span>
-        </p>
         <p class="mt-1 text-base leading-relaxed text-slate-700">
             {{ content?.pitch }}
         </p>

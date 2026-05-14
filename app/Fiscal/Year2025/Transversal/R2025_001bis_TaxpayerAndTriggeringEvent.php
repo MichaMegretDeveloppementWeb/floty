@@ -81,19 +81,19 @@ final readonly class R2025_001bis_TaxpayerAndTriggeringEvent implements Informat
         return [
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-95 (version 01/03/2025 → 31/12/2025, modif LF 2025 art. 28)',
+                'article' => 'L. 421-95',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214924/2025-03-01',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-98 (version 01/03/2025 → 31/12/2025, modif LF 2025 art. 28)',
+                'article' => 'L. 421-98',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214920/2025-03-01',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-99 (inchangé depuis 01/01/2022)',
+                'article' => 'L. 421-99',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044603043/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],

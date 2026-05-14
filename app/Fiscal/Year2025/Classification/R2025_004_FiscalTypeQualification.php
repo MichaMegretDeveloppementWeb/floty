@@ -91,13 +91,13 @@ final readonly class R2025_004_FiscalTypeQualification implements Classification
         return [
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-2 (version 31/12/2023 → 28/02/2025)',
+                'article' => 'L. 421-2',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844510/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-97 (inchangé en 2025)',
+                'article' => 'L. 421-97',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000046196667/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],

@@ -106,22 +106,24 @@ final class FiscalRuleQueryService
             static fn (FiscalRuleListItemData $a, FiscalRuleListItemData $b): int => $a->ruleCode <=> $b->ruleCode,
         );
 
-        // Tri stable par displayOrder · on s'appuie sur l'ordre des
-        // instances renvoyées par les boots (qui les listent dans
-        // l'ordre `display_order` souhaité). Le tri par code en plus
-        // garantit une sortie déterministe même si deux règles
-        // partagent un display_order.
+        // Tri stable par displayOrder + suffixe `-bis` (la version la
+        // plus ancienne avant la plus récente).
+        // Convention Floty · `R-YYYY-NNN` ou `R-YYYY-NNN-bis` (suffix
+        // optionnel pour une seconde version créée en cours d'année
+        // par scission ADR-0022). Tri primaire sur le NNN, secondaire
+        // sur `-bis` (0 = pas de suffixe = ancienne, 1 = -bis = récente).
+        $parseOrder = static function (string $ruleCode): array {
+            if (preg_match('/^R-\d{4}-(\d{3})(-bis)?$/', $ruleCode, $matches)) {
+                return [(int) $matches[1], isset($matches[2]) ? 1 : 0];
+            }
+
+            return [0, 0];
+        };
+
         usort(
             $items,
-            static function (FiscalRuleListItemData $a, FiscalRuleListItemData $b): int {
-                // displayOrder n'est pas exposé sur le DTO · on le récupère
-                // via le rule_code en parsant le suffixe numérique du code.
-                // C'est suffisant car le numéro de code suit l'ordre
-                // d'affichage par convention Floty (R-2024-001 → 1, etc.).
-                $orderA = (int) substr($a->ruleCode, -3);
-                $orderB = (int) substr($b->ruleCode, -3);
-
-                return $orderA <=> $orderB;
+            static function (FiscalRuleListItemData $a, FiscalRuleListItemData $b) use ($parseOrder): int {
+                return $parseOrder($a->ruleCode) <=> $parseOrder($b->ruleCode);
             },
         );
 

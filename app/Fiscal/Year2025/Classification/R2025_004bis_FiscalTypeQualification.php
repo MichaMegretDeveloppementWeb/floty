@@ -79,13 +79,13 @@ final readonly class R2025_004bis_FiscalTypeQualification implements Classificat
         return [
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-2 (version 01/03/2025 → 31/12/2025, modif LF 2025 art. 28)',
+                'article' => 'L. 421-2',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844510/2025-03-01',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-97 (inchangé en 2025)',
+                'article' => 'L. 421-97',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000046196667/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],
