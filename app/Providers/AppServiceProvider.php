@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 
@@ -42,6 +43,7 @@ class AppServiceProvider extends ServiceProvider
         $this->configureEloquent();
         $this->configureDatabase();
         $this->configurePasswordDefaults();
+        $this->configureUrlScheme();
     }
 
     /**
@@ -98,5 +100,22 @@ class AppServiceProvider extends ServiceProvider
                 ? Password::min(8)->uncompromised()
                 : null,
         );
+    }
+
+    /**
+     * Force HTTPS en prod pour toutes les URL générées (route(), url(),
+     * etc.). Conforme ADR-0011 § 1. Cohérent avec `TrustProxies` activé
+     * dans `bootstrap/app.php` pour la résolution correcte de
+     * `isSecure()` derrière LB Hostinger.
+     *
+     * Sans cette protection, les URLs générées en prod peuvent retomber
+     * sur `http://` derrière un proxy mal interprété, et le cookie
+     * session `Secure` ne se déclencherait pas (ADR-0011 § 2).
+     */
+    protected function configureUrlScheme(): void
+    {
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
     }
 }

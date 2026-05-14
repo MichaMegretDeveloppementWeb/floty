@@ -19,8 +19,14 @@ use Symfony\Component\HttpFoundation\Response;
  *   navigateur, oblige le respect du Content-Type déclaré.
  * - `Referrer-Policy: strict-origin-when-cross-origin` · limite la
  *   fuite d'URL de pages internes vers les sites tiers.
- * - `Permissions-Policy: ...` · désactive les API browser non
- *   utilisées (caméra, micro, géoloc).
+ * - `Permissions-Policy: ...` · désactive **explicitement** toutes
+ *   les API browser non utilisées par Floty (camera, microphone,
+ *   geolocation, payment, usb, serial, bluetooth, autoplay, sensors,
+ *   midi). Défense en profondeur contre XSS résiduel ·
+ *   un attaquant ne peut pas déclencher l'API même via un script
+ *   injecté. `fullscreen=(self)` est conservé pour permettre une
+ *   future modale PDF en plein écran. Cf. plan-remediation Vague 1
+ *   Lot 2 D1 (F-30-011).
  * - `Strict-Transport-Security` · force HTTPS pendant 1 an, posé
  *   uniquement sur connexion sécurisée pour ne pas verrouiller le
  *   dev local Herd HTTP.
@@ -52,7 +58,7 @@ final class SecurityHeaders
         $response->headers->set('X-Frame-Options', 'DENY');
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
-        $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+        $response->headers->set('Permissions-Policy', $this->permissionsPolicy());
 
         if (! App::environment('local')) {
             $response->headers->set('Content-Security-Policy', self::CSP_V1);
@@ -66,5 +72,31 @@ final class SecurityHeaders
         }
 
         return $response;
+    }
+
+    /**
+     * Politique étendue désactivant toutes les API browser non
+     * utilisées par Floty (défense en profondeur). Plan-remediation
+     * Vague 1 Lot 2 D1 (F-30-011) · `fullscreen=(self)` est laissé
+     * actif pour une future modale PDF en plein écran.
+     */
+    private function permissionsPolicy(): string
+    {
+        return implode(', ', [
+            'accelerometer=()',
+            'ambient-light-sensor=()',
+            'autoplay=()',
+            'bluetooth=()',
+            'camera=()',
+            'fullscreen=(self)',
+            'geolocation=()',
+            'gyroscope=()',
+            'magnetometer=()',
+            'microphone=()',
+            'midi=()',
+            'payment=()',
+            'serial=()',
+            'usb=()',
+        ]);
     }
 }

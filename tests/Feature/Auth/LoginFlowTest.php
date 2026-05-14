@@ -267,4 +267,30 @@ final class LoginFlowTest extends TestCase
             'La route POST /login doit porter le middleware `throttle:10,2` (anti brute-force IP).',
         );
     }
+
+    #[Test]
+    public function login_rejette_email_de_plus_de_255_caracteres(): void
+    {
+        // F-10-009 · borne `max:255` empêche un soft-DoS via input gigantesque
+        // sur la clé RateLimiter (cf. LoginAttemptService::emailKey).
+        // RFC 5321 limite l'email à 254 chars · 255 est le standard défensif.
+        $tooLong = str_repeat('a', 250).'@x.com'; // 256 chars > 255
+
+        $this->post('/login', [
+            'email' => $tooLong,
+            'password' => 'whatever',
+        ])->assertSessionHasErrors('email');
+    }
+
+    #[Test]
+    public function login_rejette_password_de_plus_de_255_caracteres(): void
+    {
+        // F-10-009 · borne `max:255` empêche un soft-DoS via input gigantesque
+        // sur le hash bcrypt (qui tronque silencieusement à 72 bytes après
+        // avoir consommé l'overhead).
+        $this->post('/login', [
+            'email' => 'test@example.com',
+            'password' => str_repeat('x', 256),
+        ])->assertSessionHasErrors('password');
+    }
 }

@@ -54,6 +54,35 @@ final class SecurityHeadersTest extends TestCase
     }
 
     #[Test]
+    public function permissions_policy_desactive_toutes_les_apis_browser_non_utilisees(): void
+    {
+        // F-30-011 · défense en profondeur étendue · toutes les APIs
+        // browser non utilisées par Floty doivent être explicitement
+        // désactivées pour qu'un XSS résiduel ne puisse pas les exploiter.
+        $response = $this->get('/login');
+        $policy = (string) $response->headers->get('Permissions-Policy');
+
+        $this->assertNotEmpty($policy, 'Le header Permissions-Policy doit être posé.');
+
+        $disabledApis = [
+            'accelerometer', 'ambient-light-sensor', 'autoplay', 'bluetooth',
+            'camera', 'geolocation', 'gyroscope', 'magnetometer', 'microphone',
+            'midi', 'payment', 'serial', 'usb',
+        ];
+
+        foreach ($disabledApis as $api) {
+            $this->assertStringContainsString(
+                "{$api}=()",
+                $policy,
+                "Permissions-Policy doit désactiver `{$api}` (défense en profondeur).",
+            );
+        }
+
+        // `fullscreen=(self)` reste actif pour future modale PDF.
+        $this->assertStringContainsString('fullscreen=(self)', $policy);
+    }
+
+    #[Test]
     public function csp_skip_en_environnement_local_pour_ne_pas_bloquer_la_debugbar(): void
     {
         // `script-src 'self'` bloque les <script> inline injectés par

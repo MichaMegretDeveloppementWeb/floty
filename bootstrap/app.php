@@ -39,6 +39,21 @@ return Application::configure(basePath: dirname(__DIR__))
             AddLinkHeadersForPreloadedAssets::class,
             SecurityHeaders::class,
         ]);
+
+        // ADR-0011 § 1 · faire confiance aux proxies en amont pour
+        // résoudre correctement `isSecure()` derrière LB Hostinger.
+        // `at: '*'` est acceptable car Floty est derrière un LB
+        // Hostinger qu'on ne peut pas lister par IP statique. Sans
+        // cette config, le cookie session `Secure` (cf. ADR-0011 § 2)
+        // ne se déclenche pas et le rate-limit IP (cf. § 3 rev. 1.1)
+        // utiliserait l'IP du LB au lieu de l'IP réelle.
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Render des exceptions métier Floty.
