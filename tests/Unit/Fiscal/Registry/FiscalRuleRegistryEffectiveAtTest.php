@@ -30,21 +30,23 @@ final class FiscalRuleRegistryEffectiveAtTest extends TestCase
     }
 
     #[Test]
-    public function retourne_les_seize_regles_2024_en_milieu_d_annee(): void
+    public function retourne_les_dix_huit_regles_2024_en_milieu_d_annee(): void
     {
         $rules = $this->registry->rulesEffectiveAt(2024, CarbonImmutable::create(2024, 7, 1));
 
-        self::assertCount(16, $rules);
+        // 18 règles pipeline 2024 · 16 historiques + R-2024-026 et
+        // R-2024-027 ajoutées au chantier d'audit exhaustif 14/05/2026.
+        self::assertCount(18, $rules);
     }
 
     #[Test]
-    public function retourne_les_seize_regles_2024_aux_bornes_de_l_annee(): void
+    public function retourne_les_dix_huit_regles_2024_aux_bornes_de_l_annee(): void
     {
         $atStart = $this->registry->rulesEffectiveAt(2024, CarbonImmutable::create(2024, 1, 1));
         $atEnd = $this->registry->rulesEffectiveAt(2024, CarbonImmutable::create(2024, 12, 31));
 
-        self::assertCount(16, $atStart);
-        self::assertCount(16, $atEnd);
+        self::assertCount(18, $atStart);
+        self::assertCount(18, $atEnd);
     }
 
     #[Test]

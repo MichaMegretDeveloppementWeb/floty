@@ -31,11 +31,15 @@ final class FiscalRulesSeederMirrorTest extends TestCase
     use RefreshDatabase;
 
     #[Test]
-    public function post_seed_2024_a_24_lignes(): void
+    public function post_seed_2024_a_32_lignes(): void
     {
         $this->seed(FiscalRulesSeeder::class);
 
-        self::assertSame(24, FiscalRule::query()->where('fiscal_year', 2024)->count());
+        // 32 lignes 2024 · 18 pipeline (Year2024Boot::rules()) +
+        // 14 documentaires-only (Year2024Boot::informativeRules()).
+        // Audit exhaustif 14/05/2026 · ajout de 8 règles (R-2024-025
+        // à R-2024-032, voir taxes-rules/2024.md v2.3).
+        self::assertSame(32, FiscalRule::query()->where('fiscal_year', 2024)->count());
     }
 
     #[Test]
@@ -95,11 +99,11 @@ final class FiscalRulesSeederMirrorTest extends TestCase
             'code_reference' => 'app/Fake.php',
         ]);
 
-        self::assertSame(25, FiscalRule::query()->where('fiscal_year', 2024)->count());
+        self::assertSame(33, FiscalRule::query()->where('fiscal_year', 2024)->count());
 
         $this->seed(FiscalRulesSeeder::class);
 
-        self::assertSame(24, FiscalRule::query()->where('fiscal_year', 2024)->count());
+        self::assertSame(32, FiscalRule::query()->where('fiscal_year', 2024)->count());
         self::assertFalse(
             FiscalRule::query()
                 ->where('rule_code', 'R-2024-999')

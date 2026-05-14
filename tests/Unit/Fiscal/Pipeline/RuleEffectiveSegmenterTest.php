@@ -57,7 +57,7 @@ final class RuleEffectiveSegmenterTest extends TestCase
     }
 
     #[Test]
-    public function annee_2024_full_year_donne_un_seul_segment_avec_les_seize_regles(): void
+    public function annee_2024_full_year_donne_un_seul_segment_avec_les_dix_huit_regles(): void
     {
         $segments = $this->segmenter->segmentsForYear(2024);
 
@@ -65,7 +65,9 @@ final class RuleEffectiveSegmenterTest extends TestCase
         $only = $segments[0];
         self::assertSame('2024-01-01', $only->start->toDateString());
         self::assertSame('2024-12-31', $only->end->toDateString());
-        self::assertCount(16, $only->rules);
+        // 18 règles pipeline (16 historiques + R-2024-026 et R-2024-027
+        // ajoutées au chantier d'audit exhaustif du 14/05/2026).
+        self::assertCount(18, $only->rules);
     }
 
     #[Test]

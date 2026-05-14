@@ -32,7 +32,10 @@ final class FiscalServiceProviderTest extends TestCase
         $registry = $this->app->make(FiscalRuleRegistry::class);
 
         self::assertSame([2024], $registry->registeredYears());
-        self::assertCount(16, $registry->rulesForYear(2024));
+        // 18 règles pipeline 2024 · 16 historiques + R-2024-026 et
+        // R-2024-027 (inactives par défaut) ajoutées au chantier
+        // d'audit exhaustif du 14/05/2026.
+        self::assertCount(18, $registry->rulesForYear(2024));
 
         foreach ($registry->rulesForYear(2024) as $rule) {
             self::assertInstanceOf(FiscalRule::class, $rule);

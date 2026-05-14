@@ -38,15 +38,20 @@ final class Year2024BootTest extends TestCase
     }
 
     #[Test]
-    public function expose_exactement_seize_classes_de_regles(): void
+    public function expose_exactement_dix_huit_classes_de_regles(): void
     {
         $rules = (new Year2024Boot)->rules();
 
-        // 16 règles dans le pipeline (cf. taxes-rules/2024.md). Les
-        // règles hors pipeline (R-001, R-007, R-009, R-020, R-023,
-        // R-024) ne sont pas comptées ici, par construction
-        // (cf. docblock du provider).
-        self::assertCount(16, $rules);
+        // 18 règles dans le pipeline (cf. taxes-rules/2024.md) ·
+        // 16 règles initiales + 2 règles inactives ajoutées au
+        // chantier d'audit exhaustif du 14/05/2026 :
+        //   - R-2024-026 (exonérations activités spécifiques)
+        //   - R-2024-027 (coefficient pondérateur frais kilométriques)
+        // Les règles hors pipeline (documentaires-only · R-2024-001,
+        // 006, 007, 009, 020, 022, 023, 024, 025, 028, 029, 030, 031,
+        // 032) sont déclarées dans `informativeRules()` et ne sont
+        // pas comptées ici.
+        self::assertCount(18, $rules);
     }
 
     #[Test]

@@ -29,6 +29,19 @@ use App\Models\VehicleFiscalCharacteristics;
  *   - sinon → **non taxable** (pose `isFiscallyTaxable = false` sur le
  *     contexte ; le pipeline court-circuite l'exécution)
  *
+ * **Complément CIBS L. 421-97 · véhicules réputés non affectés** ·
+ * par dérogation à L. 421-95 (qui définit l'affectation à des fins
+ * économiques), un véhicule autorisé à circuler pour les seuls besoins
+ * de sa construction, commercialisation, réparation ou contrôle
+ * technique, et qui ne réalise aucune opération de transport autre que
+ * strictement nécessaire à ces besoins, est réputé **ne pas être
+ * affecté à des fins économiques**. Cela inclut notamment les
+ * véhicules sous régime « W garage » (immatriculation provisoire des
+ * professionnels de l'automobile). Ces véhicules sont par construction
+ * hors du périmètre Floty (la flotte Floty ne contient que des
+ * véhicules en exploitation effective, jamais en W-garage), mais la
+ * règle complète le cadre conceptuel de R-2024-004.
+ *
  * En complément du verdict booléen, la règle pose sur le contexte un
  * **motif d'exclusion précis** (`isFiscallyTaxableReason`) selon la
  * branche d'exclusion empruntée. Ce motif est consommé par
@@ -59,7 +72,7 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
 
     public function description(): string
     {
-        return 'Classification du type fiscal du véhicule : frontière M1 (VP) vs N1 (VU), cas particuliers N1 ≥ 5 places.';
+        return 'Classification du type fiscal du véhicule : frontière M1 (VP) vs N1 (VU), cas particuliers N1 ≥ 5 places. Complément CIBS L. 421-97 · les véhicules en circulation pour les seuls besoins de leur construction, commercialisation, réparation ou contrôle technique (par exemple sous régime W garage) sont réputés ne pas être affectés à des fins économiques. Ces véhicules sont par construction hors flotte Floty.';
     }
 
     public function ruleType(): RuleType
@@ -83,6 +96,16 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
                 'article' => 'L. 421-2',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844510/2024-06-01',
                 'consulted_at' => '2026-05-06',
+            ],
+            // Phase 13 D5.13 (audit exhaustif 14/05/2026) · complément
+            // CIBS L. 421-97 sur les véhicules réputés ne pas être
+            // affectés à des fins économiques (W garage, démonstration,
+            // commercialisation, réparation, contrôle technique).
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-97',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000046196667/2024-06-01',
+                'consulted_at' => '2026-05-14',
             ],
         ];
     }

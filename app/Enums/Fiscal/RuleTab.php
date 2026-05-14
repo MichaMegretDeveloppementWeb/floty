@@ -44,6 +44,8 @@ enum RuleTab: string
                 RuleSection::CadreImplicite,
                 RuleSection::CadreEvenement,
                 RuleSection::CadreInterne,
+                RuleSection::CadreDeclaratif,
+                RuleSection::TaxeConnexe,
             ],
         };
     }

@@ -20,6 +20,7 @@ use App\Fiscal\Year2024\Exemption\R2024_018_OigExemption;
 use App\Fiscal\Year2024\Exemption\R2024_019_IndividualBusinessExemption;
 use App\Fiscal\Year2024\Exemption\R2024_020_RenterExemption;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
+use App\Fiscal\Year2024\Exemption\R2024_026_SpecificActivityExemptions;
 use App\Fiscal\Year2024\Pricing\R2024_010_WltpProgressive;
 use App\Fiscal\Year2024\Pricing\R2024_011_NedcProgressive;
 use App\Fiscal\Year2024\Pricing\R2024_012_PaProgressive;
@@ -31,6 +32,13 @@ use App\Fiscal\Year2024\Transversal\R2024_007_VehicleCharacteristicsHistorizatio
 use App\Fiscal\Year2024\Transversal\R2024_009_MidYearDecommissioning;
 use App\Fiscal\Year2024\Transversal\R2024_022_ContractualPeriodVsEffectiveUsage;
 use App\Fiscal\Year2024\Transversal\R2024_024_CritAirGuard;
+use App\Fiscal\Year2024\Transversal\R2024_025_WeightedAverageTariff;
+use App\Fiscal\Year2024\Transversal\R2024_027_MileageReimbursementCoefficient;
+use App\Fiscal\Year2024\Transversal\R2024_028_DeclarationModalities;
+use App\Fiscal\Year2024\Transversal\R2024_029_RegistrationCo2Malus;
+use App\Fiscal\Year2024\Transversal\R2024_030_RegistrationWeightMalus;
+use App\Fiscal\Year2024\Transversal\R2024_031_RegistrationCardTaxes;
+use App\Fiscal\Year2024\Transversal\R2024_032_HeavyVehiclesTax;
 use App\Providers\FiscalServiceProvider;
 
 /**
@@ -67,6 +75,7 @@ final class Year2024Boot implements FiscalYearBoot
             R2024_018_OigExemption::class,
             R2024_019_IndividualBusinessExemption::class,
             R2024_021_ShortTermRental::class,
+            R2024_026_SpecificActivityExemptions::class,
             // Pricing
             R2024_010_WltpProgressive::class,
             R2024_011_NedcProgressive::class,
@@ -75,6 +84,7 @@ final class Year2024Boot implements FiscalYearBoot
             // Transversal
             R2024_002_DailyProrata::class,
             R2024_003_FinalRounding::class,
+            R2024_027_MileageReimbursementCoefficient::class,
         ];
     }
 
@@ -102,6 +112,13 @@ final class Year2024Boot implements FiscalYearBoot
             R2024_022_ContractualPeriodVsEffectiveUsage::class,
             R2024_023_NoIsolatedAbatement::class,
             R2024_024_CritAirGuard::class,
+            // Phase 13 D5.13 · ajouts audit exhaustif 14/05/2026
+            R2024_025_WeightedAverageTariff::class,
+            R2024_028_DeclarationModalities::class,
+            R2024_029_RegistrationCo2Malus::class,
+            R2024_030_RegistrationWeightMalus::class,
+            R2024_031_RegistrationCardTaxes::class,
+            R2024_032_HeavyVehiclesTax::class,
         ];
     }
 }

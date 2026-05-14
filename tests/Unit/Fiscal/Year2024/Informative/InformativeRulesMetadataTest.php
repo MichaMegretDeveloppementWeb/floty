@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\Year2024\Informative;
 
+use App\Enums\Fiscal\RuleSection;
 use App\Enums\Fiscal\RuleType;
 use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\Year2024\Abatement\R2024_023_NoIsolatedAbatement;
@@ -14,6 +15,12 @@ use App\Fiscal\Year2024\Transversal\R2024_007_VehicleCharacteristicsHistorizatio
 use App\Fiscal\Year2024\Transversal\R2024_009_MidYearDecommissioning;
 use App\Fiscal\Year2024\Transversal\R2024_022_ContractualPeriodVsEffectiveUsage;
 use App\Fiscal\Year2024\Transversal\R2024_024_CritAirGuard;
+use App\Fiscal\Year2024\Transversal\R2024_025_WeightedAverageTariff;
+use App\Fiscal\Year2024\Transversal\R2024_028_DeclarationModalities;
+use App\Fiscal\Year2024\Transversal\R2024_029_RegistrationCo2Malus;
+use App\Fiscal\Year2024\Transversal\R2024_030_RegistrationWeightMalus;
+use App\Fiscal\Year2024\Transversal\R2024_031_RegistrationCardTaxes;
+use App\Fiscal\Year2024\Transversal\R2024_032_HeavyVehiclesTax;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -49,7 +56,43 @@ final class InformativeRulesMetadataTest extends TestCase
             [R2024_022_ContractualPeriodVsEffectiveUsage::class, 'R-2024-022', 22, RuleType::Transversal],
             [R2024_023_NoIsolatedAbatement::class, 'R-2024-023', 23, RuleType::Abatement],
             [R2024_024_CritAirGuard::class, 'R-2024-024', 24, RuleType::Transversal],
+            // Phase 13 D5.13 · ajouts audit exhaustif 14/05/2026
+            [R2024_025_WeightedAverageTariff::class, 'R-2024-025', 25, RuleType::Transversal],
+            [R2024_028_DeclarationModalities::class, 'R-2024-028', 28, RuleType::Transversal],
+            [R2024_029_RegistrationCo2Malus::class, 'R-2024-029', 29, RuleType::Transversal],
+            [R2024_030_RegistrationWeightMalus::class, 'R-2024-030', 30, RuleType::Transversal],
+            [R2024_031_RegistrationCardTaxes::class, 'R-2024-031', 31, RuleType::Transversal],
+            [R2024_032_HeavyVehiclesTax::class, 'R-2024-032', 32, RuleType::Transversal],
         ];
+    }
+
+    /**
+     * @return list<array{0: class-string<InformativeRule>, 1: RuleSection}>
+     */
+    public static function classesAndSectionProvider(): array
+    {
+        return [
+            // Taxes connexes véhicules hors périmètre Floty
+            [R2024_029_RegistrationCo2Malus::class, RuleSection::TaxeConnexe],
+            [R2024_030_RegistrationWeightMalus::class, RuleSection::TaxeConnexe],
+            [R2024_031_RegistrationCardTaxes::class, RuleSection::TaxeConnexe],
+            [R2024_032_HeavyVehiclesTax::class, RuleSection::TaxeConnexe],
+            // Modalités déclaratives
+            [R2024_028_DeclarationModalities::class, RuleSection::CadreDeclaratif],
+        ];
+    }
+
+    /**
+     * @param  class-string<InformativeRule>  $class
+     */
+    #[Test]
+    #[DataProvider('classesAndSectionProvider')]
+    public function nouvelles_classes_documentaires_ont_la_bonne_section(string $class, RuleSection $expectedSection): void
+    {
+        $rule = new $class;
+        $content = $rule->pedagogicalContent();
+
+        self::assertSame($expectedSection, $content->section, "{$class} doit être dans la section {$expectedSection->value}.");
     }
 
     /**
