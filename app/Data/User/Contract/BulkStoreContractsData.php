@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Data\User\Contract;
 
 use App\Actions\Contract\BulkCreateContractsAction;
+use App\Rules\Vehicle\AvailableForPeriod;
+use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Attributes\MapInputName;
 use Spatie\LaravelData\Attributes\Validation\AfterOrEqual;
 use Spatie\LaravelData\Attributes\Validation\ArrayType;
@@ -21,6 +23,7 @@ use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
+use Throwable;
 
 /**
  * Payload de création multiple de contrats - création groupée depuis
@@ -67,14 +70,73 @@ final class BulkStoreContractsData extends Data
     ) {}
 
     /**
+     * Étend les règles attributs-based ·
+     *
+     *   - `driver_ids.*` · chaque ID doit exister dans `drivers.id`.
+     *   - `vehicle_ids.*` · chaque ID doit être un integer et exister
+     *     dans `vehicles.id` (sécurise le pipeline bulk contre les IDs
+     *     orphelines · cf. F-12-002).
+     *   - `vehicle_ids.{idx}` · pour chaque véhicule du tableau, applique
+     *     {@see AvailableForPeriod} avec la plage `[startDate, endDate]`
+     *     commune. Empêche la création d'un contrat dont la période
+     *     dépasse `vehicles.exit_date` (ADR-0018 § 5). Comble le trou
+     *     historique où la voie bulk court-circuitait cette invariante.
+     *
+     * Cf. plan-remédiation Vague 1 Lot 1 D8 (F-12-002).
+     *
      * @return array<string, array<int, mixed>>
      */
     public static function rules(ValidationContext $context): array
     {
-        return [
+        $rules = [
             'driver_ids' => ['sometimes', 'nullable', 'array'],
             'driver_ids.*' => ['integer', 'exists:drivers,id'],
+            'vehicle_ids.*' => ['integer', 'exists:vehicles,id'],
         ];
+
+        $payload = $context->payload;
+        $vehicleIds = $payload['vehicle_ids'] ?? null;
+        $startDate = $payload['start_date'] ?? null;
+        $endDate = $payload['end_date'] ?? null;
+
+        // AvailableForPeriod par véhicule · attache la rule uniquement
+        // si on a une période parseable. Si elle est manquante ou
+        // malformée, les règles `Required` / `Date` sur startDate/endDate
+        // traitent l'erreur en amont · pas besoin de doubler ici.
+        if (
+            ! is_array($vehicleIds)
+            || ! is_string($startDate) || $startDate === ''
+            || ! is_string($endDate) || $endDate === ''
+        ) {
+            return $rules;
+        }
+
+        try {
+            $start = CarbonImmutable::parse($startDate);
+            $end = CarbonImmutable::parse($endDate);
+        } catch (Throwable) {
+            return $rules; // dates malformées · règles `Date` lèveront en amont
+        }
+
+        foreach ($vehicleIds as $idx => $vehicleId) {
+            $resolvedId = match (true) {
+                is_int($vehicleId) => $vehicleId,
+                is_string($vehicleId) && ctype_digit($vehicleId) => (int) $vehicleId,
+                default => null,
+            };
+
+            if ($resolvedId === null) {
+                continue; // règle `integer` sur vehicle_ids.* échouera en amont
+            }
+
+            $rules["vehicle_ids.{$idx}"] = [
+                'integer',
+                'exists:vehicles,id',
+                new AvailableForPeriod($resolvedId, $start, $end),
+            ];
+        }
+
+        return $rules;
     }
 
     /**
@@ -86,6 +148,7 @@ final class BulkStoreContractsData extends Data
             'vehicle_ids.array' => 'La liste des véhicules est invalide.',
             'vehicle_ids.min' => 'Sélectionnez au moins un véhicule.',
             'vehicle_ids.max' => 'Création limitée à 100 locations par opération.',
+            'vehicle_ids.*.exists' => 'Véhicule introuvable.',
             'company_id.exists' => 'Entreprise introuvable.',
             'driver_ids.*.exists' => 'Conducteur introuvable.',
             'driver_ids.distinct' => "Un conducteur ne peut être ajouté qu'une seule fois sur la même location.",

@@ -756,4 +756,107 @@ final class ContractControllerTest extends TestCase
 
         $this->assertSame(2, Contract::query()->count());
     }
+
+    #[Test]
+    public function bulk_store_rejette_vehicle_id_inexistant(): void
+    {
+        // C3 (Lot 1 D8 F-12-002) · le pipeline bulk valide désormais
+        // chaque vehicle_ids.* via `exists:vehicles,id`. Avant le fix,
+        // un ID orpheline passait silencieusement la validation.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        $this->from('/app/contracts/create')
+            ->actingAs($user)
+            ->post('/app/contracts/bulk', [
+                'vehicle_ids' => [999_999],
+                'company_id' => $company->id,
+                'driver_ids' => [],
+                'start_date' => '2024-04-01',
+                'end_date' => '2024-04-15',
+                'contract_reference' => null,
+                'notes' => null,
+            ])
+            ->assertSessionHasErrors(['vehicle_ids.0' => 'Véhicule introuvable.']);
+
+        $this->assertSame(0, Contract::query()->count());
+    }
+
+    #[Test]
+    public function bulk_store_rejette_si_dates_depassent_exit_date_du_vehicule(): void
+    {
+        // C3 (Lot 1 D8 F-12-002) · invariante ADR-0018 § 5 appliquée
+        // sur la voie bulk. Avant le fix, un contrat dont la plage
+        // dépassait `vehicles.exit_date` passait sans contrôle.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create(['exit_date' => '2024-04-10', 'exit_reason' => 'sold']);
+
+        $this->from('/app/contracts/create')
+            ->actingAs($user)
+            ->post('/app/contracts/bulk', [
+                'vehicle_ids' => [$vehicle->id],
+                'company_id' => $company->id,
+                'driver_ids' => [],
+                'start_date' => '2024-04-01',
+                'end_date' => '2024-04-20',
+                'contract_reference' => null,
+                'notes' => null,
+            ])
+            ->assertSessionHasErrors('vehicle_ids.0');
+
+        $this->assertSame(0, Contract::query()->count());
+    }
+
+    #[Test]
+    public function bulk_store_rejette_le_lot_entier_si_un_seul_vehicule_depasse_exit_date(): void
+    {
+        // Cas représentatif du wizard multi-véhicules (capacité dimensionnée
+        // dans le DTO même si pas encore exposée par l'UI actuelle).
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicleOk = Vehicle::factory()->create(['exit_date' => null]);
+        $vehicleSorti = Vehicle::factory()->create(['exit_date' => '2024-04-05', 'exit_reason' => 'sold']);
+
+        $this->from('/app/contracts/create')
+            ->actingAs($user)
+            ->post('/app/contracts/bulk', [
+                'vehicle_ids' => [$vehicleOk->id, $vehicleSorti->id],
+                'company_id' => $company->id,
+                'driver_ids' => [],
+                'start_date' => '2024-04-01',
+                'end_date' => '2024-04-15',
+                'contract_reference' => null,
+                'notes' => null,
+            ])
+            ->assertSessionHasErrors('vehicle_ids.1');
+
+        // Aucune création (rollback complet en cas de violation sur 1
+        // véhicule du lot · doctrine bulk = atomique).
+        $this->assertSame(0, Contract::query()->count());
+    }
+
+    #[Test]
+    public function bulk_store_accepte_dates_avant_exit_date_du_vehicule(): void
+    {
+        // Cas heureux · véhicule avec exit_date, mais la plage du contrat
+        // se termine STRICTEMENT avant cette date.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create(['exit_date' => '2024-12-31', 'exit_reason' => 'sold']);
+
+        $this->actingAs($user)
+            ->post('/app/contracts/bulk', [
+                'vehicle_ids' => [$vehicle->id],
+                'company_id' => $company->id,
+                'driver_ids' => [],
+                'start_date' => '2024-04-01',
+                'end_date' => '2024-04-15',
+                'contract_reference' => null,
+                'notes' => null,
+            ])
+            ->assertSessionHas('toast-success', '1 location enregistrée.');
+
+        $this->assertSame(1, Contract::query()->count());
+    }
 }
