@@ -23,6 +23,7 @@ use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Collection;
 
 /**
  * Calcule les blocs de données du Dashboard refondu (chantier η Phase 4)
@@ -59,6 +60,26 @@ final class DashboardStatsService
      */
     private const HISTORY_MAX_YEARS = 8;
 
+    /**
+     * Mémoïsation per-request des recettes locatives par couple
+     * (entreprise, année) pour éviter de payer plusieurs fois
+     * `BillingBreakdownService::byCompanyForYear` (3 queries SQL chacun)
+     * quand {@see computeKpis} et {@see computeHistory} couvrent des
+     * années identiques (year courant + Y-1). Clé · `{companyId}|{year}`.
+     *
+     * @var array<string, int>
+     */
+    private array $recettesCentsMemo = [];
+
+    /**
+     * Mémoïsation per-request de `companies->findAllForOptions()` qui
+     * est appelé par chaque construction de scope context. La liste
+     * change rarement et un Service Laravel est resolved per-request.
+     *
+     * @var Collection<int, \App\Models\Company>|null
+     */
+    private ?Collection $cachedCompanies = null;
+
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly ContractQueryService $contracts,
@@ -73,20 +94,28 @@ final class DashboardStatsService
     /**
      * KPIs « Présent » de l'année calendaire courante + comparaison vs
      * même période Y-1. La date de référence est aujourd'hui.
+     *
+     * F-21-001/002 · pré-charge en bulk les contrats / véhicules /
+     * indispos / recettes pour les 2 années couvertes (current + Y-1)
+     * via {@see DashboardScopeContext} · évite 2× les chargements
+     * indépendants de loadContractsByPair / findByIdsIndexed /
+     * loadUnavailabilitiesByVehicle.
      */
     public function computeKpis(int $year): DashboardKpiData
     {
         $today = CarbonImmutable::today();
-        $current = $this->computePeriodMetrics($year, $today);
+        $context = $this->buildScopeContext($year - 1, $year);
+
+        $current = $this->computePeriodMetrics($year, $today, $context);
 
         $previousYearEnd = $today->subYear();
-        $previous = $this->computePeriodMetrics($year - 1, $previousYearEnd);
+        $previous = $this->computePeriodMetrics($year - 1, $previousYearEnd, $context);
 
         // Recettes locatives : full year (jan-déc), indépendant de upToDate.
         // Pour Y courante, somme tous les mois 1..12 (réalisés + prévus).
         // Pour Y-1, l'année est complète, somme directement les 12 mois.
-        $recettesCurrent = $this->computeRecettesLocativesCentsForYear($year);
-        $recettesPrevious = $this->computeRecettesLocativesCentsForYear($year - 1);
+        $recettesCurrent = $this->computeRecettesLocativesCentsForYear($year, $context);
+        $recettesPrevious = $this->computeRecettesLocativesCentsForYear($year - 1, $context);
 
         $comparison = $previous['hasData'] || $recettesPrevious > 0
             ? new DashboardKpiComparisonData(
@@ -128,16 +157,116 @@ final class DashboardStatsService
      * via `BillingCalculator` qui prend en compte tous les contrats
      * chevauchant le mois, qu'ils soient passés ou futurs. Aucun
      * filtre temporel sur la date du jour.
+     *
+     * F-21-001 · si `$context` est fourni et que l'année figure dans
+     * la plage pré-calculée, retourne la valeur mémoïsée (zéro query
+     * de plus). Sinon comportement standalone.
      */
-    private function computeRecettesLocativesCentsForYear(int $year): int
+    private function computeRecettesLocativesCentsForYear(int $year, ?DashboardScopeContext $context = null): int
     {
+        if ($context !== null && array_key_exists($year, $context->recettesCentsByYear)) {
+            return $context->recettesCentsByYear[$year];
+        }
+
         $total = 0;
-        foreach ($this->companies->findAllForOptions() as $company) {
-            $breakdown = $this->billingBreakdown->byCompanyForYear((int) $company->id, $year);
-            $total += $breakdown->yearTotalCentsPartial;
+        foreach ($this->companiesForOptions() as $company) {
+            $total += $this->memoizedRecettesCents((int) $company->id, $year);
         }
 
         return $total;
+    }
+
+    /**
+     * Recettes locatives HT (cents) pour un couple (entreprise, année)
+     * avec mémoïsation per-request. Évite que `byCompanyForYear`
+     * (3 queries SQL chacun) soit appelé deux fois pour un même couple
+     * lors d'un même chargement Dashboard (typique · year courant et
+     * Y-1 partagés entre {@see computeKpis} et {@see computeHistory}).
+     */
+    private function memoizedRecettesCents(int $companyId, int $year): int
+    {
+        $key = $companyId.'|'.$year;
+        if (! array_key_exists($key, $this->recettesCentsMemo)) {
+            $this->recettesCentsMemo[$key] = $this->billingBreakdown
+                ->byCompanyForYear($companyId, $year)
+                ->yearTotalCentsPartial;
+        }
+
+        return $this->recettesCentsMemo[$key];
+    }
+
+    /**
+     * Liste des entreprises pour `findAllForOptions()` mémoïsée
+     * per-request. Cohérent avec la doctrine "Service Laravel resolved
+     * per-request" · pas de pollution cross-request.
+     *
+     * @return Collection<int, \App\Models\Company>
+     */
+    private function companiesForOptions(): Collection
+    {
+        if ($this->cachedCompanies === null) {
+            $this->cachedCompanies = $this->companies->findAllForOptions();
+        }
+
+        return $this->cachedCompanies;
+    }
+
+    /**
+     * Construit un contexte mémoïsé pour les calculs Dashboard sur une
+     * plage d'années (F-21-001/002). Pré-charge en bulk · les contrats
+     * par couple groupés par année, les véhicules concernés, les
+     * indispos, et les recettes locatives par année.
+     *
+     * Coût · ~4 queries SQL fixes (au lieu de ~2N + 5N queries avec
+     * une approche year-by-year, où N est le nombre d'années couvertes).
+     */
+    private function buildScopeContext(int $fromYear, int $toYear): DashboardScopeContext
+    {
+        // 1 query · tous les contrats actifs croisant le range, groupés
+        // par couple (véhicule, entreprise) et dispatchés par année.
+        $contractsByYear = $this->contracts->loadContractsByPairForYearRange($fromYear, $toYear);
+
+        // Union de tous les vehicleIds concernés par le scope (un même
+        // véhicule peut apparaître dans plusieurs années).
+        $allVehicleIds = [];
+        foreach ($contractsByYear as $pair) {
+            foreach ($pair->vehicleCompanyPairs() as $vc) {
+                $allVehicleIds[$vc['vehicleId']] = true;
+            }
+        }
+        $vehicleIdList = array_keys($allVehicleIds);
+
+        // 1 query (ou 0 si scope vide).
+        $vehiclesById = $vehicleIdList === []
+            ? new Collection
+            : $this->vehicles->findByIdsIndexed($vehicleIdList);
+
+        // 1 query (ou 0 si scope vide).
+        $unavailabilitiesByVehicleId = $vehicleIdList === []
+            ? []
+            : $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
+
+        // Recettes locatives · companies mémoïsées per-request +
+        // memoization par couple (companyId, year) via
+        // {@see memoizedRecettesCents} pour éviter le re-calcul quand
+        // computeKpis (year, year-1) et computeHistory (toutes années)
+        // partagent les mêmes années.
+        $companies = $this->companiesForOptions();
+        $recettesCentsByYear = [];
+        for ($y = $fromYear; $y <= $toYear; $y++) {
+            $total = 0;
+            foreach ($companies as $company) {
+                $total += $this->memoizedRecettesCents((int) $company->id, $y);
+            }
+            $recettesCentsByYear[$y] = $total;
+        }
+
+        return new DashboardScopeContext(
+            contractsByYear: $contractsByYear,
+            vehiclesById: $vehiclesById,
+            unavailabilitiesByVehicleId: $unavailabilitiesByVehicleId,
+            recettesCentsByYear: $recettesCentsByYear,
+        );
     }
 
     /**
@@ -168,6 +297,8 @@ final class DashboardStatsService
         }
 
         $today = CarbonImmutable::today();
+        $context = $this->buildScopeContext(min($scope), max($scope));
+
         $history = [];
         foreach ($scope as $year) {
             $isCurrent = $year === $currentYear;
@@ -175,7 +306,7 @@ final class DashboardStatsService
             $endDate = $isCurrent
                 ? $today
                 : CarbonImmutable::create($year, 12, 31);
-            $metrics = $this->computePeriodMetrics($year, $endDate);
+            $metrics = $this->computePeriodMetrics($year, $endDate, $context);
             $history[] = new DashboardYearHistoryData(
                 year: $year,
                 isCurrentYear: $isCurrent,
@@ -186,7 +317,7 @@ final class DashboardStatsService
                 // Recettes locatives plein année (jan-déc), même pour
                 // l'année courante (CA prévu inclus). La barre opacifiée
                 // « (en cours) » signale la nature prévisionnelle.
-                recettesLocativesCents: $this->computeRecettesLocativesCentsForYear($year),
+                recettesLocativesCents: $this->computeRecettesLocativesCentsForYear($year, $context),
             );
         }
 
@@ -225,11 +356,17 @@ final class DashboardStatsService
      * `$upToDate`). Utilisé deux fois par {@see computeKpis} (année
      * courante + même fenêtre Y-1) et N fois par {@see computeHistory}.
      *
+     * F-21-001/002 · si `$context` est fourni, lit le pivot contrats
+     * + véhicules + indispos depuis le bulk pré-chargé · zéro query
+     * de plus. Sinon comportement standalone (fallback).
+     *
      * @return array{joursVehicule: int, contracts: int, contractsActiveNow: int, taxesDues: float, tauxOccupation: float, hasData: bool}
      */
-    private function computePeriodMetrics(int $year, CarbonImmutable $upToDate): array
+    private function computePeriodMetrics(int $year, CarbonImmutable $upToDate, ?DashboardScopeContext $context = null): array
     {
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
+        $contractsByPair = $context !== null
+            ? $context->contractsForYear($year)
+            : $this->contracts->loadContractsByPair($year);
         $upToDateString = $upToDate->toDateString();
         $todayString = CarbonImmutable::today()->toDateString();
 
@@ -268,7 +405,7 @@ final class DashboardStatsService
 
         // Taxes YTD : approximation linéaire de la taxe annuelle.
         // Cf. doctrine de classe ci-dessus.
-        $taxesAnnuelles = $this->safeFleetAnnualTax($contractsByPair, $year);
+        $taxesAnnuelles = $this->safeFleetAnnualTax($contractsByPair, $year, $context);
         $daysInYear = $this->yearContext->daysInYear($year);
         $daysElapsed = $upToDate->dayOfYear;
         $taxesDues = $daysInYear > 0 ? round($taxesAnnuelles * $daysElapsed / $daysInYear, 2) : 0.0;
@@ -297,8 +434,12 @@ final class DashboardStatsService
      * sans règles fiscales (cf. doctrine "données métier ⊥ règles
      * fiscales", chantier η Phase 3). Renvoie 0.0 si l'année n'a pas
      * de boot configuré.
+     *
+     * F-21-001/002 · si `$context` est fourni, lit les véhicules et
+     * indispos depuis le bulk pré-chargé · zéro query de plus. Sinon
+     * comportement standalone (fallback).
      */
-    private function safeFleetAnnualTax(ContractsByPair $contractsByPair, int $year): float
+    private function safeFleetAnnualTax(ContractsByPair $contractsByPair, int $year, ?DashboardScopeContext $context = null): float
     {
         try {
             $vehicleIds = [];
@@ -311,8 +452,17 @@ final class DashboardStatsService
                 return 0.0;
             }
 
-            $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
-            $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
+            if ($context !== null) {
+                // `fleetAnnualTax` itère sur `vehicleCompanyPairs()` du
+                // pivot · il n'utilise que les véhicules effectivement
+                // présents, le superset `$context->vehiclesById` est
+                // donc safe (les véhicules en trop sont ignorés).
+                $vehiclesById = $context->vehiclesById;
+                $unavailabilitiesByVehicleId = $context->unavailabilitiesByVehicleId;
+            } else {
+                $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
+                $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
+            }
 
             return $this->aggregator->fleetAnnualTax(
                 $vehiclesById,

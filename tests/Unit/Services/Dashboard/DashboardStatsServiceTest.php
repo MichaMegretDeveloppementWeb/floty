@@ -12,6 +12,7 @@ use App\Models\VehicleYearlyPricing;
 use App\Services\Dashboard\DashboardStatsService;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -179,6 +180,101 @@ final class DashboardStatsServiceTest extends TestCase
         foreach ($activity->last30DaysHeatmap as $row) {
             self::assertCount(30, $row->days);
         }
+    }
+
+    #[Test]
+    public function compute_kpis_charge_les_contrats_et_vehicules_en_bulk_via_scope_context(): void
+    {
+        // F-21-001/002 · garde-fou perf · `computeKpis` doit construire
+        // un `DashboardScopeContext` qui pré-charge en 1 query unique
+        // les contrats du range [year-1, year], les véhicules concernés
+        // et les indispos. Le test compte spécifiquement les SELECT
+        // pivots (signature `from contracts ... order by vehicle_id`)
+        // et asserte qu'il n'y en a qu'un seul, indépendamment du nb
+        // de companies en base.
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        // 3 entreprises, chacune avec 1 contrat sur 2024 ET 2025 ·
+        // avant fix · 2× loadContractsByPair (1 par année).
+        foreach (range(1, 3) as $i) {
+            $company = Company::factory()->create();
+            foreach ([2024, 2025] as $year) {
+                Contract::factory()->create([
+                    'company_id' => $company->id,
+                    'vehicle_id' => $vehicle->id,
+                    'start_date' => "{$year}-01-".str_pad((string) ($i * 3), 2, '0', STR_PAD_LEFT),
+                    'end_date' => "{$year}-01-".str_pad((string) ($i * 3 + 1), 2, '0', STR_PAD_LEFT),
+                ]);
+            }
+        }
+
+        DB::enableQueryLog();
+        $this->service->computeKpis(2025);
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        // Les pivots `loadContractsByPair*` produisent un SELECT
+        // signature unique (order by `vehicle_id` asc, `start_date` asc).
+        // Discriminant signature `loadContractsByPair*` · pivot global
+        // sans filtre company_id, ordre vehicle_id puis start_date.
+        $pivotQueries = array_filter(
+            $queries,
+            static fn (array $q): bool => str_contains($q['query'], 'from `contracts`')
+                && str_contains($q['query'], 'order by `vehicle_id` asc, `start_date` asc')
+                && ! str_contains($q['query'], '`company_id`'),
+        );
+
+        // 1 invocation range pour le couple (year-1, year), pas 2.
+        self::assertCount(
+            1,
+            $pivotQueries,
+            'Expected exactly 1 SELECT pivot range query, got '.count($pivotQueries),
+        );
+    }
+
+    #[Test]
+    public function compute_history_charge_les_contrats_en_bulk_quel_que_soit_le_scope(): void
+    {
+        // F-21-001/002 · garde-fou perf · `computeHistory` boucle sur
+        // N années du scope dynamique. Avant fix · N invocations
+        // indépendantes. Après fix · 1 invocation range qui couvre
+        // toutes les années du scope.
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        // 4 années distinctes en base · scope dynamique = [2021..2024]
+        // + currentYear ajouté manuellement.
+        foreach (range(2021, 2024) as $year) {
+            Contract::factory()->create([
+                'company_id' => $company->id,
+                'vehicle_id' => $vehicle->id,
+                'start_date' => "{$year}-06-15",
+                'end_date' => "{$year}-06-30",
+            ]);
+        }
+
+        DB::enableQueryLog();
+        $this->service->computeHistory();
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        // Discriminant signature `loadContractsByPair*` · pivot global
+        // sans filtre company_id, ordre vehicle_id puis start_date.
+        $pivotQueries = array_filter(
+            $queries,
+            static fn (array $q): bool => str_contains($q['query'], 'from `contracts`')
+                && str_contains($q['query'], 'order by `vehicle_id` asc, `start_date` asc')
+                && ! str_contains($q['query'], '`company_id`'),
+        );
+
+        // 1 invocation range au lieu de 4-5 (1 par année du scope).
+        self::assertCount(
+            1,
+            $pivotQueries,
+            'Expected exactly 1 SELECT pivot range query, got '.count($pivotQueries),
+        );
     }
 
     #[Test]
