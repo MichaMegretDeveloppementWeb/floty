@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\ResetPasswordController;
@@ -54,4 +55,14 @@ Route::middleware('guest')->group(function (): void {
 
 Route::middleware('auth')->group(function (): void {
     Route::post('/logout', [LoginController::class, 'destroy'])->name('logout');
+
+    Route::get('/profile/change-password', [ChangePasswordController::class, 'show'])
+        ->name('profile.change-password.show');
+
+    // Throttle 5/15min · le user est déjà connecté donc le risque
+    // bruteforce est limité, mais on cap quand même pour éviter
+    // qu'un script abuse de la session volée.
+    Route::post('/profile/change-password', [ChangePasswordController::class, 'store'])
+        ->middleware('throttle:5,15')
+        ->name('profile.change-password.update');
 });

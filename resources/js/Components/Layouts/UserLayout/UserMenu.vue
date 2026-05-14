@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ChevronDown, LogOut } from 'lucide-vue-next';
+import { Link } from '@inertiajs/vue3';
+import { ChevronDown, KeyRound, LogOut } from 'lucide-vue-next';
 import { useTemplateRef } from 'vue';
 import { useUserMenu } from '@/Composables/Layout/UserLayout/useUserMenu';
+import { show as changePasswordRoute } from '@/routes/profile/change-password';
 
 defineProps<{
     name: string;
@@ -53,6 +55,21 @@ const { open, toggle, logout } = useUserMenu(rootRef);
                 </p>
             </div>
             <ul class="py-1.5">
+                <li>
+                    <Link
+                        :href="changePasswordRoute().url"
+                        role="menuitem"
+                        class="flex w-full items-center gap-2.5 px-4 py-2 text-left text-base text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+                    >
+                        <KeyRound
+                            :size="14"
+                            :stroke-width="1.75"
+                            class="text-slate-400"
+                            aria-hidden="true"
+                        />
+                        Changer mon mot de passe
+                    </Link>
+                </li>
                 <li>
                     <button
                         type="button"
