@@ -4,27 +4,47 @@ declare(strict_types=1);
 
 namespace App\Data\User\Dashboard;
 
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Compteurs des tâches opérationnelles en attente (chantier η Phase 4).
+ * Tâches opérationnelles en attente affichées sur le Dashboard (Phase
+ * 13 D5.15 · refonte chantier η Phase 4 qui posait les placeholders).
  *
- * Pour le MVP les deux compteurs sont des **placeholders à 0** ·
- * chacun sera alimenté par une vraie query quand les features
- * correspondantes seront livrées :
- *   - `pendingDeclarations` : alimenté par chantier δ (workflow
- *     déclaration ADR-0015).
- *   - `pendingInvoices` : alimenté par V1.2 (module facturation).
+ * Pour chaque domaine (déclarations + factures), expose ·
+ *   - `*Count` · nombre total d'items pending toutes entreprises confondues
+ *   - `*Items` · top 5 items triés par urgence (échéance overdue d'abord, puis date croissante) pour rendu liste détaillée sur le dashboard
  *
- * Le rendu UI affiche déjà le compteur `0` comme rendu réaliste pour
- * que l'utilisateur s'habitue à l'emplacement de l'info.
+ * Si `*Count > count(*Items)`, le front affiche un lien « Voir les N autres »
+ * pointant vers la page Index filtrée (Déclarations Index ou Factures Index).
+ *
+ * Si `*Count === 0`, le front affiche un état vide explicite (cf. Q3=B
+ * du brief D5.15).
  */
 #[TypeScript]
 final class DashboardPendingTasksData extends Data
 {
+    /**
+     * @param  list<DashboardPendingDeclarationItemData>  $pendingDeclarations
+     * @param  list<DashboardPendingInvoiceItemData>  $pendingInvoices
+     */
     public function __construct(
-        public int $pendingDeclarations,
-        public int $pendingInvoices,
+        public int $pendingDeclarationsCount,
+        #[DataCollectionOf(DashboardPendingDeclarationItemData::class)]
+        public array $pendingDeclarations,
+        public int $pendingInvoicesCount,
+        #[DataCollectionOf(DashboardPendingInvoiceItemData::class)]
+        public array $pendingInvoices,
     ) {}
+
+    public static function noPending(): self
+    {
+        return new self(
+            pendingDeclarationsCount: 0,
+            pendingDeclarations: [],
+            pendingInvoicesCount: 0,
+            pendingInvoices: [],
+        );
+    }
 }

@@ -182,11 +182,18 @@ final class DashboardStatsServiceTest extends TestCase
     }
 
     #[Test]
-    public function compute_pending_tasks_renvoie_zeros_placeholders(): void
+    public function compute_pending_tasks_delegue_a_l_aggregator(): void
     {
+        // Phase 13 D5.15 · `computePendingTasks` ne retourne plus de
+        // placeholders 0 · délègue à `DashboardPendingTasksAggregator`
+        // qui agrège les items pending de toutes les entreprises. Sur
+        // une BDD de test vide (RefreshDatabase + pas de seed
+        // applicatif), aucune entreprise → 0 items partout.
         $tasks = $this->service->computePendingTasks();
 
-        self::assertSame(0, $tasks->pendingDeclarations);
-        self::assertSame(0, $tasks->pendingInvoices);
+        self::assertSame(0, $tasks->pendingDeclarationsCount);
+        self::assertSame([], $tasks->pendingDeclarations);
+        self::assertSame(0, $tasks->pendingInvoicesCount);
+        self::assertSame([], $tasks->pendingInvoices);
     }
 }

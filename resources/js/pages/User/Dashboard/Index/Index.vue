@@ -15,7 +15,7 @@ defineProps<{
     history: App.Data.User.Dashboard.DashboardYearHistoryData[];
     /** Lentille Exploration · heatmap 30j flotte + top véhicules coûteux. */
     activity: App.Data.User.Dashboard.DashboardActivityData;
-    /** Compteurs tâches en attente (placeholders MVP). */
+    /** Tâches en attente · top 5 déclarations et factures + compteurs totaux. */
     pendingTasks: App.Data.User.Dashboard.DashboardPendingTasksData;
     /** Année résolue par le backend (sert au PageHeader uniquement). */
     selectedYear: number;

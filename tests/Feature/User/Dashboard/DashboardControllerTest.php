@@ -53,8 +53,10 @@ final class DashboardControllerTest extends TestCase
                     ->has('last30DaysHeatmap')
                     ->has('topExpensiveVehicles'))
                 ->has('pendingTasks', fn (AssertableInertia $t) => $t
-                    ->where('pendingDeclarations', 0)
-                    ->where('pendingInvoices', 0))
+                    ->has('pendingDeclarationsCount')
+                    ->has('pendingDeclarations')
+                    ->has('pendingInvoicesCount')
+                    ->has('pendingInvoices'))
                 ->has('selectedYear')
                 ->has('yearScope'),
             );

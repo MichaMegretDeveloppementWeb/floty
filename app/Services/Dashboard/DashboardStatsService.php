@@ -67,6 +67,7 @@ final class DashboardStatsService
         private readonly AvailableYearsResolver $availableYears,
         private readonly BillingBreakdownService $billingBreakdown,
         private readonly CompanyReadRepositoryInterface $companies,
+        private readonly DashboardPendingTasksAggregator $pendingTasksAggregator,
     ) {}
 
     /**
@@ -208,15 +209,15 @@ final class DashboardStatsService
     }
 
     /**
-     * Compteurs des tâches en attente · placeholders MVP à `0`. Voir
-     * {@see DashboardPendingTasksData} pour la roadmap d'alimentation.
+     * Tâches en attente sur la flotte (Phase 13 D5.15). Délègue à
+     * {@see DashboardPendingTasksAggregator} qui agrège les items
+     * pending de toutes les entreprises actives via les resolvers
+     * existants ({@see PendingDeclarationsResolver},
+     * {@see PendingInvoicesResolver}).
      */
     public function computePendingTasks(): DashboardPendingTasksData
     {
-        return new DashboardPendingTasksData(
-            pendingDeclarations: 0,
-            pendingInvoices: 0,
-        );
+        return $this->pendingTasksAggregator->aggregate();
     }
 
     /**
