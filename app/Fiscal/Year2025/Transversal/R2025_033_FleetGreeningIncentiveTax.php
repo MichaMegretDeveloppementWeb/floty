@@ -14,35 +14,49 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-033 · ⚠️ NOUVEAUTÉ 2025 · Taxe Annuelle Incitative au
- * verdissement des flottes (TAI).
+ * R-2025-033 · ⚠️ NOUVEAUTÉ 2025 · Taxe annuelle incitative relative à
+ * l'acquisition de véhicules légers à faibles émissions (« TAI »).
  *
  * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY V1 · n'existe pas
- * en 2024 (création LF 2025 art. 95).**
+ * en 2024 (création LF 2025 art. 95, paragraphe 3 bis du CIBS).**
  *
- * Nouvelle taxe annuelle visant à inciter les grandes flottes à verdir
- * leur parc · pour chaque véhicule à faibles émissions (VFE) manquant
- * pour atteindre un quota cible, un tarif unitaire est dû.
+ * **Titre légal officiel** · « Tarif de la taxe annuelle incitative
+ * relative à l'acquisition de véhicules légers à faibles émissions »
+ * (Légifrance, paragraphe 3 bis, articles L. 421-132-1 à L. 421-132-6,
+ * code des impositions sur les biens et services, en vigueur depuis le
+ * 01/03/2025 par la LOI n°2025-127 du 14 février 2025).
  *
- * **Paramètres 2025** (première année d'application) :
- * - Quota cible · **15 % de VFE** dans la flotte.
- * - Tarif unitaire · **2 000 €/véhicule manquant**.
- * - Période d'application · **01/03/2025 → 31/12/2025** (306 jours,
- *   facteur de prorata 1/306e par dérogation au b du 1° de L. 421-132-6
- *   · note d'application V de LF 2025 art. 28).
- * - Déclaration · janvier 2026.
+ * **Formule légale L. 421-132-2** · le montant dû par chaque entreprise
+ * affectataire et chaque année civile est le produit de trois facteurs :
+ *   1° **Tarif annuel** · 2 000 € en 2025, 4 000 € en 2026, 5 000 € à
+ *      partir de 2027.
+ *   2° **Écart à l'objectif cible d'intégration** de véhicules à
+ *      faibles émissions (VFE), exprimé en nombre de véhicules manquants
+ *      pour atteindre le quota cible.
+ *   3° **Taux annuel de renouvellement** = nombre de véhicules entrés
+ *      dans la flotte / taille totale de la flotte taxable (cf. L.
+ *      421-132-6).
  *
- * **Redevable** · entreprise disposant d'une flotte **≥ 100 véhicules**
- * sur l'année civile (au sens TVA · CGI art. 256 A et 256 B).
+ * **Quotas cibles d'intégration VFE** · 15 % (2025), 18 % (2026), 25 %
+ * (2027), 48 % (2030).
  *
- * **Pourquoi hors périmètre Floty V1** :
- * - Les entreprises utilisatrices Floty prises individuellement disposent
- *   de portions de flotte bien inférieures à 100 véhicules.
- * - Le seuil pourrait être atteint au niveau du bailleur (société de
- *   location) · mais celui-ci n'est pas dans le périmètre de calcul Floty.
+ * **Période 2025 (première année d'application)** · 01/03/2025 →
+ * 31/12/2025 (306 jours, facteur de prorata 1/306e par dérogation
+ * au b du 1° de L. 421-132-6 selon note d'application V de LF 2025 art.
+ * 28). Déclaration en janvier 2026.
  *
- * **Note implementation** · classe documentaire-only, inscrite dans
- * `Year2025Boot::informativeRules()`. N'existe pas dans Year2024Boot.
+ * **Redevable** · chaque entreprise affectataire (au sens CIBS L. 421-98),
+ * **SANS seuil minimum de flotte** dans le texte législatif actuel.
+ *
+ * **Pourquoi hors périmètre Floty V1** · cette taxe :
+ *   - dépend de données hors périmètre Floty (flotte totale détenue par
+ *     l'entreprise au sens fiscal, nombre de VFE intégrés, taux de
+ *     renouvellement annuel) que Floty ne mesure pas en propre.
+ *   - frappe l'entreprise utilisatrice au global, alors que Floty
+ *     calcule par couple (véhicule, entreprise utilisatrice) sur les
+ *     véhicules de la flotte partagée de location (modèle Renaud).
+ *   - documentée ici pour exhaustivité fiscale · le comptable de chaque
+ *     entreprise utilisatrice évaluera lui-même son éventuelle exigibilité.
  */
 final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeRule
 {
@@ -61,12 +75,12 @@ final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeR
 
     public function name(): string
     {
-        return 'Taxe Annuelle Incitative au verdissement des flottes (TAI) - nouveauté 2025';
+        return "Taxe annuelle incitative relative à l'acquisition de véhicules légers à faibles émissions (TAI) - nouveauté 2025";
     }
 
     public function description(): string
     {
-        return "Nouvelle taxe annuelle créée par LF 2025 art. 95 (CIBS art. L. 421-132-1 à L. 421-132-6) visant à inciter les grandes flottes (≥ 100 véhicules) à verdir leur parc. Pour 2025 (première année d'application) · quota cible 15 % de véhicules à faibles émissions (VFE), tarif unitaire 2 000 €/véhicule manquant pour atteindre le quota. Période d'application fractionnée · 01/03/2025 → 31/12/2025 (306 jours, facteur de prorata 1/306e par dérogation au b du 1° de L. 421-132-6 · note d'application V de LF 2025 art. 28). Déclaration en janvier 2026. Hors périmètre Floty V1 · le seuil de 100 véhicules n'est pas atteint par les entreprises utilisatrices Floty prises individuellement · au niveau du bailleur, ce dernier n'est pas dans le périmètre de calcul Floty.";
+        return "Nouvelle taxe annuelle créée par LF 2025 art. 95 (CIBS art. L. 421-132-1 à L. 421-132-6) frappant chaque entreprise affectataire qui n'atteint pas un quota cible d'intégration de véhicules à faibles émissions (VFE) dans sa flotte. Formule légale (L. 421-132-2) · Montant = Tarif annuel × Écart à l'objectif cible × Taux annuel de renouvellement. Tarif annuel · 2 000 € en 2025, 4 000 € en 2026, 5 000 € dès 2027. Quotas cibles · 15 % (2025), 18 % (2026), 25 % (2027), 48 % (2030). Période 2025 fractionnée · 01/03/2025 → 31/12/2025 (306 jours, prorata 1/306e par dérogation au b du 1° de L. 421-132-6 · note d'application V de LF 2025 art. 28). Déclaration en janvier 2026. **Pas de seuil minimum de flotte dans le texte légal** · toute entreprise affectataire est concernée en principe. Hors périmètre Floty V1 · cette taxe dépend de données globales de la flotte de l'entreprise utilisatrice (flotte totale, VFE entrants, taux de renouvellement) que Floty ne couvre pas. Documentée pour exhaustivité, le comptable évaluera l'éventuelle exigibilité.";
     }
 
     public function ruleType(): RuleType
@@ -88,13 +102,13 @@ final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeR
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-132-1 à L. 421-132-6 (paragraphe 3 bis créé par LF 2025 art. 95)',
-                'url' => 'https://www.legifrance.gouv.fr/codes/id/LEGISCTA000051214904',
+                'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000051187919',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'LOI',
-                'reference' => 'LF 2025 art. 95 + art. 28 V (note d\'application prorata 1/306e)',
-                'url' => 'https://www.legifrance.gouv.fr/loda/id/LEGITEXT000051214900',
+                'reference' => 'LOI n°2025-127 du 14 février 2025 art. 95 (création TAI) + art. 28 V (note d\'application prorata 1/306e en 2025)',
+                'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000051183558',
                 'consulted_at' => '2026-05-14',
             ],
         ];
@@ -117,10 +131,10 @@ final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeR
         return new RulePedagogicalContent(
             tab: RuleTab::Cadre,
             section: RuleSection::TaxeConnexe,
-            title: 'Taxe Annuelle Incitative au verdissement des flottes (TAI)',
-            pitch: 'Nouvelle taxe 2025 visant à inciter les flottes de 100 véhicules ou plus à augmenter leur part de véhicules à faibles émissions.',
-            body: "Créée par la LF 2025 (art. 95) et codifiée aux articles L. 421-132-1 à L. 421-132-6 du CIBS. Pour 2025, première année d'application, le quota cible est de 15 % de VFE dans la flotte, avec un tarif de 2 000 € par véhicule manquant pour atteindre ce quota. Période fractionnée 01/03/2025 → 31/12/2025 (306 jours, facteur de prorata 1/306e). Hors périmètre Floty V1 · le seuil de 100 véhicules par redevable n'est pas atteint par les entreprises utilisatrices Floty prises individuellement, et le bailleur n'est pas dans le périmètre de calcul de l'application. Documentée pour exhaustivité fiscale.",
-            example: 'Une entreprise disposant de 200 véhicules dont 20 VFE (10 %) en 2025 · quota cible 15 % = 30 VFE · 10 véhicules manquants · taxe = 10 × 2 000 € × 306/306 = 20 000 €. Déclaration en janvier 2026.',
+            title: "Taxe annuelle incitative à l'acquisition de VFE (TAI)",
+            pitch: "Nouvelle taxe 2025 qui frappe les entreprises affectataires n'atteignant pas un quota cible d'intégration de véhicules à faibles émissions (VFE) dans leur flotte.",
+            body: "Créée par la LF 2025 (art. 95) et codifiée aux articles L. 421-132-1 à L. 421-132-6 du CIBS (paragraphe 3 bis). Formule légale = Tarif annuel × Écart à l'objectif × Taux annuel de renouvellement. Tarif annuel progressif · 2 000 € en 2025, 4 000 € en 2026, 5 000 € dès 2027. Quotas cibles VFE · 15 % (2025), 18 % (2026), 25 % (2027), 48 % (2030). Période 2025 fractionnée 01/03 → 31/12 (306 jours, prorata 1/306e). Pas de seuil minimum de flotte dans le texte légal actuel · toute entreprise affectataire est en principe concernée. Hors périmètre Floty V1 · la taxe dépend de données globales de la flotte de l'entreprise utilisatrice (flotte totale, VFE entrants, taux de renouvellement annuel) que l'application ne mesure pas. Documentée ici pour exhaustivité du panorama fiscal · chaque comptable d'entreprise utilisatrice évaluera son exigibilité.",
+            example: 'Entreprise affectataire 2025 · flotte taxable 200 véhicules dont 20 VFE (10 %). Quota cible 2025 = 15 %, soit 30 VFE attendus. Écart = 30 - 20 = 10 véhicules. Taux de renouvellement de la flotte = 40 entrées / 200 = 20 %. Montant TAI = 2 000 € × 10 × 0,20 = 4 000 € (annuel, à proratiser par 306/306 en 2025). Cet exemple illustre la mécanique légale L. 421-132-2 · le « tarif unitaire par véhicule manquant » est modulé par le taux de renouvellement, qui peut diviser ou multiplier la taxe.',
         );
     }
 }

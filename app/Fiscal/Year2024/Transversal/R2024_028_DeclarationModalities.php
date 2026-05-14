@@ -123,12 +123,11 @@ final readonly class R2024_028_DeclarationModalities implements InformativeRule
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602849/2024-06-01',
                 'consulted_at' => '2026-05-14',
             ],
-            [
-                'type' => 'NOTICE',
-                'reference' => 'DGFiP n° 2857-FC-NOT-SD (Cerfa 52374#03)',
-                'url' => 'https://www.impots.gouv.fr/sites/default/files/formulaires/2857-fc-sd/2024/2857-fc-sd_4888.pdf',
-                'consulted_at' => '2026-04-22',
-            ],
+            // NOTICE PDF 2857-FC-SD retirée (URL d'origine pointait sur
+            // le mauvais formulaire 2042-RICI, URL canonique introuvable
+            // suite restructure impots.gouv.fr). Les articles CIBS
+            // L. 421-159 à 165 ci-dessus couvrent la doctrine déclarative
+            // de manière opposable.
         ];
     }
 

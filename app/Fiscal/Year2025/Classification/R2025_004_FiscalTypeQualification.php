@@ -72,10 +72,19 @@ final readonly class R2025_004_FiscalTypeQualification implements Classification
     public function legalBasis(): array
     {
         return [
+            // L. 421-2 a deux versions en 2025 (modifié 01/03/2025 par
+            // LF 2025 · changements rédactionnels sur la définition
+            // M1/N1, pas d'impact sur le périmètre fiscal V1 Floty).
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-2',
+                'article' => 'L. 421-2 (version 01/01/2025 → 28/02/2025)',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844510/2025-01-01',
+                'consulted_at' => '2026-05-14',
+            ],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-2 (version 01/03/2025 → 31/12/2025)',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844510/2025-03-01',
                 'consulted_at' => '2026-05-14',
             ],
             [

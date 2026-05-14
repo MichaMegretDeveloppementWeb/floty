@@ -101,12 +101,10 @@ final readonly class R2025_028_DeclarationModalities implements InformativeRule
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602849/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],
-            [
-                'type' => 'NOTICE',
-                'reference' => 'DGFiP n° 2857-FC-NOT-SD (Cerfa millésime 2025)',
-                'url' => 'https://www.impots.gouv.fr/formulaire/2857-fc-sd/formulaire-2857-fc-sd-fiche-daide-au-calcul-des-taxes-annuelles-sur-les',
-                'consulted_at' => '2026-05-14',
-            ],
+            // NOTICE PDF 2857-FC-SD retirée (URL d'origine = 404 suite
+            // restructure impots.gouv.fr · URL canonique stable
+            // introuvable). Les articles CIBS L. 421-159 à 165 ci-dessus
+            // couvrent la doctrine déclarative de manière opposable.
         ];
     }
 

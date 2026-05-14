@@ -53,12 +53,14 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
             {{ content?.title }}
         </h3>
         <p
-            v-if="rule && !rule.isFullYear"
+            v-if="rule"
             class="mt-0.5 text-xs text-slate-500"
         >
-            Période d'application :
+            <span class="font-medium">Période d'application :</span>
             du {{ formatDateFr(rule.applicabilityStartInYear) }}
-            au {{ formatDateFr(rule.applicabilityEndInYear) }}
+            au {{ formatDateFr(rule.applicabilityEndInYear) }}<span
+                v-if="rule.isFullYear"
+            > (année entière)</span>
         </p>
         <p class="mt-1 text-base leading-relaxed text-slate-700">
             {{ content?.pitch }}

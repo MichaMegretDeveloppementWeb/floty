@@ -15,12 +15,24 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-018 · Exonération organisme d'intérêt général (CIBS L. 421-126
- * / L. 421-138) · reconduction stricte R-2024-018 INACTIVE par défaut.
+ * R-2025-018 · Exonération « certaines formes d'exploitation » · véhicules
+ * affectés aux opérations exonérées de TVA (CIBS L. 421-126 / L. 421-138) ·
+ * reconduction stricte R-2024-018 INACTIVE par défaut.
  *
- * Si l'entreprise utilisatrice est un organisme d'intérêt général
- * (CGI art. 261, 7°) ET que le véhicule est exclusivement affecté à son
- * activité non lucrative, l'exonération s'applique sur les deux taxes.
+ * **Titre légal officiel** · L. 421-126 « Exonération pour certaines
+ * formes d'exploitation » · vise les véhicules affectés aux opérations
+ * exonérées mentionnées au 1° du 7 de l'article 261 du CGI (organismes
+ * sans but lucratif, dits OIG / « organismes d'utilité générale »).
+ *
+ * **Mécanique** · si l'entreprise utilisatrice est un organisme sans
+ * but lucratif au sens CGI art. 261, 7° (association loi 1901, fondation,
+ * etc.) ET que le véhicule est exclusivement affecté à son activité non
+ * lucrative, l'exonération s'applique sur les deux taxes (CO₂ et polluants
+ * via les articles miroirs L. 421-126 / L. 421-138).
+ *
+ * **Note de terminologie** · le label court « OIG » est un raccourci
+ * usuel pour « organisme d'intérêt général ». Le texte légal parle
+ * d'« opérations mentionnées au 1° du 7 de l'article 261 du CGI ».
  *
  * **Inactif par défaut V1** · aucune entreprise utilisatrice Floty
  * actuelle n'est OIG. Activable structurellement via seeder/UI.

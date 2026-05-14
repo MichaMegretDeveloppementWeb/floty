@@ -44,7 +44,7 @@ final readonly class R2025_001_TaxpayerAndTriggeringEvent implements Informative
 
     public function description(): string
     {
-        return "Définit le périmètre du fait générateur (affectation d'un véhicule à des fins économiques · CIBS L. 421-95), la qualification de l'entreprise affectataire (= redevable · CIBS L. 421-98) et le cas particulier des véhicules pris en location (CIBS L. 421-99). Textes inchangés depuis 01/01/2022.";
+        return "Définit le périmètre du fait générateur (affectation d'un véhicule à des fins économiques · CIBS L. 421-95), la qualification de l'entreprise affectataire (= redevable · CIBS L. 421-98) et le cas particulier des véhicules pris en location (CIBS L. 421-99). L. 421-95 et L. 421-98 ont été modifiés par LF 2025 art. 28 au 01/03/2025 · modifications rédactionnelles, pas d'impact pratique sur la doctrine du redevable. L. 421-99 inchangé depuis 01/01/2022.";
     }
 
     public function ruleType(): RuleType
@@ -63,16 +63,32 @@ final readonly class R2025_001_TaxpayerAndTriggeringEvent implements Informative
     public function legalBasis(): array
     {
         return [
+            // L. 421-95 a deux versions en 2025 (modifié 01/03/2025 par
+            // LF 2025 art. 28 · modifications rédactionnelles, pas
+            // d'impact pratique sur la doctrine de l'affectation).
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-95',
+                'article' => 'L. 421-95 (version 01/01/2025 → 28/02/2025)',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214924/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-98',
+                'article' => 'L. 421-95 (version 01/03/2025 → 31/12/2025)',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214924/2025-03-01',
+                'consulted_at' => '2026-05-14',
+            ],
+            // L. 421-98 idem · deux versions en 2025.
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-98 (version 01/01/2025 → 28/02/2025)',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214920/2025-01-01',
+                'consulted_at' => '2026-05-14',
+            ],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-98 (version 01/03/2025 → 31/12/2025)',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214920/2025-03-01',
                 'consulted_at' => '2026-05-14',
             ],
             [
