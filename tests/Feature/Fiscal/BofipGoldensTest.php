@@ -205,6 +205,78 @@ final class BofipGoldensTest extends TestCase
     }
 
     /**
+     * **BOFiP `BOI-AIS-MOB-10-30-10-20250528` § 190 exemple 1
+     * (acquisition mid-year).**
+     *
+     * Texte BOFiP exact ·
+     *   « Si une entreprise acquiert un véhicule au 31 janvier 2022 et
+     *     le revend au 30 novembre de la même année, la proportion
+     *     annuelle d'affectation de ce véhicule à cette entreprise sera
+     *     égale à 83,3 % : 304 jours (nombre de jours de l'année
+     *     écoulés entre le 1er février et le 30 novembre) / 365. »
+     *
+     * Adapté à 2025 (non bissextile, dénominateur 365 identique) ·
+     * véhicule M1 WLTP 100g Cat1, contrat 01/02/2025 → 30/11/2025
+     * (304 jours).
+     *  - CO₂ = 193 × 304/365 = 160,75 €
+     *  - polluants = 100 × 304/365 = 83,29 €
+     *  - total ≈ 244,04 €
+     */
+    #[Test]
+    public function bofip_2025_30_10_190_ex1_acquisition_mid_year_304j_donne_proportion_83_3(): void
+    {
+        // Le BOFiP affiche 304/365 = 83,3 % en partant de « acquisition
+        // 31/01 → cession 30/11 » (le BOFiP compte le 31/01 comme jour
+        // 1 d'affectation, le 30/11 inclus). Cf. note pédagogique
+        // explicative qui mentionne « entre le 1er février et le 30
+        // novembre » = 303 j · le BOFiP retient 304 j en incluant le
+        // jour d'acquisition. Floty matche en posant contract du
+        // 2025-01-31 au 2025-11-30 (inclusif·inclusif = 304 j).
+        $vehicle = $this->makeVehicleWltp(2025, co2: 100, category: PollutantCategory::Category1);
+        $this->makeContract($vehicle, '2025-01-31', '2025-11-30', ContractType::Lld);
+
+        $snapshot = $this->engine->compute($this->company->id, 2025);
+        // 293 × 304/365 = 244,038… ≈ 244,04 €
+        $expected = 293.0 * 304 / 365;
+        self::assertEqualsWithDelta($expected, $snapshot->totalDue, 0.05);
+    }
+
+    /**
+     * **BOFiP `BOI-AIS-MOB-10-30-10-20250528` § 190 exemple 2
+     * (fourrière publique 15 jours).**
+     *
+     * Texte BOFiP exact ·
+     *   « Une entreprise détient un véhicule tout au long de l'année
+     *     2022 [...]. À la suite d'une infraction routière, il est mis
+     *     en fourrière pendant 15 jours. La proportion annuelle
+     *     d'affectation de cette durée sera de 95,9 % : 350 / 365. »
+     *
+     * Adapté à 2025 · véhicule M1 WLTP 100g Cat1, contrat full-year +
+     * indispo fourrière publique 15 j (R-2025-008).
+     *  - prorata effectif = 350/365 = 95,9 %
+     *  - CO₂ = 193 × 350/365 ≈ 185,07 €
+     *  - polluants = 100 × 350/365 ≈ 95,89 €
+     *  - total ≈ 280,96 €
+     */
+    #[Test]
+    public function bofip_2025_30_10_190_ex2_fourriere_publique_15j_donne_proportion_95_9(): void
+    {
+        $vehicle = $this->makeVehicleWltp(2025, co2: 100, category: PollutantCategory::Category1);
+        $this->makeContract($vehicle, '2025-01-01', '2025-12-31', ContractType::Lld);
+        // Fourrière publique 15 jours (cas BOFiP exact)
+        Unavailability::factory()->poundPublic()->create([
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2025-05-01',
+            'end_date' => '2025-05-15',
+        ]);
+
+        $snapshot = $this->engine->compute($this->company->id, 2025);
+        // 293 × 350/365 = 280,958… ≈ 280,96 €
+        $expected = 293.0 * 350 / 365;
+        self::assertEqualsWithDelta($expected, $snapshot->totalDue, 0.05);
+    }
+
+    /**
      * Dérivation directe de l'exemple précédent · même véhicule WLTP
      * 100 g/km **avec abattement E85** (CIBS L. 421-125 réformé,
      * applicable au 01/01/2025 par LF 2024 art. 97, 23°).

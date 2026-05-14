@@ -95,7 +95,7 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQual
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-141',
-                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602921/2024-06-01',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602919/2024-06-01',
                 'consulted_at' => '2026-05-14',
             ],
         ];
