@@ -17,7 +17,7 @@ use Illuminate\Support\Carbon;
 /**
  * Compte applicatif gestionnaire flotte Floty.
  *
- * Cf. 01-schema-metier.md § 1 + ADR-0012.
+ * Cf. 01-schema-metier.md § 1 + ADR-0012 rev. 1.1.
  *
  * @property int $id
  * @property string $email
@@ -25,7 +25,6 @@ use Illuminate\Support\Carbon;
  * @property string $first_name
  * @property string $last_name
  * @property Carbon|null $email_verified_at
- * @property bool $must_change_password
  * @property Carbon|null $last_login_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -37,7 +36,6 @@ use Illuminate\Support\Carbon;
     'password',
     'first_name',
     'last_name',
-    'must_change_password',
     'last_login_at',
 ])]
 #[Hidden(['password', 'remember_token'])]
@@ -54,7 +52,6 @@ final class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
-            'must_change_password' => 'boolean',
             'last_login_at' => 'datetime',
         ];
     }

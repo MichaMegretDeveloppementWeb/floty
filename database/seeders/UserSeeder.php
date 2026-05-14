@@ -22,7 +22,6 @@ class UserSeeder extends Seeder
                 'first_name' => 'Renaud',
                 'last_name' => 'Nicolas',
                 'email_verified_at' => now(),
-                'must_change_password' => false,
             ],
         );
     }

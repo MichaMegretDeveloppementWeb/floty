@@ -27,7 +27,6 @@ class UserFactory extends Factory
             'first_name' => fake()->firstName(),
             'last_name' => fake()->lastName(),
             'email_verified_at' => now(),
-            'must_change_password' => false,
             'last_login_at' => null,
             'remember_token' => Str::random(10),
         ];
@@ -37,13 +36,6 @@ class UserFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'email_verified_at' => null,
-        ]);
-    }
-
-    public function mustChangePassword(): static
-    {
-        return $this->state(fn (array $attributes): array => [
-            'must_change_password' => true,
         ]);
     }
 }
