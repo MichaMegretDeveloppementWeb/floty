@@ -57,6 +57,23 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
  * Le jour où Floty migre sur un VPS avec Redis, les services consommateurs
  * peuvent ignorer ce manager et utiliser directement `Cache::tags([...])`.
  * Les clés produites par {@see key()} restent compatibles (Redis-safe).
+ *
+ * ### Exception doctrinale · R3 (Repositories) non applicable
+ *
+ * Le manager fait du SQL direct via `$store->getConnection()->table()->delete()`
+ * dans {@see invalidateByPrefix()}, ce qui contreviendrait à R3 (ADR-0013)
+ * pour un service métier. Exception documentée et validée user ·
+ * plan-remediation Vague 1 Lot 4 § 14 (F-34-104) ·
+ *
+ *   - Le manager est un composant **d'infrastructure** (gestion du
+ *     store cache, pas d'une entité métier).
+ *   - Aucune logique métier impliquée · pure manipulation des
+ *     enregistrements du cache backend.
+ *   - L'alternative « un Repository pour le store cache » serait
+ *     conceptuellement absurde (un Repository pour une table d'infra
+ *     non métier).
+ *
+ * Cf. ADR-0013 · architecture applicative R3 (exception infra explicite).
  */
 final class CacheTagsManager
 {

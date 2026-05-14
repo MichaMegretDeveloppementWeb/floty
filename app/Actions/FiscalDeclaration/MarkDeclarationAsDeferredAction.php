@@ -20,6 +20,31 @@ use Illuminate\Support\Facades\Log;
  * Refus si la déclaration n'est pas `draft` (déjà generated, deferred,
  * obsolete...). Aucun bypass de la génération : `deferred` interdit
  * la génération comme `pending` (cf. `GenerateDeclarationAction`).
+ *
+ * ### Pattern toléré · mutation Eloquent directe sans WriteRepository
+ *
+ * Cette Action fait `$declaration->fill([...])->save()` au lieu de
+ * passer par un `FiscalDeclarationWriteRepository::markAsDeferred()`.
+ * Tolérance doctrinale validée user · plan-remediation Vague 1 Lot 4
+ * § 14 (F-34-103) ·
+ *
+ *   « Mutation extrêmement légère (1 UPDATE sur la colonne `status`
+ *     + métadonnées DB) ; le coût d'écriture d'un WriteRepository
+ *     dédié serait disproportionné vs gain qualité. »
+ *
+ * Critères de l'exception ·
+ *   - Action très simple · 1 mutation atomique, pas de logique métier
+ *     complexe (les invariants `status === Draft` et `!is_obsolete`
+ *     restent dans l'Action, pas dans une Rule métier dédiée).
+ *   - Pas de validation cross-table.
+ *   - Le pattern ne migre PAS dans un Controller (R1 strict respecté).
+ *   - Tests Feature couvrent le comportement (statut, transitions
+ *     refusées, observabilité Log).
+ *
+ * À reconsidérer si la logique de transition draft → deferred se
+ * complexifie (ex. effets de bord, multi-mutations).
+ *
+ * Cf. ADR-0013 · architecture applicative R3 (Repositories).
  */
 final readonly class MarkDeclarationAsDeferredAction
 {
