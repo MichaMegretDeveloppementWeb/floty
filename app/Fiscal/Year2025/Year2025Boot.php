@@ -38,8 +38,10 @@ use App\Fiscal\Year2025\Transversal\R2025_027_MileageReimbursementCoefficient;
 use App\Fiscal\Year2025\Transversal\R2025_028_DeclarationModalities;
 use App\Fiscal\Year2025\Transversal\R2025_028bis_DeclarationModalities;
 use App\Fiscal\Year2025\Transversal\R2025_029_RegistrationCo2Malus;
+use App\Fiscal\Year2025\Transversal\R2025_029bis_RegistrationCo2Malus;
 use App\Fiscal\Year2025\Transversal\R2025_030_RegistrationWeightMalus;
 use App\Fiscal\Year2025\Transversal\R2025_031_RegistrationCardTaxes;
+use App\Fiscal\Year2025\Transversal\R2025_031bis_RegistrationCardTaxes;
 use App\Fiscal\Year2025\Transversal\R2025_032_HeavyVehiclesTax;
 use App\Fiscal\Year2025\Transversal\R2025_033_FleetGreeningIncentiveTax;
 use App\Providers\FiscalServiceProvider;
@@ -154,9 +156,15 @@ final class Year2025Boot implements FiscalYearBoot
             // modifiés au 01/03/2025).
             R2025_028_DeclarationModalities::class, // 01/01-28/02
             R2025_028bis_DeclarationModalities::class, // 01/03-31/12
-            R2025_029_RegistrationCo2Malus::class,
+            // R-2025-029 scindée par ADR-0022 (durcissement 01/03/2025 ·
+            // seuil 118→113 g, plafond 60K→70K€, suppression plafonnement 50%).
+            R2025_029_RegistrationCo2Malus::class, // 01/01-28/02
+            R2025_029bis_RegistrationCo2Malus::class, // 01/03-31/12
             R2025_030_RegistrationWeightMalus::class,
-            R2025_031_RegistrationCardTaxes::class,
+            // R-2025-031 scindée par ADR-0022 (évolution 01/05/2025 ·
+            // exonération Y1 régionale facultative pour VE/H₂).
+            R2025_031_RegistrationCardTaxes::class, // 01/01-30/04
+            R2025_031bis_RegistrationCardTaxes::class, // 01/05-31/12
             R2025_032_HeavyVehiclesTax::class,
             // Nouveauté 2025 · pas d'équivalent 2024
             R2025_033_FleetGreeningIncentiveTax::class,

@@ -49,15 +49,21 @@ final class Year2025BootTest extends TestCase
     }
 
     #[Test]
-    public function expose_exactement_seize_classes_documentaires(): void
+    public function expose_exactement_dix_huit_classes_documentaires(): void
     {
         $informative = (new Year2025Boot)->informativeRules();
 
-        // 16 règles documentaires-only · 7 reconductions 2024 +
-        // 6 ajouts audit 14/05/2026 + 1 nouveauté 2025 (TAI) +
-        // 2 bis issues de la scission ADR-0022 (R-2025-001-bis et
-        // R-2025-028-bis · LF 2025 art. 28 à effet 01/03/2025).
-        self::assertCount(16, $informative);
+        // 18 règles documentaires-only · composition ·
+        // - 7 reconductions 2024 (cadre architectural et garde-fous)
+        // - 6 ajouts audit 14/05/2026 (moyenne pondérée, déclaration,
+        //   5 taxes connexes hors périmètre · malus CO₂ immat., malus
+        //   poids immat., carte grise, véhicules lourds)
+        // - 1 nouveauté 2025 (TAI · L. 421-132-1 à 6)
+        // - 4 bis issues de la scission ADR-0022 stricte ·
+        //   * R-2025-001-bis + R-2025-028-bis · LF 2025 art. 28 (01/03)
+        //   * R-2025-029-bis · durcissement malus CO₂ immat. (01/03)
+        //   * R-2025-031-bis · évolution Y1 carte grise (01/05)
+        self::assertCount(18, $informative);
     }
 
     #[Test]

@@ -8,36 +8,30 @@ use App\Enums\Fiscal\RuleSection;
 use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
-use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
-use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
+use Carbon\CarbonImmutable;
 
 /**
- * R-2025-031 · Taxes liées au certificat d'immatriculation · évolution 01/05/2025.
+ * R-2025-031 · Taxes liées au certificat d'immatriculation · **version
+ * 01/01 → 30/04/2025** (exonération Y1 électrique/hydrogène nationale
+ * obligatoire).
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY.**
+ * Règle fiscale hors périmètre de l'application · trois taxes ponctuelles
+ * acquittées à l'établissement d'une carte grise · taxe régionale Y1
+ * (CIBS L. 421-41 à L. 421-54-1), taxe Y2 (L. 421-55 à L. 421-57,
+ * formation transport), taxe fixe Y4 (L. 421-49, 11 €).
  *
- * Regroupe trois taxes ponctuelles acquittées lors de l'établissement
- * d'un certificat d'immatriculation :
- *   - Taxe régionale Y1 (CIBS art. L. 421-41 à L. 421-54-1).
- *   - Taxe Y2 (CIBS art. L. 421-55 à L. 421-57) · formation transport.
- *   - Taxe fixe Y4 (CIBS art. L. 421-49) · 11 € fixe.
+ * Période 01/01-30/04/2025 · l'exonération régionale Y1 pour véhicules
+ * électriques/hydrogène est nationale obligatoire. La période
+ * 01/05-31/12/2025 (exonération facultative par région) est portée par
+ * {@see R2025_031bis_RegistrationCardTaxes}.
  *
- * **Évolution majeure 01/05/2025** · l'exonération régionale Y1 pour
- * véhicules électriques/hydrogène devient **facultative par région**
- * (chaque conseil régional décide de l'application ou non). Les régions
- * qui décident de ne plus exonérer voient leurs tarifs Y1 s'appliquer
- * aux VE/H₂ aussi.
- *
- * **Redevable** · titulaire du certificat d'immatriculation (= bailleur
- * dans le modèle Floty · entreprises utilisatrices jamais redevables).
+ * Marquée inactive · règle fiscale réelle mais hors périmètre de calcul
+ * de l'application (le bailleur paie, pas l'entreprise utilisatrice).
  */
 final readonly class R2025_031_RegistrationCardTaxes implements InformativeRule
 {
-    use AnnualRuleTrait;
-    use RuleActiveByDefaultTrait;
-
     public function ruleCode(): string
     {
         return 'R-2025-031';
@@ -48,14 +42,24 @@ final readonly class R2025_031_RegistrationCardTaxes implements InformativeRule
         return 2025;
     }
 
+    public function applicabilityStart(): CarbonImmutable
+    {
+        return CarbonImmutable::create(2025, 1, 1, 0, 0, 0);
+    }
+
+    public function applicabilityEnd(): ?CarbonImmutable
+    {
+        return CarbonImmutable::create(2025, 4, 30, 23, 59, 59);
+    }
+
     public function name(): string
     {
-        return "Taxes liées au certificat d'immatriculation (carte grise)";
+        return "Taxes liées au certificat d'immatriculation (version 01/01 → 30/04/2025)";
     }
 
     public function description(): string
     {
-        return "Trois taxes ponctuelles acquittées lors de l'établissement de la carte grise · taxe régionale Y1 (tarif au cheval fiscal, variable par région), taxe Y2 (formation professionnelle transport routier, pour VUL et camions), taxe fixe Y4 (11 €). Évolution majeure 01/05/2025 · l'exonération régionale Y1 pour véhicules électriques/hydrogène devient facultative par région (chaque conseil régional décide). Redevable · titulaire de la carte grise. Hors périmètre Floty · le bailleur immatricule les véhicules · les entreprises utilisatrices ne sont jamais directement redevables.";
+        return "Trois taxes ponctuelles acquittées lors de l'établissement de la carte grise · taxe régionale Y1, taxe Y2 (formation transport routier, VUL et camions), taxe fixe Y4 (11 €). Sur la période 01/01-30/04/2025, l'exonération régionale Y1 pour véhicules électriques/hydrogène est nationale obligatoire. Hors périmètre de l'application · le bailleur immatricule les véhicules et acquitte ces taxes · les entreprises utilisatrices ne sont jamais directement redevables. La période 01/05-31/12/2025 (exonération Y1 facultative par région) est portée par R-2025-031-bis.";
     }
 
     public function ruleType(): RuleType
@@ -68,6 +72,11 @@ final readonly class R2025_031_RegistrationCardTaxes implements InformativeRule
         return 31;
     }
 
+    public function isActive(): bool
+    {
+        return false;
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -77,19 +86,19 @@ final readonly class R2025_031_RegistrationCardTaxes implements InformativeRule
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-41 à L. 421-54-1',
-                'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000044599003/2025-05-01/',
+                'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000044599003/2025-01-01/',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-49 (taxe fixe Y4)',
-                'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000044599003/2025-05-01/',
+                'article' => 'L. 421-49',
+                'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000044599003/2025-01-01/',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-55 à L. 421-57 (taxe Y2)',
-                'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000044599043/2025-05-01/',
+                'article' => 'L. 421-55 à L. 421-57',
+                'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000044599043/2025-01-01/',
                 'consulted_at' => '2026-05-14',
             ],
             [
@@ -114,9 +123,9 @@ final readonly class R2025_031_RegistrationCardTaxes implements InformativeRule
         return new RulePedagogicalContent(
             tab: RuleTab::Cadre,
             section: RuleSection::TaxeConnexe,
-            title: "Taxes liées au certificat d'immatriculation",
-            pitch: "Taxes acquittées à chaque délivrance d'une carte grise · taxe régionale (au cheval fiscal), taxe formation transport, taxe fixe.",
-            body: "Acquittées par le titulaire de la carte grise · dans le modèle Floty, le bailleur immatricule les véhicules et acquitte ces taxes ponctuelles. Les entreprises utilisatrices ne sont jamais directement redevables. Évolution majeure au 01/05/2025 · l'exonération régionale Y1 pour véhicules électriques/hydrogène devient facultative par région · les régions qui décident de ne plus exonérer voient leurs tarifs Y1 s'appliquer aussi aux VE/H₂. Documentées pour exhaustivité.",
+            title: "Taxes liées au certificat d'immatriculation (avant évolution 01/05/2025)",
+            pitch: "Période 01/01-30/04/2025 · taxes payées à la délivrance d'une carte grise · taxe régionale Y1, taxe formation transport Y2, taxe fixe Y4.",
+            body: "Acquittées par le titulaire de la carte grise · le bailleur (société de location) immatricule les véhicules et acquitte ces taxes ponctuelles. Les entreprises utilisatrices ne sont jamais directement redevables. Sur cette période, l'exonération régionale Y1 pour véhicules électriques/hydrogène est nationale obligatoire. L'application ne calcule pas ces taxes · documentées pour exhaustivité.",
         );
     }
 }

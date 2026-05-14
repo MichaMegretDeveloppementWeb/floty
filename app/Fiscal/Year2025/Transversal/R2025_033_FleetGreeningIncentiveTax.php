@@ -9,7 +9,6 @@ use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
-use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
@@ -61,11 +60,15 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeRule
 {
     use AnnualRuleTrait;
-    use RuleActiveByDefaultTrait;
 
     public function ruleCode(): string
     {
         return 'R-2025-033';
+    }
+
+    public function isActive(): bool
+    {
+        return false;
     }
 
     public function fiscalYear(): int
