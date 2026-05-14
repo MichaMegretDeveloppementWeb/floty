@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use Illuminate\Support\Facades\Route;
 
@@ -10,9 +11,9 @@ use Illuminate\Support\Facades\Route;
 | Routes Auth
 |--------------------------------------------------------------------------
 |
-| V1 MVP : login + logout uniquement.
-| Les flux forgot-password / reset-password / change-password sont reportés
-| post-MVP (cadrage ADR-0012).
+| V1 · login + logout + forgot-password (reset-password + change-password
+| livrés dans D4.3 + D4.4 du même plan-remédiation).
+| Cf. ADR-0012 rev. 1.1.
 */
 
 Route::middleware('guest')->group(function (): void {
@@ -29,6 +30,15 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/login', [LoginController::class, 'store'])
         ->middleware('throttle:10,2')
         ->name('login.store');
+
+    Route::get('/forgot-password', [ForgotPasswordController::class, 'show'])
+        ->name('password.request');
+
+    // Throttle 3/15min anti spam reset (envoi d'emails). Plus strict que
+    // le login car un envoi mail = coût SMTP réel.
+    Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])
+        ->middleware('throttle:3,15')
+        ->name('password.email');
 });
 
 Route::middleware('auth')->group(function (): void {

@@ -3,6 +3,7 @@ import { useForm } from '@inertiajs/vue3';
 import Button from '@/Components/Ui/Button/Button.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { store as loginStoreRoute } from '@/routes/login';
+import { request as forgotPasswordRoute } from '@/routes/password';
 
 const form = useForm({
     email: '',
@@ -41,5 +42,14 @@ const submit = (): void => {
         <Button type="submit" block :loading="form.processing">
             Se connecter
         </Button>
+
+        <div class="text-center">
+            <a
+                :href="forgotPasswordRoute().url"
+                class="text-sm text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
+            >
+                Mot de passe oublié ?
+            </a>
+        </div>
     </form>
 </template>

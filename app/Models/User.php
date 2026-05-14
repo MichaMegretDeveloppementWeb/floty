@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Notifications\Auth\PasswordResetNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -66,5 +67,15 @@ final class User extends Authenticatable
         return Attribute::make(
             get: fn (): string => trim($this->first_name.' '.$this->last_name),
         )->shouldCache();
+    }
+
+    /**
+     * Override la notification par défaut Laravel pour utiliser le
+     * Mailable français custom (sujet + template Blade `emails.password-reset`).
+     * Branchée automatiquement par `Password::sendResetLink()`.
+     */
+    public function sendPasswordResetNotification(mixed $token): void
+    {
+        $this->notify(new PasswordResetNotification((string) $token));
     }
 }
