@@ -238,6 +238,7 @@ final class OptOutNoRegressionTest extends TestCase
             $this->app,
             $this->baseRegistry,
             $decorator,
+            2024,
         );
         $segmenter = new RuleEffectiveSegmenter($overlayedRegistry);
 

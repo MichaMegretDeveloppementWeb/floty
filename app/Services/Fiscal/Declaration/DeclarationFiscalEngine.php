@@ -25,6 +25,8 @@ use App\Fiscal\ValueObjects\ContractSnapshotEntry;
 use App\Fiscal\ValueObjects\FiscalDeclarationSnapshot;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Fiscal\Year2024\Exemption\R2024_021_WithOptOuts;
+use App\Fiscal\Year2025\Exemption\R2025_021_ShortTermRental;
+use App\Fiscal\Year2025\Exemption\R2025_021_WithOptOuts;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\FiscalReviewDecision;
@@ -154,7 +156,7 @@ final readonly class DeclarationFiscalEngine
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
 
-        $aggregator = $this->buildAdHocAggregator($optOutContractIds);
+        $aggregator = $this->buildAdHocAggregator($year, $optOutContractIds);
         $rowsByVehicle = $aggregator->companyAnnualTaxBreakdownByVehicle(
             $companyId,
             $vehiclesById,
@@ -541,7 +543,9 @@ final readonly class DeclarationFiscalEngine
     /**
      * Construit un `FleetFiscalAggregator` ad-hoc dont la chaîne pipeline
      * est branchée sur un {@see OverlayedRuleRegistry} qui substitue
-     * R-2024-021 par {@see R2024_021_WithOptOuts} pour cette déclaration.
+     * R-YYYY-021 par son décorateur runtime (WithOptOuts) pour cette
+     * déclaration. La paire (rule canonique, décorateur) est choisie
+     * selon l'année fiscale `$year` (Bloc 4 Phase J · multi-année).
      *
      * Toutes les instances sont **fraîches** (caches scopés à
      * l'aggregator, pas de partage avec le singleton standard du
@@ -549,15 +553,28 @@ final readonly class DeclarationFiscalEngine
      *
      * @param  list<int>  $optOutContractIds
      */
-    private function buildAdHocAggregator(array $optOutContractIds): FleetFiscalAggregator
+    private function buildAdHocAggregator(int $year, array $optOutContractIds): FleetFiscalAggregator
     {
-        $wrappedRule = $this->container->make(R2024_021_ShortTermRental::class);
-        $decorator = new R2024_021_WithOptOuts($wrappedRule, $optOutContractIds);
+        $decorator = match ($year) {
+            2024 => new R2024_021_WithOptOuts(
+                $this->container->make(R2024_021_ShortTermRental::class),
+                $optOutContractIds,
+            ),
+            2025 => new R2025_021_WithOptOuts(
+                $this->container->make(R2025_021_ShortTermRental::class),
+                $optOutContractIds,
+            ),
+            default => throw new RuntimeException(sprintf(
+                'Année fiscale non supportée pour le décorateur LCD · %d. Ajouter la paire (R-YYYY-021_ShortTermRental, R-YYYY-021_WithOptOuts) ici lors du portage de la nouvelle année.',
+                $year,
+            )),
+        };
 
         $overlayedRegistry = new OverlayedRuleRegistry(
             $this->container,
             $this->baseRegistry,
             $decorator,
+            $year,
         );
         $segmenter = new RuleEffectiveSegmenter($overlayedRegistry);
         $pipeline = new FiscalPipeline(

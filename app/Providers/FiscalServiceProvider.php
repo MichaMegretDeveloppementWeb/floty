@@ -8,7 +8,10 @@ use App\Fiscal\Contracts\FiscalYearBoot;
 use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Fiscal\Year2024\Exemption\R2024_008_ReductiveUnavailability;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
+use App\Fiscal\Year2025\Exemption\R2025_008_ReductiveUnavailability;
+use App\Fiscal\Year2025\Exemption\R2025_021_ShortTermRental;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -18,26 +21,37 @@ use InvalidArgumentException;
  * Enregistre le {@see FiscalRuleRegistry} en singleton et y déclare les
  * classes règles applicables par année.
  *
- * **Architecture (chantier ζ · extensibilité multi-année)** : la liste
+ * **Architecture (chantier ζ · extensibilité multi-année)** · la liste
  * des années supportées vit dans `config('floty.fiscal.year_boots')`.
  * Chaque année a sa classe `Year{YYYY}Boot` qui implémente
  * {@see FiscalYearBoot} et déclare ses propres règles. Le provider se
  * contente de boucler dessus · il ne **connaît plus** d'année particulière.
  *
- * **Pour ajouter une nouvelle année** : créer `app/Fiscal/Year{YYYY}/Year{YYYY}Boot.php`
+ * **Pour ajouter une nouvelle année** · créer `app/Fiscal/Year{YYYY}/Year{YYYY}Boot.php`
  * + ajouter la classe dans la config. Procédure complète dans
  * `project-management/taxes-rules/_adding-a-new-year.md`.
  *
- * Note : certaines règles du catalogue 2024 ne sont **pas** enregistrées
+ * **Bindings LcdQualifier** (Bloc 4 Phase J · multi-année) :
+ * - Binding par défaut · `LcdQualifier` → `R2024_021_ShortTermRental`.
+ *   Utilisé par `LcdContractFilter` (risk detection cluster-by-fingerprint
+ *   indépendante de l'année · les deux classes 2024 et 2025 ont une
+ *   logique identique CIBS L. 421-129 inchangée depuis 01/01/2022).
+ * - Binding contextuel `R-2024-008` → `R-2024-021` · alignement strict
+ *   pipeline 2024.
+ * - Binding contextuel `R-2025-008` → `R-2025-021` · alignement strict
+ *   pipeline 2025 (sinon Laravel injecterait le binding global 2024 dans
+ *   la règle 2025, viol ADR-0022).
+ *
+ * Note · certaines règles du catalogue 2024 ne sont **pas** enregistrées
  * via les `FiscalYearBoot` car elles vivent hors pipeline (cf. ADR-0006 § 2) :
- * - R-2024-001 (redevable / fait générateur) : architecturale
- * - R-2024-007 (historisation des caractéristiques) : structurelle
+ * - R-YYYY-001 (redevable / fait générateur) · architecturale
+ * - R-YYYY-007 (historisation des caractéristiques) · structurelle
  *   (gérée par {@see VehicleFiscalCharacteristicsReadRepository})
- * - R-2024-009 (mise hors-service) : UX produit (formulaire véhicule)
- * - R-2024-020 (loueur) : architecture Floty par construction
- * - R-2024-023 (abattements 2024) : placeholder vide, pas applicable
- *   en 2024
- * - R-2024-024 (garde-fou Crit'Air) : validation UI côté formulaire
+ * - R-YYYY-009 (mise hors-service) · UX produit (formulaire véhicule)
+ * - R-YYYY-020 (loueur) · architecture Floty par construction
+ * - R-2024-023 (abattements 2024) · placeholder vide, pas applicable
+ *   en 2024 (R-2025-023 E85 monte en pipeline 2025)
+ * - R-YYYY-024 (garde-fou Crit'Air) · validation UI côté formulaire
  *   véhicule (`useCritAirCheck`)
  */
 final class FiscalServiceProvider extends ServiceProvider
@@ -76,11 +90,25 @@ final class FiscalServiceProvider extends ServiceProvider
         // requête HTTP.
         $this->app->singleton(RuleEffectiveSegmenter::class);
 
-        // Phase 11 D5.1 - le qualificateur LCD est résolu par défaut
-        // vers la règle canonique R-2024-021. Le `DeclarationFiscalEngine`
-        // (D5.2) construira un `OverlayedRuleRegistry` qui substitue
-        // localement cette implémentation par un decorator porteur des
-        // décisions « Requalified » du workflow de revue.
+        // Binding par défaut · résolu par `LcdContractFilter` (risk
+        // detection) qui n'a pas de contexte année spécifique au moment
+        // de la résolution. Les deux classes 2024 et 2025 ont une logique
+        // identique (CIBS L. 421-129 inchangé depuis 2022). Le
+        // `DeclarationFiscalEngine` (D5.2) construit un
+        // `OverlayedRuleRegistry` qui substitue localement cette
+        // implémentation par un decorator porteur des décisions
+        // « Requalified » du workflow de revue.
         $this->app->bind(LcdQualifier::class, R2024_021_ShortTermRental::class);
+
+        // Bindings contextuels · chaque règle réductrice R-YYYY-008 doit
+        // recevoir le LcdQualifier de SA propre année pour éviter toute
+        // contamination cross-année dans le pipeline (ADR-0022).
+        $this->app->when(R2024_008_ReductiveUnavailability::class)
+            ->needs(LcdQualifier::class)
+            ->give(R2024_021_ShortTermRental::class);
+
+        $this->app->when(R2025_008_ReductiveUnavailability::class)
+            ->needs(LcdQualifier::class)
+            ->give(R2025_021_ShortTermRental::class);
     }
 }

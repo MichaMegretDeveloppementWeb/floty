@@ -118,7 +118,7 @@ final class OverlayedRuleRegistryTest extends TestCase
             $optOutContractIds,
         );
 
-        return new OverlayedRuleRegistry($this->app, $this->base, $decorator);
+        return new OverlayedRuleRegistry($this->app, $this->base, $decorator, 2024);
     }
 
     /**
