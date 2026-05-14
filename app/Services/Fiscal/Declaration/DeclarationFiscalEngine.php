@@ -219,11 +219,13 @@ final readonly class DeclarationFiscalEngine
 
                 // Phase 13 D5.10.W · raison d'exonération formatée pour
                 // affichage utilisateur (PDF + UI). Aujourd'hui seul le
-                // motif R-2024-021 (LCD individuel non opt-out) est
+                // motif R-{year}-021 (LCD individuel non opt-out) est
                 // matérialisé ; les autres motifs (véhicule EV, etc.)
-                // viendront quand le moteur les exposera.
+                // viendront quand le moteur les exposera. Le code de
+                // règle est préfixé de l'année déclarée pour respecter
+                // l'isolation des catalogues annuels (ADR-0022).
                 $exemptionReason = $isExempted
-                    ? 'Exonéré R-2024-021 · LCD courte durée (CIBS L. 421-129)'
+                    ? sprintf('Exonéré R-%d-021 · LCD courte durée (CIBS L. 421-129)', $year)
                     : null;
 
                 $contractsWithTaxableDays[] = [
