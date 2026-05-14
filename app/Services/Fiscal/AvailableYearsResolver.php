@@ -34,9 +34,28 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
  * d'un `Contract`. La query SQL sous-jacente est résolue en lecture
  * d'index seul (cf. `contracts_*` indexes sur `start_date`).
  *
- * **Singleton** : enregistré dans {@see AppServiceProvider}.
- * Garantit qu'au sein d'une même requête HTTP, plusieurs appels à
- * `availableYears()` partagent le même cache mémoire process.
+ * **Portée du singleton et du cache** :
+ *
+ * Le service est enregistré en `singleton` dans {@see AppServiceProvider}
+ * · le container retourne la **même instance par worker PHP**, donc
+ * partagée entre toutes les requêtes HTTP servies par ce worker (FPM,
+ * Octane, runqueue). Ce n'est **pas** un cache « par requête ».
+ *
+ * Le cache des données (`yearBounds`) est lui porté par {@see CacheRepository}
+ * injecté · backend `database` en V1 (cf. ADR-0008), donc partagé entre
+ * tous les workers et toutes les requêtes. La donnée résiste aux redémarrages.
+ *
+ * Conséquences :
+ * - Au sein d'un même worker, l'instance singleton + le cache backend
+ *   garantissent que `yearBounds` n'est résolu en SQL qu'au premier
+ *   `cache miss` global, puis lu depuis le backend ensuite.
+ * - {@see forgetCache()} invalide le cache backend (donc tous les workers),
+ *   pas seulement la mémoire process du worker courant. C'est ce que
+ *   {@see ContractObserver} déclenche · cohérence globale immédiate.
+ * - En tests · une instance fraîche est résolue par test (TestCase
+ *   reboote le container) ; le cache backend, lui, est rincé par
+ *   `RefreshDatabase` ou par un mock `ArrayStore` (cf.
+ *   `AvailableYearsResolverTest`).
  *
  * **Scope** : global (pas par entité). Décision HD4 du chantier η ·
  * cohérence UX : tous les sélecteurs de l'app affichent la même liste

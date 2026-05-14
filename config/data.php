@@ -110,8 +110,15 @@ return [
      * some properties from data objects and collections when being dumped
      * by `dump` or `dd`. Can be 'enabled', 'disabled' or 'development'
      * which will only enable the caster locally.
+     *
+     * Défaut sûr · 'production' (silencieux, n'expose pas les détails
+     * internes des DTOs dans les dumps). En dev local, surcharger via
+     * `SPATIE_DATA_CASTER_MODE=development` dans `.env` pour obtenir des
+     * dumps verbeux exploitables.
+     *
+     * Cf. plan-remédiation Vague 1 Lot 6 D14 (F-33-012).
      */
-    'var_dumper_caster_mode' => 'development',
+    'var_dumper_caster_mode' => env('SPATIE_DATA_CASTER_MODE', 'production'),
 
     /*
      * It is possible to skip the PHP reflection analysis of data objects
