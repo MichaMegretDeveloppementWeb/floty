@@ -46,6 +46,7 @@ return new class extends Migration
             $table->char('cluster_fingerprint', 64);
             $table->string('decision', 16);
             $table->text('justification')->nullable();
+            $table->json('excluded_contract_ids')->nullable();
 
             $table->foreignId('decided_by')
                 ->constrained('users')

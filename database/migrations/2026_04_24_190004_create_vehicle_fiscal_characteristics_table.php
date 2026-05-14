@@ -28,11 +28,6 @@ use Illuminate\Support\Facades\Schema;
  * existante (`UPDATE`) et garde `change_reason = 'input_correction'`. Flux
  * distinct côté UI via un toggle dédié.
  *
- * Colonne `affected_to_exempted_activity_percent` (Phase 1.9, R-2024-022) :
- * pourcentage d'affectation à une activité exonérée. En V1 seule la valeur
- * 100 (affectation totale) déclenche l'exonération - un prorata partiel
- * sera traité en V2 si demandé.
- *
  * Motifs `change_reason` (cf. UI page Edit véhicule mode « Nouvelle version ») :
  *   - `initial_creation`   : création du véhicule
  *   - `recharacterization` : reclassement fiscal
@@ -70,6 +65,7 @@ return new class extends Migration
             $table->string('homologation_method', 20);
             $table->unsignedSmallInteger('co2_wltp')->nullable();
             $table->unsignedSmallInteger('co2_nedc')->nullable();
+            $table->boolean('accepts_e85')->default(false);
             $table->unsignedSmallInteger('taxable_horsepower')->nullable();
             $table->unsignedInteger('kerb_mass')->nullable();
 
@@ -79,7 +75,6 @@ return new class extends Migration
             $table->boolean('n1_removable_second_row_seat')->default(false);
             $table->boolean('m1_special_use')->default(false);
             $table->boolean('n1_ski_lift_use')->default(false);
-            $table->unsignedTinyInteger('affected_to_exempted_activity_percent')->default(0);
 
             // Audit
             $table->string('change_reason', 20);

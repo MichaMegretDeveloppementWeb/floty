@@ -25,8 +25,12 @@ use Illuminate\Support\Facades\Schema;
  *     classée R-LCD-CHAIN-FORT (niveau élevé).
  *   - `count_high` : nombre de contrats à partir duquel la chaîne est
  *     classée R-LCD-CHAIN-FORT (alternative au cumul).
- *   - `lld_breaks_chain` : si `true`, un contrat LLD intercalé rompt la
- *     chaîne LCD (par défaut). Si `false`, la chaîne traverse le LLD.
+ *
+ * Doctrine D5.10.N (Phase 13) · les LLD sont ignorés lors de la
+ * construction des chaînes LCD (la chaîne vise la continuité d'usage,
+ * pas le véhicule). Le paramètre `lld_breaks_chain` qui contrôlait ce
+ * comportement a été supprimé · `RiskDetectionService::buildChains()`
+ * ignore désormais silencieusement tous les LLD.
  */
 return new class extends Migration
 {
@@ -39,7 +43,6 @@ return new class extends Migration
             $table->unsignedSmallInteger('threshold_low')->default(30);
             $table->unsignedSmallInteger('threshold_high')->default(90);
             $table->unsignedTinyInteger('count_high')->default(5);
-            $table->boolean('lld_breaks_chain')->default(true);
 
             $table->timestamps();
         });

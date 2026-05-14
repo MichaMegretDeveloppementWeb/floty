@@ -4,24 +4,28 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `fiscal_rules` - Index consultable des règles fiscales.
+ * Table `fiscal_rules` · index strictement minimal des règles fiscales
+ * (ADR-0022 v1.4, Phase 13 D5.14).
  *
- * Cf. 02-schema-fiscal.md § 1 + ADR-0002 + ADR-0006 + ADR-0009.
+ * Cf. 02-schema-fiscal.md § 1 + ADR-0002 + ADR-0006 + ADR-0009 + ADR-0022.
  *
- * Cette table ne porte **pas la logique** (ADR-0006 § 3 : logique en code,
- * métadonnées en base). Alimentée exclusivement par seeders (ADR-0002).
+ * **Doctrine** · les classes PHP des règles sont la source de vérité
+ * unique · cette table ne porte plus que l'index nécessaire pour relier
+ * l'id BDD à la classe PHP. Toutes les autres données vivent dans les
+ * classes (nom, description, base légale, contenu pédagogique, etc.)
+ * et sont projetées à la volée par le registry. Alimentée exclusivement
+ * par seeders (ADR-0002).
  *
- * **Pas de versioning** (ADR-0009) : si une règle est erronée, on corrige
+ * **Pas de versioning** (ADR-0009) · si une règle est erronée, on corrige
  * directement sa classe PHP, le `rule_code` en base reste stable. Aucune
  * colonne `version_internal`. L'historique des corrections vit dans
  * `git log` et les sections « Révisions » de `taxes-rules/{year}.md`.
  *
- * Jamais de suppression : les règles désactivées conservent `is_active = false`
- * pour rester référencées par les snapshots historiques.
+ * Jamais de suppression · les ids restent référencés par les snapshots
+ * historiques de déclarations.
  */
 return new class extends Migration
 {
@@ -31,49 +35,13 @@ return new class extends Migration
             $table->id();
 
             $table->string('rule_code', 20);
-            $table->string('name');
-            $table->text('description');
-
             $table->unsignedSmallInteger('fiscal_year');
-            $table->string('rule_type', 20);
-            $table->json('taxes_concerned');
-
-            $table->date('applicability_start');
-            $table->date('applicability_end')->nullable();
-
-            $table->json('vehicle_characteristics_consumed')->nullable();
-            $table->json('vehicle_characteristics_produced')->nullable();
-            $table->json('legal_basis');
-
             $table->string('code_reference', 500);
-            $table->unsignedSmallInteger('display_order');
-            $table->boolean('is_active')->default(true);
 
             $table->timestamps();
 
             $table->unique(['rule_code', 'fiscal_year']);
-            $table->index(['fiscal_year', 'display_order']);
-            $table->index(['fiscal_year', 'rule_type']);
-            $table->index(['is_active', 'fiscal_year']);
         });
-
-        // CHECK constraints - filet SQL défensif, MySQL uniquement
-        // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT`).
-        if (DB::connection()->getDriverName() !== 'mysql') {
-            return;
-        }
-
-        DB::statement(<<<'SQL'
-            ALTER TABLE fiscal_rules
-                ADD CONSTRAINT chk_fiscal_rules_applicability_dates_ordered
-                CHECK (applicability_end IS NULL OR applicability_start <= applicability_end)
-        SQL);
-
-        DB::statement(<<<'SQL'
-            ALTER TABLE fiscal_rules
-                ADD CONSTRAINT chk_fiscal_rules_type_enum
-                CHECK (rule_type IN ('classification', 'tariff', 'exemption', 'abatement', 'transversal'))
-        SQL);
     }
 
     public function down(): void

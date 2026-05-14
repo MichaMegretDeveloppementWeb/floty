@@ -8,20 +8,21 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `unavailabilities` - Plages continues durant lesquelles un véhicule
+ * Table `unavailabilities` · plages continues durant lesquelles un véhicule
  * n'est pas attribuable.
  *
- * Cf. 01-schema-metier.md § 7.
+ * Cf. 01-schema-metier.md § 7 + ADR-0016 rev. 1.1 (9 cases UnavailabilityType).
  *
  * Modélisation en **plages** (`start_date` / `end_date`) plutôt qu'une
- * ligne par jour, justifiée par :
+ * ligne par jour, justifiée par ·
  *   - une indispo = un événement (passage en maintenance) pas 10 jours distincts
  *   - plus compact en base
  *   - projection plage → jours triviale côté code fiscal
  *
- * Seul le type `pound` (fourrière) a un **impact fiscal** (R-2024-008).
- * La dénormalisation `has_fiscal_impact` accélère les requêtes fiscales ;
- * un CHECK garantit la cohérence `has_fiscal_impact = (type = 'pound')`.
+ * Trois types ont un **impact fiscal réducteur** (R-2024-008) ·
+ * `accident_no_circulation`, `pound_public`, `ci_suspension`. La
+ * dénormalisation `has_fiscal_impact` accélère les requêtes fiscales ;
+ * un CHECK garantit la cohérence.
  */
 return new class extends Migration
 {
@@ -34,7 +35,17 @@ return new class extends Migration
                 ->constrained('vehicles')
                 ->restrictOnDelete();
 
-            $table->string('type', 30);
+            $table->enum('type', [
+                'maintenance',
+                'technical_inspection',
+                'accident_repair',
+                'accident_no_circulation',
+                'pound_public',
+                'pound_private',
+                'ci_suspension',
+                'theft',
+                'other',
+            ]);
             $table->boolean('has_fiscal_impact');
 
             $table->date('start_date');
@@ -50,7 +61,7 @@ return new class extends Migration
             $table->index(['type', 'start_date']);
         });
 
-        // CHECK constraints - filet SQL défensif, MySQL uniquement
+        // CHECK constraints · filet SQL défensif, MySQL uniquement
         // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT`).
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
@@ -65,13 +76,27 @@ return new class extends Migration
         DB::statement(<<<'SQL'
             ALTER TABLE unavailabilities
                 ADD CONSTRAINT chk_unavailabilities_type_enum
-                CHECK (type IN ('maintenance', 'technical_inspection', 'accident', 'pound', 'other'))
+                CHECK (type IN (
+                    'maintenance',
+                    'technical_inspection',
+                    'accident_repair',
+                    'accident_no_circulation',
+                    'pound_public',
+                    'pound_private',
+                    'ci_suspension',
+                    'theft',
+                    'other'
+                ))
         SQL);
 
         DB::statement(<<<'SQL'
             ALTER TABLE unavailabilities
                 ADD CONSTRAINT chk_unavailabilities_fiscal_impact_consistent
-                CHECK (has_fiscal_impact = (type = 'pound'))
+                CHECK (has_fiscal_impact = (type IN (
+                    'accident_no_circulation',
+                    'pound_public',
+                    'ci_suspension'
+                )))
         SQL);
     }
 

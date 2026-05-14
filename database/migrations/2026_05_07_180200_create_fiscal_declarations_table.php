@@ -50,12 +50,14 @@ return new class extends Migration
                 ->restrictOnDelete();
 
             $table->unsignedSmallInteger('fiscal_year');
+            $table->string('reference', 32)->nullable();
 
             $table->string('status', 16)->default('draft');
 
             $table->timestamp('generated_at')->nullable();
             $table->string('generated_pdf_path', 255)->nullable();
             $table->string('generated_pdf_hash', 64)->nullable();
+            $table->json('generated_snapshot_payload')->nullable();
 
             $table->boolean('is_obsolete')->default(false);
             $table->timestamp('obsolete_at')->nullable();
@@ -72,6 +74,7 @@ return new class extends Migration
             $table->index(['company_id', 'fiscal_year', 'is_obsolete'], 'decl_company_year_active_idx');
             $table->index('status', 'decl_status_idx');
             $table->index('superseded_by_id', 'decl_superseded_by_idx');
+            $table->index(['company_id', 'fiscal_year', 'reference'], 'decl_company_year_reference_idx');
         });
 
         if (DB::connection()->getDriverName() !== 'mysql') {

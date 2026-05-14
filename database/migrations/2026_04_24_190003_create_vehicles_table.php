@@ -76,7 +76,9 @@ return new class extends Migration
         DB::statement(<<<'SQL'
             ALTER TABLE vehicles
                 ADD CONSTRAINT chk_vehicles_exit_reason_enum
-                CHECK (exit_reason IS NULL OR exit_reason IN ('sold', 'destroyed', 'transferred', 'other'))
+                CHECK (exit_reason IS NULL OR exit_reason IN (
+                    'sold', 'destroyed', 'transferred', 'stolen_unrecovered', 'other'
+                ))
         SQL);
 
         DB::statement(<<<'SQL'
