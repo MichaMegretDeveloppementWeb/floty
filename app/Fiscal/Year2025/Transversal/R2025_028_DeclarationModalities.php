@@ -8,31 +8,23 @@ use App\Enums\Fiscal\RuleSection;
 use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
-use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
+use Carbon\CarbonImmutable;
 
 /**
- * R-2025-028 · Modalités de déclaration et de paiement.
+ * R-2025-028 · Modalités de déclaration et de paiement · **version
+ * 01/01 → 28/02/2025** (avant LF 2025 art. 28).
  *
- * **Règle documentaire-only** · reconduction R-2024-028 avec calendrier
- * 2025 → 2026. Regroupe les 11 articles CIBS section 3 paragraphe 7
- * (L. 421-157 à L. 421-167).
- *
- * **Évolution 01/03/2025** · L. 421-159 et L. 421-164 ont une version
- * modifiée par LF 2025 art. 28 · modifications rédactionnelles, pas
- * d'impact pratique sur le redevable, l'exigibilité, le formulaire ou
- * l'état récapitulatif.
- *
- * **Calendrier 2025 → 2026** · la déclaration des taxes au titre de
- * l'année 2025 est déposée en janvier 2026 (annexe 3310-A · régime
- * réel normal, ou formulaire 3517 · régime simplifié). Floty produit
- * le récapitulatif PDF (= équivalent fiche 2857-FC-SD millésime 2025).
+ * **Règle documentaire-only** · ADR-0022 · une période légale distincte =
+ * une règle fiscale Floty distincte. L. 421-159 et L. 421-164 ont été
+ * réécrits par LF 2025 art. 28 à effet du 01/03/2025. R-2025-028 couvre
+ * la période **avant** cette modification. La période **après** est
+ * portée par {@see R2025_028bis_DeclarationModalities}.
  */
 final readonly class R2025_028_DeclarationModalities implements InformativeRule
 {
-    use AnnualRuleTrait;
     use RuleActiveByDefaultTrait;
 
     public function ruleCode(): string
@@ -45,14 +37,24 @@ final readonly class R2025_028_DeclarationModalities implements InformativeRule
         return 2025;
     }
 
+    public function applicabilityStart(): CarbonImmutable
+    {
+        return CarbonImmutable::create(2025, 1, 1, 0, 0, 0);
+    }
+
+    public function applicabilityEnd(): ?CarbonImmutable
+    {
+        return CarbonImmutable::create(2025, 2, 28, 23, 59, 59);
+    }
+
     public function name(): string
     {
-        return 'Modalités de déclaration et de paiement';
+        return 'Modalités de déclaration et de paiement (version 01/01 → 28/02/2025)';
     }
 
     public function description(): string
     {
-        return "L'entreprise utilisatrice redevable déclare et acquitte les taxes en janvier 2026 (au titre de 2025) via l'annexe n° 3310-A à sa déclaration de TVA (régime réel normal) ou le formulaire n° 3517 (régime simplifié). Pas de déclaration si le montant cumulé est nul. L'entreprise tient un état récapitulatif annuel, communiqué sur demande de l'administration. L. 421-159 et L. 421-164 ont une version modifiée au 01/03/2025 par LF 2025 art. 28 · modifications rédactionnelles, pas d'impact pratique. La fiche d'aide au calcul n° 2857-FC-SD millésime 2025 est produite par Floty sous forme de PDF récapitulatif.";
+        return 'Modalités déclaratives sur la période 01/01-28/02/2025, avant la réécriture rédactionnelle des L. 421-159 et L. 421-164 par LF 2025 art. 28 à effet du 01/03/2025. Cadre opposable inchangé dans la doctrine · le redevable (entreprise utilisatrice) déclare en janvier 2026 les taxes au titre de 2025 via annexe n° 3310-A (régime réel normal) ou formulaire n° 3517 (régime simplifié). Pas de déclaration si montant cumulé nul. État récapitulatif annuel tenu à jour. La période 01/03-31/12/2025 est portée par R-2025-028-bis.';
     }
 
     public function ruleType(): RuleType
@@ -73,8 +75,8 @@ final readonly class R2025_028_DeclarationModalities implements InformativeRule
         return [
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-159',
-                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048637675/2025-03-01',
+                'article' => 'L. 421-159 (version 01/01/2022 → 28/02/2025)',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048637675/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],
             [
@@ -91,8 +93,8 @@ final readonly class R2025_028_DeclarationModalities implements InformativeRule
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-164',
-                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214908/2025-03-01',
+                'article' => 'L. 421-164 (version 01/01/2022 → 28/02/2025)',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214908/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],
             [
@@ -101,10 +103,6 @@ final readonly class R2025_028_DeclarationModalities implements InformativeRule
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602849/2025-01-01',
                 'consulted_at' => '2026-05-14',
             ],
-            // NOTICE PDF 2857-FC-SD retirée (URL d'origine = 404 suite
-            // restructure impots.gouv.fr · URL canonique stable
-            // introuvable). Les articles CIBS L. 421-159 à 165 ci-dessus
-            // couvrent la doctrine déclarative de manière opposable.
         ];
     }
 
@@ -121,10 +119,9 @@ final readonly class R2025_028_DeclarationModalities implements InformativeRule
         return new RulePedagogicalContent(
             tab: RuleTab::Cadre,
             section: RuleSection::CadreDeclaratif,
-            title: 'Modalités de déclaration et de paiement',
-            pitch: "Les taxes sont déclarées et payées par chaque entreprise utilisatrice en janvier 2026, via l'annexe 3310-A à la déclaration de TVA ou le formulaire 3517 selon son régime.",
-            body: "Pas de déclaration à déposer si le montant cumulé est nul (toutes les taxes annulées par exonération). L'entreprise tient un état récapitulatif annuel des véhicules concernés, communiqué sur demande de l'administration. Floty produit le récapitulatif fiscal PDF qui correspond à la fiche d'aide au calcul n° 2857-FC-SD prévue par la DGFiP · le dépôt effectif de la déclaration reste à la charge du service comptable de chaque entreprise.",
-            example: "Calendrier 2025 → 2026 · l'utilisation des véhicules pendant l'année 2025 génère une taxe qui est déclarée en janvier 2026. Floty produit le récapitulatif PDF en début d'année 2026 que le comptable utilise pour saisir l'annexe 3310-A.",
+            title: 'Modalités de déclaration (avant LF 2025 art. 28)',
+            pitch: 'Période 01/01-28/02/2025 · le redevable déclare en janvier 2026 les taxes au titre de 2025 (annexe 3310-A ou formulaire 3517).',
+            body: "Pas de déclaration si montant cumulé nul. État récapitulatif annuel tenu à jour, communiqué sur demande de l'administration. Floty produit le récapitulatif PDF (équivalent fiche 2857-FC-SD millésime 2025). La période 01/03-31/12/2025 (textes réécrits par LF 2025 art. 28) est portée par R-2025-028-bis · doctrine inchangée mais URLs distinctes.",
         );
     }
 }

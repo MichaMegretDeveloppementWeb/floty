@@ -34,28 +34,30 @@ final class Year2025BootTest extends TestCase
     }
 
     #[Test]
-    public function expose_exactement_dix_huit_classes_de_regles(): void
+    public function expose_exactement_dix_neuf_classes_de_regles(): void
     {
         $rules = (new Year2025Boot)->rules();
 
-        // 18 règles dans le pipeline (cf. taxes-rules/2025.md) ·
-        // 3 Classification + 7 Exemption (R-2024-017 supprimée) +
-        // 4 Pricing + 1 Abatement (R-2025-023 E85 nouveauté) +
-        // 3 Transversal = 18. Le décorateur LCD R2025_021_WithOptOuts
-        // n'est PAS inscrit (résolu runtime par OverlayedRuleRegistry).
-        self::assertCount(18, $rules);
+        // 19 règles dans le pipeline (cf. taxes-rules/2025.md) ·
+        // 4 Classification (incl. R-2025-004-bis suite scission ADR-0022
+        // sur L. 421-2 modifié 01/03/2025 par LF 2025 art. 28) +
+        // 7 Exemption (R-2024-017 supprimée) + 4 Pricing +
+        // 1 Abatement (R-2025-023 E85 nouveauté) + 3 Transversal = 19.
+        // Le décorateur LCD R2025_021_WithOptOuts n'est PAS inscrit
+        // (résolu runtime par OverlayedRuleRegistry).
+        self::assertCount(19, $rules);
     }
 
     #[Test]
-    public function expose_exactement_quatorze_classes_documentaires(): void
+    public function expose_exactement_seize_classes_documentaires(): void
     {
         $informative = (new Year2025Boot)->informativeRules();
 
-        // 14 règles documentaires-only · 7 reconductions 2024 + 6
-        // reconductions audit 14/05/2026 + 1 nouveauté 2025 (TAI).
-        // R-2024-023 (abattement vide) disparaît, slot remplacé en
-        // pipeline par R-2025-023 actif.
-        self::assertCount(14, $informative);
+        // 16 règles documentaires-only · 7 reconductions 2024 +
+        // 6 ajouts audit 14/05/2026 + 1 nouveauté 2025 (TAI) +
+        // 2 bis issues de la scission ADR-0022 (R-2025-001-bis et
+        // R-2025-028-bis · LF 2025 art. 28 à effet 01/03/2025).
+        self::assertCount(16, $informative);
     }
 
     #[Test]

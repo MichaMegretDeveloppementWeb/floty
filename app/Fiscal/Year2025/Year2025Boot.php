@@ -9,6 +9,7 @@ use App\Fiscal\Contracts\FiscalYearBoot;
 use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\Year2025\Abatement\R2025_023_E85Abatement;
 use App\Fiscal\Year2025\Classification\R2025_004_FiscalTypeQualification;
+use App\Fiscal\Year2025\Classification\R2025_004bis_FiscalTypeQualification;
 use App\Fiscal\Year2025\Classification\R2025_005_Co2MethodSelection;
 use App\Fiscal\Year2025\Classification\R2025_006_PaFallback;
 use App\Fiscal\Year2025\Classification\R2025_013_PollutantCategoryAssignment;
@@ -25,6 +26,7 @@ use App\Fiscal\Year2025\Pricing\R2025_011_NedcProgressive;
 use App\Fiscal\Year2025\Pricing\R2025_012_PaProgressive;
 use App\Fiscal\Year2025\Pricing\R2025_014_PollutantsFlat;
 use App\Fiscal\Year2025\Transversal\R2025_001_TaxpayerAndTriggeringEvent;
+use App\Fiscal\Year2025\Transversal\R2025_001bis_TaxpayerAndTriggeringEvent;
 use App\Fiscal\Year2025\Transversal\R2025_002_DailyProrata;
 use App\Fiscal\Year2025\Transversal\R2025_003_FinalRounding;
 use App\Fiscal\Year2025\Transversal\R2025_007_VehicleCharacteristicsHistorization;
@@ -34,6 +36,7 @@ use App\Fiscal\Year2025\Transversal\R2025_024_CritAirGuard;
 use App\Fiscal\Year2025\Transversal\R2025_025_WeightedAverageTariff;
 use App\Fiscal\Year2025\Transversal\R2025_027_MileageReimbursementCoefficient;
 use App\Fiscal\Year2025\Transversal\R2025_028_DeclarationModalities;
+use App\Fiscal\Year2025\Transversal\R2025_028bis_DeclarationModalities;
 use App\Fiscal\Year2025\Transversal\R2025_029_RegistrationCo2Malus;
 use App\Fiscal\Year2025\Transversal\R2025_030_RegistrationWeightMalus;
 use App\Fiscal\Year2025\Transversal\R2025_031_RegistrationCardTaxes;
@@ -52,6 +55,10 @@ use App\Providers\FiscalServiceProvider;
  * - Barèmes WLTP/NEDC/PA durcis par LF 2024 art. 97, 19° au 01/01/2025.
  * - Exonération hybride conditionnelle R-2024-017 supprimée au 01/01/2025.
  * - Nouveauté · abattement E85 R-2025-023 (CIBS L. 421-125 réformé).
+ * - **Scission ADR-0022 strict** · 3 règles ont 2 versions en 2025 suite
+ *   à LF 2025 art. 28 (effet 01/03/2025) · R-2025-001/001-bis (redevable),
+ *   R-2025-004/004-bis (M1/N1), R-2025-028/028-bis (déclaration). Chaque
+ *   période légale = sa propre classe PHP avec applicabilityStart/End.
  *
  * **Isolation stricte** · aucune classe `App\Fiscal\Year2024\*` n'est
  * référencée ni utilisée dans le pipeline 2025 (cf. ADR-0022 et la
@@ -73,14 +80,13 @@ final class Year2025Boot implements FiscalYearBoot
      */
     public function rules(): array
     {
-        // Phases C-H · 3 Classification + 7 Exemption + 4 Pricing + 1
-        // Abatement (E85 nouveauté 2025) + 3 Transversal = 18 classes
-        // inscrites. Le décorateur R2025_021_WithOptOuts (19e fichier
-        // PHP) n'est PAS inscrit ici · il est résolu runtime par
-        // OverlayedRuleRegistry.
+        // 4 Classification (incl. R-2025-004-bis suite scission ADR-0022) +
+        // 7 Exemption + 4 Pricing + 1 Abatement + 3 Transversal = 19 classes.
         return [
-            // Classification (3)
-            R2025_004_FiscalTypeQualification::class,
+            // Classification (4 · R-2025-004 scindée en 2 versions
+            // ADR-0022 · L. 421-2 modifié 01/03/2025 par LF 2025 art. 28).
+            R2025_004_FiscalTypeQualification::class, // 01/01-28/02
+            R2025_004bis_FiscalTypeQualification::class, // 01/03-31/12
             R2025_005_Co2MethodSelection::class,
             R2025_013_PollutantCategoryAssignment::class,
             // Exemption (7 · R-2025-017 hybride supprimée vs 2024)
@@ -111,10 +117,12 @@ final class Year2025Boot implements FiscalYearBoot
      * alimenter la page « Règles de calcul » mais qui ne participent
      * **pas** au pipeline de calcul (cf. {@see InformativeRule}).
      *
-     * **Composition 14 classes 2025** · 7 reconduites de 2024 (cadre
+     * **Composition 16 classes 2025** · 7 reconduites de 2024 (cadre
      * architectural et garde-fous) + 7 ajouts du chantier 14/05/2026
      * (moyenne pondérée + modalités déclaratives + 5 taxes connexes
-     * hors périmètre Floty, dont la **TAI nouveauté 2025**).
+     * hors périmètre Floty, dont la **TAI nouveauté 2025**) + 2 bis
+     * issues de la scission ADR-0022 (R-2025-001-bis et R-2025-028-bis,
+     * versions modifiées par LF 2025 art. 28 à effet 01/03/2025).
      *
      * **Spécificités 2025 vs 2024** :
      * - R-2024-023 (abattement vide) disparaît · slot remplacé en
@@ -123,13 +131,17 @@ final class Year2025Boot implements FiscalYearBoot
      * - R-2025-031 (taxes carte grise) · évolution 01/05/2025.
      * - R-2025-033 (TAI verdissement flottes) · nouveauté 2025 sans
      *   équivalent 2024.
+     * - Scission ADR-0022 · R-2025-001/001-bis, R-2025-028/028-bis.
      *
      * @return list<class-string<InformativeRule>>
      */
     public function informativeRules(): array
     {
         return [
-            R2025_001_TaxpayerAndTriggeringEvent::class,
+            // R-2025-001 scindée par ADR-0022 (L. 421-95 + L. 421-98
+            // modifiés au 01/03/2025).
+            R2025_001_TaxpayerAndTriggeringEvent::class, // 01/01-28/02
+            R2025_001bis_TaxpayerAndTriggeringEvent::class, // 01/03-31/12
             R2025_006_PaFallback::class,
             R2025_007_VehicleCharacteristicsHistorization::class,
             R2025_009_MidYearDecommissioning::class,
@@ -138,7 +150,10 @@ final class Year2025Boot implements FiscalYearBoot
             R2025_024_CritAirGuard::class,
             // Ajouts audit exhaustif 14/05/2026
             R2025_025_WeightedAverageTariff::class,
-            R2025_028_DeclarationModalities::class,
+            // R-2025-028 scindée par ADR-0022 (L. 421-159 + L. 421-164
+            // modifiés au 01/03/2025).
+            R2025_028_DeclarationModalities::class, // 01/01-28/02
+            R2025_028bis_DeclarationModalities::class, // 01/03-31/12
             R2025_029_RegistrationCo2Malus::class,
             R2025_030_RegistrationWeightMalus::class,
             R2025_031_RegistrationCardTaxes::class,
