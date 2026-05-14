@@ -18,12 +18,14 @@ use App\Data\User\Contract\UpdateContractData;
 use App\Data\User\Driver\DriverOptionData;
 use App\Data\User\Vehicle\VehicleOptionData;
 use App\Http\Controllers\Controller;
+use App\Models\Contract;
 use App\Services\Company\CompanyQueryService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Vehicle\VehicleQueryService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 use Spatie\LaravelData\DataCollection;
@@ -54,6 +56,8 @@ final class ContractController extends Controller
 
     public function index(ContractIndexQueryData $query): Response
     {
+        Gate::authorize('viewAny', Contract::class);
+
         // Sync pill UI ↔ filtre serveur (chantier C) : si l'utilisateur
         // arrive sans `year` ni `periodStart/End`, on impose `year =
         // currentYear` côté DTO. Cohérent avec CompanyController et
@@ -94,6 +98,12 @@ final class ContractController extends Controller
 
     public function show(int $contract): Response
     {
+        $contractModel = Contract::query()->find($contract);
+        if ($contractModel === null) {
+            throw new NotFoundHttpException;
+        }
+        Gate::authorize('view', $contractModel);
+
         $contractData = $this->contracts->findContractData($contract);
 
         if ($contractData === null) {
@@ -111,6 +121,8 @@ final class ContractController extends Controller
 
     public function create(): Response
     {
+        Gate::authorize('create', Contract::class);
+
         return Inertia::render('User/Contracts/Create/Index', [
             'options' => $this->buildFormOptions(),
             'busyDatesByVehicleId' => $this->contracts->busyDatesByVehicleAroundToday(),
@@ -119,6 +131,8 @@ final class ContractController extends Controller
 
     public function store(StoreContractData $data): RedirectResponse
     {
+        Gate::authorize('create', Contract::class);
+
         $contract = $this->storeContract->execute($data);
 
         return redirect()
@@ -128,6 +142,12 @@ final class ContractController extends Controller
 
     public function edit(int $contract): Response
     {
+        $contractModel = Contract::query()->find($contract);
+        if ($contractModel === null) {
+            throw new NotFoundHttpException;
+        }
+        Gate::authorize('update', $contractModel);
+
         $contractData = $this->contracts->findContractData($contract);
 
         if ($contractData === null) {
@@ -161,6 +181,12 @@ final class ContractController extends Controller
 
     public function update(int $contract, UpdateContractData $data): RedirectResponse
     {
+        $contractModel = Contract::query()->find($contract);
+        if ($contractModel === null) {
+            throw new NotFoundHttpException;
+        }
+        Gate::authorize('update', $contractModel);
+
         $this->updateContract->execute($contract, $data);
 
         return redirect()
@@ -170,6 +196,12 @@ final class ContractController extends Controller
 
     public function destroy(int $contract): RedirectResponse
     {
+        $contractModel = Contract::query()->find($contract);
+        if ($contractModel === null) {
+            throw new NotFoundHttpException;
+        }
+        Gate::authorize('delete', $contractModel);
+
         $this->deleteContract->execute($contract);
 
         return redirect()
@@ -179,6 +211,8 @@ final class ContractController extends Controller
 
     public function bulkStore(BulkStoreContractsData $data): RedirectResponse
     {
+        Gate::authorize('create', Contract::class);
+
         $createdIds = $this->bulkCreateContracts->execute($data);
         $count = count($createdIds);
 

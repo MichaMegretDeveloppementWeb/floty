@@ -11,9 +11,12 @@ use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadReposit
 use App\Data\User\Contract\ContractDocumentData;
 use App\Data\User\Contract\UploadContractDocumentData;
 use App\Http\Controllers\Controller;
+use App\Models\ContractDocument;
+use App\Policies\ContractDocumentPolicy;
 use App\Services\Contract\ContractDocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\Gate;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -24,9 +27,12 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  *   - GET    /app/contracts/{contract}/documents/{document}   → download
  *   - DELETE /app/contracts/{contract}/documents/{document}   → delete
  *
- * Pas de Policy formelle V1 - middleware `auth` au niveau du group de
- * routes suffit. Multi-tenant viendra en V2 avec une vérification
- * d'appartenance.
+ * Authorization via {@see ContractDocumentPolicy} stub V1
+ * retournant `true` partout (ADR-0011 § 7). Multi-tenant V2 ajoutera le
+ * scope par société propriétaire du contrat parent · les controllers ne
+ * changeront pas.
+ *
+ * Cf. plan-remédiation Vague 1 Lot 1 D6 (F-12-001).
  */
 final class ContractDocumentController extends Controller
 {
@@ -45,6 +51,8 @@ final class ContractDocumentController extends Controller
         if ($contractModel === null) {
             throw new NotFoundHttpException;
         }
+
+        Gate::authorize('create', ContractDocument::class);
 
         $document = $this->uploadAction->execute(
             contract: $contractModel,
@@ -66,6 +74,8 @@ final class ContractDocumentController extends Controller
             throw new NotFoundHttpException;
         }
 
+        Gate::authorize('view', $doc);
+
         return $this->storage->streamResponse($doc->storage_path, $doc->filename);
     }
 
@@ -76,6 +86,8 @@ final class ContractDocumentController extends Controller
         if ($doc === null || $doc->contract_id !== $contract) {
             throw new NotFoundHttpException;
         }
+
+        Gate::authorize('delete', $doc);
 
         $this->deleteAction->execute($doc);
 
