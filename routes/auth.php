@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\ResetPasswordController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -39,6 +40,16 @@ Route::middleware('guest')->group(function (): void {
     Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])
         ->middleware('throttle:3,15')
         ->name('password.email');
+
+    Route::get('/reset-password/{token}', [ResetPasswordController::class, 'show'])
+        ->name('password.reset');
+
+    // Throttle 5/15min sur la soumission · plus permissif que `password.email`
+    // (l'utilisateur peut faire 1 ou 2 erreurs de saisie sur le confirmation
+    // password) mais reste strict pour bloquer le bruteforce du token.
+    Route::post('/reset-password', [ResetPasswordController::class, 'store'])
+        ->middleware('throttle:5,15')
+        ->name('password.update');
 });
 
 Route::middleware('auth')->group(function (): void {
