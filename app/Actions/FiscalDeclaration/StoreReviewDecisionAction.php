@@ -51,7 +51,7 @@ final readonly class StoreReviewDecisionAction
             'decided_at' => Carbon::now(),
         ]));
 
-        Log::info('FiscalReviewDecision stored', [
+        Log::channel('declarations')->notice('FiscalDeclaration.review_decision_stored', [
             'decision_id' => $decision->id,
             'company_id' => $data->companyId,
             'fiscal_year' => $data->fiscalYear,
@@ -59,7 +59,7 @@ final readonly class StoreReviewDecisionAction
             'cluster_fingerprint_short' => substr($data->clusterFingerprint, 0, 12),
             'decision' => $data->decision->value,
             'has_justification' => $data->justification !== null && trim($data->justification) !== '',
-            'decided_by_user_id' => $userId,
+            'actor_user_id' => $userId,
         ]);
 
         return $decision;

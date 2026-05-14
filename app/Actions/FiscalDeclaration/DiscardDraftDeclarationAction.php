@@ -10,6 +10,7 @@ use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionWri
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use DomainException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -107,13 +108,14 @@ final readonly class DiscardDraftDeclarationAction
                 }
             }
 
-            Log::info('FiscalDeclaration draft discarded', [
+            Log::channel('declarations')->notice('FiscalDeclaration.draft_discarded', [
                 'draft_id' => $draft->id,
                 'company_id' => $draft->company_id,
                 'fiscal_year' => $draft->fiscal_year,
                 'predecessor_id' => $predecessor?->id,
                 'predecessor_reactivated' => $predecessorReactivated,
                 'review_decisions_deleted' => $deletedDecisions,
+                'actor_user_id' => Auth::id() ?? 0,
             ]);
         });
     }

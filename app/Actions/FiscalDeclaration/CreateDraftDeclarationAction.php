@@ -9,6 +9,7 @@ use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepo
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 use DomainException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -39,12 +40,14 @@ final readonly class CreateDraftDeclarationAction
             if ($existing !== null) {
                 // Détails techniques loggués pour le debug (audit B4),
                 // pas exposés à l'utilisateur (audit B9).
-                Log::info('CreateDraftDeclaration refused: active declaration already exists', [
+                Log::channel('declarations')->notice('FiscalDeclaration.draft_create_refused', [
                     'company_id' => $companyId,
                     'fiscal_year' => $year,
                     'existing_declaration_id' => $existing->id,
                     'existing_status' => $existing->status->value,
                     'existing_reference' => $existing->reference,
+                    'reason' => 'active_declaration_already_exists',
+                    'actor_user_id' => Auth::id() ?? 0,
                 ]);
 
                 throw new DomainException(sprintf(

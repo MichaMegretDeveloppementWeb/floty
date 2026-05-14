@@ -17,6 +17,7 @@ use App\Services\Fiscal\RiskDetection\DeclarationPreviewService;
 use App\Services\Pdf\DeclarationPdfStorage;
 use Carbon\CarbonImmutable;
 use DomainException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -131,7 +132,7 @@ final readonly class GenerateDeclarationAction
             throw $e;
         }
 
-        Log::info('FiscalDeclaration generated', [
+        Log::channel('declarations')->notice('FiscalDeclaration.generated', [
             'declaration_id' => $declaration->id,
             'company_id' => $declaration->company_id,
             'fiscal_year' => $declaration->fiscal_year,
@@ -139,6 +140,7 @@ final readonly class GenerateDeclarationAction
             'pdf_path' => $stored['path'],
             'total_due' => $snapshot->totalDue,
             'opt_outs_count' => count($snapshot->optOutContractIds),
+            'actor_user_id' => Auth::id() ?? 0,
         ]);
 
         return $declaration->fresh();

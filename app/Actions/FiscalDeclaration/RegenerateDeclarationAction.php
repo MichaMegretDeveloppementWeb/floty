@@ -9,6 +9,7 @@ use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepo
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 use DomainException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -56,12 +57,13 @@ final readonly class RegenerateDeclarationAction
 
             $this->writer->linkSupersededBy($obsolete->id, $newDeclaration->id);
 
-            Log::info('FiscalDeclaration regenerated', [
+            Log::channel('declarations')->notice('FiscalDeclaration.regenerated', [
                 'old_declaration_id' => $obsolete->id,
                 'new_declaration_id' => $newDeclaration->id,
                 'company_id' => $obsolete->company_id,
                 'fiscal_year' => $obsolete->fiscal_year,
                 'previous_reference' => $obsolete->reference,
+                'actor_user_id' => Auth::id() ?? 0,
             ]);
 
             return $newDeclaration;

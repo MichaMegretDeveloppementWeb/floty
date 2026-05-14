@@ -78,7 +78,7 @@ final readonly class ModifyGeneratedDeclarationAction
 
             $newDraft = $this->regenerate->execute($current->id);
 
-            Log::info('FiscalDeclaration voluntary modification triggered', [
+            Log::channel('declarations')->notice('FiscalDeclaration.voluntary_modification_triggered', [
                 'previous_declaration_id' => $current->id,
                 'previous_reference' => $current->reference,
                 'new_draft_id' => $newDraft->id,

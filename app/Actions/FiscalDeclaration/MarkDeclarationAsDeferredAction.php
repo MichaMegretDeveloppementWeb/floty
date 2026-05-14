@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepos
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 use DomainException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -73,10 +74,11 @@ final readonly class MarkDeclarationAsDeferredAction
 
             $declaration->fill(['status' => FiscalDeclarationStatus::Deferred])->save();
 
-            Log::info('FiscalDeclaration marked deferred', [
+            Log::channel('declarations')->notice('FiscalDeclaration.marked_deferred', [
                 'declaration_id' => $declaration->id,
                 'company_id' => $declaration->company_id,
                 'fiscal_year' => $declaration->fiscal_year,
+                'actor_user_id' => Auth::id() ?? 0,
             ]);
 
             return $declaration->fresh();

@@ -35,7 +35,7 @@ final readonly class MarkDeclarationAsObsoleteAction
     {
         DB::transaction(fn () => $this->writer->markAsObsolete($declarationId, $reason));
 
-        Log::info('FiscalDeclaration marked obsolete', [
+        Log::channel('declarations')->notice('FiscalDeclaration.marked_obsolete', [
             'declaration_id' => $declarationId,
             'reason_type' => $reason->type->value,
             'occurred_at' => $reason->occurredAt,

@@ -134,57 +134,36 @@ return [
         | Canaux thématiques Floty
         |----------------------------------------------------------------------
         |
-        | Cf. project-management/implementation-rules/gestion-erreurs.md
-        | § « Canaux thématiques Floty ». Rétention par criticité :
+        | Cf. `project-management/implementation-rules/gestion-erreurs.md`
+        | § « Canaux thématiques Floty » + plan-remédiation Vague 1 Lot 2 D2
+        | (F-33-002 + F-30-004 + F-19-009).
         |
-        | - 365 j  declarations  (pièces justificatives officielles)
-        | -  90 j  fiscal        (audit du moteur fiscal)
-        | -  30 j  auth, pdf     (sécurité + diagnostic spécifique)
-        | -  14 j  vehicles, companies, assignments (opérations courantes)
-        | -   7 j  cache         (très volumineux, peu utile au-delà)
+        | Rétentions (par criticité régulatoire) ·
+        |   - 365 j  declarations, invoices  (pièces justificatives officielles)
+        |   -  90 j  fiscal, contracts       (audit moteur fiscal + grade fiscal)
+        |   -  30 j  auth, vehicles, companies, drivers, unavailabilities, pdf
+        |   -   7 j  cache                   (très volumineux, peu utile au-delà)
+        |
+        | Levels · chaque canal a sa propre variable `*_LOG_LEVEL` (default
+        | `notice`). En prod un `LOG_LEVEL=warning` global ne doit PAS
+        | filtrer silencieusement les events d'audit fonctionnel (success,
+        | mutations, décisions) qui sont émis en `notice`.
         */
 
         'auth' => [
             'driver' => 'daily',
             'path' => storage_path('logs/auth.log'),
-            // Level dédié `notice` · ce canal reçoit login.success +
-            // login.failed (notice) en plus des login.lockout (warning).
-            // En prod, si `LOG_LEVEL=warning`, sans ce level dédié les
-            // success/failed seraient filtrés silencieusement.
-            // Cf. ADR-0011 § 3 + plan-remédiation Vague 1 Lot 1 D2 (F-10-002).
+            // Le canal reçoit login.success + login.failed (notice) en plus
+            // des login.lockout (warning). Cf. ADR-0011 § 3 + Lot 1 D2.
             'level' => env('AUTH_LOG_LEVEL', 'notice'),
             'days' => 30,
-            'replace_placeholders' => true,
-        ],
-
-        'vehicles' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/vehicles.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
-            'replace_placeholders' => true,
-        ],
-
-        'companies' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/companies.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
-            'replace_placeholders' => true,
-        ],
-
-        'assignments' => [
-            'driver' => 'daily',
-            'path' => storage_path('logs/assignments.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
-            'days' => 14,
             'replace_placeholders' => true,
         ],
 
         'fiscal' => [
             'driver' => 'daily',
             'path' => storage_path('logs/fiscal.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
+            'level' => env('FISCAL_LOG_LEVEL', 'notice'),
             'days' => 90,
             'replace_placeholders' => true,
         ],
@@ -192,7 +171,55 @@ return [
         'declarations' => [
             'driver' => 'daily',
             'path' => storage_path('logs/declarations.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
+            'level' => env('DECLARATIONS_LOG_LEVEL', 'notice'),
+            'days' => 365,
+            'replace_placeholders' => true,
+        ],
+
+        'companies' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/companies.log'),
+            'level' => env('COMPANIES_LOG_LEVEL', 'notice'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
+        'vehicles' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/vehicles.log'),
+            'level' => env('VEHICLES_LOG_LEVEL', 'notice'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
+        'drivers' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/drivers.log'),
+            'level' => env('DRIVERS_LOG_LEVEL', 'notice'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
+        'contracts' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/contracts.log'),
+            'level' => env('CONTRACTS_LOG_LEVEL', 'notice'),
+            'days' => 90,
+            'replace_placeholders' => true,
+        ],
+
+        'unavailabilities' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/unavailabilities.log'),
+            'level' => env('UNAVAILABILITIES_LOG_LEVEL', 'notice'),
+            'days' => 30,
+            'replace_placeholders' => true,
+        ],
+
+        'invoices' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/invoices.log'),
+            'level' => env('INVOICES_LOG_LEVEL', 'notice'),
             'days' => 365,
             'replace_placeholders' => true,
         ],
@@ -200,7 +227,7 @@ return [
         'pdf' => [
             'driver' => 'daily',
             'path' => storage_path('logs/pdf.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
+            'level' => env('PDF_LOG_LEVEL', 'notice'),
             'days' => 30,
             'replace_placeholders' => true,
         ],
@@ -208,7 +235,7 @@ return [
         'cache' => [
             'driver' => 'daily',
             'path' => storage_path('logs/cache.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
+            'level' => env('CACHE_LOG_LEVEL', 'warning'),
             'days' => 7,
             'replace_placeholders' => true,
         ],
