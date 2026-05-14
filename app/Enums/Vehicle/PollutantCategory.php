@@ -25,12 +25,21 @@ enum PollutantCategory: string
     case Category1 = 'category_1';
     case MostPolluting = 'most_polluting';
 
+    /**
+     * Label pédagogique pur · catégorie + critère d'éligibilité, **sans
+     * tarif**. La catégorie est un objet métier permanent (rattaché au
+     * véhicule, pas à une année) · y embarquer un tarif d'une année
+     * donnée violerait l'isolation multi-année (ADR-0022) et afficherait
+     * un montant faux si la LF d'une année future modifiait le barème
+     * polluants. Les tarifs sont consultables dans la page « Règles de
+     * calcul » et les KPI Show, tous deux scopés par année.
+     */
     public function label(): string
     {
         return match ($this) {
-            self::E => 'E - Électrique / hydrogène (0 €)',
-            self::Category1 => '1 - Essence ou gaz Euro 5/6 (100 €)',
-            self::MostPolluting => 'Véhicules les plus polluants (500 €)',
+            self::E => 'E - Électrique / hydrogène',
+            self::Category1 => '1 - Essence ou gaz Euro 5/6',
+            self::MostPolluting => 'Véhicules les plus polluants',
         };
     }
 
