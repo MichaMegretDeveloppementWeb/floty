@@ -365,7 +365,7 @@ final readonly class DeclarationFiscalEngine
         foreach ($contracts as $contract) {
             $rows[] = [
                 'contract' => $contract,
-                'days' => count($contract->expandToDaysInYear($year)),
+                'days' => $contract->countDaysInYear($year),
             ];
         }
         usort(

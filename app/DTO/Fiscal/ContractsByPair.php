@@ -111,7 +111,7 @@ final readonly class ContractsByPair
                 continue;
             }
             foreach ($contracts as $contract) {
-                $total += count($contract->expandToDaysInYear($year));
+                $total += $contract->countDaysInYear($year);
             }
         }
 
@@ -131,7 +131,7 @@ final readonly class ContractsByPair
         $total = 0;
         foreach ($this->byPair as $contracts) {
             foreach ($contracts as $contract) {
-                $total += count($contract->expandToDaysInYear($year));
+                $total += $contract->countDaysInYear($year);
             }
         }
 

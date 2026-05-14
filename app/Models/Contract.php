@@ -185,4 +185,37 @@ final class Contract extends Model
 
         return $days;
     }
+
+    /**
+     * Compte le nombre de jours du contrat tombant dans l'année donnée
+     * (bornes incluses, mêmes règles de clipping que
+     * {@see expandToDaysInYear}).
+     *
+     * Variante perf · ne matérialise pas l'array de 365 strings · juste
+     * une diff arithmétique. Doit retourner exactement
+     * `count($this->expandToDaysInYear($year))` (équivalence prouvée par
+     * `ContractCountVsExpandEquivalenceTest`). Préférer cette méthode
+     * aux 11 sites qui ne consommaient que la cardinalité.
+     *
+     * Cf. plan-remédiation Vague 1 Lot 3 D02 (F-12-006 et consolidés).
+     */
+    public function countDaysInYear(int $year): int
+    {
+        $yearStart = CarbonImmutable::create($year, 1, 1);
+        $yearEnd = CarbonImmutable::create($year, 12, 31);
+
+        $start = $this->start_date->toImmutable();
+        $end = $this->end_date->toImmutable();
+
+        $rangeStart = $start->isAfter($yearStart) ? $start : $yearStart;
+        $rangeEnd = $end->isBefore($yearEnd) ? $end : $yearEnd;
+
+        if ($rangeStart->isAfter($rangeEnd)) {
+            return 0;
+        }
+
+        // `diffInDays` exclut la borne d'arrivée · +1 pour matcher la
+        // sémantique « bornes incluses » de `expandToDaysInYear`.
+        return (int) $rangeStart->diffInDays($rangeEnd) + 1;
+    }
 }

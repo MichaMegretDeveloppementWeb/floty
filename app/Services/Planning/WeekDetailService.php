@@ -227,7 +227,7 @@ final class WeekDetailService
             $rangeEnd,
         );
 
-        $daysCount = count($syntheticContract->expandToDaysInYear($year));
+        $daysCount = $syntheticContract->countDaysInYear($year);
 
         $breakdown = $this->calculator->calculate(
             $vehicle,

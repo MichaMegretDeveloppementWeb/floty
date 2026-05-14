@@ -261,7 +261,7 @@ final class FleetFiscalAggregator
                 $this->buildContext($vehicle, [$contract], $vehicleUnavailabilities, $year),
             );
 
-            $daysInContractInYear = count($contract->expandToDaysInYear($year));
+            $daysInContractInYear = $contract->countDaysInYear($year);
 
             $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
             $pollutantsTariff = round($result->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);

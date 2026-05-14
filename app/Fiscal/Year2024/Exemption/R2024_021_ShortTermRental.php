@@ -117,7 +117,7 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQual
             if (! $this->isShortTermRental($contract)) {
                 continue;
             }
-            $exemptDays += count($contract->expandToDaysInYear($context->fiscalYear));
+            $exemptDays += $contract->countDaysInYear($context->fiscalYear);
             $lcdContractsCount++;
         }
 

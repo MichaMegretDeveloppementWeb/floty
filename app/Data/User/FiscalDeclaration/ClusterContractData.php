@@ -37,7 +37,7 @@ final class ClusterContractData extends Data
         int $year,
         ?Contract $previous,
     ): self {
-        $durationDaysInYear = count($contract->expandToDaysInYear($year));
+        $durationDaysInYear = $contract->countDaysInYear($year);
 
         $interval = null;
         if ($previous !== null) {

@@ -579,7 +579,7 @@ final class CompanyQueryService
             // config fiscale de l'année est absente (cas FiscalCalculationException).
             $days = 0;
             foreach ($pairContracts as $contract) {
-                $days += count($contract->expandToDaysInYear($year));
+                $days += $contract->countDaysInYear($year);
             }
             $daysPerVehicle[$vehicleId] = $days;
         }

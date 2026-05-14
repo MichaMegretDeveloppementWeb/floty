@@ -60,7 +60,7 @@ final readonly class R2025_021_WithOptOuts implements ExemptionRule, LcdQualifie
             if (! $this->isShortTermRental($contract)) {
                 continue;
             }
-            $exemptDays += count($contract->expandToDaysInYear($context->fiscalYear));
+            $exemptDays += $contract->countDaysInYear($context->fiscalYear);
             $lcdContractsCount++;
         }
 

@@ -275,7 +275,7 @@ final class VehicleQueryService
         $contractsCount = 0;
         foreach ($contractsByPair->pairsForVehicle($vehicle->id) as $pairContracts) {
             foreach ($pairContracts as $contract) {
-                $daysUsed += count($contract->expandToDaysInYear($year));
+                $daysUsed += $contract->countDaysInYear($year);
                 $contractsCount++;
             }
         }
@@ -473,7 +473,7 @@ final class VehicleQueryService
         foreach ($contractsByPair->pairsForVehicle($vehicleId) as $companyId => $pairContracts) {
             $days = 0;
             foreach ($pairContracts as $contract) {
-                $days += count($contract->expandToDaysInYear($contract->start_date->year));
+                $days += $contract->countDaysInYear($contract->start_date->year);
             }
             $rows[] = [
                 'companyId' => $companyId,
