@@ -9,6 +9,7 @@ use App\Services\Auth\LoginAttemptService;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\Middleware\ThrottleRequests;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Event;
@@ -127,17 +128,19 @@ final class LoginFlowTest extends TestCase
     }
 
     #[Test]
-    public function rate_limit_ip_apres_50_tentatives_bloque_avec_message_attente(): void
+    public function rate_limit_ip_apres_10_tentatives_bloque_avec_message_attente(): void
     {
         // Chaque tentative utilise un email différent → seul le compteur
-        // IP s'incrémente à 50, le compteur email+IP reste sous 5.
+        // IP s'incrémente, le compteur email+IP reste sous 5.
         //
-        // On désactive le middleware `throttle:10,2` (couche réseau,
-        // Lot 1 D4) pour pouvoir atteindre la 50e tentative et exercer
-        // la couche applicative `LoginAttemptService`. Sinon la requête
-        // serait coupée par le throttle Laravel dès la 11e itération
-        // avant d'atteindre l'Action. Le throttle middleware reste vérifié
-        // séparément par `la_route_login_store_porte_le_middleware_throttle`.
+        // Depuis ADR-0011 § 3 rev. 1.1 (C1.a), la couche applicative IP
+        // est capée à 10/2min · alignée sur le throttle middleware
+        // `throttle:10,2` (Lot 1 D4). On désactive le middleware ici
+        // pour exercer la couche applicative en isolation · sinon le
+        // throttle externe couperait au 10e en renvoyant un 429 brut,
+        // sans déclencher le message FR de `LoginAttemptService`.
+        // Le throttle middleware reste vérifié séparément par
+        // `la_route_login_store_porte_le_middleware_throttle`.
         $this->withoutMiddleware(ThrottleRequests::class);
 
         Event::fake([Lockout::class]);
@@ -184,6 +187,69 @@ final class LoginFlowTest extends TestCase
         $this->actingAs($user)
             ->get('/login')
             ->assertRedirect('/');
+    }
+
+    #[Test]
+    public function flow_auth_logge_success_failed_lockout_sur_canal_auth_sans_pii(): void
+    {
+        // Test combiné · vérifie qu'au canal `auth` on logge bien les 3
+        // types d'événements (success/failed/lockout) avec email haché,
+        // et que ni l'email en clair ni le password ne fuient dans le log.
+        // Approche file-based plutôt que Mockery · plus robuste, valide
+        // toute la chaîne (Action + Service + Listener auto-discovered +
+        // canal `auth` daily driver).
+        // Cf. plan-remédiation Vague 1 Lot 1 D2 (F-10-002).
+
+        $logFile = storage_path('logs/auth-'.Carbon::now()->format('Y-m-d').'.log');
+        @unlink($logFile);
+
+        User::factory()->create([
+            'email' => 'test@floty.test',
+            'password' => Hash::make('correct-password'),
+        ]);
+
+        // 1 login OK
+        $this->post('/login', [
+            'email' => 'test@floty.test',
+            'password' => 'correct-password',
+        ])->assertRedirect('/app/dashboard');
+        $this->post('/logout');
+
+        // Reset rate-limit · on veut isoler la séquence Lockout suivante.
+        RateLimiter::clear('login:email:test@floty.test|127.0.0.1');
+        RateLimiter::clear('login:ip:127.0.0.1');
+
+        // 5 failed → 6e déclenche Lockout
+        for ($i = 0; $i < LoginAttemptService::MAX_ATTEMPTS_PER_EMAIL; $i++) {
+            $this->post('/login', [
+                'email' => 'test@floty.test',
+                'password' => 'wrong-password',
+            ]);
+        }
+        $this->from('/login')->post('/login', [
+            'email' => 'test@floty.test',
+            'password' => 'correct-password',
+        ])->assertRedirect('/login');
+
+        $this->assertFileExists($logFile, 'Le fichier de log auth doit être créé après les actions.');
+        $content = (string) file_get_contents($logFile);
+
+        // Présence des 3 types d'événements
+        $this->assertStringContainsString('login.success', $content);
+        $this->assertStringContainsString('login.failed', $content);
+        $this->assertStringContainsString('login.lockout', $content);
+
+        // Hash email pour corrélation forensique
+        $emailHash = hash('sha256', 'test@floty.test');
+        $this->assertStringContainsString($emailHash, $content);
+
+        // PII safety · email en clair et passwords NE doivent PAS apparaître.
+        // Note · on cherche `test@floty.test` entouré de délimiteurs JSON pour
+        // éviter les faux-positifs sur le hash hex (qui contient parfois ces
+        // chars · improbable mais on assertString sur le brut, robuste).
+        $this->assertStringNotContainsString('"email":"test@floty.test"', $content);
+        $this->assertStringNotContainsString('correct-password', $content);
+        $this->assertStringNotContainsString('wrong-password', $content);
     }
 
     #[Test]

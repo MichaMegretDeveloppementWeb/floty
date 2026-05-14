@@ -147,7 +147,12 @@ return [
         'auth' => [
             'driver' => 'daily',
             'path' => storage_path('logs/auth.log'),
-            'level' => env('LOG_LEVEL', 'debug'),
+            // Level dédié `notice` · ce canal reçoit login.success +
+            // login.failed (notice) en plus des login.lockout (warning).
+            // En prod, si `LOG_LEVEL=warning`, sans ce level dédié les
+            // success/failed seraient filtrés silencieusement.
+            // Cf. ADR-0011 § 3 + plan-remédiation Vague 1 Lot 1 D2 (F-10-002).
+            'level' => env('AUTH_LOG_LEVEL', 'notice'),
             'days' => 30,
             'replace_placeholders' => true,
         ],

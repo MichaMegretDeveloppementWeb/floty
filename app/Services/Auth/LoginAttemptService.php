@@ -11,28 +11,35 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 /**
- * Gestion du rate-limit sur les tentatives de connexion (ADR-0011).
+ * Gestion du rate-limit sur les tentatives de connexion (ADR-0011 § 3 rev. 1.1).
  *
  * Double couche :
- *   - 5 tentatives / 15 min sur le couple email+IP - anti bruteforce
+ *   - 5 tentatives / 2 min sur le couple email+IP · anti bruteforce
  *     ciblé d'un compte précis.
- *   - 50 tentatives / 15 min sur l'IP seule - anti attaques distribuées
+ *   - 10 tentatives / 2 min sur l'IP seule · anti attaques distribuées
  *     (un attaquant avec N IPs ne peut pas faire 5×N tentatives par
  *     email).
+ *
+ * Cohérence avec la barrière externe · le middleware `throttle:10,2`
+ * posé sur POST /login (Lot 1 D4) cape l'IP au même seuil 10/2min
+ * **avant** d'atteindre cette couche applicative. La couche applicative
+ * IP devient donc un filet en défense en profondeur (cohérent si le
+ * middleware est bypassé · tests, détection IP via header proxy, etc.)
+ * + le canal de l'audit log Lockout + les messages FR.
  *
  * L'événement {@see Lockout} est dispatché à chaque blocage pour
  * permettre aux listeners (audit, alerte sécurité) d'observer.
  *
- * Service stateless - toutes les bornes vivent dans le RateLimiter.
+ * Service stateless · toutes les bornes vivent dans le RateLimiter.
  * Testable sans HTTP via {@see RateLimiter::clear()} dans `setUp`.
  */
 final class LoginAttemptService
 {
     public const int MAX_ATTEMPTS_PER_EMAIL = 5;
 
-    public const int MAX_ATTEMPTS_PER_IP = 50;
+    public const int MAX_ATTEMPTS_PER_IP = 10;
 
-    public const int DECAY_SECONDS = 60;
+    public const int DECAY_SECONDS = 120;
 
     public function __construct(
         private readonly Dispatcher $events,

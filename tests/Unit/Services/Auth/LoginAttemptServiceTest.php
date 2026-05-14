@@ -63,7 +63,7 @@ final class LoginAttemptServiceTest extends TestCase
     }
 
     #[Test]
-    public function throw_apres_50_tentatives_ip(): void
+    public function throw_apres_10_tentatives_ip(): void
     {
         // On utilise des emails différents pour ne pas saturer le
         // compteur email+IP (qui se déclencherait à 5 tentatives).
@@ -79,6 +79,18 @@ final class LoginAttemptServiceTest extends TestCase
             $this->assertGreaterThan(0, $e->retryAfterSeconds);
             $this->assertStringStartsWith('Trop de tentatives depuis cette IP', $e->getUserMessage());
         }
+    }
+
+    #[Test]
+    public function constants_match_adr_0011_section_3_rev_1_1(): void
+    {
+        // Anti-régression · les seuils sont prescrits par ADR-0011 § 3
+        // rev. 1.1 (amendement en cours C6, plan-remediation Vague 1
+        // Lot 1 D1 F-10-001). Modifier ces valeurs sans amender l'ADR
+        // crée une dérive doctrinale silencieuse.
+        $this->assertSame(5, LoginAttemptService::MAX_ATTEMPTS_PER_EMAIL);
+        $this->assertSame(10, LoginAttemptService::MAX_ATTEMPTS_PER_IP);
+        $this->assertSame(120, LoginAttemptService::DECAY_SECONDS);
     }
 
     #[Test]

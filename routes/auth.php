@@ -18,14 +18,14 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('guest')->group(function (): void {
     Route::get('/login', [LoginController::class, 'show'])->name('login');
 
-    // Double couche anti brute-force :
+    // Double couche anti brute-force (ADR-0011 § 3 rev. 1.1) :
     //   - Middleware throttle:10,2 = 10 req/2min/IP avant d'atteindre l'app
     //     (barrière externe stricte, coupe la requête au niveau routing)
-    //   - Service LoginAttemptService = 5/2min couple (email,IP) + 50/2min IP
-    //     (couche applicative, audit log Lockout + messages FR ; en trafic
-    //     normal le cap IP=50 n'est jamais atteint puisque le middleware
-    //     externe coupe à 10. Conservé comme défense en profondeur.)
-    // Cf. ADR-0011 § 3 + plan-remédiation Vague 1 Lot 1 D4.
+    //   - Service LoginAttemptService = 5/2min couple (email,IP) + 10/2min IP
+    //     (couche applicative, audit log Lockout + messages FR · alignée sur
+    //     le throttle externe pour cohérence ; sert de défense en profondeur
+    //     si le middleware est bypassé, par exemple via header proxy mal posé).
+    // Cf. plan-remédiation Vague 1 Lot 1 D1 (F-10-001) + D4 (F-30-002).
     Route::post('/login', [LoginController::class, 'store'])
         ->middleware('throttle:10,2')
         ->name('login.store');

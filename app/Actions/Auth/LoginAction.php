@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Services\Auth\LoginAttemptService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Orchestre une tentative de connexion :
@@ -39,8 +40,18 @@ final readonly class LoginAction
     {
         $this->attempts->ensureNotRateLimited($email, $ip);
 
+        $emailHash = hash('sha256', mb_strtolower($email));
+
         if (! Auth::attempt(['email' => $email, 'password' => $password], false)) {
             $this->attempts->recordFailedAttempt($email, $ip);
+
+            // Log forensic · email haché pour corrélation sans fuiter
+            // la PII si les fichiers de log sont compromis.
+            // Cf. ADR-0011 § 3 + plan-remédiation Vague 1 Lot 1 D2 (F-10-002).
+            Log::channel('auth')->notice('login.failed', [
+                'email_hash' => $emailHash,
+                'ip' => $ip,
+            ]);
 
             throw InvalidCredentialsException::make();
         }
@@ -50,6 +61,12 @@ final readonly class LoginAction
         /** @var User $user */
         $user = Auth::user();
         $user->forceFill(['last_login_at' => Date::now()])->save();
+
+        Log::channel('auth')->notice('login.success', [
+            'user_id' => $user->id,
+            'email_hash' => $emailHash,
+            'ip' => $ip,
+        ]);
 
         return $user;
     }
