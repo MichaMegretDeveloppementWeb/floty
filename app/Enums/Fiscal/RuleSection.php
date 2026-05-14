@@ -35,7 +35,7 @@ enum RuleSection: string
             self::CadreEvenement => 'Règles de gestion des évènements véhicule',
             self::CadreInterne => "Règles de fonctionnement interne de l'application",
             self::CadreDeclaratif => 'Modalités de déclaration et de paiement',
-            self::TaxeConnexe => 'Taxes connexes véhicules hors périmètre Floty',
+            self::TaxeConnexe => "Taxes connexes véhicules hors périmètre de l'application",
         };
     }
 
@@ -50,7 +50,7 @@ enum RuleSection: string
             self::CadreEvenement => "Comment l'application traite les indisponibilités, sorties de flotte et données manquantes.",
             self::CadreInterne => "Mécanismes de validation et d'audit transparents pour l'utilisateur.",
             self::CadreDeclaratif => "Comment l'entreprise déclare et acquitte les taxes annuelles · formulaires, dates, paiement, état récapitulatif.",
-            self::TaxeConnexe => "Taxes applicables aux véhicules d'entreprise mais hors du périmètre métier de Floty (malus à l'immatriculation, taxes carte grise, TAI verdissement des grosses flottes, taxe véhicules lourds, etc.). Documentées pour exhaustivité.",
+            self::TaxeConnexe => "Taxes applicables aux véhicules d'entreprise mais hors du périmètre métier de l'application (malus à l'immatriculation, taxes carte grise, TAI verdissement flottes, taxe véhicules lourds, etc.). Acquittées par le bailleur ou directement par l'entreprise via son comptable · l'application ne les calcule pas, mais les documente pour exhaustivité du panorama fiscal véhicules.",
         };
     }
 }

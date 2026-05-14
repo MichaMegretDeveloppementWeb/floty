@@ -114,7 +114,7 @@ final readonly class R2024_029_RegistrationCo2Malus implements InformativeRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Cadre,
+            tab: RuleTab::Connexe,
             section: RuleSection::TaxeConnexe,
             title: 'Malus CO₂ à l\'immatriculation',
             pitch: 'Taxe ponctuelle payée à l\'achat d\'un véhicule neuf, en fonction de ses émissions de CO₂.',

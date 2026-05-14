@@ -132,7 +132,7 @@ final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeR
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Cadre,
+            tab: RuleTab::Connexe,
             section: RuleSection::TaxeConnexe,
             title: "Taxe annuelle incitative à l'acquisition de VFE (TAI)",
             pitch: "Nouvelle taxe 2025 qui frappe les entreprises affectataires n'atteignant pas un quota cible d'intégration de véhicules à faibles émissions (VFE) dans leur flotte.",

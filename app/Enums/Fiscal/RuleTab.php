@@ -17,13 +17,20 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   la taxe (aiguillage, barèmes, exonérations applicables).
  * - `Cadre` · règles de cadre architectural et de gestion des
  *   événements véhicule (redevable, prorata, indispos, garde-fou
- *   Crit'Air, etc.).
+ *   Crit'Air, modalités déclaratives, etc.).
+ * - `Connexe` · règles fiscales véhicules réelles mais **hors
+ *   périmètre de calcul de l'application** (malus immat, taxes
+ *   carte grise, TAI verdissement flottes, taxe véhicules lourds).
+ *   Distinct de `Cadre` parce que ce ne sont pas des règles de
+ *   fonctionnement de l'application · ce sont de vraies taxes
+ *   gérées par d'autres acteurs (bailleur, comptable de l'entreprise).
  */
 #[TypeScript]
 enum RuleTab: string
 {
     case Calcul = 'calcul';
     case Cadre = 'cadre';
+    case Connexe = 'connexe';
 
     /**
      * Ordre d'affichage des sections de cet onglet, conforme à la
@@ -45,6 +52,8 @@ enum RuleTab: string
                 RuleSection::CadreEvenement,
                 RuleSection::CadreInterne,
                 RuleSection::CadreDeclaratif,
+            ],
+            self::Connexe => [
                 RuleSection::TaxeConnexe,
             ],
         };
@@ -55,6 +64,7 @@ enum RuleTab: string
         return match ($this) {
             self::Calcul => 'Calcul des taxes',
             self::Cadre => 'Cadre & fonctionnement',
+            self::Connexe => 'Taxes connexes (hors périmètre)',
         };
     }
 }

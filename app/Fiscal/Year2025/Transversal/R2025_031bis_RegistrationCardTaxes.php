@@ -120,7 +120,7 @@ final readonly class R2025_031bis_RegistrationCardTaxes implements InformativeRu
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Cadre,
+            tab: RuleTab::Connexe,
             section: RuleSection::TaxeConnexe,
             title: "Taxes liées au certificat d'immatriculation (exonération régionale Y1 facultative)",
             pitch: "Période 01/05-31/12/2025 · l'exonération régionale Y1 pour véhicules électriques/hydrogène devient facultative par région.",
