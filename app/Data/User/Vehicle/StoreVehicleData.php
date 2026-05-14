@@ -102,6 +102,11 @@ final class StoreVehicleData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
+        // Flag E85 · abattement L. 421-125 réformé (2025+) · valeur dérivée
+        // des 9 codes P.3 du CI {FE, FG, FN, FL, FH, FR, FQ, FM, FP}
+        // (BOFiP `BOI-AIS-MOB-10-20-40-20250604` § 160).
+        public bool $acceptsE85 = false,
+
         // ---------- Spécificités fiscales (toujours visibles) ----------
         #[IntegerType, Min(0), Max(10000)]
         public ?int $kerbMass = null,

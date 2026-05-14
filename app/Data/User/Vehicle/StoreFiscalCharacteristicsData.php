@@ -85,6 +85,9 @@ final class StoreFiscalCharacteristicsData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
+        // Flag E85 · abattement L. 421-125 réformé (2025+).
+        public bool $acceptsE85 = false,
+
         #[IntegerType, Min(0), Max(10000)]
         public ?int $kerbMass = null,
 

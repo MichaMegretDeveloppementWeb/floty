@@ -53,6 +53,7 @@ final class VehicleFiscalCharacteristicsFactory extends Factory
             'homologation_method' => HomologationMethod::Wltp,
             'co2_wltp' => 120,
             'co2_nedc' => null,
+            'accepts_e85' => false,
             'taxable_horsepower' => null,
             'kerb_mass' => 1_300,
             'handicap_access' => false,
@@ -90,6 +91,17 @@ final class VehicleFiscalCharacteristicsFactory extends Factory
             'co2_wltp' => null,
             'co2_nedc' => null,
             'taxable_horsepower' => $cv,
+        ]);
+    }
+
+    /**
+     * Active le flag E85 (rubrique P.3 du CI ∈ {FE, FG, FN, FL, FH, FR,
+     * FQ, FM, FP}). Utilisé par les tests de R-2025-023 abattement E85.
+     */
+    public function acceptsE85(): static
+    {
+        return $this->state(fn (): array => [
+            'accepts_e85' => true,
         ]);
     }
 }

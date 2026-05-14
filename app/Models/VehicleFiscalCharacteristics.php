@@ -56,6 +56,7 @@ use Illuminate\Support\Carbon;
  * @property HomologationMethod $homologation_method
  * @property int|null $co2_wltp
  * @property int|null $co2_nedc
+ * @property bool $accepts_e85
  * @property int|null $taxable_horsepower
  * @property int|null $kerb_mass
  * @property bool $handicap_access
@@ -83,6 +84,7 @@ use Illuminate\Support\Carbon;
     'homologation_method',
     'co2_wltp',
     'co2_nedc',
+    'accepts_e85',
     'taxable_horsepower',
     'kerb_mass',
     'handicap_access',
@@ -116,6 +118,7 @@ final class VehicleFiscalCharacteristics extends Model
             'pollutant_category' => PollutantCategory::class,
             'homologation_method' => HomologationMethod::class,
             'change_reason' => FiscalCharacteristicsChangeReason::class,
+            'accepts_e85' => 'boolean',
             'handicap_access' => 'boolean',
             'n1_passenger_transport' => 'boolean',
             'n1_removable_second_row_seat' => 'boolean',

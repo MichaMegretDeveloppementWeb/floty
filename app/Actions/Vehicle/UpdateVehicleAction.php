@@ -158,6 +158,7 @@ final readonly class UpdateVehicleAction
             || $current->homologation_method !== $data->homologationMethod
             || $current->co2_wltp !== $data->co2Wltp
             || $current->co2_nedc !== $data->co2Nedc
+            || $current->accepts_e85 !== $data->acceptsE85
             || $current->taxable_horsepower !== $data->taxableHorsepower
             || $current->kerb_mass !== $data->kerbMass
             || $current->handicap_access !== $data->handicapAccess
