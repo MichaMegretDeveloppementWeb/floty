@@ -114,7 +114,7 @@ final readonly class R2024_028_DeclarationModalities implements InformativeRule
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-164',
-                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602853/2024-06-01',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214908/2024-06-01',
                 'consulted_at' => '2026-05-14',
             ],
             [

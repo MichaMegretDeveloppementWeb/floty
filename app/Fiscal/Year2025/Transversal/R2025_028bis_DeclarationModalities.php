@@ -110,7 +110,7 @@ final readonly class R2025_028bis_DeclarationModalities implements InformativeRu
             [
                 'type' => 'LOI',
                 'reference' => 'LOI n°2025-127 du 14 février 2025 art. 28 (réécriture L. 421-159/164 à effet 01/03/2025)',
-                'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000051183558',
+                'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000051168007',
                 'consulted_at' => '2026-05-14',
             ],
         ];

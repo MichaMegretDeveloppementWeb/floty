@@ -70,6 +70,12 @@ final readonly class R2024_020_RenterExemption implements InformativeRule
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602959/2024-06-01',
                 'consulted_at' => '2026-05-06',
             ],
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-140',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602919/2024-06-01',
+                'consulted_at' => '2026-05-14',
+            ],
         ];
     }
 

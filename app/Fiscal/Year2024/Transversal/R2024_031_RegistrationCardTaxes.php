@@ -93,12 +93,6 @@ final readonly class R2024_031_RegistrationCardTaxes implements InformativeRule
                 'consulted_at' => '2026-05-14',
             ],
             [
-                'type' => 'CIBS',
-                'article' => 'L. 421-55 à L. 421-57 (taxe Y2)',
-                'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000044599043/2024-06-01/',
-                'consulted_at' => '2026-05-14',
-            ],
-            [
                 'type' => 'NOTICE',
                 'reference' => 'ANTS · Taxes sur les cartes grises',
                 'url' => 'https://immatriculation.ants.gouv.fr/tout-savoir/taxes-sur-les-cartes-grises',

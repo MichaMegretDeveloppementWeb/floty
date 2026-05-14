@@ -111,7 +111,7 @@ final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeR
             [
                 'type' => 'LOI',
                 'reference' => 'LOI n°2025-127 du 14 février 2025 art. 95 (création TAI) + art. 28 V (note d\'application prorata 1/306e en 2025)',
-                'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000051183558',
+                'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000051168007',
                 'consulted_at' => '2026-05-14',
             ],
         ];

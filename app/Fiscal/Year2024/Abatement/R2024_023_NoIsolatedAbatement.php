@@ -67,7 +67,19 @@ final readonly class R2024_023_NoIsolatedAbatement implements InformativeRule
      */
     public function legalBasis(): array
     {
-        return [];
+        return [
+            // L. 421-125 v 2024 fonde l'abattement E85 mais n'était PAS
+            // applicable en 2024 dans sa forme actuelle (entrée en
+            // vigueur 01/01/2025 par réforme LF 2024 art. 97, 23°).
+            // Référencé pour traçabilité du raisonnement « pas
+            // d'abattement isolé en 2024 ».
+            [
+                'type' => 'CIBS',
+                'article' => 'L. 421-125 (version 2024 · pré-réforme E85)',
+                'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602969/2024-06-01',
+                'consulted_at' => '2026-05-14',
+            ],
+        ];
     }
 
     /**
