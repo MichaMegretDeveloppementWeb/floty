@@ -56,6 +56,7 @@ final class DashboardControllerTest extends TestCase
                     ->has('pendingDeclarationsCount')
                     ->has('pendingDeclarations')
                     ->has('pendingInvoicesCount')
+                    ->has('pendingInvoicesMonthlyTotal')
                     ->has('pendingInvoices'))
                 ->has('selectedYear')
                 ->has('yearScope'),

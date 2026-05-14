@@ -109,10 +109,20 @@ final readonly class DashboardPendingTasksAggregator
             DashboardPendingInvoiceItemData $b,
         ): int => [$a->fiscalYear, $a->companyShortCode] <=> [$b->fiscalYear, $b->companyShortCode]);
 
+        // Total des factures mensuelles à générer toutes lignes
+        // confondues · une ligne (entreprise, année) peut contenir
+        // jusqu'à 12 factures mensuelles. Le compteur de lignes ne
+        // suffit donc pas pour le header « N factures en attente ».
+        $invMonthlyTotal = array_sum(array_map(
+            static fn (DashboardPendingInvoiceItemData $item): int => $item->missingInvoicesCount,
+            $invItems,
+        ));
+
         return new DashboardPendingTasksData(
             pendingDeclarationsCount: count($declItems),
             pendingDeclarations: array_slice($declItems, 0, self::TOP_ITEMS),
             pendingInvoicesCount: count($invItems),
+            pendingInvoicesMonthlyTotal: $invMonthlyTotal,
             pendingInvoices: array_slice($invItems, 0, self::TOP_ITEMS),
         );
     }

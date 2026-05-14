@@ -12,15 +12,25 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * Tâches opérationnelles en attente affichées sur le Dashboard (Phase
  * 13 D5.15 · refonte chantier η Phase 4 qui posait les placeholders).
  *
- * Pour chaque domaine (déclarations + factures), expose ·
- *   - `*Count` · nombre total d'items pending toutes entreprises confondues
- *   - `*Items` · top 5 items triés par urgence (échéance overdue d'abord, puis date croissante) pour rendu liste détaillée sur le dashboard
+ * Pour les déclarations, expose ·
+ *   - `pendingDeclarationsCount` · nombre total de couples (entreprise, année)
+ *     en attente · 1 déclaration par couple donc compteur = nombre de
+ *     déclarations à traiter
+ *   - `pendingDeclarations` · top 5 items triés par urgence (overdue d'abord)
  *
- * Si `*Count > count(*Items)`, le front affiche un lien « Voir les N autres »
- * pointant vers la page Index filtrée (Déclarations Index ou Factures Index).
+ * Pour les factures, expose ·
+ *   - `pendingInvoicesCount` · nombre total de couples (entreprise, année)
+ *     en attente. Utilisé pour le footer « Voir les N autres entreprises »
+ *   - `pendingInvoicesMonthlyTotal` · **somme des factures mensuelles à
+ *     générer** toutes lignes confondues. C'est ce que l'utilisateur
+ *     voit comme « N factures en attente » dans le header · une ligne
+ *     peut représenter plusieurs factures mensuelles (jusqu'à 12 par
+ *     couple entreprise-année), donc le compteur de lignes ne suffit pas.
+ *   - `pendingInvoices` · top 5 lignes triées par année croissante
  *
- * Si `*Count === 0`, le front affiche un état vide explicite (cf. Q3=B
- * du brief D5.15).
+ * Si `pendingDeclarationsCount > 5` ou `pendingInvoicesCount > 5`, le
+ * front affiche un lien « Voir les N autres » pointant vers la page
+ * Index filtrée.
  */
 #[TypeScript]
 final class DashboardPendingTasksData extends Data
@@ -34,6 +44,7 @@ final class DashboardPendingTasksData extends Data
         #[DataCollectionOf(DashboardPendingDeclarationItemData::class)]
         public array $pendingDeclarations,
         public int $pendingInvoicesCount,
+        public int $pendingInvoicesMonthlyTotal,
         #[DataCollectionOf(DashboardPendingInvoiceItemData::class)]
         public array $pendingInvoices,
     ) {}
@@ -44,6 +55,7 @@ final class DashboardPendingTasksData extends Data
             pendingDeclarationsCount: 0,
             pendingDeclarations: [],
             pendingInvoicesCount: 0,
+            pendingInvoicesMonthlyTotal: 0,
             pendingInvoices: [],
         );
     }

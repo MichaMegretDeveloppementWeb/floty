@@ -18,7 +18,10 @@ import PendingInvoiceRow from './PendingInvoiceRow.vue';
 type Tasks = App.Data.User.Dashboard.DashboardPendingTasksData;
 
 const props = defineProps<{
+    /** Nombre de lignes (entreprise, année) en attente. Pilote « Voir les N autres ». */
     count: Tasks['pendingInvoicesCount'];
+    /** Somme des factures mensuelles à générer toutes lignes confondues. Pilote le compteur du header. */
+    monthlyTotal: Tasks['pendingInvoicesMonthlyTotal'];
     items: Tasks['pendingInvoices'];
 }>();
 
@@ -44,9 +47,9 @@ const indexUrl = computed<string>(() => invoicesIndex().url);
                     Factures en attente
                 </p>
                 <p class="text-sm text-slate-500">
-                    <template v-if="count > 0">
+                    <template v-if="monthlyTotal > 0">
                         <span class="font-mono font-medium tabular-nums text-slate-900">
-                            {{ count }}
+                            {{ monthlyTotal }}
                         </span>
                         à générer pour les entreprises clientes
                     </template>
@@ -73,7 +76,7 @@ const indexUrl = computed<string>(() => invoicesIndex().url);
             :href="indexUrl"
             class="text-xs font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 transition-colors duration-[120ms] ease-out hover:text-slate-900 hover:decoration-slate-600"
         >
-            Voir les {{ remainingCount }} autre{{ remainingCount > 1 ? 's' : '' }} →
+            Voir les {{ remainingCount }} autre{{ remainingCount > 1 ? 's' : '' }} entreprise{{ remainingCount > 1 ? 's' : '' }} →
         </a>
     </article>
 </template>
