@@ -61,10 +61,10 @@ final readonly class FiscalCharacteristicsImpactComputer
         $candidateSuccessorFrom = null;
 
         foreach ($others as $v) {
-            $vFrom = CarbonImmutable::parse($v->effective_from->toDateString());
+            $vFrom = $v->effective_from->toImmutable();
             $vTo = $v->effective_to === null
                 ? null
-                : CarbonImmutable::parse($v->effective_to->toDateString());
+                : $v->effective_to->toImmutable();
 
             // Engulfment : v est strictement contenu (au sens large) dans [newFrom, newTo]
             if ($this->isEngulfedBy($vFrom, $vTo, $newFrom, $newTo)) {
@@ -158,7 +158,7 @@ final readonly class FiscalCharacteristicsImpactComputer
         if ($candidatePredecessor !== null) {
             $expectedTo = $newFrom->subDay();
             $currentTo = $candidatePredecessor->effective_to !== null
-                ? CarbonImmutable::parse($candidatePredecessor->effective_to->toDateString())
+                ? $candidatePredecessor->effective_to->toImmutable()
                 : null;
 
             $slotAlreadyFilled = $this->anyAdjustEffectiveToMatches($impacts, $expectedTo);
@@ -178,7 +178,7 @@ final readonly class FiscalCharacteristicsImpactComputer
         // chevauchement droit déjà absorbé.
         if ($candidateSuccessor !== null && $newTo !== null) {
             $expectedFrom = $newTo->addDay();
-            $currentFrom = CarbonImmutable::parse($candidateSuccessor->effective_from->toDateString());
+            $currentFrom = $candidateSuccessor->effective_from->toImmutable();
 
             $slotAlreadyFilled = $this->anyAdjustEffectiveFromMatches($impacts, $expectedFrom);
 

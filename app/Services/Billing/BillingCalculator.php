@@ -441,15 +441,15 @@ final readonly class BillingCalculator
 
         foreach ($contracts as $contract) {
             $clipStart = $contract->start_date->isAfter($monthStart)
-                ? CarbonImmutable::parse($contract->start_date->toDateString())
+                ? $contract->start_date->toImmutable()
                 : $monthStart;
             $clipEnd = $contract->end_date->isBefore($monthEnd)
-                ? CarbonImmutable::parse($contract->end_date->toDateString())
+                ? $contract->end_date->toImmutable()
                 : $monthEnd;
 
             $exitDate = $contract->vehicle?->exit_date;
             if ($exitDate !== null) {
-                $exitDateImmutable = CarbonImmutable::parse($exitDate->toDateString());
+                $exitDateImmutable = $exitDate->toImmutable();
                 if ($exitDateImmutable->isBefore($clipStart)) {
                     continue;
                 }

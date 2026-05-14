@@ -16,6 +16,7 @@ use App\Data\User\Dashboard\DashboardVehicleHeatmapData;
 use App\Data\User\Dashboard\DashboardYearHistoryData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Fiscal\FiscalCalculationException;
+use App\Models\Company;
 use App\Models\Vehicle;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
@@ -76,7 +77,7 @@ final class DashboardStatsService
      * est appelé par chaque construction de scope context. La liste
      * change rarement et un Service Laravel est resolved per-request.
      *
-     * @var Collection<int, \App\Models\Company>|null
+     * @var Collection<int, Company>|null
      */
     private ?Collection $cachedCompanies = null;
 
@@ -200,7 +201,7 @@ final class DashboardStatsService
      * per-request. Cohérent avec la doctrine "Service Laravel resolved
      * per-request" · pas de pollution cross-request.
      *
-     * @return Collection<int, \App\Models\Company>
+     * @return Collection<int, Company>
      */
     private function companiesForOptions(): Collection
     {
@@ -536,9 +537,9 @@ final class DashboardStatsService
                 continue;
             }
             foreach ($items as $unavail) {
-                $start = CarbonImmutable::parse($unavail->start_date->toDateString());
+                $start = $unavail->start_date->toImmutable();
                 $end = $unavail->end_date !== null
-                    ? CarbonImmutable::parse($unavail->end_date->toDateString())
+                    ? $unavail->end_date->toImmutable()
                     : $endWindow;
 
                 $cursor = $start->isAfter($startWindow) ? $start : $startWindow;

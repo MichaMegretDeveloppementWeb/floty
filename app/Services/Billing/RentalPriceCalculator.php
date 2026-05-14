@@ -70,12 +70,12 @@ final readonly class RentalPriceCalculator
      */
     public function forContractModel(Contract $contract, ?array $pricingsByVehicleYearKey = null): ?int
     {
-        $start = CarbonImmutable::parse($contract->start_date->toDateString());
-        $end = CarbonImmutable::parse($contract->end_date->toDateString());
+        $start = $contract->start_date->toImmutable();
+        $end = $contract->end_date->toImmutable();
 
         $exitDate = $contract->vehicle?->exit_date;
         if ($exitDate !== null) {
-            $exitImmutable = CarbonImmutable::parse($exitDate->toDateString());
+            $exitImmutable = $exitDate->toImmutable();
             if ($exitImmutable->isBefore($start)) {
                 return 0;
             }
@@ -144,8 +144,8 @@ final readonly class RentalPriceCalculator
 
         foreach ($contracts as $contract) {
             $contractsList[] = $contract;
-            $start = CarbonImmutable::parse($contract->start_date->toDateString());
-            $end = CarbonImmutable::parse($contract->end_date->toDateString());
+            $start = $contract->start_date->toImmutable();
+            $end = $contract->end_date->toImmutable();
 
             $cursor = $start->startOfMonth();
             while (! $cursor->isAfter($end)) {
@@ -229,16 +229,16 @@ final readonly class RentalPriceCalculator
 
         foreach ($contracts as $contract) {
             $clipStart = $contract->start_date->isAfter($yearStart)
-                ? CarbonImmutable::parse($contract->start_date->toDateString())
+                ? $contract->start_date->toImmutable()
                 : $yearStart;
             $clipEnd = $contract->end_date->isBefore($yearEnd)
-                ? CarbonImmutable::parse($contract->end_date->toDateString())
+                ? $contract->end_date->toImmutable()
                 : $yearEnd;
 
             // Clipping `exit_date` (cohérence ADR-0018, defense in depth).
             $exitDate = $contract->vehicle?->exit_date;
             if ($exitDate !== null) {
-                $exitImmutable = CarbonImmutable::parse($exitDate->toDateString());
+                $exitImmutable = $exitDate->toImmutable();
                 if ($exitImmutable->isBefore($clipStart)) {
                     continue;
                 }
@@ -333,8 +333,8 @@ final readonly class RentalPriceCalculator
             $datesByMonthAndCompany = [];
 
             foreach ($vehicleContracts as $contract) {
-                $clipStart = CarbonImmutable::parse($contract->start_date->toDateString());
-                $clipEnd = CarbonImmutable::parse($contract->end_date->toDateString());
+                $clipStart = $contract->start_date->toImmutable();
+                $clipEnd = $contract->end_date->toImmutable();
 
                 if ($clipStart->isBefore($yearStart)) {
                     $clipStart = $yearStart;
@@ -345,7 +345,7 @@ final readonly class RentalPriceCalculator
 
                 $exitDate = $contract->vehicle?->exit_date;
                 if ($exitDate !== null) {
-                    $exitImmutable = CarbonImmutable::parse($exitDate->toDateString());
+                    $exitImmutable = $exitDate->toImmutable();
                     if ($exitImmutable->isBefore($clipStart)) {
                         continue;
                     }

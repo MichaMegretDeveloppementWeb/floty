@@ -646,8 +646,8 @@ final readonly class ContractQueryService
         $rangeStart = CarbonImmutable::parse($from);
         $rangeEnd = CarbonImmutable::parse($to);
 
-        $start = CarbonImmutable::parse($contract->start_date->toDateString());
-        $end = CarbonImmutable::parse($contract->end_date->toDateString());
+        $start = $contract->start_date->toImmutable();
+        $end = $contract->end_date->toImmutable();
 
         $cursorStart = $start->isAfter($rangeStart) ? $start : $rangeStart;
         $cursorEnd = $end->isBefore($rangeEnd) ? $end : $rangeEnd;

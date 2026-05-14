@@ -17,41 +17,41 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Met à jour une VFC isolée depuis la modale Historique avec cascade
+ * Met Ã  jour une VFC isolÃ©e depuis la modale Historique avec cascade
  * d'ajustements automatiques sur ses voisines.
  *
  * Sous transaction :
  *
  *  1. **Validation des bornes seules** :
- *     - `effective_from` ≤ `effective_to` (si non null)
- *     - interdit la transformation courante↔historique (préserver
- *       l'invariant « 0 ou 1 version courante par véhicule »)
+ *     - `effective_from` â‰¤ `effective_to` (si non null)
+ *     - interdit la transformation couranteâ†”historique (prÃ©server
+ *       l'invariant Â« 0 ou 1 version courante par vÃ©hicule Â»)
  *
- *  2. **Calcul des impacts** sur les autres VFC du véhicule via
+ *  2. **Calcul des impacts** sur les autres VFC du vÃ©hicule via
  *     {@see FiscalCharacteristicsImpactComputer} :
  *     - `Delete`               : version voisine engloutie par les
  *                                 nouvelles bornes
  *     - `AdjustEffectiveTo`    : raccourcissement / prolongation de
  *                                 la fin d'une voisine pour
- *                                 contiguïté
+ *                                 contiguÃ¯tÃ©
  *     - `AdjustEffectiveFrom`  : raccourcissement / prolongation du
- *                                 début d'une voisine pour contiguïté
+ *                                 dÃ©but d'une voisine pour contiguÃ¯tÃ©
  *
  *  3. **Confirmation utilisateur** : si au moins un impact est
  *     destructif (`Delete`) et que `data.confirmed === false`, on
- *     lève {@see FiscalCharacteristicsRequiresConfirmationException}
+ *     lÃ¨ve {@see FiscalCharacteristicsRequiresConfirmationException}
  *     pour que la modale de confirmation s'ouvre.
  *
- *  4. **Application** : `UPDATE` de la VFC éditée puis chaque impact
+ *  4. **Application** : `UPDATE` de la VFC Ã©ditÃ©e puis chaque impact
  *     dans l'ordre (DELETE / SET effective_to / SET effective_from).
  *
- *  5. **Retour** : la VFC mise à jour fraîchement rechargée. Les
+ *  5. **Retour** : la VFC mise Ã  jour fraÃ®chement rechargÃ©e. Les
  *     impacts sont en sortie via {@see self::$lastImpacts} pour que
- *     le Controller puisse pousser un toast info récapitulatif.
+ *     le Controller puisse pousser un toast info rÃ©capitulatif.
  *
- * Réintroduit la garantie d'invariant « plages contiguës sans
- * chevauchement » à l'échelle du véhicule complet - l'algorithme
- * tolère plus d'un voisin touché par l'édition (déplacements de
+ * RÃ©introduit la garantie d'invariant Â« plages contiguÃ«s sans
+ * chevauchement Â» Ã  l'Ã©chelle du vÃ©hicule complet - l'algorithme
+ * tolÃ¨re plus d'un voisin touchÃ© par l'Ã©dition (dÃ©placements de
  * grande amplitude).
  */
 final class UpdateFiscalCharacteristicsAction
@@ -91,9 +91,9 @@ final class UpdateFiscalCharacteristicsAction
             }
 
             // Ordre obligatoire pour ne pas violer le trigger DB
-            // « no overlapping effective period » : on libère d'abord
+            // Â« no overlapping effective period Â» : on libÃ¨re d'abord
             // la place (DELETE + raccourcissements voisins), puis on
-            // déplace la VFC éditée, puis on comble les trous restants.
+            // dÃ©place la VFC Ã©ditÃ©e, puis on comble les trous restants.
             $this->applyImpacts(array_values(array_filter(
                 $impacts,
                 static fn (FiscalCharacteristicsImpact $i): bool => $i->mustApplyBeforeUpdate(),
@@ -113,8 +113,8 @@ final class UpdateFiscalCharacteristicsAction
     }
 
     /**
-     * Liste des impacts appliqués lors du dernier `execute()`.
-     * Utilisé par le Controller pour composer le toast info de retour.
+     * Liste des impacts appliquÃ©s lors du dernier `execute()`.
+     * UtilisÃ© par le Controller pour composer le toast info de retour.
      *
      * @return list<FiscalCharacteristicsImpact>
      */
@@ -124,8 +124,8 @@ final class UpdateFiscalCharacteristicsAction
     }
 
     /**
-     * Vérifie la cohérence interne des bornes proposées (sans
-     * regarder l'historique du véhicule).
+     * VÃ©rifie la cohÃ©rence interne des bornes proposÃ©es (sans
+     * regarder l'historique du vÃ©hicule).
      */
     private function guardBoundsConsistency(
         VehicleFiscalCharacteristics $current,
@@ -139,16 +139,16 @@ final class UpdateFiscalCharacteristicsAction
         $wasCurrent = $current->effective_to === null;
         $becomesCurrent = $newTo === null;
 
-        // Invariant : une VFC courante ne peut pas être transformée en
-        // historique bornée par cette voie (l'utilisateur doit passer
-        // par « Nouvelle version » pour clôturer la courante avec une
+        // Invariant : une VFC courante ne peut pas Ãªtre transformÃ©e en
+        // historique bornÃ©e par cette voie (l'utilisateur doit passer
+        // par Â« Nouvelle version Â» pour clÃ´turer la courante avec une
         // succession propre).
         if ($wasCurrent && ! $becomesCurrent) {
             throw InvalidFiscalCharacteristicsBoundsException::cannotTransformCurrentToBounded();
         }
 
-        // Invariant inverse : si la VFC éditée n'est pas courante mais
-        // veut le devenir, vérifier qu'aucune autre n'est déjà courante.
+        // Invariant inverse : si la VFC Ã©ditÃ©e n'est pas courante mais
+        // veut le devenir, vÃ©rifier qu'aucune autre n'est dÃ©jÃ  courante.
         if (! $wasCurrent && $becomesCurrent) {
             $other = $this->reader->findCurrentForVehicle($current->vehicle);
 
@@ -159,11 +159,11 @@ final class UpdateFiscalCharacteristicsAction
     }
 
     /**
-     * Refuse une édition dont la nouvelle plage [newFrom, newTo] est
-     * strictement contenue dans la plage d'une autre VFC du véhicule.
+     * Refuse une Ã©dition dont la nouvelle plage [newFrom, newTo] est
+     * strictement contenue dans la plage d'une autre VFC du vÃ©hicule.
      * Sans ce garde-fou, le trigger DB rejette l'UPDATE avec un message
-     * technique opaque. La résolution propre côté UX est de d'abord
-     * modifier la VFC concernée.
+     * technique opaque. La rÃ©solution propre cÃ´tÃ© UX est de d'abord
+     * modifier la VFC concernÃ©e.
      *
      * @param  iterable<VehicleFiscalCharacteristics>  $others
      */
@@ -173,18 +173,18 @@ final class UpdateFiscalCharacteristicsAction
         ?CarbonImmutable $newTo,
     ): void {
         // Voir le commentaire dans CreateFiscalCharacteristicsAction :
-        // une nouvelle plage ouverte (newTo === null) déborde toujours
-        // toute existante par la droite, donc ne peut pas être
+        // une nouvelle plage ouverte (newTo === null) dÃ©borde toujours
+        // toute existante par la droite, donc ne peut pas Ãªtre
         // strictement contenue.
         if ($newTo === null) {
             return;
         }
 
         foreach ($others as $v) {
-            $vFrom = CarbonImmutable::parse($v->effective_from->toDateString());
+            $vFrom = $v->effective_from->toImmutable();
             $vTo = $v->effective_to === null
                 ? null
-                : CarbonImmutable::parse($v->effective_to->toDateString());
+                : $v->effective_to->toImmutable();
 
             if (! $vFrom->lessThan($newFrom)) {
                 continue;

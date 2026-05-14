@@ -20,18 +20,18 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Contrat de location véhicule × entreprise sur une plage temporelle
- * inclusive `[start_date, end_date]`. Entité pivot du domaine fiscal
- * post-refonte (cf. ADR-0014 « Modèle Contract et règle LCD par
- * contrat individuel »).
+ * Contrat de location vÃ©hicule Ã— entreprise sur une plage temporelle
+ * inclusive `[start_date, end_date]`. EntitÃ© pivot du domaine fiscal
+ * post-refonte (cf. ADR-0014 Â« ModÃ¨le Contract et rÃ¨gle LCD par
+ * contrat individuel Â»).
  *
- * Cf. `taxes-rules/2024.md` v2.0 R-2024-021 pour la mécanique
- * d'exonération LCD et `database/migrations/2026_04_29_140000_create_contracts_table.php`
+ * Cf. `taxes-rules/2024.md` v2.0 R-2024-021 pour la mÃ©canique
+ * d'exonÃ©ration LCD et `database/migrations/2026_04_29_140000_create_contracts_table.php`
  * pour la structure DB.
  *
- * **Invariants critiques** (matérialisés en DB) :
+ * **Invariants critiques** (matÃ©rialisÃ©s en DB) :
  *   - `end_date >= start_date` (CHECK SQL)
- *   - Pas deux contrats actifs chevauchants sur le même véhicule
+ *   - Pas deux contrats actifs chevauchants sur le mÃªme vÃ©hicule
  *     (triggers MySQL `contracts_no_overlap_*`)
  *
  * @property int $id
@@ -92,12 +92,12 @@ final class Contract extends Model
     }
 
     /**
-     * Conducteurs désignés sur ce contrat (0, 1 ou plusieurs). Pivot
-     * pur égalitaire `contract_drivers` · pas de notion de conducteur
-     * principal/secondaire, tous les conducteurs sont équivalents.
+     * Conducteurs dÃ©signÃ©s sur ce contrat (0, 1 ou plusieurs). Pivot
+     * pur Ã©galitaire `contract_drivers` Â· pas de notion de conducteur
+     * principal/secondaire, tous les conducteurs sont Ã©quivalents.
      *
-     * Optionnel à la création (un contrat peut être créé sans conducteur
-     * et complété ensuite).
+     * Optionnel Ã  la crÃ©ation (un contrat peut Ãªtre crÃ©Ã© sans conducteur
+     * et complÃ©tÃ© ensuite).
      *
      * @return BelongsToMany<Driver, $this>
      */
@@ -108,24 +108,24 @@ final class Contract extends Model
     }
 
     /**
-     * Dérive le `contract_type` à partir d'une plage `[start, end]`.
+     * DÃ©rive le `contract_type` Ã  partir d'une plage `[start, end]`.
      *
-     * Convention BOFiP § 180-190 (« éternelle ») :
-     *   - durée ≤ 30 jours consécutifs → `Lcd`
+     * Convention BOFiP Â§ 180-190 (Â« Ã©ternelle Â») :
+     *   - durÃ©e â‰¤ 30 jours consÃ©cutifs â†’ `Lcd`
      *   - **OU** plage couvrant exactement un mois civil entier
-     *     (1er → dernier jour du même mois) → `Lcd`
-     *   - sinon → `Lld`
+     *     (1er â†’ dernier jour du mÃªme mois) â†’ `Lcd`
+     *   - sinon â†’ `Lld`
      *
-     * Méthode statique pure : pas d'IO, pas d'état. Réutilisable côté
+     * MÃ©thode statique pure : pas d'IO, pas d'Ã©tat. RÃ©utilisable cÃ´tÃ©
      * Actions (Store/Update/BulkCreate) qui posent automatiquement le
      * type avant persistance.
      *
-     * **Note architecture** : cette dérivation est distincte de la
-     * qualification fiscale annuelle portée par
+     * **Note architecture** : cette dÃ©rivation est distincte de la
+     * qualification fiscale annuelle portÃ©e par
      * {@see R2024_021_ShortTermRental::isShortTermRental()}.
-     * Le `contract_type` persisté est un **libellé indicatif** figé à
-     * la création/édition ; la qualification fiscale réelle s'évalue
-     * dans le pipeline avec la règle de l'année concernée.
+     * Le `contract_type` persistÃ© est un **libellÃ© indicatif** figÃ© Ã
+     * la crÃ©ation/Ã©dition ; la qualification fiscale rÃ©elle s'Ã©value
+     * dans le pipeline avec la rÃ¨gle de l'annÃ©e concernÃ©e.
      */
     public static function deriveTypeFromDates(string $startDate, string $endDate): ContractType
     {
@@ -151,12 +151,12 @@ final class Contract extends Model
     }
 
     /**
-     * Expansion du contrat en liste de dates ISO (Y-m-d), bornée à
-     * l'année passée en argument. Inclut les deux bornes du contrat.
+     * Expansion du contrat en liste de dates ISO (Y-m-d), bornÃ©e Ã
+     * l'annÃ©e passÃ©e en argument. Inclut les deux bornes du contrat.
      *
-     * Helper réutilisé par les règles fiscales (R-2024-002 numérateur
+     * Helper rÃ©utilisÃ© par les rÃ¨gles fiscales (R-2024-002 numÃ©rateur
      * du prorata, R-2024-021 qualification LCD per-contract,
-     * R-2024-008 jours indispos réductrices ∩ contrats taxables) et
+     * R-2024-008 jours indispos rÃ©ductrices âˆ© contrats taxables) et
      * par {@see ContractQueryService}.
      *
      * @return list<string>
@@ -166,8 +166,8 @@ final class Contract extends Model
         $yearStart = CarbonImmutable::create($year, 1, 1);
         $yearEnd = CarbonImmutable::create($year, 12, 31);
 
-        $start = CarbonImmutable::parse($this->start_date->toDateString());
-        $end = CarbonImmutable::parse($this->end_date->toDateString());
+        $start = $this->start_date->toImmutable();
+        $end = $this->end_date->toImmutable();
 
         $rangeStart = $start->isAfter($yearStart) ? $start : $yearStart;
         $rangeEnd = $end->isBefore($yearEnd) ? $end : $yearEnd;

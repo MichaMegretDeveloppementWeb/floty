@@ -12,7 +12,6 @@ use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Billing\MonthlyBreakdownEntryData;
 use App\Exceptions\Billing\MissingPricingException;
 use App\Models\Contract;
-use Carbon\CarbonImmutable;
 
 /**
  * Compose les récaps mensuels 12-mois consommés par les fiches Show
@@ -166,8 +165,8 @@ final readonly class BillingBreakdownService
      */
     public function byContract(Contract $contract): ContractBillingBreakdownData
     {
-        $start = CarbonImmutable::parse($contract->start_date->toDateString());
-        $end = CarbonImmutable::parse($contract->end_date->toDateString());
+        $start = $contract->start_date->toImmutable();
+        $end = $contract->end_date->toImmutable();
 
         $months = [];
         $totalDays = 0;
