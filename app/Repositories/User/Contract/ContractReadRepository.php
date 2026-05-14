@@ -67,6 +67,19 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
+    public function findActiveForYearRange(int $from, int $to): Collection
+    {
+        $rangeStart = sprintf('%04d-01-01', $from);
+        $rangeEnd = sprintf('%04d-12-31', $to);
+
+        return Contract::query()
+            ->where('start_date', '<=', $rangeEnd)
+            ->where('end_date', '>=', $rangeStart)
+            ->orderBy('vehicle_id')
+            ->orderBy('start_date')
+            ->get();
+    }
+
     public function findForCompanyAndYear(int $companyId, int $year): Collection
     {
         $yearStart = sprintf('%04d-01-01', $year);

@@ -248,12 +248,29 @@ final class CompanyQueryService
         $contractsCount = $this->contracts->countContractsForCompany($companyId);
         $availableYears = $this->contracts->findActiveYearsForCompany($companyId);
 
+        // F-11-001 · 1 chargement bulk en range au lieu de 2×N appels
+        // year-by-year à `loadContractsByPair()` depuis `computeYearStats`
+        // et `computeActivityForYear`. Le pivot pré-résolu est passé en
+        // paramètre aux 2 sous-méthodes pour court-circuiter leur
+        // chargement interne.
+        $contractsByYear = [];
+        if ($availableYears !== []) {
+            $contractsByYear = $this->contracts->loadContractsByPairForYearRange(
+                min($availableYears),
+                max($availableYears),
+            );
+        }
+
         // Toutes les années où l'entreprise a au moins un contrat,
         // utilisées pour pré-calculer history + activityByYear (sans
         // distinction encore présent/passé).
         $allYearStats = [];
         foreach ($availableYears as $year) {
-            $allYearStats[$year] = $this->computeYearStats($companyId, $year);
+            $allYearStats[$year] = $this->computeYearStats(
+                $companyId,
+                $year,
+                $contractsByYear[$year] ?? null,
+            );
         }
 
         $lifetime = new CompanyLifetimeStatsData(
@@ -332,7 +349,11 @@ final class CompanyQueryService
             kpiFiscalAvailable: $kpiFiscalAvailable,
             history: $history,
             activityByYear: array_map(
-                fn (int $year): CompanyActivityYearData => $this->computeActivityForYear($companyId, $year),
+                fn (int $year): CompanyActivityYearData => $this->computeActivityForYear(
+                    $companyId,
+                    $year,
+                    $contractsByYear[$year] ?? null,
+                ),
                 $availableYears,
             ),
             availableYears: $availableYears,
@@ -362,10 +383,18 @@ final class CompanyQueryService
      * N+1 lors de l'itération. Si l'entreprise n'a aucun pair sur
      * l'année (cas `availableYears` partiellement vide), retourne un
      * `CompanyActivityYearData` à zéros (12 cases vides + top vide).
+     *
+     * F-11-001 · `$preloadedPair` permet à l'appelant (cf. `detail()`)
+     * de fournir un pivot déjà résolu en bulk via
+     * `loadContractsByPairForYearRange()` · économise N appels à
+     * `loadContractsByPair($year)`.
      */
-    private function computeActivityForYear(int $companyId, int $year): CompanyActivityYearData
-    {
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
+    private function computeActivityForYear(
+        int $companyId,
+        int $year,
+        ?ContractsByPair $preloadedPair = null,
+    ): CompanyActivityYearData {
+        $contractsByPair = $preloadedPair ?? $this->contracts->loadContractsByPair($year);
 
         // Pré-passe : on accumule par véhicule (pour le top) et par mois
         // (pour la heatmap), à partir des couples de l'entreprise sur
@@ -451,10 +480,18 @@ final class CompanyQueryService
      * Calcule les KPIs annuels d'une entreprise pour une année donnée.
      * Charge les contrats de l'année (toutes flottes via aggregator) puis
      * filtre sur le couple `(vehicleId, $companyId)` côté `ContractsByPair`.
+     *
+     * F-11-001 · `$preloadedPair` permet à l'appelant (cf. `detail()`)
+     * de fournir un pivot déjà résolu en bulk via
+     * `loadContractsByPairForYearRange()` · économise N appels à
+     * `loadContractsByPair($year)`.
      */
-    private function computeYearStats(int $companyId, int $year): CompanyYearStatsData
-    {
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
+    private function computeYearStats(
+        int $companyId,
+        int $year,
+        ?ContractsByPair $preloadedPair = null,
+    ): CompanyYearStatsData {
+        $contractsByPair = $preloadedPair ?? $this->contracts->loadContractsByPair($year);
 
         $vehicleIds = [];
         $lcdCount = 0;

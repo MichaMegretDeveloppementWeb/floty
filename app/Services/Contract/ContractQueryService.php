@@ -303,6 +303,52 @@ final readonly class ContractQueryService
     }
 
     /**
+     * Variante range de {@see loadContractsByPair} · charge tous les
+     * contrats actifs d'un range d'années en **1 query SQL**, retourne
+     * un map `year → ContractsByPair`. Chaque contrat est dispatché
+     * dans toutes les années qu'il chevauche (un contrat 2023-2025
+     * apparaît dans les pivots de 2023, 2024 et 2025).
+     *
+     * Cas d'usage · pages multi-années (Show Company Overview, Dashboard
+     * history) qui itèrent N années · évite les N appels indépendants
+     * à `loadContractsByPair($year)` · cf. F-11-001.
+     *
+     * @return array<int, ContractsByPair> · keyé par année
+     */
+    public function loadContractsByPairForYearRange(int $from, int $to): array
+    {
+        $contracts = $this->repository->findActiveForYearRange($from, $to);
+
+        // Pré-calcule les bornes d'année une fois par contrat (start_date
+        // et end_date sont des CarbonImmutable via le cast Eloquent).
+        $byYear = [];
+        for ($year = $from; $year <= $to; $year++) {
+            $byYear[$year] = [];
+        }
+
+        foreach ($contracts as $contract) {
+            $startYear = (int) $contract->start_date->year;
+            $endYear = (int) $contract->end_date->year;
+
+            $clampedFrom = max($startYear, $from);
+            $clampedTo = min($endYear, $to);
+
+            for ($year = $clampedFrom; $year <= $clampedTo; $year++) {
+                $key = $contract->vehicle_id.'|'.$contract->company_id;
+                $byYear[$year][$key] ??= [];
+                $byYear[$year][$key][] = $contract;
+            }
+        }
+
+        $result = [];
+        foreach ($byYear as $year => $byPair) {
+            $result[$year] = new ContractsByPair($byPair);
+        }
+
+        return $result;
+    }
+
+    /**
      * Variante scopée d'un seul véhicule - utilisée par la page Show
      * vehicle qui n'a aucun usage des autres véhicules de la flotte.
      *

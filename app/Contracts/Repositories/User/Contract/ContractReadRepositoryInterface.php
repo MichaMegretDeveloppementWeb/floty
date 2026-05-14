@@ -42,6 +42,18 @@ interface ContractReadRepositoryInterface
     public function findActiveForYear(int $year): Collection;
 
     /**
+     * Variante range de {@see findActiveForYear} · tous les contrats
+     * actifs croisant **au moins une** année du range `[from..to]` en
+     * **1 seule query SQL**. Pivot consommé par
+     * {@see ContractQueryService::loadContractsByPairForYearRange()}
+     * pour éviter N chargements year-by-year sur les pages multi-années
+     * (Show Company Overview, Dashboard history) · cf. F-11-001.
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findActiveForYearRange(int $from, int $to): Collection;
+
+    /**
      * Liste des contrats actifs d'une entreprise utilisatrice.
      *
      * @return Collection<int, Contract>
