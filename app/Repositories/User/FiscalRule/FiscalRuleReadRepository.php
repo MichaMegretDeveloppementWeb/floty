@@ -41,4 +41,15 @@ final class FiscalRuleReadRepository implements FiscalRuleReadRepositoryInterfac
             ->orderBy('display_order')
             ->get();
     }
+
+    public function findIdsByCodeForYear(int $year): array
+    {
+        /** @var array<string, int> $map */
+        $map = FiscalRule::query()
+            ->where('fiscal_year', $year)
+            ->pluck('id', 'rule_code')
+            ->all();
+
+        return $map;
+    }
 }

@@ -7,6 +7,7 @@ namespace App\Data\User\Fiscal;
 use App\Data\User\Fiscal\Pedagogical\RulePedagogicalContentData;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
+use App\Fiscal\Contracts\FiscalRule as FiscalRuleContract;
 use App\Models\FiscalRule;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -46,6 +47,43 @@ final class FiscalRuleListItemData extends Data
         public string $applicabilityEndInYear,
         public bool $isFullYear,
     ) {}
+
+    /**
+     * Construit le DTO **directement depuis la classe PHP de la règle**
+     * (Phase 13 D5.13 · ADR-0022 finalisée v1.3 « tout vient des
+     * classes PHP, la BDD n'est qu'un index »).
+     *
+     * Le paramètre `$id` est l'identifiant stable de l'index BDD,
+     * récupéré par batch via `FiscalRuleReadRepository::findIdsByCodeForYear()`.
+     * Il reste exposé au DTO uniquement pour préserver la signature
+     * historique · le front Floty ne l'utilise actuellement nulle part.
+     */
+    public static function fromRule(FiscalRuleContract $rule, int $year, int $id): self
+    {
+        $yearStart = sprintf('%d-01-01', $year);
+        $yearEnd = sprintf('%d-12-31', $year);
+
+        $ruleStart = $rule->applicabilityStart()->toDateString();
+        $ruleEnd = $rule->applicabilityEnd()?->toDateString() ?? $yearEnd;
+
+        $startInYear = $ruleStart > $yearStart ? $ruleStart : $yearStart;
+        $endInYear = $ruleEnd < $yearEnd ? $ruleEnd : $yearEnd;
+
+        return new self(
+            id: $id,
+            ruleCode: $rule->ruleCode(),
+            name: $rule->name(),
+            description: $rule->description(),
+            ruleType: $rule->ruleType(),
+            taxesConcerned: $rule->taxesConcerned(),
+            legalBasis: $rule->legalBasis(),
+            pedagogicalContent: RulePedagogicalContentData::fromVo($rule->pedagogicalContent()),
+            isActive: $rule->isActive(),
+            applicabilityStartInYear: $startInYear,
+            applicabilityEndInYear: $endInYear,
+            isFullYear: $startInYear === $yearStart && $endInYear === $yearEnd,
+        );
+    }
 
     public static function fromModel(FiscalRule $rule, int $year): self
     {

@@ -38,4 +38,14 @@ interface FiscalRuleReadRepositoryInterface
      * @return Collection<int, FiscalRule>
      */
     public function findByCodesForYear(int $year, array $codes): Collection;
+
+    /**
+     * Map `rule_code => id` pour une année (Phase 13 D5.13 · ADR-0022
+     * v1.3). Utilisé par `FiscalRuleQueryService::listForYear()` qui
+     * construit ses DTOs depuis les classes PHP et n'a besoin de la
+     * BDD que pour récupérer l'id stable de l'index.
+     *
+     * @return array<string, int>
+     */
+    public function findIdsByCodeForYear(int $year): array;
 }
