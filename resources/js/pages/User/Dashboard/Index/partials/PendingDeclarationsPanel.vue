@@ -4,7 +4,10 @@
  *
  * Affiche jusqu'à 5 items triés par urgence (overdue puis année
  * croissante). Si plus de 5 items en attente, un lien « Voir les N
- * autres » pointe vers la page Index Déclarations.
+ * autres entreprises » pointe vers la liste des entreprises · les
+ * déclarations `Untouched` n'existent pas dans l'Index Déclarations,
+ * il faut passer par l'onglet Fiscalité de chaque fiche entreprise
+ * pour les préparer.
  *
  * État vide · message explicite et apaisant (« Rien à générer pour
  * l'instant · les déclarations de l'année N seront à préparer à
@@ -12,7 +15,7 @@
  */
 import { FileClock } from 'lucide-vue-next';
 import { computed } from 'vue';
-import { index as declarationsIndex } from '@/routes/user/declarations';
+import { index as companiesIndex } from '@/routes/user/companies';
 import PendingDeclarationRow from './PendingDeclarationRow.vue';
 
 type Tasks = App.Data.User.Dashboard.DashboardPendingTasksData;
@@ -26,7 +29,7 @@ const remainingCount = computed<number>(() =>
     Math.max(0, props.count - props.items.length),
 );
 
-const indexUrl = computed<string>(() => declarationsIndex().url);
+const indexUrl = computed<string>(() => companiesIndex().url);
 </script>
 
 <template>
@@ -73,7 +76,7 @@ const indexUrl = computed<string>(() => declarationsIndex().url);
             :href="indexUrl"
             class="text-xs font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 transition-colors duration-[120ms] ease-out hover:text-slate-900 hover:decoration-slate-600"
         >
-            Voir les {{ remainingCount }} autre{{ remainingCount > 1 ? 's' : '' }} →
+            Voir les {{ remainingCount }} autre{{ remainingCount > 1 ? 's' : '' }} entreprise{{ remainingCount > 1 ? 's' : '' }} →
         </a>
     </article>
 </template>

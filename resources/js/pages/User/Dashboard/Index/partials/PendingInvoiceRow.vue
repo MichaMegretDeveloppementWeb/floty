@@ -3,19 +3,23 @@
  * Ligne « factures en attente » sur le Dashboard (Phase 13 D5.15).
  *
  * Affiche · contexte entreprise + année + nombre de factures
- * mensuelles à générer. Toute la ligne est cliquable vers la page
- * Index Factures filtrée sur l'entreprise et l'année · l'utilisateur
- * y trouve les boutons individuels de génération mensuelle.
+ * mensuelles à générer. Toute la ligne est cliquable vers la fiche
+ * entreprise sur l'onglet Facturation de l'année concernée · c'est
+ * là que l'utilisateur lance la génération mensuelle · les factures
+ * en attente n'existent pas encore dans la liste Index Factures.
  */
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import { show as companyShow } from '@/routes/user/companies';
 
 type Item = App.Data.User.Dashboard.DashboardPendingInvoiceItemData;
 
 const props = defineProps<{ item: Item }>();
 
 const targetUrl = computed<string>(() =>
-    `/app/invoices?companyId=${props.item.companyId}&year=${props.item.fiscalYear}`,
+    companyShow(props.item.companyId, {
+        query: { tab: 'billing', year: props.item.fiscalYear },
+    }).url,
 );
 
 const countLabel = computed<string>(() => {
@@ -32,7 +36,7 @@ function open(): void {
 <template>
     <button
         type="button"
-        class="group flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left transition-all duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
+        class="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left transition-all duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
         @click="open"
     >
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">

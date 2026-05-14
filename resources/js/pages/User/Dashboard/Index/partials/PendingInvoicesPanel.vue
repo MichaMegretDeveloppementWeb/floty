@@ -4,7 +4,10 @@
  *
  * Affiche jusqu'à 5 items triés par année croissante puis code court
  * entreprise. Si plus de 5 items en attente, un lien « Voir les N
- * autres » pointe vers la page Index Factures.
+ * autres entreprises » pointe vers la liste des entreprises · les
+ * factures mensuelles en attente n'existent pas dans l'Index Factures
+ * (elles n'ont pas encore été générées), il faut passer par l'onglet
+ * Facturation de chaque fiche entreprise pour les produire.
  *
  * État vide · message explicite (« Aucune facture mensuelle en
  * attente · les recettes locatives sont à jour ») plutôt qu'un
@@ -12,7 +15,7 @@
  */
 import { Receipt } from 'lucide-vue-next';
 import { computed } from 'vue';
-import { index as invoicesIndex } from '@/routes/user/invoices';
+import { index as companiesIndex } from '@/routes/user/companies';
 import PendingInvoiceRow from './PendingInvoiceRow.vue';
 
 type Tasks = App.Data.User.Dashboard.DashboardPendingTasksData;
@@ -29,7 +32,7 @@ const remainingCount = computed<number>(() =>
     Math.max(0, props.count - props.items.length),
 );
 
-const indexUrl = computed<string>(() => invoicesIndex().url);
+const indexUrl = computed<string>(() => companiesIndex().url);
 </script>
 
 <template>

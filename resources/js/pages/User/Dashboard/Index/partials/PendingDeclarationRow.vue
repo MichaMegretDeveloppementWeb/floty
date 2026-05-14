@@ -4,16 +4,15 @@
  *
  * Affiche · contexte entreprise + année + badge échéance (overdue
  * rose, soon amber, later slate) + CTA contextuelle pilotée par le
- * lifecycle state du DTO. Toute la ligne est cliquable vers la
- * destination la plus pertinente · Show pour les états avec une
- * declaration courante, route prepare/Review sinon.
+ * lifecycle state du DTO. Toute la ligne est cliquable vers la fiche
+ * entreprise sur l'onglet Fiscalité de l'année concernée · c'est de
+ * là que l'utilisateur lance la préparation, la reprise, ou la
+ * régénération · les déclarations en `Untouched` n'existent même
+ * pas encore dans la liste Index.
  */
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import {
-    review as reviewRoute,
-    show as showRoute,
-} from '@/routes/user/declarations';
+import { show as companyShow } from '@/routes/user/companies';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 type Item = App.Data.User.Dashboard.DashboardPendingDeclarationItemData;
@@ -43,30 +42,11 @@ const ctaLabel = computed<string>(() => {
     }
 });
 
-const targetUrl = computed<string>(() => {
-    // Si on a une déclaration courante, on l'ouvre (Show ou Review
-    // selon ce qui a du sens). Les `draft` et `deferred` veulent une
-    // Review pour décider/générer. Les `generated_obsolete_orphan`
-    // vont sur Show pour proposer la régénération.
-    if (props.item.currentDeclarationId !== null) {
-        const isDraftLike = [
-            'draft_pending',
-            'draft_ready_to_generate',
-            'deferred',
-            'regeneration_in_progress',
-            'deferred_regeneration',
-        ].includes(props.item.state);
-
-        return isDraftLike
-            ? reviewRoute(props.item.currentDeclarationId).url
-            : showRoute(props.item.currentDeclarationId).url;
-    }
-
-    // Pas de déclaration courante (état Untouched) · pointer vers
-    // l'index Déclarations filtré par entreprise + année, l'utilisateur
-    // y trouvera le bouton « Préparer une déclaration ».
-    return `/app/declarations?companyId=${props.item.companyId}&fiscalYear=${props.item.fiscalYear}`;
-});
+const targetUrl = computed<string>(() =>
+    companyShow(props.item.companyId, {
+        query: { tab: 'fiscal', year: props.item.fiscalYear },
+    }).url,
+);
 
 const deadlineLabel = computed<string>(() => formatDateFr(props.item.deadline));
 
@@ -86,7 +66,7 @@ function open(): void {
 <template>
     <button
         type="button"
-        class="group flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left transition-all duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
+        class="group flex w-full cursor-pointer items-center gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-left transition-all duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
         @click="open"
     >
         <div class="flex min-w-0 flex-1 flex-col gap-0.5">
