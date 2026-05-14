@@ -121,7 +121,7 @@ final readonly class R2025_028_DeclarationModalities implements InformativeRule
             section: RuleSection::CadreDeclaratif,
             title: 'Modalités de déclaration (avant LF 2025 art. 28)',
             pitch: 'Période 01/01-28/02/2025 · le redevable déclare en janvier 2026 les taxes au titre de 2025 (annexe 3310-A ou formulaire 3517).',
-            body: "Pas de déclaration si montant cumulé nul. État récapitulatif annuel tenu à jour, communiqué sur demande de l'administration. Floty produit le récapitulatif PDF (équivalent fiche 2857-FC-SD millésime 2025). La période 01/03-31/12/2025 (textes réécrits par LF 2025 art. 28) est portée par R-2025-028-bis · doctrine inchangée mais URLs distinctes.",
+            body: "Pas de déclaration si montant cumulé nul. État récapitulatif annuel tenu à jour, communiqué sur demande de l'administration. L'application produit le récapitulatif PDF (équivalent fiche 2857-FC-SD millésime 2025). La période 01/03-31/12/2025 (textes réécrits par LF 2025 art. 28) est portée par R-2025-028-bis · doctrine inchangée mais URLs distinctes.",
         );
     }
 }

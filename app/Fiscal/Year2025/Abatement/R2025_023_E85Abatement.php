@@ -14,6 +14,7 @@ use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
+use App\Models\VehicleFiscalCharacteristics;
 
 /**
  * R-2025-023 · ⚠️ NOUVEAUTÉ 2025 · Abattement E85 (CIBS art. L. 421-125
@@ -146,7 +147,7 @@ final readonly class R2025_023_E85Abatement implements AbatementRule
         };
     }
 
-    private function abateWltp(PipelineContext $context, \App\Models\VehicleFiscalCharacteristics $vfc): PipelineContext
+    private function abateWltp(PipelineContext $context, VehicleFiscalCharacteristics $vfc): PipelineContext
     {
         $co2 = $vfc->co2_wltp;
         if ($co2 === null || $co2 > self::CO2_THRESHOLD_INCLUSIVE) {
@@ -161,7 +162,7 @@ final readonly class R2025_023_E85Abatement implements AbatementRule
             ->withAppliedRule($this->ruleCode());
     }
 
-    private function abateNedc(PipelineContext $context, \App\Models\VehicleFiscalCharacteristics $vfc): PipelineContext
+    private function abateNedc(PipelineContext $context, VehicleFiscalCharacteristics $vfc): PipelineContext
     {
         $co2 = $vfc->co2_nedc;
         if ($co2 === null || $co2 > self::CO2_THRESHOLD_INCLUSIVE) {
@@ -176,7 +177,7 @@ final readonly class R2025_023_E85Abatement implements AbatementRule
             ->withAppliedRule($this->ruleCode());
     }
 
-    private function abatePa(PipelineContext $context, \App\Models\VehicleFiscalCharacteristics $vfc): PipelineContext
+    private function abatePa(PipelineContext $context, VehicleFiscalCharacteristics $vfc): PipelineContext
     {
         $pa = $vfc->taxable_horsepower;
         if ($pa === null || $pa > self::PA_THRESHOLD_INCLUSIVE) {
@@ -198,7 +199,7 @@ final readonly class R2025_023_E85Abatement implements AbatementRule
             section: RuleSection::Exoneration,
             title: 'Abattement E85 (nouveauté 2025)',
             pitch: 'Les véhicules pouvant rouler au superéthanol E85 bénéficient d\'un abattement de 40 % sur les émissions CO₂ ou de 2 CV sur la puissance administrative, sous plafonds.',
-            appliesWhen: "La rubrique P.3 du certificat d'immatriculation appartient à la liste opposable BOFiP des 9 codes : FE, FG, FN, FL, FH, FR, FQ, FM, FP (flag accepts_e85 = true côté Floty).",
+            appliesWhen: "La rubrique P.3 du certificat d'immatriculation appartient à la liste opposable BOFiP des 9 codes : FE, FG, FN, FL, FH, FR, FQ, FM, FP (flag accepts_e85 = true côté l'application).",
             effect: 'WLTP/NEDC · 40 % d\'abattement sur les émissions CO₂, sauf si > 250 g/km. PA · 2 CV soustraits, sauf si > 12 CV. L\'abattement modifie la base d\'entrée du barème CO₂ avant la tarification. La taxe polluants n\'est pas concernée.',
             example: 'Renault Captur flex-fuel E85 WLTP 130 g/km en 2025 : co2_retenu = 130 × 0,60 = 78 g/km. Barème 2025 sur 78 g/km = 117 € (vs 433 € sans abattement, économie 316 €/an).',
         );

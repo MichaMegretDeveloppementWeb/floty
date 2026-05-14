@@ -72,7 +72,7 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
 
     public function description(): string
     {
-        return 'Classification du type fiscal du véhicule : frontière M1 (VP) vs N1 (VU), cas particuliers N1 ≥ 5 places. Complément CIBS L. 421-97 · les véhicules en circulation pour les seuls besoins de leur construction, commercialisation, réparation ou contrôle technique (par exemple sous régime W garage) sont réputés ne pas être affectés à des fins économiques. Ces véhicules sont par construction hors flotte Floty.';
+        return "Classification du type fiscal du véhicule : frontière M1 (VP) vs N1 (VU), cas particuliers N1 ≥ 5 places. Complément CIBS L. 421-97 · les véhicules en circulation pour les seuls besoins de leur construction, commercialisation, réparation ou contrôle technique (par exemple sous régime W garage) sont réputés ne pas être affectés à des fins économiques. Ces véhicules sont par construction hors flotte de l'application.";
     }
 
     public function ruleType(): RuleType

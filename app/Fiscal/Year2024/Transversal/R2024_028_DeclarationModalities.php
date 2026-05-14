@@ -74,7 +74,7 @@ final readonly class R2024_028_DeclarationModalities implements InformativeRule
 
     public function description(): string
     {
-        return 'L\'entreprise utilisatrice redevable déclare et acquitte les taxes en janvier 2025 (au titre de 2024) via l\'annexe n° 3310-A à sa déclaration de TVA (régime réel normal) ou le formulaire n° 3517 (régime simplifié). Pas de déclaration si le montant cumulé est nul. L\'entreprise tient un état récapitulatif annuel, communiqué sur demande de l\'administration. La fiche d\'aide au calcul n° 2857-FC-SD n\'est pas jointe à la déclaration mais peut être demandée · Floty produit exactement cette fiche sous forme de PDF récapitulatif.';
+        return "L'entreprise utilisatrice redevable déclare et acquitte les taxes en janvier 2025 (au titre de 2024) via l'annexe n° 3310-A à sa déclaration de TVA (régime réel normal) ou le formulaire n° 3517 (régime simplifié). Pas de déclaration si le montant cumulé est nul. L'entreprise tient un état récapitulatif annuel, communiqué sur demande de l'administration. La fiche d'aide au calcul n° 2857-FC-SD n'est pas jointe à la déclaration mais peut être demandée · L'application produit exactement cette fiche sous forme de PDF récapitulatif.";
     }
 
     public function ruleType(): RuleType
@@ -146,8 +146,8 @@ final readonly class R2024_028_DeclarationModalities implements InformativeRule
             section: RuleSection::CadreDeclaratif,
             title: 'Modalités de déclaration et de paiement',
             pitch: 'Les taxes sont déclarées et payées par chaque entreprise utilisatrice en janvier 2025, via l\'annexe 3310-A à la déclaration de TVA ou le formulaire 3517 selon son régime.',
-            body: 'Pas de déclaration à déposer si le montant cumulé est nul (toutes les taxes annulées par exonération). L\'entreprise tient un état récapitulatif annuel des véhicules concernés, communiqué sur demande de l\'administration. Floty produit le récapitulatif fiscal PDF qui correspond à la fiche d\'aide au calcul n° 2857-FC-SD prévue par la DGFiP · le dépôt effectif de la déclaration reste à la charge du service comptable de chaque entreprise.',
-            example: 'Calendrier 2024 → 2025 · l\'utilisation des véhicules pendant l\'année 2024 génère une taxe qui est déclarée en janvier 2025. Floty produit le récapitulatif PDF en début d\'année 2025 que le comptable utilise pour saisir l\'annexe 3310-A.',
+            body: "Pas de déclaration à déposer si le montant cumulé est nul (toutes les taxes annulées par exonération). L'entreprise tient un état récapitulatif annuel des véhicules concernés, communiqué sur demande de l'administration. L'application produit le récapitulatif fiscal PDF qui correspond à la fiche d'aide au calcul n° 2857-FC-SD prévue par la DGFiP · le dépôt effectif de la déclaration reste à la charge du service comptable de chaque entreprise.",
+            example: "Calendrier 2024 → 2025 · l'utilisation des véhicules pendant l'année 2024 génère une taxe qui est déclarée en janvier 2025. L'application produit le récapitulatif PDF en début d'année 2025 que le comptable utilise pour saisir l'annexe 3310-A.",
         );
     }
 }

@@ -59,7 +59,7 @@ final readonly class R2025_001bis_TaxpayerAndTriggeringEvent implements Informat
 
     public function description(): string
     {
-        return "Cadre architectural Floty depuis LF 2025 art. 28. L. 421-95 et L. 421-98 ont été réécrits par la LOI n°2025-127 du 14/02/2025 à effet du 01/03/2025 · clarification des trois conditions explicites d'affectation à des fins économiques (détention par entreprise immat. France · prise en charge de frais d'utilisation par entreprise · circulation pour activité économique ≥ 1 mois/an) sans changement de doctrine. L. 421-99 inchangé. La période précédente (01/01 → 28/02/2025) est portée par R-2025-001.";
+        return "Cadre architectural l'application depuis LF 2025 art. 28. L. 421-95 et L. 421-98 ont été réécrits par la LOI n°2025-127 du 14/02/2025 à effet du 01/03/2025 · clarification des trois conditions explicites d'affectation à des fins économiques (détention par entreprise immat. France · prise en charge de frais d'utilisation par entreprise · circulation pour activité économique ≥ 1 mois/an) sans changement de doctrine. L. 421-99 inchangé. La période précédente (01/01 → 28/02/2025) est portée par R-2025-001.";
     }
 
     public function ruleType(): RuleType

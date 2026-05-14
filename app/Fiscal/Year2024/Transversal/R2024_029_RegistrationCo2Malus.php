@@ -62,7 +62,7 @@ final readonly class R2024_029_RegistrationCo2Malus implements InformativeRule
 
     public function description(): string
     {
-        return 'Taxe ponctuelle acquittée par le titulaire du certificat d\'immatriculation lors de la première immatriculation en France d\'un véhicule de tourisme. Pour 2024 · seuil de déclenchement à 118 g CO₂/km, plafond à 60 000 €, plafonnement à 50 % du prix d\'acquisition. Hors périmètre Floty · dans le modèle de flotte partagée, le véhicule est immatriculé au nom de la société de location qui acquitte le malus · les entreprises utilisatrices ne sont jamais redevables (même si le coût peut être refacturé dans le loyer).';
+        return "Taxe ponctuelle acquittée par le titulaire du certificat d'immatriculation lors de la première immatriculation en France d'un véhicule de tourisme. Pour 2024 · seuil de déclenchement à 118 g CO₂/km, plafond à 60 000 €, plafonnement à 50 % du prix d'acquisition. Hors périmètre de l'application · dans le modèle de flotte partagée, le véhicule est immatriculé au nom de la société de location qui acquitte le malus · les entreprises utilisatrices ne sont jamais redevables (même si le coût peut être refacturé dans le loyer).";
     }
 
     public function ruleType(): RuleType
@@ -118,8 +118,8 @@ final readonly class R2024_029_RegistrationCo2Malus implements InformativeRule
             section: RuleSection::TaxeConnexe,
             title: 'Malus CO₂ à l\'immatriculation',
             pitch: 'Taxe ponctuelle payée à l\'achat d\'un véhicule neuf, en fonction de ses émissions de CO₂.',
-            body: 'Acquittée par le titulaire de la carte grise · dans le modèle Floty, c\'est la société de location qui détient et immatricule les véhicules · elle est donc redevable du malus à l\'achat. Les entreprises utilisatrices, qui prennent en location longue durée, ne sont jamais redevables de cette taxe ponctuelle. Documentée ici pour exhaustivité du panorama fiscal véhicules.',
-            example: 'En 2024, un véhicule neuf émettant 150 g CO₂/km est soumis au malus (au-dessus du seuil de 118 g). Le bailleur acquitte le malus correspondant lors de l\'immatriculation, généralement répercuté dans le loyer LLD facturé à l\'entreprise utilisatrice · sans figurer dans le calcul Floty des taxes annuelles.',
+            body: "Acquittée par le titulaire de la carte grise · dans le modèle de l'application, c'est la société de location qui détient et immatricule les véhicules · elle est donc redevable du malus à l'achat. Les entreprises utilisatrices, qui prennent en location longue durée, ne sont jamais redevables de cette taxe ponctuelle. Documentée ici pour exhaustivité du panorama fiscal véhicules.",
+            example: "En 2024, un véhicule neuf émettant 150 g CO₂/km est soumis au malus (au-dessus du seuil de 118 g). Le bailleur acquitte le malus correspondant lors de l'immatriculation, généralement répercuté dans le loyer LLD facturé à l'entreprise utilisatrice · sans figurer dans le calcul de l'application des taxes annuelles.",
         );
     }
 }

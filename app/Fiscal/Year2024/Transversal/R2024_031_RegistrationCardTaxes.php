@@ -61,7 +61,7 @@ final readonly class R2024_031_RegistrationCardTaxes implements InformativeRule
 
     public function description(): string
     {
-        return 'Trois taxes ponctuelles acquittées lors de l\'établissement de la carte grise · taxe régionale Y1 (tarif au cheval fiscal, variable par région · moyenne 53,39 €/CV en 2024), taxe Y2 (formation professionnelle transport routier, pour VUL et camions), taxe fixe Y4 (11 €). Redevable · titulaire de la carte grise. Hors périmètre Floty · le bailleur immatricule les véhicules · les entreprises utilisatrices ne sont jamais directement redevables.';
+        return "Trois taxes ponctuelles acquittées lors de l'établissement de la carte grise · taxe régionale Y1 (tarif au cheval fiscal, variable par région · moyenne 53,39 €/CV en 2024), taxe Y2 (formation professionnelle transport routier, pour VUL et camions), taxe fixe Y4 (11 €). Redevable · titulaire de la carte grise. Hors périmètre de l'application · le bailleur immatricule les véhicules · les entreprises utilisatrices ne sont jamais directement redevables.";
     }
 
     public function ruleType(): RuleType
@@ -116,7 +116,7 @@ final readonly class R2024_031_RegistrationCardTaxes implements InformativeRule
             section: RuleSection::TaxeConnexe,
             title: 'Taxes liées au certificat d\'immatriculation',
             pitch: 'Taxes acquittées à chaque délivrance d\'une carte grise · taxe régionale (au cheval fiscal), taxe formation transport, taxe fixe.',
-            body: 'Acquittées par le titulaire de la carte grise · dans le modèle Floty, le bailleur immatricule les véhicules et acquitte ces taxes ponctuelles. Les entreprises utilisatrices ne sont jamais directement redevables. Documentées pour exhaustivité.',
+            body: "Acquittées par le titulaire de la carte grise · dans le modèle de l'application, le bailleur immatricule les véhicules et acquitte ces taxes ponctuelles. Les entreprises utilisatrices ne sont jamais directement redevables. Documentées pour exhaustivité.",
         );
     }
 }

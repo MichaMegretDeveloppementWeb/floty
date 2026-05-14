@@ -54,7 +54,7 @@ final readonly class R2025_032_HeavyVehiclesTax implements InformativeRule
 
     public function description(): string
     {
-        return "Taxe annuelle distincte des deux taxes Floty, applicable aux véhicules lourds de transport de marchandises ≥ 12 tonnes (catégories N2, N3 et certaines remorques O4). Tarif fonction du nombre d'essieux, de la masse en charge maximale et de la présence d'une suspension pneumatique. Paramètres 2025 inchangés vs 2024. Hors périmètre Floty · le périmètre véhicule de l'application est limité aux catégories M1 et N1 ≤ 3,5 t. Une entreprise utilisatrice Floty qui exploite par ailleurs des véhicules lourds doit déclarer cette taxe distinctement.";
+        return "Taxe annuelle distincte des deux taxes l'application, applicable aux véhicules lourds de transport de marchandises ≥ 12 tonnes (catégories N2, N3 et certaines remorques O4). Tarif fonction du nombre d'essieux, de la masse en charge maximale et de la présence d'une suspension pneumatique. Paramètres 2025 inchangés vs 2024. Hors périmètre de l'application · le périmètre véhicule de l'application est limité aux catégories M1 et N1 ≤ 3,5 t. Une entreprise utilisatrice de l'application qui exploite par ailleurs des véhicules lourds doit déclarer cette taxe distinctement.";
     }
 
     public function ruleType(): RuleType
@@ -114,8 +114,8 @@ final readonly class R2025_032_HeavyVehiclesTax implements InformativeRule
             tab: RuleTab::Connexe,
             section: RuleSection::TaxeConnexe,
             title: 'Taxe sur les véhicules lourds de transport de marchandises',
-            pitch: 'Taxe annuelle spécifique aux camions ≥ 12 tonnes (N2/N3) · structurellement hors du périmètre Floty (M1/N1 uniquement).',
-            body: "Floty couvre les voitures de tourisme (M1) et les utilitaires légers ≤ 3,5 t (N1). Les véhicules lourds (camions, semi-remorques) sont taxés selon un régime distinct (CIBS L. 421-145 et suivants) et ne rentrent pas dans le périmètre métier de l'application. Une entreprise utilisatrice Floty qui exploite aussi des poids lourds doit gérer cette taxe en dehors de l'application.",
+            pitch: "Taxe annuelle spécifique aux camions ≥ 12 tonnes (N2/N3) · structurellement hors du périmètre de l'application (M1/N1 uniquement).",
+            body: "L'application couvre les voitures de tourisme (M1) et les utilitaires légers ≤ 3,5 t (N1). Les véhicules lourds (camions, semi-remorques) sont taxés selon un régime distinct (CIBS L. 421-145 et suivants) et ne rentrent pas dans le périmètre métier de l'application. Une entreprise utilisatrice de l'application qui exploite aussi des poids lourds doit gérer cette taxe en dehors de l'application.",
         );
     }
 }

@@ -60,7 +60,7 @@ final readonly class R2024_030_RegistrationWeightMalus implements InformativeRul
 
     public function description(): string
     {
-        return 'Taxe ponctuelle acquittée par le titulaire du certificat d\'immatriculation lors de la première immatriculation en France d\'un véhicule de tourisme dont la masse en ordre de marche dépasse 1 600 kg en 2024. Barème de 10 €/kg au-dessus du seuil, avec abattement familial et exonération totale pour les véhicules électriques ou hydrogène. Hors périmètre Floty · le bailleur (société de location) acquitte le malus, les entreprises utilisatrices ne sont jamais redevables.';
+        return "Taxe ponctuelle acquittée par le titulaire du certificat d'immatriculation lors de la première immatriculation en France d'un véhicule de tourisme dont la masse en ordre de marche dépasse 1 600 kg en 2024. Barème de 10 €/kg au-dessus du seuil, avec abattement familial et exonération totale pour les véhicules électriques ou hydrogène. Hors périmètre de l'application · le bailleur (société de location) acquitte le malus, les entreprises utilisatrices ne sont jamais redevables.";
     }
 
     public function ruleType(): RuleType
@@ -115,7 +115,7 @@ final readonly class R2024_030_RegistrationWeightMalus implements InformativeRul
             section: RuleSection::TaxeConnexe,
             title: 'Malus au poids à l\'immatriculation',
             pitch: 'Taxe ponctuelle payée à l\'achat d\'un véhicule neuf dont la masse en ordre de marche dépasse 1 600 kg en 2024.',
-            body: 'Acquittée par le titulaire de la carte grise (le bailleur dans le modèle Floty). Barème 10 €/kg au-dessus du seuil, avec abattement familial pour les familles nombreuses et exonération totale pour les véhicules électriques ou hydrogène. Hors périmètre Floty · les entreprises utilisatrices ne sont pas redevables.',
+            body: "Acquittée par le titulaire de la carte grise (le bailleur dans le modèle de l'application). Barème 10 €/kg au-dessus du seuil, avec abattement familial pour les familles nombreuses et exonération totale pour les véhicules électriques ou hydrogène. Hors périmètre de l'application · les entreprises utilisatrices ne sont pas redevables.",
             example: 'Un SUV thermique de 1 900 kg immatriculé en 2024 est soumis à un malus de 300 kg × 10 €/kg = 3 000 €, acquitté par le bailleur lors de l\'immatriculation.',
         );
     }

@@ -50,7 +50,7 @@ final readonly class R2025_027_MileageReimbursementCoefficient implements Transv
 
     public function description(): string
     {
-        return 'Lorsqu\'une entreprise prend en charge les frais kilométriques d\'un véhicule détenu par un salarié ou un dirigeant, le facteur de prorata est modulé par un coefficient pondérateur (0/25/50/75/100 %) selon le nombre de kilomètres remboursés (CIBS L. 421-110). Le montant cumulé des taxes pour ces véhicules est par ailleurs réduit d\'une minoration de 15 000 € par entreprise et par an (CIBS L. 421-111), sous plafond de minimis européen. INACTIVE par défaut · Floty ne couvre pas les véhicules salariés/dirigeants.';
+        return "Lorsqu'une entreprise prend en charge les frais kilométriques d'un véhicule détenu par un salarié ou un dirigeant, le facteur de prorata est modulé par un coefficient pondérateur (0/25/50/75/100 %) selon le nombre de kilomètres remboursés (CIBS L. 421-110). Le montant cumulé des taxes pour ces véhicules est par ailleurs réduit d'une minoration de 15 000 € par entreprise et par an (CIBS L. 421-111), sous plafond de minimis européen. INACTIVE par défaut · l'application ne couvre pas les véhicules salariés/dirigeants.";
     }
 
     public function ruleType(): RuleType
@@ -115,7 +115,7 @@ final readonly class R2025_027_MileageReimbursementCoefficient implements Transv
             section: RuleSection::ExonerationInactive,
             title: 'Coefficient pondérateur et minoration frais kilométriques',
             pitch: 'Mécanique fiscale spécifique aux véhicules personnels de salariés ou dirigeants dont l\'entreprise prend en charge les frais kilométriques.',
-            body: 'Floty suit des véhicules de flotte détenus par la société de location et mis à disposition d\'entreprises utilisatrices · pas des véhicules personnels de salariés. Cette mécanique (coefficient pondérateur 0/25/50/75/100 % et minoration de 15 000 € par entreprise) est documentée pour exhaustivité mais reste inactive dans l\'application.',
+            body: "l'application suit des véhicules de flotte détenus par la société de location et mis à disposition d'entreprises utilisatrices · pas des véhicules personnels de salariés. Cette mécanique (coefficient pondérateur 0/25/50/75/100 % et minoration de 15 000 € par entreprise) est documentée pour exhaustivité mais reste inactive dans l'application.",
         );
     }
 }

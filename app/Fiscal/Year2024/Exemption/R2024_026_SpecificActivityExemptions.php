@@ -56,7 +56,7 @@ final readonly class R2024_026_SpecificActivityExemptions implements ExemptionRu
 
     public function description(): string
     {
-        return 'Trois exonérations regroupées · transport public de personnes (taxi, VTC, autobus), activités agricoles ou forestières (sous plafond de minimis), enseignement de la conduite ou du pilotage et compétitions sportives. Texte identique pour les deux taxes (les articles L. 421-142/143/144 reprennent mot pour mot L. 421-130/131/132). INACTIVE par défaut · aucun client Floty n\'exerce ces activités.';
+        return "Trois exonérations regroupées · transport public de personnes (taxi, VTC, autobus), activités agricoles ou forestières (sous plafond de minimis), enseignement de la conduite ou du pilotage et compétitions sportives. Texte identique pour les deux taxes (les articles L. 421-142/143/144 reprennent mot pour mot L. 421-130/131/132). INACTIVE par défaut · aucun client de l'application n'exerce ces activités.";
     }
 
     public function ruleType(): RuleType
@@ -147,7 +147,7 @@ final readonly class R2024_026_SpecificActivityExemptions implements ExemptionRu
             section: RuleSection::ExonerationInactive,
             title: 'Exonérations propres à certaines activités économiques',
             pitch: 'Exonérations totales pour les véhicules affectés au transport public de personnes, aux activités agricoles ou forestières, à l\'enseignement de la conduite ou aux compétitions sportives.',
-            body: 'Modélisée en base mais inactive par défaut · les entreprises utilisatrices de la flotte Floty exercent toutes des activités commerciales standard, sans exonération à ce titre. L\'exonération agricole est par ailleurs soumise au plafond de minimis européen. Activable manuellement si le périmètre métier évolue.',
+            body: "Modélisée en base mais inactive par défaut · les entreprises utilisatrices de la flotte de l'application exercent toutes des activités commerciales standard, sans exonération à ce titre. L'exonération agricole est par ailleurs soumise au plafond de minimis européen. Activable manuellement si le périmètre métier évolue.",
         );
     }
 }
