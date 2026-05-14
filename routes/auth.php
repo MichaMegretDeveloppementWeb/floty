@@ -36,20 +36,22 @@ Route::middleware('guest')->group(function (): void {
     Route::get('/forgot-password', [ForgotPasswordController::class, 'show'])
         ->name('password.request');
 
-    // Throttle 3/15min anti spam reset (envoi d'emails). Plus strict que
-    // le login car un envoi mail = coût SMTP réel.
+    // Throttle 3/5min sur la soumission · anti-spam mail (un envoi =
+    // coût SMTP réel). Le throttle interne `Password::sendResetLink()`
+    // (60s entre demandes pour un même email, cf. config/auth.php
+    // passwords.users.throttle) cape déjà la fréquence côté broker.
     Route::post('/forgot-password', [ForgotPasswordController::class, 'store'])
-        ->middleware('throttle:3,15')
+        ->middleware('throttle:3,5')
         ->name('password.email');
 
     Route::get('/reset-password/{token}', [ResetPasswordController::class, 'show'])
         ->name('password.reset');
 
-    // Throttle 5/15min sur la soumission · plus permissif que `password.email`
-    // (l'utilisateur peut faire 1 ou 2 erreurs de saisie sur le confirmation
-    // password) mais reste strict pour bloquer le bruteforce du token.
+    // Throttle 5/10min sur la soumission · marge raisonnable si
+    // l'utilisateur se trompe sur la confirmation. Le token est hashé
+    // et single-use, le risque bruteforce est faible.
     Route::post('/reset-password', [ResetPasswordController::class, 'store'])
-        ->middleware('throttle:5,15')
+        ->middleware('throttle:5,10')
         ->name('password.update');
 });
 
@@ -59,10 +61,11 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/profile/change-password', [ChangePasswordController::class, 'show'])
         ->name('profile.change-password.show');
 
-    // Throttle 5/15min · le user est déjà connecté donc le risque
-    // bruteforce est limité, mais on cap quand même pour éviter
-    // qu'un script abuse de la session volée.
+    // Throttle 5/10min · le user est déjà connecté donc le risque
+    // bruteforce est limité ; on cap pour éviter qu'un script abuse
+    // d'une session volée tout en laissant la marge à un user qui se
+    // trompe plusieurs fois sur le current password ou la confirmation.
     Route::post('/profile/change-password', [ChangePasswordController::class, 'store'])
-        ->middleware('throttle:5,15')
+        ->middleware('throttle:5,10')
         ->name('profile.change-password.update');
 });

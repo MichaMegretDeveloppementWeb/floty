@@ -81,31 +81,36 @@ final class ForgotPasswordFlowTest extends TestCase
     }
 
     #[Test]
-    public function le_throttle_3_par_15min_bloque_au_dela_de_3_demandes(): void
+    public function le_throttle_3_par_5min_redirige_back_avec_toast_au_dela_du_seuil(): void
     {
-        // F-10-006 D4.2 · throttle 3/15min sur POST /forgot-password ·
-        // anti-spam mail (un envoi = coût SMTP réel).
+        // F-10-006 D4.2 · throttle 3/5min sur POST /forgot-password ·
+        // anti-spam mail (un envoi = coût SMTP réel) tout en restant
+        // raisonnable pour un user honnête. Sur Inertia (X-Inertia
+        // header), le 429 est intercepté dans bootstrap/app.php et
+        // transformé en back() + toast-warning (au lieu d'une page
+        // d'erreur HTML brute affichée dans une modale Inertia).
         for ($i = 0; $i < 3; $i++) {
             $this->post('/forgot-password', ['email' => 'test@floty.test'])
                 ->assertRedirect();
         }
 
-        $this->post('/forgot-password', ['email' => 'test@floty.test'])
-            ->assertStatus(429);
+        $this->post('/forgot-password', ['email' => 'test@floty.test'], ['X-Inertia' => 'true'])
+            ->assertRedirect()
+            ->assertSessionHas('toast-warning');
     }
 
     #[Test]
     public function la_route_forgot_password_porte_le_middleware_throttle(): void
     {
-        // Anti-régression · le middleware `throttle:3,15` doit rester
+        // Anti-régression · le middleware `throttle:3,5` doit rester
         // posé sur POST /forgot-password.
         $route = Route::getRoutes()->getByName('password.email');
 
         $this->assertNotNull($route, 'La route `password.email` doit exister.');
         $this->assertContains(
-            'throttle:3,15',
+            'throttle:3,5',
             $route->gatherMiddleware(),
-            'POST /forgot-password doit porter `throttle:3,15` (anti-spam mail).',
+            'POST /forgot-password doit porter `throttle:3,5` (anti-spam mail).',
         );
     }
 

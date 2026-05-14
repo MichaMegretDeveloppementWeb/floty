@@ -140,16 +140,23 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $status = $response->getStatusCode();
 
-            // Visites Inertia : intercepter 419 (CSRF) et 403 pour rester
-            // sur la page courante avec un toast (l'action a échoué mais
-            // on ne veut pas naviguer ailleurs depuis une simple soumission
-            // refusée). Le 404 Inertia retombe dans la logique générique
-            // ci-dessous (redirect domaine).
-            if ($request->header('X-Inertia') && in_array($status, [419, 403], true)) {
+            // Visites Inertia : intercepter 419 (CSRF), 403 (autorisation)
+            // et 429 (rate-limit middleware) pour rester sur la page courante
+            // avec un toast (l'action a échoué mais on ne veut pas naviguer
+            // ailleurs depuis une simple soumission refusée). Sans cette
+            // interception, Inertia reçoit la page HTML d'erreur brute et
+            // l'affiche dans une modale d'erreur générique · UX médiocre
+            // sur des routes guest/non indexées (login, forgot-password,
+            // reset-password, change-password). Le 404 Inertia retombe
+            // dans la logique générique ci-dessous (redirect domaine).
+            if ($request->header('X-Inertia') && in_array($status, [419, 403, 429], true)) {
                 return match ($status) {
                     419 => back()->with('toast-warning', 'Votre session a expiré. Veuillez réessayer.'),
                     403 => back()->with('toast-error', 'Action non autorisée.'),
-                    default => $response,
+                    429 => back()->withInput()->with(
+                        'toast-warning',
+                        'Trop de tentatives. Patientez quelques minutes avant de réessayer.',
+                    ),
                 };
             }
 

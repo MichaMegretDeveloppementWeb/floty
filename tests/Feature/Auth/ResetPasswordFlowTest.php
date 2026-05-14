@@ -138,11 +138,11 @@ final class ResetPasswordFlowTest extends TestCase
     }
 
     #[Test]
-    public function la_route_reset_password_porte_le_middleware_throttle_5_par_15min(): void
+    public function la_route_reset_password_porte_le_middleware_throttle_5_par_10min(): void
     {
         $route = Route::getRoutes()->getByName('password.update');
 
         $this->assertNotNull($route);
-        $this->assertContains('throttle:5,15', $route->gatherMiddleware());
+        $this->assertContains('throttle:5,10', $route->gatherMiddleware());
     }
 }
