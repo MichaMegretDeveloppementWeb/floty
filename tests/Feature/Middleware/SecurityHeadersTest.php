@@ -52,4 +52,24 @@ final class SecurityHeadersTest extends TestCase
             (string) $response->headers->get('Permissions-Policy'),
         );
     }
+
+    #[Test]
+    public function csp_skip_en_environnement_local_pour_ne_pas_bloquer_la_debugbar(): void
+    {
+        // `script-src 'self'` bloque les <script> inline injectés par
+        // Laravel Debugbar et le HMR Vite. En env `local`, on retire la
+        // CSP pour préserver l'expérience dev. Les autres headers de
+        // sécurité (X-Frame-Options, nosniff, etc.) restent appliqués.
+        $this->app['env'] = 'local';
+
+        $response = $this->get('/login');
+
+        $this->assertNull(
+            $response->headers->get('Content-Security-Policy'),
+            'En env local, le header CSP ne doit pas être posé.',
+        );
+        // Les autres headers de sécurité doivent rester actifs.
+        $this->assertSame('DENY', $response->headers->get('X-Frame-Options'));
+        $this->assertSame('nosniff', $response->headers->get('X-Content-Type-Options'));
+    }
 }

@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\App;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -26,7 +27,10 @@ use Symfony\Component\HttpFoundation\Response;
  * - `Content-Security-Policy` · politique V1 stricte (ADR-0011 § 6).
  *   `'unsafe-inline'` style est admis V1 pour Tailwind runtime · à
  *   durcir V2 avec nonces si besoin. Cf. plan-remédiation Vague 1
- *   Lot 1 D3 (F-30-001).
+ *   Lot 1 D3 (F-30-001). **Skip en environnement `local`** ·
+ *   `script-src 'self'` bloque les scripts inline du Laravel Debugbar
+ *   et du HMR Vite, qui n'ont aucune utilité en production. Les autres
+ *   headers de sécurité restent appliqués partout.
  */
 final class SecurityHeaders
 {
@@ -49,7 +53,10 @@ final class SecurityHeaders
         $response->headers->set('X-Content-Type-Options', 'nosniff');
         $response->headers->set('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-        $response->headers->set('Content-Security-Policy', self::CSP_V1);
+
+        if (! App::environment('local')) {
+            $response->headers->set('Content-Security-Policy', self::CSP_V1);
+        }
 
         if ($request->isSecure()) {
             $response->headers->set(
