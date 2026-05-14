@@ -152,6 +152,45 @@ final class FleetFiscalAggregatorTest extends TestCase
         self::assertSame(366, $segment->daysInSegment);
     }
 
+    /**
+     * Lot 3 D05 · garantit que la mémoïsation `$fullYearBreakdownCache`
+     * retourne strictement la même instance DTO sur appels répétés pour un
+     * même couple `(vehicle, year)` · prouve que le cache hit, sans
+     * re-exécution du pipeline. Test de comportement, pas d'équivalence
+     * sémantique (cette dernière étant déjà couverte par les autres tests).
+     */
+    #[Test]
+    public function vehicle_full_year_tax_breakdown_est_memoise_sur_appels_repetes(): void
+    {
+        $vehicle = $this->makeVehicleWltp100Essence();
+
+        $first = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, self::YEAR);
+        $second = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, self::YEAR);
+
+        // Identité d'instance · le cache renvoie le DTO précédemment construit
+        self::assertSame($first, $second);
+    }
+
+    /**
+     * Lot 3 D05 · garantit que le cache discrimine bien sur le couple
+     * `(vehicleId, year)` · 2 véhicules distincts ou 2 années distinctes
+     * doivent produire 2 instances différentes (pas de cross-pollution).
+     */
+    #[Test]
+    public function vehicle_full_year_tax_breakdown_distingue_par_couple_vehicule_annee(): void
+    {
+        $vehicleA = $this->makeVehicleWltp100Essence();
+        $vehicleB = $this->makeVehicleWltp100Essence();
+
+        $a2024 = $this->aggregator->vehicleFullYearTaxBreakdown($vehicleA, self::YEAR);
+        $b2024 = $this->aggregator->vehicleFullYearTaxBreakdown($vehicleB, self::YEAR);
+
+        // Instances distinctes · 2 véhicules différents = 2 entrées cache
+        self::assertNotSame($a2024, $b2024);
+        // Mais valeurs équivalentes (mêmes caractéristiques fiscales)
+        self::assertSame($a2024->total, $b2024->total);
+    }
+
     private function makeVehicleWltp100Essence(): Vehicle
     {
         $vehicle = Vehicle::factory()->create();

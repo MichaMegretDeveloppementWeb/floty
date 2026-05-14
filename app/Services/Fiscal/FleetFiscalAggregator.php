@@ -68,6 +68,22 @@ final class FleetFiscalAggregator
      */
     private array $fullYearResultCache = [];
 
+    /**
+     * Cache mémoire intra-instance des DTOs `VehicleFullYearTaxBreakdownData`
+     * indexé par `"{vehicleId}|{year}"`. Le DTO est purement déterministe
+     * sur `(vehicle, year)` (contrat synthétique full-year, indispos vides) ·
+     * il est donc safe à mémoïser pour la durée de vie du Service Laravel
+     * (resolved per-request).
+     *
+     * Hot paths bénéficiaires (Lot 3 D05) ·
+     * - `VehicleQueryService::loadVehicleOptions` · boucle vehicles × availableYears
+     * - `VehicleQueryService::loadFleetTable` · N véhicules paginés × année courante
+     * - `PlanningHeatmapService::buildHeatmap[ForCompany]` · N véhicules × année
+     *
+     * @var array<string, VehicleFullYearTaxBreakdownData>
+     */
+    private array $fullYearBreakdownCache = [];
+
     public function __construct(
         private readonly FiscalSegmentedExecutor $pipeline,
         private readonly FiscalYearContext $yearContext,
@@ -159,8 +175,19 @@ final class FleetFiscalAggregator
      * affiché dans la sidebar de la page Show pour expliquer comment
      * le total a été obtenu (méthode CO₂, catégorie polluants,
      * exonérations appliquées, codes règles).
+     *
+     * Mémoïsé per-request via `$fullYearBreakdownCache` (Lot 3 D05) · les
+     * boucles N véhicules × M années (Index Flotte, sélecteur véhicule,
+     * heatmap planning) ne paient le pipeline qu'une fois par couple.
      */
     public function vehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
+    {
+        $key = $vehicle->id.'|'.$year;
+
+        return $this->fullYearBreakdownCache[$key] ??= $this->computeVehicleFullYearTaxBreakdown($vehicle, $year);
+    }
+
+    private function computeVehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
         // On exécute le pipeline avec un contrat synthétique full-year
         // (1ᵉʳ jan → 31 déc) pour calculer le taxe pleine. L'orchestrateur
