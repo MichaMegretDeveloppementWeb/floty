@@ -116,6 +116,78 @@ final class MultiYearProrataTest extends TestCase
         self::assertSame(round(100.0 * 17 / 366, 2, PHP_ROUND_HALF_UP), $result->pollutantsDue);
     }
 
+    #[Test]
+    public function pipeline_2025_applique_le_bareme_durci_sur_les_59_jours_de_janvier_fevrier(): void
+    {
+        // Bloc 4 Phase L · garde-fou anti-contamination cross-année.
+        // Même contrat, même véhicule WLTP 100 g/km :
+        // - 2024 utilise barème WLTP 2024 = 173 € (testé ci-dessus)
+        // - 2025 doit utiliser barème WLTP 2025 (durcissement LF 2024
+        //   art. 97, 19°) = 193 € (vérifié goldens R2025_PricingScalesTest)
+        // - Dénominateur = 365 (2025 non bissextile, vs 366 en 2024)
+        // - 59 jours retenus (2025-01-01 → 2025-02-28)
+        $vehicle = $this->makeVehicleWltp(co2: 100);
+        $contract = $this->persistCrossYearContract($vehicle);
+
+        $result = $this->calculator->calculate(
+            vehicle: $vehicle,
+            contractsForPair: [$contract],
+            vehicleUnavailabilities: [],
+            fiscalYear: 2025,
+        );
+
+        self::assertSame(59, $result->daysAssigned, 'Le pipeline doit retenir 59 jours en 2025 (01/01 → 28/02).');
+        self::assertSame(365, $result->daysInYear, 'Dénominateur 365 pour 2025 non bissextile.');
+        self::assertSame(
+            193.0,
+            $result->co2FullYearTariff,
+            'Barème WLTP 2025 durci · 100 g/km = 193 € (vs 173 € en 2024).',
+        );
+        self::assertSame(round(193.0 * 59 / 365, 2, PHP_ROUND_HALF_UP), $result->co2Due);
+        self::assertSame(round(100.0 * 59 / 365, 2, PHP_ROUND_HALF_UP), $result->pollutantsDue);
+    }
+
+    #[Test]
+    public function pipeline_2024_ignore_le_flag_e85_meme_si_present_sur_la_vfc(): void
+    {
+        // Bloc 4 Phase L · l'abattement E85 (R-2025-023) est exclusif
+        // au pipeline 2025. Un véhicule flex-fuel utilisé en 2024 doit
+        // payer le plein tarif 2024 sans réduction.
+        $vehicle = $this->makeVehicleWltp(co2: 100, acceptsE85: true);
+        $contract = $this->persistCrossYearContract($vehicle);
+
+        $result = $this->calculator->calculate(
+            vehicle: $vehicle,
+            contractsForPair: [$contract],
+            vehicleUnavailabilities: [],
+            fiscalYear: 2024,
+        );
+
+        // Tarif plein 2024 sans abattement · 173 € (vs 117 € avec
+        // abattement 40 % en 2025).
+        self::assertSame(173.0, $result->co2FullYearTariff);
+    }
+
+    #[Test]
+    public function pipeline_2025_applique_abattement_e85_sur_le_meme_vehicule(): void
+    {
+        // Même véhicule WLTP 100 g/km flex-fuel · en 2025 l'abattement
+        // E85 (R-2025-023) réduit le CO₂ à 60 g/km avant tarification.
+        // Barème 2025 sur 60 g/km = (50-9)*1 + (58-50)*2 + (60-58)*3
+        //   = 41 + 16 + 6 = 63 € (vs 193 € sans abattement).
+        $vehicle = $this->makeVehicleWltp(co2: 100, acceptsE85: true);
+        $contract = $this->persistCrossYearContract($vehicle);
+
+        $result = $this->calculator->calculate(
+            vehicle: $vehicle,
+            contractsForPair: [$contract],
+            vehicleUnavailabilities: [],
+            fiscalYear: 2025,
+        );
+
+        self::assertSame(63.0, $result->co2FullYearTariff);
+    }
+
     private function buildCrossYearContract(): Contract
     {
         // Contrat sans persistance (pas besoin de respecter les triggers
@@ -150,7 +222,7 @@ final class MultiYearProrataTest extends TestCase
         return $contract;
     }
 
-    private function makeVehicleWltp(int $co2): Vehicle
+    private function makeVehicleWltp(int $co2, bool $acceptsE85 = false): Vehicle
     {
         $vehicle = Vehicle::create([
             'license_plate' => 'MY-001-MY',
@@ -177,6 +249,7 @@ final class MultiYearProrataTest extends TestCase
             'homologation_method' => HomologationMethod::Wltp,
             'co2_wltp' => $co2,
             'taxable_horsepower' => 6,
+            'accepts_e85' => $acceptsE85,
             'handicap_access' => false,
             'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
         ]);
