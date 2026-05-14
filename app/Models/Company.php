@@ -117,16 +117,6 @@ final class Company extends Model
     }
 
     /**
-     * Déclarations fiscales annuelles de cette entreprise.
-     *
-     * @return HasMany<Declaration, $this>
-     */
-    public function declarations(): HasMany
-    {
-        return $this->hasMany(Declaration::class);
-    }
-
-    /**
      * Génère un code court à 3 lettres en majuscules à partir du nom légal.
      *
      * Algo (validé chantier A) :

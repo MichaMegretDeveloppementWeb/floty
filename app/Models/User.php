@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -70,25 +69,5 @@ final class User extends Authenticatable
         return Attribute::make(
             get: fn (): string => trim($this->first_name.' '.$this->last_name),
         )->shouldCache();
-    }
-
-    /**
-     * Déclarations dont cet utilisateur a changé le statut (audit).
-     *
-     * @return HasMany<Declaration, $this>
-     */
-    public function changedDeclarations(): HasMany
-    {
-        return $this->hasMany(Declaration::class, 'status_changed_by');
-    }
-
-    /**
-     * PDF de déclaration générés par cet utilisateur.
-     *
-     * @return HasMany<DeclarationPdf, $this>
-     */
-    public function generatedPdfs(): HasMany
-    {
-        return $this->hasMany(DeclarationPdf::class, 'generated_by');
     }
 }

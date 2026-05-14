@@ -6,7 +6,6 @@ namespace Tests\Feature\Schema;
 
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
-use App\Enums\Declaration\DeclarationStatus;
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
@@ -19,8 +18,6 @@ use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Declaration;
-use App\Models\DeclarationPdf;
 use App\Models\Driver;
 use App\Models\FiscalRule;
 use App\Models\Unavailability;
@@ -35,17 +32,20 @@ use Tests\TestCase;
 /**
  * Smoke test du schéma global Floty V1 (phase 01.bis).
  *
- * Crée une chaîne complète d'entités : Company → Driver → Vehicle
- * → VehicleFiscalCharacteristics → Contract → Unavailability →
- * Declaration → DeclarationPdf → FiscalRule.
+ * Crée une chaîne complète d'entités · Company · Driver · Vehicle
+ * · VehicleFiscalCharacteristics · Contract · Unavailability · FiscalRule.
  *
- * Vérifie que :
+ * Vérifie que ·
  *   - chaque modèle se persiste avec son `$fillable`
  *   - les enums sont castés dans les deux sens
  *   - les relations remontent correctement (type + valeurs)
  *   - SoftDeletes fonctionne sur les entités concernées
  *   - le trigger anti-chevauchement de `vehicle_fiscal_characteristics`
  *     rejette bien une période qui chevauche l'existante
+ *
+ * Note · les tables legacy `declarations` / `declaration_pdfs`
+ * (phase 01.bis) ont été supprimées dans le cleanup F-19-001 au profit
+ * de `fiscal_declarations` (phase 11, ADR-0015).
  */
 final class SchemaSmokeTest extends TestCase
 {
@@ -119,28 +119,6 @@ final class SchemaSmokeTest extends TestCase
             'end_date' => '2024-06-10',
         ]);
 
-        $declaration = Declaration::create([
-            'company_id' => $company->id,
-            'fiscal_year' => 2024,
-            'status' => DeclarationStatus::Draft,
-            'status_changed_at' => now(),
-            'status_changed_by' => $user->id,
-            'is_invalidated' => false,
-        ]);
-
-        $pdf = DeclarationPdf::create([
-            'declaration_id' => $declaration->id,
-            'pdf_path' => 'declarations/2024/1/v1-1714000000.pdf',
-            'pdf_filename' => 'declaration_ACME_2024_v1.pdf',
-            'pdf_size_bytes' => 45678,
-            'pdf_sha256' => str_repeat('a', 64),
-            'snapshot_json' => ['schema_version' => '1.0', 'fiscal_year' => 2024],
-            'snapshot_sha256' => str_repeat('b', 64),
-            'generated_at' => now(),
-            'generated_by' => $user->id,
-            'version_number' => 1,
-        ]);
-
         // Phase 13 D5.14 · `fiscal_rules` est un index minimal · ne
         // porte plus que rule_code, fiscal_year et code_reference. Les
         // métadonnées (name, description, etc.) vivent dans les classes
@@ -167,23 +145,12 @@ final class SchemaSmokeTest extends TestCase
         $this->assertSame(BodyType::InteriorDriving, $fiscalVersion->body_type);
         $this->assertTrue($fiscalVersion->isCurrent());
 
-        $declaration->refresh();
-        $this->assertSame(DeclarationStatus::Draft, $declaration->status);
-
         $rule->refresh();
         $this->assertSame('R-2024-010', $rule->rule_code);
         $this->assertSame(2024, $rule->fiscal_year);
         $this->assertSame(
             'app/Fiscal/Year2024/Pricing/R2024_010_WltpProgressive.php',
             $rule->code_reference,
-        );
-
-        $pdf->refresh();
-        // assertEquals : MySQL `JSON` ne garantit pas l'ordre des clés après
-        // stockage, donc on vérifie l'équivalence structurelle.
-        $this->assertEquals(
-            ['schema_version' => '1.0', 'fiscal_year' => 2024],
-            $pdf->snapshot_json,
         );
 
         // --- Relations ---
@@ -193,19 +160,16 @@ final class SchemaSmokeTest extends TestCase
         $this->assertSame($company->id, $contract->company->id);
         $this->assertTrue($contract->fresh()->drivers->contains('id', $driver->id));
         $this->assertSame($vehicle->id, $unavailability->vehicle->id);
-        $this->assertSame($company->id, $declaration->company->id);
-        $this->assertSame($user->id, $declaration->statusChangedBy->id);
-        $this->assertSame($declaration->id, $pdf->declaration->id);
-        $this->assertSame($user->id, $pdf->generatedBy->id);
 
         // Relations inverses
         $this->assertCount(1, $company->fresh()->drivers);
         $this->assertCount(1, $vehicle->fresh()->fiscalCharacteristics);
         $this->assertCount(1, $vehicle->fresh()->contracts);
         $this->assertCount(1, $vehicle->fresh()->unavailabilities);
-        $this->assertCount(1, $declaration->fresh()->pdfs);
-        $this->assertCount(1, $user->fresh()->changedDeclarations);
-        $this->assertCount(1, $user->fresh()->generatedPdfs);
+
+        // User persiste indépendamment via factory · seule la chaîne
+        // déclarations le rattachait au graphe (supprimée F-19-001).
+        $this->assertNotNull($user->fresh());
     }
 
     #[Test]
