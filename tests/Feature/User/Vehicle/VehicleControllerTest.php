@@ -726,23 +726,24 @@ final class VehicleControllerTest extends TestCase
         // Doctrine « données métier ⊥ règles fiscales » : l'endpoint
         // lazy `/usage-stats` accepte n'importe quelle année et tolère
         // une année sans règles fiscales codées (Timeline OK, jours
-        // bruts intacts, taxes à 0).
+        // bruts intacts, taxes à 0). 2026 = première année non codée
+        // après Bloc 4 (Year2026Boot pas encore créé).
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
 
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
-            'start_date' => '2025-04-01',
-            'end_date' => '2025-04-15',
+            'start_date' => '2026-04-01',
+            'end_date' => '2026-04-15',
         ]);
 
         $payload = $this->actingAs($user)
-            ->getJson("/app/vehicles/{$vehicle->id}/usage-stats?year=2025")
+            ->getJson("/app/vehicles/{$vehicle->id}/usage-stats?year=2026")
             ->assertOk()
             ->json();
 
-        $this->assertSame(2025, $payload['fiscalYear']);
+        $this->assertSame(2026, $payload['fiscalYear']);
         $this->assertSame(15, $payload['daysUsedThisYear']);
         $this->assertSame(0, $payload['fullYearTax']);
         $this->assertSame(0, $payload['actualTaxThisYear']);
@@ -753,13 +754,14 @@ final class VehicleControllerTest extends TestCase
     {
         // L'endpoint `/full-year-breakdown` retourne un DTO neutre
         // (tarifs 0, message « Règles non implémentées ») pour les
-        // années sans règles fiscales codées.
+        // années sans règles fiscales codées. 2026 = première année non
+        // codée après Bloc 4.
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
         $payload = $this->actingAs($user)
-            ->getJson("/app/vehicles/{$vehicle->id}/full-year-breakdown?year=2025")
+            ->getJson("/app/vehicles/{$vehicle->id}/full-year-breakdown?year=2026")
             ->assertOk()
             ->json();
 

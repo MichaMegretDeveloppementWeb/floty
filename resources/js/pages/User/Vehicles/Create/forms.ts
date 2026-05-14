@@ -21,6 +21,10 @@ export type FiscalCharacteristicsFieldsShape = {
     co2_wltp: number | null;
     co2_nedc: number | null;
     taxable_horsepower: number | null;
+    // Flag E85 · abattement L. 421-125 réformé (2025+) · valeur dérivée
+    // des 9 codes P.3 du CI {FE, FG, FN, FL, FH, FR, FQ, FM, FP}
+    // (BOFiP BOI-AIS-MOB-10-20-40-20250604 § 160).
+    accepts_e85: boolean;
     // Spécificités fiscales (toujours visibles)
     kerb_mass: number | null;
     handicap_access: boolean;

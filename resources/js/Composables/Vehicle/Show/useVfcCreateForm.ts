@@ -61,6 +61,7 @@ export function useVfcCreateForm(
         co2_wltp: null,
         co2_nedc: null,
         taxable_horsepower: null,
+        accepts_e85: false,
         kerb_mass: null,
         handicap_access: false,
         m1_special_use: false,

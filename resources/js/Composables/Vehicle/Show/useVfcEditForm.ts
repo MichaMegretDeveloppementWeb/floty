@@ -58,6 +58,7 @@ export function useVfcEditForm(
         co2_wltp: null,
         co2_nedc: null,
         taxable_horsepower: null,
+        accepts_e85: false,
         kerb_mass: null,
         handicap_access: false,
         m1_special_use: false,
@@ -94,6 +95,7 @@ export function useVfcEditForm(
                 form.co2_wltp = value.co2Wltp;
                 form.co2_nedc = value.co2Nedc;
                 form.taxable_horsepower = value.taxableHorsepower;
+                form.accepts_e85 = value.acceptsE85;
                 form.kerb_mass = value.kerbMass;
                 form.handicap_access = value.handicapAccess;
                 form.m1_special_use = value.m1SpecialUse;

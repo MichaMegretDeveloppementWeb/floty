@@ -198,12 +198,18 @@ const pollutantCategoryLabel = computed((): string => {
         </div>
 
         <div class="flex flex-col gap-4 border-t border-slate-100 pt-6">
-            <p class="eyebrow">Exonérations et usages spéciaux</p>
+            <p class="eyebrow">Exonérations, abattements et usages spéciaux</p>
             <CheckboxInput
                 v-model="form.handicap_access"
                 label="Aménagé pour fauteuil roulant ou conduite handicapée"
                 hint="Déclenche l'exonération totale des deux taxes (CIBS L. 421-123 / L. 421-136)."
                 :error="errors.handicap_access"
+            />
+            <CheckboxInput
+                v-model="form.accepts_e85"
+                label="Compatible superéthanol E85 (flex-fuel)"
+                hint="Cocher si la rubrique P.3 du certificat d'immatriculation ∈ {FE, FG, FN, FL, FH, FR, FQ, FM, FP}. Déclenche dès 2025 l'abattement de 40 % sur les émissions CO₂ (WLTP/NEDC ≤ 250 g/km) ou de 2 CV sur la puissance (PA ≤ 12 CV) · CIBS L. 421-125."
+                :error="errors.accepts_e85"
             />
             <CheckboxInput
                 v-if="isM1"

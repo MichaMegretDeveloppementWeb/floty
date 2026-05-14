@@ -34,6 +34,7 @@ function makeVfc(
         co2Wltp: 120,
         co2Nedc: null,
         taxableHorsepower: null,
+        acceptsE85: false,
         kerbMass: null,
         handicapAccess: false,
         n1PassengerTransport: false,

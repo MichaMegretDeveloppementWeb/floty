@@ -76,6 +76,7 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         co2_wltp: fiscal?.co2Wltp ?? null,
         co2_nedc: fiscal?.co2Nedc ?? null,
         taxable_horsepower: fiscal?.taxableHorsepower ?? null,
+        accepts_e85: fiscal?.acceptsE85 ?? false,
         kerb_mass: fiscal?.kerbMass ?? null,
         handicap_access: fiscal?.handicapAccess ?? false,
         m1_special_use: fiscal?.m1SpecialUse ?? false,
@@ -114,6 +115,7 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
             || form.co2_wltp !== fiscal.co2Wltp
             || form.co2_nedc !== fiscal.co2Nedc
             || form.taxable_horsepower !== fiscal.taxableHorsepower
+            || form.accepts_e85 !== fiscal.acceptsE85
             || form.kerb_mass !== fiscal.kerbMass
             || form.handicap_access !== fiscal.handicapAccess
             || form.m1_special_use !== fiscal.m1SpecialUse
