@@ -37,6 +37,7 @@ use Illuminate\Support\Carbon;
  * @property array<int, string>|null $vehicle_characteristics_consumed
  * @property array<int, string>|null $vehicle_characteristics_produced
  * @property array<int, array<string, mixed>> $legal_basis
+ * @property array<string, mixed>|null $pedagogical_content
  * @property string $code_reference
  * @property int $display_order
  * @property bool $is_active
@@ -55,6 +56,7 @@ use Illuminate\Support\Carbon;
     'vehicle_characteristics_consumed',
     'vehicle_characteristics_produced',
     'legal_basis',
+    'pedagogical_content',
     'code_reference',
     'display_order',
     'is_active',
@@ -77,6 +79,7 @@ final class FiscalRule extends Model
             'vehicle_characteristics_consumed' => 'array',
             'vehicle_characteristics_produced' => 'array',
             'legal_basis' => 'array',
+            'pedagogical_content' => 'array',
             'is_active' => 'boolean',
         ];
     }

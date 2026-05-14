@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Transversal;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-022 · Période contractuelle vs usage effectif.
@@ -83,5 +86,17 @@ final readonly class R2024_022_ContractualPeriodVsEffectiveUsage implements Info
     public function taxesConcerned(): array
     {
         return [TaxType::Co2, TaxType::Pollutants];
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreImplicite,
+            title: 'Période contractuelle vs usage effectif',
+            pitch: 'Le numérateur du prorata compte les jours de la période contractuelle (début → fin du contrat), pas les jours d’utilisation réelle du véhicule.',
+            body: "Un contrat de 30 jours pendant lesquels le véhicule n'a roulé qu'une seule journée compte 30 jours au numérateur. La doctrine BOFiP § 170 le précise explicitement : « le nombre de jours pendant lesquels le véhicule a effectivement circulé n'est donc pas pris en compte ». Cette base contractuelle ne peut être réduite que par les indispos réductrices subies à la demande des pouvoirs publics (R-2024-008) ou par la qualification LCD du contrat (R-2024-021).",
+            example: "Contrat 1er → 30 avril 2024 (30 j). Le véhicule n'est utilisé que les 5 et 12 avril. Au numérateur : 30 j (durée du contrat), pas 2 j (utilisation réelle).",
+        );
     }
 }

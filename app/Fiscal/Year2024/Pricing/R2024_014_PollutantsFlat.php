@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Pricing;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\PollutantCategory;
@@ -11,7 +13,10 @@ use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Fiscal\ValueObjects\FlatBracketRow;
+use App\Fiscal\ValueObjects\FlatBracketsTable;
 use App\Fiscal\ValueObjects\PollutantTariff;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-014 - Tarif annuel forfaitaire polluants (CIBS L. 421-135).
@@ -103,5 +108,33 @@ final readonly class R2024_014_PollutantsFlat implements PricingRule
         return $context
             ->withPollutantsFullYearTariff($this->tariff->tariffFor($category))
             ->withAppliedRule($this->ruleCode());
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Bareme,
+            title: 'Barème polluants : tarif forfaitaire par catégorie',
+            pitch: 'Tarif annuel forfaitaire selon la catégorie polluants du véhicule (déterminée à l’étape 3 ci-dessus).',
+            body: 'Le tarif annuel plein ne dépend ni de l’émission réelle ni de la cylindrée : c’est un forfait par catégorie. Il est multiplié par le prorata jours utilisés / 366.',
+            flatBrackets: new FlatBracketsTable(
+                header: ['Catégorie polluants', 'Tarif annuel 2024'],
+                rows: [
+                    new FlatBracketRow(
+                        category: 'E · électrique / hydrogène',
+                        amount: '0 €',
+                        note: 'Effet du barème, pas une exonération.',
+                    ),
+                    new FlatBracketRow(category: '1 · essence/gaz Euro 5 ou 6', amount: '100 €'),
+                    new FlatBracketRow(
+                        category: 'Véhicules les plus polluants',
+                        amount: '500 €',
+                        note: 'Inclut tous les Diesel.',
+                    ),
+                ],
+            ),
+            example: 'Peugeot 308 essence Euro 6 (catégorie 1), utilisée 306/366 jours par ACME : 100 × 306/366 = 83,61 €. Renault Trafic Diesel Euro 6 (plus polluants), 366/366 jours : 500,00 €.',
+        );
     }
 }

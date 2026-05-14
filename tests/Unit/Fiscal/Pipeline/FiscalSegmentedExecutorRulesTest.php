@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\Pipeline;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\BodyType;
@@ -22,6 +24,7 @@ use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
@@ -456,5 +459,15 @@ trait StubMetadataDefaults2090
     public function isActive(): bool
     {
         return true;
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Bareme,
+            title: 'Test stub',
+            pitch: 'Stub utilisé en tests · non rendu en UI.',
+        );
     }
 }

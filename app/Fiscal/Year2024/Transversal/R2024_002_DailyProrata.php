@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Transversal;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
@@ -142,5 +145,16 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
             ->withCumulativeDaysForPair($totalDays)
             ->withDueAmounts($co2Due, $pollutantsDue)
             ->withAppliedRule($this->ruleCode());
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreImplicite,
+            title: 'Prorata journalier',
+            pitch: 'Base 366 jours en 2024 (année bissextile). Taxe due = tarif annuel plein × (jours d’affectation contractuelle / 366).',
+            body: "Toutes les règles de tarification produisent d'abord un tarif annuel plein, qui est ensuite réduit au prorata du nombre de jours de la période d'affectation contractuelle (date de début → date de fin du contrat ; cf. R-2024-022). Les indispos réductrices subies à la demande des pouvoirs publics (R-2024-008) et la qualification LCD du contrat (R-2024-021) sont les seuls mécanismes qui réduisent ce numérateur.",
+        );
     }
 }

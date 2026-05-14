@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\Fiscal;
 
+use App\Data\User\Fiscal\Pedagogical\RulePedagogicalContentData;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Models\FiscalRule;
@@ -39,6 +40,7 @@ final class FiscalRuleListItemData extends Data
         public RuleType $ruleType,
         public array $taxesConcerned,
         public array $legalBasis,
+        public ?RulePedagogicalContentData $pedagogicalContent,
         public bool $isActive,
         public string $applicabilityStartInYear,
         public string $applicabilityEndInYear,
@@ -71,6 +73,9 @@ final class FiscalRuleListItemData extends Data
                 $rule->taxes_concerned,
             )),
             legalBasis: $rule->legal_basis,
+            pedagogicalContent: $rule->pedagogical_content !== null
+                ? RulePedagogicalContentData::from($rule->pedagogical_content)
+                : null,
             isActive: $rule->is_active,
             applicabilityStartInYear: $startInYear,
             applicabilityEndInYear: $endInYear,

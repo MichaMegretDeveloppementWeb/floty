@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
@@ -11,6 +13,7 @@ use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-015 - Exonération handicap (CIBS L. 421-123 / L. 421-136).
@@ -89,5 +92,18 @@ final readonly class R2024_015_HandicapAccess implements ExemptionRule
         }
 
         return ExemptionVerdict::notExempt();
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Exoneration,
+            title: 'Exonération handicap',
+            pitch: 'Véhicules M1 accessibles en fauteuil roulant ou aménagés pour conduite par personne handicapée : exonération totale des deux taxes.',
+            appliesWhen: "Le véhicule est catégorie M1 ET porte mention d'accessibilité fauteuil roulant ou d'aménagement handicap au certificat d'immatriculation (rubrique J.3).",
+            effect: 'Taxe CO₂ = 0 € ET taxe polluants = 0 €. L’exonération est attachée au véhicule, pas à l’usage : pas de prorata, même pour une utilisation partielle.',
+            example: 'Renault Kangoo M1 accessible fauteuil roulant, Diesel Euro 6, utilisé 274 jours : sans exonération on paierait ~375 € de polluants + taxe CO₂. Avec exonération : 0,00 €.',
+        );
     }
 }

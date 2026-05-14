@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Fiscal\Pipeline;
 
 use App\Enums\Contract\ContractType;
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Unavailability\UnavailabilityType;
@@ -23,6 +25,7 @@ use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Fiscal\Year2024\Year2024Boot;
 use App\Models\Contract;
 use App\Models\Unavailability;
@@ -538,5 +541,15 @@ final readonly class MultiVfcMultiRuleStubPricing implements PricingRule
         // No-op : ne touche pas au tarif. Seul intérêt : créer un pivot
         // règle qui force le segmenteur à produire 2 segments en 2024.
         return $context->withAppliedRule($this->ruleCode());
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Bareme,
+            title: 'Test stub',
+            pitch: 'Stub utilisé en tests · non rendu en UI.',
+        );
     }
 }

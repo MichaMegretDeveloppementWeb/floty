@@ -1,44 +1,47 @@
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
-import {
-    cadreSectionsOrder,
-    calculSectionsOrder,
-    fiscalRulesContent2024,
-    sectionTitles,
-} from '@/data/fiscalRulesContent';
-import type {
-    RuleSection as RuleSectionKey,
-    RuleTab,
-} from '@/data/fiscalRulesContent';
 
 type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
+type Tab = App.Data.User.Fiscal.FiscalRuleTabData;
+type RuleTabValue = App.Enums.Fiscal.RuleTab;
+type RuleSectionValue = App.Enums.Fiscal.RuleSection;
 
-type Tab = { value: RuleTab; label: string; count?: number };
+type TabHeader = { value: RuleTabValue; label: string };
 type SectionGroup = {
-    section: RuleSectionKey;
+    section: RuleSectionValue;
     title: string;
     subtitle: string;
     codes: string[];
 };
 
 /**
- * Logique de la page « Règles de calcul » : indexation des règles
- * par code (résolution O(1) dans les sections), liste statique des
- * onglets (calcul / cadre), et calcul des groupes de sections en
- * fonction de l'onglet actif.
+ * Logique de la page « Règles de calcul » (Phase 13 D5.12 · ADR-0022
+ * finalisée v1.2). L'organisation tabs / sections vient désormais
+ * intégralement des props Inertia (DTO `FiscalRuleTabData[]` projeté
+ * depuis les enums PHP RuleTab + RuleSection) · plus rien de
+ * hardcoded côté TS, plus de `fiscalRulesContent.ts`.
+ *
+ * Le filtrage des codes par section utilise `rule.pedagogicalContent.section`
+ * (issu du DTO de chaque règle). Une règle sans contenu pédagogique
+ * (cas tolérable seulement avant le 1er seed) est ignorée silencieusement.
  */
-export function useFiscalRulesIndex(props: { rules: Rule[] }): {
-    activeTab: Ref<RuleTab>;
+export function useFiscalRulesIndex(props: {
+    rules: Rule[];
     tabs: Tab[];
+}): {
+    activeTab: Ref<RuleTabValue>;
+    tabs: TabHeader[];
     rulesByCode: ComputedRef<Record<string, Rule>>;
     currentGroups: ComputedRef<SectionGroup[]>;
 } {
-    const activeTab = ref<RuleTab>('calcul');
+    const activeTab = ref<RuleTabValue>(
+        (props.tabs[0]?.value ?? 'calcul') as RuleTabValue,
+    );
 
-    const tabs: Tab[] = [
-        { value: 'calcul', label: 'Calcul des taxes' },
-        { value: 'cadre', label: 'Cadre & fonctionnement' },
-    ];
+    const tabHeaders: TabHeader[] = props.tabs.map((t) => ({
+        value: t.value,
+        label: t.label,
+    }));
 
     const rulesByCode = computed<Record<string, Rule>>(() => {
         const map: Record<string, Rule> = {};
@@ -51,24 +54,35 @@ export function useFiscalRulesIndex(props: { rules: Rule[] }): {
     });
 
     const currentGroups = computed<SectionGroup[]>(() => {
-        const sections =
-            activeTab.value === 'calcul'
-                ? calculSectionsOrder
-                : cadreSectionsOrder;
+        const activeTabData = props.tabs.find(
+            (t) => t.value === activeTab.value,
+        );
 
-        return sections.map((section) => {
-            const codes = Object.entries(fiscalRulesContent2024)
-                .filter(([, content]) => content.section === section)
-                .map(([code]) => code);
+        if (activeTabData === undefined) {
+            return [];
+        }
+
+        return activeTabData.sections.map((section) => {
+            const codes = props.rules
+                .filter(
+                    (r) =>
+                        r.pedagogicalContent?.section === section.value,
+                )
+                .map((r) => r.ruleCode);
 
             return {
-                section,
-                title: sectionTitles[section].title,
-                subtitle: sectionTitles[section].subtitle,
+                section: section.value,
+                title: section.title,
+                subtitle: section.subtitle,
                 codes,
             };
         });
     });
 
-    return { activeTab, tabs, rulesByCode, currentGroups };
+    return {
+        activeTab,
+        tabs: tabHeaders,
+        rulesByCode,
+        currentGroups,
+    };
 }

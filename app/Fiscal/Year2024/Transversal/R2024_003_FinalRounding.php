@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Transversal;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
@@ -106,5 +109,16 @@ final readonly class R2024_003_FinalRounding implements TransversalRule
     public function apply(PipelineContext $context): PipelineContext
     {
         return $context->withAppliedRule($this->ruleCode());
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreImplicite,
+            title: 'Méthode d’arrondi',
+            pitch: 'Arrondi au centime, half-up commercial, appliqué au montant total final de chaque ligne fiscale.',
+            body: "Les calculs intermédiaires (tarif plein, prorata) sont conservés en haute précision. Seul le montant final par ligne (taxe CO₂ d'un couple, taxe polluants d'un couple) est arrondi au centime supérieur lorsque le demi-centime est atteint (commercial half-up).",
+        );
     }
 }

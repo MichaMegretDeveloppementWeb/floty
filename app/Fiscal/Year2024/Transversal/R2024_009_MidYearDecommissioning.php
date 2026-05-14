@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Transversal;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-009 · Mise hors-service en cours d'année.
@@ -83,5 +86,16 @@ final readonly class R2024_009_MidYearDecommissioning implements InformativeRule
     public function taxesConcerned(): array
     {
         return [TaxType::Co2, TaxType::Pollutants];
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreEvenement,
+            title: 'Mise hors-service en cours d’année',
+            pitch: 'Un véhicule vendu ou détruit en cours d’année n’est plus taxable à compter de sa date de sortie de flotte.',
+            body: "Si un véhicule sort de la flotte le 30 juin, aucune attribution postérieure à cette date n'est taxable. La proportion annuelle d'affectation est ramenée à la fraction d'année pendant laquelle l'entreprise détenait effectivement le véhicule. La doctrine BOFiP § 190 illustre ce principe avec l'exemple d'une entreprise qui acquiert un véhicule au 31 janvier et le revend au 30 novembre : la proportion annuelle vaut alors 304/365 = 83,3 %.",
+        );
     }
 }

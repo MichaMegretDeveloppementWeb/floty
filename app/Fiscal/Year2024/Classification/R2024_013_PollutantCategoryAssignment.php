@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Classification;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\PollutantCategory;
@@ -11,6 +13,7 @@ use App\Fiscal\Contracts\ClassificationRule;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-013 - Catégorisation polluants algorithmique
@@ -99,5 +102,17 @@ final readonly class R2024_013_PollutantCategoryAssignment implements Classifica
         return $context
             ->withResolvedPollutantCategory($category)
             ->withAppliedRule($this->ruleCode());
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Aiguillage,
+            title: 'Étape 3 : quelle catégorie polluants ?',
+            pitch: 'Trois catégories : E (électrique/hydrogène), 1 (essence ou gaz Euro 5/6), « plus polluants » (tous les autres, dont Diesel).',
+            body: 'Catégorie E = électrique exclusif, hydrogène exclusif, ou combinaison des deux. Catégorie 1 = véhicules à allumage commandé (essence, GPL, GNV, E85, ou hybride essence) respectant Euro 5 ou Euro 6. Catégorie « véhicules les plus polluants » = tous les autres, notamment tous les Diesel (même Euro 6), les essence pré-Euro 5, et les véhicules sans norme Euro renseignée.',
+            example: 'Tesla Model 3 électrique → E. Peugeot 308 essence Euro 6 → 1. Renault Trafic Diesel Euro 6 → plus polluants.',
+        );
     }
 }

@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-020 · Exonération loueur · redevable = entreprise utilisatrice.
@@ -76,5 +79,18 @@ final readonly class R2024_020_RenterExemption implements InformativeRule
     public function taxesConcerned(): array
     {
         return [TaxType::Co2, TaxType::Pollutants];
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Exoneration,
+            title: "Exonération loueur (fondement du modèle de l'application)",
+            pitch: 'La société de location ne paie aucune taxe sur ses véhicules en stock. Seule la part louée à une entreprise utilisatrice déclenche une taxe.',
+            appliesWhen: "Le véhicule est détenu par une société dont l'activité est la location. Exonération applicable sur les jours où le véhicule n'est attribué à aucune entreprise utilisatrice.",
+            effect: "Aucune ligne fiscale n'est produite pour le bailleur. Les entreprises utilisatrices paient au prorata de leur usage effectif : si un véhicule est utilisé 350 jours/366 en cumul, il reste 16 jours non taxés (stock bailleur).",
+            example: 'Peugeot 308 propriété de la société Renaud, 2024 : A 200 j, B 100 j, C 50 j, 16 j en stock. Tarif plein (CO₂ 173 + polluants 100) = 273 €. A paie 149,18 €, B 74,59 €, C 37,30 € ; bailleur 0 €.',
+        );
     }
 }

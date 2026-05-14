@@ -15,7 +15,7 @@ const props = defineProps<{
     rule: Rule | undefined;
 }>();
 
-const { taxLabel, taxBadgeTone, content } = useRuleCard(props);
+const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
 </script>
 
 <template>

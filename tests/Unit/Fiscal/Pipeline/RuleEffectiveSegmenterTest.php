@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\Pipeline;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Contracts\FiscalRule;
 use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use App\Fiscal\Registry\FiscalRuleRegistry;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -268,6 +271,16 @@ abstract class StubBaseRule implements FiscalRule
     public function isActive(): bool
     {
         return true;
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Bareme,
+            title: 'Test stub',
+            pitch: 'Stub utilisé en tests · non rendu en UI.',
+        );
     }
 }
 

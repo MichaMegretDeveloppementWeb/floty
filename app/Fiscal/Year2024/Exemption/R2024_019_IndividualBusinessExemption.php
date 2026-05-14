@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-019 - Exonération entreprise individuelle (CIBS L. 421-127
@@ -93,5 +96,16 @@ final readonly class R2024_019_IndividualBusinessExemption implements ExemptionR
         // Tant que le contexte ne porte pas la company, pas
         // d'évaluation possible. Cas attendu V1.
         return ExemptionVerdict::notExempt();
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::ExonerationInactive,
+            title: 'Exonération entreprise individuelle',
+            pitch: 'Véhicule affecté par une personne physique exerçant en nom propre (entrepreneur individuel BIC/BNC) · exonération soumise aux conditions du règlement de minimis.',
+            body: 'Inactive par défaut : si une entreprise utilisatrice est un entrepreneur individuel (personne physique en nom propre, régime BIC ou BNC), cette exonération devient applicable et peut être activée manuellement. Le bénéfice est subordonné aux conditions du règlement européen général de minimis (ou règlements sectoriels agricole/pêche).',
+        );
     }
 }

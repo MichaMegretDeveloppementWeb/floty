@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Fiscal\Fakes;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\TransversalRule;
 use App\Fiscal\Pipeline\PipelineContext;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * Fake `TransversalRule` minimal qui applique un prorata journalier
@@ -76,5 +79,15 @@ final readonly class FakeDailyProrata implements TransversalRule
         return $context
             ->withDueAmounts($co2, $pollutants)
             ->withAppliedRule($this->ruleCode());
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Bareme,
+            title: 'Test stub',
+            pitch: 'Stub utilisé en tests · non rendu en UI.',
+        );
     }
 }

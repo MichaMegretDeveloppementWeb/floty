@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
@@ -12,6 +14,7 @@ use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\Contract;
 use Carbon\CarbonImmutable;
 
@@ -162,5 +165,19 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQual
         }
 
         return false;
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Exoneration,
+            title: 'Exonération location de courte durée (LCD)',
+            pitch: 'Un contrat de location de 30 jours ou moins (ou couvrant exactement un mois civil entier) est totalement exonéré : ses jours sortent du calcul.',
+            body: "Qualification appréciée **par contrat individuel**, pas en cumul annuel par couple. Un contrat est LCD si l'une des deux conditions est vérifiée : durée ≤ 30 jours consécutifs, OU contrat couvrant exactement un mois civil entier (1er → dernier jour du même mois). Tous les jours d'un contrat LCD sont retirés du numérateur du prorata.",
+            appliesWhen: 'Pour chaque contrat individuel : durée ≤ 30 jours consécutifs OU contrat = mois civil entier.',
+            effect: 'Les jours du contrat LCD sont soustraits du numérateur du prorata appliqué à ce couple (véhicule, entreprise). Si tous les contrats du couple sont LCD, daysAssignedToCompany = 0 → taxe CO₂ + polluants = 0 €.',
+            example: 'Contrat A 1er→15 mars (15 j ≤ 30) → exonéré. Contrat B 1er→31 janvier (31 j mais 1 mois civil entier) → exonéré aussi. Contrat C 15 jan→15 mars (60 j à cheval, ni ≤ 30 ni mois civil entier) → taxable au prorata.',
+        );
     }
 }

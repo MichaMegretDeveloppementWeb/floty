@@ -1,21 +1,22 @@
-import { fiscalRulesContent2024 } from '@/data/fiscalRulesContent';
-import type { RuleContent } from '@/data/fiscalRulesContent';
 import type { BadgeTone } from '@/types/ui';
 
 type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
+type Content = NonNullable<Rule['pedagogicalContent']>;
 
 /**
- * Helpers d'affichage d'une règle fiscale (taxes concernées, contenu
- * pédagogique enrichi côté front via `fiscalRulesContent2024`).
+ * Helpers d'affichage d'une règle fiscale (Phase 13 D5.12 · ADR-0022
+ * finalisée v1.2). Le contenu pédagogique vient désormais du DTO
+ * `FiscalRuleListItemData.pedagogicalContent` projeté depuis la classe
+ * PHP de la règle · plus de `fiscalRulesContent.ts`.
  *
- * Le `content` reçoit le `code` au moment de l'appel (pas de Ref) :
- * la page parent ne change pas le code dynamiquement - le composant
- * est re-monté quand le code change.
+ * Si `rule` est undefined (race transitoire) ou si la règle n'a pas
+ * de contenu pédagogique (cas tolérable seulement avant le 1er seed),
+ * `content` vaut undefined · le composant doit gérer ce fallback.
  */
-export function useRuleCard(props: { code: string }): {
+export function useRuleCard(props: { rule: Rule | undefined }): {
     taxLabel: Record<string, string>;
     taxBadgeTone: (taxes: Rule['taxesConcerned']) => BadgeTone;
-    content: RuleContent | undefined;
+    content: Content | undefined;
 } {
     const taxLabel: Record<string, string> = {
         co2: 'CO₂',
@@ -38,7 +39,9 @@ export function useRuleCard(props: { code: string }): {
         return 'slate';
     };
 
-    const content = fiscalRulesContent2024[props.code];
+    const content = (props.rule?.pedagogicalContent ?? undefined) as
+        | Content
+        | undefined;
 
     return { taxLabel, taxBadgeTone, content };
 }

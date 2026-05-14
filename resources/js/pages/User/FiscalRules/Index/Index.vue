@@ -22,6 +22,12 @@ const props = defineProps<{
      * l'application sait calculer des règles » (≠ scope contrats).
      */
     yearScope: App.Data.Shared.YearScopeData;
+    /**
+     * Phase 13 D5.12 · ADR-0022 v1.2 · organisation des tabs / sections
+     * projetée depuis les enums PHP `RuleTab` + `RuleSection`. Plus
+     * rien de hardcoded côté TS.
+     */
+    tabs: App.Data.User.Fiscal.FiscalRuleTabData[];
 }>();
 
 const { selectedYear, selectYear } = useLocalYearSelector(

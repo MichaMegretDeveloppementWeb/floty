@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Transversal;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-007 · Historisation des caractéristiques véhicule.
@@ -77,5 +80,16 @@ final readonly class R2024_007_VehicleCharacteristicsHistorization implements In
     public function taxesConcerned(): array
     {
         return [TaxType::Co2, TaxType::Pollutants];
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreInterne,
+            title: 'Historisation des caractéristiques véhicule',
+            pitch: 'Les caractéristiques fiscales d’un véhicule sont datées : une correction de CO₂ prend effet à sa date d’application, sans rétroactivité sur les déclarations passées.',
+            body: "Chaque véhicule a un historique de ses caractéristiques fiscales (motorisation, CO₂, norme Euro). Le calcul d'une attribution utilise les caractéristiques effectives à la date de cette attribution. Si une donnée est corrigée (erreur de saisie), l'ancienne valeur reste visible pour audit et reproductibilité des déclarations déjà envoyées.",
+        );
     }
 }

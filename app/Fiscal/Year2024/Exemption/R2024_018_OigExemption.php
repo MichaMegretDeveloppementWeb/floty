@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-018 - Exonération organisme d'intérêt général (CIBS L. 421-126
@@ -120,5 +123,16 @@ final readonly class R2024_018_OigExemption implements ExemptionRule
         // Tant que le contexte ne porte pas la company, pas
         // d'évaluation possible. Cas attendu V1.
         return ExemptionVerdict::notExempt();
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::ExonerationInactive,
+            title: 'Exonération organisme d’intérêt général',
+            pitch: 'Véhicules détenus par une association 1901, fondation, etc., affectés exclusivement à l’activité non lucrative.',
+            body: "Modélisée en base mais inactive par défaut : aucune entreprise utilisatrice de la flotte n'est un organisme d'intérêt général. Activable manuellement si le périmètre évolue.",
+        );
     }
 }

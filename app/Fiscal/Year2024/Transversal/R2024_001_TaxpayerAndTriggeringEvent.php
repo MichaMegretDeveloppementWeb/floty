@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Transversal;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-001 · Redevable et fait générateur.
@@ -96,5 +99,16 @@ final readonly class R2024_001_TaxpayerAndTriggeringEvent implements Informative
     public function taxesConcerned(): array
     {
         return [TaxType::Co2, TaxType::Pollutants];
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreImplicite,
+            title: 'Redevable et fait générateur',
+            pitch: 'Le redevable est l’entreprise utilisatrice effective du véhicule. Le fait générateur est l’affectation du véhicule à ses besoins économiques.',
+            body: 'Quand le véhicule est en stock chez le bailleur, personne n’est redevable (exonération loueur R-020). Quand le véhicule est attribué à une entreprise utilisatrice, c’est elle qui devient redevable, au prorata de son utilisation.',
+        );
     }
 }

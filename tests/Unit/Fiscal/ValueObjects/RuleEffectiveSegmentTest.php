@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\ValueObjects;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\FiscalRule;
 use App\Fiscal\ValueObjects\RuleEffectiveSegment;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
@@ -117,5 +120,15 @@ final class RuleEffectiveSegmentStubRule implements FiscalRule
     public function legalBasis(): array
     {
         return [];
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Bareme,
+            title: 'Test stub',
+            pitch: 'Stub utilisé en tests · non rendu en UI.',
+        );
     }
 }

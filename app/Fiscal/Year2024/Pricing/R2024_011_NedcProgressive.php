@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Pricing;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\HomologationMethod;
@@ -12,7 +14,10 @@ use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\BracketRange;
+use App\Fiscal\ValueObjects\ProgressiveBracketRow;
+use App\Fiscal\ValueObjects\ProgressiveBracketsTable;
 use App\Fiscal\ValueObjects\ProgressiveScale;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-011 - Barème CO₂ NEDC 2024 (CIBS art. L. 421-121).
@@ -108,5 +113,32 @@ final readonly class R2024_011_NedcProgressive implements PricingRule
         return $context
             ->withCo2FullYearTariff($tariff)
             ->withAppliedRule($this->ruleCode());
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Bareme,
+            title: 'Barème CO₂ NEDC (véhicules 2004-2020)',
+            pitch: 'Même mécanique que WLTP, mais avec des seuils plus bas car la norme NEDC mesure des émissions plus optimistes.',
+            body: 'Tarif progressif à tarif marginal identique dans sa logique au barème WLTP. Les tranches sont décalées vers le bas : à tarif équivalent, on atteint une tranche donnée avec moins de grammes mesurés en NEDC qu’en WLTP.',
+            progressiveBrackets: new ProgressiveBracketsTable(
+                unit: 'g CO₂/km',
+                header: ['Tranche', 'Tarif marginal'],
+                rows: [
+                    new ProgressiveBracketRow(label: 'Jusqu’à 12', rate: '0 €/g'),
+                    new ProgressiveBracketRow(label: 'De 13 à 45', rate: '1 €/g'),
+                    new ProgressiveBracketRow(label: 'De 46 à 52', rate: '2 €/g'),
+                    new ProgressiveBracketRow(label: 'De 53 à 79', rate: '3 €/g'),
+                    new ProgressiveBracketRow(label: 'De 80 à 95', rate: '4 €/g'),
+                    new ProgressiveBracketRow(label: 'De 96 à 112', rate: '10 €/g'),
+                    new ProgressiveBracketRow(label: 'De 113 à 128', rate: '50 €/g'),
+                    new ProgressiveBracketRow(label: 'De 129 à 145', rate: '60 €/g'),
+                    new ProgressiveBracketRow(label: 'À partir de 146', rate: '65 €/g'),
+                ],
+            ),
+            example: 'Peugeot 207 essence NEDC 130 g/km, utilisée 366/366 jours par B : tarif plein = 33+14+81+64+170+800+120 = 1 282 €. Taxe due = 1 282,00 €.',
+        );
     }
 }

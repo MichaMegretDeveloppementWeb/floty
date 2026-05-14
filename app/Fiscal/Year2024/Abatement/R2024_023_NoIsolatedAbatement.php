@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Abatement;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-023 · Aucun abattement isolé applicable en 2024.
@@ -73,5 +76,16 @@ final readonly class R2024_023_NoIsolatedAbatement implements InformativeRule
     public function taxesConcerned(): array
     {
         return [TaxType::Co2, TaxType::Pollutants];
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreImplicite,
+            title: 'Aucun abattement en 2024',
+            pitch: "Aucun abattement isolé ne s'applique aux deux taxes en 2024.",
+            body: "Confirmé par lecture exhaustive du CIBS et du BOFiP. En particulier : l'abattement E85 (40 % sur le taux CO₂) n'entre en vigueur qu'au 01/01/2025. Pour 2024, aucune minoration n'est à appliquer.",
+        );
     }
 }

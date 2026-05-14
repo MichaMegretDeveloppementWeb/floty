@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Classification;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-006 · Bascule sur barème PA (CO₂ manquant).
@@ -76,5 +79,16 @@ final readonly class R2024_006_PaFallback implements InformativeRule
     public function taxesConcerned(): array
     {
         return [TaxType::Co2];
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreEvenement,
+            title: 'Bascule automatique sur barème PA',
+            pitch: "Quand la donnée CO₂ attendue est manquante, l'application bascule automatiquement sur le barème Puissance Administrative.",
+            body: "Complémentaire de la règle de sélection du barème CO₂ (R-2024-005) : si un véhicule post-2020 devrait relever du WLTP mais n’a pas de CO₂ WLTP saisi, le calcul se rabat sur les CV. Un indicateur UI signale ces véhicules pour inciter l'utilisateur à compléter les données.",
+        );
     }
 }

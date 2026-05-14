@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\EnergySource;
@@ -12,6 +14,7 @@ use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
  * R-2024-016 - Exonération CO₂ électrique / hydrogène (CIBS L. 421-124).
@@ -103,5 +106,18 @@ final readonly class R2024_016_ElectricHydrogen implements ExemptionRule
         }
 
         return ExemptionVerdict::notExempt();
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Exoneration,
+            title: 'Exonération électrique / hydrogène',
+            pitch: 'Véhicules 100 % électriques ou hydrogène : exonération totale de la taxe CO₂.',
+            appliesWhen: "La source d'énergie est exclusivement électrique, hydrogène, ou une combinaison des deux. Toute source complémentaire (essence, gaz…) sortirait du champ.",
+            effect: "Taxe CO₂ = 0 € au titre de l'article L. 421-124. Pour les polluants, le véhicule est catégorie E → 0 € par effet du barème (voir R-2024-014).",
+            example: 'Tesla Model 3 électrique, utilisée 366/366 jours par ACME : taxe CO₂ 0 € + taxe polluants 0 € = total 0,00 €.',
+        );
     }
 }

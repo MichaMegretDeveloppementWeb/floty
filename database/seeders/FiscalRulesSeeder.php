@@ -143,6 +143,7 @@ final class FiscalRulesSeeder extends Seeder
             'applicability_start' => $rule->applicabilityStart()->toDateString(),
             'applicability_end' => $rule->applicabilityEnd()?->toDateString(),
             'legal_basis' => $rule->legalBasis(),
+            'pedagogical_content' => $this->pedagogicalContentArray($rule),
             'code_reference' => $this->codeReferenceFor($rule),
             'display_order' => $rule->displayOrder(),
             'is_active' => $rule->isActive(),
@@ -170,5 +171,50 @@ final class FiscalRulesSeeder extends Seeder
         return str_starts_with($relativePath, 'App/')
             ? 'app/'.substr($relativePath, 4)
             : $relativePath;
+    }
+
+    /**
+     * Sérialise le VO `RulePedagogicalContent` en array JSON-able
+     * (Phase 13 D5.12 · ADR-0022 v1.2). Format stable consommé par le
+     * DTO `FiscalRuleListItemData` et la page « Règles de calcul ».
+     *
+     * @return array<string, mixed>
+     */
+    private function pedagogicalContentArray(FiscalRuleContract $rule): array
+    {
+        $content = $rule->pedagogicalContent();
+
+        return [
+            'tab' => $content->tab->value,
+            'section' => $content->section->value,
+            'title' => $content->title,
+            'pitch' => $content->pitch,
+            'body' => $content->body,
+            'appliesWhen' => $content->appliesWhen,
+            'effect' => $content->effect,
+            'progressiveBrackets' => $content->progressiveBrackets === null ? null : [
+                'unit' => $content->progressiveBrackets->unit,
+                'header' => $content->progressiveBrackets->header,
+                'rows' => array_map(
+                    static fn ($row): array => [
+                        'label' => $row->label,
+                        'rate' => $row->rate,
+                    ],
+                    $content->progressiveBrackets->rows,
+                ),
+            ],
+            'flatBrackets' => $content->flatBrackets === null ? null : [
+                'header' => $content->flatBrackets->header,
+                'rows' => array_map(
+                    static fn ($row): array => [
+                        'category' => $row->category,
+                        'amount' => $row->amount,
+                        'note' => $row->note,
+                    ],
+                    $content->flatBrackets->rows,
+                ),
+            ],
+            'example' => $content->example,
+        ];
     }
 }

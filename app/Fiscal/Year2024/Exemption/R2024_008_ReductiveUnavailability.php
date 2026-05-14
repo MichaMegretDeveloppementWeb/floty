@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Unavailability\UnavailabilityType;
@@ -13,6 +15,7 @@ use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\Unavailability;
 use Carbon\CarbonImmutable;
 
@@ -224,5 +227,16 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         }
 
         return array_keys($dates);
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Cadre,
+            section: RuleSection::CadreEvenement,
+            title: 'Indisponibilités fiscalement réductrices',
+            pitch: 'Les jours pendant lesquels le véhicule est immobilisé ou mis en fourrière à la demande des pouvoirs publics sont retirés du numérateur du prorata.',
+            body: "Trois types d'indisponibilité réduisent la base taxable : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler après sinistre (C. route L. 327-4 / L. 327-5). Si un contrat de 91 j chevauche 10 j de fourrière publique, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà exonéré au titre de la location courte durée ne sont pas comptés deux fois. Les autres types d'indispo (maintenance, contrôle technique, fourrière privée, etc.) restent taxables.",
+        );
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Year2024\Exemption;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Enums\Vehicle\EnergySource;
@@ -14,6 +16,7 @@ use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Support\Carbon;
 
@@ -169,5 +172,18 @@ final readonly class R2024_017_ConditionalHybridExemption implements ExemptionRu
                     ? self::THRESHOLD_PA_ADJUSTED
                     : self::THRESHOLD_PA_GENERAL),
         };
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Exoneration,
+            title: 'Exonération hybride conditionnelle (valable 2024 uniquement)',
+            pitch: 'Certaines combinaisons hybrides bénéficient d’une exonération CO₂ en 2024, sous conditions de combinaison ET de seuil d’émissions.',
+            appliesWhen: "La combinaison de sources d'énergie doit être l'une des suivantes : électrique/hydrogène + gaz/GPL/essence/E85, OU gaz naturel/GPL + essence/E85. Les hybrides Diesel-électrique ne sont PAS éligibles. ET les émissions doivent respecter un seuil : ≤ 60 g/km WLTP (ou ≤ 120 si véhicule < 3 ans au 01/01/2024).",
+            effect: 'Taxe CO₂ = 0 € si les deux conditions sont remplies. La taxe polluants reste due selon la catégorie.',
+            example: 'Captur E-Tech hybride essence+électrique, WLTP 32 g/km, immat. 2022 (< 3 ans → seuil 120) : 32 ≤ 120 ✓ → exonéré. Classe E 300de hybride Diesel+électrique, WLTP 38 g/km : combinaison Diesel non listée → PAS exonéré.',
+        );
     }
 }

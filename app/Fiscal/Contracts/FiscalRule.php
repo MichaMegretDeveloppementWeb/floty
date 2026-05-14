@@ -6,6 +6,7 @@ namespace App\Fiscal\Contracts;
 
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
@@ -104,4 +105,17 @@ interface FiscalRule
      * directement `isActive(): bool { return false; }`.
      */
     public function isActive(): bool;
+
+    /**
+     * Contenu pédagogique riche (titre, pitch, body, exemple,
+     * barèmes formatés) affiché sur la page « Règles de calcul »
+     * (User/FiscalRules/Index · cf. {@see RulePedagogicalContent}).
+     *
+     * **Phase 13 D5.12 (ADR-0022 finalisée v1.2)** · ce contenu
+     * vivait initialement dans `resources/js/data/fiscalRulesContent.ts`
+     * (couche TS séparée). Désormais migré dans chaque classe Rule
+     * pour conformité doctrine « 1 règle = 1 classe PHP, source de
+     * vérité unique, y compris pour le contenu pédagogique ».
+     */
+    public function pedagogicalContent(): RulePedagogicalContent;
 }

@@ -10,6 +10,7 @@ use App\Fiscal\Contracts\ExemptionRule;
 use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\Contract;
 use Carbon\CarbonImmutable;
 
@@ -146,5 +147,10 @@ final readonly class R2024_021_WithOptOuts implements ExemptionRule, LcdQualifie
     public function applicabilityEnd(): ?CarbonImmutable
     {
         return $this->wrapped->applicabilityEnd();
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return $this->wrapped->pedagogicalContent();
     }
 }

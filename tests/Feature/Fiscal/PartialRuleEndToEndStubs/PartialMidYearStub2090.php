@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Fiscal\PartialRuleEndToEndStubs;
 
+use App\Enums\Fiscal\RuleSection;
+use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\FiscalRule;
+use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
@@ -69,5 +72,15 @@ final readonly class PartialMidYearStub2090 implements FiscalRule
     public function applicabilityEnd(): ?CarbonImmutable
     {
         return CarbonImmutable::create(2090, 12, 31);
+    }
+
+    public function pedagogicalContent(): RulePedagogicalContent
+    {
+        return new RulePedagogicalContent(
+            tab: RuleTab::Calcul,
+            section: RuleSection::Bareme,
+            title: 'Test stub',
+            pitch: 'Stub utilisé en tests · non rendu en UI.',
+        );
     }
 }
