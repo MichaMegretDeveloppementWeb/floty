@@ -10,14 +10,20 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Container\Container;
 
 /**
- * Catalogue des classes règles fiscales par année (cf. ADR-0006 § 3 :
- * logique en code, métadonnées en base).
+ * Catalogue des classes règles fiscales par année (cf. ADR-0006 § 3
+ * rev. Phase 13 D5.14 · classes PHP source de vérité unique, BDD =
+ * index minimal).
  *
  * Le mapping `year → list<class-string<FiscalRule>>` est posé au boot
  * via {@see register()} (typiquement dans `FiscalServiceProvider`). Le
- * pipeline interroge {@see rulesForYear()} qui résout les classes en
- * instances via le container Laravel - chaque règle est instanciée en
- * singleton (les règles sont sans état).
+ * pipeline ET l'affichage interrogent {@see rulesForYear()} qui résout
+ * les classes en instances via le container Laravel - chaque règle est
+ * instanciée en singleton (les règles sont sans état).
+ *
+ * **Doctrine ADR-0022 v1.4** · ce registry est l'unique point d'entrée
+ * de lecture des règles fiscales en production. La table BDD
+ * `fiscal_rules` n'est qu'un index minimal (id + rule_code +
+ * fiscal_year + code_reference) maintenu par le seeder en miroir.
  */
 class FiscalRuleRegistry
 {
