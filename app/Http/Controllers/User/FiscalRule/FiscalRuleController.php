@@ -11,6 +11,7 @@ use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Services\FiscalRule\FiscalRuleQueryService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -32,6 +33,8 @@ final class FiscalRuleController extends Controller
 
     public function index(Request $request): Response
     {
+        Gate::authorize('view-fiscal-rules');
+
         $year = $this->resolveYear($request);
 
         return Inertia::render('User/FiscalRules/Index/Index', [

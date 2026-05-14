@@ -24,6 +24,7 @@ use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Http\Controllers\Controller;
+use App\Models\Vehicle;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Vehicle\VehicleQueryService;
 use App\Support\EnumOptions;
@@ -31,6 +32,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -48,6 +50,8 @@ final class VehicleController extends Controller
 
     public function index(VehicleIndexQueryData $query): Response
     {
+        Gate::authorize('viewAny', Vehicle::class);
+
         // Sélecteur année **local** à la page (chantier η Phase 3) ·
         // bornes alimentées par `AvailableYearsResolver` (scope global
         // dynamique calculé depuis les contrats, pas la config statique
@@ -86,6 +90,9 @@ final class VehicleController extends Controller
 
     public function show(int $vehicle, Request $request): Response
     {
+        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        Gate::authorize('view', $vehicleModel);
+
         // Doctrine temporelle (chantier η Phase 2 · refonte onglets) :
         // `usageStats` est initialisé sur `currentYear`. Le sélecteur
         // de la carte Utilisation (Vue d'ensemble) reste en lazy fetch
@@ -139,6 +146,11 @@ final class VehicleController extends Controller
      */
     public function usageStats(int $vehicle, Request $request): JsonResponse
     {
+        // Endpoint lazy JSON · Gate::authorize sur la collection plutôt
+        // que sur l'instance. Si le véhicule n'existe pas, le service
+        // retourne un DTO neutre (pas de 404 sur ces endpoints lazy).
+        Gate::authorize('viewAny', Vehicle::class);
+
         $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
 
         return response()->json($this->vehicles->usageStatsForYear($vehicle, $year));
@@ -151,6 +163,9 @@ final class VehicleController extends Controller
      */
     public function fullYearBreakdown(int $vehicle, Request $request): JsonResponse
     {
+        // Endpoint lazy JSON · Gate::authorize sur la collection (cf. usageStats).
+        Gate::authorize('viewAny', Vehicle::class);
+
         $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
 
         return response()->json($this->vehicles->fullYearBreakdownForYear($vehicle, $year));
@@ -158,6 +173,8 @@ final class VehicleController extends Controller
 
     public function create(): Response
     {
+        Gate::authorize('create', Vehicle::class);
+
         return Inertia::render('User/Vehicles/Create/Index', [
             'options' => $this->buildFormOptions(),
         ]);
@@ -165,6 +182,8 @@ final class VehicleController extends Controller
 
     public function store(StoreVehicleData $data): RedirectResponse
     {
+        Gate::authorize('create', Vehicle::class);
+
         $this->createVehicle->execute($data);
 
         return redirect()
@@ -174,6 +193,9 @@ final class VehicleController extends Controller
 
     public function edit(int $vehicle): Response
     {
+        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        Gate::authorize('update', $vehicleModel);
+
         return Inertia::render('User/Vehicles/Edit/Index', [
             'vehicle' => $this->vehicles->findVehicleData($vehicle),
             'options' => $this->buildFormOptions(),
@@ -182,6 +204,9 @@ final class VehicleController extends Controller
 
     public function update(int $vehicle, UpdateVehicleData $data): RedirectResponse
     {
+        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        Gate::authorize('update', $vehicleModel);
+
         $this->updateVehicle->execute($vehicle, $data);
 
         return redirect()
@@ -191,6 +216,9 @@ final class VehicleController extends Controller
 
     public function exit(int $vehicle, ExitVehicleData $data): RedirectResponse
     {
+        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        Gate::authorize('update', $vehicleModel);
+
         $this->exitVehicle->execute($vehicle, $data);
 
         return redirect()
@@ -200,6 +228,9 @@ final class VehicleController extends Controller
 
     public function reactivate(int $vehicle): RedirectResponse
     {
+        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        Gate::authorize('update', $vehicleModel);
+
         $this->reactivateVehicle->execute($vehicle);
 
         return redirect()

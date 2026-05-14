@@ -98,10 +98,7 @@ final class ContractController extends Controller
 
     public function show(int $contract): Response
     {
-        $contractModel = Contract::query()->find($contract);
-        if ($contractModel === null) {
-            throw new NotFoundHttpException;
-        }
+        $contractModel = Contract::query()->findOrFail($contract);
         Gate::authorize('view', $contractModel);
 
         $contractData = $this->contracts->findContractData($contract);
@@ -142,10 +139,7 @@ final class ContractController extends Controller
 
     public function edit(int $contract): Response
     {
-        $contractModel = Contract::query()->find($contract);
-        if ($contractModel === null) {
-            throw new NotFoundHttpException;
-        }
+        $contractModel = Contract::query()->findOrFail($contract);
         Gate::authorize('update', $contractModel);
 
         $contractData = $this->contracts->findContractData($contract);
@@ -181,10 +175,7 @@ final class ContractController extends Controller
 
     public function update(int $contract, UpdateContractData $data): RedirectResponse
     {
-        $contractModel = Contract::query()->find($contract);
-        if ($contractModel === null) {
-            throw new NotFoundHttpException;
-        }
+        $contractModel = Contract::query()->findOrFail($contract);
         Gate::authorize('update', $contractModel);
 
         $this->updateContract->execute($contract, $data);
@@ -196,10 +187,7 @@ final class ContractController extends Controller
 
     public function destroy(int $contract): RedirectResponse
     {
-        $contractModel = Contract::query()->find($contract);
-        if ($contractModel === null) {
-            throw new NotFoundHttpException;
-        }
+        $contractModel = Contract::query()->findOrFail($contract);
         Gate::authorize('delete', $contractModel);
 
         $this->deleteContract->execute($contract);

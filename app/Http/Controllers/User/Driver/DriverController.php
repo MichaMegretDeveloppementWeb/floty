@@ -32,6 +32,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -46,6 +47,8 @@ final class DriverController extends Controller
 
     public function index(DriverIndexQueryData $query): Response
     {
+        Gate::authorize('viewAny', Driver::class);
+
         return Inertia::render('User/Drivers/Index/Index', [
             'drivers' => $this->drivers->listPaginated($query),
             'options' => [
@@ -62,6 +65,8 @@ final class DriverController extends Controller
 
     public function show(Driver $driver): Response
     {
+        Gate::authorize('view', $driver);
+
         $detail = $this->drivers->detail($driver->id);
 
         if ($detail === null) {
@@ -81,6 +86,8 @@ final class DriverController extends Controller
 
     public function create(): Response
     {
+        Gate::authorize('create', Driver::class);
+
         return Inertia::render('User/Drivers/Create/Index', [
             'companies' => $this->companyOptions(),
         ]);
@@ -88,6 +95,8 @@ final class DriverController extends Controller
 
     public function store(StoreDriverData $data, CreateDriverAction $action): RedirectResponse
     {
+        Gate::authorize('create', Driver::class);
+
         $driver = $action->execute($data);
 
         return redirect()
@@ -97,6 +106,8 @@ final class DriverController extends Controller
 
     public function edit(Driver $driver): Response
     {
+        Gate::authorize('update', $driver);
+
         return Inertia::render('User/Drivers/Edit/Index', [
             'driver' => [
                 'id' => $driver->id,
@@ -108,6 +119,8 @@ final class DriverController extends Controller
 
     public function update(Driver $driver, UpdateDriverData $data, UpdateDriverAction $action): RedirectResponse
     {
+        Gate::authorize('update', $driver);
+
         $action->execute($driver, $data);
 
         return redirect()
@@ -117,6 +130,8 @@ final class DriverController extends Controller
 
     public function destroy(Driver $driver, SoftDeleteDriverAction $action): RedirectResponse
     {
+        Gate::authorize('delete', $driver);
+
         try {
             $action->execute($driver);
         } catch (DriverDeletionBlockedException $e) {
@@ -133,6 +148,8 @@ final class DriverController extends Controller
         AddDriverCompanyMembershipData $data,
         AddDriverCompanyMembershipAction $action,
     ): RedirectResponse {
+        Gate::authorize('update', $driver);
+
         $action->execute($driver, $data);
 
         return back()->with('toast-success', 'Conducteur ajouté à l\'entreprise.');
@@ -144,6 +161,8 @@ final class DriverController extends Controller
         LeaveDriverCompanyMembershipData $data,
         LeaveDriverCompanyMembershipAction $action,
     ): RedirectResponse {
+        Gate::authorize('update', $driver);
+
         try {
             $action->execute($driver, $companyId, $data);
         } catch (DriverMembershipNotFoundException $e) {
@@ -160,6 +179,8 @@ final class DriverController extends Controller
         int $pivotId,
         DetachDriverCompanyMembershipAction $action,
     ): RedirectResponse {
+        Gate::authorize('update', $driver);
+
         try {
             $action->execute($pivotId);
         } catch (DriverMembershipNotFoundException $e) {
@@ -182,6 +203,8 @@ final class DriverController extends Controller
         UpdateDriverCompanyMembershipData $data,
         UpdateDriverCompanyMembershipAction $action,
     ): RedirectResponse {
+        Gate::authorize('update', $driver);
+
         try {
             $action->execute($pivotId, $data);
         } catch (DriverMembershipNotFoundException $e) {
@@ -206,6 +229,8 @@ final class DriverController extends Controller
         int $companyId,
         Request $request,
     ): JsonResponse {
+        Gate::authorize('view', $driver);
+
         $validated = $request->validate([
             'leftAt' => ['required', 'date_format:Y-m-d'],
         ]);
@@ -225,6 +250,8 @@ final class DriverController extends Controller
      */
     public function contractOptions(Request $request): JsonResponse
     {
+        Gate::authorize('viewAny', Driver::class);
+
         $validated = $request->validate([
             'company_id' => ['required', 'integer', 'exists:companies,id'],
             'start_date' => ['required', 'date'],

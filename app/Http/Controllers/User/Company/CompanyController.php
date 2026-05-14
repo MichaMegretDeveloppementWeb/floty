@@ -24,6 +24,7 @@ use App\Services\Fiscal\Declaration\DeclarationLifecycleResolver;
 use App\Services\Fiscal\Declaration\PendingDeclarationsResolver;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -46,6 +47,8 @@ final class CompanyController extends Controller
 
     public function index(CompanyIndexQueryData $query): Response
     {
+        Gate::authorize('viewAny', Company::class);
+
         // Sélecteur année **local** à la page (chantier η Phase 3) ·
         // bornes alimentées par `AvailableYearsResolver` (scope global
         // dynamique calculé depuis les contrats, pas la config statique
@@ -81,6 +84,8 @@ final class CompanyController extends Controller
 
     public function show(Company $company, ContractIndexQueryData $contractsQuery, Request $request): Response
     {
+        Gate::authorize('view', $company);
+
         $detail = $this->companies->detail($company->id);
 
         if ($detail === null) {
@@ -187,6 +192,8 @@ final class CompanyController extends Controller
 
     public function create(): Response
     {
+        Gate::authorize('create', Company::class);
+
         return Inertia::render('User/Companies/Create/Index', [
             'colors' => $this->companies->colorOptions(),
         ]);
@@ -194,6 +201,8 @@ final class CompanyController extends Controller
 
     public function store(StoreCompanyData $data): RedirectResponse
     {
+        Gate::authorize('create', Company::class);
+
         try {
             $this->createCompany->execute($data);
         } catch (CompanyShortCodeCollisionException $e) {
@@ -209,6 +218,8 @@ final class CompanyController extends Controller
 
     public function edit(Company $company): Response
     {
+        Gate::authorize('update', $company);
+
         $detail = $this->companies->detail($company->id);
 
         if ($detail === null) {
@@ -223,6 +234,8 @@ final class CompanyController extends Controller
 
     public function update(Company $company, UpdateCompanyData $data): RedirectResponse
     {
+        Gate::authorize('update', $company);
+
         $this->updateCompany->execute($company->id, $data);
 
         return redirect()

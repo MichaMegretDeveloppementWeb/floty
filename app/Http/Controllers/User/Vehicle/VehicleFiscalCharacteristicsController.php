@@ -13,7 +13,9 @@ use App\Data\User\Vehicle\UpdateFiscalCharacteristicsData;
 use App\DTO\Vehicle\FiscalCharacteristicsImpact;
 use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
+use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * CRUD complet sur l'historique fiscal d'un véhicule (modale
@@ -33,6 +35,8 @@ final class VehicleFiscalCharacteristicsController extends Controller
         StoreFiscalCharacteristicsData $data,
         CreateFiscalCharacteristicsAction $action,
     ): RedirectResponse {
+        Gate::authorize('update', $vehicle);
+
         $action->execute($vehicle, $data);
 
         $impactSummary = $this->summarizeImpacts($action->lastImpacts());
@@ -51,6 +55,9 @@ final class VehicleFiscalCharacteristicsController extends Controller
         UpdateFiscalCharacteristicsData $data,
         UpdateFiscalCharacteristicsAction $action,
     ): RedirectResponse {
+        $vfc = VehicleFiscalCharacteristics::query()->findOrFail($vehicleFiscalCharacteristic);
+        Gate::authorize('update', $vfc);
+
         $action->execute($vehicleFiscalCharacteristic, $data);
 
         $impactSummary = $this->summarizeImpacts($action->lastImpacts());
@@ -69,6 +76,9 @@ final class VehicleFiscalCharacteristicsController extends Controller
         DeleteFiscalCharacteristicsData $data,
         DeleteFiscalCharacteristicsAction $action,
     ): RedirectResponse {
+        $vfc = VehicleFiscalCharacteristics::query()->findOrFail($vehicleFiscalCharacteristic);
+        Gate::authorize('delete', $vfc);
+
         $action->execute(
             $vehicleFiscalCharacteristic,
             $data->extensionStrategy,

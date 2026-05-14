@@ -12,6 +12,7 @@ use App\Data\User\Planning\PreviewTaxesInputData;
 use App\Data\User\Planning\WeekQueryData;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Planning\PlanningHeatmapService;
 use App\Services\Planning\WeekDetailService;
@@ -19,6 +20,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -45,6 +47,8 @@ final class PlanningController extends Controller
 
     public function index(Request $request): Response
     {
+        Gate::authorize('view-planning');
+
         $year = $this->resolveYear($request);
 
         return Inertia::render(
@@ -67,6 +71,8 @@ final class PlanningController extends Controller
      */
     public function companyIndexRoot(Request $request): RedirectResponse|Response
     {
+        Gate::authorize('view-planning');
+
         $first = $this->companies->findAllOrderedByName()->first();
 
         if ($first === null) {
@@ -94,6 +100,8 @@ final class PlanningController extends Controller
      */
     public function companyIndex(Request $request, Company $company): Response
     {
+        Gate::authorize('view-planning');
+
         $year = $this->resolveYear($request);
 
         return Inertia::render(
@@ -115,6 +123,8 @@ final class PlanningController extends Controller
      */
     public function week(WeekQueryData $query, Request $request): JsonResponse
     {
+        Gate::authorize('view-planning');
+
         $year = $this->resolveYear($request);
 
         $payload = $query->companyId !== null
@@ -133,6 +143,8 @@ final class PlanningController extends Controller
      */
     public function previewTaxes(PreviewTaxesInputData $input, Request $request): JsonResponse
     {
+        Gate::authorize('view-planning');
+
         $year = $request->query('year') !== null
             ? $this->resolveYear($request)
             : (int) CarbonImmutable::parse($input->dates[0])->year;
@@ -151,6 +163,8 @@ final class PlanningController extends Controller
      */
     public function storeBulk(BulkStoreContractsData $input): JsonResponse
     {
+        Gate::authorize('create', Contract::class);
+
         $createdIds = $this->bulkCreateContracts->execute($input);
 
         return response()->json(['createdIds' => $createdIds]);
