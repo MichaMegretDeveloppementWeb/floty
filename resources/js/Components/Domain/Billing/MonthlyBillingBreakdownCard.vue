@@ -20,7 +20,7 @@ import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
 import {
     divergenceTooltip,
     entryHasDivergence,
-} from '@/Composables/Billing/useDivergenceDetection';
+} from '@/Utils/Billing/divergenceDetection';
 import { formatEur } from '@/Utils/format/formatEur';
 import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 

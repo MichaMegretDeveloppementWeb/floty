@@ -2,7 +2,7 @@
 import { Pencil, Trash2 } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
-import { useFiscalHistoryTimeline } from '@/Composables/Vehicle/Show/useFiscalHistoryTimeline';
+import { formatFiscalHistoryPeriod } from '@/Utils/Vehicle/fiscalHistoryPeriod';
 import {
     energySourceLabel,
     fiscalCharacteristicsChangeReasonLabel,
@@ -21,7 +21,6 @@ const emit = defineEmits<{
     delete: [vfc: Vfc];
 }>();
 
-const { formatPeriod } = useFiscalHistoryTimeline();
 
 const co2OrPa = (item: Vfc): string => {
     if (item.co2Wltp !== null) {
@@ -60,7 +59,7 @@ const co2OrPa = (item: Vfc): string => {
                 <div class="flex min-w-0 flex-col gap-1">
                     <div class="flex flex-wrap items-center gap-2">
                         <span class="text-sm font-semibold text-slate-900">
-                            {{ formatPeriod(item) }}
+                            {{ formatFiscalHistoryPeriod(item) }}
                         </span>
                         <Badge v-if="item.isCurrent" tone="emerald">
                             Courante
