@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Contracts\Repositories\User\FiscalDeclaration;
 
 use App\Data\User\FiscalDeclaration\InvalidationReasonData;
+use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 
 /**
@@ -76,6 +77,36 @@ interface FiscalDeclarationWriteRepositoryInterface
      * pour annuler un brouillon créé par erreur ou abandonné.
      */
     public function softDelete(int $declarationId): void;
+
+    /**
+     * Soft delete avec **lock pessimiste + double-check atomique** sur
+     * l'invariant `status ∈ $allowedStatuses` (Lot 5 D2 · ferme la
+     * fenêtre TOCTOU entre `findById` côté Action et `delete` côté
+     * repo). Pattern aligné sur {@see markAsGenerated()}.
+     *
+     * Throws `DomainException` si la déclaration n'existe plus ou si
+     * son statut n'est plus dans la liste autorisée (mutation
+     * concurrente · ex. autre utilisateur a déjà supprimé ou généré).
+     *
+     * Retourne le model verrouillé chargé (rafraîchi de la BDD), pour
+     * que l'appelant puisse lire `company_id`, `fiscal_year`,
+     * `superseded_by_id`, `status` etc. dans la même transaction
+     * sans relecture.
+     *
+     * @param  list<FiscalDeclarationStatus>  $allowedStatuses
+     */
+    public function softDeleteWithLock(int $declarationId, array $allowedStatuses): FiscalDeclaration;
+
+    /**
+     * Lock pessimiste sur le predecessor d'un brouillon en cours de
+     * suppression (Lot 5 D2). Doit être appelé **dans la même
+     * transaction** que {@see softDeleteWithLock()} pour garantir
+     * qu'aucune autre opération ne modifie le predecessor entre la
+     * détection du lien `superseded_by_id` et son éventuelle
+     * réactivation/déliaison. Retourne `null` si le predecessor
+     * n'existe plus (cas dégénéré · race condition extrême).
+     */
+    public function lockPredecessor(int $predecessorId): ?FiscalDeclaration;
 
     /**
      * Ré-active une déclaration obsolète : remet `is_obsolete = false`,

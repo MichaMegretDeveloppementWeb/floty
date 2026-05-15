@@ -42,10 +42,57 @@ final class DiscardDraftDeclarationActionTest extends TestCase
             ->draft()
             ->create();
 
-        $this->action->execute($draft->id);
+        $originalStatus = $this->action->execute($draft->id);
 
+        self::assertSame(FiscalDeclarationStatus::Draft, $originalStatus);
         self::assertNotNull($draft->fresh()->deleted_at);
         self::assertNull(FiscalDeclaration::query()->find($draft->id));
+    }
+
+    #[Test]
+    public function lot5_d2_retourne_le_statut_original_deferred(): void
+    {
+        // Lot 5 D2 · permet au controller de produire un toast
+        // contextualisé (« Mise en attente annulée. ») au lieu d'un
+        // « Brouillon supprimé. » indifférencié.
+        $deferred = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->deferred()
+            ->create();
+
+        $originalStatus = $this->action->execute($deferred->id);
+
+        self::assertSame(FiscalDeclarationStatus::Deferred, $originalStatus);
+        self::assertNotNull($deferred->fresh()->deleted_at);
+    }
+
+    #[Test]
+    public function lot5_d2_lock_pessimiste_rejette_si_statut_devient_generated_concurrence(): void
+    {
+        // Lot 5 D2 · simulation TOCTOU · si une mutation concurrente
+        // change le statut Draft → Generated entre la lecture initiale
+        // et le delete, le `softDeleteWithLock` doit lancer une
+        // DomainException explicite (pas un soft delete silencieux d'une
+        // Generated).
+        $draft = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        // Simule la mutation concurrente · on bascule en Generated avant
+        // d'appeler l'Action. C'est l'équivalent fonctionnel d'une race
+        // condition gagnée par un autre thread.
+        $draft->update([
+            'status' => FiscalDeclarationStatus::Generated,
+            'generated_at' => now(),
+        ]);
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessageMatches('/mutation concurrente/');
+
+        $this->action->execute($draft->id);
     }
 
     #[Test]
@@ -164,7 +211,9 @@ final class DiscardDraftDeclarationActionTest extends TestCase
             ->create();
 
         $this->expectException(DomainException::class);
-        $this->expectExceptionMessageMatches('/brouillon/');
+        // Lot 5 D2 · le message vient désormais du `softDeleteWithLock`
+        // (statut hors liste autorisée = mutation concurrente côté repo).
+        $this->expectExceptionMessageMatches('/n\'existe plus ou n\'est plus dans un statut supprimable/');
 
         $this->action->execute($generated->id);
     }

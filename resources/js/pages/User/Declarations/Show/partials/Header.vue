@@ -38,20 +38,40 @@ const canDiscard = computed<boolean>(
     () => props.declaration.status === 'draft' || props.declaration.status === 'deferred',
 );
 
+const isDeferred = computed<boolean>(() => props.declaration.status === 'deferred');
+
+// Lot 5 D2 · libellé adaptatif selon le statut · « Annuler la mise en
+// attente » sur un Deferred est plus juste que « Supprimer » qui
+// connote une perte définitive alors que techniquement on annule
+// seulement la mise de côté.
+const discardButtonLabel = computed<string>(
+    () => (isDeferred.value ? 'Annuler la mise en attente' : 'Supprimer'),
+);
+
+const discardConfirmTitle = computed<string>(
+    () => (isDeferred.value ? 'Annuler la mise en attente ?' : 'Supprimer le brouillon ?'),
+);
+
+const discardConfirmButton = computed<string>(
+    () => (isDeferred.value ? 'Annuler la mise en attente' : 'Supprimer'),
+);
+
 const discarding = ref<boolean>(false);
 const discardConfirmOpen = ref<boolean>(false);
 
 const discardConfirmMessage = computed<string>(() => {
     const predRef = props.predecessorReference;
+    const subject = isDeferred.value ? 'Cette déclaration mise en attente' : 'Ce brouillon';
+
     if (predRef === null || predRef === undefined) {
-        return 'Ce brouillon sera supprimé. Aucune autre déclaration n\'est concernée. Cette action est irréversible.';
+        return `${subject} sera supprimé${isDeferred.value ? 'e' : ''}. Aucune autre déclaration n'est concernée. Cette action est irréversible.`;
     }
 
     if (props.predecessorWillReactivate) {
-        return `Ce brouillon sera supprimé et la déclaration ${predRef} redeviendra active (la modification volontaire en cours sera annulée).`;
+        return `${subject} sera supprimé${isDeferred.value ? 'e' : ''} et la déclaration ${predRef} redeviendra active (la modification volontaire en cours sera annulée).`;
     }
 
-    return `Ce brouillon sera supprimé. La déclaration ${predRef} restera obsolète et pourra être régénérée plus tard.`;
+    return `${subject} sera supprimé${isDeferred.value ? 'e' : ''}. La déclaration ${predRef} restera obsolète et pourra être régénérée plus tard.`;
 });
 
 function requestDiscard(): void {
@@ -116,16 +136,16 @@ function confirmDiscard(): void {
             >
                 <LoaderCircle v-if="discarding" :size="16" :stroke-width="1.75" class="animate-spin" />
                 <Trash2 v-else :size="16" :stroke-width="1.75" />
-                Supprimer
+                {{ discardButtonLabel }}
             </Button>
         </div>
     </header>
 
     <ConfirmModal
         v-model:open="discardConfirmOpen"
-        title="Supprimer le brouillon ?"
+        :title="discardConfirmTitle"
         :message="discardConfirmMessage"
-        confirm-label="Supprimer"
+        :confirm-label="discardConfirmButton"
         cancel-label="Annuler"
         tone="danger"
         @confirm="confirmDiscard"

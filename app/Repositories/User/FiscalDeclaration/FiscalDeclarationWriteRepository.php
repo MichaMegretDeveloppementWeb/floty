@@ -104,6 +104,39 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
         $declaration->delete();
     }
 
+    public function softDeleteWithLock(int $declarationId, array $allowedStatuses): FiscalDeclaration
+    {
+        $statusValues = array_map(
+            static fn (FiscalDeclarationStatus $s): string => $s->value,
+            $allowedStatuses,
+        );
+
+        $declaration = FiscalDeclaration::query()
+            ->whereKey($declarationId)
+            ->whereIn('status', $statusValues)
+            ->lockForUpdate()
+            ->first();
+
+        if ($declaration === null) {
+            throw new DomainException(sprintf(
+                'Suppression impossible : la déclaration %d n\'existe plus ou n\'est plus dans un statut supprimable (mutation concurrente).',
+                $declarationId,
+            ));
+        }
+
+        $declaration->delete();
+
+        return $declaration;
+    }
+
+    public function lockPredecessor(int $predecessorId): ?FiscalDeclaration
+    {
+        return FiscalDeclaration::query()
+            ->whereKey($predecessorId)
+            ->lockForUpdate()
+            ->first();
+    }
+
     public function reactivate(int $declarationId): void
     {
         FiscalDeclaration::query()

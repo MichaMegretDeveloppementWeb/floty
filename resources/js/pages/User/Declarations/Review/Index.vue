@@ -70,18 +70,37 @@ const predecessorReference = computed<string | null>(
 const fiscalSummaryRef = ref<InstanceType<typeof FiscalSummaryCard> | null>(null);
 
 // Phase 13 D5.10.H · bouton Supprimer dans le header Review.
+// Lot 5 D2 · libellés conditionnels selon Draft / Deferred (un Deferred
+// est sémantiquement « mis de côté », pas un brouillon en cours
+// d'édition · le mot « Supprimer » connote une perte définitive là où
+// l'utilisateur attend « annuler la mise en attente »).
 const discarding = ref<boolean>(false);
 const discardConfirmOpen = ref<boolean>(false);
 
+const discardButtonLabel = computed<string>(
+    () => (isDeferred.value ? 'Annuler la mise en attente' : 'Supprimer'),
+);
+
+const discardConfirmTitle = computed<string>(
+    () => (isDeferred.value ? 'Annuler la mise en attente ?' : 'Supprimer le brouillon ?'),
+);
+
+const discardConfirmButton = computed<string>(
+    () => (isDeferred.value ? 'Annuler la mise en attente' : 'Supprimer'),
+);
+
 const discardConfirmMessage = computed<string>(() => {
     const predRef = predecessorReference.value;
+    const subject = isDeferred.value ? 'Cette déclaration mise en attente' : 'Ce brouillon';
+    const verb = isDeferred.value ? 'supprimée' : 'supprimé';
+
     if (predRef === null) {
-        return 'Ce brouillon sera supprimé. Aucune autre déclaration n\'est concernée. Cette action est irréversible.';
+        return `${subject} sera ${verb}. Aucune autre déclaration n'est concernée. Cette action est irréversible.`;
     }
     if (predecessorWillReactivate.value) {
-        return `Ce brouillon sera supprimé et la déclaration ${predRef} redeviendra active (la modification volontaire en cours sera annulée).`;
+        return `${subject} sera ${verb} et la déclaration ${predRef} redeviendra active (la modification volontaire en cours sera annulée).`;
     }
-    return `Ce brouillon sera supprimé. La déclaration ${predRef} restera obsolète et pourra être régénérée plus tard.`;
+    return `${subject} sera ${verb}. La déclaration ${predRef} restera obsolète et pourra être régénérée plus tard.`;
 });
 
 function requestDiscard(): void {
@@ -186,7 +205,7 @@ function handleScrollTo(fingerprint: string): void {
                     >
                         <LoaderCircle v-if="discarding" :size="16" :stroke-width="1.75" class="animate-spin" />
                         <Trash2 v-else :size="16" :stroke-width="1.75" />
-                        Supprimer
+                        {{ discardButtonLabel }}
                     </Button>
                 </div>
             </header>
@@ -243,9 +262,9 @@ function handleScrollTo(fingerprint: string): void {
 
         <ConfirmModal
             v-model:open="discardConfirmOpen"
-            title="Supprimer le brouillon ?"
+            :title="discardConfirmTitle"
             :message="discardConfirmMessage"
-            confirm-label="Supprimer"
+            :confirm-label="discardConfirmButton"
             cancel-label="Annuler"
             tone="danger"
             @confirm="confirmDiscard"

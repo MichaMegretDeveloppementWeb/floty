@@ -16,16 +16,17 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Supprime un brouillon de déclaration fiscale et gère intelligemment
- * la chaîne `superseded_by_id` côté predecessor (Phase 13 D5.10.E).
+ * la chaîne `superseded_by_id` côté predecessor (Phase 13 D5.10.E,
+ * durci Lot 5 D2 · locks pessimistes).
  *
  * Pipeline atomique :
- *   1. Vérifie que la déclaration cible est un brouillon non finalisé
- *      (status Draft OU Deferred). Refuse toute suppression d'une
- *      Generated (active ou obsolète) · les déclarations émises sont
- *      immuables conformément à ADR-0008 et l'audit Doctrine.
- *   2. Recherche un éventuel predecessor (`X.superseded_by_id = draft.id`).
- *   3. Soft delete le brouillon.
- *   4. Si predecessor existe :
+ *   1. Lock pessimiste + soft delete sur la déclaration cible avec
+ *      double-check du statut autorisé (Draft OU Deferred). Refuse
+ *      toute suppression d'une Generated (active ou obsolète) · les
+ *      déclarations émises sont immuables conformément à ADR-0008.
+ *   2. Recherche un éventuel predecessor et le verrouille pessimiste
+ *      pour la même transaction.
+ *   3. Si predecessor existe :
  *      - Si **tous** ses `obsolete_reasons` sont du type
  *        `VoluntaryModification` (cf. {@see ModifyGeneratedDeclarationAction}) ·
  *        ré-active complètement le predecessor (S5 retrouvé). C'est le
@@ -40,6 +41,11 @@ use Illuminate\Support\Facades\Log;
  * défaut, ce qui libère le slot « active » du couple `(company, year)`
  * et permet à `CreateDraftDeclarationAction::findActiveForCompanyYear`
  * de retourner null à la prochaine tentative de préparation.
+ *
+ * Lot 5 D2 · les locks pessimistes (Draft + Predecessor) ferment la
+ * fenêtre TOCTOU entre le `findById` (qui n'apparait plus) et les
+ * mutations. Indispensable en production où plusieurs utilisateurs
+ * peuvent agir en concurrence sur la même entreprise.
  */
 final readonly class DiscardDraftDeclarationAction
 {
@@ -49,27 +55,29 @@ final readonly class DiscardDraftDeclarationAction
         private FiscalReviewDecisionWriteRepositoryInterface $decisionsWriter,
     ) {}
 
-    public function execute(int $draftDeclarationId): void
+    public function execute(int $draftDeclarationId): FiscalDeclarationStatus
     {
-        DB::transaction(function () use ($draftDeclarationId): void {
-            $draft = $this->reader->findById($draftDeclarationId);
+        return DB::transaction(function () use ($draftDeclarationId): FiscalDeclarationStatus {
+            // Lot 5 D2 · lock + double-check status atomique. Throws
+            // DomainException si la déclaration n'existe plus ou si son
+            // statut n'est plus supprimable (mutation concurrente).
+            $draft = $this->writer->softDeleteWithLock($draftDeclarationId, [
+                FiscalDeclarationStatus::Draft,
+                FiscalDeclarationStatus::Deferred,
+            ]);
 
-            if ($draft === null) {
-                throw new DomainException(sprintf('Déclaration %d introuvable.', $draftDeclarationId));
+            $originalStatus = $draft->status;
+
+            // Lot 5 D2 · lock pessimiste sur le predecessor pour
+            // prévenir une mutation concurrente entre la lecture du lien
+            // et la décision reactivate vs unlink. Le predecessor est la
+            // déclaration qui pointe vers ce draft via `superseded_by_id`
+            // (rev. ADR-0015 § D8 chaîne d'obsolescence).
+            $predecessor = null;
+            $found = $this->reader->findPredecessorOf($draft->id);
+            if ($found !== null) {
+                $predecessor = $this->writer->lockPredecessor($found->id);
             }
-
-            // Phase 13 D5.10.H · Draft ET Deferred sont supprimables ·
-            // ce sont des brouillons non finalisés. Seules les Generated
-            // sont protégées par l'immuabilité fiscale.
-            if (! in_array($draft->status, [FiscalDeclarationStatus::Draft, FiscalDeclarationStatus::Deferred], true)) {
-                throw new DomainException(
-                    'Seul un brouillon (statut Draft ou Deferred) peut être supprimé. Les déclarations générées sont immuables.',
-                );
-            }
-
-            $predecessor = $this->reader->findPredecessorOf($draft->id);
-
-            $this->writer->softDelete($draft->id);
 
             // D5.10.R · Efface les décisions de revue (clusters tranchés,
             // exclusions de contrats, justifications) du couple
@@ -83,7 +91,8 @@ final readonly class DiscardDraftDeclarationAction
             // couple · ses décisions sont déjà figées dans son
             // `generated_snapshot_payload`. Les rows
             // `fiscal_review_decisions` servent uniquement à reprendre
-            // un brouillon en cours.
+            // un brouillon en cours (cf. décision Lot 5 D2 sur F-19D2-003 ·
+            // la purge globale est intentionnelle, pas un bug).
             $deletedDecisions = $this->decisionsWriter->deleteByCompanyYear(
                 $draft->company_id,
                 $draft->fiscal_year,
@@ -112,11 +121,14 @@ final readonly class DiscardDraftDeclarationAction
                 'draft_id' => $draft->id,
                 'company_id' => $draft->company_id,
                 'fiscal_year' => $draft->fiscal_year,
+                'original_status' => $originalStatus->value,
                 'predecessor_id' => $predecessor?->id,
                 'predecessor_reactivated' => $predecessorReactivated,
                 'review_decisions_deleted' => $deletedDecisions,
                 'actor_user_id' => Auth::id() ?? 0,
             ]);
+
+            return $originalStatus;
         });
     }
 }

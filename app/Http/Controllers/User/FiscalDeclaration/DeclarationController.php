@@ -390,6 +390,12 @@ final class DeclarationController extends Controller
      * Phase 13 D5.10.E · suppression d'un brouillon. Soft delete +
      * gestion intelligente du predecessor : ré-activation si l'obsolescence
      * était purement volontaire, simple unlink sinon.
+     *
+     * Lot 5 D2 · l'Action retourne le statut original du brouillon
+     * (Draft ou Deferred) pour permettre un toast contextualisé · un
+     * Deferred est sémantiquement « mis de côté », pas un brouillon
+     * en cours d'édition, donc le message reflète l'annulation de la
+     * mise en attente plutôt qu'une suppression sèche.
      */
     public function destroy(
         FiscalDeclaration $declaration,
@@ -398,14 +404,18 @@ final class DeclarationController extends Controller
         Gate::authorize('update', $declaration);
 
         try {
-            $action->execute($declaration->id);
+            $originalStatus = $action->execute($declaration->id);
         } catch (DomainException $e) {
             return back()->with('toast-error', $e->getMessage());
         }
 
+        $message = $originalStatus === FiscalDeclarationStatus::Deferred
+            ? 'Mise en attente annulée.'
+            : 'Brouillon supprimé.';
+
         return redirect()
             ->route('user.declarations.index')
-            ->with('toast-success', 'Brouillon supprimé.');
+            ->with('toast-success', $message);
     }
 
     public function download(FiscalDeclaration $declaration, DeclarationPdfStorage $storage): Response
