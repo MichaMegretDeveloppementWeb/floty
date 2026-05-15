@@ -20,12 +20,14 @@ use Tests\TestCase;
 /**
  * Tests d'intégration du BillingCalculator (Phase 14.C facturation V1.2).
  *
- * Exécutés sur SQLite mémoire via `RefreshDatabase` plutôt qu'avec des
- * mocks de repositories : la mécanique de découpage civil + dédup des
- * jours par véhicule mérite un vrai cycle DB pour valider le pipeline
- * (cf. doctrine projet : tests Action/Service contre la vraie DB).
+ * Exécutés sur MySQL (`floty_testing`) via `RefreshDatabase` plutôt qu'avec
+ * des mocks de repositories · la mécanique de découpage civil + dédup des
+ * jours par véhicule mérite un vrai cycle DB pour valider le pipeline (cf.
+ * doctrine projet · tests Action/Service contre la vraie DB, MySQL en
+ * tests pour bénéficier des CHECK constraints, triggers, FK RESTRICT et
+ * autres features non portables SQLite).
  *
- * Tarifs constants : 90 € / 500 € / 1 800 € (cents : 9 000 / 50 000 / 180 000).
+ * Tarifs constants · 90 € / 500 € / 1 800 € (cents · 9 000 / 50 000 / 180 000).
  */
 final class BillingCalculatorTest extends TestCase
 {
