@@ -47,4 +47,25 @@ final class SharedPropsTest extends TestCase
                 ->etc(),
             );
     }
+
+    #[Test]
+    public function shared_props_pour_guest_exposent_auth_user_null(): void
+    {
+        // Garde-fou Lot 6 D9 (F-32-010) · vérifier que la branche guest
+        // de `HandleInertiaRequests::resolveAuthenticatedUser()` ne fuit
+        // pas un objet CurrentUserData non-nul (ce qui pourrait casser
+        // le typage TS `auth.user: User | null` côté front).
+        $this->get('/login')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('appName')
+                ->where('auth.user', null)
+                ->has('flash', fn (AssertableInertia $f) => $f
+                    ->where('success', null)
+                    ->where('error', null)
+                    ->where('warning', null)
+                    ->where('info', null))
+                ->etc(),
+            );
+    }
 }

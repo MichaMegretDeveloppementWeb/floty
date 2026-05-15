@@ -135,11 +135,9 @@ final class FiscalInvariantsTest extends TestCase
                 'notes' => null,
             ], true);
 
-            // Reconstruire la liste de contrats : remplacer le base par l'étendu
-            $extendedContracts = array_map(
-                static fn (Contract $c): Contract => $c === $base ? $c : $c,
-                $scenario->contracts,
-            );
+            // Reconstruire la liste de contrats · remplacer le base par l'étendu
+            // (match par fingerprint start/end/company plutôt qu'identité d'objet
+            // pour rester robuste si la collection est ré-instanciée).
             $extendedContracts = [];
             foreach ($scenario->contracts as $c) {
                 $extendedContracts[] = ($c->start_date->equalTo($base->start_date)

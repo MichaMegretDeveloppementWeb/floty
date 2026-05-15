@@ -20,6 +20,8 @@ use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Support\Carbon;
+use Random\Engine\Mt19937;
+use Random\Randomizer;
 
 /**
  * Générateur de scénarios fiscaux valides pour les tests d'invariants
@@ -51,11 +53,17 @@ final class FiscalScenarioGenerator
 {
     private static int $plateCounter = 0;
 
+    private readonly Randomizer $rng;
+
     public function __construct(private readonly int $seed)
     {
-        // Initialise le générateur déterministe · toute construction
-        // d'une nouvelle instance avec la même seed reproduit le scénario.
-        mt_srand($seed);
+        // Initialise un générateur déterministe **isolé** (Lot 6 D9 ·
+        // F-32-011) · toute construction d'une nouvelle instance avec la
+        // même seed reproduit le scénario, sans polluer l'état global PHP
+        // de `mt_rand` (l'ancien `mt_srand($seed)` re-seed le RNG global
+        // et perturbait les autres tests utilisant `mt_rand`).
+        // Mt19937 conservé pour stabilité bit-à-bit avec l'ancien comportement.
+        $this->rng = new Randomizer(new Mt19937($seed));
     }
 
     public function generate(int $year): FiscalScenario
@@ -93,7 +101,7 @@ final class FiscalScenarioGenerator
      */
     private function makeVfcs(Vehicle $vehicle, int $year): array
     {
-        $count = mt_rand(1, 3);
+        $count = $this->rng->getInt(1, 3);
         $yearStart = Carbon::parse(sprintf('%04d-01-01', $year));
         $yearEnd = Carbon::parse(sprintf('%04d-12-31', $year));
 
@@ -102,7 +110,7 @@ final class FiscalScenarioGenerator
         for ($i = 1; $i < $count; $i++) {
             // Marge ±30 j pour éviter pivots aux bornes (qui réduisent
             // l'intérêt de la segmentation).
-            $offset = mt_rand(45, 320);
+            $offset = $this->rng->getInt(45, 320);
             $pivots[] = $yearStart->copy()->addDays($offset);
         }
         // Tri croissant des pivots
@@ -157,7 +165,7 @@ final class FiscalScenarioGenerator
             'euro_standard' => EuroStandard::Euro6,
             'pollutant_category' => PollutantCategory::Category1,
             'homologation_method' => HomologationMethod::Wltp,
-            'co2_wltp' => mt_rand(50, 220),
+            'co2_wltp' => $this->rng->getInt(50, 220),
             'taxable_horsepower' => 6,
             'handicap_access' => false,
             'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
@@ -173,19 +181,19 @@ final class FiscalScenarioGenerator
      */
     private function makeContracts(Vehicle $vehicle, int $year): array
     {
-        $count = mt_rand(1, 3);
+        $count = $this->rng->getInt(1, 3);
         $yearStart = Carbon::parse(sprintf('%04d-01-01', $year));
         $yearEnd = Carbon::parse(sprintf('%04d-12-31', $year));
         $daysInYear = (int) $yearStart->diffInDays($yearEnd) + 1;
 
         $contracts = [];
         for ($i = 0; $i < $count; $i++) {
-            $offset = mt_rand(0, max(0, $daysInYear - 31));
-            $duration = mt_rand(20, max(20, $daysInYear - $offset - 1));
+            $offset = $this->rng->getInt(0, max(0, $daysInYear - 31));
+            $duration = $this->rng->getInt(20, max(20, $daysInYear - $offset - 1));
             $start = $yearStart->copy()->addDays($offset);
             $end = $start->copy()->addDays($duration - 1);
             // Bias LLD majoritaire (75% LLD, 25% LCD)
-            $type = mt_rand(0, 3) === 0 ? ContractType::Lcd : ContractType::Lld;
+            $type = $this->rng->getInt(0, 3) === 0 ? ContractType::Lcd : ContractType::Lld;
             $contracts[] = $this->syntheticContract(
                 $vehicle,
                 companyId: $i + 1,
@@ -207,7 +215,7 @@ final class FiscalScenarioGenerator
      */
     private function makeUnavailabilities(Vehicle $vehicle, int $year): array
     {
-        $count = mt_rand(0, 3);
+        $count = $this->rng->getInt(0, 3);
         if ($count === 0) {
             return [];
         }
@@ -230,8 +238,8 @@ final class FiscalScenarioGenerator
         for ($i = 0; $i < $count; $i++) {
             // Tente jusqu'à 5 fois de placer une plage non-chevauchante.
             for ($attempt = 0; $attempt < 5; $attempt++) {
-                $offset = mt_rand(0, max(0, $daysInYear - 15));
-                $duration = mt_rand(3, 14);
+                $offset = $this->rng->getInt(0, max(0, $daysInYear - 15));
+                $duration = $this->rng->getInt(3, 14);
                 $start = $yearStart->copy()->addDays($offset);
                 $end = $start->copy()->addDays($duration - 1);
 
@@ -244,7 +252,7 @@ final class FiscalScenarioGenerator
                 }
                 if (! $overlaps) {
                     $usedRanges[] = [$start, $end];
-                    $type = $types[mt_rand(0, count($types) - 1)];
+                    $type = $types[$this->rng->getInt(0, count($types) - 1)];
                     $unavailabilities[] = $this->syntheticUnavailability(
                         $vehicle,
                         $start->toDateString(),
