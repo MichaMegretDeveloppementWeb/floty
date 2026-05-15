@@ -289,6 +289,23 @@ interface ContractReadRepositoryInterface
     public function findContractDateRangesForVehicle(int $vehicleId): Collection;
 
     /**
+     * Lot 4 D04 (F-34-006) · pour une entreprise donnée, retourne le
+     * nombre de contrats par driver via le pivot N:N `contract_drivers`.
+     * Un contrat avec 2 drivers compte 1 fois pour chacun.
+     *
+     * Format retour · `[driver_id => count]` · clé = `driver_id` (int),
+     * valeur = nombre de contrats associés au couple `(driver, company)`.
+     * Drivers sans contrat sur cette company sont **absents** du tableau
+     * (pas une entrée à 0).
+     *
+     * Utilisé par {@see App\Services\Company\CompanyQueryService::detail}
+     * pour enrichir chaque driver row avec son `contractsCount`.
+     *
+     * @return array<int, int>
+     */
+    public function countContractsByDriverForCompany(int $companyId): array;
+
+    /**
      * Bornes globales des années sur les contrats **non soft-deletés**.
      *
      * Source de vérité du sélecteur d'année dynamique exposé par

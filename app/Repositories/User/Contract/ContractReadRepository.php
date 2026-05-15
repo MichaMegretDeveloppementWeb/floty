@@ -430,6 +430,24 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get(['id', 'company_id', 'start_date', 'end_date']);
     }
 
+    public function countContractsByDriverForCompany(int $companyId): array
+    {
+        // Lot 4 D04 (F-34-006) · agrégation pivot N:N `contract_drivers`
+        // pour compter les contrats par driver sur une company donnée.
+        //
+        // Le scope SoftDeletes du model Contract est appliqué
+        // automatiquement via Eloquent · les contrats `deleted_at IS NOT
+        // NULL` sont exclus du JOIN sans `whereNull` explicite.
+        return Contract::query()
+            ->join('contract_drivers', 'contracts.id', '=', 'contract_drivers.contract_id')
+            ->where('contracts.company_id', $companyId)
+            ->selectRaw('contract_drivers.driver_id, COUNT(*) as cnt')
+            ->groupBy('contract_drivers.driver_id')
+            ->pluck('cnt', 'driver_id')
+            ->map(static fn ($v): int => (int) $v)
+            ->all();
+    }
+
     public function findActiveYearsForCompany(int $companyId): array
     {
         $rows = Contract::query()

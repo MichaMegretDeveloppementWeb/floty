@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Company;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\Shared\YearScopeData;
@@ -38,7 +39,6 @@ use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 use Spatie\LaravelData\DataCollection;
 
 /**
@@ -56,6 +56,7 @@ final class CompanyQueryService
         private readonly CompanyReadRepositoryInterface $companies,
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly ContractQueryService $contracts,
+        private readonly ContractReadRepositoryInterface $contractsRepo,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
@@ -204,15 +205,11 @@ final class CompanyQueryService
         // Compte de contrats par driver dans la company donnée. Pivot
         // N:N `contract_drivers` (cf. chantier #3 multi-conducteurs) :
         // un contrat avec 2 drivers compte 1 fois pour chacun.
-        $contractsCountByDriver = DB::table('contract_drivers')
-            ->join('contracts', 'contracts.id', '=', 'contract_drivers.contract_id')
-            ->where('contracts.company_id', $companyId)
-            ->whereNull('contracts.deleted_at')
-            ->selectRaw('contract_drivers.driver_id, COUNT(*) as cnt')
-            ->groupBy('contract_drivers.driver_id')
-            ->pluck('cnt', 'driver_id')
-            ->map(fn ($v): int => (int) $v)
-            ->all();
+        //
+        // Lot 4 D04 (F-34-006) · agrégation déléguée à
+        // `ContractReadRepository::countContractsByDriverForCompany`
+        // (conformité ADR-0013 R3 · pas de SQL direct dans les Services).
+        $contractsCountByDriver = $this->contractsRepo->countContractsByDriverForCompany($companyId);
 
         $driverRows = $company->drivers->map(function ($driver) use ($contractsCountByDriver): CompanyDriverRowData {
             /** @var DriverCompany $pivot */
