@@ -38,23 +38,27 @@ final class FiscalRiskSettings extends Model
     protected $table = 'fiscal_risk_settings';
 
     /**
-     * Singleton applicatif : retourne l'unique ligne, création
-     * automatique avec les valeurs par défaut au premier accès. Pattern
-     * `firstOrCreate` atomique (cf. `BillingSettings::singleton`).
+     * Singleton applicatif · retourne l'unique ligne, création
+     * automatique avec les valeurs par défaut au premier accès.
+     *
+     * Pattern `firstOrCreate(['id' => 1], [...])` aligné sur
+     * `BillingSettings::singleton` (Lot 6 D5 · F-31-015) · le `id = 1`
+     * force MySQL à rejeter une éventuelle 2ᵉ insertion concurrente par
+     * PK violation, garantissant l'unicité atomique côté BDD.
      *
      * Les défauts sont matérialisés ici (et non délégués aux `default()`
-     * SQL des colonnes) pour rester portables : selon le driver (SQLite,
+     * SQL des colonnes) pour rester portables · selon le driver (SQLite,
      * MySQL ≥8, etc.), un `INSERT` sans colonne explicite n'honore pas
      * forcément les défauts SQL. Source de vérité unique côté PHP.
      */
     public static function singleton(): self
     {
-        return self::query()->firstOrCreate([], [
+        return self::unguarded(fn (): self => self::query()->firstOrCreate(['id' => 1], [
             'max_interval' => 15,
             'threshold_low' => 30,
             'threshold_high' => 90,
             'count_high' => 5,
-        ]);
+        ]));
     }
 
     /**

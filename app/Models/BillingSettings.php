@@ -37,17 +37,21 @@ final class BillingSettings extends Model
     protected $table = 'billing_settings';
 
     /**
-     * Singleton applicatif : retourne l'unique ligne (création automatique
+     * Singleton applicatif · retourne l'unique ligne (création automatique
      * si la table est vide). Tous les caller du domaine Invoice passent
      * par cette méthode pour lire les paramètres émetteur.
      *
-     * Implémenté via `firstOrCreate([], [])` (chantier T4 / Phase 14.P)
-     * pour réduire la fenêtre de race condition entre deux requêtes
-     * concurrentes · l'ancienne version `first()` puis `new + save()` était
-     * vulnérable à la double création. La query reste atomique côté Laravel.
+     * Implémenté via `firstOrCreate(['id' => 1], [])` (Lot 6 D5 · F-31-015)
+     * pour fermer la fenêtre de race condition entre deux requêtes HTTP
+     * concurrentes au démarrage à froid (table vide) · le `id = 1` force
+     * MySQL à rejeter la 2ᵉ insertion par PK violation, Laravel récupère
+     * atomiquement la ligne créée par la 1ʳᵉ. Pas de doublon possible.
+     *
+     * L'ancienne version `firstOrCreate([], [])` (T4 / 14.P) puis
+     * `first()` + `new save()` (origine) étaient vulnérables.
      */
     public static function singleton(): self
     {
-        return self::query()->firstOrCreate([], []);
+        return self::unguarded(fn (): self => self::query()->firstOrCreate(['id' => 1], []));
     }
 }
