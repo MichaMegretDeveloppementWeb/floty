@@ -5,22 +5,33 @@
  * Matrice véhicules × 52 semaines avec couleur de densité sur l'échelle
  * blue-50 → blue-950 du design system (8 paliers · 0 → 7 jours utilisés).
  *
- * Layout (refonte D5.10.X · frozen panes Excel-style) ·
- *   - Un seul conteneur scrollable (`max-h-[50em] overflow-auto`).
- *   - Colonne gauche (mini-fiche véhicule) en `sticky left-0` + bg-white ·
- *     reste visible quand on scroll horizontalement.
- *   - Colonne droite (taxe annuelle + jours) en `sticky right-0` + bg-white ·
- *     idem.
- *   - Header (mois) en `sticky top-0` + bg-white · reste visible quand
- *     on scroll verticalement.
- *   - Coins (top-left + top-right) en `sticky top+left/right` avec
- *     z-index supérieur pour couvrir les autres sticky pendant le scroll
- *     croisé.
+ * Layout (refonte D5.10.X · frozen panes Excel-style avec `<table>`) ·
+ *   - Un seul conteneur scrollable extérieur · `max-h-[50em]
+ *     overflow-auto`. Scrollbars V à droite et H en bas du conteneur,
+ *     toujours dans le viewport (50em ≈ 800px).
+ *   - Vraie `<table>` HTML avec `border-collapse: separate` (requis pour
+ *     que `position: sticky` fonctionne sur les cells). Largeurs des
+ *     colonnes calculées par le navigateur · garantit l'alignement
+ *     parfait entre header et body (résout les bugs décalage).
+ *   - Colonne gauche (VehicleInfo) en `position: sticky; left: 0` +
+ *     `bg-white` · reste visible pendant le scroll H.
+ *   - Colonne droite (VehicleSummary) en `position: sticky; right: 0` +
+ *     `bg-white` · idem.
+ *   - Header (labels mensuels) en `position: sticky; top: 0` · reste
+ *     visible pendant le scroll V.
+ *   - Coins (top-left + top-right) en sticky double avec z-index
+ *     supérieur · couvrent les autres sticky pendant le scroll croisé.
  *
- * Bénéfice UX · la barre de scroll H est toujours en bas du conteneur
- * (max-h 50em), donc dans le viewport · plus besoin de scroller toute
- * la page jusqu'au bas du tableau pour atteindre la scrollbar
- * horizontale.
+ * Z-index policy ·
+ *   - thead cells coin (sticky top + left/right) · z-30
+ *   - thead cells centre (sticky top seul) · z-20
+ *   - tbody cells sticky (left/right seul) · z-10
+ *   - tbody cells centre · z-0 (default)
+ *
+ * Bénéfice UX · la barre de scroll H est toujours dans le viewport,
+ * peu importe la position verticale dans la liste de véhicules. Plus
+ * besoin de descendre jusqu'au dernier véhicule pour atteindre la
+ * scrollbar horizontale.
  *
  * Clic sur une cellule émet `cell-click` avec { vehicleId, week }.
  *
@@ -140,79 +151,86 @@ const totalDays = computed((): number =>
         </div>
 
         <!--
-            Container heatmap · scrollable cross-axis, max-h limit.
-            Frozen panes obtenus via `position: sticky` cross-pinné
-            (top/left, top/right, plain top, plain left/right). Le
-            `overflow: auto` sur les deux axes met les scrollbars sur
-            les bords du conteneur (toujours visibles dans le viewport
-            grâce à `max-h-[50em]`).
+            Container heatmap · max-h 50em + overflow auto sur les deux
+            axes. Le `<table>` interne gère l'alignement des colonnes
+            entre rows automatiquement, ce qui résout les bugs décalage
+            header / cellules / colonne droite du précédent essai en
+            flex.
         -->
         <div class="max-h-[50em] overflow-auto rounded-xl border border-slate-200 bg-white">
-            <!--
-                Header row · `sticky top-0` pour rester visible pendant
-                le scroll vertical. Z-30 sur les coins, Z-20 sur le
-                centre pour rester au-dessus du body pendant le scroll
-                vertical.
-            -->
-            <div class="sticky top-0 z-20 flex bg-white">
-                <!-- Coin top-left · sticky cross · couvre VehicleInfo pendant le scroll H -->
-                <div class="sticky left-0 z-30 shrink-0 bg-white pt-4 pl-4 pr-3 pb-2">
-                    <div class="h-4" />
-                </div>
-                <!-- Header centre · labels mensuels (largeur fixe HEATMAP_GRID_WIDTH) -->
-                <div class="shrink-0 pt-4 pb-2">
-                    <div
-                        :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
-                        class="flex h-4"
-                    >
-                        <div
-                            v-for="month in monthLabels"
-                            :key="month.name"
-                            :style="{
-                                width: `${month.weeks * HEATMAP_CELL_WIDTH}px`,
-                            }"
-                            class="text-xs font-medium text-slate-500"
+            <table class="border-separate border-spacing-0">
+                <thead>
+                    <tr>
+                        <!--
+                            Coin top-left · sticky top + sticky left.
+                            z-30 pour couvrir les sticky purs pendant
+                            le scroll croisé.
+                        -->
+                        <th class="sticky top-0 left-0 z-30 bg-white border-b border-slate-100 pt-4 pl-4 pr-3 pb-2 text-left font-normal">
+                            <div class="h-4" />
+                        </th>
+                        <!-- Header centre · labels mensuels alignés sur les cellules -->
+                        <th
+                            class="sticky top-0 z-20 bg-white border-b border-slate-100 pt-4 pb-2 text-left font-normal"
+                            :style="{ width: `${HEATMAP_GRID_WIDTH}px`, minWidth: `${HEATMAP_GRID_WIDTH}px` }"
                         >
-                            {{ month.name }}
-                        </div>
-                    </div>
-                </div>
-                <!-- Coin top-right · sticky cross -->
-                <div class="sticky right-0 z-30 shrink-0 bg-white pt-4 pl-3 pr-4 pb-2">
-                    <div class="h-4" />
-                </div>
-            </div>
-
-            <!--
-                Body rows · une row par véhicule. Chaque row contient
-                3 cells (sticky left + centre scrollable + sticky right).
-                Le `border-t border-slate-100` sur le row container
-                trace la ligne horizontale entre véhicules.
-            -->
-            <div
-                v-for="view in vehicleViews"
-                :key="view.id"
-                class="flex border-t border-slate-100"
-            >
-                <!-- Sticky left · VehicleInfo -->
-                <div class="sticky left-0 z-10 shrink-0 bg-white pl-4 pr-3">
-                    <VehicleInfo :vehicle-view="view" />
-                </div>
-                <!-- Centre · WeekCellsRow (largeur fixe HEATMAP_GRID_WIDTH) -->
-                <div class="shrink-0">
-                    <div :style="{ width: `${HEATMAP_GRID_WIDTH}px` }">
-                        <WeekCellsRow
-                            :vehicle-view="view"
-                            :fiscal-year="fiscalYear"
-                            @cell-click="$emit('cell-click', $event)"
-                        />
-                    </div>
-                </div>
-                <!-- Sticky right · VehicleSummary -->
-                <div class="sticky right-0 z-10 shrink-0 bg-white pl-3 pr-4">
-                    <VehicleSummary :vehicle-view="view" />
-                </div>
-            </div>
+                            <div class="flex h-4">
+                                <div
+                                    v-for="month in monthLabels"
+                                    :key="month.name"
+                                    :style="{
+                                        width: `${month.weeks * HEATMAP_CELL_WIDTH}px`,
+                                    }"
+                                    class="text-xs font-medium text-slate-500"
+                                >
+                                    {{ month.name }}
+                                </div>
+                            </div>
+                        </th>
+                        <!-- Coin top-right · sticky top + sticky right · z-30 -->
+                        <th class="sticky top-0 right-0 z-30 bg-white border-b border-slate-100 pt-4 pl-3 pr-4 pb-2 text-right font-normal">
+                            <div class="h-4" />
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr
+                        v-for="(view, idx) in vehicleViews"
+                        :key="view.id"
+                    >
+                        <!--
+                            Sticky left · VehicleInfo. `border-t` sur
+                            chaque cell de chaque row (sauf row 0) pour
+                            tracer la séparation horizontale entre
+                            véhicules. Avec `border-collapse: separate`
+                            on doit gérer le border au niveau cell.
+                        -->
+                        <td
+                            class="sticky left-0 z-10 bg-white pl-4 pr-3 align-middle"
+                            :class="idx > 0 && 'border-t border-slate-100'"
+                        >
+                            <VehicleInfo :vehicle-view="view" />
+                        </td>
+                        <td
+                            class="align-middle"
+                            :class="idx > 0 && 'border-t border-slate-100'"
+                            :style="{ width: `${HEATMAP_GRID_WIDTH}px`, minWidth: `${HEATMAP_GRID_WIDTH}px` }"
+                        >
+                            <WeekCellsRow
+                                :vehicle-view="view"
+                                :fiscal-year="fiscalYear"
+                                @cell-click="$emit('cell-click', $event)"
+                            />
+                        </td>
+                        <td
+                            class="sticky right-0 z-10 bg-white pl-3 pr-4 align-middle"
+                            :class="idx > 0 && 'border-t border-slate-100'"
+                        >
+                            <VehicleSummary :vehicle-view="view" />
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </template>
