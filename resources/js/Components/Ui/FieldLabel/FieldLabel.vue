@@ -6,7 +6,7 @@ defineProps<{
 </script>
 
 <template>
-    <label :for="$props.for" class="text-md font-medium text-slate-600">
+    <label :for="$props.for" class="text-base font-medium text-slate-600">
         <slot />
         <span v-if="required" aria-hidden="true" class="ml-0.5 text-rose-600">
             *

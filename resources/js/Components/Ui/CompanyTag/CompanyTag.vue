@@ -53,7 +53,7 @@ const dotClasses = computed<string>(() => {
     <span
         v-if="compact"
         :class="[
-            'inline-flex min-h-[25px] min-w-[25px] items-center justify-center rounded-full text-[10px] font-semibold tracking-tight text-white uppercase',
+            'inline-flex size-[25px] items-center justify-center rounded-full text-[10px] font-semibold tracking-tight text-white uppercase',
             dotClasses,
         ]"
         :aria-label="name"
@@ -67,7 +67,7 @@ const dotClasses = computed<string>(() => {
     >
         <span
             :class="[
-                'flex min-h-[25px] min-w-[25px] items-center justify-center rounded-full text-[10px] font-semibold tracking-tight text-white uppercase',
+                'flex size-[25px] items-center justify-center rounded-full text-[10px] font-semibold tracking-tight text-white uppercase',
                 dotClasses,
             ]"
             aria-hidden="true"

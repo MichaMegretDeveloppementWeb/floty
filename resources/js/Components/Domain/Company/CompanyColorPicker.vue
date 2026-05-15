@@ -78,7 +78,7 @@ function selectColor(value: string): void {
         <span
             v-if="label"
             :id="labelId"
-            class="text-md font-medium text-slate-600"
+            class="text-base font-medium text-slate-600"
         >
             {{ label }}
             <span

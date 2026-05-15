@@ -17,7 +17,10 @@
 import { FileText, X } from 'lucide-vue-next';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
+import { useToasts } from '@/Composables/Shared/useToasts';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
+
+const toasts = useToasts();
 
 const MAX_DOCUMENTS = 5;
 const MAX_SIZE_BYTES = 10 * 1024 * 1024;
@@ -99,6 +102,7 @@ function close(): void {
                 :max-files="MAX_DOCUMENTS - files.length"
                 multiple
                 @files-added="onFilesAdded"
+                @rejected="(msg: string) => toasts.push({ tone: 'error', title: 'Fichier rejeté', description: msg })"
             />
 
             <p

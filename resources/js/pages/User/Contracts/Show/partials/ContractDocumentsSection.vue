@@ -6,9 +6,12 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
+import { useToasts } from '@/Composables/Shared/useToasts';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import { useContractDocuments } from '@/Composables/Contract/useContractDocuments';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
+
+const toasts = useToasts();
 
 type Document = App.Data.User.Contract.ContractDocumentData;
 
@@ -171,6 +174,7 @@ async function confirmDelete(): Promise<void> {
                 :disabled="uploading"
                 multiple
                 @files-added="onFilesAdded"
+                @rejected="(msg: string) => toasts.push({ tone: 'error', title: 'Fichier rejeté', description: msg })"
             />
             <p
                 v-if="uploading"

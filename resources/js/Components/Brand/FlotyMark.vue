@@ -28,6 +28,6 @@ withDefaults(
         />
         <circle cx="16" cy="4.5" r="2.25" fill="currentColor" />
         <circle cx="26" cy="21.5" r="2.25" fill="currentColor" />
-        <circle cx="6" cy="21.5" r="2.25" fill="var(--color-blue-500)" />
+        <circle cx="6" cy="21.5" r="2.25" class="fill-blue-500" />
     </svg>
 </template>

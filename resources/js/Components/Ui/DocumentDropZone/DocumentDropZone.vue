@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Upload } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
-import { useToasts } from '@/Composables/Shared/useToasts';
 
 const props = withDefaults(
     defineProps<{
@@ -24,9 +23,15 @@ const props = withDefaults(
 
 const emit = defineEmits<{
     'files-added': [files: File[]];
+    /**
+     * F-41-011 (Lot 7 D12) · le composant Ui n'importe plus
+     * `useToasts` directement (couche UI ne doit pas connaître les
+     * concerns globaux). Le parent décide quoi faire des erreurs
+     * (toast, inline message, log, etc.).
+     */
+    'rejected': [message: string];
 }>();
 
-const toasts = useToasts();
 const inputRef = ref<HTMLInputElement | null>(null);
 const isDragOver = ref<boolean>(false);
 
@@ -130,11 +135,7 @@ function handleFiles(files: File[]): void {
     }
 
     for (const message of errors) {
-        toasts.push({
-            tone: 'error',
-            title: 'Fichier rejeté',
-            description: message,
-        });
+        emit('rejected', message);
     }
 
     if (valid.length > 0) {

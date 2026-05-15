@@ -7,6 +7,7 @@ import FiscalDetailModal from '@/Components/Domain/Contract/FiscalDetailModal.vu
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
+import { useToasts } from '@/Composables/Shared/useToasts';
 import { useContractFiscalPreview } from '@/Composables/Contract/useContractFiscalPreview';
 import { useContractForm } from '@/Composables/Contract/useContractForm';
 import { storePendingDocuments } from '@/Composables/Contract/useContractFormPendingDocuments';
@@ -14,6 +15,8 @@ import { index as contractsIndexRoute } from '@/routes/user/contracts';
 import { indexById } from '@/Utils/Common/indexById';
 import { computeContractDurationDays } from '@/Utils/Contract/contractDuration';
 import ContractFormFields from './partials/ContractFormFields.vue';
+
+const toasts = useToasts();
 
 const props = defineProps<{
     options: {
@@ -185,6 +188,7 @@ async function submitWithDocuments(): Promise<void> {
                             :max-files="MAX_DOCUMENTS - pendingFiles.length"
                             multiple
                             @files-added="onFilesAdded"
+                @rejected="(msg: string) => toasts.push({ tone: 'error', title: 'Fichier rejeté', description: msg })"
                         />
                     </section>
 

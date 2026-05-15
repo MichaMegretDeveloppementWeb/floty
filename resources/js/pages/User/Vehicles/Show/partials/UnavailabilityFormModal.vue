@@ -5,6 +5,7 @@ import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
+import { useToasts } from '@/Composables/Shared/useToasts';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
@@ -15,6 +16,8 @@ import {
     useUnavailabilityFormDocuments,
 } from '@/Composables/Unavailability/useUnavailabilityFormDocuments';
 import { useUnavailabilityForm } from '@/Composables/Vehicle/Show/useUnavailabilityForm';
+
+const toasts = useToasts();
 
 type Unavailability = App.Data.User.Unavailability.UnavailabilityData;
 
@@ -250,6 +253,7 @@ const {
                         :max-files="remainingSlots"
                         multiple
                         @files-added="onFilesAdded"
+                @rejected="(msg: string) => toasts.push({ tone: 'error', title: 'Fichier rejeté', description: msg })"
                     />
 
                     <p
