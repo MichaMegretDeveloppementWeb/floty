@@ -37,3 +37,8 @@ yarn-error.log
 /CLAUDE.md
 /project-management
 /.claude
+
+# Mockups HTML statiques — accessibles uniquement en local via
+# floty.test/mockups-fiscal/*.html, jamais déployés en prod (donc
+# jamais accessibles depuis https://floty.com/mockups-fiscal/...).
+/public/mockups-fiscal
