@@ -10,6 +10,7 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\Year2026\Abatement\R2026_023_E85Abatement;
 use App\Fiscal\Year2026\Classification\R2026_004_FiscalTypeQualification;
 use App\Fiscal\Year2026\Classification\R2026_005_Co2MethodSelection;
+use App\Fiscal\Year2026\Classification\R2026_006_PaFallback;
 use App\Fiscal\Year2026\Classification\R2026_013_PollutantCategoryAssignment;
 use App\Fiscal\Year2026\Classification\R2026_013bis_PollutantCategoryAssignment;
 use App\Fiscal\Year2026\Exemption\R2026_008_ReductiveUnavailability;
@@ -18,6 +19,7 @@ use App\Fiscal\Year2026\Exemption\R2026_016_ElectricHydrogen;
 use App\Fiscal\Year2026\Exemption\R2026_018_OigExemption;
 use App\Fiscal\Year2026\Exemption\R2026_018bis_OigExemption;
 use App\Fiscal\Year2026\Exemption\R2026_019_IndividualBusinessExemption;
+use App\Fiscal\Year2026\Exemption\R2026_020_RenterExemption;
 use App\Fiscal\Year2026\Exemption\R2026_021_ShortTermRental;
 use App\Fiscal\Year2026\Exemption\R2026_026_SpecificActivityExemptions;
 use App\Fiscal\Year2026\Pricing\R2026_010_WltpProgressive;
@@ -28,6 +30,10 @@ use App\Fiscal\Year2026\Pricing\R2026_014bis_PollutantsFlat;
 use App\Fiscal\Year2026\Transversal\R2026_001_TaxpayerAndTriggeringEvent;
 use App\Fiscal\Year2026\Transversal\R2026_002_DailyProrata;
 use App\Fiscal\Year2026\Transversal\R2026_003_FinalRounding;
+use App\Fiscal\Year2026\Transversal\R2026_007_VehicleCharacteristicsHistorization;
+use App\Fiscal\Year2026\Transversal\R2026_009_MidYearDecommissioning;
+use App\Fiscal\Year2026\Transversal\R2026_022_ContractualPeriodVsEffectiveUsage;
+use App\Fiscal\Year2026\Transversal\R2026_024_CritAirGuard;
 use App\Fiscal\Year2026\Transversal\R2026_025_WeightedAverageTariff;
 use App\Fiscal\Year2026\Transversal\R2026_027_MileageReimbursementCoefficient;
 use App\Fiscal\Year2026\Transversal\R2026_028_DeclarationModalities;
@@ -153,8 +159,9 @@ final class Year2026Boot implements FiscalYearBoot
      * - **Pas de R-2026-031-bis** · évolution +14 € IDF mars 2026 portée
      *   par une version unique (à confirmer par audit Chrome live Z4.3).
      *
-     * **Statut Z4.1** · 3 classes cadre architectural câblées (1 / 28 / 25).
-     * Z4.2 (6 garde-fous) et Z4.3 (5 taxes connexes) à venir.
+     * **Statut Z4.2** · 9 classes câblées · 3 cadre architectural
+     * (Z4.1) + 6 garde-fous & cadre interne (Z4.2). Z4.3 (5 taxes
+     * connexes) à venir.
      *
      * @return list<class-string<InformativeRule>>
      */
@@ -165,13 +172,13 @@ final class Year2026Boot implements FiscalYearBoot
             R2026_001_TaxpayerAndTriggeringEvent::class,
             R2026_025_WeightedAverageTariff::class,
             R2026_028_DeclarationModalities::class,
-            // Garde-fous & cadre interne (6 · Z4.2 · à venir)
-            // - R2026_006_PaFallback
-            // - R2026_007_VehicleCharacteristicsHistorization
-            // - R2026_009_MidYearDecommissioning
-            // - R2026_020_RenterExemption (URL L. 421-140 = LEGIARTI000044602921 verrouillée)
-            // - R2026_022_ContractualPeriodVsEffectiveUsage
-            // - R2026_024_CritAirGuard
+            // Garde-fous & cadre interne (6 · Z4.2 · reconductions 2025)
+            R2026_006_PaFallback::class,
+            R2026_007_VehicleCharacteristicsHistorization::class,
+            R2026_009_MidYearDecommissioning::class,
+            R2026_020_RenterExemption::class, // URL L. 421-140 = LEGIARTI000044602921 verrouillée
+            R2026_022_ContractualPeriodVsEffectiveUsage::class,
+            R2026_024_CritAirGuard::class, // toilettage L. 421-134 01/09/2026 sans impact doctrinal
             // Taxes connexes inactives (5 · Z4.3 · à venir)
             // - R2026_029_RegistrationCo2Malus
             // - R2026_030_RegistrationWeightMalus
