@@ -158,6 +158,16 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             ->get();
     }
 
+    public function listAllInCompanyWithMemberships(int $companyId): Collection
+    {
+        return Driver::query()
+            ->whereHas('companies', fn (Builder $q) => $q->where('companies.id', $companyId))
+            ->with(['companies' => fn ($q) => $q->where('companies.id', $companyId)])
+            ->orderBy('last_name')
+            ->orderBy('first_name')
+            ->get();
+    }
+
     public function countFutureContractsInCompany(
         int $driverId,
         int $companyId,

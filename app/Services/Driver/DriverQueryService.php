@@ -18,6 +18,7 @@ use App\Models\Company;
 use App\Models\Driver;
 use App\Models\Pivot\DriverCompany;
 use Carbon\CarbonInterface;
+use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
@@ -160,6 +161,14 @@ final class DriverQueryService
             $leftAt,
         );
 
+        // Lot 3 D03 · 1 query batch au lieu de N appels `listActiveInCompanyDuring` ·
+        // charge tous les drivers de la company (avec leur(s) membership(s)
+        // pré-chargée(s)). Le filtre par période `[start, end]` se fait
+        // ensuite en mémoire pour chaque contrat avec exactement la même
+        // condition que le SQL d'origine ·
+        // `joined_at <= start AND (left_at IS NULL OR left_at >= end)`.
+        $allDriversInCompany = $this->driverReadRepo->listAllInCompanyWithMemberships($companyId);
+
         $rows = [];
         foreach ($contracts as $contract) {
             $start = $contract->start_date;
@@ -181,9 +190,10 @@ final class DriverQueryService
             // Candidats remplaçants : actifs sur la période exacte du
             // contrat, **hors tous les conducteurs déjà attachés** (cf.
             // chantier #3 multi-conducteurs - on ne propose pas comme
-            // « remplaçant » quelqu'un déjà sur le contrat).
-            $candidates = $this->driverReadRepo
-                ->listActiveInCompanyDuring($companyId, $start, $end)
+            // « remplaçant » quelqu'un déjà sur le contrat). Filtrage
+            // in-memory sur la collection batch chargée hors-boucle.
+            $candidates = $allDriversInCompany
+                ->filter(fn (Driver $d): bool => $this->isDriverActiveInCompanyDuring($d, $start, $end))
                 ->reject(fn (Driver $d): bool => in_array($d->id, $alreadyAttachedIds, true))
                 ->map(fn (Driver $d): DriverOptionData => new DriverOptionData(
                     id: $d->id,
@@ -224,5 +234,35 @@ final class DriverQueryService
                 initials: $driver->initials,
             ))
             ->all();
+    }
+
+    /**
+     * Réplique en mémoire la condition SQL de `listActiveInCompanyDuring` ·
+     * un driver est « actif dans la company sur [start, end] » ssi au moins
+     * une de ses memberships dans la company couvre la période entière.
+     *
+     * Délègue à {@see DriverCompany::coversPeriod()} qui implémente
+     * `joined_at <= start AND (left_at IS NULL OR left_at >= end)`.
+     *
+     * Le driver doit avoir sa relation `companies` pré-chargée et **filtrée
+     * sur la company concernée** (cf. `listAllInCompanyWithMemberships`).
+     */
+    private function isDriverActiveInCompanyDuring(
+        Driver $driver,
+        CarbonInterface $start,
+        CarbonInterface $end,
+    ): bool {
+        $startCarbon = Carbon::instance($start);
+        $endCarbon = Carbon::instance($end);
+
+        foreach ($driver->companies as $company) {
+            /** @var DriverCompany|null $pivot */
+            $pivot = $company->getRelationValue('pivot');
+            if ($pivot !== null && $pivot->coversPeriod($startCarbon, $endCarbon)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

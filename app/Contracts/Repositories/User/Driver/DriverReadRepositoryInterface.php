@@ -82,6 +82,22 @@ interface DriverReadRepositoryInterface
     ): Collection;
 
     /**
+     * Charge tous les drivers ayant au moins une membership (active ou
+     * passée) dans la company donnée, **avec leur(s) membership(s)**
+     * pré-chargée(s) (eager-load du pivot `driver_company` filtré sur
+     * cette company uniquement).
+     *
+     * Variante batch utilisée par les services qui doivent appliquer en
+     * mémoire un filtre `joined_at <= X AND (left_at IS NULL OR left_at >= Y)`
+     * pour plusieurs (X, Y) distincts dans la même requête (Lot 3 D03 ·
+     * `DriverQueryService::futureContractsForLeavePreview` itère sur N
+     * contrats futurs et appelait N fois `listActiveInCompanyDuring`).
+     *
+     * @return Collection<int, Driver>
+     */
+    public function listAllInCompanyWithMemberships(int $companyId): Collection;
+
+    /**
      * Compte les contrats à venir (`start_date > leftAt`) du driver dans
      * la company donnée. Utilisé par le workflow Q6 de pose de `left_at`.
      */
