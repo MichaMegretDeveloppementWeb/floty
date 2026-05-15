@@ -108,7 +108,15 @@ function confirmDiscard(): void {
                         {{ badgeForDeclaration(declaration.status, declaration.isObsolete).label }}
                     </StatusPill>
                 </div>
-                <StatusPill tone="slate" class="w-fit">Lecture</StatusPill>
+                <!--
+                    Lot 5 D11 (F-19D-009 + F-19D2-019) · pill « Lecture »
+                    réservée aux états non-éditables. Une déclaration en
+                    `draft` ou `deferred` est éditable depuis cette page
+                    (suppression possible, génération possible) · afficher
+                    « Lecture » serait trompeur. Réservée à `generated`
+                    (immuable par doctrine ADR-0008) ou obsolète.
+                -->
+                <StatusPill v-if="!canDiscard" tone="slate" class="w-fit">Lecture</StatusPill>
                 <Link
                     :href="companyShowRoute.url({ company: declaration.companyId })"
                     class="group flex w-fit cursor-pointer flex-col gap-0.5 transition-colors duration-[120ms]"

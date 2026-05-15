@@ -15,6 +15,7 @@ import { Link } from '@inertiajs/vue3';
 import { ArrowRight } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import { show as companyShow } from '@/routes/user/companies';
 import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
@@ -28,13 +29,20 @@ const hasActivity = computed<boolean>(
 
 const hasTax = computed<boolean>(() => props.fiscal.totalTaxAll > 0);
 
+// Lot 5 D11 (F-19D-013) · URL générée via Wayfinder pour rester
+// résiliente aux refontes de routing · plus de littéral `/app/companies/`
+// codé en dur. Cible l'onglet `contracts` filtré sur la plage de
+// l'exercice fiscal sélectionné.
 const locationsHref = computed<string>(() => {
     const year = props.fiscal.year;
 
-    return `/app/companies/${props.companyId}`
-        + `?tab=contracts`
-        + `&periodStart=${year}-01-01`
-        + `&periodEnd=${year}-12-31`;
+    return companyShow(props.companyId, {
+        query: {
+            tab: 'contracts',
+            periodStart: `${year}-01-01`,
+            periodEnd: `${year}-12-31`,
+        },
+    }).url;
 });
 
 const vehiclesCount = computed<number>(() => props.fiscal.rows.length);

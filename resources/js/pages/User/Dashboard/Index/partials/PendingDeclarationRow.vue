@@ -20,6 +20,14 @@ type LifecycleState = App.Enums.FiscalDeclaration.DeclarationLifecycleState;
 
 const props = defineProps<{ item: Item }>();
 
+// Lot 5 D11 (F-19D-010) · pattern exhaustif avec garde `assertNever` ·
+// si un nouveau case est ajouté à `LifecycleState` côté backend, le
+// switch refuse de compiler en TypeScript strict (au lieu d'afficher
+// silencieusement « Ouvrir » qui masquerait un état non-géré).
+function assertNever(value: never, context: string): never {
+    throw new Error(`${context} · état non-géré : ${String(value)}`);
+}
+
 const ctaLabel = computed<string>(() => {
     const state = props.item.state as LifecycleState;
     switch (state) {
@@ -37,8 +45,13 @@ const ctaLabel = computed<string>(() => {
             return 'Finaliser';
         case 'deferred_regeneration':
             return 'Reprendre la régénération';
-        default:
+        case 'generated_active':
+            // Cas safety net · une `generated_active` ne devrait jamais
+            // apparaître dans la liste des `pending` (terminée pour
+            // l'année). Si elle remonte, libellé neutre.
             return 'Ouvrir';
+        default:
+            assertNever(state, 'PendingDeclarationRow.ctaLabel');
     }
 });
 
