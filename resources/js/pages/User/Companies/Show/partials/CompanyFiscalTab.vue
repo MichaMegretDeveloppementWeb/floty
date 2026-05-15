@@ -155,11 +155,17 @@ const isUntouched = computed<boolean>(
 
 <template>
     <div class="flex flex-col">
-        <!-- Header éditorial · pattern eyebrow + title + meta -->
+        <!--
+            Header éditorial · pattern eyebrow + title + meta.
+            Sur mobile, le status dot passe sous le titre (stack
+            vertical) plutôt que d'occuper la même ligne · à 320-375px
+            le titre seul vaut la priorité visuelle, le statut devient
+            une caption sous le titre.
+        -->
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             Fiscalité · Exercice {{ selectedYear }}
         </p>
-        <div class="mb-1 flex items-baseline justify-between gap-6">
+        <div class="mb-1 flex flex-col gap-1.5 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
             <h2 class="text-[28px] font-semibold leading-none tracking-tight text-slate-900">
                 Taxes {{ selectedYear }}
             </h2>
@@ -207,7 +213,7 @@ const isUntouched = computed<boolean>(
 
         <!-- Hero · total provisoire -->
         <div class="mb-10 flex flex-col gap-1.5">
-            <p class="font-mono text-[44px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
+            <p class="font-mono text-[36px] sm:text-[44px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
                 {{ formatEur(fiscal.totalTaxAll) }}
             </p>
             <p class="text-sm text-slate-500">
@@ -217,34 +223,57 @@ const isUntouched = computed<boolean>(
             </p>
         </div>
 
-        <!-- Stats row · 4 colonnes séparées par hairlines verticaux -->
+        <!--
+            Stats row · 4 colonnes sur ≥ sm, 2×2 sur mobile. Sur
+            mobile · `gap-x-5 gap-y-6` pour aérer entre cards et entre
+            rangs, pas de bordures (les hairlines en 2×2 chargeraient
+            visuellement). Sur sm+ · gap réinitialisé à 0, l'espacement
+            interne est porté par `sm:px-6` sur chaque item et les
+            séparateurs verticaux `sm:not-last:border-r`.
+        -->
         <div
             v-if="hasActivity"
-            class="grid grid-cols-4 border-y border-slate-100 py-6"
+            class="grid grid-cols-2 sm:grid-cols-4 gap-x-5 sm:gap-x-0 gap-y-6 sm:gap-y-0 border-y border-slate-100 py-6"
         >
-            <div class="px-6 first:pl-0 last:pr-0 not-last:border-r border-slate-100">
+            <div class="sm:px-6 sm:first:pl-0 sm:last:pr-0 sm:not-last:border-r sm:border-slate-100">
                 <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Taxe CO₂
                 </p>
                 <p class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none text-slate-900">
                     {{ formatEur(fiscal.totalTaxCo2) }}
                 </p>
-                <p v-if="hasTax" class="mt-1 font-mono text-[11px] tabular-nums text-slate-500">
-                    {{ co2Percent }} %
-                </p>
+                <div v-if="hasTax" class="mt-2 flex items-center gap-2">
+                    <div class="h-1 flex-1 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                            class="h-full bg-slate-800 transition-[width] duration-300"
+                            :style="{ width: `${co2Percent}%` }"
+                        />
+                    </div>
+                    <span class="font-mono text-[11px] tabular-nums text-slate-500">
+                        {{ co2Percent }} %
+                    </span>
+                </div>
             </div>
-            <div class="px-6 not-last:border-r border-slate-100">
+            <div class="sm:px-6 sm:not-last:border-r sm:border-slate-100">
                 <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Taxe polluants
                 </p>
                 <p class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none text-slate-900">
                     {{ formatEur(fiscal.totalTaxPollutants) }}
                 </p>
-                <p v-if="hasTax" class="mt-1 font-mono text-[11px] tabular-nums text-slate-500">
-                    {{ pollutantsPercent }} %
-                </p>
+                <div v-if="hasTax" class="mt-2 flex items-center gap-2">
+                    <div class="h-1 flex-1 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                            class="h-full bg-slate-800 transition-[width] duration-300"
+                            :style="{ width: `${pollutantsPercent}%` }"
+                        />
+                    </div>
+                    <span class="font-mono text-[11px] tabular-nums text-slate-500">
+                        {{ pollutantsPercent }} %
+                    </span>
+                </div>
             </div>
-            <div class="px-6 not-last:border-r border-slate-100">
+            <div class="sm:px-6 sm:not-last:border-r sm:border-slate-100">
                 <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Jours cumulés
                 </p>
@@ -255,7 +284,7 @@ const isUntouched = computed<boolean>(
                     sur {{ vehiclesCount }} véhicule<template v-if="vehiclesCount > 1">s</template>
                 </p>
             </div>
-            <div class="px-6 last:pr-0">
+            <div class="sm:px-6 sm:last:pr-0">
                 <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Locations
                 </p>

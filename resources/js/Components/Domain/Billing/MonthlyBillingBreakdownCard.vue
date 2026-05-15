@@ -33,10 +33,10 @@ const props = withDefaults(
         /**
          * Légende dans le header. Permet d'adapter le wording au contexte
          * (ex. « Recettes mensuelles » sur véhicule vs « Facturation
-         * mensuelle » sur entreprise).
+         * mensuelle » sur entreprise). Ignoré si `unwrapped = true`.
          */
-        title: string;
-        /** Sous-titre court sous le titre (optionnel). */
+        title?: string;
+        /** Sous-titre court sous le titre (optionnel). Ignoré si `unwrapped`. */
         description?: string;
         /**
          * Affiche la colonne « N° facture » (desktop) ou la pastille de
@@ -45,8 +45,15 @@ const props = withDefaults(
          * la colonne perd son sens · on la désactive depuis le parent.
          */
         showInvoiceNumberColumn?: boolean;
+        /**
+         * Refonte D5.10.W · mode « flush » sans Card wrapping ni header
+         * interne (titre + total annuel). Utilisé par les nouveaux
+         * tabs éditoriaux où le header est porté par le tab parent
+         * pour rester aligné sur la hiérarchie typographique globale.
+         */
+        unwrapped?: boolean;
     }>(),
-    { showInvoiceNumberColumn: true },
+    { showInvoiceNumberColumn: true, unwrapped: false, title: '' },
 );
 
 const totalLabel = computed<string>(() => {
@@ -70,8 +77,8 @@ const partialTotalLabel = computed<string | null>(() => {
 </script>
 
 <template>
-    <Card>
-        <template #header>
+    <component :is="unwrapped ? 'div' : Card">
+        <template v-if="!unwrapped" #header>
             <div class="flex items-start justify-between gap-3">
                 <div>
                     <h2 class="text-base font-semibold text-slate-900">
@@ -244,5 +251,5 @@ const partialTotalLabel = computed<string | null>(() => {
             tarif annuel renseigné sur les véhicules concernés. Renseignez
             les tarifs depuis la fiche véhicule pour débloquer le calcul.
         </p>
-    </Card>
+    </component>
 </template>

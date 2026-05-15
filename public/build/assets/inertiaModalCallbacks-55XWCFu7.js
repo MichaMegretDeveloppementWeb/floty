@@ -1,0 +1,1 @@
+function e(...e){return{preserveScroll:!0,onSuccess:()=>{for(let t of e)t.value=!1}}}export{e as t};
