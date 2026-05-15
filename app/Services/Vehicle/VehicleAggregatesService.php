@@ -7,203 +7,53 @@ namespace App\Services\Vehicle;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
-use App\Data\Shared\Listing\PaginationMetaData;
-use App\Data\Shared\YearScopeData;
 use App\Data\User\Billing\MonthlyBillingBreakdownData;
-use App\Data\User\Unavailability\UnavailabilityData;
-use App\Data\User\Vehicle\PaginatedVehicleListData;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
-use App\Data\User\Vehicle\VehicleData;
 use App\Data\User\Vehicle\VehicleFiscalCharacteristicsData;
 use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\Data\User\Vehicle\VehicleFullYearTaxSegmentData;
-use App\Data\User\Vehicle\VehicleIndexQueryData;
-use App\Data\User\Vehicle\VehicleListItemData;
-use App\Data\User\Vehicle\VehicleOptionData;
 use App\Data\User\Vehicle\VehicleUsageStatsData;
 use App\Data\User\Vehicle\VehicleWeekSegmentData;
 use App\Data\User\Vehicle\VehicleWeekUsageData;
-use App\Data\User\Vehicle\VehicleYearStatsData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Fiscal\FiscalCalculationException;
-use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Company;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Services\Billing\BillingBreakdownService;
-use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
-use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Shared\Fiscal\FiscalYearContext;
-use App\Services\Unavailability\UnavailabilityQueryService;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Spatie\LaravelData\DataCollection;
 
 /**
- * Orchestration des lectures du domaine Vehicle vers les DTOs exposés.
+ * Agrégats annuels par-véhicule pour les onglets Show et endpoints JSON
+ * lazy (extrait de `VehicleQueryService` pour respecter SRP · Lot 4 D09 /
+ * F-14-003).
  *
- * Aucune query Eloquent ici - toutes les lectures passent par les
- * repositories. Le service combine repository + aggregator fiscal +
- * mapping DTO (R3 d'ADR-0013).
+ * Regroupe les 3 façades par-année consommées par la fiche véhicule ·
+ *   - `billingForYear` · onglet Billing (récap mensuel facturation)
+ *   - `usageStatsForYear` · endpoint JSON `useYearLazy` (carte
+ *      Utilisation & Répartition de l'onglet Vue d'ensemble)
+ *   - `fullYearBreakdownForYear` · endpoint JSON onglet Fiscalité
  *
- * **Refonte 04.F (ADR-0014)** : la source des cumuls fiscaux et de la
- * timeline hebdomadaire est `ContractQueryService` (l'ancien domaine
- * Assignment a été supprimé en chantier 04.H).
+ * Centralise également les helpers privés qui composent
+ * `VehicleUsageStatsData` (timeline hebdomadaire, breakdown par company,
+ * fallbacks pour années sans règles codées) · réutilisés par
+ * `VehicleDetailService::findVehicleData` via `buildUsageStats()`.
  */
-final class VehicleQueryService
+final class VehicleAggregatesService
 {
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
+        private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
         private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly FiscalYearContext $yearContext,
-        private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
-        private readonly AvailableYearsResolver $availableYears,
-        private readonly FiscalRuleRegistry $fiscalRules,
         private readonly BillingBreakdownService $billingBreakdown,
-        private readonly RentalPriceCalculator $rentalPrice,
     ) {}
-
-    /**
-     * Index Vehicles paginé server-side (cf. ADR-0020).
-     *
-     * Le repo gère pagination + filtres `includeExited`/`status` + search
-     * en SQL pur. Le service calcule ensuite `fullYearTax` + `dailyTaxRate`
-     * uniquement pour les véhicules de la page courante.
-     *
-     * Cf. ADR-0020 D6 : le tri par `fullYearTax` est volontairement
-     * absent de la whitelist sortKey (valeur calculée non SQL).
-     */
-    public function listPaginated(VehicleIndexQueryData $query, int $year): PaginatedVehicleListData
-    {
-        $daysInYear = $this->yearContext->daysInYear($year);
-        $paginator = $this->vehicles->paginateForIndex($query);
-        /** @var list<Vehicle> $vehicles */
-        $vehicles = $paginator->items();
-
-        // Phase 13 D5.10.L · prix location batched · 2 SQL pour la page
-        // entière au lieu de 12 × N SQL.
-        $vehicleIds = array_map(static fn (Vehicle $v): int => $v->id, $vehicles);
-        $rentalPricesByVehicle = $this->rentalPrice->forVehiclesAndYear($vehicleIds, $year);
-
-        $items = array_map(
-            fn (Vehicle $v): VehicleListItemData => $this->mapVehicleToListItem(
-                $v,
-                $year,
-                $daysInYear,
-                $rentalPricesByVehicle[$v->id] ?? null,
-            ),
-            $vehicles,
-        );
-
-        return new PaginatedVehicleListData(
-            data: $items,
-            meta: PaginationMetaData::fromPaginator($paginator),
-        );
-    }
-
-    private function mapVehicleToListItem(Vehicle $v, int $year, int $daysInYear, ?int $rentalCents): VehicleListItemData
-    {
-        // Tolère une année hors registry fiscal (cohérent doctrine
-        // « données métier ⊥ règles fiscales » Phase 2) : si le pipeline
-        // fiscal n'a pas de règles pour `$year`, on affiche `0 €` plutôt
-        // que de crasher tout l'Index.
-        try {
-            $fullYearTax = $this->aggregator->vehicleFullYearTax($v, $year);
-        } catch (FiscalCalculationException) {
-            $fullYearTax = 0.0;
-        }
-
-        return new VehicleListItemData(
-            id: $v->id,
-            licensePlate: $v->license_plate,
-            brand: $v->brand,
-            model: $v->model,
-            currentStatus: $v->current_status,
-            firstFrenchRegistrationDate: $v->first_french_registration_date->format('Y-m-d'),
-            acquisitionDate: $v->acquisition_date->format('Y-m-d'),
-            exitDate: $v->exit_date?->format('Y-m-d'),
-            exitReason: $v->exit_reason,
-            isExited: $v->is_exited,
-            fullYearTax: $fullYearTax,
-            dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
-            // Phase 13 D5.10.L · prix location annuel cross-entreprises
-            // pré-calculé en mode batched par `forVehiclesAndYear`. Null
-            // si tarif annuel manquant.
-            rentalPriceFullYear: $rentalCents === null ? null : $rentalCents / 100,
-        );
-    }
-
-    /**
-     * Représentation complète d'un véhicule pour la page Show :
-     * identité + caractéristiques fiscales actives + historique
-     * antéchronologique des versions VFC + statistiques d'utilisation.
-     *
-     * **Doctrine temporelle (chantier η Phase 2)** : 3 lentilles distinctes.
-     *   - Présent (`kpiYear` + `kpiStats`) : année calendaire courante,
-     *     non mutable depuis l'UI.
-     *   - Évolution (`history[]`) : `[minYear..kpiYear-1]`, lignes neutres
-     *     (zéros) comprises pour les années sans contrat sur le véhicule.
-     *   - Exploration (`usageStats` + `selectedYear`) : pilotée par le
-     *     sélecteur d'année partagé (Timeline + Breakdown + FullYearTax).
-     *
-     * Lève `ModelNotFoundException` (rendu 404 par Laravel) si l'id
-     * n'existe pas.
-     */
-    public function findVehicleData(int $id): VehicleData
-    {
-        $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
-
-        // Charge la Collection brute UNE fois et la propage à
-        // `buildUsageStats` + à la composition des DTO de la timeline
-        // - auparavant la même requête `findForVehicle` partait deux
-        // fois (via `UnavailabilityQueryService` puis re-direct repo).
-        $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
-        $unavailabilityDtos = $unavailabilityModels
-            ->map(static fn (Unavailability $u): UnavailabilityData => UnavailabilityData::fromModel($u))
-            ->values()
-            ->all();
-
-        // Présent · KPI sur l'année calendaire courante.
-        $kpiYear = $this->availableYears->currentYear();
-        $kpiStats = $this->computeVehicleYearStats($vehicle, $kpiYear, $unavailabilityModels);
-        $kpiFiscalAvailable = in_array(
-            $kpiYear,
-            $this->fiscalRules->registeredYears(),
-            true,
-        );
-
-        // Évolution · couvre `[minYear..kpiYear-1]`, lignes neutres
-        // pour les années sans contrat (cohérent avec Phase 1 Company).
-        $history = [];
-        $minYear = $this->availableYears->minYear();
-        for ($year = $kpiYear - 1; $year >= $minYear; $year--) {
-            $history[] = $this->computeVehicleYearStats($vehicle, $year, $unavailabilityModels);
-        }
-
-        // Exploration · `usageStats` initialisé sur `currentYear`. Les
-        // autres années sont fetchées à la demande côté front via les
-        // endpoints lazy `usageStatsForYear` / `fullYearBreakdownForYear`
-        // avec cache client (composable `useYearLazy`). Évite le pré-calcul
-        // backend pour des années qui ne seront jamais consultées.
-        $initialYear = $kpiYear;
-
-        return VehicleData::fromModel(
-            $vehicle,
-            $this->buildUsageStats($vehicle, $initialYear, $unavailabilityModels),
-            $unavailabilityDtos,
-            $this->buildBusyDates($vehicle->id, $initialYear),
-            kpiYear: $kpiYear,
-            kpiStats: $kpiStats,
-            kpiFiscalAvailable: $kpiFiscalAvailable,
-            history: $history,
-            selectedYear: $initialYear,
-            yearScope: YearScopeData::fromResolver($this->availableYears),
-        );
-    }
 
     /**
      * Récap mensuel facturation pour un véhicule et une année donnée
@@ -253,137 +103,16 @@ final class VehicleQueryService
     }
 
     /**
-     * Calcule les stats annuelles d'un véhicule pour une année donnée
-     * (jours utilisés, nombre de contrats, taxe réelle, taxe pleine).
-     * Utilisé pour les KPI Présent et chaque ligne de history.
+     * Composition publique de `VehicleUsageStatsData` pour le mount
+     * initial de la page Show (consommée par `VehicleDetailService::findVehicleData`).
      *
-     * Tolère l'absence de configuration fiscale sur l'année : retourne
-     * `actualTax = 0` et `fullYearTax = 0` plutôt que de crasher la page
-     * · l'utilisateur voit quand même les jours et le compte de contrats.
+     * Le call-site Detail charge déjà le véhicule et les indispos en bulk
+     * pour partager avec les autres calculs ; on les passe en paramètres
+     * plutôt que de les ré-charger ici (économie 2 SQL).
      *
-     * @param  Collection<int, Unavailability>  $unavailabilityModels  Indispos pré-chargées (toutes années).
+     * @param  Collection<int, Unavailability>  $unavailabilityModels
      */
-    private function computeVehicleYearStats(
-        Vehicle $vehicle,
-        int $year,
-        Collection $unavailabilityModels,
-    ): VehicleYearStatsData {
-        $contractsByPair = $this->contracts->loadContractsByPairForVehicle($vehicle->id, $year);
-        $vehicleUnavailabilities = $unavailabilityModels->all();
-
-        $daysUsed = 0;
-        $contractsCount = 0;
-        foreach ($contractsByPair->pairsForVehicle($vehicle->id) as $pairContracts) {
-            foreach ($pairContracts as $contract) {
-                $daysUsed += $contract->countDaysInYear($year);
-                $contractsCount++;
-            }
-        }
-
-        $actualTax = 0.0;
-        $fullYearTax = 0.0;
-        try {
-            $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
-                $vehicle,
-                $contractsByPair,
-                $vehicleUnavailabilities,
-                $year,
-            );
-            foreach ($breakdown as $row) {
-                $actualTax += (float) $row['taxTotal'];
-            }
-            $fullYearTax = $this->aggregator->vehicleFullYearTax($vehicle, $year);
-        } catch (FiscalCalculationException) {
-            // Année hors registry fiscal · chiffres taxes laissés à 0.
-        }
-
-        // Phase 13 D5.10.L · prix location single-vehicle · usage Show ·
-        // pas besoin du batched ici (1 véhicule = 2 SQL acceptables).
-        $rentalCents = $this->rentalPrice->forVehicleAndYear($vehicle->id, $year);
-        $rentalPrice = $rentalCents === null ? null : $rentalCents / 100;
-
-        return new VehicleYearStatsData(
-            year: $year,
-            daysUsed: $daysUsed,
-            contractsCount: $contractsCount,
-            actualTax: round($actualTax, 2, PHP_ROUND_HALF_UP),
-            fullYearTax: round($fullYearTax, 2, PHP_ROUND_HALF_UP),
-            rentalPrice: $rentalPrice,
-        );
-    }
-
-    /**
-     * Liste pour les `<SelectInput>` des formulaires (drawer Contrats,
-     * etc.). Inclut les véhicules sortis pour permettre la consultation
-     * et l'édition rétroactive des contrats antérieurs (cf. ADR-0018 § 4).
-     *
-     * Le frontend distingue actifs/retirés via `isExited` (groupement
-     * dans le picker, suffixe label « (retiré le DD/MM/YYYY) »).
-     *
-     * @return DataCollection<int, VehicleOptionData>
-     */
-    public function listForOptions(): DataCollection
-    {
-        // Scope d'années dynamique (basé sur les contrats existants).
-        // Pour chaque véhicule, on calcule la Taxe pleine de chaque année
-        // du scope : le form Contrat affichera la valeur de l'année de
-        // `start_date` saisie (fallback année courante). Coût borné par
-        // O(N véhicules × M années) avec M typiquement 3-5 · acceptable
-        // car l'aggregator cache les résultats par (vehicleId, year).
-        //
-        // On bypass `findAllForOptions()` (sélection limitée à 6 colonnes)
-        // car le pipeline fiscal a besoin des colonnes complètes du
-        // véhicule + de toute la VFC history (multi-VFC supportée).
-        $availableYears = $this->availableYears->availableYears();
-        $vehiclesFull = $this->vehicles->findAllForOptionsWithFiscalHistory();
-
-        $rows = [];
-        foreach ($vehiclesFull as $v) {
-            $exitDate = $v->exit_date?->format('Y-m-d');
-            $label = sprintf('%s - %s %s', $v->license_plate, $v->brand, $v->model);
-
-            $fullYearTaxByYear = [];
-            foreach ($availableYears as $year) {
-                try {
-                    $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($v, $year);
-                    $fullYearTaxByYear[$year] = $breakdown->total;
-                } catch (FiscalCalculationException) {
-                    // Année hors règles fiscales codées · on omet
-                    // pour rester silencieux côté UI (le form
-                    // retombera sur l'année par défaut affichée).
-                }
-            }
-
-            $rows[] = new VehicleOptionData(
-                id: $v->id,
-                licensePlate: $v->license_plate,
-                label: $label,
-                isExited: $exitDate !== null,
-                exitDate: $exitDate,
-                fullYearTaxByYear: $fullYearTaxByYear,
-            );
-        }
-
-        return VehicleOptionData::collect($rows, DataCollection::class);
-    }
-
-    /**
-     * Bornes min/max d'année de 1ʳᵉ immatriculation parmi tous les
-     * véhicules en BDD. Alimente le sélecteur de fourchette du filtre
-     * Index. Retourne `null` si la flotte est vide (le frontend cache
-     * alors le filtre).
-     *
-     * @return array{min: int, max: int}|null
-     */
-    public function firstRegistrationYearBounds(): ?array
-    {
-        return $this->vehicles->findFirstRegistrationYearBounds();
-    }
-
-    /**
-     * @param  Collection<int, Unavailability>  $unavailabilityModels  indispos brutes du véhicule (toutes années) - chargées une seule fois en amont
-     */
-    private function buildUsageStats(Vehicle $vehicle, int $year, Collection $unavailabilityModels): VehicleUsageStatsData
+    public function buildUsageStats(Vehicle $vehicle, int $year, Collection $unavailabilityModels): VehicleUsageStatsData
     {
         $daysInYear = $this->yearContext->daysInYear($year);
         $contractsByPair = $this->contracts->loadContractsByPairForVehicle($vehicle->id, $year);
@@ -558,26 +287,6 @@ final class VehicleQueryService
         }
 
         return array_keys($ids);
-    }
-
-    /**
-     * Liste flat des dates ISO (Y-m-d) déjà occupées par un contrat
-     * actif sur le véhicule pour l'année. Alimente le `DateRangePicker`
-     * du modal indispos pour griser les jours non-sélectionnables.
-     *
-     * Bornée à `[01-01-Y, 31-12-Y]` - les contrats hors fenêtre ne
-     * bloquent pas l'UI (l'Action vérifie de toute façon avant écriture
-     * si l'utilisateur ouvre une plage débordante).
-     *
-     * @return list<string>
-     */
-    private function buildBusyDates(int $vehicleId, int $year): array
-    {
-        return $this->contracts->findDatesForVehicleInRange(
-            $vehicleId,
-            sprintf('%d-01-01', $year),
-            sprintf('%d-12-31', $year),
-        );
     }
 
     /**

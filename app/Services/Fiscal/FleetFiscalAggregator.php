@@ -77,8 +77,8 @@ final class FleetFiscalAggregator
      * (resolved per-request).
      *
      * Hot paths bénéficiaires (Lot 3 D05) ·
-     * - `VehicleQueryService::loadVehicleOptions` · boucle vehicles × availableYears
-     * - `VehicleQueryService::loadFleetTable` · N véhicules paginés × année courante
+     * - `VehicleListingService::listForOptions` · boucle vehicles × availableYears
+     * - `VehicleListingService::listPaginated` · N véhicules paginés × année courante
      * - `PlanningHeatmapService::buildHeatmap[ForCompany]` · N véhicules × année
      *
      * @var array<string, VehicleFullYearTaxBreakdownData>

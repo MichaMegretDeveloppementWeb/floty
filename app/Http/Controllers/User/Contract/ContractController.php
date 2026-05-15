@@ -23,7 +23,7 @@ use App\Services\Company\CompanyListingService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
-use App\Services\Vehicle\VehicleQueryService;
+use App\Services\Vehicle\VehicleListingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
@@ -44,7 +44,7 @@ final class ContractController extends Controller
     public function __construct(
         private readonly ContractQueryService $contracts,
         private readonly ContractReadRepositoryInterface $contractRead,
-        private readonly VehicleQueryService $vehicles,
+        private readonly VehicleListingService $vehicles,
         private readonly CompanyListingService $companies,
         private readonly DriverQueryService $drivers,
         private readonly StoreContractAction $storeContract,

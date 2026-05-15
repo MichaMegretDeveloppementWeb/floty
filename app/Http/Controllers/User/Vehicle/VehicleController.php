@@ -26,7 +26,9 @@ use App\Enums\Vehicle\VehicleUserType;
 use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
 use App\Services\Fiscal\AvailableYearsResolver;
-use App\Services\Vehicle\VehicleQueryService;
+use App\Services\Vehicle\VehicleAggregatesService;
+use App\Services\Vehicle\VehicleDetailService;
+use App\Services\Vehicle\VehicleListingService;
 use App\Support\EnumOptions;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -39,7 +41,13 @@ use Inertia\Response;
 final class VehicleController extends Controller
 {
     public function __construct(
-        private readonly VehicleQueryService $vehicles,
+        // Lot 4 D09 (F-14-003) · `VehicleQueryService` éclaté en 3
+        // sous-services thématiques par concern (Detail / Aggregates /
+        // Listing). Chaque méthode du controller pointe désormais sur
+        // le service avec la bonne responsabilité.
+        private readonly VehicleDetailService $vehicleDetail,
+        private readonly VehicleAggregatesService $vehicleAggregates,
+        private readonly VehicleListingService $vehicleListing,
         private readonly VehicleReadRepositoryInterface $vehicleRead,
         private readonly CreateVehicleAction $createVehicle,
         private readonly UpdateVehicleAction $updateVehicle,
@@ -60,9 +68,9 @@ final class VehicleController extends Controller
         $year = $this->resolveSelectedYear($query->year);
 
         return Inertia::render('User/Vehicles/Index/Index', [
-            'vehicles' => $this->vehicles->listPaginated($query, $year),
+            'vehicles' => $this->vehicleListing->listPaginated($query, $year),
             'options' => [
-                'firstRegistrationYearBounds' => $this->vehicles->firstRegistrationYearBounds(),
+                'firstRegistrationYearBounds' => $this->vehicleListing->firstRegistrationYearBounds(),
             ],
             'query' => $query,
             'selectedYear' => $year,
@@ -97,7 +105,7 @@ final class VehicleController extends Controller
         // `usageStats` est initialisé sur `currentYear`. Le sélecteur
         // de la carte Utilisation (Vue d'ensemble) reste en lazy fetch
         // JSON via `usageStatsForYear` (cache client `useYearLazy`).
-        $vehicleData = $this->vehicles->findVehicleData($vehicle);
+        $vehicleData = $this->vehicleDetail->findVehicleData($vehicle);
 
         // D5.10.U · param URL **unifié** `?year=` partagé entre les
         // onglets Fiscalité et Facturation de la fiche véhicule.
@@ -118,13 +126,13 @@ final class VehicleController extends Controller
             // Onglet "fiscal" · breakdown taxe pleine.
             'fiscalYearBreakdown' => $this->eagerForTab(
                 $activeTab === 'fiscal',
-                fn () => $this->vehicles->fullYearBreakdownForYear($vehicle, $selectedYear),
+                fn () => $this->vehicleAggregates->fullYearBreakdownForYear($vehicle, $selectedYear),
             ),
 
             // Onglet "billing" · récap mensuel.
             'vehicleBilling' => $this->eagerForTab(
                 $activeTab === 'billing',
-                fn () => $this->vehicles->billingForYear($vehicle, $selectedYear),
+                fn () => $this->vehicleAggregates->billingForYear($vehicle, $selectedYear),
             ),
         ]);
     }
@@ -153,7 +161,7 @@ final class VehicleController extends Controller
 
         $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
 
-        return response()->json($this->vehicles->usageStatsForYear($vehicle, $year));
+        return response()->json($this->vehicleAggregates->usageStatsForYear($vehicle, $year));
     }
 
     /**
@@ -168,7 +176,7 @@ final class VehicleController extends Controller
 
         $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
 
-        return response()->json($this->vehicles->fullYearBreakdownForYear($vehicle, $year));
+        return response()->json($this->vehicleAggregates->fullYearBreakdownForYear($vehicle, $year));
     }
 
     public function create(): Response
@@ -197,7 +205,7 @@ final class VehicleController extends Controller
         Gate::authorize('update', $vehicleModel);
 
         return Inertia::render('User/Vehicles/Edit/Index', [
-            'vehicle' => $this->vehicles->findVehicleData($vehicle),
+            'vehicle' => $this->vehicleDetail->findVehicleData($vehicle),
             'options' => $this->buildFormOptions(),
         ]);
     }

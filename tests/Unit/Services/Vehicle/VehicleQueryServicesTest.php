@@ -13,25 +13,36 @@ use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
-use App\Services\Vehicle\VehicleQueryService;
+use App\Services\Vehicle\VehicleAggregatesService;
+use App\Services\Vehicle\VehicleListingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Vérifie l'orchestration repo + agrégateur fiscal + mapping DTO du
- * service `VehicleQueryService` post-migration vers les Repositories.
+ * Couvre `VehicleListingService::listForOptions` + 3 cas timeline de
+ * `VehicleAggregatesService::usageStatsForYear` après l'éclatement
+ * SRP de `VehicleQueryService` en 3 sous-services thématiques
+ * (Lot 4 D09 / F-14-003). Reprend les assertions de l'ancien
+ * `VehicleQueryServiceTest` pour garantir l'équivalence sémantique.
+ *
+ * `findVehicleData` (Detail) et `listPaginated` (Listing) sont testés
+ * par les Feature `tests/Feature/User/Vehicle/VehicleControllerTest`
+ * (intégration complète repo + agrégats fiscaux + DTO Inertia).
  */
-final class VehicleQueryServiceTest extends TestCase
+final class VehicleQueryServicesTest extends TestCase
 {
     use RefreshDatabase;
 
-    private VehicleQueryService $service;
+    private VehicleListingService $listing;
+
+    private VehicleAggregatesService $aggregates;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = $this->app->make(VehicleQueryService::class);
+        $this->listing = $this->app->make(VehicleListingService::class);
+        $this->aggregates = $this->app->make(VehicleAggregatesService::class);
     }
 
     #[Test]
@@ -48,7 +59,7 @@ final class VehicleQueryServiceTest extends TestCase
             'current_status' => VehicleStatus::Sold,
         ]);
 
-        $items = $this->service->listForOptions()->toArray();
+        $items = $this->listing->listForOptions()->toArray();
 
         self::assertCount(2, $items);
 
@@ -92,7 +103,7 @@ final class VehicleQueryServiceTest extends TestCase
             'end_date' => '2026-05-08',
         ]);
 
-        $stats = $this->service->usageStatsForYear($vehicle->id, 2026);
+        $stats = $this->aggregates->usageStatsForYear($vehicle->id, 2026);
         $week19 = $this->weekRow($stats, 19);
 
         self::assertSame(7, $week19->totalDays);
@@ -120,7 +131,7 @@ final class VehicleQueryServiceTest extends TestCase
             'end_date' => '2026-05-09',
         ]);
 
-        $stats = $this->service->usageStatsForYear($vehicle->id, 2026);
+        $stats = $this->aggregates->usageStatsForYear($vehicle->id, 2026);
         $week19 = $this->weekRow($stats, 19);
 
         self::assertSame(2, $week19->reductiveUnavailabilityDays);
@@ -150,7 +161,7 @@ final class VehicleQueryServiceTest extends TestCase
             'end_date' => '2026-05-06',
         ]);
 
-        $stats = $this->service->usageStatsForYear($vehicle->id, 2026);
+        $stats = $this->aggregates->usageStatsForYear($vehicle->id, 2026);
         $week19 = $this->weekRow($stats, 19);
 
         // 4 mai = nonReductive (1j), 5 mai = reductive (priorité), 6 mai = reductive
