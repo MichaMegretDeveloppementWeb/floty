@@ -1282,12 +1282,13 @@ final class VehicleControllerTest extends TestCase
         $queryCount = count(DB::getQueryLog());
         DB::disableQueryLog();
 
-        // Cap raisonnable : auth + load Vehicles + load VFC eager + load
-        // contracts + load unavailabilities + fiscal rules + queries
-        // collatérales Inertia. À 10 véhicules sans N+1 on observe
-        // ~10-15 queries. On laisse une marge.
+        // Cap resserré (Lot 3 D04) · baseline réelle mesurée 8 queries pour
+        // 10 véhicules (auth + load Vehicles + load VFC eager + queries
+        // collatérales Inertia · ~0.8 query par véhicule). Cap à 12 ·
+        // marge confortable +4 queries pour évolutions Inertia/middleware
+        // sans masquer une régression N+1 (qui ferait sauter ≥5 queries).
         self::assertLessThan(
-            25,
+            12,
             $queryCount,
             "Trop de queries SQL ({$queryCount}) sur l'Index Flotte avec 10 véhicules - possible régression N+1.",
         );
