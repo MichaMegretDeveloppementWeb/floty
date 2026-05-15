@@ -53,6 +53,28 @@ const drawerOpen = ref<boolean>(false);
 const confirmOpen = ref<boolean>(false);
 const confirmLoading = ref<boolean>(false);
 
+/**
+ * Refonte fiscalité D5.10.W · 4 directions de design proposées et
+ * mockuppées en HTML standalone. La direction A (Linear-éditorial)
+ * a été retenue pour l'implémentation Vue (cf. onglets Fiscalité et
+ * Facturation sur les fiches Entreprise + Véhicule). Les 4 mockups
+ * sont conservés ici comme référence visuelle et trace de décision.
+ */
+type MockupKey = 'A' | 'B' | 'C' | 'D';
+
+const mockupOptions: ReadonlyArray<{
+    key: MockupKey;
+    label: string;
+    tagline: string;
+}> = [
+    { key: 'A', label: 'A · Linear', tagline: 'Éditorial sober · retenu' },
+    { key: 'B', label: 'B · Stripe', tagline: 'Sectional cards' },
+    { key: 'C', label: 'C · Mercury', tagline: 'Data-rich, comparatif N-1' },
+    { key: 'D', label: 'D · Notion', tagline: 'Prose éditoriale' },
+];
+
+const selectedMockup = ref<MockupKey>('A');
+
 type VehicleRow = {
     id: number;
     plate: string;
@@ -264,6 +286,67 @@ const companyChips: Swatch[] = [
                     validation avant d'être utilisé dans l'application.
                 </p>
             </header>
+
+            <!--
+                Refonte fiscalité D5.10.W · 4 directions HTML mockuppées
+                avant choix · iframe au fichier statique dans
+                `public/mockups-fiscal/`. La direction A a été retenue
+                et implémentée en Vue sur la fiche Entreprise et
+                Véhicule.
+            -->
+            <section class="mb-12">
+                <p class="eyebrow mb-3">Refonte fiscalité · 4 directions explorées</p>
+                <p class="mb-5 max-w-3xl text-sm text-slate-600">
+                    Avant la refonte des onglets Fiscalité et Facturation
+                    (D5.10.W), 4 directions visuelles ont été mockuppées en
+                    HTML standalone pour comparaison. La direction
+                    <strong class="font-medium text-slate-900">A · Linear-éditorial</strong>
+                    a été retenue et implémentée en Vue sur la fiche entreprise
+                    et la fiche véhicule. Les 4 mockups sont conservés ici comme
+                    trace de décision.
+                </p>
+
+                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <!-- Toggle tabs · style identique aux year tabs des fiches -->
+                    <nav
+                        class="flex flex-wrap gap-6 border-b border-slate-100 px-5"
+                        aria-label="Choix du mockup"
+                    >
+                        <button
+                            v-for="opt in mockupOptions"
+                            :key="opt.key"
+                            type="button"
+                            :class="[
+                                '-mb-px cursor-pointer border-b-2 pb-3 pt-3 text-sm font-medium transition-colors duration-[120ms]',
+                                selectedMockup === opt.key
+                                    ? 'border-slate-900 text-slate-900'
+                                    : 'border-transparent text-slate-500 hover:text-slate-900',
+                            ]"
+                            @click="selectedMockup = opt.key"
+                        >
+                            {{ opt.label }}
+                            <span class="ml-2 text-[11px] font-normal text-slate-400">
+                                {{ opt.tagline }}
+                            </span>
+                        </button>
+                    </nav>
+
+                    <!--
+                        Iframe sur le mockup statique servi par Herd
+                        depuis `public/mockups-fiscal/{key}.html`.
+                        Hauteur fixe assez grande pour montrer le hero
+                        + stats sans scroll · l'iframe gère son propre
+                        scroll interne pour le reste. Le param
+                        `?embedded=1` masque le toggle interne du
+                        mockup (redondant avec le toggle UI Kit).
+                    -->
+                    <iframe
+                        :src="`/mockups-fiscal/${selectedMockup}.html?embedded=1`"
+                        :title="`Mockup ${selectedMockup}`"
+                        class="block h-[820px] w-full border-0 bg-slate-50"
+                    />
+                </div>
+            </section>
 
             <section class="mb-10">
                 <p class="eyebrow mb-4">Identité de marque</p>

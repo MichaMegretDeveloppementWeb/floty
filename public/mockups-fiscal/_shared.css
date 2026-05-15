@@ -76,6 +76,9 @@ body {
     border-radius: 10px;
     z-index: 100;
 }
+/* Mode embedded · masque le toggle interne (le UI Kit fournit son propre) */
+html.embedded .toggle-strip { display: none; }
+html.embedded body { padding: 24px; }
 .toggle-strip a {
     padding: 6px 10px;
     font-size: 12px;
