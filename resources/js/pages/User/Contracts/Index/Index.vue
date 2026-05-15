@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { CalendarDays } from 'lucide-vue-next';
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
@@ -12,7 +12,7 @@ import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import { useContractsTable } from '@/Composables/Contract/Index/useContractsTable';
-import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { useContractsTimeScope } from '@/Composables/Contract/Index/useContractsTimeScope';
 import ContractsTable from './partials/ContractsTable.vue';
 import EmptyContractsState from './partials/EmptyContractsState.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -46,6 +46,24 @@ const tableState = useContractsTable({
     vehicleOptions: props.options.vehicles,
     companyOptions: props.options.companies,
     driverOptions: props.options.drivers,
+});
+
+const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
+const {
+    scopeMode,
+    setScopeMode,
+    yearOptions,
+    yearModel,
+    periodRange,
+    periodOngoing,
+    pickerYear,
+    periodLabel,
+    periodPopoverOpen,
+    popoverRoot,
+} = useContractsTimeScope({
+    initialQuery: props.query,
+    availableYears,
+    tableState: tableState.state,
 });
 
 const searchModel = computed<string>({
@@ -115,174 +133,6 @@ const typeModel = computed<string | number>({
             v === 'lcd' || v === 'lld' ? v : null,
         );
     },
-});
-
-// ---------------------------------------------------------------
-// Sélecteur scope hybride année/période (chantier J)
-// ---------------------------------------------------------------
-//
-// 2 modes mutuellement exclusifs côté front :
-//  - mode 'year'   : SelectInput compact, envoie ?year=YYYY
-//  - mode 'period' : DateRangePicker dans popover, envoie ?periodStart=&periodEnd=
-//
-// Le mode initial est dérivé des params URL : `year` présent → mode year ;
-// `periodStart/End` présents → mode period ; sinon défaut année courante.
-
-type ScopeMode = 'year' | 'period';
-
-const initialMode: ScopeMode
-    = props.query.year !== null
-        ? 'year'
-        : props.query.periodStart !== null || props.query.periodEnd !== null
-            ? 'period'
-            : 'year';
-
-const scopeMode = ref<ScopeMode>(initialMode);
-
-const yearOptions = computed<{ value: number; label: string }[]>(() =>
-    props.yearScope.availableYears.map((year) => ({ value: year, label: String(year) })),
-);
-
-// Année par défaut : valeur du DTO query si mode year, sinon dernière
-// année disponible. L'utilisateur peut la changer via le SelectInput.
-const defaultYear = computed<number>(() => {
-    if (props.query.year !== null) {
-        return props.query.year;
-    }
-
-    const years = props.yearScope.availableYears;
-
-    return years.length === 0
-        ? new Date().getFullYear()
-        : Math.max(...years);
-});
-
-const yearModel = computed<number>({
-    get: () => tableState.state.filters.value.year ?? defaultYear.value,
-    set: (v: number) => {
-        // En mode year : on set year, on efface periodStart/End. patchFilters
-        // pour update atomique en 1 seul reload.
-        tableState.state.patchFilters({
-            year: v,
-            periodStart: null,
-            periodEnd: null,
-        });
-    },
-});
-
-const periodRange = computed({
-    get: () => ({
-        startDate: tableState.state.filters.value.periodStart,
-        endDate: tableState.state.filters.value.periodEnd,
-    }),
-    set: (range: { startDate: string | null; endDate: string | null }) => {
-        // En mode period : on set periodStart/End, on efface year.
-        tableState.state.patchFilters({
-            year: null,
-            periodStart: range.startDate,
-            periodEnd: range.endDate,
-        });
-    },
-});
-const periodOngoing = ref<boolean>(false);
-
-function setScopeMode(mode: ScopeMode): void {
-    scopeMode.value = mode;
-
-    if (mode === 'year') {
-        // Bascule en année → applique l'année par défaut, efface period
-        // et referme le popover si ouvert.
-        periodPopoverOpen.value = false;
-
-        if (tableState.state.filters.value.year === null) {
-            tableState.state.patchFilters({
-                year: defaultYear.value,
-                periodStart: null,
-                periodEnd: null,
-            });
-        }
-    } else {
-        // Bascule en période → garde period si déjà saisi, sinon clear year
-        if (
-            tableState.state.filters.value.periodStart === null
-            && tableState.state.filters.value.periodEnd === null
-        ) {
-            tableState.state.patchFilters({
-                year: null,
-                periodStart: null,
-                periodEnd: null,
-            });
-        } else {
-            tableState.state.setFilter('year', null);
-        }
-
-        // Auto-ouvre le date picker au passage en mode période · c'est
-        // le geste suivant logique (l'utilisateur veut saisir une plage),
-        // et le popover se ferme facilement (clic dehors / Escape).
-        periodPopoverOpen.value = true;
-    }
-}
-
-// Popover période personnalisée
-const periodPopoverOpen = ref<boolean>(false);
-const popoverRoot = ref<HTMLElement | null>(null);
-
-function handleDocumentMouseDown(event: MouseEvent): void {
-    if (!periodPopoverOpen.value) {
-return;
-}
-
-    const target = event.target as Node | null;
-
-    if (target === null) {
-return;
-}
-
-    if (popoverRoot.value !== null && popoverRoot.value.contains(target)) {
-return;
-}
-
-    periodPopoverOpen.value = false;
-}
-
-function handleEscape(event: KeyboardEvent): void {
-    if (event.key === 'Escape' && periodPopoverOpen.value) {
-        periodPopoverOpen.value = false;
-    }
-}
-
-onMounted(() => {
-    document.addEventListener('mousedown', handleDocumentMouseDown);
-    document.addEventListener('keydown', handleEscape);
-});
-
-onBeforeUnmount(() => {
-    document.removeEventListener('mousedown', handleDocumentMouseDown);
-    document.removeEventListener('keydown', handleEscape);
-});
-
-const pickerYear = computed<number>(() => {
-    const start = tableState.state.filters.value.periodStart;
-
-    if (start !== null) {
-        return Number.parseInt(start.slice(0, 4), 10);
-    }
-
-    return defaultYear.value;
-});
-
-const periodLabel = computed<string>(() => {
-    const start = tableState.state.filters.value.periodStart;
-    const end = tableState.state.filters.value.periodEnd;
-
-    if (start === null && end === null) {
-return 'Aucune période sélectionnée';
-}
-
-    const s = start === null ? '…' : formatDateFr(start);
-    const e = end === null ? '…' : formatDateFr(end);
-
-    return `${s} → ${e}`;
 });
 </script>
 

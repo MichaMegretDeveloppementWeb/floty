@@ -11,11 +11,7 @@ import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 import FilterPopover from '@/Components/Ui/Table/FilterPopover.vue';
 import YearRangeGridPicker from '@/Components/Ui/YearRangeGridPicker/YearRangeGridPicker.vue';
 import { useFleetTable } from '@/Composables/Vehicle/Index/useFleetTable';
-import {
-    energySourceLabel,
-    pollutantCategoryLabel,
-    vehicleStatusLabel,
-} from '@/Utils/labels/vehicleEnumLabels';
+import { useVehiclesIndexFilters } from '@/Composables/Vehicle/Index/useVehiclesIndexFilters';
 import EmptyFleetState from './partials/EmptyFleetState.vue';
 import FleetTable from './partials/FleetTable.vue';
 import PageHeader from './partials/PageHeader.vue';
@@ -49,7 +45,6 @@ const props = defineProps<{
     hasAnyVehicle: boolean;
 }>();
 
-const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
 const filtersOpen = ref<boolean>(false);
 
 // Année calendaire courante (front) · distincte de `selectedYear` qui
@@ -63,157 +58,25 @@ const tableState = useFleetTable({
     currentRealYear,
 });
 
-// Sélecteur d'année local à la page (chantier η anticipé) · pilote
-// uniquement les colonnes financières. Le label explicite évite la
-// confusion d'un sélecteur global anonyme (cf. arbitrage chantier θ.4).
-const selectedYearModel = computed<number>({
-    get: () => tableState.state.filters.value.year,
-    set: (value: number) => {
-        tableState.state.setFilter('year', value);
-    },
-});
-
-const yearOptions = computed<{ value: number; label: string }[]>(() =>
-    availableYears.value.map((year) => ({ value: year, label: String(year) })),
-);
-
-const searchModel = computed<string>({
-    get: () => tableState.state.search.value,
-    set: (value: string) => {
-        tableState.state.search.value = value;
-    },
-});
-
-const statusOptions = [
-    { value: '', label: 'Tous les statuts' },
-    ...(Object.keys(vehicleStatusLabel) as App.Enums.Vehicle.VehicleStatus[]).map(
-        (value) => ({ value, label: vehicleStatusLabel[value] }),
-    ),
-];
-
-const statusModel = computed<string | number>({
-    get: () => tableState.state.filters.value.status ?? '',
-    set: (value: string | number) => {
-        const v = String(value);
-        const isValid =
-            v === 'active' ||
-            v === 'maintenance' ||
-            v === 'sold' ||
-            v === 'destroyed' ||
-            v === 'other';
-        tableState.state.setFilter(
-            'status',
-            isValid ? (v as App.Enums.Vehicle.VehicleStatus) : null,
-        );
-    },
-});
-
-const energySourceOptions = [
-    { value: '', label: 'Toutes les énergies' },
-    ...(Object.keys(energySourceLabel) as App.Enums.Vehicle.EnergySource[]).map(
-        (value) => ({ value, label: energySourceLabel[value] }),
-    ),
-];
-
-const energySourceModel = computed<string | number>({
-    get: () => tableState.state.filters.value.energySource ?? '',
-    set: (value: string | number) => {
-        const v = String(value);
-        const allowed = Object.keys(
-            energySourceLabel,
-        ) as App.Enums.Vehicle.EnergySource[];
-        const next = allowed.includes(v as App.Enums.Vehicle.EnergySource)
-            ? (v as App.Enums.Vehicle.EnergySource)
-            : null;
-        tableState.state.setFilter('energySource', next);
-    },
-});
-
-const pollutantCategoryOptions = [
-    { value: '', label: 'Toutes catégories' },
-    ...(
-        Object.keys(
-            pollutantCategoryLabel,
-        ) as App.Enums.Vehicle.PollutantCategory[]
-    ).map((value) => ({ value, label: pollutantCategoryLabel[value] })),
-];
-
-const pollutantCategoryModel = computed<string | number>({
-    get: () => tableState.state.filters.value.pollutantCategory ?? '',
-    set: (value: string | number) => {
-        const v = String(value);
-        const allowed = Object.keys(
-            pollutantCategoryLabel,
-        ) as App.Enums.Vehicle.PollutantCategory[];
-        const next = allowed.includes(v as App.Enums.Vehicle.PollutantCategory)
-            ? (v as App.Enums.Vehicle.PollutantCategory)
-            : null;
-        tableState.state.setFilter('pollutantCategory', next);
-    },
-});
-
-const handicapAccessModel = computed<boolean>({
-    get: () => tableState.state.filters.value.handicapAccess === true,
-    set: (value: boolean) => {
-        tableState.state.setFilter('handicapAccess', value === true ? true : null);
-    },
-});
-
-const firstRegistrationYearMinModel = computed<number | null>({
-    get: () => tableState.state.filters.value.firstRegistrationYearMin,
-    set: (value: number | null) => {
-        tableState.state.setFilter('firstRegistrationYearMin', value);
-    },
-});
-
-const firstRegistrationYearMaxModel = computed<number | null>({
-    get: () => tableState.state.filters.value.firstRegistrationYearMax,
-    set: (value: number | null) => {
-        tableState.state.setFilter('firstRegistrationYearMax', value);
-    },
-});
-
-const includeExitedModel = computed<boolean>({
-    get: () => tableState.state.filters.value.includeExited,
-    set: (value: boolean) => {
-        tableState.state.setFilter('includeExited', value);
-    },
-});
-
-const activeFiltersCount = computed<number>(() => {
-    let n = 0;
-    const f = tableState.state.filters.value;
-
-    if (f.status !== null) {
-        n += 1;
-    }
-
-    // includeExited défaut true : compté comme filtre actif uniquement
-    // si l'utilisateur a explicitement décoché (override = exclure).
-    if (!f.includeExited) {
-        n += 1;
-    }
-
-    if (f.energySource !== null) {
-        n += 1;
-    }
-
-    if (f.pollutantCategory !== null) {
-        n += 1;
-    }
-
-    if (f.handicapAccess === true) {
-        n += 1;
-    }
-
-    if (
-        f.firstRegistrationYearMin !== null ||
-        f.firstRegistrationYearMax !== null
-    ) {
-        n += 1;
-    }
-
-    return n;
+const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
+const {
+    searchModel,
+    selectedYearModel,
+    statusModel,
+    energySourceModel,
+    pollutantCategoryModel,
+    handicapAccessModel,
+    firstRegistrationYearMinModel,
+    firstRegistrationYearMaxModel,
+    includeExitedModel,
+    statusOptions,
+    energySourceOptions,
+    pollutantCategoryOptions,
+    yearOptions,
+    activeFiltersCount,
+} = useVehiclesIndexFilters({
+    tableState: tableState.state,
+    availableYears,
 });
 </script>
 
