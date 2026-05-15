@@ -19,7 +19,8 @@ use Tests\TestCase;
 /**
  * Couvre l'algorithme de détection des clusters de risque fiscal
  * (Phase 11 D2, ADR-0015 § 4 + cas-tests permanents § 7, refondu
- * D5.10.Q · les LLD sont silencieusement ignorés).
+ * D5.10.Q · les LLD sont silencieusement ignorés, refondu Lot 5 D1 ·
+ * critère de qualification = union des jours uniques couverts).
  *
  * Service piloté par les seuils du singleton `FiscalRiskSettings` ·
  * sauf indication contraire, les tests utilisent les valeurs par
@@ -59,8 +60,9 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function cas2_2_lcd_20j_separes_5j_chain_moyen(): void
     {
-        // 2 LCD de 20j séparés de 5j · plage couverte = 2025-01-01 → 2025-02-14 = 45 jours
-        // 45 > 30 (threshold_low) → ChainMoyen.
+        // 2 LCD de 20j séparés de 5j · union des jours = 20+20 = 40 jours
+        // (pas de chevauchement). 40 > 30 (threshold_low) → ChainMoyen.
+        // Bornes affichées dans l'UI · 2025-01-01 → 2025-02-14.
         $this->makeContract('2025-01-01', '2025-01-20'); // 20 j
         $this->makeContract('2025-01-26', '2025-02-14'); // 20 j, intervalle 5
 
@@ -69,7 +71,7 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertCount(1, $clusters);
         self::assertSame(RiskCode::Chain, $clusters[0]->code);
         self::assertSame(RiskLevel::Moyen, $clusters[0]->level);
-        self::assertSame(45, $clusters[0]->coveragePeriodDays);
+        self::assertSame(40, $clusters[0]->coveragePeriodDays);
         self::assertSame('2025-01-01', $clusters[0]->coverageStartDate);
         self::assertSame('2025-02-14', $clusters[0]->coverageEndDate);
         self::assertSame(2, $clusters[0]->contractsCount);
@@ -79,8 +81,8 @@ final class RiskDetectionServiceTest extends TestCase
     public function cas3_5_lcd_15j_separes_7j_chain_fort(): void
     {
         // 5 contrats de 15 j chacun, séparés de 7 jours pleins.
-        // count = 5 ≥ count_high (5) → ChainFort (peu importe la plage).
-        // Plage 2025-01-01 → 2025-04-13 = 103 jours.
+        // count = 5 ≥ count_high (5) → ChainFort (peu importe l'union).
+        // Union des jours = 5 × 15 = 75 jours (aucun chevauchement).
         $this->makeContract('2025-01-01', '2025-01-15');
         $this->makeContract('2025-01-23', '2025-02-06');
         $this->makeContract('2025-02-14', '2025-02-28');
@@ -93,14 +95,14 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertSame(RiskCode::ChainFort, $clusters[0]->code);
         self::assertSame(RiskLevel::Eleve, $clusters[0]->level);
         self::assertSame(5, $clusters[0]->contractsCount);
-        self::assertSame(103, $clusters[0]->coveragePeriodDays);
+        self::assertSame(75, $clusters[0]->coveragePeriodDays);
     }
 
     #[Test]
-    public function cas4_4_lcd_plage_118j_chain_fort(): void
+    public function cas4_4_lcd_union_100j_chain_fort(): void
     {
-        // 4 contrats de 25 j enchaînés. Plage 2025-01-01 → 2025-04-28 = 118 jours.
-        // 118 > 90 (threshold_high) → ChainFort.
+        // 4 contrats de 25 j enchaînés sans chevauchement. Union = 100 j.
+        // 100 > 90 (threshold_high) → ChainFort.
         $this->makeContract('2025-01-01', '2025-01-25');
         $this->makeContract('2025-02-01', '2025-02-25'); // intervalle 6
         $this->makeContract('2025-03-04', '2025-03-28'); // intervalle 6
@@ -110,7 +112,7 @@ final class RiskDetectionServiceTest extends TestCase
 
         self::assertCount(1, $clusters);
         self::assertSame(RiskCode::ChainFort, $clusters[0]->code);
-        self::assertSame(118, $clusters[0]->coveragePeriodDays);
+        self::assertSame(100, $clusters[0]->coveragePeriodDays);
     }
 
     #[Test]
@@ -136,7 +138,8 @@ final class RiskDetectionServiceTest extends TestCase
         // LCD Nevada → LLD Toyota (autre véhicule, intercalé) → LCD Nevada.
         // Le LLD doit être silencieusement ignoré · les 2 LCD à
         // intervalle 3j forment une chaîne sur Nevada.
-        // Plage couverte = 2024-04-01 → 2024-05-18 = 48 jours > 30 → ChainMoyen.
+        // Union des jours · LCD1 (1-23 avr) = 23 j + LCD2 (26 avr-18 mai) = 23 j
+        // (pas de chevauchement) = 46 j > 30 → ChainMoyen.
         $vehicleNevada = $this->vehicle;
         $vehicleToyota = Vehicle::factory()->create();
 
@@ -167,7 +170,7 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertCount(1, $clusters);
         self::assertSame(RiskCode::Chain, $clusters[0]->code);
         self::assertSame(2, $clusters[0]->contractsCount);
-        self::assertSame(48, $clusters[0]->coveragePeriodDays);
+        self::assertSame(46, $clusters[0]->coveragePeriodDays);
     }
 
     #[Test]
@@ -217,10 +220,11 @@ final class RiskDetectionServiceTest extends TestCase
     }
 
     #[Test]
-    public function plage_egale_au_threshold_low_pas_de_cluster(): void
+    public function union_egale_au_threshold_low_pas_de_cluster(): void
     {
-        // Plage exactement 30 j → strict `>` donc PAS de cluster (R-LCD-CHAIN nécessite > 30)
-        // 2 LCD 15j contigus = plage 2025-01-01 → 2025-01-30 = 30 jours.
+        // Union exactement 30 j → strict `>` donc PAS de cluster
+        // (R-LCD-CHAIN nécessite > 30). 2 LCD de 15 j contigus
+        // (intervalle 0 j) sont fusionnés en un bloc 1-30 jan = 30 j.
         $this->makeContract('2025-01-01', '2025-01-15'); // 15 j
         $this->makeContract('2025-01-16', '2025-01-30'); // 15 j, intervalle 0
 
@@ -228,10 +232,11 @@ final class RiskDetectionServiceTest extends TestCase
     }
 
     #[Test]
-    public function plage_egale_au_threshold_high_classe_chain_pas_chain_fort(): void
+    public function union_strictement_inferieure_au_threshold_high_classe_chain_pas_chain_fort(): void
     {
-        // Plage exactement 90 j → > 30 mais pas > 90 → CHAIN, pas CHAIN-FORT
-        // 3 LCD avec intervalles, plage 2025-01-01 → 2025-03-31 = 90 jours, count 3 < 5.
+        // Union 77 j (30 + 30 + 17, aucun chevauchement, intervalles 7 j) ·
+        // > 30 (threshold_low) mais pas > 90 (threshold_high) → CHAIN moyen.
+        // count = 3 < count_high (5) · pas de bascule par count.
         $this->makeContract('2025-01-01', '2025-01-30'); // 30 j
         $this->makeContract('2025-02-06', '2025-03-07'); // 30 j, intervalle 7
         $this->makeContract('2025-03-15', '2025-03-31'); // 17 j, intervalle 7
@@ -240,7 +245,7 @@ final class RiskDetectionServiceTest extends TestCase
 
         self::assertCount(1, $clusters);
         self::assertSame(RiskCode::Chain, $clusters[0]->code);
-        self::assertSame(90, $clusters[0]->coveragePeriodDays);
+        self::assertSame(77, $clusters[0]->coveragePeriodDays);
     }
 
     #[Test]
@@ -359,20 +364,20 @@ final class RiskDetectionServiceTest extends TestCase
     }
 
     #[Test]
-    public function plage_bornee_a_l_annee_fiscale_quand_la_chaine_deborde(): void
+    public function union_bornee_a_l_annee_fiscale_quand_la_chaine_deborde(): void
     {
         // Chaîne à cheval 2024 → 2025 · seule la portion 2025 compte.
-        // LCD 1 : 2024-12-26 → 2025-01-15 · LCD 2 : 2025-01-22 → 2025-02-10
-        // Plage bornée = max(2024-12-26, 2025-01-01) → min(2025-02-10, 2025-12-31)
-        //              = 2025-01-01 → 2025-02-10 = 41 jours
-        // 41 > 30 → ChainMoyen.
+        // LCD 1 : 2024-12-26 → 2025-01-15 → borné à 2025-01-01 → 2025-01-15 = 15 j
+        // LCD 2 : 2025-01-22 → 2025-02-10 = 20 j
+        // Aucun chevauchement entre les bornés · union = 15 + 20 = 35 j > 30
+        // → ChainMoyen.
         $this->makeContract('2024-12-26', '2025-01-15');
         $this->makeContract('2025-01-22', '2025-02-10'); // intervalle 6
 
         $clusters = $this->service->detectClusters($this->company->id, 2025);
 
         self::assertCount(1, $clusters);
-        self::assertSame(41, $clusters[0]->coveragePeriodDays);
+        self::assertSame(35, $clusters[0]->coveragePeriodDays);
         self::assertSame('2025-01-01', $clusters[0]->coverageStartDate);
         self::assertSame('2025-02-10', $clusters[0]->coverageEndDate);
         self::assertSame(RiskCode::Chain, $clusters[0]->code);
@@ -381,8 +386,10 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function distinct_vehicles_count_reflete_les_vehicules_du_cluster(): void
     {
-        // Chaîne multi-véhicules · 3 LCD chevauchants sur 3 véhicules différents.
-        // Plage 2025-04-01 → 2025-05-03 = 33 jours · 33 > 30 → ChainMoyen.
+        // Chaîne multi-véhicules · 3 LCD chevauchants sur 3 véhicules
+        // différents (1 → 26 avr, 2 → 21 avr ⊂ premier, 22 avr → 3 mai
+        // recouvre les 22-26 avr du premier). Union des intervalles =
+        // bloc continu 1 avr → 3 mai = 33 jours · 33 > 30 → ChainMoyen.
         // distinctVehiclesCount = 3.
         $vehicleB = Vehicle::factory()->create();
         $vehicleC = Vehicle::factory()->create();
@@ -415,6 +422,112 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertSame(33, $clusters[0]->coveragePeriodDays);
         self::assertSame(3, $clusters[0]->distinctVehiclesCount);
         self::assertSame(3, $clusters[0]->contractsCount);
+    }
+
+    // ---------- Lot 5 D1 · sémantique union des jours uniques ----------
+
+    #[Test]
+    public function union_jours_lcd_chevauchants_pas_de_double_comptage(): void
+    {
+        // Lot 5 D1 · 3 LCD de 17 jours superposés sur les MÊMES 17 jours
+        // (3 véhicules distincts pour contourner l'unicité d'overlap
+        // par véhicule). Union = 17 j, pas 51 j. < 30 → pas de cluster.
+        // L'ancienne sémantique « plage début → fin » donnait pareil
+        // (17 j) ; l'ancienne sémantique « cumul brut » donnait 51 j et
+        // déclenchait à tort un cluster.
+        $vehicleB = Vehicle::factory()->create();
+        $vehicleC = Vehicle::factory()->create();
+
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $this->vehicle->id,
+            'start_date' => '2025-05-01',
+            'end_date' => '2025-05-17',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleB->id,
+            'start_date' => '2025-05-01',
+            'end_date' => '2025-05-17',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleC->id,
+            'start_date' => '2025-05-01',
+            'end_date' => '2025-05-17',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        self::assertSame([], $this->service->detectClusters($this->company->id, 2025));
+    }
+
+    #[Test]
+    public function union_jours_lcd_chevauchants_partiel_au_dessus_threshold(): void
+    {
+        // Lot 5 D1 · 3 LCD partiellement chevauchants formant un bloc
+        // continu de 35 jours (1-15 mai, 10-25 mai, 20 mai-4 juin) ·
+        // chaque LCD seul fait 15-16 j (donc reste LCD ≤ 30j).
+        // Union des fusions : 1 mai → 4 juin = 35 j > 30 → ChainMoyen.
+        // Cumul brut donnerait 47 j (15+16+16) · ici les chevauchements
+        // sont absorbés par la fusion d'intervalles.
+        $vehicleB = Vehicle::factory()->create();
+        $vehicleC = Vehicle::factory()->create();
+
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $this->vehicle->id,
+            'start_date' => '2025-05-01',
+            'end_date' => '2025-05-15',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleB->id,
+            'start_date' => '2025-05-10',
+            'end_date' => '2025-05-25',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicleC->id,
+            'start_date' => '2025-05-20',
+            'end_date' => '2025-06-04',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        $clusters = $this->service->detectClusters($this->company->id, 2025);
+
+        self::assertCount(1, $clusters);
+        self::assertSame(RiskCode::Chain, $clusters[0]->code);
+        self::assertSame(35, $clusters[0]->coveragePeriodDays);
+        self::assertSame('2025-05-01', $clusters[0]->coverageStartDate);
+        self::assertSame('2025-06-04', $clusters[0]->coverageEndDate);
+    }
+
+    #[Test]
+    public function union_jours_lcd_avec_trous_n_inflate_pas_la_plage(): void
+    {
+        // Lot 5 D1 · 4 LCD séparés par des trous de quelques jours.
+        // Plage début → fin = 1-jan → 24-fév = 55 j (l'ancienne
+        // sémantique gonflait avec les trous).
+        // Union = 14 + 11 + 6 + 9 = 40 j (pas de chevauchement).
+        // 40 > 30 → ChainMoyen.
+        $this->makeContract('2025-01-01', '2025-01-14'); // 14 j
+        $this->makeContract('2025-01-20', '2025-01-30'); // 11 j, intervalle 5
+        $this->makeContract('2025-02-05', '2025-02-10'); //  6 j, intervalle 5
+        $this->makeContract('2025-02-16', '2025-02-24'); //  9 j, intervalle 5
+
+        $clusters = $this->service->detectClusters($this->company->id, 2025);
+
+        self::assertCount(1, $clusters);
+        self::assertSame(RiskCode::Chain, $clusters[0]->code);
+        self::assertSame(40, $clusters[0]->coveragePeriodDays);
+        // Bornes externes inchangées · servent à l'affichage UI
+        // uniquement, pas au seuil.
+        self::assertSame('2025-01-01', $clusters[0]->coverageStartDate);
+        self::assertSame('2025-02-24', $clusters[0]->coverageEndDate);
     }
 
     // ---------- Lot 3 D08 · mémoïsation per-request (clustersCache) ----------

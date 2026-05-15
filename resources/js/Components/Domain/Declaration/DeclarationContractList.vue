@@ -48,6 +48,12 @@ const props = defineProps<{
     /** Clusters fournis en page Review pour activer la modale de décision. Absent en page Show (mode passif). */
     reviewClusters?: ReviewCluster[];
     submitting?: boolean;
+    /**
+     * Lot 5 D1 · seuils paramétrables exposés au `<ClusterDecisionModal>`.
+     * Requis en mode Review (quand `reviewClusters` est fourni), inutile
+     * en mode Show.
+     */
+    riskSettings?: App.Data.User.FiscalRiskSettings.FiscalRiskSettingsData;
 }>();
 
 const emit = defineEmits<{
@@ -327,10 +333,11 @@ defineExpose({
         </table>
 
         <ClusterDecisionModal
-            v-if="isInteractive"
+            v-if="isInteractive && riskSettings"
             v-model:open="modalOpen"
             :cluster="selectedCluster"
             :submitting="props.submitting ?? false"
+            :risk-settings="riskSettings"
             @submit="handleModalSubmit"
         />
     </div>

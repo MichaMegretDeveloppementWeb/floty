@@ -40,6 +40,7 @@ const props = defineProps<{
     predecessorDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
     obsoleteReasons: App.Data.User.FiscalDeclaration.InvalidationReasonData[];
     canonicalHeadDeclarationId: number | null;
+    riskSettings: App.Data.User.FiscalRiskSettings.FiscalRiskSettingsData;
 }>();
 
 const { submitting, submitDecision } = useReviewForm(props.declaration.id);
@@ -209,6 +210,7 @@ function handleScrollTo(fingerprint: string): void {
                 :snapshot="snapshot"
                 :review-clusters="preview.clusters"
                 :submitting="submitting"
+                :risk-settings="riskSettings"
                 @submit="(cluster, decision, justification, excludedIds) => handleSubmit(cluster, decision, justification, excludedIds)"
             />
 

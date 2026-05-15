@@ -185,40 +185,56 @@ final class RiskDetectionService
     /**
      * Qualifie une chaîne en R-LCD-CHAIN, R-LCD-CHAIN-FORT ou rien.
      *
-     * **Phase 13 D5.10.N · critère plage couverte** · le code ne somme
-     * plus les `expandToDaysInYear` (qui surcompte en cas de
-     * chevauchements ou de chaînes multi-véhicules) mais calcule la
-     * plage continue allant de la date de début la plus précoce à la
-     * date de fin la plus tardive, bornée à l'année fiscale stricte.
-     * Reflète la doctrine R-LCD-CHAIN qui vise la continuité temporelle
-     * d'usage et non la somme des durées contractuelles.
+     * **Lot 5 D1 · critère union des jours uniques couverts** · le seuil
+     * de qualification se calcule sur l'union des jours **effectivement
+     * couverts** par au moins un contrat de la chaîne (intervalles
+     * fusionnés, bornés à l'année fiscale). Approche exacte qui couvre
+     * uniformément deux pièges :
+     *
+     *   - **Contrats chevauchants** (ex. 3 contrats de 17 j superposés
+     *     sur les mêmes 17 jours) · le cumul brut surcompterait
+     *     (51 j faux), l'union restitue la réalité (17 j).
+     *   - **Contrats avec trous** (ex. 15 j → trou 50 j → 8 j) · la
+     *     plage début→fin surcompterait (73 j faux), l'union retient
+     *     uniquement les jours d'usage réel (23 j).
+     *
+     * Le `coverageStartDate` / `coverageEndDate` continuent de désigner
+     * la borne extérieure de la chaîne (premier début · dernier fin,
+     * bornés à l'année) · ils servent uniquement à l'affichage UI du
+     * header de cluster, pas au seuil.
+     *
+     * **Historique** · D5.10.N avait migré du cumul brut vers la plage
+     * couverte ; cette doctrine a été remplacée par l'union des jours
+     * (Lot 5 D1) après identification du surcomptage symétrique de
+     * la plage en cas de trous internes.
      *
      * @param  list<Contract>  $chain
      */
     private function qualifyChain(array $chain, int $year, FiscalRiskSettings $settings): ?ReviewClusterData
     {
-        $minStart = $chain[0]->start_date;
-        $maxEnd = $chain[0]->end_date;
-        foreach ($chain as $contract) {
-            if ($contract->start_date->lt($minStart)) {
-                $minStart = $contract->start_date;
-            }
-            if ($contract->end_date->gt($maxEnd)) {
-                $maxEnd = $contract->end_date;
-            }
-        }
-
         $yearStart = CarbonImmutable::create($year, 1, 1);
         $yearEnd = CarbonImmutable::create($year, 12, 31);
-        $effectiveMin = $minStart->lt($yearStart) ? $yearStart : CarbonImmutable::parse($minStart);
-        $effectiveMax = $maxEnd->gt($yearEnd) ? $yearEnd : CarbonImmutable::parse($maxEnd);
 
-        // Cas dégénéré · chaîne entièrement hors année fiscale.
-        if ($effectiveMax->lt($effectiveMin)) {
+        $intervals = $this->boundedIntervals($chain, $yearStart, $yearEnd);
+        if ($intervals === []) {
             return null;
         }
 
-        $coveragePeriodDays = (int) $effectiveMin->diffInDays($effectiveMax) + 1;
+        $coveragePeriodDays = $this->unionDays($intervals);
+
+        // Bornes externes de la chaîne (pour l'affichage UI uniquement,
+        // pas pour le seuil) · premier début ↔ dernier fin, bornés à l'année.
+        $coverageStart = $intervals[0][0];
+        $coverageEnd = $intervals[0][1];
+        foreach ($intervals as [$start, $end]) {
+            if ($start->lt($coverageStart)) {
+                $coverageStart = $start;
+            }
+            if ($end->gt($coverageEnd)) {
+                $coverageEnd = $end;
+            }
+        }
+
         $count = count($chain);
         $distinctVehiclesCount = count(array_unique(array_map(
             static fn (Contract $c): int => $c->vehicle_id,
@@ -242,12 +258,81 @@ final class RiskDetectionService
             contracts: $this->buildContractDtos($chain, $year),
             contractsCount: $count,
             coveragePeriodDays: $coveragePeriodDays,
-            coverageStartDate: $effectiveMin->toDateString(),
-            coverageEndDate: $effectiveMax->toDateString(),
+            coverageStartDate: $coverageStart->toDateString(),
+            coverageEndDate: $coverageEnd->toDateString(),
             distinctVehiclesCount: $distinctVehiclesCount,
             decision: null,
             justification: null,
         );
+    }
+
+    /**
+     * Renvoie la liste des intervalles `[start, end]` (CarbonImmutable)
+     * de chaque contrat de la chaîne, bornés à l'année fiscale et
+     * écartés s'ils tombent entièrement hors année.
+     *
+     * @param  list<Contract>  $chain
+     * @return list<array{0: CarbonImmutable, 1: CarbonImmutable}>
+     */
+    private function boundedIntervals(array $chain, CarbonImmutable $yearStart, CarbonImmutable $yearEnd): array
+    {
+        $intervals = [];
+        foreach ($chain as $contract) {
+            $start = $contract->start_date->lt($yearStart)
+                ? $yearStart
+                : CarbonImmutable::parse($contract->start_date);
+            $end = $contract->end_date->gt($yearEnd)
+                ? $yearEnd
+                : CarbonImmutable::parse($contract->end_date);
+            if ($end->lt($start)) {
+                continue;
+            }
+            $intervals[] = [$start, $end];
+        }
+
+        return $intervals;
+    }
+
+    /**
+     * Union des jours uniques couverts par au moins un intervalle.
+     * Algorithme classique · tri par date de début, fusion des
+     * intervalles chevauchants ou contigus (un intervalle qui démarre
+     * le lendemain du précédent est fusionné · 1-10 ∪ 11-20 = 1-20),
+     * puis somme inclusive des durées des intervalles fusionnés.
+     *
+     * @param  list<array{0: CarbonImmutable, 1: CarbonImmutable}>  $intervals
+     */
+    private function unionDays(array $intervals): int
+    {
+        usort(
+            $intervals,
+            static fn (array $a, array $b): int => $a[0]->getTimestamp() <=> $b[0]->getTimestamp(),
+        );
+
+        /** @var list<array{0: CarbonImmutable, 1: CarbonImmutable}> $merged */
+        $merged = [$intervals[0]];
+        $count = count($intervals);
+        for ($i = 1; $i < $count; $i++) {
+            [$start, $end] = $intervals[$i];
+            $lastIndex = count($merged) - 1;
+            [$lastStart, $lastEnd] = $merged[$lastIndex];
+
+            if ($start->lessThanOrEqualTo($lastEnd->addDay())) {
+                $merged[$lastIndex] = [
+                    $lastStart,
+                    $end->greaterThan($lastEnd) ? $end : $lastEnd,
+                ];
+            } else {
+                $merged[] = [$start, $end];
+            }
+        }
+
+        $total = 0;
+        foreach ($merged as [$start, $end]) {
+            $total += (int) $start->diffInDays($end) + 1;
+        }
+
+        return $total;
     }
 
     /**

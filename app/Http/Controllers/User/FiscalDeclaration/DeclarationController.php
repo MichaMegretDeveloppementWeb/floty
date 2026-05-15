@@ -21,9 +21,11 @@ use App\Data\User\FiscalDeclaration\InvalidationReasonData;
 use App\Data\User\FiscalDeclaration\PaginatedDeclarationListData;
 use App\Data\User\FiscalDeclaration\PrepareDeclarationData;
 use App\Data\User\FiscalReviewDecision\StoreReviewDecisionData;
+use App\Data\User\FiscalRiskSettings\FiscalRiskSettingsData;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\FiscalDeclaration;
+use App\Models\FiscalRiskSettings;
 use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use App\Services\Fiscal\RiskDetection\DeclarationPreviewService;
 use App\Services\Pdf\DeclarationPdfStorage;
@@ -231,6 +233,11 @@ final class DeclarationController extends Controller
                 : null,
             'obsoleteReasons' => $obsoleteReasons,
             'canonicalHeadDeclarationId' => $canonicalHead?->id,
+            // Lot 5 D1 · expose les seuils paramétrables au modal de
+            // décision · le texte pédagogique du modal interpole
+            // dynamiquement les valeurs (`thresholdLow`, `thresholdHigh`,
+            // `countHigh`) au lieu de les hardcoder côté UI.
+            'riskSettings' => FiscalRiskSettingsData::fromModel(FiscalRiskSettings::singleton()),
         ]);
     }
 

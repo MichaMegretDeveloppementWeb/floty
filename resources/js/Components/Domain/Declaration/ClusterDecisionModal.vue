@@ -28,6 +28,13 @@ import { formatDateFr } from '@/Utils/format/formatDateFr';
 const props = defineProps<{
     cluster: App.Data.User.FiscalDeclaration.ReviewClusterData | null;
     submitting: boolean;
+    /**
+     * Lot 5 D1 · seuils paramétrables de détection injectés depuis
+     * `FiscalRiskSettings` (page Settings). Le texte pédagogique du
+     * modal interpole `thresholdLow` / `thresholdHigh` / `countHigh`
+     * au lieu de hardcoder « 30 / 90 / 5 ».
+     */
+    riskSettings: App.Data.User.FiscalRiskSettings.FiscalRiskSettingsData;
 }>();
 
 const open = defineModel<boolean>('open', { required: true });
@@ -244,11 +251,12 @@ function handleRequalify(): void {
             <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
                 <p class="mb-1 font-semibold text-slate-900">Pourquoi cette chaîne est à risque</p>
                 <p>
-                    Quand des contrats LCD courts forment une chaîne dont la
-                    plage couverte dépasse 30 jours (chaîne moyenne) ou 90 jours
-                    / 5 contrats (chaîne forte) sur l'exercice, l'administration
-                    peut requalifier ces locations courtes en location longue
-                    durée (CIBS L. 421-141, BOFiP § 190), même si la chaîne
+                    Quand des contrats LCD courts forment une chaîne dont
+                    l'union des jours couverts dépasse {{ riskSettings.thresholdLow }} jours
+                    (chaîne moyenne) ou {{ riskSettings.thresholdHigh }} jours
+                    / {{ riskSettings.countHigh }} contrats (chaîne forte) sur l'exercice,
+                    l'administration peut requalifier ces locations courtes en location
+                    longue durée (CIBS L. 421-141, BOFiP § 190), même si la chaîne
                     traverse plusieurs véhicules.
                 </p>
                 <ul class="mt-2 flex flex-col gap-1 pl-1">

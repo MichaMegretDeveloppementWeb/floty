@@ -26,6 +26,11 @@ const props = defineProps<{
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
     reviewClusters?: App.Data.User.FiscalDeclaration.ReviewClusterData[];
     submitting?: boolean;
+    /**
+     * Lot 5 D1 · seuils paramétrables propagés à `<DeclarationContractList>`
+     * → `<ClusterDecisionModal>`. Requis en mode Review.
+     */
+    riskSettings?: App.Data.User.FiscalRiskSettings.FiscalRiskSettingsData;
 }>();
 
 const emit = defineEmits<{
@@ -88,6 +93,7 @@ defineExpose({
                     :contract-breakdown="props.snapshot.contractBreakdown"
                     :review-clusters="props.reviewClusters"
                     :submitting="props.submitting"
+                    :risk-settings="props.riskSettings"
                     @submit="(cluster, decision, justification, excludedIds) => emit('submit', cluster, decision, justification, excludedIds)"
                 />
             </div>
