@@ -12,47 +12,112 @@ type ExtensionStrategy = App.Enums.Vehicle.FiscalCharacteristicsExtensionStrateg
  * Form Inertia + UI state du modal de suppression d'une VFC.
  *
  * L'utilisateur doit choisir explicitement la stratégie de
- * comblement du trou laissé par la suppression :
- *   - `extend_previous` : la version précédente est étendue jusqu'à
+ * comblement du trou laissé par la suppression ·
+ *   - `extend_previous` · la version précédente est étendue jusqu'à
  *     la fin de la période supprimée,
- *   - `extend_next` : la version suivante est reculée pour démarrer
+ *   - `extend_next` · la version suivante est reculée pour démarrer
  *     au début de la période supprimée.
  *
- * Le backend valide qu'au moins une des deux stratégies est
- * applicable selon le contexte (présence d'un voisin compatible).
+ * P8 · le filtrage des stratégies se fait côté frontend selon la
+ * présence d'un voisin compatible dans l'historique ·
+ *   - VFC seule de l'historique · aucune stratégie possible (le
+ *     backend lèverait `CannotDeleteOnlyVersionException`), le modal
+ *     affiche un message bloquant et désactive le submit.
+ *   - Plus ancienne VFC (pas de précédente) · seul `extend_next` est
+ *     proposé.
+ *   - Plus récente VFC (pas de suivante) · seul `extend_previous`
+ *     est proposé.
+ *   - VFC encadrée · les deux stratégies sont proposées.
+ *
+ * Sans ce filtrage, l'utilisateur pouvait choisir une stratégie
+ * inapplicable et obtenir une exception backend après soumission.
  */
 export function useVfcDeleteForm(
-    props: { deleting: Vfc | null },
+    props: { deleting: Vfc | null; history: ReadonlyArray<Vfc> },
     open: Ref<boolean>,
 ): {
     form: InertiaForm<VfcDeleteFormShape>;
-    strategyOptions: { value: ExtensionStrategy; label: string }[];
+    strategyOptions: ComputedRef<{ value: ExtensionStrategy; label: string }[]>;
     canSubmit: ComputedRef<boolean>;
+    isOnlyVersion: ComputedRef<boolean>;
     submit: () => void;
 } {
     const form = useForm<VfcDeleteFormShape>({
         extension_strategy: '',
     });
 
-    const strategyOptions: { value: ExtensionStrategy; label: string }[] = [
-        { value: 'extend_previous', label: 'Étendre la version précédente sur la période supprimée' },
-        { value: 'extend_next', label: 'Étendre la version suivante sur la période supprimée' },
-    ];
+    /**
+     * Détermine si la VFC en cours de suppression a un voisin temporel
+     * (précédent ou suivant) dans l'historique. L'historique est trié
+     * par `effective_from` ASC côté backend (`findByVehicle`), on
+     * s'appuie sur cette invariante.
+     */
+    const hasPrevious = computed<boolean>(() => {
+        if (props.deleting === null) {
+            return false;
+        }
+        const currentFrom = props.deleting.effectiveFrom;
 
+        return props.history.some((v) => v.id !== props.deleting!.id && v.effectiveFrom < currentFrom);
+    });
+
+    const hasNext = computed<boolean>(() => {
+        if (props.deleting === null) {
+            return false;
+        }
+        const currentFrom = props.deleting.effectiveFrom;
+
+        return props.history.some((v) => v.id !== props.deleting!.id && v.effectiveFrom > currentFrom);
+    });
+
+    const isOnlyVersion = computed<boolean>(() => {
+        if (props.deleting === null) {
+            return false;
+        }
+
+        return ! hasPrevious.value && ! hasNext.value;
+    });
+
+    const strategyOptions = computed<{ value: ExtensionStrategy; label: string }[]>(() => {
+        const options: { value: ExtensionStrategy; label: string }[] = [];
+
+        if (hasPrevious.value) {
+            options.push({
+                value: 'extend_previous',
+                label: 'Étendre la version précédente sur la période supprimée',
+            });
+        }
+        if (hasNext.value) {
+            options.push({
+                value: 'extend_next',
+                label: 'Étendre la version suivante sur la période supprimée',
+            });
+        }
+
+        return options;
+    });
+
+    // Pré-sélection automatique de la seule option disponible · UX
+    // pragmatique quand un seul choix est applicable, l'utilisateur
+    // n'a plus qu'à confirmer.
     watch(
         () => props.deleting,
         () => {
             form.reset();
             form.clearErrors();
+            const options = strategyOptions.value;
+            if (options.length === 1) {
+                form.extension_strategy = options[0]!.value;
+            }
         },
     );
 
     const canSubmit = computed<boolean>(
-        () => form.extension_strategy !== '',
+        () => ! isOnlyVersion.value && form.extension_strategy !== '',
     );
 
     const submit = (): void => {
-        if (!canSubmit.value || !props.deleting) {
+        if (! canSubmit.value || ! props.deleting) {
             return;
         }
 
@@ -73,6 +138,7 @@ export function useVfcDeleteForm(
         form,
         strategyOptions,
         canSubmit,
+        isOnlyVersion,
         submit,
     };
 }

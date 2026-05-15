@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { AlertTriangle } from 'lucide-vue-next';
 import Button from '@/Components/Ui/Button/Button.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
@@ -9,6 +10,13 @@ type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 
 const props = defineProps<{
     deleting: Vfc | null;
+    /**
+     * P8 · liste complète des VFC du véhicule, sert à filtrer les
+     * stratégies d'extension proposées selon la présence de voisins
+     * temporels. Évite que l'utilisateur choisisse une stratégie
+     * inapplicable et obtienne une exception backend.
+     */
+    history: ReadonlyArray<Vfc>;
 }>();
 
 const open = defineModel<boolean>('open', { required: true });
@@ -17,6 +25,7 @@ const {
     form,
     strategyOptions,
     canSubmit,
+    isOnlyVersion,
     submit,
 } = useVfcDeleteForm(props, open);
 </script>
@@ -42,7 +51,26 @@ const {
                 Cette action est irréversible.
             </p>
 
-            <fieldset class="flex flex-col gap-2">
+            <!--
+                P8 · cas « VFC seule de l'historique » · le backend
+                lèverait `CannotDeleteOnlyVersionException`. On bloque
+                en amont avec un message explicite pour éviter une
+                soumission qui serait rejetée.
+            -->
+            <div
+                v-if="isOnlyVersion"
+                class="flex items-start gap-2.5 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-3"
+                role="alert"
+            >
+                <AlertTriangle :size="16" :stroke-width="1.75" class="mt-0.5 shrink-0 text-amber-600" />
+                <p class="text-sm text-slate-800">
+                    Cette version est la seule de l'historique fiscal · un
+                    véhicule doit toujours en avoir au moins une. Créez
+                    d'abord une nouvelle version avant de supprimer celle-ci.
+                </p>
+            </div>
+
+            <fieldset v-else class="flex flex-col gap-2">
                 <legend class="text-sm font-medium text-slate-700">
                     Que faire de la période supprimée ?
                 </legend>

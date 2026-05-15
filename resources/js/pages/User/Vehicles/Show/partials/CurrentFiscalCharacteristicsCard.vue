@@ -169,6 +169,7 @@ const deleteState = useVfcDeleteModalState();
         <VfcDeleteConfirmModal
             v-model:open="deleteState.open.value"
             :deleting="deleteState.deleting.value"
+            :history="props.history"
         />
     </Card>
 </template>
