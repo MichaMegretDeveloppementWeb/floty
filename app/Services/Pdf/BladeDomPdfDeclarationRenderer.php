@@ -152,6 +152,25 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
         return sprintf('%s/%s/%s', $parts[2], $parts[1], $parts[0]);
     }
 
+    /**
+     * Formate un montant en euros pour le PDF officiel ·
+     *
+     *   - virgule comme séparateur décimal (« 1 234,56 »)
+     *   - **espace fine insécable U+202F** comme séparateur de milliers
+     *     ET avant le symbole `€` (« 1 234,56 € »)
+     *   - 2 décimales fixes
+     *
+     * Le caractère U+202F (NARROW NO-BREAK SPACE) est conforme à la
+     * typographie française officielle (cf. Lexique des règles
+     * typographiques en usage à l'Imprimerie nationale + Unicode UAX
+     * #14). Il interdit la coupure de ligne entre nombre et symbole et
+     * produit un espacement plus serré que l'espace insécable U+00A0
+     * standard. DomPDF supporte nativement les codepoints Unicode via
+     * la police DejaVu Sans embarquée. Lot 5 D10 (F-19D2-017) · doctrine
+     * documentée pour éviter qu'une refonte ultérieure ne le remplace
+     * par un espace ASCII (cassure ligne possible) ou U+00A0 (rendu
+     * trop large).
+     */
     private function formatEuros(float $amount): string
     {
         $formatted = number_format($amount, 2, ',', "\u{202F}");

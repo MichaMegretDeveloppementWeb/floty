@@ -40,4 +40,23 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Déclarations fiscales (annexes PDF)
+    |--------------------------------------------------------------------------
+    |
+    | Disque Storage utilisé par {@see App\Services\Pdf\DeclarationPdfStorage}
+    | pour persister immuablement les annexes PDF des déclarations fiscales
+    | (ADR-0008/ADR-0015 § 5.1 + D8). Doit être un disque privé · les PDF
+    | contiennent des données fiscales sensibles non destinées au public.
+    |
+    | Lot 5 D10 (F-19-016) · variable d'env `DECLARATIONS_PDF_DISK` · permet
+    | de basculer sur S3/GCS en prod sans toucher au code. Default `local`
+    | reste compatible avec le développement et la stack Floty actuelle
+    | (ADR `project_infra_no_queue_no_cron`, pas d'object storage actif).
+    */
+    'declarations' => [
+        'pdf_storage_disk' => env('DECLARATIONS_PDF_DISK', 'local'),
+    ],
+
 ];

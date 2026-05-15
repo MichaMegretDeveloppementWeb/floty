@@ -7,6 +7,7 @@ namespace App\Providers;
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Pdf\BladeDomPdfDeclarationRenderer;
+use App\Services\Pdf\DeclarationPdfStorage;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
@@ -32,6 +33,17 @@ class AppServiceProvider extends ServiceProvider
         // production Blade + DomPDF (Phase 11 D5.5). NullDeclarationPdfRenderer
         // reste disponible pour les tests qui le bindent explicitement.
         $this->app->bind(DeclarationPdfRendererInterface::class, BladeDomPdfDeclarationRenderer::class);
+
+        // Lot 5 D10 (F-19-016) · `DeclarationPdfStorage` reçoit le disque
+        // Storage configuré via `floty.declarations.pdf_storage_disk` (env
+        // `DECLARATIONS_PDF_DISK`). Permet de basculer sur S3/GCS en prod
+        // sans modifier le code.
+        $this->app->bind(
+            DeclarationPdfStorage::class,
+            fn (): DeclarationPdfStorage => new DeclarationPdfStorage(
+                config('floty.declarations.pdf_storage_disk') ?? 'local',
+            ),
+        );
     }
 
     /**

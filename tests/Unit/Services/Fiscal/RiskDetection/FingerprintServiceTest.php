@@ -134,6 +134,38 @@ final class FingerprintServiceTest extends TestCase
         self::assertNotSame($fpA, $fpB);
     }
 
+    #[Test]
+    public function lot5_d10_leve_json_exception_sur_payload_invalide(): void
+    {
+        // Lot 5 D10 (F-19-019) · garde-fou · le `JSON_THROW_ON_ERROR`
+        // doit propager toute corruption d'encodage JSON (ex. payload
+        // contenant un float non-finite NAN/INF). Sans ce flag, json_encode
+        // retournerait `false` silencieusement et le hash serait dérivé
+        // d'une chaîne vide · fingerprint corrompu non détecté.
+        //
+        // On contourne le typage iterable<Contract> en passant directement
+        // un objet anonyme avec les propriétés Carbon attendues qui force
+        // le serializer à exécuter le json_encode des champs.
+        $service = new FingerprintService;
+
+        // Construit un Contract « pathologique » dont `vehicle_id` est NAN
+        // (non encodable en JSON). On ne peut pas réellement persister un
+        // tel modèle, mais le service accepte iterable<Contract> donc on
+        // s'appuie sur la duck-typing PHP via une closure qui yield un
+        // objet stdClass ressemblant.
+        $bad = new \stdClass;
+        $bad->id = 1;
+        $bad->start_date = now();
+        $bad->end_date = now();
+        $bad->vehicle_id = NAN;
+
+        $this->expectException(\JsonException::class);
+
+        // L'iterable accepte tout objet · le service va lire les
+        // propriétés et passer NAN à json_encode qui lève l'exception.
+        $service->compute([$bad]);
+    }
+
     private function makeContract(string $start, string $end): Contract
     {
         return Contract::factory()->create([
