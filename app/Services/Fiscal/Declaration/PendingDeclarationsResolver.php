@@ -128,7 +128,12 @@ final readonly class PendingDeclarationsResolver
 
             return [
                 $current->obsolete_at?->toDateString(),
-                count($current->obsolete_reasons ?? []),
+                // Garde-fou défensif · `count($x ?? [])` est unsafe si
+                // `$x` est string (cast Eloquent qui a renvoyé un scalaire
+                // suite à JSON corrompu) · PHP 8 throw TypeError sur
+                // `count(string)`. Aligné avec le helper
+                // `InvalidationReasonData::listFromRaw` (pattern jumeau).
+                is_array($current->obsolete_reasons) ? count($current->obsolete_reasons) : 0,
             ];
         }
 
@@ -150,7 +155,7 @@ final readonly class PendingDeclarationsResolver
 
             return [
                 $predecessor->obsolete_at?->toDateString(),
-                count($predecessor->obsolete_reasons ?? []),
+                is_array($predecessor->obsolete_reasons) ? count($predecessor->obsolete_reasons) : 0,
             ];
         }
 
