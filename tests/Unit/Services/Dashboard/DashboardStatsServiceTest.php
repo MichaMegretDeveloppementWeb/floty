@@ -17,9 +17,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests des 4 méthodes du `DashboardStatsService` refondu (chantier η
- * Phase 4) : Présent (KPIs + comparaison Y-1), Évolution (history),
- * Exploration (activity), Tâches en attente (placeholders).
+ * Tests des méthodes du `DashboardStatsService` · Présent (KPIs +
+ * comparaison Y-1), Évolution (history), Tâches en attente.
  */
 final class DashboardStatsServiceTest extends TestCase
 {
@@ -143,32 +142,6 @@ final class DashboardStatsServiceTest extends TestCase
         // apparaître artificiellement.
         foreach ($history as $entry) {
             self::assertGreaterThanOrEqual($today->year, $entry->year);
-        }
-    }
-
-    #[Test]
-    public function compute_activity_renvoie_la_heatmap_30j_par_vehicule(): void
-    {
-        $today = CarbonImmutable::today();
-        $v1 = Vehicle::factory()->create(['license_plate' => 'AA-001-AA']);
-        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v1->id]);
-        $v2 = Vehicle::factory()->create(['license_plate' => 'BB-002-BB']);
-        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2->id]);
-        $company = Company::factory()->create();
-        Contract::factory()->forVehicle($v1)->forCompany($company)->create([
-            'start_date' => $today->subDays(20)->toDateString(),
-            'end_date' => $today->addDays(20)->toDateString(),
-        ]);
-        Contract::factory()->forVehicle($v2)->forCompany($company)->create([
-            'start_date' => $today->subDays(2)->toDateString(),
-            'end_date' => $today->addDays(2)->toDateString(),
-        ]);
-
-        $activity = $this->service->computeActivity();
-
-        // Heatmap · 30 jours par véhicule, statut 'occupied' ou 'free'.
-        foreach ($activity->last30DaysHeatmap as $row) {
-            self::assertCount(30, $row->days);
         }
     }
 

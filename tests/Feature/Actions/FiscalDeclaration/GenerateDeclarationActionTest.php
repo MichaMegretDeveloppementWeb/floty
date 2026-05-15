@@ -235,6 +235,11 @@ final class GenerateDeclarationActionTest extends TestCase
     #[Test]
     public function la_reference_increments_a_la_regeneration_sur_le_meme_couple(): void
     {
+        // Lot 5 D3 · l'index unique partial `decl_active_uniqueness`
+        // garantit qu'au plus 1 déclaration active existe par couple
+        // `(company_id, fiscal_year)`. Le test simule donc le workflow
+        // réel de régénération · 1ère générée → marquée obsolète →
+        // 2ème créée puis générée. La référence doit incrémenter.
         $company = Company::factory()->create(['short_code' => 'ACM']);
         $first = FiscalDeclaration::factory()
             ->forCompany($company)
@@ -243,6 +248,10 @@ final class GenerateDeclarationActionTest extends TestCase
             ->create();
         $generatedFirst = $this->action->execute($first->id);
         self::assertSame('DECL-ACM-2025-0001', $generatedFirst->reference);
+
+        // Régénération · la 1ère bascule en obsolete avant la création
+        // de la 2ème (l'index unique tolère les obsoletes · NULL key).
+        $generatedFirst->fill(['is_obsolete' => true, 'obsolete_at' => now()])->save();
 
         $second = FiscalDeclaration::factory()
             ->forCompany($company)

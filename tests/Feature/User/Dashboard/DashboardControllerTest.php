@@ -49,8 +49,6 @@ final class DashboardControllerTest extends TestCase
                     ->has('recettesLocativesCents')
                     ->has('previousYearComparison'))
                 ->has('history')
-                ->has('activity', fn (AssertableInertia $a) => $a
-                    ->has('last30DaysHeatmap'))
                 ->has('pendingTasks', fn (AssertableInertia $t) => $t
                     ->has('pendingDeclarationsCount')
                     ->has('pendingDeclarations')

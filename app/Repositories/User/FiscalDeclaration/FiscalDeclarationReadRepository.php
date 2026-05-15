@@ -24,10 +24,24 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
 
     public function findActiveForCompanyYear(int $companyId, int $year): ?FiscalDeclaration
     {
+        // Lot 5 D3 · `orderByDesc('id')` garantit le déterminisme dans
+        // le cas pathologique où 2 lignes actives co-existeraient pour le
+        // même couple. En production cet état est désormais impossible
+        // par construction grâce à l'index unique partial introduit par
+        // la migration `add_unique_index_to_fiscal_declarations` (colonne
+        // virtuelle MySQL 8 `active_uniqueness_key`), mais on maintient
+        // l'ordre côté repo comme défense en profondeur (et pour les
+        // tests qui pourraient encore créer des doublons via factory en
+        // bypassant la contrainte par erreur).
+        //
+        // Eager loading `company` aligné sur `findCurrentForCompanyYear`
+        // pour éviter un éventuel N+1 chez les consumers.
         return FiscalDeclaration::query()
+            ->with(['company:id,short_code,legal_name,color'])
             ->where('company_id', $companyId)
             ->where('fiscal_year', $year)
             ->where('is_obsolete', false)
+            ->orderByDesc('id')
             ->first();
     }
 

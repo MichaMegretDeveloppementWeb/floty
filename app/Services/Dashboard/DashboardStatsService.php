@@ -6,17 +6,13 @@ namespace App\Services\Dashboard;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
-use App\Data\User\Dashboard\DashboardActivityData;
-use App\Data\User\Dashboard\DashboardHeatmapDayData;
 use App\Data\User\Dashboard\DashboardKpiComparisonData;
 use App\Data\User\Dashboard\DashboardKpiData;
 use App\Data\User\Dashboard\DashboardPendingTasksData;
-use App\Data\User\Dashboard\DashboardVehicleHeatmapData;
 use App\Data\User\Dashboard\DashboardYearHistoryData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
-use App\Models\Vehicle;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
@@ -46,9 +42,6 @@ use Illuminate\Support\Collection;
  */
 final class DashboardStatsService
 {
-    /** Nombre de jours de la heatmap « activité immédiate » de la lentille Exploration. */
-    private const HEATMAP_DAYS = 30;
-
     /**
      * Nombre maximum de barres dans le graphique « Évolution ». Si le
      * scope dynamique des contrats remonte plus loin (ex. 20 ans), on
@@ -322,19 +315,6 @@ final class DashboardStatsService
     }
 
     /**
-     * Aperçu opérationnel immédiat · heatmap 30 derniers jours flotte +
-     * top 3 véhicules par taxe YTD.
-     */
-    public function computeActivity(): DashboardActivityData
-    {
-        $today = CarbonImmutable::today();
-
-        return new DashboardActivityData(
-            last30DaysHeatmap: $this->buildLast30DaysHeatmap($today),
-        );
-    }
-
-    /**
      * Tâches en attente sur la flotte (Phase 13 D5.15). Délègue à
      * {@see DashboardPendingTasksAggregator} qui agrège les items
      * pending de toutes les entreprises actives via les resolvers
@@ -468,142 +448,6 @@ final class DashboardStatsService
         } catch (FiscalCalculationException) {
             return 0.0;
         }
-    }
-
-    /**
-     * Construit la heatmap 30 jours (J-29 → J) pour tous les véhicules
-     * actifs ou retirés après J-29. Pour chaque jour : statut
-     * `occupied` / `unavailable` / `free`.
-     *
-     * @return list<DashboardVehicleHeatmapData>
-     */
-    private function buildLast30DaysHeatmap(CarbonImmutable $today): array
-    {
-        $startWindow = $today->subDays(self::HEATMAP_DAYS - 1);
-        $endWindow = $today;
-
-        // On charge les contrats sur les années couvertes (max 2 années
-        // car la fenêtre de 30 jours peut chevaucher 2 années).
-        $yearsInWindow = array_unique([
-            (int) $startWindow->year,
-            (int) $endWindow->year,
-        ]);
-
-        // Map vehicleId → list<['date' => string, 'status' => string]>
-        // Pré-rempli avec 'free' pour chaque jour de la fenêtre.
-        $vehicles = $this->loadVehiclesActiveInWindow($startWindow);
-
-        $heatmap = [];
-        foreach ($vehicles as $vehicle) {
-            $heatmap[$vehicle->id] = [
-                'vehicle' => $vehicle,
-                'days' => $this->buildEmptyDayWindow($startWindow, self::HEATMAP_DAYS),
-            ];
-        }
-
-        // Marquer les jours occupés (contrats)
-        foreach ($yearsInWindow as $year) {
-            $contractsByPair = $this->contracts->loadContractsByPair($year);
-            foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
-                if (! isset($heatmap[$pair['vehicleId']])) {
-                    continue;
-                }
-                foreach ($pair['contracts'] as $contract) {
-                    $days = $contract->expandToDaysInYear($year);
-                    foreach ($days as $day) {
-                        if ($day >= $startWindow->toDateString() && $day <= $endWindow->toDateString()) {
-                            // Index direct dans le tableau days
-                            $idx = $this->dayIndex($day, $startWindow);
-                            if ($idx !== null) {
-                                $heatmap[$pair['vehicleId']]['days'][$idx]->status = 'occupied';
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // Marquer les indispos (priorité visuelle moindre que occupied)
-        $vehicleIds = array_keys($heatmap);
-        $unavailabilities = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
-        foreach ($unavailabilities as $vehicleId => $items) {
-            if (! isset($heatmap[$vehicleId])) {
-                continue;
-            }
-            foreach ($items as $unavail) {
-                $start = $unavail->start_date->toImmutable();
-                $end = $unavail->end_date !== null
-                    ? $unavail->end_date->toImmutable()
-                    : $endWindow;
-
-                $cursor = $start->isAfter($startWindow) ? $start : $startWindow;
-                $stop = $end->isBefore($endWindow) ? $end : $endWindow;
-
-                while (! $cursor->isAfter($stop)) {
-                    $idx = $this->dayIndex($cursor->toDateString(), $startWindow);
-                    if ($idx !== null && $heatmap[$vehicleId]['days'][$idx]->status === 'free') {
-                        $heatmap[$vehicleId]['days'][$idx]->status = 'unavailable';
-                    }
-                    $cursor = $cursor->addDay();
-                }
-            }
-        }
-
-        // Construire les DTOs finaux
-        $result = [];
-        foreach ($heatmap as $row) {
-            /** @var Vehicle $v */
-            $v = $row['vehicle'];
-            $result[] = new DashboardVehicleHeatmapData(
-                vehicleId: $v->id,
-                licensePlate: $v->license_plate,
-                brand: $v->brand,
-                model: $v->model,
-                days: $row['days'],
-            );
-        }
-
-        return $result;
-    }
-
-    /**
-     * @return list<Vehicle>
-     */
-    private function loadVehiclesActiveInWindow(CarbonImmutable $startWindow): array
-    {
-        return Vehicle::query()
-            ->where(function ($q) use ($startWindow): void {
-                $q->whereNull('exit_date')
-                    ->orWhere('exit_date', '>=', $startWindow->toDateString());
-            })
-            ->orderBy('license_plate')
-            ->get()
-            ->all();
-    }
-
-    /**
-     * @return list<DashboardHeatmapDayData>
-     */
-    private function buildEmptyDayWindow(CarbonImmutable $startWindow, int $days): array
-    {
-        $window = [];
-        $cursor = $startWindow;
-        for ($i = 0; $i < $days; $i++) {
-            $window[] = new DashboardHeatmapDayData(
-                date: $cursor->toDateString(),
-                status: 'free',
-            );
-            $cursor = $cursor->addDay();
-        }
-
-        return $window;
-    }
-
-    private function dayIndex(string $day, CarbonImmutable $startWindow): ?int
-    {
-        $diff = CarbonImmutable::parse($day)->diffInDays($startWindow, true);
-
-        return $diff < 0 || $diff >= self::HEATMAP_DAYS ? null : (int) $diff;
     }
 
     /**

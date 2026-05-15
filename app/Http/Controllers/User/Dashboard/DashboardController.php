@@ -16,18 +16,18 @@ use Inertia\Response;
 /**
  * Dashboard utilisateur · page d'accueil de l'app.
  *
- * Refondu chantier η Phase 4 selon doctrine 3 lentilles :
- *   - Présent (`kpis`) : 4 KPIs YTD figés sur l'année calendaire
+ * Refondu chantier η Phase 4 selon doctrine 2 lentilles + tâches ·
+ *   - Présent (`kpis`) · 4 KPIs YTD figés sur l'année calendaire
  *     courante + comparaison vs même période Y-1.
- *   - Évolution (`history`) : 4 mêmes KPIs déclinés par année sur
+ *   - Évolution (`history`) · 4 mêmes KPIs déclinés par année sur
  *     les N dernières années (graphique barres côté UI).
- *   - Exploration (`activity`) : heatmap 30 derniers jours flotte +
- *     top 3 véhicules par taxe YTD.
+ *   - Tâches (`pendingTasks`) · top 5 déclarations et factures à
+ *     traiter sur la flotte multi-entreprises (Phase 13 D5.15).
  *
  * Le sélecteur d'année top-right (encore basé sur `useLocalYearSelector`)
  * pilote la lentille « Évolution » mise en surbrillance, mais les
- * KPIs Présent et l'Exploration restent figés sur l'année calendaire
- * courante (doctrine HD7 : Présent ne dépend pas du sélecteur).
+ * KPIs Présent restent figés sur l'année calendaire courante
+ * (doctrine HD7 · Présent ne dépend pas du sélecteur).
  */
 final class DashboardController extends Controller
 {
@@ -45,7 +45,6 @@ final class DashboardController extends Controller
         return Inertia::render('User/Dashboard/Index/Index', [
             'kpis' => $this->stats->computeKpis($this->availableYears->currentYear()),
             'history' => $this->stats->computeHistory(),
-            'activity' => $this->stats->computeActivity(),
             'pendingTasks' => $this->stats->computePendingTasks(),
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
