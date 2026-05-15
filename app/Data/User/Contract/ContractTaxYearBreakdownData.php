@@ -38,6 +38,7 @@ final class ContractTaxYearBreakdownData extends Data
      * @param  list<AppliedExemptionData>  $appliedExemptions
      * @param  list<string>  $appliedRuleCodes
      * @param  list<FiscalRuleListItemData>  $appliedRules
+     * @param  list<ContractTaxYearSegmentBreakdownData>  $segments
      */
     public function __construct(
         public int $year,
@@ -56,6 +57,17 @@ final class ContractTaxYearBreakdownData extends Data
         public array $appliedRuleCodes,
         #[DataCollectionOf(FiscalRuleListItemData::class)]
         public array $appliedRules,
+        /**
+         * Détail par fenêtre VFC × Règles. Contient toujours au moins 1
+         * élément. Si la liste a plus d'1 élément, l'année est scindée
+         * (changement de barème en cours d'année ou multi-VFC). Permet
+         * à l'UI d'afficher la formule explicite par fenêtre au lieu
+         * d'agréger en une seule ligne trompeuse.
+         *
+         * @var list<ContractTaxYearSegmentBreakdownData>
+         */
+        #[DataCollectionOf(ContractTaxYearSegmentBreakdownData::class)]
+        public array $segments = [],
         /**
          * Montant CO₂ hypothétique « si pas LCD » (D5.10.T) · peuplé
          * uniquement quand l'exonération R-2024-021 est effectivement

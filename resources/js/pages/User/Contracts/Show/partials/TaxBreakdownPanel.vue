@@ -2,7 +2,11 @@
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
-import { useTaxBreakdownPanel } from '@/Composables/Contract/Show/useTaxBreakdownPanel';
+import {
+    formatSegmentRange,
+    hasScission,
+    useTaxBreakdownPanel,
+} from '@/Composables/Contract/Show/useTaxBreakdownPanel';
 import RuleCard from '@/pages/User/FiscalRules/Index/partials/RuleCard.vue';
 import { formatEur } from '@/Utils/format/formatEur';
 import {
@@ -128,7 +132,12 @@ const {
                                 {{ homologationMethodLabel[year.co2Method] }}
                             </Badge>
                         </div>
-                        <p class="font-mono text-sm text-slate-600">
+
+                        <!-- Mono-segment · formule directe -->
+                        <p
+                            v-if="!hasScission(year, 'co2')"
+                            class="font-mono text-sm text-slate-600"
+                        >
                             {{ formatEur(year.co2FullYearTariff) }} ×
                             {{ year.daysAssigned }} / {{ year.daysInYear }}
                             <span class="text-slate-400">=</span>
@@ -136,6 +145,29 @@ const {
                                 {{ formatEur(year.co2Due) }}
                             </span>
                         </p>
+
+                        <!-- Multi-segment · scission CO₂ (rare, prévu pour V2+) -->
+                        <div v-else class="flex flex-col gap-1">
+                            <p
+                                v-for="(segment, idx) in year.segments"
+                                :key="`co2-${idx}`"
+                                class="font-mono text-xs text-slate-600"
+                            >
+                                <span class="text-slate-400">{{ formatSegmentRange(segment.effectiveFromInYear, segment.effectiveToInYear) }}</span>
+                                · {{ formatEur(segment.co2FullYearTariff) }} ×
+                                {{ segment.daysAssignedToContract }} / {{ segment.daysInYear }}
+                                <span class="text-slate-400">=</span>
+                                <span class="font-semibold text-slate-900 ml-1">
+                                    {{ formatEur(segment.co2Due) }}
+                                </span>
+                            </p>
+                            <p class="font-mono text-sm text-slate-700 mt-0.5 pl-2 border-l-2 border-slate-200">
+                                Total CO₂ ·
+                                <span class="font-semibold text-slate-900 ml-1">
+                                    {{ formatEur(year.co2Due) }}
+                                </span>
+                            </p>
+                        </div>
                     </section>
 
                     <!-- Section Polluants -->
@@ -150,7 +182,12 @@ const {
                                 {{ pollutantCategoryLabel[year.pollutantCategory] }}
                             </Badge>
                         </div>
-                        <p class="font-mono text-sm text-slate-600">
+
+                        <!-- Mono-segment · formule directe -->
+                        <p
+                            v-if="!hasScission(year, 'pollutants')"
+                            class="font-mono text-sm text-slate-600"
+                        >
                             {{ formatEur(year.pollutantsFullYearTariff) }} ×
                             {{ year.daysAssigned }} / {{ year.daysInYear }}
                             <span class="text-slate-400">=</span>
@@ -158,6 +195,29 @@ const {
                                 {{ formatEur(year.pollutantsDue) }}
                             </span>
                         </p>
+
+                        <!-- Multi-segment · scission polluants (ex. LF 2026 art. 58 V IV au 01/03) -->
+                        <div v-else class="flex flex-col gap-1">
+                            <p
+                                v-for="(segment, idx) in year.segments"
+                                :key="`pollutants-${idx}`"
+                                class="font-mono text-xs text-slate-600"
+                            >
+                                <span class="text-slate-400">{{ formatSegmentRange(segment.effectiveFromInYear, segment.effectiveToInYear) }}</span>
+                                · {{ formatEur(segment.pollutantsFullYearTariff) }} ×
+                                {{ segment.daysAssignedToContract }} / {{ segment.daysInYear }}
+                                <span class="text-slate-400">=</span>
+                                <span class="font-semibold text-slate-900 ml-1">
+                                    {{ formatEur(segment.pollutantsDue) }}
+                                </span>
+                            </p>
+                            <p class="font-mono text-sm text-slate-700 mt-0.5 pl-2 border-l-2 border-slate-200">
+                                Total polluants ·
+                                <span class="font-semibold text-slate-900 ml-1">
+                                    {{ formatEur(year.pollutantsDue) }}
+                                </span>
+                            </p>
+                        </div>
                     </section>
 
                     <!-- Total année -->

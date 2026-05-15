@@ -6,6 +6,7 @@ namespace App\Services\Fiscal;
 
 use App\Data\User\Contract\ContractTaxBreakdownData;
 use App\Data\User\Contract\ContractTaxYearBreakdownData;
+use App\Data\User\Contract\ContractTaxYearSegmentBreakdownData;
 use App\Data\User\Fiscal\AppliedExemptionData;
 use App\Data\User\Fiscal\FiscalRuleListItemData;
 use App\Data\User\Vehicle\VehicleFiscalCharacteristicsData;
@@ -311,6 +312,13 @@ final class FleetFiscalAggregator
      * civiles (ex. 1er nov 2024 → 31 jan 2025), on exécute le pipeline
      * deux fois et on agrège.
      *
+     * **Granularité par fenêtre (chantier Φ.bis)** · utilise
+     * `executeWithSegments()` pour exposer chaque sous-période VFC ×
+     * Règles dans le DTO. Indispensable quand un barème change en cours
+     * d'année (ex. polluants 2026 +30 % au 01/03, LF 2026 art. 58 V IV)
+     * ou quand la VFC évolue. L'agrégation au niveau année reste fournie
+     * dans les champs flat pour le résumé de tête.
+     *
      * Le `$contract->vehicle->fiscalCharacteristics` doit être eager-loadé
      * par l'appelant (cf. `ContractReadRepository::findByIdWithRelations`).
      *
@@ -328,19 +336,94 @@ final class FleetFiscalAggregator
         $totalRaw = 0.0;
 
         for ($year = $startYear; $year <= $endYear; $year++) {
-            $result = $this->pipeline->execute(
+            $breakdowns = $this->pipeline->executeWithSegments(
                 $this->buildContext($vehicle, [$contract], $vehicleUnavailabilities, $year),
             );
 
             $daysInContractInYear = $contract->countDaysInYear($year);
 
-            $co2Tariff = round($result->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
-            $pollutantsTariff = round($result->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
-            $co2Due = round($result->co2DueRaw, 2, PHP_ROUND_HALF_UP);
-            $pollutantsDue = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+            $segmentsDto = [];
+            $co2RawYear = 0.0;
+            $pollutantsRawYear = 0.0;
+            $daysAssignedYear = 0;
+            /** @var array<string, AppliedExemption> $exemptionsByCode */
+            $exemptionsByCode = [];
+            /** @var array<string, true> $ruleCodesSet */
+            $ruleCodesSet = [];
+
+            foreach ($breakdowns as $b) {
+                $r = $b->result;
+
+                // Fenêtre sans jour-contrat assigné · entièrement ignorée
+                // pour ce contrat (ex. segment 01/09-31/12 d'une scission
+                // Ordo 2025-1247 alors que le contrat se termine en avril).
+                // Les règles actives uniquement sur cette fenêtre ne sont
+                // pas « appliquées » au contrat · elles n'auraient
+                // contribué que si le contrat avait débordé.
+                if ($r->daysAssigned === 0) {
+                    continue;
+                }
+
+                $segCo2Tariff = round($r->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
+                $segPollutantsTariff = round($r->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
+                $segCo2Due = round($r->co2DueRaw, 2, PHP_ROUND_HALF_UP);
+                $segPollutantsDue = round($r->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+
+                $segmentsDto[] = new ContractTaxYearSegmentBreakdownData(
+                    effectiveFromInYear: $b->start->toDateString(),
+                    effectiveToInYear: $b->end->toDateString(),
+                    daysAssignedToContract: $r->daysAssigned,
+                    daysInYear: $r->daysInYear,
+                    co2Method: $r->co2Method,
+                    pollutantCategory: $r->pollutantCategory,
+                    co2FullYearTariff: $segCo2Tariff,
+                    pollutantsFullYearTariff: $segPollutantsTariff,
+                    co2Due: $segCo2Due,
+                    pollutantsDue: $segPollutantsDue,
+                    appliedExemptions: array_map(
+                        static fn ($e) => AppliedExemptionData::fromValueObject($e),
+                        $r->appliedExemptions,
+                    ),
+                    appliedRuleCodes: $r->appliedRuleCodes,
+                );
+
+                $co2RawYear += $r->co2DueRaw;
+                $pollutantsRawYear += $r->pollutantsDueRaw;
+                $daysAssignedYear += $r->daysAssigned;
+                foreach ($r->appliedExemptions as $exemption) {
+                    $exemptionsByCode[$exemption->ruleCode] ??= $exemption;
+                }
+                foreach ($r->appliedRuleCodes as $code) {
+                    $ruleCodesSet[$code] = true;
+                }
+            }
+
+            // Résumé année · agrégation des fenêtres non-vides. Le tarif
+            // affiché en tête est celui de la première fenêtre **utile**
+            // (avec jours-contrat assignés), pour éviter de tromper l'UI
+            // avec un tarif pré-scission alors que le contrat débute
+            // après la scission. L'UI doit afficher la scission via
+            // `segments` si len(segments) > 1.
+            $leaderResult = null;
+            foreach ($breakdowns as $b) {
+                if ($b->result->daysAssigned > 0) {
+                    $leaderResult = $b->result;
+                    break;
+                }
+            }
+            // Cas dégénéré · aucun jour-contrat assigné (LCD pur,
+            // exemption totale, contrat hors year span effectif). On
+            // retombe sur le premier segment pour conserver des valeurs
+            // cohérentes (method, category, tariffs structurels).
+            $firstResult = $leaderResult ?? $breakdowns[0]->result;
+            $co2Tariff = round($firstResult->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
+            $pollutantsTariff = round($firstResult->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
+            $co2Due = round($co2RawYear, 2, PHP_ROUND_HALF_UP);
+            $pollutantsDue = round($pollutantsRawYear, 2, PHP_ROUND_HALF_UP);
             $yearTotalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);
 
-            $appliedRules = $this->loadRulesByCodes($year, $result->appliedRuleCodes);
+            $appliedRuleCodes = array_keys($ruleCodesSet);
+            $appliedRules = $this->loadRulesByCodes($year, $appliedRuleCodes);
 
             // D5.10.T · montant hypothétique « si pas LCD » · seulement
             // pour les contrats effectivement exonérés par R-2024-021.
@@ -348,12 +431,12 @@ final class FleetFiscalAggregator
             // sans 2e passe pipeline · l'approximation suffit comme aide
             // à la décision de requalification cluster, le calcul exact
             // étant fait par `DeclarationFiscalEngine` lors de la revue.
-            $lcdExempted = in_array('R-2024-021', $result->appliedRuleCodes, true);
+            $lcdExempted = in_array('R-2024-021', $appliedRuleCodes, true);
             $hypoCo2 = null;
             $hypoPollutants = null;
             $hypoTotal = null;
-            if ($lcdExempted && $result->daysInYear > 0) {
-                $proratio = $daysInContractInYear / $result->daysInYear;
+            if ($lcdExempted && $firstResult->daysInYear > 0) {
+                $proratio = $daysInContractInYear / $firstResult->daysInYear;
                 $hypoCo2 = round($co2Tariff * $proratio, 2, PHP_ROUND_HALF_UP);
                 $hypoPollutants = round($pollutantsTariff * $proratio, 2, PHP_ROUND_HALF_UP);
                 $hypoTotal = round($hypoCo2 + $hypoPollutants, 2, PHP_ROUND_HALF_UP);
@@ -362,10 +445,10 @@ final class FleetFiscalAggregator
             $years[] = new ContractTaxYearBreakdownData(
                 year: $year,
                 daysInContractInYear: $daysInContractInYear,
-                daysAssigned: $result->daysAssigned,
-                daysInYear: $result->daysInYear,
-                co2Method: $result->co2Method,
-                pollutantCategory: $result->pollutantCategory,
+                daysAssigned: $daysAssignedYear,
+                daysInYear: $firstResult->daysInYear,
+                co2Method: $firstResult->co2Method,
+                pollutantCategory: $firstResult->pollutantCategory,
                 co2FullYearTariff: $co2Tariff,
                 pollutantsFullYearTariff: $pollutantsTariff,
                 co2Due: $co2Due,
@@ -373,16 +456,17 @@ final class FleetFiscalAggregator
                 totalDue: $yearTotalDue,
                 appliedExemptions: array_map(
                     static fn ($e) => AppliedExemptionData::fromValueObject($e),
-                    $result->appliedExemptions,
+                    array_values($exemptionsByCode),
                 ),
-                appliedRuleCodes: $result->appliedRuleCodes,
+                appliedRuleCodes: $appliedRuleCodes,
                 appliedRules: $appliedRules,
+                segments: $segmentsDto,
                 hypotheticalCo2DueIfNoLcd: $hypoCo2,
                 hypotheticalPollutantsDueIfNoLcd: $hypoPollutants,
                 hypotheticalTotalDueIfNoLcd: $hypoTotal,
             );
 
-            $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
+            $totalRaw += $co2RawYear + $pollutantsRawYear;
         }
 
         return new ContractTaxBreakdownData(

@@ -11,6 +11,37 @@ type YearBreakdown = App.Data.User.Contract.ContractTaxYearBreakdownData;
  * pour résoudre en O(1) au clic d'un badge (la même règle peut apparaître
  * dans plusieurs années).
  */
+/**
+ * Détecte si une scission s'applique à la dimension donnée (CO₂ ou
+ * polluants) sur une année · vrai si plusieurs segments **ET** les
+ * tarifs diffèrent d'un segment à l'autre. Permet à l'UI de basculer
+ * en mode multi-fenêtres uniquement quand cela apporte de l'info
+ * pédagogique (segmentation neutre tarifairement = mono affichage).
+ */
+export function hasScission(
+    year: YearBreakdown,
+    dimension: 'co2' | 'pollutants',
+): boolean {
+    if (year.segments.length <= 1) {
+        return false;
+    }
+    const key =
+        dimension === 'co2' ? 'co2FullYearTariff' : 'pollutantsFullYearTariff';
+    const firstTariff = year.segments[0][key];
+    return year.segments.some((s) => s[key] !== firstTariff);
+}
+
+/**
+ * Formate une plage de dates ISO `YYYY-MM-DD` en `JJ/MM → JJ/MM` pour
+ * un affichage compact en cellule monospace.
+ */
+export function formatSegmentRange(from: string, to: string): string {
+    const f = new Date(from);
+    const t = new Date(to);
+    const pad = (n: number): string => String(n).padStart(2, '0');
+    return `${pad(f.getDate())}/${pad(f.getMonth() + 1)} → ${pad(t.getDate())}/${pad(t.getMonth() + 1)}`;
+}
+
 export function useTaxBreakdownPanel(props: {
     taxBreakdown: Breakdown | null;
 }): {

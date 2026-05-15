@@ -6,6 +6,7 @@ namespace Tests\Unit\Services\Fiscal;
 
 use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
+use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -197,6 +198,84 @@ final class FleetFiscalAggregatorTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create([
             'vehicle_id' => $vehicle->id,
             'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VP',
+            'energy_source' => 'gasoline',
+            'euro_standard' => 'euro_6',
+            'pollutant_category' => 'category_1',
+            'homologation_method' => 'WLTP',
+            'co2_wltp' => 100,
+            'co2_nedc' => null,
+            'taxable_horsepower' => null,
+        ]);
+
+        return $vehicle->fresh(['fiscalCharacteristics']);
+    }
+
+    /**
+     * Bloc Φ.bis · vérifie qu'un contrat à cheval sur la scission
+     * polluants du 01/03/2026 (LF 2026 art. 58 V IV, +30 %) expose
+     * 2 segments distincts dans son breakdown · le premier avec tarif
+     * Cat1 100 €/an (R-2026-014), le second avec tarif Cat1 130 €/an
+     * (R-2026-014-bis). Garantit la transparence pédagogique de l'UI
+     * fiche contrat.
+     */
+    #[Test]
+    public function contract_tax_breakdown_expose_2_segments_pour_scission_polluants_2026(): void
+    {
+        $vehicle = $this->makeVehicleWltp100EssenceFor(2026);
+        $company = Company::factory()->create();
+        // Contrat 15/01/2026 → 24/04/2026 · 100 jours, à cheval 01/03.
+        $contract = Contract::create([
+            'vehicle_id' => $vehicle->id,
+            'company_id' => $company->id,
+            'start_date' => '2026-01-15',
+            'end_date' => '2026-04-24',
+            'contract_reference' => null,
+            'contract_type' => ContractType::Lld->value,
+        ]);
+
+        $breakdown = $this->aggregator->contractTaxBreakdown($contract, []);
+
+        self::assertCount(1, $breakdown->years);
+        $year = $breakdown->years[0];
+        self::assertSame(2026, $year->year);
+        self::assertSame(100, $year->daysAssigned);
+
+        // 2 segments dans l'année · scission au 01/03/2026.
+        self::assertCount(2, $year->segments);
+
+        // Segment 1 · 01/01-28/02 · R-2026-014 · Cat1 = 100 €/an.
+        $seg1 = $year->segments[0];
+        self::assertSame('2026-01-01', $seg1->effectiveFromInYear);
+        self::assertSame('2026-02-28', $seg1->effectiveToInYear);
+        self::assertSame(45, $seg1->daysAssignedToContract); // 15/01 → 28/02
+        self::assertSame(100.0, $seg1->pollutantsFullYearTariff);
+        self::assertSame(12.33, $seg1->pollutantsDue); // 100 × 45/365
+        self::assertContains('R-2026-014', $seg1->appliedRuleCodes);
+
+        // Segment 2 · 01/03-... · R-2026-014-bis · Cat1 = 130 €/an.
+        $seg2 = $year->segments[1];
+        self::assertSame('2026-03-01', $seg2->effectiveFromInYear);
+        self::assertSame(55, $seg2->daysAssignedToContract); // 01/03 → 24/04
+        self::assertSame(130.0, $seg2->pollutantsFullYearTariff);
+        self::assertSame(19.59, $seg2->pollutantsDue); // 130 × 55/365
+        self::assertContains('R-2026-014-bis', $seg2->appliedRuleCodes);
+
+        // Total année · somme cohérente des 2 segments.
+        self::assertSame(31.92, $year->pollutantsDue); // 12,33 + 19,59
+        // CO₂ pas scindé en 2026 · 213 €/an constant.
+        self::assertSame(213.0, $year->co2FullYearTariff);
+        self::assertSame(58.36, $year->co2Due); // 213 × 100/365
+    }
+
+    private function makeVehicleWltp100EssenceFor(int $year): Vehicle
+    {
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => sprintf('%d-01-01', $year - 2),
             'effective_to' => null,
             'reception_category' => 'M1',
             'vehicle_user_type' => 'VP',
