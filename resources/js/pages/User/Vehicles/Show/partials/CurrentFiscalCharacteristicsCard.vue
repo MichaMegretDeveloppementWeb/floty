@@ -124,6 +124,7 @@ const deleteState = useVfcDeleteModalState();
         <VfcCreateModal
             v-model:open="createState.open.value"
             :history="props.history"
+            :current="props.fiscal"
             :options="props.options"
             :vehicle-id="props.vehicleId"
         />

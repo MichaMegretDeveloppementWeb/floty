@@ -13,6 +13,12 @@ type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 
 const props = defineProps<{
     history: ReadonlyArray<Vfc>;
+    /**
+     * P2 · VFC actuelle du véhicule (head de l'historique fiscal). Si
+     * fournie, le formulaire est prérempli avec ces valeurs · l'utilisateur
+     * n'a qu'à ajuster ce qui change et choisir la date d'effet.
+     */
+    current: Vfc | null;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
     vehicleId: number;
 }>();
@@ -41,6 +47,14 @@ const {
         size="lg"
     >
         <form class="flex flex-col gap-5" @submit.prevent="requestSubmit">
+            <p
+                v-if="props.current !== null"
+                class="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-600"
+            >
+                Formulaire prérempli depuis la VFC active · ajustez uniquement
+                les champs qui changent et indiquez la date de prise d'effet.
+            </p>
+
             <section class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <DateInput
                     v-model="form.effective_from"

@@ -21,8 +21,12 @@ type SelectOption = { value: string; label: string };
  * {@link useVfcEditForm} pour l'édition).
  *
  * Le composable :
- *   - réinitialise le formulaire à chaque ouverture de la modale
- *     (vs Edit qui re-remplit avec la VFC en cours d'édition),
+ *   - **P2 · préremplit** le formulaire avec la VFC actuelle quand
+ *     `props.current` est fourni (cohérent · 95% du temps un seul
+ *     champ change, ex. CO₂ recalculé). Les champs de plage
+ *     (`effective_from`, `effective_to`) restent vides pour forcer le
+ *     choix de date explicite. Si `props.current` est null (véhicule
+ *     sans VFC active), on retombe sur les valeurs par défaut.
  *   - expose les motifs sélectionnables (tous sauf `initial_creation`
  *     qui est réservé au système · création réelle au moment de la
  *     première VFC du véhicule, faite par CreateVehicleAction),
@@ -33,7 +37,7 @@ type SelectOption = { value: string; label: string };
  *   - dispatche le submit POST puis ferme la modale au success.
  */
 export function useVfcCreateForm(
-    props: { history: ReadonlyArray<Vfc>; vehicleId: number },
+    props: { history: ReadonlyArray<Vfc>; vehicleId: number; current: Vfc | null },
     open: Ref<boolean>,
 ): {
     form: InertiaForm<VfcEditFormShape & { confirmed: boolean }>;
@@ -49,35 +53,71 @@ export function useVfcCreateForm(
     requestSubmit: () => void;
     confirmSubmit: () => void;
 } {
-    const initialFormState: VfcEditFormShape & { confirmed: boolean } = {
-        reception_category: 'M1',
-        vehicle_user_type: 'VP',
-        body_type: 'CI',
-        seats_count: 5,
-        energy_source: 'gasoline',
-        underlying_combustion_engine_type: '',
-        euro_standard: 'euro_6d_isc_fcm',
-        homologation_method: 'WLTP',
-        co2_wltp: null,
-        co2_nedc: null,
-        taxable_horsepower: null,
-        accepts_e85: false,
-        kerb_mass: null,
-        handicap_access: false,
-        m1_special_use: false,
-        n1_passenger_transport: false,
-        n1_removable_second_row_seat: false,
-        n1_ski_lift_use: false,
-        effective_from: '',
-        effective_to: '',
-        change_reason: 'recharacterization',
-        change_note: '',
-        confirmed: false,
+    // P2 · construit l'état initial du formulaire à partir de la VFC
+    // actuelle si fournie · l'utilisateur n'a qu'à ajuster les champs
+    // qui changent et choisir la date d'effet. Les champs de plage
+    // (`effective_from`, `effective_to`) restent vides pour forcer un
+    // choix de date explicite (sinon on créerait une plage identique
+    // qui serait refusée par le backend).
+    const buildInitialState = (): VfcEditFormShape & { confirmed: boolean } => {
+        const current = props.current;
+
+        if (current === null) {
+            return {
+                reception_category: 'M1',
+                vehicle_user_type: 'VP',
+                body_type: 'CI',
+                seats_count: 5,
+                energy_source: 'gasoline',
+                underlying_combustion_engine_type: '',
+                euro_standard: 'euro_6d_isc_fcm',
+                homologation_method: 'WLTP',
+                co2_wltp: null,
+                co2_nedc: null,
+                taxable_horsepower: null,
+                accepts_e85: false,
+                kerb_mass: null,
+                handicap_access: false,
+                m1_special_use: false,
+                n1_passenger_transport: false,
+                n1_removable_second_row_seat: false,
+                n1_ski_lift_use: false,
+                effective_from: '',
+                effective_to: '',
+                change_reason: 'recharacterization',
+                change_note: '',
+                confirmed: false,
+            };
+        }
+
+        return {
+            reception_category: current.receptionCategory,
+            vehicle_user_type: current.vehicleUserType,
+            body_type: current.bodyType,
+            seats_count: current.seatsCount,
+            energy_source: current.energySource,
+            underlying_combustion_engine_type: current.underlyingCombustionEngineType ?? '',
+            euro_standard: current.euroStandard ?? '',
+            homologation_method: current.homologationMethod,
+            co2_wltp: current.co2Wltp,
+            co2_nedc: current.co2Nedc,
+            taxable_horsepower: current.taxableHorsepower,
+            accepts_e85: current.acceptsE85,
+            kerb_mass: current.kerbMass,
+            handicap_access: current.handicapAccess,
+            m1_special_use: current.m1SpecialUse,
+            n1_passenger_transport: current.n1PassengerTransport,
+            n1_removable_second_row_seat: current.n1RemovableSecondRowSeat,
+            n1_ski_lift_use: current.n1SkiLiftUse,
+            effective_from: '',
+            effective_to: '',
+            change_reason: 'recharacterization',
+            change_note: '',
+            confirmed: false,
+        };
     };
 
-    const form = useForm<VfcEditFormShape & { confirmed: boolean }>(
-        { ...initialFormState },
-    );
+    const form = useForm<VfcEditFormShape & { confirmed: boolean }>(buildInitialState());
 
     const changeReasonOptions: SelectOption[] = [
         { value: 'recharacterization', label: 'Reclassement fiscal' },
@@ -86,12 +126,14 @@ export function useVfcCreateForm(
         { value: 'input_correction', label: 'Correction de saisie' },
     ];
 
-    // À chaque ouverture, on réinitialise le formulaire (pas de
-    // pré-remplissage à partir d'une VFC existante puisqu'il s'agit
-    // d'une création).
+    // À chaque ouverture, on réinitialise le formulaire en repartant
+    // de la VFC actuelle (si fournie). Bénéfice UX · si l'utilisateur
+    // ferme la modale après avoir modifié des champs, la réouverture
+    // repart sur un état frais préfilled, pas sur les valeurs orphelines
+    // de la session précédente.
     watch(open, (isOpen) => {
         if (isOpen) {
-            Object.assign(form, initialFormState);
+            Object.assign(form, buildInitialState());
             form.clearErrors();
         }
     });
