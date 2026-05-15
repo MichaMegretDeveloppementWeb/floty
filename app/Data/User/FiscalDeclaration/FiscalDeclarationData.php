@@ -19,6 +19,25 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * enrichi en D4 par les `clusters` de revue. La chaîne d'obsolescence
  * est exposée via `isObsolete` + `supersededById` + métadonnées de
  * remplacement.
+ *
+ * **Coexistence des 2 hashes** (Lot 5 D8 · F-19D2-007) ·
+ *
+ *   - `generatedPdfHash` (figé en BDD au moment de la génération PDF) ·
+ *     empreinte immuable du payload tel qu'il existait à la génération.
+ *     Sert d'ancre pour l'audit régulatoire (« cette déclaration émise
+ *     contenait exactement ce payload »). Persisté dans
+ *     `fiscal_declarations.generated_pdf_hash`. Null tant que pas générée.
+ *
+ *   - `snapshotHash` (recalculé live à chaque hydratation via
+ *     {@see SnapshotHashCalculator::compute()}) · empreinte de l'état
+ *     courant du `generated_snapshot_payload` JSON tel qu'il vit en
+ *     BDD aujourd'hui. Sert à détecter une éventuelle altération du
+ *     snapshot persisté (intégrité documentaire). Mémoïsé intra-requête
+ *     par cache statique du calculator · pas de re-calcul à chaque
+ *     accès dans la même requête HTTP.
+ *
+ *   Si `generatedPdfHash !== snapshotHash` · le snapshot persisté a
+ *   divergé du PDF émis (situation anormale · à investiguer).
  */
 #[TypeScript]
 final class FiscalDeclarationData extends Data

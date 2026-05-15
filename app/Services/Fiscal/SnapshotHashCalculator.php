@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal;
 
+use stdClass;
+
 /**
  * Calcul déterministe d'une empreinte SHA-256 sur le snapshot fiscal d'une
  * déclaration (Phase 13 D5.10.J).
@@ -22,40 +24,79 @@ namespace App\Services\Fiscal;
  * post-génération invaliderait l'empreinte · garantit l'intégrité
  * documentaire dans le temps.
  *
- * **Canonisation** · tri récursif des clés (ksortRecursive) + json_encode
- * avec JSON_UNESCAPED_UNICODE + JSON_UNESCAPED_SLASHES + JSON_THROW_ON_ERROR.
- * Garantit qu'un même payload sémantique produit toujours le même hash,
- * indépendamment de l'ordre d'insertion ou des particularités d'encodage.
+ * **Canonisation** ·
+ *   1. Tri récursif des clés alphabétiquement (ksortRecursive) · même
+ *      payload sémantique → même ordre des clés
+ *   2. Normalisation récursive `[]` → `(object) stdClass` · garantit
+ *      qu'un array vide PHP et un objet vide JSON produisent le même
+ *      hash (Lot 5 D8 · F-19D2-011 · ferme le bord PHP-vs-JSON sur
+ *      sections optionnelles)
+ *   3. `json_encode` avec `JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+ *      | JSON_THROW_ON_ERROR`
+ *
+ * **Cache statique intra-requête** (Lot 5 D8 · F-19D2-007) · clé = JSON
+ * canonique sérialisé. Évite de recalculer SHA-256 sur le même payload
+ * lorsque plusieurs hydratations Spatie de `FiscalDeclarationData::fromModel`
+ * passent dans la même requête HTTP (page Show qui charge N déclarations
+ * historiques). Le cache est scopé au lifecycle PHP du worker · pas de
+ * contamination cross-requête. La méthode {@see flush()} permet aux tests
+ * de réinitialiser entre cas.
  */
 final class SnapshotHashCalculator
 {
+    /** @var array<string, string> */
+    private static array $cache = [];
+
     /**
      * @param  array<string, mixed>  $payload
      */
     public static function compute(array $payload): string
     {
-        $sorted = self::ksortRecursive($payload);
+        $canonical = self::canonicalize($payload);
         $json = json_encode(
-            $sorted,
+            $canonical,
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR,
         );
 
-        return hash('sha256', $json);
+        return self::$cache[$json] ??= hash('sha256', $json);
     }
 
     /**
-     * @param  array<string, mixed>  $array
-     * @return array<string, mixed>
+     * Vide le cache statique · à utiliser dans les tests qui assertent
+     * sur la mémoïsation ou qui veulent isoler chaque cas.
      */
-    private static function ksortRecursive(array $array): array
+    public static function flush(): void
     {
-        ksort($array);
-        foreach ($array as $key => $value) {
-            if (is_array($value)) {
-                $array[$key] = self::ksortRecursive($value);
-            }
+        self::$cache = [];
+    }
+
+    /**
+     * Canonicalise récursivement une valeur ·
+     *   - Array vide → `stdClass` vide (cohérence PHP-vs-JSON)
+     *   - Array associatif → tri par clé ascendant + récursion
+     *   - Array de liste → récursion sur les éléments (ordre préservé)
+     *   - Scalaire → inchangé
+     */
+    private static function canonicalize(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
         }
 
-        return $array;
+        if ($value === []) {
+            return new stdClass;
+        }
+
+        if (array_is_list($value)) {
+            return array_map(self::canonicalize(...), $value);
+        }
+
+        ksort($value);
+        $normalized = [];
+        foreach ($value as $key => $sub) {
+            $normalized[$key] = self::canonicalize($sub);
+        }
+
+        return $normalized;
     }
 }
