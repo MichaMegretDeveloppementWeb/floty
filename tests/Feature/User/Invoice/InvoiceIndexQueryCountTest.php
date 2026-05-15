@@ -91,6 +91,52 @@ final class InvoiceIndexQueryCountTest extends TestCase
         );
     }
 
+    /**
+     * Lot 3 D09+D10 · garde-fou query budget chiffré complémentaire au
+     * test sémantique `index_standard_n_appelle_jamais_billing_calculator`.
+     *
+     * Le test sémantique vérifie l'**absence** de tables interdites
+     * (signal d'un N+1 fiscal/divergence à la lecture). Ce test ajoute
+     * un cap **numérique** sur le total de queries · si demain quelqu'un
+     * remet un eager-load coûteux ou un N+1 d'un autre type, le test
+     * sautera. Couverture défensive croisée vs régression silencieuse.
+     */
+    #[Test]
+    public function index_respecte_un_budget_query_borne_par_constante(): void
+    {
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        // 12 factures sur la page courante (1 année complète).
+        for ($month = 1; $month <= 12; $month++) {
+            Invoice::factory()
+                ->for($company)
+                ->for($user, 'generatedBy')
+                ->forYearMonth(2024, $month)
+                ->create();
+        }
+
+        DB::flushQueryLog();
+        DB::enableQueryLog();
+
+        $this->actingAs($user)->get('/app/invoices')->assertOk();
+
+        $queryCount = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        // Cap Lot 3 D09+D10 · baseline mesurée 6 queries pour 12 factures
+        // (auth + count paginé + load Invoices + eager-load company +
+        // eager-load supersededBy + queries collatérales Inertia).
+        // Indépendant du nombre N de factures grâce à l'eager-load déjà
+        // en place dans `paginateForIndex`. Cap à 12 · marge +6 pour
+        // évolutions Inertia/middleware sans masquer une régression N+1
+        // (qui ferait sauter ≥12 queries pour 12 factures).
+        self::assertLessThan(
+            12,
+            $queryCount,
+            "Trop de queries SQL ({$queryCount}) sur l'Index Invoices avec 12 factures - possible régression eager-load.",
+        );
+    }
+
     #[Test]
     public function show_renvoie_le_dto_avec_la_divergence(): void
     {
