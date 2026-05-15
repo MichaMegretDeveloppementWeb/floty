@@ -24,9 +24,19 @@ import {
 type Segment = App.Data.User.Vehicle.VehicleFullYearTaxSegmentData;
 type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 
-defineProps<{
-    segments: Segment[];
-}>();
+withDefaults(
+    defineProps<{
+        segments: Segment[];
+        /**
+         * Refonte D5.10.W · mode flush sans Card wrapping ni header
+         * interne. Utilisé par `<VehicleFiscalTab>` éditorial où le
+         * header est porté par le tab parent (eyebrow `CARACTÉRISTIQUES
+         * VFC`).
+         */
+        unwrapped?: boolean;
+    }>(),
+    { unwrapped: false },
+);
 
 function co2Display(vfc: Vfc): string {
     const wltp = vfc.co2Wltp;
@@ -54,8 +64,8 @@ function segmentPeriodLabel(seg: Segment): string {
 </script>
 
 <template>
-    <Card>
-        <template #header>
+    <component :is="unwrapped ? 'div' : Card">
+        <template v-if="!unwrapped" #header>
             <div class="flex items-start gap-2">
                 <Info :size="16" :stroke-width="1.75" class="mt-0.5 shrink-0 text-blue-600" />
                 <div>
@@ -130,5 +140,5 @@ function segmentPeriodLabel(seg: Segment): string {
                 </dl>
             </div>
         </div>
-    </Card>
+    </component>
 </template>

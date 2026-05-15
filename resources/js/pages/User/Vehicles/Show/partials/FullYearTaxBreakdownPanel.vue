@@ -23,9 +23,19 @@ import {
 
 type Segment = App.Data.User.Vehicle.VehicleFullYearTaxSegmentData;
 
-const props = defineProps<{
-    stats: App.Data.User.Vehicle.VehicleUsageStatsData;
-}>();
+const props = withDefaults(
+    defineProps<{
+        stats: App.Data.User.Vehicle.VehicleUsageStatsData;
+        /**
+         * Refonte D5.10.W · mode flush sans Card wrapping ni header
+         * interne. Utilisé par `<VehicleFiscalTab>` éditorial où le
+         * header est porté par le tab parent (eyebrow `DÉTAIL DU
+         * CALCUL`).
+         */
+        unwrapped?: boolean;
+    }>(),
+    { unwrapped: false },
+);
 
 const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
     useFullYearTaxBreakdownPanel(props);
@@ -39,8 +49,8 @@ function segmentPeriodLabel(seg: Segment): string {
 </script>
 
 <template>
-    <Card>
-        <template #header>
+    <component :is="unwrapped ? 'div' : Card">
+        <template v-if="!unwrapped" #header>
             <div>
                 <h2 class="text-base font-semibold text-slate-900">
                     Détail de la Taxe pleine {{ props.stats.fiscalYear }}
@@ -154,8 +164,13 @@ function segmentPeriodLabel(seg: Segment): string {
                 </ul>
             </section>
 
-            <!-- Total final -->
+            <!--
+                Total final · affiché uniquement en mode wrapped. En mode
+                unwrapped (tab éditorial), le hero du parent porte déjà
+                le total · pas de doublon.
+            -->
             <section
+                v-if="!unwrapped"
                 class="flex items-center justify-between gap-2 rounded-lg bg-transparent px-4 py-3 shadow-[0_0_3px_silver]"
             >
                 <span
@@ -169,8 +184,13 @@ function segmentPeriodLabel(seg: Segment): string {
             </section>
         </div>
 
+        <!--
+            Footer · règles appliquées · rendu via slot Card #footer en
+            mode wrapped, ou en bloc inline `border-t` en mode unwrapped
+            (le tab parent ne fournit pas de slot footer).
+        -->
         <template
-            v-if="breakdown.appliedRuleCodes.length > 0"
+            v-if="!unwrapped && breakdown.appliedRuleCodes.length > 0"
             #footer
         >
             <div class="flex flex-wrap items-center gap-2 text-xs">
@@ -188,6 +208,23 @@ function segmentPeriodLabel(seg: Segment): string {
             </div>
         </template>
 
+        <div
+            v-if="unwrapped && breakdown.appliedRuleCodes.length > 0"
+            class="mt-5 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-4 text-xs"
+        >
+            <span class="text-slate-500">Règles appliquées :</span>
+            <button
+                v-for="code in breakdown.appliedRuleCodes"
+                :key="code"
+                type="button"
+                class="cursor-pointer rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] text-slate-600 transition-colors duration-[120ms] ease-out hover:bg-slate-200 hover:text-slate-900 focus-visible:bg-slate-200 focus-visible:outline-none"
+                :title="`Voir le détail de la règle ${code}`"
+                @click="openRule(code)"
+            >
+                {{ code }}
+            </button>
+        </div>
+
         <Modal
             v-model:open="modalOpen"
             :title="selectedRule?.name ?? selectedCode ?? 'Règle fiscale'"
@@ -200,5 +237,5 @@ function segmentPeriodLabel(seg: Segment): string {
                 :rule="selectedRule ?? undefined"
             />
         </Modal>
-    </Card>
+    </component>
 </template>
