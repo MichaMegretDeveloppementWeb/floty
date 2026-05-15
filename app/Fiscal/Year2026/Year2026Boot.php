@@ -37,6 +37,8 @@ use App\Fiscal\Year2026\Transversal\R2026_024_CritAirGuard;
 use App\Fiscal\Year2026\Transversal\R2026_025_WeightedAverageTariff;
 use App\Fiscal\Year2026\Transversal\R2026_027_MileageReimbursementCoefficient;
 use App\Fiscal\Year2026\Transversal\R2026_028_DeclarationModalities;
+use App\Fiscal\Year2026\Transversal\R2026_029_RegistrationCo2Malus;
+use App\Fiscal\Year2026\Transversal\R2026_029bis_RegistrationCo2Malus;
 use App\Fiscal\Year2026\Transversal\R2026_030_RegistrationWeightMalus;
 use App\Fiscal\Year2026\Transversal\R2026_032_HeavyVehiclesTax;
 use App\Providers\FiscalServiceProvider;
@@ -161,18 +163,18 @@ final class Year2026Boot implements FiscalYearBoot
      * - **Pas de R-2026-031-bis** · évolution +14 € IDF mars 2026 portée
      *   par une version unique (à confirmer par audit Chrome live Z4.3).
      *
-     * **Statut Z4.3a** · 11 classes câblées · 3 cadre architectural
-     * (Z4.1) + 6 garde-fous (Z4.2) + 2 taxes connexes stables
-     * (Z4.3a · R-2026-030 et R-2026-032). Z4.3b-d (R-2026-029 ·
-     * R-2026-031 · R-2026-033 · 3 classes avec évolutions LF 2026)
-     * à venir avec audit Chrome live ciblé.
+     * **Statut Z4.3b** · 13 classes câblées · 3 cadre architectural
+     * (Z4.1) + 6 garde-fous (Z4.2) + 2 taxes connexes stables (Z4.3a) +
+     * 2 versions malus CO₂ carte grise (Z4.3b · R-2026-029 + bis).
+     * Z4.3c-d (R-2026-031 · R-2026-033 · 2 classes) à venir.
      *
-     * **Découverte Chrome live 15/05/2026** · R-2026-029 (malus CO₂
-     * carte grise) nécessite **scission ADR-0022** · L. 421-62
-     * « Version en vigueur du 01/03/2025 au 01/09/2026 » expose les
-     * barèmes 2026 (seuil 108 g, plafond 80K€) et 2027 (seuil 103 g,
-     * plafond 90K€). La cessation 01/09/2026 implique une v 01/09
-     * portée par Ordo 2025-1247 art. 49 (à auditer).
+     * **Scission ADR-0022 strict 2026 confirmée Chrome live** ·
+     * R-2026-029 / R-2026-029-bis · L. 421-62 v 01/01-31/08/2026 et
+     * v 01/09/2026 (modifié par Ordo 2025-1247 art. 4 · entrée en
+     * vigueur 01/09/2026 par art. 49). Barèmes 2026 strictement
+     * identiques entre les 2 versions · scission **rédactionnelle**
+     * (cohérence avec scissions R-2026-013/013-bis et R-2026-018/018-bis
+     * également imposées par Ordo 2025-1247).
      *
      * @return list<class-string<InformativeRule>>
      */
@@ -193,8 +195,10 @@ final class Year2026Boot implements FiscalYearBoot
             // Taxes connexes inactives (Z4.3a · 2 stables · reconductions)
             R2026_030_RegistrationWeightMalus::class, // inactive · seuil 1600/1500 kg à confirmer
             R2026_032_HeavyVehiclesTax::class, // inactive · L. 421-145 stable depuis 2022
-            // Taxes connexes inactives (Z4.3b-d · 3 avec évolutions LF 2026 · à venir)
-            // - R2026_029_RegistrationCo2Malus (scission ADR-0022 confirmée Chrome live · v 01/01-31/08 + v 01/09 Ordo 2025-1247 art. 49)
+            // Taxes connexes inactives (Z4.3b · malus CO₂ carte grise · scission ADR-0022 rédactionnelle Ordo 2025-1247 art. 4)
+            R2026_029_RegistrationCo2Malus::class, // v 01/01-31/08/2026 · seuil 108 g, plafond 80K€
+            R2026_029bis_RegistrationCo2Malus::class, // v 01/09-31/12/2026 · toilettage Ordo art. 4
+            // Taxes connexes inactives (Z4.3c-d · 2 avec évolutions LF 2026 · à venir)
             // - R2026_031_RegistrationCardTaxes (audit Chrome live ciblé requis)
             // - R2026_033_FleetGreeningIncentiveTax (TAI régime plein 2026)
         ];
