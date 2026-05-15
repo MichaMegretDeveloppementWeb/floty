@@ -18,7 +18,6 @@ import EditDriverCompanyMembershipModal from '@/Components/Domain/Driver/EditDri
 import LeaveDriverCompanyModal from '@/Components/Domain/Driver/LeaveDriverCompanyModal.vue';
 import ActionsMenu from '@/Components/Ui/ActionsMenu/ActionsMenu.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
-import Card from '@/Components/Ui/Card/Card.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import { useCompanyDriversTab } from '@/Composables/Company/Show/useCompanyDriversTab';
 
@@ -58,21 +57,26 @@ const {
 </script>
 
 <template>
-    <Card>
-        <div class="flex items-start justify-between gap-4">
-            <div>
-                <h3 class="text-base font-semibold text-slate-900">
+    <div class="flex flex-col gap-6">
+        <!--
+            Header éditorial · h2 + meta + actions. Plus de Card
+            wrapping · alignement sur le pattern Linear-éditorial
+            (refonte D5.10.W étape 6).
+        -->
+        <header class="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
+            <div class="flex flex-col gap-1">
+                <h2 class="text-[28px] font-semibold leading-none tracking-tight text-slate-900">
                     Conducteurs
-                </h3>
+                </h2>
                 <p class="text-sm text-slate-500">
                     {{ activeCount }} actif{{ activeCount > 1 ? 's' : '' }} sur
                     {{ drivers.length }} au total
                 </p>
             </div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-3">
                 <button
                     type="button"
-                    class="cursor-pointer text-sm text-slate-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
+                    class="cursor-pointer text-sm text-slate-600 transition-colors duration-[120ms] hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
                     @click="toggleShowInactive"
                 >
                     {{
@@ -92,11 +96,11 @@ const {
                     Ajouter
                 </Button>
             </div>
-        </div>
+        </header>
 
         <div
             v-if="drivers.length === 0"
-            class="mt-4 flex flex-col items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center"
+            class="flex flex-col items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 px-6 py-10 text-center"
         >
             <span
                 class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-400"
@@ -114,13 +118,13 @@ const {
 
         <div
             v-else-if="visibleDrivers.length === 0"
-            class="mt-4 text-sm text-slate-500"
+            class="text-sm text-slate-500"
         >
             Aucun conducteur actif. Activez « Inclure les sortis » pour voir
             l'historique.
         </div>
 
-        <table v-else class="mt-4 w-full text-sm">
+        <table v-else class="w-full text-sm">
             <thead
                 class="border-b border-slate-200 text-left text-xs text-slate-500 uppercase"
             >
@@ -240,5 +244,5 @@ const {
             @confirm="runConfirmAction"
             @update:open="(v: boolean) => { if (!v) closeConfirm(); }"
         />
-    </Card>
+    </div>
 </template>

@@ -12,7 +12,6 @@
  */
 import { CalendarDays } from 'lucide-vue-next';
 import Button from '@/Components/Ui/Button/Button.vue';
-import Card from '@/Components/Ui/Card/Card.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
 import YearPills from '@/Components/Ui/YearPills/YearPills.vue';
@@ -47,120 +46,116 @@ const {
 </script>
 
 <template>
-    <div class="flex flex-col gap-4">
-        <!-- Header : titre + stats contextuelles + toolbar année -->
-        <Card>
-            <div class="flex flex-col gap-4">
-                <div class="flex flex-col gap-1">
-                    <h3 class="text-base font-semibold text-slate-900">
-                        Locations
-                    </h3>
-                    <p class="text-sm text-slate-500">
-                        <span>{{ totalContractsLabel }}</span>
-                        <template v-if="props.contracts.meta.total > 0">
-                            <span class="mx-1.5 text-slate-300">·</span>
-                            <span>{{ totalDaysLabel }}</span>
-                            <span class="mx-1.5 text-slate-300">·</span>
-                            <span>
-                                {{ props.contractsStats.lcdCount }} LCD /
-                                {{ props.contractsStats.lldCount }} LLD
-                            </span>
-                        </template>
-                        <span
-                            v-if="hasActivePeriodFilter"
-                            class="ml-1 text-slate-400"
-                        >
-                            (période sélectionnée)
-                        </span>
-                    </p>
+    <div class="flex flex-col gap-6">
+        <!--
+            Header éditorial · eyebrow + h2 + meta inline + ligne actions
+            (year pills + popover période personnalisée). Plus de Card
+            wrapping · alignement sur le pattern Linear-éditorial des
+            autres tabs (refonte D5.10.W).
+        -->
+        <header class="flex flex-col gap-3">
+            <h2 class="text-[28px] font-semibold leading-none tracking-tight text-slate-900">
+                Locations
+            </h2>
+            <p class="text-sm text-slate-500">
+                <span>{{ totalContractsLabel }}</span>
+                <template v-if="props.contracts.meta.total > 0">
+                    <span class="mx-1.5 text-slate-300">·</span>
+                    <span>{{ totalDaysLabel }}</span>
+                    <span class="mx-1.5 text-slate-300">·</span>
+                    <span>
+                        {{ props.contractsStats.lcdCount }} LCD /
+                        {{ props.contractsStats.lldCount }} LLD
+                    </span>
+                </template>
+                <span
+                    v-if="hasActivePeriodFilter"
+                    class="ml-1 text-slate-400"
+                >
+                    (période sélectionnée)
+                </span>
+            </p>
+
+            <div
+                v-if="props.contractsAvailableYears.length > 0"
+                class="flex flex-col gap-3 border-t border-slate-100 pt-4 lg:flex-row lg:items-center"
+            >
+                <div class="flex-1 min-w-0">
+                    <YearPills
+                        :years="props.contractsAvailableYears"
+                        :active-year="activeYear"
+                        @select="selectYear"
+                    />
                 </div>
 
-                <div
-                    v-if="props.contractsAvailableYears.length > 0"
-                    class="flex flex-col gap-3 lg:flex-row lg:items-center"
-                >
-                    <div class="flex-1 min-w-0">
-                        <YearPills
-                            :years="props.contractsAvailableYears"
-                            :active-year="activeYear"
-                            @select="selectYear"
-                        />
-                    </div>
+                <div ref="popoverRoot" class="relative shrink-0">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        @click="periodPopoverOpen = !periodPopoverOpen"
+                    >
+                        <template #icon-left>
+                            <CalendarDays
+                                :size="14"
+                                :stroke-width="1.75"
+                            />
+                        </template>
+                        Période personnalisée
+                    </Button>
 
-                    <div ref="popoverRoot" class="relative shrink-0">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            @click="periodPopoverOpen = !periodPopoverOpen"
-                        >
-                            <template #icon-left>
-                                <CalendarDays
-                                    :size="14"
-                                    :stroke-width="1.75"
-                                />
-                            </template>
-                            Période personnalisée
-                        </Button>
-
-                        <!--
-                            Mobile (< sm) : bottom sheet centré.
-                            Desktop (≥ sm) : popover ancré sous le bouton.
-                            Aligné sur le pattern FilterPopover du projet.
-                        -->
+                    <!--
+                        Mobile (< sm) · bottom sheet centré.
+                        Desktop (≥ sm) · popover ancré sous le bouton.
+                        Aligné sur le pattern FilterPopover du projet.
+                    -->
+                    <div
+                        v-if="periodPopoverOpen"
+                        class="fixed inset-0 z-40 bg-slate-900/20 sm:hidden"
+                        aria-hidden="true"
+                        @click="periodPopoverOpen = false"
+                    />
+                    <div
+                        v-if="periodPopoverOpen"
+                        class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[360px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"
+                    >
                         <div
-                            v-if="periodPopoverOpen"
-                            class="fixed inset-0 z-40 bg-slate-900/20 sm:hidden"
-                            aria-hidden="true"
-                            @click="periodPopoverOpen = false"
-                        />
-                        <div
-                            v-if="periodPopoverOpen"
-                            class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[360px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"
+                            class="flex flex-col gap-3 overflow-y-auto p-4"
                         >
-                            <div
-                                class="flex flex-col gap-3 overflow-y-auto p-4"
-                            >
-                                <DateRangePicker
-                                    id="contracts-period"
-                                    v-model:range="periodRange"
-                                    v-model:ongoing="periodOngoing"
-                                    :year="pickerYear"
-                                />
-                            </div>
+                            <DateRangePicker
+                                id="contracts-period"
+                                v-model:range="periodRange"
+                                v-model:ongoing="periodOngoing"
+                                :year="pickerYear"
+                            />
                         </div>
                     </div>
                 </div>
-
-                <!--
-                    Chip de filtre actif (smart label).
-                    Masqué quand une année pleine est sélectionnée · la pill
-                    correspondante est déjà highlightée, le chip serait
-                    redondant. N'apparaît que pour les périodes custom.
-                -->
-                <div v-if="hasActivePeriodFilter && activeYear === null">
-                    <CompanyContractsActiveFilterChip
-                        :period-start="
-                            tableState.state.filters.value.periodStart
-                        "
-                        :period-end="tableState.state.filters.value.periodEnd"
-                        @clear="clearPeriod"
-                    />
-                </div>
             </div>
-        </Card>
 
-        <Card v-if="isUnfilteredEmpty">
-            <p class="text-sm text-slate-500">
-                Aucune location n'a encore été enregistrée pour cette entreprise.
-            </p>
-        </Card>
+            <!--
+                Chip de filtre actif (smart label) · masqué quand une
+                année pleine est sélectionnée (la pill correspondante
+                est déjà highlightée, le chip serait redondant).
+            -->
+            <div v-if="hasActivePeriodFilter && activeYear === null">
+                <CompanyContractsActiveFilterChip
+                    :period-start="
+                        tableState.state.filters.value.periodStart
+                    "
+                    :period-end="tableState.state.filters.value.periodEnd"
+                    @clear="clearPeriod"
+                />
+            </div>
+        </header>
 
-        <Card v-else-if="isFilteredEmpty">
-            <p class="text-sm text-slate-500">
-                Aucune location sur la période sélectionnée. Modifiez ou retirez
-                le filtre période pour voir les autres locations.
-            </p>
-        </Card>
+        <p v-if="isUnfilteredEmpty" class="text-sm text-slate-500">
+            Aucune location n'a encore été enregistrée pour cette entreprise.
+        </p>
+
+        <p v-else-if="isFilteredEmpty" class="text-sm text-slate-500">
+            Aucune location sur la période sélectionnée. Modifiez ou retirez
+            le filtre période pour voir les autres locations.
+        </p>
 
         <template v-else>
             <CompanyContractsTable
