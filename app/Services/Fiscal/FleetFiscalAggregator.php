@@ -18,6 +18,7 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\PipelineResult;
+use App\Fiscal\ValueObjects\AppliedExemption;
 use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
@@ -451,11 +452,17 @@ final class FleetFiscalAggregator
      * Miroir de `vehicleAnnualTaxBreakdownByCompany` côté entreprise :
      * détail fiscal d'une entreprise réparti **par véhicule utilisé**
      * sur l'année (chantier N.2). Utilisé par l'onglet Fiscalité de la
-     * fiche Company Show.
+     * fiche Company Show et par `DeclarationFiscalEngine` pour
+     * composer le snapshot de déclaration.
+     *
+     * **`appliedExemptions`** propagés depuis le résultat pipeline ·
+     * permet au moteur de déclaration de matérialiser le motif
+     * d'exonération sur chaque ligne contrat (au-delà du seul R-021
+     * historiquement hardcodé).
      *
      * @param  Collection<int, Vehicle>  $vehiclesById  Indexée par id
      * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
-     * @return list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
+     * @return list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float, appliedExemptions: list<AppliedExemption>}>
      */
     public function companyAnnualTaxBreakdownByVehicle(
         int $companyId,
@@ -489,6 +496,7 @@ final class FleetFiscalAggregator
                 'taxCo2' => $taxCo2,
                 'taxPollutants' => $taxPollutants,
                 'taxTotal' => round($taxCo2 + $taxPollutants, 2, PHP_ROUND_HALF_UP),
+                'appliedExemptions' => $result->appliedExemptions,
             ];
         }
 

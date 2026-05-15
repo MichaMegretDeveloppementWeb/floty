@@ -208,6 +208,26 @@ final readonly class DeclarationFiscalEngine
             // répartition par contrat doit donc se faire au prorata des
             // jours taxables, pas des jours bruts, sinon les contrats
             // LCD exemptés reçoivent illégitimement une part de taxe.
+            // D5.15.5 · motifs d'exonération **véhicule-niveau** remontés
+            // depuis le pipeline (électrique/hydrogène, handicap, OIG,
+            // hybride conditionnel, activité spécifique, indispo
+            // réductrice, etc.). Ces motifs s'appliquent à TOUS les
+            // contrats du couple (entreprise, véhicule) puisqu'ils
+            // découlent des caractéristiques du véhicule.
+            //
+            // On exclut R-{year}-021 (LCD courte durée) du jeu propagé ·
+            // c'est une exonération **par contrat** (opt-out possible
+            // par cluster), gérée séparément avec une wording dédiée
+            // ci-dessous.
+            $lcdRuleCode = sprintf('R-%d-021', $year);
+            $vehicleLevelReasons = [];
+            foreach ($row['appliedExemptions'] as $exemption) {
+                if ($exemption->ruleCode === $lcdRuleCode) {
+                    continue;
+                }
+                $vehicleLevelReasons[] = $exemption->reason;
+            }
+
             $contractsWithTaxableDays = [];
             $coupleTaxableDays = 0;
             foreach ($contractsWithDays as $entry) {
@@ -219,16 +239,21 @@ final readonly class DeclarationFiscalEngine
                 $isExempted = $isLcd && ! in_array($contract->id, $optOutContractIds, true);
                 $taxableDays = $isExempted ? 0 : $daysInYear;
 
-                // Phase 13 D5.10.W · raison d'exonération formatée pour
-                // affichage utilisateur (PDF + UI). Aujourd'hui seul le
-                // motif R-{year}-021 (LCD individuel non opt-out) est
-                // matérialisé ; les autres motifs (véhicule EV, etc.)
-                // viendront quand le moteur les exposera. Le code de
-                // règle est préfixé de l'année déclarée pour respecter
-                // l'isolation des catalogues annuels (ADR-0022).
-                $exemptionReason = $isExempted
-                    ? sprintf('Exonéré R-%d-021 · LCD courte durée (CIBS L. 421-129)', $year)
-                    : null;
+                // Compose la raison d'exonération à afficher (Show + PDF) ·
+                // - tous les motifs véhicule-niveau du pipeline
+                // - + le motif LCD (R-{year}-021) si ce contrat est LCD
+                //   non opt-out
+                // Séparateur · « · » (cohérent avec le reste de l'UI Floty).
+                $contractReasons = $vehicleLevelReasons;
+                if ($isExempted) {
+                    $contractReasons[] = sprintf(
+                        'Exonéré R-%d-021 · LCD courte durée (CIBS L. 421-129)',
+                        $year,
+                    );
+                }
+                $exemptionReason = $contractReasons === []
+                    ? null
+                    : implode(' · ', $contractReasons);
 
                 $contractsWithTaxableDays[] = [
                     'contract' => $contract,
