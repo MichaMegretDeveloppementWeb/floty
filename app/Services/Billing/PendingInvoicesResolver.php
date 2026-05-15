@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace App\Services\Billing;
 
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Data\User\Billing\PendingInvoiceYearData;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Résout, pour une entreprise donnée, la liste des années où il reste
@@ -58,6 +58,7 @@ final readonly class PendingInvoicesResolver
 {
     public function __construct(
         private BillingBreakdownService $breakdown,
+        private ContractReadRepositoryInterface $contracts,
     ) {}
 
     /**
@@ -126,29 +127,16 @@ final readonly class PendingInvoicesResolver
      * Mêmes années que le `PendingDeclarationsResolver` · plage couverte
      * par les contrats existants de l'entreprise.
      *
+     * Lot 4 D05 (F-11P-001) · délègue au `ContractReadRepository` qui
+     * porte cette query (conformité ADR-0013 R3 · pas de SQL direct
+     * dans les Services). Le scope SoftDeletes du model Contract est
+     * appliqué automatiquement par Eloquent (équivalent au
+     * `whereNull('deleted_at')` qu'on faisait en `DB::table` auparavant).
+     *
      * @return list<int>
      */
     private function yearsCoveredByContractsForCompany(int $companyId): array
     {
-        $rows = DB::table('contracts')
-            ->where('company_id', $companyId)
-            ->whereNull('deleted_at')
-            ->select(['start_date', 'end_date'])
-            ->get();
-
-        $years = [];
-        foreach ($rows as $row) {
-            $start = CarbonImmutable::parse((string) $row->start_date);
-            $end = CarbonImmutable::parse((string) $row->end_date);
-
-            for ($y = $start->year; $y <= $end->year; $y++) {
-                $years[$y] = true;
-            }
-        }
-
-        $list = array_keys($years);
-        sort($list);
-
-        return $list;
+        return $this->contracts->findActiveYearsForCompany($companyId);
     }
 }
