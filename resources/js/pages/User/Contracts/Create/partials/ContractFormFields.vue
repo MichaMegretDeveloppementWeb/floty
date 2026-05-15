@@ -16,6 +16,7 @@ import {
     findLongestFreeSubrange,
     rangeConflicts,
 } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
+import { indexById } from '@/Utils/Common/indexById';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
@@ -61,11 +62,7 @@ const companyOptions = computed(() =>
     })),
 );
 
-const companyById = computed(() => {
-    const map = new Map<number, App.Data.User.Company.CompanyOptionData>();
-    for (const c of props.options.companies) map.set(c.id, c);
-    return map;
-});
+const companyById = computed(() => indexById(props.options.companies));
 
 const vehicleIdModel = computed({
     get: (): number | null => props.form.vehicle_id,
@@ -74,11 +71,7 @@ const vehicleIdModel = computed({
     },
 });
 
-const vehicleById = computed(() => {
-    const map = new Map<number, App.Data.User.Vehicle.VehicleOptionData>();
-    for (const v of props.options.vehicles) map.set(v.id, v);
-    return map;
-});
+const vehicleById = computed(() => indexById(props.options.vehicles));
 
 // Taxe pleine annuelle du véhicule sélectionné, basée sur l'année de
 // `start_date` saisie (fallback année courante quand la date n'est pas
@@ -91,10 +84,16 @@ const vehicleById = computed(() => {
 // et on flag le label avec `fallback: true` pour le rendu.
 const selectedVehicleFullYearTax = computed<{ year: number; tax: number; fallback: boolean } | null>(() => {
     const id = props.form.vehicle_id;
-    if (id === null) return null;
+
+    if (id === null) {
+return null;
+}
 
     const vehicle = vehicleById.value.get(id);
-    if (!vehicle) return null;
+
+    if (!vehicle) {
+return null;
+}
 
     const targetYear = props.form.start_date
         ? Number.parseInt(props.form.start_date.slice(0, 4), 10)
@@ -102,15 +101,22 @@ const selectedVehicleFullYearTax = computed<{ year: number; tax: number; fallbac
 
     const taxByYear = vehicle.fullYearTaxByYear as Record<number, number>;
     const exact = taxByYear[targetYear];
+
     if (typeof exact === 'number') {
         return { year: targetYear, tax: exact, fallback: false };
     }
 
     const availableYears = Object.keys(taxByYear).map(Number).sort((a, b) => b - a);
-    if (availableYears.length === 0) return null;
+
+    if (availableYears.length === 0) {
+return null;
+}
 
     const fallbackYear = availableYears[0];
-    if (fallbackYear === undefined) return null;
+
+    if (fallbackYear === undefined) {
+return null;
+}
 
     return { year: fallbackYear, tax: taxByYear[fallbackYear]!, fallback: true };
 });
@@ -154,6 +160,7 @@ const pickerYear = computed<number>(() => {
     if (props.form.start_date) {
         return Number(props.form.start_date.slice(0, 4));
     }
+
     return new Date().getFullYear();
 });
 
@@ -161,22 +168,31 @@ const pickerStartMonth = computed<number>(() => {
     if (props.form.start_date) {
         return Number(props.form.start_date.slice(5, 7));
     }
+
     return new Date().getMonth() + 1;
 });
 
 const disabledDates = computed<string[]>(() => {
-    if (props.form.vehicle_id === null) return [];
+    if (props.form.vehicle_id === null) {
+return [];
+}
+
     return props.busyDatesByVehicleId[props.form.vehicle_id] ?? [];
 });
 
 // Quand on change de véhicule, on ré-ajuste la plage à la plus longue
 // sous-plage libre trouvée. Aucune sous-plage libre → on efface.
 watch(disabledDates, (newDisabled) => {
-    if (range.value.startDate === null || range.value.endDate === null) return;
+    if (range.value.startDate === null || range.value.endDate === null) {
+return;
+}
 
     const set = new Set(newDisabled);
     const conflicts = rangeConflicts(range.value.startDate, range.value.endDate, set);
-    if (conflicts.length === 0) return;
+
+    if (conflicts.length === 0) {
+return;
+}
 
     const sub = findLongestFreeSubrange(range.value.startDate, range.value.endDate, set);
     range.value = sub === null
@@ -187,11 +203,15 @@ watch(disabledDates, (newDisabled) => {
 // ── Durée + type LCD/LLD live ───────────────────────────────────────
 const durationDays = computed<number | null>(() => {
     const { startDate, endDate } = range.value;
-    if (!startDate || !endDate) return null;
+
+    if (!startDate || !endDate) {
+return null;
+}
 
     const start = new Date(startDate);
     const end = new Date(endDate);
     const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
     return days > 0 ? days : null;
 });
 
@@ -199,7 +219,10 @@ const durationDays = computed<number | null>(() => {
 // via `Contract::deriveTypeFromDates` qui fait autorité). Règle
 // simplifiée : ≤ 30 jours → LCD, sinon LLD.
 const contractType = computed<'lcd' | 'lld' | null>(() => {
-    if (durationDays.value === null) return null;
+    if (durationDays.value === null) {
+return null;
+}
+
     return durationDays.value <= 30 ? 'lcd' : 'lld';
 });
 </script>

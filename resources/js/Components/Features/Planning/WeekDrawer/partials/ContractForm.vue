@@ -10,6 +10,7 @@ import { useContractDocuments } from '@/Composables/Contract/useContractDocument
 import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
 import { useApi } from '@/Composables/Shared/useApi';
 import { storeBulk as storeBulkRoute } from '@/routes/user/planning/contracts';
+import { indexById } from '@/Utils/Common/indexById';
 import FiscalPreviewCard from './FiscalPreviewCard.vue';
 import MoreOptionsSection from './MoreOptionsSection.vue';
 
@@ -56,11 +57,7 @@ const companyOptions = computed(() =>
     })),
 );
 
-const companyById = computed(() => {
-    const map = new Map<number, Company>();
-    for (const c of props.companies) map.set(c.id, c);
-    return map;
-});
+const companyById = computed(() => indexById(props.companies));
 
 const companyIdModel = computed({
     get: (): number | null => props.selectedCompanyId,
@@ -111,7 +108,10 @@ const canSubmit = computed(
 const durationDays = computed<number | null>(() => {
     const start = props.selectedRange.startDate;
     const end = props.selectedRange.endDate;
-    if (start === null || end === null) return null;
+
+    if (start === null || end === null) {
+return null;
+}
 
     const days = Math.floor(
         (new Date(end).getTime() - new Date(start).getTime()) / (1000 * 60 * 60 * 24),
@@ -121,7 +121,10 @@ const durationDays = computed<number | null>(() => {
 });
 
 const contractType = computed<'lcd' | 'lld' | null>(() => {
-    if (durationDays.value === null) return null;
+    if (durationDays.value === null) {
+return null;
+}
+
     return durationDays.value <= 30 ? 'lcd' : 'lld';
 });
 

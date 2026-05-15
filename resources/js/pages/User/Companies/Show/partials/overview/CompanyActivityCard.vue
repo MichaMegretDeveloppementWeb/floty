@@ -29,6 +29,7 @@ import { densityClass, textContrastClass } from '@/Components/Features/Planning/
 import Card from '@/Components/Ui/Card/Card.vue';
 import YearSelector from '@/Components/Ui/YearSelector/YearSelector.vue';
 import { useYearScope } from '@/Composables/Shared/useYearScope';
+import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 type Company = App.Data.User.Company.CompanyDetailData;
 type ActivityYear = App.Data.User.Company.CompanyActivityYearData;
@@ -76,11 +77,13 @@ const byYear = computed<ActivityYear>(
 // Échelle de densité : on normalise à 0..7 par division par le max
 // du mois le plus chargé de l'année. Permet de réutiliser la palette
 // `densityClass` (0 = blanc bordé, 7 = bleu foncé) du design system.
+// Format spécifique visualisation (initiales 1 char) · le doc-block
+// `MONTH_LABELS` documente explicitement ce cas comme hors scope
+// mutualisation (cf. Utils/format/monthLabels.ts).
 const monthLabels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'] as const;
-const fullMonthNames = [
-    'janvier', 'février', 'mars', 'avril', 'mai', 'juin',
-    'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
-] as const;
+// Tooltip (lowercase) dérivé du label canonique pour éviter la
+// duplication des 12 noms de mois.
+const fullMonthNames = MONTH_LABELS.map((m) => m.toLowerCase()) as readonly string[];
 
 const maxMonth = computed<number>(() => Math.max(0, ...byYear.value.daysByMonth));
 

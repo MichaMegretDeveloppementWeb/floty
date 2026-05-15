@@ -9,6 +9,7 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import { useContractFiscalPreview } from '@/Composables/Contract/useContractFiscalPreview';
 import { useContractForm } from '@/Composables/Contract/useContractForm';
 import { show as contractsShowRoute } from '@/routes/user/contracts';
+import { computeContractDurationDays } from '@/Utils/Contract/contractDuration';
 import ContractFormFields from '../Create/partials/ContractFormFields.vue';
 
 const props = defineProps<{
@@ -25,38 +26,55 @@ const { form, canSubmit, submit } = useContractForm(props.contract);
 // ── Recap card live ──────────────────────────────────────────────────
 const vehicleById = computed(() => {
     const map = new Map<number, App.Data.User.Vehicle.VehicleOptionData>();
-    for (const v of props.options.vehicles) map.set(v.id, v);
+
+    for (const v of props.options.vehicles) {
+map.set(v.id, v);
+}
+
     return map;
 });
 
 const companyById = computed(() => {
     const map = new Map<number, App.Data.User.Company.CompanyOptionData>();
-    for (const c of props.options.companies) map.set(c.id, c);
+
+    for (const c of props.options.companies) {
+map.set(c.id, c);
+}
+
     return map;
 });
 
 const recapVehicle = computed(() => {
-    if (form.vehicle_id === null) return null;
+    if (form.vehicle_id === null) {
+return null;
+}
+
     const v = vehicleById.value.get(form.vehicle_id);
-    if (!v) return null;
+
+    if (!v) {
+return null;
+}
+
     return { plate: v.licensePlate, label: v.label };
 });
 
 const recapCompany = computed(() => {
-    if (form.company_id === null) return null;
+    if (form.company_id === null) {
+return null;
+}
+
     return companyById.value.get(form.company_id) ?? null;
 });
 
-const recapDuration = computed<number | null>(() => {
-    if (!form.start_date || !form.end_date) return null;
-    const start = new Date(form.start_date);
-    const end = new Date(form.end_date);
-    const days = Math.floor((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-    return days > 0 ? days : null;
-});
+const recapDuration = computed<number | null>(() =>
+    computeContractDurationDays(form.start_date, form.end_date),
+);
 
 const recapType = computed<'lcd' | 'lld' | null>(() => {
-    if (recapDuration.value === null) return null;
+    if (recapDuration.value === null) {
+return null;
+}
+
     return recapDuration.value <= 30 ? 'lcd' : 'lld';
 });
 

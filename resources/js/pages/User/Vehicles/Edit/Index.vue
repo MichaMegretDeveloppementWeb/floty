@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
@@ -28,14 +29,14 @@ const {
     confirmSubmit,
 } = useVehicleEditForm(props);
 
-const cascadeMessage = (): string => {
+const cascadeMessage = computed<string>(() => {
     const count = versionsToBeDeleted.value.length;
     const versionsList = versionsToBeDeleted.value
         .map((v) => `du ${formatDateFr(v.effectiveFrom)}${v.effectiveTo ? ` au ${formatDateFr(v.effectiveTo)}` : ' (courante)'}`)
         .join(' · ');
 
     return `Cette opération va supprimer ${count} version${count > 1 ? 's' : ''} d'historique fiscal postérieure${count > 1 ? 's' : ''} à la date d'effet choisie : ${versionsList}. Cette action est irréversible.`;
-};
+});
 </script>
 
 <template>
@@ -87,7 +88,7 @@ const cascadeMessage = (): string => {
         <ConfirmModal
             v-model:open="cascadeConfirmOpen"
             title="Confirmer la cascade rétroactive"
-            :message="cascadeMessage()"
+            :message="cascadeMessage"
             confirm-label="Confirmer la suppression"
             tone="danger"
             @confirm="confirmSubmit"

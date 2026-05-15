@@ -11,15 +11,12 @@
  */
 import Card from '@/Components/Ui/Card/Card.vue';
 import { formatEur } from '@/Utils/format/formatEur';
+import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 defineProps<{
     breakdown: App.Data.User.Billing.ContractBillingBreakdownData | null;
 }>();
 
-const MONTH_LABELS = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-] as const;
 </script>
 
 <template>
