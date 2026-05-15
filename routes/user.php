@@ -7,7 +7,10 @@ use App\Http\Controllers\User\Contract\ContractController;
 use App\Http\Controllers\User\Contract\ContractDocumentController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
 use App\Http\Controllers\User\Driver\DriverController;
+use App\Http\Controllers\User\Driver\DriverMembershipController;
 use App\Http\Controllers\User\FiscalDeclaration\DeclarationController;
+use App\Http\Controllers\User\FiscalDeclaration\DeclarationGenerationController;
+use App\Http\Controllers\User\FiscalDeclaration\DeclarationLifecycleController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Invoice\InvoiceController;
 use App\Http\Controllers\User\Planning\PlanningController;
@@ -273,22 +276,25 @@ Route::middleware('auth')
             ->name('drivers.destroy');
 
         // Drivers — memberships company (Phase 06 V1.2)
-        Route::post('/drivers/{driver}/memberships', [DriverController::class, 'attachCompany'])
+        // Lot 4 D13 (F-34-105) · extraits dans `DriverMembershipController` ·
+        // les noms de routes restent identiques, le frontend (Wayfinder)
+        // n'a aucun changement à faire.
+        Route::post('/drivers/{driver}/memberships', [DriverMembershipController::class, 'attachCompany'])
             ->whereNumber('driver')
             ->middleware('throttle:60,1')
             ->name('drivers.memberships.store');
-        Route::get('/drivers/{driver}/memberships/{companyId}/future-contracts', [DriverController::class, 'futureContractsForLeave'])
+        Route::get('/drivers/{driver}/memberships/{companyId}/future-contracts', [DriverMembershipController::class, 'futureContractsForLeave'])
             ->whereNumber(['driver', 'companyId'])
             ->name('drivers.memberships.future-contracts');
-        Route::patch('/drivers/{driver}/memberships/{companyId}/leave', [DriverController::class, 'leaveCompany'])
+        Route::patch('/drivers/{driver}/memberships/{companyId}/leave', [DriverMembershipController::class, 'leaveCompany'])
             ->whereNumber(['driver', 'companyId'])
             ->middleware('throttle:60,1')
             ->name('drivers.memberships.leave');
-        Route::patch('/drivers/{driver}/memberships/{pivotId}', [DriverController::class, 'updateMembership'])
+        Route::patch('/drivers/{driver}/memberships/{pivotId}', [DriverMembershipController::class, 'updateMembership'])
             ->whereNumber(['driver', 'pivotId'])
             ->middleware('throttle:60,1')
             ->name('drivers.memberships.update');
-        Route::delete('/drivers/{driver}/memberships/{pivotId}', [DriverController::class, 'detachCompany'])
+        Route::delete('/drivers/{driver}/memberships/{pivotId}', [DriverMembershipController::class, 'detachCompany'])
             ->whereNumber(['driver', 'pivotId'])
             ->middleware('throttle:60,1')
             ->name('drivers.memberships.destroy');
@@ -300,9 +306,17 @@ Route::middleware('auth')
         // Throttle 30/min sur les mutations cluster (storeDecision,
         // markDeferred). Throttle 6/min sur les mutations PDF-générantes
         // (generate, regenerate) : chaque appel render DomPDF + write fs.
+        //
+        // Lot 4 D13 (F-34-105) · controller éclaté en 3 par concern ·
+        // `DeclarationController` (consultation) +
+        // `DeclarationGenerationController` (cycle Draft→Generated) +
+        // `DeclarationLifecycleController` (transitions terminales).
+        // Les noms de routes restent identiques, le frontend n'a aucun
+        // changement à faire (Wayfinder régénéré pointe sur le bon
+        // controller automatiquement).
         Route::get('/declarations', [DeclarationController::class, 'index'])
             ->name('declarations.index');
-        Route::post('/declarations/prepare', [DeclarationController::class, 'prepare'])
+        Route::post('/declarations/prepare', [DeclarationGenerationController::class, 'prepare'])
             ->middleware('throttle:30,1')
             ->name('declarations.prepare');
         Route::get('/declarations/{declaration}', [DeclarationController::class, 'show'])
@@ -311,30 +325,30 @@ Route::middleware('auth')
         Route::get('/declarations/{declaration}/review', [DeclarationController::class, 'review'])
             ->whereNumber('declaration')
             ->name('declarations.review');
-        Route::post('/declarations/{declaration}/decisions', [DeclarationController::class, 'storeDecision'])
+        Route::post('/declarations/{declaration}/decisions', [DeclarationGenerationController::class, 'storeDecision'])
             ->whereNumber('declaration')
             ->middleware('throttle:60,1')
             ->name('declarations.decisions.store');
-        Route::post('/declarations/{declaration}/mark-deferred', [DeclarationController::class, 'markDeferred'])
+        Route::post('/declarations/{declaration}/mark-deferred', [DeclarationLifecycleController::class, 'markDeferred'])
             ->whereNumber('declaration')
             ->middleware('throttle:30,1')
             ->name('declarations.mark-deferred');
-        Route::post('/declarations/{declaration}/generate', [DeclarationController::class, 'generate'])
+        Route::post('/declarations/{declaration}/generate', [DeclarationGenerationController::class, 'generate'])
             ->whereNumber('declaration')
             ->middleware('throttle:6,1')
             ->name('declarations.generate');
-        Route::post('/declarations/{declaration}/regenerate', [DeclarationController::class, 'regenerate'])
+        Route::post('/declarations/{declaration}/regenerate', [DeclarationGenerationController::class, 'regenerate'])
             ->whereNumber('declaration')
             ->middleware('throttle:6,1')
             ->name('declarations.regenerate');
         // Phase 13 D5.10.E · modification volontaire depuis Show (S5 → S7)
         // et suppression d'un brouillon (avec gestion intelligente du
         // predecessor selon la nature des motifs d'obsolescence).
-        Route::post('/declarations/{declaration}/modify', [DeclarationController::class, 'modify'])
+        Route::post('/declarations/{declaration}/modify', [DeclarationGenerationController::class, 'modify'])
             ->whereNumber('declaration')
             ->middleware('throttle:6,1')
             ->name('declarations.modify');
-        Route::delete('/declarations/{declaration}', [DeclarationController::class, 'destroy'])
+        Route::delete('/declarations/{declaration}', [DeclarationLifecycleController::class, 'destroy'])
             ->whereNumber('declaration')
             ->middleware('throttle:30,1')
             ->name('declarations.destroy');

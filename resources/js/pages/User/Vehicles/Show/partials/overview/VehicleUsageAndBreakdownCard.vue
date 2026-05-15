@@ -16,7 +16,6 @@
  * on cache, on affiche. Une année déjà visitée → affichage instantané.
  */
 import { computed, watch } from 'vue';
-import { usageStats as usageStatsRoute } from '@/actions/App/Http/Controllers/User/Vehicle/VehicleController';
 import Card from '@/Components/Ui/Card/Card.vue';
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
@@ -25,6 +24,7 @@ import YearSelector from '@/Components/Ui/YearSelector/YearSelector.vue';
 import { useYearLazy } from '@/Composables/Shared/useYearLazy';
 import { useCompanyFiscalBreakdownTable } from '@/Composables/Vehicle/Show/useCompanyFiscalBreakdownTable';
 import { useVehicleYearlyUsageTimeline } from '@/Composables/Vehicle/Show/useVehicleYearlyUsageTimeline';
+import { usageStats as usageStatsRoute } from '@/routes/user/vehicles';
 import { companyColorBgClass } from '@/Utils/colors/companyColor';
 import { formatEur } from '@/Utils/format/formatEur';
 

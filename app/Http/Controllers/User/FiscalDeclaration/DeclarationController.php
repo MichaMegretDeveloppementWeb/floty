@@ -4,13 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\FiscalDeclaration;
 
-use App\Actions\FiscalDeclaration\CreateDraftDeclarationAction;
-use App\Actions\FiscalDeclaration\DiscardDraftDeclarationAction;
-use App\Actions\FiscalDeclaration\GenerateDeclarationAction;
-use App\Actions\FiscalDeclaration\MarkDeclarationAsDeferredAction;
-use App\Actions\FiscalDeclaration\ModifyGeneratedDeclarationAction;
-use App\Actions\FiscalDeclaration\RegenerateDeclarationAction;
-use App\Actions\FiscalDeclaration\StoreReviewDecisionAction;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\FiscalDeclaration\DeclarationIndexQueryData;
@@ -19,8 +12,6 @@ use App\Data\User\FiscalDeclaration\FiscalDeclarationData;
 use App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData;
 use App\Data\User\FiscalDeclaration\InvalidationReasonData;
 use App\Data\User\FiscalDeclaration\PaginatedDeclarationListData;
-use App\Data\User\FiscalDeclaration\PrepareDeclarationData;
-use App\Data\User\FiscalReviewDecision\StoreReviewDecisionData;
 use App\Data\User\FiscalRiskSettings\FiscalRiskSettingsData;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Http\Controllers\Controller;
@@ -29,32 +20,23 @@ use App\Models\FiscalRiskSettings;
 use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use App\Services\Fiscal\RiskDetection\DeclarationPreviewService;
 use App\Services\Pdf\DeclarationPdfStorage;
-use DomainException;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
-use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Contrôleur des déclarations fiscales (Phase 11 D4). Slim conforme
- * ADR-0013 : pas de logique métier, délégation aux Actions D3 et au
- * `DeclarationPreviewService`.
+ * Consultation des déclarations fiscales (Phase 11 D4 · slim conforme
+ * R7/R10 ADR-0013 après extraction du cycle de génération vers
+ * {@see DeclarationGenerationController} et des transitions terminales
+ * vers {@see DeclarationLifecycleController} en Lot 4 D13 (F-34-105)).
  *
- * Endpoints :
- *   - GET    /declarations                       index
- *   - POST   /declarations/prepare               crée un draft pour (company, year)
- *   - GET    /declarations/{declaration}         show
- *   - GET    /declarations/{declaration}/review  page de revue interactive
- *   - POST   /declarations/{declaration}/decisions     persiste une décision cluster
- *   - POST   /declarations/{declaration}/mark-deferred passe draft → deferred
- *   - POST   /declarations/{declaration}/generate      verrouille en generated + PDF
- *   - POST   /declarations/{declaration}/regenerate    crée nouveau draft + chaîne
- *   - POST   /declarations/{declaration}/modify        S5 → S7 volontaire (D5.10.E)
- *   - DELETE /declarations/{declaration}                supprime un brouillon (D5.10.E)
- *   - GET    /declarations/{declaration}/download      sert le PDF binaire
+ * Endpoints read-only ·
+ *   - GET /declarations                           index
+ *   - GET /declarations/{declaration}             show
+ *   - GET /declarations/{declaration}/review      page de revue interactive
+ *   - GET /declarations/{declaration}/download    sert le PDF binaire
  */
 final class DeclarationController extends Controller
 {
@@ -220,11 +202,6 @@ final class DeclarationController extends Controller
             ? InvalidationReasonData::listFromRaw($predecessor->obsolete_reasons, $predecessor->id)
             : [];
 
-        $canonicalHead = $this->reader->findCurrentForCompanyYear(
-            $declaration->company_id,
-            $declaration->fiscal_year,
-        );
-
         return Inertia::render('User/Declarations/Review/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
             'preview' => $preview,
@@ -240,183 +217,6 @@ final class DeclarationController extends Controller
             // `countHigh`) au lieu de les hardcoder côté UI.
             'riskSettings' => FiscalRiskSettingsData::fromModel(FiscalRiskSettings::singleton()),
         ]);
-    }
-
-    public function prepare(
-        PrepareDeclarationData $data,
-        CreateDraftDeclarationAction $action,
-    ): RedirectResponse {
-        Gate::authorize('create', FiscalDeclaration::class);
-
-        try {
-            $declaration = $action->execute($data->companyId, $data->fiscalYear);
-        } catch (DomainException $e) {
-            return back()->with('toast-error', $e->getMessage());
-        }
-
-        return redirect()
-            ->route('user.declarations.review', ['declaration' => $declaration->id])
-            ->with('toast-success', sprintf(
-                'Déclaration %d préparée. Décidez chaque cluster avant de générer.',
-                $data->fiscalYear,
-            ));
-    }
-
-    public function storeDecision(
-        StoreReviewDecisionData $data,
-        Request $request,
-        FiscalDeclaration $declaration,
-        StoreReviewDecisionAction $action,
-    ): RedirectResponse {
-        Gate::authorize('update', $declaration);
-
-        $user = $request->user();
-        if ($user === null) {
-            abort(Response::HTTP_UNAUTHORIZED);
-        }
-
-        // Sécurité applicative : la décision doit concerner la même
-        // (company, year) que la déclaration ciblée par la route.
-        if (
-            $data->companyId !== $declaration->company_id
-            || $data->fiscalYear !== $declaration->fiscal_year
-        ) {
-            return back()->with(
-                'toast-error',
-                'Le périmètre de la décision ne correspond pas à la déclaration.',
-            );
-        }
-
-        try {
-            $action->execute($data, $user->id);
-        } catch (InvalidArgumentException $e) {
-            return back()->with('toast-error', $e->getMessage());
-        }
-
-        return back()->with('toast-success', 'Décision enregistrée.');
-    }
-
-    public function markDeferred(
-        FiscalDeclaration $declaration,
-        MarkDeclarationAsDeferredAction $action,
-    ): RedirectResponse {
-        Gate::authorize('update', $declaration);
-
-        try {
-            $action->execute($declaration->id);
-        } catch (DomainException $e) {
-            return back()->with('toast-error', $e->getMessage());
-        }
-
-        return back()->with('toast-success', 'Déclaration mise de côté.');
-    }
-
-    public function generate(
-        FiscalDeclaration $declaration,
-        GenerateDeclarationAction $action,
-    ): RedirectResponse {
-        Gate::authorize('update', $declaration);
-
-        try {
-            $generated = $action->execute($declaration->id);
-        } catch (DomainException $e) {
-            return back()->with('toast-error', $e->getMessage());
-        }
-
-        return redirect()
-            ->route('user.declarations.show', ['declaration' => $generated->id])
-            ->with('toast-success', sprintf(
-                'Déclaration %s %d générée.',
-                $generated->company->short_code,
-                $generated->fiscal_year,
-            ));
-    }
-
-    public function regenerate(
-        FiscalDeclaration $declaration,
-        RegenerateDeclarationAction $action,
-    ): RedirectResponse {
-        Gate::authorize('update', $declaration);
-
-        try {
-            $newDeclaration = $action->execute($declaration->id);
-        } catch (DomainException $e) {
-            return back()->with('toast-error', $e->getMessage());
-        }
-
-        return redirect()
-            ->route('user.declarations.review', ['declaration' => $newDeclaration->id])
-            ->with('toast-success', 'Nouvelle déclaration créée. Reprise des décisions par fingerprint.');
-    }
-
-    /**
-     * Phase 13 D5.10.E · transition volontaire S5 → S7. Permet à
-     * l'utilisateur de modifier une déclaration générée et active sans
-     * attendre une mutation involontaire de périmètre. La déclaration
-     * courante devient obsolète avec le motif `VoluntaryModification`,
-     * un nouveau brouillon est créé et chaîné. Si l'utilisateur change
-     * d'avis, `destroy` saura ré-activer la déclaration précédente.
-     */
-    public function modify(
-        Request $request,
-        FiscalDeclaration $declaration,
-        ModifyGeneratedDeclarationAction $action,
-    ): RedirectResponse {
-        Gate::authorize('update', $declaration);
-
-        $user = $request->user();
-        if ($user === null) {
-            abort(Response::HTTP_UNAUTHORIZED);
-        }
-
-        try {
-            $newDraft = $action->execute(
-                $declaration->id,
-                $user->id,
-                $user->full_name,
-            );
-        } catch (DomainException $e) {
-            return back()->with('toast-error', $e->getMessage());
-        }
-
-        return redirect()
-            ->route('user.declarations.review', ['declaration' => $newDraft->id])
-            ->with('toast-success', sprintf(
-                'Nouveau brouillon de modification créé. La déclaration %s est désormais obsolète mais reste consultable.',
-                $declaration->reference ?? sprintf('#%d', $declaration->id),
-            ));
-    }
-
-    /**
-     * Phase 13 D5.10.E · suppression d'un brouillon. Soft delete +
-     * gestion intelligente du predecessor : ré-activation si l'obsolescence
-     * était purement volontaire, simple unlink sinon.
-     *
-     * Lot 5 D2 · l'Action retourne le statut original du brouillon
-     * (Draft ou Deferred) pour permettre un toast contextualisé · un
-     * Deferred est sémantiquement « mis de côté », pas un brouillon
-     * en cours d'édition, donc le message reflète l'annulation de la
-     * mise en attente plutôt qu'une suppression sèche.
-     */
-    public function destroy(
-        FiscalDeclaration $declaration,
-        DiscardDraftDeclarationAction $action,
-    ): RedirectResponse {
-        Gate::authorize('update', $declaration);
-
-        try {
-            $originalStatus = $action->execute($declaration->id);
-        } catch (DomainException $e) {
-            return back()->with('toast-error', $e->getMessage());
-        }
-
-        $message = $originalStatus === FiscalDeclarationStatus::Deferred
-            ? 'Mise en attente annulée.'
-            : 'Brouillon supprimé.';
-
-        return redirect()
-            ->route('user.declarations.index')
-            ->with('toast-success', $message);
     }
 
     public function download(FiscalDeclaration $declaration, DeclarationPdfStorage $storage): Response
