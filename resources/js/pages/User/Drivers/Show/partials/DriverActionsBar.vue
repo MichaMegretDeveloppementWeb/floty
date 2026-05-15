@@ -28,7 +28,7 @@ function cancelDelete(): void {
 
 function confirmDelete(): void {
     submitting.value = true;
-    router.delete(destroyRoute(props.driverId).url, {
+    router.delete(destroyRoute.url(props.driverId), {
         onFinish: () => {
             submitting.value = false;
             confirmOpen.value = false;
@@ -43,7 +43,7 @@ function confirmDelete(): void {
     >
         <h2 class="text-base font-semibold text-slate-900">Actions</h2>
         <div class="flex flex-wrap gap-2">
-            <Link :href="editRoute(props.driverId).url">
+            <Link :href="editRoute.url(props.driverId)">
                 <Button variant="secondary">
                     <template #icon-left>
                         <Pencil :size="14" :stroke-width="1.75" />

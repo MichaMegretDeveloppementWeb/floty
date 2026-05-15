@@ -60,7 +60,7 @@ function submit(): void {
         return;
     }
 
-    form.post(storeRoute(form.driver_id).url, {
+    form.post(storeRoute.url(form.driver_id), {
         preserveScroll: true,
         onSuccess: () => close(),
     });

@@ -45,7 +45,7 @@ const submit = (): void => {
 
         <div class="text-center">
             <a
-                :href="forgotPasswordRoute().url"
+                :href="forgotPasswordRoute.url()"
                 class="text-sm text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
             >
                 Mot de passe oublié ?

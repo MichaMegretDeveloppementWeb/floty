@@ -50,7 +50,7 @@ function close(): void {
 }
 
 function submit(): void {
-    form.post(storeRoute(props.driverId).url, {
+    form.post(storeRoute.url(props.driverId), {
         preserveScroll: true,
         onSuccess: () => close(),
     });

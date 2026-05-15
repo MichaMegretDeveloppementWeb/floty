@@ -28,7 +28,7 @@ import ForgotPasswordForm from './partials/ForgotPasswordForm.vue';
 
                 <p class="mt-6 text-center text-xs text-slate-400">
                     <a
-                        :href="loginRoute().url"
+                        :href="loginRoute.url()"
                         class="text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline"
                     >
                         Retour à la connexion

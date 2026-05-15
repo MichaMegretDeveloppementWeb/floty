@@ -125,7 +125,7 @@ export function useDriversTable(
     }
 
     function onRowClick(row: DriverRow): void {
-        router.visit(showRoute(row.id).url);
+        router.visit(showRoute.url(row.id));
     }
 
     return {

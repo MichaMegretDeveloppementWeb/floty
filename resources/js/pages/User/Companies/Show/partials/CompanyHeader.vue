@@ -40,7 +40,7 @@ const avatarBgClass = computed<string>(() => {
 <template>
     <div class="flex flex-col gap-3">
         <Link
-            :href="indexRoute().url"
+            :href="indexRoute.url()"
             class="inline-flex items-center gap-1 self-start text-sm text-slate-500 hover:text-slate-700"
         >
             <ChevronLeft :size="14" :stroke-width="1.75" />
@@ -91,7 +91,7 @@ const avatarBgClass = computed<string>(() => {
             </div>
 
             <div class="flex shrink-0 flex-wrap gap-2">
-                <Link :href="planningCompaniesIndexRoute({ company: company.id }).url">
+                <Link :href="planningCompaniesIndexRoute.url({ company: company.id })">
                     <Button variant="secondary" size="sm">
                         <template #icon-left>
                             <CalendarDays :size="14" :stroke-width="1.75" />
@@ -99,7 +99,7 @@ const avatarBgClass = computed<string>(() => {
                         Voir le planning
                     </Button>
                 </Link>
-                <Link :href="editRoute({ company: company.id }).url">
+                <Link :href="editRoute.url({ company: company.id })">
                     <Button variant="ghost" size="sm">
                         <template #icon-left>
                             <Pencil :size="14" :stroke-width="1.75" />

@@ -119,7 +119,7 @@ export function useCompaniesTable(opts: {
     }
 
     function onRowClick(row: CompanyRow): void {
-        router.visit(companyShowRoute(row.id).url);
+        router.visit(companyShowRoute.url(row.id));
     }
 
     return {

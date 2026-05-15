@@ -27,7 +27,7 @@ export function useCreateDriverForm(initial?: { companyId?: number }) {
     });
 
     function submit(): void {
-        form.post(storeRoute().url, {
+        form.post(storeRoute.url(), {
             preserveScroll: true,
         });
     }
@@ -46,7 +46,7 @@ export function useEditDriverForm(driver: {
     });
 
     function submit(): void {
-        form.patch(updateRoute(driver.id).url, {
+        form.patch(updateRoute.url(driver.id), {
             preserveScroll: true,
         });
     }

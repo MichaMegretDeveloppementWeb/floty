@@ -39,7 +39,7 @@ defineProps<{
         </Link>
 
         <Link
-            :href="companiesShowRoute(contract.companyId).url"
+            :href="companiesShowRoute.url(contract.companyId)"
             class="group flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
         >
             <div class="flex flex-col gap-2">
@@ -67,7 +67,7 @@ defineProps<{
              placeholder. -->
         <Link
             v-if="contract.drivers.length === 1"
-            :href="driversShowRoute(contract.drivers[0]!.id).url"
+            :href="driversShowRoute.url(contract.drivers[0]!.id)"
             class="group flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:bg-slate-50"
         >
             <div class="flex flex-col gap-2">
@@ -99,7 +99,7 @@ defineProps<{
                 <Link
                     v-for="d in contract.drivers"
                     :key="d.id"
-                    :href="driversShowRoute(d.id).url"
+                    :href="driversShowRoute.url(d.id)"
                     class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
                 >
                     <span class="inline-flex h-5 w-5 items-center justify-center rounded-full bg-blue-100 text-[10px] font-semibold text-blue-700">

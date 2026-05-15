@@ -11,7 +11,7 @@ const form = useForm({
 });
 
 const submit = (): void => {
-    form.post(changePasswordRoute().url, {
+    form.post(changePasswordRoute.url(), {
         onSuccess: () => form.reset('current_password', 'password', 'password_confirmation'),
         onError: () => form.reset('current_password'),
     });

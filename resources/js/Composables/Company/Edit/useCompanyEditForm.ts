@@ -32,7 +32,7 @@ export function useCompanyEditForm(company: CompanyDetail): {
     });
 
     const submit = (): void => {
-        form.patch(companiesUpdateRoute({ company: company.id }).url);
+        form.patch(companiesUpdateRoute.url({ company: company.id }));
     };
 
     return { form, submit };

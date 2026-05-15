@@ -64,7 +64,7 @@ function submit(): void {
         // Normalise les chaînes vides en `null` pour être interprété
         // comme « pas de date de sortie » côté serveur (réactivation).
         left_at: data.left_at === null || data.left_at === '' ? null : data.left_at,
-    })).patch(updateRoute([props.driverId, props.pivotId]).url, {
+    })).patch(updateRoute.url([props.driverId, props.pivotId]), {
         preserveScroll: true,
         onSuccess: () => close(),
     });

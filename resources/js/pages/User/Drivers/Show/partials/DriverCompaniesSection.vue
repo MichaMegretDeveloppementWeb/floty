@@ -41,7 +41,7 @@ function detach(membership: Membership): void {
     }
 
     detaching.value = membership.pivotId;
-    router.delete(detachRoute([props.driverId, membership.pivotId]).url, {
+    router.delete(detachRoute.url([props.driverId, membership.pivotId]), {
         preserveScroll: true,
         onFinish: () => {
             detaching.value = null;
@@ -61,7 +61,7 @@ function reactivate(membership: Membership): void {
     // Réutilise l'endpoint update : `left_at: null` réactive la membership
     // (cf. UpdateDriverCompanyMembershipAction). On préserve `joined_at`.
     router.patch(
-        updateRoute([props.driverId, membership.pivotId]).url,
+        updateRoute.url([props.driverId, membership.pivotId]),
         { joined_at: membership.joinedAt, left_at: null },
         { preserveScroll: true },
     );
@@ -78,7 +78,7 @@ function formatDate(value: string | null): string {
 }
 
 function onRowClick(companyId: number): void {
-    router.visit(companyShowRoute(companyId).url);
+    router.visit(companyShowRoute.url(companyId));
 }
 </script>
 

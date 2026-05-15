@@ -21,7 +21,7 @@ const { form, submit } = useCreateDriverForm();
     <UserLayout>
         <div class="mx-auto flex max-w-3xl flex-col gap-6">
             <Link
-                :href="indexRoute().url"
+                :href="indexRoute.url()"
                 class="inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
             >
                 <ChevronLeft :size="16" :stroke-width="1.75" />
@@ -46,7 +46,7 @@ const { form, submit } = useCreateDriverForm();
                 <DriverFormFields :form="form" :companies="props.companies" />
 
                 <div class="flex justify-end gap-3 pt-2">
-                    <Link :href="indexRoute().url">
+                    <Link :href="indexRoute.url()">
                         <Button type="button" variant="ghost">Annuler</Button>
                     </Link>
                     <Button type="submit" :loading="form.processing">

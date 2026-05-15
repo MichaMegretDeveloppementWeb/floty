@@ -91,7 +91,7 @@ async function fetchFutureContracts(): Promise<void> {
 
     try {
         const response = await api.get<{ contracts: FutureContract[] }>(
-            futureContractsRoute([props.driverId, props.companyId]).url,
+            futureContractsRoute.url([props.driverId, props.companyId]),
             { leftAt: form.left_at },
         );
         futureContracts.value = response.contracts;
@@ -217,7 +217,7 @@ function submit(): void {
         }
 
         return { ...base, replacement_map: map };
-    }).patch(leaveRoute([props.driverId, props.companyId]).url, {
+    }).patch(leaveRoute.url([props.driverId, props.companyId]), {
         preserveScroll: true,
         onSuccess: () => close(),
     });

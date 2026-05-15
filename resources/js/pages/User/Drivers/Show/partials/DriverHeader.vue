@@ -27,7 +27,7 @@ const subTitle = computed<string>(() => {
 <template>
     <div class="flex flex-col gap-4">
         <Link
-            :href="indexRoute().url"
+            :href="indexRoute.url()"
             class="inline-flex items-center gap-1 text-sm text-slate-500 transition-colors hover:text-slate-700"
         >
             <ChevronLeft :size="16" :stroke-width="1.75" />

@@ -77,7 +77,7 @@ export function useLeaveDriverCompanyForm(opts: {
                     : {},
         }));
 
-        form.patch(leaveRoute([opts.driverId, opts.companyId]).url, {
+        form.patch(leaveRoute.url([opts.driverId, opts.companyId]), {
             preserveScroll: true,
             onSuccess: () => {
                 onSuccess?.();

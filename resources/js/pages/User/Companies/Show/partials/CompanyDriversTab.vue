@@ -82,7 +82,7 @@ function detach(row: App.Data.User.Company.CompanyDriverRowData): void {
     }
 
     detaching.value = row.pivotId;
-    router.delete(detachRoute([row.driverId, row.pivotId]).url, {
+    router.delete(detachRoute.url([row.driverId, row.pivotId]), {
         preserveScroll: true,
         onFinish: () => {
             detaching.value = null;
@@ -100,7 +100,7 @@ function reactivate(row: App.Data.User.Company.CompanyDriverRowData): void {
     }
 
     router.patch(
-        updateRoute([row.driverId, row.pivotId]).url,
+        updateRoute.url([row.driverId, row.pivotId]),
         { joined_at: row.joinedAt, left_at: null },
         { preserveScroll: true },
     );
@@ -117,7 +117,7 @@ function formatDate(value: string | null): string {
 }
 
 function onRowClick(driverId: number): void {
-    router.visit(driverShowRoute(driverId).url);
+    router.visit(driverShowRoute.url(driverId));
 }
 </script>
 

@@ -79,7 +79,7 @@ async function reload(): Promise<void> {
     loading.value = true;
 
     try {
-        const url = `${optionsRoute().url}?company_id=${props.companyId}&start_date=${props.startDate}&end_date=${props.endDate}`;
+        const url = `${optionsRoute.url()}?company_id=${props.companyId}&start_date=${props.startDate}&end_date=${props.endDate}`;
         const response = await fetch(url, {
             headers: {
                 Accept: 'application/json',

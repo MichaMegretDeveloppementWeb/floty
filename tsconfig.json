@@ -122,5 +122,8 @@
         "resources/js/**/*.tsx",
         "resources/js/**/*.vue",
         "tests/js/**/*.ts"
+    ],
+    "exclude": [
+        "resources/js/actions/**"
     ]
 }

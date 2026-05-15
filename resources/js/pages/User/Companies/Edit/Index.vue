@@ -40,7 +40,7 @@ const { form, submit } = useCompanyEditForm(props.company);
                 <ContactSection :form="form" />
 
                 <div class="flex justify-end gap-3 border-t border-slate-100 pt-4">
-                    <Link :href="companiesShowRoute({ company: company.id }).url">
+                    <Link :href="companiesShowRoute.url({ company: company.id })">
                         <Button type="button" variant="ghost">Annuler</Button>
                     </Link>
                     <Button type="submit" :loading="form.processing">

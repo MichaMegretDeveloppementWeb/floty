@@ -20,7 +20,7 @@ const form = useForm({
 const submitted = ref<boolean>(false);
 
 const submit = (): void => {
-    form.post(passwordEmailRoute().url, {
+    form.post(passwordEmailRoute.url(), {
         onSuccess: () => {
             submitted.value = true;
             form.reset('email');

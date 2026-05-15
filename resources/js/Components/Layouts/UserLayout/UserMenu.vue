@@ -57,7 +57,7 @@ const { open, toggle, logout } = useUserMenu(rootRef);
             <ul class="py-1.5">
                 <li>
                     <Link
-                        :href="changePasswordRoute().url"
+                        :href="changePasswordRoute.url()"
                         role="menuitem"
                         class="flex w-full items-center gap-2.5 px-4 py-2 text-left text-base text-slate-700 hover:bg-slate-50 hover:text-slate-900"
                     >

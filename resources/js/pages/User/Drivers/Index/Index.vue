@@ -120,7 +120,7 @@ const contractsScopeModel = computed<string | number>({
                         au total
                     </p>
                 </div>
-                <Link :href="createRoute().url">
+                <Link :href="createRoute.url()">
                     <Button>
                         <template #icon-left>
                             <Plus :size="14" :stroke-width="1.75" />
@@ -146,7 +146,7 @@ const contractsScopeModel = computed<string | number>({
                     Commencez par créer votre premier conducteur. Vous pourrez
                     ensuite l'affecter à une ou plusieurs locations.
                 </p>
-                <Link :href="createRoute().url" class="mt-2">
+                <Link :href="createRoute.url()" class="mt-2">
                     <Button>Créer un conducteur</Button>
                 </Link>
             </div>
