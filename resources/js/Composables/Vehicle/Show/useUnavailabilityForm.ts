@@ -101,7 +101,13 @@ export function useUnavailabilityForm(
     open: Ref<boolean>,
 ): {
     optionGroups: SelectOptionGroup[];
-    currentYear: ComputedRef<number>;
+    /**
+     * Année à afficher dans le calendrier à l'ouverture. En création ·
+     * année calendaire courante. En édition · l'année du `start_date`
+     * de l'indispo éditée (P3 · sinon le calendrier reste sur 2026
+     * alors qu'on édite une indispo de 2024).
+     */
+    viewYear: Ref<number>;
     form: InertiaForm<FormShape>;
     range: Ref<DateRange>;
     ongoing: Ref<boolean>;
@@ -112,10 +118,6 @@ export function useUnavailabilityForm(
     conflictDaysCount: ComputedRef<number>;
     submit: () => void;
 } {
-    // Chantier J : année calendaire courante côté front (l'utilisateur
-    // saisit une indispo dans son contexte présent, pas selon une session
-    // fiscale globale).
-    const currentYear = computed<number>(() => new Date().getFullYear());
 
     const buildOption = (value: UnavailabilityType): SelectOption => ({
         value,
@@ -155,12 +157,15 @@ export function useUnavailabilityForm(
 
     const range = ref<DateRange>({ startDate: null, endDate: null });
     const ongoing = ref<boolean>(false);
-    // Mois initial du DateRangePicker - dérivé du startDate de
-    // l'indispo en cours d'édition pour que le calendrier s'ouvre sur
-    // le bon mois. Création = mois calendaire courant (chantier η Phase 3
-    // doctrine · l'utilisateur saisit dans son présent, pas en partant
-    // du début d'année).
-    const initialMonth = ref<number>(new Date().getMonth() + 1);
+
+    // P3 · vue initiale du DateRangePicker (mois + année) · dérivée du
+    // startDate de l'indispo en cours d'édition pour que le calendrier
+    // s'ouvre exactement sur la période sélectionnée. En création ·
+    // mois et année calendaires courants (chantier η Phase 3 doctrine ·
+    // l'utilisateur saisit dans son présent).
+    const now = new Date();
+    const initialMonth = ref<number>(now.getMonth() + 1);
+    const viewYear = ref<number>(now.getFullYear());
 
     watch(
         () => props.editing,
@@ -173,13 +178,21 @@ export function useUnavailabilityForm(
                     endDate: value.endDate,
                 };
                 ongoing.value = value.endDate === null;
+                // P3 · ouvrir le calendrier sur l'année ET le mois du
+                // startDate de l'indispo éditée. Sans ça, une indispo
+                // 2024 s'affichait avec un calendrier 2026 vide ·
+                // l'utilisateur ne voyait pas la période sélectionnée.
+                viewYear.value = Number(value.startDate.slice(0, 4));
                 initialMonth.value = Number(value.startDate.slice(5, 7));
             } else {
                 form.reset();
                 form.type = 'maintenance';
                 range.value = { startDate: null, endDate: null };
                 ongoing.value = false;
-                initialMonth.value = 1;
+                // Reset sur le présent calendaire (création).
+                const today = new Date();
+                viewYear.value = today.getFullYear();
+                initialMonth.value = today.getMonth() + 1;
             }
 
             form.clearErrors();
@@ -261,7 +274,7 @@ export function useUnavailabilityForm(
 
     return {
         optionGroups,
-        currentYear,
+        viewYear,
         form,
         range,
         ongoing,

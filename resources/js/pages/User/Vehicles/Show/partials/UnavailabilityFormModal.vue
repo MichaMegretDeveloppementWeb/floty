@@ -21,7 +21,7 @@ const open = defineModel<boolean>('open', { required: true });
 
 const {
     optionGroups,
-    currentYear,
+    viewYear,
     form,
     range,
     ongoing,
@@ -102,7 +102,7 @@ const {
                     <DateRangePicker
                         v-model:range="range"
                         v-model:ongoing="ongoing"
-                        :year="currentYear"
+                        :year="viewYear"
                         :start-month="initialMonth"
                     />
                 </div>
