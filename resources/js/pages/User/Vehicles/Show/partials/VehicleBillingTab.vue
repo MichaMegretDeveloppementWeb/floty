@@ -110,7 +110,7 @@ const activePricing = computed<App.Data.User.Vehicle.VehicleYearlyPricingData | 
 
 const totalLabel = computed<string>(() => {
     if (props.monthlyBilling.yearTotalCents === null) {
-        return '— €';
+        return '·';
     }
 
     return formatEur(props.monthlyBilling.yearTotalCents / 100, 2);
@@ -274,7 +274,7 @@ function selectYear(year: number): void {
                     v-else
                     class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none text-slate-400"
                 >
-                    —
+                    ·
                 </p>
                 <p class="mt-1 text-[11px] text-slate-500">
                     <template v-if="activePricing">

@@ -58,10 +58,11 @@ final class UnavailabilityDocumentStorageTest extends TestCase
     #[Test]
     public function safe_delete_navale_silencieusement_un_path_inexistant(): void
     {
-        // Aucune exception attendue · safeDelete avale les erreurs driver.
-        $this->storage->safeDelete('does/not/exist.pdf');
+        // Aucune exception attendue · safeDelete avale les erreurs driver
+        // (test documentaire · l'absence d'exception levée vaut assertion).
+        $this->expectNotToPerformAssertions();
 
-        $this->assertTrue(true, 'safeDelete devrait être idempotent silencieux');
+        $this->storage->safeDelete('does/not/exist.pdf');
     }
 
     #[Test]

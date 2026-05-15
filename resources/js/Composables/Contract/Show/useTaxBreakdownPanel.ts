@@ -25,9 +25,12 @@ export function hasScission(
     if (year.segments.length <= 1) {
         return false;
     }
+
     const key =
         dimension === 'co2' ? 'co2FullYearTariff' : 'pollutantsFullYearTariff';
-    const firstTariff = year.segments[0][key];
+    // segments.length > 1 vérifié au début · segments[0] existe forcément.
+    const firstTariff = year.segments[0]![key];
+
     return year.segments.some((s) => s[key] !== firstTariff);
 }
 
@@ -39,6 +42,7 @@ export function formatSegmentRange(from: string, to: string): string {
     const f = new Date(from);
     const t = new Date(to);
     const pad = (n: number): string => String(n).padStart(2, '0');
+
     return `${pad(f.getDate())}/${pad(f.getMonth() + 1)} → ${pad(t.getDate())}/${pad(t.getMonth() + 1)}`;
 }
 

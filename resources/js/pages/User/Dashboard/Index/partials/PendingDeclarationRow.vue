@@ -30,6 +30,7 @@ function assertNever(value: never, context: string): never {
 
 const ctaLabel = computed<string>(() => {
     const state = props.item.state as LifecycleState;
+
     switch (state) {
         case 'untouched':
             return 'Préparer';
@@ -51,7 +52,7 @@ const ctaLabel = computed<string>(() => {
             // l'année). Si elle remonte, libellé neutre.
             return 'Ouvrir';
         default:
-            assertNever(state, 'PendingDeclarationRow.ctaLabel');
+            return assertNever(state, 'PendingDeclarationRow.ctaLabel');
     }
 });
 

@@ -2,17 +2,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineComponent, h, nextTick, reactive } from 'vue';
 import { useToasts } from '@/Composables/Shared/useToasts';
 
-const flashState = reactive<{
-    success: string | null;
-    error: string | null;
-    warning: string | null;
-    info: string | null;
-}>({
-    success: null,
-    error: null,
-    warning: null,
-    info: null,
-});
+/**
+ * Lot 5 D6 (F-19-007 + bug back-button) · `useFlashToasts` lit désormais
+ * `page.props.flash.toasts` (liste accumulée `ToastEntryData[]`) au lieu
+ * des 4 canaux scalaires (success/error/warning/info). Les tests
+ * mockent donc une liste de toasts directement.
+ */
+type FlashToastEntry = { id: string; tone: string; message: string };
+
+const flashState = reactive<{ toasts: FlashToastEntry[] }>({ toasts: [] });
 
 vi.mock('@inertiajs/vue3', () => ({
     usePage: () => ({
@@ -52,12 +50,16 @@ async function mountAndFlush(): Promise<{ unmount: () => void }> {
     };
 }
 
+let nextId = 1;
+const buildEntry = (tone: string, message: string): FlashToastEntry => ({
+    id: `t-${nextId++}`,
+    tone,
+    message,
+});
+
 describe('useFlashToasts', () => {
     beforeEach(() => {
-        flashState.success = null;
-        flashState.error = null;
-        flashState.warning = null;
-        flashState.info = null;
+        flashState.toasts = [];
         useToasts().clear();
     });
 
@@ -65,7 +67,7 @@ describe('useFlashToasts', () => {
         useToasts().clear();
     });
 
-    it("ne pousse aucun toast quand tous les canaux flash sont nuls", async () => {
+    it("ne pousse aucun toast quand la liste flash.toasts est vide", async () => {
         const { unmount } = await mountAndFlush();
 
         expect(useToasts().toasts.length).toBe(0);
@@ -73,8 +75,10 @@ describe('useFlashToasts', () => {
         unmount();
     });
 
-    it("pousse un toast error quand flash.error est renseigné au montage", async () => {
-        flashState.error = 'Les nouvelles bornes chevauchent une autre version.';
+    it("pousse un toast error quand flash.toasts contient une entrée error au montage", async () => {
+        flashState.toasts = [
+            buildEntry('error', 'Les nouvelles bornes chevauchent une autre version.'),
+        ];
 
         const { unmount } = await mountAndFlush();
 
@@ -89,11 +93,13 @@ describe('useFlashToasts', () => {
         unmount();
     });
 
-    it("pousse les quatre tons cumulés si tous sont renseignés", async () => {
-        flashState.success = 'OK enregistré.';
-        flashState.error = 'Erreur métier.';
-        flashState.warning = 'Session expirée.';
-        flashState.info = 'Adjacent ajusté.';
+    it("pousse les quatre tons cumulés si flash.toasts en contient quatre", async () => {
+        flashState.toasts = [
+            buildEntry('success', 'OK enregistré.'),
+            buildEntry('error', 'Erreur métier.'),
+            buildEntry('warning', 'Session expirée.'),
+            buildEntry('info', 'Adjacent ajusté.'),
+        ];
 
         const { unmount } = await mountAndFlush();
 
@@ -103,11 +109,11 @@ describe('useFlashToasts', () => {
         unmount();
     });
 
-    it("pousse un nouveau toast quand un canal change après montage", async () => {
+    it("pousse un nouveau toast quand flash.toasts gagne une entrée après montage", async () => {
         const { unmount } = await mountAndFlush();
         expect(useToasts().toasts.length).toBe(0);
 
-        flashState.success = 'Version fiscale mise à jour.';
+        flashState.toasts = [buildEntry('success', 'Version fiscale mise à jour.')];
         await nextTick();
 
         const toasts = useToasts().toasts;
@@ -118,11 +124,10 @@ describe('useFlashToasts', () => {
         unmount();
     });
 
-    it('ignore les chaînes vides et les valeurs non-string', async () => {
-        flashState.success = '';
-        // simulate accidental non-string sneak - ignored
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (flashState as any).error = 0;
+    it('ignore les entrées avec un tone non reconnu', async () => {
+        flashState.toasts = [
+            buildEntry('mystery', 'Tone inconnu, devrait être skip.'),
+        ];
 
         const { unmount } = await mountAndFlush();
 

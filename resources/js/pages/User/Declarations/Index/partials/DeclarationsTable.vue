@@ -43,7 +43,7 @@ const emit = defineEmits<{
                 :sort-key="col.key"
                 :active-key="activeSortColumnKey"
                 :direction="sortDirection"
-                :align="col.align === 'right' ? 'right' : col.align === 'center' ? 'center' : 'left'"
+                :align="col.align"
                 @click="emit('header-click', col.key)"
             />
         </template>

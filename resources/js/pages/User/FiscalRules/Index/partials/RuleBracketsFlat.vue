@@ -1,8 +1,5 @@
 <script setup lang="ts">
-type FlatBrackets = {
-    header: [string, string];
-    rows: { category: string; amount: string; note?: string }[];
-};
+type FlatBrackets = App.Data.User.Fiscal.Pedagogical.FlatBracketsTableData;
 
 defineProps<{
     brackets: FlatBrackets;

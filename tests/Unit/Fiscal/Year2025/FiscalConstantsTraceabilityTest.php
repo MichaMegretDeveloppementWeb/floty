@@ -95,8 +95,10 @@ final class FiscalConstantsTraceabilityTest extends TestCase
     public function r2025_002_denominateur_prorata_365_jours_non_bissextile(): void
     {
         // R-2025-002 utilise `$context->daysInYear` qui vaut 365 en
-        // 2025 (non bissextile, 2025 % 4 != 0). C'est le dénominateur
-        // du prorata journalier (CIBS L. 421-107).
-        self::assertSame(365, 2025 % 4 === 0 ? 366 : 365);
+        // 2025 (non bissextile, calculé dynamiquement par DateTime).
+        // C'est le dénominateur du prorata journalier (CIBS L. 421-107).
+        $daysInYear2025 = (int) (new \DateTime('2025-12-31'))->format('z') + 1;
+
+        self::assertSame(365, $daysInYear2025);
     }
 }

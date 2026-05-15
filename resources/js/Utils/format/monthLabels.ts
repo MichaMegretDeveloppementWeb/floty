@@ -33,5 +33,6 @@ export function monthLabel(month: number): MonthLabel {
         throw new RangeError(`Month must be in [1, 12], got ${month}.`);
     }
 
-    return MONTH_LABELS[month - 1];
+    // Borné par la garde [1, 12] · index forcément valide.
+    return MONTH_LABELS[month - 1]!;
 }

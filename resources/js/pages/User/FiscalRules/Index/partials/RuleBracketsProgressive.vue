@@ -1,9 +1,5 @@
 <script setup lang="ts">
-type ProgressiveBrackets = {
-    unit: string;
-    header: [string, string];
-    rows: { label: string; rate: string }[];
-};
+type ProgressiveBrackets = App.Data.User.Fiscal.Pedagogical.ProgressiveBracketsTableData;
 
 defineProps<{
     brackets: ProgressiveBrackets;

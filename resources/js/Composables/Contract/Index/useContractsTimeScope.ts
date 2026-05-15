@@ -19,7 +19,7 @@
  */
 
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
-import type { ComputedRef, Ref } from 'vue';
+import type { ComputedRef, Ref, WritableComputedRef } from 'vue';
 import type { ContractFilters } from '@/Composables/Contract/Index/useContractsTable';
 import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
@@ -44,8 +44,8 @@ export type UseContractsTimeScopeReturn = {
     setScopeMode: (mode: ScopeMode) => void;
     yearOptions: ComputedRef<YearOption[]>;
     defaultYear: ComputedRef<number>;
-    yearModel: ComputedRef<number>;
-    periodRange: ComputedRef<PeriodRange>;
+    yearModel: WritableComputedRef<number>;
+    periodRange: WritableComputedRef<PeriodRange>;
     periodOngoing: Ref<boolean>;
     pickerYear: ComputedRef<number>;
     periodLabel: ComputedRef<string>;

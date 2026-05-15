@@ -20,7 +20,7 @@ describe('useInvoiceRegeneration', () => {
 
         expect(regenerating.value).toBe(true);
         expect(router.post).toHaveBeenCalledOnce();
-        const [, payload] = vi.mocked(router.post).mock.calls[0];
+        const [, payload] = vi.mocked(router.post).mock.calls[0]!;
         expect(payload).toEqual({ redirect_target: 'show' });
     });
 
@@ -29,7 +29,7 @@ describe('useInvoiceRegeneration', () => {
 
         regenerate(42);
 
-        const [, payload] = vi.mocked(router.post).mock.calls[0];
+        const [, payload] = vi.mocked(router.post).mock.calls[0]!;
         expect(payload).toEqual({ redirect_target: 'company-tab' });
     });
 
@@ -45,7 +45,7 @@ describe('useInvoiceRegeneration', () => {
         expect(regenerating.value).toBe(true);
 
         // Récupère et déclenche le onFinish passé à router.post.
-        const [, , options] = vi.mocked(router.post).mock.calls[0];
+        const [, , options] = vi.mocked(router.post).mock.calls[0]!;
         options?.onFinish?.({} as never);
 
         expect(regenerating.value).toBe(false);

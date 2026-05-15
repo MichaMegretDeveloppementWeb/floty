@@ -1,11 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
-
-const toastPush = vi.fn();
-vi.mock('@/Composables/Shared/useToasts', () => ({
-    useToasts: () => ({ push: toastPush }),
-}));
-
+import { describe, expect, it } from 'vitest';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
 
 function buildFile(name: string, type: string, sizeBytes = 100): File {
@@ -21,11 +15,13 @@ async function emitDrop(wrapper: ReturnType<typeof mount>, files: File[]): Promi
         .trigger('drop', { dataTransfer });
 }
 
-describe('DocumentDropZone', () => {
-    beforeEach(() => {
-        toastPush.mockReset();
-    });
+/**
+ * Lot 7 D12 (F-41-016) · `DocumentDropZone` n'appelle plus `useToasts` directement
+ * (couche UI ne doit pas connaître les toasts) · les rejets sont remontés
+ * via l'event `'rejected'` que le consommateur transforme en toast.
+ */
 
+describe('DocumentDropZone', () => {
     describe('mode single-MIME · application/pdf', () => {
         it('accepte un fichier PDF et émet files-added', async () => {
             const wrapper = mount(DocumentDropZone, {
@@ -36,8 +32,8 @@ describe('DocumentDropZone', () => {
             await emitDrop(wrapper, [file]);
 
             expect(wrapper.emitted('files-added')).toHaveLength(1);
-            expect(wrapper.emitted('files-added')![0][0]).toEqual([file]);
-            expect(toastPush).not.toHaveBeenCalled();
+            expect(wrapper.emitted('files-added')![0]![0]).toEqual([file]);
+            expect(wrapper.emitted('rejected')).toBeUndefined();
         });
 
         it('rejette un fichier JPG en mode single-MIME PDF', async () => {
@@ -48,8 +44,7 @@ describe('DocumentDropZone', () => {
             await emitDrop(wrapper, [buildFile('photo.jpg', 'image/jpeg')]);
 
             expect(wrapper.emitted('files-added')).toBeUndefined();
-            expect(toastPush).toHaveBeenCalledTimes(1);
-            expect(toastPush.mock.calls[0][0].title).toBe('Fichier rejeté');
+            expect(wrapper.emitted('rejected')).toHaveLength(1);
         });
 
         it('affiche le label « PDF » dans la zone de dépôt', () => {
@@ -92,8 +87,9 @@ describe('DocumentDropZone', () => {
             await emitDrop(wrapper, [buildFile('readme.txt', 'text/plain')]);
 
             expect(wrapper.emitted('files-added')).toBeUndefined();
-            expect(toastPush).toHaveBeenCalledTimes(1);
-            expect(toastPush.mock.calls[0][0].description).toContain('PDF, JPG, PNG, WebP');
+            const rejected = wrapper.emitted('rejected') as [string][] | undefined;
+            expect(rejected).toHaveLength(1);
+            expect(rejected![0]![0]).toContain('PDF, JPG, PNG, WebP');
         });
 
         it('affiche le label humain « PDF, JPG, PNG, WebP » au lieu du raw MIME', () => {
@@ -115,8 +111,9 @@ describe('DocumentDropZone', () => {
             await emitDrop(wrapper, [buildFile('gros.pdf', 'application/pdf', 5_000)]);
 
             expect(wrapper.emitted('files-added')).toBeUndefined();
-            expect(toastPush).toHaveBeenCalledTimes(1);
-            expect(toastPush.mock.calls[0][0].description).toContain('dépasse');
+            const rejected = wrapper.emitted('rejected') as [string][] | undefined;
+            expect(rejected).toHaveLength(1);
+            expect(rejected![0]![0]).toContain('dépasse');
         });
 
         it('tronque à maxFiles et logge une erreur', async () => {
@@ -136,9 +133,10 @@ describe('DocumentDropZone', () => {
 
             const emitted = wrapper.emitted('files-added')!;
             expect(emitted).toHaveLength(1);
-            expect(emitted[0][0]).toHaveLength(2);
-            expect(toastPush).toHaveBeenCalledTimes(1);
-            expect(toastPush.mock.calls[0][0].description).toContain('2 fichier');
+            expect(emitted[0]![0]).toHaveLength(2);
+            const rejected = wrapper.emitted('rejected') as [string][] | undefined;
+            expect(rejected).toHaveLength(1);
+            expect(rejected![0]![0]).toContain('2 fichier');
         });
     });
 });

@@ -21,7 +21,7 @@ const props = withDefaults(
     },
 );
 
-const modelValue = defineModel<string>({ required: true });
+const modelValue = defineModel<string | null>({ required: true });
 
 const autoId = useId();
 const inputId = computed<string>(() => props.id ?? autoId);

@@ -6,7 +6,6 @@ namespace App\Data\Shared;
 
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
-use Spatie\LaravelData\DataCollection;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -32,13 +31,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * `toasts` au moment du share, en générant un ID virtuel basé sur le
  * contenu + timestamp.
  *
- * @property DataCollection<int, ToastEntryData> $toasts
+ * @property array<int, ToastEntryData> $toasts
  */
 #[TypeScript]
 final class FlashData extends Data
 {
     /**
-     * @param  DataCollection<int, ToastEntryData>  $toasts
+     * @param  array<int, ToastEntryData>  $toasts
      */
     public function __construct(
         public ?string $success,
@@ -46,6 +45,6 @@ final class FlashData extends Data
         public ?string $warning,
         public ?string $info,
         #[DataCollectionOf(ToastEntryData::class)]
-        public DataCollection $toasts,
+        public array $toasts,
     ) {}
 }

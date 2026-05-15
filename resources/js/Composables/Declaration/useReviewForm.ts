@@ -7,6 +7,7 @@
  * affichés divergent des opt-outs en cours).
  */
 import { router } from '@inertiajs/vue3';
+import type { RequestPayload } from '@inertiajs/core';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import { store as storeDecisionRoute } from '@/routes/user/declarations/decisions';
@@ -32,7 +33,7 @@ export function useReviewForm(declarationId: number): {
                 decision: data.decision,
                 justification: data.justification ?? '',
                 excluded_contract_ids: data.excludedContractIds ?? [],
-            } as Record<string, unknown>,
+            } as RequestPayload,
             {
                 preserveScroll: true,
                 only: ['preview', 'declaration', 'snapshot'],

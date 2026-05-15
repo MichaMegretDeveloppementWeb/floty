@@ -67,6 +67,7 @@ const statusLabel = computed<string>(() => {
     if (isFutureYear.value) {
         return 'Exercice à venir';
     }
+
     if (isCurrentYear.value) {
         return 'Exercice en cours';
     }
@@ -78,6 +79,7 @@ const statusDotClass = computed<string>(() => {
     if (isCurrentYear.value) {
         return 'bg-amber-500';
     }
+
     if (isFutureYear.value) {
         return 'bg-slate-400';
     }
@@ -130,9 +132,11 @@ const metaLine = computed<string>(() => {
     const i = invoicedMonthsCount.value;
     const aPlural = a > 1 ? 's' : '';
     const iPlural = i > 1 ? 's' : '';
+
     if (a === 0) {
         return 'Aucune activité facturable sur l\'exercice.';
     }
+
     if (i === 0) {
         return `${a} mois actif${aPlural} · aucune facture émise.`;
     }
@@ -142,7 +146,7 @@ const metaLine = computed<string>(() => {
 
 const totalLabel = computed<string>(() => {
     if (props.monthlyBilling.yearTotalCents === null) {
-        return '— €';
+        return '·';
     }
 
     return formatEur(props.monthlyBilling.yearTotalCents / 100, 2);
@@ -152,6 +156,7 @@ const totalCaption = computed<string>(() => {
     if (isFutureYear.value) {
         return `Total HT prévisionnel ${props.activeYear}`;
     }
+
     if (isCurrentYear.value) {
         return `Total HT facturable provisoire ${props.activeYear}`;
     }

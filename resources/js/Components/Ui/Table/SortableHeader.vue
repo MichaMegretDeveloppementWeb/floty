@@ -6,7 +6,7 @@ defineProps<{
     sortKey: string;
     activeKey: string | null;
     direction: 'asc' | 'desc';
-    align?: 'left' | 'right';
+    align?: 'left' | 'right' | 'center';
 }>();
 
 defineEmits<{
@@ -19,7 +19,7 @@ defineEmits<{
         type="button"
         :class="[
             '-mx-[18px] -my-2.5 inline-flex w-full cursor-pointer items-center gap-1.5 px-[18px] py-2.5 text-xs font-semibold tracking-wider uppercase transition-colors duration-[120ms] ease-out hover:bg-slate-100',
-            align === 'right' ? 'justify-end' : 'justify-start',
+            align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start',
             activeKey === sortKey ? 'text-blue-700' : 'text-slate-500',
         ]"
         @click="$emit('click')"

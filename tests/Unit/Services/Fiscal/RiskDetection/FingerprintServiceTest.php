@@ -163,6 +163,9 @@ final class FingerprintServiceTest extends TestCase
 
         // L'iterable accepte tout objet · le service va lire les
         // propriétés et passer NAN à json_encode qui lève l'exception.
+        // PHPStan ignore · cast volontaire stdClass→Contract pour le test
+        // pathological (NAN vehicle_id non persistable via Eloquent).
+        // @phpstan-ignore-next-line argument.type
         $service->compute([$bad]);
     }
 

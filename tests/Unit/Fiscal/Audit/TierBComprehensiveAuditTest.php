@@ -89,7 +89,7 @@ final class TierBComprehensiveAuditTest extends TestCase
         // BofipGoldensTest::bofip_2024_230_ex1_wltp_100g_full_year → 173 + 100 polluants = 273
         // BofipGoldensTest::bofip_2024_230_ex2_wltp_100g_306j → 173 × 306/366 = 144,64
         // Tous cohérents · 173 € est la valeur pivot.
-        self::assertTrue(true, 'Cross-check WLTP 100g 2024 · 173 € confirmé dans 3 sources de tests indépendantes');
+        self::expectNotToPerformAssertions();
     }
 
     #[Test]
@@ -98,7 +98,7 @@ final class TierBComprehensiveAuditTest extends TestCase
         // R2025_PricingScalesTest::wltp_co2_100 → 193
         // BofipGoldensTest::bofip_2025_230_ex1 → 193
         // Cross-check OK
-        self::assertTrue(true);
+        self::expectNotToPerformAssertions();
     }
 
     #[Test]
@@ -107,7 +107,7 @@ final class TierBComprehensiveAuditTest extends TestCase
         // R2026_PricingScalesCo2Test::wltp_co2_100 → 213
         // BofipOfficialExamples2026Test → 213
         // Validation Chrome live IDF 2026 · 208,33 € avec 8j indispo = 213 × 357/365 ✓
-        self::assertTrue(true);
+        self::expectNotToPerformAssertions();
     }
 
     /**

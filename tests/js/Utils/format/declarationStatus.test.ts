@@ -18,10 +18,10 @@ describe('formatDeclarationStatus', () => {
 });
 
 describe('badgeForDeclaration', () => {
-    it('renvoie tone rose et label Obsolète quand isObsolete=true peu importe le statut', () => {
+    it('renvoie tone rose et label « Générée · obsolète » quand isObsolete=true sur generated', () => {
         const badge = badgeForDeclaration('generated', true);
 
-        expect(badge.label).toBe('Obsolète');
+        expect(badge.label).toBe('Générée · obsolète');
         expect(badge.tone).toBe('rose');
     });
 
