@@ -30,13 +30,26 @@ const toasts = useToasts();
 const inputRef = ref<HTMLInputElement | null>(null);
 const isDragOver = ref<boolean>(false);
 
-const acceptLabel = computed<string>(() => {
-    if (props.accept === 'application/pdf') {
-        return 'PDF';
-    }
+const acceptedMimes = computed<string[]>(() =>
+    props.accept
+        .split(',')
+        .map((m) => m.trim())
+        .filter((m) => m.length > 0),
+);
 
-    return props.accept;
-});
+const MIME_LABEL_MAP: Record<string, string> = {
+    'application/pdf': 'PDF',
+    'image/jpeg': 'JPG',
+    'image/png': 'PNG',
+    'image/webp': 'WebP',
+    'image/gif': 'GIF',
+};
+
+const acceptLabel = computed<string>(() =>
+    acceptedMimes.value
+        .map((mime) => MIME_LABEL_MAP[mime] ?? mime)
+        .join(', '),
+);
 
 const maxSizeLabel = computed<string>(() => {
     const mb = props.maxSizeBytes / (1024 * 1024);
@@ -87,12 +100,16 @@ function onDrop(event: DragEvent): void {
     handleFiles(Array.from(event.dataTransfer.files));
 }
 
+// La validation MIME ci-dessous est une UX guard, pas une garantie
+// sécurité · `file.type` peut être arbitraire (DataTransfer arbitraire,
+// extension renommée). La vraie validation se fait côté backend via
+// `#[Mimes]` Spatie qui sniffe la signature du fichier.
 function handleFiles(files: File[]): void {
     const valid: File[] = [];
     const errors: string[] = [];
 
     for (const file of files) {
-        if (file.type !== props.accept) {
+        if (!acceptedMimes.value.includes(file.type)) {
             errors.push(`« ${file.name} » n'est pas au format ${acceptLabel.value}.`);
             continue;
         }

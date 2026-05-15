@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -71,5 +72,15 @@ final class Unavailability extends Model
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    /**
+     * Justificatifs joints (P1 · image ou PDF, 5 max).
+     *
+     * @return HasMany<UnavailabilityDocument, $this>
+     */
+    public function documents(): HasMany
+    {
+        return $this->hasMany(UnavailabilityDocument::class);
     }
 }

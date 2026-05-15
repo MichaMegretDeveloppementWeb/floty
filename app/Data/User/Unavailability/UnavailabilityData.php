@@ -6,6 +6,7 @@ namespace App\Data\User\Unavailability;
 
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Models\Unavailability;
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -16,10 +17,16 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - daysCount : nombre de jours couverts (inclusif), ou 0 si
  *                 l'indispo est encore en cours (end_date null) - le
  *                 front affiche alors « depuis le {start_date} ».
+ *   - documents : justificatifs joints (P1 · 0..5 fichiers, image ou
+ *                 PDF), uniquement renseignés quand la relation est
+ *                 eager-loaded · l'index liste ne les charge pas.
  */
 #[TypeScript]
 final class UnavailabilityData extends Data
 {
+    /**
+     * @param  list<UnavailabilityDocumentData>  $documents
+     */
     public function __construct(
         public int $id,
         public int $vehicleId,
@@ -29,6 +36,8 @@ final class UnavailabilityData extends Data
         public ?string $endDate,
         public ?string $description,
         public int $daysCount,
+        #[DataCollectionOf(UnavailabilityDocumentData::class)]
+        public array $documents,
     ) {}
 
     public static function fromModel(Unavailability $u): self
@@ -36,6 +45,14 @@ final class UnavailabilityData extends Data
         $daysCount = $u->end_date === null
             ? 0
             : ((int) $u->start_date->diffInDays($u->end_date)) + 1;
+
+        // Eager-load documents uniquement si déjà chargés · évite un
+        // N+1 silencieux quand le caller a oublié le `->with('documents')`.
+        $documents = $u->relationLoaded('documents')
+            ? $u->documents
+                ->map(static fn ($d): UnavailabilityDocumentData => UnavailabilityDocumentData::fromModel($d))
+                ->all()
+            : [];
 
         return new self(
             id: $u->id,
@@ -46,6 +63,7 @@ final class UnavailabilityData extends Data
             endDate: $u->end_date?->toDateString(),
             description: $u->description,
             daysCount: $daysCount,
+            documents: $documents,
         );
     }
 }

@@ -25,6 +25,8 @@ use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
+use App\Contracts\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentReadRepositoryInterface;
+use App\Contracts\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
@@ -52,6 +54,8 @@ use App\Repositories\User\Invoice\InvoiceReadRepository;
 use App\Repositories\User\Invoice\InvoiceWriteRepository;
 use App\Repositories\User\Unavailability\UnavailabilityReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityWriteRepository;
+use App\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentReadRepository;
+use App\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentWriteRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepository;
 use App\Repositories\User\Vehicle\VehicleReadRepository;
@@ -130,6 +134,10 @@ final class RepositoryServiceProvider extends ServiceProvider
         // Unavailability
         UnavailabilityReadRepositoryInterface::class => UnavailabilityReadRepository::class,
         UnavailabilityWriteRepositoryInterface::class => UnavailabilityWriteRepository::class,
+
+        // UnavailabilityDocument (P1) · justificatifs image/PDF joints
+        UnavailabilityDocumentReadRepositoryInterface::class => UnavailabilityDocumentReadRepository::class,
+        UnavailabilityDocumentWriteRepositoryInterface::class => UnavailabilityDocumentWriteRepository::class,
     ];
 
     /**

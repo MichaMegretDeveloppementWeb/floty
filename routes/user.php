@@ -17,6 +17,7 @@ use App\Http\Controllers\User\Planning\PlanningController;
 use App\Http\Controllers\User\Settings\BillingSettingsController;
 use App\Http\Controllers\User\Settings\FiscalRiskSettingsController;
 use App\Http\Controllers\User\Unavailability\UnavailabilityController;
+use App\Http\Controllers\User\Unavailability\UnavailabilityDocumentController;
 use App\Http\Controllers\User\Vehicle\VehicleController;
 use App\Http\Controllers\User\Vehicle\VehicleFiscalCharacteristicsController;
 use App\Http\Controllers\User\Vehicle\VehicleYearlyPricingController;
@@ -193,6 +194,20 @@ Route::middleware('auth')
             ->whereNumber('unavailability')
             ->middleware('throttle:60,1')
             ->name('unavailabilities.destroy');
+
+        // Unavailability documents (P1) · justificatifs image/PDF
+        // (5 max, 5 Mo). Aligné sur le pattern contract documents.
+        Route::post('/unavailabilities/{unavailability}/documents', [UnavailabilityDocumentController::class, 'store'])
+            ->whereNumber('unavailability')
+            ->middleware('throttle:30,1')
+            ->name('unavailabilities.documents.store');
+        Route::get('/unavailabilities/{unavailability}/documents/{document}', [UnavailabilityDocumentController::class, 'show'])
+            ->whereNumber(['unavailability', 'document'])
+            ->name('unavailabilities.documents.show');
+        Route::delete('/unavailabilities/{unavailability}/documents/{document}', [UnavailabilityDocumentController::class, 'destroy'])
+            ->whereNumber(['unavailability', 'document'])
+            ->middleware('throttle:60,1')
+            ->name('unavailabilities.documents.destroy');
 
         // Planning global (heatmap annuelle) · vue d'ensemble maîtresse
         Route::get('/planning', [PlanningController::class, 'index'])->name('planning.index');

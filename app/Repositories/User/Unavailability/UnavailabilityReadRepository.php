@@ -14,6 +14,7 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
     public function findForVehicle(int $vehicleId): Collection
     {
         return Unavailability::query()
+            ->with('documents') // P1 · documents joints exposés sur la fiche véhicule
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')
             ->get();
