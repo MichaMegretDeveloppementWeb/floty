@@ -92,12 +92,12 @@ final readonly class R2026_013bis_PollutantCategoryAssignment implements Classif
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844542/2026-09-01',
                 'consulted_at' => '2026-05-15',
             ],
-            // Note · l'Ordonnance n° 2025-1247 du 17/12/2025 art. 7 et 49
-            // (source modificative de L. 421-134 au 01/09/2026) est
-            // mentionnée dans le texte Légifrance ci-dessus. URL JORF
-            // directe non ajoutée ici car l'identifiant JORFTEXT exact
-            // n'a pas encore été vérifié Chrome live (à compléter au
-            // prochain audit URLs · cf. Z-2026-E03).
+            [
+                'type' => 'ORDONNANCE',
+                'reference' => 'Ordonnance n° 2025-1247 du 17 décembre 2025 portant recodification de la taxe sur la valeur ajoutée et diverses modifications du code des impositions sur les biens et services · art. 7 (réécriture rédactionnelle L. 421-134) + art. 49 (entrée en vigueur 01/09/2026)',
+                'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053091516',
+                'consulted_at' => '2026-05-15',
+            ],
         ];
     }
 
