@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { History, Plus } from 'lucide-vue-next';
-import Badge from '@/Components/Ui/Badge/Badge.vue';
+import { Check, History, Minus, Plus } from 'lucide-vue-next';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
@@ -21,7 +20,7 @@ const props = defineProps<{
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
 }>();
 
-const { historyOpen, historyCount, stats, advancedFlags } =
+const { historyOpen, historyCount, stats, applicableOptions } =
     useCurrentFiscalCharacteristicsCard(props);
 
 const createState = useVfcCreateModalState();
@@ -83,18 +82,49 @@ const deleteState = useVfcDeleteModalState();
             </div>
         </div>
 
-        <div
-            v-if="props.fiscal && advancedFlags.length > 0"
-            class="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3"
+        <section
+            v-if="props.fiscal && applicableOptions.length > 0"
+            class="mt-4 flex flex-col gap-2 border-t border-slate-100 pt-4"
         >
-            <Badge
-                v-for="flag in advancedFlags"
-                :key="flag"
-                tone="blue"
-            >
-                {{ flag }}
-            </Badge>
-        </div>
+            <p class="text-xs font-medium tracking-wide text-slate-400 uppercase">
+                Exonérations, abattements et usages spéciaux
+            </p>
+            <ul class="flex flex-col gap-1.5">
+                <li
+                    v-for="option in applicableOptions"
+                    :key="option.label"
+                    :class="[
+                        'flex items-start gap-2.5 rounded-lg border px-3 py-2 text-sm transition-colors duration-[120ms]',
+                        option.active
+                            ? 'border-blue-100 bg-blue-50/40 text-slate-900'
+                            : 'border-slate-100 bg-slate-50/40 text-slate-500',
+                    ]"
+                >
+                    <span
+                        :class="[
+                            'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full',
+                            option.active
+                                ? 'bg-blue-100 text-blue-700'
+                                : 'bg-slate-200 text-slate-400',
+                        ]"
+                        :aria-label="option.active ? 'Activé' : 'Non activé'"
+                    >
+                        <Check v-if="option.active" :size="11" :stroke-width="2.25" />
+                        <Minus v-else :size="11" :stroke-width="2.25" />
+                    </span>
+                    <span class="flex flex-col gap-0.5">
+                        <span
+                            :class="['text-sm font-medium', option.active ? 'text-slate-900' : 'text-slate-600']"
+                        >
+                            {{ option.label }}
+                        </span>
+                        <span class="text-xs leading-snug text-slate-500">
+                            {{ option.hint }}
+                        </span>
+                    </span>
+                </li>
+            </ul>
+        </section>
 
         <Modal
             v-model:open="historyOpen"

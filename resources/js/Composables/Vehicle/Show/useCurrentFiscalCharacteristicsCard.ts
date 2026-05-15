@@ -15,13 +15,34 @@ type Fiscal = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 type StatItem = { value: string; label: string };
 
 /**
- * Données dérivées de la card « Caractéristiques fiscales actives » :
- *   - `co2Display`     : choix d'affichage parmi WLTP / NEDC / PA
- *   - `stats`          : tableau dynamique des items grille (entrées
- *                        conditionnelles selon les champs renseignés)
- *   - `advancedFlags`  : badges des options actives (handicap, N1…)
- *   - `historyOpen`    : ouverture du modal d'historique
- *   - `historyCount`   : compteur affiché dans le label du bouton
+ * Item de la section « Exonérations, abattements et usages spéciaux »
+ * sur la card · exhaustif (toutes les options **applicables** au
+ * véhicule sont rendues, actives ou non) pour que l'utilisateur voie
+ * la couverture complète sans avoir à ouvrir le formulaire.
+ */
+export type FiscalOptionItem = {
+    label: string;
+    hint: string;
+    active: boolean;
+};
+
+/**
+ * Données dérivées de la card « Caractéristiques fiscales actives ».
+ *
+ *   - `co2Display`         · choix d'affichage parmi WLTP / NEDC / PA
+ *   - `stats`              · tableau dynamique des items grille
+ *                            (entrées conditionnelles selon les champs
+ *                            renseignés)
+ *   - `applicableOptions`  · toutes les options « Exonérations,
+ *                            abattements et usages spéciaux »
+ *                            applicables au véhicule (filtrage M1/N1
+ *                            + carrosserie · même logique que le
+ *                            formulaire `FiscalCharacteristicsSection`),
+ *                            avec leur état actif/inactif. P7 ·
+ *                            permet de voir la couverture complète des
+ *                            options, pas seulement les cochées.
+ *   - `historyOpen`        · ouverture du modal d'historique
+ *   - `historyCount`       · compteur affiché dans le label du bouton
  */
 export function useCurrentFiscalCharacteristicsCard(props: {
     fiscal: Fiscal | null;
@@ -31,7 +52,7 @@ export function useCurrentFiscalCharacteristicsCard(props: {
     historyCount: ComputedRef<number>;
     co2Display: ComputedRef<StatItem | null>;
     stats: ComputedRef<StatItem[]>;
-    advancedFlags: ComputedRef<string[]>;
+    applicableOptions: ComputedRef<FiscalOptionItem[]>;
 } {
     const historyOpen = ref<boolean>(false);
     const historyCount = computed<number>(() => props.history.length);
@@ -100,23 +121,65 @@ export function useCurrentFiscalCharacteristicsCard(props: {
         return items;
     });
 
-    const advancedFlags = computed<string[]>(() => {
+    const applicableOptions = computed<FiscalOptionItem[]>(() => {
         const f = props.fiscal;
 
         if (!f) {
             return [];
         }
 
-        const candidates: { active: boolean; label: string }[] = [
-            { active: f.handicapAccess, label: 'Accès handicap' },
-            { active: f.n1PassengerTransport, label: 'N1 transport voyageurs' },
-            { active: f.n1RemovableSecondRowSeat, label: 'N1 banquette amovible' },
-            { active: f.m1SpecialUse, label: 'M1 usage spécial' },
-            { active: f.n1SkiLiftUse, label: 'N1 remontée mécanique' },
+        const isM1 = f.receptionCategory === 'M1';
+        const isN1 = f.receptionCategory === 'N1';
+        const isLightTruck = f.bodyType === 'CTTE';
+        const isPickup = f.bodyType === 'BE';
+
+        // Même filtrage que `FiscalCharacteristicsSection.vue` ·
+        // garde-fou cohérence UI/Form (si on ajoute un flag au form,
+        // le miroir s'aligne ici).
+        const items: FiscalOptionItem[] = [
+            {
+                label: 'Aménagement handicap',
+                hint: 'Fauteuil roulant ou conduite handicapée · exonération totale CO₂ + polluants (CIBS L. 421-123 / L. 421-136).',
+                active: f.handicapAccess,
+            },
+            {
+                label: 'Compatible E85',
+                hint: 'Superéthanol flex-fuel (rubrique P.3 du certificat ∈ {FE, FG, FN, FL, FH, FR, FQ, FM, FP}) · dès 2025 abattement 40 % CO₂ ou 2 CV en PA (CIBS L. 421-125).',
+                active: f.acceptsE85,
+            },
         ];
 
-        return candidates.filter((c) => c.active).map((c) => c.label);
+        if (isM1) {
+            items.push({
+                label: 'M1 · usage spécial',
+                hint: 'Corbillard, ambulance, véhicule blindé · hors champ fiscal des 2 taxes (CIBS L. 421-2).',
+                active: f.m1SpecialUse,
+            });
+        }
+
+        if (isN1 && isLightTruck) {
+            items.push({
+                label: 'N1 · 2ᵉ rangée amovible',
+                hint: 'Banquette amovible installée sur camionnette N1.',
+                active: f.n1RemovableSecondRowSeat,
+            });
+            items.push({
+                label: 'N1 · transport de personnes',
+                hint: 'Camionnette N1 affectée au transport de personnes · taxable seulement si combiné avec 2ᵉ rangée amovible (CIBS L. 421-2).',
+                active: f.n1PassengerTransport,
+            });
+        }
+
+        if (isN1 && isPickup) {
+            items.push({
+                label: 'N1 · remontées mécaniques',
+                hint: 'Pick-up N1 affecté à l\'exploitation de remontées mécaniques · hors champ fiscal.',
+                active: f.n1SkiLiftUse,
+            });
+        }
+
+        return items;
     });
 
-    return { historyOpen, historyCount, co2Display, stats, advancedFlags };
+    return { historyOpen, historyCount, co2Display, stats, applicableOptions };
 }
