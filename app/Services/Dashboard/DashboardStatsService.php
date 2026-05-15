@@ -11,7 +11,6 @@ use App\Data\User\Dashboard\DashboardHeatmapDayData;
 use App\Data\User\Dashboard\DashboardKpiComparisonData;
 use App\Data\User\Dashboard\DashboardKpiData;
 use App\Data\User\Dashboard\DashboardPendingTasksData;
-use App\Data\User\Dashboard\DashboardTopVehicleData;
 use App\Data\User\Dashboard\DashboardVehicleHeatmapData;
 use App\Data\User\Dashboard\DashboardYearHistoryData;
 use App\DTO\Fiscal\ContractsByPair;
@@ -49,9 +48,6 @@ final class DashboardStatsService
 {
     /** Nombre de jours de la heatmap « activité immédiate » de la lentille Exploration. */
     private const HEATMAP_DAYS = 30;
-
-    /** Nombre de véhicules dans le « Top véhicules par taxe YTD ». */
-    private const TOP_VEHICLES_COUNT = 3;
 
     /**
      * Nombre maximum de barres dans le graphique « Évolution ». Si le
@@ -332,11 +328,9 @@ final class DashboardStatsService
     public function computeActivity(): DashboardActivityData
     {
         $today = CarbonImmutable::today();
-        $year = $this->availableYears->currentYear();
 
         return new DashboardActivityData(
             last30DaysHeatmap: $this->buildLast30DaysHeatmap($today),
-            topExpensiveVehicles: $this->buildTopExpensiveVehicles($year),
         );
     }
 
@@ -610,70 +604,6 @@ final class DashboardStatsService
         $diff = CarbonImmutable::parse($day)->diffInDays($startWindow, true);
 
         return $diff < 0 || $diff >= self::HEATMAP_DAYS ? null : (int) $diff;
-    }
-
-    /**
-     * Top N véhicules par taxe YTD (approximation linéaire identique à
-     * `computePeriodMetrics`).
-     *
-     * @return list<DashboardTopVehicleData>
-     */
-    private function buildTopExpensiveVehicles(int $year): array
-    {
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
-
-        $vehicleIds = [];
-        foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
-            $vehicleIds[$pair['vehicleId']] = true;
-        }
-        $vehicleIdList = array_keys($vehicleIds);
-
-        if ($vehicleIdList === []) {
-            return [];
-        }
-
-        $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
-
-        $today = CarbonImmutable::today();
-        $daysInYear = $this->yearContext->daysInYear($year);
-        $daysElapsed = $today->dayOfYear;
-        $proratio = $daysInYear > 0 ? $daysElapsed / $daysInYear : 1.0;
-
-        $taxByVehicle = [];
-        foreach ($vehiclesById as $vehicleId => $vehicle) {
-            try {
-                $annualTax = $this->aggregator->vehicleAnnualTax(
-                    $vehicle,
-                    $contractsByPair,
-                    $unavailabilitiesByVehicleId[$vehicleId] ?? [],
-                    $year,
-                );
-            } catch (FiscalCalculationException) {
-                $annualTax = 0.0;
-            }
-            $taxByVehicle[$vehicleId] = round($annualTax * $proratio, 2);
-        }
-
-        // Tri DESC par taxe YTD
-        arsort($taxByVehicle);
-
-        $top = array_slice($taxByVehicle, 0, self::TOP_VEHICLES_COUNT, preserve_keys: true);
-
-        $result = [];
-        foreach ($top as $vehicleId => $taxYTD) {
-            /** @var Vehicle $v */
-            $v = $vehiclesById[$vehicleId];
-            $result[] = new DashboardTopVehicleData(
-                vehicleId: $v->id,
-                licensePlate: $v->license_plate,
-                brand: $v->brand,
-                model: $v->model,
-                taxYearToDate: $taxYTD,
-            );
-        }
-
-        return $result;
     }
 
     /**

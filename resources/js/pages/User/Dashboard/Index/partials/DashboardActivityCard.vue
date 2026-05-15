@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import Card from '@/Components/Ui/Card/Card.vue';
 import Last30DaysHeatmap from './Last30DaysHeatmap.vue';
-import TopExpensiveVehiclesCard from './TopExpensiveVehiclesCard.vue';
 
 defineProps<{
     activity: App.Data.User.Dashboard.DashboardActivityData;
@@ -21,13 +20,6 @@ defineProps<{
             </div>
         </template>
 
-        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-            <div class="xl:col-span-2">
-                <Last30DaysHeatmap :vehicles="activity.last30DaysHeatmap" />
-            </div>
-            <div class="xl:col-span-1">
-                <TopExpensiveVehiclesCard :vehicles="activity.topExpensiveVehicles" />
-            </div>
-        </div>
+        <Last30DaysHeatmap :vehicles="activity.last30DaysHeatmap" />
     </Card>
 </template>

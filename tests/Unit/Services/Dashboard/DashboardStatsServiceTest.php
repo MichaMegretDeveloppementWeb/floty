@@ -147,9 +147,8 @@ final class DashboardStatsServiceTest extends TestCase
     }
 
     #[Test]
-    public function compute_activity_top_vehicules_tries_par_taxe_ytd_desc(): void
+    public function compute_activity_renvoie_la_heatmap_30j_par_vehicule(): void
     {
-        // 2 véhicules avec contrats · l'un a un contrat plus long
         $today = CarbonImmutable::today();
         $v1 = Vehicle::factory()->create(['license_plate' => 'AA-001-AA']);
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v1->id]);
@@ -167,16 +166,7 @@ final class DashboardStatsServiceTest extends TestCase
 
         $activity = $this->service->computeActivity();
 
-        // Top véhicules : ordre DESC par taxYearToDate
-        self::assertGreaterThanOrEqual(0, count($activity->topExpensiveVehicles));
-        if (count($activity->topExpensiveVehicles) >= 2) {
-            self::assertGreaterThanOrEqual(
-                $activity->topExpensiveVehicles[1]->taxYearToDate,
-                $activity->topExpensiveVehicles[0]->taxYearToDate,
-            );
-        }
-
-        // Heatmap : 30 jours par véhicule, statut 'occupied' ou 'free'.
+        // Heatmap · 30 jours par véhicule, statut 'occupied' ou 'free'.
         foreach ($activity->last30DaysHeatmap as $row) {
             self::assertCount(30, $row->days);
         }
