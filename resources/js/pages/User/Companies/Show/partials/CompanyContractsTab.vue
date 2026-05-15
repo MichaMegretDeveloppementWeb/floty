@@ -11,10 +11,10 @@
  * dans `useCompanyContractsTab` (R9 + mémoire `feedback_vue_composables_extraction`).
  */
 import { CalendarDays } from 'lucide-vue-next';
+import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import Paginator from '@/Components/Ui/Paginator/Paginator.vue';
-import YearPills from '@/Components/Ui/YearPills/YearPills.vue';
 import { useCompanyContractsTab } from '@/Composables/Company/Show/useCompanyContractsTab';
 import CompanyContractsActiveFilterChip from './CompanyContractsActiveFilterChip.vue';
 import CompanyContractsTable from './CompanyContractsTable.vue';
@@ -26,6 +26,14 @@ const props = defineProps<{
     contractsStats: App.Data.User.Company.CompanyContractsStatsData;
     contractsAvailableYears: number[];
 }>();
+
+/**
+ * Refonte D5.10.W · tri DESC pour rendu underline tabs (plus récent
+ * à gauche, convention dashboard).
+ */
+const yearsDescending = computed<readonly number[]>(
+    () => [...props.contractsAvailableYears].sort((a, b) => b - a),
+);
 
 const {
     tableState,
@@ -78,17 +86,37 @@ const {
 
             <div
                 v-if="props.contractsAvailableYears.length > 0"
-                class="flex flex-col gap-3 border-t border-slate-100 pt-4 lg:flex-row lg:items-center"
+                class="flex flex-col gap-3 border-b border-slate-100 lg:flex-row lg:items-end lg:justify-between"
             >
-                <div class="flex-1 min-w-0">
-                    <YearPills
-                        :years="props.contractsAvailableYears"
-                        :active-year="activeYear"
-                        @select="selectYear"
-                    />
-                </div>
+                <!--
+                    Year tabs underline · pattern miroir des onglets
+                    Fiscalité/Facturation refondus. Au clic, switch
+                    le filtre exercice en cours. `activeYear === null`
+                    quand une période personnalisée est active · aucun
+                    tab n'est highlightée dans ce cas (la chip de filtre
+                    custom indique l'état).
+                -->
+                <nav
+                    class="flex gap-6"
+                    aria-label="Filtre par exercice"
+                >
+                    <button
+                        v-for="year in yearsDescending"
+                        :key="year"
+                        type="button"
+                        :class="[
+                            '-mb-px cursor-pointer border-b-2 pb-3 text-sm font-medium transition-colors duration-[120ms]',
+                            activeYear === year
+                                ? 'border-slate-900 text-slate-900'
+                                : 'border-transparent text-slate-500 hover:text-slate-900',
+                        ]"
+                        @click="selectYear(year)"
+                    >
+                        {{ year }}
+                    </button>
+                </nav>
 
-                <div ref="popoverRoot" class="relative shrink-0">
+                <div ref="popoverRoot" class="relative shrink-0 pb-3">
                     <Button
                         variant="ghost"
                         size="sm"
