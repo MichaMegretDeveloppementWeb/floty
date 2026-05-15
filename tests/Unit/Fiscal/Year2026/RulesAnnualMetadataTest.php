@@ -120,4 +120,49 @@ final class RulesAnnualMetadataTest extends TestCase
 
         self::assertSame(count($codes), count(array_unique($codes)), 'Doublons détectés dans les codes pipeline 2026 : '.implode(', ', $codes));
     }
+
+    /**
+     * Z9 · audit URLs exhaustif 15/05/2026 · 66/66 URLs vérifiées
+     * (bulk curl avec détection « Document non trouvé » + spot-check
+     * Chrome live sur 3 URLs critiques · L. 421-120 WLTP, L. 421-121
+     * NEDC, L. 421-122 PA). Toutes les URLs Légifrance pointent vers
+     * du contenu valide au 15/05/2026 · les barèmes 2026 affichés
+     * (Jusqu'à 4 / 5-45 / 46-53 / 54-85 / 86-105 / 106-125 / 126-145 /
+     * 146-165 / 166+ pour WLTP) correspondent exactement aux
+     * `BracketRange` codés dans R-2026-010/011/012.
+     *
+     * Ce test garde-fou structurel garantit que chaque règle pipeline
+     * 2026 expose au moins une source légale avec URL + consulted_at,
+     * empêchant qu'une future modification retire silencieusement la
+     * traçabilité légale.
+     */
+    #[Test]
+    public function chaque_regle_pipeline_2026_expose_legal_basis_enrichi(): void
+    {
+        /** @var Container $container */
+        $container = $this->app;
+
+        foreach ((new Year2026Boot)->rules() as $class) {
+            $rule = $container->make($class);
+            $basis = $rule->legalBasis();
+
+            self::assertNotEmpty($basis, "{$rule->ruleCode()} · legalBasis ne peut pas être vide.");
+
+            foreach ($basis as $entry) {
+                self::assertArrayHasKey('url', $entry, "{$rule->ruleCode()} · entrée legalBasis sans clé 'url'.");
+                self::assertNotEmpty($entry['url'], "{$rule->ruleCode()} · URL legalBasis vide.");
+                self::assertMatchesRegularExpression(
+                    '#^https?://#',
+                    $entry['url'],
+                    "{$rule->ruleCode()} · URL legalBasis invalide (manque schéma http/https) · {$entry['url']}.",
+                );
+                self::assertArrayHasKey('consulted_at', $entry, "{$rule->ruleCode()} · entrée legalBasis sans clé 'consulted_at'.");
+                self::assertMatchesRegularExpression(
+                    '/^\d{4}-\d{2}-\d{2}$/',
+                    $entry['consulted_at'],
+                    "{$rule->ruleCode()} · consulted_at au mauvais format · {$entry['consulted_at']}.",
+                );
+            }
+        }
+    }
 }
