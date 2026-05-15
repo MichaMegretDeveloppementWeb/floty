@@ -6,6 +6,7 @@ namespace App\Actions\FiscalDeclaration;
 
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
 use App\Data\User\FiscalDeclaration\InvalidationReasonData;
+use App\Models\FiscalDeclaration;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -31,9 +32,16 @@ final readonly class MarkDeclarationAsObsoleteAction
         private FiscalDeclarationWriteRepositoryInterface $writer,
     ) {}
 
-    public function execute(int $declarationId, InvalidationReasonData $reason): void
+    public function execute(int $declarationId, InvalidationReasonData $reason): FiscalDeclaration
     {
-        DB::transaction(fn () => $this->writer->markAsObsolete($declarationId, $reason));
+        // Lot 5 D7 (F-19-024) · retourne l'entité mutée pour aligner la
+        // signature avec les autres Actions du domaine FiscalDeclaration
+        // (Create/Generate/MarkAsDeferred/Regenerate/ModifyGenerated
+        // retournent toutes `FiscalDeclaration`). Pattern uniforme · permet
+        // à l'appelant de chaîner sans relecture supplémentaire.
+        $declaration = DB::transaction(
+            fn (): FiscalDeclaration => $this->writer->markAsObsolete($declarationId, $reason),
+        );
 
         Log::channel('declarations')->notice('FiscalDeclaration.marked_obsolete', [
             'declaration_id' => $declarationId,
@@ -44,5 +52,7 @@ final readonly class MarkDeclarationAsObsoleteAction
             'entity_id' => $reason->entity['id'],
             'fields_changed' => $reason->fieldsChanged,
         ]);
+
+        return $declaration;
     }
 }

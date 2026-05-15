@@ -36,8 +36,13 @@ interface FiscalDeclarationWriteRepositoryInterface
      * motif `$reason` au tableau JSON `obsolete_reasons`. Idempotent :
      * si déjà obsolète, le motif est tout de même ajouté à l'historique
      * (un seul `obsolete_at` toutefois, qui correspond au premier flag).
+     *
+     * Lot 5 D7 (F-19-024) · retourne le model fraîchement mis à jour pour
+     * que l'appelant puisse exploiter l'entité mutée sans relecture
+     * supplémentaire (pattern uniformisé avec les autres Actions
+     * FiscalDeclaration qui retournent `FiscalDeclaration`).
      */
-    public function markAsObsolete(int $declarationId, InvalidationReasonData $reason): void;
+    public function markAsObsolete(int $declarationId, InvalidationReasonData $reason): FiscalDeclaration;
 
     /**
      * Matérialise une déclaration `draft`/`deferred` en `generated` :

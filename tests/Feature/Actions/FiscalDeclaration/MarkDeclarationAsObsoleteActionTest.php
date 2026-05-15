@@ -34,7 +34,14 @@ final class MarkDeclarationAsObsoleteActionTest extends TestCase
     {
         $declaration = FiscalDeclaration::factory()->generated()->create();
 
-        $this->action->execute($declaration->id, $this->makeReason());
+        $returned = $this->action->execute($declaration->id, $this->makeReason());
+
+        // Lot 5 D7 (F-19-024) · execute() retourne l'entité mutée
+        // (signature uniforme avec les autres Actions FiscalDeclaration).
+        self::assertInstanceOf(FiscalDeclaration::class, $returned);
+        self::assertSame($declaration->id, $returned->id);
+        self::assertTrue($returned->is_obsolete);
+        self::assertNotNull($returned->obsolete_at);
 
         $fresh = $declaration->fresh();
         self::assertTrue($fresh->is_obsolete);

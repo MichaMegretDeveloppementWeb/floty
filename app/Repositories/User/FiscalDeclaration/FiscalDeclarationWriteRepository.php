@@ -22,7 +22,7 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
         return $declaration;
     }
 
-    public function markAsObsolete(int $declarationId, InvalidationReasonData $reason): void
+    public function markAsObsolete(int $declarationId, InvalidationReasonData $reason): FiscalDeclaration
     {
         $declaration = FiscalDeclaration::query()->findOrFail($declarationId);
 
@@ -46,6 +46,8 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
 
         $declaration->fill($attributes);
         $declaration->save();
+
+        return $declaration;
     }
 
     public function markAsGenerated(

@@ -7,6 +7,7 @@ namespace App\Data\User\FiscalDeclaration;
 use App\Data\Shared\Listing\IndexQueryData;
 use App\Data\Shared\Listing\SortDirection;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
+use Illuminate\Validation\Rule;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
@@ -49,7 +50,11 @@ final class DeclarationIndexQueryData extends IndexQueryData
         return array_merge(parent::rules(), [
             'companyId' => ['nullable', 'integer', 'exists:companies,id'],
             'fiscalYear' => ['nullable', 'integer', 'between:2020,2099'],
-            'status' => ['nullable', 'string', 'in:draft,deferred,generated'],
+            // Lot 5 D7 (F-19-010) · Rule::enum aligne la validation sur le
+            // type de la property `$status` (FiscalDeclarationStatus). Si un
+            // case est ajouté/retiré de l'enum, la validation suit
+            // automatiquement (impossible avec un `in:` codé en dur).
+            'status' => ['nullable', Rule::enum(FiscalDeclarationStatus::class)],
             'obsoleteOnly' => ['nullable', 'boolean'],
         ]);
     }

@@ -256,8 +256,23 @@ final class DeclarationInvalidationDetectorTest extends TestCase
     public function flag_for_contract_invalide_la_generee_meme_si_brouillon_coexiste(): void
     {
         // Phase 13 D5.10.O · garantit que la coexistence d'un brouillon
-        // ne neutralise pas l'invalidation de la générée.
+        // (de régénération) ne neutralise pas l'empilement du motif sur
+        // la générée déjà obsolète.
+        //
+        // Lot 5 D3 (index unique partiel `decl_active_uniqueness`) ·
+        // une generated active et un draft active ne peuvent pas
+        // coexister sur le même couple (company, year). Le scénario
+        // réaliste est : generated devient obsolète, puis un draft de
+        // régénération est créé. Le détecteur doit alors empiler un
+        // motif supplémentaire sur la generated obsolète sans toucher
+        // au draft.
         $generated = $this->makeDeclaration(2025);
+        $generated->forceFill([
+            'is_obsolete' => true,
+            'obsolete_at' => now(),
+            'obsolete_reasons' => [],
+        ])->save();
+
         $draft = FiscalDeclaration::factory()
             ->forCompany($this->company)
             ->forYear(2025)
@@ -267,7 +282,9 @@ final class DeclarationInvalidationDetectorTest extends TestCase
 
         $this->detector->flagForContract($contract, InvalidationReasonType::ContractCreated, $this->user->id);
 
-        self::assertTrue($generated->fresh()->is_obsolete);
+        $freshGenerated = $generated->fresh();
+        self::assertTrue($freshGenerated->is_obsolete);
+        self::assertCount(1, $freshGenerated->obsolete_reasons);
         self::assertFalse($draft->fresh()->is_obsolete);
     }
 
