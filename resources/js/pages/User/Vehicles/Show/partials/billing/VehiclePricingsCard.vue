@@ -14,10 +14,20 @@ import VehiclePricingFormModal from './VehiclePricingFormModal.vue';
 
 type Pricing = App.Data.User.Vehicle.VehicleYearlyPricingData;
 
-const props = defineProps<{
-    vehicleId: number;
-    pricings: ReadonlyArray<Pricing>;
-}>();
+const props = withDefaults(
+    defineProps<{
+        vehicleId: number;
+        pricings: ReadonlyArray<Pricing>;
+        /**
+         * Refonte D5.10.W · mode flush sans Card wrapping ni header
+         * interne (titre + description). Le bouton « Ajouter un tarif »
+         * est conservé en haut à droite de la zone, aligné avec
+         * l'eyebrow du tab parent.
+         */
+        unwrapped?: boolean;
+    }>(),
+    { unwrapped: false },
+);
 
 /**
  * Plage d'années proposée à la création : `[currentYear-3, currentYear+2]`.
@@ -46,8 +56,8 @@ const sortedPricings = computed<Pricing[]>(() =>
 </script>
 
 <template>
-    <Card>
-        <template #header>
+    <component :is="unwrapped ? 'div' : Card">
+        <template v-if="!unwrapped" #header>
             <div class="flex items-center justify-between gap-3">
                 <div>
                     <h2 class="text-base font-semibold text-slate-900">
@@ -70,6 +80,24 @@ const sortedPricings = computed<Pricing[]>(() =>
                 </Button>
             </div>
         </template>
+
+        <!--
+            Action « Ajouter un tarif » en mode unwrapped · le tab parent
+            fournit l'eyebrow `TARIFS ANNUELS` au-dessus, on positionne
+            le bouton à droite, en-dessous, juste avant la table.
+        -->
+        <div v-if="unwrapped" class="mb-3 flex justify-end">
+            <Button
+                size="sm"
+                :disabled="availableYears.length === 0"
+                @click="formState.requestCreate()"
+            >
+                <template #icon-left>
+                    <Plus :size="14" :stroke-width="1.75" />
+                </template>
+                Ajouter un tarif
+            </Button>
+        </div>
 
         <p
             v-if="sortedPricings.length === 0"
@@ -157,5 +185,5 @@ const sortedPricings = computed<Pricing[]>(() =>
             :loading="deleteState.processing.value"
             @confirm="deleteState.confirmDelete()"
         />
-    </Card>
+    </component>
 </template>
