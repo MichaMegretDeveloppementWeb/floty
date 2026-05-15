@@ -25,9 +25,12 @@ use App\Fiscal\Year2026\Pricing\R2026_011_NedcProgressive;
 use App\Fiscal\Year2026\Pricing\R2026_012_PaProgressive;
 use App\Fiscal\Year2026\Pricing\R2026_014_PollutantsFlat;
 use App\Fiscal\Year2026\Pricing\R2026_014bis_PollutantsFlat;
+use App\Fiscal\Year2026\Transversal\R2026_001_TaxpayerAndTriggeringEvent;
 use App\Fiscal\Year2026\Transversal\R2026_002_DailyProrata;
 use App\Fiscal\Year2026\Transversal\R2026_003_FinalRounding;
+use App\Fiscal\Year2026\Transversal\R2026_025_WeightedAverageTariff;
 use App\Fiscal\Year2026\Transversal\R2026_027_MileageReimbursementCoefficient;
+use App\Fiscal\Year2026\Transversal\R2026_028_DeclarationModalities;
 use App\Providers\FiscalServiceProvider;
 
 /**
@@ -135,31 +138,46 @@ final class Year2026Boot implements FiscalYearBoot
     }
 
     /**
-     * Catalogue prévisionnel 2026 ·
-     * **14 classes documentaires-only** (informatives).
+     * **14 classes documentaires-only** (informatives) au catalogue 2026.
      *
-     * Liste prévue (à créer au Bloc Z4) ·
-     * - R2026_001_TaxpayerAndTriggeringEvent (1 seule version 2026 · L. 421-94/95 stable depuis 01/03/2025)
-     * - R2026_006_PaFallback
-     * - R2026_007_VehicleCharacteristicsHistorization
-     * - R2026_009_MidYearDecommissioning
-     * - R2026_020_RenterExemption (URL L. 421-140 = LEGIARTI000044602921 · bug fix verrouillé)
-     * - R2026_022_ContractualPeriodVsEffectiveUsage
-     * - R2026_024_CritAirGuard
-     * - R2026_025_WeightedAverageTariff
-     * - R2026_028_DeclarationModalities (1 seule version 2026)
-     * - R2026_029_RegistrationCo2Malus (taxe connexe inactive · seuil 108 g/km, plafond 80K€ LF 2026)
-     * - R2026_030_RegistrationWeightMalus (inactive · seuil 1500 kg LF 2026)
-     * - R2026_031_RegistrationCardTaxes (inactive · +14 € IDF mars 2026 LF 2026)
-     * - R2026_032_HeavyVehiclesTax (inactive · hors champ M1/N1)
-     * - R2026_033_FleetGreeningIncentiveTax (TAI régime plein 2026 · tarif 4 000 €, quota 18 % · inactive Floty V1)
+     * **Composition** · 3 cadre architectural (Z4.1) + 6 garde-fous &
+     * cadre interne (Z4.2) + 5 taxes connexes inactives (Z4.3).
+     *
+     * **Spécificités 2026 vs 2025** ·
+     * - **Pas de R-2026-001-bis** · L. 421-94/95/98/99 stables depuis
+     *   01/03/2025 (LF 2025 art. 28), non modifiés en 2026.
+     * - **Pas de R-2026-028-bis** · L. 421-159/162/163/164/165 stables
+     *   depuis 01/03/2025, non modifiés en 2026.
+     * - **Pas de R-2026-029-bis** · LF 2025 art. 28 durcissement
+     *   permanent du malus CO₂ acquis dès 01/01 (continuité 2025→2026).
+     * - **Pas de R-2026-031-bis** · évolution +14 € IDF mars 2026 portée
+     *   par une version unique (à confirmer par audit Chrome live Z4.3).
+     *
+     * **Statut Z4.1** · 3 classes cadre architectural câblées (1 / 28 / 25).
+     * Z4.2 (6 garde-fous) et Z4.3 (5 taxes connexes) à venir.
      *
      * @return list<class-string<InformativeRule>>
      */
     public function informativeRules(): array
     {
         return [
-            // Les classes documentaires-only 2026 seront ajoutées au Bloc Z4.
+            // Cadre architectural (3 · Z4.1 · single-version 2026)
+            R2026_001_TaxpayerAndTriggeringEvent::class,
+            R2026_025_WeightedAverageTariff::class,
+            R2026_028_DeclarationModalities::class,
+            // Garde-fous & cadre interne (6 · Z4.2 · à venir)
+            // - R2026_006_PaFallback
+            // - R2026_007_VehicleCharacteristicsHistorization
+            // - R2026_009_MidYearDecommissioning
+            // - R2026_020_RenterExemption (URL L. 421-140 = LEGIARTI000044602921 verrouillée)
+            // - R2026_022_ContractualPeriodVsEffectiveUsage
+            // - R2026_024_CritAirGuard
+            // Taxes connexes inactives (5 · Z4.3 · à venir)
+            // - R2026_029_RegistrationCo2Malus
+            // - R2026_030_RegistrationWeightMalus
+            // - R2026_031_RegistrationCardTaxes
+            // - R2026_032_HeavyVehiclesTax
+            // - R2026_033_FleetGreeningIncentiveTax
         ];
     }
 }
