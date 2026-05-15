@@ -26,6 +26,7 @@ use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -61,6 +62,98 @@ final class DemoSeeder extends Seeder
         $this->seedContracts($vehicles, $companies);
         $this->seedUnavailabilities($vehicles);
         $this->seedDrivers($companies);
+        $this->seedContractDrivers();
+    }
+
+    /**
+     * Attribue 1-3 drivers à chaque contrat selon une distribution
+     * pondérée (~1.5 driver/contrat en moyenne) tout en respectant
+     * l'invariant **non-overlap par driver** · un driver ne peut être
+     * affecté à 2 contrats dont les périodes se chevauchent.
+     */
+    private function seedContractDrivers(): void
+    {
+        DB::table('contract_drivers')->delete();
+
+        $driverCompanies = DB::table('driver_company')->get();
+        $driversByCompany = [];
+        foreach ($driverCompanies as $dc) {
+            $driversByCompany[$dc->company_id][] = [
+                'driver_id' => $dc->driver_id,
+                'joined_at' => $dc->joined_at,
+                'left_at' => $dc->left_at,
+            ];
+        }
+
+        $driverBusyRanges = []; // [driver_id => [[start, end], ...]]
+
+        $weights = [1 => 60, 2 => 30, 3 => 10]; // 60% / 30% / 10%
+        $cumulative = [];
+        $sum = 0;
+        foreach ($weights as $k => $w) {
+            $sum += $w;
+            $cumulative[$k] = $sum;
+        }
+
+        mt_srand(42);
+        $contracts = Contract::orderBy('start_date')->get();
+        foreach ($contracts as $contract) {
+            $candidates = $driversByCompany[$contract->company_id] ?? [];
+            $eligible = [];
+            foreach ($candidates as $cand) {
+                $joined = Carbon::parse($cand['joined_at']);
+                $left = $cand['left_at'] !== null ? Carbon::parse($cand['left_at']) : null;
+
+                if ($joined->gt($contract->start_date)) {
+                    continue;
+                }
+                if ($left !== null && $left->lt($contract->end_date)) {
+                    continue;
+                }
+
+                $busy = $driverBusyRanges[$cand['driver_id']] ?? [];
+                $hasOverlap = false;
+                foreach ($busy as [$bs, $be]) {
+                    if ($contract->start_date->lte($be) && $contract->end_date->gte($bs)) {
+                        $hasOverlap = true;
+                        break;
+                    }
+                }
+                if ($hasOverlap) {
+                    continue;
+                }
+
+                $eligible[] = $cand['driver_id'];
+            }
+
+            if ($eligible === []) {
+                continue;
+            }
+
+            $r = mt_rand(1, $sum);
+            $target = 1;
+            foreach ($cumulative as $k => $threshold) {
+                if ($r <= $threshold) {
+                    $target = $k;
+                    break;
+                }
+            }
+            $count = min($target, count($eligible));
+
+            shuffle($eligible);
+            $selected = array_slice($eligible, 0, $count);
+
+            $now = now();
+            foreach ($selected as $driverId) {
+                DB::table('contract_drivers')->insert([
+                    'contract_id' => $contract->id,
+                    'driver_id' => $driverId,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]);
+                $driverBusyRanges[$driverId][] = [$contract->start_date, $contract->end_date];
+            }
+        }
     }
 
     /**
@@ -809,10 +902,10 @@ final class DemoSeeder extends Seeder
                     'contract_type' => $type,
                     'notes' => $row['notes'] ?? null,
                 ]);
-            } catch (\Illuminate\Database\QueryException $e) {
+            } catch (QueryException $e) {
                 if (str_contains($e->getMessage(), 'overlapping period')) {
                     $this->command?->warn(sprintf(
-                        "Skipped overlap · %s × %s · %s → %s",
+                        'Skipped overlap · %s × %s · %s → %s',
                         $row['plate'],
                         $row['company'],
                         $row['from'],
@@ -1173,133 +1266,244 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Plan de contrats 2024 conçu pour produire une démo parlante :
+     * Plan de contrats 2024 · cap 100j max par contrat (sauf ~5 LLD plein
+     * année stratégiques pour tests goldens fiscaux). Privilégie les
+     * locations courtes/moyennes (LCD 15-30j et LLD 30-100j).
      *
-     * - Couples sous le seuil LCD 30 j → exonération (ex: COR × 308 = 25 j)
-     * - Couples au-dessus → taxes prorata (ex: ACM × 308 = 90 j)
-     * - Véhicule électrique utilisé → 0 € CO₂, 0 € polluants
-     * - Véhicule handicap utilisé → 0 € tout
-     * - Rotations sur plusieurs véhicules pour une même entreprise
+     * Couvre · LCD particuliers (mois entier, février 29j bissextile,
+     * 30j exact, 31j non mois entier), clusters LCD 4 consécutifs,
+     * scissions ADR-0022, multi-VFC, exonérations, sorties de flotte.
      *
-     * @return list<array{plate:string,company:string,from:string,to:string}>
+     * @return list<array{plate:string,company:string,from:string,to:string,notes?:string,ref?:string}>
      */
     private function buildContractPlan2024(): array
     {
         return [
-            // --- Peugeot 308 (essence Euro 6, WLTP 100 g/km) ---
-            ['plate' => 'EA-001-AA', 'company' => 'ACM', 'from' => '2024-01-08', 'to' => '2024-02-29'], // 53 j > 30 → taxé
-            ['plate' => 'EA-001-AA', 'company' => 'BTP', 'from' => '2024-03-04', 'to' => '2024-03-18'], // 15 j ≤ 30 → LCD
-            ['plate' => 'EA-001-AA', 'company' => 'COR', 'from' => '2024-04-02', 'to' => '2024-04-21'], // 20 j ≤ 30 → LCD
-            ['plate' => 'EA-001-AA', 'company' => 'ACM', 'from' => '2024-05-02', 'to' => '2024-06-18'], // s'ajoute aux 53 → 100 j cumulé
-            ['plate' => 'EA-001-AA', 'company' => 'DRS', 'from' => '2024-07-01', 'to' => '2024-07-05'], // 5 j ≤ 30 → LCD
-            ['plate' => 'EA-001-AA', 'company' => 'ECO', 'from' => '2024-09-09', 'to' => '2024-11-15'], // 68 j > 30
+            // ============================================================
+            // EA-001-AA · Peugeot 308 WLTP 100g · ACM/BTP/COR/DRS/ECO
+            // ============================================================
+            ['plate' => 'EA-001-AA', 'company' => 'ACM', 'from' => '2024-01-08', 'to' => '2024-02-29'],   // 53j
+            ['plate' => 'EA-001-AA', 'company' => 'BTP', 'from' => '2024-03-04', 'to' => '2024-03-18'],   // 15j LCD
+            ['plate' => 'EA-001-AA', 'company' => 'COR', 'from' => '2024-04-02', 'to' => '2024-04-21'],   // 20j LCD
+            ['plate' => 'EA-001-AA', 'company' => 'ACM', 'from' => '2024-05-02', 'to' => '2024-06-18'],   // 48j
+            ['plate' => 'EA-001-AA', 'company' => 'DRS', 'from' => '2024-07-01', 'to' => '2024-07-05'],   // 5j LCD
+            ['plate' => 'EA-001-AA', 'company' => 'ECO', 'from' => '2024-09-09', 'to' => '2024-11-15'],   // 68j
 
-            // --- Renault Trafic (Diesel Euro 6 - taxe polluants 500 €) ---
-            ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2024-01-15', 'to' => '2024-04-30'], // 107 j
-            ['plate' => 'EB-002-BB', 'company' => 'DRS', 'from' => '2024-05-06', 'to' => '2024-05-20'], // 15 j ≤ 30 → LCD
-            ['plate' => 'EB-002-BB', 'company' => 'ACM', 'from' => '2024-06-03', 'to' => '2024-06-28'], // 26 j ≤ 30 → LCD
-            ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2024-09-02', 'to' => '2024-11-29'], // s'ajoute aux 107
+            // ============================================================
+            // EB-002-BB · Trafic Diesel · 4 contrats (1 LLD coupé)
+            // ============================================================
+            ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2024-01-15', 'to' => '2024-04-22'],   // 99j (capé)
+            ['plate' => 'EB-002-BB', 'company' => 'DRS', 'from' => '2024-05-06', 'to' => '2024-05-20'],   // 15j LCD
+            ['plate' => 'EB-002-BB', 'company' => 'ACM', 'from' => '2024-06-03', 'to' => '2024-06-28'],   // 26j LCD
+            ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2024-09-02', 'to' => '2024-11-29'],   // 89j
 
-            // --- Tesla Model 3 (électrique → exonération CO₂ + cat E = 0 €) ---
-            ['plate' => 'EC-003-CC', 'company' => 'ECO', 'from' => '2024-01-02', 'to' => '2024-04-12'], // 102 j, 0 € quand même
-            ['plate' => 'EC-003-CC', 'company' => 'COR', 'from' => '2024-04-22', 'to' => '2024-05-03'], // 12 j ≤ 30 → LCD (0 € de toute façon)
-            ['plate' => 'EC-003-CC', 'company' => 'ACM', 'from' => '2024-05-06', 'to' => '2024-08-30'],
-            ['plate' => 'EC-003-CC', 'company' => 'ECO', 'from' => '2024-09-02', 'to' => '2024-12-13'],
+            // ============================================================
+            // EC-003-CC · Tesla Model 3 électrique · 0 € · 4 contrats
+            // ============================================================
+            ['plate' => 'EC-003-CC', 'company' => 'ECO', 'from' => '2024-01-02', 'to' => '2024-04-09'],   // 99j (capé)
+            ['plate' => 'EC-003-CC', 'company' => 'COR', 'from' => '2024-04-22', 'to' => '2024-05-03'],   // 12j LCD
+            ['plate' => 'EC-003-CC', 'company' => 'ACM', 'from' => '2024-05-06', 'to' => '2024-08-12'],   // 99j (capé)
+            ['plate' => 'EC-003-CC', 'company' => 'ECO', 'from' => '2024-09-02', 'to' => '2024-12-09'],   // 99j (capé)
 
-            // --- Peugeot 207 (NEDC essence, vieux) ---
-            ['plate' => 'ED-004-DD', 'company' => 'DRS', 'from' => '2024-02-01', 'to' => '2024-05-31'], // >30
-            ['plate' => 'ED-004-DD', 'company' => 'BTP', 'from' => '2024-06-10', 'to' => '2024-07-02'], // 23 j ≤ 30 → LCD
-            ['plate' => 'ED-004-DD', 'company' => 'DRS', 'from' => '2024-09-02', 'to' => '2024-12-20'],
+            // ============================================================
+            // ED-004-DD · Peugeot 207 NEDC essence · 3 contrats
+            // ============================================================
+            ['plate' => 'ED-004-DD', 'company' => 'DRS', 'from' => '2024-02-01', 'to' => '2024-05-09'],   // 99j (capé)
+            ['plate' => 'ED-004-DD', 'company' => 'BTP', 'from' => '2024-06-10', 'to' => '2024-07-02'],   // 23j LCD
+            ['plate' => 'ED-004-DD', 'company' => 'DRS', 'from' => '2024-09-02', 'to' => '2024-12-09'],   // 99j (capé)
 
-            // --- Renault 21 (PA 7 CV - taxe CO₂ lourde : 15 000 €/an) ---
-            // Multi-VFC : bascules 2024-03-15 (PA 8→7) et 2024-09-10 (PA 7→8).
-            // Le contrat COR chevauche la 1ʳᵉ bascule, le contrat ECO la 2ᵉ —
-            // exerce le segmenteur PA pour le calcul taxe CO₂.
-            ['plate' => 'EE-005-EE', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-03-28'], // 25 j ≤ 30, à cheval bascule 03-15
-            ['plate' => 'EE-005-EE', 'company' => 'ACM', 'from' => '2024-07-01', 'to' => '2024-07-26'], // 26 j ≤ 30 → LCD
-            ['plate' => 'EE-005-EE', 'company' => 'ECO', 'from' => '2024-09-02', 'to' => '2024-10-31'], // 60 j, à cheval bascule 09-10
+            // ============================================================
+            // EE-005-EE · Renault 21 PA (multi-VFC) · 3 contrats
+            // ============================================================
+            ['plate' => 'EE-005-EE', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-03-28'],   // 25j LCD bascule
+            ['plate' => 'EE-005-EE', 'company' => 'ACM', 'from' => '2024-07-01', 'to' => '2024-07-26'],   // 26j LCD
+            ['plate' => 'EE-005-EE', 'company' => 'ECO', 'from' => '2024-09-02', 'to' => '2024-10-31'],   // 60j bascule
 
-            // --- Toyota Yaris hybride essence Euro 6 WLTP 95 g/km ---
-            ['plate' => 'EF-006-FF', 'company' => 'ACM', 'from' => '2024-01-02', 'to' => '2024-03-29'],
-            ['plate' => 'EF-006-FF', 'company' => 'ECO', 'from' => '2024-04-15', 'to' => '2024-07-31'],
-            ['plate' => 'EF-006-FF', 'company' => 'COR', 'from' => '2024-08-12', 'to' => '2024-08-30'], // 19 j ≤ 30 → LCD
-            ['plate' => 'EF-006-FF', 'company' => 'BTP', 'from' => '2024-10-07', 'to' => '2024-12-15'],
+            // ============================================================
+            // EF-006-FF · Yaris Hybrid WLTP 95g · 4 contrats
+            // ============================================================
+            ['plate' => 'EF-006-FF', 'company' => 'ACM', 'from' => '2024-01-02', 'to' => '2024-03-29'],   // 88j
+            ['plate' => 'EF-006-FF', 'company' => 'ECO', 'from' => '2024-04-15', 'to' => '2024-07-22'],   // 99j (capé)
+            ['plate' => 'EF-006-FF', 'company' => 'COR', 'from' => '2024-08-12', 'to' => '2024-08-30'],   // 19j LCD
+            ['plate' => 'EF-006-FF', 'company' => 'BTP', 'from' => '2024-10-07', 'to' => '2024-12-15'],   // 70j
 
-            // --- BMW Série 5 Diesel ---
-            ['plate' => 'EG-007-GG', 'company' => 'ECO', 'from' => '2024-02-05', 'to' => '2024-04-25'],
-            ['plate' => 'EG-007-GG', 'company' => 'DRS', 'from' => '2024-05-06', 'to' => '2024-05-25'], // 20 j ≤ 30 → LCD
-            ['plate' => 'EG-007-GG', 'company' => 'ACM', 'from' => '2024-06-10', 'to' => '2024-08-30'],
-            ['plate' => 'EG-007-GG', 'company' => 'BTP', 'from' => '2024-10-14', 'to' => '2024-12-15'],
+            // ============================================================
+            // EG-007-GG · BMW Série 5 Diesel · 4 contrats
+            // ============================================================
+            ['plate' => 'EG-007-GG', 'company' => 'ECO', 'from' => '2024-02-05', 'to' => '2024-04-25'],   // 80j
+            ['plate' => 'EG-007-GG', 'company' => 'DRS', 'from' => '2024-05-06', 'to' => '2024-05-25'],   // 20j LCD
+            ['plate' => 'EG-007-GG', 'company' => 'ACM', 'from' => '2024-06-10', 'to' => '2024-08-30'],   // 82j
+            ['plate' => 'EG-007-GG', 'company' => 'BTP', 'from' => '2024-10-14', 'to' => '2024-12-15'],   // 63j
 
-            // --- Peugeot Partner (utilitaire N1 transport pers.) ---
-            // Multi-VFC : bascules 2024-04-01 (CO₂ 145→130) et 2024-09-01
-            // (CO₂ 130→150). Le contrat COR démarre AU jour de la bascule
-            // 04-01 (entièrement sous la nouvelle VFC). Le contrat BTP
-            // 08-15 → 09-05 chevauche la bascule 09-01 — exerce le
-            // segmenteur CO₂.
-            ['plate' => 'EH-008-HH', 'company' => 'BTP', 'from' => '2024-01-08', 'to' => '2024-03-15'],
-            ['plate' => 'EH-008-HH', 'company' => 'COR', 'from' => '2024-04-01', 'to' => '2024-04-26'], // 26 j ≤ 30 → LCD
-            ['plate' => 'EH-008-HH', 'company' => 'DRS', 'from' => '2024-05-13', 'to' => '2024-07-31'],
-            ['plate' => 'EH-008-HH', 'company' => 'BTP', 'from' => '2024-08-15', 'to' => '2024-09-05'], // 22 j ≤ 30, à cheval bascule 09-01
-            ['plate' => 'EH-008-HH', 'company' => 'ACM', 'from' => '2024-09-09', 'to' => '2024-11-15'],
+            // ============================================================
+            // EH-008-HH · Partner Diesel (multi-VFC) · 5 contrats
+            // ============================================================
+            ['plate' => 'EH-008-HH', 'company' => 'BTP', 'from' => '2024-01-08', 'to' => '2024-03-15'],   // 68j
+            ['plate' => 'EH-008-HH', 'company' => 'COR', 'from' => '2024-04-01', 'to' => '2024-04-26'],   // 26j LCD bascule
+            ['plate' => 'EH-008-HH', 'company' => 'DRS', 'from' => '2024-05-13', 'to' => '2024-07-31'],   // 80j
+            ['plate' => 'EH-008-HH', 'company' => 'BTP', 'from' => '2024-08-15', 'to' => '2024-09-05'],   // 22j LCD bascule
+            ['plate' => 'EH-008-HH', 'company' => 'ACM', 'from' => '2024-09-09', 'to' => '2024-11-15'],   // 68j
 
-            // --- Ford Transit Custom Diesel Euro 6 ---
-            ['plate' => 'EI-009-II', 'company' => 'ACM', 'from' => '2024-01-15', 'to' => '2024-04-30'],
-            ['plate' => 'EI-009-II', 'company' => 'ECO', 'from' => '2024-05-13', 'to' => '2024-07-19'],
-            ['plate' => 'EI-009-II', 'company' => 'BTP', 'from' => '2024-09-02', 'to' => '2024-09-27'], // 26 j ≤ 30 → LCD
-            ['plate' => 'EI-009-II', 'company' => 'COR', 'from' => '2024-10-07', 'to' => '2024-12-13'],
+            // ============================================================
+            // EI-009-II · Ford Transit Diesel · 4 contrats (1 coupé)
+            // ============================================================
+            ['plate' => 'EI-009-II', 'company' => 'ACM', 'from' => '2024-01-15', 'to' => '2024-04-22'],   // 99j (capé)
+            ['plate' => 'EI-009-II', 'company' => 'ECO', 'from' => '2024-05-13', 'to' => '2024-07-19'],   // 68j
+            ['plate' => 'EI-009-II', 'company' => 'BTP', 'from' => '2024-09-02', 'to' => '2024-09-27'],   // 26j LCD
+            ['plate' => 'EI-009-II', 'company' => 'COR', 'from' => '2024-10-07', 'to' => '2024-12-13'],   // 68j
 
-            // --- Renault Kangoo handicap (exonération totale) ---
-            ['plate' => 'EJ-010-JJ', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-05-31'],
-            ['plate' => 'EJ-010-JJ', 'company' => 'DRS', 'from' => '2024-06-17', 'to' => '2024-09-30'],
-            ['plate' => 'EJ-010-JJ', 'company' => 'ECO', 'from' => '2024-11-04', 'to' => '2024-12-15'],
+            // ============================================================
+            // EJ-010-JJ · Kangoo TPMR handicap · zeroing total · 3 contrats
+            // ============================================================
+            ['plate' => 'EJ-010-JJ', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-05-31'],   // 89j
+            ['plate' => 'EJ-010-JJ', 'company' => 'DRS', 'from' => '2024-06-17', 'to' => '2024-09-23'],   // 99j (capé)
+            ['plate' => 'EJ-010-JJ', 'company' => 'ECO', 'from' => '2024-11-04', 'to' => '2024-12-15'],   // 42j
 
-            // --- Renault Mégane (multi-VFC : 102 g/km jusqu'au 15/06,
-            // 145 g/km à partir du 16/06). Trois contrats répartis :
-            // un avant la bascule, un à cheval sur la bascule, un après.
-            // Permet d'observer le segmenteur fiscal sur la fiche.
-            ['plate' => 'EL-012-LL', 'company' => 'ACM', 'from' => '2024-02-05', 'to' => '2024-04-30'],
-            ['plate' => 'EL-012-LL', 'company' => 'BTP', 'from' => '2024-05-13', 'to' => '2024-07-26'],
-            ['plate' => 'EL-012-LL', 'company' => 'ECO', 'from' => '2024-09-09', 'to' => '2024-11-29'],
+            // ============================================================
+            // EL-012-LL · Mégane multi-VFC 102→145g · 3 contrats
+            // ============================================================
+            ['plate' => 'EL-012-LL', 'company' => 'ACM', 'from' => '2024-02-05', 'to' => '2024-04-30'],   // 86j
+            ['plate' => 'EL-012-LL', 'company' => 'BTP', 'from' => '2024-05-13', 'to' => '2024-07-26'],   // 75j
+            ['plate' => 'EL-012-LL', 'company' => 'ECO', 'from' => '2024-09-09', 'to' => '2024-11-29'],   // 82j
 
-            // === Nouveaux véhicules 2024 · diversifie le test
-            // (EM, EN, EO, EP, EQ ont des LCD particuliers + clusters plus bas
-            // qui les utilisent, donc on laisse leur LLD pour 2025+)
-            ['plate' => 'EM-013-MM', 'company' => 'IDF', 'from' => '2024-04-01', 'to' => '2024-12-31'],
-            ['plate' => 'EN-014-NN', 'company' => 'HEX', 'from' => '2024-04-15', 'to' => '2024-11-30'],
-            ['plate' => 'EO-015-OO', 'company' => 'LOG', 'from' => '2024-05-01', 'to' => '2024-12-31'],
-            ['plate' => 'EP-016-PP', 'company' => 'PRO', 'from' => '2024-06-01', 'to' => '2024-10-31'],
-            // EQ-017-QQ a un cluster 4 LCD juillet-octobre → LLD jan-mai uniquement
-            ['plate' => 'EQ-017-QQ', 'company' => 'EOL', 'from' => '2024-01-15', 'to' => '2024-06-30'],
-            ['plate' => 'ET-020-TT', 'company' => 'NOV', 'from' => '2024-04-01', 'to' => '2024-12-31'],
-            ['plate' => 'FA-027-AA', 'company' => 'BAT', 'from' => '2024-03-12', 'to' => '2024-11-30'],
-            ['plate' => 'FB-028-BB', 'company' => 'COB', 'from' => '2024-01-08', 'to' => '2024-12-20'],
-            ['plate' => 'FD-030-DD', 'company' => 'TUR', 'from' => '2024-05-01', 'to' => '2024-12-31'], // électrique
-            ['plate' => 'FE-031-EE', 'company' => 'MAG', 'from' => '2024-06-15', 'to' => '2024-12-31'], // électrique
-            ['plate' => 'FU-047-UU', 'company' => 'BTP', 'from' => '2024-04-10', 'to' => '2024-11-15'], // E85 130g
-            ['plate' => 'FV-048-VV', 'company' => 'ACM', 'from' => '2024-02-01', 'to' => '2024-12-15'], // E85 100g
-            ['plate' => 'FZ-052-ZZ', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-12-31'], // handicap zeroing
-            ['plate' => 'GA-053-AA', 'company' => 'EOL', 'from' => '2024-04-22', 'to' => '2024-12-31'], // hybride éligible R-2024-017
-
-            // === Sorties de flotte · contrats avant exit_date ===
-            ['plate' => 'GG-059-GG', 'company' => 'ACM', 'from' => '2024-02-15', 'to' => '2024-07-31'], // sortie 2024-08-15
-            ['plate' => 'GH-060-HH', 'company' => 'NOV', 'from' => '2024-05-01', 'to' => '2024-12-31'], // sortie 2025-07-20
-
-            // === Cas LCD particuliers 2024 (placés AVANT/APRÈS les LLD pour éviter overlap) ===
-            // LCD 30j exact sur EM avant son LLD (qui démarre 04-01)
+            // ============================================================
+            // EM-013-MM Citroën C3 · LCD particulier + LLD
+            // ============================================================
             ['plate' => 'EM-013-MM', 'company' => 'COR', 'from' => '2024-01-04', 'to' => '2024-02-02', 'notes' => 'LCD 30j exact'],
-            // LCD février 2024 bissextile = 29 j sur EN avant son LLD (qui démarre 04-15)
-            ['plate' => 'EN-014-NN', 'company' => 'PRO', 'from' => '2024-02-01', 'to' => '2024-02-29', 'notes' => 'LCD mois civil entier 29j bissextile'],
-            // LCD mars 2024 31j mois entier sur EO avant son LLD (qui démarre 05-01)
-            ['plate' => 'EO-015-OO', 'company' => 'MAG', 'from' => '2024-03-01', 'to' => '2024-03-31', 'notes' => 'LCD mois entier 31j'],
-            // LCD 31j non mois entier · ER-018-RR (libre toute l'année 2024)
-            ['plate' => 'ER-018-RR', 'company' => 'IDF', 'from' => '2024-04-05', 'to' => '2024-05-05', 'notes' => 'LCD 31j non mois entier · taxable'],
+            ['plate' => 'EM-013-MM', 'company' => 'IDF', 'from' => '2024-04-01', 'to' => '2024-06-30'],   // 91j
+            ['plate' => 'EM-013-MM', 'company' => 'HEX', 'from' => '2024-08-01', 'to' => '2024-10-31'],   // 92j
 
-            // === Cluster de risque · 4 LCD consécutifs même entreprise sur même véhicule ===
+            // ============================================================
+            // EN-014-NN Fiat 500 · LCD février bissextile + LLD
+            // ============================================================
+            ['plate' => 'EN-014-NN', 'company' => 'PRO', 'from' => '2024-02-01', 'to' => '2024-02-29', 'notes' => 'LCD mois entier 29j bissextile'],
+            ['plate' => 'EN-014-NN', 'company' => 'HEX', 'from' => '2024-04-15', 'to' => '2024-07-22'],   // 99j
+            ['plate' => 'EN-014-NN', 'company' => 'TUR', 'from' => '2024-08-15', 'to' => '2024-11-21'],   // 99j
+
+            // ============================================================
+            // EO-015-OO VW Polo · LCD mois entier mars + LLD
+            // ============================================================
+            ['plate' => 'EO-015-OO', 'company' => 'MAG', 'from' => '2024-03-01', 'to' => '2024-03-31', 'notes' => 'LCD mois entier 31j'],
+            ['plate' => 'EO-015-OO', 'company' => 'LOG', 'from' => '2024-05-01', 'to' => '2024-08-07'],   // 99j
+            ['plate' => 'EO-015-OO', 'company' => 'NOV', 'from' => '2024-09-15', 'to' => '2024-12-15'],   // 92j
+
+            // ============================================================
+            // EP-016-PP Mini Cooper · LCD divers + LLD
+            // ============================================================
+            ['plate' => 'EP-016-PP', 'company' => 'PRO', 'from' => '2024-01-15', 'to' => '2024-04-22'],   // 99j
+            ['plate' => 'EP-016-PP', 'company' => 'IDF', 'from' => '2024-06-01', 'to' => '2024-08-31'],   // 92j
+            ['plate' => 'EP-016-PP', 'company' => 'HEX', 'from' => '2024-09-15', 'to' => '2024-12-22'],   // 99j
+
+            // ============================================================
+            // EQ-017-QQ Audi A1 · LLD jan-mai + Cluster LCD juil-oct
+            // ============================================================
+            ['plate' => 'EQ-017-QQ', 'company' => 'EOL', 'from' => '2024-01-15', 'to' => '2024-04-22'],   // 99j
+            ['plate' => 'EQ-017-QQ', 'company' => 'EOL', 'from' => '2024-05-13', 'to' => '2024-06-20'],   // 39j
+            // Cluster 4 LCD HEX
             ['plate' => 'EQ-017-QQ', 'company' => 'HEX', 'from' => '2024-07-01', 'to' => '2024-07-25', 'notes' => 'Cluster LCD 1/4'],
             ['plate' => 'EQ-017-QQ', 'company' => 'HEX', 'from' => '2024-08-02', 'to' => '2024-08-28', 'notes' => 'Cluster LCD 2/4'],
             ['plate' => 'EQ-017-QQ', 'company' => 'HEX', 'from' => '2024-09-02', 'to' => '2024-09-30', 'notes' => 'Cluster LCD 3/4'],
             ['plate' => 'EQ-017-QQ', 'company' => 'HEX', 'from' => '2024-10-05', 'to' => '2024-10-29', 'notes' => 'Cluster LCD 4/4'],
+
+            // ============================================================
+            // ER-018-RR BMW Série 1 · LCD 31j non mois entier + LLD
+            // ============================================================
+            ['plate' => 'ER-018-RR', 'company' => 'IDF', 'from' => '2024-04-05', 'to' => '2024-05-05', 'notes' => 'LCD 31j non mois entier · taxable'],
+            ['plate' => 'ER-018-RR', 'company' => 'EOL', 'from' => '2024-06-15', 'to' => '2024-09-22'],   // 99j
+            ['plate' => 'ER-018-RR', 'company' => 'MAG', 'from' => '2024-10-10', 'to' => '2024-12-20'],   // 72j
+
+            // ============================================================
+            // ET-020-TT Volvo XC40 · 3 contrats
+            // ============================================================
+            ['plate' => 'ET-020-TT', 'company' => 'NOV', 'from' => '2024-04-01', 'to' => '2024-07-08'],   // 99j
+            ['plate' => 'ET-020-TT', 'company' => 'HEX', 'from' => '2024-08-01', 'to' => '2024-09-30'],   // 61j
+            ['plate' => 'ET-020-TT', 'company' => 'PRO', 'from' => '2024-10-15', 'to' => '2024-12-22'],   // 69j
+
+            // ============================================================
+            // FA-027-AA Land Rover Defender · 3 contrats
+            // ============================================================
+            ['plate' => 'FA-027-AA', 'company' => 'BAT', 'from' => '2024-03-12', 'to' => '2024-06-18'],   // 99j
+            ['plate' => 'FA-027-AA', 'company' => 'COB', 'from' => '2024-07-20', 'to' => '2024-09-30'],   // 73j
+            ['plate' => 'FA-027-AA', 'company' => 'NOV', 'from' => '2024-10-20', 'to' => '2024-12-22'],   // 64j
+
+            // ============================================================
+            // FB-028-BB Renault Master · 3 contrats
+            // ============================================================
+            ['plate' => 'FB-028-BB', 'company' => 'COB', 'from' => '2024-01-08', 'to' => '2024-04-15'],   // 99j
+            ['plate' => 'FB-028-BB', 'company' => 'LOG', 'from' => '2024-05-15', 'to' => '2024-08-22'],   // 100j
+            ['plate' => 'FB-028-BB', 'company' => 'MAG', 'from' => '2024-09-20', 'to' => '2024-12-20'],   // 92j
+
+            // ============================================================
+            // FD-030-DD Renault Zoé électrique · 3 contrats
+            // ============================================================
+            ['plate' => 'FD-030-DD', 'company' => 'TUR', 'from' => '2024-05-01', 'to' => '2024-08-07'],   // 99j
+            ['plate' => 'FD-030-DD', 'company' => 'COR', 'from' => '2024-09-01', 'to' => '2024-10-20'],   // 50j
+            ['plate' => 'FD-030-DD', 'company' => 'IDF', 'from' => '2024-11-01', 'to' => '2024-12-31'],   // 61j
+
+            // ============================================================
+            // FE-031-EE Nissan Leaf électrique · 2 contrats
+            // ============================================================
+            ['plate' => 'FE-031-EE', 'company' => 'MAG', 'from' => '2024-06-15', 'to' => '2024-09-22'],   // 100j
+            ['plate' => 'FE-031-EE', 'company' => 'EOL', 'from' => '2024-10-15', 'to' => '2024-12-22'],   // 69j
+
+            // ============================================================
+            // FU-047-UU Captur E85 130g · 2 contrats
+            // ============================================================
+            ['plate' => 'FU-047-UU', 'company' => 'BTP', 'from' => '2024-04-10', 'to' => '2024-07-18'],   // 100j
+            ['plate' => 'FU-047-UU', 'company' => 'HEX', 'from' => '2024-08-15', 'to' => '2024-11-22'],   // 100j
+
+            // ============================================================
+            // FV-048-VV Ford Focus E85 100g · 3 contrats
+            // ============================================================
+            ['plate' => 'FV-048-VV', 'company' => 'ACM', 'from' => '2024-02-01', 'to' => '2024-05-10'],   // 100j
+            ['plate' => 'FV-048-VV', 'company' => 'EOL', 'from' => '2024-06-10', 'to' => '2024-09-17'],   // 100j
+            ['plate' => 'FV-048-VV', 'company' => 'IDF', 'from' => '2024-10-15', 'to' => '2024-12-22'],   // 69j
+
+            // ============================================================
+            // FZ-052-ZZ Caddy TPMR handicap · zeroing · 3 contrats
+            // ============================================================
+            ['plate' => 'FZ-052-ZZ', 'company' => 'COR', 'from' => '2024-03-04', 'to' => '2024-06-11'],   // 100j
+            ['plate' => 'FZ-052-ZZ', 'company' => 'TUR', 'from' => '2024-07-15', 'to' => '2024-10-22'],   // 100j
+            ['plate' => 'FZ-052-ZZ', 'company' => 'PRO', 'from' => '2024-11-15', 'to' => '2024-12-31'],   // 47j
+
+            // ============================================================
+            // GA-053-AA Toyota Prius Hybride · éligible R-2024-017 · 3 contrats
+            // ============================================================
+            ['plate' => 'GA-053-AA', 'company' => 'EOL', 'from' => '2024-04-22', 'to' => '2024-07-30'],   // 100j
+            ['plate' => 'GA-053-AA', 'company' => 'HEX', 'from' => '2024-08-25', 'to' => '2024-12-02'],   // 100j
+
+            // ============================================================
+            // GG-059-GG Peugeot 208 · sortie 2024-08-15 · 1 contrat avant
+            // ============================================================
+            ['plate' => 'GG-059-GG', 'company' => 'ACM', 'from' => '2024-02-15', 'to' => '2024-05-24'],   // 100j
+            ['plate' => 'GG-059-GG', 'company' => 'LOG', 'from' => '2024-06-10', 'to' => '2024-08-14'],   // 66j (exit 08-15)
+
+            // ============================================================
+            // GH-060-HH Twingo · sortie 2025-07-20 · 2 contrats 2024
+            // ============================================================
+            ['plate' => 'GH-060-HH', 'company' => 'NOV', 'from' => '2024-05-01', 'to' => '2024-08-08'],   // 100j
+            ['plate' => 'GH-060-HH', 'company' => 'PRO', 'from' => '2024-09-10', 'to' => '2024-12-18'],   // 100j
+
+            // ============================================================
+            // Autres véhicules · couverture diversifiée 2024
+            // ============================================================
+            ['plate' => 'EU-021-UU', 'company' => 'MAG', 'from' => '2024-03-01', 'to' => '2024-06-08'],   // 100j
+            ['plate' => 'EV-022-VV', 'company' => 'BAT', 'from' => '2024-05-12', 'to' => '2024-07-20'],   // 70j
+            ['plate' => 'EW-023-WW', 'company' => 'COB', 'from' => '2024-04-15', 'to' => '2024-07-23'],   // 100j
+            ['plate' => 'EX-024-XX', 'company' => 'BTP', 'from' => '2024-02-10', 'to' => '2024-05-19'],   // 100j
+            ['plate' => 'EY-025-YY', 'company' => 'LOG', 'from' => '2024-06-01', 'to' => '2024-09-08'],   // 100j
+            ['plate' => 'EZ-026-ZZ', 'company' => 'EOL', 'from' => '2024-04-20', 'to' => '2024-07-28'],   // 100j
+            ['plate' => 'FC-029-CC', 'company' => 'IDF', 'from' => '2024-07-15', 'to' => '2024-10-22'],   // 100j
+            ['plate' => 'FF-032-FF', 'company' => 'NOV', 'from' => '2024-05-20', 'to' => '2024-08-27'],   // 100j (Nexo H₂)
+            ['plate' => 'FG-033-GG', 'company' => 'COR', 'from' => '2024-06-15', 'to' => '2024-09-22'],   // 100j (Master ZE élec)
+            ['plate' => 'FH-034-HH', 'company' => 'PRO', 'from' => '2024-03-12', 'to' => '2024-06-19'],   // 100j (NEDC Cat1)
+            ['plate' => 'FI-035-II', 'company' => 'TUR', 'from' => '2024-04-10', 'to' => '2024-07-18'],   // 100j (NEDC)
+            ['plate' => 'FJ-036-JJ', 'company' => 'DRS', 'from' => '2024-08-15', 'to' => '2024-11-22'],   // 100j (NEDC)
+            ['plate' => 'FL-038-LL', 'company' => 'BTP', 'from' => '2024-02-15', 'to' => '2024-05-24'],   // 100j (NEDC Diesel)
+            ['plate' => 'FM-039-MM', 'company' => 'COB', 'from' => '2024-09-01', 'to' => '2024-12-09'],   // 100j (Berlingo)
+            ['plate' => 'FN-040-NN', 'company' => 'BAT', 'from' => '2024-05-10', 'to' => '2024-08-17'],   // 100j (Kangoo)
+            ['plate' => 'FP-042-PP', 'company' => 'ACM', 'from' => '2024-04-25', 'to' => '2024-08-02'],   // 100j (PA vintage 6cv)
+            ['plate' => 'FT-046-TT', 'company' => 'PRO', 'from' => '2024-06-10', 'to' => '2024-09-17'],   // 100j (BMW E30)
         ];
     }
 
@@ -1312,66 +1516,156 @@ final class DemoSeeder extends Seeder
     private function buildContractPlan2025(): array
     {
         return [
-            // === LLD plein année 2025 sur véhicules diversifiés ===
-            ['plate' => 'EA-001-AA', 'company' => 'IDF', 'from' => '2025-01-01', 'to' => '2025-12-31'], // 308 WLTP 100g
-            ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2025-01-15', 'to' => '2025-12-15'],
-            ['plate' => 'EC-003-CC', 'company' => 'ECO', 'from' => '2025-01-01', 'to' => '2025-12-31'], // Tesla élec
-            ['plate' => 'EF-006-FF', 'company' => 'ACM', 'from' => '2025-02-01', 'to' => '2025-12-31'],
-            ['plate' => 'EH-008-HH', 'company' => 'BAT', 'from' => '2025-03-04', 'to' => '2025-11-30'],
-            ['plate' => 'EJ-010-JJ', 'company' => 'COR', 'from' => '2025-01-08', 'to' => '2025-12-31'], // handicap
-            ['plate' => 'EL-012-LL', 'company' => 'HEX', 'from' => '2025-02-15', 'to' => '2025-11-30'],
-            ['plate' => 'EM-013-MM', 'company' => 'LOG', 'from' => '2025-01-01', 'to' => '2025-12-31'],
-            ['plate' => 'EQ-017-QQ', 'company' => 'EOL', 'from' => '2025-02-01', 'to' => '2025-12-31'],
-            ['plate' => 'ET-020-TT', 'company' => 'NOV', 'from' => '2025-01-15', 'to' => '2025-11-15'],
-
-            // === Cross-année 2024 → 2025 (LCD chevauchant qualifie/dis-qualifie) ===
-            // LCD 27 j (déc 2024 → jan 2025) · ≤ 30 j → exempt en 2025
-            ['plate' => 'ER-018-RR', 'company' => 'PRO', 'from' => '2024-12-20', 'to' => '2025-01-15', 'notes' => 'LCD à cheval 27j ≤ 30j'],
-            // LCD 32 j cross-année (NON exempt R-2025-021)
+            // ============================================================
+            // Cross-année 2024 → 2025 (qualification LCD ≤30 / > 30)
+            // ============================================================
+            ['plate' => 'ER-018-RR', 'company' => 'PRO', 'from' => '2024-12-20', 'to' => '2025-01-15', 'notes' => 'LCD à cheval 27j ≤ 30j · exempt'],
             ['plate' => 'ES-019-SS', 'company' => 'TUR', 'from' => '2024-12-15', 'to' => '2025-01-15', 'notes' => 'LCD 32j chevauchant · taxable'],
-            // LLD plein cross-année
-            ['plate' => 'EU-021-UU', 'company' => 'MAG', 'from' => '2024-11-01', 'to' => '2025-04-30'],
+            ['plate' => 'EU-021-UU', 'company' => 'MAG', 'from' => '2024-11-01', 'to' => '2025-02-08'],   // 100j cross-année
 
-            // === Contrats à cheval sur scission ADR-0022 01/03/2025 ===
-            // Cas 1 · LLD plein année (chevauche scission rédactionnelle R-2025-004)
-            ['plate' => 'EV-022-VV', 'company' => 'IDF', 'from' => '2025-01-01', 'to' => '2025-12-31', 'notes' => 'À cheval scission 01/03/2025'],
-            // Cas 2 · LCD à cheval (15/02 → 15/03 = 29j ≤ 30, exempt par durée)
+            // ============================================================
+            // EA-001-AA · 4 contrats variés 2025
+            // ============================================================
+            ['plate' => 'EA-001-AA', 'company' => 'IDF', 'from' => '2025-01-15', 'to' => '2025-04-23'],   // 99j
+            ['plate' => 'EA-001-AA', 'company' => 'HEX', 'from' => '2025-05-15', 'to' => '2025-08-22'],   // 100j
+            ['plate' => 'EA-001-AA', 'company' => 'PRO', 'from' => '2025-09-15', 'to' => '2025-10-20'],   // 36j
+            ['plate' => 'EA-001-AA', 'company' => 'EOL', 'from' => '2025-11-01', 'to' => '2025-12-22'],   // 52j
+
+            // ============================================================
+            // EB-002-BB Trafic Diesel · 3 contrats
+            // ============================================================
+            ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2025-02-15', 'to' => '2025-05-25'],   // 100j
+            ['plate' => 'EB-002-BB', 'company' => 'COB', 'from' => '2025-06-15', 'to' => '2025-09-22'],   // 100j
+            ['plate' => 'EB-002-BB', 'company' => 'BAT', 'from' => '2025-10-15', 'to' => '2025-12-15'],   // 62j
+
+            // ============================================================
+            // EC-003-CC Tesla élec · 4 contrats
+            // ============================================================
+            ['plate' => 'EC-003-CC', 'company' => 'ECO', 'from' => '2025-01-15', 'to' => '2025-04-24'],   // 100j
+            ['plate' => 'EC-003-CC', 'company' => 'MAG', 'from' => '2025-05-15', 'to' => '2025-08-22'],   // 100j
+            ['plate' => 'EC-003-CC', 'company' => 'TUR', 'from' => '2025-09-15', 'to' => '2025-12-22'],   // 99j
+
+            // ============================================================
+            // EF-006-FF Yaris Hybrid · 3 contrats
+            // ============================================================
+            ['plate' => 'EF-006-FF', 'company' => 'ACM', 'from' => '2025-02-01', 'to' => '2025-05-11'],   // 100j
+            ['plate' => 'EF-006-FF', 'company' => 'NOV', 'from' => '2025-06-15', 'to' => '2025-09-22'],   // 100j
+            ['plate' => 'EF-006-FF', 'company' => 'PRO', 'from' => '2025-10-15', 'to' => '2025-12-22'],   // 69j
+
+            // ============================================================
+            // EG-007-GG BMW Série 5 · 3 contrats successifs (rotation)
+            // ============================================================
+            ['plate' => 'EG-007-GG', 'company' => 'ACM', 'from' => '2025-01-15', 'to' => '2025-04-23'],   // 99j
+            ['plate' => 'EG-007-GG', 'company' => 'BTP', 'from' => '2025-05-15', 'to' => '2025-08-15'],   // 93j
+            ['plate' => 'EG-007-GG', 'company' => 'IDF', 'from' => '2025-09-15', 'to' => '2025-12-15'],   // 92j
+
+            // ============================================================
+            // EH-008-HH Partner · 3 contrats
+            // ============================================================
+            ['plate' => 'EH-008-HH', 'company' => 'BAT', 'from' => '2025-03-04', 'to' => '2025-06-11'],   // 100j
+            ['plate' => 'EH-008-HH', 'company' => 'COB', 'from' => '2025-07-15', 'to' => '2025-10-22'],   // 100j
+
+            // ============================================================
+            // EJ-010-JJ Kangoo handicap · zeroing · 3 contrats
+            // ============================================================
+            ['plate' => 'EJ-010-JJ', 'company' => 'COR', 'from' => '2025-01-08', 'to' => '2025-04-17'],   // 100j
+            ['plate' => 'EJ-010-JJ', 'company' => 'TUR', 'from' => '2025-05-15', 'to' => '2025-08-22'],   // 100j
+            ['plate' => 'EJ-010-JJ', 'company' => 'PRO', 'from' => '2025-09-15', 'to' => '2025-12-22'],   // 99j
+
+            // ============================================================
+            // EL-012-LL Mégane (multi-VFC) · 3 contrats
+            // ============================================================
+            ['plate' => 'EL-012-LL', 'company' => 'HEX', 'from' => '2025-02-15', 'to' => '2025-05-25'],   // 100j
+            ['plate' => 'EL-012-LL', 'company' => 'EOL', 'from' => '2025-06-15', 'to' => '2025-09-22'],   // 100j
+            ['plate' => 'EL-012-LL', 'company' => 'MAG', 'from' => '2025-10-15', 'to' => '2025-12-22'],   // 69j
+
+            // ============================================================
+            // EM-013-MM C3 · 3 contrats
+            // ============================================================
+            ['plate' => 'EM-013-MM', 'company' => 'LOG', 'from' => '2025-01-15', 'to' => '2025-04-24'],   // 100j
+            ['plate' => 'EM-013-MM', 'company' => 'NOV', 'from' => '2025-05-15', 'to' => '2025-08-22'],   // 100j
+            ['plate' => 'EM-013-MM', 'company' => 'IDF', 'from' => '2025-09-15', 'to' => '2025-12-22'],   // 99j
+
+            // ============================================================
+            // EQ-017-QQ Audi A1 · 3 contrats
+            // ============================================================
+            ['plate' => 'EQ-017-QQ', 'company' => 'EOL', 'from' => '2025-02-01', 'to' => '2025-05-11'],   // 100j
+            ['plate' => 'EQ-017-QQ', 'company' => 'PRO', 'from' => '2025-06-15', 'to' => '2025-09-22'],   // 100j
+
+            // ============================================================
+            // ET-020-TT Volvo XC40 · 3 contrats
+            // ============================================================
+            ['plate' => 'ET-020-TT', 'company' => 'NOV', 'from' => '2025-01-15', 'to' => '2025-04-24'],   // 100j
+            ['plate' => 'ET-020-TT', 'company' => 'COB', 'from' => '2025-05-15', 'to' => '2025-08-22'],   // 100j
+
+            // ============================================================
+            // Contrats à cheval scission ADR-0022 01/03/2025 (rédactionnel)
+            // ============================================================
+            ['plate' => 'EV-022-VV', 'company' => 'IDF', 'from' => '2025-01-15', 'to' => '2025-04-24', 'notes' => 'À cheval scission 01/03/2025'],   // 100j
             ['plate' => 'EW-023-WW', 'company' => 'COB', 'from' => '2025-02-15', 'to' => '2025-03-15', 'notes' => 'LCD 29j à cheval scission'],
-            // Cas 3 · LCD long 32j à cheval scission (NON exempt)
             ['plate' => 'EX-024-XX', 'company' => 'COR', 'from' => '2025-02-15', 'to' => '2025-03-18', 'notes' => 'LCD 32j à cheval scission · taxable'],
 
-            // === E85 actif en 2025 (R-2025-023) sur véhicules E85 ===
-            ['plate' => 'FU-047-UU', 'company' => 'BTP', 'from' => '2025-01-01', 'to' => '2025-12-31', 'notes' => 'E85 130g WLTP · abattement actif 2025'],
-            ['plate' => 'FV-048-VV', 'company' => 'ACM', 'from' => '2025-02-01', 'to' => '2025-12-15', 'notes' => 'E85 100g WLTP · abattement 100→60'],
-            ['plate' => 'FW-049-WW', 'company' => 'EOL', 'from' => '2025-03-04', 'to' => '2025-10-31', 'notes' => 'E85 251g · perte abattement plafond 250'],
-            ['plate' => 'FX-050-XX', 'company' => 'HEX', 'from' => '2025-01-15', 'to' => '2025-12-31', 'notes' => 'E85 PA 12 CV · abattement -2 CV'],
-            ['plate' => 'FY-051-YY', 'company' => 'IDF', 'from' => '2025-02-01', 'to' => '2025-11-30', 'notes' => 'E85 PA 13 CV · perte abattement plafond'],
+            // ============================================================
+            // E85 actif en 2025 (R-2025-023) · 5 véhicules · contrats < 100j
+            // ============================================================
+            ['plate' => 'FU-047-UU', 'company' => 'BTP', 'from' => '2025-01-15', 'to' => '2025-04-24', 'notes' => 'E85 130g WLTP · abattement actif'],
+            ['plate' => 'FU-047-UU', 'company' => 'HEX', 'from' => '2025-05-15', 'to' => '2025-08-22'],
+            ['plate' => 'FV-048-VV', 'company' => 'ACM', 'from' => '2025-02-15', 'to' => '2025-05-25', 'notes' => 'E85 100g · abattement 100→60'],
+            ['plate' => 'FV-048-VV', 'company' => 'PRO', 'from' => '2025-07-01', 'to' => '2025-10-08'],   // 100j
+            ['plate' => 'FW-049-WW', 'company' => 'EOL', 'from' => '2025-03-04', 'to' => '2025-06-11', 'notes' => 'E85 251g · perte abattement plafond'],
+            ['plate' => 'FX-050-XX', 'company' => 'HEX', 'from' => '2025-01-15', 'to' => '2025-04-24', 'notes' => 'E85 PA 12 CV · abattement -2 CV'],
+            ['plate' => 'FY-051-YY', 'company' => 'IDF', 'from' => '2025-02-01', 'to' => '2025-05-11', 'notes' => 'E85 PA 13 CV · perte abattement'],
 
-            // === Multi-VFC · activation E85 mid-2025 sur GK-063-KK ===
-            ['plate' => 'GK-063-KK', 'company' => 'DRS', 'from' => '2025-01-01', 'to' => '2025-12-31', 'notes' => 'VFC bascule E85 au 01/07/2025'],
-            // === Multi-VFC · changement PollutantCategory mid-2025 sur GL-064-LL ===
-            ['plate' => 'GL-064-LL', 'company' => 'LOG', 'from' => '2025-01-01', 'to' => '2025-12-31', 'notes' => 'VFC Cat1→MostPolluting 01/09/2025'],
+            // ============================================================
+            // Multi-VFC mid-2025 (activation E85 + changement Cat)
+            // ============================================================
+            ['plate' => 'GK-063-KK', 'company' => 'DRS', 'from' => '2025-01-15', 'to' => '2025-04-24', 'notes' => 'VFC pré-bascule E85 01/07'],
+            ['plate' => 'GK-063-KK', 'company' => 'EOL', 'from' => '2025-06-15', 'to' => '2025-09-22', 'notes' => 'VFC post-bascule E85'],
+            ['plate' => 'GL-064-LL', 'company' => 'LOG', 'from' => '2025-01-15', 'to' => '2025-04-24', 'notes' => 'VFC pré-Cat1→MostPolluting'],
+            ['plate' => 'GL-064-LL', 'company' => 'NOV', 'from' => '2025-06-15', 'to' => '2025-09-22', 'notes' => 'VFC post-MostPolluting'],
 
-            // === Indispos compatibles (cf. seedUnavailabilities) sur ces véhicules ===
-            ['plate' => 'EY-025-YY', 'company' => 'MAG', 'from' => '2025-01-01', 'to' => '2025-09-30'],
-            ['plate' => 'EZ-026-ZZ', 'company' => 'PRO', 'from' => '2025-02-15', 'to' => '2025-12-31'],
-            ['plate' => 'FB-028-BB', 'company' => 'BAT', 'from' => '2025-04-01', 'to' => '2025-12-31'],
-            ['plate' => 'FC-029-CC', 'company' => 'COB', 'from' => '2025-03-15', 'to' => '2025-11-15'],
-            ['plate' => 'FH-034-HH', 'company' => 'TUR', 'from' => '2025-02-20', 'to' => '2025-10-31'],
-            ['plate' => 'FJ-036-JJ', 'company' => 'NOV', 'from' => '2025-05-01', 'to' => '2025-12-31'],
-            ['plate' => 'FL-038-LL', 'company' => 'HEX', 'from' => '2025-01-15', 'to' => '2025-12-31'],
-            ['plate' => 'FM-039-MM', 'company' => 'EOL', 'from' => '2025-03-01', 'to' => '2025-11-30'],
-            ['plate' => 'FP-042-PP', 'company' => 'ACM', 'from' => '2025-04-15', 'to' => '2025-12-31'],
-            ['plate' => 'FT-046-TT', 'company' => 'COR', 'from' => '2025-06-01', 'to' => '2025-12-31'],
+            // ============================================================
+            // Véhicules divers · couverture variée 2025
+            // ============================================================
+            ['plate' => 'EY-025-YY', 'company' => 'MAG', 'from' => '2025-01-15', 'to' => '2025-04-24'],   // 100j
+            ['plate' => 'EZ-026-ZZ', 'company' => 'PRO', 'from' => '2025-02-15', 'to' => '2025-05-25'],   // 100j
+            ['plate' => 'EZ-026-ZZ', 'company' => 'EOL', 'from' => '2025-09-15', 'to' => '2025-12-23'],   // 100j
+            ['plate' => 'FA-027-AA', 'company' => 'BAT', 'from' => '2025-03-15', 'to' => '2025-06-22'],   // 100j
+            ['plate' => 'FB-028-BB', 'company' => 'BAT', 'from' => '2025-04-01', 'to' => '2025-07-09'],   // 100j
+            ['plate' => 'FB-028-BB', 'company' => 'LOG', 'from' => '2025-08-15', 'to' => '2025-11-22'],   // 100j
+            ['plate' => 'FC-029-CC', 'company' => 'COB', 'from' => '2025-03-15', 'to' => '2025-06-22'],   // 100j
+            ['plate' => 'FD-030-DD', 'company' => 'TUR', 'from' => '2025-03-15', 'to' => '2025-06-22'],   // 100j élec
+            ['plate' => 'FD-030-DD', 'company' => 'COR', 'from' => '2025-09-01', 'to' => '2025-12-09'],   // 100j élec
+            ['plate' => 'FE-031-EE', 'company' => 'MAG', 'from' => '2025-03-15', 'to' => '2025-06-22'],   // 100j élec
+            ['plate' => 'FF-032-FF', 'company' => 'NOV', 'from' => '2025-04-01', 'to' => '2025-07-09'],   // 100j H₂
+            ['plate' => 'FG-033-GG', 'company' => 'LOG', 'from' => '2025-05-15', 'to' => '2025-08-22'],   // 100j Master ZE
+            ['plate' => 'FH-034-HH', 'company' => 'TUR', 'from' => '2025-02-20', 'to' => '2025-05-30'],   // 99j NEDC
+            ['plate' => 'FI-035-II', 'company' => 'PRO', 'from' => '2025-03-15', 'to' => '2025-06-22'],   // 100j NEDC
+            ['plate' => 'FJ-036-JJ', 'company' => 'NOV', 'from' => '2025-05-01', 'to' => '2025-08-08'],   // 100j NEDC
+            ['plate' => 'FL-038-LL', 'company' => 'HEX', 'from' => '2025-01-15', 'to' => '2025-04-24'],   // 100j NEDC diesel
+            ['plate' => 'FM-039-MM', 'company' => 'EOL', 'from' => '2025-03-01', 'to' => '2025-06-08'],   // 100j Berlingo
+            ['plate' => 'FP-042-PP', 'company' => 'ACM', 'from' => '2025-04-15', 'to' => '2025-07-23'],   // 100j PA 6cv
+            ['plate' => 'FT-046-TT', 'company' => 'COR', 'from' => '2025-06-01', 'to' => '2025-09-08'],   // 100j BMW E30
 
-            // === Sortie de flotte 2025 · GH-060-HH (exit_date 2025-07-20) + GJ-062-JJ ===
-            ['plate' => 'GH-060-HH', 'company' => 'NOV', 'from' => '2025-01-01', 'to' => '2025-07-15'],
-            ['plate' => 'GJ-062-JJ', 'company' => 'PRO', 'from' => '2025-01-15', 'to' => '2025-10-25'],
+            // ============================================================
+            // Sorties de flotte 2025 · GH-060-HH (07-20) et GJ-062-JJ (10-31)
+            // ============================================================
+            ['plate' => 'GH-060-HH', 'company' => 'NOV', 'from' => '2025-01-15', 'to' => '2025-04-24'],   // 100j
+            ['plate' => 'GH-060-HH', 'company' => 'PRO', 'from' => '2025-05-15', 'to' => '2025-07-19'],   // 66j (exit 07-20)
+            ['plate' => 'GJ-062-JJ', 'company' => 'PRO', 'from' => '2025-01-15', 'to' => '2025-04-24'],   // 100j
+            ['plate' => 'GJ-062-JJ', 'company' => 'HEX', 'from' => '2025-07-01', 'to' => '2025-10-08'],   // 100j
 
-            // === Plusieurs entreprises utilisatrices successives sur même véhicule ===
-            ['plate' => 'EG-007-GG', 'company' => 'ACM', 'from' => '2025-01-08', 'to' => '2025-04-30'],
-            ['plate' => 'EG-007-GG', 'company' => 'BTP', 'from' => '2025-05-15', 'to' => '2025-08-15'],
-            ['plate' => 'EG-007-GG', 'company' => 'IDF', 'from' => '2025-09-01', 'to' => '2025-12-31'],
+            // ============================================================
+            // FZ-052-ZZ Caddy handicap · zeroing · 2 contrats
+            // ============================================================
+            ['plate' => 'FZ-052-ZZ', 'company' => 'COR', 'from' => '2025-02-15', 'to' => '2025-05-25'],   // 100j
+            ['plate' => 'FZ-052-ZZ', 'company' => 'TUR', 'from' => '2025-07-15', 'to' => '2025-10-22'],   // 100j
+
+            // ============================================================
+            // GA-053-AA Prius (R-2024-017 disparu 2025+) · 2 contrats
+            // ============================================================
+            ['plate' => 'GA-053-AA', 'company' => 'EOL', 'from' => '2025-01-15', 'to' => '2025-04-24'],   // 100j
+            ['plate' => 'GA-053-AA', 'company' => 'HEX', 'from' => '2025-06-15', 'to' => '2025-09-22'],   // 100j
         ];
     }
 
@@ -1384,75 +1678,160 @@ final class DemoSeeder extends Seeder
     private function buildContractPlan2026(): array
     {
         return [
-            // === LLD plein 2026 · test moyenne pondérée polluants (Cat1 = 125,15 €) ===
-            ['plate' => 'EA-001-AA', 'company' => 'IDF', 'from' => '2026-01-01', 'to' => '2026-12-31', 'notes' => 'LLD full-year · Cat1 pondéré 125,15 €'],
-            ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2026-01-15', 'to' => '2026-12-15', 'notes' => 'MostPolluting full-year · pondéré 625,75 €'],
-            ['plate' => 'EC-003-CC', 'company' => 'ECO', 'from' => '2026-01-01', 'to' => '2026-12-31'], // Tesla élec
-            ['plate' => 'EF-006-FF', 'company' => 'ACM', 'from' => '2026-02-01', 'to' => '2026-12-31'],
-            ['plate' => 'EJ-010-JJ', 'company' => 'COR', 'from' => '2026-01-08', 'to' => '2026-12-31'], // handicap
+            // ============================================================
+            // Cross-année 2025 → 2026
+            // ============================================================
+            ['plate' => 'EZ-026-ZZ', 'company' => 'EOL', 'from' => '2025-12-20', 'to' => '2026-01-15', 'notes' => 'LCD cross 2025/2026 · ≤30j exempt'],
+            ['plate' => 'FA-027-AA', 'company' => 'BAT', 'from' => '2025-11-15', 'to' => '2026-02-22'],   // 100j cross-année
 
-            // === Contrats à cheval scission MATÉRIELLE 01/03/2026 (polluants +30 %) ===
-            // LLD couvrant la scission · doit appliquer la moyenne pondérée
-            ['plate' => 'EM-013-MM', 'company' => 'HEX', 'from' => '2026-01-15', 'to' => '2026-04-30', 'notes' => 'À cheval scission polluants 01/03/2026'],
-            ['plate' => 'EN-014-NN', 'company' => 'IDF', 'from' => '2026-02-01', 'to' => '2026-04-30', 'notes' => 'À cheval polluants Cat1'],
-            ['plate' => 'EQ-017-QQ', 'company' => 'EOL', 'from' => '2026-02-15', 'to' => '2026-05-15', 'notes' => 'À cheval polluants'],
-            // LCD 29 j à cheval (exempt par durée)
-            ['plate' => 'EO-015-OO', 'company' => 'LOG', 'from' => '2026-02-20', 'to' => '2026-03-20', 'notes' => 'LCD 29j à cheval scission'],
-            // LCD 32 j à cheval (taxable)
+            // ============================================================
+            // EA-001-AA · WLTP 100g · 4 contrats variés 2026
+            // ============================================================
+            ['plate' => 'EA-001-AA', 'company' => 'IDF', 'from' => '2026-01-15', 'to' => '2026-04-24'],   // 100j
+            ['plate' => 'EA-001-AA', 'company' => 'HEX', 'from' => '2026-05-15', 'to' => '2026-08-22'],   // 100j
+            ['plate' => 'EA-001-AA', 'company' => 'PRO', 'from' => '2026-09-15', 'to' => '2026-12-23'],   // 100j
+
+            // ============================================================
+            // EB-002-BB Trafic Diesel · 3 contrats
+            // ============================================================
+            ['plate' => 'EB-002-BB', 'company' => 'BTP', 'from' => '2026-01-15', 'to' => '2026-04-24'],   // 100j
+            ['plate' => 'EB-002-BB', 'company' => 'COB', 'from' => '2026-05-15', 'to' => '2026-08-22'],   // 100j
+            ['plate' => 'EB-002-BB', 'company' => 'BAT', 'from' => '2026-09-15', 'to' => '2026-12-15'],   // 92j
+
+            // ============================================================
+            // EC-003-CC Tesla élec · 0 € · 3 contrats
+            // ============================================================
+            ['plate' => 'EC-003-CC', 'company' => 'ECO', 'from' => '2026-01-15', 'to' => '2026-04-24'],   // 100j
+            ['plate' => 'EC-003-CC', 'company' => 'MAG', 'from' => '2026-05-15', 'to' => '2026-08-22'],   // 100j
+            ['plate' => 'EC-003-CC', 'company' => 'TUR', 'from' => '2026-09-15', 'to' => '2026-12-23'],   // 100j
+
+            // ============================================================
+            // EF-006-FF Yaris Hybrid · 3 contrats
+            // ============================================================
+            ['plate' => 'EF-006-FF', 'company' => 'ACM', 'from' => '2026-02-01', 'to' => '2026-05-11'],   // 100j
+            ['plate' => 'EF-006-FF', 'company' => 'NOV', 'from' => '2026-06-15', 'to' => '2026-09-22'],   // 100j
+            ['plate' => 'EF-006-FF', 'company' => 'EOL', 'from' => '2026-10-15', 'to' => '2026-12-22'],   // 69j
+
+            // ============================================================
+            // EJ-010-JJ Kangoo handicap · zeroing · 3 contrats
+            // ============================================================
+            ['plate' => 'EJ-010-JJ', 'company' => 'COR', 'from' => '2026-01-08', 'to' => '2026-04-17'],   // 100j
+            ['plate' => 'EJ-010-JJ', 'company' => 'TUR', 'from' => '2026-05-15', 'to' => '2026-08-22'],   // 100j
+            ['plate' => 'EJ-010-JJ', 'company' => 'PRO', 'from' => '2026-09-15', 'to' => '2026-12-22'],   // 99j
+
+            // ============================================================
+            // EM-013-MM C3 · à cheval scission polluants 01/03/2026
+            // ============================================================
+            ['plate' => 'EM-013-MM', 'company' => 'HEX', 'from' => '2026-01-15', 'to' => '2026-04-24', 'notes' => 'À cheval scission polluants 01/03/2026'],
+            ['plate' => 'EM-013-MM', 'company' => 'LOG', 'from' => '2026-05-15', 'to' => '2026-08-22'],   // 100j
+            ['plate' => 'EM-013-MM', 'company' => 'IDF', 'from' => '2026-09-15', 'to' => '2026-12-22'],   // 99j
+
+            // ============================================================
+            // EN-014-NN Fiat 500 · à cheval polluants
+            // ============================================================
+            ['plate' => 'EN-014-NN', 'company' => 'IDF', 'from' => '2026-02-01', 'to' => '2026-05-11', 'notes' => 'À cheval polluants Cat1'],
+            ['plate' => 'EN-014-NN', 'company' => 'PRO', 'from' => '2026-06-15', 'to' => '2026-09-22'],
+
+            // ============================================================
+            // EO-015-OO VW Polo · LCD 29j à cheval scission
+            // ============================================================
+            ['plate' => 'EO-015-OO', 'company' => 'LOG', 'from' => '2026-02-20', 'to' => '2026-03-20', 'notes' => 'LCD 29j à cheval scission · exempt'],
+            ['plate' => 'EO-015-OO', 'company' => 'MAG', 'from' => '2026-05-01', 'to' => '2026-08-08'],   // 100j
+
+            // ============================================================
+            // EP-016-PP Mini Cooper · LCD février 28j + LLD
+            // ============================================================
+            ['plate' => 'EP-016-PP', 'company' => 'PRO', 'from' => '2026-02-01', 'to' => '2026-02-28', 'notes' => 'LCD février 28j non bissextile'],
+            ['plate' => 'EP-016-PP', 'company' => 'IDF', 'from' => '2026-04-15', 'to' => '2026-07-23'],   // 100j
+            ['plate' => 'EP-016-PP', 'company' => 'HEX', 'from' => '2026-09-01', 'to' => '2026-12-09'],   // 100j
+
+            // ============================================================
+            // EQ-017-QQ Audi A1 · à cheval polluants
+            // ============================================================
+            ['plate' => 'EQ-017-QQ', 'company' => 'EOL', 'from' => '2026-02-15', 'to' => '2026-05-25', 'notes' => 'À cheval polluants 01/03'],
+            ['plate' => 'EQ-017-QQ', 'company' => 'PRO', 'from' => '2026-06-15', 'to' => '2026-09-22'],
+
+            // ============================================================
+            // ER-018-RR BMW Série 1 · LCD mois entier mars
+            // ============================================================
+            ['plate' => 'ER-018-RR', 'company' => 'IDF', 'from' => '2026-03-01', 'to' => '2026-03-31', 'notes' => 'LCD mois entier mars 2026 · exempt'],
+            ['plate' => 'ER-018-RR', 'company' => 'MAG', 'from' => '2026-05-15', 'to' => '2026-08-22'],   // 100j
+
+            // ============================================================
+            // ES-019-SS · LCD 32j à cheval scission · taxable
+            // ============================================================
             ['plate' => 'ES-019-SS', 'company' => 'MAG', 'from' => '2026-02-15', 'to' => '2026-03-18', 'notes' => 'LCD 32j à cheval scission · taxable'],
+            ['plate' => 'ES-019-SS', 'company' => 'COB', 'from' => '2026-05-01', 'to' => '2026-08-08'],
 
-            // === Contrats à cheval scission RÉDACTIONNELLE 01/09/2026 ===
-            ['plate' => 'ET-020-TT', 'company' => 'NOV', 'from' => '2026-07-01', 'to' => '2026-10-31', 'notes' => 'À cheval Ordo 2025-1247 01/09/2026'],
-            ['plate' => 'EU-021-UU', 'company' => 'COB', 'from' => '2026-08-15', 'to' => '2026-11-30', 'notes' => 'À cheval rédactionnel polluants'],
+            // ============================================================
+            // ET-020-TT Volvo XC40 · à cheval scission rédactionnelle 01/09
+            // ============================================================
+            ['plate' => 'ET-020-TT', 'company' => 'NOV', 'from' => '2026-07-01', 'to' => '2026-10-08', 'notes' => 'À cheval Ordo 2025-1247 01/09/2026'],
 
-            // === IDF Consulting · test majoration carte grise LF 2026 art. 60 ===
-            ['plate' => 'EV-022-VV', 'company' => 'IDF', 'from' => '2026-04-01', 'to' => '2026-12-31', 'notes' => 'IDF post-LF 2026 art. 60'],
+            // ============================================================
+            // EU-021-UU · à cheval rédactionnel
+            // ============================================================
+            ['plate' => 'EU-021-UU', 'company' => 'COB', 'from' => '2026-08-15', 'to' => '2026-11-22', 'notes' => 'À cheval rédactionnel polluants'],
 
-            // === E85 actif 2026 (R-2026-023 reconduit) ===
-            ['plate' => 'FU-047-UU', 'company' => 'BTP', 'from' => '2026-01-01', 'to' => '2026-12-31', 'notes' => 'E85 130g WLTP · gain accru 2026 (barème durci)'],
-            ['plate' => 'FV-048-VV', 'company' => 'ACM', 'from' => '2026-02-01', 'to' => '2026-12-15', 'notes' => 'E85 100g WLTP · abattement 2026 = 132 €'],
-            ['plate' => 'FX-050-XX', 'company' => 'HEX', 'from' => '2026-01-15', 'to' => '2026-12-31', 'notes' => 'E85 PA 12 CV reconduit'],
+            // ============================================================
+            // EV-022-VV Captur · IDF post-LF 2026 art. 60 majoration
+            // ============================================================
+            ['plate' => 'EV-022-VV', 'company' => 'IDF', 'from' => '2026-04-01', 'to' => '2026-07-09', 'notes' => 'IDF post-LF 2026 art. 60'],
+            ['plate' => 'EV-022-VV', 'company' => 'HEX', 'from' => '2026-08-15', 'to' => '2026-11-22'],
 
-            // === Sortie de flotte 2026 · GI-061-II (exit 2026-04-30) ===
+            // ============================================================
+            // EW-023-WW · LCD 30j exact mai
+            // ============================================================
+            ['plate' => 'EW-023-WW', 'company' => 'COR', 'from' => '2026-05-01', 'to' => '2026-05-30', 'notes' => 'LCD 30j exact'],
+            ['plate' => 'EW-023-WW', 'company' => 'BAT', 'from' => '2026-07-01', 'to' => '2026-10-08'],
+
+            // ============================================================
+            // EX-024-XX · cluster LCD 4 consécutifs HEX 2026
+            // ============================================================
+            ['plate' => 'EX-024-XX', 'company' => 'HEX', 'from' => '2026-07-01', 'to' => '2026-07-25', 'notes' => 'Cluster LCD 1/4 2026'],
+            ['plate' => 'EX-024-XX', 'company' => 'HEX', 'from' => '2026-08-02', 'to' => '2026-08-28', 'notes' => 'Cluster LCD 2/4 2026'],
+            ['plate' => 'EX-024-XX', 'company' => 'HEX', 'from' => '2026-09-02', 'to' => '2026-09-30', 'notes' => 'Cluster LCD 3/4 2026'],
+            ['plate' => 'EX-024-XX', 'company' => 'HEX', 'from' => '2026-10-05', 'to' => '2026-10-29', 'notes' => 'Cluster LCD 4/4 2026'],
+
+            // ============================================================
+            // EY-025-YY · multi-affectation 3 entreprises
+            // ============================================================
+            ['plate' => 'EY-025-YY', 'company' => 'ACM', 'from' => '2026-01-01', 'to' => '2026-04-10'],   // 100j
+            ['plate' => 'EY-025-YY', 'company' => 'BTP', 'from' => '2026-05-01', 'to' => '2026-08-08'],   // 100j
+            ['plate' => 'EY-025-YY', 'company' => 'IDF', 'from' => '2026-09-01', 'to' => '2026-12-09'],   // 100j
+
+            // ============================================================
+            // E85 actif 2026 (R-2026-023 reconduit) · gain accru durcissement
+            // ============================================================
+            ['plate' => 'FU-047-UU', 'company' => 'BTP', 'from' => '2026-01-15', 'to' => '2026-04-24', 'notes' => 'E85 130g · gain accru 2026'],
+            ['plate' => 'FU-047-UU', 'company' => 'HEX', 'from' => '2026-05-15', 'to' => '2026-08-22'],
+            ['plate' => 'FV-048-VV', 'company' => 'ACM', 'from' => '2026-02-01', 'to' => '2026-05-11', 'notes' => 'E85 100g · 132 € abat 2026'],
+            ['plate' => 'FV-048-VV', 'company' => 'PRO', 'from' => '2026-07-01', 'to' => '2026-10-08'],
+            ['plate' => 'FX-050-XX', 'company' => 'HEX', 'from' => '2026-01-15', 'to' => '2026-04-24', 'notes' => 'E85 PA 12 CV reconduit'],
+
+            // ============================================================
+            // Sortie de flotte 2026 · GI-061-II (exit 2026-04-30)
+            // ============================================================
             ['plate' => 'GI-061-II', 'company' => 'TUR', 'from' => '2026-01-15', 'to' => '2026-04-25'],
 
-            // === LCD divers 2026 ===
-            // LCD février 2026 = 28 j (non bissextile · exempt par durée)
-            ['plate' => 'EP-016-PP', 'company' => 'PRO', 'from' => '2026-02-01', 'to' => '2026-02-28', 'notes' => 'LCD février 28j non bissextile'],
-            // LCD mars 2026 = 31 j mois entier (exempt)
-            ['plate' => 'ER-018-RR', 'company' => 'IDF', 'from' => '2026-03-01', 'to' => '2026-03-31', 'notes' => 'LCD mois entier mars 2026'],
-            // LCD 30 j exact en mai 2026
-            ['plate' => 'EW-023-WW', 'company' => 'COR', 'from' => '2026-05-01', 'to' => '2026-05-30', 'notes' => 'LCD 30j exact'],
-
-            // === Cluster risque LCD 2026 (4 consécutifs même entreprise) ===
-            ['plate' => 'EX-024-XX', 'company' => 'HEX', 'from' => '2026-07-01', 'to' => '2026-07-25'],
-            ['plate' => 'EX-024-XX', 'company' => 'HEX', 'from' => '2026-08-02', 'to' => '2026-08-28'],
-            ['plate' => 'EX-024-XX', 'company' => 'HEX', 'from' => '2026-09-02', 'to' => '2026-09-30'],
-            ['plate' => 'EX-024-XX', 'company' => 'HEX', 'from' => '2026-10-05', 'to' => '2026-10-29'],
-
-            // === Multi-affectation · même véhicule, plusieurs entreprises 2026 ===
-            ['plate' => 'EY-025-YY', 'company' => 'ACM', 'from' => '2026-01-01', 'to' => '2026-04-15'],
-            ['plate' => 'EY-025-YY', 'company' => 'BTP', 'from' => '2026-05-01', 'to' => '2026-08-15'],
-            ['plate' => 'EY-025-YY', 'company' => 'IDF', 'from' => '2026-09-01', 'to' => '2026-12-31'],
-
-            // === Cross-année 2025 → 2026 (LCD chevauchant) ===
-            // LCD 27 j (déc 2025 → jan 2026) · ≤ 30 j → exempt en 2026
-            ['plate' => 'EZ-026-ZZ', 'company' => 'EOL', 'from' => '2025-12-20', 'to' => '2026-01-15', 'notes' => 'LCD cross 2025/2026 · ≤30j exempt'],
-            // LLD plein cross-année
-            ['plate' => 'FA-027-AA', 'company' => 'BAT', 'from' => '2025-11-15', 'to' => '2026-05-15'],
-
-            // === Autres LLD 2026 standards ===
-            ['plate' => 'FB-028-BB', 'company' => 'COB', 'from' => '2026-01-08', 'to' => '2026-12-31'],
-            ['plate' => 'FD-030-DD', 'company' => 'TUR', 'from' => '2026-01-15', 'to' => '2026-12-31'], // élec
-            ['plate' => 'FE-031-EE', 'company' => 'MAG', 'from' => '2026-02-01', 'to' => '2026-12-31'], // élec
-            ['plate' => 'FG-033-GG', 'company' => 'LOG', 'from' => '2026-03-01', 'to' => '2026-12-31'], // Master ZE
-            ['plate' => 'FZ-052-ZZ', 'company' => 'COR', 'from' => '2026-01-01', 'to' => '2026-12-31'], // handicap zeroing
-            ['plate' => 'FC-029-CC', 'company' => 'NOV', 'from' => '2026-02-15', 'to' => '2026-11-30'],
-            ['plate' => 'FH-034-HH', 'company' => 'PRO', 'from' => '2026-03-04', 'to' => '2026-10-31'],
-            ['plate' => 'FJ-036-JJ', 'company' => 'HEX', 'from' => '2026-04-01', 'to' => '2026-12-31'],
-            ['plate' => 'FL-038-LL', 'company' => 'EOL', 'from' => '2026-01-15', 'to' => '2026-12-31'],
-            ['plate' => 'FP-042-PP', 'company' => 'IDF', 'from' => '2026-05-01', 'to' => '2026-12-31'],
-            ['plate' => 'GA-053-AA', 'company' => 'ACM', 'from' => '2026-01-01', 'to' => '2026-12-31'], // Prius (R-2024-017 disparu 2025+)
+            // ============================================================
+            // Autres véhicules · diversifié 2026
+            // ============================================================
+            ['plate' => 'FB-028-BB', 'company' => 'COB', 'from' => '2026-01-08', 'to' => '2026-04-17'],   // 100j
+            ['plate' => 'FB-028-BB', 'company' => 'LOG', 'from' => '2026-05-15', 'to' => '2026-08-22'],
+            ['plate' => 'FD-030-DD', 'company' => 'TUR', 'from' => '2026-01-15', 'to' => '2026-04-24'],   // élec
+            ['plate' => 'FD-030-DD', 'company' => 'COR', 'from' => '2026-06-15', 'to' => '2026-09-22'],   // élec
+            ['plate' => 'FE-031-EE', 'company' => 'MAG', 'from' => '2026-02-01', 'to' => '2026-05-11'],   // élec
+            ['plate' => 'FG-033-GG', 'company' => 'LOG', 'from' => '2026-03-01', 'to' => '2026-06-08'],   // Master ZE
+            ['plate' => 'FZ-052-ZZ', 'company' => 'COR', 'from' => '2026-01-15', 'to' => '2026-04-24'],   // handicap
+            ['plate' => 'FZ-052-ZZ', 'company' => 'TUR', 'from' => '2026-06-15', 'to' => '2026-09-22'],   // handicap
+            ['plate' => 'FC-029-CC', 'company' => 'NOV', 'from' => '2026-02-15', 'to' => '2026-05-25'],
+            ['plate' => 'FH-034-HH', 'company' => 'PRO', 'from' => '2026-03-04', 'to' => '2026-06-11'],
+            ['plate' => 'FJ-036-JJ', 'company' => 'HEX', 'from' => '2026-04-01', 'to' => '2026-07-09'],
+            ['plate' => 'FL-038-LL', 'company' => 'EOL', 'from' => '2026-01-15', 'to' => '2026-04-24'],
+            ['plate' => 'FP-042-PP', 'company' => 'IDF', 'from' => '2026-05-01', 'to' => '2026-08-08'],
+            ['plate' => 'GA-053-AA', 'company' => 'ACM', 'from' => '2026-01-15', 'to' => '2026-04-24'],   // Prius
+            ['plate' => 'GA-053-AA', 'company' => 'EOL', 'from' => '2026-06-15', 'to' => '2026-09-22'],   // Prius
         ];
     }
 }
