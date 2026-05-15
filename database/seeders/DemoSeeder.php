@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Actions\FiscalDeclaration\GenerateDeclarationAction;
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
@@ -28,12 +29,10 @@ use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
-use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 
 /**
  * Seeder de démo pour peupler l'année fiscale 2024.
@@ -72,68 +71,80 @@ final class DemoSeeder extends Seeder
 
     /**
      * Crée des déclarations fiscales historiques couvrant la chaîne
-     * complète Draft → Generated (avec snapshot persisté + PDF
-     * placeholder) → Superseded (régénération).
+     * complète Draft → Generated → Superseded (régénération).
      *
-     * - Generated · ~12 sur 2024 (chiffres figés, PDF placeholder)
+     * **Cohérence stricte DB ↔ disque** · les déclarations Generated
+     * passent par la **vraie** `GenerateDeclarationAction` (snapshot
+     * persisté + PDF réel via DomPDF + référence séquentielle + hash
+     * SHA-256). Aucun placeholder. Si la génération échoue (ex. clusters
+     * pending), fallback Deferred avec warning console.
+     *
+     * - Generated · ~12 (chiffres figés, vrai PDF DomPDF sur disque)
      * - Deferred · ~3 mises de côté
      * - Draft · ~5 en cours
-     * - Superseded chains · 2 cas régénérés (ancienne obsolete · nouvelle Generated pointant vers l'ancienne via superseded_by_id)
+     * - Superseded chains · ACM 2024 régénérée (ancienne obsolete +
+     *   nouvelle Generated pointant vers l'ancienne via superseded_by_id)
      */
     private function seedFiscalDeclarations(array $companies): void
     {
         FiscalDeclaration::query()->forceDelete();
 
-        $engine = app(DeclarationFiscalEngine::class);
+        $generateAction = app(GenerateDeclarationAction::class);
 
-        // Helper · crée un PDF placeholder sur disque pour les Generated
-        $createPlaceholderPdf = function (string $code, int $year): array {
-            $path = sprintf('declarations/demo/%d/%s.pdf', $year, $code);
-            $content = sprintf("%%PDF-1.4\nDemo placeholder · %s %d\n%%EOF\n", $code, $year);
-            Storage::disk('local')->put($path, $content);
-
-            return ['path' => $path, 'hash' => hash('sha256', $content)];
-        };
-
-        // Helper · crée un record déclaration
+        // Helper · crée une déclaration Draft, puis passe par
+        // `GenerateDeclarationAction` pour atteindre Generated (vrai PDF).
+        // Fallback Deferred si la génération échoue (clusters pending,
+        // erreur engine, etc.).
         $create = function (
             Company $company,
             int $year,
             FiscalDeclarationStatus $status,
-            ?int $supersededById = null,
-            ?bool $obsolete = false,
-        ) use ($engine, $createPlaceholderPdf): FiscalDeclaration {
-            $isGenerated = $status === FiscalDeclarationStatus::Generated;
-            $payload = null;
-            $pdfPath = null;
-            $pdfHash = null;
-            $generatedAt = null;
-            if ($isGenerated) {
-                try {
-                    $snapshot = $engine->compute($company->id, $year);
-                    $payload = json_decode(json_encode($snapshot), true);
-                } catch (\Throwable $e) {
-                    $payload = null;
-                }
-                $pdf = $createPlaceholderPdf($company->short_code, $year);
-                $pdfPath = $pdf['path'];
-                $pdfHash = $pdf['hash'];
-                $generatedAt = Carbon::create($year + 1, 1, 15, 9, 0, 0);
-            }
-
-            return FiscalDeclaration::create([
+            bool $obsolete = false,
+            ?Carbon $obsoleteAt = null,
+            ?array $obsoleteReasons = null,
+        ) use ($generateAction): ?FiscalDeclaration {
+            $draft = FiscalDeclaration::create([
                 'company_id' => $company->id,
                 'fiscal_year' => $year,
-                'reference' => sprintf('DECL-%s-%d', $company->short_code, $year),
-                'status' => $status,
-                'generated_snapshot_payload' => $payload,
-                'generated_pdf_path' => $pdfPath,
-                'generated_pdf_hash' => $pdfHash,
-                'generated_at' => $generatedAt,
-                'is_obsolete' => (bool) $obsolete,
-                'obsolete_at' => $obsolete ? Carbon::create($year + 1, 3, 1, 10, 0, 0) : null,
-                'superseded_by_id' => $supersededById,
+                'status' => FiscalDeclarationStatus::Draft,
             ]);
+
+            $result = $draft;
+
+            if ($status === FiscalDeclarationStatus::Generated) {
+                try {
+                    $generated = $generateAction->execute($draft->id);
+                    $generated->forceFill([
+                        'generated_at' => Carbon::create($year + 1, 1, 15, 9, 0, 0),
+                    ])->save();
+                    $result = $generated->fresh();
+                } catch (\Throwable $e) {
+                    $draft->update(['status' => FiscalDeclarationStatus::Deferred]);
+                    if ($this->command !== null) {
+                        $this->command->warn(sprintf(
+                            '· %s %d · génération PDF impossible (fallback Deferred) · %s',
+                            $company->short_code,
+                            $year,
+                            $e->getMessage(),
+                        ));
+                    }
+                    $result = $draft->fresh();
+                }
+            } elseif ($status === FiscalDeclarationStatus::Deferred) {
+                $draft->update(['status' => FiscalDeclarationStatus::Deferred]);
+                $result = $draft->fresh();
+            }
+
+            if ($obsolete && $result !== null) {
+                $result->forceFill([
+                    'is_obsolete' => true,
+                    'obsolete_at' => $obsoleteAt ?? Carbon::create($year + 1, 3, 1, 10, 0, 0),
+                    'obsolete_reasons' => $obsoleteReasons,
+                ])->save();
+                $result = $result->fresh();
+            }
+
+            return $result;
         };
 
         // === 2024 · 8 déclarations Generated (closes) + 1 Deferred ===
@@ -156,16 +167,18 @@ final class DemoSeeder extends Seeder
             $oldAcm2024 = FiscalDeclaration::where('company_id', $companies['ACM']->id)
                 ->where('fiscal_year', 2024)
                 ->first();
-            if ($oldAcm2024) {
-                $oldAcm2024->update([
+            if ($oldAcm2024 !== null) {
+                $oldAcm2024->forceFill([
                     'is_obsolete' => true,
                     'obsolete_at' => Carbon::create(2025, 4, 10, 14, 0, 0),
                     'obsolete_reasons' => [
                         'reason' => 'Régénération suite à correction VFC véhicule EE-005-EE',
                     ],
-                ]);
+                ])->save();
                 $newAcm2024 = $create($companies['ACM'], 2024, FiscalDeclarationStatus::Generated);
-                $oldAcm2024->update(['superseded_by_id' => $newAcm2024->id]);
+                if ($newAcm2024 !== null) {
+                    $oldAcm2024->update(['superseded_by_id' => $newAcm2024->id]);
+                }
             }
         }
 
