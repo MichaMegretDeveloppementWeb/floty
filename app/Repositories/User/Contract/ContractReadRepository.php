@@ -423,6 +423,13 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         ];
     }
 
+    public function findContractDateRangesForVehicle(int $vehicleId): Collection
+    {
+        return Contract::query()
+            ->where('vehicle_id', $vehicleId)
+            ->get(['id', 'company_id', 'start_date', 'end_date']);
+    }
+
     public function findActiveYearsForCompany(int $companyId): array
     {
         $rows = Contract::query()

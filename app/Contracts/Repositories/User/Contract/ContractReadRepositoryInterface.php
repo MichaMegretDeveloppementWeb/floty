@@ -275,6 +275,20 @@ interface ContractReadRepositoryInterface
     ): Collection;
 
     /**
+     * Lot 4 D01 (F-34-001) · liste minimale des contrats actifs (non
+     * soft-deletés) sur un véhicule donné, projetés sur les seules
+     * colonnes `(company_id, start_date, end_date)`. Utilisé par
+     * {@see App\Services\Invoice\InvoiceDivergenceFlagger::flagForVehicle}
+     * pour pivoter vehicle → companies + plages mensuelles à flagger.
+     *
+     * Retourne une `Collection<int, Contract>` (instances Eloquent
+     * partielles, scope SoftDeletes appliqué).
+     *
+     * @return Collection<int, Contract>
+     */
+    public function findContractDateRangesForVehicle(int $vehicleId): Collection;
+
+    /**
      * Bornes globales des années sur les contrats **non soft-deletés**.
      *
      * Source de vérité du sélecteur d'année dynamique exposé par

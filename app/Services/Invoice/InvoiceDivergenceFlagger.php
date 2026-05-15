@@ -4,39 +4,49 @@ declare(strict_types=1);
 
 namespace App\Services\Invoice;
 
-use App\Models\Invoice;
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
+use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Query\Builder as QueryBuilder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Service applicatif chargé de marquer les factures impactées par une
  * mutation comme `is_divergent = true` (T6 / Phase 14.R V1.2).
  *
- * **Pourquoi un service dédié** : centraliser la logique d'énumération
- * (year, month) et de bulk UPDATE pour qu'elle soit réutilisable par
+ * **Pourquoi un service dédié** · centraliser la logique d'énumération
+ * `(year, month)` et de bulk UPDATE pour qu'elle soit réutilisable par
  * les 3 observers (Contract, VehicleYearlyPricing, Vehicle.exit_date)
- * sans duplication. Conforme ADR-0013 : zéro SQL ailleurs, écritures
- * via Eloquent / Query Builder.
+ * sans duplication.
  *
- * **Doctrine immuabilité** (ADR-0008) : `is_divergent` est une
+ * **Conformité ADR-0013 R3** (Lot 4 D01 · F-34-001 + F-34-202 · plan-remediation
+ * Vague 1) · le service ne fait plus aucun SQL direct. Toutes les
+ * lectures sont déléguées à {@see ContractReadRepositoryInterface}, et
+ * tous les bulk UPDATE à {@see InvoiceWriteRepositoryInterface}. Les
+ * 3 méthodes du service ne portent plus que la logique d'orchestration
+ * (énumération de tuples `(year, month)`, déduplication, pivots).
+ *
+ * **Doctrine immuabilité** (ADR-0008) · `is_divergent` est une
  * métadonnée d'observabilité, pas un champ du snapshot. Les colonnes
  * figées (`total_ht_cents`, `pdf_path`, `pdf_hash`, `invoice_number`,
  * `invoice_lines`) ne sont jamais mutées par ce service.
  *
- * **Coût** : un appel = un (rarement deux ou trois) bulk UPDATE Eloquent
+ * **Coût** · un appel = un (rarement deux ou trois) bulk UPDATE
  * conditionnel sur `(company_id, year, month)`. Aucun appel à
- * `BillingCalculator`. L'intérêt principal : faire payer la divergence
+ * `BillingCalculator`. L'intérêt principal · faire payer la divergence
  * à l'écriture (rare) plutôt qu'à la lecture (à chaque Index).
  */
 final readonly class InvoiceDivergenceFlagger
 {
+    public function __construct(
+        private ContractReadRepositoryInterface $contracts,
+        private InvoiceWriteRepositoryInterface $invoices,
+    ) {}
+
     /**
      * Marque divergentes les factures de l'entreprise dont (year, month)
      * tombe dans le range courant ou l'éventuel range précédent (cas
      * Update Contract avec dates modifiées).
      *
-     * Retourne le nombre de lignes flippées (utile pour les tests ; en
+     * Retourne le nombre de lignes flippées (utile pour les tests · en
      * pratique on n'agit pas sur le retour).
      */
     public function flagForContractRange(
@@ -54,46 +64,34 @@ final readonly class InvoiceDivergenceFlagger
             ));
         }
 
-        if ($tuples === []) {
-            return 0;
-        }
-
-        return $this->bulkUpdateForCompanyTuples($companyId, $tuples);
+        return $this->invoices->flagDivergentForCompanyAndTuples($companyId, $tuples);
     }
 
     /**
      * Marque divergentes les factures de l'année du tarif modifié, pour
-     * toutes les entreprises ayant eu un contrat sur ce véhicule chevauchant
-     * l'année.
+     * toutes les entreprises ayant eu un contrat sur ce véhicule
+     * chevauchant l'année.
+     *
+     * Le pivot vehicle → companies + l'UPDATE bulk sont entièrement
+     * portés par {@see InvoiceWriteRepositoryInterface::flagDivergentForVehiclePricingYear}
+     * (1 round-trip BDD avec subquery embedded).
      */
     public function flagForVehiclePricingYear(int $vehicleId, int $year): int
     {
-        return Invoice::query()
-            ->where('year', $year)
-            ->where('is_divergent', false)
-            ->whereIn('company_id', function (QueryBuilder $sub) use ($vehicleId, $year): void {
-                $sub->select('company_id')->distinct()
-                    ->from('contracts')
-                    ->where('vehicle_id', $vehicleId)
-                    ->where('start_date', '<=', "{$year}-12-31")
-                    ->where('end_date', '>=', "{$year}-01-01")
-                    ->whereNull('deleted_at');
-            })
-            ->update(['is_divergent' => true]);
+        return $this->invoices->flagDivergentForVehiclePricingYear($vehicleId, $year);
     }
 
     /**
      * Marque divergentes toutes les factures correspondant à un contrat
      * existant du véhicule (cas Vehicle.exit_date qui clip la facturation,
      * cf. T5 / ADR-0018).
+     *
+     * Pivot effectué via `findContractDateRangesForVehicle` puis bulk
+     * UPDATE par company sur les tuples `(year, month)` énumérés.
      */
     public function flagForVehicle(int $vehicleId): int
     {
-        $contracts = DB::table('contracts')
-            ->where('vehicle_id', $vehicleId)
-            ->whereNull('deleted_at')
-            ->select('company_id', 'start_date', 'end_date')
-            ->get();
+        $contracts = $this->contracts->findContractDateRangesForVehicle($vehicleId);
 
         /** @var array<int, list<array{year:int,month:int}>> $byCompany */
         $byCompany = [];
@@ -106,37 +104,10 @@ final readonly class InvoiceDivergenceFlagger
 
         $total = 0;
         foreach ($byCompany as $companyId => $tuples) {
-            $total += $this->bulkUpdateForCompanyTuples($companyId, $this->deduplicate($tuples));
+            $total += $this->invoices->flagDivergentForCompanyAndTuples($companyId, $this->deduplicate($tuples));
         }
 
         return $total;
-    }
-
-    /**
-     * Bulk UPDATE Eloquent sur les factures de l'entreprise dont
-     * (year, month) match l'un des tuples. Skippe celles déjà divergentes
-     * (idempotence et économie d'écriture).
-     *
-     * @param  list<array{year:int,month:int}>  $tuples
-     */
-    private function bulkUpdateForCompanyTuples(int $companyId, array $tuples): int
-    {
-        if ($tuples === []) {
-            return 0;
-        }
-
-        return Invoice::query()
-            ->where('company_id', $companyId)
-            ->where('is_divergent', false)
-            ->where(function ($q) use ($tuples): void {
-                foreach ($tuples as $tuple) {
-                    $q->orWhere(function ($sub) use ($tuple): void {
-                        $sub->where('year', $tuple['year'])
-                            ->where('month', $tuple['month']);
-                    });
-                }
-            })
-            ->update(['is_divergent' => true]);
     }
 
     /**
