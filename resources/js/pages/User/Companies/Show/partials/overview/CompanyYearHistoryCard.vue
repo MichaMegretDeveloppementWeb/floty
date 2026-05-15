@@ -23,9 +23,18 @@ import { formatEur } from '@/Utils/format/formatEur';
 
 type YearStats = App.Data.User.Company.CompanyYearStatsData;
 
-const props = defineProps<{
-    history: readonly YearStats[];
-}>();
+const props = withDefaults(
+    defineProps<{
+        history: readonly YearStats[];
+        /**
+         * Refonte D5.10.W · mode flush sans Card wrapping ni header
+         * interne (`Historique par année`). Le tab parent fournit
+         * l'eyebrow `HISTORIQUE`.
+         */
+        unwrapped?: boolean;
+    }>(),
+    { unwrapped: false },
+);
 
 const sortedHistory = computed<YearStats[]>(() =>
     [...props.history].sort((a, b) => b.year - a.year),
@@ -33,8 +42,8 @@ const sortedHistory = computed<YearStats[]>(() =>
 </script>
 
 <template>
-    <Card>
-        <template #header>
+    <component :is="unwrapped ? 'div' : Card">
+        <template v-if="!unwrapped" #header>
             <h2 class="text-sm font-medium uppercase tracking-wide text-slate-500">
                 Historique par année
             </h2>
@@ -87,5 +96,5 @@ const sortedHistory = computed<YearStats[]>(() =>
                 Format Locations : total (LCD/LLD). Montant loyer absent si au moins un véhicule a un tarif manquant sur l'année.
             </p>
         </div>
-    </Card>
+    </component>
 </template>

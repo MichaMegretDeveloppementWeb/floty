@@ -2,20 +2,17 @@
 /**
  * Onglet « Vue d'ensemble » de la fiche entreprise.
  *
- * **Doctrine temporelle (chantier η Phase 1, 2026-05-05)** : 3 lentilles
- * temporelles distinctes :
+ * **Doctrine temporelle (chantier η Phase 1, 2026-05-05)** · 3 lentilles
+ * temporelles distinctes ·
  *   - **Présent** = `CompanyKpiCards` (4 KPIs sur l'année calendaire courante)
  *   - **Évolution** = `CompanyYearHistoryCard` (récap années passées)
  *   - **Exploration** = `CompanyActivityCard` (sélecteur d'année local)
  *
- * Layout responsive (pattern aligné avec Vehicle Show) :
- *   - Hero (full width, dans Show/Index.vue) ✓
- *   - 4 KPIs Présent (full width)
- *   - Historique par année (full width)
- *   - Layout 2 colonnes XL+ : main (Historique en col-span-2) + aside
- *     (Contact + Adresse en col-span-1)
- *   - < xl : Contact + Adresse passent dans le flux principal sous
- *     l'historique (déjà rendus dans le main, l'aside disparaît)
+ * Refonte design D5.10.W · pattern Linear-éditorial avec eyebrows
+ * sectionnés, KPIs flush (plus de StatCard), historique flush, et
+ * conservation des cards aside Contact/Adresse (info statique
+ * compacte). L'alerte `PendingActionsAlert` reste en bannière rouge
+ * en haut (sémantique d'urgence, conservée comme avant).
  */
 import { computed } from 'vue';
 import CompanyActivityCard from './overview/CompanyActivityCard.vue';
@@ -42,7 +39,8 @@ const hasAnyPending = computed<boolean>(
 </script>
 
 <template>
-    <div class="flex flex-col gap-6">
+    <div class="flex flex-col gap-10">
+        <!-- Alerte actions à traiter (sémantique d'urgence · conservée) -->
         <PendingActionsAlert
             v-if="hasAnyPending"
             :pending-declarations="props.pendingDeclarations ?? []"
@@ -52,19 +50,37 @@ const hasAnyPending = computed<boolean>(
             @goto-billing-year="(year) => emit('goto-billing-year', year)"
         />
 
+        <!--
+            Section · KPIs présent (année courante). Pas d'eyebrow ·
+            les KPIs parlent d'eux-mêmes en tête de page, et la
+            séparation `border-y` du stats row fournit déjà une
+            structure visuelle suffisante.
+        -->
         <CompanyKpiCards
             :kpi-stats="company.kpiStats"
             :kpi-year="company.kpiYear"
             :kpi-fiscal-available="company.kpiFiscalAvailable"
         />
 
-        <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div class="grid grid-cols-1 gap-10 xl:grid-cols-3 xl:gap-12">
             <!-- Colonne principale -->
-            <div class="flex flex-col gap-6 xl:col-span-2">
-                <CompanyYearHistoryCard :history="company.history" />
+            <div class="flex flex-col gap-10 xl:col-span-2">
+                <!-- Section · Historique par année (évolution) -->
+                <section class="flex flex-col gap-4">
+                    <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        Historique par année
+                    </p>
+                    <CompanyYearHistoryCard :history="company.history" unwrapped />
+                </section>
+
+                <!-- Section · Activité (exploration, conservée avec sa carte interne) -->
                 <CompanyActivityCard :company="company" />
 
-                <!-- < xl : Contact + Adresse dans le main flow, sous l'activité. En xl+, l'aside les porte. -->
+                <!--
+                    < xl · Contact + Adresse passent dans le flux
+                    principal sous l'activité. En xl+, l'aside les
+                    porte.
+                -->
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:hidden">
                     <CompanyContactCard :company="company" />
                     <CompanyAddressCard :company="company" />

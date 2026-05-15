@@ -3,21 +3,20 @@
  * Rangée de 4 KPIs **Présent** · reflète l'année calendaire courante
  * uniquement (chantier η Phase 1, doctrine temporelle).
  *
- * **Renomme `CompanyLifetimeStatsCards` (lifetime tous exercices) →
- * `CompanyKpiCards` (année courante seule)**. Cohérence avec doctrine
- * HD : KPIs en haut = présent, Historique en dessous = passé.
+ * Refonte design D5.10.W · stats row éditorial flush (4 colonnes
+ * séparées par hairlines verticaux sur ≥ sm, 2×2 sur mobile · pattern
+ * miroir des onglets Fiscalité / Facturation). Plus de StatCard avec
+ * icônes · on harmonise sur le pattern unique des autres tabs.
  *
- * Spécificités :
+ * Spécificités ·
  *   - Si `kpiFiscalAvailable === false` (règles fiscales pas codées
  *     pour l'année courante), la KPI Taxes affiche un `·` neutre avec
- *     caption « Règles {YYYY} non implémentées » (cf. doctrine HD6 :
+ *     caption « Règles {YYYY} non implémentées » (cf. doctrine HD6
  *     « pas de règles ≠ pas de données »).
- *   - Montant loyer : somme des 12 facturations mensuelles de l'année,
+ *   - Montant loyer · somme des 12 facturations mensuelles de l'année,
  *     `null` si au moins un véhicule de la flotte a un pricing manquant.
  */
-import { Banknote, Calendar, FileText, Receipt } from 'lucide-vue-next';
 import { computed } from 'vue';
-import StatCard from '@/Components/Ui/StatCard/StatCard.vue';
 import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
@@ -36,15 +35,23 @@ const taxValue = computed<string>(() => {
 
 const taxCaption = computed<string>(() => {
     if (!props.kpiFiscalAvailable) {
-        return `Règles fiscales ${props.kpiYear} non implémentées`;
+        return `Règles ${props.kpiYear} non implémentées`;
     }
 
     return `année ${props.kpiYear}`;
 });
 
+const rentValue = computed<string>(() => {
+    if (props.kpiStats.rent === null) {
+        return '·';
+    }
+
+    return formatEur(props.kpiStats.rent);
+});
+
 const rentCaption = computed<string>(() => {
     if (props.kpiStats.rent === null) {
-        return 'Tarif véhicule manquant';
+        return 'tarif véhicule manquant';
     }
 
     return `année ${props.kpiYear}`;
@@ -52,49 +59,56 @@ const rentCaption = computed<string>(() => {
 </script>
 
 <template>
-    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-            tone="slate"
-            :value="`${props.kpiStats.daysUsed} j`"
-            label="Jours d'usage"
-            :caption="`année ${props.kpiYear}`"
-        >
-            <template #icon>
-                <Calendar :size="18" :stroke-width="1.75" />
-            </template>
-        </StatCard>
-
-        <StatCard
-            tone="slate"
-            :value="props.kpiStats.contractsCount"
-            label="Locations"
-            :caption="`actifs en ${props.kpiYear}`"
-        >
-            <template #icon>
-                <FileText :size="18" :stroke-width="1.75" />
-            </template>
-        </StatCard>
-
-        <StatCard
-            tone="emerald"
-            :value="taxValue"
-            label="Taxes dues"
-            :caption="taxCaption"
-        >
-            <template #icon>
-                <Receipt :size="18" :stroke-width="1.75" />
-            </template>
-        </StatCard>
-
-        <StatCard
-            tone="slate"
-            :value="props.kpiStats.rent !== null ? formatEur(props.kpiStats.rent) : '·'"
-            label="Montant loyer"
-            :caption="rentCaption"
-        >
-            <template #icon>
-                <Banknote :size="18" :stroke-width="1.75" />
-            </template>
-        </StatCard>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-5 sm:gap-x-0 gap-y-6 sm:gap-y-0 border-y border-slate-100 py-6">
+        <div class="sm:px-6 sm:first:pl-0 sm:last:pr-0 sm:not-last:border-r sm:border-slate-100">
+            <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Jours d'usage
+            </p>
+            <p class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none text-slate-900">
+                {{ props.kpiStats.daysUsed }}
+            </p>
+            <p class="mt-1 text-[11px] text-slate-500">
+                année {{ props.kpiYear }}
+            </p>
+        </div>
+        <div class="sm:px-6 sm:not-last:border-r sm:border-slate-100">
+            <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Locations
+            </p>
+            <p class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none text-slate-900">
+                {{ props.kpiStats.contractsCount }}
+            </p>
+            <p class="mt-1 text-[11px] text-slate-500">
+                actifs en {{ props.kpiYear }}
+            </p>
+        </div>
+        <div class="sm:px-6 sm:not-last:border-r sm:border-slate-100">
+            <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Taxes dues
+            </p>
+            <p
+                class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none"
+                :class="props.kpiFiscalAvailable ? 'text-slate-900' : 'text-slate-400'"
+            >
+                {{ taxValue }}
+            </p>
+            <p class="mt-1 text-[11px] text-slate-500">
+                {{ taxCaption }}
+            </p>
+        </div>
+        <div class="sm:px-6 sm:last:pr-0">
+            <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                Montant loyer
+            </p>
+            <p
+                class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none"
+                :class="props.kpiStats.rent !== null ? 'text-slate-900' : 'text-slate-400'"
+            >
+                {{ rentValue }}
+            </p>
+            <p class="mt-1 text-[11px] text-slate-500">
+                {{ rentCaption }}
+            </p>
+        </div>
     </div>
 </template>
