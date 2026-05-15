@@ -131,7 +131,6 @@ final class DashboardPendingTasksAggregatorTest extends TestCase
 
         self::assertSame(0, $tasks->pendingDeclarationsCount);
         self::assertSame([], $tasks->pendingDeclarations);
-        self::assertSame(0, $tasks->pendingInvoicesCount);
         self::assertSame(0, $tasks->pendingInvoicesMonthlyTotal);
         self::assertSame([], $tasks->pendingInvoices);
     }

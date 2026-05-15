@@ -21,7 +21,6 @@ defineProps<{
             :items="tasks.pendingDeclarations"
         />
         <PendingInvoicesPanel
-            :count="tasks.pendingInvoicesCount"
             :monthly-total="tasks.pendingInvoicesMonthlyTotal"
             :items="tasks.pendingInvoices"
         />

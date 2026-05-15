@@ -19,18 +19,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - `pendingDeclarations` · top 5 items triés par urgence (overdue d'abord)
  *
  * Pour les factures, expose ·
- *   - `pendingInvoicesCount` · nombre total de couples (entreprise, année)
- *     en attente. Utilisé pour le footer « Voir les N autres entreprises »
  *   - `pendingInvoicesMonthlyTotal` · **somme des factures mensuelles à
  *     générer** toutes lignes confondues. C'est ce que l'utilisateur
  *     voit comme « N factures en attente » dans le header · une ligne
  *     peut représenter plusieurs factures mensuelles (jusqu'à 12 par
  *     couple entreprise-année), donc le compteur de lignes ne suffit pas.
  *   - `pendingInvoices` · top 5 lignes triées par année croissante
- *
- * Si `pendingDeclarationsCount > 5` ou `pendingInvoicesCount > 5`, le
- * front affiche un lien « Voir les N autres » pointant vers la page
- * Index filtrée.
  */
 #[TypeScript]
 final class DashboardPendingTasksData extends Data
@@ -43,7 +37,6 @@ final class DashboardPendingTasksData extends Data
         public int $pendingDeclarationsCount,
         #[DataCollectionOf(DashboardPendingDeclarationItemData::class)]
         public array $pendingDeclarations,
-        public int $pendingInvoicesCount,
         public int $pendingInvoicesMonthlyTotal,
         #[DataCollectionOf(DashboardPendingInvoiceItemData::class)]
         public array $pendingInvoices,
@@ -54,7 +47,6 @@ final class DashboardPendingTasksData extends Data
         return new self(
             pendingDeclarationsCount: 0,
             pendingDeclarations: [],
-            pendingInvoicesCount: 0,
             pendingInvoicesMonthlyTotal: 0,
             pendingInvoices: [],
         );

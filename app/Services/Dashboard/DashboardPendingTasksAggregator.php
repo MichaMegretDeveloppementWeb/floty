@@ -150,7 +150,6 @@ final readonly class DashboardPendingTasksAggregator
         return new DashboardPendingTasksData(
             pendingDeclarationsCount: count($declItems),
             pendingDeclarations: array_slice($declItems, 0, self::TOP_ITEMS),
-            pendingInvoicesCount: count($invItems),
             pendingInvoicesMonthlyTotal: $invMonthlyTotal,
             pendingInvoices: array_slice($invItems, 0, self::TOP_ITEMS),
         );

@@ -3,33 +3,25 @@
  * Panel « Déclarations en attente » du Dashboard (Phase 13 D5.15).
  *
  * Affiche jusqu'à 5 items triés par urgence (overdue puis année
- * croissante). Si plus de 5 items en attente, un lien « Voir les N
- * autres entreprises » pointe vers la liste des entreprises · les
- * déclarations `Untouched` n'existent pas dans l'Index Déclarations,
- * il faut passer par l'onglet Fiscalité de chaque fiche entreprise
- * pour les préparer.
+ * croissante). Le compteur du header reflète le nombre total de
+ * déclarations à soumettre · les items au-delà du top 5 sont à
+ * préparer depuis l'onglet Fiscalité de chaque fiche entreprise
+ * (les déclarations `Untouched` n'existent pas dans l'Index
+ * Déclarations).
  *
  * État vide · message explicite et apaisant (« Rien à générer pour
  * l'instant · les déclarations de l'année N seront à préparer à
  * partir du 01/01/N+1 ») plutôt qu'un « 0 » anxiogène.
  */
 import { FileClock } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { index as companiesIndex } from '@/routes/user/companies';
 import PendingDeclarationRow from './PendingDeclarationRow.vue';
 
 type Tasks = App.Data.User.Dashboard.DashboardPendingTasksData;
 
-const props = defineProps<{
+defineProps<{
     count: Tasks['pendingDeclarationsCount'];
     items: Tasks['pendingDeclarations'];
 }>();
-
-const remainingCount = computed<number>(() =>
-    Math.max(0, props.count - props.items.length),
-);
-
-const indexUrl = computed<string>(() => companiesIndex().url);
 </script>
 
 <template>
@@ -70,13 +62,5 @@ const indexUrl = computed<string>(() => companiesIndex().url);
             Rien à générer pour l'instant. Les déclarations d'un exercice
             sont à préparer à partir du 1er janvier suivant.
         </p>
-
-        <a
-            v-if="remainingCount > 0"
-            :href="indexUrl"
-            class="text-xs font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 transition-colors duration-[120ms] ease-out hover:text-slate-900 hover:decoration-slate-600"
-        >
-            Voir les {{ remainingCount }} autre{{ remainingCount > 1 ? 's' : '' }} entreprise{{ remainingCount > 1 ? 's' : '' }} →
-        </a>
     </article>
 </template>

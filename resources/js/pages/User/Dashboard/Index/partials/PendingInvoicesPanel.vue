@@ -3,8 +3,8 @@
  * Panel « Factures en attente » du Dashboard (Phase 13 D5.15).
  *
  * Affiche jusqu'à 5 items triés par année croissante puis code court
- * entreprise. Si plus de 5 items en attente, un lien « Voir les N
- * autres entreprises » pointe vers la liste des entreprises · les
+ * entreprise. Le compteur du header reflète le **nombre total de
+ * factures mensuelles à générer** toutes lignes confondues · les
  * factures mensuelles en attente n'existent pas dans l'Index Factures
  * (elles n'ont pas encore été générées), il faut passer par l'onglet
  * Facturation de chaque fiche entreprise pour les produire.
@@ -14,25 +14,15 @@
  * « 0 » anxiogène.
  */
 import { Receipt } from 'lucide-vue-next';
-import { computed } from 'vue';
-import { index as companiesIndex } from '@/routes/user/companies';
 import PendingInvoiceRow from './PendingInvoiceRow.vue';
 
 type Tasks = App.Data.User.Dashboard.DashboardPendingTasksData;
 
-const props = defineProps<{
-    /** Nombre de lignes (entreprise, année) en attente. Pilote « Voir les N autres ». */
-    count: Tasks['pendingInvoicesCount'];
+defineProps<{
     /** Somme des factures mensuelles à générer toutes lignes confondues. Pilote le compteur du header. */
     monthlyTotal: Tasks['pendingInvoicesMonthlyTotal'];
     items: Tasks['pendingInvoices'];
 }>();
-
-const remainingCount = computed<number>(() =>
-    Math.max(0, props.count - props.items.length),
-);
-
-const indexUrl = computed<string>(() => companiesIndex().url);
 </script>
 
 <template>
@@ -73,13 +63,5 @@ const indexUrl = computed<string>(() => companiesIndex().url);
             Aucune facture mensuelle en attente. Les recettes locatives
             sont à jour pour vos entreprises clientes.
         </p>
-
-        <a
-            v-if="remainingCount > 0"
-            :href="indexUrl"
-            class="text-xs font-medium text-slate-600 underline decoration-slate-300 underline-offset-2 transition-colors duration-[120ms] ease-out hover:text-slate-900 hover:decoration-slate-600"
-        >
-            Voir les {{ remainingCount }} autre{{ remainingCount > 1 ? 's' : '' }} entreprise{{ remainingCount > 1 ? 's' : '' }} →
-        </a>
     </article>
 </template>
