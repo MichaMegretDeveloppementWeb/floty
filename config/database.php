@@ -5,6 +5,12 @@ declare(strict_types=1);
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
+// Note · `Pdo\Mysql` n'existe qu'à partir de PHP 8.5. L'`use` top-level est
+// inoffensif car `composer.json` impose `php: ^8.5` (cf. F-33-007 ·
+// `ext-pdo_mysql` également déclaré pour échec rapide à l'install si
+// l'extension manque). Le ternaire `PHP_VERSION_ID >= 80500` ci-dessous
+// reste pour les futures rétro-compatibilités opportunistes.
+
 return [
 
     /*

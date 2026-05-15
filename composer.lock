@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "9fa57ccdeea6add06f78b4589248ae9e",
+    "content-hash": "3ae591f44f31cb6e32d5b48ee47ce48e",
     "packages": [
         {
             "name": "barryvdh/laravel-dompdf",
@@ -8558,12 +8558,12 @@
             "version": "v1.0.4",
             "source": {
                 "type": "git",
-                "url": "https://github.com/nunomaduro/pao.git",
+                "url": "https://github.com/laravel/pao.git",
                 "reference": "abb05092e543e031b035058894ede0f5e7dbfecf"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/nunomaduro/pao/zipball/abb05092e543e031b035058894ede0f5e7dbfecf",
+                "url": "https://api.github.com/repos/laravel/pao/zipball/abb05092e543e031b035058894ede0f5e7dbfecf",
                 "reference": "abb05092e543e031b035058894ede0f5e7dbfecf",
                 "shasum": ""
             },
@@ -10327,12 +10327,12 @@
             "version": "v1.1.3",
             "source": {
                 "type": "git",
-                "url": "https://github.com/shipfastlabs/agent-detector.git",
+                "url": "https://github.com/laravel/agent-detector.git",
                 "reference": "0faef92b88c6680b3fc53c8f349ea868181d2484"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/shipfastlabs/agent-detector/zipball/0faef92b88c6680b3fc53c8f349ea868181d2484",
+                "url": "https://api.github.com/repos/laravel/agent-detector/zipball/0faef92b88c6680b3fc53c8f349ea868181d2484",
                 "reference": "0faef92b88c6680b3fc53c8f349ea868181d2484",
                 "shasum": ""
             },
@@ -10573,7 +10573,9 @@
     "prefer-stable": false,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.4"
+        "php": "^8.5",
+        "ext-pdo": "*",
+        "ext-pdo_mysql": "*"
     },
     "platform-dev": {},
     "plugin-api-version": "2.9.0"

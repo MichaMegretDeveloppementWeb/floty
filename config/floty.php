@@ -1,6 +1,7 @@
 <?php
 
 declare(strict_types=1);
+
 use App\Fiscal\Year2024\Year2024Boot;
 use App\Fiscal\Year2025\Year2025Boot;
 use App\Fiscal\Year2026\Year2026Boot;
