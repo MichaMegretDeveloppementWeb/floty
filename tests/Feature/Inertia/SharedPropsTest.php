@@ -43,7 +43,10 @@ final class SharedPropsTest extends TestCase
                     ->where('success', null)
                     ->where('error', null)
                     ->where('warning', null)
-                    ->where('info', null))
+                    ->where('info', null)
+                    // Lot 5 D6 · pile typée pour accumulation N toasts +
+                    // dédup back-button (cf. ToastDispatcher).
+                    ->where('toasts', []))
                 ->etc(),
             );
     }
@@ -64,7 +67,10 @@ final class SharedPropsTest extends TestCase
                     ->where('success', null)
                     ->where('error', null)
                     ->where('warning', null)
-                    ->where('info', null))
+                    ->where('info', null)
+                    // Lot 5 D6 · pile typée pour accumulation N toasts +
+                    // dédup back-button (cf. ToastDispatcher).
+                    ->where('toasts', []))
                 ->etc(),
             );
     }
