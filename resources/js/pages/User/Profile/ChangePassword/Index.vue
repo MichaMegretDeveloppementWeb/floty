@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
-import ChangePasswordForm from './Partials/ChangePasswordForm.vue';
+import ChangePasswordForm from './partials/ChangePasswordForm.vue';
 </script>
 
 <template>

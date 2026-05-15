@@ -2,7 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import FlotyMark from '@/Components/Brand/FlotyMark.vue';
 import GuestLayout from '@/Components/Layouts/GuestLayout.vue';
-import LoginForm from './Partials/LoginForm.vue';
+import LoginForm from './partials/LoginForm.vue';
 </script>
 
 <template>

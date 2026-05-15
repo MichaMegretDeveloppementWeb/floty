@@ -3,7 +3,7 @@ import { Head } from '@inertiajs/vue3';
 import FlotyMark from '@/Components/Brand/FlotyMark.vue';
 import GuestLayout from '@/Components/Layouts/GuestLayout.vue';
 import { login as loginRoute } from '@/routes';
-import ForgotPasswordForm from './Partials/ForgotPasswordForm.vue';
+import ForgotPasswordForm from './partials/ForgotPasswordForm.vue';
 </script>
 
 <template>
