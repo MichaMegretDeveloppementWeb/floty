@@ -34,59 +34,19 @@ const emit = defineEmits<{
     dismiss: [];
 }>();
 
-const chipClasses = computed<string>(() => {
-    switch (props.tone) {
-        case 'success':
-            return 'bg-emerald-50 text-emerald-700';
-        case 'error':
-            return 'bg-rose-50 text-rose-700';
-        case 'warning':
-            return 'bg-amber-50 text-amber-700';
-        case 'info':
-            return 'bg-blue-50 text-blue-700';
-        default: {
-            const _exhaustive: never = props.tone;
+// F-41-006 (Lot 7 D11) · 3 switchs convergents (chip, progress, icon)
+// → 1 lookup objet typé. Exhaustivité garantie par le typage `Record<ToastTone, ...>`
+// (TS rejette tout ajout d'un nouveau tone sans config correspondante).
+const TONE_CONFIG: Record<ToastTone, { chip: string; progress: string; icon: typeof CheckCircle2 }> = {
+    success: { chip: 'bg-emerald-50 text-emerald-700', progress: 'bg-emerald-500', icon: CheckCircle2 },
+    error: { chip: 'bg-rose-50 text-rose-700', progress: 'bg-rose-500', icon: XCircle },
+    warning: { chip: 'bg-amber-50 text-amber-700', progress: 'bg-amber-500', icon: AlertTriangle },
+    info: { chip: 'bg-blue-50 text-blue-700', progress: 'bg-blue-500', icon: Info },
+};
 
-            throw new Error(`Tonalité non gérée : ${_exhaustive as string}`);
-        }
-    }
-});
-
-const progressClasses = computed<string>(() => {
-    switch (props.tone) {
-        case 'success':
-            return 'bg-emerald-500';
-        case 'error':
-            return 'bg-rose-500';
-        case 'warning':
-            return 'bg-amber-500';
-        case 'info':
-            return 'bg-blue-500';
-        default: {
-            const _exhaustive: never = props.tone;
-
-            throw new Error(`Tonalité non gérée : ${_exhaustive as string}`);
-        }
-    }
-});
-
-const toneIcon = computed(() => {
-    switch (props.tone) {
-        case 'success':
-            return CheckCircle2;
-        case 'error':
-            return XCircle;
-        case 'warning':
-            return AlertTriangle;
-        case 'info':
-            return Info;
-        default: {
-            const _exhaustive: never = props.tone;
-
-            throw new Error(`Tonalité non gérée : ${_exhaustive as string}`);
-        }
-    }
-});
+const chipClasses = computed<string>(() => TONE_CONFIG[props.tone].chip);
+const progressClasses = computed<string>(() => TONE_CONFIG[props.tone].progress);
+const toneIcon = computed(() => TONE_CONFIG[props.tone].icon);
 
 const ariaRole = computed<'status' | 'alert'>(() =>
     props.tone === 'error' || props.tone === 'warning' ? 'alert' : 'status',

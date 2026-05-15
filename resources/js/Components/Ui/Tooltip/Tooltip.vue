@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue';
+import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -51,8 +51,14 @@ const handleScroll = (): void => {
     }
 };
 
-window.addEventListener('scroll', handleScroll, true);
-window.addEventListener('resize', handleScroll);
+// F-41-003 (Lot 7 D11) · listeners enregistrés dans `onMounted`
+// pour symétrie avec `onBeforeUnmount` + safe SSR (window n'existe
+// pas côté serveur Inertia · l'enregistrement à l'instanciation
+// crashait le rendu serveur).
+onMounted(() => {
+    window.addEventListener('scroll', handleScroll, true);
+    window.addEventListener('resize', handleScroll);
+});
 
 onBeforeUnmount(() => {
     window.removeEventListener('scroll', handleScroll, true);

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onKeyStroke, useScrollLock } from '@vueuse/core';
 import { X } from 'lucide-vue-next';
-import { nextTick, ref, useSlots, useTemplateRef, watch } from 'vue';
+import { nextTick, useSlots, useTemplateRef, watch } from 'vue';
 
 const props = withDefaults(
     defineProps<{
@@ -34,8 +34,8 @@ const close = (): void => {
 
 onKeyStroke('Escape', (event) => {
     if (!open.value) {
-return;
-}
+        return;
+    }
 
     event.preventDefault();
     close();
@@ -58,16 +58,18 @@ watch(
 
 const slots = useSlots();
 
-const sizeClass = ref({
+// F-41-008 (Lot 7 D11) · const map au lieu d'un `ref` réactif inutile
+// (la map ne change jamais). Aligné avec `Drawer.vue` (cf. `widthClass`).
+const sizeClass = {
     sm: 'max-w-md',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
-});
+} as const;
 
 const handleBackdropClick = (): void => {
     if (props.closeOnBackdrop) {
-close();
-}
+        close();
+    }
 };
 </script>
 

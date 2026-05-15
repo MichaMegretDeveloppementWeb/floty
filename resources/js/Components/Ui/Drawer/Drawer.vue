@@ -34,8 +34,8 @@ const close = (): void => {
 
 onKeyStroke('Escape', (event) => {
     if (!open.value) {
-return;
-}
+        return;
+    }
 
     event.preventDefault();
     close();
@@ -66,8 +66,8 @@ const widthClass = {
 
 const handleBackdropClick = (): void => {
     if (props.closeOnBackdrop) {
-close();
-}
+        close();
+    }
 };
 </script>
 
