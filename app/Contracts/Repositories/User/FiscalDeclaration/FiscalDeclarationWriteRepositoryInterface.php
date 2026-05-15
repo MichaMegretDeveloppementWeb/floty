@@ -115,12 +115,21 @@ interface FiscalDeclarationWriteRepositoryInterface
 
     /**
      * Ré-active une déclaration obsolète : remet `is_obsolete = false`,
-     * vide `obsolete_at`, `obsolete_reasons` et `superseded_by_id`.
-     * Utilisé par `DiscardDraftDeclarationAction` (Phase 13 D5.10.E)
-     * quand la suppression d'un brouillon qui était une régénération
-     * volontaire doit rendre son predecessor à nouveau actif. **Ne
-     * réactive PAS** si l'obsolescence avait des motifs réels
-     * (mutation périmètre) · la décision revient à l'Action.
+     * vide `obsolete_at` et `superseded_by_id`. Utilisé par
+     * `DiscardDraftDeclarationAction` (Phase 13 D5.10.E) quand la
+     * suppression d'un brouillon qui était une régénération volontaire
+     * doit rendre son predecessor à nouveau actif. **Ne réactive PAS**
+     * si l'obsolescence avait des motifs réels (mutation périmètre) ·
+     * la décision revient à l'Action.
+     *
+     * Lot 5 D9 (F-19D-005) · `obsolete_reasons` est **PRÉSERVÉ**, pas
+     * purgé · le tableau JSON garde la trace audit factuelle de
+     * l'historique d'obsolescence (« cette déclaration a connu une
+     * tentative de modification volontaire annulée le DATE »). Seul le
+     * flag d'état actif est remis à false. La purge éventuelle des
+     * `fiscal_review_decisions` (choix utilisateur tactiques du cycle
+     * remplacé) est de la responsabilité de l'Action appelante, pas
+     * du repo.
      */
     public function reactivate(int $declarationId): void;
 

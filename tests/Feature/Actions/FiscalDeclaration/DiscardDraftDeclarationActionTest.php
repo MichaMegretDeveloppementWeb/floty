@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Feature\Actions\FiscalDeclaration;
 
 use App\Actions\FiscalDeclaration\DiscardDraftDeclarationAction;
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
@@ -129,9 +130,57 @@ final class DiscardDraftDeclarationActionTest extends TestCase
         $reactivated = $predecessor->fresh();
         self::assertFalse($reactivated->is_obsolete);
         self::assertNull($reactivated->obsolete_at);
-        self::assertNull($reactivated->obsolete_reasons);
         self::assertNull($reactivated->superseded_by_id);
         self::assertSame(FiscalDeclarationStatus::Generated, $reactivated->status);
+
+        // Lot 5 D9 (F-19D-005) · `obsolete_reasons` est PRÉSERVÉ même
+        // après reactivate · trace audit factuelle de la tentative de
+        // modification volontaire qui a été annulée.
+        self::assertCount(1, $reactivated->obsolete_reasons);
+        self::assertSame(
+            InvalidationReasonType::VoluntaryModification->value,
+            $reactivated->obsolete_reasons[0]['type'],
+        );
+    }
+
+    #[Test]
+    public function lot5_d9_reactivate_preserve_obsolete_reasons_pour_audit_regulatoire(): void
+    {
+        // Lot 5 D9 (F-19D-005) · garde-fou doctrinal · au-delà du test
+        // ci-dessus qui couvre le flow complet via DiscardDraftDeclarationAction,
+        // ce test cible uniquement le contrat du repo `reactivate()` ·
+        // la mutation préserve `obsolete_reasons` indépendamment de
+        // tout contexte d'Action. Le repo ne doit jamais purger l'audit.
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->generated()
+            ->create([
+                'is_obsolete' => true,
+                'obsolete_at' => now(),
+                'obsolete_reasons' => [
+                    [
+                        'type' => InvalidationReasonType::VoluntaryModification->value,
+                        'occurred_at' => '2026-05-15T10:00:00+02:00',
+                        'actor_user_id' => 42,
+                        'entity' => ['type' => 'user', 'id' => 42, 'label' => 'Test'],
+                        'fields_changed' => [],
+                    ],
+                ],
+                'superseded_by_id' => null,
+            ]);
+
+        $writer = $this->app->make(FiscalDeclarationWriteRepositoryInterface::class);
+        $writer->reactivate($declaration->id);
+
+        $fresh = $declaration->fresh();
+        self::assertFalse($fresh->is_obsolete);
+        self::assertNull($fresh->obsolete_at);
+        self::assertNull($fresh->superseded_by_id);
+        // PRÉSERVATION · le tableau JSON garde la trace audit.
+        self::assertCount(1, $fresh->obsolete_reasons);
+        self::assertSame(42, $fresh->obsolete_reasons[0]['actor_user_id']);
+        self::assertSame('2026-05-15T10:00:00+02:00', $fresh->obsolete_reasons[0]['occurred_at']);
     }
 
     #[Test]

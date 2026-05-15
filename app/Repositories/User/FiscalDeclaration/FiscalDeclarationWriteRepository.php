@@ -141,12 +141,16 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
 
     public function reactivate(int $declarationId): void
     {
+        // Lot 5 D9 (F-19D-005) · `obsolete_reasons` est volontairement
+        // **PRÉSERVÉ** · trace audit factuel régulatoire de l'historique
+        // d'obsolescence (« cette déclaration a connu une obsolescence
+        // résolue le DATE »). Seuls le flag, la date et le pointeur de
+        // chaîne sont nettoyés pour rendre l'entité active à nouveau.
         FiscalDeclaration::query()
             ->whereKey($declarationId)
             ->update([
                 'is_obsolete' => false,
                 'obsolete_at' => null,
-                'obsolete_reasons' => null,
                 'superseded_by_id' => null,
             ]);
     }

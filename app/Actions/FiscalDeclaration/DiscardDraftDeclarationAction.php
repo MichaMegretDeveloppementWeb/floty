@@ -31,9 +31,19 @@ use Illuminate\Support\Facades\Log;
  *        `VoluntaryModification` (cf. {@see ModifyGeneratedDeclarationAction}) ·
  *        ré-active complètement le predecessor (S5 retrouvé). C'est le
  *        retour arrière propre d'une modification volontaire abandonnée.
+ *        Lot 5 D9 (F-19D-005) · `obsolete_reasons` est **préservé** par
+ *        le repo · trace audit factuelle de la tentative de modification
+ *        volontaire annulée. Seuls le flag, la date et le pointeur de
+ *        chaîne sont nettoyés.
  *      - Sinon (motifs réels présents · perimeter change) · délie
  *        seulement `superseded_by_id` pour que le predecessor reste
  *        obsolète (S6) et puisse être régénéré à nouveau plus tard.
+ *
+ * Note · les `fiscal_review_decisions` (choix utilisateur tactiques · clusters
+ * tranchés, exclusions, justifications) du couple `(company, fiscal_year)`
+ * sont purgées en début de transaction (cf. step §3 ci-dessous) ·
+ * responsabilité de l'Action, pas du repo `reactivate`. Les décisions du
+ * cycle remplacé n'ont plus de sens sur un nouveau brouillon à venir.
  *
  * Note · soft delete via `Model::delete()` (le modèle FiscalDeclaration
  * utilise le trait `SoftDeletes`). Le record reste interrogeable via
