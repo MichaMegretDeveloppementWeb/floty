@@ -7,6 +7,27 @@ namespace App\Fiscal\Year2026;
 use App\Fiscal\Contracts\FiscalRule;
 use App\Fiscal\Contracts\FiscalYearBoot;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\Year2026\Abatement\R2026_023_E85Abatement;
+use App\Fiscal\Year2026\Classification\R2026_004_FiscalTypeQualification;
+use App\Fiscal\Year2026\Classification\R2026_005_Co2MethodSelection;
+use App\Fiscal\Year2026\Classification\R2026_013_PollutantCategoryAssignment;
+use App\Fiscal\Year2026\Classification\R2026_013bis_PollutantCategoryAssignment;
+use App\Fiscal\Year2026\Exemption\R2026_008_ReductiveUnavailability;
+use App\Fiscal\Year2026\Exemption\R2026_015_HandicapAccess;
+use App\Fiscal\Year2026\Exemption\R2026_016_ElectricHydrogen;
+use App\Fiscal\Year2026\Exemption\R2026_018_OigExemption;
+use App\Fiscal\Year2026\Exemption\R2026_018bis_OigExemption;
+use App\Fiscal\Year2026\Exemption\R2026_019_IndividualBusinessExemption;
+use App\Fiscal\Year2026\Exemption\R2026_021_ShortTermRental;
+use App\Fiscal\Year2026\Exemption\R2026_026_SpecificActivityExemptions;
+use App\Fiscal\Year2026\Pricing\R2026_010_WltpProgressive;
+use App\Fiscal\Year2026\Pricing\R2026_011_NedcProgressive;
+use App\Fiscal\Year2026\Pricing\R2026_012_PaProgressive;
+use App\Fiscal\Year2026\Pricing\R2026_014_PollutantsFlat;
+use App\Fiscal\Year2026\Pricing\R2026_014bis_PollutantsFlat;
+use App\Fiscal\Year2026\Transversal\R2026_002_DailyProrata;
+use App\Fiscal\Year2026\Transversal\R2026_003_FinalRounding;
+use App\Fiscal\Year2026\Transversal\R2026_027_MileageReimbursementCoefficient;
 use App\Providers\FiscalServiceProvider;
 
 /**
@@ -41,10 +62,10 @@ use App\Providers\FiscalServiceProvider;
  * section « Garantie de conformité fiscale 2026 » de
  * `taxes-rules/2026.md`).
  *
- * **Statut Z2** · squelette Boot vide. Les classes de règles seront
- * créées dans le Bloc Z3 (pipeline · ~21 classes) et Z4 (informatives ·
- * ~14 classes). Au seed, la table `fiscal_rules` pour l'année 2026
- * sera vide tant que `rules()` et `informativeRules()` retournent `[]`.
+ * **Statut Z3** · 21 classes pipeline câblées (16 actives + 5 inactives
+ * Floty V1). Les 14 classes documentaires-only seront ajoutées au Bloc
+ * Z4. Décorateur runtime R-2026-021-WithOptOuts substitué côté
+ * `OverlayedRuleRegistry` via `FiscalServiceProvider`.
  *
  * Pour modifier le périmètre des règles 2026 (ajout, retrait,
  * réordonnance), éditer la liste {@see rules()} ou
@@ -58,46 +79,58 @@ final class Year2026Boot implements FiscalYearBoot
     }
 
     /**
-     * Catalogue prévisionnel 2026 (cf. taxes-rules/2026.md § « Synthèse Bloc Z1 ») ·
      * **21 classes pipeline** = 16 actives + 5 inactives Floty V1.
      *
-     * Liste prévue (à activer au fur et à mesure de l'implémentation Z3) ·
-     * - Classification (4 · incl. R-2026-013-bis) ·
-     *   R2026_004_FiscalTypeQualification (cascade M1/N1 stable depuis 01/03/2025)
-     *   R2026_005_Co2MethodSelection
-     *   R2026_013_PollutantCategoryAssignment (v 01/01-31/08/2026)
-     *   R2026_013bis_PollutantCategoryAssignment (v 01/09-31/12/2026 · Ordo 2025-1247 art. 7)
-     * - Exemption (8 · incl. R-2026-018-bis) ·
-     *   R2026_008_ReductiveUnavailability
-     *   R2026_015_HandicapAccess
-     *   R2026_016_ElectricHydrogen
-     *   R2026_018_OigExemption (inactive · v 01/01-31/08/2026)
-     *   R2026_018bis_OigExemption (inactive · v 01/09-31/12/2026 · Ordo 2025-1247 art. 4)
-     *   R2026_019_IndividualBusinessExemption (inactive)
-     *   R2026_021_ShortTermRental
-     *   R2026_026_SpecificActivityExemptions (inactive)
-     * - Pricing CO₂ (3 · durcissement majeur 2026 par LF 2024 art. 97-20°) ·
-     *   R2026_010_WltpProgressive · WLTP 100 g/km = 213 €
-     *   R2026_011_NedcProgressive
-     *   R2026_012_PaProgressive
-     * - Pricing polluants (2 · scission matérielle 01/03/2026 par LF 2026 art. 58) ·
-     *   R2026_014_PollutantsFlat (v 01/01-28/02/2026 · tarifs 2025 100/500)
-     *   R2026_014bis_PollutantsFlat (v 01/03-31/12/2026 · tarifs +30 % 130/650)
-     * - Abatement (1 · reconduit) ·
-     *   R2026_023_E85Abatement
-     * - Transversal (3) ·
-     *   R2026_002_DailyProrata (365 j)
-     *   R2026_003_FinalRounding
-     *   R2026_027_MileageReimbursementCoefficient (inactive)
+     * Décomposition · 4 Classification (incl. R-2026-013-bis) +
+     * 8 Exemption (incl. R-2026-018-bis) + 3 Pricing CO₂ +
+     * 2 Pricing polluants (incl. R-2026-014-bis) + 1 Abatement +
+     * 3 Transversal.
+     *
+     * **Ordre du tableau** · catégoriel (lisibilité Boot et seeding).
+     * **Ordre d'exécution** · déterminé par l'orchestrateur pipeline
+     * via `ruleType()` · Classification → Exemption → Abatement →
+     * Pricing → Transversal. Le tableau ci-dessous ne pilote PAS l'ordre
+     * d'exécution.
      *
      * @return list<class-string<FiscalRule>>
      */
     public function rules(): array
     {
         return [
-            // Les classes de règles 2026 seront ajoutées au Bloc Z3.
-            // À ce stade (Z2 · structure code), le tableau est vide ·
-            // le seeder produit 0 entrée 2026 en BDD.
+            // Classification (4 · R-2026-013 scindée en 2 versions
+            // ADR-0022 · L. 421-134 toiletté 01/09/2026 par Ordo
+            // 2025-1247 art. 7 · rédactionnel).
+            R2026_004_FiscalTypeQualification::class,
+            R2026_005_Co2MethodSelection::class,
+            R2026_013_PollutantCategoryAssignment::class, // v 01/01-31/08
+            R2026_013bis_PollutantCategoryAssignment::class, // v 01/09-31/12
+            // Exemption (8 · R-2026-018 scindée en 2 versions ADR-0022 ·
+            // L. 421-138 toiletté 01/09/2026 par Ordo 2025-1247 art. 4 ·
+            // rédactionnel · inactives Floty V1).
+            R2026_008_ReductiveUnavailability::class,
+            R2026_015_HandicapAccess::class,
+            R2026_016_ElectricHydrogen::class,
+            R2026_018_OigExemption::class, // v 01/01-31/08 · inactive
+            R2026_018bis_OigExemption::class, // v 01/09-31/12 · inactive
+            R2026_019_IndividualBusinessExemption::class, // inactive
+            R2026_021_ShortTermRental::class,
+            R2026_026_SpecificActivityExemptions::class, // inactive
+            // Pricing CO₂ (3 · durcissement majeur 2026 par LF 2024
+            // art. 97-20°).
+            R2026_010_WltpProgressive::class, // WLTP 100 g/km = 213 €
+            R2026_011_NedcProgressive::class,
+            R2026_012_PaProgressive::class,
+            // Pricing polluants (2 · R-2026-014 scindée en 2 versions
+            // ADR-0022 · L. 421-135 revalorisé +30 % au 01/03/2026 par
+            // LF 2026 art. 58 (V), IV · matériel).
+            R2026_014_PollutantsFlat::class, // v 01/01-28/02 · tarifs 2025
+            R2026_014bis_PollutantsFlat::class, // v 01/03-31/12 · tarifs +30 %
+            // Abatement (1 · reconduit de 2025 sans modification matérielle)
+            R2026_023_E85Abatement::class,
+            // Transversal (3 · R-2026-027 inactive Floty V1)
+            R2026_002_DailyProrata::class,
+            R2026_003_FinalRounding::class,
+            R2026_027_MileageReimbursementCoefficient::class, // inactive
         ];
     }
 
