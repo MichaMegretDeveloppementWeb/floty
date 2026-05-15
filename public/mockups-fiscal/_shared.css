@@ -1,0 +1,88 @@
+/* Shared base for the 4 fiscal redesign mockups (2026-05-15) */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+
+:root {
+    --slate-50: #f8fafc;
+    --slate-100: #f1f5f9;
+    --slate-200: #e2e8f0;
+    --slate-300: #cbd5e1;
+    --slate-400: #94a3b8;
+    --slate-500: #64748b;
+    --slate-600: #475569;
+    --slate-700: #334155;
+    --slate-900: #0f172a;
+    --blue-50: #eff6ff;
+    --blue-100: #dbeafe;
+    --blue-500: #3b82f6;
+    --blue-600: #2563eb;
+    --blue-700: #1d4ed8;
+    --amber-500: #f59e0b;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    font-size: 14px;
+    color: var(--slate-900);
+    background: var(--slate-50);
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    min-height: 100vh;
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+}
+
+.app {
+    width: 100%;
+    max-width: 1180px;
+}
+
+.mono { font-family: 'DM Mono', ui-monospace, monospace; font-variant-numeric: tabular-nums; }
+
+.eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--slate-500);
+}
+
+.nav-row {
+    display: flex;
+    gap: 32px;
+    padding: 0 0 24px 0;
+    border-bottom: 1px solid var(--slate-200);
+    margin-bottom: 40px;
+    font-size: 13px;
+}
+.nav-row a { color: var(--slate-500); text-decoration: none; }
+.nav-row a.active { color: var(--slate-900); font-weight: 500; }
+
+.toggle-strip {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: white;
+    border: 1px solid var(--slate-200);
+    border-radius: 10px;
+    z-index: 100;
+}
+.toggle-strip a {
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--slate-500);
+    text-decoration: none;
+    border-radius: 6px;
+}
+.toggle-strip a:hover { background: var(--slate-100); color: var(--slate-900); }
+.toggle-strip a.active { background: var(--slate-900); color: white; }

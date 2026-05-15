@@ -1,49 +1,45 @@
 <script setup lang="ts">
 /**
- * Carte adaptative du cycle de vie d'une déclaration fiscale annuelle
- * pour un couple `(company, year)` (Phase 11 D5.8.4, Proposition IV,
- * refondu aérée D5.10.I).
+ * Bloc « Déclaration » de l'onglet Fiscalité d'une entreprise.
  *
- * Rend une carte différente selon `lifecycle.state` :
- *   - S1 Untouched : invitation à préparer.
- *   - S2 DraftPending : carte « En cours » avec compteur de décisions
- *     à trancher + CTA Reprendre la revue.
- *   - S3 DraftReadyToGenerate : carte « Prête à générer » + CTA.
- *   - S4 Deferred : carte « Mise de côté » + CTA Reprendre.
- *   - S4-bis DeferredRegeneration : régénération mise de côté avec
- *     contexte predecessor obsolète.
- *   - S5 GeneratedActive : carte succès avec ref + date + actions
- *     Ouvrir / Télécharger PDF + timeline.
- *   - S6 GeneratedObsoleteOrphan : carte d'alerte ostensible avec
- *     liste des motifs d'obsolescence + CTA Régénérer.
- *   - S7 RegenerationInProgress : carte « Régénération en cours »
- *     pointant vers le Draft chaîné + lien vers la version obsolète.
+ * Refonte design D5.10.W (direction « Linear-éditorial ») · ce
+ * composant ne rend **plus** de Card. Il s'inscrit dans le flux
+ * typographique du tab parent · eyebrow `DÉCLARATION` géré côté
+ * `<CompanyFiscalTab>`, ce composant rend uniquement le corps de la
+ * section.
  *
- * **Aération D5.10.I** · icônes 12×12, titres text-base, descriptions
- * text-sm leading-relaxed (phrases développées), gap-4/5 entre
- * sections internes. Exploite la place disponible pour raconter
- * l'histoire de chaque état sans phrases hachées.
+ * 7 branches (cf. `DeclarationLifecycleState`) ·
+ *   - S1 Untouched · géré directement dans `<CompanyFiscalTab>` (prose),
+ *     ce composant n'est pas invoqué dans ce cas.
+ *   - S2 DraftPending · « Brouillon · X décisions à trancher »
+ *   - S3 DraftReadyToGenerate · « Brouillon prêt »
+ *   - S4 Deferred · « Mise en pause »
+ *   - S4-bis DeferredRegeneration · « Régénération mise en pause »
+ *   - S5 GeneratedActive · « Générée · REF · date » + actions PDF
+ *   - S6 GeneratedObsoleteOrphan · « Obsolète » + liste motifs
+ *   - S7 RegenerationInProgress · « Régénération en cours »
+ *
+ * Chaque branche partage le même squelette ·
+ *   1. Status row · dot coloré + nom de l'état + meta optionnel (REF
+ *      mono, date d'obsolescence ou de génération).
+ *   2. Prose · 1 paragraphe en `text-[15px] leading-relaxed
+ *      text-slate-700` qui raconte l'état actuel et la prochaine étape.
+ *   3. Actions · CTA primaire (Button slate-900) + lien secondaire
+ *      optionnel inline.
+ *   4. Annexe contextuelle (S6 motifs / S5-S7 timeline) en dessous.
  */
 import { Link, router } from '@inertiajs/vue3';
 import {
-    AlertTriangle,
     ArrowUpRight,
-    CalendarClock,
-    CheckCircle2,
-    Clock,
     Download,
-    FileCheck2,
-    FilePlus2,
     FileText,
     LoaderCircle,
     Recycle,
 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
-import Card from '@/Components/Ui/Card/Card.vue';
 import {
     download as downloadDeclarationRoute,
-    prepare as prepareDeclarationRoute,
     regenerate as regenerateDeclarationRoute,
     review as reviewDeclarationRoute,
     show as showDeclarationRoute,
@@ -54,7 +50,6 @@ import {
     formatInvalidationReason,
 } from '@/Utils/format/invalidationReason';
 import DeclarationHistoryTimeline from './DeclarationHistoryTimeline.vue';
-import DeclarationStateCardHeader from './DeclarationStateCardHeader.vue';
 
 const props = withDefaults(
     defineProps<{
@@ -63,17 +58,16 @@ const props = withDefaults(
         fiscalYear: number;
         /**
          * Une déclaration n'est juridiquement préparable qu'à partir de
-         * janvier N+1 (CIBS L. 421-159 · annexe 3310-A ou formulaire 3517).
-         * Pour les exercices encore en cours ou à venir, l'UI affiche un
-         * bandeau info plutôt qu'un CTA Préparer qui planterait sur le
-         * guard backend `CreateDraftDeclarationAction` (P5).
+         * janvier N+1 (CIBS L. 421-159). Prop conservée pour cohérence
+         * d'API avec `<CompanyFiscalTab>`, mais inutilisée ici · la
+         * branche `untouched + non déclarable` est gérée côté parent en
+         * prose, ce composant n'est invoqué que sur les états S2-S7.
          */
         isDeclarable?: boolean;
     }>(),
     { isDeclarable: true },
 );
 
-const preparing = ref<boolean>(false);
 const regenerating = ref<boolean>(false);
 
 const current = computed(() => props.lifecycle.currentDeclaration);
@@ -93,25 +87,9 @@ const generatedAtFormatted = computed<string | null>(() => {
     return formatDateFr(current.value.generatedAt);
 });
 
-function handlePrepare(): void {
-    if (preparing.value) {
-        return;
-    }
-
-    preparing.value = true;
-    router.post(
-        prepareDeclarationRoute.url(),
-        {
-            company_id: props.companyId,
-            fiscal_year: props.fiscalYear,
-        },
-        {
-            onFinish: () => {
-                preparing.value = false;
-            },
-        },
-    );
-}
+const pendingPlural = computed<string>(
+    () => (props.lifecycle.pendingClustersCount > 1 ? 's' : ''),
+);
 
 function handleRegenerate(): void {
     if (regenerating.value || current.value === null) {
@@ -132,367 +110,282 @@ function handleRegenerate(): void {
 </script>
 
 <template>
-    <!--
-        S1-bis · exercice non déclarable (en cours ou à venir) ·
-        bandeau info sober plutôt que la carte d'action. CIBS · la
-        déclaration n'est ouverte qu'à partir de janvier N+1.
-    -->
-    <div
-        v-if="state === 'untouched' && !isDeclarable"
-        class="flex items-start gap-4 rounded-xl border border-slate-200 border-l-2 border-l-blue-400 bg-slate-50/60 px-5 py-4"
-        role="status"
-    >
-        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
-            <CalendarClock :size="20" :stroke-width="1.75" />
-        </div>
-        <div class="flex flex-col gap-1">
-            <p class="text-sm font-semibold text-slate-900">
-                Déclaration {{ fiscalYear }} · ouverte en janvier {{ fiscalYear + 1 }}
-            </p>
-            <p class="text-sm leading-relaxed text-slate-600">
-                Cet exercice n'est pas encore déclarable. Les chiffres ci-dessus
-                évolueront jusqu'à la clôture de l'année.
-                La déclaration se fera via l'annexe
-                <span class="font-mono">3310-A</span>
-                (régime réel) ou le formulaire
-                <span class="font-mono">3517</span>
-                (régime simplifié), à déposer en janvier {{ fiscalYear + 1 }}.
-            </p>
-        </div>
-    </div>
-
-    <!-- S1 · aucune déclaration préparée, exercice déclarable -->
-    <Card v-else-if="state === 'untouched'">
-        <div class="flex flex-col gap-10 items-center py-8">
-            <DeclarationStateCardHeader
-                icon-bg-class="bg-blue-50 text-blue-600"
-                :title="`Déclaration ${fiscalYear}`"
-            >
-                <template #icon>
-                    <FilePlus2 :size="22" :stroke-width="1.75" />
-                </template>
-                <p class="text-base leading-relaxed text-slate-600">
-                    Aucune déclaration n'a encore été préparée pour cet exercice.
-                    L'écran de revue vous permet de trancher les éventuels clusters
-                    de risque (chaînes LCD requalifiables en LLD) avant la génération
-                    du document définitif.
-                </p>
-            </DeclarationStateCardHeader>
-            <Button :disabled="preparing" class="shrink-0" @click="handlePrepare">
-                <LoaderCircle v-if="preparing" :size="16" :stroke-width="1.75" class="animate-spin" />
-                <FileCheck2 v-else :size="16" :stroke-width="1.75" />
-                {{ preparing ? 'Préparation…' : 'Préparer la déclaration' }}
-            </Button>
-        </div>
-    </Card>
-
-    <!-- S2 + S3 · Draft (en cours / prêt à générer) -->
-    <Card v-else-if="(state === 'draft_pending' || state === 'draft_ready_to_generate') && current">
-        <div class="flex flex-col gap-10 items-center py-8">
-            <DeclarationStateCardHeader
-                icon-bg-class="bg-slate-50 text-slate-600"
-                :title="`Déclaration ${fiscalYear}`"
-                pill-tone="slate"
-                pill-label="Brouillon"
-            >
-                <template #icon>
-                    <FileText :size="22" :stroke-width="1.75" />
-                </template>
-                <p v-if="state === 'draft_pending'" class="text-base leading-relaxed text-slate-600">
-                    La préparation est en cours. Il reste
-                    <strong class="font-semibold text-slate-900">{{ lifecycle.pendingClustersCount }}
-                    décision<template v-if="lifecycle.pendingClustersCount > 1">s</template></strong>
-                    à trancher dans l'écran de revue avant de pouvoir générer la
-                    déclaration. Les décisions déjà prises sont conservées.
-                </p>
-                <p v-else class="text-base leading-relaxed text-emerald-700">
-                    Toutes les décisions de revue sont prises · la déclaration peut
-                    désormais être générée depuis l'écran de revue. Le document
-                    produit sera figé et conservé en annexe.
-                </p>
-            </DeclarationStateCardHeader>
-            <Link :href="reviewDeclarationRoute.url({ declaration: current.id })" class="shrink-0">
-                <Button>
-                    <FileText :size="16" :stroke-width="1.75" />
-                    Reprendre la revue
-                </Button>
-            </Link>
-        </div>
-    </Card>
-
-    <!-- S4 · Mise de côté -->
-    <Card v-else-if="state === 'deferred' && current">
-        <div class="flex flex-col gap-10 items-center py-8">
-            <DeclarationStateCardHeader
-                icon-bg-class="bg-amber-50 text-amber-600"
-                :title="`Déclaration ${fiscalYear}`"
-                pill-tone="amber"
-                pill-label="Mise de côté"
-            >
-                <template #icon>
-                    <Clock :size="22" :stroke-width="1.75" />
-                </template>
-                <p class="text-base leading-relaxed text-slate-600">
-                    La préparation a été volontairement mise en pause. Vous pouvez
-                    la reprendre à tout moment depuis l'écran de revue, aucune
-                    décision déjà tranchée ne sera perdue.
-                </p>
-            </DeclarationStateCardHeader>
-            <Link :href="reviewDeclarationRoute.url({ declaration: current.id })" class="shrink-0">
-                <Button>
-                    <FileText :size="16" :stroke-width="1.75" />
-                    Reprendre la revue
-                </Button>
-            </Link>
-        </div>
-    </Card>
-
-    <!-- S4-bis · Mise de côté · régénération en attente (Phase 13 D5.10.H, aérée D5.10.I) -->
-    <Card v-else-if="state === 'deferred_regeneration' && current">
-        <div class="flex flex-col gap-5 py-8">
-            <div class="flex flex-col gap-10 items-center">
-                <DeclarationStateCardHeader
-                    icon-bg-class="bg-amber-50 text-amber-600"
-                    :title="`Régénération de la déclaration ${fiscalYear}`"
-                    pill-tone="amber"
-                    pill-label="Mise de côté"
-                >
-                    <template #icon>
-                        <Clock :size="22" :stroke-width="1.75" />
-                    </template>
-                    <p class="text-base leading-relaxed text-slate-600">
-                        Le brouillon de régénération a été volontairement mis de côté.
-                        La déclaration précédente reste obsolète tant que la nouvelle
-                        version n'est pas générée. Reprenez la revue à tout moment
-                        pour finaliser la régénération.
-                    </p>
-                    <p v-if="predecessor?.reference" class="font-mono text-sm text-slate-500">
-                        Remplace
-                        <span class="font-medium text-slate-700">{{ predecessor.reference }}</span>
-                        <template v-if="firstReasonOccurredAt">
-                            · obsolète depuis le
-                            {{ formatInvalidationOccurredAt(firstReasonOccurredAt) }}
-                        </template>
-                    </p>
-                </DeclarationStateCardHeader>
-                <div class="flex flex-wrap items-center gap-6 sm:shrink-0">
-                    <Link
-                        v-if="predecessor"
-                        :href="showDeclarationRoute.url({ declaration: predecessor.id })"
-                        class="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline"
-                    >
-                        Voir la version obsolète
-                        <ArrowUpRight :size="12" :stroke-width="1.75" />
-                    </Link>
-                    <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
-                        <Button>
-                            <FileText :size="16" :stroke-width="1.75" />
-                            Reprendre la régénération
-                        </Button>
-                    </Link>
-                </div>
+    <div class="flex flex-col gap-4">
+        <!-- S2 · Draft pending -->
+        <template v-if="state === 'draft_pending' && current">
+            <div class="flex items-center gap-2">
+                <span class="inline-block size-1.5 rounded-full bg-slate-400" aria-hidden="true" />
+                <span class="text-sm font-medium text-slate-900">Brouillon en préparation</span>
+                <span v-if="current.reference" class="font-mono text-xs text-slate-500">
+                    · {{ current.reference }}
+                </span>
             </div>
-        </div>
-    </Card>
-
-    <!-- S5 · Generated active -->
-    <Card v-else-if="state === 'generated_active' && current">
-        <div class="flex flex-col gap-5 py-8">
-            <div class="flex flex-col gap-10 items-center">
-                <DeclarationStateCardHeader
-                    icon-bg-class="bg-emerald-50 text-emerald-600"
-                    :title="`Déclaration ${fiscalYear}`"
-                    pill-tone="emerald"
-                    pill-label="Générée"
-                >
-                    <template #icon>
-                        <CheckCircle2 :size="22" :stroke-width="1.75" />
-                    </template>
-                    <p class="text-base leading-relaxed text-slate-600">
-                        La déclaration a été générée et figée. Le document PDF est
-                        disponible en téléchargement. Le périmètre est à jour, aucune
-                        mutation contractuelle ne l'a invalidée depuis la génération.
-                    </p>
-                    <p v-if="current.reference" class="font-mono text-sm text-slate-500">
-                        <span class="font-medium text-slate-700">{{ current.reference }}</span>
-                        <template v-if="generatedAtFormatted">
-                            · générée le {{ generatedAtFormatted }}
-                        </template>
-                    </p>
-                </DeclarationStateCardHeader>
-                <div class="flex flex-wrap items-center gap-6 sm:shrink-0">
-                    <Link :href="showDeclarationRoute.url({ declaration: current.id })">
-                        <Button variant="secondary">
-                            <FileText :size="16" :stroke-width="1.75" />
-                            Ouvrir
-                        </Button>
-                    </Link>
-                    <a
-                        :href="downloadDeclarationRoute.url({ declaration: current.id })"
-                        class="inline-flex h-[34px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-base font-medium leading-none text-slate-700 transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-100"
-                    >
-                        <Download :size="16" :stroke-width="1.75" />
-                        Télécharger PDF
-                    </a>
-                </div>
-            </div>
-
-            <DeclarationHistoryTimeline
-                v-if="lifecycle.historyChain.length > 0 && current"
-                :entries="[current, ...lifecycle.historyChain]"
-                :current-declaration-id="current.id"
-                class="border-t border-slate-100 pt-4"
-            />
-        </div>
-    </Card>
-
-    <!-- S6 · Generated obsolète orphan (la version est périmée, pas de Draft chaîné) -->
-    <Card v-else-if="state === 'generated_obsolete_orphan' && current">
-        <div class="flex flex-col gap-5 py-8">
-            <div class="flex flex-col gap-10 items-center">
-                <DeclarationStateCardHeader
-                    icon-bg-class="bg-rose-50 text-rose-600"
-                    :title="`Déclaration ${fiscalYear}`"
-                    pill-tone="rose"
-                    pill-label="Générée · obsolète"
-                >
-                    <template #icon>
-                        <AlertTriangle :size="22" :stroke-width="1.75" />
-                    </template>
-                    <p class="text-base leading-relaxed text-slate-600">
-                        La déclaration a été générée mais le périmètre fiscal a évolué
-                        depuis · elle est désormais obsolète et doit être régénérée
-                        pour refléter le calcul à jour. Le PDF historique reste
-                        consultable pour archive.
-                    </p>
-                    <p v-if="current.reference" class="font-mono text-sm text-slate-500">
-                        <span class="font-medium text-slate-700">{{ current.reference }}</span>
-                        <template v-if="generatedAtFormatted">
-                            · générée le {{ generatedAtFormatted }}
-                        </template>
-                    </p>
-                </DeclarationStateCardHeader>
-                <Link :href="showDeclarationRoute.url({ declaration: current.id })" class="sm:shrink-0">
-                    <Button variant="secondary">
-                        <FileText :size="16" :stroke-width="1.75" />
-                        Ouvrir
+            <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
+                La préparation de la déclaration est en cours. Il reste
+                <strong class="font-medium text-slate-900">
+                    {{ lifecycle.pendingClustersCount }} décision{{ pendingPlural }}
+                </strong>
+                à trancher dans l'écran de revue avant de générer le document.
+                Les décisions déjà prises sont conservées.
+            </p>
+            <div>
+                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                    <Button>
+                        <FileText :size="14" :stroke-width="1.75" />
+                        Reprendre la revue
                     </Button>
                 </Link>
             </div>
+        </template>
 
-            <div class="rounded-md border border-slate-200 border-l-2 border-l-rose-400 bg-slate-50 p-4">
-                <p class="text-lg font-semibold text-slate-900">
-                    Cette déclaration est périmée
-                </p>
-                <p class="mt-1.5 text-base leading-relaxed text-slate-600">
-                    Le périmètre fiscal {{ fiscalYear }} a évolué depuis la génération.
-                    Régénérer crée un nouveau brouillon de revue dans lequel les
-                    décisions inchangées sont automatiquement reprises par fingerprint.
-                </p>
-                <ul
-                    v-if="reasonsToShow.length > 0"
-                    class="mt-3 flex flex-col gap-2"
-                >
-                    <li
-                        v-for="(reason, index) in reasonsToShow"
-                        :key="index"
-                        class="flex items-baseline gap-2 text-base text-slate-700"
-                    >
-                        <span class="inline-block size-1.5 shrink-0 translate-y-[-1px] rounded-full bg-rose-400" />
-                        <span>
-                            <span class="font-medium">{{ formatInvalidationReason(reason) }}</span>
-                            <span class="text-slate-500">
-                                · {{ formatInvalidationOccurredAt(reason.occurredAt) }}
-                            </span>
-                        </span>
-                    </li>
-                    <li v-if="extraReasonsCount > 0" class="pl-3 text-sm italic text-slate-500">
-                        +{{ extraReasonsCount }} autre<template v-if="extraReasonsCount > 1">s</template>
-                        motif<template v-if="extraReasonsCount > 1">s</template>
-                    </li>
-                </ul>
-                <div class="mt-4">
-                    <Button variant="destructive-soft" :disabled="regenerating" @click="handleRegenerate">
-                        <LoaderCircle
-                            v-if="regenerating"
-                            :size="16"
-                            :stroke-width="1.75"
-                            class="animate-spin"
-                        />
-                        <Recycle v-else :size="16" :stroke-width="1.75" />
-                        {{ regenerating ? 'Création du brouillon…' : 'Régénérer la déclaration' }}
+        <!-- S3 · Draft ready to generate -->
+        <template v-else-if="state === 'draft_ready_to_generate' && current">
+            <div class="flex items-center gap-2">
+                <span class="inline-block size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                <span class="text-sm font-medium text-slate-900">Brouillon prêt à générer</span>
+                <span v-if="current.reference" class="font-mono text-xs text-slate-500">
+                    · {{ current.reference }}
+                </span>
+            </div>
+            <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
+                Toutes les décisions de revue ont été tranchées. La déclaration
+                peut désormais être générée depuis l'écran de revue · le document
+                produit sera figé et conservé en annexe.
+            </p>
+            <div>
+                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                    <Button>
+                        <FileText :size="14" :stroke-width="1.75" />
+                        Générer la déclaration
                     </Button>
-                </div>
+                </Link>
             </div>
+        </template>
 
-            <DeclarationHistoryTimeline
-                v-if="lifecycle.historyChain.length > 0 && current"
-                :entries="[current, ...lifecycle.historyChain]"
-                :current-declaration-id="current.id"
-                class="border-t border-slate-100 pt-4"
-            />
-        </div>
-    </Card>
+        <!-- S4 · Deferred -->
+        <template v-else-if="state === 'deferred' && current">
+            <div class="flex items-center gap-2">
+                <span class="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+                <span class="text-sm font-medium text-slate-900">Préparation mise en pause</span>
+                <span v-if="current.reference" class="font-mono text-xs text-slate-500">
+                    · {{ current.reference }}
+                </span>
+            </div>
+            <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
+                La préparation a été volontairement mise de côté. Elle peut être
+                reprise à tout moment depuis l'écran de revue · aucune décision
+                déjà tranchée ne sera perdue.
+            </p>
+            <div>
+                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                    <Button>
+                        <FileText :size="14" :stroke-width="1.75" />
+                        Reprendre la revue
+                    </Button>
+                </Link>
+            </div>
+        </template>
 
-    <!-- S7 · Régénération en cours (Draft chaîné, version obsolète remplacée) -->
-    <Card v-else-if="state === 'regeneration_in_progress' && current">
-        <div class="flex flex-col gap-5 py-8">
-            <div class="flex flex-col gap-10 items-center">
-                <DeclarationStateCardHeader
-                    icon-bg-class="bg-amber-50 text-amber-600"
-                    :title="`Régénération de la déclaration ${fiscalYear}`"
-                    pill-tone="amber"
-                    pill-label="En cours"
+        <!-- S4-bis · Deferred regeneration -->
+        <template v-else-if="state === 'deferred_regeneration' && current">
+            <div class="flex items-center gap-2">
+                <span class="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+                <span class="text-sm font-medium text-slate-900">Régénération en pause</span>
+                <span v-if="predecessor?.reference" class="font-mono text-xs text-slate-500">
+                    · remplace {{ predecessor.reference }}
+                </span>
+            </div>
+            <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
+                Le brouillon de régénération a été volontairement mis de côté.
+                La déclaration précédente reste obsolète tant que la nouvelle
+                version n'est pas générée.
+                <template v-if="firstReasonOccurredAt">
+                    Le périmètre a divergé depuis le
+                    <strong class="font-medium text-slate-900">
+                        {{ formatInvalidationOccurredAt(firstReasonOccurredAt) }}</strong>.
+                </template>
+            </p>
+            <div class="flex flex-wrap items-center gap-5">
+                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                    <Button>
+                        <FileText :size="14" :stroke-width="1.75" />
+                        Reprendre la régénération
+                    </Button>
+                </Link>
+                <Link
+                    v-if="predecessor"
+                    :href="showDeclarationRoute.url({ declaration: predecessor.id })"
+                    class="inline-flex cursor-pointer items-center gap-1 text-sm text-slate-500 transition-colors duration-[120ms] hover:text-slate-900"
                 >
-                    <template #icon>
-                        <Recycle :size="22" :stroke-width="1.75" />
-                    </template>
-                    <p v-if="lifecycle.pendingClustersCount > 0" class="text-base leading-relaxed text-slate-600">
-                        Un nouveau brouillon a été créé pour remplacer la version
-                        obsolète. Il reste
-                        <strong class="font-semibold text-slate-900">{{ lifecycle.pendingClustersCount }}
-                        décision<template v-if="lifecycle.pendingClustersCount > 1">s</template></strong>
-                        à trancher dans l'écran de revue avant de pouvoir générer la
-                        nouvelle version.
-                    </p>
-                    <p v-else class="text-base leading-relaxed text-emerald-700">
-                        Toutes les décisions ont été reprises automatiquement par
-                        fingerprint · la nouvelle version est prête à être générée
-                        depuis l'écran de revue.
-                    </p>
-                    <p v-if="predecessor?.reference" class="font-mono text-sm text-slate-500">
-                        Remplace
-                        <span class="font-medium text-slate-700">{{ predecessor.reference }}</span>
-                        <template v-if="firstReasonOccurredAt">
-                            · obsolète depuis le
-                            {{ formatInvalidationOccurredAt(firstReasonOccurredAt) }}
-                        </template>
-                    </p>
-                </DeclarationStateCardHeader>
-                <div class="flex flex-wrap items-center gap-6 sm:shrink-0">
-                    <Link
-                        v-if="predecessor"
-                        :href="showDeclarationRoute.url({ declaration: predecessor.id })"
-                        class="inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-slate-500 underline-offset-2 hover:text-slate-900 hover:underline"
-                    >
-                        Voir la version obsolète
-                        <ArrowUpRight :size="12" :stroke-width="1.75" />
-                    </Link>
-                    <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
-                        <Button>
-                            <FileText :size="16" :stroke-width="1.75" />
-                            Reprendre la régénération
-                        </Button>
-                    </Link>
-                </div>
+                    Voir la version obsolète
+                    <ArrowUpRight :size="13" :stroke-width="1.75" />
+                </Link>
+            </div>
+        </template>
+
+        <!-- S5 · Generated active -->
+        <template v-else-if="state === 'generated_active' && current">
+            <div class="flex items-center gap-2">
+                <span class="inline-block size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
+                <span class="text-sm font-medium text-slate-900">Déclaration générée</span>
+                <span v-if="current.reference" class="font-mono text-xs text-slate-500">
+                    · {{ current.reference }}
+                </span>
+                <span v-if="generatedAtFormatted" class="text-xs text-slate-500">
+                    · le {{ generatedAtFormatted }}
+                </span>
+            </div>
+            <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
+                Le document PDF est disponible en téléchargement. Le périmètre
+                est à jour · aucune mutation contractuelle ne l'a invalidée
+                depuis la génération.
+            </p>
+            <div class="flex flex-wrap items-center gap-3">
+                <Link :href="showDeclarationRoute.url({ declaration: current.id })">
+                    <Button variant="secondary">
+                        <FileText :size="14" :stroke-width="1.75" />
+                        Ouvrir
+                    </Button>
+                </Link>
+                <a
+                    :href="downloadDeclarationRoute.url({ declaration: current.id })"
+                    class="inline-flex h-[34px] cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 text-sm font-medium leading-none text-slate-700 transition-colors duration-[120ms] hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-100"
+                >
+                    <Download :size="14" :stroke-width="1.75" />
+                    Télécharger le PDF
+                </a>
             </div>
 
             <DeclarationHistoryTimeline
                 v-if="lifecycle.historyChain.length > 0 && current"
                 :entries="[current, ...lifecycle.historyChain]"
                 :current-declaration-id="current.id"
-                class="border-t border-slate-100 pt-4"
+                class="mt-4 border-t border-slate-100 pt-5"
             />
-        </div>
-    </Card>
+        </template>
+
+        <!-- S6 · Generated obsolete orphan -->
+        <template v-else-if="state === 'generated_obsolete_orphan' && current">
+            <div class="flex items-center gap-2">
+                <span class="inline-block size-1.5 rounded-full bg-rose-500" aria-hidden="true" />
+                <span class="text-sm font-medium text-slate-900">Déclaration obsolète</span>
+                <span v-if="current.reference" class="font-mono text-xs text-slate-500">
+                    · {{ current.reference }}
+                </span>
+                <span v-if="generatedAtFormatted" class="text-xs text-slate-500">
+                    · générée le {{ generatedAtFormatted }}
+                </span>
+            </div>
+            <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
+                Le périmètre fiscal a évolué depuis la génération. La régénération
+                crée un nouveau brouillon de revue où les décisions inchangées
+                sont automatiquement reprises par fingerprint · seuls les
+                clusters impactés sont à reprendre. Le PDF historique reste
+                consultable pour archive.
+            </p>
+
+            <ul
+                v-if="reasonsToShow.length > 0"
+                class="flex max-w-2xl flex-col gap-2 text-[14px] leading-relaxed text-slate-700"
+            >
+                <li
+                    v-for="(reason, index) in reasonsToShow"
+                    :key="index"
+                    class="flex items-baseline gap-2"
+                >
+                    <span class="inline-block size-1 shrink-0 translate-y-[-2px] rounded-full bg-rose-500" aria-hidden="true" />
+                    <span>
+                        <span class="font-medium text-slate-900">{{ formatInvalidationReason(reason) }}</span>
+                        <span class="text-slate-500"> · {{ formatInvalidationOccurredAt(reason.occurredAt) }}</span>
+                    </span>
+                </li>
+                <li v-if="extraReasonsCount > 0" class="pl-3 text-sm text-slate-500">
+                    + {{ extraReasonsCount }} autre<template v-if="extraReasonsCount > 1">s</template>
+                    motif<template v-if="extraReasonsCount > 1">s</template>
+                </li>
+            </ul>
+
+            <div class="flex flex-wrap items-center gap-5">
+                <Button :disabled="regenerating" @click="handleRegenerate">
+                    <LoaderCircle
+                        v-if="regenerating"
+                        :size="14"
+                        :stroke-width="1.75"
+                        class="animate-spin"
+                    />
+                    <Recycle v-else :size="14" :stroke-width="1.75" />
+                    {{ regenerating ? 'Création du brouillon…' : 'Régénérer la déclaration' }}
+                </Button>
+                <Link
+                    :href="showDeclarationRoute.url({ declaration: current.id })"
+                    class="inline-flex cursor-pointer items-center gap-1 text-sm text-slate-500 transition-colors duration-[120ms] hover:text-slate-900"
+                >
+                    Ouvrir la version obsolète
+                    <ArrowUpRight :size="13" :stroke-width="1.75" />
+                </Link>
+            </div>
+
+            <DeclarationHistoryTimeline
+                v-if="lifecycle.historyChain.length > 0 && current"
+                :entries="[current, ...lifecycle.historyChain]"
+                :current-declaration-id="current.id"
+                class="mt-4 border-t border-slate-100 pt-5"
+            />
+        </template>
+
+        <!-- S7 · Regeneration in progress -->
+        <template v-else-if="state === 'regeneration_in_progress' && current">
+            <div class="flex items-center gap-2">
+                <span class="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
+                <span class="text-sm font-medium text-slate-900">Régénération en cours</span>
+                <span v-if="predecessor?.reference" class="font-mono text-xs text-slate-500">
+                    · remplace {{ predecessor.reference }}
+                </span>
+            </div>
+            <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
+                <template v-if="lifecycle.pendingClustersCount > 0">
+                    Un nouveau brouillon a été créé pour remplacer la version
+                    obsolète. Il reste
+                    <strong class="font-medium text-slate-900">
+                        {{ lifecycle.pendingClustersCount }} décision{{ pendingPlural }}
+                    </strong>
+                    à trancher dans l'écran de revue avant de générer la
+                    nouvelle version.
+                </template>
+                <template v-else>
+                    Toutes les décisions ont été reprises automatiquement par
+                    fingerprint · la nouvelle version est prête à être générée
+                    depuis l'écran de revue.
+                </template>
+                <template v-if="firstReasonOccurredAt">
+                    Le périmètre a divergé depuis le
+                    <strong class="font-medium text-slate-900">
+                        {{ formatInvalidationOccurredAt(firstReasonOccurredAt) }}</strong>.
+                </template>
+            </p>
+            <div class="flex flex-wrap items-center gap-5">
+                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                    <Button>
+                        <FileText :size="14" :stroke-width="1.75" />
+                        Reprendre la régénération
+                    </Button>
+                </Link>
+                <Link
+                    v-if="predecessor"
+                    :href="showDeclarationRoute.url({ declaration: predecessor.id })"
+                    class="inline-flex cursor-pointer items-center gap-1 text-sm text-slate-500 transition-colors duration-[120ms] hover:text-slate-900"
+                >
+                    Voir la version obsolète
+                    <ArrowUpRight :size="13" :stroke-width="1.75" />
+                </Link>
+            </div>
+
+            <DeclarationHistoryTimeline
+                v-if="lifecycle.historyChain.length > 0 && current"
+                :entries="[current, ...lifecycle.historyChain]"
+                :current-declaration-id="current.id"
+                class="mt-4 border-t border-slate-100 pt-5"
+            />
+        </template>
+    </div>
 </template>

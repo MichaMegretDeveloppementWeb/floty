@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>A · Linear-éditorial · Fiscalité</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+.title {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1;
+    color: var(--slate-900);
+}
+.status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--slate-600);
+    font-weight: 500;
+}
+.status-dot .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-500); }
+.title-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 4px;
+}
+.meta {
+    font-size: 13px;
+    color: var(--slate-500);
+    margin-bottom: 28px;
+}
+.year-tabs {
+    display: flex;
+    gap: 24px;
+    border-bottom: 1px solid var(--slate-100);
+    padding-bottom: 0;
+    margin-bottom: 40px;
+}
+.year-tabs a {
+    padding: 0 0 12px 0;
+    color: var(--slate-500);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+.year-tabs a.active {
+    color: var(--slate-900);
+    border-bottom-color: var(--slate-900);
+}
+.year-tabs a .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--amber-500); display: inline-block;
+    margin-left: 4px; vertical-align: middle;
+}
+
+.hero {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 60px;
+    align-items: end;
+    margin-bottom: 48px;
+}
+.hero-number {
+    font-size: 56px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--slate-900);
+}
+.hero-label {
+    font-size: 13px;
+    color: var(--slate-500);
+    margin-top: 8px;
+}
+.compare {
+    text-align: right;
+    font-size: 13px;
+    color: var(--slate-500);
+    line-height: 1.6;
+}
+.compare .delta {
+    color: var(--emerald-600);
+    font-weight: 500;
+}
+
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--slate-100);
+    border-bottom: 1px solid var(--slate-100);
+    padding: 24px 0;
+    margin-bottom: 48px;
+}
+.stat {
+    padding: 0 24px;
+    border-right: 1px solid var(--slate-100);
+}
+.stat:first-child { padding-left: 0; }
+.stat:last-child { border-right: none; padding-right: 0; }
+.stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--slate-500);
+    margin-bottom: 6px;
+}
+.stat-value {
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: var(--slate-900);
+}
+.stat-sub {
+    font-size: 11px;
+    color: var(--slate-500);
+    margin-top: 2px;
+}
+
+.section-h {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--slate-500);
+    margin-bottom: 12px;
+}
+.decl-block {
+    max-width: 640px;
+    margin-bottom: 32px;
+}
+.decl-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--slate-700);
+}
+.decl-text strong {
+    font-weight: 500;
+    color: var(--slate-900);
+}
+.linkrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--slate-700);
+    text-decoration: none;
+    border-bottom: 1px solid var(--slate-200);
+    padding-bottom: 1px;
+}
+.linkrow:hover { color: var(--slate-900); border-color: var(--slate-900); }
+</style>
+</head>
+<body>
+
+<div class="toggle-strip">
+    <a href="A.html" class="active">A · Linear</a>
+    <a href="B.html">B · Stripe</a>
+    <a href="C.html">C · Mercury</a>
+    <a href="D.html">D · Notion</a>
+</div>
+
+<div class="app">
+
+    <div class="nav-row">
+        <a href="#">Vue d'ensemble</a>
+        <a href="#">Locations</a>
+        <a href="#">Conducteurs</a>
+        <a href="#" class="active">Fiscalité</a>
+        <a href="#">Facturation</a>
+    </div>
+
+    <p class="eyebrow" style="margin-bottom: 8px;">Fiscalité · ACME Logistique</p>
+    <div class="title-row">
+        <h1 class="title">Taxes 2026</h1>
+        <span class="status-dot"><span class="dot"></span>Exercice en cours</span>
+    </div>
+    <p class="meta">Déclarable en janvier 2027 · annexe 3310-A (régime réel) ou formulaire 3517 (régime simplifié).</p>
+
+    <nav class="year-tabs" aria-label="Sélection de l'exercice">
+        <a href="#">2024<span class="dot"></span></a>
+        <a href="#">2025<span class="dot"></span></a>
+        <a href="#" class="active">2026</a>
+    </nav>
+
+    <div class="hero">
+        <div>
+            <div class="hero-number mono">749 €</div>
+            <div class="hero-label">Total provisoire au 15 mai 2026</div>
+        </div>
+        <div class="compare">
+            <div>vs 2025, même période</div>
+            <div><span class="mono">662 €</span> · <span class="delta">+13 %</span></div>
+        </div>
+    </div>
+
+    <div class="stats-row">
+        <div class="stat">
+            <div class="stat-label">Taxe CO₂</div>
+            <div class="stat-value mono">515 €</div>
+            <div class="stat-sub mono">69 %</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Taxe polluants</div>
+            <div class="stat-value mono">234 €</div>
+            <div class="stat-sub mono">31 %</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Jours cumulés</div>
+            <div class="stat-value mono">400</div>
+            <div class="stat-sub">sur 4 véhicules</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Locations</div>
+            <div class="stat-value mono">4</div>
+            <div class="stat-sub">contrats actifs</div>
+        </div>
+    </div>
+
+    <div class="decl-block">
+        <p class="section-h">Déclaration</p>
+        <p class="decl-text">
+            La déclaration au titre de l'exercice <strong>2026</strong> sera ouverte
+            en <strong>janvier 2027</strong>. Elle se dépose via l'annexe
+            <span class="mono">3310-A</span> jointe à la déclaration de TVA (régime
+            réel), ou via le formulaire <span class="mono">3517</span> (régime
+            simplifié). Les chiffres ci-dessus évolueront jusqu'à la clôture de l'année.
+        </p>
+    </div>
+
+    <a href="#" class="linkrow">Voir les locations 2026 →</a>
+
+</div>
+</body>
+</html>

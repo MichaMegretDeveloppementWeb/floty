@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<title>D · Notion éditorial · Fiscalité</title>
+<link rel="stylesheet" href="_shared.css" />
+<style>
+body { padding-top: 60px; }
+.app { max-width: 760px; }
+
+.eyebrow { margin-bottom: 12px; }
+.h1 {
+    font-size: 30px; font-weight: 600;
+    letter-spacing: -0.02em; line-height: 1.1;
+    color: var(--slate-900); margin-bottom: 8px;
+}
+.meta-row {
+    display: flex; align-items: center; gap: 12px;
+    font-size: 13px; color: var(--slate-500);
+    margin-bottom: 36px;
+}
+.meta-row .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber-500); }
+.meta-row a { color: var(--slate-600); text-decoration: none; }
+.meta-row a:hover { color: var(--slate-900); }
+.meta-row .sep { color: var(--slate-300); }
+
+.year-row {
+    display: flex; gap: 8px; margin-bottom: 40px;
+    padding-bottom: 24px; border-bottom: 1px solid var(--slate-100);
+}
+.year-row a {
+    font-size: 13px; font-weight: 500; color: var(--slate-500);
+    text-decoration: none; padding: 6px 12px; border-radius: 6px;
+}
+.year-row a:hover { background: var(--slate-100); color: var(--slate-900); }
+.year-row a.active { background: var(--slate-900); color: white; }
+.year-row a .dot { display: inline-block; width: 4px; height: 4px; border-radius: 50%; background: var(--amber-500); margin-left: 4px; vertical-align: middle; }
+
+.prose {
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--slate-700);
+    margin-bottom: 36px;
+}
+.prose p + p { margin-top: 18px; }
+.prose strong {
+    font-family: 'DM Mono', monospace; font-variant-numeric: tabular-nums;
+    color: var(--slate-900); font-weight: 500;
+    background: var(--slate-100);
+    padding: 1px 6px; border-radius: 4px;
+    font-size: 14px;
+}
+.prose em { font-style: normal; color: var(--slate-500); }
+
+.section-h {
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--slate-500); margin: 40px 0 16px;
+}
+.history { display: flex; flex-direction: column; }
+.history a {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--slate-100);
+    text-decoration: none;
+    color: var(--slate-900);
+    transition: color 0.12s;
+}
+.history a:last-child { border-bottom: none; }
+.history a:hover { color: var(--slate-900); }
+.history a:hover .arrow { transform: translateX(2px); }
+.history .year { font-weight: 600; font-size: 14px; width: 50px; }
+.history .amount {
+    font-family: 'DM Mono', monospace; font-variant-numeric: tabular-nums;
+    font-size: 14px; color: var(--slate-700); width: 90px;
+}
+.history .status { flex: 1; font-size: 13px; color: var(--slate-500); }
+.history .status .pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 11px; font-weight: 500;
+    padding: 2px 7px; border-radius: 4px;
+    background: var(--slate-100); color: var(--slate-600);
+    margin-right: 6px;
+}
+.history .status .pill.success { background: #ecfdf5; color: var(--emerald-600); }
+.history .status .pill.amber { background: #fffbeb; color: #b45309; }
+.history .arrow {
+    color: var(--slate-400); transition: transform 0.12s;
+}
+
+.footer-link {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 13px; color: var(--slate-500);
+    text-decoration: none;
+    margin-top: 40px;
+}
+.footer-link:hover { color: var(--slate-900); }
+</style>
+</head>
+<body>
+
+<div class="toggle-strip">
+    <a href="A.html">A · Linear</a>
+    <a href="B.html">B · Stripe</a>
+    <a href="C.html">C · Mercury</a>
+    <a href="D.html" class="active">D · Notion</a>
+</div>
+
+<div class="app">
+
+    <div class="nav-row">
+        <a href="#">Vue d'ensemble</a>
+        <a href="#">Locations</a>
+        <a href="#">Conducteurs</a>
+        <a href="#" class="active">Fiscalité</a>
+        <a href="#">Facturation</a>
+    </div>
+
+    <p class="eyebrow">Fiscalité · ACME Logistique</p>
+    <h1 class="h1">Taxes 2026</h1>
+    <div class="meta-row">
+        <span class="dot"></span>
+        <span>Exercice en cours</span>
+        <span class="sep">·</span>
+        <span>Déclarable en janvier 2027</span>
+    </div>
+
+    <nav class="year-row">
+        <a href="#">2024<span class="dot"></span></a>
+        <a href="#">2025<span class="dot"></span></a>
+        <a href="#" class="active">2026</a>
+    </nav>
+
+    <div class="prose">
+        <p>
+            Au <em>15 mai 2026</em>, ACME Logistique a accumulé
+            <strong>749 €</strong> de taxes au titre de l'exercice en cours, dont
+            <strong>515 €</strong> de taxe CO₂ (69 %) et
+            <strong>234 €</strong> de taxe polluants (31 %), répartis sur
+            <strong>400 jours</strong> d'utilisation cumulée par
+            <strong>4 véhicules</strong> de la flotte couvrant
+            <strong>4 locations</strong> actives.
+        </p>
+        <p>
+            Ces chiffres évolueront jusqu'à la clôture de l'exercice le
+            <em>31 décembre 2026</em>. La déclaration officielle se déposera en
+            <em>janvier 2027</em>, via l'annexe <strong>3310-A</strong> jointe à la
+            déclaration de TVA (régime réel) ou via le formulaire
+            <strong>3517</strong> (régime simplifié).
+        </p>
+    </div>
+
+    <p class="section-h">Exercices précédents</p>
+    <div class="history">
+        <a href="#">
+            <span class="year">2025</span>
+            <span class="amount">4 323 €</span>
+            <span class="status"><span class="pill amber">Régénération en cours</span></span>
+            <span class="arrow">→</span>
+        </a>
+        <a href="#">
+            <span class="year">2024</span>
+            <span class="amount">3 763 €</span>
+            <span class="status"><span class="pill success">Générée le 15 janvier 2025</span></span>
+            <span class="arrow">→</span>
+        </a>
+    </div>
+
+    <a href="#" class="footer-link">Voir les locations 2026 →</a>
+
+</div>
+</body>
+</html>
