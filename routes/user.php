@@ -333,6 +333,10 @@ Route::middleware('auth')
             ->whereNumber('declaration')
             ->middleware('throttle:30,1')
             ->name('declarations.mark-deferred');
+        Route::post('/declarations/{declaration}/revert-defer', [DeclarationLifecycleController::class, 'revertDefer'])
+            ->whereNumber('declaration')
+            ->middleware('throttle:30,1')
+            ->name('declarations.revert-defer');
         Route::post('/declarations/{declaration}/generate', [DeclarationGenerationController::class, 'generate'])
             ->whereNumber('declaration')
             ->middleware('throttle:6,1')

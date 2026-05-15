@@ -1,22 +1,27 @@
 <script setup lang="ts">
 /**
  * Header page Show déclaration (Phase 11 D5.6, enrichi D5.10.D pour
- * différenciateur Lecture/Revue, et D5.10.H pour le bouton Supprimer
- * brouillon en haut à droite responsive).
+ * différenciateur Lecture/Revue, D5.10.H pour le bouton Supprimer
+ * brouillon en haut à droite, et P6 pour séparer « Annuler la mise en
+ * attente » (revert deferred → draft) de « Supprimer » (soft delete).
  *
- * Le bouton Supprimer apparaît UNIQUEMENT pour les statuts Draft et
- * Deferred (= brouillons non finalisés). Pour Generated (même
- * obsolète), aucun bouton de suppression · les déclarations émises
- * sont immuables (ADR-0008).
+ * **Logique des boutons** ·
+ *   - status `draft`    · 1 bouton « Supprimer le brouillon » (delete)
+ *   - status `deferred` · 2 boutons côte à côte ·
+ *       a) « Annuler la mise en attente » (revert · status redevient
+ *          draft, toutes les données associées préservées)
+ *       b) « Supprimer » (delete · soft delete + gestion intelligente
+ *          du predecessor comme avant)
+ *   - status `generated` ou obsolète · aucun bouton (immuable, ADR-0008)
  */
 import { Link, router } from '@inertiajs/vue3';
-import { Building2, LoaderCircle, Trash2 } from 'lucide-vue-next';
+import { Building2, LoaderCircle, RotateCcw, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { show as companyShowRoute } from '@/routes/user/companies';
-import { destroy as destroyRoute } from '@/routes/user/declarations';
+import { destroy as destroyRoute, revertDefer as revertDeferRoute } from '@/routes/user/declarations';
 import { badgeForDeclaration } from '@/Utils/format/declarationStatus';
 
 const props = defineProps<{
@@ -34,30 +39,39 @@ const props = defineProps<{
     predecessorWillReactivate?: boolean;
 }>();
 
-const canDiscard = computed<boolean>(
-    () => props.declaration.status === 'draft' || props.declaration.status === 'deferred',
-);
-
+const isDraft = computed<boolean>(() => props.declaration.status === 'draft');
 const isDeferred = computed<boolean>(() => props.declaration.status === 'deferred');
+const canDiscard = computed<boolean>(() => isDraft.value || isDeferred.value);
 
-// Lot 5 D2 · libellé adaptatif selon le statut · « Annuler la mise en
-// attente » sur un Deferred est plus juste que « Supprimer » qui
-// connote une perte définitive alors que techniquement on annule
-// seulement la mise de côté.
-const discardButtonLabel = computed<string>(
-    () => (isDeferred.value ? 'Annuler la mise en attente' : 'Supprimer'),
-);
+// État UI · revert (deferred → draft, action non destructive)
+const reverting = ref<boolean>(false);
 
-const discardConfirmTitle = computed<string>(
-    () => (isDeferred.value ? 'Annuler la mise en attente ?' : 'Supprimer le brouillon ?'),
-);
+function requestRevert(): void {
+    if (reverting.value) {
+        return;
+    }
+    reverting.value = true;
+    router.post(
+        revertDeferRoute.url({ declaration: props.declaration.id }),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                reverting.value = false;
+            },
+        },
+    );
+}
 
-const discardConfirmButton = computed<string>(
-    () => (isDeferred.value ? 'Annuler la mise en attente' : 'Supprimer'),
-);
-
+// État UI · delete (soft delete brouillon, Draft ou Deferred)
 const discarding = ref<boolean>(false);
 const discardConfirmOpen = ref<boolean>(false);
+
+const discardConfirmTitle = computed<string>(
+    () => (isDeferred.value
+        ? 'Supprimer cette déclaration mise en attente ?'
+        : 'Supprimer le brouillon ?'),
+);
 
 const discardConfirmMessage = computed<string>(() => {
     const predRef = props.predecessorReference;
@@ -138,13 +152,23 @@ function confirmDiscard(): void {
 
         <div v-if="canDiscard" class="flex flex-wrap items-center gap-2">
             <Button
+                v-if="isDeferred"
+                variant="secondary"
+                :disabled="reverting || discarding"
+                @click="requestRevert"
+            >
+                <LoaderCircle v-if="reverting" :size="16" :stroke-width="1.75" class="animate-spin" />
+                <RotateCcw v-else :size="16" :stroke-width="1.75" />
+                Annuler la mise en attente
+            </Button>
+            <Button
                 variant="destructive-soft"
-                :disabled="discarding"
+                :disabled="discarding || reverting"
                 @click="requestDiscard"
             >
                 <LoaderCircle v-if="discarding" :size="16" :stroke-width="1.75" class="animate-spin" />
                 <Trash2 v-else :size="16" :stroke-width="1.75" />
-                {{ discardButtonLabel }}
+                {{ isDeferred ? 'Supprimer' : 'Supprimer le brouillon' }}
             </Button>
         </div>
     </header>
@@ -153,7 +177,7 @@ function confirmDiscard(): void {
         v-model:open="discardConfirmOpen"
         :title="discardConfirmTitle"
         :message="discardConfirmMessage"
-        :confirm-label="discardConfirmButton"
+        :confirm-label="isDeferred ? 'Supprimer' : 'Supprimer le brouillon'"
         cancel-label="Annuler"
         tone="danger"
         @confirm="confirmDiscard"

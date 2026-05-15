@@ -6,6 +6,7 @@ namespace App\Http\Controllers\User\FiscalDeclaration;
 
 use App\Actions\FiscalDeclaration\DiscardDraftDeclarationAction;
 use App\Actions\FiscalDeclaration\MarkDeclarationAsDeferredAction;
+use App\Actions\FiscalDeclaration\RevertDeferredToDraftAction;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Http\Controllers\Controller;
 use App\Models\FiscalDeclaration;
@@ -21,6 +22,9 @@ use Illuminate\Support\Facades\Gate;
  * Regroupe les actions qui sortent un brouillon de l'édition active
  * sans le finaliser ·
  *   - `markDeferred`  brouillon → `deferred` (mis en attente)
+ *   - `revertDefer`   `deferred` → brouillon (reprise de l'édition,
+ *                     réciproque de `markDeferred`, préserve toutes
+ *                     les données associées)
  *   - `destroy`       suppression d'un brouillon (Draft ou Deferred) ·
  *                     ré-active intelligemment le predecessor si
  *                     l'obsolescence était purement volontaire
@@ -40,6 +44,27 @@ final class DeclarationLifecycleController extends Controller
         }
 
         return back()->with('toast-success', 'Déclaration mise de côté.');
+    }
+
+    /**
+     * Annule la mise en attente d'une déclaration (`deferred → draft`)
+     * sans toucher aux données associées (décisions de revue, chaîne
+     * d'obsolescence éventuelle). Réciproque sémantique de
+     * `markDeferred`.
+     */
+    public function revertDefer(
+        FiscalDeclaration $declaration,
+        RevertDeferredToDraftAction $action,
+    ): RedirectResponse {
+        Gate::authorize('update', $declaration);
+
+        try {
+            $action->execute($declaration->id);
+        } catch (DomainException $e) {
+            return back()->with('toast-error', $e->getMessage());
+        }
+
+        return back()->with('toast-success', 'Mise en attente annulée · brouillon repris.');
     }
 
     /**

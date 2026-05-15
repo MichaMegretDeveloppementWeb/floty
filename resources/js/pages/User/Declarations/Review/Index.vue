@@ -16,7 +16,7 @@
  * suppression de l'accent border-l-2 amber sur le main container.
  */
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ArrowLeft, Building2, LoaderCircle, ShieldCheck, Trash2 } from 'lucide-vue-next';
+import { ArrowLeft, Building2, LoaderCircle, RotateCcw, ShieldCheck, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import DeclarationClustersRecap from '@/Components/Domain/Declaration/DeclarationClustersRecap.vue';
 import FiscalSummaryCard from '@/Components/Domain/Declaration/FiscalSummaryCard.vue';
@@ -29,6 +29,7 @@ import { useReviewForm } from '@/Composables/Declaration/useReviewForm';
 import { show as companyShowRoute } from '@/routes/user/companies';
 import {
     destroy as destroyRoute,
+    revertDefer as revertDeferRoute,
     show as showDeclarationRoute,
 } from '@/routes/user/declarations';
 import ReviewActionsBar from './partials/ReviewActionsBar.vue';
@@ -60,6 +61,7 @@ const predecessorWillReactivate = computed<boolean>(() => {
     if (props.predecessorDeclaration === null || props.obsoleteReasons.length === 0) {
         return false;
     }
+
     return props.obsoleteReasons.every((r) => r.type === 'voluntary_modification');
 });
 
@@ -69,24 +71,37 @@ const predecessorReference = computed<string | null>(
 
 const fiscalSummaryRef = ref<InstanceType<typeof FiscalSummaryCard> | null>(null);
 
-// Phase 13 D5.10.H · bouton Supprimer dans le header Review.
-// Lot 5 D2 · libellés conditionnels selon Draft / Deferred (un Deferred
-// est sémantiquement « mis de côté », pas un brouillon en cours
-// d'édition · le mot « Supprimer » connote une perte définitive là où
-// l'utilisateur attend « annuler la mise en attente »).
+// P6 · revert (deferred → draft) séparé de delete · « Annuler la mise
+// en attente » est une transition réversible non destructive, distincte
+// de la suppression du brouillon. Le Header Review expose les 2 boutons
+// côte à côte quand status === 'deferred', un seul bouton supprimer
+// quand status === 'draft'.
+const reverting = ref<boolean>(false);
+
+function requestRevert(): void {
+    if (reverting.value) {
+        return;
+    }
+    reverting.value = true;
+    router.post(
+        revertDeferRoute.url({ declaration: props.declaration.id }),
+        {},
+        {
+            preserveScroll: true,
+            onFinish: () => {
+                reverting.value = false;
+            },
+        },
+    );
+}
+
 const discarding = ref<boolean>(false);
 const discardConfirmOpen = ref<boolean>(false);
 
-const discardButtonLabel = computed<string>(
-    () => (isDeferred.value ? 'Annuler la mise en attente' : 'Supprimer'),
-);
-
 const discardConfirmTitle = computed<string>(
-    () => (isDeferred.value ? 'Annuler la mise en attente ?' : 'Supprimer le brouillon ?'),
-);
-
-const discardConfirmButton = computed<string>(
-    () => (isDeferred.value ? 'Annuler la mise en attente' : 'Supprimer'),
+    () => (isDeferred.value
+        ? 'Supprimer cette déclaration mise en attente ?'
+        : 'Supprimer le brouillon ?'),
 );
 
 const discardConfirmMessage = computed<string>(() => {
@@ -97,9 +112,11 @@ const discardConfirmMessage = computed<string>(() => {
     if (predRef === null) {
         return `${subject} sera ${verb}. Aucune autre déclaration n'est concernée. Cette action est irréversible.`;
     }
+
     if (predecessorWillReactivate.value) {
         return `${subject} sera ${verb} et la déclaration ${predRef} redeviendra active (la modification volontaire en cours sera annulée).`;
     }
+
     return `${subject} sera ${verb}. La déclaration ${predRef} restera obsolète et pourra être régénérée plus tard.`;
 });
 
@@ -107,6 +124,7 @@ function requestDiscard(): void {
     if (discarding.value) {
         return;
     }
+
     discardConfirmOpen.value = true;
 }
 
@@ -140,9 +158,11 @@ function handleSubmit(
 
 function handleQuickRequalify(fingerprint: string): void {
     const cluster = props.preview.clusters.find((c) => c.fingerprint === fingerprint);
+
     if (cluster === undefined) {
         return;
     }
+
     // Phase 13 D5.10.S · le quick requalify depuis le recap reprend
     // l'état d'inclusion actuel (vide par défaut = tous inclus).
     handleSubmit(cluster, 'requalified', null, cluster.excludedContractIds ?? []);
@@ -199,13 +219,23 @@ function handleScrollTo(fingerprint: string): void {
 
                 <div class="flex flex-wrap items-center gap-2">
                     <Button
+                        v-if="isDeferred"
+                        variant="secondary"
+                        :disabled="reverting || discarding"
+                        @click="requestRevert"
+                    >
+                        <LoaderCircle v-if="reverting" :size="16" :stroke-width="1.75" class="animate-spin" />
+                        <RotateCcw v-else :size="16" :stroke-width="1.75" />
+                        Annuler la mise en attente
+                    </Button>
+                    <Button
                         variant="destructive-soft"
-                        :disabled="discarding"
+                        :disabled="discarding || reverting"
                         @click="requestDiscard"
                     >
                         <LoaderCircle v-if="discarding" :size="16" :stroke-width="1.75" class="animate-spin" />
                         <Trash2 v-else :size="16" :stroke-width="1.75" />
-                        {{ discardButtonLabel }}
+                        {{ isDeferred ? 'Supprimer' : 'Supprimer le brouillon' }}
                     </Button>
                 </div>
             </header>
@@ -264,7 +294,7 @@ function handleScrollTo(fingerprint: string): void {
             v-model:open="discardConfirmOpen"
             :title="discardConfirmTitle"
             :message="discardConfirmMessage"
-            :confirm-label="discardConfirmButton"
+            :confirm-label="isDeferred ? 'Supprimer' : 'Supprimer le brouillon'"
             cancel-label="Annuler"
             tone="danger"
             @confirm="confirmDiscard"
