@@ -14,7 +14,6 @@ use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 use App\Services\Fiscal\RiskDetection\RiskDetectionService;
 use Illuminate\Support\Facades\Log;
-use Throwable;
 
 /**
  * Compose l'état complet du cycle de vie d'une déclaration fiscale pour
@@ -178,34 +177,12 @@ final readonly class DeclarationLifecycleResolver
             return [];
         }
 
-        $raw = $source->obsolete_reasons;
-        if ($raw === null) {
-            return [];
-        }
-
-        if (! is_array($raw)) {
-            Log::channel('declarations')->warning('FiscalDeclaration.obsolete_reasons_malformed', [
-                'declaration_id' => $source->id,
-                'received_type' => gettype($raw),
-            ]);
-
-            return [];
-        }
-
-        try {
-            return array_map(
-                static fn (array $entry): InvalidationReasonData => InvalidationReasonData::fromArray($entry),
-                $raw,
-            );
-        } catch (Throwable $e) {
-            Log::channel('declarations')->warning('FiscalDeclaration.obsolete_reasons_invalid_entry', [
-                'declaration_id' => $source->id,
-                'exception_class' => $e::class,
-                'exception_message' => $e->getMessage(),
-            ]);
-
-            return [];
-        }
+        // Délégation au helper centralisé `InvalidationReasonData::listFromRaw`
+        // (is_array + try/catch + log canal `declarations`). Identique en
+        // sémantique à l'ancien inline · réutilisé aussi par
+        // `DeclarationController::review` pour éviter la duplication des
+        // garde-fous (hotfix issu du retour Chrome live D12).
+        return InvalidationReasonData::listFromRaw($source->obsolete_reasons, $source->id);
     }
 
     /**

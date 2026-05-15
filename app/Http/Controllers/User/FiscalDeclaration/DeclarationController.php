@@ -211,13 +211,14 @@ final class DeclarationController extends Controller
         // au `<ReviewContextBanner>` de basculer en mode régénération
         // avec le contexte des motifs d'obsolescence.
         $predecessor = $this->reader->findPredecessorOf($declaration->id);
-        $obsoleteReasons = [];
-        if ($predecessor !== null && $predecessor->obsolete_reasons !== null) {
-            $obsoleteReasons = array_map(
-                static fn (array $raw): InvalidationReasonData => InvalidationReasonData::fromArray($raw),
-                $predecessor->obsolete_reasons,
-            );
-        }
+        // Garde-fou résilient · payload `obsolete_reasons` éventuellement
+        // mal formé en BDD (cast Eloquent retourne un scalaire, items
+        // sans le schéma attendu, etc.) ne doit pas casser la page Review.
+        // Délégué à `InvalidationReasonData::listFromRaw` qui centralise
+        // les checks `is_array` + try/catch + log canal `declarations`.
+        $obsoleteReasons = $predecessor !== null
+            ? InvalidationReasonData::listFromRaw($predecessor->obsolete_reasons, $predecessor->id)
+            : [];
 
         $canonicalHead = $this->reader->findCurrentForCompanyYear(
             $declaration->company_id,
