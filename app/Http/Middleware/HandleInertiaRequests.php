@@ -11,7 +11,6 @@ use App\Support\Toasts\ToastDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Inertia\Middleware;
-use Spatie\LaravelData\DataCollection;
 
 /**
  * Shared props Inertia Floty.
@@ -112,7 +111,7 @@ final class HandleInertiaRequests extends Middleware
             error: $error,
             warning: $warning,
             info: $info,
-            toasts: new DataCollection(ToastEntryData::class, $toasts),
+            toasts: $toasts,
         );
     }
 
