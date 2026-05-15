@@ -27,6 +27,8 @@ use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Fiscal\Year2024\Exemption\R2024_021_WithOptOuts;
 use App\Fiscal\Year2025\Exemption\R2025_021_ShortTermRental;
 use App\Fiscal\Year2025\Exemption\R2025_021_WithOptOuts;
+use App\Fiscal\Year2026\Exemption\R2026_021_ShortTermRental;
+use App\Fiscal\Year2026\Exemption\R2026_021_WithOptOuts;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\FiscalReviewDecision;
@@ -564,6 +566,10 @@ final readonly class DeclarationFiscalEngine
             ),
             2025 => new R2025_021_WithOptOuts(
                 $this->container->make(R2025_021_ShortTermRental::class),
+                $optOutContractIds,
+            ),
+            2026 => new R2026_021_WithOptOuts(
+                $this->container->make(R2026_021_ShortTermRental::class),
                 $optOutContractIds,
             ),
             default => throw new RuntimeException(sprintf(

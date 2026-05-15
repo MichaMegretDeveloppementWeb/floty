@@ -12,6 +12,8 @@ use App\Fiscal\Year2024\Exemption\R2024_008_ReductiveUnavailability;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Fiscal\Year2025\Exemption\R2025_008_ReductiveUnavailability;
 use App\Fiscal\Year2025\Exemption\R2025_021_ShortTermRental;
+use App\Fiscal\Year2026\Exemption\R2026_008_ReductiveUnavailability;
+use App\Fiscal\Year2026\Exemption\R2026_021_ShortTermRental;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -110,5 +112,9 @@ final class FiscalServiceProvider extends ServiceProvider
         $this->app->when(R2025_008_ReductiveUnavailability::class)
             ->needs(LcdQualifier::class)
             ->give(R2025_021_ShortTermRental::class);
+
+        $this->app->when(R2026_008_ReductiveUnavailability::class)
+            ->needs(LcdQualifier::class)
+            ->give(R2026_021_ShortTermRental::class);
     }
 }
