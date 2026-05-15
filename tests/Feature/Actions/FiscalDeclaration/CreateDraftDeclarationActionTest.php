@@ -8,6 +8,7 @@ use App\Actions\FiscalDeclaration\CreateDraftDeclarationAction;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\Company;
 use App\Models\FiscalDeclaration;
+use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -68,5 +69,49 @@ final class CreateDraftDeclarationActionTest extends TestCase
         self::assertSame(FiscalDeclarationStatus::Draft, $declaration->status);
         self::assertFalse($declaration->is_obsolete);
         self::assertSame(2, FiscalDeclaration::query()->count());
+    }
+
+    #[Test]
+    public function refuse_la_creation_pour_lannee_courante(): void
+    {
+        // P5 · doctrine CIBS · la déclaration N est due au 30/04/N+1 ·
+        // on ne peut pas la préparer tant que l'année fiscale n'est
+        // pas terminée.
+        CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
+
+        try {
+            $this->expectException(DomainException::class);
+            $this->action->execute($this->company->id, 2026);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    #[Test]
+    public function refuse_la_creation_pour_une_annee_future(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
+
+        try {
+            $this->expectException(DomainException::class);
+            $this->action->execute($this->company->id, 2027);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    #[Test]
+    public function autorise_pour_lannee_precedente(): void
+    {
+        // Cas nominal · année close, préparation autorisée.
+        CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
+
+        try {
+            $declaration = $this->action->execute($this->company->id, 2025);
+            self::assertSame(FiscalDeclarationStatus::Draft, $declaration->status);
+            self::assertSame(2025, $declaration->fiscal_year);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 }

@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepos
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
+use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -36,6 +37,21 @@ final readonly class CreateDraftDeclarationAction
     public function execute(int $companyId, int $year): FiscalDeclaration
     {
         return DB::transaction(function () use ($companyId, $year): FiscalDeclaration {
+            // P5 · garde-fou défense en profondeur · une déclaration ne
+            // se prépare que pour une année fiscale **terminée**. Doctrine
+            // CIBS · la déclaration N est due au 30/04/N+1 · on ne peut
+            // pas la préparer tant que les périmètres (contrats, VFC,
+            // exonérations) ne sont pas figés. Le `PendingDeclarationsResolver`
+            // filtre déjà côté UI (Untouched && year >= currentYear) ·
+            // ce guard ferme le trou pour les POST directs / scripts.
+            $currentYear = CarbonImmutable::now()->year;
+            if ($year >= $currentYear) {
+                throw new DomainException(sprintf(
+                    'Une déclaration ne peut pas être préparée tant que l\'année fiscale n\'est pas terminée (%d).',
+                    $year,
+                ));
+            }
+
             $existing = $this->reader->findActiveForCompanyYear($companyId, $year);
             if ($existing !== null) {
                 // Détails techniques loggués pour le debug (audit B4),

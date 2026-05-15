@@ -14,6 +14,8 @@ use App\Models\Invoice;
 use App\Services\Billing\BillingCalculator;
 use App\Services\Invoice\InvoicePdfRenderer;
 use App\Services\Invoice\InvoicePdfStorage;
+use Carbon\CarbonImmutable;
+use DomainException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +64,21 @@ final readonly class GenerateInvoiceAction
         int $generatedByUserId,
         array $issuer,
     ): Invoice {
+        // P4 · garde-fou défense en profondeur · une facture ne se
+        // génère qu'à mois écoulé. La doctrine veut qu'un mois en cours
+        // ou futur ne soit pas facturable (jours pas encore consommés
+        // ou contrats susceptibles d'évoluer). Le `PendingInvoicesResolver`
+        // filtre déjà ce cas côté UI · ce guard ferme le trou pour les
+        // appels directs (POST forgé, scripts, bugs futurs).
+        $now = CarbonImmutable::now();
+        if ($year > $now->year || ($year === $now->year && $month >= $now->month)) {
+            throw new DomainException(sprintf(
+                'Une facture ne peut pas être générée pour un mois non écoulé (%04d-%02d).',
+                $year,
+                $month,
+            ));
+        }
+
         $company = $this->companies->findById($companyId);
         if ($company === null) {
             throw (new ModelNotFoundException)

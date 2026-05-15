@@ -16,6 +16,8 @@ use App\Models\InvoiceLine;
 use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleYearlyPricing;
+use Carbon\CarbonImmutable;
+use DomainException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
@@ -183,6 +185,71 @@ final class GenerateInvoiceActionTest extends TestCase
             generatedByUserId: $user->id,
             issuer: self::ISSUER,
         );
+    }
+
+    #[Test]
+    public function refuse_la_generation_pour_le_mois_en_cours(): void
+    {
+        // P4 · une facture ne se génère qu'à mois écoulé. Le mois en
+        // cours n'est pas encore terminé · génération refusée.
+        CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        try {
+            $this->expectException(DomainException::class);
+            $this->action->execute(
+                companyId: $company->id,
+                year: 2026,
+                month: 5,
+                generatedByUserId: $user->id,
+                issuer: self::ISSUER,
+            );
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    #[Test]
+    public function refuse_la_generation_pour_un_mois_futur(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        try {
+            $this->expectException(DomainException::class);
+            $this->action->execute(
+                companyId: $company->id,
+                year: 2026,
+                month: 12,
+                generatedByUserId: $user->id,
+                issuer: self::ISSUER,
+            );
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    #[Test]
+    public function refuse_la_generation_pour_une_annee_future(): void
+    {
+        CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        try {
+            $this->expectException(DomainException::class);
+            $this->action->execute(
+                companyId: $company->id,
+                year: 2027,
+                month: 1,
+                generatedByUserId: $user->id,
+                issuer: self::ISSUER,
+            );
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
     }
 
     #[Test]
