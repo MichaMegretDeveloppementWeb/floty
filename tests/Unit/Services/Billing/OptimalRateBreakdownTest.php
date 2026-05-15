@@ -218,4 +218,35 @@ final class OptimalRateBreakdownTest extends TestCase
             );
         }
     }
+
+    /**
+     * Lot 3 D07 · garde-fou perf défensif. L'algorithme est O(1) déterministe
+     * (12 itérations max), 1000 appels doivent rester très en-dessous de
+     * 50ms · cap permet de capter une éventuelle complexification future
+     * qui dégraderait silencieusement la perf (ex. ajout d'un palier sans
+     * borner correctement l'espace de recherche).
+     *
+     * Cf. tracker D07 · Option A skip avec bonus test perf défensif ·
+     * le finding F-18-005 décrivait un problème de perf inexistant
+     * (algo déjà optimal O(1)), ce test verrouille cet état.
+     */
+    #[Test]
+    public function compute_reste_sous_le_budget_perf_pour_mille_appels(): void
+    {
+        $start = hrtime(true);
+
+        for ($i = 0; $i < 1000; $i++) {
+            // Mix de tailles variées · couvre les cas typiques BillingCalculator.
+            $days = ($i % 31) + 1;
+            OptimalRateBreakdown::compute($days, self::DAILY, self::WEEKLY, self::MONTHLY);
+        }
+
+        $elapsedMs = (hrtime(true) - $start) / 1_000_000;
+
+        self::assertLessThan(
+            50.0,
+            $elapsedMs,
+            "1000 appels OptimalRateBreakdown::compute ont pris {$elapsedMs}ms · possible régression algo (O(1) attendu).",
+        );
+    }
 }
