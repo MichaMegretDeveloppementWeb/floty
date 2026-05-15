@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Fiscal\Declaration;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
-use App\Models\FiscalDeclaration;
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
@@ -34,6 +34,7 @@ final readonly class DeclarationReferenceGenerator
 {
     public function __construct(
         private CompanyReadRepositoryInterface $companies,
+        private FiscalDeclarationReadRepositoryInterface $declarations,
     ) {}
 
     public function generateFor(int $companyId, int $year): string
@@ -44,12 +45,10 @@ final readonly class DeclarationReferenceGenerator
                 throw new RuntimeException(sprintf('Entreprise %d introuvable.', $companyId));
             }
 
-            $existingCount = FiscalDeclaration::withTrashed()
-                ->where('company_id', $companyId)
-                ->where('fiscal_year', $year)
-                ->whereNotNull('reference')
-                ->lockForUpdate()
-                ->count();
+            // Lot 4 D02 (F-34-004) · query déléguée au repo (conformité
+            // ADR-0013 R3). Le `lockForUpdate` reste valide car nous
+            // sommes dans un `DB::transaction` englobant.
+            $existingCount = $this->declarations->countWithTrashedForReference($companyId, $year);
 
             return sprintf(
                 'DECL-%s-%d-%04d',

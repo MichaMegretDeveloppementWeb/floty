@@ -94,4 +94,36 @@ interface FiscalDeclarationReadRepositoryInterface
      * @return Collection<int, Company>
      */
     public function findCompanyOptions(): Collection;
+
+    /**
+     * Lot 4 D02 (F-34-002) · liste des déclarations en statut
+     * `Generated` matchant l'un des couples `(company_id, fiscal_year)`
+     * du produit cartésien `companyIds × years`. Eager-load
+     * `company:short_code,legal_name` pour les toasts d'invalidation.
+     *
+     * Utilisé par {@see App\Services\Fiscal\Declaration\DeclarationInvalidationDetector}
+     * lors de la propagation des mutations Contract / VFC / Vehicle /
+     * Unavailability vers les déclarations émises (Phase 13 D5.10.O ·
+     * seules les Generated sont marquées obsolètes, pas les
+     * Draft/Deferred).
+     *
+     * @param  list<int>  $companyIds
+     * @param  list<int>  $years
+     * @return Collection<int, FiscalDeclaration>
+     */
+    public function findGeneratedForCompanyYears(array $companyIds, array $years): Collection;
+
+    /**
+     * Lot 4 D02 (F-34-004) · compte des déclarations existantes
+     * (incluant les soft-deleted) du couple `(company_id, fiscal_year)`
+     * dont la `reference` est non-null · sert au séquencement des
+     * références lisibles `DECL-{shortCode}-{year}-{NNNN}` (cf.
+     * {@see App\Services\Fiscal\Declaration\DeclarationReferenceGenerator}).
+     *
+     * **Invariant atomicité** · `lockForUpdate()` est appliqué sur les
+     * rows du couple pendant le COUNT. L'appelant **doit** envelopper
+     * dans une `DB::transaction(...)` sinon le verrou pessimiste est
+     * inopérant.
+     */
+    public function countWithTrashedForReference(int $companyId, int $year): int;
 }

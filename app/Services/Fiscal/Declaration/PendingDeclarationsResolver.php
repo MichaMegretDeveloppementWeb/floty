@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal\Declaration;
 
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\User\FiscalDeclaration\PendingDeclarationData;
 use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Résout la liste des `(company, year)` qui méritent l'attention de
@@ -41,6 +41,7 @@ final readonly class PendingDeclarationsResolver
     public function __construct(
         private DeclarationLifecycleResolver $lifecycleResolver,
         private FiscalDeclarationReadRepositoryInterface $declarations,
+        private ContractReadRepositoryInterface $contracts,
     ) {}
 
     /**
@@ -157,29 +158,15 @@ final readonly class PendingDeclarationsResolver
     }
 
     /**
+     * Lot 4 D02 (F-34-003) · délègue au `ContractReadRepository` qui
+     * porte cette query (conformité ADR-0013 R3 · pas de SQL direct
+     * dans les Services). Pattern jumeau de
+     * {@see App\Services\Billing\PendingInvoicesResolver}.
+     *
      * @return list<int>
      */
     private function yearsCoveredByContractsForCompany(int $companyId): array
     {
-        $rows = DB::table('contracts')
-            ->where('company_id', $companyId)
-            ->whereNull('deleted_at')
-            ->select(['start_date', 'end_date'])
-            ->get();
-
-        $years = [];
-        foreach ($rows as $row) {
-            $start = CarbonImmutable::parse((string) $row->start_date);
-            $end = CarbonImmutable::parse((string) $row->end_date);
-
-            for ($y = $start->year; $y <= $end->year; $y++) {
-                $years[$y] = true;
-            }
-        }
-
-        $list = array_keys($years);
-        sort($list);
-
-        return $list;
+        return $this->contracts->findActiveYearsForCompany($companyId);
     }
 }

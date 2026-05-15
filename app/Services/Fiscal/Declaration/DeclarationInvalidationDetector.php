@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace App\Services\Fiscal\Declaration;
 
 use App\Actions\FiscalDeclaration\MarkDeclarationAsObsoleteAction;
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
+use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\User\FiscalDeclaration\InvalidationReasonData;
-use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use App\Models\Contract;
 use App\Models\FiscalDeclaration;
@@ -16,7 +17,6 @@ use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Invoice\InvoiceDivergenceFlagger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Session;
 
 /**
@@ -51,6 +51,8 @@ final readonly class DeclarationInvalidationDetector
 {
     public function __construct(
         private MarkDeclarationAsObsoleteAction $markAsObsolete,
+        private ContractReadRepositoryInterface $contracts,
+        private FiscalDeclarationReadRepositoryInterface $declarations,
     ) {}
 
     /**
@@ -112,11 +114,7 @@ final readonly class DeclarationInvalidationDetector
         InvalidationReasonType $type,
         int $actorUserId,
     ): void {
-        $tuples = DB::table('contracts')
-            ->where('vehicle_id', $vfc->vehicle_id)
-            ->whereNull('deleted_at')
-            ->select(['company_id', 'start_date', 'end_date'])
-            ->get();
+        $tuples = $this->contracts->findContractDateRangesForVehicle($vfc->vehicle_id);
 
         $entity = [
             'type' => 'vehicle_fiscal_characteristics',
@@ -161,11 +159,7 @@ final readonly class DeclarationInvalidationDetector
         int $actorUserId,
         array $fieldsChanged = [],
     ): void {
-        $tuples = DB::table('contracts')
-            ->where('vehicle_id', $vehicle->id)
-            ->whereNull('deleted_at')
-            ->select(['company_id', 'start_date', 'end_date'])
-            ->get();
+        $tuples = $this->contracts->findContractDateRangesForVehicle($vehicle->id);
 
         $entity = [
             'type' => 'vehicle',
@@ -215,11 +209,7 @@ final readonly class DeclarationInvalidationDetector
         $endCarbon = $unavailability->end_date ?? Carbon::now()->endOfYear();
         $years = $this->yearsForRange($startCarbon->toDateString(), $endCarbon->toDateString());
 
-        $tuples = DB::table('contracts')
-            ->where('vehicle_id', $unavailability->vehicle_id)
-            ->whereNull('deleted_at')
-            ->select(['company_id', 'start_date', 'end_date'])
-            ->get();
+        $tuples = $this->contracts->findContractDateRangesForVehicle($unavailability->vehicle_id);
 
         $entity = [
             'type' => 'unavailability',
@@ -275,12 +265,10 @@ final readonly class DeclarationInvalidationDetector
         // pas de sens. L'obsolescence multiple est autorisée par
         // doctrine D8 (motifs s'empilent), pas de filtre sur
         // is_obsolete.
-        $declarations = FiscalDeclaration::query()
-            ->with('company:id,short_code,legal_name')
-            ->whereIn('company_id', $companyIds)
-            ->whereIn('fiscal_year', $years)
-            ->where('status', FiscalDeclarationStatus::Generated)
-            ->get();
+        //
+        // Lot 4 D02 (F-34-002) · query déléguée au repo pour conformité
+        // ADR-0013 R3 (pas de SQL direct dans les Services).
+        $declarations = $this->declarations->findGeneratedForCompanyYears($companyIds, $years);
 
         foreach ($declarations as $declaration) {
             $reason = new InvalidationReasonData(

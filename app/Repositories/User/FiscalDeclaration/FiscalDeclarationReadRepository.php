@@ -7,6 +7,7 @@ namespace App\Repositories\User\FiscalDeclaration;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
 use App\Data\Shared\Listing\SortDirection;
 use App\Data\User\FiscalDeclaration\DeclarationIndexQueryData;
+use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\Company;
 use App\Models\FiscalDeclaration;
 use Illuminate\Database\Eloquent\Builder;
@@ -234,5 +235,29 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
         };
 
         return $eloquentQuery;
+    }
+
+    public function findGeneratedForCompanyYears(array $companyIds, array $years): Collection
+    {
+        if ($companyIds === [] || $years === []) {
+            return new Collection;
+        }
+
+        return FiscalDeclaration::query()
+            ->with('company:id,short_code,legal_name')
+            ->whereIn('company_id', $companyIds)
+            ->whereIn('fiscal_year', $years)
+            ->where('status', FiscalDeclarationStatus::Generated)
+            ->get();
+    }
+
+    public function countWithTrashedForReference(int $companyId, int $year): int
+    {
+        return FiscalDeclaration::withTrashed()
+            ->where('company_id', $companyId)
+            ->where('fiscal_year', $year)
+            ->whereNotNull('reference')
+            ->lockForUpdate()
+            ->count();
     }
 }
