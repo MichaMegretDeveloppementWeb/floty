@@ -20,32 +20,32 @@ use App\Models\Unavailability;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2024-008 - IndisponibilitÃ©s fiscalement rÃ©ductrices.
+ * R-2024-008 - Indisponibilités fiscalement réductrices.
  *
- * **SÃ©mantique v2.1 (ADR-0014 + ADR-0016 rev. 1.1, chantier F)** : rÃ¨gle
- * souveraine. ItÃ¨re sur les indispos du vÃ©hicule et calcule les jours
- * retirÃ©s du numÃ©rateur du prorata appliquÃ© par R-2024-002.
+ * **Sémantique v2.1 (ADR-0014 + ADR-0016 rev. 1.1, chantier F)** : règle
+ * souveraine. Itère sur les indispos du véhicule et calcule les jours
+ * retirés du numérateur du prorata appliqué par R-2024-002.
  *
- * **SÃ©mantique de calcul** :
- * Un jour d'indisponibilitÃ© est rÃ©ducteur s'il :
+ * **Sémantique de calcul** :
+ * Un jour d'indisponibilité est réducteur s'il :
  *   1. tombe dans un contrat **taxable** du couple (non LCD au sens de
  *      `R2024_021_ShortTermRental::isShortTermRental()`) ;
  *   2. ET porte un type d'indispo `has_fiscal_impact = true` - soit
- *      l'un des 3 cases rÃ©ducteurs dÃ©finis par
+ *      l'un des 3 cases réducteurs définis par
  *      {@see UnavailabilityType::isFiscallyReductive()} :
  *      `pound_public`, `accident_no_circulation`, `ci_suspension`.
  *
- * Les jours d'indispo qui tombent dans un contrat LCD sont dÃ©jÃ  retirÃ©s
- * via R-2024-021 - les compter ici serait un double-dÃ©compte.
+ * Les jours d'indispo qui tombent dans un contrat LCD sont déjà retirés
+ * via R-2024-021 - les compter ici serait un double-décompte.
  *
- * **Source lÃ©gale** : CIBS art. L. 421-96 Â· Â« le vÃ©hicule immobilisÃ© ou
- * mis en fourriÃ¨re Ã  la demande des pouvoirs publics est rÃ©putÃ© ne pas
- * Ãªtre affectÃ© Ã  des fins Ã©conomiques Â». La doctrine BOI-AIS-MOB-10-30-10
- * dÃ©taille les 3 cas rÃ©ducteurs : Â§ 50 (suspension du certificat
+ * **Source légale** : CIBS art. L. 421-96 · « le véhicule immobilisé ou
+ * mis en fourrière à la demande des pouvoirs publics est réputé ne pas
+ * être affecté à des fins économiques ». La doctrine BOI-AIS-MOB-10-30-10
+ * détaille les 3 cas réducteurs : § 50 (suspension du certificat
  * d'immatriculation R. 322-6 + interdiction post-sinistre L. 327-4 / L. 327-5
- * du C. route), Â§ 60 (fourriÃ¨re publique L. 325-1 Ã  L. 325-1-2 du C. route),
- * Â§ 190 (effet sur la proportion annuelle d'affectation).
- * Mapping enum â†’ effet fiscal : ADR-0016 Â§ 4 rev. 1.1.
+ * du C. route), § 60 (fourrière publique L. 325-1 à L. 325-1-2 du C. route),
+ * § 190 (effet sur la proportion annuelle d'affectation).
+ * Mapping enum → effet fiscal : ADR-0016 § 4 rev. 1.1.
  */
 final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
 {
@@ -63,12 +63,12 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
 
     public function name(): string
     {
-        return 'IndisponibilitÃ©s fiscalement rÃ©ductrices';
+        return 'Indisponibilités fiscalement réductrices';
     }
 
     public function description(): string
     {
-        return "Le vÃ©hicule immobilisÃ© ou mis en fourriÃ¨re Ã  la demande des pouvoirs publics est rÃ©putÃ© ne pas Ãªtre affectÃ© Ã  des fins Ã©conomiques (CIBS L. 421-96). Trois cas rÃ©ducteurs (BOFiP Â§ 50 et Â§ 60) : fourriÃ¨re publique (C. route L. 325-1 Ã  L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5). Les jours correspondants sont retirÃ©s du numÃ©rateur du prorata journalier (BOFiP Â§ 190).";
+        return "Le véhicule immobilisé ou mis en fourrière à la demande des pouvoirs publics est réputé ne pas être affecté à des fins économiques (CIBS L. 421-96). Trois cas réducteurs (BOFiP § 50 et § 60) : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5). Les jours correspondants sont retirés du numérateur du prorata journalier (BOFiP § 190).";
     }
 
     public function ruleType(): RuleType
@@ -96,21 +96,21 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
             [
                 'type' => 'BOFIP',
                 'reference' => 'BOI-AIS-MOB-10-30-10',
-                'paragraph' => 'Â§ 50',
+                'paragraph' => '§ 50',
                 'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20240710#il_en_ressort_qu_9929',
                 'consulted_at' => '2026-05-06',
             ],
             [
                 'type' => 'BOFIP',
                 'reference' => 'BOI-AIS-MOB-10-30-10',
-                'paragraph' => 'Â§ 60',
+                'paragraph' => '§ 60',
                 'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20240710#60_1148',
                 'consulted_at' => '2026-05-06',
             ],
             [
                 'type' => 'BOFIP',
                 'reference' => 'BOI-AIS-MOB-10-30-10',
-                'paragraph' => 'Â§ 190',
+                'paragraph' => '§ 190',
                 'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20240710#180_4641',
                 'consulted_at' => '2026-05-06',
             ],
@@ -144,13 +144,13 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         // Intersection avec les jours des contrats taxables du couple
         // (= les contrats du couple qui ne sont PAS LCD).
         //
-        // Si une `daysWindow` est posÃ©e (mode segmentÃ© par VFC, cf.
-        // FiscalSegmentedExecutor), on filtre les jours prÃ©sents
+        // Si une `daysWindow` est posée (mode segmenté par VFC, cf.
+        // FiscalSegmentedExecutor), on filtre les jours présents
         // pour ne compter que ceux qui tombent dans le segment courant
-        // Â· sinon le count des jours rÃ©ducteurs serait calculÃ© sur
-        // l'annÃ©e entiÃ¨re et soustrait Ã  chaque segment, conduisant
-        // Ã  un sur-dÃ©compte (chantier dette VFC, garantie cohÃ©rence
-        // multi-VFC + indispo rÃ©ductrice).
+        // · sinon le count des jours réducteurs serait calculé sur
+        // l'année entière et soustrait à chaque segment, conduisant
+        // à un sur-décompte (chantier dette VFC, garantie cohérence
+        // multi-VFC + indispo réductrice).
         $window = $context->daysWindow;
         $taxableDates = [];
         foreach ($context->contractsForPair as $contract) {
@@ -179,7 +179,7 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         return ExemptionVerdict::partialDays(
             $reductiveCount,
             sprintf(
-                'IndisponibilitÃ© rÃ©ductrice - %d jour%s soustrait%s du numÃ©rateur (CIBS L. 421-96, BOFiP BOI-AIS-MOB-10-30-10 Â§ 50/60/190)',
+                'Indisponibilité réductrice - %d jour%s soustrait%s du numérateur (CIBS L. 421-96, BOFiP BOI-AIS-MOB-10-30-10 § 50/60/190)',
                 $reductiveCount,
                 $reductiveCount > 1 ? 's' : '',
                 $reductiveCount > 1 ? 's' : '',
@@ -189,8 +189,8 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
     }
 
     /**
-     * Liste des dates ISO (Y-m-d) des indispos fiscalement rÃ©ductrices
-     * du vÃ©hicule clampÃ©es Ã  l'annÃ©e fiscale.
+     * Liste des dates ISO (Y-m-d) des indispos fiscalement réductrices
+     * du véhicule clampées à l'année fiscale.
      *
      * @param  list<Unavailability>  $unavailabilities
      * @return list<string>
@@ -207,8 +207,8 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
             }
 
             $start = $unavailability->start_date->toImmutable();
-            // end_date est nullable cÃ´tÃ© DB (indispo Â« ouverte Â») -
-            // dans ce cas, on clamp Ã  fin d'annÃ©e.
+            // end_date est nullable côté DB (indispo « ouverte ») -
+            // dans ce cas, on clamp à fin d'année.
             $end = $unavailability->end_date !== null
                 ? $unavailability->end_date->toImmutable()
                 : $yearEnd;
@@ -234,9 +234,9 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
         return new RulePedagogicalContent(
             tab: RuleTab::Cadre,
             section: RuleSection::CadreEvenement,
-            title: 'IndisponibilitÃ©s fiscalement rÃ©ductrices',
-            pitch: 'Les jours pendant lesquels le vÃ©hicule est immobilisÃ© ou mis en fourriÃ¨re Ã  la demande des pouvoirs publics sont retirÃ©s du numÃ©rateur du prorata.',
-            body: "Trois types d'indisponibilitÃ© rÃ©duisent la base taxable : fourriÃ¨re publique (C. route L. 325-1 Ã  L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler aprÃ¨s sinistre (C. route L. 327-4 / L. 327-5). Si un contrat de 91 j chevauche 10 j de fourriÃ¨re publique, le numÃ©rateur taxable passe Ã  81 j. Les jours d'indispo qui tombent dans un contrat dÃ©jÃ  exonÃ©rÃ© au titre de la location courte durÃ©e ne sont pas comptÃ©s deux fois. Les autres types d'indispo (maintenance, contrÃ´le technique, fourriÃ¨re privÃ©e, etc.) restent taxables.",
+            title: 'Indisponibilités fiscalement réductrices',
+            pitch: 'Les jours pendant lesquels le véhicule est immobilisé ou mis en fourrière à la demande des pouvoirs publics sont retirés du numérateur du prorata.',
+            body: "Trois types d'indisponibilité réduisent la base taxable : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler après sinistre (C. route L. 327-4 / L. 327-5). Si un contrat de 91 j chevauche 10 j de fourrière publique, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà exonéré au titre de la location courte durée ne sont pas comptés deux fois. Les autres types d'indispo (maintenance, contrôle technique, fourrière privée, etc.) restent taxables.",
         );
     }
 }

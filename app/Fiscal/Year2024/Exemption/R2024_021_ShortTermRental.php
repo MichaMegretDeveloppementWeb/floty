@@ -18,29 +18,29 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\Contract;
 
 /**
- * R-2024-021 - ExonÃ©ration Location de Courte DurÃ©e (LCD).
+ * R-2024-021 - Exonération Location de Courte Durée (LCD).
  *
- * **SÃ©mantique v2.0 (ADR-0014, conforme BOFiP Â§ 180-190)** :
- * Un contrat de location est qualifiÃ© de courte durÃ©e si **l'une** des
- * conditions suivantes est vÃ©rifiÃ©e :
- *   - durÃ©e du contrat â‰¤ 30 jours consÃ©cutifs (`end - start + 1`)
+ * **Sémantique v2.0 (ADR-0014, conforme BOFiP § 180-190)** :
+ * Un contrat de location est qualifié de courte durée si **l'une** des
+ * conditions suivantes est vérifiée :
+ *   - durée du contrat ≤ 30 jours consécutifs (`end - start + 1`)
  *   - **OU** le contrat couvre exactement un mois civil entier
- *     (premier au dernier jour d'un mÃªme mois calendaire)
+ *     (premier au dernier jour d'un même mois calendaire)
  *
- * Tous les jours d'un contrat LCD sont exonÃ©rÃ©s des deux taxes (COâ‚‚ +
- * polluants) - ils sont retirÃ©s du numÃ©rateur du prorata appliquÃ© par
- * R-2024-002. La qualification s'apprÃ©cie **par contrat individuel**,
+ * Tous les jours d'un contrat LCD sont exonérés des deux taxes (CO₂ +
+ * polluants) - ils sont retirés du numérateur du prorata appliqué par
+ * R-2024-002. La qualification s'apprécie **par contrat individuel**,
  * jamais en cumul du couple.
  *
- * **Source lÃ©gale** : CIBS art. L. 421-129 et L. 421-141 (renvoi Ã  la
- * dÃ©finition Â« location de courte durÃ©e Â» du Code monÃ©taire et
+ * **Source légale** : CIBS art. L. 421-129 et L. 421-141 (renvoi à la
+ * définition « location de courte durée » du Code monétaire et
  * financier) ; doctrine BOFiP-IS-DG-30-10-30.
  *
  * **Architecture** (cf. memory `feedback_fiscal_rules_authority`) : la
- * qualification LCD est portÃ©e par cette rÃ¨gle souveraine - aucun
- * service ne dÃ©cide Ã  sa place. R-2024-008 (indispos rÃ©ductrices)
- * dÃ©lÃ¨gue Ã  `isShortTermRental()` pour distinguer contrats taxables et
- * contrats dÃ©jÃ  LCD-exonÃ©rÃ©s.
+ * qualification LCD est portée par cette règle souveraine - aucun
+ * service ne décide à sa place. R-2024-008 (indispos réductrices)
+ * délègue à `isShortTermRental()` pour distinguer contrats taxables et
+ * contrats déjà LCD-exonérés.
  */
 final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQualifier
 {
@@ -61,12 +61,12 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQual
 
     public function name(): string
     {
-        return 'ExonÃ©ration LCD (location de courte durÃ©e)';
+        return 'Exonération LCD (location de courte durée)';
     }
 
     public function description(): string
     {
-        return "Location de courte durÃ©e : durÃ©e d'un contrat â‰¤ 30 jours consÃ©cutifs OU contrat couvrant exactement un mois civil entier â†’ tous les jours du contrat sont retirÃ©s du numÃ©rateur du prorata. La qualification s'apprÃ©cie par contrat individuel, pas en cumul annuel. Texte identique pour les deux taxes (L. 421-141 reprend L. 421-129 mot pour mot).";
+        return "Location de courte durée : durée d'un contrat ≤ 30 jours consécutifs OU contrat couvrant exactement un mois civil entier → tous les jours du contrat sont retirés du numérateur du prorata. La qualification s'apprécie par contrat individuel, pas en cumul annuel. Texte identique pour les deux taxes (L. 421-141 reprend L. 421-129 mot pour mot).";
     }
 
     public function ruleType(): RuleType
@@ -128,7 +128,7 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQual
         return ExemptionVerdict::partialDays(
             $exemptDays,
             sprintf(
-                'ExonÃ©ration LCD - %d location%s courte%s (%d jour%s) (CIBS L. 421-129 / L. 421-141, BOFiP Â§ 180-190)',
+                'Exonération LCD - %d location%s courte%s (%d jour%s) (CIBS L. 421-129 / L. 421-141, BOFiP § 180-190)',
                 $lcdContractsCount,
                 $lcdContractsCount > 1 ? 's' : '',
                 $lcdContractsCount > 1 ? 's' : '',
@@ -140,11 +140,11 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQual
     }
 
     /**
-     * Qualification LCD d'un contrat individuel (ADR-0014, BOFiP Â§ 180-190).
+     * Qualification LCD d'un contrat individuel (ADR-0014, BOFiP § 180-190).
      *
-     * Public car rÃ©utilisÃ©e par `R2024_008_ReductiveUnavailability`
+     * Public car réutilisée par `R2024_008_ReductiveUnavailability`
      * pour distinguer les contrats taxables des contrats LCD lors du
-     * calcul des indispos fiscalement rÃ©ductrices.
+     * calcul des indispos fiscalement réductrices.
      */
     public function isShortTermRental(Contract $contract): bool
     {
@@ -156,10 +156,10 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQual
             return true;
         }
 
-        // Cas-limite Â« 1 mois civil entier Â» : le contrat couvre
-        // exactement les jours d'un mois calendaire (ex. 1er â†’ 31
+        // Cas-limite « 1 mois civil entier » : le contrat couvre
+        // exactement les jours d'un mois calendaire (ex. 1er → 31
         // janvier = 31 jours, donc > 30, mais c'est un mois civil
-        // entier â†’ LCD).
+        // entier → LCD).
         if (
             $start->day === 1
             && $end->day === $end->daysInMonth
@@ -177,12 +177,12 @@ final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQual
         return new RulePedagogicalContent(
             tab: RuleTab::Calcul,
             section: RuleSection::Exoneration,
-            title: 'ExonÃ©ration location de courte durÃ©e (LCD)',
-            pitch: 'Un contrat de location de 30 jours ou moins (ou couvrant exactement un mois civil entier) est totalement exonÃ©rÃ© : ses jours sortent du calcul.',
-            body: "Qualification apprÃ©ciÃ©e **par contrat individuel**, pas en cumul annuel par couple. Un contrat est LCD si l'une des deux conditions est vÃ©rifiÃ©e : durÃ©e â‰¤ 30 jours consÃ©cutifs, OU contrat couvrant exactement un mois civil entier (1er â†’ dernier jour du mÃªme mois). Tous les jours d'un contrat LCD sont retirÃ©s du numÃ©rateur du prorata.",
-            appliesWhen: 'Pour chaque contrat individuel : durÃ©e â‰¤ 30 jours consÃ©cutifs OU contrat = mois civil entier.',
-            effect: 'Les jours du contrat LCD sont soustraits du numÃ©rateur du prorata appliquÃ© Ã  ce couple (vÃ©hicule, entreprise). Si tous les contrats du couple sont LCD, daysAssignedToCompany = 0 â†’ taxe COâ‚‚ + polluants = 0 â‚¬.',
-            example: 'Contrat A 1erâ†’15 mars (15 j â‰¤ 30) â†’ exonÃ©rÃ©. Contrat B 1erâ†’31 janvier (31 j mais 1 mois civil entier) â†’ exonÃ©rÃ© aussi. Contrat C 15 janâ†’15 mars (60 j Ã  cheval, ni â‰¤ 30 ni mois civil entier) â†’ taxable au prorata.',
+            title: 'Exonération location de courte durée (LCD)',
+            pitch: 'Un contrat de location de 30 jours ou moins (ou couvrant exactement un mois civil entier) est totalement exonéré : ses jours sortent du calcul.',
+            body: "Qualification appréciée **par contrat individuel**, pas en cumul annuel par couple. Un contrat est LCD si l'une des deux conditions est vérifiée : durée ≤ 30 jours consécutifs, OU contrat couvrant exactement un mois civil entier (1er → dernier jour du même mois). Tous les jours d'un contrat LCD sont retirés du numérateur du prorata.",
+            appliesWhen: 'Pour chaque contrat individuel : durée ≤ 30 jours consécutifs OU contrat = mois civil entier.',
+            effect: 'Les jours du contrat LCD sont soustraits du numérateur du prorata appliqué à ce couple (véhicule, entreprise). Si tous les contrats du couple sont LCD, daysAssignedToCompany = 0 → taxe CO₂ + polluants = 0 €.',
+            example: 'Contrat A 1er→15 mars (15 j ≤ 30) → exonéré. Contrat B 1er→31 janvier (31 j mais 1 mois civil entier) → exonéré aussi. Contrat C 15 jan→15 mars (60 j à cheval, ni ≤ 30 ni mois civil entier) → taxable au prorata.',
         );
     }
 }

@@ -19,15 +19,15 @@ use App\Models\Unavailability;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-008 Â· IndisponibilitÃ©s fiscalement rÃ©ductrices Â· reconduction
- * stricte R-2024-008 (ADR-0016 confirmÃ©e pour 2025 par audit Chrome live
- * BOFiP `BOI-AIS-MOB-10-30-10-20250528` Â§Â§ 50, 60, 190 le 14/05/2026).
+ * R-2025-008 · Indisponibilités fiscalement réductrices · reconduction
+ * stricte R-2024-008 (ADR-0016 confirmée pour 2025 par audit Chrome live
+ * BOFiP `BOI-AIS-MOB-10-30-10-20250528` §§ 50, 60, 190 le 14/05/2026).
  *
- * Grille ADR-0016 inchangÃ©e Â· 4 cas rÃ©ducteurs (fourriÃ¨re publique
- * L. 325-1 Ã  L. 325-1-2, suspension immatriculation R. 322-6, interdiction
+ * Grille ADR-0016 inchangée · 4 cas réducteurs (fourrière publique
+ * L. 325-1 à L. 325-1-2, suspension immatriculation R. 322-6, interdiction
  * post-sinistre L. 327-4 / L. 327-5, certificat VHU R. 322-9).
  *
- * SÃ©mantique de calcul identique Ã  2024 Â· un jour d'indispo est rÃ©ducteur
+ * Sémantique de calcul identique à 2024 · un jour d'indispo est réducteur
  * s'il tombe dans un contrat taxable du couple (non LCD au sens de
  * R-2025-021) ET porte un type d'indispo `has_fiscal_impact = true`.
  */
@@ -47,12 +47,12 @@ final readonly class R2025_008_ReductiveUnavailability implements ExemptionRule
 
     public function name(): string
     {
-        return 'IndisponibilitÃ©s fiscalement rÃ©ductrices';
+        return 'Indisponibilités fiscalement réductrices';
     }
 
     public function description(): string
     {
-        return "Le vÃ©hicule immobilisÃ© ou mis en fourriÃ¨re Ã  la demande des pouvoirs publics est rÃ©putÃ© ne pas Ãªtre affectÃ© Ã  des fins Ã©conomiques (CIBS L. 421-96). Quatre cas rÃ©ducteurs (BOFiP Â§Â§ 50 et 60) : fourriÃ¨re publique (C. route L. 325-1 Ã  L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5), certificat de destruction VHU (C. route R. 322-9). Les jours correspondants sont retirÃ©s du numÃ©rateur du prorata journalier (BOFiP Â§ 190). Reconduction stricte 2024.";
+        return "Le véhicule immobilisé ou mis en fourrière à la demande des pouvoirs publics est réputé ne pas être affecté à des fins économiques (CIBS L. 421-96). Quatre cas réducteurs (BOFiP §§ 50 et 60) : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler post-sinistre (C. route L. 327-4 / L. 327-5), certificat de destruction VHU (C. route R. 322-9). Les jours correspondants sont retirés du numérateur du prorata journalier (BOFiP § 190). Reconduction stricte 2024.";
     }
 
     public function ruleType(): RuleType
@@ -80,21 +80,21 @@ final readonly class R2025_008_ReductiveUnavailability implements ExemptionRule
             [
                 'type' => 'BOFIP',
                 'reference' => 'BOI-AIS-MOB-10-30-10',
-                'paragraph' => 'Â§ 50',
+                'paragraph' => '§ 50',
                 'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20250528',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'BOFIP',
                 'reference' => 'BOI-AIS-MOB-10-30-10',
-                'paragraph' => 'Â§ 60',
+                'paragraph' => '§ 60',
                 'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20250528',
                 'consulted_at' => '2026-05-14',
             ],
             [
                 'type' => 'BOFIP',
                 'reference' => 'BOI-AIS-MOB-10-30-10',
-                'paragraph' => 'Â§ 190',
+                'paragraph' => '§ 190',
                 'url' => 'https://bofip.impots.gouv.fr/bofip/13932-PGP.html/identifiant=BOI-AIS-MOB-10-30-10-20250528',
                 'consulted_at' => '2026-05-14',
             ],
@@ -153,7 +153,7 @@ final readonly class R2025_008_ReductiveUnavailability implements ExemptionRule
         return ExemptionVerdict::partialDays(
             $reductiveCount,
             sprintf(
-                'IndisponibilitÃ© rÃ©ductrice - %d jour%s soustrait%s du numÃ©rateur (CIBS L. 421-96, BOFiP BOI-AIS-MOB-10-30-10 Â§ 50/60/190)',
+                'Indisponibilité réductrice - %d jour%s soustrait%s du numérateur (CIBS L. 421-96, BOFiP BOI-AIS-MOB-10-30-10 § 50/60/190)',
                 $reductiveCount,
                 $reductiveCount > 1 ? 's' : '',
                 $reductiveCount > 1 ? 's' : '',
@@ -203,9 +203,9 @@ final readonly class R2025_008_ReductiveUnavailability implements ExemptionRule
         return new RulePedagogicalContent(
             tab: RuleTab::Cadre,
             section: RuleSection::CadreEvenement,
-            title: 'IndisponibilitÃ©s fiscalement rÃ©ductrices',
-            pitch: 'Les jours pendant lesquels le vÃ©hicule est immobilisÃ© ou mis en fourriÃ¨re Ã  la demande des pouvoirs publics sont retirÃ©s du numÃ©rateur du prorata.',
-            body: "Quatre types d'indisponibilitÃ© rÃ©duisent la base taxable : fourriÃ¨re publique (C. route L. 325-1 Ã  L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler aprÃ¨s sinistre (C. route L. 327-4 / L. 327-5), certificat de destruction VHU (R. 322-9). Si un contrat de 91 j chevauche 10 j de fourriÃ¨re publique, le numÃ©rateur taxable passe Ã  81 j. Les jours d'indispo qui tombent dans un contrat dÃ©jÃ  exonÃ©rÃ© au titre de la location courte durÃ©e ne sont pas comptÃ©s deux fois. Reconduction stricte 2024 (BOFiP 2025 confirme intÃ©gralement).",
+            title: 'Indisponibilités fiscalement réductrices',
+            pitch: 'Les jours pendant lesquels le véhicule est immobilisé ou mis en fourrière à la demande des pouvoirs publics sont retirés du numérateur du prorata.',
+            body: "Quatre types d'indisponibilité réduisent la base taxable : fourrière publique (C. route L. 325-1 à L. 325-1-2), suspension du certificat d'immatriculation (C. route R. 322-6), interdiction de circuler après sinistre (C. route L. 327-4 / L. 327-5), certificat de destruction VHU (R. 322-9). Si un contrat de 91 j chevauche 10 j de fourrière publique, le numérateur taxable passe à 81 j. Les jours d'indispo qui tombent dans un contrat déjà exonéré au titre de la location courte durée ne sont pas comptés deux fois. Reconduction stricte 2024 (BOFiP 2025 confirme intégralement).",
         );
     }
 }

@@ -12,18 +12,18 @@ use Carbon\CarbonImmutable;
 use DateTimeInterface;
 
 /**
- * ImplÃ©mentation Eloquent des lectures sur l'historique fiscal d'un
- * vÃ©hicule.
+ * Implémentation Eloquent des lectures sur l'historique fiscal d'un
+ * véhicule.
  */
 final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalCharacteristicsReadRepositoryInterface
 {
     public function findCurrentForVehicle(Vehicle $vehicle): ?VehicleFiscalCharacteristics
     {
-        // Si la relation est prÃ©chargÃ©e (eager load via `with(...)`),
-        // on travaille sur la collection en mÃ©moire pour Ã©viter une
-        // nouvelle requÃªte SQL inutile. Ã‰vite le N+1 sur l'Index Flotte
-        // qui itÃ¨re sur tous les vÃ©hicules avec leurs VFC dÃ©jÃ 
-        // eager-loadÃ©es par {@see VehicleReadRepository::findAllForFleetView}.
+        // Si la relation est préchargée (eager load via `with(...)`),
+        // on travaille sur la collection en mémoire pour éviter une
+        // nouvelle requête SQL inutile. Évite le N+1 sur l'Index Flotte
+        // qui itère sur tous les véhicules avec leurs VFC déjà
+        // eager-loadées par {@see VehicleReadRepository::findAllForFleetView}.
         if ($vehicle->relationLoaded('fiscalCharacteristics')) {
             return $vehicle->fiscalCharacteristics
                 ->where('effective_to', null)
