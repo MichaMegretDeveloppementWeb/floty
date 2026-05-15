@@ -13,6 +13,8 @@ use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 use App\Services\Fiscal\RiskDetection\RiskDetectionService;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Compose l'état complet du cycle de vie d'une déclaration fiscale pour
@@ -149,6 +151,15 @@ final readonly class DeclarationLifecycleResolver
      *     (la version Generated obsolète remplacée par le Draft courant).
      *   - Autres états : aucun motif à afficher.
      *
+     * **Lot 5 D5 (F-19D2-013) · garde-fou résilient** · si `obsolete_reasons`
+     * BDD est mal formé (cast Eloquent renvoie une valeur non-array, ou
+     * un array dont les items ne sont pas des array<string, mixed>),
+     * `InvalidationReasonData::fromArray()` lance une `TypeError`. On
+     * intercepte pour retourner un fallback array vide (l'UI dégrade
+     * proprement avec « aucun motif disponible ») et logger un warning
+     * pour audit forensic. Évite un 500 sur la fiche Company suite à une
+     * corruption BDD (import manuel, migration partielle, etc.).
+     *
      * @return list<InvalidationReasonData>
      */
     private function resolveObsoleteReasons(
@@ -163,14 +174,38 @@ final readonly class DeclarationLifecycleResolver
             default => null,
         };
 
-        if ($source === null || $source->obsolete_reasons === null) {
+        if ($source === null) {
             return [];
         }
 
-        return array_map(
-            static fn (array $raw): InvalidationReasonData => InvalidationReasonData::fromArray($raw),
-            $source->obsolete_reasons,
-        );
+        $raw = $source->obsolete_reasons;
+        if ($raw === null) {
+            return [];
+        }
+
+        if (! is_array($raw)) {
+            Log::channel('declarations')->warning('FiscalDeclaration.obsolete_reasons_malformed', [
+                'declaration_id' => $source->id,
+                'received_type' => gettype($raw),
+            ]);
+
+            return [];
+        }
+
+        try {
+            return array_map(
+                static fn (array $entry): InvalidationReasonData => InvalidationReasonData::fromArray($entry),
+                $raw,
+            );
+        } catch (Throwable $e) {
+            Log::channel('declarations')->warning('FiscalDeclaration.obsolete_reasons_invalid_entry', [
+                'declaration_id' => $source->id,
+                'exception_class' => $e::class,
+                'exception_message' => $e->getMessage(),
+            ]);
+
+            return [];
+        }
     }
 
     /**
@@ -178,6 +213,14 @@ final readonly class DeclarationLifecycleResolver
      * `[predecessor, predecessor_of_predecessor, ...]`. La déclaration
      * courante est délibérément exclue (déjà exposée comme champ
      * dédié `currentDeclaration`).
+     *
+     * **Lot 5 D5 (F-19-008) · détection de cycle** · garde-fou résilient
+     * contre une chaîne corrompue (A → B → A) qui ferait boucler la
+     * `while` infiniment. On stoppe au re-visit en loggant un warning
+     * canal `declarations` pour audit · le retour est tronqué au point
+     * du cycle plutôt que lancer une exception (résilience UI prime).
+     * Cas pathologique sans déclencheur connu en V1 mais possible en
+     * cas de bug applicatif futur ou de manipulation BDD directe.
      *
      * @return list<DeclarationListItemData>
      */
@@ -188,8 +231,20 @@ final readonly class DeclarationLifecycleResolver
         }
 
         $chain = [];
+        $visited = [];
         $cursor = $startFrom;
         while ($cursor !== null) {
+            if (isset($visited[$cursor->id])) {
+                Log::channel('declarations')->warning('FiscalDeclaration.history_chain_cycle_detected', [
+                    'start_declaration_id' => $startFrom->id,
+                    'cycle_at_id' => $cursor->id,
+                    'visited_ids' => array_keys($visited),
+                ]);
+
+                break;
+            }
+
+            $visited[$cursor->id] = true;
             $chain[] = DeclarationListItemData::fromModel($cursor);
             $cursor = $this->declarations->findPredecessorOf($cursor->id);
         }

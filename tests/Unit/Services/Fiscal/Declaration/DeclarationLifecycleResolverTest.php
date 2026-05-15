@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Fiscal\Declaration;
 
+use App\Data\User\FiscalDeclaration\DeclarationListItemData;
 use App\Enums\Contract\ContractType;
 use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
@@ -16,7 +17,9 @@ use App\Models\Vehicle;
 use App\Services\Fiscal\Declaration\DeclarationLifecycleResolver;
 use App\Services\Fiscal\RiskDetection\RiskDetectionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
+use ReflectionMethod;
 use Tests\TestCase;
 
 /**
@@ -239,6 +242,109 @@ final class DeclarationLifecycleResolverTest extends TestCase
         self::assertCount(2, $state->historyChain);
         self::assertSame($b->id, $state->historyChain[0]->id);
         self::assertSame($a->id, $state->historyChain[1]->id);
+    }
+
+    // ---------- Lot 5 D5 · robustesse lifecycle (F-19-008 + F-19D2-013) ----------
+
+    #[Test]
+    public function lot5_d5_build_history_chain_detecte_cycle_et_break(): void
+    {
+        // F-19-008 · simulation TOCTOU pathologique · 2 déclarations
+        // qui se référencent mutuellement via `superseded_by_id` (cas
+        // impossible naturellement en BDD car chaque déclaration n'a
+        // qu'un seul `superseded_by_id`, mais reproductible via
+        // double-update direct simulant un bug applicatif futur).
+        // L'algorithme doit stopper au re-visit, pas boucler infiniment.
+        // Test via reflection sur la méthode privée (le cycle backward
+        // ne peut pas être déclenché via `resolveForCompanyYear` car
+        // aucune déclaration cycliquée n'aurait `superseded_by_id IS NULL`
+        // et donc ne serait jamais identifiée comme `current`).
+        $a = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(self::YEAR)
+            ->obsolete()
+            ->create();
+
+        $b = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(self::YEAR)
+            ->obsolete()
+            ->create();
+
+        // Cycle direct A ↔ B · chacun pointe vers l'autre.
+        $a->update(['superseded_by_id' => $b->id]);
+        $b->update(['superseded_by_id' => $a->id]);
+
+        $method = new ReflectionMethod($this->resolver, 'buildHistoryChain');
+        /** @var list<DeclarationListItemData> $chain */
+        $chain = $method->invoke($this->resolver, $a);
+
+        // 2 déclarations dans la chaîne (A puis B trouvé via
+        // findPredecessorOf), puis break au re-visit de A.
+        self::assertCount(2, $chain);
+        self::assertSame($a->id, $chain[0]->id);
+        self::assertSame($b->id, $chain[1]->id);
+    }
+
+    #[Test]
+    public function lot5_d5_resolve_obsolete_reasons_renvoie_vide_si_type_non_array(): void
+    {
+        // F-19D2-013 · si `obsolete_reasons` BDD contient une valeur
+        // non-array (ex. JSON scalar string · cast Eloquent renvoie
+        // alors le string non-décodé en PHP au lieu d'un array), le
+        // garde-fou retourne array vide au lieu de crasher · le canal
+        // log warning garde la trace pour audit forensic.
+        $generated = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(self::YEAR)
+            ->generated()
+            ->create();
+
+        // Update direct via DB::table pour bypasser le cast 'array'
+        // d'Eloquent à l'écriture · MySQL stocke un JSON string scalar.
+        DB::table('fiscal_declarations')
+            ->where('id', $generated->id)
+            ->update([
+                'is_obsolete' => true,
+                'obsolete_at' => now(),
+                'obsolete_reasons' => '"corrupted-not-an-array"',
+            ]);
+
+        $state = $this->resolver->resolveForCompanyYear($this->company->id, self::YEAR);
+
+        self::assertSame(DeclarationLifecycleState::GeneratedObsoleteOrphan, $state->state);
+        self::assertSame([], $state->obsoleteReasons);
+    }
+
+    #[Test]
+    public function lot5_d5_resolve_obsolete_reasons_renvoie_vide_si_entree_invalide(): void
+    {
+        // F-19D2-013 · si `obsolete_reasons` est un array mais avec
+        // une entrée mal structurée (champ requis manquant pour
+        // `InvalidationReasonData::fromArray`), le garde-fou intercepte
+        // le Throwable et retourne array vide au lieu de propager
+        // l'erreur jusqu'à la fiche Company.
+        $generated = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(self::YEAR)
+            ->generated()
+            ->create();
+
+        DB::table('fiscal_declarations')
+            ->where('id', $generated->id)
+            ->update([
+                'is_obsolete' => true,
+                'obsolete_at' => now(),
+                // Array valide mais entrée incomplète (manque `type`)
+                'obsolete_reasons' => json_encode([
+                    ['actor_user_id' => 1, 'occurred_at' => '2026-05-15T10:00:00Z'],
+                ]),
+            ]);
+
+        $state = $this->resolver->resolveForCompanyYear($this->company->id, self::YEAR);
+
+        self::assertSame(DeclarationLifecycleState::GeneratedObsoleteOrphan, $state->state);
+        self::assertSame([], $state->obsoleteReasons);
     }
 
     /**
