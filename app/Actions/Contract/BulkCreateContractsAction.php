@@ -46,17 +46,30 @@ final readonly class BulkCreateContractsAction
         $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
 
         return DB::transaction(function () use ($data, $contractType): array {
-            $rows = [];
+            // Lot 3 D01 · 1 query batch au lieu de N appels findOverlapping ·
+            // charge tous les contrats existants des véhicules listés qui
+            // chevauchent la plage commune `[startDate, endDate]`. La
+            // boucle ci-dessous fait du fail-fast en mémoire pour
+            // préserver la sémantique historique (1er overlap rencontré
+            // → exception, rollback transaction, lot entier rejeté).
+            $existingOverlaps = $this->reader->findAllOverlappingForVehicles(
+                vehicleIds: $data->vehicleIds,
+                startDate: $data->startDate,
+                endDate: $data->endDate,
+            );
 
+            // Index par vehicle_id pour lookup O(1) dans la boucle ·
+            // chaque entrée contient le **premier** contrat conflictuel
+            // (les contrats sont triés par `vehicle_id, start_date` côté
+            // SQL, donc la 1ère occurrence par véhicule est déterministe).
+            $overlapByVehicleId = [];
+            foreach ($existingOverlaps as $contract) {
+                $overlapByVehicleId[$contract->vehicle_id] ??= $contract;
+            }
+
+            $rows = [];
             foreach ($data->vehicleIds as $vehicleId) {
-                // Pré-vérification applicative : un overlap suffit à
-                // bloquer le lot entier (rollback automatique de la
-                // transaction).
-                $conflict = $this->reader->findOverlapping(
-                    vehicleId: $vehicleId,
-                    startDate: $data->startDate,
-                    endDate: $data->endDate,
-                );
+                $conflict = $overlapByVehicleId[$vehicleId] ?? null;
 
                 if ($conflict !== null) {
                     throw ContractOverlapException::fromConflict(
@@ -85,7 +98,8 @@ final readonly class BulkCreateContractsAction
             // Attache la même liste de conducteurs à chaque contrat créé
             // (cf. chantier #3 multi-conducteurs). `syncDrivers` est appelé
             // pour chaque contrat - inserts simples sur le pivot, pas de
-            // diff puisque nouvelle création.
+            // diff puisque nouvelle création. Optimisation pivot batch
+            // séparable (Lot 3 dette résiduelle, hors-D01).
             foreach ($ids as $contractId) {
                 $this->writer->syncDrivers($contractId, $data->driverIds);
             }

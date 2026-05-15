@@ -139,6 +139,25 @@ interface ContractReadRepositoryInterface
     ): Collection;
 
     /**
+     * Variante batch de {@see findOverlapping} pour la création multiple
+     * de contrats sur une plage commune (Lot 3 D01).
+     *
+     * Charge en **1 seule query SQL** tous les contrats actifs des
+     * véhicules listés qui chevauchent la plage `[startDate, endDate]`.
+     * Le consommateur (typiquement {@see BulkCreateContractsAction})
+     * itère ensuite en mémoire pour décider quel véhicule présente un
+     * conflit · pas de N×SELECT.
+     *
+     * @param  list<int>  $vehicleIds
+     * @return Collection<int, Contract>
+     */
+    public function findAllOverlappingForVehicles(
+        array $vehicleIds,
+        string $startDate,
+        string $endDate,
+    ): Collection;
+
+    /**
      * Liste paginée server-side de l'Index Contracts (cf. ADR-0020).
      * Applique `{search, vehicleId, companyId, driverId, type,
      * periodStart, periodEnd, sortKey, sortDirection, page, perPage}`

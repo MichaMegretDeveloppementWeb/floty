@@ -189,6 +189,24 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->get();
     }
 
+    public function findAllOverlappingForVehicles(
+        array $vehicleIds,
+        string $startDate,
+        string $endDate,
+    ): Collection {
+        if ($vehicleIds === []) {
+            return new Collection;
+        }
+
+        return Contract::query()
+            ->whereIn('vehicle_id', $vehicleIds)
+            ->where('start_date', '<=', $endDate)
+            ->where('end_date', '>=', $startDate)
+            ->orderBy('vehicle_id')
+            ->orderBy('start_date')
+            ->get();
+    }
+
     public function existsAny(): bool
     {
         return Contract::query()->exists();
