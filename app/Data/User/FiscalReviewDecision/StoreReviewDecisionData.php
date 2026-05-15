@@ -7,10 +7,13 @@ namespace App\Data\User\FiscalReviewDecision;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
 use Spatie\LaravelData\Attributes\MapInputName;
+use Spatie\LaravelData\Attributes\Validation\ArrayType;
+use Spatie\LaravelData\Attributes\Validation\Distinct;
 use Spatie\LaravelData\Attributes\Validation\Max;
 use Spatie\LaravelData\Attributes\Validation\Min;
 use Spatie\LaravelData\Attributes\Validation\Nullable;
 use Spatie\LaravelData\Attributes\Validation\Size;
+use Spatie\LaravelData\Attributes\Validation\Sometimes;
 use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
@@ -48,8 +51,16 @@ final class StoreReviewDecisionData extends Data
          * cluster · ils sont traités comme LCD individuels exemptés
          * R-2024-021 et ne participent pas à l'opt-out si la décision
          * globale est Requalified.
+         *
+         * Lot 5 D4 · validation typage `ArrayType + Distinct` aligné
+         * sur le pattern `StoreContractData::driverIds`. La garantie
+         * sémantique d'appartenance des IDs au couple `(company_id,
+         * fiscal_year)` est portée par
+         * {@see App\Actions\FiscalDeclaration\StoreReviewDecisionAction::guardExcludedContractsBelongToScope()}
+         * (validation métier dans l'Action) · ferme le risque IDOR
+         * latent V2 multi-tenant.
          */
-        #[Nullable]
+        #[Sometimes, Nullable, ArrayType, Distinct]
         public ?array $excludedContractIds = null,
     ) {}
 }

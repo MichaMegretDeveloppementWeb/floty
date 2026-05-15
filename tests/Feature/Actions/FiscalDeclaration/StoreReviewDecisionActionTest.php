@@ -6,11 +6,14 @@ namespace Tests\Feature\Actions\FiscalDeclaration;
 
 use App\Actions\FiscalDeclaration\StoreReviewDecisionAction;
 use App\Data\User\FiscalReviewDecision\StoreReviewDecisionData;
+use App\Enums\Contract\ContractType;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
 use App\Models\Company;
+use App\Models\Contract;
 use App\Models\FiscalReviewDecision;
 use App\Models\User;
+use App\Models\Vehicle;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use PHPUnit\Framework\Attributes\Test;
@@ -175,11 +178,128 @@ final class StoreReviewDecisionActionTest extends TestCase
         self::assertSame($exactlyAtLimit, $decision->justification);
     }
 
+    // ---------- Lot 5 D4 (F-19D2-001) · validation excludedContractIds ----------
+
+    #[Test]
+    public function lot5_d4_accepte_excluded_contract_ids_appartenant_au_couple_company_year(): void
+    {
+        // Lot 5 D4 · les `excludedContractIds` doivent appartenir au
+        // couple `(company_id, fiscal_year)` de la décision. Cas
+        // nominal · 2 contrats LCD valides du même couple.
+        $vehicle = Vehicle::factory()->create();
+        $contract1 = Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2025-03-01',
+            'end_date' => '2025-03-15',
+            'contract_type' => ContractType::Lcd,
+        ]);
+        $contract2 = Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => Vehicle::factory()->create()->id,
+            'start_date' => '2025-03-20',
+            'end_date' => '2025-04-05',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        $data = $this->makeData(
+            decision: ReviewDecisionType::Requalified,
+            excludedContractIds: [$contract1->id, $contract2->id],
+        );
+
+        $stored = $this->action->execute($data, $this->user->id);
+
+        self::assertSame([$contract1->id, $contract2->id], $stored->excluded_contract_ids);
+    }
+
+    #[Test]
+    public function lot5_d4_accepte_excluded_contract_ids_null_ou_vide(): void
+    {
+        // Lot 5 D4 · null ou tableau vide doit passer sans déclencher
+        // le repo Contracts (économie d'1 query inutile).
+        $stored = $this->action->execute(
+            $this->makeData(
+                decision: ReviewDecisionType::Requalified,
+                excludedContractIds: null,
+            ),
+            $this->user->id,
+        );
+        self::assertNull($stored->excluded_contract_ids);
+
+        $stored2 = $this->action->execute(
+            $this->makeData(
+                fingerprint: str_repeat('c', 64),
+                decision: ReviewDecisionType::Requalified,
+                excludedContractIds: [],
+            ),
+            $this->user->id,
+        );
+        self::assertNull($stored2->excluded_contract_ids);
+    }
+
+    #[Test]
+    public function lot5_d4_refuse_excluded_contract_id_etranger_au_couple(): void
+    {
+        // Lot 5 D4 · risque IDOR latent V2 multi-tenant · un contrat
+        // appartenant à une AUTRE entreprise doit être rejeté avec un
+        // message clair listant les IDs offensants.
+        $otherCompany = Company::factory()->create();
+        $otherContract = Contract::factory()->create([
+            'company_id' => $otherCompany->id,
+            'vehicle_id' => Vehicle::factory()->create()->id,
+            'start_date' => '2025-03-01',
+            'end_date' => '2025-03-15',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/n\'appartiennent pas à l\'entreprise/');
+
+        $this->action->execute(
+            $this->makeData(
+                decision: ReviewDecisionType::Requalified,
+                excludedContractIds: [$otherContract->id],
+            ),
+            $this->user->id,
+        );
+    }
+
+    #[Test]
+    public function lot5_d4_refuse_excluded_contract_id_appartenant_a_une_autre_annee(): void
+    {
+        // Lot 5 D4 · même entreprise mais année fiscale différente
+        // (contrat 2024 dans une décision 2025). Doit être rejeté
+        // car le couple (company, year) ne matche pas.
+        $vehicle = Vehicle::factory()->create();
+        $contract2024 = Contract::factory()->create([
+            'company_id' => $this->company->id,
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2024-06-01',
+            'end_date' => '2024-06-20',
+            'contract_type' => ContractType::Lcd,
+        ]);
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessageMatches('/exercice 2025/');
+
+        $this->action->execute(
+            $this->makeData(
+                decision: ReviewDecisionType::Requalified,
+                excludedContractIds: [$contract2024->id],
+            ),
+            $this->user->id,
+        );
+    }
+
+    /**
+     * @param  list<int>|null  $excludedContractIds
+     */
     private function makeData(
         ?string $fingerprint = null,
         RiskCode $riskCode = RiskCode::Chain,
         ReviewDecisionType $decision = ReviewDecisionType::Conserved,
         ?string $justification = null,
+        ?array $excludedContractIds = null,
     ): StoreReviewDecisionData {
         return new StoreReviewDecisionData(
             companyId: $this->company->id,
@@ -188,6 +308,7 @@ final class StoreReviewDecisionActionTest extends TestCase
             clusterFingerprint: $fingerprint ?? str_repeat('b', 64),
             decision: $decision,
             justification: $justification,
+            excludedContractIds: $excludedContractIds,
         );
     }
 }

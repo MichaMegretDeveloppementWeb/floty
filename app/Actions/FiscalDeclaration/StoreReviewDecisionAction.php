@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Actions\FiscalDeclaration;
 
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionWriteRepositoryInterface;
 use App\Data\User\FiscalReviewDecision\StoreReviewDecisionData;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
@@ -29,6 +30,7 @@ final readonly class StoreReviewDecisionAction
 {
     public function __construct(
         private FiscalReviewDecisionWriteRepositoryInterface $writer,
+        private ContractReadRepositoryInterface $contracts,
     ) {}
 
     public function execute(StoreReviewDecisionData $data, int $userId): FiscalReviewDecision
@@ -38,6 +40,10 @@ final readonly class StoreReviewDecisionAction
         $excludedIds = $data->excludedContractIds !== null && $data->excludedContractIds !== []
             ? array_values(array_unique(array_map(static fn ($v): int => (int) $v, $data->excludedContractIds)))
             : null;
+
+        if ($excludedIds !== null) {
+            $this->guardExcludedContractsBelongToScope($data->companyId, $data->fiscalYear, $excludedIds);
+        }
 
         $decision = DB::transaction(fn (): FiscalReviewDecision => $this->writer->upsert([
             'company_id' => $data->companyId,
@@ -102,5 +108,38 @@ final readonly class StoreReviewDecisionAction
         throw new InvalidArgumentException(
             'Une justification est obligatoire pour conserver l\'exonération sur un cluster de niveau élevé (ADR-0015 § 6.2).',
         );
+    }
+
+    /**
+     * Lot 5 D4 (F-19D2-001) · garantit que tous les `excludedContractIds`
+     * appartiennent bien au couple `(company_id, fiscal_year)` de la
+     * décision. Ferme le risque IDOR latent V2 multi-tenant · sans
+     * cette garde, un payload pourrait passer des `contract_id` d'une
+     * autre entreprise et corrompre silencieusement l'audit (les IDs
+     * inconnus sont actuellement filtrés par `DeclarationFiscalEngine`
+     * via `in_array`, donc sans effet calculatoire, mais ils restent
+     * stockés dans `fiscal_review_decisions.excluded_contract_ids` et
+     * trahissent une intention frauduleuse).
+     *
+     * @param  list<int>  $excludedIds
+     */
+    private function guardExcludedContractsBelongToScope(int $companyId, int $fiscalYear, array $excludedIds): void
+    {
+        $allowedIds = $this->contracts
+            ->findForCompanyAndYear($companyId, $fiscalYear)
+            ->pluck('id')
+            ->all();
+
+        $unauthorized = array_values(array_diff($excludedIds, $allowedIds));
+        if ($unauthorized === []) {
+            return;
+        }
+
+        throw new InvalidArgumentException(sprintf(
+            'Les contrats exclus suivants n\'appartiennent pas à l\'entreprise %d sur l\'exercice %d : %s.',
+            $companyId,
+            $fiscalYear,
+            implode(', ', $unauthorized),
+        ));
     }
 }
