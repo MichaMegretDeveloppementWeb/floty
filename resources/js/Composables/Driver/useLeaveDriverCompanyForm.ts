@@ -1,6 +1,7 @@
+import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import type { Ref } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
 import { leave as leaveRoute } from '@/routes/user/drivers/memberships';
 
 type FutureContract = {
@@ -14,6 +15,17 @@ type FormShape = {
     left_at: string;
     future_contracts_resolution: 'replace' | 'detach' | 'none';
     replacement_map: Record<number, number | null>;
+};
+
+type LeaveMode = 'replace' | 'detach' | 'none';
+
+export type UseLeaveDriverCompanyFormReturn = {
+    form: InertiaForm<FormShape>;
+    hasFutureContracts: ComputedRef<boolean>;
+    mode: Ref<LeaveMode>;
+    setMode: (value: LeaveMode) => void;
+    setReplacement: (contractId: number, driverId: number | null) => void;
+    submit: (onSuccess?: () => void) => void;
 };
 
 /**
@@ -31,7 +43,7 @@ export function useLeaveDriverCompanyForm(opts: {
     driverId: number;
     companyId: number;
     futureContracts: Ref<readonly FutureContract[]>;
-}) {
+}): UseLeaveDriverCompanyFormReturn {
     const form = useForm<FormShape>({
         left_at: new Date().toISOString().slice(0, 10),
         future_contracts_resolution: 'none',
@@ -42,9 +54,9 @@ export function useLeaveDriverCompanyForm(opts: {
         () => opts.futureContracts.value.length > 0,
     );
 
-    const mode = ref<'replace' | 'detach' | 'none'>('none');
+    const mode = ref<LeaveMode>('none');
 
-    function setMode(value: 'replace' | 'detach' | 'none'): void {
+    function setMode(value: LeaveMode): void {
         mode.value = value;
         form.future_contracts_resolution = value;
 

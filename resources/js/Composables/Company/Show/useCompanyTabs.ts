@@ -18,7 +18,7 @@
 
 import { router } from '@inertiajs/vue3';
 import type { InjectionKey, Ref } from 'vue';
-import { computed, inject, onMounted, provide, ref, watch } from 'vue';
+import { inject, onMounted, provide, ref, watch } from 'vue';
 
 export type CompanyTabKey =
     | 'overview'
@@ -134,6 +134,7 @@ export function useCompanyTabs(): CompanyTabsState {
         }
 
         const propsToLoad = TAB_PROPS[tab];
+
         if (propsToLoad.length === 0) {
             visitedTabs.value.add(tab);
 
@@ -189,10 +190,7 @@ export function useCompanyTabs(): CompanyTabsState {
     });
 
     const state: CompanyTabsState = {
-        activeTab: computed({
-            get: () => activeTab.value,
-            set: (v: CompanyTabKey) => (activeTab.value = v),
-        }) as unknown as Ref<CompanyTabKey>,
+        activeTab,
         setTab,
         isActive,
         loadingTab,

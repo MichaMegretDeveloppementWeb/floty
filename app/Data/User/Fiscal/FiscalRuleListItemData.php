@@ -31,7 +31,7 @@ final class FiscalRuleListItemData extends Data
 {
     /**
      * @param  list<TaxType>  $taxesConcerned
-     * @param  list<array<string, mixed>>  $legalBasis
+     * @param  list<array{type: string, article?: string, reference?: string, paragraph?: string, url?: string, consulted_at?: string}>  $legalBasis
      */
     public function __construct(
         public int $id,

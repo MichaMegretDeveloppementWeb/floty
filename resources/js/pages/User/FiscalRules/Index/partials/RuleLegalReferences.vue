@@ -13,17 +13,10 @@
  */
 import { computed } from 'vue';
 
-type LegalRef = {
-    type?: string;
-    article?: string;
-    reference?: string;
-    paragraph?: string;
-    url?: string;
-    consulted_at?: string;
-};
+type LegalRef = App.Data.User.Fiscal.FiscalRuleListItemData['legalBasis'][number];
 
 const props = defineProps<{
-    refs: App.Data.User.Fiscal.FiscalRuleListItemData['legalBasis'];
+    refs: LegalRef[];
 }>();
 
 type Display = {
@@ -81,7 +74,7 @@ function buildTitle(entry: LegalRef): string {
 }
 
 const links = computed<Display[]>(() =>
-    (props.refs as unknown as LegalRef[])
+    props.refs
         .map((entry) => ({
             label: buildLabel(entry),
             title: buildTitle(entry),

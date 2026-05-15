@@ -89,10 +89,14 @@ interface FiscalRule
 
     /**
      * Base légale structurée. Chaque entrée est un tableau associatif
-     * (`type`, `article`, `paragraph`...). Format conforme au stockage
-     * JSON `fiscal_rules.legal_basis`.
+     * dont les clés varient selon le `type` (CIBS / CGI / BOFIP /
+     * NOTICE). Format conforme au stockage JSON `fiscal_rules.legal_basis`.
      *
-     * @return list<array<string, mixed>>
+     * Le shape `array{...}` est repris par Spatie Data → TS Transformer
+     * pour générer un type TypeScript structuré côté frontend (au lieu
+     * du fallback `Record<string, any>` quand le shape est `mixed`).
+     *
+     * @return list<array{type: string, article?: string, reference?: string, paragraph?: string, url?: string, consulted_at?: string}>
      */
     public function legalBasis(): array;
 

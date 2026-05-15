@@ -1,3 +1,4 @@
+import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import {
     store as storeRoute,
@@ -18,7 +19,17 @@ export type EditFormShape = {
     last_name: string;
 };
 
-export function useCreateDriverForm(initial?: { companyId?: number }) {
+export type UseCreateDriverFormReturn = {
+    form: InertiaForm<CreateFormShape>;
+    submit: () => void;
+};
+
+export type UseEditDriverFormReturn = {
+    form: InertiaForm<EditFormShape>;
+    submit: () => void;
+};
+
+export function useCreateDriverForm(initial?: { companyId?: number }): UseCreateDriverFormReturn {
     const form = useForm<CreateFormShape>({
         first_name: '',
         last_name: '',
@@ -39,7 +50,7 @@ export function useEditDriverForm(driver: {
     id: number;
     firstName: string;
     lastName: string;
-}) {
+}): UseEditDriverFormReturn {
     const form = useForm<EditFormShape>({
         first_name: driver.firstName,
         last_name: driver.lastName,

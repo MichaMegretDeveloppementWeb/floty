@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     divergenceTooltip,
     entryHasDivergence,
-} from '@/Composables/Billing/useDivergenceDetection';
+} from '@/Utils/Billing/divergenceDetection';
 
 type Entry = App.Data.User.Billing.MonthlyBillingBreakdownData['entries'][number];
 
