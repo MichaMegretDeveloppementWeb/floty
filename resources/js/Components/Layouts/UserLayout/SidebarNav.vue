@@ -51,6 +51,7 @@ const { sections, isActive, closeDrawer, labelClass } = useSidebarNav(open);
                     <li v-for="item in section.items" :key="item.label">
                         <Link
                             :href="item.href"
+                            preserve-state
                             :aria-current="
                                 isActive(item.href) ? 'page' : undefined
                             "

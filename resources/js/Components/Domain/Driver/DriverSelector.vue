@@ -10,6 +10,7 @@
  */
 import { computed, ref, watch } from 'vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
+import { useApi } from '@/Composables/Shared/useApi';
 import { contractOptions as optionsRoute } from '@/routes/user/drivers';
 
 type DriverOption = App.Data.User.Driver.DriverOptionData;
@@ -69,6 +70,11 @@ const valueModel = computed({
     },
 });
 
+// F-42-004 (Lot 7 D13) · `useApi` au lieu de `fetch` brut · headers
+// XSRF + Accept JSON gérés centralement, toast erreur automatique
+// sur 4xx/5xx (cohérence projet, cf. `useApi.ts` doctrine).
+const api = useApi();
+
 async function reload(): Promise<void> {
     if (!isReady.value) {
         options.value = [];
@@ -79,22 +85,14 @@ async function reload(): Promise<void> {
     loading.value = true;
 
     try {
-        const url = `${optionsRoute.url()}?company_id=${props.companyId}&start_date=${props.startDate}&end_date=${props.endDate}`;
-        const response = await fetch(url, {
-            headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
+        const data = await api.get<{ drivers: DriverOption[] }>(
+            optionsRoute.url(),
+            {
+                company_id: props.companyId!,
+                start_date: props.startDate!,
+                end_date: props.endDate!,
             },
-            credentials: 'same-origin',
-        });
-
-        if (!response.ok) {
-            options.value = [];
-
-            return;
-        }
-
-        const data = (await response.json()) as { drivers: DriverOption[] };
+        );
         options.value = data.drivers;
 
         // Si le driver actuellement sélectionné n'est plus dans la liste, on le retire.
@@ -104,6 +102,10 @@ async function reload(): Promise<void> {
         ) {
             emit('update:modelValue', null);
         }
+    } catch {
+        // useApi a déjà poussé un toast erreur · on tombe sur la liste
+        // vide pour rester cohérent avec le comportement précédent.
+        options.value = [];
     } finally {
         loading.value = false;
     }

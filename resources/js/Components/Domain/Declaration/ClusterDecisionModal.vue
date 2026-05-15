@@ -64,9 +64,11 @@ watch(
             justification.value = props.cluster.justification ?? '';
             const initial: Record<number, boolean> = {};
             const excluded = new Set(props.cluster.excludedContractIds ?? []);
+
             for (const contract of props.cluster.contracts) {
                 initial[contract.contractId] = !excluded.has(contract.contractId);
             }
+
             contractIncluded.value = initial;
         }
     },
@@ -80,7 +82,7 @@ const codeLabel = computed<string>(() =>
 );
 
 const justificationRequired = computed<boolean>(
-    () => isHighRisk.value && true,
+    () => isHighRisk.value,
 );
 
 const includedCount = computed<number>(
@@ -104,7 +106,9 @@ const effectiveVehiclesCount = computed<number>(() => {
     if (props.cluster === null) {
         return 0;
     }
+
     const includedVehicleIds = new Set<number>();
+
     for (const contract of props.cluster.contracts) {
         if (contractIncluded.value[contract.contractId]) {
             includedVehicleIds.add(contract.vehicleId);
