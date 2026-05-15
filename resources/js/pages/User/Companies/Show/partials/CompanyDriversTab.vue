@@ -2,21 +2,16 @@
 /**
  * Onglet « Conducteurs » de la page Show Company (chantier M.3).
  *
- * Symétrique de `DriverCompaniesSection` côté Driver Show : permet
+ * Symétrique de `DriverCompaniesSection` côté Driver Show · permet
  * d'ajouter, sortir et détacher un driver depuis la fiche Company.
  *
- * Les modals (Add, Leave) vivent localement à cet onglet · ils
- * persistent tant que l'utilisateur reste sur l'onglet et sont
- * remontés au démontage. Cela évite de polluer `Companies/Show/Index`
- * avec un state propre à un seul onglet.
- *
- * Les actions (POST/PATCH/DELETE) réutilisent les routes côté Driver
- * (`/drivers/{driver}/memberships`) · le pivot est unique, pas besoin
- * de doubler les endpoints.
+ * Pure présentation depuis Lot 7 D01 · toute la logique est extraite
+ * dans `useCompanyDriversTab` (R9 + mémoire `feedback_vue_composables_extraction`).
+ * F-40-018 fix collateral · les 2 `confirm()` natifs (detach +
+ * reactivate) sont remplacés par un `ConfirmModal` Vue cohérent avec
+ * le design system Floty (focus trap, esc/click outside, accessibilité).
  */
-import { router } from '@inertiajs/vue3';
 import { Plus, Users } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
 import AddCompanyDriverModal from '@/Components/Domain/Driver/AddCompanyDriverModal.vue';
 import DriverBadge from '@/Components/Domain/Driver/DriverBadge.vue';
 import EditDriverCompanyMembershipModal from '@/Components/Domain/Driver/EditDriverCompanyMembershipModal.vue';
@@ -24,8 +19,8 @@ import LeaveDriverCompanyModal from '@/Components/Domain/Driver/LeaveDriverCompa
 import ActionsMenu from '@/Components/Ui/ActionsMenu/ActionsMenu.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
-import { show as driverShowRoute } from '@/routes/user/drivers';
-import { destroy as detachRoute, update as updateRoute } from '@/routes/user/drivers/memberships';
+import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
+import { useCompanyDriversTab } from '@/Composables/Company/Show/useCompanyDriversTab';
 
 type DriverOption = { id: number; fullName: string; initials: string };
 
@@ -36,89 +31,30 @@ const props = defineProps<{
     availableDrivers: DriverOption[];
 }>();
 
-const showInactive = ref(false);
-const showAddModal = ref(false);
-const leaveDriverId = ref<number | null>(null);
-const leaveDriverFullName = ref<string>('');
-const editRow = ref<App.Data.User.Company.CompanyDriverRowData | null>(null);
-const detaching = ref<number | null>(null);
-
-const activeCount = computed<number>(
-    () => props.drivers.filter((d) => d.isCurrentlyActive).length,
-);
-
-const visibleDrivers = computed<App.Data.User.Company.CompanyDriverRowData[]>(
-    () =>
-        showInactive.value
-            ? props.drivers
-            : props.drivers.filter((d) => d.isCurrentlyActive),
-);
-
-const existingDriverIds = computed<number[]>(() =>
-    props.drivers.filter((d) => d.isCurrentlyActive).map((d) => d.driverId),
-);
-
-function openLeave(row: App.Data.User.Company.CompanyDriverRowData): void {
-    leaveDriverId.value = row.driverId;
-    leaveDriverFullName.value = row.fullName;
-}
-
-function closeLeave(): void {
-    leaveDriverId.value = null;
-    leaveDriverFullName.value = '';
-}
-
-function detach(row: App.Data.User.Company.CompanyDriverRowData): void {
-    if (row.contractsCount > 0) {
-        return;
-    }
-
-    if (
-        !confirm(
-            `Détacher le rattachement avec ${row.fullName} ? Les dates d'entrée et de sortie seront perdues.`,
-        )
-    ) {
-        return;
-    }
-
-    detaching.value = row.pivotId;
-    router.delete(detachRoute.url([row.driverId, row.pivotId]), {
-        preserveScroll: true,
-        onFinish: () => {
-            detaching.value = null;
-        },
-    });
-}
-
-function reactivate(row: App.Data.User.Company.CompanyDriverRowData): void {
-    if (
-        !confirm(
-            `Réactiver le rattachement avec ${row.fullName} ? La date de sortie sera effacée.`,
-        )
-    ) {
-        return;
-    }
-
-    router.patch(
-        updateRoute.url([row.driverId, row.pivotId]),
-        { joined_at: row.joinedAt, left_at: null },
-        { preserveScroll: true },
-    );
-}
-
-function formatDate(value: string | null): string {
-    if (value === null) {
-        return '-';
-    }
-
-    const [y, m, d] = value.split('-');
-
-    return `${d}/${m}/${y}`;
-}
-
-function onRowClick(driverId: number): void {
-    router.visit(driverShowRoute.url(driverId));
-}
+const {
+    showInactive,
+    showAddModal,
+    leaveDriverId,
+    leaveDriverFullName,
+    editRow,
+    detaching,
+    confirmAction,
+    activeCount,
+    visibleDrivers,
+    existingDriverIds,
+    toggleShowInactive,
+    openAdd,
+    openLeave,
+    closeLeave,
+    openEdit,
+    closeEdit,
+    requestDetach,
+    requestReactivate,
+    closeConfirm,
+    runConfirmAction,
+    formatDate,
+    onRowClick,
+} = useCompanyDriversTab(props);
 </script>
 
 <template>
@@ -137,7 +73,7 @@ function onRowClick(driverId: number): void {
                 <button
                     type="button"
                     class="cursor-pointer text-sm text-slate-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-200"
-                    @click="showInactive = !showInactive"
+                    @click="toggleShowInactive"
                 >
                     {{
                         showInactive
@@ -148,7 +84,7 @@ function onRowClick(driverId: number): void {
                 <Button
                     variant="secondary"
                     size="sm"
-                    @click="showAddModal = true"
+                    @click="openAdd"
                 >
                     <template #icon-left>
                         <Plus :size="14" :stroke-width="1.75" />
@@ -234,7 +170,7 @@ function onRowClick(driverId: number): void {
                     </td>
                     <td class="py-4 text-right" @click.stop>
                         <ActionsMenu align="right">
-                            <button type="button" @click="editRow = d">
+                            <button type="button" @click="openEdit(d)">
                                 Éditer
                             </button>
                             <button
@@ -245,14 +181,14 @@ function onRowClick(driverId: number): void {
                                 Retirer
                             </button>
                             <template v-else>
-                                <button type="button" @click="reactivate(d)">
+                                <button type="button" @click="requestReactivate(d)">
                                     Réactiver
                                 </button>
                                 <button
                                     type="button"
                                     class="danger"
                                     :disabled="d.contractsCount > 0 || detaching === d.pivotId"
-                                    @click="detach(d)"
+                                    @click="requestDetach(d)"
                                 >
                                     Détacher
                                 </button>
@@ -280,6 +216,7 @@ function onRowClick(driverId: number): void {
             @close="showAddModal = false"
         />
 
+
         <EditDriverCompanyMembershipModal
             v-if="editRow !== null"
             :driver-id="editRow.driverId"
@@ -287,7 +224,21 @@ function onRowClick(driverId: number): void {
             :company-short-code="props.companyLegalName"
             :current-joined-at="editRow.joinedAt"
             :current-left-at="editRow.leftAt"
-            @close="editRow = null"
+            @close="closeEdit"
+        />
+
+        <!-- F-40-018 (Lot 7 D01) · ConfirmModal Vue remplace les 2
+             window.confirm() natifs (detach + reactivate). État unifié
+             via `confirmAction` du composable. -->
+        <ConfirmModal
+            v-if="confirmAction !== null"
+            :open="true"
+            :tone="confirmAction.kind === 'detach' ? 'danger' : 'default'"
+            :title="confirmAction.title"
+            :message="confirmAction.message"
+            :confirm-label="confirmAction.confirmLabel"
+            @confirm="runConfirmAction"
+            @update:open="(v: boolean) => { if (!v) closeConfirm(); }"
         />
     </Card>
 </template>
