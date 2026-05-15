@@ -28,6 +28,7 @@ import { Link, router } from '@inertiajs/vue3';
 import {
     AlertTriangle,
     ArrowUpRight,
+    CalendarClock,
     CheckCircle2,
     Clock,
     Download,
@@ -55,11 +56,22 @@ import {
 import DeclarationHistoryTimeline from './DeclarationHistoryTimeline.vue';
 import DeclarationStateCardHeader from './DeclarationStateCardHeader.vue';
 
-const props = defineProps<{
-    lifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
-    companyId: number;
-    fiscalYear: number;
-}>();
+const props = withDefaults(
+    defineProps<{
+        lifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
+        companyId: number;
+        fiscalYear: number;
+        /**
+         * Une déclaration n'est juridiquement préparable qu'à partir de
+         * janvier N+1 (CIBS L. 421-159 · annexe 3310-A ou formulaire 3517).
+         * Pour les exercices encore en cours ou à venir, l'UI affiche un
+         * bandeau info plutôt qu'un CTA Préparer qui planterait sur le
+         * guard backend `CreateDraftDeclarationAction` (P5).
+         */
+        isDeclarable?: boolean;
+    }>(),
+    { isDeclarable: true },
+);
 
 const preparing = ref<boolean>(false);
 const regenerating = ref<boolean>(false);
@@ -120,8 +132,37 @@ function handleRegenerate(): void {
 </script>
 
 <template>
-    <!-- S1 · aucune déclaration préparée -->
-    <Card v-if="state === 'untouched'">
+    <!--
+        S1-bis · exercice non déclarable (en cours ou à venir) ·
+        bandeau info sober plutôt que la carte d'action. CIBS · la
+        déclaration n'est ouverte qu'à partir de janvier N+1.
+    -->
+    <div
+        v-if="state === 'untouched' && !isDeclarable"
+        class="flex items-start gap-4 rounded-xl border border-slate-200 border-l-2 border-l-blue-400 bg-slate-50/60 px-5 py-4"
+        role="status"
+    >
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600">
+            <CalendarClock :size="20" :stroke-width="1.75" />
+        </div>
+        <div class="flex flex-col gap-1">
+            <p class="text-sm font-semibold text-slate-900">
+                Déclaration {{ fiscalYear }} · ouverte en janvier {{ fiscalYear + 1 }}
+            </p>
+            <p class="text-sm leading-relaxed text-slate-600">
+                Cet exercice n'est pas encore déclarable. Les chiffres ci-dessus
+                évolueront jusqu'à la clôture de l'année.
+                La déclaration se fera via l'annexe
+                <span class="font-mono">3310-A</span>
+                (régime réel) ou le formulaire
+                <span class="font-mono">3517</span>
+                (régime simplifié), à déposer en janvier {{ fiscalYear + 1 }}.
+            </p>
+        </div>
+    </div>
+
+    <!-- S1 · aucune déclaration préparée, exercice déclarable -->
+    <Card v-else-if="state === 'untouched'">
         <div class="flex flex-col gap-10 items-center py-8">
             <DeclarationStateCardHeader
                 icon-bg-class="bg-blue-50 text-blue-600"

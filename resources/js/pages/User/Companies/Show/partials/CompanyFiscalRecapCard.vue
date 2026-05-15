@@ -1,15 +1,19 @@
 <script setup lang="ts">
 /**
- * Carte recap fiscale d'une entreprise pour l'exercice sélectionné
- * (Phase 12 D5.9.A, aération D5.10.B). Présente :
- *   - Le total des taxes en avant (text-4xl).
- *   - **Balance CO₂ vs Polluants** rendue en 2 colonnes côte à côte
- *     avec barres proportionnelles · permet à l'utilisateur de
- *     comprendre d'un coup d'œil quelle taxe domine.
- *   - 3 stats aérées (jours cumulés, véhicules taxés, locations
- *     couvrant l'exercice).
- *   - Un lien contextuel vers l'onglet Locations filtré sur la
- *     période de l'année.
+ * Carte recap fiscale d'une entreprise pour l'exercice sélectionné.
+ *
+ * Refonte design D5.10.W · hiérarchie éditoriale ·
+ *   1. Hero · eyebrow `MONTANT TOTAL` + grand nombre mono (text-5xl) +
+ *      sous-ligne « CO2 X € · Polluants Y € » en mono discret.
+ *   2. Stacked bar partagée · une seule barre horizontale segmentée en
+ *      2 (CO2 slate-800 · Polluants slate-400) plutôt que 2 barres
+ *      parallèles dupliquées, avec légende compacte au-dessus.
+ *   3. KPIs activité · 3 stats (jours / véhicules / locations) en row
+ *      bordée plutôt que bg-slate-50.
+ *   4. Lien Locations footer · `inline-flex` discret, jamais en CTA.
+ *
+ * Empty state · si aucune activité (totalDays = 0 ET contractsCount = 0),
+ * affiche un petit cartouche centré au lieu de la grille de KPIs vides.
  */
 import { Link } from '@inertiajs/vue3';
 import { ArrowRight } from 'lucide-vue-next';
@@ -29,10 +33,6 @@ const hasActivity = computed<boolean>(
 
 const hasTax = computed<boolean>(() => props.fiscal.totalTaxAll > 0);
 
-// Lot 5 D11 (F-19D-013) · URL générée via Wayfinder pour rester
-// résiliente aux refontes de routing · plus de littéral `/app/companies/`
-// codé en dur. Cible l'onglet `contracts` filtré sur la plage de
-// l'exercice fiscal sélectionné.
 const locationsHref = computed<string>(() => {
     const year = props.fiscal.year;
 
@@ -55,98 +55,94 @@ const co2Percent = computed<number>(() => {
     return Math.round((props.fiscal.totalTaxCo2 / props.fiscal.totalTaxAll) * 100);
 });
 
-const pollutantsPercent = computed<number>(() => {
-    if (props.fiscal.totalTaxAll <= 0) {
-        return 0;
-    }
-
-    return 100 - co2Percent.value;
-});
+const pollutantsPercent = computed<number>(() => 100 - co2Percent.value);
 </script>
 
 <template>
-    <Card>
-        <div class="flex flex-col gap-6">
-            <div class="flex flex-col gap-1.5">
-                <p class="text-sm font-semibold uppercase tracking-wide text-slate-500">
-                    Taxes {{ fiscal.year }}
+    <Card padding="lg">
+        <div class="flex flex-col gap-8">
+            <!-- Hero · montant total -->
+            <div class="flex flex-col gap-2">
+                <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Montant total · {{ fiscal.year }}
                 </p>
-                <p class="font-mono text-4xl font-semibold tabular-nums text-slate-900">
+                <p class="font-mono text-5xl font-semibold tabular-nums leading-none text-slate-900">
                     {{ formatEur(fiscal.totalTaxAll) }}
                 </p>
+                <p
+                    v-if="hasTax"
+                    class="font-mono text-xs tabular-nums text-slate-500"
+                >
+                    CO₂ {{ formatEur(fiscal.totalTaxCo2) }}
+                    <span class="mx-1.5 text-slate-300">·</span>
+                    Polluants {{ formatEur(fiscal.totalTaxPollutants) }}
+                </p>
             </div>
 
-            <div v-if="hasTax" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <!-- Stacked bar partagée CO2 + Polluants -->
+            <div v-if="hasTax" class="flex flex-col gap-2">
+                <div class="flex items-center justify-between gap-3 text-[11px] font-medium uppercase tracking-wide">
+                    <span class="flex items-center gap-1.5 text-slate-700">
+                        <span class="inline-block h-2 w-2 rounded-sm bg-slate-800" aria-hidden="true" />
                         Taxe CO₂
-                    </p>
-                    <p class="font-mono text-xl font-semibold tabular-nums text-slate-900">
-                        {{ formatEur(fiscal.totalTaxCo2) }}
-                    </p>
-                    <div class="flex items-center gap-2">
-                        <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                                class="h-full rounded-full bg-slate-800 transition-[width] duration-300"
-                                :style="{ width: `${co2Percent}%` }"
-                            />
-                        </div>
-                        <span class="text-[11px] font-medium tabular-nums text-slate-500">
-                            {{ co2Percent }} %
-                        </span>
-                    </div>
-                </div>
-                <div class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-4">
-                    <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <span class="font-mono text-slate-500 normal-case tracking-normal">{{ co2Percent }} %</span>
+                    </span>
+                    <span class="flex items-center gap-1.5 text-slate-700">
                         Taxe polluants
-                    </p>
-                    <p class="font-mono text-xl font-semibold tabular-nums text-slate-900">
-                        {{ formatEur(fiscal.totalTaxPollutants) }}
-                    </p>
-                    <div class="flex items-center gap-2">
-                        <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
-                            <div
-                                class="h-full rounded-full bg-slate-800 transition-[width] duration-300"
-                                :style="{ width: `${pollutantsPercent}%` }"
-                            />
-                        </div>
-                        <span class="text-[11px] font-medium tabular-nums text-slate-500">
-                            {{ pollutantsPercent }} %
-                        </span>
-                    </div>
+                        <span class="font-mono text-slate-500 normal-case tracking-normal">{{ pollutantsPercent }} %</span>
+                        <span class="inline-block h-2 w-2 rounded-sm bg-slate-300" aria-hidden="true" />
+                    </span>
+                </div>
+                <div
+                    class="flex h-2 overflow-hidden rounded-full bg-slate-100"
+                    role="img"
+                    :aria-label="`Répartition · ${co2Percent} % CO₂, ${pollutantsPercent} % polluants`"
+                >
+                    <div
+                        class="bg-slate-800 transition-[width] duration-300"
+                        :style="{ width: `${co2Percent}%` }"
+                    />
+                    <div
+                        class="bg-slate-300 transition-[width] duration-300"
+                        :style="{ width: `${pollutantsPercent}%` }"
+                    />
                 </div>
             </div>
 
-            <dl v-if="hasActivity" class="grid grid-cols-3 gap-3">
-                <div class="rounded-lg bg-slate-50 px-4 py-3">
-                    <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">
+            <!-- KPIs activité -->
+            <dl v-if="hasActivity" class="grid grid-cols-3 gap-3 border-t border-slate-100 pt-6">
+                <div class="flex flex-col gap-1">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                         Jours cumulés
                     </dt>
-                    <dd class="mt-1 font-mono text-xl font-normal tabular-nums text-slate-900">
+                    <dd class="font-mono text-2xl font-semibold tabular-nums leading-none text-slate-900">
                         {{ fiscal.totalDays }}
                     </dd>
                 </div>
-                <div class="rounded-lg bg-slate-50 px-4 py-3">
-                    <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <div class="flex flex-col gap-1">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                         Véhicules taxés
                     </dt>
-                    <dd class="mt-1 font-mono text-xl font-normal tabular-nums text-slate-900">
+                    <dd class="font-mono text-2xl font-semibold tabular-nums leading-none text-slate-900">
                         {{ vehiclesCount }}
                     </dd>
                 </div>
-                <div class="rounded-lg bg-slate-50 px-4 py-3">
-                    <dt class="text-xs font-medium uppercase tracking-wide text-slate-500">
+                <div class="flex flex-col gap-1">
+                    <dt class="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                         Locations
                     </dt>
-                    <dd class="mt-1 font-mono text-xl font-normal tabular-nums text-slate-900">
+                    <dd class="font-mono text-2xl font-semibold tabular-nums leading-none text-slate-900">
                         {{ fiscal.contractsCount }}
                     </dd>
                 </div>
             </dl>
 
-            <p v-else class="text-sm italic text-slate-500">
+            <div
+                v-else
+                class="rounded-lg border border-dashed border-slate-200 bg-slate-50/40 px-4 py-3 text-center text-sm text-slate-500"
+            >
                 Aucune activité fiscale sur l'exercice {{ fiscal.year }}.
-            </p>
+            </div>
 
             <Link
                 v-if="hasActivity"
