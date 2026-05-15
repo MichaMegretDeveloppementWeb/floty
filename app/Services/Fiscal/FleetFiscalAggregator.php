@@ -28,11 +28,15 @@ use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Support\Collection;
 
 /**
- * Agrégateur fiscal annuel à l'échelle de la flotte.
+ * Agrégateur fiscal annuel à l'échelle de la flotte · cœur fiscal CIBS Floty
+ * (taxe CO₂ + taxe polluants).
  *
  * Centralise les sommations de taxe (par véhicule, par entreprise, par
  * flotte) qui étaient dupliquées dans 4 controllers (Vehicle, Company,
  * Dashboard, Planning).
+ *
+ * Source de vérité des calculs fiscaux (cf. ADR-0022 · classes PHP source
+ * de vérité · ADR-0006 · moteur fiscal V1).
  *
  * **Note R-2024-003** : l'arrondi half-up au centime (`round(.., 2, ..)`)
  * est appliqué **une seule fois par redevable** (entreprise utilisatrice),
@@ -42,6 +46,45 @@ use Illuminate\Support\Collection;
  * **Refonte 04.F (ADR-0014)** : passe de `AnnualCumulByPair` à
  * `ContractsByPair`. Les indispos par véhicule sont passées séparément
  * (map `vehicleId → list<Unavailability>`) pour alimenter R-2024-008.
+ *
+ * --------------------------------------------------------------------------
+ * DOCTRINE V1 · NON REFONDU SOUS DOCTRINE ZÉRO-DETTE (Lot 4 D10 · F-17-001)
+ * --------------------------------------------------------------------------
+ *
+ * Ce service fait ~620 lignes (dont ~239 lignes de commentaires explicatifs
+ * · rappels BOFiP, bases légales CIBS, exemples chiffrés · ~38 % de
+ * commentaires). L'audit production-ready 2026-05-11 (F-17-001) le marque
+ * comme cible SRP > 500 l.
+ *
+ * **Décision user explicite (plan-remediation Vague 1 Lot 4 D10 ·
+ * 2026-05-13) · NON refondu.**
+ *
+ * Justifications ·
+ *  - Cœur fiscal CIBS · refonte mal faite = risque catastrophique
+ *    (taxe fausse en prod, conformité réglementaire LFi 2024 art. 14)
+ *  - ~38 % des lignes sont des commentaires explicatifs (lisibilité,
+ *    audit BOFiP, traçabilité réglementaire)
+ *  - Coût refonte (refonte + tests d'équivalence ≥10 fixtures + Chrome
+ *    live exhaustif) disproportionné vs gain maintenabilité
+ *  - ADR-0022 désigne ce service comme « source de vérité » fiscale ·
+ *    préservation prudente prime sur SRP cosmétique
+ *
+ * Conditions de réouverture du dossier (V2+) ·
+ *  - Si une nouvelle règle fiscale doit être intégrée et que le code
+ *    devient illisible, refondre AVEC tests d'équivalence ironclad
+ *  - Si une dépendance externe change de signature, opportunité de
+ *    découper la zone touchée
+ *  - Si l'overhead cognitif empêche un dev junior de comprendre,
+ *    réévaluer
+ *
+ * **Toute modification ici doit ·**
+ *  1. Avoir un test d'équivalence préalable sur ≥3 fixtures représentatives
+ *  2. Être validée Chrome live sur le moteur de génération de déclaration
+ *  3. Spot-check croisé sur ≥2 calculs CIBS pré-existants
+ *
+ * Filet de sécurité existant · `FiscalCalculatorTest`,
+ * `FiscalAdditivityTest`, `FiscalInvariantsTest`, `MultiYearContractTest`,
+ * `MultiVfcEdgeCasesTest`. Tout changement doit y rester vert.
  */
 final class FleetFiscalAggregator
 {
