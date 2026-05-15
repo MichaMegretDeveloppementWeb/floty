@@ -103,7 +103,7 @@ final readonly class R2026_031bis_RegistrationCardTaxes implements InformativeRu
             ],
             [
                 'type' => 'LOI',
-                'reference' => 'LOI n° 2026-103 du 19 février 2026 (LF 2026) art. 60 · création L. 421-54-1 · majoration IDF jusqu\'à +13 € (effet 01/03/2026 par IV)',
+                'reference' => 'LF 2026 art. 60',
                 'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053508155',
                 'consulted_at' => '2026-05-15',
             ],

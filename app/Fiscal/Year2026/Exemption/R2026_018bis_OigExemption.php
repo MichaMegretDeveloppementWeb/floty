@@ -99,7 +99,7 @@ final readonly class R2026_018bis_OigExemption implements ExemptionRule
             ],
             [
                 'type' => 'ORDONNANCE',
-                'reference' => 'Ordonnance n° 2025-1247 du 17 décembre 2025 portant recodification de la taxe sur la valeur ajoutée et diverses modifications du code des impositions sur les biens et services · art. 4 (réécriture L. 421-126/138) + art. 49 (entrée en vigueur 01/09/2026)',
+                'reference' => 'Ordo 2025-1247 art. 4 + 49',
                 'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053091516',
                 'consulted_at' => '2026-05-15',
             ],

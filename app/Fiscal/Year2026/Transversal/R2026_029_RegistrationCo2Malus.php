@@ -109,7 +109,7 @@ final readonly class R2026_029_RegistrationCo2Malus implements InformativeRule
             ],
             [
                 'type' => 'LOI',
-                'reference' => 'LOI n° 2023-1322 du 29 décembre 2023 (LF 2024) art. 97-20° (durcissement programmé malus CO₂ immat. à effet 01/01/2026)',
+                'reference' => 'LF 2024 art. 97-20°',
                 'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000048727323',
                 'consulted_at' => '2026-05-15',
             ],

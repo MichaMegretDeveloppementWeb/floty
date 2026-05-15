@@ -111,7 +111,7 @@ final readonly class R2026_029bis_RegistrationCo2Malus implements InformativeRul
             ],
             [
                 'type' => 'ORDO',
-                'reference' => 'Ordonnance n° 2025-1247 du 17 décembre 2025 · art. 4 (modification L. 421-62 rédactionnelle) + art. 49 (entrée en vigueur 01/09/2026)',
+                'reference' => 'Ordo 2025-1247 art. 4 + 49',
                 'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053091516',
                 'consulted_at' => '2026-05-15',
             ],

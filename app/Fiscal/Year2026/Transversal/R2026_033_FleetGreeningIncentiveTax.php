@@ -99,13 +99,13 @@ final readonly class R2026_033_FleetGreeningIncentiveTax implements InformativeR
         return [
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-132-1 à L. 421-132-6 (paragraphe 3 bis · v 01/01/2026)',
+                'article' => 'L. 421-132-1 à L. 421-132-6 (v 01/01/2026)',
                 'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000051187919/2026-01-01/',
                 'consulted_at' => '2026-05-15',
             ],
             [
                 'type' => 'LOI',
-                'reference' => 'LOI n°2025-127 du 14 février 2025 art. 95 (création TAI) + art. 28 (entrée en vigueur 01/03/2025 + note V prorata 1/306e en 2025)',
+                'reference' => 'LF 2025 art. 95 + 28',
                 'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000051168007',
                 'consulted_at' => '2026-05-15',
             ],

@@ -95,7 +95,7 @@ final readonly class R2025_029bis_RegistrationCo2Malus implements InformativeRul
             ],
             [
                 'type' => 'LOI',
-                'reference' => 'LOI n°2025-127 du 14 février 2025 art. 28 (durcissement malus CO₂ immat. à effet 01/03/2025)',
+                'reference' => 'LF 2025 art. 28',
                 'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000051168007',
                 'consulted_at' => '2026-05-14',
             ],

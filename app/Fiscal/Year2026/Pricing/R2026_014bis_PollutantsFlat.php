@@ -125,7 +125,7 @@ final readonly class R2026_014bis_PollutantsFlat implements PricingRule
             ],
             [
                 'type' => 'LOI',
-                'reference' => 'LOI n° 2026-103 du 19 février 2026 de finances pour 2026 · art. 58 (V), IV (revalorisation +30 % tarifs polluants L. 421-135, entrée en vigueur 01/03/2026)',
+                'reference' => 'LF 2026 art. 58 V',
                 'url' => 'https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053508155',
                 'consulted_at' => '2026-05-15',
             ],

@@ -84,7 +84,7 @@ final readonly class R2026_030_RegistrationWeightMalus implements InformativeRul
         return [
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-71 à L. 421-81-1 (paragraphe 5 · taxe masse en ordre de marche)',
+                'article' => 'L. 421-71 à L. 421-81-1',
                 'url' => 'https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000044595989/LEGISCTA000044598969/2026-01-01/',
                 'consulted_at' => '2026-05-15',
             ],
@@ -96,7 +96,7 @@ final readonly class R2026_030_RegistrationWeightMalus implements InformativeRul
             ],
             [
                 'type' => 'NOTICE',
-                'reference' => 'Service-public · F35950 (Taxe masse en ordre de marche)',
+                'reference' => 'F35950',
                 'url' => 'https://www.service-public.gouv.fr/particuliers/vosdroits/F35950',
                 'consulted_at' => '2026-05-15',
             ],

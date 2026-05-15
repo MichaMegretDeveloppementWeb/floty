@@ -85,7 +85,7 @@ final readonly class R2025_030_RegistrationWeightMalus implements InformativeRul
             ],
             [
                 'type' => 'NOTICE',
-                'reference' => 'Service-public · F35950 (Taxe masse en ordre de marche)',
+                'reference' => 'F35950',
                 'url' => 'https://www.service-public.gouv.fr/particuliers/vosdroits/F35950',
                 'consulted_at' => '2026-05-14',
             ],

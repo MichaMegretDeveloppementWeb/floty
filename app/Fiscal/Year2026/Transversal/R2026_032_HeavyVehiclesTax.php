@@ -97,7 +97,7 @@ final readonly class R2026_032_HeavyVehiclesTax implements InformativeRule
             ],
             [
                 'type' => 'NOTICE',
-                'reference' => 'impots.gouv.fr · Taxe annuelle véhicules lourds marchandises',
+                'reference' => 'Taxe véhicules lourds',
                 'url' => 'https://www.impots.gouv.fr/taxe-annuelle-sur-les-vehicules-lourds-de-transport-de-marchandises',
                 'consulted_at' => '2026-05-15',
             ],

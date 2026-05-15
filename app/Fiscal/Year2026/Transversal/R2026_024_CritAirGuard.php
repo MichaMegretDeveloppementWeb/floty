@@ -80,13 +80,13 @@ final readonly class R2026_024_CritAirGuard implements InformativeRule
         return [
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-134 (v 01/01-31/08/2026)',
+                'article' => 'L. 421-134 (v 01/01/2026)',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844542/2026-01-01',
                 'consulted_at' => '2026-05-15',
             ],
             [
                 'type' => 'CIBS',
-                'article' => 'L. 421-134 (v 01/09-31/12/2026 · toilettage Ordo 2025-1247 art. 7)',
+                'article' => 'L. 421-134 (v 01/09/2026)',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844542/2026-09-01',
                 'consulted_at' => '2026-05-15',
             ],
