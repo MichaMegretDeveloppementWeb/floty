@@ -543,6 +543,8 @@ final class DemoSeeder extends Seeder
             ['code' => 'COR', 'name' => 'Corsica Events', 'siren' => '814567890', 'color' => CompanyColor::Emerald, 'city' => 'Ajaccio'],
             ['code' => 'PRO', 'name' => 'ProSpektacle', 'siren' => '825678901', 'color' => CompanyColor::Teal, 'city' => 'Reims'],
             ['code' => 'TUR', 'name' => 'Tourisme Atlantique', 'siren' => '826789012', 'color' => CompanyColor::Orange, 'city' => 'La Rochelle'],
+            // Edge case Σ'.5 · 16e entreprise INACTIVE (cessation d'activité)
+            ['code' => 'ZZZ', 'name' => 'Ex-Logistique SARL (cessée)', 'siren' => '827890123', 'color' => CompanyColor::Cyan, 'city' => 'Lyon', 'is_active' => false],
         ];
 
         $created = [];
@@ -556,7 +558,7 @@ final class DemoSeeder extends Seeder
                     'postal_code' => $this->postalFor($spec['city']),
                     'country' => 'FR',
                     'color' => $spec['color'],
-                    'is_active' => true,
+                    'is_active' => $spec['is_active'] ?? true,
                 ],
             );
         }
@@ -847,6 +849,9 @@ final class DemoSeeder extends Seeder
             ['plate' => 'GK-063-KK', 'brand' => 'Dacia', 'model' => 'Sandero', 'regFrench' => '2024-01-15', 'regOrigin' => '2024-01-15', 'econ' => '2024-01-15', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 120, 'pa' => 5, 'kerb' => 1150, 'extraVfcs' => [['from' => '2025-07-01', 'acceptsE85' => true]]],
             // Multi-VFC riche · changement PollutantCategory mid-2025 (Cat1 → MostPolluting via dégradation Euro)
             ['plate' => 'GL-064-LL', 'brand' => 'Suzuki', 'model' => 'Swift', 'regFrench' => '2024-02-20', 'regOrigin' => '2024-02-20', 'econ' => '2024-02-20', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 125, 'pa' => 5, 'kerb' => 1080, 'extraVfcs' => [['from' => '2025-09-01', 'pollutant' => PollutantCategory::MostPolluting, 'euro' => EuroStandard::Euro4]]],
+
+            // Edge case Σ'.5 · véhicule en maintenance prolongée (currentStatus=Maintenance · pas de contrat actif)
+            ['plate' => 'GM-065-MM', 'brand' => 'Skoda', 'model' => 'Octavia', 'regFrench' => '2022-05-12', 'regOrigin' => '2022-05-12', 'econ' => '2022-05-12', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 145, 'pa' => 7, 'kerb' => 1480, 'currentStatus' => VehicleStatus::Maintenance],
         ];
 
         $created = [];
@@ -1008,6 +1013,10 @@ final class DemoSeeder extends Seeder
             $this->buildContractPlan2026(),
         );
 
+        // Σ'.6 · compteur séquentiel par entreprise pour générer des
+        // contract_reference auto-incrémentés (`CTR-{year}-{code}-{seq}`).
+        $refSeqByCompany = [];
+
         foreach ($plans as $row) {
             $vehicle = $vehicles[$row['plate']] ?? null;
             $company = $companies[$row['company']] ?? null;
@@ -1025,6 +1034,14 @@ final class DemoSeeder extends Seeder
             $duration = $start->diffInDays($end) + 1;
             $type = $duration <= 30 ? ContractType::Lcd : ContractType::Lld;
 
+            // Σ'.6 · ref auto sur les LLD · format CTR-{year}-{plate}-{seq}
+            $ref = $row['ref'] ?? null;
+            if ($ref === null && $type === ContractType::Lld) {
+                $year = $start->year;
+                $refSeqByCompany[$company->id] = ($refSeqByCompany[$company->id] ?? 0) + 1;
+                $ref = sprintf('CTR-%d-%s-%03d', $year, $company->short_code, $refSeqByCompany[$company->id]);
+            }
+
             // Tolérance overlap · le trigger MySQL `contracts: overlapping
             // period` peut rejeter un contrat si une plage chevauche un
             // autre contrat du même véhicule. Pour un seeder de démo
@@ -1035,7 +1052,7 @@ final class DemoSeeder extends Seeder
                     'company_id' => $company->id,
                     'start_date' => $start->toDateString(),
                     'end_date' => $end->toDateString(),
-                    'contract_reference' => $row['ref'] ?? null,
+                    'contract_reference' => $ref,
                     'contract_type' => $type,
                     'notes' => $row['notes'] ?? null,
                 ]);
@@ -1383,6 +1400,19 @@ final class DemoSeeder extends Seeder
             endDate: '2026-04-22',
             description: 'Réparation accident 15j · NON réductrice + E85 abat actif.',
         );
+
+        // Edge case Σ'.5 · indispo ONGOING (end_date = NULL · durée indéterminée)
+        // sur le véhicule GM-065-MM (currentStatus=Maintenance)
+        if (isset($vehicles['GM-065-MM'])) {
+            Unavailability::create([
+                'vehicle_id' => $vehicles['GM-065-MM']->id,
+                'type' => UnavailabilityType::AccidentRepair,
+                'has_fiscal_impact' => false,
+                'start_date' => '2026-03-15',
+                'end_date' => null,
+                'description' => 'Réparation longue · expertise litige en cours · sans date de fin connue.',
+            ]);
+        }
     }
 
     private function createUnavailability(
@@ -1641,6 +1671,10 @@ final class DemoSeeder extends Seeder
             ['plate' => 'FN-040-NN', 'company' => 'BAT', 'from' => '2024-05-10', 'to' => '2024-08-17'],   // 100j (Kangoo)
             ['plate' => 'FP-042-PP', 'company' => 'ACM', 'from' => '2024-04-25', 'to' => '2024-08-02'],   // 100j (PA vintage 6cv)
             ['plate' => 'FT-046-TT', 'company' => 'PRO', 'from' => '2024-06-10', 'to' => '2024-09-17'],   // 100j (BMW E30)
+
+            // Edge case Σ'.5 · contrats 1 jour exact (LCD très court)
+            ['plate' => 'EM-013-MM', 'company' => 'TUR', 'from' => '2024-12-20', 'to' => '2024-12-20', 'notes' => 'Contrat 1j (exempt LCD)'],
+            ['plate' => 'EN-014-NN', 'company' => 'NOV', 'from' => '2024-12-22', 'to' => '2024-12-22', 'notes' => 'Contrat 1j (exempt LCD)'],
         ];
     }
 
