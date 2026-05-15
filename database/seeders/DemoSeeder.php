@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
+use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
@@ -22,14 +23,17 @@ use App\Models\BillingSettings;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Driver;
+use App\Models\FiscalDeclaration;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
+use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Seeder de démo pour peupler l'année fiscale 2024.
@@ -63,6 +67,139 @@ final class DemoSeeder extends Seeder
         $this->seedUnavailabilities($vehicles);
         $this->seedDrivers($companies);
         $this->seedContractDrivers();
+        $this->seedFiscalDeclarations($companies);
+    }
+
+    /**
+     * Crée des déclarations fiscales historiques couvrant la chaîne
+     * complète Draft → Generated (avec snapshot persisté + PDF
+     * placeholder) → Superseded (régénération).
+     *
+     * - Generated · ~12 sur 2024 (chiffres figés, PDF placeholder)
+     * - Deferred · ~3 mises de côté
+     * - Draft · ~5 en cours
+     * - Superseded chains · 2 cas régénérés (ancienne obsolete · nouvelle Generated pointant vers l'ancienne via superseded_by_id)
+     */
+    private function seedFiscalDeclarations(array $companies): void
+    {
+        FiscalDeclaration::query()->forceDelete();
+
+        $engine = app(DeclarationFiscalEngine::class);
+
+        // Helper · crée un PDF placeholder sur disque pour les Generated
+        $createPlaceholderPdf = function (string $code, int $year): array {
+            $path = sprintf('declarations/demo/%d/%s.pdf', $year, $code);
+            $content = sprintf("%%PDF-1.4\nDemo placeholder · %s %d\n%%EOF\n", $code, $year);
+            Storage::disk('local')->put($path, $content);
+
+            return ['path' => $path, 'hash' => hash('sha256', $content)];
+        };
+
+        // Helper · crée un record déclaration
+        $create = function (
+            Company $company,
+            int $year,
+            FiscalDeclarationStatus $status,
+            ?int $supersededById = null,
+            ?bool $obsolete = false,
+        ) use ($engine, $createPlaceholderPdf): FiscalDeclaration {
+            $isGenerated = $status === FiscalDeclarationStatus::Generated;
+            $payload = null;
+            $pdfPath = null;
+            $pdfHash = null;
+            $generatedAt = null;
+            if ($isGenerated) {
+                try {
+                    $snapshot = $engine->compute($company->id, $year);
+                    $payload = json_decode(json_encode($snapshot), true);
+                } catch (\Throwable $e) {
+                    $payload = null;
+                }
+                $pdf = $createPlaceholderPdf($company->short_code, $year);
+                $pdfPath = $pdf['path'];
+                $pdfHash = $pdf['hash'];
+                $generatedAt = Carbon::create($year + 1, 1, 15, 9, 0, 0);
+            }
+
+            return FiscalDeclaration::create([
+                'company_id' => $company->id,
+                'fiscal_year' => $year,
+                'reference' => sprintf('DECL-%s-%d', $company->short_code, $year),
+                'status' => $status,
+                'generated_snapshot_payload' => $payload,
+                'generated_pdf_path' => $pdfPath,
+                'generated_pdf_hash' => $pdfHash,
+                'generated_at' => $generatedAt,
+                'is_obsolete' => (bool) $obsolete,
+                'obsolete_at' => $obsolete ? Carbon::create($year + 1, 3, 1, 10, 0, 0) : null,
+                'superseded_by_id' => $supersededById,
+            ]);
+        };
+
+        // === 2024 · 8 déclarations Generated (closes) + 1 Deferred ===
+        $generated2024Codes = ['ACM', 'BTP', 'COR', 'DRS', 'ECO', 'HEX', 'IDF', 'LOG'];
+        foreach ($generated2024Codes as $code) {
+            if (! isset($companies[$code])) {
+                continue;
+            }
+            $create($companies[$code], 2024, FiscalDeclarationStatus::Generated);
+        }
+        if (isset($companies['BAT'])) {
+            $create($companies['BAT'], 2024, FiscalDeclarationStatus::Deferred);
+        }
+
+        // === Chaîne Superseded · ACM 2024 régénérée ===
+        // L'ancienne version est marquée obsolete AVANT la création de
+        // la nouvelle (contrainte unique decl_active_uniqueness ·
+        // (company, year) unique quand is_obsolete=false).
+        if (isset($companies['ACM'])) {
+            $oldAcm2024 = FiscalDeclaration::where('company_id', $companies['ACM']->id)
+                ->where('fiscal_year', 2024)
+                ->first();
+            if ($oldAcm2024) {
+                $oldAcm2024->update([
+                    'is_obsolete' => true,
+                    'obsolete_at' => Carbon::create(2025, 4, 10, 14, 0, 0),
+                    'obsolete_reasons' => [
+                        'reason' => 'Régénération suite à correction VFC véhicule EE-005-EE',
+                    ],
+                ]);
+                $newAcm2024 = $create($companies['ACM'], 2024, FiscalDeclarationStatus::Generated);
+                $oldAcm2024->update(['superseded_by_id' => $newAcm2024->id]);
+            }
+        }
+
+        // === 2025 · mix Generated (3) + Deferred (2) + Draft (3) ===
+        $generated2025Codes = ['ACM', 'BTP', 'IDF'];
+        foreach ($generated2025Codes as $code) {
+            if (! isset($companies[$code])) {
+                continue;
+            }
+            $create($companies[$code], 2025, FiscalDeclarationStatus::Generated);
+        }
+        $deferred2025Codes = ['COR', 'TUR'];
+        foreach ($deferred2025Codes as $code) {
+            if (! isset($companies[$code])) {
+                continue;
+            }
+            $create($companies[$code], 2025, FiscalDeclarationStatus::Deferred);
+        }
+        $draft2025Codes = ['HEX', 'ECO', 'NOV'];
+        foreach ($draft2025Codes as $code) {
+            if (! isset($companies[$code])) {
+                continue;
+            }
+            $create($companies[$code], 2025, FiscalDeclarationStatus::Draft);
+        }
+
+        // === 2026 · 2 Draft en cours (préparation année courante) ===
+        $draft2026Codes = ['DRS', 'EOL'];
+        foreach ($draft2026Codes as $code) {
+            if (! isset($companies[$code])) {
+                continue;
+            }
+            $create($companies[$code], 2026, FiscalDeclarationStatus::Draft);
+        }
     }
 
     /**
