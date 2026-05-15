@@ -16,7 +16,9 @@ use App\Exceptions\Company\CompanyShortCodeCollisionException;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Services\Billing\PendingInvoicesResolver;
-use App\Services\Company\CompanyQueryService;
+use App\Services\Company\CompanyAggregatesService;
+use App\Services\Company\CompanyDetailService;
+use App\Services\Company\CompanyListingService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
@@ -33,7 +35,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 final class CompanyController extends Controller
 {
     public function __construct(
-        private readonly CompanyQueryService $companies,
+        private readonly CompanyDetailService $companyDetail,
+        private readonly CompanyAggregatesService $companyAggregates,
+        private readonly CompanyListingService $companyListing,
         private readonly CompanyReadRepositoryInterface $companyRead,
         private readonly DriverQueryService $drivers,
         private readonly ContractQueryService $contracts,
@@ -57,7 +61,7 @@ final class CompanyController extends Controller
         $year = $this->resolveSelectedYear($query->year);
 
         return Inertia::render('User/Companies/Index/Index', [
-            'companies' => $this->companies->listPaginated($query, $year),
+            'companies' => $this->companyListing->listPaginated($query, $year),
             'query' => $query,
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
@@ -86,7 +90,7 @@ final class CompanyController extends Controller
     {
         Gate::authorize('view', $company);
 
-        $detail = $this->companies->detail($company->id);
+        $detail = $this->companyDetail->detail($company->id);
 
         if ($detail === null) {
             throw new NotFoundHttpException('Entreprise introuvable.');
@@ -164,7 +168,7 @@ final class CompanyController extends Controller
             // Onglet "fiscal" · breakdown par véhicule + cycle de vie déclaration.
             'companyFiscal' => $this->eagerForTab(
                 $activeTab === 'fiscal',
-                fn () => $this->companies->fiscalBreakdownForYear($companyId, $selectedYear),
+                fn () => $this->companyAggregates->fiscalBreakdownForYear($companyId, $selectedYear),
             ),
             'declarationLifecycle' => $this->eagerForTab(
                 $activeTab === 'fiscal',
@@ -174,7 +178,7 @@ final class CompanyController extends Controller
             // Onglet "billing" · récap mensuel.
             'companyBilling' => $this->eagerForTab(
                 $activeTab === 'billing',
-                fn () => $this->companies->billingForYear($companyId, $selectedYear),
+                fn () => $this->companyAggregates->billingForYear($companyId, $selectedYear),
             ),
         ]);
     }
@@ -195,7 +199,7 @@ final class CompanyController extends Controller
         Gate::authorize('create', Company::class);
 
         return Inertia::render('User/Companies/Create/Index', [
-            'colors' => $this->companies->colorOptions(),
+            'colors' => $this->companyListing->colorOptions(),
         ]);
     }
 
@@ -220,7 +224,7 @@ final class CompanyController extends Controller
     {
         Gate::authorize('update', $company);
 
-        $detail = $this->companies->detail($company->id);
+        $detail = $this->companyDetail->detail($company->id);
 
         if ($detail === null) {
             throw new NotFoundHttpException('Entreprise introuvable.');
@@ -228,7 +232,7 @@ final class CompanyController extends Controller
 
         return Inertia::render('User/Companies/Edit/Index', [
             'company' => $detail,
-            'colors' => $this->companies->colorOptions(),
+            'colors' => $this->companyListing->colorOptions(),
         ]);
     }
 

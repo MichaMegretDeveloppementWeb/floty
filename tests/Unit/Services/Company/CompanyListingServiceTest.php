@@ -5,25 +5,31 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Company;
 
 use App\Models\Company;
-use App\Services\Company\CompanyQueryService;
+use App\Services\Company\CompanyListingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Vérifie l'orchestration repos + agrégateur fiscal du service
- * `CompanyQueryService` post-migration vers les Repositories.
+ * Couvre `listForOptions()` + `colorOptions()` après l'éclatement
+ * SRP de `CompanyQueryService` en 3 sous-services thématiques
+ * (Lot 4 D08 / F-11-004). Reprend les assertions de l'ancien
+ * `CompanyQueryServiceTest` pour garantir l'équivalence sémantique.
+ *
+ * `listPaginated()` est testé par les Feature
+ * `tests/Feature/User/Company/CompanyControllerTest::index` (intégration
+ * complète repo + agrégats fiscaux + DTO Inertia).
  */
-final class CompanyQueryServiceTest extends TestCase
+final class CompanyListingServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    private CompanyQueryService $service;
+    private CompanyListingService $service;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->service = $this->app->make(CompanyQueryService::class);
+        $this->service = $this->app->make(CompanyListingService::class);
     }
 
     #[Test]

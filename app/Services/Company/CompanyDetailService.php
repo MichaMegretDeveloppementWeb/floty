@@ -7,50 +7,42 @@ namespace App\Services\Company;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
-use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\Shared\YearScopeData;
-use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Company\CompanyActivityYearData;
-use App\Data\User\Company\CompanyColorOptionData;
 use App\Data\User\Company\CompanyDetailData;
 use App\Data\User\Company\CompanyDriverRowData;
-use App\Data\User\Company\CompanyFiscalYearData;
-use App\Data\User\Company\CompanyIndexQueryData;
 use App\Data\User\Company\CompanyLifetimeStatsData;
-use App\Data\User\Company\CompanyListItemData;
-use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Company\CompanyTopVehicleData;
-use App\Data\User\Company\CompanyVehicleFiscalRowData;
 use App\Data\User\Company\CompanyYearStatsData;
-use App\Data\User\Company\PaginatedCompanyListData;
 use App\DTO\Fiscal\ContractsByPair;
-use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Registry\FiscalRuleRegistry;
-use App\Models\Company;
 use App\Models\Pivot\DriverCompany;
-use App\Models\Unavailability;
-use App\Models\Vehicle;
-use App\Services\Billing\BillingBreakdownService;
 use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Collection;
-use Spatie\LaravelData\DataCollection;
 
 /**
- * Orchestration des lectures du domaine Company vers les DTOs exposés.
+ * Détail complet d'une entreprise pour la page Show (extrait de
+ * `CompanyQueryService` pour respecter SRP · Lot 4 D08 / F-11-004).
  *
- * Pré-charge en bulk les véhicules concernés via le repository pour
- * éviter tout N+1 dans le calcul d'agrégats fiscaux par entreprise.
+ * Concentre le flot le plus complexe du domaine Company (~180 l de
+ * logique principale) qui agrège tout pour la page Show ·
+ *   - hero d'identité (intemporel)
+ *   - KPIs lifetime cumulés
+ *   - section « Historique par année »
+ *   - sous-stats par année (heatmap mensuelle + top 3 véhicules)
+ *   - liste des drivers avec memberships actives + sorties
  *
- * **Refonte 04.F (ADR-0014)** : `daysUsed` et `annualTaxDue` dérivés
- * de `ContractsByPair` au lieu de `AnnualCumulByPair`.
+ * **Doctrine temporelle (chantier η Phase 1)** · 3 lentilles distinctes ·
+ *   - Présent · KPIs en haut (année calendaire courante)
+ *   - Lifetime · KPIs cumulés toutes années confondues
+ *   - Historique · 1 ligne par année du scope global, MÊME les années à 0
  */
-final class CompanyQueryService
+final class CompanyDetailService
 {
     public function __construct(
         private readonly CompanyReadRepositoryInterface $companies,
@@ -60,120 +52,8 @@ final class CompanyQueryService
         private readonly FleetFiscalAggregator $aggregator,
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
-        private readonly BillingBreakdownService $billingBreakdown,
         private readonly RentalPriceCalculator $rentalPrice,
     ) {}
-
-    /**
-     * Index Companies paginé server-side (cf. ADR-0020).
-     *
-     * Le repo gère pagination + filtre `isActive` + search SQL. Le
-     * service calcule ensuite les aggregates fiscaux (`daysUsed`,
-     * `annualTaxDue`) uniquement pour les entreprises de la page courante.
-     *
-     * Note perf : `loadContractsByPair($year)` charge tous les contrats
-     * de l'année (borne O(contrats/an), pas O(companies)). Acceptable
-     * tant que les contrats annuels restent < 10k. À matérialiser si la
-     * volumétrie explose (cf. ADR-0020 D6).
-     */
-    public function listPaginated(CompanyIndexQueryData $query, int $year): PaginatedCompanyListData
-    {
-        $paginator = $this->companies->paginateForIndex($query);
-
-        // Pré-charge bulk pour le calcul des aggregates de la page.
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
-        $vehicleIds = [];
-        foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
-            $vehicleIds[$pair['vehicleId']] = true;
-        }
-        $vehicleIdList = array_keys($vehicleIds);
-        $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
-
-        $items = array_map(
-            fn (Company $c): CompanyListItemData => $this->mapCompanyToListItem(
-                company: $c,
-                year: $year,
-                contractsByPair: $contractsByPair,
-                vehiclesById: $vehiclesById,
-                unavailabilitiesByVehicleId: $unavailabilitiesByVehicleId,
-            ),
-            $paginator->items(),
-        );
-
-        return new PaginatedCompanyListData(
-            data: $items,
-            meta: PaginationMetaData::fromPaginator($paginator),
-        );
-    }
-
-    /**
-     * @param  Collection<int, Vehicle>  $vehiclesById
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
-     */
-    private function mapCompanyToListItem(
-        Company $company,
-        int $year,
-        ContractsByPair $contractsByPair,
-        Collection $vehiclesById,
-        array $unavailabilitiesByVehicleId,
-    ): CompanyListItemData {
-        // Tolère une année hors registry fiscal (cohérent doctrine
-        // « données métier ⊥ règles fiscales » Phase 2) : si le pipeline
-        // fiscal n'a pas de règles pour `$year`, on affiche `0 €` sur la
-        // colonne taxes plutôt que de crasher l'Index. La colonne `daysUsed`
-        // reste valide (donnée brute, pas de dépendance au pipeline).
-        try {
-            $annualTaxDue = $this->aggregator->companyAnnualTax(
-                $company->id,
-                $vehiclesById,
-                $contractsByPair,
-                $unavailabilitiesByVehicleId,
-                $year,
-            );
-        } catch (FiscalCalculationException) {
-            $annualTaxDue = 0.0;
-        }
-
-        // Phase 13 D5.10.L · prix location annuel total (somme des 12
-        // facturations mensuelles). Null si au moins 1 véhicule a un
-        // tarif annuel manquant.
-        $rentalCents = $this->rentalPrice->forCompanyAndYear($company->id, $year);
-        $rentalPriceTotal = $rentalCents === null ? null : $rentalCents / 100;
-
-        return new CompanyListItemData(
-            id: $company->id,
-            legalName: $company->legal_name,
-            shortCode: $company->short_code,
-            color: $company->color,
-            siren: $company->siren,
-            city: $company->city,
-            isActive: $company->is_active,
-            daysUsed: $contractsByPair->daysByCompany($company->id, $year),
-            annualTaxDue: $annualTaxDue,
-            rentalPriceTotal: $rentalPriceTotal,
-        );
-    }
-
-    /**
-     * Liste pour les `<SelectInput>`.
-     *
-     * @return DataCollection<int, CompanyOptionData>
-     */
-    public function listForOptions(): DataCollection
-    {
-        $rows = $this->companies->findAllForOptions()
-            ->map(static fn (Company $c): CompanyOptionData => new CompanyOptionData(
-                id: $c->id,
-                shortCode: $c->short_code,
-                legalName: $c->legal_name,
-                color: $c->color,
-            ))
-            ->values()
-            ->all();
-
-        return CompanyOptionData::collect($rows, DataCollection::class);
-    }
 
     /**
      * Détail complet d'une entreprise pour la page Show · alimente :
@@ -360,17 +240,6 @@ final class CompanyQueryService
     }
 
     /**
-     * Récap mensuel facturation pour une entreprise et une année donnée
-     * (Phase 14.D V1.2). Sépare l'agrégation `BillingBreakdownService`
-     * du flot principal `detail()` pour permettre un sélecteur d'année
-     * indépendant côté UI (pattern aligné avec `fiscalBreakdownForYear`).
-     */
-    public function billingForYear(int $companyId, int $year): MonthlyBillingBreakdownData
-    {
-        return $this->billingBreakdown->byCompanyForYear($companyId, $year);
-    }
-
-    /**
      * Calcule l'activité détaillée d'une entreprise pour un exercice :
      * heatmap mensuelle (12 entiers, jours-véhicules / mois) + top 3
      * véhicules (triés desc par jours utilisés).
@@ -542,154 +411,5 @@ final class CompanyQueryService
             annualTaxDue: $annualTaxDue,
             rent: $rent,
         );
-    }
-
-    /**
-     * Détail fiscal d'une entreprise pour l'année sélectionnée
-     * (chantier N.2). 1 ligne par véhicule utilisé, totaux agrégés
-     * (R-2024-003 : un seul arrondi par redevable).
-     *
-     * Si l'année n'est pas configurée dans le calculateur fiscal
-     * (`config/floty.fiscal.available_years`), retourne des montants
-     * à 0 plutôt que de faire crasher la page · l'utilisateur voit
-     * quand même les jours et le compte de véhicules.
-     */
-    public function fiscalBreakdownForYear(int $companyId, int $year): CompanyFiscalYearData
-    {
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
-        $currentRealYear = (int) Carbon::now()->year;
-        $availableYears = $this->contracts->availableYearsRangeForCompany(
-            $companyId,
-            $currentRealYear,
-        );
-
-        $vehicleIds = [];
-        $daysPerVehicle = [];
-        // Phase 12 D5.9.A · compteur de contrats pour la carte recap
-        // (toutes paires véhicule × company sur l'exercice).
-        $totalContracts = 0;
-        foreach ($contractsByPair->pairsForCompany($companyId) as $vehicleId => $pairContracts) {
-            $vehicleIds[] = $vehicleId;
-            $totalContracts += count($pairContracts);
-            // Compteur de jours en pré-calcul, indépendant du pipeline
-            // fiscal · utilisé pour la colonne `daysUsed` même si la
-            // config fiscale de l'année est absente (cas FiscalCalculationException).
-            $days = 0;
-            foreach ($pairContracts as $contract) {
-                $days += $contract->countDaysInYear($year);
-            }
-            $daysPerVehicle[$vehicleId] = $days;
-        }
-
-        if ($vehicleIds === []) {
-            return new CompanyFiscalYearData(
-                year: $year,
-                currentRealYear: $currentRealYear,
-                rows: [],
-                availableYears: $availableYears,
-                totalDays: 0,
-                totalTaxCo2: 0.0,
-                totalTaxPollutants: 0.0,
-                totalTaxAll: 0.0,
-                contractsCount: 0,
-            );
-        }
-
-        $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
-
-        // Calcul du pipeline fiscal · encadré pour tolérer l'absence de
-        // config fiscale sur l'année (cf. doc).
-        $taxRowsByVehicleId = [];
-        try {
-            $rawRows = $this->aggregator->companyAnnualTaxBreakdownByVehicle(
-                $companyId,
-                $vehiclesById,
-                $contractsByPair,
-                $unavailabilitiesByVehicleId,
-                $year,
-            );
-            foreach ($rawRows as $rawRow) {
-                $taxRowsByVehicleId[$rawRow['vehicleId']] = $rawRow;
-            }
-        } catch (FiscalCalculationException) {
-            $taxRowsByVehicleId = [];
-        }
-
-        $daysInYear = Carbon::createFromDate($year, 1, 1)->isLeapYear() ? 366 : 365;
-
-        $rows = [];
-        $totalDays = 0;
-        $totalTaxCo2Raw = 0.0;
-        $totalTaxPollutantsRaw = 0.0;
-
-        foreach ($vehicleIds as $vehicleId) {
-            $vehicle = $vehiclesById->get($vehicleId);
-            if ($vehicle === null) {
-                continue;
-            }
-
-            // `daysUsed` toujours pris du pré-calcul brut (jours d'attribution
-            // sur l'année), pas du pipeline qui retourne `daysAssigned`
-            // potentiellement réduit par R-2024-008 (indispos) ou R-2024-021
-            // (LCD < 30j hors période). On veut afficher le brut consommé.
-            $days = (int) ($daysPerVehicle[$vehicleId] ?? 0);
-            $taxRow = $taxRowsByVehicleId[$vehicleId] ?? null;
-            $taxCo2 = $taxRow !== null ? (float) $taxRow['taxCo2'] : 0.0;
-            $taxPollutants = $taxRow !== null ? (float) $taxRow['taxPollutants'] : 0.0;
-            $taxTotal = $taxRow !== null ? (float) $taxRow['taxTotal'] : 0.0;
-
-            $proratoPercent = round($days / $daysInYear * 100, 1);
-
-            $rows[] = new CompanyVehicleFiscalRowData(
-                vehicleId: $vehicle->id,
-                licensePlate: $vehicle->license_plate,
-                brand: $vehicle->brand,
-                model: $vehicle->model,
-                daysUsed: $days,
-                proratoPercent: $proratoPercent,
-                taxCo2: $taxCo2,
-                taxPollutants: $taxPollutants,
-                taxTotal: $taxTotal,
-            );
-
-            $totalDays += $days;
-            $totalTaxCo2Raw += $taxCo2;
-            $totalTaxPollutantsRaw += $taxPollutants;
-        }
-
-        $totalTaxCo2 = round($totalTaxCo2Raw, 2, PHP_ROUND_HALF_UP);
-        $totalTaxPollutants = round($totalTaxPollutantsRaw, 2, PHP_ROUND_HALF_UP);
-
-        return new CompanyFiscalYearData(
-            year: $year,
-            currentRealYear: $currentRealYear,
-            rows: $rows,
-            availableYears: $availableYears,
-            totalDays: $totalDays,
-            totalTaxCo2: $totalTaxCo2,
-            totalTaxPollutants: $totalTaxPollutants,
-            totalTaxAll: round($totalTaxCo2 + $totalTaxPollutants, 2, PHP_ROUND_HALF_UP),
-            contractsCount: $totalContracts,
-        );
-    }
-
-    /**
-     * Couleurs disponibles pour un `<SelectInput>` (formulaire create).
-     * Pas d'accès BDD : énumère un enum applicatif.
-     *
-     * @return DataCollection<int, CompanyColorOptionData>
-     */
-    public function colorOptions(): DataCollection
-    {
-        $rows = array_map(
-            static fn (CompanyColor $c): CompanyColorOptionData => new CompanyColorOptionData(
-                value: $c->value,
-                label: $c->label(),
-            ),
-            CompanyColor::cases(),
-        );
-
-        return CompanyColorOptionData::collect($rows, DataCollection::class);
     }
 }

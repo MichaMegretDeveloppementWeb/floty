@@ -388,7 +388,7 @@ final readonly class ContractQueryService
      * Compte total des contrats d'une entreprise (toutes années).
      * Délégué au repo, exposé via le service pour respecter la chaîne
      * d'appels Service → Service → Repository (cf. ADR-0013) consommée
-     * par {@see CompanyQueryService::detail()}.
+     * par {@see AppServicesCompanyCompanyDetailService::detail()}.
      */
     public function countContractsForCompany(int $companyId): int
     {

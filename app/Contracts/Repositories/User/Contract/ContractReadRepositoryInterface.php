@@ -298,7 +298,7 @@ interface ContractReadRepositoryInterface
      * Drivers sans contrat sur cette company sont **absents** du tableau
      * (pas une entrée à 0).
      *
-     * Utilisé par {@see App\Services\Company\CompanyQueryService::detail}
+     * Utilisé par {@see App\Services\Company\CompanyDetailService::detail}
      * pour enrichir chaque driver row avec son `contractsCount`.
      *
      * @return array<int, int>

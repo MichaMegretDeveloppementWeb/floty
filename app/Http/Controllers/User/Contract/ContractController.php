@@ -19,7 +19,7 @@ use App\Data\User\Driver\DriverOptionData;
 use App\Data\User\Vehicle\VehicleOptionData;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
-use App\Services\Company\CompanyQueryService;
+use App\Services\Company\CompanyListingService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
@@ -45,7 +45,7 @@ final class ContractController extends Controller
         private readonly ContractQueryService $contracts,
         private readonly ContractReadRepositoryInterface $contractRead,
         private readonly VehicleQueryService $vehicles,
-        private readonly CompanyQueryService $companies,
+        private readonly CompanyListingService $companies,
         private readonly DriverQueryService $drivers,
         private readonly StoreContractAction $storeContract,
         private readonly UpdateContractAction $updateContract,

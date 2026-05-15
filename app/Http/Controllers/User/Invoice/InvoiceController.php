@@ -18,7 +18,7 @@ use App\Exceptions\Billing\MissingPricingException;
 use App\Exceptions\Invoice\InvoiceAlreadyExistsException;
 use App\Http\Controllers\Controller;
 use App\Models\Invoice;
-use App\Services\Company\CompanyQueryService;
+use App\Services\Company\CompanyListingService;
 use App\Services\Invoice\InvoicePdfStorage;
 use App\Services\Invoice\InvoiceQueryService;
 use Illuminate\Http\RedirectResponse;
@@ -48,7 +48,7 @@ final class InvoiceController extends Controller
         private readonly InvoiceQueryService $invoiceQuery,
         private readonly InvoiceReadRepositoryInterface $invoiceRead,
         private readonly BillingSettingsReadRepositoryInterface $billingSettings,
-        private readonly CompanyQueryService $companyQuery,
+        private readonly CompanyListingService $companyQuery,
     ) {}
 
     public function index(InvoiceIndexQueryData $query): InertiaResponse
