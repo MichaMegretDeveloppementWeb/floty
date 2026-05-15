@@ -83,13 +83,16 @@ final class FiscalDeclarationData extends Data
 
     public static function fromModel(FiscalDeclaration $declaration): self
     {
-        $reasons = null;
-        if (is_array($declaration->obsolete_reasons)) {
-            $reasons = array_values(array_map(
-                static fn (array $raw): InvalidationReasonData => InvalidationReasonData::fromArray($raw),
-                $declaration->obsolete_reasons,
-            ));
-        }
+        // Garde-fou résilient · payload `obsolete_reasons` éventuellement
+        // mal formé en BDD (cast Eloquent retourne un scalaire suite à
+        // JSON corrompu, items sans le schéma attendu, etc.) ne doit pas
+        // casser les pages qui sérialisent ce DTO. Délégué à
+        // `InvalidationReasonData::listFromRaw` qui centralise les checks
+        // is_array + try/catch + log canal `declarations`.
+        // Hotfix complémentaire au précédent qui n'avait traité que
+        // `DeclarationController::review` sans couvrir ce site jumeau.
+        $reasonsList = InvalidationReasonData::listFromRaw($declaration->obsolete_reasons, $declaration->id);
+        $reasons = $reasonsList !== [] ? $reasonsList : null;
 
         $snapshotHash = is_array($declaration->generated_snapshot_payload)
             ? SnapshotHashCalculator::compute($declaration->generated_snapshot_payload)
