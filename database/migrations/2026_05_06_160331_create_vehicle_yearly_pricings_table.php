@@ -51,12 +51,10 @@ return new class extends Migration
             $table->timestamps();
 
             // UNIQUE garantit l'idempotence de l'upsert (1 tarif par
-            // couple véhicule × année).
+            // couple véhicule × année) ET sert d'index pour la lookup
+            // `findForVehicleAndYear(vehicleId, year)` · pas besoin
+            // d'index dédié supplémentaire (Lot 6 D4 · F-31-009).
             $table->unique(['vehicle_id', 'year']);
-
-            // Index dédié pour la lookup typique
-            // `findForVehicleAndYear(vehicleId, year)`.
-            $table->index(['vehicle_id', 'year'], 'vyp_vehicle_year_idx');
         });
 
         // CHECK contraintes — MySQL uniquement (SQLite ne supporte pas

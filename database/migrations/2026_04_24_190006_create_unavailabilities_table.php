@@ -59,6 +59,11 @@ return new class extends Migration
             $table->index(['vehicle_id', 'start_date']);
             $table->index(['vehicle_id', 'has_fiscal_impact', 'start_date']);
             $table->index(['type', 'start_date']);
+            // Index `deleted_at` · les scopes Eloquent `withTrashed`,
+            // `onlyTrashed` et le filtre implicite `deleted_at IS NULL`
+            // de SoftDeletes scanneraient sinon la table entière
+            // (Lot 6 D4 · F-31-008).
+            $table->index('deleted_at', 'unavailabilities_deleted_at_idx');
         });
 
         // CHECK constraints · filet SQL défensif, MySQL uniquement

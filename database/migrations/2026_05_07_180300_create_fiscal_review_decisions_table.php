@@ -56,8 +56,11 @@ return new class extends Migration
 
             $table->timestamps();
 
+            // L'UNIQUE `review_company_year_fp_uk` couvre déjà le préfixe
+            // `(company_id, fiscal_year)` · MySQL utilise les préfixes
+            // d'index UNIQUE pour les filtres partiels, donc pas d'index
+            // dédié supplémentaire (Lot 6 D4 · F-31-007).
             $table->unique(['company_id', 'fiscal_year', 'cluster_fingerprint'], 'review_company_year_fp_uk');
-            $table->index(['company_id', 'fiscal_year'], 'review_company_year_idx');
         });
 
         if (DB::connection()->getDriverName() !== 'mysql') {
