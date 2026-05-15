@@ -90,7 +90,7 @@ return new class extends Migration
             $table->index('superseded_by_id', 'inv_superseded_by_idx');
         });
 
-        // CHECK contraintes — MySQL uniquement (SQLite skippe les CHECK
+        // CHECK contraintes · MySQL uniquement (SQLite skippe les CHECK
         // post-création de table, cf. migrations VFC + pricings).
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;

@@ -121,7 +121,7 @@ final class FiscalAuditLinksCommand extends Command
                     'année' => (string) $entry['year'],
                     'règle' => $entry['rule_code'],
                     'article' => sprintf('%s %s', $entry['type'], $entry['article']),
-                    'consulté' => $entry['consulted_at'] ?? '—',
+                    'consulté' => $entry['consulted_at'] ?? '-',
                     'anomalie' => implode(' · ', $issues),
                 ];
             }

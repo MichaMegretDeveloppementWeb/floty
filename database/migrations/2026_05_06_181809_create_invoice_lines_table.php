@@ -7,7 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `invoice_lines` — Lignes individuelles d'une facture mensuelle
+ * Table `invoice_lines` · Lignes individuelles d'une facture mensuelle
  * (Phase 14.E V1.2).
  *
  * Une ligne = un véhicule sur le mois facturé. Snapshot complet :
@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Schema;
  *   - décomposition tarifaire optimale (`months_billed` / `weeks_billed` /
  *     `days_billed`) issue de `OptimalRateBreakdown`
  *   - tarifs unitaires snapshot (`daily_rate_cents` / `weekly_rate_cents` /
- *     `monthly_rate_cents`) — figés à l'émission, ne suivent pas les
+ *     `monthly_rate_cents`) · figés à l'émission, ne suivent pas les
  *     mises à jour ultérieures du `vehicle_yearly_pricings`
  *   - total ligne (`total_ht_cents`)
  *

@@ -39,7 +39,7 @@ final class VehicleFiscalCharacteristicsFactory extends Factory
             // le décalage en renvoyant la VFC actuelle peu importe l'année,
             // ce qui produisait des calculs faux silencieux. L'orchestrateur
             // est désormais strict : il throw si aucun segment n'est actif
-            // sur l'année calculée — la factory doit donc couvrir large.
+            // sur l'année calculée · la factory doit donc couvrir large.
             'effective_from' => Carbon::create(2020, 1, 1),
             'effective_to' => null,
             'reception_category' => ReceptionCategory::M1,

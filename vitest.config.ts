@@ -3,7 +3,7 @@ import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vitest/config';
 
 /**
- * Configuration Vitest — tests unitaires des composables et utils
+ * Configuration Vitest · tests unitaires des composables et utils
  * frontend.
  *
  * - `happy-dom` plus rapide que `jsdom` pour les hooks simples
@@ -21,7 +21,7 @@ export default defineConfig({
         environment: 'happy-dom',
         globals: true,
         // Tests sous tests/js/ (séparé du source, miroir resources/js/)
-        // — cohérence avec PHPUnit + lisibilité de la couverture (ADR-0013 R13).
+        // · cohérence avec PHPUnit + lisibilité de la couverture (ADR-0013 R13).
         include: ['tests/js/**/*.{test,spec}.ts'],
         // Mock global de `@inertiajs/vue3` (cf. ADR-0020) pour tester
         // les composables qui consomment `router.reload` etc.

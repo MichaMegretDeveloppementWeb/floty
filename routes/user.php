@@ -24,7 +24,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| Routes User — zone connectée
+| Routes User · zone connectée
 |--------------------------------------------------------------------------
 |
 | Préfixe URL `/app`, middleware `auth` au niveau du groupe, noms de
@@ -64,7 +64,7 @@ Route::middleware('auth')
             ->whereNumber('vehicle')
             ->name('vehicles.show');
         // Endpoints lazy JSON pour la fiche véhicule (chantier η Phase 2
-        // refonte onglets) — sélecteurs locaux dans cartes
+        // refonte onglets) · sélecteurs locaux dans cartes
         // Utilisation/Répartition + Fiscalité, fetchent à la demande
         // avec cache client (composable `useYearLazy`).
         Route::get('/vehicles/{vehicle}/usage-stats', [VehicleController::class, 'usageStats'])
@@ -89,7 +89,7 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('vehicles.reactivate');
 
-        // Vehicle fiscal characteristics — CRUD complet depuis la modale
+        // Vehicle fiscal characteristics · CRUD complet depuis la modale
         // Historique de la page Show véhicule (création + édition + suppression).
         Route::post(
             '/vehicles/{vehicle}/fiscal-characteristics',
@@ -113,7 +113,7 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('vehicle-fiscal-characteristics.destroy');
 
-        // Vehicle yearly pricings (Phase 14 facturation V1.2) — tarifs
+        // Vehicle yearly pricings (Phase 14 facturation V1.2) · tarifs
         // jour/semaine/mois × véhicule × année. Upsert idempotent garanti
         // par UNIQUE(vehicle_id, year). Endpoints opérés depuis la page
         // Show véhicule (chantier 14.B intégrera un PricingEditor inline).
@@ -133,14 +133,14 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('vehicle-yearly-pricings.destroy');
 
-        // Settings > Facturation (Phase 14.G V1.2) — émetteur de facture
+        // Settings > Facturation (Phase 14.G V1.2) · émetteur de facture
         Route::get('/settings/billing', [BillingSettingsController::class, 'edit'])
             ->name('settings.billing.edit');
         Route::post('/settings/billing', [BillingSettingsController::class, 'update'])
             ->middleware('throttle:30,1')
             ->name('settings.billing.update');
 
-        // Settings > Détection de risque (Phase 11 D1, ADR-0015 § D7) —
+        // Settings > Détection de risque (Phase 11 D1, ADR-0015 § D7) ·
         // seuils paramétrables de la grille de classification fiscale.
         Route::get('/settings/fiscal-risk', [FiscalRiskSettingsController::class, 'edit'])
             ->name('settings.fiscal-risk.edit');
@@ -148,7 +148,7 @@ Route::middleware('auth')
             ->middleware('throttle:30,1')
             ->name('settings.fiscal-risk.update');
 
-        // Invoices — Phase 14 V1.2 (Index + Show + génération + téléchargement)
+        // Invoices · Phase 14 V1.2 (Index + Show + génération + téléchargement)
         // Throttle 6/min sur les mutations PDF-générantes (generate /
         // regenerate) : chaque appel render dompdf + write fs (~0.5-2 s).
         // 6/min = 1 toutes les 10 s, largement suffisant en usage normal,
@@ -168,20 +168,20 @@ Route::middleware('auth')
             ->whereNumber('invoice')
             ->withTrashed()
             ->name('invoices.download');
-        // Annulation (Phase 14.I) — seule mutation autorisée par la
+        // Annulation (Phase 14.I) · seule mutation autorisée par la
         // doctrine immuabilité ; permet de regénérer après modif du
         // périmètre (contrat ajouté/modifié sur un mois déjà facturé).
         Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])
             ->whereNumber('invoice')
             ->middleware('throttle:6,1')
             ->name('invoices.destroy');
-        // Régénération (Phase 14.I+) — annule + recrée en une transaction.
+        // Régénération (Phase 14.I+) · annule + recrée en une transaction.
         Route::post('/invoices/{invoice}/regenerate', [InvoiceController::class, 'regenerate'])
             ->whereNumber('invoice')
             ->middleware('throttle:6,1')
             ->name('invoices.regenerate');
 
-        // Unavailabilities — CRUD opéré depuis la page Show véhicule
+        // Unavailabilities · CRUD opéré depuis la page Show véhicule
         Route::post('/unavailabilities', [UnavailabilityController::class, 'store'])
             ->middleware('throttle:60,1')
             ->name('unavailabilities.store');
@@ -194,7 +194,7 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('unavailabilities.destroy');
 
-        // Planning global (heatmap annuelle) — vue d'ensemble maîtresse
+        // Planning global (heatmap annuelle) · vue d'ensemble maîtresse
         Route::get('/planning', [PlanningController::class, 'index'])->name('planning.index');
         Route::get('/planning/week', [PlanningController::class, 'week'])
             ->middleware('throttle:120,1')
@@ -215,7 +215,7 @@ Route::middleware('auth')
         Route::get('/planning/companies/{company}', [PlanningController::class, 'companyIndex'])
             ->name('planning.companies.index');
 
-        // Contracts (ADR-0014) — entité pivot du domaine fiscal.
+        // Contracts (ADR-0014) · entité pivot du domaine fiscal.
         Route::get('/contracts', [ContractController::class, 'index'])->name('contracts.index');
         Route::get('/contracts/create', [ContractController::class, 'create'])->name('contracts.create');
         Route::post('/contracts', [ContractController::class, 'store'])
@@ -239,7 +239,7 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('contracts.destroy');
 
-        // Contract documents (chantier 04.N) — PDF joints (5 max, 10 Mo)
+        // Contract documents (chantier 04.N) · PDF joints (5 max, 10 Mo)
         Route::post('/contracts/{contract}/documents', [ContractDocumentController::class, 'store'])
             ->whereNumber('contract')
             ->middleware('throttle:30,1')
@@ -275,7 +275,7 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('drivers.destroy');
 
-        // Drivers — memberships company (Phase 06 V1.2)
+        // Drivers · memberships company (Phase 06 V1.2)
         // Lot 4 D13 (F-34-105) · extraits dans `DriverMembershipController` ·
         // les noms de routes restent identiques, le frontend (Wayfinder)
         // n'a aucun changement à faire.
@@ -299,7 +299,7 @@ Route::middleware('auth')
             ->middleware('throttle:60,1')
             ->name('drivers.memberships.destroy');
 
-        // Fiscal rules — consultation only
+        // Fiscal rules · consultation only
         Route::get('/fiscal-rules', [FiscalRuleController::class, 'index'])->name('fiscal-rules.index');
 
         // Déclarations fiscales (Phase 11 D4, ADR-0015 rev. 1.1).

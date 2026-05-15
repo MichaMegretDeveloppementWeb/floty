@@ -93,7 +93,7 @@ export default defineConfigWithVueTs(
     },
     {
         // Les partials de formulaire reçoivent l'objet `form` Inertia
-        // en prop et le mutent via `v-model="form.X"` — c'est l'usage
+        // en prop et le mutent via `v-model="form.X"` · c'est l'usage
         // idiomatique d'InertiaForm (la mutation est intentionnelle et
         // gérée par le wrapper Spatie Data côté backend).
         files: [
@@ -101,6 +101,27 @@ export default defineConfigWithVueTs(
         ],
         rules: {
             'vue/no-mutating-props': 'off',
+        },
+    },
+    {
+        // Em-dash U+2014 interdit (cf. mémoire `feedback_no_em_dash`).
+        // Couvre Literal (chaînes simples) + TemplateElement (template
+        // strings) côté JS/TS/Vue. Pour la couverture commentaires +
+        // backend, voir le test Vitest `tests/js/no-em-dash.spec.ts`
+        // (Lot 7 D10) qui scanne les fichiers source bruts.
+        files: ['resources/js/**/*.{ts,tsx,vue}'],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: 'Literal[value=/\\u2014/]',
+                    message: 'Em-dash U+2014 interdit (cf. mémoire feedback_no_em_dash). Utiliser · / : / refonte syntaxique.',
+                },
+                {
+                    selector: 'TemplateElement[value.raw=/\\u2014/]',
+                    message: 'Em-dash U+2014 interdit dans template strings (cf. mémoire feedback_no_em_dash).',
+                },
+            ],
         },
     },
     prettier, // Turn off all rules that might conflict with Prettier

@@ -57,7 +57,7 @@ return new class extends Migration
             $table->unique(['vehicle_id', 'year']);
         });
 
-        // CHECK contraintes — MySQL uniquement (SQLite ne supporte pas
+        // CHECK contraintes · MySQL uniquement (SQLite ne supporte pas
         // ALTER TABLE ADD CONSTRAINT). Cohérence avec la migration VFC.
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;

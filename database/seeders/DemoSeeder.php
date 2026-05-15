@@ -646,9 +646,9 @@ final class DemoSeeder extends Seeder
             ],
             // Renault 21 essence 7 CV - PA (trop vieux pour NEDC).
             // Cas multi-VFC riche (chantier E) : 4 VFC au total dont 2 en
-            // 2024 — exerce le segmenteur fiscal sur le calcul PA.
+            // 2024 · exerce le segmenteur fiscal sur le calcul PA.
             // Bascules : 8 PA (2020-01-01) → 7 PA (2024-03-15) → 8 PA
-            // (2024-09-10) — la 1ʳᵉ courante reste à 7 PA (initiale 2002).
+            // (2024-09-10) · la 1ʳᵉ courante reste à 7 PA (initiale 2002).
             [
                 'plate' => 'EE-005-EE', 'brand' => 'Renault', 'model' => '21 Nevada',
                 'regFrench' => '2002-05-15', 'regOrigin' => '2002-05-15', 'econ' => '2002-05-15',
@@ -683,7 +683,7 @@ final class DemoSeeder extends Seeder
             ],
             // Peugeot Partner camionnette Diesel Euro 6 - N1 transport personnes.
             // Cas multi-VFC sur la même année (chantier E) : 3 VFC dont
-            // 2 en 2024 — re-homologation CO₂ rétroactive en cours d'année.
+            // 2 en 2024 · re-homologation CO₂ rétroactive en cours d'année.
             // Bascules : 130 g/km (2024-04-01) → 150 g/km (2024-09-01).
             // La 1ʳᵉ initiale reste à 145 g/km (saisie d'origine 2023).
             [
@@ -733,7 +733,7 @@ final class DemoSeeder extends Seeder
                 'exitReason' => VehicleExitReason::Sold,
                 'currentStatus' => VehicleStatus::Sold,
             ],
-            // Renault Mégane VP essence Euro 6 — exerce le calcul fiscal
+            // Renault Mégane VP essence Euro 6 · exerce le calcul fiscal
             // segmenté par VFC (chantier dette VFC). 1ʳᵉ VFC à 102 g/km
             // (saisie initiale), corrigée le 2024-06-16 à 145 g/km après
             // re-homologation. Le moteur fiscal doit appliquer la bonne
@@ -1089,14 +1089,14 @@ final class DemoSeeder extends Seeder
     /**
      * Indispos seedées pour exercer la grille ADR-0016 rev. 1.1 en démo.
      * Couvre 2 axes :
-     *  - **Hors contrats** (4 entrées historiques) : indispos isolées —
+     *  - **Hors contrats** (4 entrées historiques) : indispos isolées ·
      *    exerce le calcul autonome.
      *  - **Cohabitant avec contrats** (4 entrées chantier E) : indispo
      *    sur une plage qui chevauche un contrat actif. Cas autorisé par
-     *    ADR-0019 — le moteur fiscal retire les jours d'indispo
+     *    ADR-0019 · le moteur fiscal retire les jours d'indispo
      *    réductrice du prorata du contrat (et ignore les non-réductrices).
      *  - **Cas mixte** : 1 entrée chevauche À LA FOIS un contrat ET une
-     *    bascule VFC — exerce conjointement le segmenteur VFC + la
+     *    bascule VFC · exerce conjointement le segmenteur VFC + la
      *    réduction prorata.
      *
      * Le trigger MySQL anti-overlap n'agit qu'entre contrats (pas entre

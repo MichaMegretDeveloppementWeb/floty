@@ -115,7 +115,7 @@ return [
     | happen on a given request. Floty utilise [25, 100] (au lieu du défaut
     | Laravel [2, 100]) car le trafic est faible : le GC à 2 % laisserait
     | trop de sessions mortes s'accumuler en BDD. À 25 %, le balayage tombe
-    | environ une fois toutes les 4 requêtes — largement suffisant pour
+    | environ une fois toutes les 4 requêtes · largement suffisant pour
     | éviter toute accumulation, et négligeable en coût (un DELETE indexé).
     |
     */

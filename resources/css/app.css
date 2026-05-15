@@ -1,7 +1,7 @@
 @import 'tailwindcss';
 
 /* ============================================================
-   Floty Design System — Self-hosted fonts
+   Floty Design System · Self-hosted fonts
    ------------------------------------------------------------
    DM Sans : poids 400 / 500 / 600 / 700 (défaut sur toute l'UI)
    DM Mono : poids 400 / 500 (plates, SIREN, CO₂, cellules numériques)
@@ -22,7 +22,7 @@
 @source '../../storage/framework/views/*.php';
 
 /* ============================================================
-   Floty Design System — @theme tokens
+   Floty Design System · @theme tokens
    ------------------------------------------------------------
    Cf. project-management/design-system/project/colors_and_type.css
    et project-management/design-system/project/README.md
@@ -65,7 +65,7 @@
     /* Breakpoint maison `wide` = 1500px (= 93.75rem) pour la sidebar
        pinnée/collapsée. Déclaré en rem plutôt qu'en px pour que
        Tailwind 4 le trie correctement entre xl (80rem) et 2xl (96rem)
-       dans la cascade CSS — le tri se fait sur la chaîne littérale, et
+       dans la cascade CSS · le tri se fait sur la chaîne littérale, et
        "1500px" se range avant "40rem" alphabétiquement. */
     --breakpoint-wide: 93.75rem;
 
@@ -132,7 +132,7 @@
 /* ============================================================
    BASE LAYER
    ------------------------------------------------------------
-   Styles globaux minimaux. On reste très frugal — l'essentiel
+   Styles globaux minimaux. On reste très frugal · l'essentiel
    passe par les utilitaires Tailwind sur les composants.
    ============================================================ */
 
@@ -172,7 +172,7 @@
    COMPONENTS LAYER
    ------------------------------------------------------------
    Classes utilitaires composites Floty (éyebrow, KPI, plate…).
-   À utiliser avec parcimonie — la majorité du style passe par
+   À utiliser avec parcimonie · la majorité du style passe par
    les composants Vue dans resources/js/Components/Ui/.
    ============================================================ */
 
