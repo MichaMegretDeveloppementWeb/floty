@@ -140,6 +140,11 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ->keyBy('id');
     }
 
+    public function findById(int $id): ?Vehicle
+    {
+        return Vehicle::query()->find($id);
+    }
+
     public function findOrFailWithFiscal(int $id): Vehicle
     {
         return Vehicle::query()

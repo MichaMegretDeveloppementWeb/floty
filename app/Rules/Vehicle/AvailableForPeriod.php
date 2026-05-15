@@ -4,35 +4,35 @@ declare(strict_types=1);
 
 namespace App\Rules\Vehicle;
 
-use App\Models\Vehicle;
+use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use Carbon\CarbonImmutable;
 use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * Rejette toute saisie de pÃ©riode (crÃ©ation/Ã©dition de contrat ou
- * d'indisponibilitÃ©) sur un vÃ©hicule sorti de flotte dÃ¨s lors que la
- * pÃ©riode chevauche ou dÃ©passe `vehicles.exit_date`.
+ * Rejette toute saisie de période (création/édition de contrat ou
+ * d'indisponibilité) sur un véhicule sorti de flotte dès lors que la
+ * période chevauche ou dépasse `vehicles.exit_date`.
  *
- * Cf. ADR-0018 Â§ 5 (4 cas du tableau de validation pÃ©riode) :
+ * Cf. ADR-0018 § 5 (4 cas du tableau de validation période) :
  *
- *   | Cas                                  | Comportement                                 |
- *   |--------------------------------------|----------------------------------------------|
- *   | exit_date IS NULL                    | âœ… Toujours autorisÃ©                         |
- *   | end < exit_date (entiÃ¨rement avant)  | âœ… AutorisÃ©                                  |
- *   | start >= exit_date (entiÃ¨rement aprÃ¨s) | âŒ RejetÃ©                                    |
- *   | start < exit_date <= end (chevauche) | âŒ RejetÃ©                                    |
+ *   | Cas                                    | Comportement |
+ *   |----------------------------------------|--------------|
+ *   | exit_date IS NULL                      | autorisé     |
+ *   | end < exit_date (entièrement avant)    | autorisé     |
+ *   | start >= exit_date (entièrement après) | rejeté       |
+ *   | start < exit_date <= end (chevauche)   | rejeté       |
  *
- * La rÃ¨gle ne valide pas le champ qu'elle dÃ©core (la date est passÃ©e
- * en argument constructor, comme la pÃ©riode complÃ¨te) ; elle agit comme
+ * La règle ne valide pas le champ qu'elle décore (la date est passée
+ * en argument constructor, comme la période complète) ; elle agit comme
  * un "implies" sur la combinaison `vehicleId` + `[start, end]`. Elle
- * appartient donc typiquement au bloc des rÃ¨gles "globales" d'un DTO
- * Spatie Data, attachÃ©e au champ `vehicleId` ou Ã  la date de fin (au
+ * appartient donc typiquement au bloc des règles "globales" d'un DTO
+ * Spatie Data, attachée au champ `vehicleId` ou à la date de fin (au
  * choix du DTO).
  *
- * Le vÃ©hicule est lookupÃ© en BDD Ã  chaque Ã©valuation. Performance : 1
- * requÃªte simple par appel ; nÃ©gligeable au regard du chemin de
- * validation oÃ¹ elle s'insÃ¨re.
+ * Le véhicule est lookupé en BDD à chaque évaluation. Performance : 1
+ * requête simple par appel ; négligeable au regard du chemin de
+ * validation où elle s'insère.
  */
 final class AvailableForPeriod implements ValidationRule
 {
@@ -44,16 +44,20 @@ final class AvailableForPeriod implements ValidationRule
 
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        $vehicle = Vehicle::query()->find($this->vehicleId);
+        // ADR-0013 R3 · le lookup PK passe par le Repo plutôt qu'un
+        // `Vehicle::query()` direct. Résolution via container car la
+        // Rule est instanciée par `new` dans les DTOs Spatie Data, ce
+        // qui empêche l'injection par constructor.
+        $vehicle = app(VehicleReadRepositoryInterface::class)->findById($this->vehicleId);
 
-        // VÃ©hicule introuvable : on ne lÃ¨ve pas ici (une autre rÃ¨gle
+        // Véhicule introuvable : on ne lève pas ici (une autre règle
         // `exists:vehicles,id` couvre ce cas en amont). Pas de
-        // validation Ã  faire si on n'a pas de rÃ©fÃ©rence.
+        // validation à faire si on n'a pas de référence.
         if ($vehicle === null) {
             return;
         }
 
-        // Cas 1 : vÃ©hicule jamais sorti â†’ toujours autorisÃ©.
+        // Cas 1 : véhicule jamais sorti, toujours autorisé.
         if ($vehicle->exit_date === null) {
             return;
         }
@@ -61,24 +65,24 @@ final class AvailableForPeriod implements ValidationRule
         $exitDate = $vehicle->exit_date->toImmutable();
         $exitFr = $exitDate->format('d/m/Y');
 
-        // Cas 2 : pÃ©riode entiÃ¨rement avant exit_date â†’ autorisÃ©.
+        // Cas 2 : période entièrement avant exit_date, autorisé.
         if ($this->endDate->lessThan($exitDate)) {
             return;
         }
 
-        // Cas 3 : pÃ©riode entiÃ¨rement aprÃ¨s exit_date.
+        // Cas 3 : période entièrement après exit_date.
         if ($this->startDate->greaterThanOrEqualTo($exitDate)) {
             $fail(sprintf(
-                'VÃ©hicule retirÃ© depuis le %s. Aucune pÃ©riode n\'est autorisÃ©e Ã  partir de cette date.',
+                'Véhicule retiré depuis le %s. Aucune période n\'est autorisée à partir de cette date.',
                 $exitFr,
             ));
 
             return;
         }
 
-        // Cas 4 : pÃ©riode chevauche exit_date (start < exit_date <= end).
+        // Cas 4 : période chevauche exit_date (start < exit_date <= end).
         $fail(sprintf(
-            'VÃ©hicule retirÃ© le %s. La pÃ©riode ne peut pas dÃ©passer cette date.',
+            'Véhicule retiré le %s. La période ne peut pas dépasser cette date.',
             $exitFr,
         ));
     }

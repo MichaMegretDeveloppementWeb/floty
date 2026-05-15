@@ -89,6 +89,17 @@ interface VehicleReadRepositoryInterface
     public function findByIdsIndexed(array $ids): Collection;
 
     /**
+     * Lookup unitaire **nullable** sans eager-loading. Retourne `null` si
+     * l'id n'existe pas ou si le véhicule est soft-deleted.
+     *
+     * Utilisé par les Validation Rules qui ne peuvent pas faire d'injection
+     * de dépendance via constructor (instanciation `new` dans les DTOs)
+     * et qui ont besoin d'un lookup PK trivial sans charger la chaîne
+     * fiscale (cf. ADR-0013 R3 · pas de `Model::query()` direct hors Repo).
+     */
+    public function findById(int $id): ?Vehicle;
+
+    /**
      * Lookup unitaire avec eager-loading des caractéristiques fiscales
      * actives, échoue si l'id n'existe pas.
      */
