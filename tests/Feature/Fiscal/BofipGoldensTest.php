@@ -92,6 +92,32 @@ final class BofipGoldensTest extends TestCase
     // ============================================================
 
     /**
+     * **BOFiP `BOI-AIS-MOB-10-30-20-20240710` § 230, exemple 1 (Ω.5).**
+     *
+     * Audit Chrome live 15/05/2026 du BOFiP § 230 actualisé · le texte
+     * cite explicitement « en 2024, le tarif annuel est égal à
+     * 14 × 0 + (55-14) × 1 + (63-55) × 2 + (95-63) × 3 + (100-95) × 4
+     * = 173 € » pour un véhicule M1 essence Euro 6 WLTP 100 g/km
+     * affecté toute l'année à l'activité économique.
+     *
+     * Verrouille la valeur cible BOFiP officielle 173 € indépendamment
+     * du goldens manuel équivalent dans `R2024_PricingScalesTest`
+     * (`wltp_co2_100`).
+     */
+    #[Test]
+    public function bofip_2024_230_ex1_wltp_100g_full_year_donne_co2_173_polluants_100(): void
+    {
+        $vehicle = $this->makeVehicleWltp(2024, co2: 100, category: PollutantCategory::Category1);
+        $this->makeContract($vehicle, '2024-01-01', '2024-12-31', ContractType::Lld);
+
+        $snapshot = $this->engine->compute($this->company->id, 2024);
+        self::assertCount(1, $snapshot->contractBreakdown);
+        self::assertEqualsWithDelta(173.0, $snapshot->co2DueTotal, 0.01);
+        self::assertEqualsWithDelta(100.0, $snapshot->pollutantsDueTotal, 0.01);
+        self::assertEqualsWithDelta(273.0, $snapshot->totalDue, 0.01);
+    }
+
+    /**
      * **BOFiP `BOI-AIS-MOB-10-30-20-20240710` § 230, exemple 2.**
      *
      * Véhicule M1 essence Euro 6 WLTP 100 g/km, 306 jours d'affectation

@@ -12,6 +12,7 @@ use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
+use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Company;
@@ -35,7 +36,8 @@ use Tests\TestCase;
  *
  * Bornes ·
  * - WLTP 100 g/km · 2024 = 173 €, 2025 = 193 €, +20 € (+11,6 %)
- * - WLTP 150 g/km · 2024 = 1233 €, 2025 = 1433 €, +200 € (+16,2 %)
+ * - WLTP 150 g/km · 2024 = 1183 €, 2025 = 1433 €, +250 € (+21,1 %)
+ *   (avec polluants Cat1 inclus · 2024 = 1283 €, 2025 = 1533 €)
  * - Polluants Cat1 inchangés · 100 €/an (texte L. 421-135 stable
  *   31/12/2023 → 01/03/2026)
  *
@@ -143,6 +145,158 @@ final class Year2024VsYear2025HardeningTest extends TestCase
         // Cat1 = 100 € identique sur les 2 années.
         self::assertEqualsWithDelta(100.0, $total2024, 0.01);
         self::assertEqualsWithDelta(100.0, $total2025, 0.01);
+    }
+
+    /**
+     * Disparition R-2024-017 (Ω.7) · l'exonération hybride
+     * conditionnelle 2024 (CIBS L. 421-125 v 31/12/2023) a été
+     * supprimée par LF 2024 art. 97 23° (effet 01/01/2025 · réforme
+     * de l'article L. 421-125 vers le régime E85).
+     *
+     * Profil testé · véhicule NonPluginHybrid (sous-jacent essence)
+     * WLTP 50 g/km, > 3 ans · éligible R-2024-017 (régime général
+     * WLTP ≤ 60 g/km) → CO₂ exempt en 2024, taxe CO₂ due en 2025.
+     */
+    #[Test]
+    public function disparition_r2024_017_hybride_conditionnel_taxe_co2_apparait_en_2025(): void
+    {
+        $total2024 = $this->totalForProfileHybride(co2: 50, year: 2024);
+        $total2025 = $this->totalForProfileHybride(co2: 50, year: 2025);
+
+        // 2024 · CO₂ exempt par R-2024-017 (50 ≤ 60 régime général).
+        // Reste polluants Cat1 = 100 €.
+        self::assertEqualsWithDelta(100.0, $total2024, 0.01, '2024 · CO₂ exempt par R-2024-017, polluants Cat1 = 100 €.');
+
+        // 2025 · CO₂ barème 2025 sur 50 g/km = (50-9)*1 = 41 €.
+        // Polluants Cat1 = 100 €. Total = 141 €.
+        self::assertEqualsWithDelta(141.0, $total2025, 0.01, '2025 · pas d\'exonération hybride, CO₂ 41 € + polluants 100 €.');
+
+        self::assertGreaterThan(
+            $total2024,
+            $total2025,
+            'Disparition R-2024-017 · 2025 strictement > 2024 pour profil hybride éligible 2024.',
+        );
+    }
+
+    /**
+     * Apparition R-2025-023 E85 (Ω.7) · l'abattement E85 (CIBS
+     * L. 421-125 v 01/01/2025 réformé par LF 2024 art. 97 23°) est
+     * une nouveauté 2025. En 2024, le flag `accepts_e85` n'avait
+     * aucun effet (R-2024-023 placeholder vide informative).
+     *
+     * Profil testé · véhicule WLTP 100 g/km essence Cat1 avec
+     * `accepts_e85=true`, full year.
+     *
+     * 2024 · pas d'abattement · CO₂ 173 € + polluants 100 € = 273 €.
+     * 2025 · abattement 40 % CO₂ · 100 × 0.60 = 60 g/km · barème
+     * 2025 sur 60 = 9×0 + (50-9)×1 + (58-50)×2 + (60-58)×3
+     * = 0 + 41 + 16 + 6 = 63 €. Total = 63 + 100 = 163 €.
+     *
+     * Gain E85 cross-année · 273 - 163 = **110 € en moins** en 2025
+     * vs 2024 pour le même véhicule.
+     */
+    #[Test]
+    public function apparition_r2025_023_e85_reduit_la_taxe_co2_en_2025_vs_2024(): void
+    {
+        $total2024 = $this->totalForProfileE85(co2: 100, year: 2024);
+        $total2025 = $this->totalForProfileE85(co2: 100, year: 2025);
+
+        self::assertEqualsWithDelta(273.0, $total2024, 0.01, '2024 · pas d\'abattement E85 (placeholder vide).');
+        self::assertEqualsWithDelta(163.0, $total2025, 0.01, '2025 · abattement E85 actif · CO₂ 100 → 60 g/km = 63 €.');
+
+        self::assertLessThan(
+            $total2024,
+            $total2025,
+            'Apparition E85 · 2025 strictement < 2024 pour profil E85 100 g/km.',
+        );
+    }
+
+    private function totalForProfileHybride(int $co2, int $year): float
+    {
+        $company = $this->makeCompany();
+        $vehicle = $this->makeVehicleHybride($company, $year, $co2);
+        $this->makeContract($company, $vehicle, sprintf('%d-01-01', $year), sprintf('%d-12-31', $year));
+
+        return $this->engine->compute($company->id, $year)->totalDue;
+    }
+
+    private function totalForProfileE85(int $co2, int $year): float
+    {
+        $company = $this->makeCompany();
+        $vehicle = $this->makeVehicleE85($company, $year, $co2);
+        $this->makeContract($company, $vehicle, sprintf('%d-01-01', $year), sprintf('%d-12-31', $year));
+
+        return $this->engine->compute($company->id, $year)->totalDue;
+    }
+
+    private function makeVehicleHybride(Company $company, int $year, int $co2): Vehicle
+    {
+        // Véhicule NonPluginHybrid sous-jacent essence, > 3 ans au
+        // 01/01/2024 → éligible R-2024-017 régime général.
+        $vehicle = Vehicle::create([
+            'license_plate' => sprintf('Y%d-%03d-Y%d', random_int(1, 9), random_int(1, 999), random_int(1, 9)),
+            'brand' => 'Toyota',
+            'model' => 'Yaris Hybrid',
+            'first_french_registration_date' => Carbon::parse('2020-01-01'),
+            'first_origin_registration_date' => Carbon::parse('2020-01-01'),
+            'first_economic_use_date' => Carbon::parse('2020-01-01'),
+            'acquisition_date' => Carbon::parse('2020-01-01'),
+            'current_status' => VehicleStatus::Active,
+        ]);
+        VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::parse(sprintf('%d-01-01', $year)),
+            'effective_to' => null,
+            'reception_category' => ReceptionCategory::M1,
+            'vehicle_user_type' => VehicleUserType::PassengerCar,
+            'body_type' => BodyType::InteriorDriving,
+            'seats_count' => 5,
+            'energy_source' => EnergySource::NonPluginHybrid,
+            'underlying_combustion_engine_type' => UnderlyingCombustionEngineType::Gasoline,
+            'euro_standard' => EuroStandard::Euro6,
+            'pollutant_category' => PollutantCategory::Category1,
+            'homologation_method' => HomologationMethod::Wltp,
+            'co2_wltp' => $co2,
+            'taxable_horsepower' => 5,
+            'handicap_access' => false,
+            'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
+        ]);
+
+        return $vehicle->fresh();
+    }
+
+    private function makeVehicleE85(Company $company, int $year, int $co2): Vehicle
+    {
+        $vehicle = Vehicle::create([
+            'license_plate' => sprintf('E%d-%03d-E%d', random_int(1, 9), random_int(1, 999), random_int(1, 9)),
+            'brand' => 'Renault',
+            'model' => 'Captur E85',
+            'first_french_registration_date' => Carbon::parse(sprintf('%d-01-01', $year - 1)),
+            'first_origin_registration_date' => Carbon::parse(sprintf('%d-01-01', $year - 1)),
+            'first_economic_use_date' => Carbon::parse(sprintf('%d-01-01', $year - 1)),
+            'acquisition_date' => Carbon::parse(sprintf('%d-01-01', $year - 1)),
+            'current_status' => VehicleStatus::Active,
+        ]);
+        VehicleFiscalCharacteristics::create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::parse(sprintf('%d-01-01', $year)),
+            'effective_to' => null,
+            'reception_category' => ReceptionCategory::M1,
+            'vehicle_user_type' => VehicleUserType::PassengerCar,
+            'body_type' => BodyType::InteriorDriving,
+            'seats_count' => 5,
+            'energy_source' => EnergySource::Gasoline,
+            'euro_standard' => EuroStandard::Euro6,
+            'pollutant_category' => PollutantCategory::Category1,
+            'homologation_method' => HomologationMethod::Wltp,
+            'co2_wltp' => $co2,
+            'taxable_horsepower' => 6,
+            'handicap_access' => false,
+            'accepts_e85' => true,
+            'change_reason' => FiscalCharacteristicsChangeReason::InitialCreation,
+        ]);
+
+        return $vehicle->fresh();
     }
 
     // ============================================================
