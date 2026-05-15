@@ -36,19 +36,69 @@ use Illuminate\Support\Collection;
  * fingerprint trié par `id` ASC = même entrée → même sortie, garantie
  * fonctionnelle de la régénération à fingerprint identique (§ 6.5).
  */
-final readonly class RiskDetectionService
+final class RiskDetectionService
 {
+    /**
+     * Cache mémoire intra-instance des clusters détectés indexé par
+     * `"{companyId}|{year}"` (Lot 3 D08).
+     *
+     * **Périmètre de sécurité** · purement per-request (Service Laravel
+     * resolved par requête HTTP) · garbage-collecté en fin de requête,
+     * aucun cache cross-request à invalider. Le contrat de mémoïsation
+     * est sûr tant qu'aucun consommateur ne mute les contracts ou les
+     * `FiscalRiskSettings` **entre deux appels intra-requête** sur le
+     * même couple `(companyId, year)`.
+     *
+     * **Hot path bénéficiaire** · `GenerateDeclarationAction::execute`
+     * et `DeclarationController` (preview+show) appellent successivement
+     * `DeclarationPreviewService::preview()` puis
+     * `DeclarationFiscalEngine::compute()`, qui chacun déclenche un
+     * `detectClusters($companyId, $year)` · sans cache, le calcul
+     * (chaînage LCD + fingerprint) est exécuté 2 fois.
+     *
+     * **Échappatoire** · {@see clearCache()} permet d'invalider
+     * manuellement si jamais une Action future doit muter contracts puis
+     * recalculer dans la même requête (cas non observé aujourd'hui).
+     *
+     * @var array<string, list<ReviewClusterData>>
+     */
+    private array $clustersCache = [];
+
     public function __construct(
-        private ContractReadRepositoryInterface $contracts,
-        private FiscalRiskSettingsReadRepositoryInterface $settingsRepo,
-        private LcdContractFilter $lcdFilter,
-        private FingerprintService $fingerprint,
+        private readonly ContractReadRepositoryInterface $contracts,
+        private readonly FiscalRiskSettingsReadRepositoryInterface $settingsRepo,
+        private readonly LcdContractFilter $lcdFilter,
+        private readonly FingerprintService $fingerprint,
     ) {}
 
     /**
      * @return list<ReviewClusterData>
      */
     public function detectClusters(int $companyId, int $year): array
+    {
+        $key = $companyId.'|'.$year;
+
+        return $this->clustersCache[$key] ??= $this->computeClusters($companyId, $year);
+    }
+
+    /**
+     * Vide le cache de mémoïsation per-request.
+     *
+     * À utiliser uniquement par les rares consommateurs qui mutent les
+     * contracts ou les `FiscalRiskSettings` entre deux appels
+     * `detectClusters()` dans la même requête HTTP. Pas nécessaire en
+     * fonctionnement normal (le cache est garbage-collecté en fin de
+     * requête).
+     */
+    public function clearCache(): void
+    {
+        $this->clustersCache = [];
+    }
+
+    /**
+     * @return list<ReviewClusterData>
+     */
+    private function computeClusters(int $companyId, int $year): array
     {
         $allContracts = $this->contracts->findForCompanyAndYear($companyId, $year);
         if ($allContracts->isEmpty()) {

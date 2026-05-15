@@ -417,6 +417,78 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertSame(3, $clusters[0]->contractsCount);
     }
 
+    // ---------- Lot 3 D08 · mémoïsation per-request (clustersCache) ----------
+
+    /**
+     * Garantit que la mémoïsation `$clustersCache` retourne strictement
+     * la même instance (identité, via `assertSame`) sur appels répétés
+     * pour un même couple `(companyId, year)`. Prouve que le 2e appel
+     * lit le cache au lieu de relancer l'algorithme de chaînage.
+     */
+    #[Test]
+    public function detect_clusters_est_memoise_sur_appels_repetes(): void
+    {
+        // Fixture · 2 LCD chaînés produisent un cluster ChainMoyen.
+        $this->makeContract('2025-01-01', '2025-01-20');
+        $this->makeContract('2025-01-26', '2025-02-14');
+
+        $first = $this->service->detectClusters($this->company->id, 2025);
+        $second = $this->service->detectClusters($this->company->id, 2025);
+
+        self::assertSame($first, $second);
+        self::assertCount(1, $first);
+    }
+
+    /**
+     * Garantit que le cache discrimine bien sur le couple
+     * `(companyId, year)` · 2 entreprises distinctes ou 2 années
+     * distinctes doivent produire 2 entrées de cache séparées.
+     */
+    #[Test]
+    public function detect_clusters_distingue_par_couple_company_annee(): void
+    {
+        $otherCompany = Company::factory()->create();
+        $this->makeContract('2025-01-01', '2025-01-20');
+        $this->makeContract('2025-01-26', '2025-02-14');
+
+        $a2025 = $this->service->detectClusters($this->company->id, 2025);
+        $other2025 = $this->service->detectClusters($otherCompany->id, 2025);
+        $a2024 = $this->service->detectClusters($this->company->id, 2024);
+
+        // L'entreprise sans contrat = liste vide (pas le même array que A)
+        self::assertNotSame($a2025, $other2025);
+        self::assertSame([], $other2025);
+        // L'année sans contrat = liste vide elle aussi
+        self::assertSame([], $a2024);
+    }
+
+    /**
+     * Lot 3 D08 · garantit que `clearCache()` force le recompute · si un
+     * consommateur mute des contracts entre deux appels intra-requête,
+     * il peut explicitement invalider le cache pour relire la nouvelle
+     * réalité plutôt que de servir un résultat stale.
+     */
+    #[Test]
+    public function clear_cache_force_le_recompute_apres_mutation(): void
+    {
+        // Premier appel · aucun contrat · liste vide cachée.
+        $first = $this->service->detectClusters($this->company->id, 2025);
+        self::assertSame([], $first);
+
+        // Mutation intra-requête · ajout de 2 LCD chaînés.
+        $this->makeContract('2025-01-01', '2025-01-20');
+        $this->makeContract('2025-01-26', '2025-02-14');
+
+        // Sans clearCache · le cache renvoie encore la liste vide stale.
+        $stale = $this->service->detectClusters($this->company->id, 2025);
+        self::assertSame([], $stale);
+
+        // Avec clearCache · re-calcul détecte le cluster.
+        $this->service->clearCache();
+        $fresh = $this->service->detectClusters($this->company->id, 2025);
+        self::assertCount(1, $fresh);
+    }
+
     private function makeContract(
         string $start,
         string $end,
