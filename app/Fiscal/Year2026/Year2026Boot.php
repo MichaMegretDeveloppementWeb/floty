@@ -43,6 +43,8 @@ use App\Fiscal\Year2026\Transversal\R2026_030_RegistrationWeightMalus;
 use App\Fiscal\Year2026\Transversal\R2026_031_RegistrationCardTaxes;
 use App\Fiscal\Year2026\Transversal\R2026_031bis_RegistrationCardTaxes;
 use App\Fiscal\Year2026\Transversal\R2026_032_HeavyVehiclesTax;
+use App\Fiscal\Year2026\Transversal\R2026_033_FleetGreeningIncentiveTax;
+use App\Fiscal\Year2026\Transversal\R2026_033bis_FleetGreeningIncentiveTax;
 use App\Providers\FiscalServiceProvider;
 
 /**
@@ -165,22 +167,27 @@ final class Year2026Boot implements FiscalYearBoot
      * - **Pas de R-2026-031-bis** · évolution +14 € IDF mars 2026 portée
      *   par une version unique (à confirmer par audit Chrome live Z4.3).
      *
-     * **Statut Z4.3c** · 15 classes câblées · 3 cadre architectural
-     * (Z4.1) + 6 garde-fous (Z4.2) + 2 taxes connexes stables (Z4.3a) +
-     * 2 versions malus CO₂ carte grise (Z4.3b) + 2 versions TC carte
-     * grise (Z4.3c · R-2026-031 + bis). Z4.3d (R-2026-033 · 1 classe)
-     * à venir.
+     * **Statut Z4.3d (clos)** · **17 classes câblées au total** ·
+     * 3 cadre architectural (Z4.1) + 6 garde-fous (Z4.2) + 2 taxes
+     * stables (Z4.3a) + 2 malus CO₂ carte grise (Z4.3b) + 2 TC carte
+     * grise (Z4.3c) + 2 TAI (Z4.3d) = 14 règles logiques + 3 paires
+     * bis scissions ADR-0022 informatives 2026.
      *
-     * **Scissions ADR-0022 strict 2026 confirmées Chrome live** ·
+     * **Scissions ADR-0022 strict 2026 informatives confirmées Chrome
+     * live** ·
      * - R-2026-029 / R-2026-029-bis · L. 421-62 v 01/01-31/08/2026 et
      *   v 01/09/2026 (Ordo 2025-1247 art. 4 + art. 49 · RÉDACTIONNEL).
      * - R-2026-031 / R-2026-031-bis · L. 421-54-1 créé par LF 2026
      *   art. 60 (effet 01/03/2026 · MATÉRIEL · majoration IDF jusqu'à
      *   +13 €).
+     * - R-2026-033 / R-2026-033-bis · L. 421-132-5 v 01/03/2025-01/03/2026
+     *   et v 01/03/2026 (toilettage rédactionnel · note V transitoire
+     *   2025 caduque).
      *
      * Note · bilan Z0 annonçait « +14 € IDF mars 2026 » · audit Chrome
      * live confirme +13 € maximum (correction mineure sans impact
-     * doctrinal · règle inactive).
+     * doctrinal · règle inactive). Bilan Z0 n'avait pas anticipé la
+     * scission R-2026-033 (découverte Chrome live au 15/05/2026).
      *
      * @return list<class-string<InformativeRule>>
      */
@@ -207,8 +214,9 @@ final class Year2026Boot implements FiscalYearBoot
             // Taxes connexes inactives (Z4.3c · TC carte grise · scission ADR-0022 matérielle LF 2026 art. 60)
             R2026_031_RegistrationCardTaxes::class, // v 01/01-28/02/2026 · régime stabilisé LF 2025
             R2026_031bis_RegistrationCardTaxes::class, // v 01/03-31/12/2026 · création L. 421-54-1 majoration IDF +13 €
-            // Taxes connexes inactives (Z4.3d · 1 dernière classe · à venir)
-            // - R2026_033_FleetGreeningIncentiveTax (TAI régime plein 2026)
+            // Taxes connexes inactives (Z4.3d · TAI régime plein 2026 · scission ADR-0022 rédactionnelle L. 421-132-5)
+            R2026_033_FleetGreeningIncentiveTax::class, // v 01/01-28/02/2026 · régime transitoire textuel
+            R2026_033bis_FleetGreeningIncentiveTax::class, // v 01/03-31/12/2026 · textes toilettés
         ];
     }
 }
