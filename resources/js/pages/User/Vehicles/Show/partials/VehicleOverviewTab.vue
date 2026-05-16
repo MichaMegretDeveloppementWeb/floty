@@ -17,6 +17,7 @@
  *
  * Le panel détaillé de la Taxe pleine vit dans l'onglet Fiscalité.
  */
+import { Deferred } from '@inertiajs/vue3';
 import CurrentFiscalCharacteristicsCard from './CurrentFiscalCharacteristicsCard.vue';
 import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
 import UnavailabilitiesCard from './UnavailabilitiesCard.vue';
@@ -26,6 +27,9 @@ import VehicleYearHistoryCard from './VehicleYearHistoryCard.vue';
 defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
+    // Inertia::defer · arrive en 2e round-trip apres mount initial,
+    // <Deferred data="history"> ci-dessous affiche un skeleton entretemps.
+    history?: App.Data.User.Vehicle.VehicleYearStatsData[];
 }>();
 </script>
 
@@ -37,7 +41,12 @@ defineProps<{
             :kpi-fiscal-available="vehicle.kpiFiscalAvailable"
         />
 
-        <VehicleYearHistoryCard :history="vehicle.history" />
+        <Deferred data="history">
+            <template #fallback>
+                <div class="h-32 animate-pulse rounded-xl bg-slate-100" />
+            </template>
+            <VehicleYearHistoryCard :history="history!" />
+        </Deferred>
 
         <CurrentFiscalCharacteristicsCard
             :vehicle-id="vehicle.id"

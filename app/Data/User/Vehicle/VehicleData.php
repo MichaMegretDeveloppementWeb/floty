@@ -34,11 +34,6 @@ final class VehicleData extends Data
      *                                   est attribué sur l'année active
      *                                   (alimente le DateRangePicker
      *                                   du modal indispos).
-     * @param  list<VehicleYearStatsData>  $history  Stats annuelles passées
-     *                                               `[minYear..kpiYear-1]`,
-     *                                               lignes neutres (zéros)
-     *                                               comprises (cf. doctrine
-     *                                               temporelle Phase 2).
      * @param  list<VehicleYearlyPricingData>  $yearlyPricings  Tarifs
      *                                                          jour/semaine/mois
      *                                                          du véhicule par
@@ -46,6 +41,12 @@ final class VehicleData extends Data
      *                                                          année croissante.
      *                                                          Phase 14 facturation
      *                                                          V1.2.
+     *
+     * Note · le `history` annuel (stats `[minYear..kpiYear-1]`) n'est
+     * PAS dans ce DTO. Il est servi côté Show via `Inertia::defer` en
+     * prop racine `history` (audit perf 2026-05-16 / 02-vehicle.md
+     * P0 #1). Le DTO reste réutilisable par Edit (qui n'affiche pas
+     * l'historique) sans payer le pipeline fiscal multi-années.
      */
     public function __construct(
         public int $id,
@@ -76,8 +77,6 @@ final class VehicleData extends Data
         public int $kpiYear,
         public VehicleYearStatsData $kpiStats,
         public bool $kpiFiscalAvailable,
-        #[DataCollectionOf(VehicleYearStatsData::class)]
-        public array $history,
         public int $selectedYear,
         public YearScopeData $yearScope,
         // Phase 14 facturation V1.2
@@ -96,7 +95,6 @@ final class VehicleData extends Data
      *
      * @param  list<UnavailabilityData>  $unavailabilities
      * @param  list<string>  $busyDates
-     * @param  list<VehicleYearStatsData>  $history
      */
     public static function fromModel(
         Vehicle $vehicle,
@@ -106,7 +104,6 @@ final class VehicleData extends Data
         int $kpiYear,
         VehicleYearStatsData $kpiStats,
         bool $kpiFiscalAvailable,
-        array $history,
         int $selectedYear,
         YearScopeData $yearScope,
     ): self {
@@ -151,7 +148,6 @@ final class VehicleData extends Data
             kpiYear: $kpiYear,
             kpiStats: $kpiStats,
             kpiFiscalAvailable: $kpiFiscalAvailable,
-            history: $history,
             selectedYear: $selectedYear,
             yearScope: $yearScope,
             yearlyPricings: $yearlyPricings,

@@ -14,8 +14,10 @@ use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Vehicle\VehicleAggregatesService;
+use App\Services\Vehicle\VehicleDetailService;
 use App\Services\Vehicle\VehicleListingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Carbon;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -38,11 +40,49 @@ final class VehicleQueryServicesTest extends TestCase
 
     private VehicleAggregatesService $aggregates;
 
+    private VehicleDetailService $detail;
+
     protected function setUp(): void
     {
         parent::setUp();
         $this->listing = $this->app->make(VehicleListingService::class);
         $this->aggregates = $this->app->make(VehicleAggregatesService::class);
+        $this->detail = $this->app->make(VehicleDetailService::class);
+    }
+
+    // ----------------------------------------------------------------
+    // VehicleDetailService::historyForVehicle (audit perf 2026-05-16 P0.3)
+    // ----------------------------------------------------------------
+
+    #[Test]
+    public function history_for_vehicle_couvre_les_annees_passees_du_scope_global(): void
+    {
+        // Audit perf 2026-05-16 / 02-vehicle.md P0 #1 · l'historique
+        // annuel est extrait de findVehicleData() vers une methode
+        // dediee historyForVehicle() servie en Inertia::defer. Ce test
+        // verifie l'equivalence stricte avec l'ancien comportement ·
+        // contrat 2024 → minYear = 2024, currentYear = 2026 →
+        // [2025 neutre, 2024 reel] (ordre DESC).
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-15',
+        ]);
+
+        $currentYear = (int) Carbon::now()->year;
+        $expectedYears = range(2024, $currentYear - 1);
+
+        $history = $this->detail->historyForVehicle($vehicle->id);
+
+        self::assertCount(count($expectedYears), $history);
+        // Ordre DESC · index 0 = currentYear - 1
+        self::assertSame($currentYear - 1, $history[0]->year);
+        // Dernier element · 2024 avec 15 jours utilises
+        self::assertSame(2024, $history[count($expectedYears) - 1]->year);
+        self::assertSame(15, $history[count($expectedYears) - 1]->daysUsed);
     }
 
     #[Test]

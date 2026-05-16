@@ -90,13 +90,10 @@ final class VehicleDetailService
             true,
         );
 
-        // Évolution · couvre `[minYear..kpiYear-1]`, lignes neutres
-        // pour les années sans contrat (cohérent avec Phase 1 Company).
-        $history = [];
-        $minYear = $this->availableYears->minYear();
-        for ($year = $kpiYear - 1; $year >= $minYear; $year--) {
-            $history[] = $this->computeVehicleYearStats($vehicle, $year, $unavailabilityModels);
-        }
+        // Évolution (history annuel) · servi via `Inertia::defer` côté
+        // VehicleController::show pour ne pas bloquer le mount sur N
+        // pipelines fiscaux. Cf. `historyForVehicle()` ci-dessous et
+        // audit perf 2026-05-16 / 02-vehicle.md P0 #1.
 
         // Exploration · `usageStats` initialisé sur `currentYear`. Les
         // autres années sont fetchées à la demande côté front via les
@@ -113,10 +110,36 @@ final class VehicleDetailService
             kpiYear: $kpiYear,
             kpiStats: $kpiStats,
             kpiFiscalAvailable: $kpiFiscalAvailable,
-            history: $history,
             selectedYear: $initialYear,
             yearScope: YearScopeData::fromResolver($this->availableYears),
         );
+    }
+
+    /**
+     * Historique annuel d'un véhicule · `[minYear..kpiYear-1]` ordonné
+     * DESC (le plus récent en haut), lignes neutres comprises pour les
+     * années sans contrat (cohérent avec doctrine temporelle Phase 2).
+     *
+     * Servi via `Inertia::defer` côté Show pour ne pas bloquer le mount
+     * initial sur N pipelines fiscaux (~100-150 ms cold gagnés selon
+     * profondeur du scope). Audit perf 2026-05-16 / 02-vehicle.md P0 #1.
+     *
+     * @return list<VehicleYearStatsData>
+     */
+    public function historyForVehicle(int $id): array
+    {
+        $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
+        $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
+
+        $kpiYear = $this->availableYears->currentYear();
+        $minYear = $this->availableYears->minYear();
+
+        $history = [];
+        for ($year = $kpiYear - 1; $year >= $minYear; $year--) {
+            $history[] = $this->computeVehicleYearStats($vehicle, $year, $unavailabilityModels);
+        }
+
+        return $history;
     }
 
     /**

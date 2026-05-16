@@ -123,6 +123,12 @@ final class VehicleController extends Controller
             'billingYear' => $selectedYear,
             'fiscalYear' => $selectedYear,
 
+            // Inertia::defer · historique annuel calcule N pipelines
+            // fiscaux (audit perf 2026-05-16 / 02-vehicle.md P0 #1,
+            // ~100-150 ms cold). Mount immediat + 2e round-trip
+            // transparent + <Deferred data="history"> cote front.
+            'history' => Inertia::defer(fn () => $this->vehicleDetail->historyForVehicle($vehicle)),
+
             // Onglet "fiscal" · breakdown taxe pleine.
             'fiscalYearBreakdown' => $this->eagerForTab(
                 $activeTab === 'fiscal',

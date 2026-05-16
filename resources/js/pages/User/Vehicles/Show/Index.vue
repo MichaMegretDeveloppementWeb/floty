@@ -29,6 +29,10 @@ const props = defineProps<{
     billingYear: number;
     fiscalYear: number;
 
+    // Inertia::defer · arrive en 2e round-trip apres mount initial,
+    // visible via <Deferred data="history"> dans VehicleOverviewTab.
+    history?: App.Data.User.Vehicle.VehicleYearStatsData[];
+
     // Lazy · présentes uniquement après visite de leur onglet.
     vehicleBilling?: App.Data.User.Billing.MonthlyBillingBreakdownData;
     fiscalYearBreakdown?: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
@@ -50,7 +54,9 @@ const { activeTab, setTab, loadingTab } = useVehicleTabs();
                 v-if="activeTab === 'overview'"
                 :vehicle="props.vehicle"
                 :options="props.options"
+                :history="props.history"
             />
+
 
             <!--
                 D5.10.V · `loadingTab !== '<key>'` force le skeleton

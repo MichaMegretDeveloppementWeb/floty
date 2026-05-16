@@ -607,10 +607,17 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function show_history_couvre_les_annees_passees_du_scope_global(): void
+    public function show_history_servi_via_inertia_defer_et_pas_dans_vehicle_dto(): void
     {
-        // Crée un contrat 2024 → minYear = 2024, currentYear = 2026
-        // → history doit contenir [2024 réel, 2025 neutre], pas 2026.
+        // Audit perf 2026-05-16 / 02-vehicle.md P0 #1 · l'historique
+        // annuel est servi via `Inertia::defer` cote Show pour ne pas
+        // bloquer le mount sur N pipelines fiscaux. Ce test prouve que
+        // le defer est correctement cable · `history` n'est PAS dans
+        // la 1ere reponse Inertia (mount initial), il arrive via une
+        // 2e requete asynchrone partial reload declenchee par
+        // <Deferred> cote front. Le contenu de l'historique est teste
+        // separement par `history_for_vehicle_couvre_les_annees_passees`
+        // dans VehicleDetailServiceTest (Unit).
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -621,19 +628,13 @@ final class VehicleControllerTest extends TestCase
             'end_date' => '2024-03-15',
         ]);
 
-        $currentYear = (int) Carbon::now()->year;
-        $expectedYears = range(2024, $currentYear - 1);
-
         $this->actingAs($user)
             ->get("/app/vehicles/{$vehicle->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('vehicle.history', count($expectedYears))
-                // Le service ordonne DESC : index 0 = currentYear-1
-                // (neutre si currentYear > 2025) ou 2024 lui-même.
-                ->where('vehicle.history.0.year', $currentYear - 1)
-                ->where('vehicle.history.'.(count($expectedYears) - 1).'.year', 2024)
-                ->where('vehicle.history.'.(count($expectedYears) - 1).'.daysUsed', 15),
+                ->has('vehicle')
+                ->missing('vehicle.history')
+                ->missing('history'),
             );
     }
 
