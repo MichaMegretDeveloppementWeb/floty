@@ -15,6 +15,8 @@ use App\Fiscal\Year2025\Exemption\R2025_021_ShortTermRental;
 use App\Fiscal\Year2026\Exemption\R2026_008_ReductiveUnavailability;
 use App\Fiscal\Year2026\Exemption\R2026_021_ShortTermRental;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
+use App\Services\Fiscal\FleetFiscalAggregator;
+use App\Services\Fiscal\RiskDetection\RiskDetectionService;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
@@ -91,6 +93,31 @@ final class FiscalServiceProvider extends ServiceProvider
         // pour amortir le calcul sur plusieurs accès dans la même
         // requête HTTP.
         $this->app->singleton(RuleEffectiveSegmenter::class);
+
+        // FleetFiscalAggregator porte 3 caches d'instance scopés
+        // requête (`$rulesCache`, `$fullYearResultCache`,
+        // `$fullYearBreakdownCache`) indexés par `(vehicleId, year)`.
+        // Sans singleton, chaque service consommateur (VehicleListing,
+        // ContractQueryService, DashboardStatsService, PlanningHeatmap,
+        // CompanyDetail, etc.) recevait sa propre instance avec caches
+        // vides · le pipeline pour le même couple (véhicule, année)
+        // était recalculé 2-5× par requête HTTP. Le singleton partage
+        // les caches sur toute la requête · gain mesuré ~30-50% sur
+        // Dashboard et Contracts Index (audit perf 2026-05-15 · C-1).
+        //
+        // Note · `DeclarationAggregatorFactory` instancie son aggregator
+        // ad-hoc via `new FleetFiscalAggregator(...)` (pas via container)
+        // donc il garde son propre cache scopé à la déclaration ·
+        // pas de cross-contamination avec le singleton.
+        $this->app->singleton(FleetFiscalAggregator::class);
+
+        // RiskDetectionService porte `$clustersCache` indexé par
+        // `(companyId, year)`. Mêmes raisons · le `DeclarationFiscalEngine`
+        // et le `PendingDeclarationsResolver` consomment tous les deux
+        // `detectClusters()` dans la même requête · sans singleton, le
+        // chaînage LCD + fingerprint était calculé 2× pour la même paire
+        // (audit perf 2026-05-15 · C-1).
+        $this->app->singleton(RiskDetectionService::class);
 
         // Binding par défaut · résolu par `LcdContractFilter` (risk
         // detection) qui n'a pas de contexte année spécifique au moment
