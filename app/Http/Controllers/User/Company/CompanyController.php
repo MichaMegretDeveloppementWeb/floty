@@ -60,8 +60,25 @@ final class CompanyController extends Controller
         // `currentYear` si invalide.
         $year = $this->resolveSelectedYear($query->year);
 
+        // P0.1 (audit perf 2026-05-16) · liste SLIM en payload initial
+        // (sans `annualTaxDue` ni `rentalPriceTotal` qui demandent le
+        // pipeline fiscal × N items) · les couts arrivent dans une 2e
+        // requete `Inertia::defer` apres le mount, le frontend rend un
+        // skeleton sur 2 cellules entre-temps. Gain mesure ~250-375 ms
+        // cold sur 25 items.
+        $companies = $this->companyListing->listPaginatedSlim($query, $year);
+        $companyIds = array_map(static fn ($c): int => $c->id, $companies->data);
+
         return Inertia::render('User/Companies/Index/Index', [
-            'companies' => $this->companyListing->listPaginated($query, $year),
+            'companies' => $companies,
+            // P0.1 (audit perf 2026-05-16) · pipeline fiscal +
+            // rental calculator (~250-375 ms cold sur 25 items) servis
+            // en `Inertia::defer`. Mount immediat + watcher
+            // `router.reload` cote front pour re-fetch sur change
+            // filtre/tri/page (cf. feedback_inertia_defer_with_partial_reload).
+            'costs' => Inertia::defer(
+                fn () => $this->companyListing->costsForCompanyIds($companyIds, $year),
+            ),
             'query' => $query,
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromResolver($this->availableYears),

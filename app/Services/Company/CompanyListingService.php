@@ -16,12 +16,9 @@ use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Company\CompanyColor;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
-use App\Models\Unavailability;
-use App\Models\Vehicle;
 use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
-use Illuminate\Support\Collection;
 use Spatie\LaravelData\DataCollection;
 
 /**
@@ -45,38 +42,43 @@ final class CompanyListingService
     ) {}
 
     /**
-     * Index Companies paginé server-side (cf. ADR-0020).
+     * Index Companies paginé server-side (cf. ADR-0020) · **variante slim**.
      *
-     * Le repo gère pagination + filtre `isActive` + search SQL. Le
-     * service calcule ensuite les aggregates fiscaux (`daysUsed`,
-     * `annualTaxDue`) uniquement pour les entreprises de la page courante.
+     * P0.1 (audit perf 2026-05-16) · ne calcule PAS le pipeline fiscal
+     * (`annualTaxDue`) ni le rental calculator (`rentalPriceTotal`) au
+     * render initial · les 2 colonnes restent `null` dans le DTO et
+     * hydratent en 2e round-trip via la prop racine `costs` servie en
+     * `Inertia::defer` cote `CompanyController::index()`. Gain mesure
+     * ~250-375 ms cold sur 25 items.
      *
-     * Note perf : `loadContractsByPair($year)` charge tous les contrats
-     * de l'année (borne O(contrats/an), pas O(companies)). Acceptable
-     * tant que les contrats annuels restent < 10k. À matérialiser si la
-     * volumétrie explose (cf. ADR-0020 D6).
+     * `daysUsed` reste calcule eager · donnee brute (pas de dependance
+     * au pipeline fiscal), necessite seulement `loadContractsByPair($year)`
+     * qui sert deja aux endpoints AJAX.
+     *
+     * Doctrine `chargement-strict-par-ecran.md` § 3 · l'Index charge
+     * uniquement ce qu'il affiche d'office (skeleton pour le reste).
      */
-    public function listPaginated(CompanyIndexQueryData $query, int $year): PaginatedCompanyListData
+    public function listPaginatedSlim(CompanyIndexQueryData $query, int $year): PaginatedCompanyListData
     {
         $paginator = $this->companies->paginateForIndex($query);
 
-        // Pré-charge bulk pour le calcul des aggregates de la page.
+        // Pre-charge bulk uniquement pour `daysUsed` (donnee brute).
+        // Le pipeline fiscal + rental sont servis via `costsForCompanyIds`
+        // appele en `Inertia::defer` cote controller.
         $contractsByPair = $this->contracts->loadContractsByPair($year);
-        $vehicleIds = [];
-        foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
-            $vehicleIds[$pair['vehicleId']] = true;
-        }
-        $vehicleIdList = array_keys($vehicleIds);
-        $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
 
         $items = array_map(
-            fn (Company $c): CompanyListItemData => $this->mapCompanyToListItem(
-                company: $c,
-                year: $year,
-                contractsByPair: $contractsByPair,
-                vehiclesById: $vehiclesById,
-                unavailabilitiesByVehicleId: $unavailabilitiesByVehicleId,
+            static fn (Company $c): CompanyListItemData => new CompanyListItemData(
+                id: $c->id,
+                legalName: $c->legal_name,
+                shortCode: $c->short_code,
+                color: $c->color,
+                siren: $c->siren,
+                city: $c->city,
+                isActive: $c->is_active,
+                daysUsed: $contractsByPair->daysByCompany($c->id, $year),
+                annualTaxDue: null,
+                rentalPriceTotal: null,
             ),
             $paginator->items(),
         );
@@ -88,51 +90,64 @@ final class CompanyListingService
     }
 
     /**
-     * @param  Collection<int, Vehicle>  $vehiclesById
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * Calcule la map des couts (`annualTaxDue`, `rentalPriceTotal`)
+     * pour un batch de companies donnees par leurs IDs. Utilise en
+     * `Inertia::defer` cote `CompanyController::index` pour remplir
+     * les 2 colonnes de couts apres le render initial de l'Index.
+     *
+     * Performance ·
+     *   - Pre-charge bulk en 1 fois (`contractsByPair`, `vehiclesById`,
+     *     `unavailabilitiesByVehicleId`) puis itere sur la page.
+     *   - Pipeline fiscal `companyAnnualTax` per company + rental
+     *     calculator per company.
+     *
+     * Audit perf 2026-05-16 / 03-company.md P0 #1.
+     *
+     * @param  list<int>  $companyIds
+     * @return array<int, array{annualTaxDue: float, rentalPriceTotal: float|null}>
      */
-    private function mapCompanyToListItem(
-        Company $company,
-        int $year,
-        ContractsByPair $contractsByPair,
-        Collection $vehiclesById,
-        array $unavailabilitiesByVehicleId,
-    ): CompanyListItemData {
-        // Tolère une année hors registry fiscal (cohérent doctrine
-        // « données métier ⊥ règles fiscales » Phase 2) : si le pipeline
-        // fiscal n'a pas de règles pour `$year`, on affiche `0 €` sur la
-        // colonne taxes plutôt que de crasher l'Index. La colonne `daysUsed`
-        // reste valide (donnée brute, pas de dépendance au pipeline).
-        try {
-            $annualTaxDue = $this->aggregator->companyAnnualTax(
-                $company->id,
-                $vehiclesById,
-                $contractsByPair,
-                $unavailabilitiesByVehicleId,
-                $year,
-            );
-        } catch (FiscalCalculationException) {
-            $annualTaxDue = 0.0;
+    public function costsForCompanyIds(array $companyIds, int $year): array
+    {
+        if ($companyIds === []) {
+            return [];
         }
 
-        // Phase 13 D5.10.L · prix location annuel total (somme des 12
-        // facturations mensuelles). Null si au moins 1 véhicule a un
-        // tarif annuel manquant.
-        $rentalCents = $this->rentalPrice->forCompanyAndYear($company->id, $year);
-        $rentalPriceTotal = $rentalCents === null ? null : $rentalCents / 100;
+        // Memes prefetchs que l'ancien `listPaginated` · 1 fois pour
+        // tous les companies de la page (pas N+1).
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
+        $vehicleIds = [];
+        foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
+            $vehicleIds[$pair['vehicleId']] = true;
+        }
+        $vehicleIdList = array_keys($vehicleIds);
+        $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
+        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
 
-        return new CompanyListItemData(
-            id: $company->id,
-            legalName: $company->legal_name,
-            shortCode: $company->short_code,
-            color: $company->color,
-            siren: $company->siren,
-            city: $company->city,
-            isActive: $company->is_active,
-            daysUsed: $contractsByPair->daysByCompany($company->id, $year),
-            annualTaxDue: $annualTaxDue,
-            rentalPriceTotal: $rentalPriceTotal,
-        );
+        $result = [];
+        foreach ($companyIds as $companyId) {
+            // Tolere annee hors registry fiscal · 0 € plutot que crash.
+            try {
+                $annualTaxDue = $this->aggregator->companyAnnualTax(
+                    $companyId,
+                    $vehiclesById,
+                    $contractsByPair,
+                    $unavailabilitiesByVehicleId,
+                    $year,
+                );
+            } catch (FiscalCalculationException) {
+                $annualTaxDue = 0.0;
+            }
+
+            $rentalCents = $this->rentalPrice->forCompanyAndYear($companyId, $year);
+            $rentalPriceTotal = $rentalCents === null ? null : $rentalCents / 100;
+
+            $result[$companyId] = [
+                'annualTaxDue' => $annualTaxDue,
+                'rentalPriceTotal' => $rentalPriceTotal,
+            ];
+        }
+
+        return $result;
     }
 
     /**

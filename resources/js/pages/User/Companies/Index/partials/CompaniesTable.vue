@@ -16,12 +16,22 @@ const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
     'city',
 ]);
 
-defineProps<{
+const props = defineProps<{
     companies: CompanyRow[];
     columns: readonly DataTableColumn<CompanyRow>[];
     activeSortColumnKey: string | null;
     sortDirection: 'asc' | 'desc';
+    // P0.1 (audit perf 2026-05-16) · Inertia::defer · undefined pendant
+    // l'hydratation deferred (skeleton 2 cellules). Map indexee par
+    // companyId, partiellement peuplee une fois la 2e requete arrivee.
+    costs?: Record<
+        number,
+        { annualTaxDue: number; rentalPriceTotal: number | null }
+    >;
 }>();
+
+const isCostsLoadedFor = (row: CompanyRow): boolean =>
+    props.costs?.[row.id] !== undefined;
 
 const emit = defineEmits<{
     'header-click': [columnKey: string];
@@ -82,19 +92,36 @@ const emit = defineEmits<{
         <template #cell-daysUsed="{ value }">
             <span class="whitespace-nowrap text-slate-700">{{ value }} j</span>
         </template>
-        <template #cell-annualTaxDue="{ value }">
-            <span class="font-mono font-medium whitespace-nowrap text-slate-900">
-                {{ formatEur(Number(value)) }}
+        <template #cell-annualTaxDue="{ row }">
+            <span
+                v-if="!isCostsLoadedFor(row)"
+                class="inline-block h-4 w-12 animate-pulse rounded bg-slate-100"
+                aria-label="Calcul en cours"
+            />
+            <span
+                v-else
+                class="font-mono font-medium whitespace-nowrap text-slate-900"
+            >
+                {{ formatEur(costs![row.id].annualTaxDue) }}
             </span>
         </template>
         <template #cell-rentalPriceTotal="{ row }">
             <span
-                v-if="row.rentalPriceTotal !== null"
+                v-if="!isCostsLoadedFor(row)"
+                class="inline-block h-4 w-16 animate-pulse rounded bg-slate-100"
+                aria-label="Calcul en cours"
+            />
+            <span
+                v-else-if="costs![row.id].rentalPriceTotal !== null"
                 class="font-mono whitespace-nowrap tabular-nums text-slate-900"
             >
-                {{ formatEur(row.rentalPriceTotal) }}
+                {{ formatEur(costs![row.id].rentalPriceTotal!) }}
             </span>
-            <span v-else class="text-slate-300" title="Tarif annuel manquant pour au moins 1 véhicule">
+            <span
+                v-else
+                class="text-slate-300"
+                title="Tarif annuel manquant pour au moins 1 véhicule"
+            >
                 ·
             </span>
         </template>

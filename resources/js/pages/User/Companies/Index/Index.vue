@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
@@ -30,6 +30,16 @@ const props = defineProps<{
      * `floty.fiscal.available_years` qui était lue via `useFiscalYear`.
      */
     yearScope: App.Data.Shared.YearScopeData;
+    /**
+     * P0.1 (audit perf 2026-05-16) · Inertia::defer · arrive en 2e
+     * round-trip apres mount initial. Map indexee par companyId.
+     * Non typee par TS Transformer (Spatie Data ne reconnait pas les
+     * array indexees) · type manuel ici.
+     */
+    costs?: Record<
+        number,
+        { annualTaxDue: number; rentalPriceTotal: number | null }
+    >;
 }>();
 
 const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
@@ -39,6 +49,26 @@ const tableState = useCompaniesTable({
     query: props.query,
     selectedYear: props.selectedYear,
 });
+
+// P0.1 (audit perf 2026-05-16) · Re-fetch des `costs` à chaque
+// changement de page de la table (filtre, tri, année, pagination).
+// Le `router.get` interne de `useServerTableState` ne demande que
+// `['companies', 'query', 'selectedYear']` · sans ce watcher, les
+// cellules `annualTaxDue` / `rentalPriceTotal` resteraient en
+// skeleton infini après le premier filtrage. `Inertia::defer`
+// auto-trigger uniquement sur le 1er visit · les visits suivants
+// doivent demander explicitement la prop deferred via un reload
+// `only:`. Cf. mémoire `feedback_inertia_defer_with_partial_reload`.
+//
+// Vue 3 `watch` sans `immediate: true` ne fire pas au mount · pas
+// besoin de skip-le-mount-initial. Le 1er fire correspond bien au
+// 1er changement de filtre/tri/page/année.
+watch(
+    () => props.companies.data.map((c) => c.id).join(','),
+    () => {
+        router.reload({ only: ['costs'] });
+    },
+);
 
 const yearOptions = computed<{ value: number; label: string }[]>(() =>
     availableYears.value.map((year) => ({ value: year, label: String(year) })),
@@ -190,6 +220,7 @@ const activeFiltersCount = computed<number>(() => {
 
                 <CompaniesTable
                     :companies="companies.data"
+                    :costs="costs"
                     :columns="tableState.columns.value"
                     :active-sort-column-key="
                         tableState.activeSortColumnKey.value

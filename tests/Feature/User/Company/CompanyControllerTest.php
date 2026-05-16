@@ -64,6 +64,28 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
+    public function index_servi_costs_en_inertia_defer_pas_dans_le_dto(): void
+    {
+        // P0.1 (audit perf 2026-05-16 / 03-company.md P0 #1) · l'Index
+        // sert le pipeline fiscal + rental calculator en `Inertia::defer`
+        // (prop racine `costs`). Le DTO `companies.data[*]` arrive slim
+        // avec `annualTaxDue = null` + `rentalPriceTotal = null` au mount
+        // initial · les 2 colonnes hydratent en 2e round-trip transparent.
+        $user = User::factory()->create();
+        Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/companies')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('companies.data.0', fn (AssertableInertia $c) => $c
+                    ->where('annualTaxDue', null)
+                    ->where('rentalPriceTotal', null)
+                    ->etc())
+                ->missing('costs'));
+    }
+
+    #[Test]
     public function index_paginate_avec_per_page_personnalise(): void
     {
         $user = User::factory()->create();
