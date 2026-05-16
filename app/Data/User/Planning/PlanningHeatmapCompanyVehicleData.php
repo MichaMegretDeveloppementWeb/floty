@@ -20,8 +20,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *     cellule = signal de disponibilité du véhicule.
  *   - `weeksForCompany` (entreprise sélectionnée) pilote le **chiffre**
  *     affiché = jours utilisés par cette entreprise précise.
- *   - `daysTotalForCompany` et `annualTaxDueForCompany` agrègent
- *     uniquement la part de l'entreprise (pas le total flotte).
+ *   - `daysTotalForCompany` agrège uniquement la part de l'entreprise.
+ *
+ * Les 3 champs fiscaux (`annualTaxDueForCompany`, `fullYearTax`,
+ * `dailyTaxRate`) ont été extraits dans
+ * {@see PlanningHeatmapVehicleCostsData}, servi en `Inertia::defer`.
+ * Côté frontend, la map costs est indexée par `vehicleId` et son
+ * `annualTaxDue` reflète déjà le scope entreprise.
  */
 #[TypeScript]
 final class PlanningHeatmapCompanyVehicleData extends Data
@@ -51,16 +56,7 @@ final class PlanningHeatmapCompanyVehicleData extends Data
         public array $weeksGlobal,
         public array $weeksForCompany,
         public int $daysTotalForCompany,
-        public float $annualTaxDueForCompany,
         public ?string $exitDate,
         public array $weeksWithUnavailability,
-        /**
-         * Taxe pleine annuelle théorique (€) pour le véhicule à 100 %
-         * d'utilisation sur l'année courante du planning. Aide à la
-         * décision lors de l'attribution.
-         */
-        public float $fullYearTax,
-        /** Prorata journalier = `fullYearTax / daysInYear`. */
-        public float $dailyTaxRate,
     ) {}
 }

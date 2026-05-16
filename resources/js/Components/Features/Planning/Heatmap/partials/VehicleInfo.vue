@@ -1,12 +1,28 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
 import type { HeatmapVehicleView } from '@/Components/Features/Planning/Heatmap/types';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { formatEur } from '@/Utils/format/formatEur';
 
-defineProps<{
+const props = defineProps<{
     vehicleView: HeatmapVehicleView;
 }>();
+
+/**
+ * Coûts servis en différé (chantier perf 2026-05-16) · `fullYearTax` et
+ * `dailyTaxRate` sont `null` tant que la 2ᵉ RTT Inertia::defer n'a pas
+ * répondu pour CE véhicule. Tooltip + valeur masqués entre-temps, un
+ * skeleton inline tient la place pour éviter le layout shift.
+ */
+const fiscalLoaded = computed<boolean>(
+    () => props.vehicleView.fullYearTax !== null && props.vehicleView.dailyTaxRate !== null,
+);
+const tooltipTitle = computed<string>(() =>
+    fiscalLoaded.value
+        ? `Taxe annuelle théorique ${formatEur(props.vehicleView.fullYearTax!, 0)} · prorata ${formatEur(props.vehicleView.dailyTaxRate!, 2)}/jour`
+        : 'Calcul en cours',
+);
 </script>
 
 <template>
@@ -44,14 +60,25 @@ defineProps<{
         </Link>
         <div
             class="flex shrink-0 flex-col items-end leading-tight"
-            :title="`Taxe annuelle théorique ${formatEur(vehicleView.fullYearTax, 0)} · prorata ${formatEur(vehicleView.dailyTaxRate, 2)}/jour`"
+            :title="tooltipTitle"
         >
             <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400">
                 Taxe pleine
             </span>
-            <span class="font-mono text-[11px] text-slate-500 tabular-nums">
-                {{ formatEur(vehicleView.fullYearTax, 0) }}
+            <span
+                v-if="fiscalLoaded"
+                class="font-mono text-[11px] text-slate-500 tabular-nums"
+            >
+                {{ formatEur(vehicleView.fullYearTax!, 0) }}
             </span>
+            <!-- Skeleton tant que la 2ᵉ RTT Inertia::defer n'a pas répondu
+                 pour ce véhicule. Même bbox que la valeur finale (h-3, w-14)
+                 pour éviter le layout shift quand la valeur arrive. -->
+            <span
+                v-else
+                class="skeleton-shimmer mt-0.5 inline-block h-3 w-14 rounded"
+                aria-label="Calcul en cours"
+            ></span>
         </div>
     </div>
 </template>

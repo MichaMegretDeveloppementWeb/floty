@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Planning\PlanningHeatmapCompanyVehicleData;
+use App\Data\User\Planning\PlanningHeatmapVehicleCostsData;
 use App\Data\User\Planning\PlanningHeatmapVehicleData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Fiscal\FiscalCalculationException;
@@ -26,6 +27,12 @@ use Spatie\LaravelData\DataCollection;
  * contrats (`ContractQueryService`). Les indispos par véhicule sont
  * passées au moteur fiscal pour permettre à R-2024-008 d'agir sur la
  * matière brute.
+ *
+ * **Chantier perf 2026-05-16 · slim + defer costs** · {@see buildHeatmap}
+ * et {@see buildHeatmapForCompany} ne calculent plus les coûts fiscaux
+ * (~630 ms cold sur 64 véhicules). Les 3 montants par véhicule
+ * (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`) sont désormais servis
+ * via {@see costsForVehicles} en `Inertia::defer` côté controller.
  */
 final class PlanningHeatmapService
 {
@@ -41,7 +48,6 @@ final class PlanningHeatmapService
      */
     public function buildHeatmap(int $year): array
     {
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
         $weekDensity = $this->contracts->loadWeekDensity($year);
 
         $vehicles = $this->vehicles->findAllForHeatmap($year);
@@ -62,20 +68,6 @@ final class PlanningHeatmapService
 
             $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
 
-            // Tolère une année hors règles fiscales codées (cf. doctrine
-            // « données métier ⊥ règles fiscales »). On affiche 0/0 plutôt
-            // que de crasher la heatmap.
-            try {
-                $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
-                $fullYearTax = $fullYear->total;
-                $dailyTaxRate = $fullYear->daysInYear > 0
-                    ? round($fullYear->total / $fullYear->daysInYear, 2, PHP_ROUND_HALF_UP)
-                    : 0.0;
-            } catch (FiscalCalculationException) {
-                $fullYearTax = 0.0;
-                $dailyTaxRate = 0.0;
-            }
-
             $vehicleRows[] = new PlanningHeatmapVehicleData(
                 id: $vehicle->id,
                 licensePlate: $vehicle->license_plate,
@@ -88,16 +80,8 @@ final class PlanningHeatmapService
                 taxableHorsepower: $fiscal->taxable_horsepower,
                 weeks: $weeks,
                 daysTotal: array_sum($weeks),
-                annualTaxDue: $this->aggregator->vehicleAnnualTax(
-                    $vehicle,
-                    $contractsByPair,
-                    $vehicleUnavailabilities,
-                    $year,
-                ),
                 exitDate: $vehicle->exit_date?->toDateString(),
                 weeksWithUnavailability: $this->collectWeeksWithUnavailability($vehicleUnavailabilities, $year),
-                fullYearTax: $fullYearTax,
-                dailyTaxRate: $dailyTaxRate,
             );
         }
 
@@ -124,10 +108,6 @@ final class PlanningHeatmapService
      * reste pilotée par la densité globale (taux d'occupation toutes
      * entreprises confondues = signal de disponibilité du véhicule).
      *
-     * Le total annuel ligne (`daysTotalForCompany` et
-     * `annualTaxDueForCompany`) agrège uniquement la part de
-     * l'entreprise pour ce véhicule.
-     *
      * @return array{
      *     vehicles: DataCollection<int, PlanningHeatmapCompanyVehicleData>,
      *     company: CompanyOptionData,
@@ -136,21 +116,8 @@ final class PlanningHeatmapService
      */
     public function buildHeatmapForCompany(int $year, Company $company): array
     {
-        $contractsByPair = $this->contracts->loadContractsByPair($year);
         $weekDensityGlobal = $this->contracts->loadWeekDensity($year);
         $weekDensityForCompany = $this->contracts->loadWeekDensityForCompany($year, $company->id);
-
-        // ContractsByPair filtré pour ne garder que les paires de
-        // l'entreprise demandée. `vehicleAnnualTax` itère ensuite sur
-        // `pairsForVehicle` et ne trouvera donc qu'une seule paire (ou
-        // zéro), évitant de comptabiliser les autres entreprises.
-        $contractsForCompany = new ContractsByPair(
-            array_filter(
-                $contractsByPair->byPair,
-                static fn (string $key): bool => str_ends_with($key, '|'.$company->id),
-                ARRAY_FILTER_USE_KEY,
-            ),
-        );
 
         $vehicles = $this->vehicles->findAllForHeatmap($year);
         $vehicleIds = $vehicles->pluck('id')->all();
@@ -172,17 +139,6 @@ final class PlanningHeatmapService
 
             $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
 
-            try {
-                $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
-                $fullYearTax = $fullYear->total;
-                $dailyTaxRate = $fullYear->daysInYear > 0
-                    ? round($fullYear->total / $fullYear->daysInYear, 2, PHP_ROUND_HALF_UP)
-                    : 0.0;
-            } catch (FiscalCalculationException) {
-                $fullYearTax = 0.0;
-                $dailyTaxRate = 0.0;
-            }
-
             $vehicleRows[] = new PlanningHeatmapCompanyVehicleData(
                 id: $vehicle->id,
                 licensePlate: $vehicle->license_plate,
@@ -196,16 +152,8 @@ final class PlanningHeatmapService
                 weeksGlobal: $weeksGlobal,
                 weeksForCompany: $weeksForCompany,
                 daysTotalForCompany: array_sum($weeksForCompany),
-                annualTaxDueForCompany: $this->aggregator->vehicleAnnualTax(
-                    $vehicle,
-                    $contractsForCompany,
-                    $vehicleUnavailabilities,
-                    $year,
-                ),
                 exitDate: $vehicle->exit_date?->toDateString(),
                 weeksWithUnavailability: $this->collectWeeksWithUnavailability($vehicleUnavailabilities, $year),
-                fullYearTax: $fullYearTax,
-                dailyTaxRate: $dailyTaxRate,
             );
         }
 
@@ -231,6 +179,84 @@ final class PlanningHeatmapService
             'company' => $companyData,
             'companies' => CompanyOptionData::collect($companyRows, DataCollection::class),
         ];
+    }
+
+    /**
+     * Map `vehicleId → PlanningHeatmapVehicleCostsData` pour la heatmap
+     * planning, scoped (Vue Entreprise) ou global (Vue d'ensemble) selon
+     * `$companyId`.
+     *
+     * Pipeline · pour chaque véhicule actif sur l'année,
+     * `vehicleFullYearTaxBreakdown` (taxe pleine théorique + prorata
+     * journalier) + `vehicleAnnualTax` (taxe réellement due selon usage
+     * réel, scope = `$companyId` si fourni sinon tous contrats).
+     *
+     * Servi en `Inertia::defer` par le controller · cf. doc
+     * {@see PlanningHeatmapVehicleCostsData}.
+     *
+     * @return array<int, PlanningHeatmapVehicleCostsData>
+     */
+    public function costsForVehicles(int $year, ?int $companyId = null): array
+    {
+        $vehicles = $this->vehicles->findAllForHeatmap($year);
+        $vehicleIds = $vehicles->pluck('id')->all();
+        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+
+        $contractsByPair = $this->contracts->loadContractsByPair($year);
+        if ($companyId !== null) {
+            // Mirror de la logique de scope appliquée historiquement dans
+            // `buildHeatmapForCompany` · on garde uniquement les paires
+            // de l'entreprise demandée pour que `vehicleAnnualTax` ne
+            // comptabilise que ses contrats.
+            $contractsForCalc = new ContractsByPair(
+                array_filter(
+                    $contractsByPair->byPair,
+                    static fn (string $key): bool => str_ends_with($key, '|'.$companyId),
+                    ARRAY_FILTER_USE_KEY,
+                ),
+            );
+        } else {
+            $contractsForCalc = $contractsByPair;
+        }
+
+        $costs = [];
+        foreach ($vehicles as $vehicle) {
+            $fiscal = $vehicle->fiscalCharacteristics->first();
+            if ($fiscal === null) {
+                continue;
+            }
+
+            $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
+
+            // Tolère une année hors règles fiscales codées (cf. doctrine
+            // « données métier ⊥ règles fiscales »). On affiche 0/0 plutôt
+            // que de crasher la heatmap.
+            try {
+                $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
+                $fullYearTax = $fullYear->total;
+                $dailyTaxRate = $fullYear->daysInYear > 0
+                    ? round($fullYear->total / $fullYear->daysInYear, 2, PHP_ROUND_HALF_UP)
+                    : 0.0;
+            } catch (FiscalCalculationException) {
+                $fullYearTax = 0.0;
+                $dailyTaxRate = 0.0;
+            }
+
+            $annualTaxDue = $this->aggregator->vehicleAnnualTax(
+                $vehicle,
+                $contractsForCalc,
+                $vehicleUnavailabilities,
+                $year,
+            );
+
+            $costs[$vehicle->id] = new PlanningHeatmapVehicleCostsData(
+                annualTaxDue: $annualTaxDue,
+                fullYearTax: $fullYearTax,
+                dailyTaxRate: $dailyTaxRate,
+            );
+        }
+
+        return $costs;
     }
 
     /**

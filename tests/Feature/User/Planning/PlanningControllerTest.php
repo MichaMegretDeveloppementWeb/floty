@@ -40,6 +40,58 @@ final class PlanningControllerTest extends TestCase
     }
 
     #[Test]
+    public function index_sert_costs_en_inertia_defer_absent_du_premier_render(): void
+    {
+        // Chantier perf 2026-05-16 · les 3 montants fiscaux par véhicule
+        // (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`) déclenchent le
+        // pipeline fiscal (~10 ms × N véhicules ≈ 630 ms cold sur 64
+        // véhicules) · servis en `Inertia::defer` · absents du 1er
+        // render, le frontend récupère via auto-fetch 2ᵉ RTT puis
+        // partial reload sur change année.
+        // L'équivalence des valeurs versus l'ancien path est garantie
+        // par les goldens fiscaux existants (consommateurs de
+        // `vehicleAnnualTax` et `vehicleFullYearTaxBreakdown`).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        $this->actingAs($user)
+            ->get('/app/planning')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Planning/Index/Index')
+                ->has('vehicles', 1)
+                ->missing('vehicles.0.annualTaxDue')
+                ->missing('vehicles.0.fullYearTax')
+                ->missing('vehicles.0.dailyTaxRate')
+                ->missing('costs'),
+            );
+    }
+
+    #[Test]
+    public function company_index_sert_costs_en_inertia_defer_absent_du_premier_render(): void
+    {
+        // Idem `index_sert_costs_en_inertia_defer_absent_du_premier_render`
+        // pour la Vue Entreprise.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        $this->actingAs($user)
+            ->get('/app/planning/companies/'.$company->id)
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Planning/Company/Index')
+                ->has('vehicles', 1)
+                ->missing('vehicles.0.annualTaxDueForCompany')
+                ->missing('vehicles.0.fullYearTax')
+                ->missing('vehicles.0.dailyTaxRate')
+                ->missing('costs'),
+            );
+    }
+
+    #[Test]
     public function week_renvoie_le_detail_pour_un_couple_vehicule_semaine(): void
     {
         $user = User::factory()->create();

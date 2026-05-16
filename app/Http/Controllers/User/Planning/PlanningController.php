@@ -55,6 +55,13 @@ final class PlanningController extends Controller
             'User/Planning/Index/Index',
             [
                 ...$this->heatmap->buildHeatmap($year),
+                // Chantier perf 2026-05-16 · les 3 montants fiscaux par
+                // véhicule (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`)
+                // coûtent ~630 ms cold sur 64 véhicules · servis en
+                // `Inertia::defer` · skeleton inline côté front (cellules
+                // « Taxe pleine » + « €XXXX · N j ») puis hydratation à
+                // l'arrivée de la 2ᵉ RTT.
+                'costs' => Inertia::defer(fn () => $this->heatmap->costsForVehicles($year)),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
@@ -108,6 +115,10 @@ final class PlanningController extends Controller
             'User/Planning/Company/Index',
             [
                 ...$this->heatmap->buildHeatmapForCompany($year, $company),
+                // Cf. doc `index()` · même defer scopé à l'entreprise
+                // sélectionnée · `annualTaxDue` reflète alors la part
+                // de cette entreprise uniquement.
+                'costs' => Inertia::defer(fn () => $this->heatmap->costsForVehicles($year, $company->id)),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],

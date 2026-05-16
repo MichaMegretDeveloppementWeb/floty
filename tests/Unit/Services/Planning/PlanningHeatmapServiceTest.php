@@ -8,6 +8,7 @@ use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Planning\PlanningHeatmapService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -102,11 +103,15 @@ final class PlanningHeatmapServiceTest extends TestCase
     }
 
     #[Test]
-    public function build_heatmap_for_company_compte_taxe_uniquement_pour_cette_entreprise(): void
+    public function costs_for_vehicles_compte_taxe_uniquement_pour_l_entreprise_scopee(): void
     {
         // 1 véhicule, 2 entreprises, 2 contrats taxables (>30 jours
         // chacun pour sortir de l'exonération LCD R-2024-021). La
-        // taxe annuelle pour companyA ne doit refléter que sa part.
+        // taxe annuelle scopée à companyA (`costsForVehicles($year,
+        // $companyA->id)`) ne doit refléter que la part de companyA,
+        // pas celle de companyB · chantier perf 2026-05-16 · pattern
+        // strictement équivalent à l'ancien `annualTaxDueForCompany`
+        // porté par le DTO avant extraction.
         $year = 2024;
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -125,17 +130,70 @@ final class PlanningHeatmapServiceTest extends TestCase
             'end_date' => $startB->copy()->addDays(40)->toDateString(),
         ]);
 
-        $payloadA = $this->service->buildHeatmapForCompany($year, $companyA);
-        $payloadB = $this->service->buildHeatmapForCompany($year, $companyB);
+        $costsA = $this->service->costsForVehicles($year, $companyA->id);
+        $costsB = $this->service->costsForVehicles($year, $companyB->id);
 
-        $taxA = $payloadA['vehicles']->toArray()[0]['annualTaxDueForCompany'];
-        $taxB = $payloadB['vehicles']->toArray()[0]['annualTaxDueForCompany'];
+        $taxA = $costsA[$vehicle->id]->annualTaxDue;
+        $taxB = $costsB[$vehicle->id]->annualTaxDue;
 
-        // Les taxes pour A et B sont chacune > 0, et chacune
-        // strictement inférieure au total des deux (pas de
-        // double-comptage, pas de mélange).
         self::assertGreaterThan(0.0, $taxA);
         self::assertGreaterThan(0.0, $taxB);
         self::assertEqualsWithDelta($taxA, $taxB, 0.5); // contrats symétriques sur l'année 2024
+    }
+
+    #[Test]
+    public function costs_for_vehicles_global_somme_les_deux_entreprises(): void
+    {
+        // Sans `companyId`, `costsForVehicles` calcule la taxe annuelle
+        // globale = somme des parts toutes entreprises confondues.
+        // Garantit que le scope global ≠ scope entreprise.
+        //
+        // Précondition cache · `FleetFiscalAggregator::vehicleAnnualTax`
+        // est mémoïsé par `{vehicleId}|{year}` sans considérer le scope
+        // des contrats passés (cf. commentaire dans
+        // `$vehicleAnnualTaxCache`) · scope-stability assumée per
+        // request HTTP. Notre test enchaîne 3 scopes sur un même
+        // process · on force un container neuf entre chaque appel pour
+        // simuler 2 requêtes Inertia::defer indépendantes (cas réel
+        // d'usage en prod).
+        $year = 2024;
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $companyA = Company::factory()->create();
+        $companyB = Company::factory()->create();
+
+        $startA = Carbon::create($year, 1, 15);
+        Contract::factory()->forVehicle($vehicle)->forCompany($companyA)->create([
+            'start_date' => $startA->toDateString(),
+            'end_date' => $startA->copy()->addDays(40)->toDateString(),
+        ]);
+
+        $startB = Carbon::create($year, 6, 1);
+        Contract::factory()->forVehicle($vehicle)->forCompany($companyB)->create([
+            'start_date' => $startB->toDateString(),
+            'end_date' => $startB->copy()->addDays(40)->toDateString(),
+        ]);
+
+        $taxGlobal = $this->freshService()->costsForVehicles($year)[$vehicle->id]->annualTaxDue;
+        $taxA = $this->freshService()->costsForVehicles($year, $companyA->id)[$vehicle->id]->annualTaxDue;
+        $taxB = $this->freshService()->costsForVehicles($year, $companyB->id)[$vehicle->id]->annualTaxDue;
+
+        // Le global est strictement > chaque scope individuel (les 2
+        // contrats sont sur des périodes disjointes).
+        self::assertGreaterThan($taxA, $taxGlobal);
+        self::assertGreaterThan($taxB, $taxGlobal);
+
+        // fullYearTax (taxe théorique 100 % usage) est indépendant du
+        // scope · servi à l'identique côté UI (mini-fiche véhicule).
+        $costsGlobal = $this->freshService()->costsForVehicles($year);
+        self::assertGreaterThan(0.0, $costsGlobal[$vehicle->id]->fullYearTax);
+    }
+
+    private function freshService(): PlanningHeatmapService
+    {
+        $this->app->forgetInstance(FleetFiscalAggregator::class);
+        $this->app->forgetInstance(PlanningHeatmapService::class);
+
+        return $this->app->make(PlanningHeatmapService::class);
     }
 }

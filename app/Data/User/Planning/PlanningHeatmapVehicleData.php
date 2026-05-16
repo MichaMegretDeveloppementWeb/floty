@@ -12,7 +12,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Une ligne de la heatmap Planning - un véhicule sur 52 semaines avec
- * sa densité d'utilisation et son agrégat fiscal annuel.
+ * sa densité d'utilisation et le total de jours utilisés.
+ *
+ * Les 3 champs fiscaux (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`)
+ * ont été extraits dans {@see PlanningHeatmapVehicleCostsData}, servi
+ * en `Inertia::defer` car leur calcul coûte ~630 ms cold sur 64
+ * véhicules. Le DTO heatmap reste eager pour rendre la grille immédiate
+ * au mount.
  */
 #[TypeScript]
 final class PlanningHeatmapVehicleData extends Data
@@ -41,16 +47,7 @@ final class PlanningHeatmapVehicleData extends Data
         public ?int $taxableHorsepower,
         public array $weeks,
         public int $daysTotal,
-        public float $annualTaxDue,
         public ?string $exitDate,
         public array $weeksWithUnavailability,
-        /**
-         * Taxe pleine annuelle théorique (€) pour le véhicule à 100 %
-         * d'utilisation sur l'année courante du planning. Aide à la
-         * décision lors de l'attribution.
-         */
-        public float $fullYearTax,
-        /** Prorata journalier = `fullYearTax / daysInYear`. */
-        public float $dailyTaxRate,
     ) {}
 }

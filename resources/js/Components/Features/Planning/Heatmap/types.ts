@@ -13,8 +13,11 @@
  *  - `weeksForCount` : densité utilisée pour le chiffre affiché.
  *    En Vue d'ensemble = densité globale ; en Vue Entreprise = densité
  *    scopée à l'entreprise sélectionnée.
- *  - `summaryDays` / `summaryTax` : agrégat ligne (jours + montant
- *    taxe) cohérent avec le scope courant.
+ *  - `summaryDays` : agrégat ligne (jours) cohérent avec le scope courant.
+ *  - `summaryTax` / `fullYearTax` / `dailyTaxRate` : montants fiscaux
+ *    servis en `Inertia::defer` · `null` tant que la 2ᵉ RTT n'a pas
+ *    répondu (chantier perf 2026-05-16). Les partials affichent un
+ *    skeleton inline quand `null`.
  */
 
 export type HeatmapVehicleView = {
@@ -30,11 +33,22 @@ export type HeatmapVehicleView = {
     weeksForColor: number[];
     weeksForCount: number[];
     summaryDays: number;
-    summaryTax: number;
+    /** Taxe annuelle due (€) · null tant que `costs` n'a pas répondu. */
+    summaryTax: number | null;
     exitDate: string | null;
     weeksWithUnavailability: number[];
-    /** Taxe pleine annuelle théorique € (à 100 % d'utilisation). */
-    fullYearTax: number;
-    /** Prorata journalier = fullYearTax / daysInYear (€/jour). */
-    dailyTaxRate: number;
+    /** Taxe pleine annuelle théorique € · null tant que `costs` n'a pas répondu. */
+    fullYearTax: number | null;
+    /** Prorata journalier (€/jour) · null tant que `costs` n'a pas répondu. */
+    dailyTaxRate: number | null;
 };
+
+/**
+ * Map `vehicleId → coûts fiscaux` servie en `Inertia::defer` (chantier
+ * perf 2026-05-16). `undefined` au mount initial puis hydratée à la 2ᵉ
+ * RTT. Une entrée par véhicule actif sur l'année courante.
+ */
+export type HeatmapCosts = Record<
+    number,
+    { annualTaxDue: number; fullYearTax: number; dailyTaxRate: number }
+>;

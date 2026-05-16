@@ -38,7 +38,7 @@
  * Un computed `vehicleViews` normalise la shape avant de la passer aux
  * partials, qui ne connaissent que le type unifié `HeatmapVehicleView`.
  */
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import {
     HEATMAP_CELL_WIDTH,
     HEATMAP_GRID_WIDTH,
@@ -48,7 +48,7 @@ import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
 import VehicleSummary from './partials/VehicleSummary.vue';
 import WeekCellsRow from './partials/WeekCellsRow.vue';
-import type { HeatmapVehicleView } from './types';
+import type { HeatmapCosts, HeatmapVehicleView } from './types';
 
 type OverviewVehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
 type CompanyVehicle = App.Data.User.Planning.PlanningHeatmapCompanyVehicleData;
@@ -56,6 +56,13 @@ type CompanyVehicle = App.Data.User.Planning.PlanningHeatmapCompanyVehicleData;
 const props = defineProps<{
     vehicles: OverviewVehicle[] | CompanyVehicle[];
     fiscalYear: number;
+    /**
+     * Map des coûts fiscaux par véhicule, servie en `Inertia::defer`
+     * côté controller. `undefined` au mount initial · les partials
+     * VehicleInfo / VehicleSummary affichent un skeleton tant que les
+     * valeurs ne sont pas hydratées (chantier perf 2026-05-16).
+     */
+    costs?: HeatmapCosts;
 }>();
 
 defineEmits<{
@@ -83,6 +90,11 @@ function isCompanyVariant(v: OverviewVehicle | CompanyVehicle): v is CompanyVehi
 
 const vehicleViews = computed<HeatmapVehicleView[]>(() =>
     props.vehicles.map((v) => {
+        const c = props.costs?.[v.id] ?? null;
+        const summaryTax = c?.annualTaxDue ?? null;
+        const fullYearTax = c?.fullYearTax ?? null;
+        const dailyTaxRate = c?.dailyTaxRate ?? null;
+
         if (isCompanyVariant(v)) {
             return {
                 id: v.id,
@@ -97,11 +109,11 @@ const vehicleViews = computed<HeatmapVehicleView[]>(() =>
                 weeksForColor: v.weeksGlobal,
                 weeksForCount: v.weeksForCompany,
                 summaryDays: v.daysTotalForCompany,
-                summaryTax: v.annualTaxDueForCompany,
+                summaryTax,
                 exitDate: v.exitDate,
                 weeksWithUnavailability: v.weeksWithUnavailability,
-                fullYearTax: v.fullYearTax,
-                dailyTaxRate: v.dailyTaxRate,
+                fullYearTax,
+                dailyTaxRate,
             };
         }
 
@@ -118,18 +130,27 @@ const vehicleViews = computed<HeatmapVehicleView[]>(() =>
             weeksForColor: v.weeks,
             weeksForCount: v.weeks,
             summaryDays: v.daysTotal,
-            summaryTax: v.annualTaxDue,
+            summaryTax,
             exitDate: v.exitDate,
             weeksWithUnavailability: v.weeksWithUnavailability,
-            fullYearTax: v.fullYearTax,
-            dailyTaxRate: v.dailyTaxRate,
+            fullYearTax,
+            dailyTaxRate,
         };
     }),
 );
 
-const totalAnnualTax = computed((): number =>
-    vehicleViews.value.reduce((sum, v) => sum + v.summaryTax, 0),
-);
+/**
+ * Total flotte (€) · null tant qu'au moins une ligne attend ses costs
+ * (1ʳᵉ RTT). Le partial `HeatmapSummary` affiche un skeleton inline
+ * dans ce cas.
+ */
+const totalAnnualTax = computed((): number | null => {
+    if (vehicleViews.value.some((v) => v.summaryTax === null)) {
+        return null;
+    }
+
+    return vehicleViews.value.reduce((sum, v) => sum + (v.summaryTax ?? 0), 0);
+});
 const totalDays = computed((): number =>
     vehicleViews.value.reduce((sum, v) => sum + v.summaryDays, 0),
 );
@@ -143,6 +164,48 @@ const totalDays = computed((): number =>
 const leftRef = ref<HTMLElement | null>(null);
 const middleRef = ref<HTMLElement | null>(null);
 const rightRef = ref<HTMLElement | null>(null);
+
+/**
+ * Largeur RÉELLE de la scrollbar verticale du bloc central. Varie
+ * selon plateforme et DPR (15 px Windows standard, 16 px Windows DPR
+ * 1.5, 17 px certains cas, 0 px macOS overlay). Mesurée directement
+ * sur le pane après mount via `offsetWidth - clientWidth` (plus précis
+ * qu'un probe div générique · le pane peut différer de 1 px selon le
+ * contexte de rendu et le DPR).
+ *
+ * Re-mesurée via ResizeObserver pour gérer · changement de DPR (zoom),
+ * changement d'overflow (apparition/disparition de la scrollbar V
+ * quand le nombre de véhicules change).
+ */
+const scrollbarWidth = ref(15);
+const measureScrollbarWidth = (): void => {
+    if (middleRef.value === null) return;
+    const sw = middleRef.value.offsetWidth - middleRef.value.clientWidth;
+    // Buffer de -1 px : `offsetWidth` est arrondi à l'entier supérieur
+    // (1174 pour une largeur effective 1173.7 par ex.), ce qui ajoute ~
+    // 0.3 px de débordement, combiné aux ~0.4 px d'arrondi flex sur les
+    // 52 cellules → ~0.7 px de cellule droite clippée par le wrapper.
+    // Le buffer de 1 px sacrifie 1 px (au plus) de V scrollbar visible
+    // (fine ligne grise à peine perceptible) pour garantir zéro clipping
+    // côté contenu, qui est plus gênant visuellement.
+    if (sw > 0) {
+        scrollbarWidth.value = sw - 1;
+    }
+};
+let resizeObserver: ResizeObserver | null = null;
+onMounted(() => {
+    requestAnimationFrame(() => {
+        measureScrollbarWidth();
+        if (middleRef.value !== null && typeof ResizeObserver !== 'undefined') {
+            resizeObserver = new ResizeObserver(measureScrollbarWidth);
+            resizeObserver.observe(middleRef.value);
+        }
+    });
+});
+onUnmounted(() => {
+    resizeObserver?.disconnect();
+    resizeObserver = null;
+});
 
 /**
  * Sync le scrollTop entre les 3 panes. On utilise l'`event.currentTarget`
@@ -218,35 +281,43 @@ function syncFrom(e: Event): void {
                     on opte pour cette technique 100 % CSS standard
                     cross-browser.
                     Le wrapper a `overflow-hidden` et clip la scrollbar V
-                    de l'inner (qui dépasse via `-mr-[18px]`). La
-                    scrollbar H de l'inner reste visible au bas, span
-                    toute la largeur du wrapper. La marge de 18 px (au
-                    lieu de 15) couvre les variations de largeur de
-                    scrollbar selon plateforme/DPR (Windows à 1.5×
-                    rapporte parfois 16 px).
+                    de l'inner. Le negative margin est calculé
+                    dynamiquement (`scrollbarWidth`) pour matcher
+                    EXACTEMENT la largeur de la scrollbar V de la
+                    plateforme · zéro buffer = zéro clipping du contenu
+                    sur le bord droit (précision pixel-perfect requise
+                    par l'alignement entre la grille de cellules et le
+                    cadre du conteneur).
                 -->
                 <div class="min-w-0 flex-1 max-h-[50em] overflow-hidden bg-white">
                     <div
                         ref="middleRef"
-                        class="heatmap-pane h-full -mr-[18px] overflow-auto"
+                        class="heatmap-pane h-full overflow-auto"
+                        :style="{ marginRight: `-${scrollbarWidth}px` }"
                         @scroll="syncFrom"
                     >
                         <!--
-                            Header sticky · labels mensuels. `mr-[15px]`
-                            compense le negative margin parent pour que
-                            le contenu visible reste aligné sur le
-                            wrapper.
+                            Header sticky · labels mensuels. `min-width`
+                            au lieu de `width` pour laisser le bloc
+                            s'étendre quand le conteneur est plus large
+                            que la grille (grand écran). Les mois
+                            utilisent `flex` avec une basis = weeks ×
+                            HEATMAP_CELL_WIDTH - 1 px (le -1 correspond
+                            au gap intra-mois qui devient extérieur quand
+                            on découpe par mois) pour rester strictement
+                            alignés avec les cellules du body, même en
+                            croissance.
                         -->
                         <div
                             class="sticky top-0 z-10 bg-white pt-4 pb-2"
-                            :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                            :style="{ minWidth: `${HEATMAP_GRID_WIDTH}px` }"
                         >
-                            <div class="flex h-4">
+                            <div class="flex h-4 gap-[1px]">
                                 <div
                                     v-for="month in monthLabels"
                                     :key="month.name"
                                     :style="{
-                                        width: `${month.weeks * HEATMAP_CELL_WIDTH}px`,
+                                        flex: `${month.weeks} 0 ${month.weeks * HEATMAP_CELL_WIDTH - 1}px`,
                                     }"
                                     class="text-xs font-medium text-slate-500"
                                 >
@@ -254,11 +325,17 @@ function syncFrom(e: Event): void {
                                 </div>
                             </div>
                         </div>
-                        <!-- Body rows · largeur fixe HEATMAP_GRID_WIDTH pour forcer overflow X -->
+                        <!--
+                            Body rows · `min-width` au lieu de `width`
+                            pour autoriser l'expansion sur grand écran.
+                            Les cellules à l'intérieur (WeekCellsRow)
+                            utilisent `grow` pour absorber l'espace
+                            supplémentaire au prorata.
+                        -->
                         <div
                             v-for="(view, idx) in vehicleViews"
                             :key="`mid-${view.id}`"
-                            :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                            :style="{ minWidth: `${HEATMAP_GRID_WIDTH}px` }"
                             :class="idx > 0 && 'border-t border-slate-100'"
                         >
                             <WeekCellsRow

@@ -4,7 +4,11 @@ import { formatEur } from '@/Utils/format/formatEur';
 defineProps<{
     vehiclesCount: number;
     totalDays: number;
-    totalAnnualTax: number;
+    /**
+     * `null` tant que la map `costs` n'a pas été hydratée (Inertia::defer
+     * 2ᵉ RTT) · skeleton inline affiché à la place du montant.
+     */
+    totalAnnualTax: number | null;
     fiscalYear: number;
 }>();
 </script>
@@ -25,9 +29,17 @@ defineProps<{
         </div>
         <div>
             <span class="text-slate-500">Taxes totales {{ fiscalYear }} :</span>
-            <span class="ml-1 font-mono font-medium text-slate-900">
+            <span
+                v-if="totalAnnualTax !== null"
+                class="ml-1 font-mono font-medium text-slate-900"
+            >
                 {{ formatEur(totalAnnualTax) }}
             </span>
+            <span
+                v-else
+                class="skeleton-shimmer ml-1 inline-block h-3 w-20 rounded align-middle"
+                aria-label="Calcul en cours"
+            ></span>
         </div>
     </div>
 </template>

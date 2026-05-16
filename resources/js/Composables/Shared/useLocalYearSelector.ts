@@ -20,6 +20,7 @@ import type { Ref } from 'vue';
 export function useLocalYearSelector(
     initialYear: number,
     only: readonly string[],
+    options: { onSuccess?: () => void } = {},
 ): {
     selectedYear: Ref<number>;
     selectYear: (year: number) => void;
@@ -47,6 +48,13 @@ export function useLocalYearSelector(
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
+                // Callback exécutée après la mise à jour de l'URL + des
+                // props par Inertia. Utilisée par les pages combinant
+                // un `useLocalYearSelector` avec un `Inertia::defer`
+                // séparé (ex. Planning) pour enchaîner un partial
+                // reload de la prop deferred SUR LA NOUVELLE URL · cf.
+                // mémoire `feedback_inertia_defer_with_partial_reload`.
+                onSuccess: options.onSuccess,
             },
         );
     }

@@ -10,9 +10,10 @@
  * company-locked et anonymisera les contrats des autres entreprises.
  */
 import { Head, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import CompanyOptionTag from '@/Components/Domain/Company/CompanyOptionTag.vue';
 import Heatmap from '@/Components/Features/Planning/Heatmap/Heatmap.vue';
+import type { HeatmapCosts } from '@/Components/Features/Planning/Heatmap/types';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
@@ -25,13 +26,40 @@ const props = defineProps<{
     vehicles: App.Data.User.Planning.PlanningHeatmapCompanyVehicleData[];
     company: App.Data.User.Company.CompanyOptionData;
     companies: App.Data.User.Company.CompanyOptionData[];
+    /**
+     * Coûts fiscaux par véhicule scopés à l'entreprise, servis en
+     * `Inertia::defer` (chantier perf 2026-05-16) · cf. Index.vue de
+     * la Vue d'ensemble pour le détail du pattern.
+     */
+    costs?: HeatmapCosts;
     selectedYear: number;
     yearScope: App.Data.Shared.YearScopeData;
 }>();
 
+// Cf. Index.vue de la Vue d'ensemble pour le pattern complet · reset
+// local au changement d'année pour forcer les skeletons immédiatement
+// (sinon les valeurs de l'année précédente restent affichées ~700 ms
+// le temps de la 2ᵉ RTT). Le changement d'entreprise déclenche un full
+// visit (cf. companyIdModel.set) qui re-fait la requête initiale avec
+// auto-defer.
+const localCosts = ref<HeatmapCosts | undefined>(props.costs);
+
+watch(
+    () => props.costs,
+    (next) => {
+        localCosts.value = next;
+    },
+);
+
 const { selectedYear, selectYear } = useLocalYearSelector(
     props.selectedYear,
     ['vehicles', 'company', 'companies', 'selectedYear'],
+    {
+        onSuccess: () => {
+            localCosts.value = undefined;
+            router.reload({ only: ['costs'] });
+        },
+    },
 );
 
 const yearOptions = computed<{ value: number; label: string }[]>(() =>
@@ -53,14 +81,21 @@ const companyOptions = computed(() =>
 
 const companyById = computed(() => {
     const map = new Map<number, App.Data.User.Company.CompanyOptionData>();
-    for (const c of props.companies) map.set(c.id, c);
+
+    for (const c of props.companies) {
+map.set(c.id, c);
+}
+
     return map;
 });
 
 const companyIdModel = computed<number | null>({
     get: () => props.company.id,
     set: (v: string | number | null) => {
-        if (typeof v !== 'number' || v === props.company.id) return;
+        if (typeof v !== 'number' || v === props.company.id) {
+return;
+}
+
         // Navigation full page : la heatmap et les data se recalculent
         // côté backend (pas de partial reload car le scope change).
         // Préserve le `?year=` actuel pour ne pas reset la sélection
@@ -70,9 +105,11 @@ const companyIdModel = computed<number | null>({
             window.location.origin,
         );
         const currentYear = new URL(window.location.href).searchParams.get('year');
+
         if (currentYear !== null) {
             target.searchParams.set('year', currentYear);
         }
+
         router.visit(target.pathname + target.search, {
             preserveState: false,
             preserveScroll: false,
@@ -138,6 +175,7 @@ const { week, onContractsCreated } = useUserPlanningIndex();
 
             <Heatmap
                 :vehicles="vehicles"
+                :costs="localCosts"
                 :fiscal-year="selectedYear"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear, company.id)"
             />
