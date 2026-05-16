@@ -211,46 +211,62 @@ function syncFrom(e: Event): void {
                 </div>
 
                 <!--
-                    Bloc centre · WeekCellsRow. Overflow X et Y auto ·
-                    H scrollbar visible au bas du bloc, V scrollbar
-                    masquée. min-w-0 + flex-1 pour prendre l'espace
-                    restant entre gauche et droite.
+                    Bloc centre · technique « wrapper + negative margin »
+                    pour masquer la scrollbar V tout en gardant la
+                    scrollbar H visible. CSS pseudo `::-webkit-scrollbar:
+                    vertical` ne fonctionne pas en `<style scoped>` Vue,
+                    on opte pour cette technique 100 % CSS standard
+                    cross-browser.
+                    Le wrapper a `overflow-hidden` et clip la scrollbar V
+                    de l'inner (qui dépasse via `-mr-[18px]`). La
+                    scrollbar H de l'inner reste visible au bas, span
+                    toute la largeur du wrapper. La marge de 18 px (au
+                    lieu de 15) couvre les variations de largeur de
+                    scrollbar selon plateforme/DPR (Windows à 1.5×
+                    rapporte parfois 16 px).
                 -->
-                <div
-                    ref="middleRef"
-                    class="heatmap-pane min-w-0 flex-1 max-h-[50em] overflow-auto bg-white scrollbar-hide-y"
-                    @scroll="syncFrom"
-                >
-                    <!-- Header sticky · labels mensuels -->
+                <div class="min-w-0 flex-1 max-h-[50em] overflow-hidden bg-white">
                     <div
-                        class="sticky top-0 z-10 bg-white pt-4 pb-2"
-                        :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                        ref="middleRef"
+                        class="heatmap-pane h-full -mr-[18px] overflow-auto"
+                        @scroll="syncFrom"
                     >
-                        <div class="flex h-4">
-                            <div
-                                v-for="month in monthLabels"
-                                :key="month.name"
-                                :style="{
-                                    width: `${month.weeks * HEATMAP_CELL_WIDTH}px`,
-                                }"
-                                class="text-xs font-medium text-slate-500"
-                            >
-                                {{ month.name }}
+                        <!--
+                            Header sticky · labels mensuels. `mr-[15px]`
+                            compense le negative margin parent pour que
+                            le contenu visible reste aligné sur le
+                            wrapper.
+                        -->
+                        <div
+                            class="sticky top-0 z-10 bg-white pt-4 pb-2"
+                            :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                        >
+                            <div class="flex h-4">
+                                <div
+                                    v-for="month in monthLabels"
+                                    :key="month.name"
+                                    :style="{
+                                        width: `${month.weeks * HEATMAP_CELL_WIDTH}px`,
+                                    }"
+                                    class="text-xs font-medium text-slate-500"
+                                >
+                                    {{ month.name }}
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    <!-- Body rows · largeur fixe HEATMAP_GRID_WIDTH pour forcer overflow X -->
-                    <div
-                        v-for="(view, idx) in vehicleViews"
-                        :key="`mid-${view.id}`"
-                        :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
-                        :class="idx > 0 && 'border-t border-slate-100'"
-                    >
-                        <WeekCellsRow
-                            :vehicle-view="view"
-                            :fiscal-year="fiscalYear"
-                            @cell-click="$emit('cell-click', $event)"
-                        />
+                        <!-- Body rows · largeur fixe HEATMAP_GRID_WIDTH pour forcer overflow X -->
+                        <div
+                            v-for="(view, idx) in vehicleViews"
+                            :key="`mid-${view.id}`"
+                            :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                            :class="idx > 0 && 'border-t border-slate-100'"
+                        >
+                            <WeekCellsRow
+                                :vehicle-view="view"
+                                :fiscal-year="fiscalYear"
+                                @cell-click="$emit('cell-click', $event)"
+                            />
+                        </div>
                     </div>
                 </div>
 
@@ -294,22 +310,5 @@ function syncFrom(e: Event): void {
 }
 .scrollbar-hide-all::-webkit-scrollbar {
     display: none;
-}
-
-/*
- * Masque uniquement la scrollbar VERTICALE · utilisé sur le bloc
- * centre. Sur Webkit (Chrome/Safari/Edge), `::-webkit-scrollbar:vertical`
- * cible spécifiquement l'axe Y. Sur Firefox, `scrollbar-width: none`
- * masque les deux (limitation acceptée · cible principale du projet
- * est Chrome/Edge desktop).
- */
-.scrollbar-hide-y::-webkit-scrollbar:vertical {
-    display: none;
-    width: 0;
-}
-@-moz-document url-prefix() {
-    .scrollbar-hide-y {
-        scrollbar-width: none;
-    }
 }
 </style>

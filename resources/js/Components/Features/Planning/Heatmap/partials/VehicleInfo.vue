@@ -25,7 +25,7 @@ defineProps<{
         </span>
         <Link
             :href="vehiclesShowRoute.url({ vehicle: vehicleView.id })"
-            class="group flex w-[180px] min-w-0 flex-col cursor-pointer"
+            class="group flex w-[160px] min-w-0 flex-col cursor-pointer"
         >
             <div class="flex items-center gap-1.5">
                 <p class="truncate font-mono text-xs font-medium text-slate-900 group-hover:underline">
@@ -43,16 +43,15 @@ defineProps<{
             </p>
         </Link>
         <div
-            class="flex shrink-0 items-baseline gap-2"
-            :title="`Taxe pleine ${formatEur(vehicleView.fullYearTax, 0)} · prorata ${formatEur(vehicleView.dailyTaxRate, 2)}/jour`"
+            class="flex shrink-0 flex-col items-end leading-tight"
+            :title="`Taxe annuelle théorique ${formatEur(vehicleView.fullYearTax, 0)} · prorata ${formatEur(vehicleView.dailyTaxRate, 2)}/jour`"
         >
             <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400">
                 Taxe pleine
             </span>
-            <div class="flex flex-col items-end font-mono text-[10px] leading-tight text-slate-500 tabular-nums">
-                <span>{{ formatEur(vehicleView.fullYearTax, 0) }}</span>
-                <span class="text-slate-400">{{ formatEur(vehicleView.dailyTaxRate, 2) }}/j</span>
-            </div>
+            <span class="font-mono text-[11px] text-slate-500 tabular-nums">
+                {{ formatEur(vehicleView.fullYearTax, 0) }}
+            </span>
         </div>
     </div>
 </template>

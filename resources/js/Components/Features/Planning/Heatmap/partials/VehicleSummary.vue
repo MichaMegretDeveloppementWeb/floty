@@ -12,10 +12,10 @@ defineProps<{
         class="flex h-[40px] items-center justify-end border-t border-slate-100 text-right first:border-t-0"
     >
         <div>
-            <p class="font-mono text-xs font-medium text-slate-900">
+            <p class="font-mono text-[13px] font-medium text-slate-900 tabular-nums">
                 {{ formatEur(vehicleView.summaryTax) }}
             </p>
-            <p class="text-[11px] text-slate-500">
+            <p class="text-[12px] text-slate-500 tabular-nums">
                 {{ vehicleView.summaryDays }} j
             </p>
         </div>
