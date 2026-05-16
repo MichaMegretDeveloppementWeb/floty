@@ -24,12 +24,33 @@ use App\Models\Contract;
  * Le récap reste utilisable même si l'utilisateur n'a renseigné qu'une
  * partie des tarifs.
  */
-final readonly class BillingBreakdownService
+final class BillingBreakdownService
 {
+    /**
+     * Cache mémoire intra-instance des récaps 12-mois par entreprise ·
+     * indexé par `"{companyId}|{year}"`. Hot path Dashboard ·
+     * `DashboardStatsService::computePeriodMetrics` itère 8 ans × 15
+     * entreprises = 120 appels par mount Dashboard, dont la grande
+     * majorité touchent les mêmes couples (companyId, year) à travers
+     * les services consommateurs. S1.2 du plan optim perf 2026-05-15.
+     *
+     * **Sécurité** · le DTO `MonthlyBillingBreakdownData` est calculé
+     * de manière déterministe sur `(companyId, year)` à partir des
+     * tarifs annuels et factures existantes (state DB read-only). Pas
+     * de mutation entre 2 appels dans une même requête HTTP. Singleton
+     * scoped per-request (cf. `AppServiceProvider`).
+     *
+     * @var array<string, MonthlyBillingBreakdownData>
+     */
+    private array $byCompanyForYearCache = [];
+
+    /** @var array<string, MonthlyBillingBreakdownData> */
+    private array $byVehicleForYearCache = [];
+
     public function __construct(
-        private BillingCalculator $calculator,
-        private VehicleYearlyPricingReadRepositoryInterface $pricingRepository,
-        private InvoiceReadRepositoryInterface $invoiceRepository,
+        private readonly BillingCalculator $calculator,
+        private readonly VehicleYearlyPricingReadRepositoryInterface $pricingRepository,
+        private readonly InvoiceReadRepositoryInterface $invoiceRepository,
     ) {}
 
     /**
@@ -38,6 +59,13 @@ final readonly class BillingBreakdownService
      * dès qu'un seul véhicule présent ce mois-là n'a pas de tarif annuel.
      */
     public function byCompanyForYear(int $companyId, int $year): MonthlyBillingBreakdownData
+    {
+        $key = $companyId.'|'.$year;
+
+        return $this->byCompanyForYearCache[$key] ??= $this->computeByCompanyForYear($companyId, $year);
+    }
+
+    private function computeByCompanyForYear(int $companyId, int $year): MonthlyBillingBreakdownData
     {
         $entries = [];
         $totalDays = 0;
@@ -113,6 +141,13 @@ final readonly class BillingBreakdownService
      * (cf. {@see BillingCalculator::calculateForVehicleAndMonth}).
      */
     public function byVehicleForYear(int $vehicleId, int $year): MonthlyBillingBreakdownData
+    {
+        $key = $vehicleId.'|'.$year;
+
+        return $this->byVehicleForYearCache[$key] ??= $this->computeByVehicleForYear($vehicleId, $year);
+    }
+
+    private function computeByVehicleForYear(int $vehicleId, int $year): MonthlyBillingBreakdownData
     {
         $entries = [];
         $totalDays = 0;

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\Pdf\DeclarationPdfRendererInterface;
+use App\Services\Billing\BillingBreakdownService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Pdf\BladeDomPdfDeclarationRenderer;
 use App\Services\Pdf\DeclarationPdfStorage;
@@ -28,6 +29,15 @@ class AppServiceProvider extends ServiceProvider
         // (cache mémoire process partagé entre tous les consumers d'une
         // même requête). Cf. chantier η Phase 0.1.
         $this->app->singleton(AvailableYearsResolver::class);
+
+        // Singleton · `BillingBreakdownService` porte 2 caches d'instance
+        // (`$byCompanyForYearCache`, `$byVehicleForYearCache`) indexés
+        // par `(companyId|vehicleId, year)`. Hot path Dashboard ·
+        // `DashboardStatsService::computePeriodMetrics` itère 8 ans ×
+        // 15 entreprises = 120 appels `byCompanyForYear` par mount,
+        // dont la grande majorité touchent les mêmes couples à travers
+        // les services consommateurs. S1.2 du plan optim perf 2026-05-15.
+        $this->app->singleton(BillingBreakdownService::class);
 
         // PDF annexe déclaration fiscale : binding vers le renderer
         // production Blade + DomPDF (Phase 11 D5.5). NullDeclarationPdfRenderer

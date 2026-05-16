@@ -129,6 +129,38 @@ final class FleetFiscalAggregator
      */
     private array $fullYearBreakdownCache = [];
 
+    /**
+     * Cache mémoire intra-instance des **agrégats par couple** (S1.2 du
+     * plan optim perf 2026-05-15 · cause C-2 · les méthodes "agrégat
+     * par couple" exécutaient le pipeline sans mémoïsation).
+     *
+     * **Clés scalaires uniquement** · les autres args (Collection vehicles,
+     * ContractsByPair, indispos) viennent toujours du même
+     * `DashboardScopeContext` / `CompanyDetailScope` pour un
+     * `(companyId, year)` ou `(vehicleId, year)` donné dans une requête.
+     * Pas de pattern « 2 sous-ensembles différents pour la même clé »
+     * dans le code (audit a vérifié).
+     *
+     * **Sécurité** · `ContractsByPair` est `final readonly` (immutable),
+     * pas de mutation entre 2 appels. `Collection<Vehicle>` est passée
+     * par valeur conceptuellement (pas mutée par les méthodes).
+     *
+     * @var array<string, float>
+     */
+    private array $vehicleAnnualTaxCache = [];
+
+    /** @var array<string, float> */
+    private array $companyAnnualTaxCache = [];
+
+    /** @var array<string, list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>> */
+    private array $vehicleAnnualTaxBreakdownByCompanyCache = [];
+
+    /** @var array<string, list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float, appliedExemptions: list<AppliedExemption>}>> */
+    private array $companyAnnualTaxBreakdownByVehicleCache = [];
+
+    /** @var array<string, float> */
+    private array $fleetAnnualTaxCache = [];
+
     public function __construct(
         private readonly FiscalSegmentedExecutor $pipeline,
         private readonly FiscalYearContext $yearContext,
@@ -146,6 +178,25 @@ final class FleetFiscalAggregator
      * @param  list<Unavailability>  $vehicleUnavailabilities  Indispos du véhicule sur l'année
      */
     public function vehicleAnnualTax(
+        Vehicle $vehicle,
+        ContractsByPair $contracts,
+        array $vehicleUnavailabilities,
+        int $year,
+    ): float {
+        $key = $vehicle->id.'|'.$year;
+
+        return $this->vehicleAnnualTaxCache[$key] ??= $this->computeVehicleAnnualTax(
+            $vehicle,
+            $contracts,
+            $vehicleUnavailabilities,
+            $year,
+        );
+    }
+
+    /**
+     * @param  list<Unavailability>  $vehicleUnavailabilities
+     */
+    private function computeVehicleAnnualTax(
         Vehicle $vehicle,
         ContractsByPair $contracts,
         array $vehicleUnavailabilities,
@@ -171,6 +222,28 @@ final class FleetFiscalAggregator
      * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
      */
     public function companyAnnualTax(
+        int $companyId,
+        Collection $vehiclesById,
+        ContractsByPair $contracts,
+        array $unavailabilitiesByVehicleId,
+        int $year,
+    ): float {
+        $key = $companyId.'|'.$year;
+
+        return $this->companyAnnualTaxCache[$key] ??= $this->computeCompanyAnnualTax(
+            $companyId,
+            $vehiclesById,
+            $contracts,
+            $unavailabilitiesByVehicleId,
+            $year,
+        );
+    }
+
+    /**
+     * @param  Collection<int, Vehicle>  $vehiclesById
+     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     */
+    private function computeCompanyAnnualTax(
         int $companyId,
         Collection $vehiclesById,
         ContractsByPair $contracts,
@@ -554,6 +627,26 @@ final class FleetFiscalAggregator
         array $vehicleUnavailabilities,
         int $year,
     ): array {
+        $key = $vehicle->id.'|'.$year;
+
+        return $this->vehicleAnnualTaxBreakdownByCompanyCache[$key] ??= $this->computeVehicleAnnualTaxBreakdownByCompany(
+            $vehicle,
+            $contracts,
+            $vehicleUnavailabilities,
+            $year,
+        );
+    }
+
+    /**
+     * @param  list<Unavailability>  $vehicleUnavailabilities
+     * @return list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
+     */
+    private function computeVehicleAnnualTaxBreakdownByCompany(
+        Vehicle $vehicle,
+        ContractsByPair $contracts,
+        array $vehicleUnavailabilities,
+        int $year,
+    ): array {
         $rows = [];
         foreach ($contracts->pairsForVehicle($vehicle->id) as $companyId => $pairContracts) {
             $result = $this->pipeline->execute(
@@ -592,6 +685,29 @@ final class FleetFiscalAggregator
      * @return list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float, appliedExemptions: list<AppliedExemption>}>
      */
     public function companyAnnualTaxBreakdownByVehicle(
+        int $companyId,
+        Collection $vehiclesById,
+        ContractsByPair $contracts,
+        array $unavailabilitiesByVehicleId,
+        int $year,
+    ): array {
+        $key = $companyId.'|'.$year;
+
+        return $this->companyAnnualTaxBreakdownByVehicleCache[$key] ??= $this->computeCompanyAnnualTaxBreakdownByVehicle(
+            $companyId,
+            $vehiclesById,
+            $contracts,
+            $unavailabilitiesByVehicleId,
+            $year,
+        );
+    }
+
+    /**
+     * @param  Collection<int, Vehicle>  $vehiclesById
+     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * @return list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float, appliedExemptions: list<AppliedExemption>}>
+     */
+    private function computeCompanyAnnualTaxBreakdownByVehicle(
         int $companyId,
         Collection $vehiclesById,
         ContractsByPair $contracts,
@@ -639,6 +755,26 @@ final class FleetFiscalAggregator
      * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
      */
     public function fleetAnnualTax(
+        Collection $vehiclesById,
+        ContractsByPair $contracts,
+        array $unavailabilitiesByVehicleId,
+        int $year,
+    ): float {
+        $key = (string) $year;
+
+        return $this->fleetAnnualTaxCache[$key] ??= $this->computeFleetAnnualTax(
+            $vehiclesById,
+            $contracts,
+            $unavailabilitiesByVehicleId,
+            $year,
+        );
+    }
+
+    /**
+     * @param  Collection<int, Vehicle>  $vehiclesById
+     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     */
+    private function computeFleetAnnualTax(
         Collection $vehiclesById,
         ContractsByPair $contracts,
         array $unavailabilitiesByVehicleId,
