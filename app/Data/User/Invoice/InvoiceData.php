@@ -21,6 +21,12 @@ final class InvoiceData extends Data
 {
     /**
      * @param  list<InvoiceLineData>  $lines
+     *
+     * Note · la `divergence` (comparaison snapshot vs reel actuel)
+     * n'est PAS dans ce DTO. Elle est servie cote Show via
+     * `Inertia::defer` en prop racine `divergence` (audit perf
+     * 2026-05-16 / 06-invoices.md P1 #1) pour ne pas bloquer le mount
+     * sur un BillingCalculator complet.
      */
     public function __construct(
         public int $id,
@@ -37,12 +43,6 @@ final class InvoiceData extends Data
         public ?string $generatedByUserName,
         #[DataCollectionOf(InvoiceLineData::class)]
         public array $lines,
-        /**
-         * Comparaison snapshot figé vs réalité actuelle. Toujours
-         * exposée sur la fiche Show ; `null` ne devrait pas se produire
-         * en pratique (le service la calcule systématiquement).
-         */
-        public ?InvoiceDivergenceData $divergence = null,
         /**
          * `true` ssi la facture est une version obsolète (soft-deletée
          * par une régénération). Permet l'affichage bandeau « Cette
@@ -73,7 +73,6 @@ final class InvoiceData extends Data
      */
     public static function fromModel(
         Invoice $invoice,
-        ?InvoiceDivergenceData $divergence = null,
         ?Invoice $predecessor = null,
         array $historyChain = [],
     ): self {
@@ -107,7 +106,6 @@ final class InvoiceData extends Data
             generatedAt: $invoice->generated_at->toDateString(),
             generatedByUserName: trim($invoice->generatedBy->first_name.' '.$invoice->generatedBy->last_name),
             lines: $lines,
-            divergence: $divergence,
             isObsolete: $invoice->deleted_at !== null,
             supersededByInvoiceNumber: $supersededBy,
             supersededByInvoiceId: $supersededById,

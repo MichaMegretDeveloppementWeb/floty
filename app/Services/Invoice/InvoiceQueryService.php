@@ -7,6 +7,7 @@ namespace App\Services\Invoice;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\Invoice\InvoiceData;
+use App\Data\User\Invoice\InvoiceDivergenceData;
 use App\Data\User\Invoice\InvoiceIndexQueryData;
 use App\Data\User\Invoice\InvoiceListItemData;
 use App\Data\User\Invoice\PaginatedInvoiceListData;
@@ -62,14 +63,31 @@ final readonly class InvoiceQueryService
         // (company × year × month) · alimente la timeline UI.
         $historyChain = $this->repository->findHistoryChainFor($invoice);
 
-        // Divergence : non pertinente pour les versions obsolètes
-        // (elles sont figées dans leur état au moment de la régénération).
-        // On évite l'appel coûteux à `BillingCalculator` qui pourrait
-        // d'ailleurs lever `MissingPricingException` rétroactivement.
-        $divergence = $invoice->deleted_at === null
-            ? $this->divergenceChecker->check($invoice)
-            : null;
+        // Divergence servie en `Inertia::defer` cote Show pour ne pas
+        // bloquer le mount sur un BillingCalculator complet (~50 ms
+        // cold). Cf. `divergenceForInvoice()` ci-dessous + audit perf
+        // 2026-05-16 / 06-invoices.md P1 #1.
 
-        return InvoiceData::fromModel($invoice, $divergence, $predecessor, $historyChain);
+        return InvoiceData::fromModel($invoice, $predecessor, $historyChain);
+    }
+
+    /**
+     * Comparaison snapshot facture vs reel contractuel actuel · servie
+     * via `Inertia::defer` cote Show pour ne pas bloquer le mount sur
+     * un BillingCalculator complet. Retourne `null` si la facture est
+     * obsolete (`deleted_at` non-null) ou introuvable · le front masque
+     * alors le bandeau divergence (les versions obsoletes sont figees
+     * a leur etat au moment de la regeneration).
+     *
+     * Audit perf 2026-05-16 / 06-invoices.md P1 #1.
+     */
+    public function divergenceForInvoice(int $id): ?InvoiceDivergenceData
+    {
+        $invoice = $this->repository->findById($id);
+        if ($invoice === null || $invoice->deleted_at !== null) {
+            return null;
+        }
+
+        return $this->divergenceChecker->check($invoice);
     }
 }

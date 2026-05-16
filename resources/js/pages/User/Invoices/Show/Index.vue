@@ -3,7 +3,7 @@
  * Page Show Facture (Phase 14.F V1.2). Détail immuable + lien de
  * téléchargement du PDF généré à l'émission.
  */
-import { Head, Link } from '@inertiajs/vue3';
+import { Deferred, Head, Link } from '@inertiajs/vue3';
 import { Download, FileText } from 'lucide-vue-next';
 import { computed } from 'vue';
 import InvoiceDivergenceBanner from '@/Components/Domain/Billing/InvoiceDivergenceBanner.vue';
@@ -19,6 +19,9 @@ import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 const props = defineProps<{
     invoice: App.Data.User.Invoice.InvoiceData;
+    // Inertia::defer · arrive en 2e round-trip apres mount initial.
+    // null pour les factures obsoletes (figees au moment de la regen).
+    divergence?: App.Data.User.Invoice.InvoiceDivergenceData | null;
 }>();
 
 const periodLabel = computed<string>(
@@ -69,13 +72,20 @@ const downloadUrl = computed<string>(() =>
             </div>
 
             <!-- Bandeau divergence (sous header + bouton PDF) · uniquement
-                 sur la version active. -->
-            <InvoiceDivergenceBanner
-                v-if="invoice.divergence?.hasDivergence && !invoice.isObsolete"
-                :invoice-id="invoice.id"
-                :invoice-number="invoice.invoiceNumber"
-                :divergence="invoice.divergence"
-            />
+                 sur la version active. Servi en `Inertia::defer` apres
+                 mount initial (audit perf 2026-05-16 P1.4) · skeleton
+                 bref puis bandeau si applicable, ou rien si conforme. -->
+            <Deferred v-if="!invoice.isObsolete" data="divergence">
+                <template #fallback>
+                    <div class="h-12 animate-pulse rounded-xl bg-slate-100" />
+                </template>
+                <InvoiceDivergenceBanner
+                    v-if="divergence?.hasDivergence"
+                    :invoice-id="invoice.id"
+                    :invoice-number="invoice.invoiceNumber"
+                    :divergence="divergence"
+                />
+            </Deferred>
 
             <!-- Méta -->
             <Card>

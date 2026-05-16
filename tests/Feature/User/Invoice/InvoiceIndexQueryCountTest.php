@@ -138,10 +138,13 @@ final class InvoiceIndexQueryCountTest extends TestCase
     }
 
     #[Test]
-    public function show_renvoie_le_dto_avec_la_divergence(): void
+    public function show_servi_divergence_en_inertia_defer_pas_dans_le_dto(): void
     {
-        // Sanity check : la fiche Show conserve `InvoiceDivergenceChecker`
-        // pour fournir snapshot vs courant au banner. C'est volontaire.
+        // P1.4 (audit perf 2026-05-16 / 06-invoices.md P1 #1) · la fiche
+        // Show conserve `InvoiceDivergenceChecker` mais le sert en
+        // `Inertia::defer` pour ne pas bloquer le mount sur un
+        // BillingCalculator complet (~50 ms cold). Le banner divergence
+        // est rendu apres un 2e round-trip transparent cote front.
         $user = User::factory()->create();
         $company = Company::factory()->create();
         $invoice = Invoice::factory()
@@ -153,6 +156,10 @@ final class InvoiceIndexQueryCountTest extends TestCase
         $this->actingAs($user)
             ->get("/app/invoices/{$invoice->id}")
             ->assertOk()
-            ->assertInertia(fn ($page) => $page->has('invoice.divergence'));
+            ->assertInertia(fn ($page) => $page
+                ->has('invoice')
+                ->missing('invoice.divergence')
+                ->missing('divergence'),
+            );
     }
 }

@@ -87,6 +87,10 @@ final class InvoiceController extends Controller
 
         return Inertia::render('User/Invoices/Show/Index', [
             'invoice' => $data,
+            // Inertia::defer · BillingCalculator complet (~30-100 ms cold)
+            // pour le bandeau « Donnees obsoletes ». Mount immediat +
+            // <Deferred data="divergence"> + skeleton cote front.
+            'divergence' => Inertia::defer(fn () => $this->invoiceQuery->divergenceForInvoice($invoice->id)),
         ]);
     }
 

@@ -109,7 +109,11 @@ final class InvoiceControllerTest extends TestCase
                     ->where('year', 2024)
                     ->where('month', 3)
                     ->has('lines', 1)
-                    ->etc()));
+                    // P1.4 (audit perf 2026-05-16) · divergence servie
+                    // en Inertia::defer, pas dans le DTO racine.
+                    ->missing('divergence')
+                    ->etc())
+                ->missing('divergence'));
     }
 
     #[Test]
