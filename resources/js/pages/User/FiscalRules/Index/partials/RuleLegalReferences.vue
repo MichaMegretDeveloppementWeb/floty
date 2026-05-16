@@ -87,7 +87,7 @@ const links = computed<Display[]>(() =>
 <template>
     <p
         v-if="links.length > 0"
-        class="mt-3 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs text-slate-500"
+        class="mt-6 flex flex-wrap items-center gap-x-1 gap-y-0.5 font-mono text-xs text-slate-500"
     >
         <template v-for="(link, idx) in links" :key="idx">
             <a

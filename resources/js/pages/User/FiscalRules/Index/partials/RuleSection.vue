@@ -2,12 +2,16 @@
 import RuleCard from './RuleCard.vue';
 
 type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
+type RelatedRule = { code: string; title: string };
 
 defineProps<{
     title: string;
     subtitle: string;
     codes: string[];
     rulesByCode: Record<string, Rule>;
+    relatedRulesFor: (code: string) => RelatedRule[];
+    navigateToRule: (code: string) => void;
+    flashedRuleCode: string | null;
 }>();
 </script>
 
@@ -23,9 +27,15 @@ defineProps<{
             </p>
         </header>
 
-        <ul v-if="codes.length > 0" class="flex flex-col gap-4">
+        <ul v-if="codes.length > 0" class="flex flex-col gap-8">
             <li v-for="code in codes" :key="code">
-                <RuleCard :code="code" :rule="rulesByCode[code]" />
+                <RuleCard
+                    :code="code"
+                    :rule="rulesByCode[code]"
+                    :related-rules="relatedRulesFor(code)"
+                    :is-flashed="flashedRuleCode === code"
+                    @navigate-to-rule="navigateToRule"
+                />
             </li>
         </ul>
 

@@ -7,14 +7,14 @@ defineProps<{
 </script>
 
 <template>
-    <div class="mt-4">
-        <table class="w-full overflow-hidden rounded-lg border border-slate-200 text-base">
+    <div class="mt-6">
+        <table class="w-full overflow-hidden rounded-lg border border-slate-200 text-sm">
             <thead class="bg-slate-50">
                 <tr>
-                    <th class="px-3 py-2 text-left font-medium text-slate-600">
+                    <th class="px-3 py-2 text-left text-xs font-medium text-slate-500">
                         {{ brackets.header[0] }}
                     </th>
-                    <th class="px-3 py-2 text-right font-medium text-slate-600">
+                    <th class="px-3 py-2 text-right text-xs font-medium text-slate-500">
                         {{ brackets.header[1] }}
                     </th>
                 </tr>

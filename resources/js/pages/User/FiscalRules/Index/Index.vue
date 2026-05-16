@@ -45,7 +45,15 @@ const yearModel = computed<number>({
 
 const daysInFiscalYear = computed<number>(() => daysInYearOf(selectedYear.value));
 
-const { activeTab, tabs, rulesByCode, currentGroups } = useFiscalRulesIndex(props);
+const {
+    activeTab,
+    tabs,
+    rulesByCode,
+    currentGroups,
+    flashedRuleCode,
+    relatedRulesFor,
+    navigateToRule,
+} = useFiscalRulesIndex(props);
 
 const tabIntro = computed<string>(() => {
     switch (activeTab.value) {
@@ -134,6 +142,9 @@ const tabIntro = computed<string>(() => {
                     :subtitle="group.subtitle"
                     :codes="group.codes"
                     :rules-by-code="rulesByCode"
+                    :related-rules-for="relatedRulesFor"
+                    :navigate-to-rule="navigateToRule"
+                    :flashed-rule-code="flashedRuleCode"
                 />
             </div>
         </div>
