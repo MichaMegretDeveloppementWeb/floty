@@ -3,7 +3,7 @@ import { useForm } from '@inertiajs/vue3';
 import type { CompanyFormShape } from '@/pages/User/Companies/Create/forms';
 import { update as companiesUpdateRoute } from '@/routes/user/companies';
 
-type CompanyDetail = App.Data.User.Company.CompanyDetailData;
+type CompanyEdit = App.Data.User.Company.CompanyEditData;
 
 /**
  * Form Inertia + valeurs initiales (pré-remplies depuis le DTO Company)
@@ -12,7 +12,7 @@ type CompanyDetail = App.Data.User.Company.CompanyDetailData;
  * Spatie Data côté backend) en ignorant `is_active` qui n'est pas
  * piloté par le formulaire d'édition.
  */
-export function useCompanyEditForm(company: CompanyDetail): {
+export function useCompanyEditForm(company: CompanyEdit): {
     form: InertiaForm<CompanyFormShape>;
     submit: () => void;
 } {

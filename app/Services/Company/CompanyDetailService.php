@@ -11,6 +11,7 @@ use App\Data\Shared\YearScopeData;
 use App\Data\User\Company\CompanyActivityYearData;
 use App\Data\User\Company\CompanyDetailData;
 use App\Data\User\Company\CompanyDriverRowData;
+use App\Data\User\Company\CompanyEditData;
 use App\Data\User\Company\CompanyLifetimeStatsData;
 use App\Data\User\Company\CompanyTopVehicleData;
 use App\Data\User\Company\CompanyYearStatsData;
@@ -67,6 +68,41 @@ final class CompanyDetailService
      * marquer l'exercice en cours sans dépendre de `new Date()`
      * côté front (cf. ADR-0020 D4).
      */
+    /**
+     * Vue slim pour la page Edit · projection des 14 champs scalaires
+     * d'identité / adresse / contact, **sans** déclencher le pipeline
+     * fiscal ni les agrégations multi-années.
+     *
+     * Économise ~280 ms cold vs `detail()` (qui exécute drivers +
+     * lifetime + history + activityByYear avec pipeline fiscal complet).
+     * Cf. `project-management/perf-audit-2026-05-16/03-company.md` P0 #2
+     * + doctrine `chargement-strict-par-ecran.md` § 2.
+     */
+    public function detailForEdit(int $companyId): ?CompanyEditData
+    {
+        $company = $this->companies->findById($companyId);
+        if ($company === null) {
+            return null;
+        }
+
+        return new CompanyEditData(
+            id: $company->id,
+            legalName: $company->legal_name,
+            shortCode: $company->short_code,
+            color: $company->color,
+            siren: $company->siren,
+            siret: $company->siret,
+            addressLine1: $company->address_line_1,
+            addressLine2: $company->address_line_2,
+            postalCode: $company->postal_code,
+            city: $company->city,
+            country: $company->country,
+            contactName: $company->contact_name,
+            contactEmail: $company->contact_email,
+            contactPhone: $company->contact_phone,
+        );
+    }
+
     public function detail(int $companyId): ?CompanyDetailData
     {
         $company = $this->companies->findById($companyId);

@@ -1082,12 +1082,14 @@ final class CompanyControllerTest extends TestCase
     }
 
     #[Test]
-    public function edit_rend_la_page_avec_le_dto_company_et_les_couleurs(): void
+    public function edit_rend_la_page_avec_le_dto_slim_company_et_les_couleurs(): void
     {
         $user = User::factory()->create();
         $company = Company::factory()->create([
             'legal_name' => 'ACME SAS',
             'short_code' => 'ACM',
+            'address_line_1' => '12 rue de la Paix',
+            'contact_email' => 'admin@acme.fr',
         ]);
 
         $this->actingAs($user)
@@ -1098,6 +1100,16 @@ final class CompanyControllerTest extends TestCase
                 ->where('company.id', $company->id)
                 ->where('company.legalName', 'ACME SAS')
                 ->where('company.shortCode', 'ACM')
+                ->where('company.addressLine1', '12 rue de la Paix')
+                ->where('company.contactEmail', 'admin@acme.fr')
+                ->has('company.color')
+                // Contrat slim · les agregats du DTO Detail (utilise sur Show)
+                // ne doivent PAS apparaitre ici · garantit qu'aucun
+                // pipeline fiscal/lifetime/history n'est execute pour Edit.
+                ->missing('company.history')
+                ->missing('company.drivers')
+                ->missing('company.lifetime')
+                ->missing('company.kpiStats')
                 ->has('colors'),
             );
     }

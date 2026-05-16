@@ -224,7 +224,10 @@ final class CompanyController extends Controller
     {
         Gate::authorize('update', $company);
 
-        $detail = $this->companyDetail->detail($company->id);
+        // Slim DTO sans pipeline fiscal · le formulaire Edit n'affiche
+        // que 14 champs scalaires d'identité, pas besoin de drivers /
+        // lifetime / history / activityByYear (gain ~280 ms cold).
+        $detail = $this->companyDetail->detailForEdit($company->id);
 
         if ($detail === null) {
             throw new NotFoundHttpException('Entreprise introuvable.');

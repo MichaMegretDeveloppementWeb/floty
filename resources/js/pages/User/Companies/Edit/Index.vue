@@ -9,7 +9,7 @@ import IdentitySection from '@/pages/User/Companies/Create/partials/IdentitySect
 import { show as companiesShowRoute } from '@/routes/user/companies';
 
 const props = defineProps<{
-    company: App.Data.User.Company.CompanyDetailData;
+    company: App.Data.User.Company.CompanyEditData;
     colors: App.Data.User.Company.CompanyColorOptionData[];
 }>();
 
