@@ -178,15 +178,15 @@ final class DeclarationController extends Controller
             return redirect()->route('user.declarations.show', ['declaration' => $declaration->id]);
         }
 
-        $preview = $this->previewService->preview($declaration->company_id, $declaration->fiscal_year);
-
-        // En page Review, la déclaration est par construction `draft`
+        // P0.4 (audit perf 2026-05-16) · preview (RiskDetection ~150-400 ms)
+        // et snapshot (Fiscal Engine ~150-400 ms) servis en `Inertia::defer`
+        // (cf. array passe a Inertia::render plus bas). Mount immediat +
+        // <Deferred :data="['preview', 'snapshot']"> cote front avec
+        // skeleton fallback. La declaration est par construction `draft`
         // ou `deferred` (cf. redirect ci-dessus pour Generated/Obsolète),
-        // donc pas de payload persisté. On recalcule toujours, ce qui
-        // est cohérent avec le rôle « prévisualisation interactive »
-        // de la page : les décisions Conserver/Requalifier en cours
-        // doivent se refléter en direct sur la `FiscalSummaryCard`.
-        $snapshot = $this->engine->compute($declaration->company_id, $declaration->fiscal_year);
+        // donc pas de payload persisté · on recalcule toujours, ce qui
+        // reste coherent avec le role « previsualisation interactive »
+        // de la page (decisions Conserver/Requalifier en direct).
 
         // Phase 11 D5.8.3 · si ce Draft est chaîné (régénération en
         // cours), expose la version obsolète remplacée pour permettre
@@ -204,8 +204,17 @@ final class DeclarationController extends Controller
 
         return Inertia::render('User/Declarations/Review/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
-            'preview' => $preview,
-            'snapshot' => FiscalDeclarationSnapshotData::fromValueObject($snapshot),
+            // P0.4 · 2 pipelines lourds (RiskDetection + Fiscal Engine)
+            // servis en 2e round-trip transparent · skeleton fallback
+            // cote front via <Deferred :data="['preview', 'snapshot']">.
+            'preview' => Inertia::defer(
+                fn () => $this->previewService->preview($declaration->company_id, $declaration->fiscal_year),
+            ),
+            'snapshot' => Inertia::defer(
+                fn () => FiscalDeclarationSnapshotData::fromValueObject(
+                    $this->engine->compute($declaration->company_id, $declaration->fiscal_year),
+                ),
+            ),
             'predecessorDeclaration' => $predecessor !== null
                 ? DeclarationListItemData::fromModel($predecessor->load('company'))
                 : null,

@@ -15,7 +15,7 @@
  * responsive), toggle « Voir en lecture » au-dessus du header,
  * suppression de l'accent border-l-2 amber sur le main container.
  */
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Deferred, Head, Link, router } from '@inertiajs/vue3';
 import { ArrowLeft, Building2, LoaderCircle, RotateCcw, ShieldCheck, Trash2 } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import DeclarationClustersRecap from '@/Components/Domain/Declaration/DeclarationClustersRecap.vue';
@@ -36,8 +36,10 @@ import ReviewActionsBar from './partials/ReviewActionsBar.vue';
 
 const props = defineProps<{
     declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
-    preview: App.Data.User.FiscalDeclaration.DeclarationPreviewData;
-    snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
+    // P0.4 (audit perf 2026-05-16) · Inertia::defer · arrivent en 2e
+    // round-trip apres mount. Skeleton fallback via <Deferred> ci-dessous.
+    preview?: App.Data.User.FiscalDeclaration.DeclarationPreviewData;
+    snapshot?: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
     predecessorDeclaration: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
     obsoleteReasons: App.Data.User.FiscalDeclaration.InvalidationReasonData[];
     canonicalHeadDeclarationId: number | null;
@@ -82,6 +84,7 @@ function requestRevert(): void {
     if (reverting.value) {
         return;
     }
+
     reverting.value = true;
     router.post(
         revertDeferRoute.url({ declaration: props.declaration.id }),
@@ -157,6 +160,12 @@ function handleSubmit(
 }
 
 function handleQuickRequalify(fingerprint: string): void {
+    // Guard defensif TS · handleQuickRequalify n'est appele que depuis
+    // le slot enfant de <Deferred> (preview est donc defini), mais le
+    // type nullable de preview impose ce check pour strict-checker.
+    if (!props.preview) {
+        return;
+    }
     const cluster = props.preview.clusters.find((c) => c.fingerprint === fingerprint);
 
     if (cluster === undefined) {
@@ -247,47 +256,58 @@ function handleScrollTo(fingerprint: string): void {
                 :fiscal-year="declaration.fiscalYear"
             />
 
-            <DeclarationClustersRecap
-                :clusters="preview.clusters"
-                :submitting="submitting"
-                @quick-requalify="handleQuickRequalify"
-                @scroll-to="handleScrollTo"
-            />
+            <!-- P0.4 (audit perf 2026-05-16) · preview (RiskDetection
+                 clusters) et snapshot (Fiscal Engine) servis en
+                 `Inertia::defer` cote controller · skeleton fallback
+                 pendant le 2e round-trip transparent. -->
+            <Deferred :data="['preview', 'snapshot']">
+                <template #fallback>
+                    <div class="h-24 animate-pulse rounded-2xl bg-slate-100" aria-label="Chargement de l'aperçu" />
+                    <div class="h-96 animate-pulse rounded-2xl bg-slate-100" aria-label="Chargement de la synthèse fiscale" />
+                </template>
 
-            <FiscalSummaryCard
-                ref="fiscalSummaryRef"
-                :snapshot="snapshot"
-                :review-clusters="preview.clusters"
-                :submitting="submitting"
-                :risk-settings="riskSettings"
-                @submit="(cluster, decision, justification, excludedIds) => handleSubmit(cluster, decision, justification, excludedIds)"
-            />
+                <DeclarationClustersRecap
+                    :clusters="preview!.clusters"
+                    :submitting="submitting"
+                    @quick-requalify="handleQuickRequalify"
+                    @scroll-to="handleScrollTo"
+                />
 
-            <div
-                v-if="preview.clusters.length === 0"
-                class="flex flex-col items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center"
-            >
+                <FiscalSummaryCard
+                    ref="fiscalSummaryRef"
+                    :snapshot="snapshot!"
+                    :review-clusters="preview!.clusters"
+                    :submitting="submitting"
+                    :risk-settings="riskSettings"
+                    @submit="(cluster, decision, justification, excludedIds) => handleSubmit(cluster, decision, justification, excludedIds)"
+                />
+
                 <div
-                    class="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-emerald-600"
+                    v-if="preview!.clusters.length === 0"
+                    class="flex flex-col items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center"
                 >
-                    <ShieldCheck :size="24" :stroke-width="1.75" />
+                    <div
+                        class="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-emerald-600"
+                    >
+                        <ShieldCheck :size="24" :stroke-width="1.75" />
+                    </div>
+                    <p class="text-sm font-semibold text-emerald-900">
+                        Aucune chaîne LCD à risque détectée
+                    </p>
+                    <p class="max-w-md text-xs text-emerald-800">
+                        Le périmètre fiscal de cet exercice ne révèle aucune chaîne
+                        LCD nécessitant une revue. Vous pouvez générer la déclaration
+                        directement.
+                    </p>
                 </div>
-                <p class="text-sm font-semibold text-emerald-900">
-                    Aucune chaîne LCD à risque détectée
-                </p>
-                <p class="max-w-md text-xs text-emerald-800">
-                    Le périmètre fiscal de cet exercice ne révèle aucune chaîne
-                    LCD nécessitant une revue. Vous pouvez générer la déclaration
-                    directement.
-                </p>
-            </div>
 
-            <ReviewActionsBar
-                :declaration-id="declaration.id"
-                :pending-clusters-count="preview.pendingClustersCount"
-                :can-generate="preview.canGenerate"
-                :is-deferred="isDeferred"
-            />
+                <ReviewActionsBar
+                    :declaration-id="declaration.id"
+                    :pending-clusters-count="preview!.pendingClustersCount"
+                    :can-generate="preview!.canGenerate"
+                    :is-deferred="isDeferred"
+                />
+            </Deferred>
         </div>
 
         <ConfirmModal

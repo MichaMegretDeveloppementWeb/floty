@@ -209,8 +209,16 @@ final class DeclarationControllerTest extends TestCase
     }
 
     #[Test]
-    public function review_render_inertia_si_draft(): void
+    public function review_render_inertia_si_draft_et_sert_preview_snapshot_en_defer(): void
     {
+        // P0.4 (audit perf 2026-05-16 / 08-misc.md P0 #1) · `preview`
+        // (RiskDetection clusters) et `snapshot` (Fiscal Engine) sont
+        // servis en `Inertia::defer` pour ne pas bloquer le mount sur
+        // ~300-800 ms de pipelines. Ce test prouve que le defer est
+        // cable · les 2 props arrivent via une 2e requete asynchrone
+        // partial reload declenchee par <Deferred> cote front. Le
+        // contenu des pipelines est teste par les tests Unit dedies
+        // (`DeclarationPreviewServiceTest`, `DeclarationFiscalEngineTest`).
         $declaration = FiscalDeclaration::factory()
             ->forCompany($this->company)
             ->forYear(2025)
@@ -222,11 +230,8 @@ final class DeclarationControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Declarations/Review/Index')
                 ->where('declaration.id', $declaration->id)
-                ->has('preview')
-                ->has('snapshot')
-                ->has('snapshot.totalDue')
-                ->has('snapshot.contractBreakdown')
-                ->has('snapshot.appliedDecisions'));
+                ->missing('preview')
+                ->missing('snapshot'));
     }
 
     #[Test]
