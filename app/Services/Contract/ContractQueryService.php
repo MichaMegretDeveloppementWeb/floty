@@ -514,22 +514,17 @@ final readonly class ContractQueryService
     {
         $contracts = $this->repository->findByVehicleAndYear($vehicleId, $year);
 
-        /** @var array<int, array<int, array<string, bool>>> $byWeekCompanyDays */
-        $byWeekCompanyDays = [];
-        foreach ($contracts as $contract) {
-            foreach ($contract->expandToDaysInYear($year) as $date) {
-                $week = (int) (new \DateTimeImmutable($date))->format('W');
-                $byWeekCompanyDays[$week] ??= [];
-                $byWeekCompanyDays[$week][$contract->company_id] ??= [];
-                $byWeekCompanyDays[$week][$contract->company_id][$date] = true;
-            }
-        }
-
+        // S2.1 (plan optim perf 2026-05-15) · arithmétique semaine par
+        // semaine via {@see Contract::daysByWeekInYear}. Sécurité dédup ·
+        // la contrainte métier interdit deux contrats du même véhicule
+        // sur les mêmes jours, donc sommation cross-contracts safe (le
+        // `Set<date>` historique était défensif mais redondant).
         $byWeek = [];
-        foreach ($byWeekCompanyDays as $week => $byCompany) {
-            $byWeek[$week] = [];
-            foreach ($byCompany as $companyId => $days) {
-                $byWeek[$week][$companyId] = count($days);
+        foreach ($contracts as $contract) {
+            $companyId = $contract->company_id;
+            foreach ($contract->daysByWeekInYear($year) as $week => $days) {
+                $byWeek[$week] ??= [];
+                $byWeek[$week][$companyId] = ($byWeek[$week][$companyId] ?? 0) + $days;
             }
         }
         ksort($byWeek);
@@ -548,20 +543,17 @@ final readonly class ContractQueryService
     {
         $contracts = $this->repository->findActiveForYear($year);
 
-        /** @var array<string, array<string, bool>> $byKeyDays */
-        $byKeyDays = [];
-        foreach ($contracts as $contract) {
-            foreach ($contract->expandToDaysInYear($year) as $date) {
-                $week = (int) (new \DateTimeImmutable($date))->format('W');
-                $key = $contract->vehicle_id.'|'.$week;
-                $byKeyDays[$key] ??= [];
-                $byKeyDays[$key][$date] = true;
-            }
-        }
-
+        // S2.1 (plan optim perf 2026-05-15) · arithmétique semaine par
+        // semaine via {@see Contract::daysByWeekInYear}. Sécurité dédup ·
+        // la contrainte métier interdit deux contrats du même véhicule
+        // sur les mêmes jours, donc sommation cross-contracts safe.
         $density = [];
-        foreach ($byKeyDays as $key => $days) {
-            $density[$key] = count($days);
+        foreach ($contracts as $contract) {
+            $vehicleId = $contract->vehicle_id;
+            foreach ($contract->daysByWeekInYear($year) as $week => $days) {
+                $key = $vehicleId.'|'.$week;
+                $density[$key] = ($density[$key] ?? 0) + $days;
+            }
         }
 
         return $density;
@@ -583,24 +575,21 @@ final readonly class ContractQueryService
     {
         $contracts = $this->repository->findActiveForYear($year);
 
-        /** @var array<string, array<string, bool>> $byKeyDays */
-        $byKeyDays = [];
+        // S2.1 (plan optim perf 2026-05-15) · arithmétique semaine par
+        // semaine via {@see Contract::daysByWeekInYear}. Filtre company
+        // d'abord (skip rapide), puis sommation arithmétique safe (cf.
+        // commentaire {@see loadWeekDensity}).
+        $density = [];
         foreach ($contracts as $contract) {
             if ($contract->company_id !== $companyId) {
                 continue;
             }
 
-            foreach ($contract->expandToDaysInYear($year) as $date) {
-                $week = (int) (new \DateTimeImmutable($date))->format('W');
-                $key = $contract->vehicle_id.'|'.$week;
-                $byKeyDays[$key] ??= [];
-                $byKeyDays[$key][$date] = true;
+            $vehicleId = $contract->vehicle_id;
+            foreach ($contract->daysByWeekInYear($year) as $week => $days) {
+                $key = $vehicleId.'|'.$week;
+                $density[$key] = ($density[$key] ?? 0) + $days;
             }
-        }
-
-        $density = [];
-        foreach ($byKeyDays as $key => $days) {
-            $density[$key] = count($days);
         }
 
         return $density;

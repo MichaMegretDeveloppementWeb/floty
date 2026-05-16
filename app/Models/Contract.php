@@ -218,4 +218,62 @@ final class Contract extends Model
         // sémantique « bornes incluses » de `expandToDaysInYear`.
         return (int) $rangeStart->diffInDays($rangeEnd) + 1;
     }
+
+    /**
+     * Distribution des jours du contrat par semaine ISO de l'année donnée.
+     * Clé · numéro de semaine ISO (1..53) · valeur · nombre de jours du
+     * contrat dans cette semaine. Bornes incluses, contrat clippé à
+     * `[1er janvier $year, 31 décembre $year]`.
+     *
+     * Variante perf · ne matérialise pas l'array de 365 strings, itère
+     * semaine par semaine (au plus 53 itérations) en arithmétique pure.
+     * Doit retourner exactement le résultat de
+     * `expandToDaysInYear → groupBy(format('W'))` (équivalence prouvée
+     * par {@see ContractDaysByWeekVsExpandEquivalenceTest}).
+     *
+     * **Sémantique W = `format('W')`** · cohérente avec
+     * `loadWeekDensity` historique · une journée appartient à la
+     * semaine ISO contenant son jeudi (norme ISO 8601). Le 30 décembre
+     * 2024 (lundi) est en `W01` (de 2025) selon ISO ; donc filtré pour
+     * `year=2024` il atterrit dans le bucket `1` au lieu de `53`. C'est
+     * le comportement strictement préservé de `loadWeekDensity`.
+     *
+     * Cf. plan optim perf 2026-05-15 S2.1 (cause C-6 ·
+     * expandToDaysInYear day-by-day).
+     *
+     * @return array<int, int>
+     */
+    public function daysByWeekInYear(int $year): array
+    {
+        $yearStart = CarbonImmutable::create($year, 1, 1);
+        $yearEnd = CarbonImmutable::create($year, 12, 31);
+
+        $start = $this->start_date->toImmutable();
+        $end = $this->end_date->toImmutable();
+
+        $rangeStart = $start->isAfter($yearStart) ? $start : $yearStart;
+        $rangeEnd = $end->isBefore($yearEnd) ? $end : $yearEnd;
+
+        if ($rangeStart->isAfter($rangeEnd)) {
+            return [];
+        }
+
+        $byWeek = [];
+        $cursor = $rangeStart;
+        while (! $cursor->isAfter($rangeEnd)) {
+            // ISO weekday · 1=lundi .. 7=dimanche. Jours restants
+            // jusqu'à la fin de la semaine ISO en cours (dimanche).
+            $daysToSunday = 7 - (int) $cursor->dayOfWeekIso;
+            $weekEndCandidate = $cursor->addDays($daysToSunday);
+            $segmentEnd = $weekEndCandidate->isAfter($rangeEnd) ? $rangeEnd : $weekEndCandidate;
+
+            $weekNumber = (int) $cursor->format('W');
+            $daysInThisWeek = (int) $cursor->diffInDays($segmentEnd) + 1;
+            $byWeek[$weekNumber] = ($byWeek[$weekNumber] ?? 0) + $daysInThisWeek;
+
+            $cursor = $segmentEnd->addDay();
+        }
+
+        return $byWeek;
+    }
 }
