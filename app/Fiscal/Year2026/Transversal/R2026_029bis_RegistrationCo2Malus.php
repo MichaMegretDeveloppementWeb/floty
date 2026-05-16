@@ -129,7 +129,7 @@ final readonly class R2026_029bis_RegistrationCo2Malus implements InformativeRul
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: "Malus CO₂ à l'immatriculation (toilettage 01/09/2026)",
             pitch: 'Période 01/09-31/12/2026 · paramètres et barèmes identiques à R-2026-029. Toilettage rédactionnel par Ordo 2025-1247 art. 4 (effet art. 49).',

@@ -119,7 +119,7 @@ final readonly class R2026_033bis_FleetGreeningIncentiveTax implements Informati
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: 'TAI - acquisition de VFE (textes toilettés 01/03/2026)',
             pitch: 'Période 01/03-31/12/2026 · même régime plein TAI que la période 01/01-28/02 · tarif 4 000 €, quota 18 %. La note transitoire 2025 sur le prorata 1/306e est formellement retirée des textes.',

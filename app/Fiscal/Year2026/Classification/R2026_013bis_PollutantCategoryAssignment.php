@@ -112,7 +112,7 @@ final readonly class R2026_013bis_PollutantCategoryAssignment implements Classif
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::Cadre,
             section: RuleSection::Aiguillage,
             title: 'Étape 3 : quelle catégorie polluants ? (depuis 01/09/2026)',
             pitch: 'Période 01/09-31/12/2026 · même cascade E / Cat1 / MostPolluting que la période précédente, avec rédaction modernisée de L. 421-134 par Ordo 2025-1247 art. 7.',

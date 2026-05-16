@@ -127,7 +127,7 @@ final readonly class R2026_029_RegistrationCo2Malus implements InformativeRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: "Malus CO₂ à l'immatriculation 2026 (durcissement programmé)",
             pitch: "Période 01/01-31/08/2026 · taxe ponctuelle payée à l'achat d'un véhicule neuf en fonction de ses émissions CO₂. Barème durci au 01/01/2026 par LF 2024 art. 97-20° · seuil 108 g (vs 113 en 2025), plafond 80 000 € (vs 70 000).",

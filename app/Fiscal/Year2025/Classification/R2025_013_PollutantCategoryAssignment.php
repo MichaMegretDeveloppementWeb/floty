@@ -103,7 +103,7 @@ final readonly class R2025_013_PollutantCategoryAssignment implements Classifica
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::Cadre,
             section: RuleSection::Aiguillage,
             title: 'Étape 3 : quelle catégorie polluants ?',
             pitch: 'Trois catégories : E (électrique/hydrogène), 1 (essence ou gaz Euro 5/6), « plus polluants » (tous les autres, dont Diesel).',

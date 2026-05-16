@@ -13,24 +13,29 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * (couche TS), désormais migré côté PHP pour conformité doctrine
  * « 1 règle = 1 classe PHP, source de vérité unique ».
  *
- * - `Calcul` · règles qui décrivent comment l'application calcule
- *   la taxe (aiguillage, barèmes, exonérations applicables).
- * - `Cadre` · règles de cadre architectural et de gestion des
- *   événements véhicule (redevable, prorata, indispos, garde-fou
- *   Crit'Air, modalités déclaratives, etc.).
- * - `Connexe` · règles fiscales véhicules réelles mais **hors
- *   périmètre de calcul de l'application** (malus immat, taxes
- *   carte grise, TAI verdissement flottes, taxe véhicules lourds).
- *   Distinct de `Cadre` parce que ce ne sont pas des règles de
- *   fonctionnement de l'application · ce sont de vraies taxes
- *   gérées par d'autres acteurs (bailleur, comptable de l'entreprise).
+ * Refonte 2026-05-16 (mockup A) · la dimension « ce que Floty calcule
+ * vs ce qui existe en droit mais que Floty n'applique pas » est portée
+ * par le 3e onglet (`HorsPerimetre`), qui regroupe désormais aussi les
+ * exonérations légales non appliquées par l'app. Aiguillage devient
+ * une étape de cadre (sélection du barème), pas un calcul.
+ *
+ * - `Calcul` · règles qui produisent un montant ou le réduisent dans
+ *   Floty (barèmes annuels + exonérations actives).
+ * - `Cadre` · règles de fonctionnement de l'application · choix du
+ *   barème selon le véhicule, prorata journalier, traitement des
+ *   indisponibilités et événements véhicule, modalités déclaratives.
+ * - `HorsPerimetre` · règles fiscales véhicules **prévues par la loi
+ *   mais non appliquées dans Floty** · exonérations sans cas d'usage
+ *   (OIG, entreprise individuelle, activités spécifiques) et taxes
+ *   connexes (malus immat, carte grise, TAI, taxe véhicules lourds)
+ *   acquittées par d'autres acteurs.
  */
 #[TypeScript]
 enum RuleTab: string
 {
     case Calcul = 'calcul';
     case Cadre = 'cadre';
-    case Connexe = 'connexe';
+    case HorsPerimetre = 'hors-perimetre';
 
     /**
      * Ordre d'affichage des sections de cet onglet, conforme à la
@@ -42,18 +47,18 @@ enum RuleTab: string
     {
         return match ($this) {
             self::Calcul => [
-                RuleSection::Aiguillage,
                 RuleSection::Bareme,
                 RuleSection::Exoneration,
-                RuleSection::ExonerationInactive,
             ],
             self::Cadre => [
+                RuleSection::Aiguillage,
                 RuleSection::CadreImplicite,
                 RuleSection::CadreEvenement,
                 RuleSection::CadreInterne,
                 RuleSection::CadreDeclaratif,
             ],
-            self::Connexe => [
+            self::HorsPerimetre => [
+                RuleSection::ExonerationInactive,
                 RuleSection::TaxeConnexe,
             ],
         };
@@ -64,7 +69,7 @@ enum RuleTab: string
         return match ($this) {
             self::Calcul => 'Calcul des taxes',
             self::Cadre => 'Cadre & fonctionnement',
-            self::Connexe => 'Taxes connexes (hors périmètre)',
+            self::HorsPerimetre => 'Hors périmètre Floty',
         };
     }
 }

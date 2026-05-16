@@ -127,7 +127,7 @@ final readonly class R2026_031bis_RegistrationCardTaxes implements InformativeRu
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: "Taxes liées au certificat d'immatriculation (majoration IDF L. 421-54-1)",
             pitch: "Période 01/03-31/12/2026 · création par LF 2026 art. 60 d'une majoration régionale Y1 jusqu'à +13 € pour l'Île-de-France, sur délibération du STIF (L. 1241-1 du code des transports).",

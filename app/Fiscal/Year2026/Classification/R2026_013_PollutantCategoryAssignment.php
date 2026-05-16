@@ -106,7 +106,7 @@ final readonly class R2026_013_PollutantCategoryAssignment implements Classifica
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::Cadre,
             section: RuleSection::Aiguillage,
             title: 'Étape 3 : quelle catégorie polluants ? (avant 01/09/2026)',
             pitch: 'Période 01/01-31/08/2026 · trois catégories E (électrique/hydrogène), 1 (essence ou gaz Euro 5/6), « plus polluants ».',

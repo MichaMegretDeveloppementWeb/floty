@@ -115,7 +115,7 @@ final readonly class R2025_031_RegistrationCardTaxes implements InformativeRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: "Taxes liées au certificat d'immatriculation (avant évolution 01/05/2025)",
             pitch: "Période 01/01-30/04/2025 · taxes payées à la délivrance d'une carte grise · taxe régionale Y1, taxe formation transport Y2, taxe fixe Y4.",

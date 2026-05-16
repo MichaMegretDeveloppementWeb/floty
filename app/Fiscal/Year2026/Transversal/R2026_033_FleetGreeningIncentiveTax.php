@@ -127,7 +127,7 @@ final readonly class R2026_033_FleetGreeningIncentiveTax implements InformativeR
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: 'TAI - acquisition de VFE (régime plein 2026)',
             pitch: 'Période 01/01-28/02/2026 · taxe annuelle de la TAI passe à son régime plein 2026 · tarif 4 000 €/véhicule manquant et quota cible VFE 18 %, sur année civile complète (fin du prorata 1/306e de 2025).',

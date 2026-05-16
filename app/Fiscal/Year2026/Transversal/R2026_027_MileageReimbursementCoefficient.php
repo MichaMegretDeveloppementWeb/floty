@@ -115,7 +115,7 @@ final readonly class R2026_027_MileageReimbursementCoefficient implements Transv
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::ExonerationInactive,
             title: 'Coefficient pondérateur et minoration frais kilométriques',
             pitch: 'Mécanique fiscale spécifique aux véhicules personnels de salariés ou dirigeants dont l\'entreprise prend en charge les frais kilométriques.',

@@ -101,7 +101,7 @@ final readonly class R2024_019_IndividualBusinessExemption implements ExemptionR
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::ExonerationInactive,
             title: 'Exonération entreprise individuelle',
             pitch: 'Véhicule affecté par une personne physique exerçant en nom propre (entrepreneur individuel BIC/BNC) · exonération soumise aux conditions du règlement de minimis.',

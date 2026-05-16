@@ -60,7 +60,7 @@ final class R2024_027_MileageReimbursementCoefficientTest extends TestCase
         $rule = new R2024_027_MileageReimbursementCoefficient;
         $content = $rule->pedagogicalContent();
 
-        self::assertSame(RuleTab::Calcul, $content->tab);
+        self::assertSame(RuleTab::HorsPerimetre, $content->tab);
         self::assertSame(RuleSection::ExonerationInactive, $content->section);
     }
 

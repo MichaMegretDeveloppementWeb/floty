@@ -109,7 +109,7 @@ final readonly class R2025_004bis_FiscalTypeQualification implements Classificat
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::Cadre,
             section: RuleSection::Aiguillage,
             title: 'Étape 1 : le véhicule est-il taxable ? (depuis LF 2025 art. 28)',
             pitch: 'Période 01/03-31/12/2025 · même cascade M1/N1 que la période précédente, avec rédaction modernisée de L. 421-2 par LF 2025 art. 28.',

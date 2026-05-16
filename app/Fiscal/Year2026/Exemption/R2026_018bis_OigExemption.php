@@ -127,7 +127,7 @@ final readonly class R2026_018bis_OigExemption implements ExemptionRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::ExonerationInactive,
             title: 'Exonération organisme d\'intérêt général (depuis 01/09/2026)',
             pitch: 'Période 01/09-31/12/2026 · même périmètre OIG que la période précédente, avec rédaction modernisée par Ordo 2025-1247 (recodification TVA).',

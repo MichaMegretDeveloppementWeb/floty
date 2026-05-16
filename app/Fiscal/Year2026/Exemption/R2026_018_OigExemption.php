@@ -125,7 +125,7 @@ final readonly class R2026_018_OigExemption implements ExemptionRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::ExonerationInactive,
             title: 'Exonération organisme d\'intérêt général (avant 01/09/2026)',
             pitch: 'Véhicules détenus par une association 1901, fondation, etc., affectés exclusivement à l\'activité non lucrative.',

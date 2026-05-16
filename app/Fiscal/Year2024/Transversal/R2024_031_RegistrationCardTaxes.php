@@ -112,7 +112,7 @@ final readonly class R2024_031_RegistrationCardTaxes implements InformativeRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: 'Taxes liées au certificat d\'immatriculation',
             pitch: 'Taxes acquittées à chaque délivrance d\'une carte grise · taxe régionale (au cheval fiscal), taxe formation transport, taxe fixe.',

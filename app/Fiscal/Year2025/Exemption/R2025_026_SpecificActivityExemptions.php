@@ -129,7 +129,7 @@ final readonly class R2025_026_SpecificActivityExemptions implements ExemptionRu
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::ExonerationInactive,
             title: 'Exonérations propres à certaines activités économiques',
             pitch: 'Exonérations totales pour les véhicules affectés au transport public de personnes, aux activités agricoles ou forestières, à l\'enseignement de la conduite ou aux compétitions sportives.',

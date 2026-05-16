@@ -103,7 +103,7 @@ final readonly class R2025_030_RegistrationWeightMalus implements InformativeRul
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: "Malus au poids à l'immatriculation",
             pitch: "Taxe ponctuelle payée à l'achat d'un véhicule neuf dont la masse en ordre de marche dépasse 1 600 kg en 2025.",

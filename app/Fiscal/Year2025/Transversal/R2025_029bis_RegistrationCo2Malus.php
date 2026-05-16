@@ -113,7 +113,7 @@ final readonly class R2025_029bis_RegistrationCo2Malus implements InformativeRul
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: "Malus CO₂ à l'immatriculation (durci par LF 2025 art. 28)",
             pitch: 'Période 01/03-31/12/2025 · barème durci · seuil abaissé à 113 g (vs 118), plafond rehaussé à 70 000 € (vs 60 000), suppression du plafonnement à 50 % du prix.',

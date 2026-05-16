@@ -115,7 +115,7 @@ final readonly class R2025_004_FiscalTypeQualification implements Classification
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Calcul,
+            tab: RuleTab::Cadre,
             section: RuleSection::Aiguillage,
             title: 'Étape 1 : le véhicule est-il taxable ? (avant LF 2025 art. 28)',
             pitch: 'Période 01/01-28/02/2025 · seuls les véhicules M1 (tourisme) et certains N1 (transport de personnes) sont assujettis aux deux taxes.',

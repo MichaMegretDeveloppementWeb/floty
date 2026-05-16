@@ -119,7 +119,7 @@ final readonly class R2024_032_HeavyVehiclesTax implements InformativeRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: 'Taxe sur les véhicules lourds de transport de marchandises',
             pitch: "Taxe annuelle spécifique aux camions ≥ 12 tonnes (N2/N3) · structurellement hors du périmètre de l'application (M1/N1 uniquement).",

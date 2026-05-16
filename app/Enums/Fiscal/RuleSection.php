@@ -27,30 +27,30 @@ enum RuleSection: string
     public function title(): string
     {
         return match ($this) {
-            self::Aiguillage => "Comment l'application choisit le bon barème pour chaque véhicule",
-            self::Bareme => 'Barèmes et tarifs applicables',
-            self::Exoneration => "Exonérations applicables dans l'application",
-            self::ExonerationInactive => "Exonérations, abattements et minorations prévus par la loi mais non applicables dans l'application",
-            self::CadreImplicite => 'Règles implicites du calcul',
-            self::CadreEvenement => 'Règles de gestion des évènements véhicule',
-            self::CadreInterne => "Règles de fonctionnement interne de l'application",
-            self::CadreDeclaratif => 'Modalités de déclaration et de paiement',
-            self::TaxeConnexe => "Taxes connexes véhicules hors périmètre de l'application",
+            self::Aiguillage => 'Sélection du barème applicable',
+            self::Bareme => 'Barèmes et tarifs',
+            self::Exoneration => 'Exonérations appliquées',
+            self::ExonerationInactive => 'Exonérations légales non appliquées',
+            self::CadreImplicite => 'Règles implicites',
+            self::CadreEvenement => 'Événements véhicule',
+            self::CadreInterne => 'Fonctionnement interne',
+            self::CadreDeclaratif => 'Déclaration et paiement',
+            self::TaxeConnexe => 'Taxes véhicule hors Floty',
         };
     }
 
     public function subtitle(): string
     {
         return match ($this) {
-            self::Aiguillage => "Trois étapes d'aiguillage : taxable ou non, quel barème CO₂, quelle catégorie polluants.",
+            self::Aiguillage => "Trois étapes d'aiguillage qui choisissent les bons barèmes en fonction des caractéristiques du véhicule · taxable ou non, quel barème CO₂, quelle catégorie polluants.",
             self::Bareme => 'Chiffres bruts utilisés pour calculer le tarif annuel plein de chaque taxe.',
             self::Exoneration => 'Règles qui annulent ou réduisent le montant dû pour une attribution donnée.',
-            self::ExonerationInactive => "Règles fiscales de réduction (exonérations, abattements, minorations) que la loi prévoit mais que l'application n'applique pas, faute de cas d'usage Floty ou par choix produit.",
+            self::ExonerationInactive => "Exonérations, abattements et minorations prévus par la loi mais que Floty n'applique pas (cas d'usage absent ou choix produit). Documentés pour transparence.",
             self::CadreImplicite => 'Évidences du mécanisme fiscal, énoncées ici pour mémoire.',
             self::CadreEvenement => "Comment l'application traite les indisponibilités, sorties de flotte et données manquantes.",
             self::CadreInterne => "Mécanismes de validation et d'audit transparents pour l'utilisateur.",
             self::CadreDeclaratif => "Comment l'entreprise déclare et acquitte les taxes annuelles · formulaires, dates, paiement, état récapitulatif.",
-            self::TaxeConnexe => "Taxes applicables aux véhicules d'entreprise mais hors du périmètre métier de l'application (malus à l'immatriculation, taxes carte grise, TAI verdissement flottes, taxe véhicules lourds, etc.). Acquittées par le bailleur ou directement par l'entreprise via son comptable · l'application ne les calcule pas, mais les documente pour exhaustivité du panorama fiscal véhicules.",
+            self::TaxeConnexe => "Taxes véhicule prévues par la loi mais hors périmètre Floty (malus immatriculation, taxes carte grise, TAI verdissement, taxe véhicules lourds). Acquittées par le bailleur ou directement par l'entreprise via son comptable · documentées pour exhaustivité.",
         };
     }
 }

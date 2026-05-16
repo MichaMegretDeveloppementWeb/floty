@@ -61,7 +61,7 @@ final class R2025_026_SpecificActivityExemptionsTest extends TestCase
         $rule = new R2025_026_SpecificActivityExemptions;
         $content = $rule->pedagogicalContent();
 
-        self::assertSame(RuleTab::Calcul, $content->tab);
+        self::assertSame(RuleTab::HorsPerimetre, $content->tab);
         self::assertSame(RuleSection::ExonerationInactive, $content->section);
     }
 

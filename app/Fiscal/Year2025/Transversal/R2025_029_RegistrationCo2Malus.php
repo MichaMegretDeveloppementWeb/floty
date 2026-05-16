@@ -112,7 +112,7 @@ final readonly class R2025_029_RegistrationCo2Malus implements InformativeRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: "Malus CO₂ à l'immatriculation (avant LF 2025 art. 28)",
             pitch: "Période 01/01-28/02/2025 · taxe ponctuelle payée à l'achat d'un véhicule neuf, en fonction de ses émissions de CO₂.",

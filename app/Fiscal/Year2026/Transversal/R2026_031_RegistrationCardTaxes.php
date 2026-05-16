@@ -114,7 +114,7 @@ final readonly class R2026_031_RegistrationCardTaxes implements InformativeRule
     public function pedagogicalContent(): RulePedagogicalContent
     {
         return new RulePedagogicalContent(
-            tab: RuleTab::Connexe,
+            tab: RuleTab::HorsPerimetre,
             section: RuleSection::TaxeConnexe,
             title: "Taxes liées au certificat d'immatriculation (avant majoration IDF 01/03/2026)",
             pitch: "Période 01/01-28/02/2026 · taxes payées à la délivrance d'une carte grise · taxe régionale Y1 (exonération VE/H₂ facultative par région), taxe formation transport Y2, taxe fixe Y4.",
