@@ -77,6 +77,7 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
     public function findHistoryForCompanyYear(int $companyId, int $year): Collection
     {
         return FiscalDeclaration::query()
+            ->with(['company:id,short_code,legal_name,color'])
             ->where('company_id', $companyId)
             ->where('fiscal_year', $year)
             ->orderBy('id')

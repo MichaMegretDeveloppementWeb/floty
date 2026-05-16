@@ -99,7 +99,7 @@ final class DeclarationController extends Controller
             'snapshot' => $this->resolveSnapshotData($declaration),
             'history' => $this->reader
                 ->findHistoryForCompanyYear($declaration->company_id, $declaration->fiscal_year)
-                ->map(static fn (FiscalDeclaration $d): DeclarationListItemData => DeclarationListItemData::fromModel($d->load('company')))
+                ->map(static fn (FiscalDeclaration $d): DeclarationListItemData => DeclarationListItemData::fromModel($d))
                 ->values()
                 ->all(),
             // Phase 11 D5.8.3 · si cette déclaration remplace une version
