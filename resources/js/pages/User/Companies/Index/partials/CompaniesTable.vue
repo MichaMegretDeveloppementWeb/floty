@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
-import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import type { DataTableColumn } from '@/types/ui';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -94,7 +93,15 @@ const emit = defineEmits<{
             <span class="whitespace-nowrap text-slate-700">{{ value }} j</span>
         </template>
         <template #cell-annualTaxDue="{ row }">
-            <Skeleton v-if="!isCostsLoadedFor(row)" class="ml-auto h-4 w-12 rounded" />
+            <!-- Skeleton inline-block (memes contraintes flex/text-align
+                 que le span hydrate ci-dessous) · evite tout layout shift
+                 ou mismatch d'alignement quand la prop costs arrive. -->
+            <span
+                v-if="!isCostsLoadedFor(row)"
+                class="skeleton-shimmer inline-block h-3 w-14 rounded"
+                aria-busy="true"
+                aria-label="Calcul en cours"
+            />
             <span
                 v-else
                 class="font-mono font-medium whitespace-nowrap text-slate-900"
@@ -103,7 +110,12 @@ const emit = defineEmits<{
             </span>
         </template>
         <template #cell-rentalPriceTotal="{ row }">
-            <Skeleton v-if="!isCostsLoadedFor(row)" class="ml-auto h-4 w-16 rounded" />
+            <span
+                v-if="!isCostsLoadedFor(row)"
+                class="skeleton-shimmer inline-block h-3 w-16 rounded"
+                aria-busy="true"
+                aria-label="Calcul en cours"
+            />
             <span
                 v-else-if="costs![row.id].rentalPriceTotal !== null"
                 class="font-mono whitespace-nowrap tabular-nums text-slate-900"

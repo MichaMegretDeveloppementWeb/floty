@@ -142,7 +142,7 @@ function rentalPriceFor(row: ContractRow): number | null {
                  gabarit que la valeur finale pour éviter le layout shift. -->
             <span
                 v-else
-                class="inline-block h-3 w-14 animate-pulse rounded bg-slate-100"
+                class="skeleton-shimmer inline-block h-3 w-14 rounded"
                 aria-label="Calcul en cours"
             ></span>
         </template>
@@ -165,7 +165,7 @@ function rentalPriceFor(row: ContractRow): number | null {
                  quand le map global est undefined). -->
             <span
                 v-else
-                class="inline-block h-3 w-14 animate-pulse rounded bg-slate-100"
+                class="skeleton-shimmer inline-block h-3 w-14 rounded"
                 aria-label="Calcul en cours"
             ></span>
         </template>
