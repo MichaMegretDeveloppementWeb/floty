@@ -24,6 +24,7 @@ import ReviewContextBanner from '@/Components/Domain/Declaration/ReviewContextBa
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
+import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
 import { useReviewForm } from '@/Composables/Declaration/useReviewForm';
 import { show as companyShowRoute } from '@/routes/user/companies';
@@ -262,8 +263,8 @@ function handleScrollTo(fingerprint: string): void {
                  pendant le 2e round-trip transparent. -->
             <Deferred :data="['preview', 'snapshot']">
                 <template #fallback>
-                    <div class="h-24 animate-pulse rounded-2xl bg-slate-100" aria-label="Chargement de l'aperçu" />
-                    <div class="h-96 animate-pulse rounded-2xl bg-slate-100" aria-label="Chargement de la synthèse fiscale" />
+                    <Skeleton class="h-24 rounded-2xl" />
+                    <Skeleton class="h-96 rounded-2xl" />
                 </template>
 
                 <DeclarationClustersRecap

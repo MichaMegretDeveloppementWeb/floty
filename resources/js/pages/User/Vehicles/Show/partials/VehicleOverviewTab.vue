@@ -18,6 +18,7 @@
  * Le panel détaillé de la Taxe pleine vit dans l'onglet Fiscalité.
  */
 import { Deferred } from '@inertiajs/vue3';
+import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import CurrentFiscalCharacteristicsCard from './CurrentFiscalCharacteristicsCard.vue';
 import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
 import UnavailabilitiesCard from './UnavailabilitiesCard.vue';
@@ -43,7 +44,7 @@ defineProps<{
 
         <Deferred data="history">
             <template #fallback>
-                <div class="h-32 animate-pulse rounded-xl bg-slate-100" />
+                <Skeleton class="h-32 rounded-xl" />
             </template>
             <VehicleYearHistoryCard :history="history!" />
         </Deferred>

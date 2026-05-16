@@ -10,6 +10,7 @@ import InvoiceDivergenceBanner from '@/Components/Domain/Billing/InvoiceDivergen
 import InvoiceHistoryTimeline from '@/Components/Domain/Billing/InvoiceHistoryTimeline.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import { show as companiesShowRoute } from '@/routes/user/companies';
 import { download as downloadRoute } from '@/routes/user/invoices';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
@@ -77,7 +78,7 @@ const downloadUrl = computed<string>(() =>
                  bref puis bandeau si applicable, ou rien si conforme. -->
             <Deferred v-if="!invoice.isObsolete" data="divergence">
                 <template #fallback>
-                    <div class="h-12 animate-pulse rounded-xl bg-slate-100" />
+                    <Skeleton class="h-12 rounded-xl" />
                 </template>
                 <InvoiceDivergenceBanner
                     v-if="divergence?.hasDivergence"

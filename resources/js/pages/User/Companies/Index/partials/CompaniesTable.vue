@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
+import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import type { DataTableColumn } from '@/types/ui';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -93,11 +94,7 @@ const emit = defineEmits<{
             <span class="whitespace-nowrap text-slate-700">{{ value }} j</span>
         </template>
         <template #cell-annualTaxDue="{ row }">
-            <span
-                v-if="!isCostsLoadedFor(row)"
-                class="inline-block h-4 w-12 animate-pulse rounded bg-slate-100"
-                aria-label="Calcul en cours"
-            />
+            <Skeleton v-if="!isCostsLoadedFor(row)" class="ml-auto h-4 w-12 rounded" />
             <span
                 v-else
                 class="font-mono font-medium whitespace-nowrap text-slate-900"
@@ -106,11 +103,7 @@ const emit = defineEmits<{
             </span>
         </template>
         <template #cell-rentalPriceTotal="{ row }">
-            <span
-                v-if="!isCostsLoadedFor(row)"
-                class="inline-block h-4 w-16 animate-pulse rounded bg-slate-100"
-                aria-label="Calcul en cours"
-            />
+            <Skeleton v-if="!isCostsLoadedFor(row)" class="ml-auto h-4 w-16 rounded" />
             <span
                 v-else-if="costs![row.id].rentalPriceTotal !== null"
                 class="font-mono whitespace-nowrap tabular-nums text-slate-900"
