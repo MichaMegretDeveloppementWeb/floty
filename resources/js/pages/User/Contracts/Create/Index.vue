@@ -7,10 +7,10 @@ import FiscalDetailModal from '@/Components/Domain/Contract/FiscalDetailModal.vu
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
-import { useToasts } from '@/Composables/Shared/useToasts';
 import { useContractFiscalPreview } from '@/Composables/Contract/useContractFiscalPreview';
 import { useContractForm } from '@/Composables/Contract/useContractForm';
 import { storePendingDocuments } from '@/Composables/Contract/useContractFormPendingDocuments';
+import { useToasts } from '@/Composables/Shared/useToasts';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
 import { indexById } from '@/Utils/Common/indexById';
 import { computeContractDurationDays } from '@/Utils/Contract/contractDuration';
@@ -19,8 +19,14 @@ import ContractFormFields from './partials/ContractFormFields.vue';
 const toasts = useToasts();
 
 const props = defineProps<{
+    /**
+     * Options SLIM (S2.5) · zéro pipeline fiscal au mount. La taxe
+     * pleine du véhicule sélectionné est calculée à la volée via
+     * l'endpoint AJAX `GET /app/vehicles/{vehicle}/full-year-tax`
+     * dans `ContractFormFields` (composable `useVehicleFullYearTax`).
+     */
     options: {
-        vehicles: App.Data.User.Vehicle.VehicleOptionData[];
+        vehicles: App.Data.User.Vehicle.VehicleFilterOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
     };
     busyDatesByVehicleId: Record<number, string[]>;

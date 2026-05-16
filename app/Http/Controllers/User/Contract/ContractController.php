@@ -17,7 +17,6 @@ use App\Data\User\Contract\StoreContractData;
 use App\Data\User\Contract\UpdateContractData;
 use App\Data\User\Driver\DriverOptionData;
 use App\Data\User\Vehicle\VehicleFilterOptionData;
-use App\Data\User\Vehicle\VehicleOptionData;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
 use App\Services\Company\CompanyListingService;
@@ -67,12 +66,13 @@ final class ContractController extends Controller
 
         return Inertia::render('User/Contracts/Index/Index', [
             'contracts' => $this->contracts->listPaginated($query),
-            // S2.4 (plan optim perf 2026-05-16) · options SLIM pour la
-            // page Index · zéro pipeline fiscal. Les filtres et les
-            // chips n'ont besoin que d'identité + label. Le formulaire
-            // Create/Edit a sa propre option lourde avec taxes
-            // pré-calculées (cf. `buildFormOptions`).
-            'options' => $this->buildFilterOptions(),
+            // S2.4 (plan optim perf 2026-05-16) · options SLIM pour les
+            // sélecteurs UI (filter dropdown + filter chips) · zéro
+            // pipeline fiscal. Les calculs fiscaux ad-hoc (taxe pleine
+            // d'un véhicule sélectionné, taxe prorata d'un contrat
+            // synthétique) passent par des endpoints AJAX dédiés
+            // déclenchés à l'interaction utilisateur.
+            'options' => $this->buildSlimOptions(),
             'query' => $query,
             // Cf. note d'archi sur le bug placeholder : `hasAnyContract`
             // distingue « table intrinsèquement vide » du « filtre actif
@@ -83,9 +83,21 @@ final class ContractController extends Controller
     }
 
     /**
-     * Options pour les `<SearchableSelect>` du **filtre Index**.
-     * Variante slim · zéro calcul fiscal, 3 queries SQL light. Voir
-     * {@see buildFormOptions} pour la variante lourde du form Create/Edit.
+     * Options SLIM pour les `<SearchableSelect>` consommés par la page
+     * Index (filter dropdown + chips) ET les pages Create/Edit
+     * (sélecteurs du formulaire). Aucune méthode dédiée ne diverge
+     * aujourd'hui · 3 listings light SQL, zéro pipeline fiscal.
+     *
+     * Les calculs fiscaux contextuels (taxe pleine du véhicule
+     * sélectionné, taxe prorata du contrat saisi) sont déclenchés
+     * à la volée par le frontend via des endpoints AJAX dédiés ·
+     *   - Calcul A · `GET /app/vehicles/{vehicle}/full-year-tax`
+     *     (composable `useVehicleFullYearTax`)
+     *   - Calcul B · `POST /app/planning/preview-taxes` (composable
+     *     `useContractFiscalPreview`)
+     *
+     * Audit perf 2026-05-16 S2.4 + S2.5 · éliminé 192 pipeline runs
+     * par chargement sur les 3 pages Contracts (Index, Create, Edit).
      *
      * @return array{
      *     vehicles: DataCollection<int, VehicleFilterOptionData>,
@@ -93,10 +105,10 @@ final class ContractController extends Controller
      *     drivers: array<int, DriverOptionData>,
      * }
      */
-    private function buildFilterOptions(): array
+    private function buildSlimOptions(): array
     {
         return [
-            'vehicles' => $this->vehicles->listForFilterDropdown(),
+            'vehicles' => $this->vehicles->listForLightSelector(),
             'companies' => $this->companies->listForOptions(),
             'drivers' => $this->drivers->listForOptions(),
         ];
@@ -147,7 +159,7 @@ final class ContractController extends Controller
         Gate::authorize('create', Contract::class);
 
         return Inertia::render('User/Contracts/Create/Index', [
-            'options' => $this->buildFormOptions(),
+            'options' => $this->buildSlimOptions(),
             'busyDatesByVehicleId' => $this->contracts->busyDatesByVehicleAroundToday(),
         ]);
     }
@@ -176,27 +188,11 @@ final class ContractController extends Controller
 
         return Inertia::render('User/Contracts/Edit/Index', [
             'contract' => $contractData,
-            'options' => $this->buildFormOptions(),
+            'options' => $this->buildSlimOptions(),
             'busyDatesByVehicleId' => $this->contracts->busyDatesByVehicleAroundToday(
                 excludeContractId: $contract,
             ),
         ]);
-    }
-
-    /**
-     * @return array{
-     *     vehicles: DataCollection<int, VehicleOptionData>,
-     *     companies: DataCollection<int, CompanyOptionData>,
-     *     drivers: array<int, DriverOptionData>,
-     * }
-     */
-    private function buildFormOptions(): array
-    {
-        return [
-            'vehicles' => $this->vehicles->listForOptions(),
-            'companies' => $this->companies->listForOptions(),
-            'drivers' => $this->drivers->listForOptions(),
-        ];
     }
 
     public function update(int $contract, UpdateContractData $data): RedirectResponse

@@ -68,18 +68,6 @@ interface VehicleReadRepositoryInterface
     public function findAllForOptions(): Collection;
 
     /**
-     * Variante bulk de {@see findByIdWithFiscalHistory} · tous les
-     * véhicules avec leur historique fiscal complet + tarifs annuels,
-     * triés par plaque. Utilisé pour pré-calculer la Taxe pleine par
-     * année dans `VehicleOptionData` (form Contrat). Évite N requêtes
-     * unitaires au profit de 3 SQL bulk (vehicles + fiscalCharacteristics
-     * + yearlyPricings).
-     *
-     * @return Collection<int, Vehicle>
-     */
-    public function findAllForOptionsWithFiscalHistory(): Collection;
-
-    /**
      * Précharge en bulk un ensemble de véhicules par ids avec eager-loading
      * des caractéristiques fiscales actives, indexés par id.
      *

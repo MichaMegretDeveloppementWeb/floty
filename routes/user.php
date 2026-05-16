@@ -74,6 +74,13 @@ Route::middleware('auth')
         Route::get('/vehicles/{vehicle}/full-year-breakdown', [VehicleController::class, 'fullYearBreakdown'])
             ->whereNumber('vehicle')
             ->name('vehicles.full-year-breakdown');
+        // S2.5 (plan optim perf 2026-05-16) · Calcul A · taxe pleine
+        // année du véhicule · déclenché à la sélection véhicule dans
+        // le form Create/Edit Contract (composable `useVehicleFullYearTax`).
+        Route::get('/vehicles/{vehicle}/full-year-tax', [VehicleController::class, 'fullYearTax'])
+            ->whereNumber('vehicle')
+            ->middleware('throttle:60,1')
+            ->name('vehicles.full-year-tax');
         Route::get('/vehicles/{vehicle}/edit', [VehicleController::class, 'edit'])
             ->whereNumber('vehicle')
             ->name('vehicles.edit');

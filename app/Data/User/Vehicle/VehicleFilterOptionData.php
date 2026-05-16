@@ -8,20 +8,24 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Option véhicule **minimale** pour les sélecteurs de filtre (dropdown
- * SearchableSelect dans le FilterPopover des pages Index, chips de
- * filtre actif). Ne porte AUCUN calcul fiscal · zéro pipeline run.
+ * Option véhicule **minimale** pour les sélecteurs UI · dropdown
+ * SearchableSelect dans le FilterPopover des pages Index, sélecteur
+ * véhicule du formulaire Create/Edit Contract, chips de filtre actif.
+ * Ne porte AUCUN calcul fiscal · zéro pipeline run.
  *
- * À distinguer de {@see VehicleOptionData} qui porte en plus
- * `fullYearTaxByYear` calculé par le pipeline fiscal · cette version
- * lourde est réservée aux formulaires Create/Edit de contrat qui
- * affichent une indication de coût annuel à la sélection véhicule.
+ * Le calcul de taxe pleine année pour un véhicule sélectionné
+ * (anciennement éager via un `fullYearTaxByYear` lourd) est désormais
+ * déclenché à la volée via l'endpoint AJAX
+ * `GET /app/vehicles/{vehicle}/full-year-tax` (composable frontend
+ * `useVehicleFullYearTax`) quand l'utilisateur change effectivement
+ * de véhicule ou de date dans le drawer Contract.
  *
- * **Doctrine** · méthodes dédiées par usage. La page Index a besoin
- * d'identité + label pour le filtre, point. Pas de coût caché pour
- * un champ jamais consommé (audit perf 2026-05-16, cause C-3).
+ * **Doctrine** · méthodes dédiées par usage + on-demand sur
+ * interaction. Pas de coût caché pour un champ jamais consommé
+ * (audit perf 2026-05-16, cause C-3).
  *
- * @see VehicleListingService::listForFilterDropdown()
+ * @see VehicleListingService::listForLightSelector()
+ * @see VehicleListingService::fullYearTaxForVehicle()
  */
 #[TypeScript]
 final class VehicleFilterOptionData extends Data

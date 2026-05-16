@@ -3,7 +3,7 @@
    reçue en prop : la mutation directe est intentionnelle (le useForm
    est instancié dans le parent et passé tel quel pour éviter de
    pousser la logique submit dans ce partial purement présentationnel). */
-import { computed, ref, watch } from 'vue';
+import { computed, ref, toRef, watch } from 'vue';
 import CompanyOptionTag from '@/Components/Domain/Company/CompanyOptionTag.vue';
 import DriversMultiPicker from '@/Components/Domain/Driver/DriversMultiPicker.vue';
 import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
@@ -16,6 +16,7 @@ import {
     findLongestFreeSubrange,
     rangeConflicts,
 } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
+import { useVehicleFullYearTax } from '@/Composables/Contract/useVehicleFullYearTax';
 import { indexById } from '@/Utils/Common/indexById';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -33,7 +34,7 @@ type FormShape = {
 const props = defineProps<{
     form: FormShape & { errors: Record<string, string> };
     options: {
-        vehicles: App.Data.User.Vehicle.VehicleOptionData[];
+        vehicles: App.Data.User.Vehicle.VehicleFilterOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
     };
     busyDatesByVehicleId: Record<number, string[]>;
@@ -41,7 +42,7 @@ const props = defineProps<{
 
 // ── Sélecteur véhicule ──────────────────────────────────────────────
 const vehicleOptions = computed(() => {
-    const decorate = (v: App.Data.User.Vehicle.VehicleOptionData): { value: number; label: string } => ({
+    const decorate = (v: App.Data.User.Vehicle.VehicleFilterOptionData): { value: number; label: string } => ({
         value: v.id,
         label: v.isExited && v.exitDate
             ? `${v.label} (retiré le ${formatDateFr(v.exitDate)})`
@@ -71,54 +72,36 @@ const vehicleIdModel = computed({
     },
 });
 
-const vehicleById = computed(() => indexById(props.options.vehicles));
-
 // Taxe pleine annuelle du véhicule sélectionné, basée sur l'année de
 // `start_date` saisie (fallback année courante quand la date n'est pas
 // encore renseignée). Aide à la décision lors de la sélection · les
 // règles fiscales évoluant d'une année à l'autre, on cale sur l'année
 // de la location pour éviter d'afficher une valeur caduque.
 //
-// Fallback : si l'année cible n'a pas de règles fiscales codées (map
-// vide pour cette année), on prend l'année la plus récente disponible
-// et on flag le label avec `fallback: true` pour le rendu.
+// S2.5 (plan optim perf 2026-05-16) · calcul **on-demand** via
+// endpoint AJAX `GET /app/vehicles/{vehicle}/full-year-tax`. Évite
+// le pré-calcul lourd au mount (192 pipeline runs pour 64 vehicles
+// × 3 années) · seul le véhicule effectivement sélectionné est
+// calculé, et seulement à sa sélection. Le composable gère debounce
+// 200 ms, fallback année voisine si année demandée pas en registry,
+// et état `loading`.
+const { result: vehicleFullYearTax, loading: vehicleFullYearTaxLoading } = useVehicleFullYearTax({
+    vehicleId: toRef(props.form, 'vehicle_id'),
+    startDate: toRef(props.form, 'start_date'),
+});
+
 const selectedVehicleFullYearTax = computed<{ year: number; tax: number; fallback: boolean } | null>(() => {
-    const id = props.form.vehicle_id;
+    const r = vehicleFullYearTax.value;
 
-    if (id === null) {
-return null;
-}
-
-    const vehicle = vehicleById.value.get(id);
-
-    if (!vehicle) {
-return null;
-}
-
-    const targetYear = props.form.start_date
-        ? Number.parseInt(props.form.start_date.slice(0, 4), 10)
-        : new Date().getFullYear();
-
-    const taxByYear = vehicle.fullYearTaxByYear as Record<number, number>;
-    const exact = taxByYear[targetYear];
-
-    if (typeof exact === 'number') {
-        return { year: targetYear, tax: exact, fallback: false };
+    if (r === null || r.cents === null) {
+        return null;
     }
 
-    const availableYears = Object.keys(taxByYear).map(Number).sort((a, b) => b - a);
-
-    if (availableYears.length === 0) {
-return null;
-}
-
-    const fallbackYear = availableYears[0];
-
-    if (fallbackYear === undefined) {
-return null;
-}
-
-    return { year: fallbackYear, tax: taxByYear[fallbackYear]!, fallback: true };
+    return {
+        year: r.year,
+        tax: r.cents / 100,
+        fallback: r.fallback,
+    };
 });
 
 const companyIdModel = computed({
@@ -248,13 +231,19 @@ return null;
                         :options="vehicleOptions"
                     />
                     <p
-                        v-if="selectedVehicleFullYearTax"
+                        v-if="form.vehicle_id !== null && vehicleFullYearTaxLoading"
+                        class="mt-1.5 font-mono text-[11px] text-slate-400 tabular-nums"
+                    >
+                        Taxe pleine <span class="inline-block animate-pulse">…</span>
+                    </p>
+                    <p
+                        v-else-if="selectedVehicleFullYearTax"
                         class="mt-1.5 font-mono text-[11px] text-slate-500 tabular-nums"
                     >
                         Taxe pleine
                         <span class="text-slate-700">{{ formatEur(selectedVehicleFullYearTax.tax, 0) }}</span>
                         <span v-if="selectedVehicleFullYearTax.fallback" class="text-slate-400">
-                            (dernière année connue : {{ selectedVehicleFullYearTax.year }})
+                            (dernière année connue · {{ selectedVehicleFullYearTax.year }})
                         </span>
                         <span v-else>({{ selectedVehicleFullYearTax.year }})</span>
                     </p>

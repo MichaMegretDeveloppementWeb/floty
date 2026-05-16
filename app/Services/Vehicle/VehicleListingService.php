@@ -10,7 +10,6 @@ use App\Data\User\Vehicle\PaginatedVehicleListData;
 use App\Data\User\Vehicle\VehicleFilterOptionData;
 use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Data\User\Vehicle\VehicleListItemData;
-use App\Data\User\Vehicle\VehicleOptionData;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Vehicle;
 use App\Services\Billing\RentalPriceCalculator;
@@ -25,8 +24,11 @@ use Spatie\LaravelData\DataCollection;
  *
  * Regroupe ·
  *   - `listPaginated` · Index server-side avec calcul fiscal par page
- *   - `listForOptions` · liste enrichie pour `<SelectInput>` form Contrat
- *      avec pré-calcul des taxes pleines par année du scope
+ *   - `listForLightSelector` · liste slim (id, label, isExited) pour
+ *      tous les sélecteurs UI (filter dropdown Index, form Create/Edit
+ *      Contract). Zéro calcul fiscal · audit S2.4 + S2.5.
+ *   - `fullYearTaxForVehicle` · calcul on-demand de la taxe pleine
+ *      d'un véhicule pour l'endpoint AJAX du form Create/Edit Contract
  *   - `firstRegistrationYearBounds` · helper bounds années pour filtre Index
  */
 final class VehicleListingService
@@ -110,34 +112,27 @@ final class VehicleListingService
     }
 
     /**
-     * Liste pour les `<SelectInput>` des formulaires (drawer Contrats,
-     * etc.). Inclut les véhicules sortis pour permettre la consultation
-     * et l'édition rétroactive des contrats antérieurs (cf. ADR-0018 § 4).
+     * Liste **slim** pour les sélecteurs UI · filter dropdown Index,
+     * sélecteur véhicule du form Create/Edit Contract, picker dans le
+     * planning, etc. Aucun calcul fiscal, 1 query SQL sur 6 colonnes
+     * (cf. `findAllForOptions` du repo).
      *
-     * Le frontend distingue actifs/retirés via `isExited` (groupement
-     * dans le picker, suffixe label « (retiré le DD/MM/YYYY) »).
-     *
-     * @return DataCollection<int, VehicleOptionData>
-     */
-    /**
-     * Liste **slim** pour les SearchableSelect de filtre (dropdown
-     * Index Contracts, chips de filtre actif). Aucun calcul fiscal,
-     * 1 query SQL sur les colonnes minimales (cf. `findAllForOptions`
-     * du repo · 6 colonnes seulement).
-     *
-     * **Doctrine** · méthodes dédiées par usage. La page Index n'a
-     * besoin que d'identité + label pour filtrer et afficher les
-     * chips de filtre actif. Réutiliser `listForOptions()` ici
-     * paierait 192 pipeline runs (64 véhicules × 3 années) pour un
-     * `fullYearTaxByYear` jamais consommé · audit perf 2026-05-16
-     * cause C-3.
+     * **Doctrine** · méthodes dédiées par usage avec strict minimum.
+     * Le calcul de taxe pleine année par véhicule (autrefois éager
+     * dans `listForOptions`) est désormais on-demand via l'endpoint
+     * `GET /app/vehicles/{vehicle}/full-year-tax` déclenché quand
+     * l'utilisateur sélectionne effectivement un véhicule (composable
+     * frontend `useVehicleFullYearTax`).
      *
      * Inclut les véhicules sortis (cf. ADR-0018 § 4 · permettre la
      * consultation et l'édition rétroactive des contrats antérieurs).
      *
+     * Audit perf 2026-05-16 · S2.4 + S2.5 · éliminé 192 pipeline runs
+     * par chargement de page Index/Create/Edit Contract.
+     *
      * @return DataCollection<int, VehicleFilterOptionData>
      */
-    public function listForFilterDropdown(): DataCollection
+    public function listForLightSelector(): DataCollection
     {
         $rows = $this->vehicles->findAllForOptions()
             ->map(static fn (Vehicle $v): VehicleFilterOptionData => new VehicleFilterOptionData(
@@ -154,59 +149,53 @@ final class VehicleListingService
     }
 
     /**
-     * Liste **lourde** (avec `fullYearTaxByYear` pré-calculé par
-     * année du scope) pour les formulaires Create/Edit de contrat ·
-     * permet d'afficher une indication de taxe pleine quand
-     * l'utilisateur sélectionne un véhicule.
+     * Calcul **on-demand** de la taxe pleine année d'un véhicule pour
+     * une année cible. Sert l'endpoint AJAX déclenché par le composable
+     * frontend `useVehicleFullYearTax` quand l'utilisateur sélectionne
+     * un véhicule dans le form Create/Edit Contract (Calcul A · cf.
+     * doctrine perf 2026-05-16).
      *
-     * À NE PAS utiliser pour les filtres Index · préférer
-     * {@see listForFilterDropdown} qui évite les 192 pipeline runs.
+     * Si la `$targetYear` n'est pas dans le scope `AvailableYearsResolver`,
+     * tente un fallback sur la plus récente année disponible. Retourne
+     * `null` si aucune année du scope n'est calculable.
      *
-     * @return DataCollection<int, VehicleOptionData>
+     * @return array{cents: int, year: int, fallback: bool}|null
      */
-    public function listForOptions(): DataCollection
+    public function fullYearTaxForVehicle(Vehicle $vehicle, int $targetYear): ?array
     {
-        // Scope d'années dynamique (basé sur les contrats existants).
-        // Pour chaque véhicule, on calcule la Taxe pleine de chaque année
-        // du scope : le form Contrat affichera la valeur de l'année de
-        // `start_date` saisie (fallback année courante). Coût borné par
-        // O(N véhicules × M années) avec M typiquement 3-5 · acceptable
-        // car l'aggregator cache les résultats par (vehicleId, year).
-        //
-        // On bypass `findAllForOptions()` (sélection limitée à 6 colonnes)
-        // car le pipeline fiscal a besoin des colonnes complètes du
-        // véhicule + de toute la VFC history (multi-VFC supportée).
-        $availableYears = $this->availableYears->availableYears();
-        $vehiclesFull = $this->vehicles->findAllForOptionsWithFiscalHistory();
+        // Essai direct sur l'année demandée.
+        try {
+            $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $targetYear);
 
-        $rows = [];
-        foreach ($vehiclesFull as $v) {
-            $exitDate = $v->exit_date?->format('Y-m-d');
-            $label = sprintf('%s - %s %s', $v->license_plate, $v->brand, $v->model);
-
-            $fullYearTaxByYear = [];
-            foreach ($availableYears as $year) {
-                try {
-                    $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($v, $year);
-                    $fullYearTaxByYear[$year] = $breakdown->total;
-                } catch (FiscalCalculationException) {
-                    // Année hors règles fiscales codées · on omet
-                    // pour rester silencieux côté UI (le form
-                    // retombera sur l'année par défaut affichée).
-                }
-            }
-
-            $rows[] = new VehicleOptionData(
-                id: $v->id,
-                licensePlate: $v->license_plate,
-                label: $label,
-                isExited: $exitDate !== null,
-                exitDate: $exitDate,
-                fullYearTaxByYear: $fullYearTaxByYear,
-            );
+            return [
+                'cents' => (int) round($breakdown->total * 100),
+                'year' => $targetYear,
+                'fallback' => false,
+            ];
+        } catch (FiscalCalculationException) {
+            // Fallback · descend dans le scope d'années connues.
         }
 
-        return VehicleOptionData::collect($rows, DataCollection::class);
+        $availableYears = $this->availableYears->availableYears();
+        rsort($availableYears);
+        foreach ($availableYears as $candidateYear) {
+            if ($candidateYear === $targetYear) {
+                continue;
+            }
+            try {
+                $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $candidateYear);
+
+                return [
+                    'cents' => (int) round($breakdown->total * 100),
+                    'year' => $candidateYear,
+                    'fallback' => true,
+                ];
+            } catch (FiscalCalculationException) {
+                continue;
+            }
+        }
+
+        return null;
     }
 
     /**

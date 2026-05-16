@@ -120,17 +120,6 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ->get(['id', 'license_plate', 'brand', 'model', 'exit_date', 'exit_reason']);
     }
 
-    public function findAllForOptionsWithFiscalHistory(): Collection
-    {
-        return Vehicle::query()
-            ->orderBy('license_plate')
-            ->with([
-                'fiscalCharacteristics' => fn ($q) => $q->orderByDesc('effective_from'),
-                'yearlyPricings' => fn ($q) => $q->orderBy('year'),
-            ])
-            ->get();
-    }
-
     public function findByIdsIndexed(array $ids): Collection
     {
         return Vehicle::query()

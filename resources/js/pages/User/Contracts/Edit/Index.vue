@@ -14,8 +14,13 @@ import ContractFormFields from '../Create/partials/ContractFormFields.vue';
 
 const props = defineProps<{
     contract: App.Data.User.Contract.ContractData;
+    /**
+     * Options SLIM (S2.5) · zéro pipeline fiscal au mount. La taxe
+     * pleine du véhicule sélectionné est calculée à la volée via
+     * l'endpoint AJAX dans `ContractFormFields`.
+     */
     options: {
-        vehicles: App.Data.User.Vehicle.VehicleOptionData[];
+        vehicles: App.Data.User.Vehicle.VehicleFilterOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
     };
     busyDatesByVehicleId: Record<number, string[]>;
@@ -25,7 +30,7 @@ const { form, canSubmit, submit } = useContractForm(props.contract);
 
 // ── Recap card live ──────────────────────────────────────────────────
 const vehicleById = computed(() => {
-    const map = new Map<number, App.Data.User.Vehicle.VehicleOptionData>();
+    const map = new Map<number, App.Data.User.Vehicle.VehicleFilterOptionData>();
 
     for (const v of props.options.vehicles) {
 map.set(v.id, v);

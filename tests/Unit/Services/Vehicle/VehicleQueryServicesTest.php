@@ -46,12 +46,18 @@ final class VehicleQueryServicesTest extends TestCase
     }
 
     #[Test]
-    public function list_for_options_inclut_les_vehicules_sortis_avec_is_exited_marque(): void
+    public function list_for_light_selector_inclut_les_vehicules_sortis_avec_is_exited_marque(): void
     {
         // Cf. ADR-0018 § 4 + chantier E.5 : le picker véhicule des
         // formulaires Contrats inclut les véhicules retirés pour
         // permettre la consultation et l'édition rétroactive ; le
         // frontend distingue actifs/retirés via `isExited`.
+        //
+        // S2.4 + S2.5 (audit perf 2026-05-16) · renommé `listForOptions`
+        // → `listForLightSelector` après suppression de la version
+        // lourde avec `fullYearTaxByYear` pré-calculé (192 pipeline
+        // runs gaspillés). Calcul taxe pleine désormais on-demand
+        // via endpoint AJAX `vehicles.full-year-tax`.
         Vehicle::factory()->create(['exit_date' => null]);
         Vehicle::factory()->create([
             'exit_date' => '2024-01-15',
@@ -59,7 +65,7 @@ final class VehicleQueryServicesTest extends TestCase
             'current_status' => VehicleStatus::Sold,
         ]);
 
-        $items = $this->listing->listForOptions()->toArray();
+        $items = $this->listing->listForLightSelector()->toArray();
 
         self::assertCount(2, $items);
 

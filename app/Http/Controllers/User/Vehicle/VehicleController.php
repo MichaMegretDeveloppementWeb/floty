@@ -179,6 +179,35 @@ final class VehicleController extends Controller
         return response()->json($this->vehicleAggregates->fullYearBreakdownForYear($vehicle, $year));
     }
 
+    /**
+     * Endpoint AJAX léger pour le formulaire Create/Edit Contract ·
+     * Calcul A · taxe pleine année d'un véhicule sélectionné, déclenché
+     * à la volée par le composable frontend `useVehicleFullYearTax`
+     * quand l'utilisateur change le véhicule ou la date de début.
+     *
+     * Retourne `{ cents, year, fallback }` ou `404` si le véhicule
+     * n'existe pas (différent de `usageStats`/`fullYearBreakdown` qui
+     * dégradent silencieusement · ici on veut un signal clair pour
+     * le composable, qui affiche un état neutre si null).
+     *
+     * Audit perf 2026-05-16 S2.5 · remplace le pré-calcul lourd de
+     * `VehicleOptionData::fullYearTaxByYear` (192 pipeline runs par
+     * mount Create/Edit) par un seul appel à la sélection véhicule.
+     */
+    public function fullYearTax(Vehicle $vehicle, Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', Vehicle::class);
+
+        $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
+        $result = $this->vehicleListing->fullYearTaxForVehicle($vehicle, $year);
+
+        if ($result === null) {
+            return response()->json(['cents' => null, 'year' => $year, 'fallback' => false]);
+        }
+
+        return response()->json($result);
+    }
+
     public function create(): Response
     {
         Gate::authorize('create', Vehicle::class);
