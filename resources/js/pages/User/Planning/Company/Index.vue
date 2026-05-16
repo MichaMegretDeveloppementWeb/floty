@@ -13,7 +13,10 @@ import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import CompanyOptionTag from '@/Components/Domain/Company/CompanyOptionTag.vue';
 import Heatmap from '@/Components/Features/Planning/Heatmap/Heatmap.vue';
-import type { HeatmapCosts } from '@/Components/Features/Planning/Heatmap/types';
+import type {
+    HeatmapFullYearCosts,
+    HeatmapRealCosts,
+} from '@/Components/Features/Planning/Heatmap/types';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
@@ -27,27 +30,28 @@ const props = defineProps<{
     company: App.Data.User.Company.CompanyOptionData;
     companies: App.Data.User.Company.CompanyOptionData[];
     /**
-     * Coûts fiscaux par véhicule scopés à l'entreprise, servis en
-     * `Inertia::defer` (chantier perf 2026-05-16) · cf. Index.vue de
-     * la Vue d'ensemble pour le détail du pattern.
+     * Cf. Index.vue Vue d'ensemble pour le pattern · 2 props defer
+     * séparées (cache fiscal isolé sur full-year, real non caché).
      */
-    costs?: HeatmapCosts;
+    fullYearCosts?: HeatmapFullYearCosts;
+    realCosts?: HeatmapRealCosts;
     selectedYear: number;
     yearScope: App.Data.Shared.YearScopeData;
 }>();
 
-// Cf. Index.vue de la Vue d'ensemble pour le pattern complet · reset
-// local au changement d'année pour forcer les skeletons immédiatement
-// (sinon les valeurs de l'année précédente restent affichées ~700 ms
-// le temps de la 2ᵉ RTT). Le changement d'entreprise déclenche un full
-// visit (cf. companyIdModel.set) qui re-fait la requête initiale avec
-// auto-defer.
-const localCosts = ref<HeatmapCosts | undefined>(props.costs);
+const localFullYearCosts = ref<HeatmapFullYearCosts | undefined>(props.fullYearCosts);
+const localRealCosts = ref<HeatmapRealCosts | undefined>(props.realCosts);
 
 watch(
-    () => props.costs,
+    () => props.fullYearCosts,
     (next) => {
-        localCosts.value = next;
+        localFullYearCosts.value = next;
+    },
+);
+watch(
+    () => props.realCosts,
+    (next) => {
+        localRealCosts.value = next;
     },
 );
 
@@ -56,8 +60,10 @@ const { selectedYear, selectYear } = useLocalYearSelector(
     ['vehicles', 'company', 'companies', 'selectedYear'],
     {
         onSuccess: () => {
-            localCosts.value = undefined;
-            router.reload({ only: ['costs'] });
+            localFullYearCosts.value = undefined;
+            localRealCosts.value = undefined;
+            router.reload({ only: ['fullYearCosts'] });
+            router.reload({ only: ['realCosts'] });
         },
     },
 );
@@ -175,7 +181,8 @@ const { week, onContractsCreated } = useUserPlanningIndex();
 
             <Heatmap
                 :vehicles="vehicles"
-                :costs="localCosts"
+                :full-year-costs="localFullYearCosts"
+                :real-costs="localRealCosts"
                 :fiscal-year="selectedYear"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear, company.id)"
             />

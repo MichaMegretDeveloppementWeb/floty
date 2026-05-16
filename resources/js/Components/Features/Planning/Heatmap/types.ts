@@ -15,9 +15,12 @@
  *    scopée à l'entreprise sélectionnée.
  *  - `summaryDays` : agrégat ligne (jours) cohérent avec le scope courant.
  *  - `summaryTax` / `fullYearTax` / `dailyTaxRate` : montants fiscaux
- *    servis en `Inertia::defer` · `null` tant que la 2ᵉ RTT n'a pas
- *    répondu (chantier perf 2026-05-16). Les partials affichent un
- *    skeleton inline quand `null`.
+ *    servis en `Inertia::defer` dans 2 props séparées (chantier perf
+ *    Étape 3 · 2026-05-17) ·
+ *      - `fullYearTax` + `dailyTaxRate` arrivent rapidement (cachés)
+ *      - `summaryTax` arrive plus tard (non caché)
+ *    `null` tant que la prop correspondante n'a pas répondu · les
+ *    partials affichent un skeleton inline.
  */
 
 export type HeatmapVehicleView = {
@@ -33,22 +36,30 @@ export type HeatmapVehicleView = {
     weeksForColor: number[];
     weeksForCount: number[];
     summaryDays: number;
-    /** Taxe annuelle due (€) · null tant que `costs` n'a pas répondu. */
+    /** Taxe annuelle due (€) · null tant que `realCosts` n'a pas répondu. */
     summaryTax: number | null;
     exitDate: string | null;
     weeksWithUnavailability: number[];
-    /** Taxe pleine annuelle théorique € · null tant que `costs` n'a pas répondu. */
+    /** Taxe pleine annuelle théorique € · null tant que `fullYearCosts` n'a pas répondu. */
     fullYearTax: number | null;
-    /** Prorata journalier (€/jour) · null tant que `costs` n'a pas répondu. */
+    /** Prorata journalier (€/jour) · null tant que `fullYearCosts` n'a pas répondu. */
     dailyTaxRate: number | null;
 };
 
 /**
- * Map `vehicleId → coûts fiscaux` servie en `Inertia::defer` (chantier
- * perf 2026-05-16). `undefined` au mount initial puis hydratée à la 2ᵉ
- * RTT. Une entrée par véhicule actif sur l'année courante.
+ * Map `vehicleId → coûts pleine année théorique` servie en
+ * `Inertia::defer` group "fast" (chantier perf Étape 3 · 2026-05-17).
+ * Hits warm très rapides grâce au cache fiscal persistant.
  */
-export type HeatmapCosts = Record<
+export type HeatmapFullYearCosts = Record<
     number,
-    { annualTaxDue: number; fullYearTax: number; dailyTaxRate: number }
+    { fullYearTax: number; dailyTaxRate: number }
 >;
+
+/**
+ * Map `vehicleId → coût annuel dû réel` servie en `Inertia::defer`
+ * group "slow" (chantier perf Étape 3). Non cachée · ~3-5 ms / véhicule.
+ * Reflète le scope courant · global en Vue d'ensemble, scopé en Vue
+ * Entreprise.
+ */
+export type HeatmapRealCosts = Record<number, { annualTaxDue: number }>;

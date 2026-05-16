@@ -48,7 +48,7 @@ import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
 import VehicleSummary from './partials/VehicleSummary.vue';
 import WeekCellsRow from './partials/WeekCellsRow.vue';
-import type { HeatmapCosts, HeatmapVehicleView } from './types';
+import type { HeatmapFullYearCosts, HeatmapRealCosts, HeatmapVehicleView } from './types';
 
 type OverviewVehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
 type CompanyVehicle = App.Data.User.Planning.PlanningHeatmapCompanyVehicleData;
@@ -57,12 +57,17 @@ const props = defineProps<{
     vehicles: OverviewVehicle[] | CompanyVehicle[];
     fiscalYear: number;
     /**
-     * Map des coûts fiscaux par véhicule, servie en `Inertia::defer`
-     * côté controller. `undefined` au mount initial · les partials
-     * VehicleInfo / VehicleSummary affichent un skeleton tant que les
-     * valeurs ne sont pas hydratées (chantier perf 2026-05-16).
+     * Coûts pleine année théoriques · servis en `Inertia::defer` group
+     * "fast" (chantier perf Étape 3 · 2026-05-17). Hydraté rapidement
+     * grâce au cache fiscal · cellule « Taxe pleine » à gauche.
      */
-    costs?: HeatmapCosts;
+    fullYearCosts?: HeatmapFullYearCosts;
+    /**
+     * Coût annuel dû réel · servis en `Inertia::defer` group "slow"
+     * (non caché). Hydraté plus tard que `fullYearCosts` · cellule
+     * « €XXXX · N j » à droite.
+     */
+    realCosts?: HeatmapRealCosts;
 }>();
 
 defineEmits<{
@@ -90,10 +95,11 @@ function isCompanyVariant(v: OverviewVehicle | CompanyVehicle): v is CompanyVehi
 
 const vehicleViews = computed<HeatmapVehicleView[]>(() =>
     props.vehicles.map((v) => {
-        const c = props.costs?.[v.id] ?? null;
-        const summaryTax = c?.annualTaxDue ?? null;
-        const fullYearTax = c?.fullYearTax ?? null;
-        const dailyTaxRate = c?.dailyTaxRate ?? null;
+        const fullCost = props.fullYearCosts?.[v.id] ?? null;
+        const realCost = props.realCosts?.[v.id] ?? null;
+        const summaryTax = realCost?.annualTaxDue ?? null;
+        const fullYearTax = fullCost?.fullYearTax ?? null;
+        const dailyTaxRate = fullCost?.dailyTaxRate ?? null;
 
         if (isCompanyVariant(v)) {
             return {

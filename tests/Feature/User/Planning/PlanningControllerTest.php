@@ -42,15 +42,10 @@ final class PlanningControllerTest extends TestCase
     #[Test]
     public function index_sert_costs_en_inertia_defer_absent_du_premier_render(): void
     {
-        // Chantier perf 2026-05-16 · les 3 montants fiscaux par véhicule
-        // (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`) déclenchent le
-        // pipeline fiscal (~10 ms × N véhicules ≈ 630 ms cold sur 64
-        // véhicules) · servis en `Inertia::defer` · absents du 1er
-        // render, le frontend récupère via auto-fetch 2ᵉ RTT puis
-        // partial reload sur change année.
-        // L'équivalence des valeurs versus l'ancien path est garantie
-        // par les goldens fiscaux existants (consommateurs de
-        // `vehicleAnnualTax` et `vehicleFullYearTaxBreakdown`).
+        // Chantier perf 2026-05-17 · split en 2 props defer
+        // (`fullYearCosts` group "fast" + `realCosts` group "slow") ·
+        // les 2 sont absentes du 1er render. Le frontend récupère via
+        // auto-fetch des 2 groups en parallèle.
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -64,7 +59,8 @@ final class PlanningControllerTest extends TestCase
                 ->missing('vehicles.0.annualTaxDue')
                 ->missing('vehicles.0.fullYearTax')
                 ->missing('vehicles.0.dailyTaxRate')
-                ->missing('costs'),
+                ->missing('fullYearCosts')
+                ->missing('realCosts'),
             );
     }
 
@@ -87,7 +83,8 @@ final class PlanningControllerTest extends TestCase
                 ->missing('vehicles.0.annualTaxDueForCompany')
                 ->missing('vehicles.0.fullYearTax')
                 ->missing('vehicles.0.dailyTaxRate')
-                ->missing('costs'),
+                ->missing('fullYearCosts')
+                ->missing('realCosts'),
             );
     }
 

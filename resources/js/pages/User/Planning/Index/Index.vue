@@ -2,7 +2,10 @@
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import Heatmap from '@/Components/Features/Planning/Heatmap/Heatmap.vue';
-import type { HeatmapCosts } from '@/Components/Features/Planning/Heatmap/types';
+import type {
+    HeatmapFullYearCosts,
+    HeatmapRealCosts,
+} from '@/Components/Features/Planning/Heatmap/types';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
@@ -14,11 +17,16 @@ const props = defineProps<{
     vehicles: App.Data.User.Planning.PlanningHeatmapVehicleData[];
     companies: App.Data.User.Company.CompanyOptionData[];
     /**
-     * Coûts fiscaux par véhicule, servis en `Inertia::defer` côté
-     * controller (chantier perf 2026-05-16) · `undefined` au mount
-     * initial, hydraté à la 2ᵉ RTT déclenchée auto par Inertia.
+     * Coûts pleine année théoriques · `Inertia::defer` group "fast"
+     * (chantier perf Étape 3 · 2026-05-17). Cachés · hydratation
+     * rapide (~50 ms warm). Cellule « Taxe pleine » à gauche.
      */
-    costs?: HeatmapCosts;
+    fullYearCosts?: HeatmapFullYearCosts;
+    /**
+     * Coût annuel dû réel · `Inertia::defer` group "slow" (non caché,
+     * ~250 ms). Cellule « €XXXX · N j » à droite.
+     */
+    realCosts?: HeatmapRealCosts;
     selectedYear: number;
     /**
      * Scope d'années dynamique calculé depuis les contrats actifs
@@ -27,17 +35,24 @@ const props = defineProps<{
     yearScope: App.Data.Shared.YearScopeData;
 }>();
 
-// Ref local miroir de `props.costs` qui pilote la heatmap. On la reset
-// à `undefined` au changement d'année AVANT le reload pour forcer les
-// skeletons immédiatement (sinon les valeurs de l'année précédente
-// resteraient affichées ~700 ms le temps de la 2ᵉ RTT · UX trompeuse).
-// Cf. consigne mémoire `feedback_inertia_defer_with_partial_reload`.
-const localCosts = ref<HeatmapCosts | undefined>(props.costs);
+// Refs locales miroirs des 2 props defer · reset à `undefined` au
+// changement d'année AVANT le reload pour forcer les skeletons
+// immédiatement (sinon valeurs année précédente affichées ~700 ms le
+// temps de la RTT · UX trompeuse). Cf. mémoire
+// `feedback_inertia_defer_with_partial_reload`.
+const localFullYearCosts = ref<HeatmapFullYearCosts | undefined>(props.fullYearCosts);
+const localRealCosts = ref<HeatmapRealCosts | undefined>(props.realCosts);
 
 watch(
-    () => props.costs,
+    () => props.fullYearCosts,
     (next) => {
-        localCosts.value = next;
+        localFullYearCosts.value = next;
+    },
+);
+watch(
+    () => props.realCosts,
+    (next) => {
+        localRealCosts.value = next;
     },
 );
 
@@ -46,11 +61,13 @@ const { selectedYear, selectYear } = useLocalYearSelector(
     ['vehicles', 'companies', 'selectedYear'],
     {
         // Enchaîné après le visit year-change · l'URL pointe désormais
-        // sur la nouvelle année, le reload `costs` recalcule sur la
-        // bonne année. Skeletons visibles entre les 2 RTT.
+        // sur la nouvelle année, les 2 reload recalculent sur la bonne
+        // année · 2 fetchs parallèles via les groups defer "fast" + "slow".
         onSuccess: () => {
-            localCosts.value = undefined;
-            router.reload({ only: ['costs'] });
+            localFullYearCosts.value = undefined;
+            localRealCosts.value = undefined;
+            router.reload({ only: ['fullYearCosts'] });
+            router.reload({ only: ['realCosts'] });
         },
     },
 );
@@ -85,7 +102,8 @@ const { week, onContractsCreated } = useUserPlanningIndex();
 
             <Heatmap
                 :vehicles="vehicles"
-                :costs="localCosts"
+                :full-year-costs="localFullYearCosts"
+                :real-costs="localRealCosts"
                 :fiscal-year="selectedYear"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear)"
             />

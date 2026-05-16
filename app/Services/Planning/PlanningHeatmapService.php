@@ -8,8 +8,9 @@ use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Planning\PlanningHeatmapCompanyVehicleData;
-use App\Data\User\Planning\PlanningHeatmapVehicleCostsData;
 use App\Data\User\Planning\PlanningHeatmapVehicleData;
+use App\Data\User\Planning\PlanningHeatmapVehicleFullYearCostsData;
+use App\Data\User\Planning\PlanningHeatmapVehicleRealCostsData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
@@ -182,31 +183,80 @@ final class PlanningHeatmapService
     }
 
     /**
-     * Map `vehicleId → PlanningHeatmapVehicleCostsData` pour la heatmap
-     * planning, scoped (Vue Entreprise) ou global (Vue d'ensemble) selon
-     * `$companyId`.
+     * Map `vehicleId → PlanningHeatmapVehicleFullYearCostsData` pour la
+     * heatmap planning. Coûts THÉORIQUES 100 % usage · indépendants du
+     * scope entreprise.
      *
-     * Pipeline · pour chaque véhicule actif sur l'année,
-     * `vehicleFullYearTaxBreakdown` (taxe pleine théorique + prorata
-     * journalier) + `vehicleAnnualTax` (taxe réellement due selon usage
-     * réel, scope = `$companyId` si fourni sinon tous contrats).
+     * Source · {@see FleetFiscalAggregator::vehicleFullYearTaxBreakdown}
+     * mise en cache persistant (`FiscalCacheInvalidator`) · hits warm
+     * ~1-2 ms / véhicule. Cette méthode est servie en `Inertia::defer`
+     * group « fast » côté controller · les valeurs « Taxe pleine » à
+     * gauche de la heatmap apparaissent quasi-instantanément en warm,
+     * indépendamment de la taxe annuelle due réelle qui prend plus de
+     * temps (cf. {@see realCostsForVehicles}).
      *
-     * Servi en `Inertia::defer` par le controller · cf. doc
-     * {@see PlanningHeatmapVehicleCostsData}.
-     *
-     * @return array<int, PlanningHeatmapVehicleCostsData>
+     * @return array<int, PlanningHeatmapVehicleFullYearCostsData>
      */
-    public function costsForVehicles(int $year, ?int $companyId = null): array
+    public function fullYearCostsForVehicles(int $year): array
+    {
+        $vehicles = $this->vehicles->findAllForHeatmap($year);
+
+        // Prewarm batch VFC · économise les N+1 queries quand le cache
+        // fiscal n'a pas encore d'entrée pour ces véhicules (cold).
+        $this->aggregator->prewarmVfcSegmentsForVehicles($vehicles->all(), $year);
+
+        $costs = [];
+        foreach ($vehicles as $vehicle) {
+            $fiscal = $vehicle->fiscalCharacteristics->first();
+            if ($fiscal === null) {
+                continue;
+            }
+
+            // Tolère une année hors règles fiscales codées (cf. doctrine
+            // « données métier ⊥ règles fiscales »). On affiche 0/0 plutôt
+            // que de crasher la heatmap.
+            try {
+                $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
+                $fullYearTax = $fullYear->total;
+                $dailyTaxRate = $fullYear->daysInYear > 0
+                    ? round($fullYear->total / $fullYear->daysInYear, 2, PHP_ROUND_HALF_UP)
+                    : 0.0;
+            } catch (FiscalCalculationException) {
+                $fullYearTax = 0.0;
+                $dailyTaxRate = 0.0;
+            }
+
+            $costs[$vehicle->id] = new PlanningHeatmapVehicleFullYearCostsData(
+                fullYearTax: $fullYearTax,
+                dailyTaxRate: $dailyTaxRate,
+            );
+        }
+
+        return $costs;
+    }
+
+    /**
+     * Map `vehicleId → PlanningHeatmapVehicleRealCostsData` pour la
+     * heatmap planning, scoped (Vue Entreprise) ou global (Vue
+     * d'ensemble) selon `$companyId`.
+     *
+     * Source · {@see FleetFiscalAggregator::vehicleAnnualTax} · NON
+     * cachée (dépendrait des contrats + indispos + scope, invalidation
+     * complexe). ~3-5 ms / véhicule = ~200 ms sur 64 véhicules. Servi
+     * en `Inertia::defer` group « slow » · les valeurs « €XXXX · N j »
+     * à droite de la heatmap arrivent indépendamment de la « Taxe
+     * pleine » à gauche (cf. {@see fullYearCostsForVehicles}).
+     *
+     * @return array<int, PlanningHeatmapVehicleRealCostsData>
+     */
+    public function realCostsForVehicles(int $year, ?int $companyId = null): array
     {
         $vehicles = $this->vehicles->findAllForHeatmap($year);
         $vehicleIds = $vehicles->pluck('id')->all();
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
 
-        // Chantier perf Étape 2 (2026-05-16) · prewarm batch des
-        // segments VFC en 1 query SQL avant les 2 boucles ci-dessous.
-        // Sans ça, `vehicleFullYearTaxBreakdown` et `vehicleAnnualTax`
-        // fetchent les VFC individuellement (N+1 query). Cf.
-        // `FleetFiscalAggregator::prewarmVfcSegmentsForVehicles()`.
+        // Prewarm VFC batch · 1 query SQL au lieu du N+1 dans la boucle
+        // `vehicleAnnualTax` ci-dessous.
         $this->aggregator->prewarmVfcSegmentsForVehicles($vehicles->all(), $year);
 
         $contractsByPair = $this->contracts->loadContractsByPair($year);
@@ -235,20 +285,6 @@ final class PlanningHeatmapService
 
             $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
 
-            // Tolère une année hors règles fiscales codées (cf. doctrine
-            // « données métier ⊥ règles fiscales »). On affiche 0/0 plutôt
-            // que de crasher la heatmap.
-            try {
-                $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
-                $fullYearTax = $fullYear->total;
-                $dailyTaxRate = $fullYear->daysInYear > 0
-                    ? round($fullYear->total / $fullYear->daysInYear, 2, PHP_ROUND_HALF_UP)
-                    : 0.0;
-            } catch (FiscalCalculationException) {
-                $fullYearTax = 0.0;
-                $dailyTaxRate = 0.0;
-            }
-
             $annualTaxDue = $this->aggregator->vehicleAnnualTax(
                 $vehicle,
                 $contractsForCalc,
@@ -256,10 +292,8 @@ final class PlanningHeatmapService
                 $year,
             );
 
-            $costs[$vehicle->id] = new PlanningHeatmapVehicleCostsData(
+            $costs[$vehicle->id] = new PlanningHeatmapVehicleRealCostsData(
                 annualTaxDue: $annualTaxDue,
-                fullYearTax: $fullYearTax,
-                dailyTaxRate: $dailyTaxRate,
             );
         }
 

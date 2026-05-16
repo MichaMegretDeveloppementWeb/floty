@@ -55,13 +55,17 @@ final class PlanningController extends Controller
             'User/Planning/Index/Index',
             [
                 ...$this->heatmap->buildHeatmap($year),
-                // Chantier perf 2026-05-16 · les 3 montants fiscaux par
-                // véhicule (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`)
-                // coûtent ~630 ms cold sur 64 véhicules · servis en
-                // `Inertia::defer` · skeleton inline côté front (cellules
-                // « Taxe pleine » + « €XXXX · N j ») puis hydratation à
-                // l'arrivée de la 2ᵉ RTT.
-                'costs' => Inertia::defer(fn () => $this->heatmap->costsForVehicles($year)),
+                // Chantier perf Étape 3 (2026-05-17) · split en 2 defer
+                // dans 2 groups différents · Inertia v3 fetch les 2 en
+                // parallèle au lieu de séquentiel ·
+                //   - `fullYearCosts` (group "fast") · cellules « Taxe
+                //     pleine » à GAUCHE, cachées (warm ~50 ms)
+                //   - `realCosts` (group "slow") · cellules « €XXXX ·
+                //     N j » à DROITE, non cachées (~250 ms)
+                // L'utilisateur voit 2 vagues d'apparition au lieu d'1
+                // longue attente.
+                'fullYearCosts' => Inertia::defer(fn () => $this->heatmap->fullYearCostsForVehicles($year), 'fast'),
+                'realCosts' => Inertia::defer(fn () => $this->heatmap->realCostsForVehicles($year), 'slow'),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
@@ -115,10 +119,11 @@ final class PlanningController extends Controller
             'User/Planning/Company/Index',
             [
                 ...$this->heatmap->buildHeatmapForCompany($year, $company),
-                // Cf. doc `index()` · même defer scopé à l'entreprise
-                // sélectionnée · `annualTaxDue` reflète alors la part
-                // de cette entreprise uniquement.
-                'costs' => Inertia::defer(fn () => $this->heatmap->costsForVehicles($year, $company->id)),
+                // Cf. doc `index()` · split en 2 defer parallèles ·
+                // `fullYearCosts` est indépendant du scope (théorique
+                // 100 % usage), `realCosts` est scopé à l'entreprise.
+                'fullYearCosts' => Inertia::defer(fn () => $this->heatmap->fullYearCostsForVehicles($year), 'fast'),
+                'realCosts' => Inertia::defer(fn () => $this->heatmap->realCostsForVehicles($year, $company->id), 'slow'),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
