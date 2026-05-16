@@ -28,6 +28,12 @@ use Inertia\Response;
  * pilote la lentille « Évolution » mise en surbrillance, mais les
  * KPIs Présent restent figés sur l'année calendaire courante
  * (doctrine HD7 · Présent ne dépend pas du sélecteur).
+ *
+ * **S2.3 (plan optim perf 2026-05-15)** · `history` et `pendingTasks`
+ * sont **deferred** (Inertia v3) · ne participent pas à la 1ère
+ * peinture, arrivent dans une 2e requête asynchrone après le mount.
+ * `kpis` reste eager (carte top of fold, primary view). Skeleton CSS
+ * côté Vue le temps des deferred props.
  */
 final class DashboardController extends Controller
 {
@@ -44,8 +50,13 @@ final class DashboardController extends Controller
 
         return Inertia::render('User/Dashboard/Index/Index', [
             'kpis' => $this->stats->computeKpis($this->availableYears->currentYear()),
-            'history' => $this->stats->computeHistory(),
-            'pendingTasks' => $this->stats->computePendingTasks(),
+            // S2.3 · history (8 ans pipeline · ~600 ms) et pendingTasks
+            // (5 SQL · ~150 ms) sont deferred · sortis du chemin
+            // critique 1ère peinture. Inertia v3 déclenche une 2e
+            // requête automatique après le mount, le frontend rend
+            // un skeleton entre-temps via `<Deferred>`.
+            'history' => Inertia::defer(fn () => $this->stats->computeHistory()),
+            'pendingTasks' => Inertia::defer(fn () => $this->stats->computePendingTasks()),
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
         ]);
