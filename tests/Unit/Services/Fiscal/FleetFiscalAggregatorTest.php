@@ -304,6 +304,132 @@ final class FleetFiscalAggregatorTest extends TestCase
         self::assertSame($first, $aggregator->vehicleFullYearTax($v1, self::YEAR));
     }
 
+    // --- prewarmVfcSegmentsForVehicles (chantier perf Planning 2026-05-16) ---
+
+    #[Test]
+    public function prewarm_vfc_segments_equivalent_pour_vehicle_full_year_tax_breakdown(): void
+    {
+        // Doctrine `optimisations-conditionnelles.md` stratégie 2 · les
+        // valeurs `vehicleFullYearTaxBreakdown` avec prewarm DOIVENT être
+        // strictement identiques à celles sans prewarm. Sinon le prewarm
+        // masque silencieusement un écart fiscal · risque inacceptable.
+        $aggregatorRef = $this->app->make(FleetFiscalAggregator::class);
+        $v1Ref = $this->makeVehicleWltp100Essence();
+        $v2Ref = $this->makeVehicleWltp100Essence();
+
+        $b1Ref = $aggregatorRef->vehicleFullYearTaxBreakdown($v1Ref, self::YEAR);
+        $b2Ref = $aggregatorRef->vehicleFullYearTaxBreakdown($v2Ref, self::YEAR);
+
+        $aggregatorPre = $this->app->make(FleetFiscalAggregator::class);
+        $v1 = Vehicle::query()->find($v1Ref->id)->fresh();
+        $v2 = Vehicle::query()->find($v2Ref->id)->fresh();
+
+        $aggregatorPre->prewarmVfcSegmentsForVehicles([$v1, $v2], self::YEAR);
+
+        $b1 = $aggregatorPre->vehicleFullYearTaxBreakdown($v1, self::YEAR);
+        $b2 = $aggregatorPre->vehicleFullYearTaxBreakdown($v2, self::YEAR);
+
+        self::assertSame($b1Ref->total, $b1->total, 'V1 · total prewarm === individuel');
+        self::assertSame($b2Ref->total, $b2->total, 'V2 · total prewarm === individuel');
+        self::assertSame($b1Ref->daysInYear, $b1->daysInYear);
+        self::assertCount(count($b1Ref->taxSegments), $b1->taxSegments);
+        self::assertSame($b1Ref->appliedRuleCodes, $b1->appliedRuleCodes);
+    }
+
+    #[Test]
+    public function prewarm_vfc_segments_equivalent_pour_vehicle_annual_tax(): void
+    {
+        // Idem pour `vehicleAnnualTax` qui passe par
+        // `executeWithPreloadedVfcSegments` quand le cache est rempli.
+        $aggregatorRef = $this->app->make(FleetFiscalAggregator::class);
+        $v1Ref = $this->makeVehicleWltp100Essence();
+        $v2Ref = $this->makeVehicleWltp100Essence();
+        $company = Company::factory()->create();
+
+        $contracts = new ContractsByPair([
+            $v1Ref->id.'|'.$company->id => [
+                $this->syntheticContract($v1Ref->id, $company->id, '2024-02-01', 100),
+            ],
+            $v2Ref->id.'|'.$company->id => [
+                $this->syntheticContract($v2Ref->id, $company->id, '2024-04-01', 100),
+            ],
+        ]);
+
+        $t1Ref = $aggregatorRef->vehicleAnnualTax($v1Ref, $contracts, [], self::YEAR);
+        $t2Ref = $aggregatorRef->vehicleAnnualTax($v2Ref, $contracts, [], self::YEAR);
+
+        $aggregatorPre = $this->app->make(FleetFiscalAggregator::class);
+        $v1 = Vehicle::query()->find($v1Ref->id)->fresh();
+        $v2 = Vehicle::query()->find($v2Ref->id)->fresh();
+
+        $aggregatorPre->prewarmVfcSegmentsForVehicles([$v1, $v2], self::YEAR);
+
+        $t1 = $aggregatorPre->vehicleAnnualTax($v1, $contracts, [], self::YEAR);
+        $t2 = $aggregatorPre->vehicleAnnualTax($v2, $contracts, [], self::YEAR);
+
+        self::assertSame($t1Ref, $t1, 'V1 · prewarm === individuel');
+        self::assertSame($t2Ref, $t2, 'V2 · prewarm === individuel');
+    }
+
+    #[Test]
+    public function prewarm_vfc_segments_collapse_les_queries_vfc(): void
+    {
+        // Avec prewarm, les 3 appels `vehicleFullYearTaxBreakdown` ne
+        // doivent JAMAIS retoucher la table vehicle_fiscal_characteristics.
+        $v1 = $this->makeVehicleWltp100Essence();
+        $v2 = $this->makeVehicleWltp100Essence();
+        $v3 = $this->makeVehicleWltp100Essence();
+
+        $aggregator = $this->app->make(FleetFiscalAggregator::class);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $aggregator->prewarmVfcSegmentsForVehicles([$v1, $v2, $v3], self::YEAR);
+        $prewarmQueries = DB::getQueryLog();
+        DB::flushQueryLog();
+
+        $aggregator->vehicleFullYearTaxBreakdown($v1, self::YEAR);
+        $aggregator->vehicleFullYearTaxBreakdown($v2, self::YEAR);
+        $aggregator->vehicleFullYearTaxBreakdown($v3, self::YEAR);
+
+        $afterQueries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $vfcInPrewarm = array_filter(
+            $prewarmQueries,
+            static fn (array $q): bool => str_contains($q['query'], 'vehicle_fiscal_characteristics'),
+        );
+        $vfcAfter = array_filter(
+            $afterQueries,
+            static fn (array $q): bool => str_contains($q['query'], 'vehicle_fiscal_characteristics'),
+        );
+
+        self::assertCount(1, $vfcInPrewarm, 'prewarm = 1 seule query VFC batch');
+        self::assertCount(0, $vfcAfter, 'après prewarm, aucune query VFC pour les véhicules cachés');
+    }
+
+    #[Test]
+    public function prewarm_vfc_segments_idempotent(): void
+    {
+        $v1 = $this->makeVehicleWltp100Essence();
+        $aggregator = $this->app->make(FleetFiscalAggregator::class);
+
+        $aggregator->prewarmVfcSegmentsForVehicles([$v1], self::YEAR);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $aggregator->prewarmVfcSegmentsForVehicles([$v1], self::YEAR);
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $vfcQueries = array_filter(
+            $queries,
+            static fn (array $q): bool => str_contains($q['query'], 'vehicle_fiscal_characteristics'),
+        );
+
+        self::assertCount(0, $vfcQueries, '2e prewarm sur véhicule déjà caché = no-op');
+    }
+
     private function makeVehicleWltp100Essence(): Vehicle
     {
         $vehicle = Vehicle::factory()->create();

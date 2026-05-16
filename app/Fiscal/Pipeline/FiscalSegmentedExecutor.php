@@ -119,6 +119,42 @@ final readonly class FiscalSegmentedExecutor
     }
 
     /**
+     * Variante de {@see executeWithSegments()} qui consomme une **liste
+     * de segments VFC pré-chargée** au lieu d'aller en BDD. Pendant
+     * symétrique de {@see executeWithPreloadedVfcSegments()} pour les
+     * consommateurs qui ont besoin du détail breakdown (et pas du
+     * résultat fusionné).
+     *
+     * **Précondition stricte** identique à
+     * {@see executeWithPreloadedVfcSegments()} · `$vfcSegments` doit être
+     * strictement identique à `findEffectiveSegmentsForYear($context->vehicle,
+     * $context->fiscalYear)`. Typiquement obtenu via
+     * {@see App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface::findEffectiveSegmentsForYearBatch()}.
+     *
+     * **Équivalence garantie** · sous cette précondition, le résultat
+     * est strictement identique à `executeWithSegments($context)`. Cf.
+     * doctrine `optimisations-conditionnelles.md` stratégie 2 · le test
+     * `FiscalSegmentedExecutorTest::executeWithSegmentsAndPreloadedVfc_equivalent_a_executeWithSegments`
+     * couvre cette équivalence.
+     *
+     * Cas d'usage · `PlanningHeatmapService::costsForVehicles` qui
+     * appelle `vehicleFullYearTaxBreakdown` × 64 véhicules · avec
+     * prewarm, 1 query SQL batch alimente les 64 runs au lieu de 64
+     * queries individuelles.
+     *
+     * @param  list<VfcEffectiveSegment>  $vfcSegments
+     * @return non-empty-list<FiscalSegmentBreakdown>
+     */
+    public function executeWithSegmentsAndPreloadedVfc(PipelineContext $context, array $vfcSegments): array
+    {
+        if ($vfcSegments === []) {
+            throw FiscalCalculationException::missingFiscalCharacteristics($context->vehicle->id);
+        }
+
+        return $this->buildBreakdowns($context, $vfcSegments);
+    }
+
+    /**
      * @return non-empty-list<VfcEffectiveSegment>
      */
     private function fetchVfcSegments(PipelineContext $context): array

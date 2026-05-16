@@ -21,6 +21,7 @@ use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\PipelineResult;
 use App\Fiscal\ValueObjects\AppliedExemption;
+use App\Fiscal\ValueObjects\VfcEffectiveSegment;
 use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
@@ -162,6 +163,27 @@ final class FleetFiscalAggregator
     /** @var array<string, float> */
     private array $fleetAnnualTaxCache = [];
 
+    /**
+     * Cache mémoire intra-instance des segments VFC effectifs par
+     * `{vehicleId}|{year}` (chantier perf Planning 2026-05-16). Alimenté
+     * par {@see prewarmVfcSegmentsForVehicles()} via un seul
+     * `findEffectiveSegmentsForYearBatch` SQL · consommé par
+     * {@see vehicleFullYearTaxBreakdown()} et {@see vehicleAnnualTax()}
+     * pour éviter le N+1 query VFC dans leurs boucles.
+     *
+     * Sémantique cache · `[]` (segments vides) est une valeur valide
+     * (véhicule sans VFC sur l'année · throw `missingFiscalCharacteristics`
+     * à l'exécution). On distingue donc `isset()` (cache hit) de la
+     * valeur · seul un `array_key_exists()` permettrait la nuance
+     * stricte, mais `isset()` suffit ici car `[]` au pluriel est traité
+     * comme "miss" et déclenche le fallback BDD · cohérent avec le path
+     * existant qui throw aussi quand `findEffectiveSegmentsForYear`
+     * retourne `[]`.
+     *
+     * @var array<string, list<VfcEffectiveSegment>>
+     */
+    private array $vfcSegmentsCache = [];
+
     public function __construct(
         private readonly FiscalSegmentedExecutor $pipeline,
         private readonly FiscalYearContext $yearContext,
@@ -204,11 +226,23 @@ final class FleetFiscalAggregator
         array $vehicleUnavailabilities,
         int $year,
     ): float {
+        // Branche optimisée si le cache VFC est pré-chargé (cf.
+        // {@see prewarmVfcSegmentsForVehicles()}). Équivalence stricte
+        // garantie · cf. doctrine `optimisations-conditionnelles.md`
+        // stratégie 2 · test
+        // `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_pour_vehicle_annual_tax`.
+        // Note · `$cachedSegments === []` (véhicule connu sans VFC)
+        // déclenche le throw `missingFiscalCharacteristics` dans
+        // `executeWithPreloadedVfcSegments` · cohérent avec le path
+        // sans cache où `execute → fetchVfcSegments` throw identique.
+        $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
+
         $totalRaw = 0.0;
         foreach ($contracts->pairsForVehicle($vehicle->id) as $pairContracts) {
-            $result = $this->pipeline->execute(
-                $this->buildContext($vehicle, $pairContracts, $vehicleUnavailabilities, $year),
-            );
+            $context = $this->buildContext($vehicle, $pairContracts, $vehicleUnavailabilities, $year);
+            $result = $cachedSegments !== null
+                ? $this->pipeline->executeWithPreloadedVfcSegments($context, $cachedSegments)
+                : $this->pipeline->execute($context);
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
@@ -359,6 +393,56 @@ final class FleetFiscalAggregator
     }
 
     /**
+     * Pré-charge le cache `$vfcSegmentsCache` pour un batch de
+     * véhicules. Une seule query SQL `findEffectiveSegmentsForYearBatch`
+     * alimente le cache pour tous les véhicules manquants · les appels
+     * suivants à {@see vehicleFullYearTaxBreakdown()} et
+     * {@see vehicleAnnualTax()} consomment le cache au lieu de fetcher
+     * les VFC un par un (N+1 query supprimée).
+     *
+     * **Cas d'usage typique** · {@see App\Services\Planning\PlanningHeatmapService::costsForVehicles()}
+     * qui boucle 64 véhicules × 2 méthodes consommatrices ·
+     * sans prewarm, 64-128 queries VFC individuelles dans les boucles ·
+     * avec prewarm, 1 seule query SQL alimente les 64 runs.
+     *
+     * **Équivalence garantie** · pour tout véhicule `v` du batch,
+     * `vehicleFullYearTaxBreakdown(v, $year)` et `vehicleAnnualTax(v, ...)`
+     * retournent strictement la même valeur que sans prewarm. Couvert
+     * par `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_*`.
+     *
+     * No-op pour les véhicules déjà cachés · idempotent.
+     *
+     * @param  iterable<Vehicle>  $vehicles
+     */
+    public function prewarmVfcSegmentsForVehicles(iterable $vehicles, int $year): void
+    {
+        $missingIds = [];
+        foreach ($vehicles as $vehicle) {
+            if (! isset($this->vfcSegmentsCache[$vehicle->id.'|'.$year])) {
+                $missingIds[$vehicle->id] = true;
+            }
+        }
+
+        if ($missingIds === []) {
+            return;
+        }
+
+        $batch = $this->vfcRepository->findEffectiveSegmentsForYearBatch(
+            array_keys($missingIds),
+            $year,
+        );
+
+        foreach ($missingIds as $vehicleId => $_) {
+            // Cache même les véhicules sans VFC (valeur `[]`) · ça
+            // évite une 2ᵉ query inutile si on rappelle pour le même
+            // véhicule. Le throw `missingFiscalCharacteristics` se
+            // produira à l'exécution du pipeline, comme dans le path
+            // sans cache.
+            $this->vfcSegmentsCache[$vehicleId.'|'.$year] = $batch[$vehicleId] ?? [];
+        }
+    }
+
+    /**
      * Détail complet du calcul de la taxe pleine année d'un véhicule -
      * affiché dans la sidebar de la page Show pour expliquer comment
      * le total a été obtenu (méthode CO₂, catégorie polluants,
@@ -387,7 +471,18 @@ final class FleetFiscalAggregator
             [],
             $year,
         );
-        $breakdowns = $this->pipeline->executeWithSegments($context);
+        // Branche optimisée si le cache VFC est pré-chargé (cf.
+        // {@see prewarmVfcSegmentsForVehicles()}). Équivalence stricte
+        // garantie · cf. doctrine `optimisations-conditionnelles.md`
+        // stratégie 2 · test
+        // `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_pour_vehicle_full_year_tax_breakdown`.
+        // Note · `$cachedSegments === []` déclenche le throw
+        // `missingFiscalCharacteristics` côté executor · cohérent avec
+        // le path sans cache.
+        $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
+        $breakdowns = $cachedSegments !== null
+            ? $this->pipeline->executeWithSegmentsAndPreloadedVfc($context, $cachedSegments)
+            : $this->pipeline->executeWithSegments($context);
 
         $taxSegments = [];
         $totalRaw = 0.0;

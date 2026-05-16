@@ -273,6 +273,78 @@ final class FiscalSegmentedExecutorTest extends TestCase
         $this->executor->executeWithPreloadedVfcSegments($context, []);
     }
 
+    // --- executeWithSegmentsAndPreloadedVfc (perf Planning 2026-05-16) ---
+
+    #[Test]
+    public function execute_with_segments_and_preloaded_vfc_equivalent_a_execute_with_segments_mono_vfc(): void
+    {
+        // Pendant symétrique de
+        // `execute_with_preloaded_vfc_segments_equivalent_a_execute_mono_vfc`
+        // pour la variante `executeWithSegments` qui retourne le détail
+        // par sous-segment (vs résultat fusionné) · même garantie
+        // d'équivalence stricte sous la précondition « segments
+        // pré-chargés == segments BDD ».
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $contracts = [$this->syntheticContract($vehicle, '2024-01-01', '2024-12-31', ContractType::Lld)];
+        $context = $this->buildContext($vehicle, $contracts);
+
+        $repo = $this->app->make(VehicleFiscalCharacteristicsReadRepositoryInterface::class);
+        $segments = $repo->findEffectiveSegmentsForYear($vehicle, 2024);
+
+        $direct = $this->executor->executeWithSegments($context);
+        $preloaded = $this->executor->executeWithSegmentsAndPreloadedVfc($context, $segments);
+
+        self::assertCount(count($direct), $preloaded);
+        foreach ($direct as $i => $directSeg) {
+            $preSeg = $preloaded[$i];
+            self::assertTrue($directSeg->start->equalTo($preSeg->start));
+            self::assertTrue($directSeg->end->equalTo($preSeg->end));
+            self::assertSame($directSeg->result->daysAssigned, $preSeg->result->daysAssigned);
+            self::assertSame($directSeg->result->co2DueRaw, $preSeg->result->co2DueRaw);
+            self::assertSame($directSeg->result->pollutantsDueRaw, $preSeg->result->pollutantsDueRaw);
+            self::assertSame($directSeg->result->totalDue, $preSeg->result->totalDue);
+            self::assertSame($directSeg->result->appliedRuleCodes, $preSeg->result->appliedRuleCodes);
+        }
+    }
+
+    #[Test]
+    public function execute_with_segments_and_preloaded_vfc_equivalent_a_execute_with_segments_multi_vfc(): void
+    {
+        // Cas multi-VFC · les breakdowns cartésiens VFC × Règles doivent
+        // être strictement identiques entre les 2 chemins.
+        $vehicle = $this->makeVehicleWithTwoDifferentVfcs(
+            v1Co2: 100,
+            v2Co2: 175,
+            switchDate: '2024-07-01',
+        );
+        $contracts = [$this->syntheticContract($vehicle, '2024-01-01', '2024-12-31', ContractType::Lld)];
+        $context = $this->buildContext($vehicle, $contracts);
+
+        $repo = $this->app->make(VehicleFiscalCharacteristicsReadRepositoryInterface::class);
+        $segments = $repo->findEffectiveSegmentsForYear($vehicle, 2024);
+
+        $direct = $this->executor->executeWithSegments($context);
+        $preloaded = $this->executor->executeWithSegmentsAndPreloadedVfc($context, $segments);
+
+        self::assertCount(count($direct), $preloaded);
+        foreach ($direct as $i => $directSeg) {
+            $preSeg = $preloaded[$i];
+            self::assertSame($directSeg->result->daysAssigned, $preSeg->result->daysAssigned);
+            self::assertSame($directSeg->result->co2DueRaw, $preSeg->result->co2DueRaw);
+            self::assertSame($directSeg->result->totalDue, $preSeg->result->totalDue);
+        }
+    }
+
+    #[Test]
+    public function execute_with_segments_and_preloaded_vfc_vide_throw_missing_fiscal(): void
+    {
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $context = $this->buildContext($vehicle, []);
+
+        $this->expectException(FiscalCalculationException::class);
+        $this->executor->executeWithSegmentsAndPreloadedVfc($context, []);
+    }
+
     // --- Helpers --------------------------------------------------------
 
     /**

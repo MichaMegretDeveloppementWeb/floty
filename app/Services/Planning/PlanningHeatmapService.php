@@ -202,6 +202,13 @@ final class PlanningHeatmapService
         $vehicleIds = $vehicles->pluck('id')->all();
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
 
+        // Chantier perf Étape 2 (2026-05-16) · prewarm batch des
+        // segments VFC en 1 query SQL avant les 2 boucles ci-dessous.
+        // Sans ça, `vehicleFullYearTaxBreakdown` et `vehicleAnnualTax`
+        // fetchent les VFC individuellement (N+1 query). Cf.
+        // `FleetFiscalAggregator::prewarmVfcSegmentsForVehicles()`.
+        $this->aggregator->prewarmVfcSegmentsForVehicles($vehicles->all(), $year);
+
         $contractsByPair = $this->contracts->loadContractsByPair($year);
         if ($companyId !== null) {
             // Mirror de la logique de scope appliquée historiquement dans
