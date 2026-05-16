@@ -12,6 +12,7 @@ use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Services\Fiscal\FiscalCacheInvalidator;
 use DateTimeInterface;
 
 /**
@@ -22,9 +23,21 @@ use DateTimeInterface;
  * à partir des champs canoniques (source d'énergie, norme Euro, type
  * de moteur thermique sous-jacent). Le DB reste cohérent avec la même
  * cascade que celle appliquée au calcul fiscal (R-2024-013).
+ *
+ * **Cache fiscal (chantier 2026-05-17)** · les 2 méthodes
+ * {@see deleteVersionsFromDate()} et {@see deleteOne()} font un bulk
+ * delete via query builder qui N'INVOQUE PAS les events Eloquent
+ * `deleting`/`deleted`. Elles appellent donc explicitement
+ * {@see FiscalCacheInvalidator::invalidateForVehicle()} AVANT le bulk
+ * pour préserver la garantie d'invalidation du cache
+ * `vehicleFullYearTaxBreakdown`. Cf. `app/Fiscal/README.md`.
  */
 final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscalCharacteristicsWriteRepositoryInterface
 {
+    public function __construct(
+        private readonly FiscalCacheInvalidator $cacheInvalidator,
+    ) {}
+
     public function createInitialVersion(
         int $vehicleId,
         StoreVehicleData $data,
@@ -115,6 +128,13 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
         int $vehicleId,
         DateTimeInterface $date,
     ): int {
+        // Bulk delete via query builder · les events Eloquent
+        // `deleting`/`deleted` ne sont PAS déclenchés (cf. doctrine
+        // Laravel). Invalidation cache fiscal manuelle obligatoire ·
+        // sans cela, le cache `vehicleFullYearTaxBreakdown` resterait
+        // stale jusqu'au TTL (1h). Cf. doc classe.
+        $this->cacheInvalidator->invalidateForVehicle($vehicleId);
+
         return VehicleFiscalCharacteristics::query()
             ->where('vehicle_id', $vehicleId)
             ->where('effective_from', '>=', $date)
@@ -173,6 +193,16 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
 
     public function deleteOne(int $fiscalId): void
     {
+        // Idem `deleteVersionsFromDate` · bulk delete via query
+        // builder · invalidation cache manuelle obligatoire AVANT le
+        // delete. On récupère `vehicle_id` avant le delete pour pouvoir
+        // invalider la bonne plage de clés cache.
+        $vfc = VehicleFiscalCharacteristics::query()
+            ->where('id', $fiscalId)
+            ->firstOrFail();
+
+        $this->cacheInvalidator->invalidateForVehicle($vfc->vehicle_id);
+
         VehicleFiscalCharacteristics::query()
             ->where('id', $fiscalId)
             ->delete();

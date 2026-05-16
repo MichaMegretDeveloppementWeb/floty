@@ -28,6 +28,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\FiscalRule\FiscalRuleQueryService;
 use App\Services\Shared\Fiscal\FiscalYearContext;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Collection;
 
 /**
@@ -189,6 +190,7 @@ final class FleetFiscalAggregator
         private readonly FiscalYearContext $yearContext,
         private readonly FiscalRuleQueryService $rulesQuery,
         private readonly VehicleFiscalCharacteristicsReadRepositoryInterface $vfcRepository,
+        private readonly CacheRepository $cache,
     ) {}
 
     /**
@@ -456,7 +458,31 @@ final class FleetFiscalAggregator
     {
         $key = $vehicle->id.'|'.$year;
 
-        return $this->fullYearBreakdownCache[$key] ??= $this->computeVehicleFullYearTaxBreakdown($vehicle, $year);
+        // 1) Mémoïsation per-request (microseconde) · réutilisation
+        //    intra-page (header + tableau + résumé peuvent demander la
+        //    même valeur).
+        if (isset($this->fullYearBreakdownCache[$key])) {
+            return $this->fullYearBreakdownCache[$key];
+        }
+
+        // 2) Cache persistant DB (TTL 1h, invalidé par les Observers
+        //    Eloquent VFC + Vehicle et les bulk deletes refactorés ·
+        //    cf. {@see FiscalCacheInvalidator} pour la stratégie
+        //    complète d'invalidation). Hit · ~1-2 ms (lecture DB) au
+        //    lieu de ~5-10 ms du pipeline fiscal complet.
+        $cacheKey = FiscalCacheInvalidator::cacheKeyForBreakdown($vehicle->id, $year);
+        $cached = $this->cache->get($cacheKey);
+        if ($cached instanceof VehicleFullYearTaxBreakdownData) {
+            return $this->fullYearBreakdownCache[$key] = $cached;
+        }
+
+        // 3) Cache miss · calcul complet du pipeline.
+        $result = $this->computeVehicleFullYearTaxBreakdown($vehicle, $year);
+
+        // 4) Mise en cache (persistant + per-request).
+        $this->cache->put($cacheKey, $result, FiscalCacheInvalidator::CACHE_TTL_SECONDS);
+
+        return $this->fullYearBreakdownCache[$key] = $result;
     }
 
     private function computeVehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
