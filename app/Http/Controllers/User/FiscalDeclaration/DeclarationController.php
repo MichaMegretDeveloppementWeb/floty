@@ -94,9 +94,20 @@ final class DeclarationController extends Controller
             $declaration->fiscal_year,
         );
 
+        // P0.5 (audit perf 2026-05-16 / 08-misc.md P0 #2) · snapshot
+        // conditionnel · payload persiste → rendu eager (lecture array
+        // quasi-instantanee). Sinon (Draft sans payload) → Inertia::defer
+        // pour ne pas bloquer le mount sur engine->compute() complet
+        // (~100-500 ms cold).
+        $hasPersistedSnapshot = is_array($declaration->generated_snapshot_payload);
+
         return Inertia::render('User/Declarations/Show/Index', [
             'declaration' => FiscalDeclarationData::fromModel($declaration),
-            'snapshot' => $this->resolveSnapshotData($declaration),
+            'snapshot' => $hasPersistedSnapshot
+                ? FiscalDeclarationSnapshotData::from($declaration->generated_snapshot_payload)
+                : Inertia::defer(fn () => FiscalDeclarationSnapshotData::fromValueObject(
+                    $this->engine->compute($declaration->company_id, $declaration->fiscal_year),
+                )),
             'history' => $this->reader
                 ->findHistoryForCompanyYear($declaration->company_id, $declaration->fiscal_year)
                 ->map(static fn (FiscalDeclaration $d): DeclarationListItemData => DeclarationListItemData::fromModel($d))
@@ -119,36 +130,6 @@ final class DeclarationController extends Controller
                 : null,
             'canonicalHeadDeclarationId' => $canonicalHead?->id,
         ]);
-    }
-
-    /**
-     * Résout le snapshot fiscal d'une déclaration : priorité au
-     * payload persisté en BDD si présent (Phase 11 D5.7.5 audit B5),
-     * fallback recalcul via {@see DeclarationFiscalEngine} sinon.
-     *
-     * **Pourquoi la priorité au persisté** : le payload BDD a été figé
-     * au moment de `markAsGenerated()` et reflète **exactement** les
-     * montants du PDF historique. Le recalcul à la volée peut
-     * diverger si une mutation post-génération n'a pas déclenché
-     * l'invalidation. Pour une déclaration `Generated` non obsolète,
-     * les deux sources doivent normalement coïncider ; le persisté
-     * fait foi en cas d'écart.
-     *
-     * **Quand recalculer (fallback)** :
-     *   - Déclaration `Draft` ou `Deferred` : pas encore générée, donc
-     *     payload null, preview en direct.
-     *   - Déclaration historique générée pré-D5.7.5 : payload null
-     *     (pas de backfill auto), recalcul rétrocompat.
-     */
-    private function resolveSnapshotData(FiscalDeclaration $declaration): FiscalDeclarationSnapshotData
-    {
-        if (is_array($declaration->generated_snapshot_payload)) {
-            return FiscalDeclarationSnapshotData::from($declaration->generated_snapshot_payload);
-        }
-
-        $snapshot = $this->engine->compute($declaration->company_id, $declaration->fiscal_year);
-
-        return FiscalDeclarationSnapshotData::fromValueObject($snapshot);
     }
 
     public function review(FiscalDeclaration $declaration): InertiaResponse|RedirectResponse

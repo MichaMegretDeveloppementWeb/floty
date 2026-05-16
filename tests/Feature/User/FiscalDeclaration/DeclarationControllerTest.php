@@ -108,11 +108,31 @@ final class DeclarationControllerTest extends TestCase
     #[Test]
     public function show_render_inertia_avec_history_et_snapshot(): void
     {
+        // P0.5 (audit perf 2026-05-16) · Generated avec payload
+        // persiste → snapshot eager (lecture array quasi-instantanee,
+        // pas de Inertia::defer). Le payload minimal explicite est
+        // necessaire pour declencher la branche eager du ternaire ·
+        // sans payload, le snapshot serait deferred (cas teste par
+        // `show_servi_snapshot_en_inertia_defer_si_draft_sans_payload`).
         $declaration = FiscalDeclaration::factory()
             ->forCompany($this->company)
             ->forYear(2025)
             ->generated()
-            ->create();
+            ->create([
+                'generated_snapshot_payload' => [
+                    'companyId' => $this->company->id,
+                    'companyShortCode' => $this->company->short_code,
+                    'companyLegalName' => $this->company->legal_name,
+                    'fiscalYear' => 2025,
+                    'computedAt' => '2025-12-31T23:59:59+01:00',
+                    'co2DueTotal' => 0.0,
+                    'pollutantsDueTotal' => 0.0,
+                    'totalDue' => 0.0,
+                    'contractBreakdown' => [],
+                    'appliedDecisions' => [],
+                    'optOutContractIds' => [],
+                ],
+            ]);
 
         $this->get(sprintf('/app/declarations/%d', $declaration->id))
             ->assertOk()
@@ -125,6 +145,30 @@ final class DeclarationControllerTest extends TestCase
                 ->has('snapshot.contractBreakdown')
                 ->has('snapshot.appliedDecisions')
                 ->has('snapshot.optOutContractIds'));
+    }
+
+    #[Test]
+    public function show_servi_snapshot_en_inertia_defer_si_draft_sans_payload(): void
+    {
+        // P0.5 (audit perf 2026-05-16 / 08-misc.md P0 #2) · pour un
+        // Draft sans payload persiste, le snapshot necessite un
+        // engine->compute() complet (~100-500 ms). Servi en
+        // `Inertia::defer` · pas dans la 1ere reponse Inertia, arrive
+        // via une 2e requete asynchrone declenchee par <Deferred>
+        // cote front.
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $this->get(sprintf('/app/declarations/%d', $declaration->id))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Declarations/Show/Index')
+                ->where('declaration.id', $declaration->id)
+                ->has('history')
+                ->missing('snapshot'));
     }
 
     #[Test]

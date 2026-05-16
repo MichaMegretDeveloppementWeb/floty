@@ -13,12 +13,13 @@
  * éditable des brouillons intermédiaires (orphelins) qui ne sont que
  * supprimables.
  */
-import { Head } from '@inertiajs/vue3';
+import { Deferred, Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import DeclarationHistoryTimeline from '@/Components/Domain/Declaration/DeclarationHistoryTimeline.vue';
 import FiscalSummaryCard from '@/Components/Domain/Declaration/FiscalSummaryCard.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
+import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import Header from './partials/Header.vue';
 import ObsolescenceBanner from './partials/ObsolescenceBanner.vue';
 import PdfCard from './partials/PdfCard.vue';
@@ -28,7 +29,15 @@ type ItemData = App.Data.User.FiscalDeclaration.DeclarationListItemData;
 
 const props = defineProps<{
     declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
-    snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
+    /**
+     * P0.5 (audit perf 2026-05-16 / 08-misc.md P0 #2) · servi en
+     * `Inertia::defer` UNIQUEMENT pour les Draft sans payload persiste
+     * (cas fallback `engine->compute()` ~100-500 ms). Pour les
+     * Generated avec payload, arrive eager au mount. <Deferred> gere
+     * les 2 cas proprement · slot defaut immediat si eager, skeleton
+     * sinon.
+     */
+    snapshot?: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
     history: ItemData[];
     predecessorDeclaration: ItemData | null;
     successorDeclaration: ItemData | null;
@@ -81,7 +90,12 @@ const isCanonicalHead = computed<boolean>(
                 :predecessor="predecessorDeclaration"
             />
 
-            <FiscalSummaryCard :snapshot="snapshot" />
+            <Deferred data="snapshot">
+                <template #fallback>
+                    <Skeleton class="h-72 rounded-2xl" />
+                </template>
+                <FiscalSummaryCard :snapshot="snapshot!" />
+            </Deferred>
 
             <PdfCard
                 :declaration="declaration"
