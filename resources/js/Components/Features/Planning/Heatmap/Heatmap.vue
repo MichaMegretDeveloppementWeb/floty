@@ -5,33 +5,31 @@
  * Matrice véhicules × 52 semaines avec couleur de densité sur l'échelle
  * blue-50 → blue-950 du design system (8 paliers · 0 → 7 jours utilisés).
  *
- * Layout (refonte D5.10.X · frozen panes Excel-style avec `<table>`) ·
- *   - Un seul conteneur scrollable extérieur · `max-h-[50em]
- *     overflow-auto`. Scrollbars V à droite et H en bas du conteneur,
- *     toujours dans le viewport (50em ≈ 800px).
- *   - Vraie `<table>` HTML avec `border-collapse: separate` (requis pour
- *     que `position: sticky` fonctionne sur les cells). Largeurs des
- *     colonnes calculées par le navigateur · garantit l'alignement
- *     parfait entre header et body (résout les bugs décalage).
- *   - Colonne gauche (VehicleInfo) en `position: sticky; left: 0` +
- *     `bg-white` · reste visible pendant le scroll H.
- *   - Colonne droite (VehicleSummary) en `position: sticky; right: 0` +
- *     `bg-white` · idem.
- *   - Header (labels mensuels) en `position: sticky; top: 0` · reste
- *     visible pendant le scroll V.
- *   - Coins (top-left + top-right) en sticky double avec z-index
- *     supérieur · couvrent les autres sticky pendant le scroll croisé.
+ * Layout (refonte D5.10.X · 3 blocs synchronisés) ·
+ *   - Bloc gauche (mini-fiche véhicule), bloc central (cellules 52
+ *     semaines), bloc droit (taxe annuelle + jours) · chacun a son
+ *     propre `max-h-[50em] overflow-y-auto`. Hauteur visible alignée
+ *     entre les 3 blocs.
+ *   - Le bloc central a en plus `overflow-x-auto` · sa scrollbar
+ *     horizontale est physiquement **au bas du bloc central**, sur la
+ *     largeur du bloc central uniquement (pas de bricolage avec une
+ *     scrollbar qui dépasse).
+ *   - La scrollbar verticale est masquée sur les blocs gauche et
+ *     central (CSS `scrollbar-hide`) · seule celle du bloc droit est
+ *     visible, à la lisière droite du conteneur. Visuellement on a
+ *     l'impression d'une scrollbar V unique sur le conteneur.
+ *   - Le scroll V est synchronisé entre les 3 blocs via un scroll event
+ *     listener · scroller dans n'importe lequel propage le scrollTop
+ *     aux deux autres. Un flag `syncing` + `requestAnimationFrame`
+ *     évite le feedback loop.
+ *   - Header (labels mensuels) en `sticky top-0` dans chaque bloc ·
+ *     les 3 stickys sont visuellement alignés grâce à un placeholder
+ *     de hauteur identique dans les blocs gauche/droit.
  *
- * Z-index policy ·
- *   - thead cells coin (sticky top + left/right) · z-30
- *   - thead cells centre (sticky top seul) · z-20
- *   - tbody cells sticky (left/right seul) · z-10
- *   - tbody cells centre · z-0 (default)
- *
- * Bénéfice UX · la barre de scroll H est toujours dans le viewport,
- * peu importe la position verticale dans la liste de véhicules. Plus
- * besoin de descendre jusqu'au dernier véhicule pour atteindre la
- * scrollbar horizontale.
+ * Bénéfice UX · pattern visuellement attendu (gauche fixe / centre
+ * scrollable / droite fixe) sans triche · la scrollbar H correspond
+ * **strictement** à la largeur du bloc central scrollable, pas au
+ * conteneur entier.
  *
  * Clic sur une cellule émet `cell-click` avec { vehicleId, week }.
  *
@@ -40,7 +38,7 @@
  * Un computed `vehicleViews` normalise la shape avant de la passer aux
  * partials, qui ne connaissent que le type unifié `HeatmapVehicleView`.
  */
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import {
     HEATMAP_CELL_WIDTH,
     HEATMAP_GRID_WIDTH,
@@ -135,6 +133,37 @@ const totalAnnualTax = computed((): number =>
 const totalDays = computed((): number =>
     vehicleViews.value.reduce((sum, v) => sum + v.summaryDays, 0),
 );
+
+/**
+ * Synchronisation du scroll vertical entre les 3 blocs (gauche, centre,
+ * droite). Le flag `syncing` empêche le feedback loop (sinon set
+ * scrollTop sur un élément déclenche un event scroll qui déclencherait
+ * à son tour la sync, etc.).
+ */
+const leftRef = ref<HTMLElement | null>(null);
+const middleRef = ref<HTMLElement | null>(null);
+const rightRef = ref<HTMLElement | null>(null);
+
+/**
+ * Sync le scrollTop entre les 3 panes. On utilise l'`event.currentTarget`
+ * comme source plutôt qu'une ref · plus fiable (pas de problème de Ref
+ * non-unwrappé dans le template) et zéro besoin de capturer les refs
+ * pour l'identification (just comparaison HTMLElement vs HTMLElement).
+ *
+ * La garde `el.scrollTop !== top` suffit à empêcher le feedback loop ·
+ * setter scrollTop à la même valeur ne déclenche pas de nouveau scroll
+ * event. Pas besoin de flag global `syncing` qui pose des problèmes de
+ * stuck state en cas d'event scroll perdus.
+ */
+function syncFrom(e: Event): void {
+    const source = e.currentTarget as HTMLElement;
+    const top = source.scrollTop;
+    [leftRef.value, middleRef.value, rightRef.value].forEach((el) => {
+        if (el !== null && el !== source && el.scrollTop !== top) {
+            el.scrollTop = top;
+        }
+    });
+}
 </script>
 
 <template>
@@ -151,86 +180,136 @@ const totalDays = computed((): number =>
         </div>
 
         <!--
-            Container heatmap · max-h 50em + overflow auto sur les deux
-            axes. Le `<table>` interne gère l'alignement des colonnes
-            entre rows automatiquement, ce qui résout les bugs décalage
-            header / cellules / colonne droite du précédent essai en
-            flex.
+            Container heatmap · simple wrapper avec border, sans
+            overflow. Les 3 blocs internes gèrent chacun leur scroll.
         -->
-        <div class="max-h-[50em] overflow-auto rounded-xl border border-slate-200 bg-white">
-            <table class="border-separate border-spacing-0">
-                <thead>
-                    <tr>
-                        <!--
-                            Coin top-left · sticky top + sticky left.
-                            z-30 pour couvrir les sticky purs pendant
-                            le scroll croisé.
-                        -->
-                        <th class="sticky top-0 left-0 z-30 bg-white border-b border-slate-100 pt-4 pl-4 pr-3 pb-2 text-left font-normal">
-                            <div class="h-4" />
-                        </th>
-                        <!-- Header centre · labels mensuels alignés sur les cellules -->
-                        <th
-                            class="sticky top-0 z-20 bg-white border-b border-slate-100 pt-4 pb-2 text-left font-normal"
-                            :style="{ width: `${HEATMAP_GRID_WIDTH}px`, minWidth: `${HEATMAP_GRID_WIDTH}px` }"
-                        >
-                            <div class="flex h-4">
-                                <div
-                                    v-for="month in monthLabels"
-                                    :key="month.name"
-                                    :style="{
-                                        width: `${month.weeks * HEATMAP_CELL_WIDTH}px`,
-                                    }"
-                                    class="text-xs font-medium text-slate-500"
-                                >
-                                    {{ month.name }}
-                                </div>
-                            </div>
-                        </th>
-                        <!-- Coin top-right · sticky top + sticky right · z-30 -->
-                        <th class="sticky top-0 right-0 z-30 bg-white border-b border-slate-100 pt-4 pl-3 pr-4 pb-2 text-right font-normal">
-                            <div class="h-4" />
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr
+        <div class="rounded-xl border border-slate-200 bg-white">
+            <div class="flex">
+                <!--
+                    Bloc gauche · VehicleInfo. Overflow-y auto (sync
+                    avec les autres), scrollbar V masquée pour ne pas
+                    doublonner avec celle du bloc droit.
+                -->
+                <div
+                    ref="leftRef"
+                    class="heatmap-pane shrink-0 max-h-[50em] overflow-y-auto bg-white scrollbar-hide-all"
+                    @scroll="syncFrom"
+                >
+                    <!-- Header sticky · placeholder pour aligner avec les mois du centre -->
+                    <div class="sticky top-0 z-10 bg-white pt-4 pb-2 pl-4 pr-3">
+                        <div class="h-4" />
+                    </div>
+                    <!-- Body rows -->
+                    <div
                         v-for="(view, idx) in vehicleViews"
-                        :key="view.id"
+                        :key="`left-${view.id}`"
+                        class="pl-4 pr-3"
+                        :class="idx > 0 && 'border-t border-slate-100'"
                     >
-                        <!--
-                            Sticky left · VehicleInfo. `border-t` sur
-                            chaque cell de chaque row (sauf row 0) pour
-                            tracer la séparation horizontale entre
-                            véhicules. Avec `border-collapse: separate`
-                            on doit gérer le border au niveau cell.
-                        -->
-                        <td
-                            class="sticky left-0 z-10 bg-white pl-4 pr-3 align-middle"
-                            :class="idx > 0 && 'border-t border-slate-100'"
-                        >
-                            <VehicleInfo :vehicle-view="view" />
-                        </td>
-                        <td
-                            class="align-middle"
-                            :class="idx > 0 && 'border-t border-slate-100'"
-                            :style="{ width: `${HEATMAP_GRID_WIDTH}px`, minWidth: `${HEATMAP_GRID_WIDTH}px` }"
-                        >
-                            <WeekCellsRow
-                                :vehicle-view="view"
-                                :fiscal-year="fiscalYear"
-                                @cell-click="$emit('cell-click', $event)"
-                            />
-                        </td>
-                        <td
-                            class="sticky right-0 z-10 bg-white pl-3 pr-4 align-middle"
-                            :class="idx > 0 && 'border-t border-slate-100'"
-                        >
-                            <VehicleSummary :vehicle-view="view" />
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+                        <VehicleInfo :vehicle-view="view" />
+                    </div>
+                </div>
+
+                <!--
+                    Bloc centre · WeekCellsRow. Overflow X et Y auto ·
+                    H scrollbar visible au bas du bloc, V scrollbar
+                    masquée. min-w-0 + flex-1 pour prendre l'espace
+                    restant entre gauche et droite.
+                -->
+                <div
+                    ref="middleRef"
+                    class="heatmap-pane min-w-0 flex-1 max-h-[50em] overflow-auto bg-white scrollbar-hide-y"
+                    @scroll="syncFrom"
+                >
+                    <!-- Header sticky · labels mensuels -->
+                    <div
+                        class="sticky top-0 z-10 bg-white pt-4 pb-2"
+                        :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                    >
+                        <div class="flex h-4">
+                            <div
+                                v-for="month in monthLabels"
+                                :key="month.name"
+                                :style="{
+                                    width: `${month.weeks * HEATMAP_CELL_WIDTH}px`,
+                                }"
+                                class="text-xs font-medium text-slate-500"
+                            >
+                                {{ month.name }}
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Body rows · largeur fixe HEATMAP_GRID_WIDTH pour forcer overflow X -->
+                    <div
+                        v-for="(view, idx) in vehicleViews"
+                        :key="`mid-${view.id}`"
+                        :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                        :class="idx > 0 && 'border-t border-slate-100'"
+                    >
+                        <WeekCellsRow
+                            :vehicle-view="view"
+                            :fiscal-year="fiscalYear"
+                            @cell-click="$emit('cell-click', $event)"
+                        />
+                    </div>
+                </div>
+
+                <!--
+                    Bloc droit · VehicleSummary. Overflow-y auto avec
+                    scrollbar V visible · c'est la scrollbar V
+                    « principale » du composant (visuellement à droite
+                    du conteneur).
+                -->
+                <div
+                    ref="rightRef"
+                    class="heatmap-pane shrink-0 max-h-[50em] overflow-y-auto bg-white"
+                    @scroll="syncFrom"
+                >
+                    <div class="sticky top-0 z-10 bg-white pt-4 pb-2 pl-3 pr-4">
+                        <div class="h-4" />
+                    </div>
+                    <div
+                        v-for="(view, idx) in vehicleViews"
+                        :key="`right-${view.id}`"
+                        class="pl-3 pr-4"
+                        :class="idx > 0 && 'border-t border-slate-100'"
+                    >
+                        <VehicleSummary :vehicle-view="view" />
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
+
+<style scoped>
+/*
+ * Masque toutes les scrollbars (V et H) · utilisé sur le bloc gauche
+ * qui n'a pas de overflow horizontal de toute façon. Compatible Webkit,
+ * Firefox et IE/Edge legacy.
+ */
+.scrollbar-hide-all {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+.scrollbar-hide-all::-webkit-scrollbar {
+    display: none;
+}
+
+/*
+ * Masque uniquement la scrollbar VERTICALE · utilisé sur le bloc
+ * centre. Sur Webkit (Chrome/Safari/Edge), `::-webkit-scrollbar:vertical`
+ * cible spécifiquement l'axe Y. Sur Firefox, `scrollbar-width: none`
+ * masque les deux (limitation acceptée · cible principale du projet
+ * est Chrome/Edge desktop).
+ */
+.scrollbar-hide-y::-webkit-scrollbar:vertical {
+    display: none;
+    width: 0;
+}
+@-moz-document url-prefix() {
+    .scrollbar-hide-y {
+        scrollbar-width: none;
+    }
+}
+</style>
