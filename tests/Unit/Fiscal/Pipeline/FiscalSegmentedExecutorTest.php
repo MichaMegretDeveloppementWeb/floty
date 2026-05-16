@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\Pipeline;
 
+use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Enums\Contract\ContractType;
 use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
@@ -201,6 +202,75 @@ final class FiscalSegmentedExecutorTest extends TestCase
 
         $this->expectException(FiscalCalculationException::class);
         $this->executor->execute($this->buildContext($vehicle->fresh(), []));
+    }
+
+    // --- executeWithPreloadedVfcSegments (3b · prewarm batch) --------
+
+    #[Test]
+    public function execute_with_preloaded_vfc_segments_equivalent_a_execute_mono_vfc(): void
+    {
+        // Doctrine `optimisations-conditionnelles.md` stratégie 2 ·
+        // l'API qui consomme des VFC pré-chargées DOIT produire un
+        // résultat strictement identique à celui qui les fetch depuis
+        // la BDD. Sinon prewarm aggregator donnerait un résultat
+        // silencieusement différent. Cas mono-VFC.
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $contracts = [$this->syntheticContract($vehicle, '2024-01-01', '2024-12-31', ContractType::Lld)];
+        $context = $this->buildContext($vehicle, $contracts);
+
+        $repo = $this->app->make(VehicleFiscalCharacteristicsReadRepositoryInterface::class);
+        $segments = $repo->findEffectiveSegmentsForYear($vehicle, 2024);
+
+        $direct = $this->executor->execute($context);
+        $preloaded = $this->executor->executeWithPreloadedVfcSegments($context, $segments);
+
+        $this->assertSame($direct->daysAssigned, $preloaded->daysAssigned);
+        $this->assertSame($direct->cumulativeDaysForPair, $preloaded->cumulativeDaysForPair);
+        $this->assertSame($direct->co2DueRaw, $preloaded->co2DueRaw);
+        $this->assertSame($direct->pollutantsDueRaw, $preloaded->pollutantsDueRaw);
+        $this->assertSame($direct->totalDue, $preloaded->totalDue);
+        $this->assertSame($direct->lcdExempt, $preloaded->lcdExempt);
+        $this->assertSame($direct->electricExempt, $preloaded->electricExempt);
+        $this->assertSame($direct->handicapExempt, $preloaded->handicapExempt);
+    }
+
+    #[Test]
+    public function execute_with_preloaded_vfc_segments_equivalent_a_execute_multi_vfc(): void
+    {
+        // Cas multi-VFC · le merge des sous-segments cartésiens VFC × Règles
+        // doit donner le même résultat dans les deux chemins.
+        $vehicle = $this->makeVehicleWithTwoDifferentVfcs(
+            v1Co2: 100,
+            v2Co2: 175,
+            switchDate: '2024-07-01',
+        );
+        $contracts = [$this->syntheticContract($vehicle, '2024-01-01', '2024-12-31', ContractType::Lld)];
+        $context = $this->buildContext($vehicle, $contracts);
+
+        $repo = $this->app->make(VehicleFiscalCharacteristicsReadRepositoryInterface::class);
+        $segments = $repo->findEffectiveSegmentsForYear($vehicle, 2024);
+
+        $direct = $this->executor->execute($context);
+        $preloaded = $this->executor->executeWithPreloadedVfcSegments($context, $segments);
+
+        $this->assertSame($direct->daysAssigned, $preloaded->daysAssigned);
+        $this->assertSame($direct->co2DueRaw, $preloaded->co2DueRaw);
+        $this->assertSame($direct->pollutantsDueRaw, $preloaded->pollutantsDueRaw);
+        $this->assertSame($direct->totalDue, $preloaded->totalDue);
+        $this->assertSame($direct->appliedRuleCodes, $preloaded->appliedRuleCodes);
+    }
+
+    #[Test]
+    public function execute_with_preloaded_vfc_segments_vide_throw_missing_fiscal(): void
+    {
+        // Symétrie avec `execute()` quand le repo retourne [] · la
+        // méthode pré-chargée doit aussi throw `missingFiscalCharacteristics`
+        // pour ne pas brouiller le contrat (silencieusement 0€).
+        $vehicle = $this->makeVehicleWithSingleVfc();
+        $context = $this->buildContext($vehicle, []);
+
+        $this->expectException(FiscalCalculationException::class);
+        $this->executor->executeWithPreloadedVfcSegments($context, []);
     }
 
     // --- Helpers --------------------------------------------------------

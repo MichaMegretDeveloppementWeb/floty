@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Fiscal;
 
+use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Data\User\Contract\ContractTaxBreakdownData;
 use App\Data\User\Contract\ContractTaxYearBreakdownData;
 use App\Data\User\Contract\ContractTaxYearSegmentBreakdownData;
@@ -165,6 +166,7 @@ final class FleetFiscalAggregator
         private readonly FiscalSegmentedExecutor $pipeline,
         private readonly FiscalYearContext $yearContext,
         private readonly FiscalRuleQueryService $rulesQuery,
+        private readonly VehicleFiscalCharacteristicsReadRepositoryInterface $vfcRepository,
     ) {}
 
     /**
@@ -286,6 +288,74 @@ final class FleetFiscalAggregator
         $result = $this->fullYearPipelineResult($vehicle, $year);
 
         return round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+    }
+
+    /**
+     * Pré-charge le cache `$fullYearResultCache` pour un batch de
+     * véhicules en **1 query SQL** au lieu de N (chantier perf
+     * 2026-05-16 Option 3b). Aucun retour · l'effet est sur le cache
+     * interne, consommé ensuite par tous les appels suivants à
+     * {@see vehicleFullYearTax} / {@see vehicleFullYearTaxBreakdown}
+     * sur les mêmes `(vehicleId, year)`.
+     *
+     * Cas d'usage typique · Index Contracts (`ContractQueryService::costsForContractIds`)
+     * où la page affiche 25 contrats, 21 véhicules distincts ·
+     * sans prewarm, le pipeline exécute 21 queries VFC individuelles ·
+     * avec prewarm, 1 seule query SQL alimente les 21 runs.
+     *
+     * **Équivalence garantie** · pour tout véhicule `v` du batch,
+     * `vehicleFullYearTax(v, $year)` retourne strictement la même
+     * valeur que sans prewarm. Cette équivalence est couverte par
+     * `FleetFiscalAggregatorTest::prewarm_equivalent_aux_appels_individuels`
+     * (cf. doctrine `optimisations-conditionnelles.md` stratégie 2).
+     *
+     * No-op pour les véhicules déjà présents dans le cache · idempotent.
+     *
+     * @param  iterable<Vehicle>  $vehicles
+     */
+    public function prewarmFullYearForVehicles(iterable $vehicles, int $year): void
+    {
+        $missing = [];
+        $missingById = [];
+        foreach ($vehicles as $vehicle) {
+            $key = $vehicle->id.'|'.$year;
+            if (! isset($this->fullYearResultCache[$key]) && ! isset($missingById[$vehicle->id])) {
+                $missing[] = $vehicle;
+                $missingById[$vehicle->id] = true;
+            }
+        }
+
+        if ($missing === []) {
+            return;
+        }
+
+        $segmentsByVehicleId = $this->vfcRepository->findEffectiveSegmentsForYearBatch(
+            array_keys($missingById),
+            $year,
+        );
+
+        foreach ($missing as $vehicle) {
+            $segments = $segmentsByVehicleId[$vehicle->id] ?? [];
+            if ($segments === []) {
+                // Cohérent avec `execute()` · si aucune VFC, la 1ère
+                // tentative de calcul throw. Le prewarm ne masque pas
+                // cette erreur en cachant `null` · on laisse l'appel
+                // ultérieur à `vehicleFullYearTax` lever l'exception
+                // au moment où le résultat sera demandé.
+                continue;
+            }
+
+            $context = $this->buildContext(
+                $vehicle,
+                [$this->fullYearSyntheticContract($year)],
+                [],
+                $year,
+            );
+            $this->fullYearResultCache[$vehicle->id.'|'.$year] = $this->pipeline->executeWithPreloadedVfcSegments(
+                $context,
+                $segments,
+            );
+        }
     }
 
     /**

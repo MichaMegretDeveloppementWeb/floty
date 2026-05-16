@@ -98,6 +98,7 @@ final readonly class DeclarationAggregatorFactory
             $executor,
             $this->yearContext,
             $this->fiscalRules,
+            $this->vfcRepository,
         );
     }
 }

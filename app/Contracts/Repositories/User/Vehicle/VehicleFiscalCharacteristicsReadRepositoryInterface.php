@@ -40,12 +40,45 @@ interface VehicleFiscalCharacteristicsReadRepositoryInterface
      * de décider quoi faire · typiquement throw
      * `FiscalCalculationException::missingFiscalCharacteristics`.
      *
-     * Si la relation `fiscalCharacteristics` du véhicule est
-     * pré-chargée, le filtrage se fait en mémoire (anti-N+1).
+     * Toujours une query SQL · cf. doc-block sur l'implémentation pour
+     * l'historique du raccourci `relationLoaded()` retiré (les
+     * eager-loads VFC du projet sont quasi tous restreints à
+     * `effective_to IS NULL`, donc le raccourci masquait silencieusement
+     * les VFC historiques sur les véhicules multi-VFC).
+     *
+     * Pour batcher la lecture sur N véhicules dans le même contexte
+     * (Index pages, prewarm aggregator), préférer
+     * {@see findEffectiveSegmentsForYearBatch} qui collapse N+1 queries
+     * en 1 seule.
      *
      * @return list<VfcEffectiveSegment>
      */
     public function findEffectiveSegmentsForYear(Vehicle $vehicle, int $year): array;
+
+    /**
+     * Variante batch de {@see findEffectiveSegmentsForYear} · charge en
+     * **une seule query SQL** les segments VFC effectifs sur l'année
+     * pour tous les `$vehicleIds` demandés, et retourne un map
+     * `vehicleId → list<VfcEffectiveSegment>` (chaque liste triée par
+     * `start ASC`).
+     *
+     * Cas d'usage · l'Index Contracts a N véhicules distincts dont
+     * il faut calculer la taxe pleine année · au lieu de N queries
+     * (1 par véhicule) on en fait 1.
+     *
+     * **Équivalence garantie** · pour tout `vehicleId` présent dans
+     * `$vehicleIds`, le résultat est strictement identique à
+     * `findEffectiveSegmentsForYear($vehicle, $year)`. Cette
+     * équivalence est couverte par
+     * `VehicleFiscalCharacteristicsReadRepositoryTest::batch_equivalent_a_appel_individuel`.
+     *
+     * Les véhicules sans aucune VFC sur l'année apparaissent dans le
+     * map avec une liste vide.
+     *
+     * @param  list<int>  $vehicleIds
+     * @return array<int, list<VfcEffectiveSegment>>
+     */
+    public function findEffectiveSegmentsForYearBatch(array $vehicleIds, int $year): array;
 
     /**
      * Dernière VFC d'un véhicule dont `effective_from` est strictement

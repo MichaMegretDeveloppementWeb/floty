@@ -66,16 +66,38 @@ final readonly class FiscalSegmentedExecutor
 
     public function execute(PipelineContext $context): PipelineResult
     {
-        $breakdowns = $this->executeWithSegments($context);
+        $vfcSegments = $this->fetchVfcSegments($context);
 
-        if (count($breakdowns) === 1) {
-            return $breakdowns[0]->result;
+        return $this->buildAndMergeResult($context, $vfcSegments);
+    }
+
+    /**
+     * Variante de {@see execute()} qui consomme une **liste de segments
+     * VFC pré-chargée par l'appelant** au lieu d'aller en BDD. Permet
+     * de collapser N+1 queries quand on calcule la taxe pleine année
+     * d'un batch de véhicules (cf.
+     * {@see App\Services\Fiscal\FleetFiscalAggregator::prewarmFullYearForVehicles()}).
+     *
+     * **Précondition stricte** · `$vfcSegments` doit être strictement
+     * identique à ce que `findEffectiveSegmentsForYear($context->vehicle,
+     * $context->fiscalYear)` retournerait (typiquement obtenu via
+     * {@see App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface::findEffectiveSegmentsForYearBatch()}).
+     *
+     * **Équivalence garantie** · sous cette précondition, le résultat
+     * est strictement identique à `execute($context)`. Cf. doctrine
+     * `optimisations-conditionnelles.md` stratégie 2 · le test
+     * `FiscalSegmentedExecutorTest::executeWithPreloadedVfcSegments_equivalent_a_execute`
+     * couvre cette équivalence.
+     *
+     * @param  list<VfcEffectiveSegment>  $vfcSegments
+     */
+    public function executeWithPreloadedVfcSegments(PipelineContext $context, array $vfcSegments): PipelineResult
+    {
+        if ($vfcSegments === []) {
+            throw FiscalCalculationException::missingFiscalCharacteristics($context->vehicle->id);
         }
 
-        return $this->mergeResults(array_map(
-            static fn (FiscalSegmentBreakdown $b): PipelineResult => $b->result,
-            $breakdowns,
-        ));
+        return $this->buildAndMergeResult($context, $vfcSegments);
     }
 
     /**
@@ -91,6 +113,16 @@ final readonly class FiscalSegmentedExecutor
      */
     public function executeWithSegments(PipelineContext $context): array
     {
+        $vfcSegments = $this->fetchVfcSegments($context);
+
+        return $this->buildBreakdowns($context, $vfcSegments);
+    }
+
+    /**
+     * @return non-empty-list<VfcEffectiveSegment>
+     */
+    private function fetchVfcSegments(PipelineContext $context): array
+    {
         $vfcSegments = $this->vfcRepository->findEffectiveSegmentsForYear(
             $context->vehicle,
             $context->fiscalYear,
@@ -100,6 +132,43 @@ final readonly class FiscalSegmentedExecutor
             throw FiscalCalculationException::missingFiscalCharacteristics($context->vehicle->id);
         }
 
+        return $vfcSegments;
+    }
+
+    /**
+     * Helper · exécute le pipeline sur chaque sous-segment cartésien
+     * VFC × Règles, fusionne en un seul `PipelineResult`. Cœur partagé
+     * entre {@see execute()} et {@see executeWithPreloadedVfcSegments()}
+     * pour garantir l'équivalence stricte des deux chemins (cf. doc
+     * `optimisations-conditionnelles.md`).
+     *
+     * @param  non-empty-list<VfcEffectiveSegment>  $vfcSegments
+     */
+    private function buildAndMergeResult(PipelineContext $context, array $vfcSegments): PipelineResult
+    {
+        $breakdowns = $this->buildBreakdowns($context, $vfcSegments);
+
+        if (count($breakdowns) === 1) {
+            return $breakdowns[0]->result;
+        }
+
+        return $this->mergeResults(array_map(
+            static fn (FiscalSegmentBreakdown $b): PipelineResult => $b->result,
+            $breakdowns,
+        ));
+    }
+
+    /**
+     * Construit les sous-segments cartésiens VFC × Règles et exécute
+     * le pipeline sur chacun. Extrait de l'ancien
+     * `executeWithSegments()` post-refactor (chantier perf 2026-05-16
+     * Option 3b).
+     *
+     * @param  non-empty-list<VfcEffectiveSegment>  $vfcSegments
+     * @return non-empty-list<FiscalSegmentBreakdown>
+     */
+    private function buildBreakdowns(PipelineContext $context, array $vfcSegments): array
+    {
         $ruleSegments = $this->ruleSegmenter->segmentsForYear($context->fiscalYear);
 
         if ($ruleSegments === []) {

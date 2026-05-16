@@ -12,6 +12,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -190,6 +191,117 @@ final class FleetFiscalAggregatorTest extends TestCase
         self::assertNotSame($a2024, $b2024);
         // Mais valeurs équivalentes (mêmes caractéristiques fiscales)
         self::assertSame($a2024->total, $b2024->total);
+    }
+
+    /**
+     * Chantier perf 2026-05-16 Option 3b · doctrine
+     * `optimisations-conditionnelles.md` stratégie 2 · le prewarm
+     * batch DOIT produire des taxes pleines année strictement
+     * identiques aux appels individuels. Sinon le prewarm masque
+     * silencieusement des écarts (ex. un VFC oublié dans le batch
+     * → taxe trop basse). Test sur 3 véhicules de profils variés.
+     */
+    #[Test]
+    public function prewarm_equivalent_aux_appels_individuels(): void
+    {
+        // Référence · 3 instances vierges, on calcule chaque taxe
+        // individuellement (chemin sans prewarm).
+        $aggregatorRef = $this->app->make(FleetFiscalAggregator::class);
+        $v1Ref = $this->makeVehicleWltp100Essence();
+        $v2Ref = $this->makeVehicleWltp100Essence();
+        $v3Ref = $this->makeVehicleWltp100Essence();
+
+        $t1Ref = $aggregatorRef->vehicleFullYearTax($v1Ref, self::YEAR);
+        $t2Ref = $aggregatorRef->vehicleFullYearTax($v2Ref, self::YEAR);
+        $t3Ref = $aggregatorRef->vehicleFullYearTax($v3Ref, self::YEAR);
+
+        // Cible · même fixtures mais avec prewarm avant les appels
+        // individuels (le prewarm doit remplir le cache de telle sorte
+        // que les 3 appels ne déclenchent plus de pipeline).
+        $aggregatorPrewarm = $this->app->make(FleetFiscalAggregator::class);
+        $v1 = Vehicle::query()->find($v1Ref->id)->fresh();
+        $v2 = Vehicle::query()->find($v2Ref->id)->fresh();
+        $v3 = Vehicle::query()->find($v3Ref->id)->fresh();
+
+        $aggregatorPrewarm->prewarmFullYearForVehicles([$v1, $v2, $v3], self::YEAR);
+
+        $t1 = $aggregatorPrewarm->vehicleFullYearTax($v1, self::YEAR);
+        $t2 = $aggregatorPrewarm->vehicleFullYearTax($v2, self::YEAR);
+        $t3 = $aggregatorPrewarm->vehicleFullYearTax($v3, self::YEAR);
+
+        self::assertSame($t1Ref, $t1, 'V1 · prewarm === individuel');
+        self::assertSame($t2Ref, $t2, 'V2 · prewarm === individuel');
+        self::assertSame($t3Ref, $t3, 'V3 · prewarm === individuel');
+    }
+
+    #[Test]
+    public function prewarm_collapse_les_queries_vfc(): void
+    {
+        $v1 = $this->makeVehicleWltp100Essence();
+        $v2 = $this->makeVehicleWltp100Essence();
+        $v3 = $this->makeVehicleWltp100Essence();
+
+        $aggregator = $this->app->make(FleetFiscalAggregator::class);
+
+        // Baseline · sans prewarm, 1 query VFC par véhicule au moment
+        // du vehicleFullYearTax (3 queries au total dans le pipeline).
+        // Avec prewarm, ces 3 queries doivent collapser en 1 seule.
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $aggregator->prewarmFullYearForVehicles([$v1, $v2, $v3], self::YEAR);
+
+        $prewarmQueries = DB::getQueryLog();
+        DB::flushQueryLog();
+
+        // Après prewarm, les appels suivants ne doivent JAMAIS retoucher
+        // la table vehicle_fiscal_characteristics (cache hit).
+        $aggregator->vehicleFullYearTax($v1, self::YEAR);
+        $aggregator->vehicleFullYearTax($v2, self::YEAR);
+        $aggregator->vehicleFullYearTax($v3, self::YEAR);
+
+        $afterPrewarmQueries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $vfcQueriesInPrewarm = array_filter(
+            $prewarmQueries,
+            static fn (array $q): bool => str_contains($q['query'], 'vehicle_fiscal_characteristics'),
+        );
+        $vfcQueriesAfter = array_filter(
+            $afterPrewarmQueries,
+            static fn (array $q): bool => str_contains($q['query'], 'vehicle_fiscal_characteristics'),
+        );
+
+        self::assertCount(1, $vfcQueriesInPrewarm, 'prewarm = 1 seule query VFC batch');
+        self::assertCount(0, $vfcQueriesAfter, 'après prewarm, plus aucune query VFC pour les véhicules cachés');
+    }
+
+    #[Test]
+    public function prewarm_idempotent_sur_vehicules_deja_caches(): void
+    {
+        $v1 = $this->makeVehicleWltp100Essence();
+        $aggregator = $this->app->make(FleetFiscalAggregator::class);
+
+        // 1er appel · pipeline complet
+        $first = $aggregator->vehicleFullYearTax($v1, self::YEAR);
+
+        // 2e prewarm sur le même véhicule · doit être no-op (idempotent).
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $aggregator->prewarmFullYearForVehicles([$v1], self::YEAR);
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $vfcQueries = array_filter(
+            $queries,
+            static fn (array $q): bool => str_contains($q['query'], 'vehicle_fiscal_characteristics'),
+        );
+
+        self::assertCount(0, $vfcQueries, 'prewarm idempotent · véhicule déjà caché, aucune query');
+        // Et la valeur reste cohérente.
+        self::assertSame($first, $aggregator->vehicleFullYearTax($v1, self::YEAR));
     }
 
     private function makeVehicleWltp100Essence(): Vehicle
