@@ -40,6 +40,22 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->find($id);
     }
 
+    public function findByIdsWithRelations(array $ids): Collection
+    {
+        if ($ids === []) {
+            return new Collection;
+        }
+
+        return Contract::query()
+            ->whereIn('id', $ids)
+            ->with([
+                'vehicle.fiscalCharacteristics',
+                'company',
+                'drivers',
+            ])
+            ->get();
+    }
+
     public function findByVehicleAndYear(int $vehicleId, int $year): Collection
     {
         $yearStart = sprintf('%04d-01-01', $year);

@@ -25,6 +25,22 @@ interface ContractReadRepositoryInterface
     public function findByIdWithRelations(int $id): ?Contract;
 
     /**
+     * Variante batch de {@see findByIdWithRelations} · charge en
+     * **1 query** les contrats (avec leurs relations vehicle,
+     * vehicle.fiscalCharacteristics, company, drivers) pour une liste
+     * d'IDs.
+     *
+     * Cas d'usage · `ContractQueryService::costsForContractIds`
+     * (Inertia::defer prop de l'Index Contracts) qui doit re-hydrater
+     * les contrats de la page avec leur VFC pour calculer les coûts
+     * en batch.
+     *
+     * @param  list<int>  $ids
+     * @return Collection<int, Contract>
+     */
+    public function findByIdsWithRelations(array $ids): Collection;
+
+    /**
      * Liste des contrats actifs d'un véhicule sur l'année - utilisée
      * par le moteur fiscal pour expansion en jours (cf. R-2024-002).
      *

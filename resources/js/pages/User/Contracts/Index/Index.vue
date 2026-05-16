@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { CalendarDays } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
@@ -17,8 +17,21 @@ import ContractsTable from './partials/ContractsTable.vue';
 import EmptyContractsState from './partials/EmptyContractsState.vue';
 import PageHeader from './partials/PageHeader.vue';
 
+/**
+ * Coûts d'un contrat servis en différé (chantier perf 2026-05-16 Option 1).
+ * Le DTO `ContractListItemData` est servi avec `totalTax = null` et
+ * `rentalPrice = null` au premier render · cette map remplit les 2
+ * cellules après un partial reload Inertia. Skeleton entre-temps.
+ */
+type ContractCosts = Record<number, { totalTax: number; rentalPrice: number | null }>;
+
 const props = defineProps<{
     contracts: App.Data.User.Contract.PaginatedContractListData;
+    /**
+     * Inertia::defer · `undefined` au premier render, rempli après la
+     * 2e requête asynchrone déclenchée automatiquement par Inertia.
+     */
+    contractsCosts?: ContractCosts;
     /**
      * Options SLIM pour les filtres et chips (S2.4). `vehicles` utilise
      * `VehicleFilterOptionData` (sans `fullYearTaxByYear` · zéro pipeline
@@ -53,6 +66,24 @@ const tableState = useContractsTable({
     companyOptions: props.options.companies,
     driverOptions: props.options.drivers,
 });
+
+// Re-fetch des `contractsCosts` à chaque changement de page de la table
+// (filtre, tri, année, pagination). Le `router.get` interne de
+// `useServerTableState` ne demande que `['contracts', 'query']` · sans
+// ce watcher, les cellules `totalTax` / `rentalPrice` resteraient en
+// skeleton infini après le premier filtrage. `Inertia::defer` auto-trigger
+// uniquement sur le 1er visit · les visits suivants doivent demander
+// explicitement la prop deferred via un reload `only:`.
+//
+// Vue 3 `watch` sans `immediate: true` ne fire pas au mount · on n'a
+// donc pas besoin de skip-le-mount-initial. Le 1er fire correspond bien
+// au 1er changement de filtre/tri/page.
+watch(
+    () => props.contracts.data.map((c) => c.id).join(','),
+    () => {
+        router.reload({ only: ['contractsCosts'] });
+    },
+);
 
 const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
 const {
@@ -295,6 +326,7 @@ const typeModel = computed<string | number>({
 
                 <ContractsTable
                     :contracts="contracts.data"
+                    :costs="contractsCosts"
                     :columns="tableState.columns"
                     :active-sort-column-key="tableState.activeSortColumnKey.value"
                     :sort-direction="tableState.state.sort.value.direction"

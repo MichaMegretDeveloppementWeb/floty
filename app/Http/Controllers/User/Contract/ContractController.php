@@ -64,8 +64,24 @@ final class ContractController extends Controller
         // VehicleController (doctrine temporelle chantier η Phase 3).
         $this->applyDefaultYearIfMissing($query);
 
+        // Option 1 (plan perf 2026-05-16) · liste SLIM en payload initial
+        // (sans `totalTax` ni `rentalPrice` qui demandent le pipeline
+        // fiscal) · les coûts arrivent dans une 2e requête `Inertia::defer`
+        // après le mount, le frontend rend un skeleton sur 2 cellules
+        // entre-temps. Gain mesuré · ~210 ms cold sur 25 contrats /
+        // 21 véhicules distincts.
+        $contracts = $this->contracts->listPaginatedSlim($query);
+        $contractIds = array_map(static fn ($c): int => $c->id, $contracts->data);
+
         return Inertia::render('User/Contracts/Index/Index', [
-            'contracts' => $this->contracts->listPaginated($query),
+            'contracts' => $contracts,
+            // Inertia::defer · cette closure ne s'exécute qu'à la 2e
+            // requête déclenchée automatiquement par Inertia après le
+            // mount. Le pipeline fiscal + le batch rental tournent ici,
+            // hors du chemin critique 1ère peinture.
+            'contractsCosts' => Inertia::defer(
+                fn () => $this->contracts->costsForContractIds($contractIds),
+            ),
             // S2.4 (plan optim perf 2026-05-16) · options SLIM pour les
             // sélecteurs UI (filter dropdown + filter chips) · zéro
             // pipeline fiscal. Les calculs fiscaux ad-hoc (taxe pleine
