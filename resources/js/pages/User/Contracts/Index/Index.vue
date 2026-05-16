@@ -19,8 +19,14 @@ import PageHeader from './partials/PageHeader.vue';
 
 const props = defineProps<{
     contracts: App.Data.User.Contract.PaginatedContractListData;
+    /**
+     * Options SLIM pour les filtres et chips (S2.4). `vehicles` utilise
+     * `VehicleFilterOptionData` (sans `fullYearTaxByYear` · zéro pipeline
+     * fiscal). Distinct des options Create/Edit qui utilisent
+     * `VehicleOptionData` avec taxes pré-calculées.
+     */
     options: {
-        vehicles: App.Data.User.Vehicle.VehicleOptionData[];
+        vehicles: App.Data.User.Vehicle.VehicleFilterOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
         drivers: App.Data.User.Driver.DriverOptionData[];
     };

@@ -16,6 +16,7 @@ use App\Data\User\Contract\ContractIndexQueryData;
 use App\Data\User\Contract\StoreContractData;
 use App\Data\User\Contract\UpdateContractData;
 use App\Data\User\Driver\DriverOptionData;
+use App\Data\User\Vehicle\VehicleFilterOptionData;
 use App\Data\User\Vehicle\VehicleOptionData;
 use App\Http\Controllers\Controller;
 use App\Models\Contract;
@@ -66,7 +67,12 @@ final class ContractController extends Controller
 
         return Inertia::render('User/Contracts/Index/Index', [
             'contracts' => $this->contracts->listPaginated($query),
-            'options' => $this->buildFormOptions(),
+            // S2.4 (plan optim perf 2026-05-16) · options SLIM pour la
+            // page Index · zéro pipeline fiscal. Les filtres et les
+            // chips n'ont besoin que d'identité + label. Le formulaire
+            // Create/Edit a sa propre option lourde avec taxes
+            // pré-calculées (cf. `buildFormOptions`).
+            'options' => $this->buildFilterOptions(),
             'query' => $query,
             // Cf. note d'archi sur le bug placeholder : `hasAnyContract`
             // distingue « table intrinsèquement vide » du « filtre actif
@@ -74,6 +80,26 @@ final class ContractController extends Controller
             'hasAnyContract' => $this->contractRead->existsAny(),
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
         ]);
+    }
+
+    /**
+     * Options pour les `<SearchableSelect>` du **filtre Index**.
+     * Variante slim · zéro calcul fiscal, 3 queries SQL light. Voir
+     * {@see buildFormOptions} pour la variante lourde du form Create/Edit.
+     *
+     * @return array{
+     *     vehicles: DataCollection<int, VehicleFilterOptionData>,
+     *     companies: DataCollection<int, CompanyOptionData>,
+     *     drivers: array<int, DriverOptionData>,
+     * }
+     */
+    private function buildFilterOptions(): array
+    {
+        return [
+            'vehicles' => $this->vehicles->listForFilterDropdown(),
+            'companies' => $this->companies->listForOptions(),
+            'drivers' => $this->drivers->listForOptions(),
+        ];
     }
 
     /**

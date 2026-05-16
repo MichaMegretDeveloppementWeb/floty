@@ -63,7 +63,12 @@ export type ContractFilterChip = {
 
 export function useContractsTable(opts: {
     query: App.Data.User.Contract.ContractIndexQueryData;
-    vehicleOptions: readonly App.Data.User.Vehicle.VehicleOptionData[];
+    /**
+     * Options SLIM pour les chips de filtre actif (S2.4) · zéro
+     * dépendance au calcul fiscal. Les chips n'utilisent que `label`
+     * (cf. lignes 144-164 ci-dessous).
+     */
+    vehicleOptions: readonly App.Data.User.Vehicle.VehicleFilterOptionData[];
     companyOptions: readonly App.Data.User.Company.CompanyOptionData[];
     driverOptions: readonly App.Data.User.Driver.DriverOptionData[];
 }): {

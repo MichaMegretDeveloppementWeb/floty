@@ -7,6 +7,7 @@ namespace App\Services\Vehicle;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\Vehicle\PaginatedVehicleListData;
+use App\Data\User\Vehicle\VehicleFilterOptionData;
 use App\Data\User\Vehicle\VehicleIndexQueryData;
 use App\Data\User\Vehicle\VehicleListItemData;
 use App\Data\User\Vehicle\VehicleOptionData;
@@ -115,6 +116,51 @@ final class VehicleListingService
      *
      * Le frontend distingue actifs/retirés via `isExited` (groupement
      * dans le picker, suffixe label « (retiré le DD/MM/YYYY) »).
+     *
+     * @return DataCollection<int, VehicleOptionData>
+     */
+    /**
+     * Liste **slim** pour les SearchableSelect de filtre (dropdown
+     * Index Contracts, chips de filtre actif). Aucun calcul fiscal,
+     * 1 query SQL sur les colonnes minimales (cf. `findAllForOptions`
+     * du repo · 6 colonnes seulement).
+     *
+     * **Doctrine** · méthodes dédiées par usage. La page Index n'a
+     * besoin que d'identité + label pour filtrer et afficher les
+     * chips de filtre actif. Réutiliser `listForOptions()` ici
+     * paierait 192 pipeline runs (64 véhicules × 3 années) pour un
+     * `fullYearTaxByYear` jamais consommé · audit perf 2026-05-16
+     * cause C-3.
+     *
+     * Inclut les véhicules sortis (cf. ADR-0018 § 4 · permettre la
+     * consultation et l'édition rétroactive des contrats antérieurs).
+     *
+     * @return DataCollection<int, VehicleFilterOptionData>
+     */
+    public function listForFilterDropdown(): DataCollection
+    {
+        $rows = $this->vehicles->findAllForOptions()
+            ->map(static fn (Vehicle $v): VehicleFilterOptionData => new VehicleFilterOptionData(
+                id: $v->id,
+                licensePlate: $v->license_plate,
+                label: sprintf('%s - %s %s', $v->license_plate, $v->brand, $v->model),
+                isExited: $v->is_exited,
+                exitDate: $v->exit_date?->format('Y-m-d'),
+            ))
+            ->values()
+            ->all();
+
+        return VehicleFilterOptionData::collect($rows, DataCollection::class);
+    }
+
+    /**
+     * Liste **lourde** (avec `fullYearTaxByYear` pré-calculé par
+     * année du scope) pour les formulaires Create/Edit de contrat ·
+     * permet d'afficher une indication de taxe pleine quand
+     * l'utilisateur sélectionne un véhicule.
+     *
+     * À NE PAS utiliser pour les filtres Index · préférer
+     * {@see listForFilterDropdown} qui évite les 192 pipeline runs.
      *
      * @return DataCollection<int, VehicleOptionData>
      */
