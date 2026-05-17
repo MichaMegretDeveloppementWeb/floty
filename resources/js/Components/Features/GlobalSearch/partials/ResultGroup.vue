@@ -7,9 +7,14 @@ defineProps<{
 <template>
     <section class="flex flex-col gap-0.5">
         <header
-            class="px-3 pt-2 pb-1 text-xs leading-tight font-semibold tracking-wide text-slate-500 uppercase"
+            class="flex items-center justify-between gap-2 px-3 pt-2 pb-1"
         >
-            {{ title }}
+            <span
+                class="text-xs leading-tight font-semibold tracking-wide text-slate-500 uppercase"
+            >
+                {{ title }}
+            </span>
+            <slot name="action" />
         </header>
         <slot />
     </section>

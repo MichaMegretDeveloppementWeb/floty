@@ -5,7 +5,6 @@ import {
     Building2,
     Car,
     FileText,
-    History,
     Receipt,
     Search,
     User,
@@ -376,11 +375,20 @@ watch(flatItems, () => {
                                 Véhicules, entreprises, conducteurs, déclarations
                             </p>
                         </div>
-                        <ResultGroup v-else title="Récents">
+                        <ResultGroup v-else title="Récemment consultés">
+                            <template #action>
+                                <button
+                                    type="button"
+                                    class="rounded text-xs leading-tight text-slate-400 transition-colors duration-[120ms] ease-out hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-100"
+                                    @click="palette.clearRecents()"
+                                >
+                                    Effacer
+                                </button>
+                            </template>
                             <ResultItem
                                 v-for="(item, index) in flatItems"
                                 :key="`recent-${item.href}`"
-                                :icon="History"
+                                :icon="item.icon"
                                 :label="item.label"
                                 :sublabel="item.sublabel"
                                 :active="index === activeIndex"
