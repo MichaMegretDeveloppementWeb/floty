@@ -15,12 +15,15 @@ use App\Data\User\Contract\ContractDocumentData;
 use App\Data\User\Contract\ContractIndexQueryData;
 use App\Data\User\Contract\ContractListItemData;
 use App\Data\User\Contract\ContractTaxBreakdownData;
+use App\Data\User\Contract\ContractTaxYearBreakdownData;
 use App\Data\User\Contract\PaginatedContractListData;
 use App\DTO\Fiscal\ContractsByPair;
+use App\Enums\Contract\ContractType;
 use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Billing\RentalPriceCalculator;
+use App\Services\Fiscal\Declaration\DeclarationAggregatorFactory;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
@@ -45,6 +48,7 @@ final readonly class ContractQueryService
         private FleetFiscalAggregator $aggregator,
         private BillingBreakdownService $billingBreakdown,
         private RentalPriceCalculator $rentalPrice,
+        private DeclarationAggregatorFactory $aggregatorFactory,
     ) {}
 
     /**
@@ -95,6 +99,17 @@ final readonly class ContractQueryService
      * `findByIdWithRelations`) et les indispos du véhicule, puis
      * délègue à {@see FleetFiscalAggregator::contractTaxBreakdown}.
      *
+     * **Enrichissement hypothétique LCD** · pour les contrats de type
+     * LCD, lance une 2e passe pipeline avec opt-out R-YYYY-021 sur le
+     * contrat courant (mécanisme cluster requalification, cf.
+     * {@see DeclarationAggregatorFactory}) pour calculer ce que le
+     * contrat coûterait s'il était requalifié en LLD · vrai pipeline
+     * (multi-VFC, multi-règle) au lieu d'une approximation linéaire.
+     * Les valeurs sont injectées dans les `hypothetical*` du DTO Year.
+     *
+     * Coût payé UNIQUEMENT pour les LCD ET sur la page Show · l'Index
+     * n'invoque pas cette méthode (cf. `costsForContractIds`).
+     *
      * Retourne `null` si le contrat est introuvable (cohérent avec
      * `findContractData`).
      */
@@ -110,7 +125,81 @@ final readonly class ContractQueryService
             ->findForVehicle($contract->vehicle_id)
             ->all();
 
-        return $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
+        $nominal = $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
+
+        // Pas un LCD · pas d'opt-out LCD pertinent, on retourne tel quel.
+        if ($contract->contract_type !== ContractType::Lcd) {
+            return $nominal;
+        }
+
+        return $this->enrichWithLcdHypothetical($contract, $unavailabilities, $nominal);
+    }
+
+    /**
+     * Pour un contrat LCD · reconstruit le breakdown nominal en
+     * peuplant les 3 champs `hypothetical*` de chaque année. Vrai
+     * calcul via aggregator opt-out (un par année traversée · les
+     * decorators sont year-scoped).
+     *
+     * Toujours peuplé pour les LCD, même si égal au nominal (cas du
+     * véhicule hors champ fiscal qui reste à 0 € même requalifié). UI
+     * affiche alors "0 € si requalifié en LLD" · l'utilisateur voit
+     * clairement que le contrat resterait à 0 €, pas de mystère.
+     *
+     * @param  list<Unavailability>  $unavailabilities
+     */
+    private function enrichWithLcdHypothetical(
+        Contract $contract,
+        array $unavailabilities,
+        ContractTaxBreakdownData $nominal,
+    ): ContractTaxBreakdownData {
+        $enrichedYears = [];
+
+        foreach ($nominal->years as $year) {
+            $optOutAggregator = $this->aggregatorFactory->buildFor($year->year, [$contract->id]);
+            $optOutBreakdown = $optOutAggregator->contractTaxBreakdown($contract, $unavailabilities);
+
+            $optOutYear = null;
+            foreach ($optOutBreakdown->years as $oy) {
+                if ($oy->year === $year->year) {
+                    $optOutYear = $oy;
+                    break;
+                }
+            }
+
+            // Année hors registry · pas d'hypothétique calculable.
+            if ($optOutYear === null) {
+                $enrichedYears[] = $year;
+
+                continue;
+            }
+
+            $enrichedYears[] = new ContractTaxYearBreakdownData(
+                year: $year->year,
+                daysInContractInYear: $year->daysInContractInYear,
+                daysAssigned: $year->daysAssigned,
+                daysInYear: $year->daysInYear,
+                co2Method: $year->co2Method,
+                pollutantCategory: $year->pollutantCategory,
+                co2FullYearTariff: $year->co2FullYearTariff,
+                pollutantsFullYearTariff: $year->pollutantsFullYearTariff,
+                co2Due: $year->co2Due,
+                pollutantsDue: $year->pollutantsDue,
+                totalDue: $year->totalDue,
+                appliedExemptions: $year->appliedExemptions,
+                appliedRuleCodes: $year->appliedRuleCodes,
+                appliedRules: $year->appliedRules,
+                segments: $year->segments,
+                hypotheticalCo2DueIfNoLcd: $optOutYear->co2Due,
+                hypotheticalPollutantsDueIfNoLcd: $optOutYear->pollutantsDue,
+                hypotheticalTotalDueIfNoLcd: $optOutYear->totalDue,
+            );
+        }
+
+        return new ContractTaxBreakdownData(
+            years: $enrichedYears,
+            totalDue: $nominal->totalDue,
+        );
     }
 
     /**
@@ -133,8 +222,25 @@ final readonly class ContractQueryService
         // (`forContract` × 25 items × M mois lookups pricings).
         $rentalByContractId = $this->rentalPrice->forContracts($contracts);
 
+        // Batch indispos par véhicule distinct · 1 query SQL au lieu
+        // de N (alimente le vrai pipeline fiscal dans enrichContractDto).
+        $vehicleIds = array_values(array_unique(array_map(
+            static fn (Contract $c): int => $c->vehicle_id,
+            $contracts,
+        )));
+        $unavailabilitiesByVehicleId = $this->unavailabilityRepository
+            ->findForVehicleIds($vehicleIds);
+
+        // Prewarm VFC segments pour toutes les années traversées · évite
+        // le N+1 query VFC dans la boucle contractTaxBreakdown.
+        $this->prewarmVfcSegmentsForContracts($contracts);
+
         $items = array_map(
-            fn (Contract $c): ContractListItemData => $this->enrichContractDto($c, $rentalByContractId[$c->id] ?? null),
+            fn (Contract $c): ContractListItemData => $this->enrichContractDto(
+                $c,
+                $rentalByContractId[$c->id] ?? null,
+                $unavailabilitiesByVehicleId[$c->vehicle_id] ?? [],
+            ),
             $contracts,
         );
 
@@ -181,12 +287,18 @@ final readonly class ContractQueryService
      * `Inertia::defer` côté `ContractController::index` pour remplir
      * les 2 colonnes de coûts après le render initial de l'Index.
      *
+     * **Calcul fiscal** · délègue à {@see FleetFiscalAggregator::contractTaxBreakdown()}
+     * - vrai pipeline par contrat, prend en compte les exonérations
+     * (R-2024-021 LCD = 0 €), les chevauchements multi-VFC, les
+     * changements de barème intra-année · strictement équivalent à
+     * la valeur affichée sur la page Show contrat. **Ne pas utiliser
+     * d'approximation `fullYearTax × jours/365`** · faux dès qu'il y
+     * a une exonération ou une scission.
+     *
      * Performance ·
      *   - Recharge les contrats avec relations en 1 query.
-     *   - Prewarm le cache `vehicleFullYearTax` pour les
-     *     `(vehicleId, startYear)` distincts · 1 query VFC batch par
-     *     année concernée au lieu de N par véhicule.
-     *   - Batch les rental prices via `rentalPrice->forContracts()`.
+     *   - Batch indispos par véhicule distinct en 1 query.
+     *   - Batch rental prices via `rentalPrice->forContracts()`.
      *
      * @param  list<int>  $contractIds
      * @return array<int, array{totalTax: float, rentalPrice: float|null}>
@@ -201,34 +313,37 @@ final readonly class ContractQueryService
             ->findByIdsWithRelations($contractIds)
             ->all();
 
-        // Prewarm aggregator · regroupe par année, batch VFC par année.
-        $byYear = [];
-        foreach ($contracts as $contract) {
-            $year = (int) $contract->start_date->year;
-            $byYear[$year][] = $contract->vehicle;
-        }
-        foreach ($byYear as $year => $vehicles) {
-            $this->aggregator->prewarmFullYearForVehicles($vehicles, $year);
-        }
+        // Batch indispos · 1 query SQL pour tous les véhicules distincts.
+        $vehicleIds = array_values(array_unique(array_map(
+            static fn (Contract $c): int => $c->vehicle_id,
+            $contracts,
+        )));
+        $unavailabilitiesByVehicleId = $this->unavailabilityRepository
+            ->findForVehicleIds($vehicleIds);
 
         // Batch rental prices · 1 query SQL pour tous les pricings.
         $rentalByContractId = $this->rentalPrice->forContracts($contracts);
 
+        // Prewarm VFC segments pour toutes les années traversées · évite
+        // le N+1 query VFC dans la boucle contractTaxBreakdown.
+        $this->prewarmVfcSegmentsForContracts($contracts);
+
         $result = [];
         foreach ($contracts as $contract) {
-            $year = (int) $contract->start_date->year;
-            $durationDays = (int) $contract->start_date->diffInDays($contract->end_date) + 1;
-
-            $fullYearTax = 0.0;
+            $totalTax = 0.0;
             try {
-                // Hit le cache prewarmé · pas de query VFC, pas de
-                // pipeline run supplémentaire.
-                $fullYearTax = $this->aggregator->vehicleFullYearTax($contract->vehicle, $year);
+                // Vrai pipeline fiscal par contrat (multi-VFC, multi-règle,
+                // exonération LCD R-2024-021, etc.) · strictement
+                // équivalent au calcul de la page Show contrat.
+                $breakdown = $this->aggregator->contractTaxBreakdown(
+                    $contract,
+                    $unavailabilitiesByVehicleId[$contract->vehicle_id] ?? [],
+                );
+                $totalTax = $breakdown->totalDue;
             } catch (\Throwable) {
                 // Année hors registry fiscal · totalTax = 0.
             }
 
-            $totalTax = round($fullYearTax * ($durationDays / 365), 2, PHP_ROUND_HALF_UP);
             $rentalCents = $rentalByContractId[$contract->id] ?? null;
 
             $result[$contract->id] = [
@@ -242,30 +357,40 @@ final readonly class ContractQueryService
 
     /**
      * Phase 13 D5.10.L · enrichit le DTO de base avec `totalTax` et
-     * `rentalPrice` calculés en direct. Le totalTax utilise
-     * l'approximation `vehicleDailyTaxRate × durationDays` cohérente
-     * avec le rendu Index Véhicules, suffisante pour une vue
-     * d'ensemble (la valeur exacte par contrat reste accessible via la
-     * déclaration générée).
+     * `rentalPrice` calculés en direct. **Le totalTax utilise le vrai
+     * pipeline fiscal** ({@see FleetFiscalAggregator::contractTaxBreakdown()})
+     * pour rester strictement équivalent à la valeur affichée sur la
+     * page Show contrat (prise en compte des exonérations LCD, des
+     * chevauchements multi-VFC, etc.).
      *
      * `$preComputedRentalCents` : utilisé par les Index paginés qui ont
      * batché les loyers en amont · si `null`, fallback au lookup
      * individuel (utilisé sur fiche Contract isolée).
+     *
+     * `$preComputedVehicleUnavailabilities` : utilisé par les Index
+     * paginés qui ont batché les indispos en amont (1 query unique pour
+     * tous les véhicules distincts) · si `null`, fallback au lookup
+     * individuel par véhicule.
+     *
+     * @param  list<Unavailability>|null  $preComputedVehicleUnavailabilities
      */
-    private function enrichContractDto(Contract $contract, ?int $preComputedRentalCents = null): ContractListItemData
-    {
+    private function enrichContractDto(
+        Contract $contract,
+        ?int $preComputedRentalCents = null,
+        ?array $preComputedVehicleUnavailabilities = null,
+    ): ContractListItemData {
         $base = ContractListItemData::fromModel($contract);
 
-        $year = $contract->start_date->year;
+        $unavailabilities = $preComputedVehicleUnavailabilities
+            ?? $this->unavailabilityRepository->findForVehicle($contract->vehicle_id)->all();
 
-        $fullYearTax = 0.0;
+        $totalTax = 0.0;
         try {
-            $fullYearTax = $this->aggregator->vehicleFullYearTax($contract->vehicle, $year);
+            $breakdown = $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
+            $totalTax = $breakdown->totalDue;
         } catch (\Throwable) {
             // Année hors registry fiscal · totalTax laissé à 0.
         }
-
-        $totalTax = round($fullYearTax * ($base->durationDays / 365), 2, PHP_ROUND_HALF_UP);
 
         $rentalCents = $preComputedRentalCents ?? $this->rentalPrice->forContract($contract->id);
         $rentalPrice = $rentalCents === null ? null : $rentalCents / 100;
@@ -374,7 +499,21 @@ final readonly class ContractQueryService
     public function listForCompany(int $companyId): DataCollection
     {
         $contracts = $this->repository->listForCompany($companyId);
-        $rentalByContractId = $this->rentalPrice->forContracts($contracts->all());
+        $contractsAll = $contracts->all();
+        $rentalByContractId = $this->rentalPrice->forContracts($contractsAll);
+
+        // Batch indispos par véhicule distinct · 1 query SQL au lieu
+        // de N (alimente le vrai pipeline fiscal dans enrichContractDto).
+        $vehicleIds = array_values(array_unique(array_map(
+            static fn (Contract $c): int => $c->vehicle_id,
+            $contractsAll,
+        )));
+        $unavailabilitiesByVehicleId = $this->unavailabilityRepository
+            ->findForVehicleIds($vehicleIds);
+
+        // Prewarm VFC segments pour toutes les années traversées · évite
+        // le N+1 query VFC dans la boucle contractTaxBreakdown.
+        $this->prewarmVfcSegmentsForContracts($contractsAll);
 
         /** @var DataCollection<int, ContractListItemData> */
         return ContractListItemData::collect(
@@ -382,6 +521,7 @@ final readonly class ContractQueryService
                 fn (Contract $c): ContractListItemData => $this->enrichContractDto(
                     $c,
                     $rentalByContractId[$c->id] ?? null,
+                    $unavailabilitiesByVehicleId[$c->vehicle_id] ?? [],
                 ),
             ),
             DataCollection::class,
@@ -724,6 +864,40 @@ final readonly class ContractQueryService
     public function expandToDays(Contract $contract, int $year): array
     {
         return $contract->expandToDaysInYear($year);
+    }
+
+    /**
+     * Prewarm `$vfcSegmentsCache` de l'aggregator pour tous les couples
+     * `(vehicleId, year)` traversés par le batch de contrats. Une seule
+     * query SQL `findEffectiveSegmentsForYearBatch` par année alimente
+     * le cache · les `contractTaxBreakdown()` suivants consomment le
+     * cache au lieu de re-fetcher les VFC un contrat à la fois.
+     *
+     * Gain · sur 25 contrats / 21 véhicules distincts sur 1 année,
+     * passe de ~25 queries VFC à 1 (1 batch par année traversée).
+     *
+     * Multi-année · un contrat 2024→2025 prewarm les 2 années · la
+     * méthode regroupe sans doublon avant d'appeler le prewarm.
+     *
+     * @param  list<Contract>  $contracts
+     */
+    private function prewarmVfcSegmentsForContracts(array $contracts): void
+    {
+        $vehiclesByYear = [];
+        foreach ($contracts as $contract) {
+            $startYear = (int) $contract->start_date->year;
+            $endYear = (int) $contract->end_date->year;
+            for ($year = $startYear; $year <= $endYear; $year++) {
+                $vehiclesByYear[$year][$contract->vehicle_id] = $contract->vehicle;
+            }
+        }
+
+        foreach ($vehiclesByYear as $year => $vehiclesById) {
+            $this->aggregator->prewarmVfcSegmentsForVehicles(
+                array_values($vehiclesById),
+                $year,
+            );
+        }
     }
 
     /**

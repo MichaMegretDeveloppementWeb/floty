@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
@@ -16,7 +17,10 @@ import {
 
 const props = defineProps<{
     taxBreakdown: App.Data.User.Contract.ContractTaxBreakdownData | null;
+    contract: App.Data.User.Contract.ContractData;
 }>();
+
+const isLcd = computed(() => props.contract.contractType === 'lcd');
 
 const {
     years,
@@ -69,7 +73,25 @@ const {
 
                 <!-- Cas LCD pur ou autre exonération totale : 0 € -->
                 <div v-if="year.daysAssigned === 0" class="flex flex-col gap-3">
-                    <p class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+                    <!-- LCD · message dédié (l'exonération R-YYYY-021
+                         s'applique quel que soit l'état d'exonération
+                         du véhicule). Pour les autres exonérations
+                         totales, message générique en `v-else`. -->
+                    <p
+                        v-if="isLcd"
+                        class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+                    >
+                        Location courte durée exonérée pour {{ year.year }} : 0 €.
+                        <span class="block text-xs text-emerald-700/80 mt-0.5">
+                            Les contrats de location courte durée (LCD, jusqu'à
+                            30 jours consécutifs) sont exonérés de la CIBS au
+                            titre de l'article R-{{ year.year }}-021.
+                        </span>
+                    </p>
+                    <p
+                        v-else
+                        class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
+                    >
                         Location exonérée pour {{ year.year }} : 0 €.
                         <span class="block text-xs text-emerald-700/80 mt-0.5">
                             Aucun jour retenu au numérateur du prorata après application
@@ -77,12 +99,14 @@ const {
                         </span>
                     </p>
 
-                    <!-- D5.10.T · montant hypothétique « si pas LCD ».
-                         Affiché uniquement quand R-2024-021 a été
-                         effectivement appliquée (les autres exonérations
-                         totales ne génèrent pas cet indicateur). -->
+                    <!-- Montant hypothétique « si requalifié en LLD » ·
+                         affiché systématiquement pour les LCD (peuplé par
+                         `ContractQueryService::enrichWithLcdHypothetical`).
+                         Pour un véhicule hors champ fiscal (ex. camionnette
+                         N1 R-2024-004), la valeur est 0 € · cohérent et
+                         non-trompeur. -->
                     <section
-                        v-if="year.hypotheticalTotalDueIfNoLcd !== null"
+                        v-if="isLcd && year.hypotheticalTotalDueIfNoLcd !== null"
                         class="rounded-md border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2.5"
                     >
                         <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">

@@ -29,7 +29,17 @@
         place comme chantier dédié si introduction de CI pull-request.
     -->
     <php>
-        <env name="APP_ENV" value="testing"/>
+        <!--
+            CRITIQUE · `force="true"` obligatoire sur les variables qui
+            doivent override .env (sinon Laravel charge `.env` AVANT que
+            phpunit applique l'override · si la variable est déjà set,
+            l'override est ignoré · les tests tapent alors sur la DB dev).
+            Précédent incident · 2026-05-17, RefreshDatabase a flushé la
+            base `floty` (dev) au lieu de `floty_testing` (testing) parce
+            que DB_DATABASE n'avait pas le `force`. Garde-fou ironclad ·
+            tout `<env>` qui contredit `.env` DOIT avoir `force="true"`.
+        -->
+        <env name="APP_ENV" value="testing" force="true"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="BROADCAST_CONNECTION" value="null"/>
@@ -37,9 +47,9 @@
              tests est MySQL (mêmes features qu'en prod : CHECK, triggers,
              colonnes générées, JSON, FK RESTRICT…). -->
         <env name="CACHE_STORE" value="array"/>
-        <env name="DB_CONNECTION" value="mysql"/>
-        <env name="DB_DATABASE" value="floty_testing"/>
-        <env name="DB_URL" value=""/>
+        <env name="DB_CONNECTION" value="mysql" force="true"/>
+        <env name="DB_DATABASE" value="floty_testing" force="true"/>
+        <env name="DB_URL" value="" force="true"/>
         <env name="MAIL_MAILER" value="array"/>
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>

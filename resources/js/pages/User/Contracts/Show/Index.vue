@@ -54,7 +54,10 @@ onMounted(async () => {
                         :contract-id="props.contract.id"
                     />
                     <ContractDetails :contract="props.contract" />
-                    <TaxBreakdownPanel :tax-breakdown="props.taxBreakdown" />
+                    <TaxBreakdownPanel
+                        :tax-breakdown="props.taxBreakdown"
+                        :contract="props.contract"
+                    />
                     <BillingBreakdownPanel :breakdown="props.billingBreakdown" />
                     <!-- < xl : Documents en bas du main. ≥ xl : c'est l'aside qui les porte. -->
                     <ContractDocumentsSection

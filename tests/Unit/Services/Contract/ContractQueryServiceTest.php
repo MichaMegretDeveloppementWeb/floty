@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Contract;
 
+use App\Enums\Contract\ContractType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
+use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Contract\ContractQueryService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -187,5 +190,173 @@ final class ContractQueryServiceTest extends TestCase
             self::assertArrayHasKey($year, $byYear);
             self::assertSame([], $byYear[$year]->byPair);
         }
+    }
+
+    #[Test]
+    public function costs_for_contract_ids_equivalent_a_find_contract_tax_breakdown_lld_mono_vfc(): void
+    {
+        // Garantie · le totalTax servi à l'Index Contracts doit être
+        // strictement équivalent au totalDue calculé par le pipeline
+        // segmenté affiché sur la page Show. Pas d'approximation
+        // linéaire jours/365 qui ignorerait les exonérations ou les
+        // scissions VFC.
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        $contract = Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany($company)
+            ->create([
+                'start_date' => '2024-03-01',
+                'end_date' => '2024-05-31',
+            ]);
+
+        $costs = $this->service->costsForContractIds([$contract->id]);
+        $breakdown = $this->service->findContractTaxBreakdown($contract->id);
+
+        self::assertNotNull($breakdown);
+        self::assertGreaterThan(0.0, $breakdown->totalDue);
+        self::assertSame($breakdown->totalDue, $costs[$contract->id]['totalTax']);
+    }
+
+    #[Test]
+    public function costs_for_contract_ids_retourne_zero_pour_un_contrat_lcd_exonere(): void
+    {
+        // R-2024-021 · location LCD ≤ 30 j entièrement exonérée
+        // (daysAssigned = 0 → totalDue = 0). Test critique · l'Index
+        // doit afficher 0 € pour les LCD, pas l'approximation
+        // `fullYearTax × 15/365` non-nulle qui était servie avant le fix.
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        $contract = Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany($company)
+            ->create([
+                'start_date' => '2024-04-01',
+                'end_date' => '2024-04-15', // 15 j → LCD exonéré
+            ]);
+
+        $costs = $this->service->costsForContractIds([$contract->id]);
+        $breakdown = $this->service->findContractTaxBreakdown($contract->id);
+
+        self::assertNotNull($breakdown);
+        self::assertSame(0.0, $breakdown->totalDue);
+        self::assertSame(0.0, $costs[$contract->id]['totalTax']);
+    }
+
+    #[Test]
+    public function find_contract_tax_breakdown_peuple_les_champs_hypothetiques_pour_un_lcd(): void
+    {
+        // Show page · pour un contrat LCD exonéré (totalDue=0), le
+        // breakdown doit exposer `hypotheticalTotalDueIfNoLcd` (ce que
+        // le contrat coûterait s'il était requalifié en LLD). Vrai
+        // calcul pipeline via opt-out R-2024-021 (mécanisme cluster
+        // requalification), pas l'approximation linéaire.
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        $contract = Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany($company)
+            ->create([
+                'start_date' => '2024-04-01',
+                'end_date' => '2024-04-25', // 25 j → LCD exonéré R-2024-021
+                'contract_type' => ContractType::Lcd,
+            ]);
+
+        $breakdown = $this->service->findContractTaxBreakdown($contract->id);
+
+        self::assertNotNull($breakdown);
+        self::assertSame(0.0, $breakdown->totalDue);
+
+        $year = $breakdown->years[0];
+        self::assertSame(0.0, $year->totalDue);
+        self::assertNotNull($year->hypotheticalTotalDueIfNoLcd, 'hypothétique doit être peuplé pour un LCD exonéré');
+        self::assertGreaterThan(0.0, $year->hypotheticalTotalDueIfNoLcd);
+        self::assertNotNull($year->hypotheticalCo2DueIfNoLcd);
+        self::assertNotNull($year->hypotheticalPollutantsDueIfNoLcd);
+        // Sanity · CO₂ + polluants ≈ total (tolérance arrondi half-up).
+        self::assertEqualsWithDelta(
+            $year->hypotheticalCo2DueIfNoLcd + $year->hypotheticalPollutantsDueIfNoLcd,
+            $year->hypotheticalTotalDueIfNoLcd,
+            0.01,
+        );
+    }
+
+    #[Test]
+    public function find_contract_tax_breakdown_laisse_les_hypothetiques_null_pour_un_lld(): void
+    {
+        // Sécurité · un LLD n'est jamais exonéré R-2024-021, donc
+        // pas d'hypothétique pertinent. Le code skip le calcul opt-out
+        // (early-return) pour éviter de payer le pipeline 2 fois.
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+        $company = Company::factory()->create();
+
+        $contract = Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany($company)
+            ->create([
+                'start_date' => '2024-03-01',
+                'end_date' => '2024-05-31', // 92 j → LLD
+                'contract_type' => ContractType::Lld,
+            ]);
+
+        $breakdown = $this->service->findContractTaxBreakdown($contract->id);
+
+        self::assertNotNull($breakdown);
+        $year = $breakdown->years[0];
+        self::assertGreaterThan(0.0, $year->totalDue);
+        self::assertNull($year->hypotheticalTotalDueIfNoLcd);
+        self::assertNull($year->hypotheticalCo2DueIfNoLcd);
+        self::assertNull($year->hypotheticalPollutantsDueIfNoLcd);
+    }
+
+    #[Test]
+    public function costs_for_contract_ids_equivalent_au_breakdown_total_pour_contrat_multi_vfc(): void
+    {
+        // Contrat à cheval sur 2 VFC (changement de caractéristiques
+        // CO₂ en cours de contrat) · l'approximation linéaire serait
+        // fausse car la moitié du contrat utilise un tarif plus élevé.
+        // Le fix doit garantir équivalence stricte avec le breakdown
+        // segmenté.
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::create(2024, 1, 1),
+            'effective_to' => Carbon::create(2024, 6, 30),
+            'co2_wltp' => 100,
+        ]);
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => Carbon::create(2024, 7, 1),
+            'effective_to' => null,
+            'co2_wltp' => 175,
+        ]);
+        $company = Company::factory()->create();
+
+        $contract = Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany($company)
+            ->create([
+                'start_date' => '2024-06-01',
+                'end_date' => '2024-07-31',
+            ]);
+
+        $costs = $this->service->costsForContractIds([$contract->id]);
+        $breakdown = $this->service->findContractTaxBreakdown($contract->id);
+
+        self::assertNotNull($breakdown);
+        self::assertGreaterThan(0.0, $breakdown->totalDue);
+        // L'année doit avoir 2 segments (la scission VFC 30/06 → 01/07
+        // coupe le contrat 01/06 → 31/07 en 2).
+        self::assertCount(1, $breakdown->years);
+        self::assertCount(2, $breakdown->years[0]->segments);
+        // Équivalence stricte · le total servi à l'Index = total breakdown.
+        self::assertSame($breakdown->totalDue, $costs[$contract->id]['totalTax']);
     }
 }

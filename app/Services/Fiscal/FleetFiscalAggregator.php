@@ -600,9 +600,19 @@ final class FleetFiscalAggregator
         $totalRaw = 0.0;
 
         for ($year = $startYear; $year <= $endYear; $year++) {
-            $breakdowns = $this->pipeline->executeWithSegments(
-                $this->buildContext($vehicle, [$contract], $vehicleUnavailabilities, $year),
-            );
+            $context = $this->buildContext($vehicle, [$contract], $vehicleUnavailabilities, $year);
+            // Branche optimisée si le cache VFC est pré-chargé (cf.
+            // {@see prewarmVfcSegmentsForVehicles()}). Équivalence stricte
+            // garantie · même pattern que {@see vehicleFullYearTaxBreakdown()} ·
+            // doctrine `optimisations-conditionnelles.md` stratégie 2 ·
+            // test `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_pour_contract_tax_breakdown`.
+            // Note · `$cachedSegments === []` déclenche le throw
+            // `missingFiscalCharacteristics` côté executor · cohérent avec
+            // le path sans cache.
+            $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
+            $breakdowns = $cachedSegments !== null
+                ? $this->pipeline->executeWithSegmentsAndPreloadedVfc($context, $cachedSegments)
+                : $this->pipeline->executeWithSegments($context);
 
             $daysInContractInYear = $contract->countDaysInYear($year);
 
@@ -618,16 +628,53 @@ final class FleetFiscalAggregator
             foreach ($breakdowns as $b) {
                 $r = $b->result;
 
-                // Fenêtre sans jour-contrat assigné · entièrement ignorée
-                // pour ce contrat (ex. segment 01/09-31/12 d'une scission
-                // Ordo 2025-1247 alors que le contrat se termine en avril).
-                // Les règles actives uniquement sur cette fenêtre ne sont
-                // pas « appliquées » au contrat · elles n'auraient
-                // contribué que si le contrat avait débordé.
+                // Cas 1 · segment hors-fenêtre du contrat (ex. scission
+                // VFC qui crée un segment en dehors de la période du
+                // contrat). À ignorer entièrement · ses règles n'ont pas
+                // été « appliquées » à ce contrat. Signature · zéro jour
+                // assigné ET aucune exonération réelle (le segment est
+                // juste hors période).
+                if ($r->daysAssigned === 0 && $r->appliedExemptions === []) {
+                    continue;
+                }
+
+                // Toujours collecter règles et exonérations si le
+                // segment a un impact réel sur le contrat (jours
+                // assignés OU exonération qui a réduit les jours à 0).
+                // Permet aux LCD pur ou aux véhicules hors champ
+                // (R-2024-004) ou électriques (R-2024-013) d'exposer
+                // leurs motifs dans la section « Exonérations
+                // appliquées » de la page Show, même quand daysAssigned
+                // est à 0.
+                //
+                // **Déduplication par (ruleCode, reason)** · pour les
+                // règles qui peuvent s'appliquer plusieurs fois sur des
+                // segments distincts avec des messages différents (ex.
+                // R-YYYY-008 indisponibilité réductrice scindée par une
+                // scission de barème → "28 jours" en fév + "31 jours"
+                // en mars), on doit garder les 2 lignes distinctes pour
+                // que la somme affichée corresponde au total
+                // effectivement soustrait du numérateur. Une dédup par
+                // ruleCode seul masquerait la 2ᵉ contribution et créerait
+                // un mismatch UI / calcul.
+                foreach ($r->appliedExemptions as $exemption) {
+                    $key = $exemption->ruleCode.'|'.$exemption->reason;
+                    $exemptionsByCode[$key] ??= $exemption;
+                }
+                foreach ($r->appliedRuleCodes as $code) {
+                    $ruleCodesSet[$code] = true;
+                }
+
+                // Cas 2 · segment entièrement exonéré (daysAssigned = 0
+                // mais appliedExemptions non vide). Pas de ligne dans
+                // segmentsDto (éviterait une ligne « 00 j » trompeuse
+                // dans la pédagogie UI) ni d'agrégat numérique (déjà 0).
                 if ($r->daysAssigned === 0) {
                     continue;
                 }
 
+                // Cas 3 · segment taxable · construction segmentsDto +
+                // agrégats numériques.
                 $segCo2Tariff = round($r->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
                 $segPollutantsTariff = round($r->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
                 $segCo2Due = round($r->co2DueRaw, 2, PHP_ROUND_HALF_UP);
@@ -654,12 +701,6 @@ final class FleetFiscalAggregator
                 $co2RawYear += $r->co2DueRaw;
                 $pollutantsRawYear += $r->pollutantsDueRaw;
                 $daysAssignedYear += $r->daysAssigned;
-                foreach ($r->appliedExemptions as $exemption) {
-                    $exemptionsByCode[$exemption->ruleCode] ??= $exemption;
-                }
-                foreach ($r->appliedRuleCodes as $code) {
-                    $ruleCodesSet[$code] = true;
-                }
             }
 
             // Résumé année · agrégation des fenêtres non-vides. Le tarif
@@ -689,23 +730,13 @@ final class FleetFiscalAggregator
             $appliedRuleCodes = array_keys($ruleCodesSet);
             $appliedRules = $this->loadRulesByCodes($year, $appliedRuleCodes);
 
-            // D5.10.T · montant hypothétique « si pas LCD » · seulement
-            // pour les contrats effectivement exonérés par R-2024-021.
-            // Calcul direct (tariff × prorata jours-contrat / jours-année)
-            // sans 2e passe pipeline · l'approximation suffit comme aide
-            // à la décision de requalification cluster, le calcul exact
-            // étant fait par `DeclarationFiscalEngine` lors de la revue.
-            $lcdExempted = in_array('R-2024-021', $appliedRuleCodes, true);
-            $hypoCo2 = null;
-            $hypoPollutants = null;
-            $hypoTotal = null;
-            if ($lcdExempted && $firstResult->daysInYear > 0) {
-                $proratio = $daysInContractInYear / $firstResult->daysInYear;
-                $hypoCo2 = round($co2Tariff * $proratio, 2, PHP_ROUND_HALF_UP);
-                $hypoPollutants = round($pollutantsTariff * $proratio, 2, PHP_ROUND_HALF_UP);
-                $hypoTotal = round($hypoCo2 + $hypoPollutants, 2, PHP_ROUND_HALF_UP);
-            }
-
+            // Champs hypothétiques « si requalifié en LLD » laissés à
+            // null ici · enrichis par {@see ContractQueryService::findContractTaxBreakdown()}
+            // via le mécanisme d'opt-out R-YYYY-021 (cf.
+            // {@see DeclarationAggregatorFactory}). Le vrai calcul
+            // exact (multi-VFC, multi-règle) passe par une 2e passe
+            // pipeline scopée au contrat, pas par l'approximation
+            // tariff × jours/365 qui ignorait les scissions.
             $years[] = new ContractTaxYearBreakdownData(
                 year: $year,
                 daysInContractInYear: $daysInContractInYear,
@@ -725,9 +756,6 @@ final class FleetFiscalAggregator
                 appliedRuleCodes: $appliedRuleCodes,
                 appliedRules: $appliedRules,
                 segments: $segmentsDto,
-                hypotheticalCo2DueIfNoLcd: $hypoCo2,
-                hypotheticalPollutantsDueIfNoLcd: $hypoPollutants,
-                hypotheticalTotalDueIfNoLcd: $hypoTotal,
             );
 
             $totalRaw += $co2RawYear + $pollutantsRawYear;

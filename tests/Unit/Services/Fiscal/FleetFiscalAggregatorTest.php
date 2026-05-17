@@ -409,6 +409,42 @@ final class FleetFiscalAggregatorTest extends TestCase
     }
 
     #[Test]
+    public function prewarm_vfc_segments_equivalent_pour_contract_tax_breakdown(): void
+    {
+        // Doctrine `optimisations-conditionnelles.md` stratégie 2 ·
+        // `contractTaxBreakdown()` doit retourner strictement le même
+        // résultat avec ou sans cache VFC prewarmé. Garantit qu'on peut
+        // batch-prewarmer en amont de la boucle Contracts Index sans
+        // dévier silencieusement de la valeur affichée sur Show.
+        $vehicleRef = $this->makeVehicleWltp100Essence();
+        $company = Company::factory()->create();
+        $contractRef = Contract::create([
+            'vehicle_id' => $vehicleRef->id,
+            'company_id' => $company->id,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-05-31',
+            'contract_reference' => null,
+            'contract_type' => ContractType::Lld->value,
+        ]);
+
+        $aggregatorRef = $this->app->make(FleetFiscalAggregator::class);
+        $breakdownRef = $aggregatorRef->contractTaxBreakdown($contractRef, []);
+
+        $aggregatorPre = $this->app->make(FleetFiscalAggregator::class);
+        $vehicle = Vehicle::query()->find($vehicleRef->id)->fresh(['fiscalCharacteristics']);
+        $contract = Contract::query()->with('vehicle.fiscalCharacteristics')->find($contractRef->id);
+
+        $aggregatorPre->prewarmVfcSegmentsForVehicles([$vehicle], 2024);
+        $breakdown = $aggregatorPre->contractTaxBreakdown($contract, []);
+
+        self::assertSame($breakdownRef->totalDue, $breakdown->totalDue);
+        self::assertCount(count($breakdownRef->years), $breakdown->years);
+        self::assertSame($breakdownRef->years[0]->co2Due, $breakdown->years[0]->co2Due);
+        self::assertSame($breakdownRef->years[0]->pollutantsDue, $breakdown->years[0]->pollutantsDue);
+        self::assertSame($breakdownRef->years[0]->appliedRuleCodes, $breakdown->years[0]->appliedRuleCodes);
+    }
+
+    #[Test]
     public function prewarm_vfc_segments_idempotent(): void
     {
         $v1 = $this->makeVehicleWltp100Essence();

@@ -1,0 +1,1 @@
+import{O as e,_ as t,bt as n,o as r,u as i}from"./runtime-core.esm-bundler-ZxkLjTIG.js";var a=t({__name:`Skeleton`,props:{class:{}},setup(t){let a=t,o=r(()=>[`skeleton-shimmer`,a.class].filter(Boolean).join(` `));return(t,r)=>(e(),i(`div`,{class:n(o.value),"aria-busy":`true`,"aria-live":`polite`},null,2))}});export{a as t};
