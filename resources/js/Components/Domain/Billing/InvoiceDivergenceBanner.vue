@@ -48,7 +48,7 @@ function regenerate(): void {
                 Données obsolètes
             </p>
             <p class="mt-0.5 text-xs text-slate-600">
-                Le périmètre contractuel a changé depuis l'émission de cette facture.
+                Le périmètre contractuel a changé depuis l'émission de cette annexe.
                 Émise sur
                 <span class="font-mono tabular-nums">
                     {{ divergence.invoicedDaysUsed }} j / {{ formatEur(divergence.invoicedTotalCents / 100, 2) }}
@@ -76,8 +76,8 @@ function regenerate(): void {
         <ConfirmModal
             v-model:open="modalOpen"
             tone="default"
-            :title="`Régénérer la facture ${invoiceNumber} ?`"
-            :message="`La facture actuelle sera remplacée par une nouvelle, calculée avec les données du périmètre actuel. Le numéro de facture changera. L'opération est irréversible.`"
+            :title="`Régénérer l'annexe ${invoiceNumber} ?`"
+            :message="`L'annexe actuelle sera remplacée par une nouvelle, calculée avec les données du périmètre actuel. Le numéro d'annexe changera. L'opération est irréversible.`"
             confirm-label="Régénérer"
             :loading="regenerating"
             @confirm="regenerate"

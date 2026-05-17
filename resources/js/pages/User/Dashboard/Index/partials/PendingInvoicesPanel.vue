@@ -37,7 +37,7 @@ defineProps<{
             </div>
             <div class="flex flex-col gap-0.5">
                 <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">
-                    Factures en attente
+                    Annexes de factures à générer
                 </p>
                 <p class="text-sm text-slate-500">
                     <template v-if="monthlyTotal > 0">
@@ -60,7 +60,7 @@ defineProps<{
         </ul>
 
         <p v-else class="rounded-lg bg-slate-50 px-3 py-3 text-sm text-slate-600">
-            Aucune facture mensuelle en attente. Les recettes locatives
+            Aucune annexe de facture en attente. Les recettes locatives
             sont à jour pour vos entreprises clientes.
         </p>
     </article>

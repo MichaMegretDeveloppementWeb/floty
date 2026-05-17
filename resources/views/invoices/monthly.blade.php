@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8">
-    <title>Facture {{ $invoiceNumber }}</title>
+    <title>Annexe de facture {{ $invoiceNumber }}</title>
     <style>
         /*
          * Police DejaVu Sans, embarquée par dompdf et UTF-8 native (rend
@@ -35,19 +35,8 @@
         .header {
             margin-bottom: 8mm;
         }
-        .header-top {
-            display: table;
-            width: 100%;
+        .header-title {
             margin-bottom: 5mm;
-        }
-        .header-top > div {
-            display: table-cell;
-            vertical-align: top;
-        }
-        .header-top .title-cell { width: 60%; }
-        .header-top .ref-cell {
-            width: 40%;
-            text-align: right;
         }
         .invoice-ref {
             font-size: 10pt;
@@ -190,13 +179,15 @@
 </head>
 <body>
     <header class="header">
-        <div class="header-top">
-            <div class="title-cell">
-                <span class="invoice-tag">Facture</span>
-                <h1>{{ $periodLabel }}</h1>
-                <div class="invoice-ref">{{ $invoiceNumber }}</div>
-            </div>
-            <div class="ref-cell">
+        <div class="header-title">
+            <span class="invoice-tag">Annexe de facture</span>
+            <h1>{{ $periodLabel }}</h1>
+            <div class="invoice-ref">{{ $invoiceNumber }}</div>
+        </div>
+
+        <div class="parties">
+            <div>
+                <h2>Émetteur</h2>
                 <div class="party-name">{{ $issuer['name'] }}</div>
                 <div class="party-line">
                     @if(!empty($issuer['addressLine1']))
@@ -216,19 +207,6 @@
                     @endif
                 </div>
             </div>
-        </div>
-
-        <div class="parties">
-            <div>
-                <h2>Émetteur</h2>
-                <div class="party-line">
-                    Document de facturation établi par <strong>{{ $issuer['name'] }}</strong>
-                    @if(!empty($issuer['siren']))
-                        (SIREN&nbsp;{{ $issuer['siren'] }})
-                    @endif
-                    pour la période ci-dessous.
-                </div>
-            </div>
             <div>
                 <h2>Destinataire</h2>
                 <div class="party-name">{{ $company['legalName'] }}</div>
@@ -246,7 +224,7 @@
 
     <div class="meta-block">
         <div>
-            <div class="meta-label">Numéro de facture</div>
+            <div class="meta-label">Numéro d'annexe</div>
             <div class="meta-value">{{ $invoiceNumber }}</div>
         </div>
         <div>
@@ -307,7 +285,6 @@
 
     <footer class="footer">
         <div class="footer-line">
-            Facture générée automatiquement via Floty (outil de gestion de flotte partagée).
             Document numérique non modifiable après émission.
         </div>
     </footer>

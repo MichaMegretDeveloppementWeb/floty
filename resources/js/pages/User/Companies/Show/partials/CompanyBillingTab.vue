@@ -143,10 +143,10 @@ const metaLine = computed<string>(() => {
     }
 
     if (i === 0) {
-        return `${a} mois actif${aPlural} · aucune facture émise.`;
+        return `${a} mois actif${aPlural} · aucune annexe émise.`;
     }
 
-    return `${a} mois actif${aPlural} · ${i} facture${iPlural} émise${iPlural}.`;
+    return `${a} mois actif${aPlural} · ${i} annexe${iPlural} émise${iPlural}.`;
 });
 
 const totalLabel = computed<string>(() => {
@@ -242,7 +242,7 @@ function selectYear(year: number): void {
                 <span
                     v-if="yearsWithTodoSet.has(year)"
                     class="ml-1 inline-block size-1 rounded-full bg-amber-500 align-middle"
-                    title="Factures à générer sur cet exercice"
+                    title="Annexes à générer sur cet exercice"
                     aria-hidden="true"
                 />
             </button>
@@ -301,7 +301,7 @@ function selectYear(year: number): void {
             </div>
             <div class="sm:px-6 sm:not-last:border-r sm:border-slate-100">
                 <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                    Factures émises
+                    Annexes générées
                 </p>
                 <p class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none text-slate-900">
                     {{ invoicedMonthsCount }}

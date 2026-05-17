@@ -66,7 +66,7 @@ const emit = defineEmits<{
                             À régénérer
                         </span>
                         <template #content>
-                            Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez la facture pour la régénérer.
+                            Données obsolètes : le périmètre contractuel a changé depuis l'émission. Ouvrez l'annexe pour la régénérer.
                         </template>
                     </Tooltip>
                     <span
@@ -107,7 +107,7 @@ const emit = defineEmits<{
         <template #empty>
             <div class="flex flex-col items-center gap-2 py-8 text-center">
                 <p class="text-sm font-medium text-slate-700">
-                    Aucune facture ne correspond à votre recherche.
+                    Aucune annexe ne correspond à votre recherche.
                 </p>
                 <p class="text-xs text-slate-500">
                     Essayez d'élargir les filtres pour voir plus de résultats.
@@ -162,7 +162,7 @@ const emit = defineEmits<{
         class="flex flex-col items-center gap-2 rounded-xl border border-slate-200 bg-white py-8 text-center md:hidden"
     >
         <p class="text-sm font-medium text-slate-700">
-            Aucune facture ne correspond à votre recherche.
+            Aucune annexe ne correspond à votre recherche.
         </p>
         <p class="text-xs text-slate-500">
             Essayez d'élargir les filtres pour voir plus de résultats.

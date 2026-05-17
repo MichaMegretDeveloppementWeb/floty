@@ -102,7 +102,7 @@ export function useSidebarNav(open: Ref<boolean>): {
             title: 'Facturation',
             items: [
                 {
-                    label: 'Factures',
+                    label: 'Annexes de facture',
                     icon: Wallet,
                     href: invoicesIndexRoute.url(),
                 },
@@ -127,7 +127,7 @@ export function useSidebarNav(open: Ref<boolean>): {
             title: 'Paramètres',
             items: [
                 {
-                    label: 'Émetteur facture',
+                    label: 'Émetteur',
                     icon: Settings,
                     href: billingSettingsEditRoute.url(),
                 },

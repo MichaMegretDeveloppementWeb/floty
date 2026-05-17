@@ -25,7 +25,7 @@ const targetUrl = computed<string>(() =>
 const countLabel = computed<string>(() => {
     const n = props.item.missingInvoicesCount;
 
-    return `${n} facture${n > 1 ? 's' : ''}`;
+    return `${n} annexe${n > 1 ? 's' : ''}`;
 });
 
 function open(): void {

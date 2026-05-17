@@ -35,7 +35,7 @@ const downloadUrl = computed<string>(() =>
 </script>
 
 <template>
-    <Head :title="`Facture ${props.invoice.invoiceNumber}`" />
+    <Head :title="`Annexe de facture ${props.invoice.invoiceNumber}`" />
 
     <UserLayout>
         <div class="flex flex-col gap-6 max-w-[60em] m-auto w-full">
@@ -47,7 +47,7 @@ const downloadUrl = computed<string>(() =>
                     </div>
                     <div class="flex flex-col gap-1">
                         <p class="text-xs font-medium tracking-wider uppercase text-slate-500">
-                            Facture {{ periodLabel }}
+                            Annexe Facture {{ periodLabel }}
                         </p>
                         <div class="flex flex-wrap items-baseline gap-2">
                             <h1 class="font-mono text-xl font-normal text-slate-900">
@@ -131,14 +131,14 @@ const downloadUrl = computed<string>(() =>
             <Card>
                 <template #header>
                     <h2 class="text-base font-semibold text-slate-900">
-                        Lignes facturées ({{ invoice.lines.length }})
+                        Véhicules facturés ({{ invoice.lines.length }})
                     </h2>
                 </template>
 
                 <div class="overflow-x-auto">
                     <table class="w-full text-sm">
                         <caption class="sr-only">
-                            Lignes de la facture {{ invoice.invoiceNumber }}
+                            Véhicules facturés de l'annexe {{ invoice.invoiceNumber }}
                         </caption>
                         <thead>
                             <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">

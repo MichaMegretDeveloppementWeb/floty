@@ -58,11 +58,11 @@ function submit(): void {
                         Paramètres
                     </p>
                     <h1 class="text-2xl font-semibold text-slate-900">
-                        Émetteur de facture
+                        Émetteur
                     </h1>
                     <p class="text-sm text-slate-500">
-                        Coordonnées imprimées sur les factures émises depuis Floty.
-                        Les factures déjà émises ne sont pas modifiées rétroactivement
+                        Coordonnées imprimées sur les annexes de factures émises depuis Floty.
+                        Les annexes déjà émises ne sont pas modifiées rétroactivement
                         (immuabilité comptable).
                     </p>
                 </div>

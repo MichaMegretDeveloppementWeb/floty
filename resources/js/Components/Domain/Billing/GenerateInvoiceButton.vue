@@ -122,11 +122,11 @@ const generateTooltip = computed<string>(() => {
         return 'Aucune utilisation ce mois-ci.';
     }
 
-    return 'Générer la facture';
+    return 'Générer l\'annexe';
 });
 
 const viewTooltip = computed<string>(
-    () => `Voir la facture ${props.existingInvoiceNumber ?? ''}`.trim(),
+    () => `Voir l'annexe ${props.existingInvoiceNumber ?? ''}`.trim(),
 );
 
 function generate(): void {
@@ -183,7 +183,7 @@ function regenerate(): void {
                 <RefreshCw class="shrink-0" :size="12" :stroke-width="1.75" />
                 Régénérer
             </button>
-            <template #content>Régénérer la facture avec les données actuelles</template>
+            <template #content>Régénérer l'annexe avec les données actuelles</template>
         </Tooltip>
 
         <!--
@@ -219,8 +219,8 @@ function regenerate(): void {
         <ConfirmModal
             v-model:open="regenerateModalOpen"
             tone="default"
-            :title="`Régénérer la facture ${existingInvoiceNumber} ?`"
-            :message="`La facture actuelle sera remplacée par une nouvelle, calculée avec les données du périmètre actuel. Le numéro de facture changera. L'opération est irréversible.`"
+            :title="`Régénérer l'annexe ${existingInvoiceNumber} ?`"
+            :message="`L'annexe actuelle sera remplacée par une nouvelle, calculée avec les données du périmètre actuel. Le numéro d'annexe changera. L'opération est irréversible.`"
             confirm-label="Régénérer"
             :loading="regenerating"
             @confirm="regenerate"

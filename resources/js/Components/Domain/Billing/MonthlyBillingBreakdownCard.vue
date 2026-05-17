@@ -125,7 +125,7 @@ const partialTotalLabel = computed<string | null>(() => {
                         <th scope="col" class="py-2 pr-3 font-medium">Mois</th>
                         <th scope="col" class="py-2 px-3 font-medium text-right">Jours utilisés</th>
                         <th scope="col" class="py-2 px-3 font-medium text-right">Montant HT</th>
-                        <th v-if="showInvoiceNumberColumn" scope="col" class="py-2 px-3 font-medium">N° facture</th>
+                        <th v-if="showInvoiceNumberColumn" scope="col" class="py-2 px-3 font-medium">N° annexe</th>
                         <th v-if="$slots['row-actions']" scope="col" class="py-2 pl-3 font-medium text-right">
                             Action
                         </th>

@@ -90,16 +90,16 @@ const monthOptions: { value: number | null; label: string }[] = [
 </script>
 
 <template>
-    <Head title="Factures" />
+    <Head title="Annexes de facture" />
 
     <UserLayout>
         <div class="flex flex-col gap-6">
             <header class="flex flex-col gap-1">
                 <h1 class="text-2xl font-semibold text-slate-900">
-                    Factures
+                    Annexes de facture
                 </h1>
                 <p class="text-sm text-slate-500">
-                    Historique des factures mensuelles émises. Document
+                    Historique des annexes mensuelles émises. Document
                     figé à l'émission, non modifiable.
                 </p>
             </header>
@@ -109,10 +109,10 @@ const monthOptions: { value: number | null; label: string }[] = [
                 class="rounded-2xl border border-slate-200 bg-white p-12 text-center"
             >
                 <p class="text-sm font-medium text-slate-700">
-                    Aucune facture émise pour l'instant.
+                    Aucune annexe émise pour l'instant.
                 </p>
                 <p class="mt-1 text-xs text-slate-500">
-                    Générez une facture mensuelle depuis la fiche d'une entreprise.
+                    Générez une annexe de facture mensuelle depuis la fiche d'une entreprise.
                 </p>
             </div>
 
@@ -122,7 +122,7 @@ const monthOptions: { value: number | null; label: string }[] = [
                         <SearchInput
                             v-model="searchModel"
                             placeholder="Rechercher (numéro, entreprise)"
-                            aria-label="Rechercher une facture"
+                            aria-label="Rechercher une annexe"
                         />
                     </div>
                     <FilterPopover
@@ -167,7 +167,7 @@ const monthOptions: { value: number | null; label: string }[] = [
                                     id="filter-invoice-obsolete"
                                     v-model="includeObsoleteModel"
                                     label="Inclure les versions obsolètes"
-                                    hint="Anciennes factures remplacées par régénération"
+                                    hint="Anciennes annexes remplacées par régénération"
                                 />
                             </div>
                         </div>

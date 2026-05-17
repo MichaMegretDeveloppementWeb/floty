@@ -331,7 +331,7 @@ function handleClick(item: FlatItem): void {
                             />
                             <div class="flex flex-col items-start gap-0.5">
                                 <span class="font-medium">
-                                    {{ item.data.missingInvoicesCount }} facture{{ item.data.missingInvoicesCount > 1 ? 's' : '' }} à générer
+                                    {{ item.data.missingInvoicesCount }} annexe{{ item.data.missingInvoicesCount > 1 ? 's' : '' }} à générer
                                     <span class="ml-1 font-normal text-slate-500">
                                         · {{ item.year }}
                                     </span>

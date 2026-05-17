@@ -153,7 +153,7 @@ function handleGenerate(): void {
     <Modal
         v-model:open="deferModalOpen"
         title="Reporter la déclaration ?"
-        description="La déclaration passera en statut « Reportée ». Vous pourrez la reprendre à tout moment depuis cette même page. Aucun arbitrage déjà rendu ne sera perdu."
+        description="La déclaration passera en statut « Reportée ». Vous pourrez la reprendre à tout moment depuis cette même page."
         size="md"
     >
         <div class="flex flex-col gap-2">
