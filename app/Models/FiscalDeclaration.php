@@ -39,6 +39,7 @@ use Illuminate\Support\Carbon;
  * @property bool $is_obsolete
  * @property Carbon|null $obsolete_at
  * @property array<int, array<string, mixed>>|null $obsolete_reasons
+ * @property string|null $defer_reason
  * @property int|null $superseded_by_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -59,6 +60,7 @@ use Illuminate\Support\Carbon;
     'is_obsolete',
     'obsolete_at',
     'obsolete_reasons',
+    'defer_reason',
     'superseded_by_id',
 ])]
 final class FiscalDeclaration extends Model

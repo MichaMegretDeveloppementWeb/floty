@@ -89,6 +89,11 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
             'generated_pdf_hash' => $pdfHash,
             'reference' => $reference,
             'generated_snapshot_payload' => $snapshotPayload,
+            // Lot 5 D13 · clear `defer_reason` à la génération · si la
+            // déclaration provient d'un état `deferred` avec une raison
+            // saisie, celle-ci n'a plus de sens une fois le document
+            // figé · cohérent avec le clear effectué à `revertDefer`.
+            'defer_reason' => null,
         ]);
         $declaration->save();
     }

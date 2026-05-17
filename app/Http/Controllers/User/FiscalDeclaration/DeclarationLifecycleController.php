@@ -12,6 +12,7 @@ use App\Http\Controllers\Controller;
 use App\Models\FiscalDeclaration;
 use DomainException;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 /**
@@ -33,12 +34,20 @@ final class DeclarationLifecycleController extends Controller
 {
     public function markDeferred(
         FiscalDeclaration $declaration,
+        Request $request,
         MarkDeclarationAsDeferredAction $action,
     ): RedirectResponse {
         Gate::authorize('update', $declaration);
 
+        // Lot 5 D13 · raison de mise en pause optionnelle (modal textarea
+        // côté front · max 500 caractères). Persistée sur la déclaration
+        // tant qu'elle reste reportée, effacée au revert / generate.
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
         try {
-            $action->execute($declaration->id);
+            $action->execute($declaration->id, $validated['reason'] ?? null);
         } catch (DomainException $e) {
             return back()->with('toast-error', $e->getMessage());
         }

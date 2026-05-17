@@ -53,9 +53,18 @@ final readonly class MarkDeclarationAsDeferredAction
         private FiscalDeclarationReadRepositoryInterface $reader,
     ) {}
 
-    public function execute(int $declarationId): FiscalDeclaration
+    public function execute(int $declarationId, ?string $reason = null): FiscalDeclaration
     {
-        return DB::transaction(function () use ($declarationId): FiscalDeclaration {
+        // Lot 5 D13 · normalisation `reason` · trim + null si chaîne vide
+        // (l'utilisateur a pu envoyer une chaîne d'espaces depuis le
+        // textarea sans intention de saisir). Pas de validation longueur
+        // ici · le FormRequest côté Controller en est responsable.
+        $normalizedReason = $reason !== null ? trim($reason) : null;
+        if ($normalizedReason === '') {
+            $normalizedReason = null;
+        }
+
+        return DB::transaction(function () use ($declarationId, $normalizedReason): FiscalDeclaration {
             $declaration = $this->reader->findById($declarationId);
             if ($declaration === null) {
                 throw new DomainException(sprintf('Déclaration %d introuvable.', $declarationId));
@@ -72,13 +81,17 @@ final readonly class MarkDeclarationAsDeferredAction
                 throw new DomainException('Une déclaration obsolète ne peut pas être différée ; régénérer une nouvelle déclaration.');
             }
 
-            $declaration->fill(['status' => FiscalDeclarationStatus::Deferred])->save();
+            $declaration->fill([
+                'status' => FiscalDeclarationStatus::Deferred,
+                'defer_reason' => $normalizedReason,
+            ])->save();
 
             Log::channel('declarations')->notice('FiscalDeclaration.marked_deferred', [
                 'declaration_id' => $declaration->id,
                 'company_id' => $declaration->company_id,
                 'fiscal_year' => $declaration->fiscal_year,
                 'actor_user_id' => Auth::id() ?? 0,
+                'has_reason' => $normalizedReason !== null,
             ]);
 
             return $declaration->fresh();

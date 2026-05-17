@@ -82,4 +82,21 @@ final class RevertDeferredToDraftActionTest extends TestCase
 
         $this->action->execute(99999);
     }
+
+    #[Test]
+    public function clear_defer_reason_au_revert(): void
+    {
+        // Lot 5 D13 · état transitoire · la raison saisie au report ne
+        // doit pas survivre au revert · si l'utilisateur re-reporte plus
+        // tard, il saisira une nouvelle raison fraîche.
+        $declaration = FiscalDeclaration::factory()->draft()->create([
+            'status' => FiscalDeclarationStatus::Deferred,
+            'defer_reason' => 'En attente du retour expert-comptable',
+        ]);
+
+        $updated = $this->action->execute($declaration->id);
+
+        self::assertSame(FiscalDeclarationStatus::Draft, $updated->status);
+        self::assertNull($updated->defer_reason);
+    }
 }

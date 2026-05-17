@@ -64,4 +64,44 @@ final class MarkDeclarationAsDeferredActionTest extends TestCase
 
         $this->action->execute(99999);
     }
+
+    #[Test]
+    public function persiste_defer_reason_si_fournie(): void
+    {
+        $declaration = FiscalDeclaration::factory()->draft()->create();
+
+        $updated = $this->action->execute(
+            $declaration->id,
+            'En attente du retour expert-comptable sur le cluster LCD',
+        );
+
+        self::assertSame(FiscalDeclarationStatus::Deferred, $updated->status);
+        self::assertSame(
+            'En attente du retour expert-comptable sur le cluster LCD',
+            $updated->defer_reason,
+        );
+    }
+
+    #[Test]
+    public function defer_reason_null_si_non_fournie(): void
+    {
+        $declaration = FiscalDeclaration::factory()->draft()->create();
+
+        $updated = $this->action->execute($declaration->id);
+
+        self::assertNull($updated->defer_reason);
+    }
+
+    #[Test]
+    public function defer_reason_normalisee_chaine_vide_devient_null(): void
+    {
+        // Lot 5 D13 · l'utilisateur peut envoyer une chaîne d'espaces
+        // depuis le textarea (touche barre d'espace sans intention de
+        // saisir) · l'Action normalise via trim et bascule sur null.
+        $declaration = FiscalDeclaration::factory()->draft()->create();
+
+        $updated = $this->action->execute($declaration->id, '   ');
+
+        self::assertNull($updated->defer_reason);
+    }
 }

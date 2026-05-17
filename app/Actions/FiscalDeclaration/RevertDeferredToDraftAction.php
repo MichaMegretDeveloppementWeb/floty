@@ -55,7 +55,14 @@ final readonly class RevertDeferredToDraftAction
                 ));
             }
 
-            $declaration->fill(['status' => FiscalDeclarationStatus::Draft])->save();
+            // Lot 5 D13 · clear `defer_reason` au revert · état transitoire
+            // cohérent avec le statut · si l'utilisateur re-reporte plus
+            // tard, il saisira une nouvelle raison fraîche. Pas
+            // d'historique persistant.
+            $declaration->fill([
+                'status' => FiscalDeclarationStatus::Draft,
+                'defer_reason' => null,
+            ])->save();
 
             Log::channel('declarations')->notice('FiscalDeclaration.reverted_to_draft', [
                 'declaration_id' => $declaration->id,

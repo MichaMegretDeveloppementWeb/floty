@@ -81,7 +81,14 @@ const codeLabel = computed<string>(() =>
     props.cluster?.code === 'R-LCD-CHAIN-FORT' ? 'LCD successifs · risqué' : 'LCD successifs',
 );
 
-const justificationRequired = computed<boolean>(
+/**
+ * La justification reste **recommandée** sur risque élevé (le texte
+ * du label le signale) mais n'est plus une condition d'activation
+ * du bouton Conserver · doctrine validée user · l'arbitrage final
+ * appartient à l'utilisateur, l'UI ne doit pas le bloquer, juste
+ * l'inciter à documenter sa décision.
+ */
+const justificationRecommended = computed<boolean>(
     () => isHighRisk.value,
 );
 
@@ -95,10 +102,7 @@ const includedCount = computed<number>(
  */
 const canSubmit = computed<boolean>(() => includedCount.value >= 2);
 
-const canConserve = computed<boolean>(
-    () => canSubmit.value
-        && (!justificationRequired.value || justification.value.trim().length > 0),
-);
+const canConserve = computed<boolean>(() => canSubmit.value);
 
 const canRequalify = computed<boolean>(() => canSubmit.value);
 
@@ -286,7 +290,7 @@ function handleRequalify(): void {
                 <label for="cluster-justification" class="text-xs font-medium text-slate-700">
                     Justification
                     <span class="font-normal text-slate-500">
-                        {{ justificationRequired ? '· obligatoire pour conserver en risque élevé' : '· recommandée' }}
+                        {{ justificationRecommended ? '· recommandée pour risque élevé' : '· recommandée' }}
                     </span>
                 </label>
                 <textarea
@@ -298,12 +302,6 @@ function handleRequalify(): void {
                     placeholder="Contexte métier, raison économique, motif particulier…"
                     class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-[120ms] focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100"
                 />
-                <p
-                    v-if="justificationRequired && justification.trim().length === 0"
-                    class="text-[11px] text-slate-500"
-                >
-                    Sans justification, seul « Requalifier » est disponible.
-                </p>
             </div>
         </div>
 

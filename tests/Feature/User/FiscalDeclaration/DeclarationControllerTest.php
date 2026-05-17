@@ -374,6 +374,44 @@ final class DeclarationControllerTest extends TestCase
     }
 
     #[Test]
+    public function mark_deferred_persiste_la_raison_si_fournie(): void
+    {
+        // Lot 5 D13 · le modal Reporter envoie une raison optionnelle
+        // (max 500 caractères) qui est affichée sur le brouillon tant
+        // qu'il reste reporté · effacée au revert / generate.
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $this->post(sprintf('/app/declarations/%d/mark-deferred', $declaration->id), [
+            'reason' => 'En attente du retour expert-comptable',
+        ])->assertRedirect()
+            ->assertSessionHas('toast-success');
+
+        $fresh = $declaration->fresh();
+        self::assertSame(FiscalDeclarationStatus::Deferred, $fresh->status);
+        self::assertSame('En attente du retour expert-comptable', $fresh->defer_reason);
+    }
+
+    #[Test]
+    public function mark_deferred_refuse_raison_trop_longue(): void
+    {
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $this->post(sprintf('/app/declarations/%d/mark-deferred', $declaration->id), [
+            'reason' => str_repeat('a', 501),
+        ])->assertSessionHasErrors('reason');
+
+        self::assertSame(FiscalDeclarationStatus::Draft, $declaration->fresh()->status);
+    }
+
+    #[Test]
     public function generate_redirige_vers_show_avec_pdf(): void
     {
         $declaration = FiscalDeclaration::factory()

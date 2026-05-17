@@ -1,9 +1,21 @@
 <script setup lang="ts">
+/**
+ * Barre d'actions sticky en bas de l'écran Show en mode B (revue
+ * brouillon head canonique) · 2 actions terminales · Reporter
+ * (`deferred`) + Générer (`generated`).
+ *
+ * Lot 5 D13 · le bouton Reporter ouvre désormais un modal avec
+ * textarea pour saisir une raison optionnelle (max 500 caractères).
+ * La raison est persistée sur le brouillon tant qu'il reste reporté
+ * et affichée en banner sur la page Show · effacée automatiquement
+ * au revert ou à la génération (état transitoire cohérent avec le
+ * statut, pas un historique persistant).
+ */
 import { router } from '@inertiajs/vue3';
 import { Clock, FileCheck2, LoaderCircle } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
-import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
+import Modal from '@/Components/Ui/Modal/Modal.vue';
 import Tooltip from '@/Components/Ui/Tooltip/Tooltip.vue';
 import {
     generate as generateRoute,
@@ -21,10 +33,18 @@ const generating = ref<boolean>(false);
 const deferring = ref<boolean>(false);
 const isProcessing = computed<boolean>(() => generating.value || deferring.value);
 
-// Confirmation Mettre de côté · audit B21 pré-livraison.
-// Évite la perte accidentelle de contexte de revue après plusieurs
-// décisions tranchées (clic accidentel = retour à la liste).
-const deferConfirmOpen = ref<boolean>(false);
+/**
+ * Modal Reporter · confirmation Mettre de côté (audit B21 pré-livraison
+ * · évite la perte accidentelle de contexte après plusieurs arbitrages)
+ * enrichi Lot 5 D13 avec une raison optionnelle saisie par l'utilisateur.
+ */
+const deferModalOpen = ref<boolean>(false);
+const deferReason = ref<string>('');
+const DEFER_REASON_MAX = 500;
+
+const deferReasonRemaining = computed<number>(
+    () => DEFER_REASON_MAX - deferReason.value.length,
+);
 
 const generateBlockedReason = computed<string | null>(() => {
     if (props.canGenerate) {
@@ -43,19 +63,26 @@ function requestMarkDeferred(): void {
         return;
     }
 
-    deferConfirmOpen.value = true;
+    deferReason.value = '';
+    deferModalOpen.value = true;
 }
 
 function confirmMarkDeferred(): void {
-    deferConfirmOpen.value = false;
+    if (deferring.value) {
+        return;
+    }
+
+    const trimmed = deferReason.value.trim();
+
     deferring.value = true;
     router.post(
         markDeferredRoute.url({ declaration: props.declarationId }),
-        {},
+        { reason: trimmed === '' ? null : trimmed },
         {
             preserveScroll: true,
             onFinish: () => {
                 deferring.value = false;
+                deferModalOpen.value = false;
             },
         },
     );
@@ -123,12 +150,43 @@ function handleGenerate(): void {
         </div>
     </div>
 
-    <ConfirmModal
-        v-model:open="deferConfirmOpen"
+    <Modal
+        v-model:open="deferModalOpen"
         title="Reporter la déclaration ?"
-        message="La déclaration passera en statut « Reportée ». Vous pourrez la reprendre à tout moment depuis cette même page. Aucun arbitrage déjà rendu ne sera perdu."
-        confirm-label="Reporter"
-        cancel-label="Continuer la revue"
-        @confirm="confirmMarkDeferred"
-    />
+        description="La déclaration passera en statut « Reportée ». Vous pourrez la reprendre à tout moment depuis cette même page. Aucun arbitrage déjà rendu ne sera perdu."
+        size="md"
+    >
+        <div class="flex flex-col gap-2">
+            <label for="defer-reason" class="text-xs font-medium text-slate-700">
+                Raison du report
+                <span class="font-normal text-slate-500">· recommandée</span>
+            </label>
+            <textarea
+                id="defer-reason"
+                v-model="deferReason"
+                data-autofocus
+                rows="4"
+                :maxlength="DEFER_REASON_MAX"
+                placeholder="Ex. en attente du retour expert-comptable sur le cluster LCD du véhicule X…"
+                class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 transition-colors duration-[120ms] focus:border-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-100"
+            />
+            <p class="self-end font-mono text-[11px] tabular-nums text-slate-500">
+                {{ deferReasonRemaining }} / {{ DEFER_REASON_MAX }}
+            </p>
+            <p class="text-[11px] text-slate-500">
+                La raison sera affichée sur le brouillon tant qu'il reste reporté ·
+                effacée automatiquement à la reprise ou à la génération.
+            </p>
+        </div>
+
+        <template #footer>
+            <Button variant="ghost" :disabled="deferring" @click="deferModalOpen = false">
+                Continuer la revue
+            </Button>
+            <Button :disabled="deferring" :loading="deferring" @click="confirmMarkDeferred">
+                <Clock v-if="!deferring" :size="16" :stroke-width="1.75" />
+                Reporter
+            </Button>
+        </template>
+    </Modal>
 </template>

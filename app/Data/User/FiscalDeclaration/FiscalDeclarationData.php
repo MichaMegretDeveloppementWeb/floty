@@ -79,6 +79,16 @@ final class FiscalDeclarationData extends Data
          * générées (pas de snapshot persisté).
          */
         public ?string $snapshotHash = null,
+        /**
+         * Lot 5 D13 · raison de mise en pause saisie par l'utilisateur
+         * lors du report d'un brouillon (modal textarea max 500 car).
+         * Affichée sur le brouillon tant qu'il est reporté · effacée
+         * automatiquement au revert (deferred → draft) ou à la
+         * génération · état transitoire cohérent avec le statut, pas
+         * un historique persistant. Null si jamais saisie ou status
+         * ≠ deferred.
+         */
+        public ?string $deferReason = null,
     ) {}
 
     public static function fromModel(FiscalDeclaration $declaration): self
@@ -114,6 +124,7 @@ final class FiscalDeclarationData extends Data
             supersededById: $declaration->superseded_by_id,
             obsoleteReasons: $reasons,
             snapshotHash: $snapshotHash,
+            deferReason: $declaration->defer_reason,
         );
     }
 }
