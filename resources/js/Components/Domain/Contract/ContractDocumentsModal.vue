@@ -17,8 +17,8 @@
 import { FileText, X } from 'lucide-vue-next';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
-import { useToasts } from '@/Composables/Shared/useToasts';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
+import { useToasts } from '@/Composables/Shared/useToasts';
 
 const toasts = useToasts();
 

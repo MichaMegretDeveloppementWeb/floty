@@ -71,6 +71,7 @@ const statusLabel = computed<string>(() => {
     if (isFutureYear.value) {
         return 'Exercice à venir';
     }
+
     if (isCurrentYear.value) {
         return 'Exercice en cours';
     }
@@ -82,6 +83,7 @@ const statusDotClass = computed<string>(() => {
     if (isCurrentYear.value) {
         return 'bg-amber-500';
     }
+
     if (isFutureYear.value) {
         return 'bg-slate-400';
     }
@@ -91,9 +93,11 @@ const statusDotClass = computed<string>(() => {
 
 const metaLine = computed<string>(() => {
     const nextYear = selectedYear.value + 1;
+
     if (isFutureYear.value) {
         return `Déclarable en janvier ${nextYear} · annexe 3310-A (régime réel) ou formulaire 3517 (régime simplifié).`;
     }
+
     if (isCurrentYear.value) {
         return `Déclarable en janvier ${nextYear} · annexe 3310-A (régime réel) ou formulaire 3517 (régime simplifié).`;
     }
@@ -213,7 +217,7 @@ const isUntouched = computed<boolean>(
 
         <!-- Hero · total provisoire -->
         <div class="mb-10 flex flex-col gap-1.5">
-            <p class="font-mono text-[36px] sm:text-[44px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
+            <p class="font-mono text-[28px] sm:text-[36px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
                 {{ formatEur(fiscal.totalTaxAll) }}
             </p>
             <p class="text-sm text-slate-500">

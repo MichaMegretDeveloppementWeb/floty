@@ -2,6 +2,7 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import { closeOnSuccess } from '@/Composables/Shared/inertiaModalCallbacks';
 import type { VfcDeleteFormShape } from '@/pages/User/Vehicles/Show/forms';
 import { destroy as vfcDestroyRoute } from '@/routes/user/vehicle-fiscal-characteristics';
 
@@ -56,6 +57,7 @@ export function useVfcDeleteForm(
         if (props.deleting === null) {
             return false;
         }
+
         const currentFrom = props.deleting.effectiveFrom;
 
         return props.history.some((v) => v.id !== props.deleting!.id && v.effectiveFrom < currentFrom);
@@ -65,6 +67,7 @@ export function useVfcDeleteForm(
         if (props.deleting === null) {
             return false;
         }
+
         const currentFrom = props.deleting.effectiveFrom;
 
         return props.history.some((v) => v.id !== props.deleting!.id && v.effectiveFrom > currentFrom);
@@ -87,6 +90,7 @@ export function useVfcDeleteForm(
                 label: 'Étendre la version précédente sur la période supprimée',
             });
         }
+
         if (hasNext.value) {
             options.push({
                 value: 'extend_next',
@@ -106,6 +110,7 @@ export function useVfcDeleteForm(
             form.reset();
             form.clearErrors();
             const options = strategyOptions.value;
+
             if (options.length === 1) {
                 form.extension_strategy = options[0]!.value;
             }
@@ -125,12 +130,7 @@ export function useVfcDeleteForm(
             extension_strategy: data.extension_strategy as ExtensionStrategy,
         })).delete(
             vfcDestroyRoute.url({ vehicleFiscalCharacteristic: props.deleting.id }),
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    open.value = false;
-                },
-            },
+            closeOnSuccess(open),
         );
     };
 

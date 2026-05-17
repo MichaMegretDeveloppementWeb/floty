@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import {
     BarElement,
     CategoryScale,
@@ -12,86 +13,127 @@ import { computed, ref } from 'vue';
 import { Bar } from 'vue-chartjs';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { formatEur } from '@/Utils/format/formatEur';
+import DashboardEvolutionChartSkeleton from './DashboardEvolutionChartSkeleton.vue';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const props = defineProps<{
-    history: App.Data.User.Dashboard.DashboardYearHistoryData[];
+    /** Onglet par défaut · auto-loadé en `Inertia::defer` avec la vague KPIs. */
+    historyJoursVehicule?: App.Data.User.Dashboard.DashboardHistoryPointData[];
+    /** 3 autres onglets · `Inertia::optional` · hydratés au clic via `router.reload`. */
+    historyContracts?: App.Data.User.Dashboard.DashboardHistoryPointData[];
+    historyTaxes?: App.Data.User.Dashboard.DashboardHistoryPointData[];
+    historyRecettes?: App.Data.User.Dashboard.DashboardHistoryPointData[];
 }>();
 
-type Dimension = 'joursVehicule' | 'contracts' | 'taxesDues' | 'recettesLocativesCents';
+type Dimension = 'joursVehicule' | 'contracts' | 'taxes' | 'recettes';
 
 type DimensionMeta = {
     key: Dimension;
+    /** Nom de la prop Inertia correspondante (sert au `router.reload({only: [...]})`). */
+    propKey: 'historyJoursVehicule' | 'historyContracts' | 'historyTaxes' | 'historyRecettes';
     label: string;
-    /** Couleur principale Tailwind slate-700. */
     color: string;
-    /** Formate la valeur Y pour l'axe et le tooltip. */
     format: (v: number) => string;
-    /**
-     * Transformation appliquée à la valeur brute du DTO avant injection
-     * dans le dataset Chart.js. Sert pour les centimes (cents → euros).
-     */
+    /** Transformation appliquée avant injection dans Chart.js (ex. cents → €). */
     transform?: (v: number) => number;
 };
 
 const DIMENSIONS: readonly DimensionMeta[] = [
     {
         key: 'joursVehicule',
+        propKey: 'historyJoursVehicule',
         label: 'Jours-véhicule',
-        color: '#334155', // slate-700
+        color: '#334155',
         format: (v) => v.toLocaleString('fr-FR'),
     },
     {
         key: 'contracts',
+        propKey: 'historyContracts',
         label: 'Locations',
-        color: '#0f766e', // teal-700
+        color: '#0f766e',
         format: (v) => v.toLocaleString('fr-FR'),
     },
     {
-        key: 'taxesDues',
+        key: 'taxes',
+        propKey: 'historyTaxes',
         label: 'Taxes dues',
-        color: '#b45309', // amber-700
+        color: '#b45309',
         format: (v) => formatEur(v),
     },
     {
-        key: 'recettesLocativesCents',
+        key: 'recettes',
+        propKey: 'historyRecettes',
         label: 'Recettes',
-        color: '#4338ca', // indigo-700
+        color: '#4338ca',
         format: (v) => formatEur(v),
         transform: (cents) => cents / 100,
     },
 ];
 
 const activeDimension = ref<Dimension>('joursVehicule');
+const loadingDimension = ref<Dimension | null>(null);
 
 const activeMeta = computed<DimensionMeta>(
     () => DIMENSIONS.find((d) => d.key === activeDimension.value)!,
 );
 
-const chartData = computed(() => ({
-    labels: props.history.map((h) =>
-        h.isCurrentYear ? `${h.year} (en cours)` : String(h.year),
-    ),
-    datasets: [
-        {
-            label: activeMeta.value.label,
-            data: props.history.map((h) => {
-                const raw = h[activeDimension.value];
+/** Données de l'onglet actif · `undefined` tant que la prop n'est pas hydratée. */
+const activeData = computed<App.Data.User.Dashboard.DashboardHistoryPointData[] | undefined>(
+    () => props[activeMeta.value.propKey],
+);
 
-                return activeMeta.value.transform
-                    ? activeMeta.value.transform(raw)
-                    : raw;
-            }),
-            backgroundColor: props.history.map((h) =>
-                h.isCurrentYear
-                    ? `${activeMeta.value.color}99` // 60% opacity sur année en cours
-                    : activeMeta.value.color,
-            ),
-            borderRadius: 4,
+const isLoading = computed<boolean>(
+    () => loadingDimension.value === activeDimension.value && activeData.value === undefined,
+);
+
+function setDimension(d: Dimension): void {
+    activeDimension.value = d;
+    const meta = DIMENSIONS.find((m) => m.key === d)!;
+    // Déjà hydraté (Inertia conserve la prop après 1er reload) · rien à faire.
+    if (props[meta.propKey] !== undefined) {
+        return;
+    }
+    // Déjà en cours pour cet onglet · skip pour éviter double-fetch.
+    if (loadingDimension.value === d) {
+        return;
+    }
+    loadingDimension.value = d;
+    router.reload({
+        only: [meta.propKey],
+        onFinish: () => {
+            if (loadingDimension.value === d) {
+                loadingDimension.value = null;
+            }
         },
-    ],
-}));
+    });
+}
+
+const chartData = computed(() => {
+    const points = activeData.value ?? [];
+
+    return {
+        labels: points.map((p) =>
+            p.isCurrentYear ? `${p.year} (en cours)` : String(p.year),
+        ),
+        datasets: [
+            {
+                label: activeMeta.value.label,
+                data: points.map((p) => {
+                    return activeMeta.value.transform
+                        ? activeMeta.value.transform(p.value)
+                        : p.value;
+                }),
+                backgroundColor: points.map((p) =>
+                    p.isCurrentYear
+                        ? `${activeMeta.value.color}99`
+                        : activeMeta.value.color,
+                ),
+                borderRadius: 4,
+            },
+        ],
+    };
+});
 
 const chartOptions = computed(() => ({
     responsive: true,
@@ -115,10 +157,6 @@ const chartOptions = computed(() => ({
         },
     },
 }));
-
-function setDimension(d: Dimension): void {
-    activeDimension.value = d;
-}
 </script>
 
 <template>
@@ -130,7 +168,7 @@ function setDimension(d: Dimension): void {
                         Évolution annuelle
                     </h2>
                     <p class="mt-0.5 text-xs text-slate-500">
-                        Comparaison sur les {{ history.length }} dernières années
+                        Comparaison sur les dernières années
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-1.5 rounded-lg border border-slate-200 bg-white p-1">
@@ -152,8 +190,9 @@ function setDimension(d: Dimension): void {
             </div>
         </template>
 
-        <div class="h-[280px]">
-            <Bar :data="chartData" :options="chartOptions" />
+        <div class="h-[280px]" :aria-busy="isLoading">
+            <DashboardEvolutionChartSkeleton v-if="isLoading" chart-only />
+            <Bar v-else :data="chartData" :options="chartOptions" />
         </div>
     </Card>
 </template>

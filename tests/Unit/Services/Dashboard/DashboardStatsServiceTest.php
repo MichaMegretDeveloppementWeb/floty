@@ -105,14 +105,15 @@ final class DashboardStatsServiceTest extends TestCase
         // 2 contrats × 2 entreprises = 154 000 cts.
         self::assertSame(154_000, $recettes->recettesLocativesCents);
         self::assertSame($year, $recettes->year);
-        // Pas de comparaison Y-1 car aucun contrat Y-1.
-        self::assertNull($recettes->previousYearRecettesLocativesCents);
-        self::assertNull($recettes->deltaRecettesLocativesPercent);
     }
 
     #[Test]
-    public function compute_kpis_fiscal_renvoie_null_pour_comparaison_si_y_moins_1_vide(): void
+    public function compute_kpis_fiscal_ne_porte_plus_de_comparaison_y_1(): void
     {
+        // v3 · `previousYearComparison` retiré du DTO · le pipeline
+        // fiscal ne tourne plus que sur 1 année au mount Dashboard
+        // (l'historique multi-années chargé à la demande sert de
+        // support temporel).
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
@@ -124,27 +125,25 @@ final class DashboardStatsServiceTest extends TestCase
 
         $kpis = $this->service->computeKpisFiscal($today->year)->toArray();
 
-        // Aucun contrat sur Y-1 → previousYearComparison est null.
-        self::assertNull($kpis['previousYearComparison']);
+        self::assertArrayNotHasKey('previousYearComparison', $kpis);
     }
 
     #[Test]
-    public function compute_history_se_borne_au_scope_dynamique_des_contrats(): void
+    public function compute_history_jours_vehicule_se_borne_au_scope_dynamique(): void
     {
-        // Sans contrat, le scope du resolver = [currentYear] uniquement.
-        // computeHistory garantit que l'année courante figure même si
-        // scope vide → renvoie au moins 1 entrée.
+        // v4 · computeHistory split en 4 méthodes par dimension.
+        // joursVehicule est l'onglet par défaut (cheap, sert au mount).
+        // Sans contrat, scope = [currentYear] → 1 entrée à value=0.
         $today = CarbonImmutable::today();
-        $history = $this->service->computeHistory();
+        $points = $this->service->computeHistoryJoursVehicule();
 
-        self::assertNotEmpty($history);
-        $last = end($history);
+        self::assertNotEmpty($points);
+        $last = end($points);
         self::assertSame($today->year, $last->year);
         self::assertTrue($last->isCurrentYear);
-        // Aucune année antérieure à 2024 (scope contrats vide) ne doit
-        // apparaître artificiellement.
-        foreach ($history as $entry) {
-            self::assertGreaterThanOrEqual($today->year, $entry->year);
+        self::assertSame(0, $last->value);
+        foreach ($points as $point) {
+            self::assertGreaterThanOrEqual($today->year, $point->year);
         }
     }
 
@@ -200,18 +199,16 @@ final class DashboardStatsServiceTest extends TestCase
     }
 
     #[Test]
-    public function compute_history_charge_les_contrats_en_bulk_quel_que_soit_le_scope(): void
+    public function compute_history_jours_vehicule_charge_en_1_pivot_range(): void
     {
-        // F-21-001/002 · garde-fou perf · `computeHistory` boucle sur
-        // N années du scope dynamique. Avant fix · N invocations
-        // indépendantes. Après fix · 1 invocation range qui couvre
-        // toutes les années du scope.
+        // v4 · l'onglet `joursVehicule` (chargé au mount avec les KPIs)
+        // ne fait qu'1 pivot range query couvrant toutes les années du
+        // scope · pas de pipeline fiscal, pas de vehicles, pas d'indispos.
+        // Garde-fou perf · count constant qq soit le nombre d'années.
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
 
-        // 4 années distinctes en base · scope dynamique = [2021..2024]
-        // + currentYear ajouté manuellement.
         foreach (range(2021, 2024) as $year) {
             Contract::factory()->create([
                 'company_id' => $company->id,
@@ -222,12 +219,10 @@ final class DashboardStatsServiceTest extends TestCase
         }
 
         DB::enableQueryLog();
-        $this->service->computeHistory();
+        $this->service->computeHistoryJoursVehicule();
         $queries = DB::getQueryLog();
         DB::disableQueryLog();
 
-        // Discriminant signature `loadContractsByPair*` · pivot global
-        // sans filtre company_id, ordre vehicle_id puis start_date.
         $pivotQueries = array_filter(
             $queries,
             static fn (array $q): bool => str_contains($q['query'], 'from `contracts`')
@@ -235,11 +230,10 @@ final class DashboardStatsServiceTest extends TestCase
                 && ! str_contains($q['query'], '`company_id`'),
         );
 
-        // 1 invocation range au lieu de 4-5 (1 par année du scope).
         self::assertCount(
             1,
             $pivotQueries,
-            'Expected exactly 1 SELECT pivot range query, got '.count($pivotQueries),
+            'Expected exactly 1 SELECT pivot range query for joursVehicule (dimension cheap), got '.count($pivotQueries),
         );
     }
 

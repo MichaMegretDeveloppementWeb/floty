@@ -50,6 +50,7 @@ function requestRevert(): void {
     if (reverting.value) {
         return;
     }
+
     reverting.value = true;
     router.post(
         revertDeferRoute.url({ declaration: props.declaration.id }),
@@ -92,6 +93,7 @@ function requestDiscard(): void {
     if (discarding.value) {
         return;
     }
+
     discardConfirmOpen.value = true;
 }
 

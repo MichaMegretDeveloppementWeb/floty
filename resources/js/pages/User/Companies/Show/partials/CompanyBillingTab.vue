@@ -246,7 +246,7 @@ function selectYear(year: number): void {
         <!-- Hero · total HT -->
         <div class="mb-10 flex flex-col gap-1.5">
             <p
-                class="font-mono text-[36px] sm:text-[44px] font-medium tracking-[-0.02em] tabular-nums leading-none"
+                class="font-mono text-[28px] sm:text-[36px] font-medium tracking-[-0.02em] tabular-nums leading-none"
                 :class="monthlyBilling.yearTotalCents === null ? 'text-slate-400' : 'text-slate-900'"
             >
                 {{ totalLabel }}

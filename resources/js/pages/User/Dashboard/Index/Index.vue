@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Deferred, Head } from '@inertiajs/vue3';
+import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import DashboardEvolutionChart from './partials/DashboardEvolutionChart.vue';
+import DashboardEvolutionChartSkeleton from './partials/DashboardEvolutionChartSkeleton.vue';
 import DashboardKpiCardSkeleton from './partials/DashboardKpiCardSkeleton.vue';
 import DashboardKpiFiscalCards from './partials/DashboardKpiFiscalCards.vue';
 import DashboardKpiRecettesCard from './partials/DashboardKpiRecettesCard.vue';
@@ -9,33 +11,27 @@ import DashboardPendingTasksRow from './partials/DashboardPendingTasksRow.vue';
 import PageHeader from './partials/PageHeader.vue';
 import QuickLinksGrid from './partials/QuickLinksGrid.vue';
 
-defineProps<{
-    /**
-     * Lentille Présent · 4 KPIs fiscaux YTD + comparaison Y-1.
-     * Deferred (chantier perf Dashboard 2026-05-17) · arrive dans une
-     * 2e requête asynchrone après le mount. Skeletons par carte le
-     * temps du fetch.
-     */
+const props = defineProps<{
+    /** 4 KPIs fiscaux YTD · deferred · pipeline fiscal 1 année. */
     kpis?: App.Data.User.Dashboard.DashboardKpiData;
-    /**
-     * Carte recettes locatives isolée · deferred indépendamment des
-     * KPIs fiscaux pour que la grille KPIs apparaisse sans attendre
-     * les ~60 queries SQL de `BillingBreakdownService`.
-     */
+    /** Carte recettes · deferred avec les autres KPIs. */
     kpisRecettes?: App.Data.User.Dashboard.DashboardKpiRecettesData;
-    /**
-     * Lentille Évolution · historique multi-années pour graphique barres.
-     * Deferred · arrive dans une 3e requête. Skeleton rendu via
-     * `<Deferred data="history">` le temps du fetch.
-     */
-    history?: App.Data.User.Dashboard.DashboardYearHistoryData[];
-    /** Tâches en attente · top 5 déclarations et factures + compteurs totaux. */
+    /** Tâches en attente · deferred. */
     pendingTasks?: App.Data.User.Dashboard.DashboardPendingTasksData;
-    /** Année résolue par le backend (sert au PageHeader uniquement). */
+    /**
+     * Onglet par défaut du graphique Évolution (Jours-véhicule) ·
+     * deferred avec la vague KPIs. Les 3 autres onglets sont
+     * `Inertia::optional` et chargés au clic d'onglet (doctrine
+     * `feedback_lazy_tab_loading`).
+     */
+    historyJoursVehicule?: App.Data.User.Dashboard.DashboardHistoryPointData[];
+    historyContracts?: App.Data.User.Dashboard.DashboardHistoryPointData[];
+    historyTaxes?: App.Data.User.Dashboard.DashboardHistoryPointData[];
+    historyRecettes?: App.Data.User.Dashboard.DashboardHistoryPointData[];
     selectedYear: number;
-    /** Scope d'années dynamique (chantier η Phase 5). */
     yearScope: App.Data.Shared.YearScopeData;
 }>();
+void props;
 </script>
 
 <template>
@@ -63,27 +59,49 @@ defineProps<{
                 </Deferred>
             </div>
 
-            <Deferred data="history">
+            <!--
+                Évolution · toujours visible. Le 1er onglet (Jours-véhicule)
+                est `Inertia::defer` · skeleton chart pendant le 1er fetch.
+                Les 3 autres onglets sont `Inertia::optional` et déclenchent
+                un `router.reload({only: [...]})` au clic depuis le chart.
+            -->
+            <Deferred data="historyJoursVehicule">
                 <template #fallback>
-                    <div class="rounded-xl border border-slate-200 bg-white p-6">
-                        <div class="mb-4 flex items-center justify-between">
-                            <div class="space-y-2">
-                                <div class="h-4 w-40 animate-pulse rounded bg-slate-200" />
-                                <div class="h-3 w-56 animate-pulse rounded bg-slate-100" />
-                            </div>
-                            <div class="h-8 w-72 animate-pulse rounded-lg bg-slate-100" />
-                        </div>
-                        <div class="h-[280px] animate-pulse rounded-lg bg-slate-50" />
-                    </div>
+                    <DashboardEvolutionChartSkeleton />
                 </template>
-                <DashboardEvolutionChart :history="history!" />
+                <DashboardEvolutionChart
+                    :history-jours-vehicule="historyJoursVehicule"
+                    :history-contracts="historyContracts"
+                    :history-taxes="historyTaxes"
+                    :history-recettes="historyRecettes"
+                />
             </Deferred>
 
             <Deferred data="pendingTasks">
                 <template #fallback>
                     <div class="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <div class="h-48 animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
-                        <div class="h-48 animate-pulse rounded-xl border border-slate-200 bg-slate-50" />
+                        <!-- 2 panels (Déclarations + Factures) · header icon + titre + 5 rows -->
+                        <article
+                            v-for="panelIdx in 2"
+                            :key="panelIdx"
+                            class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5"
+                            aria-busy="true"
+                        >
+                            <header class="flex items-center gap-3">
+                                <Skeleton class="h-9 w-9 shrink-0 rounded-lg" />
+                                <div class="flex flex-1 flex-col gap-1.5">
+                                    <Skeleton class="h-3 w-40 rounded" />
+                                    <Skeleton class="h-4 w-24 rounded" />
+                                </div>
+                            </header>
+                            <div class="flex flex-col gap-2">
+                                <Skeleton
+                                    v-for="rowIdx in 4"
+                                    :key="rowIdx"
+                                    class="h-8 rounded"
+                                />
+                            </div>
+                        </article>
                     </div>
                 </template>
                 <DashboardPendingTasksRow :tasks="pendingTasks!" />

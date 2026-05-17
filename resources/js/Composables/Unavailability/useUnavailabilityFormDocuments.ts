@@ -82,9 +82,11 @@ export function useUnavailabilityFormDocuments(props: {
         if (props.editing === null) {
             return;
         }
+
         const accepted = files.slice(0, remainingSlots.value);
         const uploaded = await uploadMany(props.editing.id, accepted);
         documents.value = [...uploaded, ...documents.value];
+
         if (uploaded.length > 0) {
             router.reload({ only: ['unavailabilities'] });
         }
@@ -99,6 +101,7 @@ export function useUnavailabilityFormDocuments(props: {
         if (props.editing === null || documentToDelete.value === null) {
             return;
         }
+
         const docId = documentToDelete.value.id;
         confirmDeleteOpen.value = false;
         await deleteDocument(props.editing.id, docId);

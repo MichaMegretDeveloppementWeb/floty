@@ -53,6 +53,7 @@ export function useWeekDetail(): UseWeekDetailReturn {
 
         try {
             const params: Record<string, number> = { vehicleId, week, year };
+
             if (companyId !== undefined) {
                 params.companyId = companyId;
             }

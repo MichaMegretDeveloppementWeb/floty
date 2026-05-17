@@ -2,6 +2,7 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import { closeOnSuccess } from '@/Composables/Shared/inertiaModalCallbacks';
 import {
     store as unavailabilitiesStoreRoute,
     update as unavailabilitiesUpdateRoute,
@@ -246,12 +247,7 @@ export function useUnavailabilityForm(
                 unavailabilitiesUpdateRoute.url({
                     unavailability: props.editing.id,
                 }),
-                {
-                    preserveScroll: true,
-                    onSuccess: () => {
-                        open.value = false;
-                    },
-                },
+                closeOnSuccess(open),
             );
 
             return;

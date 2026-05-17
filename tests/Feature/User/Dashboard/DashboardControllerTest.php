@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Inertia;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -34,13 +35,15 @@ final class DashboardControllerTest extends TestCase
             'end_date' => sprintf('%04d-06-15', $year),
         ]);
 
-        // Chantier perf Dashboard 2026-05-17 · les 4 props lourdes
-        // sont deferred (Inertia::defer) · elles ne sont PAS présentes
-        // dans la 1ère réponse Inertia, elles arrivent via 4 partial
-        // reloads asynchrones déclenchés par les `<Deferred>` côté
-        // front (4 vagues parallèles · KPIs fiscaux, recettes, history,
-        // pendingTasks). Le payload initial est minimal · juste
-        // `selectedYear` + `yearScope`.
+        // Chantier perf Dashboard 2026-05-17 v4 ·
+        // - kpis + kpisRecettes + pendingTasks + historyJoursVehicule ·
+        //   `Inertia::defer` · absents de la 1ère réponse, hydratés
+        //   via une vague unique post-mount.
+        // - historyContracts + historyTaxes + historyRecettes ·
+        //   `Inertia::optional` · NE chargent qu'au clic d'onglet via
+        //   `router.reload({only: ['historyXxx']})` (doctrine
+        //   `feedback_lazy_tab_loading`).
+        // Payload initial · `selectedYear` + `yearScope`.
         $this->actingAs($user)
             ->get('/app/dashboard?year='.$year)
             ->assertOk()
@@ -48,8 +51,11 @@ final class DashboardControllerTest extends TestCase
                 ->component('User/Dashboard/Index/Index')
                 ->missing('kpis')
                 ->missing('kpisRecettes')
-                ->missing('history')
                 ->missing('pendingTasks')
+                ->missing('historyJoursVehicule')
+                ->missing('historyContracts')
+                ->missing('historyTaxes')
+                ->missing('historyRecettes')
                 ->has('selectedYear')
                 ->has('yearScope'),
             );

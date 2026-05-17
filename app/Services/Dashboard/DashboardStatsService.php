@@ -4,16 +4,13 @@ declare(strict_types=1);
 
 namespace App\Services\Dashboard;
 
-use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
-use App\Data\User\Dashboard\DashboardKpiComparisonData;
+use App\Data\User\Dashboard\DashboardHistoryPointData;
 use App\Data\User\Dashboard\DashboardKpiData;
 use App\Data\User\Dashboard\DashboardKpiRecettesData;
 use App\Data\User\Dashboard\DashboardPendingTasksData;
-use App\Data\User\Dashboard\DashboardYearHistoryData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Fiscal\FiscalCalculationException;
-use App\Models\Company;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
@@ -45,31 +42,12 @@ final class DashboardStatsService
 {
     /**
      * Nombre maximum de barres dans le graphique « Évolution ». Si le
-     * scope dynamique des contrats remonte plus loin (ex. 20 ans), on
-     * tronque aux N dernières années pour garder une lecture visuelle
-     * claire. Si scope plus court (3 ans), on affiche tout.
+     * scope dynamique des contrats remonte plus loin, on tronque aux N
+     * dernières années pour garder une lecture visuelle claire ET
+     * limiter le coût du pipeline fiscal (chantier perf Dashboard
+     * 2026-05-17 v3 · réduit de 8 à 4 · 240 → 120 pipeline runs).
      */
-    private const HISTORY_MAX_YEARS = 8;
-
-    /**
-     * Mémoïsation per-request des recettes locatives par couple
-     * (entreprise, année) pour éviter de payer plusieurs fois
-     * `BillingBreakdownService::byCompanyForYear` (3 queries SQL chacun)
-     * quand {@see computeKpis} et {@see computeHistory} couvrent des
-     * années identiques (year courant + Y-1). Clé · `{companyId}|{year}`.
-     *
-     * @var array<string, int>
-     */
-    private array $recettesCentsMemo = [];
-
-    /**
-     * Mémoïsation per-request de `companies->findAllForOptions()` qui
-     * est appelé par chaque construction de scope context. La liste
-     * change rarement et un Service Laravel est resolved per-request.
-     *
-     * @var Collection<int, Company>|null
-     */
-    private ?Collection $cachedCompanies = null;
+    private const HISTORY_MAX_YEARS = 4;
 
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
@@ -78,45 +56,28 @@ final class DashboardStatsService
         private readonly FiscalYearContext $yearContext,
         private readonly AvailableYearsResolver $availableYears,
         private readonly BillingBreakdownService $billingBreakdown,
-        private readonly CompanyReadRepositoryInterface $companies,
         private readonly DashboardPendingTasksAggregator $pendingTasksAggregator,
     ) {}
 
     /**
-     * 4 KPIs fiscaux « Présent » de l'année calendaire courante +
-     * comparaison vs même période Y-1 (chantier perf Dashboard
-     * 2026-05-17 · split en `Inertia::defer` distinct du calcul recettes
-     * locatives qui ajoutait ~60 queries SQL au chemin critique).
+     * 4 KPIs fiscaux « Présent » de l'année calendaire courante.
+     *
+     * **Comparaison Y-1 retirée** (chantier perf Dashboard 2026-05-17 v3) ·
+     * l'historique multi-années (`computeHistory`, désormais chargé à la
+     * demande via un bouton) sert de support visuel à la comparaison
+     * temporelle. Gain CPU · le pipeline fiscal ne tourne plus que sur 1
+     * année au mount Dashboard (au lieu de 2) · ~50% du temps économisé.
      *
      * La date de référence est aujourd'hui. Pré-charge en bulk les
-     * contrats / véhicules / indispos pour les 2 années couvertes
-     * (current + Y-1) via {@see DashboardScopeContext} · évite 2× les
-     * chargements indépendants.
+     * contrats / véhicules / indispos pour l'année courante via
+     * {@see DashboardScopeContext}.
      */
     public function computeKpisFiscal(int $year): DashboardKpiData
     {
         $today = CarbonImmutable::today();
-        $context = $this->buildScopeContext($year - 1, $year);
+        $context = $this->buildScopeContext($year, $year);
 
         $current = $this->computePeriodMetrics($year, $today, $context);
-
-        $previousYearEnd = $today->subYear();
-        $previous = $this->computePeriodMetrics($year - 1, $previousYearEnd, $context);
-
-        $comparison = $previous['hasData']
-            ? new DashboardKpiComparisonData(
-                year: $year - 1,
-                endDate: $previousYearEnd->toDateString(),
-                joursVehicule: $previous['joursVehicule'],
-                contracts: $previous['contracts'],
-                taxesDues: $previous['taxesDues'],
-                tauxOccupation: $previous['tauxOccupation'],
-                deltaJoursVehiculePercent: self::deltaPercent($current['joursVehicule'], $previous['joursVehicule']),
-                deltaContractsPercent: self::deltaPercent($current['contracts'], $previous['contracts']),
-                deltaTaxesDuesPercent: self::deltaPercent($current['taxesDues'], $previous['taxesDues']),
-                deltaTauxOccupationPoints: round($current['tauxOccupation'] - $previous['tauxOccupation'], 1),
-            )
-            : null;
 
         return new DashboardKpiData(
             year: $year,
@@ -125,7 +86,6 @@ final class DashboardStatsService
             contractsActiveNow: $current['contractsActiveNow'],
             taxesDues: $current['taxesDues'],
             tauxOccupation: $current['tauxOccupation'],
-            previousYearComparison: $comparison,
         );
     }
 
@@ -141,79 +101,15 @@ final class DashboardStatsService
      */
     public function computeKpisRecettes(int $year): DashboardKpiRecettesData
     {
-        $current = $this->computeRecettesLocativesCentsForYear($year);
-        $previous = $this->computeRecettesLocativesCentsForYear($year - 1);
+        // 1 appel batch sur l'année courante uniquement (v3 · drop Y-1).
+        // L'historique chart, désormais lazy-load, gère la comparaison
+        // temporelle pour les recettes (dimension dédiée).
+        $totals = $this->billingBreakdown->totalRecettesForYears([$year]);
 
         return new DashboardKpiRecettesData(
             year: $year,
-            recettesLocativesCents: $current,
-            previousYearRecettesLocativesCents: $previous > 0 ? $previous : null,
-            deltaRecettesLocativesPercent: self::deltaPercent($current, $previous),
-            previousYear: $previous > 0 ? $year - 1 : null,
+            recettesLocativesCents: $totals[$year],
         );
-    }
-
-    /**
-     * Recettes locatives HT cumulées pour une année donnée, **plein
-     * année** (mois 1..12). Itère toutes les entreprises connues et
-     * somme `yearTotalCentsPartial` (mode partiel : véhicules sans
-     * tarif annuel exclus, cf. T11 E.17).
-     *
-     * Sémantique « total réalisé + prévu » pour l'année courante :
-     * `BillingBreakdownService::byCompanyForYear` calcule chaque mois
-     * via `BillingCalculator` qui prend en compte tous les contrats
-     * chevauchant le mois, qu'ils soient passés ou futurs. Aucun
-     * filtre temporel sur la date du jour.
-     *
-     * Mémoïsation per-couple `(companyId, year)` via
-     * {@see memoizedRecettesCents} · les appels répétés (ex.
-     * `computeKpisRecettes` qui calcule year + Y-1, ou
-     * `computeHistory` sur 8 années) ne paient `byCompanyForYear`
-     * qu'une seule fois par couple.
-     */
-    private function computeRecettesLocativesCentsForYear(int $year): int
-    {
-        $total = 0;
-        foreach ($this->companiesForOptions() as $company) {
-            $total += $this->memoizedRecettesCents((int) $company->id, $year);
-        }
-
-        return $total;
-    }
-
-    /**
-     * Recettes locatives HT (cents) pour un couple (entreprise, année)
-     * avec mémoïsation per-request. Évite que `byCompanyForYear`
-     * (3 queries SQL chacun) soit appelé deux fois pour un même couple
-     * lors d'un même chargement Dashboard (typique · year courant et
-     * Y-1 partagés entre {@see computeKpis} et {@see computeHistory}).
-     */
-    private function memoizedRecettesCents(int $companyId, int $year): int
-    {
-        $key = $companyId.'|'.$year;
-        if (! array_key_exists($key, $this->recettesCentsMemo)) {
-            $this->recettesCentsMemo[$key] = $this->billingBreakdown
-                ->byCompanyForYear($companyId, $year)
-                ->yearTotalCentsPartial;
-        }
-
-        return $this->recettesCentsMemo[$key];
-    }
-
-    /**
-     * Liste des entreprises pour `findAllForOptions()` mémoïsée
-     * per-request. Cohérent avec la doctrine "Service Laravel resolved
-     * per-request" · pas de pollution cross-request.
-     *
-     * @return Collection<int, Company>
-     */
-    private function companiesForOptions(): Collection
-    {
-        if ($this->cachedCompanies === null) {
-            $this->cachedCompanies = $this->companies->findAllForOptions();
-        }
-
-        return $this->cachedCompanies;
     }
 
     /**
@@ -261,63 +157,172 @@ final class DashboardStatsService
     }
 
     /**
-     * Historique des 4 KPIs **dans le scope dynamique des contrats**
-     * (cf. `AvailableYearsResolver` · doctrine "données métier"). Si
-     * le scope remonte au-delà de {@see HISTORY_MAX_YEARS}, on tronque
-     * aux N dernières années pour préserver la lisibilité visuelle.
+     * Scope d'années pour le graphique Évolution · années où l'entreprise
+     * a au moins un contrat actif, tronqué aux N plus récentes
+     * (cf. {@see HISTORY_MAX_YEARS}). L'année calendaire courante est
+     * toujours incluse, même si scope contrats vide.
      *
-     * Inclut toujours l'année calendaire courante (marquée
-     * `isCurrentYear: true`), même si elle n'est pas dans le scope
-     * (cas où aucun contrat n'a encore été créé sur l'année en cours).
+     * Doctrine "données métier" · cf. `AvailableYearsResolver`.
      *
-     * @return list<DashboardYearHistoryData>
+     * @return list<int>
      */
-    public function computeHistory(): array
+    private function historyYearScope(): array
     {
         $currentYear = $this->availableYears->currentYear();
         $scope = $this->availableYears->availableYears();
-        // Garantit que l'année courante figure dans l'historique
-        // (même si scope contrats vide · cas appli neuve).
         if (! in_array($currentYear, $scope, true)) {
             $scope[] = $currentYear;
             sort($scope);
         }
-        // Tronque aux N dernières si scope trop large.
         if (count($scope) > self::HISTORY_MAX_YEARS) {
             $scope = array_slice($scope, -self::HISTORY_MAX_YEARS);
         }
 
-        $today = CarbonImmutable::today();
-        $context = $this->buildScopeContext(min($scope), max($scope));
+        return $scope;
+    }
 
-        $history = [];
+    /**
+     * Historique « Jours-véhicule » · 1 contracts query × scope, somme
+     * arithmétique pure (`countDaysInYearUpTo`). Pas de pipeline fiscal,
+     * pas de vehicles, pas d'indispos · **dimension la moins chère** ·
+     * sert d'onglet par défaut au mount Dashboard (chantier perf v4 ·
+     * lazy par onglet).
+     *
+     * @return list<DashboardHistoryPointData>
+     */
+    public function computeHistoryJoursVehicule(): array
+    {
+        $currentYear = $this->availableYears->currentYear();
+        $scope = $this->historyYearScope();
+        $today = CarbonImmutable::today();
+        $contractsByYear = $this->contracts->loadContractsByPairForYearRange(min($scope), max($scope));
+
+        $points = [];
         foreach ($scope as $year) {
             $isCurrent = $year === $currentYear;
-            // Année écoulée : on prend la fenêtre complète. Année courante : YTD.
-            $endDate = $isCurrent
-                ? $today
-                : CarbonImmutable::create($year, 12, 31);
-            $metrics = $this->computePeriodMetrics($year, $endDate, $context);
-            $history[] = new DashboardYearHistoryData(
+            $endDateStr = $isCurrent
+                ? $today->toDateString()
+                : sprintf('%04d-12-31', $year);
+
+            $jours = 0;
+            $contracts = $contractsByYear[$year] ?? new ContractsByPair([]);
+            foreach ($contracts->vehicleCompanyPairs() as $pair) {
+                foreach ($pair['contracts'] as $contract) {
+                    $jours += $contract->countDaysInYearUpTo($year, $endDateStr);
+                }
+            }
+
+            $points[] = new DashboardHistoryPointData(
                 year: $year,
                 isCurrentYear: $isCurrent,
-                joursVehicule: $metrics['joursVehicule'],
-                contracts: $metrics['contracts'],
-                taxesDues: $metrics['taxesDues'],
-                tauxOccupation: $metrics['tauxOccupation'],
-                // Recettes locatives plein année (jan-déc), même pour
-                // l'année courante (CA prévu inclus). La barre opacifiée
-                // « (en cours) » signale la nature prévisionnelle.
-                // Mémoïsation par couple (companyId, year) via
-                // `memoizedRecettesCents` · si l'année est déjà
-                // calculée (cas où `computeKpisRecettes` a tourné
-                // dans la même requête, théorique car defer séparé),
-                // hit cache local · 0 query.
-                recettesLocativesCents: $this->computeRecettesLocativesCentsForYear($year),
+                value: $jours,
             );
         }
 
-        return $history;
+        return $points;
+    }
+
+    /**
+     * Historique « Locations » · compte des contrats ayant une activité
+     * sur la fenêtre `[1er jan, upToDate]`. Même contracts query que
+     * {@see computeHistoryJoursVehicule}, pas de pipeline.
+     *
+     * @return list<DashboardHistoryPointData>
+     */
+    public function computeHistoryContracts(): array
+    {
+        $currentYear = $this->availableYears->currentYear();
+        $scope = $this->historyYearScope();
+        $today = CarbonImmutable::today();
+        $contractsByYear = $this->contracts->loadContractsByPairForYearRange(min($scope), max($scope));
+
+        $points = [];
+        foreach ($scope as $year) {
+            $isCurrent = $year === $currentYear;
+            $endDateStr = $isCurrent
+                ? $today->toDateString()
+                : sprintf('%04d-12-31', $year);
+
+            $contractIds = [];
+            $contracts = $contractsByYear[$year] ?? new ContractsByPair([]);
+            foreach ($contracts->vehicleCompanyPairs() as $pair) {
+                foreach ($pair['contracts'] as $contract) {
+                    if ($contract->start_date->toDateString() <= $endDateStr) {
+                        $contractIds[$contract->id] = true;
+                    }
+                }
+            }
+
+            $points[] = new DashboardHistoryPointData(
+                year: $year,
+                isCurrentYear: $isCurrent,
+                value: count($contractIds),
+            );
+        }
+
+        return $points;
+    }
+
+    /**
+     * Historique « Taxes dues » · YTD pour année courante, full year
+     * pour les passées. **Dimension chère** · exécute le pipeline fiscal
+     * × N pairs × scope. Servie en `Inertia::optional` (chargement au
+     * clic d'onglet).
+     *
+     * @return list<DashboardHistoryPointData>
+     */
+    public function computeHistoryTaxes(): array
+    {
+        $currentYear = $this->availableYears->currentYear();
+        $scope = $this->historyYearScope();
+        $today = CarbonImmutable::today();
+        $context = $this->buildScopeContext(min($scope), max($scope));
+
+        $points = [];
+        foreach ($scope as $year) {
+            $isCurrent = $year === $currentYear;
+            $endDate = $isCurrent ? $today : CarbonImmutable::create($year, 12, 31);
+
+            $taxesAnnuelles = $this->safeFleetAnnualTax($context->contractsForYear($year), $year, $context);
+            $daysInYear = $this->yearContext->daysInYear($year);
+            $daysElapsed = $endDate->dayOfYear;
+            $taxesDues = $daysInYear > 0 ? round($taxesAnnuelles * $daysElapsed / $daysInYear, 2) : 0.0;
+
+            $points[] = new DashboardHistoryPointData(
+                year: $year,
+                isCurrentYear: $isCurrent,
+                value: $taxesDues,
+            );
+        }
+
+        return $points;
+    }
+
+    /**
+     * Historique « Recettes locatives » · plein année (jan-déc) cross-cies.
+     * Batch SQL via {@see BillingBreakdownService::totalRecettesForYears}
+     * (3-4 queries fixes quel que soit le scope). Servie en
+     * `Inertia::optional`.
+     *
+     * @return list<DashboardHistoryPointData>
+     */
+    public function computeHistoryRecettes(): array
+    {
+        $currentYear = $this->availableYears->currentYear();
+        $scope = $this->historyYearScope();
+
+        $recettesByYear = $this->billingBreakdown->totalRecettesForYears($scope);
+
+        $points = [];
+        foreach ($scope as $year) {
+            $points[] = new DashboardHistoryPointData(
+                year: $year,
+                isCurrentYear: $year === $currentYear,
+                value: $recettesByYear[$year],
+            );
+        }
+
+        return $points;
     }
 
     /**
@@ -341,7 +346,7 @@ final class DashboardStatsService
      * + véhicules + indispos depuis le bulk pré-chargé · zéro query
      * de plus. Sinon comportement standalone (fallback).
      *
-     * @return array{joursVehicule: int, contracts: int, contractsActiveNow: int, taxesDues: float, tauxOccupation: float, hasData: bool}
+     * @return array{joursVehicule: int, contracts: int, contractsActiveNow: int, taxesDues: float, tauxOccupation: float}
      */
     private function computePeriodMetrics(int $year, CarbonImmutable $upToDate, ?DashboardScopeContext $context = null): array
     {
@@ -351,7 +356,12 @@ final class DashboardStatsService
         $upToDateString = $upToDate->toDateString();
         $todayString = CarbonImmutable::today()->toDateString();
 
-        // Jours-véhicule YTD : on filtre les jours expandus pour ne garder que <= upToDate.
+        // Jours-véhicule YTD · arithmétique pure via `countDaysInYearUpTo`
+        // (chantier perf Dashboard 2026-05-17). Remplace l'allocation
+        // de jusqu'à 365 strings + filtre `<= upToDate` par contrat ·
+        // gros consommateur CPU sur history (8 ans × N pairs).
+        // Équivalence stricte garantie par
+        // `ContractCountVsExpandEquivalenceTest::count_up_to_egal_count_filtre_de_expand`.
         $joursVehicule = 0;
         // Total contrats : tout contrat ayant chevauché [début année, upToDate]
         // est compté une fois (déduplique cross-pair via id).
@@ -361,12 +371,7 @@ final class DashboardStatsService
         $contractsActiveNowIds = [];
         foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
             foreach ($pair['contracts'] as $contract) {
-                $days = $contract->expandToDaysInYear($year);
-                foreach ($days as $day) {
-                    if ($day <= $upToDateString) {
-                        $joursVehicule++;
-                    }
-                }
+                $joursVehicule += $contract->countDaysInYearUpTo($year, $upToDateString);
                 // Total : tout contrat dont la plage croise [1er janvier, upToDate]
                 // → start_date <= upToDate (la fin est forcément >= 1er janvier
                 // si on est ici, vu que loadContractsByPair filtre déjà).
@@ -406,7 +411,6 @@ final class DashboardStatsService
             'contractsActiveNow' => $contractsActiveNowCount,
             'taxesDues' => $taxesDues,
             'tauxOccupation' => $tauxOccupation,
-            'hasData' => $joursVehicule > 0 || $contractsCount > 0 || $taxesAnnuelles > 0,
         ];
     }
 
@@ -473,19 +477,5 @@ final class DashboardStatsService
         } catch (FiscalCalculationException) {
             return 0.0;
         }
-    }
-
-    /**
-     * Variation relative en pourcentage. `null` si la base précédente
-     * vaut 0 (la division n'a pas de sens, l'UI affiche « n/a » ou
-     * juste la valeur courante sans Δ).
-     */
-    private static function deltaPercent(int|float $current, int|float $previous): ?float
-    {
-        if ($previous === 0 || $previous === 0.0) {
-            return null;
-        }
-
-        return round((($current - $previous) / $previous) * 100, 1);
     }
 }

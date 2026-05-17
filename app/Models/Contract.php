@@ -220,6 +220,41 @@ final class Contract extends Model
     }
 
     /**
+     * Variante YTD de {@see countDaysInYear} avec plafond date supplémentaire ·
+     * compte les jours du contrat dans `[1er janvier $year, min(31 déc $year,
+     * $upToDate)]`. Pour `$upToDate >= 31 déc $year` (cas année passée vue
+     * depuis aujourd'hui), équivaut à `countDaysInYear`.
+     *
+     * Doit retourner exactement
+     * `count(array_filter(expandToDaysInYear($year), fn($d) => $d <= $upToDate))`
+     * (équivalence prouvée par
+     * {@see Tests\Unit\Models\ContractCountVsExpandEquivalenceTest::count_up_to_egal_count_filtre_de_expand}).
+     *
+     * Cf. chantier perf Dashboard 2026-05-17 · remplace l'allocation des
+     * 365 strings + filtre `<= upToDate` dans `DashboardStatsService::computePeriodMetrics`
+     * (8 ans × N pairs × 365 cmp string · gros consommateur CPU history).
+     */
+    public function countDaysInYearUpTo(int $year, string $upToDate): int
+    {
+        $yearStart = CarbonImmutable::create($year, 1, 1);
+        $yearEnd = CarbonImmutable::create($year, 12, 31);
+        $upToDateImmutable = CarbonImmutable::createFromFormat('Y-m-d', $upToDate);
+        $effectiveEnd = $upToDateImmutable->isBefore($yearEnd) ? $upToDateImmutable : $yearEnd;
+
+        $start = $this->start_date->toImmutable();
+        $end = $this->end_date->toImmutable();
+
+        $rangeStart = $start->isAfter($yearStart) ? $start : $yearStart;
+        $rangeEnd = $end->isBefore($effectiveEnd) ? $end : $effectiveEnd;
+
+        if ($rangeStart->isAfter($rangeEnd)) {
+            return 0;
+        }
+
+        return (int) $rangeStart->diffInDays($rangeEnd) + 1;
+    }
+
+    /**
      * Distribution des jours du contrat par semaine ISO de l'année donnée.
      * Clé · numéro de semaine ISO (1..53) · valeur · nombre de jours du
      * contrat dans cette semaine. Bornes incluses, contrat clippé à

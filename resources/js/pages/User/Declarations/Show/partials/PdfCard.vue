@@ -114,6 +114,7 @@ function copyHash(): void {
     if (props.declaration.snapshotHash === null) {
         return;
     }
+
     void navigator.clipboard.writeText(props.declaration.snapshotHash);
     copied.value = true;
     setTimeout(() => {
@@ -153,6 +154,7 @@ function requestModify(): void {
     if (modifying.value) {
         return;
     }
+
     modifyConfirmOpen.value = true;
 }
 

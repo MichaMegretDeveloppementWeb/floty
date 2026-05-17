@@ -193,9 +193,11 @@ type FlatItem =
 
 const items = computed<FlatItem[]>(() => {
     const years = new Set<number>();
+
     for (const d of props.pendingDeclarations) {
         years.add(d.fiscalYear);
     }
+
     for (const i of props.pendingInvoices) {
         years.add(i.fiscalYear);
     }
@@ -205,10 +207,13 @@ const items = computed<FlatItem[]>(() => {
 
     for (const year of sortedYears) {
         const decl = props.pendingDeclarations.find((d) => d.fiscalYear === year);
+
         if (decl) {
             result.push({ kind: 'declaration', year, data: decl });
         }
+
         const inv = props.pendingInvoices.find((i) => i.fiscalYear === year);
+
         if (inv) {
             result.push({ kind: 'invoice', year, data: inv });
         }
@@ -219,6 +224,7 @@ const items = computed<FlatItem[]>(() => {
 
 const oldestIsOverdue = computed<boolean>(() => {
     const firstDecl = props.pendingDeclarations[0];
+
     return firstDecl?.isOverdue ?? false;
 });
 

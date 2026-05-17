@@ -153,6 +153,7 @@ export function useCompanyDriversTab(opts: UseCompanyDriversTabOptions): UseComp
 
     function runConfirmAction(): void {
         const action = confirmAction.value;
+
         if (action === null) {
             return;
         }

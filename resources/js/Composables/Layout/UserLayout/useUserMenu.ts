@@ -29,7 +29,16 @@ export function useUserMenu(rootRef: Readonly<Ref<HTMLElement | null>>): {
 
     const logout = (): void => {
         close();
-        router.post(logoutRoute.url());
+        // `preserveScroll: true` · évite le saut visuel pendant la
+        // transition vers la page de login (le scroll du dashboard
+        // était reset à 0 au moment du POST).
+        // `preserveState: false` · le logout doit reset l'état Inertia
+        // côté client (tabs visités, formulaires en cours, etc.) ·
+        // session utilisateur close = état frais obligatoire.
+        router.post(logoutRoute.url(), {}, {
+            preserveScroll: true,
+            preserveState: false,
+        });
     };
 
     onClickOutside(rootRef, close);

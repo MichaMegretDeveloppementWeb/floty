@@ -9,20 +9,20 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * KPIs fiscaux « Présent » du Dashboard · 4 indicateurs YTD de l'année
- * en cours avec comparaison Y-1 (chantier η Phase 4).
+ * en cours.
  *
  * **Sémantique YTD** · les 4 dimensions sont cumulatives du 1er janvier
- * au jour courant. La comparaison Y-1 porte sur la même fenêtre YTD Y-1
- * (du 1er janvier Y-1 au même jour-mois).
+ * au jour courant.
  *
- * `previousYearComparison` est `null` quand on n'a pas de données
- * exploitables sur l'année précédente (typiquement · première année
- * d'utilisation de l'app).
+ * **Comparaison Y-1 supprimée** (chantier perf Dashboard 2026-05-17 v3) ·
+ * l'historique multi-années (`DashboardYearHistoryData`, désormais chargé
+ * à la demande via un bouton) sert de support visuel à la comparaison
+ * temporelle, plus besoin d'un trend Y-1 par carte. Gain CPU · le
+ * pipeline fiscal n'est plus exécuté 2× (year + year-1) au mount Dashboard.
  *
  * **Carte recettes séparée** · les recettes locatives sont chargées
  * indépendamment via {@see DashboardKpiRecettesData} en `Inertia::defer`
- * distinct (chantier perf Dashboard 2026-05-17) · ~60 queries SQL
- * hors chemin critique.
+ * distinct (chantier perf Dashboard 2026-05-17).
  */
 #[TypeScript]
 final class DashboardKpiData extends Data
@@ -41,9 +41,7 @@ final class DashboardKpiData extends Data
         /**
          * Sous-décompte des contrats encore en cours aujourd'hui
          * (date courante ∈ `[start, end]`). Affiché en sous-titre du KPI
-         * Contrats. Présent uniquement sur la lentille Présent · pas
-         * dans la comparaison Y-1 (la notion « actif au 5 mai 2025 »
-         * n'est pas exploitable, on ne compare que les totaux).
+         * Contrats.
          */
         public int $contractsActiveNow,
         /** Taxes dues YTD (CO₂ + polluants, toutes entreprises). */
@@ -55,7 +53,5 @@ final class DashboardKpiData extends Data
          * sur la carte « Jours-véhicule occupés » (numérateur + ratio).
          */
         public float $tauxOccupation,
-        /** Comparaison vs Y-1 YTD à même jour-mois, ou null si Y-1 vide. */
-        public ?DashboardKpiComparisonData $previousYearComparison,
     ) {}
 }

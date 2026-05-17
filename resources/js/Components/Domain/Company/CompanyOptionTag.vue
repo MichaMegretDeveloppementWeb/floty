@@ -17,6 +17,7 @@ const props = defineProps<{
 
 const dotClasses = computed<string>(() => {
     const color = (props.company.color ?? 'indigo') as CompanyColor;
+
     switch (color) {
         case 'indigo':
             return 'bg-company-indigo';
@@ -36,6 +37,7 @@ const dotClasses = computed<string>(() => {
             return 'bg-company-cyan';
         default: {
             const _exhaustive: never = color;
+
             throw new Error(`Couleur non gérée : ${_exhaustive as string}`);
         }
     }

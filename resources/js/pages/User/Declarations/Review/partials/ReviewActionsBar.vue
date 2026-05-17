@@ -30,6 +30,7 @@ const generateBlockedReason = computed<string | null>(() => {
     if (props.canGenerate) {
         return null;
     }
+
     if (props.pendingClustersCount > 0) {
         return `${props.pendingClustersCount} cluster${props.pendingClustersCount > 1 ? 's' : ''} en attente de décision avant génération.`;
     }
@@ -41,6 +42,7 @@ function requestMarkDeferred(): void {
     if (isProcessing.value || props.isDeferred) {
         return;
     }
+
     deferConfirmOpen.value = true;
 }
 
@@ -63,6 +65,7 @@ function handleGenerate(): void {
     if (isProcessing.value) {
         return;
     }
+
     generating.value = true;
     router.post(
         generateRoute.url({ declaration: props.declarationId }),

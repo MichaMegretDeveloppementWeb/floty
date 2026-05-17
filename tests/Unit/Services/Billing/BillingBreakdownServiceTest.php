@@ -276,4 +276,164 @@ final class BillingBreakdownServiceTest extends TestCase
         $this->assertSame('2024-01-0001', $january->existingInvoiceNumber);
         $this->assertSame($invoice->id, $january->existingInvoiceId);
     }
+
+    /**
+     * Équivalence stricte (chantier perf Dashboard 2026-05-17) ·
+     * `totalRecettesForYears([Y1, Y2])` retourne pour chaque année
+     * EXACTEMENT la somme cross-cies de
+     * `byCompanyForYear($cie, $year)->yearTotalCentsPartial`. Doctrine
+     * `optimisations-conditionnelles.md` stratégie 2 · garantit zéro
+     * régression Dashboard après le passage au batch 3 queries.
+     */
+    #[Test]
+    public function total_recettes_for_years_equivalent_to_sum_by_company_for_year(): void
+    {
+        // Scénario · 3 cies, 4 véhicules, 2 années couvertes, mix de
+        // contrats mono-mois / multi-mois / multi-année + 1 véhicule
+        // sans pricing (mois marqué missing → exclu du partial).
+        $cieA = Company::factory()->create();
+        $cieB = Company::factory()->create();
+        $cieC = Company::factory()->create();
+
+        $v1 = Vehicle::factory()->create(['license_plate' => 'AA-001-AA']);
+        $v2 = Vehicle::factory()->create(['license_plate' => 'BB-002-BB']);
+        $v3 = Vehicle::factory()->create(['license_plate' => 'CC-003-CC']);
+        $v4 = Vehicle::factory()->create(['license_plate' => 'DD-004-DD']); // pas de pricing 2024
+
+        foreach ([$v1, $v2, $v3] as $vehicle) {
+            VehicleYearlyPricing::factory()->for($vehicle)->forYear(2024)
+                ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)->create();
+            VehicleYearlyPricing::factory()->for($vehicle)->forYear(2025)
+                ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)->create();
+        }
+        // v4 a un pricing 2025 mais pas 2024 (un mois 2024 sera missing).
+        VehicleYearlyPricing::factory()->for($v4)->forYear(2025)
+            ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)->create();
+
+        // Cie A · contrat janvier 2024 plein + contrat multi-année
+        // (chevauche 2024/2025).
+        Contract::factory()->forVehicle($v1)->forCompany($cieA)->create([
+            'start_date' => '2024-01-01', 'end_date' => '2024-01-31',
+        ]);
+        Contract::factory()->forVehicle($v2)->forCompany($cieA)->create([
+            'start_date' => '2024-11-15', 'end_date' => '2025-02-10',
+        ]);
+
+        // Cie B · contrat unique mai 2025, autre véhicule.
+        Contract::factory()->forVehicle($v3)->forCompany($cieB)->create([
+            'start_date' => '2025-05-01', 'end_date' => '2025-05-20',
+        ]);
+
+        // Cie C · v4 en juin 2024 (sans pricing → mois missing pour Cie C)
+        // + v1 en juillet 2025 (pricing OK).
+        Contract::factory()->forVehicle($v4)->forCompany($cieC)->create([
+            'start_date' => '2024-06-10', 'end_date' => '2024-06-20',
+        ]);
+        Contract::factory()->forVehicle($v1)->forCompany($cieC)->create([
+            'start_date' => '2025-07-01', 'end_date' => '2025-07-15',
+        ]);
+
+        $years = [2024, 2025];
+        $companies = [$cieA, $cieB, $cieC];
+
+        // Référence · somme cross-cies de la méthode legacy par
+        // (companyId, year). On instancie un service FRESH pour ne pas
+        // que le cache de la méthode batch teinte le calcul de
+        // référence (et inversement).
+        $reference = $this->app->make(BillingBreakdownService::class);
+        $expected = [2024 => 0, 2025 => 0];
+        foreach ($years as $year) {
+            foreach ($companies as $cie) {
+                $expected[$year] += $reference
+                    ->byCompanyForYear((int) $cie->id, $year)
+                    ->yearTotalCentsPartial;
+            }
+        }
+
+        // Service distinct pour l'appel batch (cache isolé).
+        $batch = $this->app->make(BillingBreakdownService::class);
+        $actual = $batch->totalRecettesForYears($years);
+
+        $this->assertSame($expected, $actual);
+        // Sanity · les totaux ne sont pas nuls (sinon le test ne prouve rien).
+        $this->assertGreaterThan(0, $actual[2024]);
+        $this->assertGreaterThan(0, $actual[2025]);
+    }
+
+    /**
+     * Mémoïsation per-instance · un second appel à
+     * `totalRecettesForYears` avec un sous-ensemble des années
+     * précédemment calculées n'effectue aucune query SQL.
+     */
+    #[Test]
+    public function total_recettes_for_years_memoisation_evite_les_queries_redondantes(): void
+    {
+        $cie = Company::factory()->create();
+        $v = Vehicle::factory()->create();
+        VehicleYearlyPricing::factory()->for($v)->forYear(2024)
+            ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)->create();
+        Contract::factory()->forVehicle($v)->forCompany($cie)->create([
+            'start_date' => '2024-03-01', 'end_date' => '2024-03-10',
+        ]);
+
+        $svc = $this->app->make(BillingBreakdownService::class);
+        $first = $svc->totalRecettesForYears([2024]);
+
+        \DB::flushQueryLog();
+        \DB::enableQueryLog();
+        $second = $svc->totalRecettesForYears([2024]);
+        $queries = \DB::getQueryLog();
+        \DB::disableQueryLog();
+
+        $this->assertSame($first, $second);
+        $this->assertSame([], $queries, '2e appel mémoïsé doit faire zéro query SQL.');
+    }
+
+    /**
+     * Garantie batch · `totalRecettesForYears` exécute le scenario
+     * complet (2 cies × 2 ans, 2 véhicules) en exactement 4 queries
+     * SQL fixes, indépendamment du nombre de couples (cie × année) ·
+     *   1. contrats sur le range (1 SQL)
+     *   2. vehicles indexés (1 SQL)
+     *   3. VFC eager-load par défaut du repo (1 SQL, no-op fiscal pour
+     *      les recettes mais préservée pour cohérence inter-services)
+     *   4. pricings batched (vehicleIds × years) (1 SQL)
+     *
+     * Comparaison · avant batch · 15 cies × 2 ans × 3 queries
+     * (`byCompanyForYear`) = ~90 queries pour le même calcul.
+     */
+    #[Test]
+    public function total_recettes_for_years_execute_le_scenario_en_4_queries_fixes(): void
+    {
+        $cieA = Company::factory()->create();
+        $cieB = Company::factory()->create();
+        $v1 = Vehicle::factory()->create();
+        $v2 = Vehicle::factory()->create();
+        foreach ([$v1, $v2] as $v) {
+            VehicleYearlyPricing::factory()->for($v)->forYear(2024)
+                ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)->create();
+            VehicleYearlyPricing::factory()->for($v)->forYear(2025)
+                ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)->create();
+        }
+        Contract::factory()->forVehicle($v1)->forCompany($cieA)->create([
+            'start_date' => '2024-02-01', 'end_date' => '2024-02-28',
+        ]);
+        Contract::factory()->forVehicle($v2)->forCompany($cieB)->create([
+            'start_date' => '2025-08-01', 'end_date' => '2025-08-15',
+        ]);
+
+        $svc = $this->app->make(BillingBreakdownService::class);
+
+        \DB::flushQueryLog();
+        \DB::enableQueryLog();
+        $svc->totalRecettesForYears([2024, 2025]);
+        $queries = \DB::getQueryLog();
+        \DB::disableQueryLog();
+
+        $this->assertCount(4, $queries, sprintf(
+            'Attendu 4 queries fixes (contrats + vehicles + VFC eager + pricings), obtenu %d. Queries · %s',
+            count($queries),
+            implode(' | ', array_map(static fn ($q) => $q['query'], $queries)),
+        ));
+    }
 }

@@ -54,6 +54,7 @@ const statusLabel = computed<string>(() => {
     if (isFutureYear.value) {
         return 'Exercice à venir';
     }
+
     if (isCurrentYear.value) {
         return 'Exercice en cours';
     }
@@ -65,6 +66,7 @@ const statusDotClass = computed<string>(() => {
     if (isCurrentYear.value) {
         return 'bg-amber-500';
     }
+
     if (isFutureYear.value) {
         return 'bg-slate-400';
     }
@@ -78,9 +80,11 @@ const segmentsCount = computed<number>(
 
 const metaLine = computed<string>(() => {
     const n = segmentsCount.value;
+
     if (n === 0) {
         return 'Aucune VFC effective sur cette année · le calcul utilise des valeurs par défaut.';
     }
+
     if (n === 1) {
         return 'Taxe théorique pour 100 % d\'utilisation · 1 version VFC sur l\'année.';
     }
@@ -182,7 +186,7 @@ const statsLike = computed<UsageStats>(() => ({
         <div :class="{ 'opacity-60 transition-opacity duration-150': loading }">
             <!-- Hero · total Taxe pleine -->
             <div class="mb-10 flex flex-col gap-1.5">
-                <p class="font-mono text-[36px] sm:text-[44px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
+                <p class="font-mono text-[28px] sm:text-[36px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
                     {{ formatEur(fiscalYearBreakdown.total) }}
                 </p>
                 <p class="text-sm text-slate-500">

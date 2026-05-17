@@ -19,9 +19,10 @@ use Illuminate\Support\Collection;
  *
  * Les recettes locatives ne sont plus pré-calculées ici (chantier perf
  * Dashboard 2026-05-17 · split en `Inertia::defer` distinct via
- * {@see DashboardStatsService::computeKpisRecettes()}). La mémoïsation
- * par couple `(companyId, year)` reste assurée par
- * `DashboardStatsService::memoizedRecettesCents` en intra-requête.
+ * {@see DashboardStatsService::computeKpisRecettes()}). Le batch est
+ * désormais assuré par
+ * {@see App\Services\Billing\BillingBreakdownService::totalRecettesForYears}
+ * (3 queries SQL totales pour N companies × M années).
  */
 final readonly class DashboardScopeContext
 {

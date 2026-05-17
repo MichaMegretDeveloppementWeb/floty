@@ -171,6 +171,7 @@ export function useDeclarationsIndex(opts: {
 
     function onHeaderClick(columnKey: string): void {
         const sortKey = COLUMN_TO_SORT_KEY[columnKey];
+
         if (sortKey !== undefined) {
             state.setSort(sortKey);
         }

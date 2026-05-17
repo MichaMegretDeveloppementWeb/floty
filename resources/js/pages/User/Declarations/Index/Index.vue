@@ -60,9 +60,11 @@ const yearOptions = computed<{ value: number | null; label: string }[]>(() => {
     const min = bounds?.min ?? currentYear;
     const max = Math.max(bounds?.max ?? currentYear, currentYear);
     const years: number[] = [];
+
     for (let y = max; y >= min; y--) {
         years.push(y);
     }
+
     return [
         { value: null, label: 'Toutes les années' },
         ...years.map((y) => ({ value: y, label: String(y) })),

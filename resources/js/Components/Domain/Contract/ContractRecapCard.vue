@@ -64,8 +64,14 @@ const startFr = computed<string>(() => props.startDate ? formatDateFr(props.star
 const endFr = computed<string>(() => props.endDate ? formatDateFr(props.endDate) : '');
 
 const typeLabel = computed<string>(() => {
-    if (props.contractType === 'lcd') return 'LCD';
-    if (props.contractType === 'lld') return 'LLD';
+    if (props.contractType === 'lcd') {
+return 'LCD';
+}
+
+    if (props.contractType === 'lld') {
+return 'LLD';
+}
+
     return '';
 });
 

@@ -61,6 +61,7 @@ export function useFlashToasts(): void {
                 if (seenToastIds.has(entry.id)) {
                     continue;
                 }
+
                 seenToastIds.add(entry.id);
 
                 if (!isToastTone(entry.tone)) {

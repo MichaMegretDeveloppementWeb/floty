@@ -11,6 +11,7 @@ use App\Data\User\Billing\BillingLineData;
 use App\Exceptions\Billing\MissingPricingException;
 use App\Models\Contract;
 use App\Models\Vehicle;
+use App\Models\VehicleYearlyPricing;
 use Carbon\CarbonImmutable;
 
 /**
@@ -186,6 +187,47 @@ final readonly class BillingCalculator
                 $month,
                 $allContracts,
                 $pricingsAll,
+                $vehiclesAll,
+            );
+        }
+
+        return $results;
+    }
+
+    /**
+     * Variante full-batch de `calculateYear()` · prend en argument les
+     * contrats déjà filtrés sur la company (vehicle eager-loaded pour
+     * `exit_date`) et les pricings de l'année. Zéro query SQL ·
+     * itération in-memory pure des 12 mois.
+     *
+     * Sémantique strictement équivalente à `calculateYear($companyId, $year)`
+     * mais sans les 2 round-trips contrats + pricings · sert au batch
+     * Dashboard {@see App\Services\Billing\BillingBreakdownService::totalRecettesForYears}
+     * qui charge tous les contrats + pricings en amont (1+1 SQL pour
+     * N companies × M années).
+     *
+     * @param  iterable<int, Contract>  $companyYearContracts  contrats déjà filtrés sur (company, year), vehicle eager-loaded
+     * @param  array<int, VehicleYearlyPricing>  $pricingsForYear  vehicleId → pricing pour cette année
+     * @return array<int, BillingCalculationData|MissingPricingException> Clé : mois `[1..12]`
+     */
+    public function calculateYearWithPreloaded(
+        int $companyId,
+        int $year,
+        iterable $companyYearContracts,
+        array $pricingsForYear,
+    ): array {
+        // Index vehicles depuis les contrats (vehicle déjà eager-loadé
+        // par l'appelant). Pas de query SQL.
+        $vehiclesAll = $this->indexVehiclesById($companyYearContracts);
+
+        $results = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $results[$month] = $this->calculateMonthFromPreloaded(
+                $companyId,
+                $year,
+                $month,
+                $companyYearContracts,
+                $pricingsForYear,
                 $vehiclesAll,
             );
         }

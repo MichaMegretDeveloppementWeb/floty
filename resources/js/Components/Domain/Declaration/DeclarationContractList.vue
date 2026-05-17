@@ -98,6 +98,7 @@ const groups = computed<Group[]>(() => {
 
     // Index par fingerprint pour résoudre en O(1).
     const byFingerprint = new Map<string, Contract[]>();
+
     for (const c of props.contractBreakdown) {
         if (c.clusterFingerprint !== null) {
             const arr = byFingerprint.get(c.clusterFingerprint) ?? [];

@@ -39,12 +39,15 @@ const localErrors = computed<Record<string, string>>(() => {
     if (form.maxInterval !== null && form.maxInterval < 1) {
         errors.max_interval = 'L\'intervalle doit être d\'au moins 1 jour.';
     }
+
     if (form.thresholdLow !== null && form.thresholdLow < 0) {
         errors.threshold_low = 'Le seuil bas doit être positif ou nul.';
     }
+
     if (form.thresholdHigh !== null && form.thresholdLow !== null && form.thresholdHigh <= form.thresholdLow) {
         errors.threshold_high = 'Le seuil haut doit être strictement supérieur au seuil bas.';
     }
+
     if (form.countHigh !== null && form.countHigh < 1) {
         errors.count_high = 'Au moins 1 contrat est requis.';
     }

@@ -2,13 +2,13 @@
 import { Pencil, Trash2 } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
-import { formatFiscalHistoryPeriod } from '@/Utils/Vehicle/fiscalHistoryPeriod';
 import {
     energySourceLabel,
     fiscalCharacteristicsChangeReasonLabel,
     homologationMethodLabel,
     pollutantCategoryLabel,
 } from '@/Utils/labels/vehicleEnumLabels';
+import { formatFiscalHistoryPeriod } from '@/Utils/Vehicle/fiscalHistoryPeriod';
 
 type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 

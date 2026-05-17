@@ -2,6 +2,7 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import { closeOnSuccess } from '@/Composables/Shared/inertiaModalCallbacks';
 import {
     computeVfcUpdateImpact,
     hasDestructiveImpact,
@@ -226,13 +227,7 @@ export function useVfcEditForm(
                     : data.underlying_combustion_engine_type,
         })).patch(
             vfcUpdateRoute.url({ vehicleFiscalCharacteristic: props.editing.id }),
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    open.value = false;
-                    confirmationOpen.value = false;
-                },
-            },
+            closeOnSuccess(open, confirmationOpen),
         );
     };
 

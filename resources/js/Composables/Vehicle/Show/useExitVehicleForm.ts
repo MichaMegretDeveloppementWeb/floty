@@ -2,6 +2,7 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import { closeOnSuccess } from '@/Composables/Shared/inertiaModalCallbacks';
 import { exit as vehiclesExitRoute } from '@/routes/user/vehicles';
 import { vehicleExitReasonLabel } from '@/Utils/labels/vehicleEnumLabels';
 
@@ -81,12 +82,7 @@ export function useExitVehicleForm(
 
         form.transform(payloadTransform).post(
             vehiclesExitRoute.url({ vehicle: props.vehicleId }),
-            {
-                preserveScroll: true,
-                onSuccess: () => {
-                    open.value = false;
-                },
-            },
+            closeOnSuccess(open),
         );
     };
 

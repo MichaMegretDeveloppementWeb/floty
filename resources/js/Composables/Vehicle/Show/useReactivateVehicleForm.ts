@@ -1,6 +1,7 @@
 import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import type { Ref } from 'vue';
+import { closeOnSuccess } from '@/Composables/Shared/inertiaModalCallbacks';
 import { reactivate as vehiclesReactivateRoute } from '@/routes/user/vehicles';
 
 /**
@@ -22,12 +23,10 @@ export function useReactivateVehicleForm(
     const form = useForm<Record<string, never>>({});
 
     const submit = (): void => {
-        form.post(vehiclesReactivateRoute.url({ vehicle: props.vehicleId }), {
-            preserveScroll: true,
-            onSuccess: () => {
-                open.value = false;
-            },
-        });
+        form.post(
+            vehiclesReactivateRoute.url({ vehicle: props.vehicleId }),
+            closeOnSuccess(open),
+        );
     };
 
     return { form, submit };

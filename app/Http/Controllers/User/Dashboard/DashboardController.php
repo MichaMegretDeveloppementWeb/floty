@@ -29,19 +29,22 @@ use Inertia\Response;
  * KPIs Présent restent figés sur l'année calendaire courante
  * (doctrine HD7 · Présent ne dépend pas du sélecteur).
  *
- * **Chargement progressif** (chantier perf Dashboard 2026-05-17) ·
- * la page est servie en plusieurs vagues `Inertia::defer` pour que
- * chaque carte apparaisse dès que ses données sont prêtes, sans bloquer
- * les autres ·
- *   - `kpis` (4 KPIs fiscaux) · pipeline fiscal sur current + Y-1
- *   - `kpisRecettes` (recettes locatives) · BillingBreakdownService
- *     itéré sur toutes les entreprises (~60 queries SQL)
- *   - `history` (graphique 8 ans) · pipeline fiscal × 8 années
- *   - `pendingTasks` (factures + déclarations) · 5 queries SQL
+ * **Chargement progressif** (chantier perf Dashboard 2026-05-17 v4 ·
+ * refonte lazy par onglet selon doctrine `feedback_lazy_tab_loading`) ·
+ *
+ *   - `kpis` + `kpisRecettes` + `pendingTasks` + `historyJoursVehicule`
+ *     en `Inertia::defer` · une seule vague auto-load post-mount
+ *     (~500-800 ms). Le 1er onglet du graphique Évolution
+ *     (Jours-véhicule, cheap · 1 contracts query) est chargé d'emblée
+ *     pour que la section ne soit pas vide.
+ *   - `historyContracts` / `historyTaxes` / `historyRecettes` en
+ *     `Inertia::optional` · hydratés au clic d'onglet du graphique via
+ *     `router.reload({only: ['historyXxx']})`. Skeleton chart pendant
+ *     le fetch · cache intra-session (un onglet déjà chargé ne refait
+ *     pas la query au retour).
  *
  * Le payload initial Inertia est minimal (juste `selectedYear` +
- * `yearScope`) · la 1ère peinture rend la structure de page avec
- * skeletons, puis les 4 vagues hydratent indépendamment.
+ * `yearScope`).
  */
 final class DashboardController extends Controller
 {
@@ -58,10 +61,23 @@ final class DashboardController extends Controller
         $currentYear = $this->availableYears->currentYear();
 
         return Inertia::render('User/Dashboard/Index/Index', [
-            'kpis' => Inertia::defer(fn () => $this->stats->computeKpisFiscal($currentYear)),
-            'kpisRecettes' => Inertia::defer(fn () => $this->stats->computeKpisRecettes($currentYear)),
-            'history' => Inertia::defer(fn () => $this->stats->computeHistory()),
-            'pendingTasks' => Inertia::defer(fn () => $this->stats->computePendingTasks()),
+            // Chaque prop `Inertia::defer` dans son PROPRE groupe ·
+            // 4 requêtes follow-up parallèles · chaque section hydrate
+            // dès que SA réponse arrive (UX progressive · le rapide
+            // apparaît avant le lent). En prod multi-worker · vrai
+            // parallélisme. En dev mono-worker · les requêtes sérialisent
+            // mais chaque section apparaît à son rythme.
+            'kpis' => Inertia::defer(fn () => $this->stats->computeKpisFiscal($currentYear), 'kpis'),
+            'kpisRecettes' => Inertia::defer(fn () => $this->stats->computeKpisRecettes($currentYear), 'kpisRecettes'),
+            'pendingTasks' => Inertia::defer(fn () => $this->stats->computePendingTasks(), 'pendingTasks'),
+            // History · 1er onglet (Jours-véhicule, cheap) auto-load
+            // dans son groupe dédié · les 3 autres onglets sont
+            // `Inertia::optional` · hydratés au clic d'onglet côté Vue
+            // via `router.reload({only: ['historyXxx']})`.
+            'historyJoursVehicule' => Inertia::defer(fn () => $this->stats->computeHistoryJoursVehicule(), 'historyJoursVehicule'),
+            'historyContracts' => Inertia::optional(fn () => $this->stats->computeHistoryContracts()),
+            'historyTaxes' => Inertia::optional(fn () => $this->stats->computeHistoryTaxes()),
+            'historyRecettes' => Inertia::optional(fn () => $this->stats->computeHistoryRecettes()),
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
         ]);
