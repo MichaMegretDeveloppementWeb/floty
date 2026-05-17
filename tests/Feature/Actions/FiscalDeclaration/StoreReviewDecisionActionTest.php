@@ -82,11 +82,16 @@ final class StoreReviewDecisionActionTest extends TestCase
     }
 
     #[Test]
-    public function refuse_conserved_sans_justification_si_niveau_eleve(): void
+    public function accepte_conserved_sans_justification_meme_niveau_eleve(): void
     {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->action->execute(
+        // Lot 5 D14 · doctrine validée user · l'arbitrage final
+        // appartient à l'utilisateur · le backend ne bloque plus une
+        // décision « Conserver » sur un cluster de niveau élevé même
+        // sans justification (la justification reste recommandée côté
+        // UI mais n'est pas opposable techniquement). Bug observé
+        // 2026-05-17 · UX P1 frontend libérait le bouton Conserver
+        // mais le backend continuait à rejeter en `InvalidArgumentException`.
+        $decision = $this->action->execute(
             $this->makeData(
                 riskCode: RiskCode::ChainFort,
                 decision: ReviewDecisionType::Conserved,
@@ -94,21 +99,9 @@ final class StoreReviewDecisionActionTest extends TestCase
             ),
             $this->user->id,
         );
-    }
 
-    #[Test]
-    public function refuse_conserved_avec_justification_blanche_si_niveau_eleve(): void
-    {
-        $this->expectException(InvalidArgumentException::class);
-
-        $this->action->execute(
-            $this->makeData(
-                riskCode: RiskCode::ChainFort,
-                decision: ReviewDecisionType::Conserved,
-                justification: '   ',
-            ),
-            $this->user->id,
-        );
+        self::assertSame(ReviewDecisionType::Conserved, $decision->decision);
+        self::assertNull($decision->justification);
     }
 
     #[Test]

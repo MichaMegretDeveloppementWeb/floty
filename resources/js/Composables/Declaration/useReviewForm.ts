@@ -36,7 +36,13 @@ export function useReviewForm(declarationId: number): {
             } as RequestPayload,
             {
                 preserveScroll: true,
-                only: ['preview', 'declaration', 'snapshot'],
+                // Lot 5 D14 · `flash` doit être inclus sinon les toasts
+                // (success « Décision enregistrée. » ou error de
+                // validation) ne remontent pas à `useFlashToasts` qui
+                // watche `page.props.flash?.toasts` · l'utilisateur
+                // n'aurait aucun retour visuel après soumission. Bug
+                // observé sur arbitrage Conserver rejeté silencieusement.
+                only: ['preview', 'declaration', 'snapshot', 'flash'],
                 onFinish: () => {
                     submitting.value = false;
                 },

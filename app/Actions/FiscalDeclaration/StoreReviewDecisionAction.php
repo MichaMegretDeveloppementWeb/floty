@@ -7,8 +7,6 @@ namespace App\Actions\FiscalDeclaration;
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalReviewDecision\FiscalReviewDecisionWriteRepositoryInterface;
 use App\Data\User\FiscalReviewDecision\StoreReviewDecisionData;
-use App\Enums\FiscalReviewDecision\ReviewDecisionType;
-use App\Enums\FiscalReviewDecision\RiskLevel;
 use App\Models\FiscalReviewDecision;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -20,11 +18,13 @@ use InvalidArgumentException;
  * (Phase 11 D3, ADR-0015 § 6.2). Identité fonctionnelle :
  * `(company_id, fiscal_year, cluster_fingerprint)`.
  *
- * **Règle métier** : la justification est obligatoire ssi
- * `decision = Conserved` ET le code de risque est de niveau élevé
- * (cf. `RiskLevel::requiresJustificationOnConserved()`). Refus brutal
- * (`InvalidArgumentException`) sinon, pour ne pas laisser passer une
- * décision élevée non documentée.
+ * **Doctrine validée user (Lot 5 D14)** · l'arbitrage final
+ * appartient à l'utilisateur · ni l'UI (`ClusterDecisionModal`) ni
+ * le backend ne bloquent une décision « Conserver » sur un cluster
+ * de niveau élevé même sans justification. La justification reste
+ * recommandée (label « recommandée pour risque élevé » côté modal),
+ * mais le backend se contente de valider la longueur (max 2000 car)
+ * pour éviter le DOS du champ TEXT MySQL.
  */
 final readonly class StoreReviewDecisionAction
 {
@@ -35,7 +35,7 @@ final readonly class StoreReviewDecisionAction
 
     public function execute(StoreReviewDecisionData $data, int $userId): FiscalReviewDecision
     {
-        $this->guardJustificationIfRequired($data);
+        $this->guardJustificationLength($data);
 
         $excludedIds = $data->excludedContractIds !== null && $data->excludedContractIds !== []
             ? array_values(array_unique(array_map(static fn ($v): int => (int) $v, $data->excludedContractIds)))
@@ -79,12 +79,14 @@ final readonly class StoreReviewDecisionAction
      */
     private const int JUSTIFICATION_MAX_LENGTH = 2000;
 
-    private function guardJustificationIfRequired(StoreReviewDecisionData $data): void
+    private function guardJustificationLength(StoreReviewDecisionData $data): void
     {
-        // Validation longueur : applicable même pour les Requalified
-        // ou clusters niveau moyen (audit B17). On veille à ne jamais
-        // accepter une justification de plusieurs MB (DOS du champ
-        // TEXT MySQL ou stockage disproportionné).
+        // Validation longueur : applicable à toutes les décisions (audit
+        // B17). On veille à ne jamais accepter une justification de
+        // plusieurs MB (DOS du champ TEXT MySQL ou stockage
+        // disproportionné). Pas de guard sur l'obligation de
+        // justification · l'arbitrage final est laissé à l'utilisateur
+        // même sur risque élevé (Lot 5 D14, doctrine validée user).
         if ($data->justification !== null && mb_strlen($data->justification) > self::JUSTIFICATION_MAX_LENGTH) {
             throw new InvalidArgumentException(sprintf(
                 'La justification ne peut pas dépasser %d caractères (longueur reçue : %d).',
@@ -92,22 +94,6 @@ final readonly class StoreReviewDecisionAction
                 mb_strlen($data->justification),
             ));
         }
-
-        if ($data->decision !== ReviewDecisionType::Conserved) {
-            return;
-        }
-
-        if ($data->riskCode->level() !== RiskLevel::Eleve) {
-            return;
-        }
-
-        if ($data->justification !== null && trim($data->justification) !== '') {
-            return;
-        }
-
-        throw new InvalidArgumentException(
-            'Une justification est obligatoire pour conserver l\'exonération sur un cluster de niveau élevé (ADR-0015 § 6.2).',
-        );
     }
 
     /**
