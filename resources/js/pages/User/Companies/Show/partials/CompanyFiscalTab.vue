@@ -23,12 +23,14 @@
  * (D5.10.U) partagé entre les onglets Fiscalité / Facturation /
  * Activité.
  */
-import { Link } from '@inertiajs/vue3';
-import { ArrowRight } from 'lucide-vue-next';
-import { computed } from 'vue';
+import { Link, router } from '@inertiajs/vue3';
+import { ArrowRight, FileText, LoaderCircle } from 'lucide-vue-next';
+import { computed, ref } from 'vue';
 import DeclarationStateCard from '@/Components/Domain/Declaration/DeclarationStateCard.vue';
+import Button from '@/Components/Ui/Button/Button.vue';
 import { useCompanyFiscalSelectedYear } from '@/Composables/Company/Show/useCompanyFiscalSelectedYear';
 import { show as companyShow } from '@/routes/user/companies';
+import { prepare as prepareDeclarationRoute } from '@/routes/user/declarations';
 import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
@@ -155,6 +157,35 @@ const locationsHref = computed<string>(() => {
 const isUntouched = computed<boolean>(
     () => props.declarationLifecycle.state === 'untouched',
 );
+
+/**
+ * Préparation du brouillon depuis l'état S1 (untouched + déclarable) ·
+ * POST `/declarations/prepare` avec `(company_id, fiscal_year)` · le
+ * controller `DeclarationGenerationController::prepare` crée un Draft
+ * et redirige vers `show()` qui rend la revue interactive (mode B).
+ */
+const preparing = ref<boolean>(false);
+
+function prepareDeclaration(): void {
+    if (preparing.value) {
+        return;
+    }
+
+    preparing.value = true;
+    router.post(
+        prepareDeclarationRoute.url(),
+        {
+            company_id: props.companyId,
+            fiscal_year: selectedYear.value,
+        },
+        {
+            preserveScroll: false,
+            onFinish: () => {
+                preparing.value = false;
+            },
+        },
+    );
+}
 </script>
 
 <template>
@@ -341,6 +372,13 @@ const isUntouched = computed<boolean>(
                         <span class="font-mono">3310-A</span> ou le formulaire
                         <span class="font-mono">3517</span>.
                     </p>
+                    <div class="mt-5">
+                        <Button :disabled="preparing" @click="prepareDeclaration">
+                            <LoaderCircle v-if="preparing" :size="16" :stroke-width="1.75" class="animate-spin" />
+                            <FileText v-else :size="16" :stroke-width="1.75" />
+                            {{ preparing ? 'Préparation…' : 'Préparer la déclaration' }}
+                        </Button>
+                    </div>
                 </template>
                 <template v-else>
                     <p>
@@ -349,12 +387,6 @@ const isUntouched = computed<boolean>(
                         sera ouverte en
                         <strong class="font-medium text-slate-900">
                             janvier {{ selectedYear + 1 }}</strong>.
-                        Elle se dépose via l'annexe
-                        <span class="font-mono">3310-A</span> jointe à la déclaration
-                        de TVA (régime réel) ou via le formulaire
-                        <span class="font-mono">3517</span> (régime simplifié).
-                        Les chiffres ci-dessus évolueront jusqu'à la clôture de
-                        l'année.
                     </p>
                 </template>
             </div>
