@@ -1,24 +1,26 @@
 <script setup lang="ts">
 /**
- * Bandeau récapitulatif sticky des clusters de la déclaration en revue
- * (Phase 11 D5.8).
+ * Bandeau récapitulatif des clusters de la déclaration en revue
+ * (Phase 11 D5.8 · refonte design 2026-05-17).
  *
  * Affiche **tous** les clusters de risque détectés (pas seulement les
  * pending) · permet à l'utilisateur de garder une vue d'ensemble
  * persistante des chaînes LCD, peu importe leur état d'arbitrage. Le
  * titre s'adapte · « N arbitrage(s) requis avant génération » quand
- * il en reste, « N cluster(s) de risque LCD » quand tous sont rendus.
+ * il en reste, « N cluster(s) de risque LCD · tous arbitrés » sinon.
  *
  * Pas d'action d'arbitrage directe ici · seul un bouton « Voir le
- * cluster » (style secondary) qui scrolle vers le cluster dans le
+ * cluster » (style `secondary`) qui scrolle vers le cluster dans le
  * tableau breakdown. L'arbitrage réel se fait via la modale
  * `<ClusterDecisionModal>` ouverte depuis le `<ClusterGroup>` du
  * tableau (cohérence UX · une seule entrée d'action).
  *
- * Sticky top + backdrop-blur · reste visible pendant le scroll, ne
- * masque pas le contenu derrière.
+ * Layout · items pleine largeur (un par ligne) avec espacement
+ * généreux entre les éléments. Ordre cohérent avec l'entête cluster
+ * du tableau breakdown · icône + nom + risque + coverage à gauche,
+ * pill décision + bouton « Voir le cluster » à droite.
  */
-import { ShieldAlert, ShieldCheck } from 'lucide-vue-next';
+import { CheckCircle2, ShieldAlert, ShieldCheck } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import StatusPill from '@/Components/Ui/StatusPill/StatusPill.vue';
@@ -61,24 +63,20 @@ function levelLabel(level: App.Enums.FiscalReviewDecision.RiskLevel): string {
     return level === 'eleve' ? 'Risque élevé' : 'Risque moyen';
 }
 
-function codeLabel(code: App.Enums.FiscalReviewDecision.RiskCode): string {
-    return code === 'R-LCD-CHAIN-FORT' ? 'LCD successifs · risqué' : 'LCD successifs';
-}
-
-type DecisionPill = { tone: StatusTone; label: string };
+type DecisionPill = { tone: StatusTone; label: string; showCheck: boolean };
 
 function decisionPill(
     decision: App.Enums.FiscalReviewDecision.ReviewDecisionType | null,
 ): DecisionPill {
     if (decision === 'conserved') {
-        return { tone: 'emerald', label: 'LCD maintenue' };
+        return { tone: 'emerald', label: 'LCD maintenue', showCheck: true };
     }
 
     if (decision === 'requalified') {
-        return { tone: 'rose', label: 'Requalifiée LLD' };
+        return { tone: 'rose', label: 'Requalifiée LLD', showCheck: true };
     }
 
-    return { tone: 'amber', label: 'À arbitrer' };
+    return { tone: 'amber', label: 'À arbitrer', showCheck: false };
 }
 
 /**
@@ -100,7 +98,7 @@ function coverageSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterD
 <template>
     <div
         v-if="totalCount > 0"
-        class="sticky top-3 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/95 p-3 shadow-sm backdrop-blur"
+        class="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
         <div class="flex items-center gap-2">
             <ShieldAlert :size="16" :stroke-width="1.75" class="text-slate-600" />
@@ -108,38 +106,47 @@ function coverageSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterD
                 {{ headerLabel }}
             </p>
         </div>
-        <ul class="flex flex-wrap gap-2">
+        <ul class="flex flex-col gap-2">
             <li
                 v-for="cluster in clusters"
                 :key="cluster.fingerprint"
-                class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50/60 px-3 py-2.5"
             >
-                <component
-                    :is="cluster.level === 'eleve' ? ShieldAlert : ShieldCheck"
-                    :size="14"
-                    :stroke-width="1.75"
-                    :class="cluster.level === 'eleve' ? 'text-rose-500' : 'text-amber-500'"
-                />
-                <span class="text-xs font-medium text-slate-900">
-                    {{ codeLabel(cluster.code) }}
-                </span>
-                <StatusPill :tone="levelTone(cluster.level)">
-                    {{ levelLabel(cluster.level) }}
-                </StatusPill>
-                <StatusPill :tone="decisionPill(cluster.decision).tone">
-                    {{ decisionPill(cluster.decision).label }}
-                </StatusPill>
-                <span class="text-[11px] text-slate-500">
-                    {{ coverageSummary(cluster) }}
-                </span>
-                <Button
-                    size="sm"
-                    variant="secondary"
-                    :disabled="submitting"
-                    @click="emit('scrollTo', cluster.fingerprint)"
-                >
-                    Voir le cluster
-                </Button>
+                <div class="flex flex-wrap items-center gap-3">
+                    <component
+                        :is="cluster.level === 'eleve' ? ShieldAlert : ShieldCheck"
+                        :size="16"
+                        :stroke-width="1.75"
+                        :class="cluster.level === 'eleve' ? 'text-rose-500' : 'text-amber-500'"
+                    />
+                    <span class="text-sm font-semibold text-slate-900">
+                        LCD successifs
+                    </span>
+                    <StatusPill :tone="levelTone(cluster.level)">
+                        {{ levelLabel(cluster.level) }}
+                    </StatusPill>
+                    <span class="text-xs text-slate-500">
+                        {{ coverageSummary(cluster) }}
+                    </span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <StatusPill :tone="decisionPill(cluster.decision).tone">
+                        <CheckCircle2
+                            v-if="decisionPill(cluster.decision).showCheck"
+                            :size="12"
+                            :stroke-width="1.75"
+                        />
+                        {{ decisionPill(cluster.decision).label }}
+                    </StatusPill>
+                    <Button
+                        size="sm"
+                        variant="secondary"
+                        :disabled="submitting"
+                        @click="emit('scrollTo', cluster.fingerprint)"
+                    >
+                        Voir le cluster
+                    </Button>
+                </div>
             </li>
         </ul>
     </div>

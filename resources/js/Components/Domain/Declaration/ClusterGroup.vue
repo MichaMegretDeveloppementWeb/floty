@@ -86,9 +86,10 @@ const emit = defineEmits<{
 
 const isHighLevel = computed<boolean>(() => props.riskLevel === 'eleve');
 
-const codeLabel = computed<string>(() =>
-    props.riskCode === 'R-LCD-CHAIN-FORT' ? 'LCD successifs · risqué' : 'LCD successifs',
-);
+// La distinction R-LCD-CHAIN vs R-LCD-CHAIN-FORT est déjà portée par
+// le pill « Risque élevé » / « Risque moyen » juste à côté · pas besoin
+// de la dédoubler dans le libellé du code.
+const codeLabel = computed<string>(() => 'LCD successifs');
 
 const levelTone = computed<StatusTone>(() => (isHighLevel.value ? 'rose' : 'amber'));
 const levelLabel = computed<string>(() => (isHighLevel.value ? 'Risque élevé' : 'Risque moyen'));

@@ -77,9 +77,10 @@ watch(
 
 const isHighRisk = computed<boolean>(() => props.cluster?.level === 'eleve');
 
-const codeLabel = computed<string>(() =>
-    props.cluster?.code === 'R-LCD-CHAIN-FORT' ? 'LCD successifs · risqué' : 'LCD successifs',
-);
+// La distinction R-LCD-CHAIN vs R-LCD-CHAIN-FORT est déjà portée par
+// le pill « Risque élevé » / « Risque moyen » juste à côté · pas besoin
+// de la dédoubler dans le libellé du code.
+const codeLabel = computed<string>(() => 'LCD successifs');
 
 /**
  * La justification reste **recommandée** sur risque élevé (le texte
