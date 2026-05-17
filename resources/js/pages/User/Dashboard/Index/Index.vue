@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Deferred, Head } from '@inertiajs/vue3';
-import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import DashboardEvolutionChart from './partials/DashboardEvolutionChart.vue';
 import DashboardEvolutionChartSkeleton from './partials/DashboardEvolutionChartSkeleton.vue';
 import DashboardKpiCardSkeleton from './partials/DashboardKpiCardSkeleton.vue';

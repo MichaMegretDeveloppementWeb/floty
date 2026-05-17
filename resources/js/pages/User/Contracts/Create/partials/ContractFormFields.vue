@@ -12,11 +12,11 @@ import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
+import { useVehicleFullYearTax } from '@/Composables/Contract/useVehicleFullYearTax';
 import {
     findLongestFreeSubrange,
     rangeConflicts,
 } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
-import { useVehicleFullYearTax } from '@/Composables/Contract/useVehicleFullYearTax';
 import { indexById } from '@/Utils/Common/indexById';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';

@@ -90,14 +90,17 @@ const isLoading = computed<boolean>(
 function setDimension(d: Dimension): void {
     activeDimension.value = d;
     const meta = DIMENSIONS.find((m) => m.key === d)!;
+
     // Déjà hydraté (Inertia conserve la prop après 1er reload) · rien à faire.
     if (props[meta.propKey] !== undefined) {
         return;
     }
+
     // Déjà en cours pour cet onglet · skip pour éviter double-fetch.
     if (loadingDimension.value === d) {
         return;
     }
+
     loadingDimension.value = d;
     router.reload({
         only: [meta.propKey],

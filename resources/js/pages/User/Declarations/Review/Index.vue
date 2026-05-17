@@ -167,6 +167,7 @@ function handleQuickRequalify(fingerprint: string): void {
     if (!props.preview) {
         return;
     }
+
     const cluster = props.preview.clusters.find((c) => c.fingerprint === fingerprint);
 
     if (cluster === undefined) {

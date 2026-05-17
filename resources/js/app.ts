@@ -12,9 +12,11 @@ createInertiaApp({
     },
     resolve: async (name) => {
         const importer = pageImports[`./pages/${name}.vue`];
+
         if (!importer) {
             throw new Error(`Page Inertia introuvable · "${name}".`);
         }
+
         const module = (await importer()) as { default: unknown };
 
         return (module.default ?? module) as never;

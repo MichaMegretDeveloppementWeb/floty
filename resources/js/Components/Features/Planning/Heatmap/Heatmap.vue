@@ -185,8 +185,12 @@ const rightRef = ref<HTMLElement | null>(null);
  */
 const scrollbarWidth = ref(15);
 const measureScrollbarWidth = (): void => {
-    if (middleRef.value === null) return;
+    if (middleRef.value === null) {
+return;
+}
+
     const sw = middleRef.value.offsetWidth - middleRef.value.clientWidth;
+
     // Buffer de -1 px : `offsetWidth` est arrondi à l'entier supérieur
     // (1174 pour une largeur effective 1173.7 par ex.), ce qui ajoute ~
     // 0.3 px de débordement, combiné aux ~0.4 px d'arrondi flex sur les
@@ -202,6 +206,7 @@ let resizeObserver: ResizeObserver | null = null;
 onMounted(() => {
     requestAnimationFrame(() => {
         measureScrollbarWidth();
+
         if (middleRef.value !== null && typeof ResizeObserver !== 'undefined') {
             resizeObserver = new ResizeObserver(measureScrollbarWidth);
             resizeObserver.observe(middleRef.value);
@@ -357,11 +362,13 @@ function syncFrom(e: Event): void {
                     Bloc droit · VehicleSummary. Overflow-y auto avec
                     scrollbar V visible · c'est la scrollbar V
                     « principale » du composant (visuellement à droite
-                    du conteneur).
+                    du conteneur). `w-32` (128 px) réserve une bbox fixe
+                    pour absorber « 999 999,99 € » + « N j » sans CLS
+                    quand les costs deferred remplacent les skeletons.
                 -->
                 <div
                     ref="rightRef"
-                    class="heatmap-pane shrink-0 max-h-[50em] overflow-y-auto bg-white"
+                    class="heatmap-pane shrink-0 w-32 max-h-[50em] overflow-y-auto bg-white"
                     @scroll="syncFrom"
                 >
                     <div class="sticky top-0 z-10 bg-white pt-4 pb-2 pl-3 pr-4">

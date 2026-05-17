@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue';
 import { Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import type { HeatmapVehicleView } from '@/Components/Features/Planning/Heatmap/types';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -58,8 +58,14 @@ const tooltipTitle = computed<string>(() =>
                 {{ vehicleView.brand }} {{ vehicleView.model }}
             </p>
         </Link>
+        <!-- `w-20` (80 px) réserve une bbox fixe pour le bloc « Taxe pleine »
+             qui contient soit un skeleton (`w-14`), soit une valeur dont la
+             largeur varie (« 1 234 € » à « 999 999 € »). Sans width fixe, la
+             cellule se redimensionne quand les costs deferred arrivent et fait
+             bouger toute la mini-fiche véhicule + comprime/dilate le bloc
+             centre (heatmap 52 semaines). -->
         <div
-            class="flex shrink-0 flex-col items-end leading-tight"
+            class="flex w-20 shrink-0 flex-col items-end leading-tight"
             :title="tooltipTitle"
         >
             <span class="text-[10px] font-medium uppercase tracking-wide text-slate-400">

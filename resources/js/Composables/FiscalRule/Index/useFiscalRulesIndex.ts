@@ -161,9 +161,11 @@ export function useFiscalRulesIndex(props: {
 
     function relatedRulesFor(code: string): RelatedRule[] {
         const targets = RELATED_RULES[code] ?? [];
+
         return targets
             .map((c) => {
                 const rule = rulesByCode.value[c];
+
                 return rule
                     ? {
                           code: c,
@@ -180,31 +182,38 @@ export function useFiscalRulesIndex(props: {
     ): string {
         const url = new URL(window.location.href);
         url.searchParams.set('tab', tab);
+
         if (ruleCode !== undefined && ruleCode !== null && ruleCode !== '') {
             url.searchParams.set('rule', ruleCode);
         } else {
             url.searchParams.delete('rule');
         }
+
         return url.pathname + url.search + url.hash;
     }
 
     function findTabForRule(code: string): RuleTabValue | null {
         const section = props.rules.find((r) => r.ruleCode === code)
             ?.pedagogicalContent?.section;
+
         if (section === undefined) {
             return null;
         }
+
         const tab = props.tabs.find((t) =>
             t.sections.some((s) => s.value === section),
         );
+
         return tab !== undefined ? (tab.value as RuleTabValue) : null;
     }
 
     function scrollAndFlash(code: string): void {
         const el = document.getElementById(`rule-${code}`);
+
         if (el === null) {
             return;
         }
+
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         flashedRuleCode.value = code;
         setTimeout(() => {
@@ -230,6 +239,7 @@ export function useFiscalRulesIndex(props: {
 
     function navigateToRule(code: string): void {
         const targetTab = findTabForRule(code);
+
         if (targetTab === null) {
             return;
         }
@@ -245,6 +255,7 @@ export function useFiscalRulesIndex(props: {
             suppressTabWatcher = true;
             activeTab.value = targetTab;
         }
+
         void nextTick(() => scrollAndFlash(code));
     }
 
@@ -269,6 +280,7 @@ export function useFiscalRulesIndex(props: {
         void nextTick(() => {
             const ruleCode =
                 state.ruleCode ?? url.searchParams.get('rule') ?? null;
+
             if (ruleCode !== null && ruleCode !== '') {
                 scrollAndFlash(ruleCode);
             } else if (typeof state.scrollY === 'number') {
@@ -287,8 +299,10 @@ export function useFiscalRulesIndex(props: {
     watch(activeTab, (newTab) => {
         if (suppressTabWatcher) {
             suppressTabWatcher = false;
+
             return;
         }
+
         snapshotCurrentScroll();
         history.pushState(
             { tab: newTab, scrollY: 0 },
@@ -302,6 +316,7 @@ export function useFiscalRulesIndex(props: {
         // partagé, retour navigateur depuis une autre page).
         const url = new URL(window.location.href);
         const initialTab = url.searchParams.get('tab');
+
         if (
             initialTab !== null &&
             props.tabs.some((t) => t.value === initialTab)
@@ -323,6 +338,7 @@ export function useFiscalRulesIndex(props: {
         );
 
         const initialRule = url.searchParams.get('rule');
+
         if (initialRule !== null && initialRule !== '') {
             void nextTick(() => scrollAndFlash(initialRule));
         }

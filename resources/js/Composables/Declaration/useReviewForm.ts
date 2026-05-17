@@ -6,8 +6,8 @@
  * `FiscalSummaryCard` se mette à jour en direct (sinon les totaux
  * affichés divergent des opt-outs en cours).
  */
-import { router } from '@inertiajs/vue3';
 import type { RequestPayload } from '@inertiajs/core';
+import { router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import type { Ref } from 'vue';
 import { store as storeDecisionRoute } from '@/routes/user/declarations/decisions';
