@@ -2,25 +2,34 @@
 import { Deferred, Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import DashboardEvolutionChart from './partials/DashboardEvolutionChart.vue';
-import DashboardKpiCards from './partials/DashboardKpiCards.vue';
+import DashboardKpiCardSkeleton from './partials/DashboardKpiCardSkeleton.vue';
+import DashboardKpiFiscalCards from './partials/DashboardKpiFiscalCards.vue';
+import DashboardKpiRecettesCard from './partials/DashboardKpiRecettesCard.vue';
 import DashboardPendingTasksRow from './partials/DashboardPendingTasksRow.vue';
 import PageHeader from './partials/PageHeader.vue';
 import QuickLinksGrid from './partials/QuickLinksGrid.vue';
 
 defineProps<{
-    /** Lentille Présent · KPIs YTD + comparaison vs même période Y-1. */
-    kpis: App.Data.User.Dashboard.DashboardKpiData;
+    /**
+     * Lentille Présent · 4 KPIs fiscaux YTD + comparaison Y-1.
+     * Deferred (chantier perf Dashboard 2026-05-17) · arrive dans une
+     * 2e requête asynchrone après le mount. Skeletons par carte le
+     * temps du fetch.
+     */
+    kpis?: App.Data.User.Dashboard.DashboardKpiData;
+    /**
+     * Carte recettes locatives isolée · deferred indépendamment des
+     * KPIs fiscaux pour que la grille KPIs apparaisse sans attendre
+     * les ~60 queries SQL de `BillingBreakdownService`.
+     */
+    kpisRecettes?: App.Data.User.Dashboard.DashboardKpiRecettesData;
     /**
      * Lentille Évolution · historique multi-années pour graphique barres.
-     * S2.3 · deferred via `Inertia::defer()` côté backend · arrive dans
-     * une 2e requête asynchrone après le mount initial. Skeleton rendu
-     * via `<Deferred data="history">` le temps du fetch.
+     * Deferred · arrive dans une 3e requête. Skeleton rendu via
+     * `<Deferred data="history">` le temps du fetch.
      */
     history?: App.Data.User.Dashboard.DashboardYearHistoryData[];
-    /**
-     * Tâches en attente · top 5 déclarations et factures + compteurs totaux.
-     * S2.3 · deferred (cf. ci-dessus).
-     */
+    /** Tâches en attente · top 5 déclarations et factures + compteurs totaux. */
     pendingTasks?: App.Data.User.Dashboard.DashboardPendingTasksData;
     /** Année résolue par le backend (sert au PageHeader uniquement). */
     selectedYear: number;
@@ -34,9 +43,25 @@ defineProps<{
 
     <UserLayout>
         <div class="flex flex-col gap-8">
-            <PageHeader :fiscal-year="kpis.year" />
+            <PageHeader :fiscal-year="selectedYear" />
 
-            <DashboardKpiCards :kpis="kpis" />
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Deferred data="kpis">
+                    <template #fallback>
+                        <DashboardKpiCardSkeleton />
+                        <DashboardKpiCardSkeleton />
+                        <DashboardKpiCardSkeleton />
+                    </template>
+                    <DashboardKpiFiscalCards :kpis="kpis!" />
+                </Deferred>
+
+                <Deferred data="kpisRecettes">
+                    <template #fallback>
+                        <DashboardKpiCardSkeleton />
+                    </template>
+                    <DashboardKpiRecettesCard :recettes="kpisRecettes!" />
+                </Deferred>
+            </div>
 
             <Deferred data="history">
                 <template #fallback>

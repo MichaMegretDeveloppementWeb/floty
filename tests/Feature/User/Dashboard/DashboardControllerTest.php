@@ -34,27 +34,20 @@ final class DashboardControllerTest extends TestCase
             'end_date' => sprintf('%04d-06-15', $year),
         ]);
 
-        // S2.3 (plan optim perf 2026-05-15) · `history` et `pendingTasks`
-        // sont deferred (Inertia::defer) · ils ne sont PAS présents dans
-        // la 1ère réponse Inertia, ils arrivent via une 2e requête
-        // asynchrone partial reload déclenchée par `<Deferred>` côté
-        // front. Le test assert l'absence au mount initial · suffisant
-        // pour prouver que le defer est correctement câblé (le
-        // comportement de la 2e requête est testé par Inertia lui-même).
+        // Chantier perf Dashboard 2026-05-17 · les 4 props lourdes
+        // sont deferred (Inertia::defer) · elles ne sont PAS présentes
+        // dans la 1ère réponse Inertia, elles arrivent via 4 partial
+        // reloads asynchrones déclenchés par les `<Deferred>` côté
+        // front (4 vagues parallèles · KPIs fiscaux, recettes, history,
+        // pendingTasks). Le payload initial est minimal · juste
+        // `selectedYear` + `yearScope`.
         $this->actingAs($user)
             ->get('/app/dashboard?year='.$year)
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Dashboard/Index/Index')
-                ->has('kpis', fn (AssertableInertia $k) => $k
-                    ->has('year')
-                    ->has('joursVehicule')
-                    ->has('contracts')
-                    ->has('contractsActiveNow')
-                    ->has('taxesDues')
-                    ->has('tauxOccupation')
-                    ->has('recettesLocativesCents')
-                    ->has('previousYearComparison'))
+                ->missing('kpis')
+                ->missing('kpisRecettes')
                 ->missing('history')
                 ->missing('pendingTasks')
                 ->has('selectedYear')

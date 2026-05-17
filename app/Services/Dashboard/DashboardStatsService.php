@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Dashboard\DashboardKpiComparisonData;
 use App\Data\User\Dashboard\DashboardKpiData;
+use App\Data\User\Dashboard\DashboardKpiRecettesData;
 use App\Data\User\Dashboard\DashboardPendingTasksData;
 use App\Data\User\Dashboard\DashboardYearHistoryData;
 use App\DTO\Fiscal\ContractsByPair;
@@ -82,16 +83,17 @@ final class DashboardStatsService
     ) {}
 
     /**
-     * KPIs « Présent » de l'année calendaire courante + comparaison vs
-     * même période Y-1. La date de référence est aujourd'hui.
+     * 4 KPIs fiscaux « Présent » de l'année calendaire courante +
+     * comparaison vs même période Y-1 (chantier perf Dashboard
+     * 2026-05-17 · split en `Inertia::defer` distinct du calcul recettes
+     * locatives qui ajoutait ~60 queries SQL au chemin critique).
      *
-     * F-21-001/002 · pré-charge en bulk les contrats / véhicules /
-     * indispos / recettes pour les 2 années couvertes (current + Y-1)
-     * via {@see DashboardScopeContext} · évite 2× les chargements
-     * indépendants de loadContractsByPair / findByIdsIndexed /
-     * loadUnavailabilitiesByVehicle.
+     * La date de référence est aujourd'hui. Pré-charge en bulk les
+     * contrats / véhicules / indispos pour les 2 années couvertes
+     * (current + Y-1) via {@see DashboardScopeContext} · évite 2× les
+     * chargements indépendants.
      */
-    public function computeKpis(int $year): DashboardKpiData
+    public function computeKpisFiscal(int $year): DashboardKpiData
     {
         $today = CarbonImmutable::today();
         $context = $this->buildScopeContext($year - 1, $year);
@@ -101,13 +103,7 @@ final class DashboardStatsService
         $previousYearEnd = $today->subYear();
         $previous = $this->computePeriodMetrics($year - 1, $previousYearEnd, $context);
 
-        // Recettes locatives : full year (jan-déc), indépendant de upToDate.
-        // Pour Y courante, somme tous les mois 1..12 (réalisés + prévus).
-        // Pour Y-1, l'année est complète, somme directement les 12 mois.
-        $recettesCurrent = $this->computeRecettesLocativesCentsForYear($year, $context);
-        $recettesPrevious = $this->computeRecettesLocativesCentsForYear($year - 1, $context);
-
-        $comparison = $previous['hasData'] || $recettesPrevious > 0
+        $comparison = $previous['hasData']
             ? new DashboardKpiComparisonData(
                 year: $year - 1,
                 endDate: $previousYearEnd->toDateString(),
@@ -115,12 +111,10 @@ final class DashboardStatsService
                 contracts: $previous['contracts'],
                 taxesDues: $previous['taxesDues'],
                 tauxOccupation: $previous['tauxOccupation'],
-                recettesLocativesCents: $recettesPrevious,
                 deltaJoursVehiculePercent: self::deltaPercent($current['joursVehicule'], $previous['joursVehicule']),
                 deltaContractsPercent: self::deltaPercent($current['contracts'], $previous['contracts']),
                 deltaTaxesDuesPercent: self::deltaPercent($current['taxesDues'], $previous['taxesDues']),
                 deltaTauxOccupationPoints: round($current['tauxOccupation'] - $previous['tauxOccupation'], 1),
-                deltaRecettesLocativesPercent: self::deltaPercent($recettesCurrent, $recettesPrevious),
             )
             : null;
 
@@ -131,8 +125,31 @@ final class DashboardStatsService
             contractsActiveNow: $current['contractsActiveNow'],
             taxesDues: $current['taxesDues'],
             tauxOccupation: $current['tauxOccupation'],
-            recettesLocativesCents: $recettesCurrent,
             previousYearComparison: $comparison,
+        );
+    }
+
+    /**
+     * Carte « Recettes locatives » isolée des 4 KPIs fiscaux (chantier
+     * perf Dashboard 2026-05-17). Sert en `Inertia::defer` distinct ·
+     * permet à la grille KPIs fiscaux d'apparaître sans attendre les
+     * ~60 queries de `BillingBreakdownService::byCompanyForYear`.
+     *
+     * Sémantique full year (jan-déc), indépendant d'aujourd'hui. Pour
+     * l'année courante, somme tous les mois 1..12 (réalisés + prévus).
+     * Pour Y-1, l'année est complète.
+     */
+    public function computeKpisRecettes(int $year): DashboardKpiRecettesData
+    {
+        $current = $this->computeRecettesLocativesCentsForYear($year);
+        $previous = $this->computeRecettesLocativesCentsForYear($year - 1);
+
+        return new DashboardKpiRecettesData(
+            year: $year,
+            recettesLocativesCents: $current,
+            previousYearRecettesLocativesCents: $previous > 0 ? $previous : null,
+            deltaRecettesLocativesPercent: self::deltaPercent($current, $previous),
+            previousYear: $previous > 0 ? $year - 1 : null,
         );
     }
 
@@ -148,16 +165,14 @@ final class DashboardStatsService
      * chevauchant le mois, qu'ils soient passés ou futurs. Aucun
      * filtre temporel sur la date du jour.
      *
-     * F-21-001 · si `$context` est fourni et que l'année figure dans
-     * la plage pré-calculée, retourne la valeur mémoïsée (zéro query
-     * de plus). Sinon comportement standalone.
+     * Mémoïsation per-couple `(companyId, year)` via
+     * {@see memoizedRecettesCents} · les appels répétés (ex.
+     * `computeKpisRecettes` qui calcule year + Y-1, ou
+     * `computeHistory` sur 8 années) ne paient `byCompanyForYear`
+     * qu'une seule fois par couple.
      */
-    private function computeRecettesLocativesCentsForYear(int $year, ?DashboardScopeContext $context = null): int
+    private function computeRecettesLocativesCentsForYear(int $year): int
     {
-        if ($context !== null && array_key_exists($year, $context->recettesCentsByYear)) {
-            return $context->recettesCentsByYear[$year];
-        }
-
         $total = 0;
         foreach ($this->companiesForOptions() as $company) {
             $total += $this->memoizedRecettesCents((int) $company->id, $year);
@@ -205,10 +220,12 @@ final class DashboardStatsService
      * Construit un contexte mémoïsé pour les calculs Dashboard sur une
      * plage d'années (F-21-001/002). Pré-charge en bulk · les contrats
      * par couple groupés par année, les véhicules concernés, les
-     * indispos, et les recettes locatives par année.
+     * indispos.
      *
-     * Coût · ~4 queries SQL fixes (au lieu de ~2N + 5N queries avec
-     * une approche year-by-year, où N est le nombre d'années couvertes).
+     * Coût · ~3 queries SQL fixes (au lieu de ~2N + 3N queries avec
+     * une approche year-by-year). Les recettes locatives ne sont plus
+     * pré-calculées ici (chargement defer indépendant via
+     * {@see computeKpisRecettes()}).
      */
     private function buildScopeContext(int $fromYear, int $toYear): DashboardScopeContext
     {
@@ -236,26 +253,10 @@ final class DashboardStatsService
             ? []
             : $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
 
-        // Recettes locatives · companies mémoïsées per-request +
-        // memoization par couple (companyId, year) via
-        // {@see memoizedRecettesCents} pour éviter le re-calcul quand
-        // computeKpis (year, year-1) et computeHistory (toutes années)
-        // partagent les mêmes années.
-        $companies = $this->companiesForOptions();
-        $recettesCentsByYear = [];
-        for ($y = $fromYear; $y <= $toYear; $y++) {
-            $total = 0;
-            foreach ($companies as $company) {
-                $total += $this->memoizedRecettesCents((int) $company->id, $y);
-            }
-            $recettesCentsByYear[$y] = $total;
-        }
-
         return new DashboardScopeContext(
             contractsByYear: $contractsByYear,
             vehiclesById: $vehiclesById,
             unavailabilitiesByVehicleId: $unavailabilitiesByVehicleId,
-            recettesCentsByYear: $recettesCentsByYear,
         );
     }
 
@@ -307,7 +308,12 @@ final class DashboardStatsService
                 // Recettes locatives plein année (jan-déc), même pour
                 // l'année courante (CA prévu inclus). La barre opacifiée
                 // « (en cours) » signale la nature prévisionnelle.
-                recettesLocativesCents: $this->computeRecettesLocativesCentsForYear($year, $context),
+                // Mémoïsation par couple (companyId, year) via
+                // `memoizedRecettesCents` · si l'année est déjà
+                // calculée (cas où `computeKpisRecettes` a tourné
+                // dans la même requête, théorique car defer séparé),
+                // hit cache local · 0 query.
+                recettesLocativesCents: $this->computeRecettesLocativesCentsForYear($year),
             );
         }
 
@@ -413,6 +419,17 @@ final class DashboardStatsService
      * F-21-001/002 · si `$context` est fourni, lit les véhicules et
      * indispos depuis le bulk pré-chargé · zéro query de plus. Sinon
      * comportement standalone (fallback).
+     *
+     * **Prewarm VFC** (chantier perf Dashboard 2026-05-17) · pré-charge
+     * en 1 query SQL les segments VFC pour tous les véhicules avant
+     * d'invoquer le pipeline · sans cela, `fleetAnnualTax` exécute
+     * `executeWithSegments` qui fait 1 query VFC par véhicule
+     * (N+1 monstrueux · ~70 queries pour 30 véhicules × 2 ans). Le
+     * pipeline consomme automatiquement le cache via la branche
+     * `executeWithPreloadedVfcSegments`. Équivalence stricte garantie
+     * par les tests `prewarm_vfc_segments_equivalent_*` (doctrine
+     * `optimisations-conditionnelles.md` stratégie 2). Idempotent ·
+     * si déjà prewarmé, no-op.
      */
     private function safeFleetAnnualTax(ContractsByPair $contractsByPair, int $year, ?DashboardScopeContext $context = null): float
     {
@@ -438,6 +455,14 @@ final class DashboardStatsService
                 $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
                 $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
             }
+
+            // Prewarm VFC segments · supprime le N+1 du pipeline.
+            // On filtre `$vehiclesById` aux IDs effectivement présents
+            // dans le pivot pour ne pas prewarmer inutilement (le
+            // superset context peut contenir des véhicules d'autres
+            // années).
+            $relevantVehicles = $vehiclesById->only($vehicleIdList);
+            $this->aggregator->prewarmVfcSegmentsForVehicles($relevantVehicles, $year);
 
             return $this->aggregator->fleetAnnualTax(
                 $vehiclesById,

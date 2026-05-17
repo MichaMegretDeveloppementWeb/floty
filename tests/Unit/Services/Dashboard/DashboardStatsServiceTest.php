@@ -33,7 +33,7 @@ final class DashboardStatsServiceTest extends TestCase
     }
 
     #[Test]
-    public function compute_kpis_renvoie_les_4_kpis_pivots_pour_l_annee_demandee(): void
+    public function compute_kpis_fiscal_renvoie_les_4_kpis_pivots_pour_l_annee_demandee(): void
     {
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -45,7 +45,7 @@ final class DashboardStatsServiceTest extends TestCase
             'end_date' => $today->addDays(15)->toDateString(),
         ]);
 
-        $kpis = $this->service->computeKpis($today->year)->toArray();
+        $kpis = $this->service->computeKpisFiscal($today->year)->toArray();
 
         self::assertSame($today->year, $kpis['year']);
         self::assertGreaterThan(0, $kpis['joursVehicule']);
@@ -53,12 +53,13 @@ final class DashboardStatsServiceTest extends TestCase
         self::assertSame(1, $kpis['contractsActiveNow']);
         self::assertGreaterThanOrEqual(0.0, $kpis['taxesDues']);
         self::assertGreaterThanOrEqual(0.0, $kpis['tauxOccupation']);
-        // Recettes locatives : véhicule sans tarif annuel → mode partiel = 0.
-        self::assertSame(0, $kpis['recettesLocativesCents']);
+        // Recettes locatives sont dans un DTO séparé (chargement defer
+        // indépendant), pas dans le DTO fiscal.
+        self::assertArrayNotHasKey('recettesLocativesCents', $kpis);
     }
 
     #[Test]
-    public function compute_kpis_recettes_locatives_full_year_somme_companies(): void
+    public function compute_kpis_recettes_full_year_somme_companies(): void
     {
         $today = CarbonImmutable::today();
         $year = $today->year;
@@ -86,8 +87,7 @@ final class DashboardStatsServiceTest extends TestCase
         $companyA = Company::factory()->create();
         $companyB = Company::factory()->create();
 
-        // Contrat 10 jours en mars (mois passé ou futur selon today, mais
-        // toujours dans l'année courante puisqu'on prend full year).
+        // Contrat 10 jours en mars.
         $marchStart = CarbonImmutable::create($year, 3, 1);
         Contract::factory()->forVehicle($vehicleA)->forCompany($companyA)->create([
             'start_date' => $marchStart->toDateString(),
@@ -98,17 +98,20 @@ final class DashboardStatsServiceTest extends TestCase
             'end_date' => $marchStart->addDays(9)->toDateString(),
         ]);
 
-        $kpis = $this->service->computeKpis($year)->toArray();
+        $recettes = $this->service->computeKpisRecettes($year);
 
-        // Chaque contrat = 10 jours × 9 000 cts = 90 000 cts. Mais
-        // OptimalRateBreakdown choisit le combo le moins cher : 1 semaine
-        // (50 000) + 3 jours (27 000) = 77 000 cts. Avec 2 contrats sur
-        // 2 entreprises, total = 154 000 cts.
-        self::assertSame(154_000, $kpis['recettesLocativesCents']);
+        // Chaque contrat = 10 jours, OptimalRateBreakdown choisit
+        // 1 semaine (50 000) + 3 jours (27 000) = 77 000 cts.
+        // 2 contrats × 2 entreprises = 154 000 cts.
+        self::assertSame(154_000, $recettes->recettesLocativesCents);
+        self::assertSame($year, $recettes->year);
+        // Pas de comparaison Y-1 car aucun contrat Y-1.
+        self::assertNull($recettes->previousYearRecettesLocativesCents);
+        self::assertNull($recettes->deltaRecettesLocativesPercent);
     }
 
     #[Test]
-    public function compute_kpis_renvoie_null_pour_comparaison_si_y_moins_1_vide(): void
+    public function compute_kpis_fiscal_renvoie_null_pour_comparaison_si_y_moins_1_vide(): void
     {
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -119,7 +122,7 @@ final class DashboardStatsServiceTest extends TestCase
             'end_date' => $today->addDays(5)->toDateString(),
         ]);
 
-        $kpis = $this->service->computeKpis($today->year)->toArray();
+        $kpis = $this->service->computeKpisFiscal($today->year)->toArray();
 
         // Aucun contrat sur Y-1 → previousYearComparison est null.
         self::assertNull($kpis['previousYearComparison']);
@@ -173,7 +176,7 @@ final class DashboardStatsServiceTest extends TestCase
         }
 
         DB::enableQueryLog();
-        $this->service->computeKpis(2025);
+        $this->service->computeKpisFiscal(2025);
         $queries = DB::getQueryLog();
         DB::disableQueryLog();
 

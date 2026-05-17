@@ -29,11 +29,19 @@ use Inertia\Response;
  * KPIs Présent restent figés sur l'année calendaire courante
  * (doctrine HD7 · Présent ne dépend pas du sélecteur).
  *
- * **S2.3 (plan optim perf 2026-05-15)** · `history` et `pendingTasks`
- * sont **deferred** (Inertia v3) · ne participent pas à la 1ère
- * peinture, arrivent dans une 2e requête asynchrone après le mount.
- * `kpis` reste eager (carte top of fold, primary view). Skeleton CSS
- * côté Vue le temps des deferred props.
+ * **Chargement progressif** (chantier perf Dashboard 2026-05-17) ·
+ * la page est servie en plusieurs vagues `Inertia::defer` pour que
+ * chaque carte apparaisse dès que ses données sont prêtes, sans bloquer
+ * les autres ·
+ *   - `kpis` (4 KPIs fiscaux) · pipeline fiscal sur current + Y-1
+ *   - `kpisRecettes` (recettes locatives) · BillingBreakdownService
+ *     itéré sur toutes les entreprises (~60 queries SQL)
+ *   - `history` (graphique 8 ans) · pipeline fiscal × 8 années
+ *   - `pendingTasks` (factures + déclarations) · 5 queries SQL
+ *
+ * Le payload initial Inertia est minimal (juste `selectedYear` +
+ * `yearScope`) · la 1ère peinture rend la structure de page avec
+ * skeletons, puis les 4 vagues hydratent indépendamment.
  */
 final class DashboardController extends Controller
 {
@@ -47,14 +55,11 @@ final class DashboardController extends Controller
         Gate::authorize('view-dashboard');
 
         $year = $this->resolveYear($request);
+        $currentYear = $this->availableYears->currentYear();
 
         return Inertia::render('User/Dashboard/Index/Index', [
-            'kpis' => $this->stats->computeKpis($this->availableYears->currentYear()),
-            // S2.3 · history (8 ans pipeline · ~600 ms) et pendingTasks
-            // (5 SQL · ~150 ms) sont deferred · sortis du chemin
-            // critique 1ère peinture. Inertia v3 déclenche une 2e
-            // requête automatique après le mount, le frontend rend
-            // un skeleton entre-temps via `<Deferred>`.
+            'kpis' => Inertia::defer(fn () => $this->stats->computeKpisFiscal($currentYear)),
+            'kpisRecettes' => Inertia::defer(fn () => $this->stats->computeKpisRecettes($currentYear)),
             'history' => Inertia::defer(fn () => $this->stats->computeHistory()),
             'pendingTasks' => Inertia::defer(fn () => $this->stats->computePendingTasks()),
             'selectedYear' => $year,

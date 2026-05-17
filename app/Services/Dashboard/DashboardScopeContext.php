@@ -15,14 +15,13 @@ use Illuminate\Support\Collection;
  *
  * Pré-charge en bulk · les contrats groupés par couple (véhicule,
  * entreprise) pour chaque année du scope, les véhicules concernés
- * (1 query unique), les indispos par véhicule (1 query unique), et
- * les recettes locatives par année (calculées une fois par année).
+ * (1 query unique), les indispos par véhicule (1 query unique).
  *
- * Évite que {@see DashboardStatsService::computePeriodMetrics} et
- * {@see DashboardStatsService::computeRecettesLocativesCentsForYear}
- * fassent un rechargement complet pour chaque année du scope (avant
- * fix · 33 queries contrats + 25 invoice_lines + 12 vehicles · après
- * fix · ~3 queries pour les pré-chargements).
+ * Les recettes locatives ne sont plus pré-calculées ici (chantier perf
+ * Dashboard 2026-05-17 · split en `Inertia::defer` distinct via
+ * {@see DashboardStatsService::computeKpisRecettes()}). La mémoïsation
+ * par couple `(companyId, year)` reste assurée par
+ * `DashboardStatsService::memoizedRecettesCents` en intra-requête.
  */
 final readonly class DashboardScopeContext
 {
@@ -30,13 +29,11 @@ final readonly class DashboardScopeContext
      * @param  array<int, ContractsByPair>  $contractsByYear  Pivot contrats par année du scope
      * @param  Collection<int, Vehicle>  $vehiclesById  Véhicules indexés (superset des années du scope)
      * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId  Indispos par véhicule (superset)
-     * @param  array<int, int>  $recettesCentsByYear  Recettes HT cumulées (cents) par année
      */
     public function __construct(
         public array $contractsByYear,
         public Collection $vehiclesById,
         public array $unavailabilitiesByVehicleId,
-        public array $recettesCentsByYear,
     ) {}
 
     /**

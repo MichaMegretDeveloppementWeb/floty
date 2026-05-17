@@ -980,14 +980,19 @@ final class FleetFiscalAggregator
             if ($vehicle === null) {
                 continue;
             }
-            $result = $this->pipeline->execute(
-                $this->buildContext(
-                    $vehicle,
-                    $pair['contracts'],
-                    $unavailabilitiesByVehicleId[$pair['vehicleId']] ?? [],
-                    $year,
-                ),
+            $context = $this->buildContext(
+                $vehicle,
+                $pair['contracts'],
+                $unavailabilitiesByVehicleId[$pair['vehicleId']] ?? [],
+                $year,
             );
+            // Branche optimisée si le cache VFC est pré-chargé (cf.
+            // {@see prewarmVfcSegmentsForVehicles()}). Équivalence
+            // stricte garantie · même pattern que {@see vehicleAnnualTax}.
+            $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
+            $result = $cachedSegments !== null
+                ? $this->pipeline->executeWithPreloadedVfcSegments($context, $cachedSegments)
+                : $this->pipeline->execute($context);
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
