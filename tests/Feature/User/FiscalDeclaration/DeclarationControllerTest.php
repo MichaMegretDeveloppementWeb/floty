@@ -227,41 +227,14 @@ final class DeclarationControllerTest extends TestCase
     }
 
     #[Test]
-    public function review_redirige_vers_show_si_declaration_generated(): void
+    public function show_expose_preview_risk_settings_obsolete_reasons_pour_draft_head_canonique(): void
     {
-        $declaration = FiscalDeclaration::factory()
-            ->forCompany($this->company)
-            ->forYear(2025)
-            ->generated()
-            ->create();
-
-        $this->get(sprintf('/app/declarations/%d/review', $declaration->id))
-            ->assertRedirect(route('user.declarations.show', ['declaration' => $declaration->id]));
-    }
-
-    #[Test]
-    public function review_redirige_vers_show_si_obsolete(): void
-    {
-        $declaration = FiscalDeclaration::factory()
-            ->forCompany($this->company)
-            ->forYear(2025)
-            ->obsolete()
-            ->create();
-
-        $this->get(sprintf('/app/declarations/%d/review', $declaration->id))
-            ->assertRedirect(route('user.declarations.show', ['declaration' => $declaration->id]));
-    }
-
-    #[Test]
-    public function review_render_inertia_si_draft_et_sert_preview_snapshot_en_defer(): void
-    {
-        // P0.4 (audit perf 2026-05-16 / 08-misc.md P0 #1) · `preview`
-        // (RiskDetection clusters) et `snapshot` (Fiscal Engine) sont
-        // servis en `Inertia::defer` pour ne pas bloquer le mount sur
-        // ~300-800 ms de pipelines. Ce test prouve que le defer est
-        // cable · les 2 props arrivent via une 2e requete asynchrone
-        // partial reload declenchee par <Deferred> cote front. Le
-        // contenu des pipelines est teste par les tests Unit dedies
+        // Lot 5 D12 · fusion Show + Review · `show` enrichit son payload
+        // pour le mode B (Draft/Deferred head canonique) avec les props
+        // de la revue interactive · `preview` (RiskDetection en defer),
+        // `obsoleteReasons` ([]/list selon predecessor) et `riskSettings`
+        // (seuils paramétrables exposés au modal de décision). Les
+        // pipelines de contenu sont testés via les tests Unit dédiés
         // (`DeclarationPreviewServiceTest`, `DeclarationFiscalEngineTest`).
         $declaration = FiscalDeclaration::factory()
             ->forCompany($this->company)
@@ -269,13 +242,76 @@ final class DeclarationControllerTest extends TestCase
             ->draft()
             ->create();
 
-        $this->get(sprintf('/app/declarations/%d/review', $declaration->id))
+        $this->get(sprintf('/app/declarations/%d', $declaration->id))
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->component('User/Declarations/Review/Index')
+                ->component('User/Declarations/Show/Index')
                 ->where('declaration.id', $declaration->id)
+                ->where('obsoleteReasons', [])
+                ->has('riskSettings')
+                // `preview` et `snapshot` sont en `Inertia::defer` ·
+                // absents du payload initial, arrivent en 2e round-trip
+                // (via partial reload déclenché par `<Deferred>`).
                 ->missing('preview')
                 ->missing('snapshot'));
+    }
+
+    #[Test]
+    public function show_n_expose_pas_preview_pour_generated(): void
+    {
+        // Mode A · déclaration Generated active · pas de revue
+        // interactive, donc `preview`/`obsoleteReasons`/`riskSettings`
+        // ne sont pas servis (UI lecture pure).
+        $declaration = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->generated()
+            ->create();
+
+        $this->get(sprintf('/app/declarations/%d', $declaration->id))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Declarations/Show/Index')
+                ->where('declaration.id', $declaration->id)
+                ->missing('preview')
+                ->missing('obsoleteReasons')
+                ->missing('riskSettings'));
+    }
+
+    #[Test]
+    public function show_n_expose_pas_preview_pour_brouillon_orphelin_non_canonique(): void
+    {
+        // Mode C · brouillon `draft` qui n'est pas head canonique du
+        // couple `(company, year)`. Le head canonique est un autre
+        // brouillon plus récent dans la chaîne `superseded_by_id`.
+        // Reproduit la chaîne réelle (cf. `ModifyAction` D5.10.E) ·
+        // intermédiaire marqué obsolete pour libérer la contrainte
+        // unique `decl_active_uniqueness`, puis nouveau brouillon head,
+        // puis chaînage `intermediate.superseded_by_id = head.id`.
+        $intermediate = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $intermediate->update(['is_obsolete' => true]);
+
+        $head = FiscalDeclaration::factory()
+            ->forCompany($this->company)
+            ->forYear(2025)
+            ->draft()
+            ->create();
+
+        $intermediate->update(['superseded_by_id' => $head->id]);
+
+        $this->get(sprintf('/app/declarations/%d', $intermediate->id))
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Declarations/Show/Index')
+                ->where('declaration.id', $intermediate->id)
+                ->missing('preview')
+                ->missing('obsoleteReasons')
+                ->missing('riskSettings'));
     }
 
     #[Test]

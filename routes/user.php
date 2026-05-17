@@ -350,12 +350,13 @@ Route::middleware('auth')
         Route::post('/declarations/prepare', [DeclarationGenerationController::class, 'prepare'])
             ->middleware('throttle:30,1')
             ->name('declarations.prepare');
+        // Lot 5 D12 · fusion Show + Review · `show` est désormais
+        // l'unique écran déclaration (lecture pour Generated, revue
+        // interactive pour Draft/Deferred head canonique). L'ancienne
+        // route `/review` est supprimée.
         Route::get('/declarations/{declaration}', [DeclarationController::class, 'show'])
             ->whereNumber('declaration')
             ->name('declarations.show');
-        Route::get('/declarations/{declaration}/review', [DeclarationController::class, 'review'])
-            ->whereNumber('declaration')
-            ->name('declarations.review');
         Route::post('/declarations/{declaration}/decisions', [DeclarationGenerationController::class, 'storeDecision'])
             ->whereNumber('declaration')
             ->middleware('throttle:60,1')

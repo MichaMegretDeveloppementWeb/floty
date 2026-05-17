@@ -41,7 +41,6 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import {
     download as downloadDeclarationRoute,
     regenerate as regenerateDeclarationRoute,
-    review as reviewDeclarationRoute,
     show as showDeclarationRoute,
 } from '@/routes/user/declarations';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
@@ -129,7 +128,7 @@ function handleRegenerate(): void {
                 Les arbitrages déjà rendus sont conservés.
             </p>
             <div>
-                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                <Link :href="showDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
                         Poursuivre la revue
@@ -153,7 +152,7 @@ function handleRegenerate(): void {
                 produit sera figé et conservé en annexe.
             </p>
             <div>
-                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                <Link :href="showDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
                         Générer la déclaration
@@ -177,7 +176,7 @@ function handleRegenerate(): void {
                 déjà rendu ne sera perdu.
             </p>
             <div>
-                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                <Link :href="showDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
                         Poursuivre la revue
@@ -206,7 +205,7 @@ function handleRegenerate(): void {
                 </template>
             </p>
             <div class="flex flex-wrap items-center gap-5">
-                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                <Link :href="showDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
                         Poursuivre la régénération
@@ -364,7 +363,7 @@ function handleRegenerate(): void {
                 </template>
             </p>
             <div class="flex flex-wrap items-center gap-5">
-                <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
+                <Link :href="showDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
                         Poursuivre la régénération

@@ -1,21 +1,27 @@
 <script setup lang="ts">
 /**
  * Carte « PDF annexe documentaire » sur la page Show déclaration
- * (Phase 11 D5.4, enrichi D5.9.D avec CTA régénérer adaptatif).
+ * (Phase 11 D5.4, enrichi D5.9.D avec CTA régénérer adaptatif,
+ * simplifié Lot 5 D12 fusion Show + Review).
  *
  * Actions :
  *   - **Télécharger le PDF** · toujours visible si le document a été
  *     généré.
  *   - **Reprendre la régénération en cours** · si la déclaration est
  *     déjà remplacée par un Draft chaîné (`successorDeclaration` avec
- *     statut `draft`). Lien direct vers la page Review du Draft.
- *     Évite de créer un brouillon orphelin supplémentaire.
+ *     statut `draft`). Lien direct vers le Show du Draft (= la revue
+ *     en mode B depuis Lot 5 D12). Évite de créer un brouillon
+ *     orphelin supplémentaire.
  *   - **Régénérer la déclaration** · si la déclaration est obsolète
  *     mais qu'aucun Draft chaîné n'existe encore (S6 GeneratedObsolete
  *     Orphan). POST `/declarations/{id}/regenerate`.
- *   - **Aucun bouton régénérer** · si la déclaration est active non
- *     obsolète (S5) et ne sera pas régénérée sans changement de
- *     périmètre.
+ *   - **Modifier la déclaration** · si la déclaration est active non
+ *     obsolète (S5) sans régénération en cours · POST `/declarations/{id}/modify`.
+ *
+ * Lot 5 D12 · ce composant ne s'affiche plus sur les brouillons head
+ * canoniques (mode B) · la revue interactive de la page Show prend
+ * directement la main. Il ne reste donc que les cas Generated (active
+ * ou obsolète) et brouillon non-head (intermediate orphelin).
  */
 import { Link, router } from '@inertiajs/vue3';
 import {
@@ -36,7 +42,7 @@ import {
     download as downloadRoute,
     modify as modifyRoute,
     regenerate as regenerateRoute,
-    review as reviewRoute,
+    show as showDeclarationRoute,
 } from '@/routes/user/declarations';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
@@ -218,7 +224,7 @@ function confirmModify(): void {
 
                 <Link
                     v-if="hasOngoingRegeneration && successorDeclaration"
-                    :href="reviewRoute.url({ declaration: successorDeclaration.id })"
+                    :href="showDeclarationRoute.url({ declaration: successorDeclaration.id })"
                 >
                     <Button variant="secondary">
                         <Recycle :size="16" :stroke-width="1.75" />
@@ -258,24 +264,6 @@ function confirmModify(): void {
                 générée. Vous pouvez la supprimer pour nettoyer
                 l'historique.
             </p>
-        </div>
-
-        <div v-else class="flex flex-col gap-4">
-            <p class="text-sm text-slate-500">
-                Aucun PDF n'a encore été produit. La revue est en cours ·
-                reprenez les décisions et générez le document quand vous
-                êtes prêt.
-            </p>
-            <Link :href="reviewRoute.url({ declaration: declaration.id })">
-                <Button>
-                    <Pencil :size="16" :stroke-width="1.75" />
-                    {{
-                        declaration.status === 'deferred'
-                            ? 'Poursuivre la déclaration reportée'
-                            : 'Poursuivre la revue'
-                    }}
-                </Button>
-            </Link>
         </div>
 
         <ConfirmModal

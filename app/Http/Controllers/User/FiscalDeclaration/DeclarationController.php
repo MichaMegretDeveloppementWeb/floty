@@ -20,7 +20,6 @@ use App\Models\FiscalRiskSettings;
 use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use App\Services\Fiscal\RiskDetection\DeclarationPreviewService;
 use App\Services\Pdf\DeclarationPdfStorage;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -34,9 +33,16 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * Endpoints read-only ·
  *   - GET /declarations                           index
- *   - GET /declarations/{declaration}             show
- *   - GET /declarations/{declaration}/review      page de revue interactive
+ *   - GET /declarations/{declaration}             show (lecture pour Generated,
+ *                                                 revue interactive pour
+ *                                                 Draft/Deferred head canonique,
+ *                                                 message intermédiaire pour
+ *                                                 brouillon orphelin)
  *   - GET /declarations/{declaration}/download    sert le PDF binaire
+ *
+ * Lot 5 D12 · fusion Show + Review en un seul écran adaptatif. La route
+ * `/review` historique est supprimée · les redirects venant du
+ * {@see DeclarationGenerationController} pointent désormais vers `show`.
  */
 final class DeclarationController extends Controller
 {
@@ -94,14 +100,30 @@ final class DeclarationController extends Controller
             $declaration->fiscal_year,
         );
 
+        // Lot 5 D12 · fusion Show + Review · mode B = brouillon head
+        // canonique. C'est le seul cas où la revue interactive
+        // s'affiche · on sert alors `preview` (RiskDetection),
+        // `obsoleteReasons` (chaîne régénération) et `riskSettings`
+        // en plus du payload Show standard. Pour Generated, brouillon
+        // orphelin ou ancien snapshot persisté, ces props ne sont
+        // pas servies (UI lecture pure).
+        $isEditableDraft = (
+            $declaration->status === FiscalDeclarationStatus::Draft
+            || $declaration->status === FiscalDeclarationStatus::Deferred
+        ) && $canonicalHead !== null && $canonicalHead->id === $declaration->id;
+
         // P0.5 (audit perf 2026-05-16 / 08-misc.md P0 #2) · snapshot
         // conditionnel · payload persiste → rendu eager (lecture array
         // quasi-instantanee). Sinon (Draft sans payload) → Inertia::defer
         // pour ne pas bloquer le mount sur engine->compute() complet
-        // (~100-500 ms cold).
-        $hasPersistedSnapshot = is_array($declaration->generated_snapshot_payload);
+        // (~100-500 ms cold). Mode B (Draft head éditable) · on
+        // recalcule systématiquement même si un payload résiduel existe
+        // côté brouillon · la revue interactive doit refléter le
+        // périmètre live (décisions cluster en cours).
+        $hasPersistedSnapshot = is_array($declaration->generated_snapshot_payload)
+            && ! $isEditableDraft;
 
-        return Inertia::render('User/Declarations/Show/Index', [
+        $payload = [
             'declaration' => FiscalDeclarationData::fromModel($declaration),
             'snapshot' => $hasPersistedSnapshot
                 ? FiscalDeclarationSnapshotData::from($declaration->generated_snapshot_payload)
@@ -129,84 +151,26 @@ final class DeclarationController extends Controller
                 ? DeclarationListItemData::fromModel($successor)
                 : null,
             'canonicalHeadDeclarationId' => $canonicalHead?->id,
-        ]);
-    }
+        ];
 
-    public function review(FiscalDeclaration $declaration): InertiaResponse|RedirectResponse
-    {
-        Gate::authorize('view', $declaration);
-
-        // Une déclaration `generated` ou obsolète n'est pas révisable :
-        // on redirige vers Show qui présente le snapshot ou le bouton
-        // de régénération.
-        if (
-            $declaration->status === FiscalDeclarationStatus::Generated
-            || $declaration->is_obsolete
-        ) {
-            return redirect()->route('user.declarations.show', ['declaration' => $declaration->id]);
-        }
-
-        // Phase 13 D5.10.H · brouillon intermédiaire orphelin (un autre
-        // brouillon plus récent existe et est le head canonique) ·
-        // l'édition n'a aucun sens, l'utilisateur ne peut que le
-        // supprimer. On redirige vers Show pour exposer le message
-        // explicite + le bouton Supprimer du header.
-        $canonicalHead = $this->reader->findCurrentForCompanyYear(
-            $declaration->company_id,
-            $declaration->fiscal_year,
-        );
-        if ($canonicalHead !== null && $canonicalHead->id !== $declaration->id) {
-            return redirect()->route('user.declarations.show', ['declaration' => $declaration->id]);
-        }
-
-        // P0.4 (audit perf 2026-05-16) · preview (RiskDetection ~150-400 ms)
-        // et snapshot (Fiscal Engine ~150-400 ms) servis en `Inertia::defer`
-        // (cf. array passe a Inertia::render plus bas). Mount immediat +
-        // <Deferred :data="['preview', 'snapshot']"> cote front avec
-        // skeleton fallback. La declaration est par construction `draft`
-        // ou `deferred` (cf. redirect ci-dessus pour Generated/Obsolète),
-        // donc pas de payload persisté · on recalcule toujours, ce qui
-        // reste coherent avec le role « previsualisation interactive »
-        // de la page (decisions Conserver/Requalifier en direct).
-
-        // Phase 11 D5.8.3 · si ce Draft est chaîné (régénération en
-        // cours), expose la version obsolète remplacée pour permettre
-        // au `<ReviewContextBanner>` de basculer en mode régénération
-        // avec le contexte des motifs d'obsolescence.
-        $predecessor = $this->reader->findPredecessorOf($declaration->id);
-        // Garde-fou résilient · payload `obsolete_reasons` éventuellement
-        // mal formé en BDD (cast Eloquent retourne un scalaire, items
-        // sans le schéma attendu, etc.) ne doit pas casser la page Review.
-        // Délégué à `InvalidationReasonData::listFromRaw` qui centralise
-        // les checks `is_array` + try/catch + log canal `declarations`.
-        $obsoleteReasons = $predecessor !== null
-            ? InvalidationReasonData::listFromRaw($predecessor->obsolete_reasons, $predecessor->id)
-            : [];
-
-        return Inertia::render('User/Declarations/Review/Index', [
-            'declaration' => FiscalDeclarationData::fromModel($declaration->load('company')),
-            // P0.4 · 2 pipelines lourds (RiskDetection + Fiscal Engine)
-            // servis en 2e round-trip transparent · skeleton fallback
-            // cote front via <Deferred :data="['preview', 'snapshot']">.
-            'preview' => Inertia::defer(
+        // Lot 5 D12 · props spécifiques mode B (revue interactive).
+        // P0.4 · `preview` (RiskDetection ~150-400 ms) en defer ·
+        // skeleton fallback côté front via
+        // `<Deferred :data="['preview', 'snapshot']">`. Garde-fou
+        // résilient sur `obsolete_reasons` éventuellement mal formé en
+        // BDD · délégué à `InvalidationReasonData::listFromRaw` qui
+        // centralise checks + try/catch + log canal `declarations`.
+        if ($isEditableDraft) {
+            $payload['preview'] = Inertia::defer(
                 fn () => $this->previewService->preview($declaration->company_id, $declaration->fiscal_year),
-            ),
-            'snapshot' => Inertia::defer(
-                fn () => FiscalDeclarationSnapshotData::fromValueObject(
-                    $this->engine->compute($declaration->company_id, $declaration->fiscal_year),
-                ),
-            ),
-            'predecessorDeclaration' => $predecessor !== null
-                ? DeclarationListItemData::fromModel($predecessor->load('company'))
-                : null,
-            'obsoleteReasons' => $obsoleteReasons,
-            'canonicalHeadDeclarationId' => $canonicalHead?->id,
-            // Lot 5 D1 · expose les seuils paramétrables au modal de
-            // décision · le texte pédagogique du modal interpole
-            // dynamiquement les valeurs (`thresholdLow`, `thresholdHigh`,
-            // `countHigh`) au lieu de les hardcoder côté UI.
-            'riskSettings' => FiscalRiskSettingsData::fromModel(FiscalRiskSettings::singleton()),
-        ]);
+            );
+            $payload['obsoleteReasons'] = $predecessor !== null
+                ? InvalidationReasonData::listFromRaw($predecessor->obsolete_reasons, $predecessor->id)
+                : [];
+            $payload['riskSettings'] = FiscalRiskSettingsData::fromModel(FiscalRiskSettings::singleton());
+        }
+
+        return Inertia::render('User/Declarations/Show/Index', $payload);
     }
 
     public function download(FiscalDeclaration $declaration, DeclarationPdfStorage $storage): Response

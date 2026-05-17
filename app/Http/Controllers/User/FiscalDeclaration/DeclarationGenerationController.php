@@ -47,7 +47,7 @@ final class DeclarationGenerationController extends Controller
         }
 
         return redirect()
-            ->route('user.declarations.review', ['declaration' => $declaration->id])
+            ->route('user.declarations.show', ['declaration' => $declaration->id])
             ->with('toast-success', sprintf(
                 'Déclaration %d préparée. Décidez chaque cluster avant de générer.',
                 $data->fiscalYear,
@@ -122,7 +122,7 @@ final class DeclarationGenerationController extends Controller
         }
 
         return redirect()
-            ->route('user.declarations.review', ['declaration' => $newDeclaration->id])
+            ->route('user.declarations.show', ['declaration' => $newDeclaration->id])
             ->with('toast-success', 'Nouvelle déclaration créée. Reprise des décisions par fingerprint.');
     }
 
@@ -157,7 +157,7 @@ final class DeclarationGenerationController extends Controller
         }
 
         return redirect()
-            ->route('user.declarations.review', ['declaration' => $newDraft->id])
+            ->route('user.declarations.show', ['declaration' => $newDraft->id])
             ->with('toast-success', sprintf(
                 'Nouveau brouillon de modification créé. La déclaration %s est désormais obsolète mais reste consultable.',
                 $declaration->reference ?? sprintf('#%d', $declaration->id),
