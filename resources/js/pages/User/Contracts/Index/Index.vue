@@ -202,94 +202,6 @@ const typeModel = computed<string | number>({
             <EmptyContractsState v-if="!props.hasAnyContract" />
 
             <template v-else>
-                <!-- Sélecteur scope hybride année/période : toggle + sélecteur
-                     côte à côte pour faciliter la lecture (1 ligne, plus compact). -->
-                <div class="flex flex-wrap items-center gap-3">
-                    <div
-                        class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 shadow-sm"
-                        role="tablist"
-                        aria-label="Mode de filtre temporel"
-                    >
-                        <button
-                            type="button"
-                            role="tab"
-                            :aria-selected="scopeMode === 'year'"
-                            :class="[
-                                'rounded-md px-3 py-1 text-xs font-medium transition-colors duration-[120ms]',
-                                scopeMode === 'year'
-                                    ? 'bg-blue-50 text-blue-700'
-                                    : 'text-slate-600 hover:bg-slate-50',
-                            ]"
-                            @click="setScopeMode('year')"
-                        >
-                            Année
-                        </button>
-                        <button
-                            type="button"
-                            role="tab"
-                            :aria-selected="scopeMode === 'period'"
-                            :class="[
-                                'rounded-md px-3 py-1 text-xs font-medium transition-colors duration-[120ms]',
-                                scopeMode === 'period'
-                                    ? 'bg-blue-50 text-blue-700'
-                                    : 'text-slate-600 hover:bg-slate-50',
-                            ]"
-                            @click="setScopeMode('period')"
-                        >
-                            Période personnalisée
-                        </button>
-                    </div>
-
-                    <!-- Mode année : InlineYearSelector compact -->
-                    <InlineYearSelector
-                        v-if="scopeMode === 'year'"
-                        id="contracts-year"
-                        v-model="yearModel"
-                        :options="yearOptions"
-                    />
-
-                    <!-- Mode période : bouton pill + popover DateRangePicker -->
-                    <div v-else ref="popoverRoot" class="relative">
-                        <button
-                            type="button"
-                            class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white py-1.5 pr-3 pl-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors duration-[120ms] ease-out hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
-                            :aria-expanded="periodPopoverOpen"
-                            @click="periodPopoverOpen = !periodPopoverOpen"
-                        >
-                            <CalendarDays
-                                :size="14"
-                                :stroke-width="1.75"
-                                class="shrink-0 text-slate-500"
-                                aria-hidden="true"
-                            />
-                            <span class="text-slate-700">Période :</span>
-                            <span>{{ periodLabel }}</span>
-                        </button>
-
-                        <div
-                            v-if="periodPopoverOpen"
-                            class="fixed inset-0 z-40 bg-slate-900/20 sm:hidden"
-                            aria-hidden="true"
-                            @click="periodPopoverOpen = false"
-                        />
-                        <div
-                            v-if="periodPopoverOpen"
-                            class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-auto sm:left-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[360px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"
-                        >
-                            <div
-                                class="flex flex-col gap-3 overflow-y-auto p-4"
-                            >
-                                <DateRangePicker
-                                    id="contracts-period"
-                                    v-model:range="periodRange"
-                                    v-model:ongoing="periodOngoing"
-                                    :year="pickerYear"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <div class="flex flex-wrap items-center gap-3">
                     <div class="grow max-w-md">
                         <SearchInput
@@ -341,6 +253,96 @@ const typeModel = computed<string | number>({
                             </div>
                         </div>
                     </FilterPopover>
+
+                    <!-- Sélecteur scope hybride année/période (toggle + sélecteur)
+                         poussé à droite via `ml-auto`, comme le sélecteur d'année
+                         des autres listes (Flotte, Entreprises, etc.). -->
+                    <div class="ml-auto flex flex-wrap items-center gap-3">
+                        <div
+                            class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 shadow-sm"
+                            role="tablist"
+                            aria-label="Mode de filtre temporel"
+                        >
+                            <button
+                                type="button"
+                                role="tab"
+                                :aria-selected="scopeMode === 'year'"
+                                :class="[
+                                    'rounded-md px-3 py-1 text-xs font-medium transition-colors duration-[120ms]',
+                                    scopeMode === 'year'
+                                        ? 'bg-blue-50 text-blue-700'
+                                        : 'text-slate-600 hover:bg-slate-50',
+                                ]"
+                                @click="setScopeMode('year')"
+                            >
+                                Année
+                            </button>
+                            <button
+                                type="button"
+                                role="tab"
+                                :aria-selected="scopeMode === 'period'"
+                                :class="[
+                                    'rounded-md px-3 py-1 text-xs font-medium transition-colors duration-[120ms]',
+                                    scopeMode === 'period'
+                                        ? 'bg-blue-50 text-blue-700'
+                                        : 'text-slate-600 hover:bg-slate-50',
+                                ]"
+                                @click="setScopeMode('period')"
+                            >
+                                Période personnalisée
+                            </button>
+                        </div>
+
+                        <InlineYearSelector
+                            v-if="scopeMode === 'year'"
+                            id="contracts-year"
+                            v-model="yearModel"
+                            :options="yearOptions"
+                        />
+
+                        <div v-else ref="popoverRoot" class="relative">
+                            <button
+                                type="button"
+                                class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white py-1.5 pr-3 pl-3 text-sm font-semibold text-slate-900 shadow-sm transition-colors duration-[120ms] ease-out hover:border-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-200"
+                                :aria-expanded="periodPopoverOpen"
+                                @click="periodPopoverOpen = !periodPopoverOpen"
+                            >
+                                <CalendarDays
+                                    :size="14"
+                                    :stroke-width="1.75"
+                                    class="shrink-0 text-slate-500"
+                                    aria-hidden="true"
+                                />
+                                <span class="text-slate-700">Période :</span>
+                                <span>{{ periodLabel }}</span>
+                            </button>
+
+                            <div
+                                v-if="periodPopoverOpen"
+                                class="fixed inset-0 z-40 bg-slate-900/20 sm:hidden"
+                                aria-hidden="true"
+                                @click="periodPopoverOpen = false"
+                            />
+                            <!-- Popover ancré à droite du bouton (sm:right-0)
+                                 car le bouton est désormais sur le bord droit
+                                 de la ligne · sans ça, le popover déborderait. -->
+                            <div
+                                v-if="periodPopoverOpen"
+                                class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[360px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"
+                            >
+                                <div
+                                    class="flex flex-col gap-3 overflow-y-auto p-4"
+                                >
+                                    <DateRangePicker
+                                        id="contracts-period"
+                                        v-model:range="periodRange"
+                                        v-model:ongoing="periodOngoing"
+                                        :year="pickerYear"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <ContractsTable
