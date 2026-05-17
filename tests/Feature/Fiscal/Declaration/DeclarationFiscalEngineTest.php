@@ -307,8 +307,14 @@ final class DeclarationFiscalEngineTest extends TestCase
     }
 
     #[Test]
-    public function le_breakdown_par_contrat_somme_au_total_arrondi_au_centime(): void
+    public function le_breakdown_par_contrat_somme_approximativement_au_total_arrondi_a_l_euro(): void
     {
+        // Lot 5 D15 · le `snapshot->totalDue` est désormais arrondi
+        // half-up à l'EURO (doctrine CIBS L. 131-1). Les lignes du
+        // breakdown par contrat restent en haute précision (centime ·
+        // colonnes du PDF déclaration). La somme des lignes peut donc
+        // diverger du total déclaré jusqu'à 0,50 € (artefact d'arrondi
+        // unique en sortie). Delta 1.0 sécurise cet écart théorique.
         $v1 = $this->makeVehicleWithSingleVfc();
         $v2 = $this->makeVehicleWithSingleVfc();
         $this->makeContract($v1, '2024-01-01', '2024-12-31', ContractType::Lld);
@@ -327,11 +333,11 @@ final class DeclarationFiscalEngineTest extends TestCase
             $sumTotals += $entry->totalDue;
         }
 
-        self::assertEqualsWithDelta($snapshot->totalDue, $sumTotals, 0.01);
+        self::assertEqualsWithDelta($snapshot->totalDue, $sumTotals, 1.0);
         self::assertEqualsWithDelta(
             $snapshot->totalDue,
             $snapshot->co2DueTotal + $snapshot->pollutantsDueTotal,
-            0.001,
+            1.0,
         );
     }
 
@@ -392,12 +398,14 @@ final class DeclarationFiscalEngineTest extends TestCase
         self::assertNull($byContractId[$lld->id]->exemptionReason);
 
         // Le LLD reçoit l'intégralité de la taxe couple · sa part
-        // somme au total dû.
+        // somme au total dû. Delta 1.0 sécurise l'arrondi half-up à
+        // l'EURO sur `snapshot->totalDue` vs ligne contrat au centime
+        // (Lot 5 D15, doctrine CIBS L. 131-1).
         self::assertGreaterThan(0.0, $byContractId[$lld->id]->totalDue);
         self::assertEqualsWithDelta(
             $snapshot->totalDue,
             $byContractId[$lld->id]->totalDue,
-            0.01,
+            1.0,
             'La taxe couple est entièrement allouée au LLD (le LCD est exempté).',
         );
     }
@@ -441,11 +449,14 @@ final class DeclarationFiscalEngineTest extends TestCase
         self::assertGreaterThan(0.0, $byContractId[$lcd2->id]->totalDue);
         self::assertGreaterThan(0.0, $byContractId[$lld->id]->totalDue);
 
-        // La somme des parts est égale au total dû (à l'arrondi près).
+        // La somme des parts est égale au total dû (à l'arrondi euro
+        // près · Lot 5 D15 · `snapshot->totalDue` round half-up à
+        // l'euro, lignes contrat au centime · écart théorique ≤ 0,50 €,
+        // delta 1.0 sécurise).
         $sumParts = $byContractId[$lcd1->id]->totalDue
             + $byContractId[$lcd2->id]->totalDue
             + $byContractId[$lld->id]->totalDue;
-        self::assertEqualsWithDelta($snapshot->totalDue, $sumParts, 0.02);
+        self::assertEqualsWithDelta($snapshot->totalDue, $sumParts, 1.0);
     }
 
     #[Test]

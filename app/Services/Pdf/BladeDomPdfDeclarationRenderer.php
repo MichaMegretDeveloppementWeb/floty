@@ -66,9 +66,15 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
             'companyLegalName' => $snapshot->companyLegalName,
             'companyAddressLines' => $this->splitAddressLines($snapshot->companyAddress),
             'fiscalYear' => $snapshot->fiscalYear,
+            // Lot 5 D15 · les composantes CO₂ et polluants sont des
+            // informations détaillées (centime · 2 décimales). Le
+            // `totalDue` est le montant à déclarer officiellement et
+            // est arrondi half-up à l'EURO côté `DeclarationFiscalEngine`
+            // (doctrine CIBS L. 131-1) · on l'affiche donc sans
+            // décimales pour cohérence visuelle.
             'co2DueTotal' => $this->formatEuros($snapshot->co2DueTotal),
             'pollutantsDueTotal' => $this->formatEuros($snapshot->pollutantsDueTotal),
-            'totalDue' => $this->formatEuros($snapshot->totalDue),
+            'totalDue' => $this->formatEuros($snapshot->totalDue, 0),
             'contractRows' => $this->buildContractRows($snapshot->contractBreakdown),
             'snapshotHash' => SnapshotHashCalculator::compute($canonicalPayload),
         ];
@@ -171,9 +177,14 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
      * par un espace ASCII (cassure ligne possible) ou U+00A0 (rendu
      * trop large).
      */
-    private function formatEuros(float $amount): string
+    /**
+     * Lot 5 D15 · `$fractionDigits` configurable · 2 décimales (défaut)
+     * pour les lignes et composantes, 0 décimales pour le montant à
+     * déclarer (doctrine CIBS L. 131-1 · arrondi half-up à l'euro).
+     */
+    private function formatEuros(float $amount, int $fractionDigits = 2): string
     {
-        $formatted = number_format($amount, 2, ',', "\u{202F}");
+        $formatted = number_format($amount, $fractionDigits, ',', "\u{202F}");
 
         return $formatted."\u{202F}€";
     }

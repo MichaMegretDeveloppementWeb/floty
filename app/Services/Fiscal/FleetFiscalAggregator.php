@@ -246,7 +246,10 @@ final class FleetFiscalAggregator
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
-        return round($totalRaw, 2, PHP_ROUND_HALF_UP);
+        // Lot 5 D15 · arrondi half-up à l'EURO sur la taxe annuelle
+        // d'un véhicule (cohérence visuelle avec les agrégats par
+        // redevable, doctrine CIBS L. 131-1).
+        return round($totalRaw, 0, PHP_ROUND_HALF_UP);
     }
 
     /**
@@ -303,7 +306,13 @@ final class FleetFiscalAggregator
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
-        return round($totalRaw, 2, PHP_ROUND_HALF_UP);
+        // Lot 5 D15 · arrondi half-up à l'EURO sur le total redevable
+        // (doctrine CIBS L. 131-1 + BOI-AIS-MOB-10-30-10) ·
+        // « le montant total à payer par chaque redevable est arrondi
+        // à l'euro le plus proche, sans arrondi intermédiaire ».
+        // Cohérent avec `DeclarationFiscalEngine::compute` qui sert
+        // les snapshots officiels.
+        return round($totalRaw, 0, PHP_ROUND_HALF_UP);
     }
 
     /**
@@ -321,7 +330,9 @@ final class FleetFiscalAggregator
     {
         $result = $this->fullYearPipelineResult($vehicle, $year);
 
-        return round($result->co2DueRaw + $result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+        // Lot 5 D15 · arrondi half-up à l'EURO (cohérence visuelle
+        // avec les autres agrégats fiscaux, doctrine CIBS L. 131-1).
+        return round($result->co2DueRaw + $result->pollutantsDueRaw, 0, PHP_ROUND_HALF_UP);
     }
 
     /**
@@ -535,7 +546,11 @@ final class FleetFiscalAggregator
 
         return new VehicleFullYearTaxBreakdownData(
             daysInYear: $this->yearContext->daysInYear($year),
-            total: round($totalRaw, 2, PHP_ROUND_HALF_UP),
+            // Lot 5 D15 · total redevable arrondi half-up à l'EURO
+            // (doctrine CIBS L. 131-1). Les `taxSegments[].co2Due/
+            // pollutantsDue` restent au centime · ce sont des
+            // lignes par segment VFC, pas des totaux à déclarer.
+            total: round($totalRaw, 0, PHP_ROUND_HALF_UP),
             appliedExemptions: array_values($exemptionsByCode),
             appliedRuleCodes: $appliedRuleCodes,
             appliedRules: $appliedRules,
@@ -847,15 +862,23 @@ final class FleetFiscalAggregator
                 $this->buildContext($vehicle, $pairContracts, $vehicleUnavailabilities, $year),
             );
 
-            $taxCo2 = round($result->co2DueRaw, 2, PHP_ROUND_HALF_UP);
-            $taxPollutants = round($result->pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
+            // Lot 5 D15 · chaque ligne représente un redevable
+            // (entreprise utilisatrice de ce véhicule) · arrondi half-up
+            // à l'EURO conforme à la doctrine CIBS L. 131-1. Cohérent
+            // avec `companyAnnualTax` (total redevable arrondi à
+            // l'euro). Cf. `companyAnnualTaxBreakdownByVehicle` qui
+            // est l'inverse (lignes par véhicule pour une entreprise) ·
+            // ces lignes restent au centime car ce sont des breakdowns
+            // par véhicule, pas des totaux à déclarer.
+            $taxCo2 = round($result->co2DueRaw, 0, PHP_ROUND_HALF_UP);
+            $taxPollutants = round($result->pollutantsDueRaw, 0, PHP_ROUND_HALF_UP);
 
             $rows[] = [
                 'companyId' => $companyId,
                 'days' => $result->daysAssigned,
                 'taxCo2' => $taxCo2,
                 'taxPollutants' => $taxPollutants,
-                'taxTotal' => round($taxCo2 + $taxPollutants, 2, PHP_ROUND_HALF_UP),
+                'taxTotal' => $taxCo2 + $taxPollutants,
             ];
         }
 
@@ -996,7 +1019,9 @@ final class FleetFiscalAggregator
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
-        return round($totalRaw, 2, PHP_ROUND_HALF_UP);
+        // Lot 5 D15 · arrondi half-up à l'EURO (cohérence visuelle
+        // avec les autres agrégats fiscaux, doctrine CIBS L. 131-1).
+        return round($totalRaw, 0, PHP_ROUND_HALF_UP);
     }
 
     /**

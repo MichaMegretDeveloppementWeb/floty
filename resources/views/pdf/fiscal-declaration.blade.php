@@ -262,7 +262,7 @@
                 <td class="amount">{{ $pollutantsDueTotal }}</td>
             </tr>
             <tr class="total">
-                <td class="label">Total dû</td>
+                <td class="label">Total à déclarer (arrondi à l'euro · CIBS L. 131-1)</td>
                 <td class="amount">{{ $totalDue }}</td>
             </tr>
         </table>

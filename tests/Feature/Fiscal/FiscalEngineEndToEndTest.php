@@ -180,13 +180,11 @@ final class FiscalEngineEndToEndTest extends TestCase
         );
 
         // Total brut = 144,6393 + 83,6066 + 47,2677 + 27,3224 = 302,8361
-        // Arrondi half-up à 2 décimales : 302,84 € (le BOFiP donne 303 € à
-        // l'euro mais notre Aggregator arrondit à 2 décimales - l'arrondi
-        // à l'euro entier vit au niveau Action de déclaration en phase 11)
-        $this->assertSame(302.84, $totalArrondi);
-
-        // Vérification que round à l'euro = 303 (cf. catalogue)
-        $this->assertSame(303.0, round($totalArrondi));
+        // Lot 5 D15 · arrondi half-up à l'EURO conforme doctrine
+        // CIBS L. 131-1 (auparavant arrondi au centime à 302,84 €).
+        // L'exemple catalogue § R-2024-003 cite déjà « 303 € » comme
+        // résultat attendu officiel.
+        $this->assertSame(303.0, $totalArrondi);
     }
 
     /**

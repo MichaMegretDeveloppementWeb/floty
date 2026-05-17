@@ -97,11 +97,14 @@ final class Year2026DeclarationEndToEndTest extends TestCase
 
         $snapshot = $this->engine->compute($this->company->id, 2026);
 
-        // Total = 338,15 (V1) + 257,15 (V2) + 0 (V3) + 0 (V4) = 595,30 €
-        self::assertEqualsWithDelta(595.30, $snapshot->totalDue, 0.05);
-        // CO₂ · V1=213 + V2=132 + V3=0 + V4=0 = 345 €
+        // Total brut = 338,15 (V1) + 257,15 (V2) + 0 (V3) + 0 (V4)
+        //            = 595,30 €  →  arrondi half-up à l'EURO = 595 €
+        // (Lot 5 D15 · doctrine CIBS L. 131-1 · arrondi unique au
+        // total redevable).
+        self::assertEqualsWithDelta(595.0, $snapshot->totalDue, 1.0);
+        // CO₂ · V1=213 + V2=132 + V3=0 + V4=0 = 345 € (composante au centime).
         self::assertEqualsWithDelta(345.0, $snapshot->co2DueTotal, 0.05);
-        // Polluants · V1=125,15 + V2=125,15 + V3=0 + V4=0 = 250,30 €
+        // Polluants · V1=125,15 + V2=125,15 + V3=0 + V4=0 = 250,30 € (centime).
         self::assertEqualsWithDelta(250.30, $snapshot->pollutantsDueTotal, 0.05);
 
         // 4 contrats taxables (V4 inclus mais taxe = 0).
@@ -120,16 +123,19 @@ final class Year2026DeclarationEndToEndTest extends TestCase
 
         $snapshot = $this->engine->compute($this->company->id, 2026);
 
-        // Somme des parts contractuelles = total snapshot.
+        // Somme des parts contractuelles ≈ total snapshot. Lot 5 D15 ·
+        // `snapshot->totalDue` arrondi half-up à l'EURO (doctrine
+        // CIBS L. 131-1), lignes contrat au centime · écart ≤ 0,50 €,
+        // delta 1.0 sécurise.
         $sumParts = 0.0;
         foreach ($snapshot->contractBreakdown as $entry) {
             $sumParts += $entry->totalDue;
         }
-        self::assertEqualsWithDelta($snapshot->totalDue, $sumParts, 0.05);
+        self::assertEqualsWithDelta($snapshot->totalDue, $sumParts, 1.0);
         self::assertEqualsWithDelta(
             $snapshot->totalDue,
             $snapshot->co2DueTotal + $snapshot->pollutantsDueTotal,
-            0.05,
+            1.0,
         );
 
         self::assertCount(3, $snapshot->contractBreakdown);
@@ -163,12 +169,14 @@ final class Year2026DeclarationEndToEndTest extends TestCase
             $byContractId[$lcd->id]->exemptionReason,
         );
 
-        // LLD ramasse l'intégralité de la taxe couple, ≠ 0.
+        // LLD ramasse l'intégralité de la taxe couple, ≠ 0. Delta 1.0
+        // pour `snapshot->totalDue` arrondi à l'EURO vs ligne LLD au
+        // centime (Lot 5 D15, doctrine CIBS L. 131-1).
         self::assertGreaterThan(0.0, $byContractId[$lld->id]->totalDue);
         self::assertEqualsWithDelta(
             $snapshot->totalDue,
             $byContractId[$lld->id]->totalDue,
-            0.05,
+            1.0,
         );
     }
 
@@ -210,10 +218,13 @@ final class Year2026DeclarationEndToEndTest extends TestCase
 
         $snapshot = $this->engine->compute($this->company->id, 2026);
 
-        // Polluants pondérés (100 × 59 + 130 × 306) / 365 = 125,150684...
+        // Polluants pondérés (100 × 59 + 130 × 306) / 365 = 125,150684... (centime)
         self::assertEqualsWithDelta(125.15, $snapshot->pollutantsDueTotal, 0.05);
+        // CO₂ brut · 213 € (centime)
         self::assertEqualsWithDelta(213.0, $snapshot->co2DueTotal, 0.05);
-        self::assertEqualsWithDelta(338.15, $snapshot->totalDue, 0.05);
+        // Total brut = 213 + 125,15 = 338,15 € → arrondi half-up à
+        // l'EURO = 338 € (Lot 5 D15, doctrine CIBS L. 131-1).
+        self::assertEqualsWithDelta(338.0, $snapshot->totalDue, 1.0);
     }
 
     #[Test]

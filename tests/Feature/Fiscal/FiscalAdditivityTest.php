@@ -114,13 +114,15 @@ final class FiscalAdditivityTest extends TestCase
         }
         $sumIndividual = round($sumIndividual, 2);
 
-        // Tolérance : ±2€ par véhicule (5 véhicules × 0,005 € d'erreur
-        // d'arrondi half-up potentielle = ±0,025 €, on prend 0,10 € pour
-        // marge de sécurité)
+        // Lot 5 D15 · `companyAnnualTax` arrondit half-up à l'EURO
+        // (doctrine CIBS L. 131-1) · `sumIndividual` est la somme des
+        // taxes couple arrondies au centime · l'écart théorique
+        // maximum est ≤ 0,50 € (arrondi unique en sortie). Delta 1.0
+        // sécurise.
         $this->assertEqualsWithDelta(
             $totalEntreprise,
             $sumIndividual,
-            0.10,
+            1.0,
             sprintf(
                 'Invariant R-2024-003 violé : total entreprise %.2f € vs somme couples %.2f €',
                 $totalEntreprise,

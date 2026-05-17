@@ -118,16 +118,19 @@ final class Year2025DeclarationEndToEndTest extends TestCase
 
         $snapshot = $this->engine->compute($this->company->id, 2025);
 
-        // Somme des parts contractuelles = total snapshot.
+        // Somme des parts contractuelles ≈ total snapshot. Lot 5 D15 ·
+        // `snapshot->totalDue` arrondi half-up à l'EURO (doctrine
+        // CIBS L. 131-1), lignes contrat au centime · écart théorique
+        // ≤ 0,50 € · delta 1.0 sécurise.
         $sumParts = 0.0;
         foreach ($snapshot->contractBreakdown as $entry) {
             $sumParts += $entry->totalDue;
         }
-        self::assertEqualsWithDelta($snapshot->totalDue, $sumParts, 0.02);
+        self::assertEqualsWithDelta($snapshot->totalDue, $sumParts, 1.0);
         self::assertEqualsWithDelta(
             $snapshot->totalDue,
             $snapshot->co2DueTotal + $snapshot->pollutantsDueTotal,
-            0.01,
+            1.0,
         );
 
         // 3 contrats au breakdown.
@@ -163,12 +166,14 @@ final class Year2025DeclarationEndToEndTest extends TestCase
             $byContractId[$lcd->id]->exemptionReason,
         );
 
-        // LLD ramasse l'intégralité de la taxe couple, ≠ 0.
+        // LLD ramasse l'intégralité de la taxe couple, ≠ 0. Delta 1.0
+        // pour `snapshot->totalDue` arrondi à l'EURO vs ligne LLD au
+        // centime (Lot 5 D15, doctrine CIBS L. 131-1).
         self::assertGreaterThan(0.0, $byContractId[$lld->id]->totalDue);
         self::assertEqualsWithDelta(
             $snapshot->totalDue,
             $byContractId[$lld->id]->totalDue,
-            0.01,
+            1.0,
         );
     }
 
@@ -228,7 +233,9 @@ final class Year2025DeclarationEndToEndTest extends TestCase
         $snapshot = $this->engine->compute($this->company->id, 2025);
 
         $expected = 293.0 * 15 / 365;
-        self::assertEqualsWithDelta($expected, $snapshot->totalDue, 0.02);
+        // Lot 5 D15 · delta 1.0 pour `snapshot->totalDue` arrondi
+        // half-up à l'EURO (doctrine CIBS L. 131-1).
+        self::assertEqualsWithDelta($expected, $snapshot->totalDue, 1.0);
     }
 
     private function makeVehicle(

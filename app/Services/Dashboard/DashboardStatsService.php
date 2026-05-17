@@ -286,7 +286,9 @@ final class DashboardStatsService
             $taxesAnnuelles = $this->safeFleetAnnualTax($context->contractsForYear($year), $year, $context);
             $daysInYear = $this->yearContext->daysInYear($year);
             $daysElapsed = $endDate->dayOfYear;
-            $taxesDues = $daysInYear > 0 ? round($taxesAnnuelles * $daysElapsed / $daysInYear, 2) : 0.0;
+            // Lot 5 D15 · prorata YTD arrondi à l'EURO (cohérence avec
+            // les agrégats fiscaux, doctrine CIBS L. 131-1).
+            $taxesDues = $daysInYear > 0 ? round($taxesAnnuelles * $daysElapsed / $daysInYear, 0, PHP_ROUND_HALF_UP) : 0.0;
 
             $points[] = new DashboardHistoryPointData(
                 year: $year,

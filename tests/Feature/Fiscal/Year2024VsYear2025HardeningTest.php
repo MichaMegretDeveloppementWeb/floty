@@ -119,8 +119,11 @@ final class Year2024VsYear2025HardeningTest extends TestCase
         // 2024 · 273 × 31/366 = 23,1229… (avec WLTP 100g = 173 €
         // + polluants Cat1 = 100 €)
         // 2025 · 293 × 31/365 = 24,8849…
-        self::assertEqualsWithDelta(273.0 * 31 / 366, $taxe31j2024, 0.1);
-        self::assertEqualsWithDelta(293.0 * 31 / 365, $taxe31j2025, 0.1);
+        // Lot 5 D15 · `companyAnnualTax` arrondit half-up à l'EURO
+        // (doctrine CIBS L. 131-1) · delta 1.0 sécurise vs valeur
+        // théorique en haute précision.
+        self::assertEqualsWithDelta(273.0 * 31 / 366, $taxe31j2024, 1.0);
+        self::assertEqualsWithDelta(293.0 * 31 / 365, $taxe31j2025, 1.0);
 
         // 2025/2024 ≈ 24,88 / 23,12 ≈ 1,076 · durcissement WLTP
         // dominant sur la légère hausse du dénominateur (365 vs 366).

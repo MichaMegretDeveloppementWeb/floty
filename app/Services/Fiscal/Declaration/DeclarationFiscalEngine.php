@@ -302,6 +302,25 @@ final readonly class DeclarationFiscalEngine
             },
         );
 
+        // Lot 5 D15 · doctrine CIBS L. 131-1 + BOI-AIS-MOB-10-30-10
+        // formalisée `project-management/taxes-rules/2025.md` § 4 ·
+        // « le montant total à payer par chaque redevable est arrondi à
+        // l'euro le plus proche, sans arrondi intermédiaire ».
+        //
+        // **Arrondi unique sur `totalDue`** (l'unique montant à
+        // déclarer officiellement à l'administration). Les composantes
+        // `co2DueTotal` et `pollutantsDueTotal` restent en haute
+        // précision (centime) · elles sont des informations détaillées
+        // affichées sur le PDF et la page Show pour traçabilité, pas
+        // des montants déclaratifs en tant que tels.
+        //
+        // Invariant cross-engine · `totalDue` == `FleetFiscalAggregator::companyAnnualTax`
+        // pour le même couple `(company, year)` quand aucune décision
+        // de revue n'est appliquée · garantit qu'un brouillon
+        // recalculé live (`engine->compute`) et un agrégat global
+        // (`aggregator->companyAnnualTax` utilisé sur Companies Index)
+        // donnent le même euro déclaré. Cf. test
+        // `DeclarationFiscalEngineTest::standardAggregatorTotalFor`.
         return new FiscalDeclarationSnapshot(
             companyId: $company->id,
             companyShortCode: $company->short_code,
@@ -310,7 +329,7 @@ final readonly class DeclarationFiscalEngine
             computedAt: CarbonImmutable::now(),
             co2DueTotal: round($totalCo2Raw, 2, PHP_ROUND_HALF_UP),
             pollutantsDueTotal: round($totalPollutantsRaw, 2, PHP_ROUND_HALF_UP),
-            totalDue: round($totalCo2Raw + $totalPollutantsRaw, 2, PHP_ROUND_HALF_UP),
+            totalDue: round($totalCo2Raw + $totalPollutantsRaw, 0, PHP_ROUND_HALF_UP),
             contractBreakdown: $contractEntries,
             appliedDecisions: $appliedDecisions,
             optOutContractIds: $optOutContractIds,

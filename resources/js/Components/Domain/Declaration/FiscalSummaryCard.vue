@@ -77,9 +77,9 @@ defineExpose({
                     </dd>
                 </div>
                 <div class="flex items-baseline justify-between pt-1">
-                    <dt class="text-base font-semibold text-slate-900">Total dû</dt>
+                    <dt class="text-base font-semibold text-slate-900">Total à déclarer</dt>
                     <dd class="text-lg font-semibold text-slate-900 tabular-nums">
-                        {{ formatEur(snapshot.totalDue, 2) }}
+                        {{ formatEur(snapshot.totalDue, 0) }}
                     </dd>
                 </div>
             </dl>
