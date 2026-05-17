@@ -30,7 +30,7 @@
  * ne sert `preview`, `obsoleteReasons` et `riskSettings` qu'en mode B.
  */
 import { Deferred, Head } from '@inertiajs/vue3';
-import { ShieldCheck } from 'lucide-vue-next';
+import { Clock } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import DeclarationClustersRecap from '@/Components/Domain/Declaration/DeclarationClustersRecap.vue';
 import DeclarationHistoryTimeline from '@/Components/Domain/Declaration/DeclarationHistoryTimeline.vue';
@@ -149,25 +149,6 @@ function handleSubmit(
     });
 }
 
-function handleQuickRequalify(fingerprint: string): void {
-    // Guard defensif TS · handleQuickRequalify n'est appele que depuis
-    // le slot enfant de <Deferred> (preview est donc defini), mais le
-    // type nullable de preview impose ce check pour strict-checker.
-    if (!props.preview) {
-        return;
-    }
-
-    const cluster = props.preview.clusters.find((c) => c.fingerprint === fingerprint);
-
-    if (cluster === undefined) {
-        return;
-    }
-
-    // Phase 13 D5.10.S · le quick requalify depuis le recap reprend
-    // l'état d'inclusion actuel (vide par défaut = tous inclus).
-    handleSubmit(cluster, 'requalified', null, cluster.excludedContractIds ?? []);
-}
-
 function handleScrollTo(fingerprint: string): void {
     fiscalSummaryRef.value?.scrollToCluster(fingerprint);
 }
@@ -203,6 +184,26 @@ function handleScrollTo(fingerprint: string): void {
                     :obsolete-reasons="obsoleteReasons ?? []"
                     :fiscal-year="declaration.fiscalYear"
                 />
+                <!--
+                    Lot 5 D13 · banner « raison du report » affiché quand
+                    le brouillon est reporté (`status === 'deferred'`) et
+                    qu'une raison a été saisie au modal Reporter. État
+                    transitoire · effacé au revert ou à la génération.
+                -->
+                <div
+                    v-if="declaration.status === 'deferred' && declaration.deferReason"
+                    class="flex items-start gap-3 rounded-sm border border-slate-200 border-l-2 border-l-amber-400 bg-white p-4"
+                >
+                    <Clock class="shrink-0 text-amber-500" :size="18" :stroke-width="1.75" />
+                    <div class="flex flex-col gap-1">
+                        <p class="text-sm font-semibold text-slate-900">
+                            Raison du report
+                        </p>
+                        <p class="whitespace-pre-line text-sm text-slate-700">
+                            {{ declaration.deferReason }}
+                        </p>
+                    </div>
+                </div>
             </template>
             <PredecessorNoticeBanner
                 v-else-if="predecessorDeclaration"
@@ -226,7 +227,6 @@ function handleScrollTo(fingerprint: string): void {
                     <DeclarationClustersRecap
                         :clusters="preview!.clusters"
                         :submitting="submitting"
-                        @quick-requalify="handleQuickRequalify"
                         @scroll-to="handleScrollTo"
                     />
 
@@ -238,25 +238,6 @@ function handleScrollTo(fingerprint: string): void {
                         :risk-settings="riskSettings!"
                         @submit="(cluster, decision, justification, excludedIds) => handleSubmit(cluster, decision, justification, excludedIds)"
                     />
-
-                    <div
-                        v-if="preview!.clusters.length === 0"
-                        class="flex flex-col items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center"
-                    >
-                        <div
-                            class="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-emerald-600"
-                        >
-                            <ShieldCheck :size="24" :stroke-width="1.75" />
-                        </div>
-                        <p class="text-sm font-semibold text-emerald-900">
-                            Aucune chaîne LCD à risque détectée
-                        </p>
-                        <p class="max-w-md text-xs text-emerald-800">
-                            Le périmètre fiscal de cet exercice ne révèle aucune chaîne
-                            LCD nécessitant une revue. Vous pouvez générer la déclaration
-                            directement.
-                        </p>
-                    </div>
 
                     <ReviewActionsBar
                         :declaration-id="declaration.id"

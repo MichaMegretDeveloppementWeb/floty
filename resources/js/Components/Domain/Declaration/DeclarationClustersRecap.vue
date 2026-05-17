@@ -1,15 +1,21 @@
 <script setup lang="ts">
 /**
  * Bandeau récapitulatif sticky des clusters de la déclaration en revue
- * (Phase 11 D5.8). Permet à l'utilisateur de visualiser et trancher
- * les décisions sans avoir à scroller jusqu'au cluster correspondant
- * dans le tableau breakdown.
+ * (Phase 11 D5.8).
  *
- * Affiche uniquement les clusters `pending` (sans décision) pour ne
- * pas encombrer la vue après que les décisions ont été prises. Quand
- * tous les clusters sont tranchés, le récapitulatif disparaît.
+ * Affiche **tous** les clusters de risque détectés (pas seulement les
+ * pending) · permet à l'utilisateur de garder une vue d'ensemble
+ * persistante des chaînes LCD, peu importe leur état d'arbitrage. Le
+ * titre s'adapte · « N arbitrage(s) requis avant génération » quand
+ * il en reste, « N cluster(s) de risque LCD » quand tous sont rendus.
  *
- * Sticky top + backdrop-blur : reste visible pendant le scroll, ne
+ * Pas d'action d'arbitrage directe ici · seul un bouton « Voir le
+ * cluster » (style secondary) qui scrolle vers le cluster dans le
+ * tableau breakdown. L'arbitrage réel se fait via la modale
+ * `<ClusterDecisionModal>` ouverte depuis le `<ClusterGroup>` du
+ * tableau (cohérence UX · une seule entrée d'action).
+ *
+ * Sticky top + backdrop-blur · reste visible pendant le scroll, ne
  * masque pas le contenu derrière.
  */
 import { ShieldAlert, ShieldCheck } from 'lucide-vue-next';
@@ -25,17 +31,27 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    /** Émis quand l'utilisateur clique « Requalifier » sur un cluster. La justification facultative est saisie en dessous, dans le ClusterGroup principal. */
-    quickRequalify: [fingerprint: string];
     /** Émis quand l'utilisateur clique « Voir le cluster » pour scroller jusqu'à lui. */
     scrollTo: [fingerprint: string];
 }>();
 
-const pendingClusters = computed<App.Data.User.FiscalDeclaration.ReviewClusterData[]>(
-    () => props.clusters.filter((c) => c.decision === null),
+const pendingCount = computed<number>(
+    () => props.clusters.filter((c) => c.decision === null).length,
 );
 
-const hasPending = computed<boolean>(() => pendingClusters.value.length > 0);
+const totalCount = computed<number>(() => props.clusters.length);
+
+const headerLabel = computed<string>(() => {
+    if (pendingCount.value > 0) {
+        const plural = pendingCount.value > 1 ? 's' : '';
+
+        return `${pendingCount.value} arbitrage${plural} requis avant génération`;
+    }
+
+    const plural = totalCount.value > 1 ? 's' : '';
+
+    return `${totalCount.value} cluster${plural} de risque LCD · tous arbitrés`;
+});
 
 function levelTone(level: App.Enums.FiscalReviewDecision.RiskLevel): StatusTone {
     return level === 'eleve' ? 'rose' : 'amber';
@@ -47,6 +63,22 @@ function levelLabel(level: App.Enums.FiscalReviewDecision.RiskLevel): string {
 
 function codeLabel(code: App.Enums.FiscalReviewDecision.RiskCode): string {
     return code === 'R-LCD-CHAIN-FORT' ? 'LCD successifs · risqué' : 'LCD successifs';
+}
+
+type DecisionPill = { tone: StatusTone; label: string };
+
+function decisionPill(
+    decision: App.Enums.FiscalReviewDecision.ReviewDecisionType | null,
+): DecisionPill {
+    if (decision === 'conserved') {
+        return { tone: 'emerald', label: 'LCD maintenue' };
+    }
+
+    if (decision === 'requalified') {
+        return { tone: 'rose', label: 'Requalifiée LLD' };
+    }
+
+    return { tone: 'amber', label: 'À arbitrer' };
 }
 
 /**
@@ -67,20 +99,18 @@ function coverageSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterD
 
 <template>
     <div
-        v-if="hasPending"
+        v-if="totalCount > 0"
         class="sticky top-3 z-10 flex flex-col gap-2 rounded-xl border border-slate-200 bg-slate-50/95 p-3 shadow-sm backdrop-blur"
     >
         <div class="flex items-center gap-2">
             <ShieldAlert :size="16" :stroke-width="1.75" class="text-slate-600" />
             <p class="text-sm font-semibold text-slate-900">
-                {{ pendingClusters.length }}
-                arbitrage<template v-if="pendingClusters.length > 1">s</template>
-                requis avant génération
+                {{ headerLabel }}
             </p>
         </div>
         <ul class="flex flex-wrap gap-2">
             <li
-                v-for="cluster in pendingClusters"
+                v-for="cluster in clusters"
                 :key="cluster.fingerprint"
                 class="flex flex-wrap items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
             >
@@ -96,19 +126,19 @@ function coverageSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterD
                 <StatusPill :tone="levelTone(cluster.level)">
                     {{ levelLabel(cluster.level) }}
                 </StatusPill>
+                <StatusPill :tone="decisionPill(cluster.decision).tone">
+                    {{ decisionPill(cluster.decision).label }}
+                </StatusPill>
                 <span class="text-[11px] text-slate-500">
                     {{ coverageSummary(cluster) }}
                 </span>
-                <Button size="sm" variant="ghost" :disabled="submitting" @click="emit('scrollTo', cluster.fingerprint)">
-                    Voir le cluster
-                </Button>
                 <Button
                     size="sm"
-                    variant="destructive-soft"
+                    variant="secondary"
                     :disabled="submitting"
-                    @click="emit('quickRequalify', cluster.fingerprint)"
+                    @click="emit('scrollTo', cluster.fingerprint)"
                 >
-                    Requalifier
+                    Voir le cluster
                 </Button>
             </li>
         </ul>
