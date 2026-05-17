@@ -202,11 +202,20 @@ function autocompleteTextFor(item: FlatItem): string | null {
     return null;
 }
 
-function closeAndReset(): void {
-    palette.close();
+/**
+ * Reset complet du state local du composant · vidange l'input, l'index
+ * actif et le dernier résultat. Idempotent · safe d'appeler plusieurs
+ * fois (à la fermeture, à l'ouverture, sur sélection d'item).
+ */
+function resetLocalState(): void {
     query.value = '';
     activeIndex.value = 0;
     resetSearch();
+}
+
+function closeAndReset(): void {
+    palette.close();
+    resetLocalState();
 }
 
 function navigate(direction: 1 | -1): void {
@@ -267,19 +276,20 @@ function handleKeydown(event: KeyboardEvent): void {
 }
 
 watch(palette.isOpen, async (open) => {
-        bodyScrollLock.value = open;
+    bodyScrollLock.value = open;
 
-        if (open) {
-            await nextTick();
-            inputRef.value?.focus();
-        } else {
-            // Reset différé pour éviter un flicker visuel pendant la
-            // transition de fermeture (si transition ajoutée plus tard).
-            query.value = '';
-            activeIndex.value = 0;
-            resetSearch();
-        }
-    });
+    // Reset systématique à chaque changement d'état (defensive) ·
+    // garantit qu'on ne voit JAMAIS l'ancien résultat à la réouverture,
+    // même si l'enchaînement close → open arrive sans que la branche
+    // `false` n'ait eu le temps de tourner (cas observé · ouverture
+    // depuis le trigger TopBar laissait l'ancien résultat visible).
+    resetLocalState();
+
+    if (open) {
+        await nextTick();
+        inputRef.value?.focus();
+    }
+});
 
 // Reset activeIndex sur changement de résultat (sinon hors-bornes)
 watch(flatItems, () => {
