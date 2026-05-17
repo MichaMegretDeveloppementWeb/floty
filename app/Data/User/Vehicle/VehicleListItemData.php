@@ -18,9 +18,14 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * taux d'utilisation. La taxe réelle (compte tenu des attributions
  * existantes) est disponible sur la fiche détail Show.
  *
- * `rentalPriceFullYear` est calculé via {@see RentalPriceCalculator}
- * depuis V1.2 (Phase 13 D5.10.L) · prix location annuel cross-entreprises
- * du véhicule. `null` si tarif annuel manquant.
+ * **Coûts en defer** (chantier perf Flotte 2026-05-17) ·
+ * `fullYearTax`, `dailyTaxRate`, `rentalPriceFullYear` sont nullable ·
+ * la liste SLIM ({@see VehicleListingService::listPaginatedSlim}) sert
+ * le payload initial avec `null` sur ces 3 champs · les valeurs réelles
+ * arrivent dans une 2e requête `Inertia::defer` côté
+ * {@see VehicleController::index} qui appelle
+ * {@see VehicleListingService::costsForVehicleIds}. Skeleton sur les
+ * 2 colonnes le temps du fetch différé.
  */
 #[TypeScript]
 final class VehicleListItemData extends Data
@@ -36,8 +41,14 @@ final class VehicleListItemData extends Data
         public ?string $exitDate,
         public ?VehicleExitReason $exitReason,
         public bool $isExited,
-        public float $fullYearTax,
-        public float $dailyTaxRate,
+        /** Null tant que la prop `vehiclesCosts` n'est pas hydratée (defer). */
+        public ?float $fullYearTax,
+        /** Null tant que la prop `vehiclesCosts` n'est pas hydratée (defer). */
+        public ?float $dailyTaxRate,
+        /**
+         * Null tant que la prop `vehiclesCosts` n'est pas hydratée (defer),
+         * OU si tarif annuel manquant pour ce véhicule.
+         */
         public ?float $rentalPriceFullYear,
     ) {}
 }

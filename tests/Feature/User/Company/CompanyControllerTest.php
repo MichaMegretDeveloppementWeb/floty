@@ -477,9 +477,12 @@ final class CompanyControllerTest extends TestCase
     #[Test]
     public function show_kpi_fiscal_available_false_pour_une_annee_sans_regles_codees(): void
     {
-        // En 2026 (année calendaire courante) on n'a codé que Year2024Boot
-        // → aucune règle fiscale 2026 → flag à false côté UI pour
-        // afficher le message « Règles non implémentées » sur la KPI Taxes.
+        // Pour une année sans `Year{YYYY}Boot` codé, le flag doit être
+        // à false côté UI pour afficher le message « Règles non
+        // implémentées » sur la KPI Taxes. 2030 = année future non
+        // couverte (registry contient 2024, 2025, 2026).
+        Carbon::setTestNow(Carbon::create(2030, 6, 1));
+
         $user = User::factory()->create();
         $company = Company::factory()->create();
 
@@ -489,6 +492,8 @@ final class CompanyControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('company.kpiFiscalAvailable', false),
             );
+
+        Carbon::setTestNow();
     }
 
     #[Test]

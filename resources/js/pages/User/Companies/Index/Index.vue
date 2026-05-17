@@ -50,22 +50,39 @@ const tableState = useCompaniesTable({
     selectedYear: props.selectedYear,
 });
 
-// P0.1 (audit perf 2026-05-16) · Re-fetch des `costs` à chaque
-// changement de page de la table (filtre, tri, année, pagination).
-// Le `router.get` interne de `useServerTableState` ne demande que
-// `['companies', 'query', 'selectedYear']` · sans ce watcher, les
-// cellules `annualTaxDue` / `rentalPriceTotal` resteraient en
-// skeleton infini après le premier filtrage. `Inertia::defer`
-// auto-trigger uniquement sur le 1er visit · les visits suivants
-// doivent demander explicitement la prop deferred via un reload
-// `only:`. Cf. mémoire `feedback_inertia_defer_with_partial_reload`.
-//
-// Vue 3 `watch` sans `immediate: true` ne fire pas au mount · pas
-// besoin de skip-le-mount-initial. Le 1er fire correspond bien au
-// 1er changement de filtre/tri/page/année.
+// P0.1 (audit perf 2026-05-16) · Ref local miroir de la prop `costs` ·
+// reset à `undefined` immédiatement à chaque changement de page/année
+// AVANT le reload pour forcer les skeletons sur les 2 cellules. Sans
+// ce miroir, Inertia préserve la prop deferred lors des partial reloads
+// (visit year-change déclenché par useServerTableState ne re-touche pas
+// `costs`) · les valeurs périmées resteraient affichées ~200-500 ms le
+// temps de la RTT du reload manuel, sans skeleton visible. Pattern
+// identique à Planning et Flotte (cf. mémoire
+// `feedback_inertia_defer_with_partial_reload`).
+const localCosts = ref<typeof props.costs>(props.costs);
+
+// Sync depuis la prop · capte l'auto-fetch initial du defer ET le
+// retour du reload manuel après year/filter change.
 watch(
-    () => props.companies.data.map((c) => c.id).join(','),
+    () => props.costs,
+    (next) => {
+        localCosts.value = next;
+    },
+);
+
+// Reset + re-fetch sur changement de page de la table (filtre, tri,
+// pagination) **OU d'année** · les coûts dépendent de l'année
+// sélectionnée (`annualTaxDue` change selon les barèmes annuels). Le
+// `router.get` interne de `useServerTableState` ne demande que
+// `['companies', 'query', 'selectedYear']` · sans ce watcher, les
+// cellules resteraient gelées au coût de l'année initiale après
+// year-change (les entreprises ne changent pas → IDs identiques).
+// Clé composite `{year}|{ids}` · re-fetch si l'un OU l'autre change.
+// Vue 3 `watch` sans `immediate: true` ne fire pas au mount.
+watch(
+    () => `${props.selectedYear}|${props.companies.data.map((c) => c.id).join(',')}`,
     () => {
+        localCosts.value = undefined;
         router.reload({ only: ['costs'] });
     },
 );
@@ -220,7 +237,7 @@ const activeFiltersCount = computed<number>(() => {
 
                 <CompaniesTable
                     :companies="companies.data"
-                    :costs="costs"
+                    :costs="localCosts"
                     :columns="tableState.columns.value"
                     :active-sort-column-key="
                         tableState.activeSortColumnKey.value

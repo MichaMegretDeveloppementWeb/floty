@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, router } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
@@ -16,8 +16,24 @@ import EmptyFleetState from './partials/EmptyFleetState.vue';
 import FleetTable from './partials/FleetTable.vue';
 import PageHeader from './partials/PageHeader.vue';
 
+/**
+ * Coûts d'un véhicule servis en différé (chantier perf Flotte 2026-05-17).
+ * Le DTO `VehicleListItemData` est servi avec les 3 champs financiers
+ * à `null` au premier render · cette map remplit les 2 cellules après
+ * un partial reload Inertia. Skeleton entre-temps.
+ */
+type VehicleCosts = Record<
+    number,
+    { fullYearTax: number; dailyTaxRate: number; rentalPriceFullYear: number | null }
+>;
+
 const props = defineProps<{
     vehicles: App.Data.User.Vehicle.PaginatedVehicleListData;
+    /**
+     * Inertia::defer · `undefined` au premier render, rempli après la
+     * 2e requête asynchrone déclenchée automatiquement par Inertia.
+     */
+    vehiclesCosts?: VehicleCosts;
     options: {
         firstRegistrationYearBounds: { min: number; max: number } | null;
     };
@@ -57,6 +73,42 @@ const tableState = useFleetTable({
     selectedYear: props.selectedYear,
     currentRealYear,
 });
+
+// Ref local miroir de la prop `vehiclesCosts` · reset à `undefined`
+// immédiatement à chaque changement de page/année AVANT le reload pour
+// forcer les skeletons sur les 2 cellules. Sans ce miroir, Inertia
+// préserve la prop deferred lors des partial reloads (visit year-change
+// déclenché par useServerTableState ne re-touche pas vehiclesCosts) ·
+// les valeurs périmées resteraient affichées ~200-500 ms le temps de
+// la RTT du reload manuel, sans skeleton visible. Pattern identique à
+// Planning (cf. mémoire `feedback_inertia_defer_with_partial_reload`).
+const localVehiclesCosts = ref<VehicleCosts | undefined>(props.vehiclesCosts);
+
+// Sync depuis la prop · capte l'auto-fetch initial du defer ET le
+// retour du reload manuel après year/filter change.
+watch(
+    () => props.vehiclesCosts,
+    (next) => {
+        localVehiclesCosts.value = next;
+    },
+);
+
+// Reset + re-fetch sur changement de page de la table (filtre, tri,
+// pagination) **OU d'année** · les coûts dépendent de l'année
+// sélectionnée (`fullYearTax` change selon les barèmes annuels). Le
+// `router.get` interne de `useServerTableState` ne demande que
+// `['vehicles', 'query', 'selectedYear']` · sans ce watcher, les
+// cellules resteraient gelées au coût de l'année initiale après
+// year-change. Clé composite `{year}|{ids}` · re-fetch si l'un OU
+// l'autre change. Vue 3 `watch` sans `immediate: true` ne fire pas
+// au mount (l'auto-fetch Inertia du defer s'en charge).
+watch(
+    () => `${props.selectedYear}|${props.vehicles.data.map((v) => v.id).join(',')}`,
+    () => {
+        localVehiclesCosts.value = undefined;
+        router.reload({ only: ['vehiclesCosts'] });
+    },
+);
 
 const availableYears = computed<readonly number[]>(() => props.yearScope.availableYears);
 const {
@@ -178,6 +230,7 @@ const {
 
                 <FleetTable
                     :vehicles="vehicles.data"
+                    :costs="localVehiclesCosts"
                     :columns="tableState.columns.value"
                     :active-sort-column-key="
                         tableState.activeSortColumnKey.value

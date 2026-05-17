@@ -13,11 +13,13 @@ use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Vehicle\VehicleAggregatesService;
 use App\Services\Vehicle\VehicleDetailService;
 use App\Services\Vehicle\VehicleListingService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -83,6 +85,83 @@ final class VehicleQueryServicesTest extends TestCase
         // Dernier element · 2024 avec 15 jours utilises
         self::assertSame(2024, $history[count($expectedYears) - 1]->year);
         self::assertSame(15, $history[count($expectedYears) - 1]->daysUsed);
+    }
+
+    /**
+     * Équivalence stricte (chantier perf Flotte 2026-05-17) ·
+     * `costsForVehicleIds` (avec prewarm VFC batch) retourne strictement
+     * les MÊMES valeurs `fullYearTax` que `aggregator->vehicleFullYearTax`
+     * appelé individuellement. Garantit zéro régression côté calculs.
+     * Doctrine `optimisations-conditionnelles.md` stratégie 2.
+     */
+    #[Test]
+    public function costs_for_vehicle_ids_equivalent_au_calcul_individuel_sans_prewarm(): void
+    {
+        $v1 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v1->id]);
+        $v2 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v2->id]);
+        $v3 = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v3->id]);
+
+        $year = 2026;
+
+        // Référence · valeurs sans prewarm batch (1 aggregator FRESH par
+        // véhicule pour éviter contamination cache).
+        $expected = [];
+        foreach ([$v1, $v2, $v3] as $v) {
+            $fresh = $this->app->make(FleetFiscalAggregator::class);
+            $expected[$v->id] = $fresh->vehicleFullYearTax($v, $year);
+        }
+
+        // Service à tester · avec prewarm batch.
+        $actual = $this->listing->costsForVehicleIds([$v1->id, $v2->id, $v3->id], $year);
+
+        foreach ([$v1, $v2, $v3] as $v) {
+            self::assertSame(
+                $expected[$v->id],
+                $actual[$v->id]['fullYearTax'],
+                "fullYearTax doit être strictement identique pour véhicule {$v->id}",
+            );
+        }
+    }
+
+    /**
+     * Garde-fou perf · `costsForVehicleIds` exécute exactement 2 queries
+     * VFC batchées indépendamment du nombre de véhicules (pas N+1) ·
+     *   1. `findByIdsIndexed` eager-load `fiscalCharacteristics` (WHERE
+     *      effective_to IS NULL · 1 query batched)
+     *   2. `prewarmFullYearForVehicles` (segments effectifs pour l'année ·
+     *      1 query batched via `findEffectiveSegmentsForYearBatch`)
+     *
+     * Avant ce chantier · `vehicleFullYearTax` appelé en boucle déclenchait
+     * N queries VFC individuelles (N+1 monstrueux).
+     */
+    #[Test]
+    public function costs_for_vehicle_ids_supprime_le_n_plus_1_vfc_via_prewarm_batch(): void
+    {
+        $vehicleIds = [];
+        for ($i = 0; $i < 5; $i++) {
+            $v = Vehicle::factory()->create();
+            VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $v->id]);
+            $vehicleIds[] = $v->id;
+        }
+
+        DB::enableQueryLog();
+        $this->listing->costsForVehicleIds($vehicleIds, 2026);
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        $vfcQueries = array_filter(
+            $queries,
+            static fn (array $q): bool => str_contains($q['query'], 'from `vehicle_fiscal_characteristics`'),
+        );
+
+        self::assertCount(
+            2,
+            $vfcQueries,
+            'Expected exactly 2 batched VFC queries (eager-load + prewarm), got '.count($vfcQueries),
+        );
     }
 
     #[Test]

@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import Plate from '@/Components/Ui/Plate/Plate.vue';
+import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import type { DataTableColumn } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
 type VehicleRow = App.Data.User.Vehicle.VehicleListItemData;
+type VehicleCosts = Record<
+    number,
+    { fullYearTax: number; dailyTaxRate: number; rentalPriceFullYear: number | null }
+>;
 
 // Colonnes triables côté serveur (cf. VehicleIndexQueryData::allowedSortKeys()).
 // `fullYearTax` et `rentalPriceFullYear` sont volontairement absents
@@ -17,8 +22,14 @@ const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
     'firstFrenchRegistrationDate',
 ]);
 
-defineProps<{
+const props = defineProps<{
     vehicles: VehicleRow[];
+    /**
+     * Map des coûts par vehicleId · `undefined` tant que le defer
+     * `vehiclesCosts` n'est pas hydraté · `null`/`undefined` côté entry
+     * → skeleton sur les cellules `fullYearTax` + `rentalPriceFullYear`.
+     */
+    costs?: VehicleCosts;
     columns: readonly DataTableColumn<VehicleRow>[];
     activeSortColumnKey: string | null;
     sortDirection: 'asc' | 'desc';
@@ -113,25 +124,37 @@ function statusPalette(
             <span class="whitespace-nowrap">{{ formatDateFr(String(value)) }}</span>
         </template>
         <template #cell-fullYearTax="{ row }">
-            <div class="flex flex-col items-end leading-tight">
+            <!-- Skeleton tant que le defer `vehiclesCosts` n'a pas hydraté
+                 la map · row.fullYearTax reste null dans le payload initial. -->
+            <div
+                v-if="props.costs && props.costs[row.id]"
+                class="flex flex-col items-end leading-tight"
+            >
                 <span class="font-mono font-normal whitespace-nowrap text-slate-900">
-                    {{ formatEur(row.fullYearTax) }}
+                    {{ formatEur(props.costs[row.id].fullYearTax) }}
                 </span>
                 <span class="text-xs whitespace-nowrap text-slate-400">
-                    {{ formatEur(row.dailyTaxRate, 2) }} / jour
+                    {{ formatEur(props.costs[row.id].dailyTaxRate, 2) }} / jour
                 </span>
+            </div>
+            <div v-else class="flex flex-col items-end gap-1 leading-tight">
+                <Skeleton class="h-4 w-20 rounded" />
+                <Skeleton class="h-3 w-16 rounded" />
             </div>
         </template>
         <template #cell-rentalPriceFullYear="{ row }">
-            <span
-                v-if="row.rentalPriceFullYear !== null"
-                class="font-mono font-normal whitespace-nowrap text-slate-900"
-            >
-                {{ formatEur(row.rentalPriceFullYear) }}
-            </span>
-            <span v-else class="text-slate-300" title="Tarif annuel non défini pour ce véhicule">
-                ·
-            </span>
+            <template v-if="props.costs && props.costs[row.id]">
+                <span
+                    v-if="props.costs[row.id].rentalPriceFullYear !== null"
+                    class="font-mono font-normal whitespace-nowrap text-slate-900"
+                >
+                    {{ formatEur(props.costs[row.id].rentalPriceFullYear!) }}
+                </span>
+                <span v-else class="text-slate-300" title="Tarif annuel non défini pour ce véhicule">
+                    ·
+                </span>
+            </template>
+            <Skeleton v-else class="ml-auto h-4 w-20 rounded" />
         </template>
 
         <template #empty>

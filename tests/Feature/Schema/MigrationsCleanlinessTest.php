@@ -55,6 +55,7 @@ final class MigrationsCleanlinessTest extends TestCase
             'password_reset_tokens',
             'sessions',
             'unavailabilities',
+            'unavailability_documents',
             'users',
             'vehicle_fiscal_characteristics',
             'vehicle_yearly_pricings',

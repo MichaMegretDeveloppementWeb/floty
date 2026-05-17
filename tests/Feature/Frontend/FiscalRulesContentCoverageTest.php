@@ -40,13 +40,13 @@ final class FiscalRulesContentCoverageTest extends TestCase
         $boot = app(Year2024Boot::class);
         $allClasses = array_merge($boot->rules(), $boot->informativeRules());
 
-        self::assertCount(24, $allClasses);
+        self::assertCount(32, $allClasses);
 
         $codesInDb = FiscalRule::query()
             ->where('fiscal_year', 2024)
             ->pluck('rule_code')
             ->all();
-        self::assertCount(24, $codesInDb);
+        self::assertCount(32, $codesInDb);
 
         foreach ($allClasses as $class) {
             $rule = app($class);

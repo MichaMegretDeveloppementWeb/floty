@@ -67,20 +67,39 @@ const tableState = useContractsTable({
     driverOptions: props.options.drivers,
 });
 
-// Re-fetch des `contractsCosts` à chaque changement de page de la table
-// (filtre, tri, année, pagination). Le `router.get` interne de
+// Ref local miroir de la prop `contractsCosts` · reset à `undefined`
+// immédiatement à chaque changement de page AVANT le reload pour forcer
+// les skeletons sur les 2 cellules. Sans ce miroir, Inertia préserve la
+// prop deferred lors des partial reloads (visit filter/sort/page
+// déclenché par useServerTableState ne re-touche pas contractsCosts) ·
+// les valeurs périmées resteraient affichées ~200-500 ms le temps de
+// la RTT du reload manuel. Pattern identique à Flotte, Companies et
+// Planning (cf. mémoire `feedback_inertia_defer_with_partial_reload`).
+const localContractsCosts = ref<ContractCosts | undefined>(props.contractsCosts);
+
+// Sync depuis la prop · capte l'auto-fetch initial du defer ET le
+// retour du reload manuel après page/year/filter change.
+watch(
+    () => props.contractsCosts,
+    (next) => {
+        localContractsCosts.value = next;
+    },
+);
+
+// Reset + re-fetch à chaque changement de page de la table (filtre,
+// tri, année, pagination). Le `router.get` interne de
 // `useServerTableState` ne demande que `['contracts', 'query']` · sans
-// ce watcher, les cellules `totalTax` / `rentalPrice` resteraient en
-// skeleton infini après le premier filtrage. `Inertia::defer` auto-trigger
+// ce watcher, les cellules `totalTax` / `rentalPrice` resteraient
+// gelées aux valeurs précédentes. `Inertia::defer` auto-trigger
 // uniquement sur le 1er visit · les visits suivants doivent demander
 // explicitement la prop deferred via un reload `only:`.
 //
-// Vue 3 `watch` sans `immediate: true` ne fire pas au mount · on n'a
-// donc pas besoin de skip-le-mount-initial. Le 1er fire correspond bien
-// au 1er changement de filtre/tri/page.
+// Vue 3 `watch` sans `immediate: true` ne fire pas au mount · le 1er
+// fire correspond bien au 1er changement de filtre/tri/page.
 watch(
     () => props.contracts.data.map((c) => c.id).join(','),
     () => {
+        localContractsCosts.value = undefined;
         router.reload({ only: ['contractsCosts'] });
     },
 );
@@ -326,7 +345,7 @@ const typeModel = computed<string | number>({
 
                 <ContractsTable
                     :contracts="contracts.data"
-                    :costs="contractsCosts"
+                    :costs="localContractsCosts"
                     :columns="tableState.columns"
                     :active-sort-column-key="tableState.activeSortColumnKey.value"
                     :sort-direction="tableState.state.sort.value.direction"

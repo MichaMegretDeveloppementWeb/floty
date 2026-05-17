@@ -67,8 +67,24 @@ final class VehicleController extends Controller
         // `currentYear` si invalide.
         $year = $this->resolveSelectedYear($query->year);
 
+        // Chantier perf Flotte 2026-05-17 · liste SLIM en payload initial
+        // (sans `fullYearTax` / `dailyTaxRate` / `rentalPriceFullYear` qui
+        // demandent le pipeline fiscal + le batch rental) · les 3 colonnes
+        // calculées arrivent dans une 2e requête `Inertia::defer` après le
+        // mount, le frontend rend un skeleton sur les 2 cellules entre-temps.
+        // Pattern cohérent avec Contracts Index et Companies Index.
+        $vehicles = $this->vehicleListing->listPaginatedSlim($query);
+        $vehicleIds = array_map(static fn ($v): int => $v->id, $vehicles->data);
+
         return Inertia::render('User/Vehicles/Index/Index', [
-            'vehicles' => $this->vehicleListing->listPaginated($query, $year),
+            'vehicles' => $vehicles,
+            // Inertia::defer · cette closure ne s'exécute qu'à la 2e
+            // requête déclenchée automatiquement par Inertia après le
+            // mount. Le prewarm VFC batch + le pipeline fiscal tournent
+            // ici, hors du chemin critique 1ère peinture.
+            'vehiclesCosts' => Inertia::defer(
+                fn () => $this->vehicleListing->costsForVehicleIds($vehicleIds, $year),
+            ),
             'options' => [
                 'firstRegistrationYearBounds' => $this->vehicleListing->firstRegistrationYearBounds(),
             ],

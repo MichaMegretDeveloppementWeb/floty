@@ -23,7 +23,10 @@ use Spatie\LaravelData\DataCollection;
  * `VehicleQueryService` pour respecter SRP · Lot 4 D09 / F-14-003).
  *
  * Regroupe ·
- *   - `listPaginated` · Index server-side avec calcul fiscal par page
+ *   - `listPaginatedSlim` · Index server-side (zéro calcul fiscal/rental ·
+ *      sert en payload initial, les coûts arrivent en `Inertia::defer`).
+ *   - `costsForVehicleIds` · map des coûts par véhicule (fiscaux + rental)
+ *      pour la 2e vague defer · prewarm VFC batch (1 query SQL).
  *   - `listForLightSelector` · liste slim (id, label, isExited) pour
  *      tous les sélecteurs UI (filter dropdown Index, form Create/Edit
  *      Contract). Zéro calcul fiscal · audit S2.4 + S2.5.
@@ -42,33 +45,45 @@ final class VehicleListingService
     ) {}
 
     /**
-     * Index Vehicles paginé server-side (cf. ADR-0020).
+     * Variante **slim** dédiée à l'Index Flotte · liste paginée SANS
+     * coûts (fullYearTax/dailyTaxRate/rentalPriceFullYear restent
+     * `null`) · zéro pipeline fiscal, zéro batch rental.
      *
-     * Le repo gère pagination + filtres `includeExited`/`status` + search
-     * en SQL pur. Le service calcule ensuite `fullYearTax` + `dailyTaxRate`
-     * uniquement pour les véhicules de la page courante.
+     * Le payload initial Inertia est servi immédiatement (juste les
+     * colonnes SQL · plaque, marque/modèle, statut, date 1ère immat).
+     * Les 3 colonnes calculées arrivent dans une 2e requête
+     * `Inertia::defer` côté {@see VehicleController::index} qui appelle
+     * {@see costsForVehicleIds}. Skeleton sur les 2 cellules le temps
+     * du fetch différé.
      *
-     * Cf. ADR-0020 D6 : le tri par `fullYearTax` est volontairement
+     * Doctrine `chargement-strict-par-ecran.md` · méthode dédiée par
+     * usage · l'Index n'a pas besoin des coûts pour s'afficher.
+     *
+     * Cf. ADR-0020 D6 · le tri par `fullYearTax` est volontairement
      * absent de la whitelist sortKey (valeur calculée non SQL).
      */
-    public function listPaginated(VehicleIndexQueryData $query, int $year): PaginatedVehicleListData
+    public function listPaginatedSlim(VehicleIndexQueryData $query): PaginatedVehicleListData
     {
-        $daysInYear = $this->yearContext->daysInYear($year);
         $paginator = $this->vehicles->paginateForIndex($query);
         /** @var list<Vehicle> $vehicles */
         $vehicles = $paginator->items();
 
-        // Phase 13 D5.10.L · prix location batched · 2 SQL pour la page
-        // entière au lieu de 12 × N SQL.
-        $vehicleIds = array_map(static fn (Vehicle $v): int => $v->id, $vehicles);
-        $rentalPricesByVehicle = $this->rentalPrice->forVehiclesAndYear($vehicleIds, $year);
-
         $items = array_map(
-            fn (Vehicle $v): VehicleListItemData => $this->mapVehicleToListItem(
-                $v,
-                $year,
-                $daysInYear,
-                $rentalPricesByVehicle[$v->id] ?? null,
+            static fn (Vehicle $v): VehicleListItemData => new VehicleListItemData(
+                id: $v->id,
+                licensePlate: $v->license_plate,
+                brand: $v->brand,
+                model: $v->model,
+                currentStatus: $v->current_status,
+                firstFrenchRegistrationDate: $v->first_french_registration_date->format('Y-m-d'),
+                acquisitionDate: $v->acquisition_date->format('Y-m-d'),
+                exitDate: $v->exit_date?->format('Y-m-d'),
+                exitReason: $v->exit_reason,
+                isExited: $v->is_exited,
+                // Coûts servis en `Inertia::defer` via `costsForVehicleIds`.
+                fullYearTax: null,
+                dailyTaxRate: null,
+                rentalPriceFullYear: null,
             ),
             $vehicles,
         );
@@ -79,36 +94,64 @@ final class VehicleListingService
         );
     }
 
-    private function mapVehicleToListItem(Vehicle $v, int $year, int $daysInYear, ?int $rentalCents): VehicleListItemData
+    /**
+     * Map des coûts (taxe pleine + tarif location) pour un batch de
+     * vehicleIds, pour l'année cible. Utilisée en `Inertia::defer` côté
+     * {@see VehicleController::index} pour remplir les 3 cellules
+     * calculées après le render initial slim.
+     *
+     * **Optimisation perf** ·
+     *   - `prewarmFullYearForVehicles` · 1 query SQL batch qui pré-charge
+     *     les segments VFC + pipeline results pour tous les véhicules
+     *     · supprime le N+1 query VFC (N véhicules · N queries · -95 % SQL).
+     *   - `rentalPrice->forVehiclesAndYear` · 2 SQL batched (vs 12 × N).
+     *
+     * **Équivalence stricte** garantie avec l'ancienne version `listPaginated` ·
+     * `vehicleFullYearTax($v, $year)` retourne strictement la même valeur
+     * que sans prewarm (cf. test FleetFiscalAggregatorTest::prewarm_equivalent_aux_appels_individuels).
+     *
+     * **Tolère année hors registry** · si pipeline fiscal n'a pas de règles
+     * pour `$year`, affiche `0 €` plutôt que de crasher (cohérent doctrine
+     * « données métier ⊥ règles fiscales » Phase 2).
+     *
+     * @param  list<int>  $vehicleIds
+     * @return array<int, array{fullYearTax: float, dailyTaxRate: float, rentalPriceFullYear: float|null}>
+     */
+    public function costsForVehicleIds(array $vehicleIds, int $year): array
     {
-        // Tolère une année hors registry fiscal (cohérent doctrine
-        // « données métier ⊥ règles fiscales » Phase 2) : si le pipeline
-        // fiscal n'a pas de règles pour `$year`, on affiche `0 €` plutôt
-        // que de crasher tout l'Index.
-        try {
-            $fullYearTax = $this->aggregator->vehicleFullYearTax($v, $year);
-        } catch (FiscalCalculationException) {
-            $fullYearTax = 0.0;
+        if ($vehicleIds === []) {
+            return [];
         }
 
-        return new VehicleListItemData(
-            id: $v->id,
-            licensePlate: $v->license_plate,
-            brand: $v->brand,
-            model: $v->model,
-            currentStatus: $v->current_status,
-            firstFrenchRegistrationDate: $v->first_french_registration_date->format('Y-m-d'),
-            acquisitionDate: $v->acquisition_date->format('Y-m-d'),
-            exitDate: $v->exit_date?->format('Y-m-d'),
-            exitReason: $v->exit_reason,
-            isExited: $v->is_exited,
-            fullYearTax: $fullYearTax,
-            dailyTaxRate: round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
-            // Phase 13 D5.10.L · prix location annuel cross-entreprises
-            // pré-calculé en mode batched par `forVehiclesAndYear`. Null
-            // si tarif annuel manquant.
-            rentalPriceFullYear: $rentalCents === null ? null : $rentalCents / 100,
-        );
+        $vehicles = $this->vehicles->findByIdsIndexed($vehicleIds);
+        $daysInYear = $this->yearContext->daysInYear($year);
+
+        // Prewarm VFC + pipeline results en 1 query SQL batch · supprime
+        // le N+1 query VFC dans la boucle `vehicleFullYearTax` ci-dessous.
+        $this->aggregator->prewarmFullYearForVehicles($vehicles, $year);
+
+        // Phase 13 D5.10.L · prix location batched · 2 SQL pour la page
+        // entière au lieu de 12 × N SQL.
+        $rentalPricesByVehicle = $this->rentalPrice->forVehiclesAndYear($vehicleIds, $year);
+
+        $result = [];
+        foreach ($vehicles as $v) {
+            try {
+                $fullYearTax = $this->aggregator->vehicleFullYearTax($v, $year);
+            } catch (FiscalCalculationException) {
+                $fullYearTax = 0.0;
+            }
+
+            $rentalCents = $rentalPricesByVehicle[$v->id] ?? null;
+
+            $result[$v->id] = [
+                'fullYearTax' => $fullYearTax,
+                'dailyTaxRate' => round($fullYearTax / $daysInYear, 2, PHP_ROUND_HALF_UP),
+                'rentalPriceFullYear' => $rentalCents === null ? null : $rentalCents / 100,
+            ];
+        }
+
+        return $result;
     }
 
     /**

@@ -45,12 +45,16 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
-    public function index_liste_les_vehicules_avec_cout_plein_annee_et_taux_journalier(): void
+    public function index_liste_les_vehicules_avec_couts_en_inertia_defer(): void
     {
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
+        // Chantier perf Flotte 2026-05-17 · le payload initial sert la
+        // liste SLIM (fullYearTax/dailyTaxRate/rentalPriceFullYear à `null`)
+        // · les coûts arrivent en `Inertia::defer` via la prop
+        // `vehiclesCosts` qui est `missing` dans le payload initial.
         $this->actingAs($user)
             ->get('/app/vehicles')
             ->assertOk()
@@ -65,10 +69,14 @@ final class VehicleControllerTest extends TestCase
                 $page->has('vehicles.data.0', fn (AssertableInertia $v) => $v
                     ->where('id', $vehicle->id)
                     ->where('licensePlate', $vehicle->license_plate)
-                    ->has('fullYearTax')
-                    ->has('dailyTaxRate')
+                    // Slim · les 3 champs financiers sont `null` au mount.
+                    ->where('fullYearTax', null)
+                    ->where('dailyTaxRate', null)
+                    ->where('rentalPriceFullYear', null)
                     ->etc(),
                 );
+                // `vehiclesCosts` absent du payload initial (servi en defer).
+                $page->missing('vehiclesCosts');
             });
     }
 
@@ -448,7 +456,14 @@ final class VehicleControllerTest extends TestCase
                             ->has('appliedExemptions')
                             ->has('appliedRuleCodes')
                             ->has('appliedRules')
-                            ->has('taxSegments', 1, fn (AssertableInertia $s) => $s
+                            // Le nombre de segments dépend du nombre de
+                            // sous-périodes (cartésien VFC × rule segments)
+                            // de l'année calendaire courante. Certaines
+                            // années introduisent des barèmes scindés
+                            // (ex. 2026 · revalorisation polluants au
+                            // 01/03). Vérifie la structure du premier
+                            // segment plutôt qu'un count figé.
+                            ->has('taxSegments.0', fn (AssertableInertia $s) => $s
                                 ->has('effectiveFromInYear')
                                 ->has('effectiveToInYear')
                                 ->has('daysInSegment')
@@ -591,9 +606,12 @@ final class VehicleControllerTest extends TestCase
     #[Test]
     public function show_kpi_fiscal_available_false_si_pas_de_regles_pour_l_annee_courante(): void
     {
-        // En 2026, seules les règles 2024 sont codées dans le registry.
-        // `kpiFiscalAvailable` doit être false pour qu'à l'UI les KPI
-        // Taxes/Taxe pleine affichent "·" + caption "Règles non implémentées".
+        // Pour une année sans règles fiscales codées (Year{YYYY}Boot
+        // absent), `kpiFiscalAvailable` doit être false pour qu'à
+        // l'UI les KPI Taxes/Taxe pleine affichent "·" + caption
+        // "Règles non implémentées". 2030 = année future non couverte.
+        Carbon::setTestNow(Carbon::create(2030, 6, 1));
+
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -604,6 +622,8 @@ final class VehicleControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('vehicle.kpiFiscalAvailable', false),
             );
+
+        Carbon::setTestNow();
     }
 
     #[Test]
@@ -727,24 +747,24 @@ final class VehicleControllerTest extends TestCase
         // Doctrine « données métier ⊥ règles fiscales » : l'endpoint
         // lazy `/usage-stats` accepte n'importe quelle année et tolère
         // une année sans règles fiscales codées (Timeline OK, jours
-        // bruts intacts, taxes à 0). 2026 = première année non codée
-        // après Bloc 4 (Year2026Boot pas encore créé).
+        // bruts intacts, taxes à 0). 2030 = année future sans
+        // Year2030Boot codé.
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
 
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
-            'start_date' => '2026-04-01',
-            'end_date' => '2026-04-15',
+            'start_date' => '2030-04-01',
+            'end_date' => '2030-04-15',
         ]);
 
         $payload = $this->actingAs($user)
-            ->getJson("/app/vehicles/{$vehicle->id}/usage-stats?year=2026")
+            ->getJson("/app/vehicles/{$vehicle->id}/usage-stats?year=2030")
             ->assertOk()
             ->json();
 
-        $this->assertSame(2026, $payload['fiscalYear']);
+        $this->assertSame(2030, $payload['fiscalYear']);
         $this->assertSame(15, $payload['daysUsedThisYear']);
         $this->assertSame(0, $payload['fullYearTax']);
         $this->assertSame(0, $payload['actualTaxThisYear']);
@@ -755,14 +775,14 @@ final class VehicleControllerTest extends TestCase
     {
         // L'endpoint `/full-year-breakdown` retourne un DTO neutre
         // (tarifs 0, message « Règles non implémentées ») pour les
-        // années sans règles fiscales codées. 2026 = première année non
-        // codée après Bloc 4.
+        // années sans règles fiscales codées. 2030 = année future
+        // sans Year2030Boot codé.
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
         $payload = $this->actingAs($user)
-            ->getJson("/app/vehicles/{$vehicle->id}/full-year-breakdown?year=2026")
+            ->getJson("/app/vehicles/{$vehicle->id}/full-year-breakdown?year=2030")
             ->assertOk()
             ->json();
 
