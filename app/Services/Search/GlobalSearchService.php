@@ -281,11 +281,16 @@ final class GlobalSearchService
     }
 
     /**
-     * Cherche les couples (véhicule, entreprise) qui ont au moins un
-     * contrat ET dont la combinaison matche tous les tokens (chaque
-     * token doit matcher soit côté véhicule, soit côté entreprise).
+     * Cherche les triplets (véhicule, entreprise, année) qui ont au
+     * moins un contrat ET dont la combinaison matche tous les tokens
+     * (chaque token doit matcher soit côté véhicule, soit côté
+     * entreprise).
      *
-     * 1 raccourci par couple · href vers `/app/contracts?vehicleId=X&companyId=Y`.
+     * **Granularité par année (`YEAR(start_date)`)** · sinon, cliquer
+     * sur un raccourci sans filtre année atterrissait sur l'année
+     * courante du sélecteur Contracts Index, ce qui pouvait masquer
+     * les contrats du couple si ceux-ci étaient sur une autre année.
+     * 1 raccourci par triplet · ordonné par count desc puis year desc.
      *
      * Implémenté en `DB::table()` (query agrégat avec aliases SQL
      * non-portés par le modèle Eloquent Contract) pour éviter les faux
@@ -306,13 +311,18 @@ final class GlobalSearchService
             ->select([
                 'contracts.vehicle_id',
                 'contracts.company_id',
+                DB::raw('YEAR(contracts.start_date) as start_year'),
                 DB::raw('COUNT(*) as contract_count'),
                 DB::raw('MAX(vehicles.brand) as vehicle_brand'),
                 DB::raw('MAX(vehicles.model) as vehicle_model'),
                 DB::raw('MAX(vehicles.license_plate) as vehicle_plate'),
                 DB::raw('MAX(companies.legal_name) as company_name'),
             ])
-            ->groupBy('contracts.vehicle_id', 'contracts.company_id');
+            ->groupBy(
+                'contracts.vehicle_id',
+                'contracts.company_id',
+                DB::raw('YEAR(contracts.start_date)'),
+            );
 
         $vehicleConcat = "CONCAT_WS(' ', vehicles.brand, vehicles.model, vehicles.license_plate)";
         $companyConcat = "CONCAT_WS(' ', companies.legal_name, companies.siren)";
@@ -329,6 +339,7 @@ final class GlobalSearchService
 
         $rows = $query
             ->orderByDesc('contract_count')
+            ->orderByDesc('start_year')
             ->orderBy('contracts.vehicle_id')
             ->limit(self::LIMIT_PER_GROUP)
             ->get();
@@ -343,16 +354,19 @@ final class GlobalSearchService
                 (string) $row->vehicle_plate,
             );
             $count = (int) $row->contract_count;
+            $year = (int) $row->start_year;
 
             $items[] = new GlobalSearchContractShortcutData(
                 vehicleId: (int) $row->vehicle_id,
                 companyId: (int) $row->company_id,
+                year: $year,
                 label: sprintf('%s · chez %s', $vehicleLabel, (string) $row->company_name),
-                sublabel: sprintf('%d contrat%s', $count, $count > 1 ? 's' : ''),
+                sublabel: sprintf('%d contrat%s en %d', $count, $count > 1 ? 's' : '', $year),
                 count: $count,
                 href: route('user.contracts.index', [
                     'vehicleId' => $row->vehicle_id,
                     'companyId' => $row->company_id,
+                    'year' => $year,
                 ]),
             );
         }

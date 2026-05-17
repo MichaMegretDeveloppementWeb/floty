@@ -189,9 +189,9 @@ final class GlobalSearchControllerTest extends TestCase
         ]);
         $acme = Company::factory()->create(['legal_name' => 'ACME SARL']);
 
-        // 3 contrats pour le couple (vehicle, ACME) · dates échelonnées
-        // pour éviter le trigger BDD `overlapping period for this
-        // vehicle` (cf. migration 2026_04_24_190005_*).
+        // 3 contrats pour le triplet (vehicle, ACME, 2025) · dates
+        // échelonnées pour éviter le trigger BDD `overlapping period
+        // for this vehicle` (cf. migration 2026_04_24_190005_*).
         Contract::factory()->lcd()->forVehicle($vehicle)->forCompany($acme)->create([
             'start_date' => '2025-01-01',
             'end_date' => '2025-03-31',
@@ -211,13 +211,56 @@ final class GlobalSearchControllerTest extends TestCase
             ->assertJsonCount(1, 'contractShortcuts')
             ->assertJsonPath('contractShortcuts.0.vehicleId', $vehicle->id)
             ->assertJsonPath('contractShortcuts.0.companyId', $acme->id)
+            ->assertJsonPath('contractShortcuts.0.year', 2025)
             ->assertJsonPath('contractShortcuts.0.count', 3)
-            ->assertJsonPath('contractShortcuts.0.sublabel', '3 contrats');
+            ->assertJsonPath('contractShortcuts.0.sublabel', '3 contrats en 2025');
 
         $href = $response->json('contractShortcuts.0.href');
         $this->assertStringContainsString('/app/contracts', $href);
         $this->assertStringContainsString('vehicleId='.$vehicle->id, $href);
         $this->assertStringContainsString('companyId='.$acme->id, $href);
+        $this->assertStringContainsString('year=2025', $href);
+    }
+
+    #[Test]
+    public function raccourcis_contrats_eclates_par_annee_de_start_date(): void
+    {
+        $user = User::factory()->create();
+
+        $vehicle = Vehicle::factory()->create([
+            'brand' => 'Renault',
+            'model' => 'Clio',
+            'license_plate' => 'AB-123-CD',
+        ]);
+        $acme = Company::factory()->create(['legal_name' => 'ACME SARL']);
+
+        // 1 contrat 2024 + 2 contrats 2025 pour le même couple ·
+        // doit produire 2 raccourcis distincts (1 par année).
+        Contract::factory()->lcd()->forVehicle($vehicle)->forCompany($acme)->create([
+            'start_date' => '2024-06-01',
+            'end_date' => '2024-12-31',
+        ]);
+        Contract::factory()->lcd()->forVehicle($vehicle)->forCompany($acme)->create([
+            'start_date' => '2025-01-01',
+            'end_date' => '2025-06-30',
+        ]);
+        Contract::factory()->lcd()->forVehicle($vehicle)->forCompany($acme)->create([
+            'start_date' => '2025-07-01',
+            'end_date' => '2025-12-31',
+        ]);
+
+        $this->actingAs($user)
+            ->getJson('/app/search?q=renault%20acme')
+            ->assertOk()
+            // 2 raccourcis · 1 pour 2025 (2 contrats) + 1 pour 2024 (1)
+            ->assertJsonCount(2, 'contractShortcuts')
+            // Ordre · count desc puis year desc · 2025 (2) avant 2024 (1)
+            ->assertJsonPath('contractShortcuts.0.year', 2025)
+            ->assertJsonPath('contractShortcuts.0.count', 2)
+            ->assertJsonPath('contractShortcuts.0.sublabel', '2 contrats en 2025')
+            ->assertJsonPath('contractShortcuts.1.year', 2024)
+            ->assertJsonPath('contractShortcuts.1.count', 1)
+            ->assertJsonPath('contractShortcuts.1.sublabel', '1 contrat en 2024');
     }
 
     #[Test]

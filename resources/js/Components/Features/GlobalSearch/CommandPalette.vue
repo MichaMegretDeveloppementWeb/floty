@@ -180,6 +180,28 @@ function selectItem(item: FlatItem): void {
     router.visit(item.href);
 }
 
+/**
+ * Texte d'autocomplétion (Tab) pour un item · uniquement les 3
+ * entités primaires (véhicule, entreprise, conducteur). Les
+ * raccourcis contrats/déclarations ne sont PAS autocomplétables ·
+ * ce sont des destinations finales, pas des points de départ pour
+ * affiner la recherche.
+ *
+ * Le séparateur visuel ` · ` du label est remplacé par un simple
+ * espace pour rester matchable côté backend (qui tokenize par espaces).
+ */
+function autocompleteTextFor(item: FlatItem): string | null {
+    if (
+        item.type === 'vehicle'
+        || item.type === 'company'
+        || item.type === 'driver'
+    ) {
+        return item.label.replace(/ · /g, ' ') + ' ';
+    }
+
+    return null;
+}
+
 function closeAndReset(): void {
     palette.close();
     query.value = '';
@@ -208,6 +230,28 @@ function handleKeydown(event: KeyboardEvent): void {
     if (event.key === 'ArrowUp') {
         event.preventDefault();
         navigate(-1);
+
+        return;
+    }
+
+    if (event.key === 'Tab') {
+        const item = flatItems.value[activeIndex.value];
+
+        if (item === undefined) {
+            return;
+        }
+
+        const text = autocompleteTextFor(item);
+
+        if (text === null) {
+            return;
+        }
+
+        // preventDefault uniquement quand on autocomplete · sinon
+        // on laisse Tab passer (utile pour quitter la modale au focus
+        // bouton fermer mobile).
+        event.preventDefault();
+        query.value = text;
 
         return;
     }
@@ -244,8 +288,14 @@ watch(flatItems, () => {
 </script>
 
 <template>
-    <Teleport v-if="palette.isOpen.value" to="body">
+    <!-- Teleport monté en permanence (pas de `v-if` ici) · le `<div>`
+        intérieur est seul conditionné. Sans ça, l'unmount immédiat à
+        la fermeture annulait le watch `palette.isOpen` qui devait
+        reset query/result · l'ancien résultat restait alors visible
+        à la réouverture suivante (bug observé en Chrome live 2026-05-17). -->
+    <Teleport to="body">
         <div
+            v-if="palette.isOpen.value"
             class="fixed inset-0 z-50 flex md:items-start md:justify-center md:p-4 md:pt-[12vh]"
             role="dialog"
             aria-modal="true"
@@ -274,7 +324,7 @@ watch(flatItems, () => {
                         type="search"
                         placeholder="Rechercher un véhicule, une entreprise, un conducteur..."
                         aria-label="Recherche globale"
-                        class="min-w-0 flex-1 border-0 bg-transparent text-base leading-tight text-slate-900 placeholder:text-slate-400 focus-visible:outline-none"
+                        class="min-w-0 flex-1 border-0 bg-transparent px-1 py-1 text-base leading-tight text-slate-900 placeholder:text-slate-400 focus-visible:outline-none"
                         @keydown="handleKeydown"
                     />
                     <button
@@ -442,7 +492,7 @@ watch(flatItems, () => {
                         >
                             <ResultItem
                                 v-for="cs in result.contractShortcuts"
-                                :key="`cs-${cs.vehicleId}-${cs.companyId}`"
+                                :key="`cs-${cs.vehicleId}-${cs.companyId}-${cs.year}`"
                                 :icon="FileText"
                                 :label="cs.label"
                                 :sublabel="cs.sublabel"
@@ -509,6 +559,10 @@ watch(flatItems, () => {
                     <span class="flex items-center gap-1.5">
                         <Kbd>↵</Kbd>
                         Sélectionner
+                    </span>
+                    <span class="flex items-center gap-1.5">
+                        <Kbd>Tab</Kbd>
+                        Compléter
                     </span>
                     <span class="flex items-center gap-1.5">
                         <Kbd>Esc</Kbd>
