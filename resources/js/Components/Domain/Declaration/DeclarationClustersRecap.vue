@@ -46,7 +46,7 @@ function levelLabel(level: App.Enums.FiscalReviewDecision.RiskLevel): string {
 }
 
 function codeLabel(code: App.Enums.FiscalReviewDecision.RiskCode): string {
-    return code === 'R-LCD-CHAIN-FORT' ? 'Chaîne forte' : 'Chaîne';
+    return code === 'R-LCD-CHAIN-FORT' ? 'LCD successifs · risqué' : 'LCD successifs';
 }
 
 /**
