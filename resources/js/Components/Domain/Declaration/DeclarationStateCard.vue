@@ -123,16 +123,16 @@ function handleRegenerate(): void {
             <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
                 La préparation de la déclaration est en cours. Il reste
                 <strong class="font-medium text-slate-900">
-                    {{ lifecycle.pendingClustersCount }} décision{{ pendingPlural }}
+                    {{ lifecycle.pendingClustersCount }} arbitrage{{ pendingPlural }}
                 </strong>
-                à trancher dans l'écran de revue avant de générer le document.
-                Les décisions déjà prises sont conservées.
+                en attente dans l'écran de revue avant de générer le document.
+                Les arbitrages déjà rendus sont conservés.
             </p>
             <div>
                 <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
-                        Reprendre la revue
+                        Poursuivre la revue
                     </Button>
                 </Link>
             </div>
@@ -148,7 +148,7 @@ function handleRegenerate(): void {
                 </span>
             </div>
             <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
-                Toutes les décisions de revue ont été tranchées. La déclaration
+                Tous les arbitrages de revue ont été rendus. La déclaration
                 peut désormais être générée depuis l'écran de revue · le document
                 produit sera figé et conservé en annexe.
             </p>
@@ -172,15 +172,15 @@ function handleRegenerate(): void {
                 </span>
             </div>
             <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
-                La préparation a été volontairement mise de côté. Elle peut être
-                reprise à tout moment depuis l'écran de revue · aucune décision
-                déjà tranchée ne sera perdue.
+                La préparation a été volontairement reportée. Elle peut être
+                reprise à tout moment depuis l'écran de revue · aucun arbitrage
+                déjà rendu ne sera perdu.
             </p>
             <div>
                 <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
-                        Reprendre la revue
+                        Poursuivre la revue
                     </Button>
                 </Link>
             </div>
@@ -196,7 +196,7 @@ function handleRegenerate(): void {
                 </span>
             </div>
             <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
-                Le brouillon de régénération a été volontairement mis de côté.
+                Le brouillon de régénération a été volontairement reporté.
                 La déclaration précédente reste obsolète tant que la nouvelle
                 version n'est pas générée.
                 <template v-if="firstReasonOccurredAt">
@@ -209,7 +209,7 @@ function handleRegenerate(): void {
                 <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
-                        Reprendre la régénération
+                        Poursuivre la régénération
                     </Button>
                 </Link>
                 <Link
@@ -347,13 +347,13 @@ function handleRegenerate(): void {
                     Un nouveau brouillon a été créé pour remplacer la version
                     obsolète. Il reste
                     <strong class="font-medium text-slate-900">
-                        {{ lifecycle.pendingClustersCount }} décision{{ pendingPlural }}
+                        {{ lifecycle.pendingClustersCount }} arbitrage{{ pendingPlural }}
                     </strong>
-                    à trancher dans l'écran de revue avant de générer la
+                    en attente dans l'écran de revue avant de générer la
                     nouvelle version.
                 </template>
                 <template v-else>
-                    Toutes les décisions ont été reprises automatiquement par
+                    Tous les arbitrages ont été repris automatiquement par
                     fingerprint · la nouvelle version est prête à être générée
                     depuis l'écran de revue.
                 </template>
@@ -367,7 +367,7 @@ function handleRegenerate(): void {
                 <Link :href="reviewDeclarationRoute.url({ declaration: current.id })">
                     <Button>
                         <FileText :size="14" :stroke-width="1.75" />
-                        Reprendre la régénération
+                        Poursuivre la régénération
                     </Button>
                 </Link>
                 <Link

@@ -74,7 +74,7 @@ const yearOptions = computed<{ value: number | null; label: string }[]>(() => {
 const statusOptions: { value: string | null; label: string }[] = [
     { value: null, label: 'Tous les statuts' },
     { value: 'draft', label: 'Brouillon' },
-    { value: 'deferred', label: 'Mise de côté' },
+    { value: 'deferred', label: 'Reportée' },
     { value: 'generated', label: 'Générée' },
 ];
 </script>

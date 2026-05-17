@@ -140,7 +140,7 @@ export function useDeclarationsIndex(opts: {
         if (f.status !== null) {
             const labels: Record<string, string> = {
                 draft: 'Brouillon',
-                deferred: 'Mise de côté',
+                deferred: 'Reportée',
                 generated: 'Générée',
             };
             chips.push({ key: 'status', label: `Statut : ${labels[f.status] ?? f.status}` });

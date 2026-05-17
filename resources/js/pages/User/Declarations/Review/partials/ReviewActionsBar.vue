@@ -103,7 +103,7 @@ function handleGenerate(): void {
             >
                 <LoaderCircle v-if="deferring" :size="16" :stroke-width="1.75" class="animate-spin" />
                 <Clock v-else :size="16" :stroke-width="1.75" />
-                {{ isDeferred ? 'Mise de côté' : 'Mettre de côté' }}
+                {{ isDeferred ? 'Reportée' : 'Reporter' }}
             </Button>
 
             <Tooltip v-if="!canGenerate" max-width="20rem">

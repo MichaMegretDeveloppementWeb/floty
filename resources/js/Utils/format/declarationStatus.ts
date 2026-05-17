@@ -13,7 +13,7 @@ export type DeclarationStatusBadge = {
 
 const STATUS_LABELS: Record<Status, string> = {
     draft: 'Brouillon',
-    deferred: 'Mise de côté',
+    deferred: 'Reportée',
     generated: 'Générée',
 };
 

@@ -63,7 +63,7 @@ function declarationConfig(entry: PendingDeclaration): EntryConfig {
             return {
                 icon: FileText,
                 title: entry.pendingClustersCount > 0
-                    ? `Brouillon · ${entry.pendingClustersCount} décision${entry.pendingClustersCount > 1 ? 's' : ''} à trancher`
+                    ? `Brouillon · ${entry.pendingClustersCount} arbitrage${entry.pendingClustersCount > 1 ? 's' : ''} en attente`
                     : 'Brouillon en cours',
                 cta: 'Reprendre',
                 iconTone: 'text-slate-500',
@@ -78,14 +78,14 @@ function declarationConfig(entry: PendingDeclaration): EntryConfig {
         case 'deferred':
             return {
                 icon: Clock,
-                title: 'Mise de côté',
+                title: 'Reportée',
                 cta: 'Reprendre',
                 iconTone: 'text-slate-500',
             };
         case 'deferred_regeneration':
             return {
                 icon: Clock,
-                title: 'Mise de côté · régénération en attente',
+                title: 'Reportée · génération en attente',
                 cta: 'Reprendre',
                 iconTone: 'text-amber-500',
             };
@@ -157,7 +157,7 @@ function declarationSubtitle(entry: PendingDeclaration): SubtitleResult {
 
             if (entry.pendingClustersCount > 0) {
                 const plural = entry.pendingClustersCount > 1 ? 's' : '';
-                parts.push(`${entry.pendingClustersCount} décision${plural} à trancher`);
+                parts.push(`${entry.pendingClustersCount} arbitrage${plural} en attente`);
             } else {
                 parts.push('Prêt à générer la nouvelle version');
             }
@@ -169,7 +169,7 @@ function declarationSubtitle(entry: PendingDeclaration): SubtitleResult {
             return { text: parts.join(' · '), toneClass: 'text-slate-500' };
         }
         case 'deferred_regeneration': {
-            const parts: string[] = ['Brouillon mis de côté'];
+            const parts: string[] = ['Brouillon reporté'];
 
             if (entry.obsoleteSinceDate !== null) {
                 parts.push(`obsolète depuis le ${formatDateFr(entry.obsoleteSinceDate)}`);

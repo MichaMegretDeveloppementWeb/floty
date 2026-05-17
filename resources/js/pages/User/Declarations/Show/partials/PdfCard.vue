@@ -222,7 +222,7 @@ function confirmModify(): void {
                 >
                     <Button variant="secondary">
                         <Recycle :size="16" :stroke-width="1.75" />
-                        Reprendre la régénération
+                        Poursuivre la régénération
                     </Button>
                 </Link>
 
@@ -271,8 +271,8 @@ function confirmModify(): void {
                     <Pencil :size="16" :stroke-width="1.75" />
                     {{
                         declaration.status === 'deferred'
-                            ? 'Reprendre la déclaration mise de côté'
-                            : 'Reprendre la revue'
+                            ? 'Poursuivre la déclaration reportée'
+                            : 'Poursuivre la revue'
                     }}
                 </Button>
             </Link>

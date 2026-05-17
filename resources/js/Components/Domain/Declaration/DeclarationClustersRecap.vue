@@ -74,8 +74,8 @@ function coverageSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterD
             <ShieldAlert :size="16" :stroke-width="1.75" class="text-slate-600" />
             <p class="text-sm font-semibold text-slate-900">
                 {{ pendingClusters.length }}
-                décision<template v-if="pendingClusters.length > 1">s</template>
-                à prendre avant génération
+                arbitrage<template v-if="pendingClusters.length > 1">s</template>
+                requis avant génération
             </p>
         </div>
         <ul class="flex flex-wrap gap-2">

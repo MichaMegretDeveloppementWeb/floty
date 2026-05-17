@@ -87,7 +87,7 @@ const emit = defineEmits<{
 const isHighLevel = computed<boolean>(() => props.riskLevel === 'eleve');
 
 const codeLabel = computed<string>(() =>
-    props.riskCode === 'R-LCD-CHAIN-FORT' ? 'Chaîne LCD forte' : 'Chaîne LCD',
+    props.riskCode === 'R-LCD-CHAIN-FORT' ? 'LCD successifs · risqué' : 'LCD successifs',
 );
 
 const levelTone = computed<StatusTone>(() => (isHighLevel.value ? 'rose' : 'amber'));
@@ -95,11 +95,11 @@ const levelLabel = computed<string>(() => (isHighLevel.value ? 'Risque élevé' 
 
 const decisionPill = computed<{ tone: StatusTone; label: string } | null>(() => {
     if (props.decision === 'conserved') {
-        return { tone: 'emerald', label: 'Conservée' };
+        return { tone: 'emerald', label: 'LCD maintenue' };
     }
 
     if (props.decision === 'requalified') {
-        return { tone: 'rose', label: 'Requalifiée' };
+        return { tone: 'rose', label: 'Requalifiée LLD' };
     }
 
     return null;
@@ -110,7 +110,7 @@ const accentBorderClass = computed<string>(() =>
 );
 
 const editButtonLabel = computed<string>(
-    () => (props.decision === null ? 'Décider' : 'Modifier la décision'),
+    () => (props.decision === null ? 'Arbitrer' : 'Réviser l\'arbitrage'),
 );
 
 const vehiclesLabel = computed<string>(() =>
@@ -152,7 +152,7 @@ const vehiclesLabel = computed<string>(() =>
                         <CheckCircle2 :size="12" :stroke-width="1.75" />
                         {{ decisionPill.label }}
                     </StatusPill>
-                    <StatusPill v-else tone="amber">À trancher</StatusPill>
+                    <StatusPill v-else tone="amber">À arbitrer</StatusPill>
                     <Button
                         v-if="interactive"
                         size="sm"

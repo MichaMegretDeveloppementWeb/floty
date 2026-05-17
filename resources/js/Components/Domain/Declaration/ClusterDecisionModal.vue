@@ -78,7 +78,7 @@ watch(
 const isHighRisk = computed<boolean>(() => props.cluster?.level === 'eleve');
 
 const codeLabel = computed<string>(() =>
-    props.cluster?.code === 'R-LCD-CHAIN-FORT' ? 'Chaîne LCD forte' : 'Chaîne LCD',
+    props.cluster?.code === 'R-LCD-CHAIN-FORT' ? 'LCD successifs · risqué' : 'LCD successifs',
 );
 
 const justificationRequired = computed<boolean>(
@@ -253,7 +253,7 @@ function handleRequalify(): void {
 
             <!-- Explication réglementaire -->
             <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
-                <p class="mb-1 font-semibold text-slate-900">Pourquoi cette chaîne est à risque</p>
+                <p class="mb-1 font-semibold text-slate-900">Motif du signalement</p>
                 <p>
                     Quand des contrats LCD courts forment une chaîne dont
                     l'union des jours couverts dépasse {{ riskSettings.thresholdLow }} jours

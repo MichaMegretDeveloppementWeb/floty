@@ -139,7 +139,7 @@ const canAddMore = computed<boolean>(() => {
                 v-if="slots.length === 0"
                 class="mt-1 text-xs text-slate-500"
             >
-                Aucun conducteur désigné. Cliquez pour en ajouter un (ou
+                Aucun conducteur sélectionné. Cliquez pour en ajouter un (ou
                 plusieurs) à cette location.
             </p>
         </div>

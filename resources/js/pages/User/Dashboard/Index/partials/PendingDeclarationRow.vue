@@ -45,7 +45,7 @@ const ctaLabel = computed<string>(() => {
         case 'regeneration_in_progress':
             return 'Finaliser';
         case 'deferred_regeneration':
-            return 'Reprendre la régénération';
+            return 'Poursuivre la régénération';
         case 'generated_active':
             // Cas safety net · une `generated_active` ne devrait jamais
             // apparaître dans la liste des `pending` (terminée pour

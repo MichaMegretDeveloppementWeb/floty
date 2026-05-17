@@ -425,7 +425,7 @@ final class GlobalSearchService
             FiscalDeclarationStatus::Generated => $declaration->generated_at !== null
                 ? sprintf('Générée le %s', $declaration->generated_at->format('d/m/Y'))
                 : 'Générée',
-            FiscalDeclarationStatus::Deferred => 'Mise de côté',
+            FiscalDeclarationStatus::Deferred => 'Reportée',
             FiscalDeclarationStatus::Draft => 'Brouillon',
         };
     }

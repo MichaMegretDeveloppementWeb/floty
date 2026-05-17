@@ -73,7 +73,7 @@ function labelFor(d: ItemData): string {
     }
 
     if (d.status === 'deferred') {
-        return 'Mise de côté';
+        return 'Reportée';
     }
 
     return 'Brouillon';

@@ -152,7 +152,7 @@ const resolutionOptions = computed<
     return [
         {
             value: 'detach',
-            label: `Retirer le conducteur des ${count} location${count > 1 ? 's' : ''} à venir`,
+            label: `Détacher de l'entreprise et des ${count} location${count > 1 ? 's' : ''} à venir`,
         },
         {
             value: 'replace',
