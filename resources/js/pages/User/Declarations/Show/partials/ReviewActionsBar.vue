@@ -125,9 +125,9 @@ function handleGenerate(): void {
 
     <ConfirmModal
         v-model:open="deferConfirmOpen"
-        title="Mettre la déclaration de côté ?"
-        message="La déclaration passera en statut « différé ». Vous pourrez la reprendre à tout moment depuis cette même page. Aucune décision déjà prise ne sera perdue."
-        confirm-label="Mettre de côté"
+        title="Reporter la déclaration ?"
+        message="La déclaration passera en statut « Reportée ». Vous pourrez la reprendre à tout moment depuis cette même page. Aucun arbitrage déjà rendu ne sera perdu."
+        confirm-label="Reporter"
         cancel-label="Continuer la revue"
         @confirm="confirmMarkDeferred"
     />

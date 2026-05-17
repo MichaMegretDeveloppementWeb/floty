@@ -70,13 +70,13 @@ const discardConfirmOpen = ref<boolean>(false);
 
 const discardConfirmTitle = computed<string>(
     () => (isDeferred.value
-        ? 'Supprimer cette déclaration mise en attente ?'
+        ? 'Supprimer cette déclaration reportée ?'
         : 'Supprimer le brouillon ?'),
 );
 
 const discardConfirmMessage = computed<string>(() => {
     const predRef = props.predecessorReference;
-    const subject = isDeferred.value ? 'Cette déclaration mise en attente' : 'Ce brouillon';
+    const subject = isDeferred.value ? 'Cette déclaration reportée' : 'Ce brouillon';
 
     if (predRef === null || predRef === undefined) {
         return `${subject} sera supprimé${isDeferred.value ? 'e' : ''}. Aucune autre déclaration n'est concernée. Cette action est irréversible.`;
@@ -161,7 +161,7 @@ function confirmDiscard(): void {
             >
                 <LoaderCircle v-if="reverting" :size="16" :stroke-width="1.75" class="animate-spin" />
                 <RotateCcw v-else :size="16" :stroke-width="1.75" />
-                Annuler la mise en attente
+                Annuler le report
             </Button>
             <Button
                 variant="destructive-soft"

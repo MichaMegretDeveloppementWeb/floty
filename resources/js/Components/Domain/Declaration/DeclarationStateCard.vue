@@ -165,7 +165,7 @@ function handleRegenerate(): void {
         <template v-else-if="state === 'deferred' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
-                <span class="text-sm font-medium text-slate-900">Préparation mise en pause</span>
+                <span class="text-sm font-medium text-slate-900">Préparation reportée</span>
                 <span v-if="current.reference" class="font-mono text-xs text-slate-500">
                     · {{ current.reference }}
                 </span>
@@ -189,7 +189,7 @@ function handleRegenerate(): void {
         <template v-else-if="state === 'deferred_regeneration' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
-                <span class="text-sm font-medium text-slate-900">Régénération en pause</span>
+                <span class="text-sm font-medium text-slate-900">Régénération reportée</span>
                 <span v-if="predecessor?.reference" class="font-mono text-xs text-slate-500">
                     · remplace {{ predecessor.reference }}
                 </span>
