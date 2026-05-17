@@ -29,6 +29,16 @@ const props = defineProps<{
     month: number;
     daysUsed: number;
     hasMissingPricing: boolean;
+    /**
+     * Année / mois civils courants (passés par le parent depuis l'horloge
+     * client). Permettent de masquer la branche « Générer » sur le mois en
+     * cours et les mois futurs · une facture ne se génère qu'à mois écoulé
+     * (cf. guard `GenerateInvoiceAction:73-80`). Le guard backend reste
+     * autoritaire · ces props ne sont qu'une garde UI pour ne pas
+     * proposer une action qui aboutirait à un toast-error.
+     */
+    currentRealYear: number;
+    currentRealMonth: number;
     /** Présent ssi une facture est déjà émise pour ce mois (immuable). */
     existingInvoiceId?: number | null;
     existingInvoiceNumber?: string | null;
@@ -85,8 +95,22 @@ const hasDivergence = computed<boolean>(() => {
     return false;
 });
 
+/**
+ * `true` ssi le mois est strictement antérieur au mois civil courant.
+ * Une facture ne se génère qu'à mois écoulé (cf. doctrine + guard
+ * backend) · cette dérivation permet de masquer la branche « Générer »
+ * sur le mois en cours et les mois futurs.
+ */
+const isPastMonth = computed<boolean>(
+    () => props.year < props.currentRealYear
+        || (props.year === props.currentRealYear && props.month < props.currentRealMonth),
+);
+
 const generateDisabled = computed<boolean>(
-    () => processing.value || props.daysUsed === 0 || props.hasMissingPricing,
+    () => processing.value
+        || props.daysUsed === 0
+        || props.hasMissingPricing
+        || !isPastMonth.value,
 );
 
 const generateTooltip = computed<string>(() => {
@@ -162,8 +186,14 @@ function regenerate(): void {
             <template #content>Régénérer la facture avec les données actuelles</template>
         </Tooltip>
 
-        <!-- État : pas de facture (générer ou désactivé) -->
-        <Tooltip v-if="!hasExisting" max-width="18rem">
+        <!--
+            État : pas de facture (générer ou désactivé). Masqué
+            entièrement sur le mois courant et les mois futurs · la
+            facture ne se génère qu'à mois écoulé · on n'expose donc
+            même pas le bouton (le guard backend reste autoritaire en
+            cas d'appel forgé).
+        -->
+        <Tooltip v-if="!hasExisting && isPastMonth" max-width="18rem">
             <button
                 type="button"
                 :disabled="generateDisabled"

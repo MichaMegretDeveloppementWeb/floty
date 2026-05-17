@@ -21,6 +21,7 @@ use App\Models\Invoice;
 use App\Services\Company\CompanyListingService;
 use App\Services\Invoice\InvoicePdfStorage;
 use App\Services\Invoice\InvoiceQueryService;
+use DomainException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -132,6 +133,14 @@ final class InvoiceController extends Controller
                 'Tarif annuel manquant pour au moins un véhicule du mois. '.
                 'Renseignez les tarifs depuis la fiche véhicule avant de générer la facture.',
             );
+        } catch (DomainException $e) {
+            // Garde-fou défense en profondeur · l'action refuse la
+            // génération pour un mois non écoulé (`GenerateInvoiceAction:73-80`).
+            // Le bouton « Générer » est déjà masqué côté UI pour ces
+            // cas (`GenerateInvoiceButton.vue`), ce catch couvre les
+            // POST forgés / scripts / régressions UI futures · on
+            // remonte un toast plutôt qu'un 500 brut.
+            return back()->with('toast-error', $e->getMessage());
         }
 
         return back()->with('toast-success', "Facture {$invoice->invoice_number} générée.");

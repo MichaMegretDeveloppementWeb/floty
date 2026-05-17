@@ -48,12 +48,17 @@ const yearsDescending = computed<readonly number[]>(
 );
 
 /**
- * Année courante calculée côté client (le DTO n'expose pas de
- * `currentRealYear` pour Billing, donc on s'appuie sur la date du
- * client · acceptable car la sémantique est juste visuelle, le guard
- * de génération facture reste backend).
+ * Année et mois courants calculés côté client (le DTO n'expose pas de
+ * `currentRealYear` / `currentRealMonth` pour Billing, donc on s'appuie
+ * sur la date du client · acceptable car la sémantique est juste
+ * visuelle, le guard de génération facture reste backend).
+ *
+ * `currentRealMonth` est utilisé par `GenerateInvoiceButton` pour
+ * masquer la branche « Générer » sur le mois en cours et les mois
+ * futurs (une facture ne se génère qu'à mois écoulé).
  */
 const currentRealYear = computed<number>(() => new Date().getFullYear());
+const currentRealMonth = computed<number>(() => new Date().getMonth() + 1);
 
 const isCurrentYear = computed<boolean>(
     () => props.activeYear === currentRealYear.value,
@@ -353,6 +358,8 @@ function selectYear(year: number): void {
                         :company-id="companyId"
                         :year="monthlyBilling.year"
                         :month="entry.month"
+                        :current-real-year="currentRealYear"
+                        :current-real-month="currentRealMonth"
                         :days-used="entry.daysUsed"
                         :has-missing-pricing="entry.hasMissingPricing"
                         :existing-invoice-id="entry.existingInvoiceId"
