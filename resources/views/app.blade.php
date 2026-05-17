@@ -8,18 +8,33 @@
         <link rel="icon" href="/favicon.svg" type="image/svg+xml">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 
-        {{-- Préchargement HTTP/2 du composant page Inertia · on exclut les
-             pages `Dev/*` (UI Kit, demos) du preload car elles ne sont pas
-             embarquées dans le bundle production (cf. `app.ts` resolver
-             qui filtre `pages/Dev/**` via `import.meta.env.PROD`). En
-             local, ces pages restent accessibles via vite dev server. --}}
-        @php
-            $vitePreloads = ['resources/css/app.css', 'resources/js/app.ts'];
-            if (! str_starts_with($page['component'], 'Dev/')) {
-                $vitePreloads[] = "resources/js/pages/{$page['component']}.vue";
-            }
-        @endphp
-        @vite($vitePreloads)
+        {{-- Préchargement HTTP/2 limité à app.css + app.ts UNIQUEMENT.
+
+             Incident prod Hostinger 2026-05-17 · `@vite()` émet un header
+             HTTP `Link: <chunk>; rel=modulepreload` PAR dépendance
+             transitive. Inclure le composant page Inertia
+             (`resources/js/pages/{component}.vue`) déclenchait la marche
+             du graphe de deps · Vehicle Show (115 deps transitives) générait
+             un Link header de ~8 KiB qui, combiné aux autres headers
+             (HSTS, CSP, Set-Cookie session), dépassait
+             `fastcgi_buffer_size` de nginx Hostinger → 504 immédiat
+             (nginx rejette la réponse PHP-FPM avant émission, donc rien
+             dans laravel.log et crash en <500 ms).
+
+             Symptôme bizarre · navigation Inertia XHR (X-Inertia: true)
+             marchait car la réponse JSON n'évalue jamais ce template
+             Blade, donc pas de Link header émis. Seul le full reload
+             (rendu HTML) crashait.
+
+             Sacrifice · perte du preload HTTP/2 du composant page (la
+             1ère visite découvre les imports pendant l'exécution JS,
+             ~50-100 ms supplémentaires). Bénéfice · prod stable sur
+             nginx aux buffers contraints (shared hosting).
+
+             Si on migre vers un hébergement avec buffers généreux, on
+             pourra ré-activer le preload via la branche commentée
+             ci-dessous. --}}
+        @vite(['resources/css/app.css', 'resources/js/app.ts'])
         <x-inertia::head>
             <title>{{ config('app.name', 'Laravel') }}</title>
         </x-inertia::head>
