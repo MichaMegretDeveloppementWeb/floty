@@ -188,12 +188,11 @@ final class PlanningHeatmapService
      * scope entreprise.
      *
      * Source · {@see FleetFiscalAggregator::vehicleFullYearTaxBreakdown}
-     * mise en cache persistant (`FiscalCacheInvalidator`) · hits warm
-     * ~1-2 ms / véhicule. Cette méthode est servie en `Inertia::defer`
+     * mémoïsée per-request. Cette méthode est servie en `Inertia::defer`
      * group « fast » côté controller · les valeurs « Taxe pleine » à
-     * gauche de la heatmap apparaissent quasi-instantanément en warm,
-     * indépendamment de la taxe annuelle due réelle qui prend plus de
-     * temps (cf. {@see realCostsForVehicles}).
+     * gauche de la heatmap apparaissent indépendamment de la taxe
+     * annuelle due réelle qui prend plus de temps (cf.
+     * {@see realCostsForVehicles}).
      *
      * @return array<int, PlanningHeatmapVehicleFullYearCostsData>
      */

@@ -19,7 +19,6 @@ use App\Fiscal\Year2026\Exemption\R2026_021_WithOptOuts;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\FiscalRule\FiscalRuleQueryService;
 use App\Services\Shared\Fiscal\FiscalYearContext;
-use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Container\Container;
 use RuntimeException;
 
@@ -46,7 +45,6 @@ final readonly class DeclarationAggregatorFactory
         private FiscalYearContext $yearContext,
         private VehicleFiscalCharacteristicsReadRepositoryInterface $vfcRepository,
         private FiscalRuleQueryService $fiscalRules,
-        private CacheRepository $cache,
     ) {}
 
     /**
@@ -101,7 +99,6 @@ final readonly class DeclarationAggregatorFactory
             $this->yearContext,
             $this->fiscalRules,
             $this->vfcRepository,
-            $this->cache,
         );
     }
 }

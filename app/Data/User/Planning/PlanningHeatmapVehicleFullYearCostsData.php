@@ -12,14 +12,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * `Inertia::defer` group « fast » sur les pages Planning (chantier perf
  * Étape 3 · 2026-05-17).
  *
- * **Pourquoi un DTO séparé** · `vehicleFullYearTaxBreakdown` (source de
- * `fullYearTax` + `dailyTaxRate`) est mis en cache persistant
- * (`FiscalCacheInvalidator`) · les hits warm sont quasi-instantanés
- * (~1-2 ms / véhicule). Le séparer de la taxe annuelle due réelle
- * (`PlanningHeatmapVehicleRealCostsData`, non cachée, ~3-5 ms /
- * véhicule) permet à la cellule « Taxe pleine » à gauche de la heatmap
- * d'apparaître très rapidement, indépendamment de la cellule « €XXXX
- * · N j » à droite (taxe annuelle due) qui prend plus de temps.
+ * **Pourquoi un DTO séparé** · le calcul `vehicleFullYearTaxBreakdown`
+ * (source de `fullYearTax` + `dailyTaxRate`) bénéficie d'une mémoïsation
+ * per-request et reste rapide. Le séparer de la taxe annuelle due réelle
+ * (`PlanningHeatmapVehicleRealCostsData`, ~3-5 ms / véhicule) permet à
+ * la cellule « Taxe pleine » à gauche de la heatmap d'apparaître très
+ * rapidement, indépendamment de la cellule « €XXXX · N j » à droite
+ * (taxe annuelle due) qui prend plus de temps.
  *
  * **Indépendance du scope entreprise** · ces valeurs sont THÉORIQUES
  * 100 % usage · identiques en Vue d'ensemble et en Vue Entreprise.
