@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Menu } from 'lucide-vue-next';
+import { Menu, Search } from 'lucide-vue-next';
 import UserMenu from '@/Components/Layouts/UserLayout/UserMenu.vue';
-import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
+import Kbd from '@/Components/Ui/Kbd/Kbd.vue';
+import { useCommandPalette } from '@/Composables/GlobalSearch/useCommandPalette';
 import { useTopBar } from '@/Composables/Layout/UserLayout/useTopBar';
 
 // Chantier J (ADR-0023) : le sélecteur d'année global a été retiré.
@@ -11,7 +12,8 @@ const emit = defineEmits<{
     'toggle-sidebar': [];
 }>();
 
-const { search, fullName, initials } = useTopBar();
+const { fullName, initials } = useTopBar();
+const palette = useCommandPalette();
 </script>
 
 <template>
@@ -28,12 +30,32 @@ const { search, fullName, initials } = useTopBar();
         </button>
 
         <div class="min-w-0 flex-1">
-            <SearchInput
-                v-model="search"
-                placeholder="Recherche bientôt disponible"
-                aria-label="Recherche globale (bientôt disponible)"
-                disabled
-            />
+            <!-- Trigger de la palette de recherche globale ⌘K (V1.1).
+                Faux input stylé (button) · le focus réel est posé sur
+                l'input interne de `<CommandPalette>` à l'ouverture.
+                Garde la même bbox/aspect que `<SearchInput>` pour ne
+                pas casser le rythme visuel du TopBar. -->
+            <button
+                type="button"
+                aria-label="Ouvrir la recherche (⌘ K)"
+                class="flex w-full items-center gap-3 rounded-lg border border-slate-200 bg-white py-2 pr-2 pl-3 text-left text-base leading-tight text-slate-400 transition-colors duration-[120ms] ease-out hover:border-slate-300 hover:text-slate-500 focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] focus-visible:outline-none"
+                @click="palette.open()"
+            >
+                <Search
+                    :size="14"
+                    :stroke-width="1.75"
+                    class="shrink-0"
+                    aria-hidden="true"
+                />
+                <span class="min-w-0 flex-1 truncate">Rechercher...</span>
+                <span
+                    class="hidden shrink-0 items-center gap-1 md:flex"
+                    aria-hidden="true"
+                >
+                    <Kbd>⌘</Kbd>
+                    <Kbd>K</Kbd>
+                </span>
+            </button>
         </div>
 
         <UserMenu

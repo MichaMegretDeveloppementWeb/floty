@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useMediaQuery } from '@vueuse/core';
 import { ref, watch } from 'vue';
+import CommandPalette from '@/Components/Features/GlobalSearch/CommandPalette.vue';
 import SidebarNav from '@/Components/Layouts/UserLayout/SidebarNav.vue';
 import TopBar from '@/Components/Layouts/UserLayout/TopBar.vue';
 import ToastContainer from '@/Components/Ui/ToastContainer/ToastContainer.vue';
@@ -44,5 +45,6 @@ watch(isMobile, (mobile) => {
         </div>
 
         <ToastContainer />
+        <CommandPalette />
     </div>
 </template>

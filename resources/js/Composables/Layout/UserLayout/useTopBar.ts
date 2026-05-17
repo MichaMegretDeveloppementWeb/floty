@@ -1,19 +1,20 @@
 import { usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
-import type { ComputedRef, Ref } from 'vue';
+import { computed } from 'vue';
+import type { ComputedRef } from 'vue';
 
 /**
  * Données dérivées du `usePage()` (utilisateur authentifié) pour la
- * barre de navigation : nom complet et initiales (avatar). État local
- * du champ de recherche également exposé ici.
+ * barre de navigation · nom complet et initiales (avatar).
+ *
+ * Le champ de recherche n'est plus exposé ici · depuis V1.1 il est
+ * porté par la palette globale `<CommandPalette>` (cf.
+ * {@see useCommandPalette}). Le `TopBar` ne contient qu'un trigger
+ * (button) qui appelle `palette.open()`.
  */
 export function useTopBar(): {
-    search: Ref<string>;
     fullName: ComputedRef<string>;
     initials: ComputedRef<string>;
 } {
-    const search = ref<string>('');
-
     const page = usePage();
     const authUser = computed(() => page.props.auth?.user ?? null);
 
@@ -40,5 +41,5 @@ export function useTopBar(): {
         return (first + last).toUpperCase() || '?';
     });
 
-    return { search, fullName, initials };
+    return { fullName, initials };
 }

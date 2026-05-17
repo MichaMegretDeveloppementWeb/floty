@@ -14,6 +14,7 @@ use App\Http\Controllers\User\FiscalDeclaration\DeclarationLifecycleController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Invoice\InvoiceController;
 use App\Http\Controllers\User\Planning\PlanningController;
+use App\Http\Controllers\User\Search\GlobalSearchController;
 use App\Http\Controllers\User\Settings\BillingSettingsController;
 use App\Http\Controllers\User\Settings\FiscalRiskSettingsController;
 use App\Http\Controllers\User\Unavailability\UnavailabilityController;
@@ -37,6 +38,14 @@ Route::middleware('auth')
     ->name('user.')
     ->group(function (): void {
         Route::get('/dashboard', DashboardController::class)->name('dashboard');
+
+        // Recherche globale (V1.1) · endpoint AJAX JSON consommé par la
+        // palette ⌘K du `TopBar`. Debounce 200 ms côté client + min 2
+        // caractères, donc throttle 60/min largement suffisant en
+        // usage normal (garde-fou contre les abus / scripts).
+        Route::get('/search', GlobalSearchController::class)
+            ->middleware('throttle:60,1')
+            ->name('search');
 
         // Companies
         Route::get('/companies', [CompanyController::class, 'index'])->name('companies.index');
