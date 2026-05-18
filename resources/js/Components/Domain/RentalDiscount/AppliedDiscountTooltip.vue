@@ -57,7 +57,7 @@ const savingsLabel = computed<string | null>(() => {
                     « {{ label }} »
                 </span>
                 <span v-if="savingsLabel" class="text-emerald-300">
-                    Économie : {{ savingsLabel }}
+                    Réduction appliquée : -{{ savingsLabel }}
                 </span>
             </div>
         </template>

@@ -1,0 +1,306 @@
+<script setup lang="ts">
+/**
+ * Champs du formulaire RentalDiscount Create/Edit (Lot 4 du chantier).
+ * Sections verticales · Entreprise → Période → Pourcentage →
+ * Véhicules → Libellé/Notes.
+ *
+ * Pas de logique métier ici · juste les liaisons v-model et le rendu.
+ * Le composable parent (`useRentalDiscountForm`) gère le state,
+ * conversion pourcentage ↔ bp, check chevauchement, etc.
+ */
+import { computed } from 'vue';
+import type { useForm } from '@inertiajs/vue3';
+import VehiclesMultiPicker from '@/Components/Domain/RentalDiscount/VehiclesMultiPicker.vue';
+import type { VehicleOption } from '@/Components/Domain/RentalDiscount/VehiclesMultiPicker.vue';
+import Card from '@/Components/Ui/Card/Card.vue';
+import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
+import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
+import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
+import InputError from '@/Components/Ui/InputError/InputError.vue';
+import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
+import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
+import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
+import { formatPercentFromBasisPoints } from '@/Utils/format/formatPercent';
+import type { ConflictItem } from '@/Composables/RentalDiscount/Form/useRentalDiscountForm';
+
+type CompanyOption = {
+    id: number;
+    shortCode: string;
+    legalName: string;
+    color: string;
+};
+
+type FormPayload = {
+    companyId: number | null;
+    startDate: string;
+    endDate: string;
+    discountBasisPoints: number;
+    label: string | null;
+    notes: string | null;
+    vehicleIds: number[];
+};
+
+const props = defineProps<{
+    /**
+     * `useForm` Inertia partagé avec le parent · contient le state
+     * réactif + errors.
+     */
+    form: ReturnType<typeof useForm<FormPayload>>;
+    companies: readonly CompanyOption[];
+    vehicles: readonly VehicleOption[];
+    /**
+     * Mode édition · companyId verrouillé en lecture seule (la doctrine
+     * projet interdit le changement de company sur une réduction
+     * existante).
+     */
+    isEdit: boolean;
+    discountPercent: number;
+    appliesToAllVehicles: boolean;
+    conflicts: readonly ConflictItem[];
+    isCheckingConflicts: boolean;
+}>();
+
+const emit = defineEmits<{
+    'update:discount-percent': [value: number];
+    'update:applies-to-all-vehicles': [value: boolean];
+}>();
+
+const discountPercentModel = computed<number>({
+    get: () => props.discountPercent,
+    set: (value: number) => emit('update:discount-percent', value),
+});
+
+const appliesToAllVehiclesModel = computed<boolean>({
+    get: () => props.appliesToAllVehicles,
+    set: (value: boolean) => emit('update:applies-to-all-vehicles', value),
+});
+
+const vehicleIdsModel = computed<number[]>({
+    get: () => props.form.vehicleIds,
+    set: (value: number[]) => {
+        props.form.vehicleIds = value;
+    },
+});
+
+const companyOptions = computed(() =>
+    props.companies.map((c) => ({
+        value: c.id,
+        label: `${c.shortCode} · ${c.legalName}`,
+    })),
+);
+
+const lockedCompanyLabel = computed<string>(() => {
+    const c = props.companies.find((c) => c.id === props.form.companyId);
+    return c ? `${c.shortCode} · ${c.legalName}` : '';
+});
+</script>
+
+<template>
+    <div class="flex flex-col gap-6">
+        <!-- 1. Entreprise -->
+        <Card>
+            <template #header>
+                <h2 class="text-base font-semibold text-slate-900">
+                    Entreprise bénéficiaire
+                </h2>
+            </template>
+            <div class="flex flex-col gap-2">
+                <FieldLabel for="field-company" required>
+                    Entreprise
+                </FieldLabel>
+                <SearchableSelect
+                    v-if="!isEdit"
+                    id="field-company"
+                    v-model="form.companyId"
+                    :options="companyOptions"
+                    placeholder="Sélectionner une entreprise"
+                />
+                <p v-else class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    {{ lockedCompanyLabel }}
+                </p>
+                <p v-if="isEdit" class="text-xs text-slate-500">
+                    L'entreprise d'une réduction existante ne peut pas être modifiée. Créez une nouvelle réduction si nécessaire.
+                </p>
+                <InputError :message="form.errors.companyId" />
+            </div>
+        </Card>
+
+        <!-- 2. Période + pourcentage -->
+        <Card>
+            <template #header>
+                <h2 class="text-base font-semibold text-slate-900">
+                    Période et taux
+                </h2>
+            </template>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="flex flex-col gap-2">
+                    <FieldLabel for="field-start-date" required>
+                        Date de début
+                    </FieldLabel>
+                    <DateInput
+                        id="field-start-date"
+                        v-model="form.startDate"
+                    />
+                    <InputError :message="form.errors.startDate" />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <FieldLabel for="field-end-date" required>
+                        Date de fin
+                    </FieldLabel>
+                    <DateInput
+                        id="field-end-date"
+                        v-model="form.endDate"
+                        :min="form.startDate || undefined"
+                    />
+                    <InputError :message="form.errors.endDate" />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <FieldLabel for="field-percent" required>
+                        Pourcentage de réduction
+                    </FieldLabel>
+                    <div class="relative">
+                        <NumberInput
+                            id="field-percent"
+                            v-model="discountPercentModel"
+                            :min="0.5"
+                            :max="100"
+                            :step="0.5"
+                        />
+                        <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-slate-500">
+                            %
+                        </span>
+                    </div>
+                    <InputError :message="form.errors.discountBasisPoints" />
+                </div>
+            </div>
+        </Card>
+
+        <!-- 3. Véhicules ciblés -->
+        <Card>
+            <template #header>
+                <h2 class="text-base font-semibold text-slate-900">
+                    Véhicules concernés
+                </h2>
+            </template>
+            <div class="flex flex-col gap-4">
+                <CheckboxInput
+                    id="field-all-vehicles"
+                    v-model="appliesToAllVehiclesModel"
+                    label="Appliquer à tous les véhicules de l'entreprise"
+                />
+                <p class="text-xs text-slate-500">
+                    <template v-if="appliesToAllVehicles">
+                        La réduction s'appliquera à l'ensemble des véhicules utilisés par l'entreprise sur la période, incluant les véhicules ajoutés ultérieurement.
+                    </template>
+                    <template v-else>
+                        Sélectionnez précisément les véhicules concernés ci-dessous.
+                    </template>
+                </p>
+                <VehiclesMultiPicker
+                    v-model="vehicleIdsModel"
+                    :vehicles="vehicles"
+                    :disabled="appliesToAllVehicles"
+                />
+                <InputError :message="form.errors.vehicleIds" />
+            </div>
+        </Card>
+
+        <!-- 4. Libellé + notes -->
+        <Card>
+            <template #header>
+                <h2 class="text-base font-semibold text-slate-900">
+                    Identification
+                </h2>
+            </template>
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-2">
+                    <FieldLabel for="field-label">
+                        Libellé
+                    </FieldLabel>
+                    <TextInput
+                        id="field-label"
+                        v-model="form.label"
+                        placeholder="Pack fidélité 2026, Engagement annuel..."
+                        :maxlength="120"
+                    />
+                    <p class="text-xs text-slate-500">
+                        Court nom mémorisable affiché sur la facture et les listings. Optionnel.
+                    </p>
+                    <InputError :message="form.errors.label" />
+                </div>
+                <div class="flex flex-col gap-2">
+                    <FieldLabel for="field-notes">
+                        Notes internes
+                    </FieldLabel>
+                    <textarea
+                        id="field-notes"
+                        v-model="form.notes"
+                        rows="4"
+                        maxlength="5000"
+                        placeholder="Contexte, conditions négociées, référence contrat externe..."
+                        class="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <p class="text-xs text-slate-500">
+                        Visibles uniquement par les gestionnaires de flotte. Non imprimées sur la facture.
+                    </p>
+                    <InputError :message="form.errors.notes" />
+                </div>
+            </div>
+        </Card>
+
+        <!-- 5. Feedback conflit live -->
+        <div
+            v-if="conflicts.length > 0"
+            class="rounded-xl border border-rose-200 bg-rose-50/50 p-4"
+        >
+            <p class="text-sm font-semibold text-rose-900">
+                Chevauchement détecté avec
+                {{ conflicts.length }} réduction{{ conflicts.length > 1 ? 's' : '' }}
+                existante{{ conflicts.length > 1 ? 's' : '' }}
+            </p>
+            <ul class="mt-2 flex flex-col gap-1.5 text-xs text-rose-800">
+                <li
+                    v-for="conflict in conflicts"
+                    :key="conflict.id"
+                    class="flex flex-wrap items-center gap-1.5"
+                >
+                    <span class="font-mono font-medium">
+                        {{ formatPercentFromBasisPoints(conflict.discountBasisPoints) }}
+                    </span>
+                    <span>
+                        « {{ conflict.label ?? `Réduction #${conflict.id}` }} »
+                    </span>
+                    <span>
+                        du {{ formatDateFr(conflict.startDate) }}
+                        au {{ formatDateFr(conflict.endDate) }}
+                    </span>
+                    <span class="text-rose-600">
+                        ·
+                        <template v-if="conflict.isAllVehicles">
+                            tous véhicules
+                        </template>
+                        <template v-else>
+                            {{ conflict.vehiclesCount }} véhicule{{ conflict.vehiclesCount > 1 ? 's' : '' }}
+                        </template>
+                    </span>
+                </li>
+            </ul>
+            <p class="mt-3 text-xs text-rose-800">
+                Ajustez la période, le périmètre véhicules ou modifiez la réduction conflictuelle pour pouvoir enregistrer.
+            </p>
+        </div>
+        <p
+            v-else-if="isCheckingConflicts"
+            class="text-xs text-slate-500"
+        >
+            Vérification du chevauchement en cours…
+        </p>
+        <p
+            v-else-if="form.companyId !== null && form.startDate !== '' && form.endDate !== '' && form.startDate <= form.endDate"
+            class="rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-xs text-emerald-800"
+        >
+            Aucun chevauchement détecté · vous pouvez enregistrer la réduction.
+        </p>
+    </div>
+</template>

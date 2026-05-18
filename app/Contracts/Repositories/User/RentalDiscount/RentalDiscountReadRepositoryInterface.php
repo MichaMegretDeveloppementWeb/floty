@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Contracts\Repositories\User\RentalDiscount;
 
+use App\Data\User\RentalDiscount\RentalDiscountIndexQueryData;
 use App\Models\RentalDiscount;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Lectures sur les réductions commerciales appliquées aux loyers.
@@ -102,12 +104,37 @@ interface RentalDiscountReadRepositoryInterface
 
     /**
      * Toutes les réductions non soft-deletées d'une entreprise, eager-load
-     * `vehicles`. Triées par `start_date` décroissant (plus récentes en
-     * premier, conforme à la convention UI Index). Sert à la section
-     * « Réductions commerciales » de l'onglet Facturation Company Show
-     * (Lot 3 · propagation UI).
+     * `vehicles` + `company`. Triées par `start_date` décroissant (plus
+     * récentes en premier, conforme à la convention UI Index). Sert à la
+     * section « Réductions commerciales » de l'onglet Facturation Company
+     * Show (Lot 3 · propagation UI).
      *
      * @return Collection<int, RentalDiscount>
      */
     public function findForCompany(int $companyId): Collection;
+
+    /**
+     * Index server-side paginé (cf. ADR-0020) · Lot 4 du chantier
+     * RentalDiscount. Applique filtres (companyId, status, search) et
+     * tri whitelisté en SQL natif. Eager-load `vehicles` + `company`
+     * pour alimenter `RentalDiscountListItemData`.
+     *
+     * @return LengthAwarePaginator<int, RentalDiscount>
+     */
+    public function paginateForIndex(RentalDiscountIndexQueryData $query): LengthAwarePaginator;
+
+    /**
+     * Détail Show · eager-load `vehicles` + `company` + `createdBy`. Le
+     * count `invoice_lines` est ajouté via `withCount` pour alimenter
+     * `RentalDiscountData::invoiceLinesCount` sans charger la relation.
+     */
+    public function findByIdForShow(int $id): ?RentalDiscount;
+
+    /**
+     * Compteurs pour le bandeau stats sur la page Index ·
+     * `{actives, planned, expired}` par rapport à la date du jour.
+     *
+     * @return array{active: int, planned: int, expired: int}
+     */
+    public function statsForIndex(string $today): array;
 }

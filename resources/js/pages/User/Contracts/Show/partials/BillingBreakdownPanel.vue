@@ -68,7 +68,7 @@ const hasAnyDiscount = computed<boolean>(
                         v-if="hasAnyDiscount"
                         class="mt-1 font-mono text-xs text-emerald-700 tabular-nums whitespace-nowrap"
                     >
-                        Économie -{{ formatEur(breakdown.totalDiscountCentsPartial / 100, 2) }}
+                        Réductions appliquées -{{ formatEur(breakdown.totalDiscountCentsPartial / 100, 2) }}
                     </p>
                 </div>
             </div>

@@ -12,6 +12,7 @@ use App\Models\Driver;
 use App\Models\FiscalRule;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
+use App\Models\RentalDiscount;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -52,6 +53,7 @@ final class UserFacingExceptionRenderer
         Contract::class => ['route' => 'user.contracts.index', 'label' => 'ce contrat'],
         Invoice::class => ['route' => 'user.invoices.index', 'label' => 'cette facture'],
         InvoiceLine::class => ['route' => 'user.invoices.index', 'label' => 'cette ligne de facture'],
+        RentalDiscount::class => ['route' => 'user.rental-discounts.index', 'label' => 'cette réduction commerciale'],
         Unavailability::class => ['route' => 'user.vehicles.index', 'label' => 'cette indisponibilité'],
         VehicleYearlyPricing::class => ['route' => 'user.vehicles.index', 'label' => 'ce tarif'],
         VehicleFiscalCharacteristics::class => ['route' => 'user.vehicles.index', 'label' => 'cette caractéristique fiscale'],

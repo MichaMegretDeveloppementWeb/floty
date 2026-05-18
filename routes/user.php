@@ -14,6 +14,7 @@ use App\Http\Controllers\User\FiscalDeclaration\DeclarationLifecycleController;
 use App\Http\Controllers\User\FiscalRule\FiscalRuleController;
 use App\Http\Controllers\User\Invoice\InvoiceController;
 use App\Http\Controllers\User\Planning\PlanningController;
+use App\Http\Controllers\User\RentalDiscount\RentalDiscountController;
 use App\Http\Controllers\User\Search\GlobalSearchController;
 use App\Http\Controllers\User\Settings\BillingSettingsController;
 use App\Http\Controllers\User\Settings\FiscalRiskSettingsController;
@@ -329,6 +330,36 @@ Route::middleware('auth')
             ->whereNumber(['driver', 'pivotId'])
             ->middleware('throttle:60,1')
             ->name('drivers.memberships.destroy');
+
+        // Rental discounts (Lot 4 chantier RentalDiscount) · réductions
+        // commerciales appliquées au loyer mensuel d'une entreprise pour
+        // une période donnée, sur un sous-ensemble de véhicules (ou tous).
+        // L'endpoint `check-conflicts` est consommé par le form Create/Edit
+        // pour feedback live (debounced 400 ms côté client).
+        Route::get('/rental-discounts', [RentalDiscountController::class, 'index'])
+            ->name('rental-discounts.index');
+        Route::get('/rental-discounts/create', [RentalDiscountController::class, 'create'])
+            ->name('rental-discounts.create');
+        Route::post('/rental-discounts', [RentalDiscountController::class, 'store'])
+            ->middleware('throttle:60,1')
+            ->name('rental-discounts.store');
+        Route::post('/rental-discounts/check-conflicts', [RentalDiscountController::class, 'checkConflicts'])
+            ->middleware('throttle:120,1')
+            ->name('rental-discounts.check-conflicts');
+        Route::get('/rental-discounts/{rentalDiscount}', [RentalDiscountController::class, 'show'])
+            ->whereNumber('rentalDiscount')
+            ->name('rental-discounts.show');
+        Route::get('/rental-discounts/{rentalDiscount}/edit', [RentalDiscountController::class, 'edit'])
+            ->whereNumber('rentalDiscount')
+            ->name('rental-discounts.edit');
+        Route::patch('/rental-discounts/{rentalDiscount}', [RentalDiscountController::class, 'update'])
+            ->whereNumber('rentalDiscount')
+            ->middleware('throttle:60,1')
+            ->name('rental-discounts.update');
+        Route::delete('/rental-discounts/{rentalDiscount}', [RentalDiscountController::class, 'destroy'])
+            ->whereNumber('rentalDiscount')
+            ->middleware('throttle:60,1')
+            ->name('rental-discounts.destroy');
 
         // Fiscal rules · consultation only
         Route::get('/fiscal-rules', [FiscalRuleController::class, 'index'])->name('fiscal-rules.index');

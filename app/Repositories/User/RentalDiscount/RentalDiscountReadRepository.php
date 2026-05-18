@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace App\Repositories\User\RentalDiscount;
 
 use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountReadRepositoryInterface;
+use App\Data\Shared\Listing\SortDirection;
+use App\Data\User\RentalDiscount\RentalDiscountIndexQueryData;
 use App\Models\RentalDiscount;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * Implémentation Eloquent du contrat de lecture des réductions
@@ -105,10 +109,96 @@ final class RentalDiscountReadRepository implements RentalDiscountReadRepository
     public function findForCompany(int $companyId): Collection
     {
         return RentalDiscount::query()
-            ->with('vehicles')
+            ->with(['vehicles', 'company:id,short_code,legal_name,color'])
             ->forCompany($companyId)
             ->orderByDesc('start_date')
             ->orderByDesc('id')
             ->get();
+    }
+
+    public function paginateForIndex(RentalDiscountIndexQueryData $query): LengthAwarePaginator
+    {
+        $direction = $query->sortDirection === SortDirection::Desc ? 'desc' : 'asc';
+        $today = now()->toDateString();
+
+        $eloquent = RentalDiscount::query()
+            ->select('rental_discounts.*')
+            ->with(['vehicles', 'company:id,short_code,legal_name,color']);
+
+        if ($query->companyId !== null) {
+            $eloquent->where('rental_discounts.company_id', $query->companyId);
+        }
+
+        // Search LIKE sur label + company short_code + legal_name.
+        if ($query->search !== null) {
+            $term = '%'.$query->search.'%';
+            $eloquent->where(function (Builder $w) use ($term): void {
+                $w->where('rental_discounts.label', 'like', $term)
+                    ->orWhereHas('company', fn (Builder $qc) => $qc
+                        ->where('short_code', 'like', $term)
+                        ->orWhere('legal_name', 'like', $term));
+            });
+        }
+
+        if ($query->status === 'active') {
+            $eloquent->whereDate('start_date', '<=', $today)
+                ->whereDate('end_date', '>=', $today);
+        } elseif ($query->status === 'planned') {
+            $eloquent->whereDate('start_date', '>', $today);
+        } elseif ($query->status === 'expired') {
+            $eloquent->whereDate('end_date', '<', $today);
+        }
+
+        match ($query->sortKey) {
+            'company' => $eloquent
+                ->leftJoin('companies', 'rental_discounts.company_id', '=', 'companies.id')
+                ->orderBy('companies.short_code', $direction),
+            'period' => $eloquent
+                ->orderBy('rental_discounts.start_date', $direction)
+                ->orderBy('rental_discounts.end_date', $direction),
+            'discount' => $eloquent->orderBy('rental_discounts.discount_basis_points', $direction),
+            'createdAt' => $eloquent->orderBy('rental_discounts.created_at', $direction),
+            // Défaut · plus récente en premier (start_date DESC).
+            default => $eloquent
+                ->orderByDesc('rental_discounts.start_date')
+                ->orderByDesc('rental_discounts.id'),
+        };
+
+        return $eloquent->paginate(
+            perPage: $query->perPage,
+            page: $query->page,
+        );
+    }
+
+    public function findByIdForShow(int $id): ?RentalDiscount
+    {
+        return RentalDiscount::query()
+            ->with([
+                'vehicles' => fn ($q) => $q->orderBy('license_plate'),
+                'company:id,short_code,legal_name,color',
+                'createdBy:id,first_name,last_name',
+            ])
+            ->withCount('invoiceLines')
+            ->find($id);
+    }
+
+    public function statsForIndex(string $today): array
+    {
+        // 3 sous-requêtes scalaires · payload léger, 1 round-trip BDD
+        // groupé sur le serveur SQL via aggregat unique avec CASE.
+        $row = RentalDiscount::query()
+            ->selectRaw(
+                'SUM(CASE WHEN start_date <= ? AND end_date >= ? THEN 1 ELSE 0 END) as active_count,'
+                .' SUM(CASE WHEN start_date > ? THEN 1 ELSE 0 END) as planned_count,'
+                .' SUM(CASE WHEN end_date < ? THEN 1 ELSE 0 END) as expired_count',
+                [$today, $today, $today, $today],
+            )
+            ->first();
+
+        return [
+            'active' => (int) ($row->active_count ?? 0),
+            'planned' => (int) ($row->planned_count ?? 0),
+            'expired' => (int) ($row->expired_count ?? 0),
+        ];
     }
 }

@@ -64,6 +64,7 @@ final class CompanyAggregatesService
     {
         return $this->rentalDiscounts
             ->findForCompany($companyId)
+            ->load('company:id,short_code,legal_name,color')
             ->map(static fn (RentalDiscount $d): RentalDiscountListItemData => RentalDiscountListItemData::fromModel($d))
             ->all();
     }

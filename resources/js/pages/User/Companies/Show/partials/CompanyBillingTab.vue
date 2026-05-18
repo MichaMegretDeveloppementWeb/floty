@@ -321,7 +321,7 @@ function selectYear(year: number): void {
                 <span aria-hidden="true">·</span>
                 <span class="inline-flex items-center gap-1 text-emerald-700">
                     <BadgePercent :size="13" :stroke-width="2" aria-hidden="true" />
-                    Économie réalisée <span class="font-mono tabular-nums">{{ totalDiscountLabel }}</span>
+                    Réductions appliquées <span class="font-mono tabular-nums">{{ totalDiscountLabel }}</span>
                 </span>
             </p>
         </div>

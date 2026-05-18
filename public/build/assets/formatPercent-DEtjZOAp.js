@@ -1,0 +1,1 @@
+function e(e,t=`auto`){let n=e/100;return t===`auto`?new Intl.NumberFormat(`fr-FR`,{style:`percent`,minimumFractionDigits:0,maximumFractionDigits:2}).format(n/100).replace(/[  ]/g,` `):new Intl.NumberFormat(`fr-FR`,{style:`percent`,minimumFractionDigits:t,maximumFractionDigits:t}).format(n/100).replace(/[  ]/g,` `)}export{e as t};

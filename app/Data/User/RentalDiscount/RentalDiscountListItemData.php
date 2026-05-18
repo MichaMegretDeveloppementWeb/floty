@@ -10,22 +10,30 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Item de listing condensé pour la section "Réductions commerciales"
- * intégrée à l'onglet Facturation de la page Show Company (Lot 3 ·
- * propagation UI).
+ * Item de listing condensé pour ·
+ *  - la table Index `/rental-discounts` (Lot 4)
+ *  - la section "Réductions commerciales" intégrée à l'onglet
+ *    Facturation de la page Show Company (Lot 3)
  *
- * Sert d'aperçu cliquable (lien Show construit par le front quand le
- * module CRUD du Lot 4 sera livré · le DTO expose `id` pour cela).
+ * Sert d'aperçu cliquable (lien Show construit par le front · le DTO
+ * expose `id` pour cela).
  *
  * Volontairement slim · pas de détail véhicule (la section affiche un
  * badge "Tous" ou "N véhicules" basé sur `vehiclesCount` ;
- * `isAllVehicles` distingue les 2 sémantiques).
+ * `isAllVehicles` distingue les 2 sémantiques). L'identité entreprise
+ * est toujours embarquée pour permettre l'affichage de la cellule
+ * Entreprise sur l'Index (sur Company Show la cellule est cachée car
+ * redondante avec le contexte).
  */
 #[TypeScript]
 final class RentalDiscountListItemData extends Data
 {
     public function __construct(
         public int $id,
+        public int $companyId,
+        public string $companyShortCode,
+        public string $companyLegalName,
+        public string $companyColor,
         /** ISO Y-m-d. */
         public string $startDate,
         /** ISO Y-m-d. */
@@ -61,6 +69,10 @@ final class RentalDiscountListItemData extends Data
 
         return new self(
             id: $discount->id,
+            companyId: $discount->company_id,
+            companyShortCode: $discount->company->short_code,
+            companyLegalName: $discount->company->legal_name,
+            companyColor: $discount->company->color->value,
             startDate: $discount->start_date->toDateString(),
             endDate: $discount->end_date->toDateString(),
             discountBasisPoints: $discount->discount_basis_points,

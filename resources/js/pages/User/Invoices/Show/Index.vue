@@ -145,7 +145,7 @@ const hasAnyDiscount = computed<boolean>(
                                 Brut <span class="font-mono tabular-nums">{{ formatEur(invoice.totalGrossCents / 100, 2) }}</span>
                             </span>
                             <span class="text-emerald-700">
-                                Économie <span class="font-mono tabular-nums">-{{ formatEur(invoice.totalDiscountCents / 100, 2) }}</span>
+                                Réductions appliquées <span class="font-mono tabular-nums">-{{ formatEur(invoice.totalDiscountCents / 100, 2) }}</span>
                             </span>
                         </dd>
                     </div>
