@@ -187,6 +187,53 @@ const showBody = computed<boolean>(
         </component>
 
         <div v-if="showBody" class="flex flex-col gap-4 px-5 pt-4 pb-5">
+            <!-- SC10 (2026-05-18) · loyer mensuel REMONTÉ · visible dès
+                 que l'entreprise est sélectionnée (sans attendre véhicule
+                 + plage). Donne le contexte facturation amont au plus tôt. -->
+            <div
+                v-if="company !== null"
+                class="overflow-hidden rounded-lg border border-slate-200 bg-white"
+            >
+                <div class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-slate-100">
+                    <span class="text-[11px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
+                        Loyer mensuel
+                    </span>
+                    <span
+                        v-if="companyMonthlyRentalsYear !== null"
+                        class="font-mono text-xs text-slate-400 tabular-nums"
+                    >
+                        {{ companyMonthlyRentalsYear }}
+                    </span>
+                </div>
+                <div class="px-3 py-3">
+                    <div v-if="companyMonthlyRentalsLoading" class="text-xs text-slate-500">
+                        Calcul en cours…
+                    </div>
+                    <div
+                        v-else-if="companyMonthlyRentals"
+                        class="grid grid-cols-3 gap-x-6 gap-y-2 text-xs"
+                    >
+                        <div
+                            v-for="m in 12"
+                            :key="`mc-${m}`"
+                            class="flex items-baseline gap-1.5"
+                        >
+                            <span class="text-slate-500">{{ MONTH_LABELS[m - 1] }}</span>
+                            <span
+                                v-if="companyMonthlyRentals[m] === null"
+                                class="text-slate-300"
+                            >-</span>
+                            <span
+                                v-else
+                                class="font-mono text-slate-900 tabular-nums"
+                            >
+                                {{ formatEur(companyMonthlyRentals[m]! / 100, 0) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div v-if="!isComplete" class="text-sm text-slate-500">
                 Compléter véhicule, entreprise et plage pour voir le récapitulatif
                 de cette location.
@@ -367,54 +414,6 @@ const showBody = computed<boolean>(
                     </div>
                 </div>
 
-                <!-- SC9 (2026-05-18) · mini-timeline 12 mois loyer cumulé
-                     pour l'entreprise sélectionnée × année · même forme
-                     que les montants sous l'entête mois du planning.
-                     Disposition 6×2 (sm) ou 12×1 (md+) pour lisibilité
-                     dans l'aside récap (largeur ~300px). -->
-                <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
-                    <div class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-slate-100">
-                        <span class="text-[11px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
-                            Loyer mensuel
-                        </span>
-                        <span
-                            v-if="companyMonthlyRentalsYear !== null"
-                            class="font-mono text-xs text-slate-400 tabular-nums"
-                        >
-                            {{ companyMonthlyRentalsYear }}
-                        </span>
-                    </div>
-                    <div class="px-3 py-3">
-                        <div v-if="companyMonthlyRentalsLoading" class="text-xs text-slate-500">
-                            Calcul en cours…
-                        </div>
-                        <div
-                            v-else-if="companyMonthlyRentals"
-                            class="grid grid-cols-3 gap-x-3 gap-y-1.5 text-xs"
-                        >
-                            <div
-                                v-for="m in 12"
-                                :key="`mc-${m}`"
-                                class="flex items-baseline justify-between gap-1"
-                            >
-                                <span class="text-slate-500">{{ MONTH_LABELS[m - 1] }}</span>
-                                <span
-                                    v-if="companyMonthlyRentals[m] === null"
-                                    class="text-slate-300"
-                                >-</span>
-                                <span
-                                    v-else
-                                    class="font-mono text-slate-900 tabular-nums"
-                                >
-                                    {{ formatEur(companyMonthlyRentals[m]! / 100, 0) }}
-                                </span>
-                            </div>
-                        </div>
-                        <div v-else class="text-xs text-slate-400">
-                            Sélectionne une entreprise pour voir le loyer mensuel.
-                        </div>
-                    </div>
-                </div>
             </template>
         </div>
     </div>

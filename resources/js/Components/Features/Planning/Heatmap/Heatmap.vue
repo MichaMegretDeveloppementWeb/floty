@@ -462,6 +462,28 @@ function syncFrom(e: Event): void {
                                     @cell-click="$emit('cell-click', $event)"
                                 />
                             </div>
+                            <!-- SC11 (2026-05-18) · marqueurs verticaux 1px PAR
+                                 DESSUS les cellules · matérialisent le jour EXACT
+                                 de chaque frontière de mois, y compris au milieu
+                                 d'une cellule semaine ISO qui chevauche 2 mois.
+                                 Skip de la 1ère frontière (1er janvier = bord
+                                 gauche de la grille, pas un signal utile). -->
+                            <div
+                                class="pointer-events-none absolute inset-y-0 left-0 z-10"
+                                :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                                aria-hidden="true"
+                            >
+                                <template
+                                    v-for="band in monthBands"
+                                    :key="`sep-${band.name}`"
+                                >
+                                    <div
+                                        v-if="band.monthIdx > 1"
+                                        :style="{ left: `${band.startPx}px` }"
+                                        class="absolute inset-y-0 w-px bg-slate-400/50"
+                                    />
+                                </template>
+                            </div>
                         </div>
                     </div>
                 </div>
