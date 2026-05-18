@@ -69,6 +69,66 @@ export function isValidIsoDate(s: string): boolean {
 }
 
 /**
+ * Parse une date FR `jj/mm/aaaa` (séparateurs `/`, `-` ou `.`, années
+ * 2 ou 4 chiffres, jour/mois 1 ou 2 chiffres) et la convertit en ISO
+ * avec **clamp automatique** du jour au dernier jour du mois cible.
+ *
+ * Cas dominant · l'utilisateur saisit `31/02/2026` (jour 31 dans un
+ * mois à 28 jours) · au lieu de rejeter silencieusement comme le fait
+ * `<input type="date">` HTML5, on clamp à `2026-02-28` et on signale
+ * la correction via `wasClamped: true` pour permettre un feedback
+ * visuel optionnel.
+ *
+ * Retourne `null` si le format est complètement invalide (mois > 12,
+ * année hors range raisonnable [1900, 2100], séparateurs absents).
+ *
+ * @param text saisie utilisateur (sera trim)
+ * @returns `{ iso, wasClamped }` ou `null` si format inexploitable
+ */
+export function parseAndClampFrDate(
+    text: string,
+): { iso: string; wasClamped: boolean } | null {
+    const trimmed = text.trim();
+
+    if (trimmed === '') {
+        return null;
+    }
+
+    const match = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+
+    if (match === null) {
+        return null;
+    }
+
+    let day = Number(match[1]);
+    const month = Number(match[2]);
+    let year = Number(match[3]);
+
+    if (year < 100) {
+        year += 2000;
+    }
+
+    if (month < 1 || month > 12 || day < 1 || year < 1900 || year > 2100) {
+        return null;
+    }
+
+    // `new Date(year, month, 0)` retourne le dernier jour du mois précédent
+    // (= dernier jour du mois `month` 1-indexé). Robuste aux années
+    // bissextiles · `new Date(2024, 2, 0).getDate()` = 29.
+    const lastDayOfMonth = new Date(year, month, 0).getDate();
+    let wasClamped = false;
+
+    if (day > lastDayOfMonth) {
+        day = lastDayOfMonth;
+        wasClamped = true;
+    }
+
+    const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
+    return { iso, wasClamped };
+}
+
+/**
  * Trie deux dates ISO et retourne `[min, max]`. Auto-normalize utilisé
  * partout où l'ordre des bornes peut être inversé (2ᵉ clic antérieur,
  * saisie input end < start).
@@ -204,6 +264,15 @@ export function useDateRangePicker(
     onDayClick: (cell: DayCell) => void;
     onStartDateInput: (iso: string) => void;
     onEndDateInput: (iso: string) => void;
+    /**
+     * Handler à brancher sur les `<input type="text">` Début. Accepte
+     * la saisie FR `jj/mm/aaaa`, clamp automatiquement le jour au
+     * dernier jour du mois (31/02 → 28/02), puis délègue à
+     * `onStartDateInput`. Pose `errorMessage` si format inexploitable.
+     */
+    onStartDateTextInput: (text: string) => void;
+    /** Idem pour l'input Fin. */
+    onEndDateTextInput: (text: string) => void;
     clearSelection: () => void;
 } {
     const currentYear = ref<number>(yearProp.value);
@@ -566,6 +635,46 @@ export function useDateRangePicker(
         errorMessage.value = null;
     }
 
+    /**
+     * Parse une saisie FR `jj/mm/aaaa` et délègue au handler ISO
+     * correspondant. Format invalide → `errorMessage` explicite.
+     * Saisie vide → reset silencieux de la borne (pas d'erreur).
+     */
+    function handleFrTextInput(
+        text: string,
+        delegate: (iso: string) => void,
+    ): void {
+        const trimmed = text.trim();
+
+        if (trimmed === '') {
+            // L'utilisateur a effacé l'input · pas d'erreur, on laisse
+            // l'état tel quel (la borne reste celle déjà posée).
+            errorMessage.value = null;
+
+            return;
+        }
+
+        const parsed = parseAndClampFrDate(trimmed);
+
+        if (parsed === null) {
+            errorMessage.value = 'Date invalide. Utilisez le format jj/mm/aaaa.';
+
+            return;
+        }
+
+        // Délègue à la logique ISO existante (validation conflit
+        // disabledDates, swap auto-normalize, jump calendrier, etc.).
+        delegate(parsed.iso);
+    }
+
+    function onStartDateTextInput(text: string): void {
+        handleFrTextInput(text, onStartDateInput);
+    }
+
+    function onEndDateTextInput(text: string): void {
+        handleFrTextInput(text, onEndDateInput);
+    }
+
     return {
         currentYear,
         currentMonth,
@@ -583,6 +692,8 @@ export function useDateRangePicker(
         onDayClick,
         onStartDateInput,
         onEndDateInput,
+        onStartDateTextInput,
+        onEndDateTextInput,
         clearSelection,
     };
 }
