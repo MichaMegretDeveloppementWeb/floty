@@ -44,6 +44,7 @@ import {
     HEATMAP_GRID_WIDTH,
 } from '@/Components/Features/Planning/Heatmap/utils/density';
 import { monthBoundariesInPx } from '@/Components/Features/Planning/Heatmap/utils/monthBoundaries';
+import { weekBackgroundsForYear } from '@/Components/Features/Planning/Heatmap/utils/weekBackgrounds';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
 import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
@@ -110,6 +111,15 @@ const monthBands = computed(() =>
             widthPx: band.endPx - band.startPx,
         })),
 );
+
+/**
+ * SC12 (2026-05-18) · 52 backgrounds CSS (un par semaine ISO) pour
+ * l'overlay alterné mois pair/impair · couleur uniforme pour semaines
+ * entièrement dans 1 mois, linear-gradient hard-stop pour cellules à
+ * cheval (transition exactement au jour de bascule). Posé en arrière
+ * dans un flex SYNCHRONISÉ avec les vraies cellules.
+ */
+const weekBackgrounds = computed(() => weekBackgroundsForYear(props.fiscalYear));
 
 function isCompanyVariant(v: OverviewVehicle | CompanyVehicle): v is CompanyVehicle {
     return 'weeksGlobal' in v;
@@ -417,37 +427,32 @@ function syncFrom(e: Event): void {
                             utilisent `grow` pour absorber l'espace
                             supplémentaire au prorata.
 
-                            SC6 (2026-05-18) · l'overlay utilise désormais des
-                            positions PIXEL EXACTES (monthBands) au lieu d'un
-                            ratio fixe approximatif. La frontière entre 2 mois
-                            tombe exactement à la transition jour, même au
-                            milieu d'une cellule semaine ISO chevauchant 2
-                            mois. Les cellules vides (`bg-white` opaque)
-                            masquent l'overlay à leur emplacement · l'effet
-                            « le fond passe DESSOUS les cellules » apparaît
-                            dans les gaps verticaux 1px entre cellules et
-                            dans les 14px de blanc au-dessus/en-dessous de
-                            chaque row (les boutons h-7 ne remplissent pas
-                            les 56px de la row).
+                            SC12 (2026-05-18) · l'overlay alterné mois utilise
+                            désormais un FLEX synchronisé avec les vraies
+                            cellules (52 div · mêmes basis/grow/gap que les
+                            boutons WeekCellsRow). Chaque cellule overlay a
+                            soit une couleur uniforme (semaine entièrement
+                            dans 1 mois) soit un `linear-gradient` hard-stop
+                            (semaine à cheval · transition au pixel exact du
+                            jour de bascule). Les cellules vides `bg-white`
+                            opaques masquent l'overlay sous elles · la
+                            transition est visible dans les gaps 1px et dans
+                            les 14px au-dessus/en-dessous des boutons h-7.
                         -->
                         <div
                             class="relative"
                             :style="{ minWidth: `${HEATMAP_GRID_WIDTH}px` }"
                         >
                             <div
-                                class="pointer-events-none absolute inset-y-0 left-0"
-                                :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                                class="pointer-events-none absolute inset-y-0 left-0 flex gap-[1px]"
+                                :style="{ width: '100%', minWidth: `${HEATMAP_GRID_WIDTH}px` }"
                                 aria-hidden="true"
                             >
                                 <div
-                                    v-for="band in monthBands"
-                                    :key="`bg-${band.name}`"
-                                    :style="{
-                                        left: `${band.startPx}px`,
-                                        width: `${band.widthPx}px`,
-                                    }"
-                                    class="absolute inset-y-0"
-                                    :class="band.isOdd ? 'bg-slate-100' : ''"
+                                    v-for="(bg, weekIdx) in weekBackgrounds"
+                                    :key="`bg-w${weekIdx}`"
+                                    class="basis-5 shrink-0 grow"
+                                    :style="{ background: bg }"
                                 />
                             </div>
                             <div
@@ -461,28 +466,6 @@ function syncFrom(e: Event): void {
                                     :fiscal-year="fiscalYear"
                                     @cell-click="$emit('cell-click', $event)"
                                 />
-                            </div>
-                            <!-- SC11 (2026-05-18) · marqueurs verticaux 1px PAR
-                                 DESSUS les cellules · matérialisent le jour EXACT
-                                 de chaque frontière de mois, y compris au milieu
-                                 d'une cellule semaine ISO qui chevauche 2 mois.
-                                 Skip de la 1ère frontière (1er janvier = bord
-                                 gauche de la grille, pas un signal utile). -->
-                            <div
-                                class="pointer-events-none absolute inset-y-0 left-0 z-10"
-                                :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
-                                aria-hidden="true"
-                            >
-                                <template
-                                    v-for="band in monthBands"
-                                    :key="`sep-${band.name}`"
-                                >
-                                    <div
-                                        v-if="band.monthIdx > 1"
-                                        :style="{ left: `${band.startPx}px` }"
-                                        class="absolute inset-y-0 w-px bg-slate-400/50"
-                                    />
-                                </template>
                             </div>
                         </div>
                     </div>

@@ -8,12 +8,13 @@
 
 export function densityClass(days: number): string {
     if (days <= 0) {
-        // SC6 (2026-05-18) · retour à `bg-white` opaque (les cellules
-        // vides masquent l'overlay alterné mois pair/impair posé en
-        // arrière-plan dans `Heatmap.vue`). L'effet « le fond passe
-        // DESSOUS les cellules » apparaît dans les gaps 1px entre
-        // cellules + dans les ~14px de blanc au-dessus/en-dessous des
-        // boutons h-7 dans chaque row h-56.
+        // SC12 (2026-05-18) · cellule vide bg-white OPAQUE · l'overlay
+        // alterné mois pair/impair posé en arrière-plan dans `Heatmap.vue`
+        // passe DERRIÈRE les cellules · effet visible dans les gaps 1px
+        // entre cellules + 14px de blanc au-dessus/en-dessous des boutons
+        // h-7 dans chaque row h-56. L'overlay utilise un flex synchronisé
+        // avec les vraies cellules + gradients pour les cellules qui
+        // chevauchent 2 mois · transition pixel-exacte au bon endroit.
         return 'bg-white border border-slate-200';
     }
 
