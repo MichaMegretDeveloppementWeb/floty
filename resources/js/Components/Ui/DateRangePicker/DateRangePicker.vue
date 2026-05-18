@@ -22,10 +22,9 @@
  * présentationnel.
  */
 import { ChevronLeft, ChevronRight, Infinity as InfinityIcon, X } from 'lucide-vue-next';
-import { computed, toRef } from 'vue';
+import { toRef } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import {
-    formatFr,
     useDateRangePicker,
 } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
 import type { DateRange } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
@@ -62,8 +61,8 @@ const {
     gotoPrevMonth,
     gotoNextMonth,
     onDayClick,
-    onStartDateTextInput,
-    onEndDateTextInput,
+    onStartDateInput,
+    onEndDateInput,
     clearSelection,
 } = useDateRangePicker(
     toRef(props, 'year'),
@@ -72,15 +71,6 @@ const {
     range,
     ongoing,
     toRef(props, 'highlightDates'),
-);
-
-// Affichage FR `jj/mm/aaaa` dans les inputs text. Cohérent avec le
-// format saisi par l'utilisateur et avec le reste de l'app FR.
-const startDateFrDisplay = computed<string>(() =>
-    range.value.startDate !== null ? formatFr(range.value.startDate) : '',
-);
-const endDateFrDisplay = computed<string>(() =>
-    range.value.endDate !== null ? formatFr(range.value.endDate) : '',
 );
 </script>
 
@@ -197,13 +187,10 @@ const endDateFrDisplay = computed<string>(() =>
                     Début
                 </span>
                 <input
-                    type="text"
-                    inputmode="numeric"
-                    placeholder="jj/mm/aaaa"
-                    autocomplete="off"
-                    :value="startDateFrDisplay"
-                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] w-[10em] tabular-nums"
-                    @change="(e) => onStartDateTextInput((e.target as HTMLInputElement).value)"
+                    type="date"
+                    :value="range.startDate ?? ''"
+                    class="rounded-md border border-slate-200 bg-white px-2 py-1 text-sm text-slate-900 transition-colors duration-[120ms] ease-out focus:outline-none focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)] w-[14em]"
+                    @change="(e) => onStartDateInput((e.target as HTMLInputElement).value)"
                 />
             </label>
             <label class="flex flex-col gap-1">
@@ -216,19 +203,16 @@ const endDateFrDisplay = computed<string>(() =>
                     Fin
                 </span>
                 <input
-                    type="text"
-                    inputmode="numeric"
-                    placeholder="jj/mm/aaaa"
-                    autocomplete="off"
-                    :value="endDateFrDisplay"
+                    type="date"
+                    :value="range.endDate ?? ''"
                     :disabled="ongoing"
                     :class="[
-                        'rounded-md border px-2 py-1 text-sm transition-colors duration-[120ms] ease-out focus:outline-none w-[10em] tabular-nums',
+                        'rounded-md border px-2 py-1 text-sm transition-colors duration-[120ms] ease-out focus:outline-none w-[14em]',
                         ongoing
                             ? 'cursor-not-allowed border-slate-200 bg-slate-50 text-slate-400'
                             : 'border-slate-200 bg-white text-slate-900 focus-visible:border-slate-400 focus-visible:shadow-[0_0_0_3px_var(--color-slate-100)]',
                     ]"
-                    @change="(e) => onEndDateTextInput((e.target as HTMLInputElement).value)"
+                    @change="(e) => onEndDateInput((e.target as HTMLInputElement).value)"
                 />
             </label>
         </div>

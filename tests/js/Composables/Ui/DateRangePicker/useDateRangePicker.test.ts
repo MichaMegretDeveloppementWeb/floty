@@ -6,7 +6,6 @@ import {
     formatIso,
     isValidIsoDate,
     normalizeRange,
-    parseAndClampFrDate,
     rangeConflicts,
     useDateRangePicker,
 } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
@@ -81,91 +80,6 @@ describe('isValidIsoDate', () => {
         expect(isValidIsoDate('2024-02-30')).toBe(false);
         expect(isValidIsoDate('2024-13-01')).toBe(false);
         expect(isValidIsoDate('2023-02-29')).toBe(false); // non bissextile
-    });
-});
-
-describe('parseAndClampFrDate', () => {
-    it('parses standard jj/mm/aaaa', () => {
-        expect(parseAndClampFrDate('15/05/2026')).toEqual({
-            iso: '2026-05-15',
-            wasClamped: false,
-        });
-    });
-
-    it('accepts j/m/aaaa (single-digit day and month)', () => {
-        expect(parseAndClampFrDate('5/3/2026')).toEqual({
-            iso: '2026-03-05',
-            wasClamped: false,
-        });
-    });
-
-    it('expands 2-digit year via +2000 (26 → 2026)', () => {
-        expect(parseAndClampFrDate('15/05/26')).toEqual({
-            iso: '2026-05-15',
-            wasClamped: false,
-        });
-    });
-
-    it('accepts - and . as separators', () => {
-        expect(parseAndClampFrDate('15-05-2026')?.iso).toBe('2026-05-15');
-        expect(parseAndClampFrDate('15.05.2026')?.iso).toBe('2026-05-15');
-    });
-
-    it('clamps day to last day of February (non-leap year)', () => {
-        expect(parseAndClampFrDate('31/02/2026')).toEqual({
-            iso: '2026-02-28',
-            wasClamped: true,
-        });
-    });
-
-    it('clamps day to 29 in February of leap year', () => {
-        expect(parseAndClampFrDate('31/02/2024')).toEqual({
-            iso: '2024-02-29',
-            wasClamped: true,
-        });
-    });
-
-    it('clamps 31 in April (30-day month) to 30', () => {
-        expect(parseAndClampFrDate('31/04/2026')).toEqual({
-            iso: '2026-04-30',
-            wasClamped: true,
-        });
-    });
-
-    it('does not clamp 31 in March (31-day month)', () => {
-        expect(parseAndClampFrDate('31/03/2026')).toEqual({
-            iso: '2026-03-31',
-            wasClamped: false,
-        });
-    });
-
-    it('returns null for empty / whitespace', () => {
-        expect(parseAndClampFrDate('')).toBeNull();
-        expect(parseAndClampFrDate('   ')).toBeNull();
-    });
-
-    it('returns null for invalid format', () => {
-        expect(parseAndClampFrDate('hello')).toBeNull();
-        expect(parseAndClampFrDate('2026-05-15')).toBeNull(); // ISO not accepted
-        expect(parseAndClampFrDate('15 05 2026')).toBeNull(); // space separator
-    });
-
-    it('returns null for out-of-range month', () => {
-        expect(parseAndClampFrDate('15/13/2026')).toBeNull();
-        expect(parseAndClampFrDate('15/00/2026')).toBeNull();
-    });
-
-    it('returns null for day < 1', () => {
-        expect(parseAndClampFrDate('0/05/2026')).toBeNull();
-    });
-
-    it('returns null for year outside [1900, 2100]', () => {
-        expect(parseAndClampFrDate('15/05/1899')).toBeNull();
-        expect(parseAndClampFrDate('15/05/2101')).toBeNull();
-    });
-
-    it('trims surrounding whitespace', () => {
-        expect(parseAndClampFrDate('  15/05/2026  ')?.iso).toBe('2026-05-15');
     });
 });
 
