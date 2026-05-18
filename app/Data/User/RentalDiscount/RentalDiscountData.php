@@ -57,12 +57,6 @@ final class RentalDiscountData extends Data
         public ?string $updatedAt,
         /** ISO Y-m-d ou null si non soft-deletée. */
         public ?string $deletedAt,
-        /**
-         * Nombre de factures émises (active ou obsolète) qui ont appliqué
-         * cette réduction sur au moins une ligne · alimente le compteur
-         * « N factures concernées » de la carte Application sur Show.
-         */
-        public int $invoiceLinesCount,
     ) {}
 
     public static function fromModel(RentalDiscount $discount, ?CarbonImmutable $today = null): self
@@ -88,10 +82,6 @@ final class RentalDiscountData extends Data
                 ->all()
             : [];
 
-        $invoiceLinesCount = $discount->relationLoaded('invoiceLines')
-            ? $discount->invoiceLines->count()
-            : $discount->invoiceLines()->count();
-
         $createdByName = null;
         if ($discount->relationLoaded('createdBy') && $discount->createdBy !== null) {
             $createdByName = trim($discount->createdBy->first_name.' '.$discount->createdBy->last_name);
@@ -115,7 +105,6 @@ final class RentalDiscountData extends Data
             createdAt: $discount->created_at?->toDateString() ?? '',
             updatedAt: $discount->updated_at?->toDateString(),
             deletedAt: $discount->deleted_at?->toDateString(),
-            invoiceLinesCount: $invoiceLinesCount,
         );
     }
 }

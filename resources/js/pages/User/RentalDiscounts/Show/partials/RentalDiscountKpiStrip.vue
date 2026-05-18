@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { index as invoicesIndexRoute } from '@/routes/user/invoices';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 const props = defineProps<{
@@ -21,21 +19,11 @@ const vehiclesMeta = computed<string>(() => {
 
     return `véhicule${props.rentalDiscount.vehicles.length > 1 ? 's' : ''} ciblé${props.rentalDiscount.vehicles.length > 1 ? 's' : ''}`;
 });
-
-const invoiceLinesValue = computed<string>(() => String(props.rentalDiscount.invoiceLinesCount));
-
-const invoiceLinesMeta = computed<string>(() =>
-    `ligne${props.rentalDiscount.invoiceLinesCount > 1 ? 's' : ''} de facture`,
-);
-
-const invoicesLinkUrl = computed<string>(() =>
-    invoicesIndexRoute.url({ query: { companyId: props.rentalDiscount.companyId } }),
-);
 </script>
 
 <template>
-    <div class="grid grid-cols-2 overflow-hidden rounded-xl border border-slate-200 bg-white md:grid-cols-4">
-        <div class="border-r border-b border-slate-100 px-5 py-4 last:border-r-0 md:border-b-0">
+    <div class="grid grid-cols-1 overflow-hidden rounded-xl border border-slate-200 bg-white sm:grid-cols-3">
+        <div class="border-b border-slate-100 px-5 py-4 sm:border-r sm:border-b-0">
             <p class="eyebrow mb-1.5">
                 Véhicules
             </p>
@@ -47,26 +35,7 @@ const invoicesLinkUrl = computed<string>(() =>
             </p>
         </div>
 
-        <div class="border-b border-slate-100 px-5 py-4 md:border-r md:border-b-0">
-            <p class="eyebrow mb-1.5">
-                Factures impactées
-            </p>
-            <p class="font-mono text-xl leading-none font-medium tracking-tight text-slate-900 tabular-nums">
-                {{ invoiceLinesValue }}
-            </p>
-            <p class="mt-1.5 text-[11px] text-slate-500">
-                {{ invoiceLinesMeta }}
-                <Link
-                    v-if="rentalDiscount.invoiceLinesCount > 0"
-                    :href="invoicesLinkUrl"
-                    class="ml-1 text-blue-600 hover:underline"
-                >
-                    Voir
-                </Link>
-            </p>
-        </div>
-
-        <div class="border-r border-slate-100 px-5 py-4">
+        <div class="border-b border-slate-100 px-5 py-4 sm:border-r sm:border-b-0">
             <p class="eyebrow mb-1.5">
                 Créée par
             </p>

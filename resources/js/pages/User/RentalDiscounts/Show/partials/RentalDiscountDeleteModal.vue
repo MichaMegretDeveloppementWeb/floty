@@ -34,11 +34,8 @@ function onConfirm(): void {
                             {{ rentalDiscount.label ?? 'sans libellé' }}
                         </span> ?
                     </p>
-                    <p v-if="rentalDiscount.invoiceLinesCount > 0" class="text-xs text-slate-600">
-                        Cette réduction figure sur {{ rentalDiscount.invoiceLinesCount }} ligne{{ rentalDiscount.invoiceLinesCount > 1 ? 's' : '' }} de facture déjà émise{{ rentalDiscount.invoiceLinesCount > 1 ? 's' : '' }}. Elles resteront inchangées (snapshot immuable). Seules les périodes futures ne bénéficieront plus de la réduction.
-                    </p>
-                    <p v-else class="text-xs text-slate-600">
-                        L'archivage est réversible (soft-delete). Aucune facture n'est concernée par cette réduction.
+                    <p class="text-xs text-slate-600">
+                        L'archivage est réversible (soft-delete). Les factures déjà émises qui auraient appliqué cette réduction restent inchangées (snapshot immuable). Seules les périodes futures ne bénéficieront plus de la réduction.
                     </p>
                 </div>
             </div>

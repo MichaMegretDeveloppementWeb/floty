@@ -124,9 +124,7 @@ interface RentalDiscountReadRepositoryInterface
     public function paginateForIndex(RentalDiscountIndexQueryData $query): LengthAwarePaginator;
 
     /**
-     * Détail Show · eager-load `vehicles` + `company` + `createdBy`. Le
-     * count `invoice_lines` est ajouté via `withCount` pour alimenter
-     * `RentalDiscountData::invoiceLinesCount` sans charger la relation.
+     * Détail Show · eager-load `vehicles` + `company` + `createdBy`.
      */
     public function findByIdForShow(int $id): ?RentalDiscount;
 

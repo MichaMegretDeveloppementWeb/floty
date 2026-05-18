@@ -178,7 +178,6 @@ final class RentalDiscountReadRepository implements RentalDiscountReadRepository
                 'company:id,short_code,legal_name,color',
                 'createdBy:id,first_name,last_name',
             ])
-            ->withCount('invoiceLines')
             ->find($id);
     }
 

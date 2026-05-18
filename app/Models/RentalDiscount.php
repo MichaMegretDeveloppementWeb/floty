@@ -14,7 +14,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
@@ -47,7 +46,6 @@ use Illuminate\Support\Carbon;
  * @property-read Company $company
  * @property-read Collection<int, Vehicle> $vehicles
  * @property-read User|null $createdBy
- * @property-read Collection<int, InvoiceLine> $invoiceLines
  */
 #[Fillable([
     'company_id',
@@ -113,18 +111,6 @@ final class RentalDiscount extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by_user_id');
-    }
-
-    /**
-     * Lignes de facture déjà émises qui ont appliqué cette réduction
-     * (snapshot immuable · les lignes restent valides même si la
-     * réduction est ensuite modifiée ou soft-deletée).
-     *
-     * @return HasMany<InvoiceLine, $this>
-     */
-    public function invoiceLines(): HasMany
-    {
-        return $this->hasMany(InvoiceLine::class, 'applied_discount_id');
     }
 
     /**
