@@ -13,6 +13,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
+import type { DateRange } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
 import { checkConflicts as checkConflictsRoute } from '@/routes/user/rental-discounts';
 
 function getXsrfToken(): string {
@@ -61,6 +62,13 @@ export function useRentalDiscountForm(
     form: ReturnType<typeof useForm>;
     discountPercent: Ref<number>;
     appliesToAllVehicles: Ref<boolean>;
+    range: Ref<DateRange>;
+    /** Toggle « date de fin indéfinie » exigé par le DateRangePicker · toujours `false` ici (une réduction commerciale a forcément une date de fin). */
+    ongoing: Ref<boolean>;
+    /** Année initiale d'ouverture du DateRangePicker (centre sur start_date existante ou année courante). */
+    pickerInitialYear: number;
+    /** Mois initial d'ouverture du DateRangePicker (1..12, centre sur start_date existante ou mois courant). */
+    pickerInitialMonth: number;
     conflicts: Ref<ConflictItem[]>;
     isCheckingConflicts: Ref<boolean>;
     hasConflicts: ComputedRef<boolean>;
@@ -74,6 +82,23 @@ export function useRentalDiscountForm(
     // `true` = liste vide (sémantique « tous »). Initialisé selon
     // l'état d'origine (vehicleIds vide).
     const appliesToAllVehicles = ref<boolean>(initial.vehicleIds.length === 0);
+
+    // `DateRangePicker` consomme `range` (v-model) et `ongoing` (v-model).
+    // `ongoing` reste `false` constant · une réduction commerciale a
+    // toujours une date de fin (contrairement aux indispos).
+    const range = ref<DateRange>({
+        startDate: initial.startDate !== '' ? initial.startDate : null,
+        endDate: initial.endDate !== '' ? initial.endDate : null,
+    });
+    const ongoing = ref<boolean>(false);
+
+    // Année/mois d'ouverture du calendrier · centre sur la date existante
+    // (Edit) ou la date courante (Create). Stable après init · le
+    // DateRangePicker maintient son propre state interne ensuite.
+    const today = new Date();
+    const startSource = initial.startDate !== '' ? new Date(initial.startDate) : today;
+    const pickerInitialYear = startSource.getFullYear();
+    const pickerInitialMonth = startSource.getMonth() + 1;
 
     const form = useForm<RentalDiscountFormPayload>({
         companyId: initial.companyId,
@@ -89,6 +114,12 @@ export function useRentalDiscountForm(
     watch(discountPercent, (next) => {
         form.discountBasisPoints = Math.round(next * 100);
     });
+
+    // Sync `range` (sélection calendrier) → form payload.
+    watch(range, (next) => {
+        form.startDate = next.startDate ?? '';
+        form.endDate = next.endDate ?? '';
+    }, { deep: true });
 
     // Watcher du toggle « tous les véhicules ». Quand on coche, on vide
     // la liste. Quand on décoche, on laisse l'utilisateur sélectionner.
@@ -205,6 +236,10 @@ export function useRentalDiscountForm(
         form,
         discountPercent,
         appliesToAllVehicles,
+        range,
+        ongoing,
+        pickerInitialYear,
+        pickerInitialMonth,
         conflicts,
         isCheckingConflicts,
         hasConflicts,

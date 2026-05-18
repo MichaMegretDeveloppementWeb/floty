@@ -24,8 +24,11 @@ const {
     form,
     discountPercent,
     appliesToAllVehicles,
+    range,
+    ongoing,
+    pickerInitialYear,
+    pickerInitialMonth,
     conflicts,
-    isCheckingConflicts,
     canSubmit,
     submit,
 } = useRentalDiscountForm(
@@ -73,10 +76,15 @@ const {
                 :is-edit="false"
                 :discount-percent="discountPercent"
                 :applies-to-all-vehicles="appliesToAllVehicles"
+                :range="range"
+                :ongoing="ongoing"
+                :picker-initial-year="pickerInitialYear"
+                :picker-initial-month="pickerInitialMonth"
                 :conflicts="conflicts"
-                :is-checking-conflicts="isCheckingConflicts"
                 @update:discount-percent="discountPercent = $event"
                 @update:applies-to-all-vehicles="appliesToAllVehicles = $event"
+                @update:range="range = $event"
+                @update:ongoing="ongoing = $event"
             />
 
             <div class="flex items-center justify-end gap-3">

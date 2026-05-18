@@ -7,6 +7,10 @@
  * Pas de logique métier ici · juste les liaisons v-model et le rendu.
  * Le composable parent (`useRentalDiscountForm`) gère le state,
  * conversion pourcentage ↔ bp, check chevauchement, etc.
+ *
+ * Feedback chevauchement · carte rouge listant les conflits uniquement
+ * en cas de conflit (defense in depth back · le submit reste désactivé
+ * tant que conflit, doctrine UX « pas de message positif gratuit »).
  */
 import { computed } from 'vue';
 import type { useForm } from '@inertiajs/vue3';
@@ -14,12 +18,13 @@ import VehiclesMultiPicker from '@/Components/Domain/RentalDiscount/VehiclesMult
 import type { VehicleOption } from '@/Components/Domain/RentalDiscount/VehiclesMultiPicker.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
-import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
+import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
+import type { DateRange } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatPercentFromBasisPoints } from '@/Utils/format/formatPercent';
 import type { ConflictItem } from '@/Composables/RentalDiscount/Form/useRentalDiscountForm';
@@ -57,13 +62,18 @@ const props = defineProps<{
     isEdit: boolean;
     discountPercent: number;
     appliesToAllVehicles: boolean;
+    range: DateRange;
+    ongoing: boolean;
+    pickerInitialYear: number;
+    pickerInitialMonth: number;
     conflicts: readonly ConflictItem[];
-    isCheckingConflicts: boolean;
 }>();
 
 const emit = defineEmits<{
     'update:discount-percent': [value: number];
     'update:applies-to-all-vehicles': [value: boolean];
+    'update:range': [value: DateRange];
+    'update:ongoing': [value: boolean];
 }>();
 
 const discountPercentModel = computed<number>({
@@ -74,6 +84,16 @@ const discountPercentModel = computed<number>({
 const appliesToAllVehiclesModel = computed<boolean>({
     get: () => props.appliesToAllVehicles,
     set: (value: boolean) => emit('update:applies-to-all-vehicles', value),
+});
+
+const rangeModel = computed<DateRange>({
+    get: () => props.range,
+    set: (value: DateRange) => emit('update:range', value),
+});
+
+const ongoingModel = computed<boolean>({
+    get: () => props.ongoing,
+    set: (value: boolean) => emit('update:ongoing', value),
 });
 
 const vehicleIdsModel = computed<number[]>({
@@ -133,29 +153,22 @@ const lockedCompanyLabel = computed<string>(() => {
                     Période et taux
                 </h2>
             </template>
-            <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_auto]">
                 <div class="flex flex-col gap-2">
-                    <FieldLabel for="field-start-date" required>
-                        Date de début
+                    <FieldLabel for="field-date-range" required>
+                        Période d'application
                     </FieldLabel>
-                    <DateInput
-                        id="field-start-date"
-                        v-model="form.startDate"
+                    <DateRangePicker
+                        id="field-date-range"
+                        v-model:range="rangeModel"
+                        v-model:ongoing="ongoingModel"
+                        :year="pickerInitialYear"
+                        :start-month="pickerInitialMonth"
                     />
                     <InputError :message="form.errors.startDate" />
-                </div>
-                <div class="flex flex-col gap-2">
-                    <FieldLabel for="field-end-date" required>
-                        Date de fin
-                    </FieldLabel>
-                    <DateInput
-                        id="field-end-date"
-                        v-model="form.endDate"
-                        :min="form.startDate || undefined"
-                    />
                     <InputError :message="form.errors.endDate" />
                 </div>
-                <div class="flex flex-col gap-2">
+                <div class="flex flex-col gap-2 lg:w-[14em]">
                     <FieldLabel for="field-percent" required>
                         Pourcentage de réduction
                     </FieldLabel>
@@ -171,6 +184,9 @@ const lockedCompanyLabel = computed<string>(() => {
                             %
                         </span>
                     </div>
+                    <p class="text-xs text-slate-500">
+                        De 0,5 % à 100 %, par pas de 0,5.
+                    </p>
                     <InputError :message="form.errors.discountBasisPoints" />
                 </div>
             </div>
@@ -249,7 +265,10 @@ const lockedCompanyLabel = computed<string>(() => {
             </div>
         </Card>
 
-        <!-- 5. Feedback conflit live -->
+        <!-- 5. Feedback chevauchement · uniquement quand conflit réel.
+             Pas de carte « tout va bien » ni d'état « vérification en
+             cours » · l'absence de message = l'absence de conflit, et
+             le bouton Soumettre se désactive silencieusement. -->
         <div
             v-if="conflicts.length > 0"
             class="rounded-xl border border-rose-200 bg-rose-50/50 p-4"
@@ -290,17 +309,5 @@ const lockedCompanyLabel = computed<string>(() => {
                 Ajustez la période, le périmètre véhicules ou modifiez la réduction conflictuelle pour pouvoir enregistrer.
             </p>
         </div>
-        <p
-            v-else-if="isCheckingConflicts"
-            class="text-xs text-slate-500"
-        >
-            Vérification du chevauchement en cours…
-        </p>
-        <p
-            v-else-if="form.companyId !== null && form.startDate !== '' && form.endDate !== '' && form.startDate <= form.endDate"
-            class="rounded-xl border border-emerald-200 bg-emerald-50/40 px-4 py-3 text-xs text-emerald-800"
-        >
-            Aucun chevauchement détecté · vous pouvez enregistrer la réduction.
-        </p>
     </div>
 </template>
