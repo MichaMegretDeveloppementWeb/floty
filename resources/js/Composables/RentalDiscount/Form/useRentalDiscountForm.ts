@@ -6,8 +6,13 @@
  *  - conversion pourcentage UI ↔ basis points DB (1 050 bp = 10,50 %)
  *  - check chevauchement live debounced via POST /check-conflicts
  *
- * Le form ne se soumet pas si un conflit est détecté côté UI · la
- * validation backend re-check de toute façon (defense in depth).
+ * **Convention snake_case** · les clés du `useForm` sont en snake_case
+ * pour matcher l'attente backend (Spatie Data + `SnakeCaseMapper`).
+ * Sans cette convention, le serveur ne trouve pas les champs en entrée
+ * (validation `required` échoue) ET les `form.errors` retournés sont
+ * en snake_case donc les `<InputError :message="form.errors.start_date" />`
+ * ne se résolvent pas si on bind en camelCase. Convention héritée du
+ * pattern `useDriverForm`, `useContractForm`, etc.
  */
 
 import { useForm } from '@inertiajs/vue3';
@@ -32,13 +37,13 @@ export type ConflictItem = {
 };
 
 export type RentalDiscountFormPayload = {
-    companyId: number | null;
-    startDate: string;
-    endDate: string;
-    discountBasisPoints: number;
+    company_id: number | null;
+    start_date: string;
+    end_date: string;
+    discount_basis_points: number;
     label: string | null;
     notes: string | null;
-    vehicleIds: number[];
+    vehicle_ids: number[];
 };
 
 export type RentalDiscountFormInitial = {
@@ -100,32 +105,33 @@ export function useRentalDiscountForm(
     const pickerInitialYear = startSource.getFullYear();
     const pickerInitialMonth = startSource.getMonth() + 1;
 
+    // Form Inertia · clés snake_case (cf. doc en tête).
     const form = useForm<RentalDiscountFormPayload>({
-        companyId: initial.companyId,
-        startDate: initial.startDate,
-        endDate: initial.endDate,
-        discountBasisPoints: Math.round(initial.discountPercent * 100),
+        company_id: initial.companyId,
+        start_date: initial.startDate,
+        end_date: initial.endDate,
+        discount_basis_points: Math.round(initial.discountPercent * 100),
         label: initial.label,
         notes: initial.notes,
-        vehicleIds: initial.vehicleIds,
+        vehicle_ids: initial.vehicleIds,
     });
 
     // Watcher de synchro pourcentage UI → bp form payload.
     watch(discountPercent, (next) => {
-        form.discountBasisPoints = Math.round(next * 100);
+        form.discount_basis_points = Math.round(next * 100);
     });
 
-    // Sync `range` (sélection calendrier) → form payload.
+    // Sync `range` (sélection calendrier) → form payload (snake_case).
     watch(range, (next) => {
-        form.startDate = next.startDate ?? '';
-        form.endDate = next.endDate ?? '';
+        form.start_date = next.startDate ?? '';
+        form.end_date = next.endDate ?? '';
     }, { deep: true });
 
     // Watcher du toggle « tous les véhicules ». Quand on coche, on vide
     // la liste. Quand on décoche, on laisse l'utilisateur sélectionner.
     watch(appliesToAllVehicles, (next) => {
         if (next) {
-            form.vehicleIds = [];
+            form.vehicle_ids = [];
         }
     });
 
@@ -145,10 +151,10 @@ export function useRentalDiscountForm(
 
     async function runCheckConflicts(): Promise<void> {
         if (
-            form.companyId === null
-            || form.startDate === ''
-            || form.endDate === ''
-            || form.startDate > form.endDate
+            form.company_id === null
+            || form.start_date === ''
+            || form.end_date === ''
+            || form.start_date > form.end_date
         ) {
             conflicts.value = [];
             return;
@@ -169,10 +175,10 @@ export function useRentalDiscountForm(
                     'X-XSRF-TOKEN': getXsrfToken(),
                 },
                 body: JSON.stringify({
-                    company_id: form.companyId,
-                    start_date: form.startDate,
-                    end_date: form.endDate,
-                    vehicle_ids: appliesToAllVehicles.value ? [] : form.vehicleIds,
+                    company_id: form.company_id,
+                    start_date: form.start_date,
+                    end_date: form.end_date,
+                    vehicle_ids: appliesToAllVehicles.value ? [] : form.vehicle_ids,
                     exclude_id: initial.id,
                 }),
             });
@@ -194,10 +200,10 @@ export function useRentalDiscountForm(
     // Trigger le check à chaque modif des champs pertinents.
     watch(
         [
-            () => form.companyId,
-            () => form.startDate,
-            () => form.endDate,
-            () => form.vehicleIds,
+            () => form.company_id,
+            () => form.start_date,
+            () => form.end_date,
+            () => form.vehicle_ids,
             appliesToAllVehicles,
         ],
         () => debouncedCheckConflicts(),
@@ -213,16 +219,16 @@ export function useRentalDiscountForm(
         if (hasConflicts.value) {
             return false;
         }
-        if (form.companyId === null) {
+        if (form.company_id === null) {
             return false;
         }
-        if (form.startDate === '' || form.endDate === '') {
+        if (form.start_date === '' || form.end_date === '') {
             return false;
         }
-        if (form.startDate > form.endDate) {
+        if (form.start_date > form.end_date) {
             return false;
         }
-        if (form.discountBasisPoints < 1 || form.discountBasisPoints > 10_000) {
+        if (form.discount_basis_points < 1 || form.discount_basis_points > 10_000) {
             return false;
         }
         return true;

@@ -37,13 +37,13 @@ type CompanyOption = {
 };
 
 type FormPayload = {
-    companyId: number | null;
-    startDate: string;
-    endDate: string;
-    discountBasisPoints: number;
+    company_id: number | null;
+    start_date: string;
+    end_date: string;
+    discount_basis_points: number;
     label: string | null;
     notes: string | null;
-    vehicleIds: number[];
+    vehicle_ids: number[];
 };
 
 const props = defineProps<{
@@ -97,9 +97,9 @@ const ongoingModel = computed<boolean>({
 });
 
 const vehicleIdsModel = computed<number[]>({
-    get: () => props.form.vehicleIds,
+    get: () => props.form.vehicle_ids,
     set: (value: number[]) => {
-        props.form.vehicleIds = value;
+        props.form.vehicle_ids = value;
     },
 });
 
@@ -111,7 +111,7 @@ const companyOptions = computed(() =>
 );
 
 const lockedCompanyLabel = computed<string>(() => {
-    const c = props.companies.find((c) => c.id === props.form.companyId);
+    const c = props.companies.find((c) => c.id === props.form.company_id);
     return c ? `${c.shortCode} · ${c.legalName}` : '';
 });
 </script>
@@ -132,7 +132,7 @@ const lockedCompanyLabel = computed<string>(() => {
                 <SearchableSelect
                     v-if="!isEdit"
                     id="field-company"
-                    v-model="form.companyId"
+                    v-model="form.company_id"
                     :options="companyOptions"
                     placeholder="Sélectionner une entreprise"
                 />
@@ -142,7 +142,7 @@ const lockedCompanyLabel = computed<string>(() => {
                 <p v-if="isEdit" class="text-xs text-slate-500">
                     L'entreprise d'une réduction existante ne peut pas être modifiée. Créez une nouvelle réduction si nécessaire.
                 </p>
-                <InputError :message="form.errors.companyId" />
+                <InputError :message="form.errors.company_id" />
             </div>
         </Card>
 
@@ -165,8 +165,8 @@ const lockedCompanyLabel = computed<string>(() => {
                         :year="pickerInitialYear"
                         :start-month="pickerInitialMonth"
                     />
-                    <InputError :message="form.errors.startDate" />
-                    <InputError :message="form.errors.endDate" />
+                    <InputError :message="form.errors.start_date" />
+                    <InputError :message="form.errors.end_date" />
                 </div>
                 <div class="flex flex-col gap-2 lg:w-[14em]">
                     <FieldLabel for="field-percent" required>
@@ -187,7 +187,7 @@ const lockedCompanyLabel = computed<string>(() => {
                     <p class="text-xs text-slate-500">
                         De 0,5 % à 100 %, par pas de 0,5.
                     </p>
-                    <InputError :message="form.errors.discountBasisPoints" />
+                    <InputError :message="form.errors.discount_basis_points" />
                 </div>
             </div>
         </Card>
@@ -218,7 +218,7 @@ const lockedCompanyLabel = computed<string>(() => {
                     :vehicles="vehicles"
                     :disabled="appliesToAllVehicles"
                 />
-                <InputError :message="form.errors.vehicleIds" />
+                <InputError :message="form.errors.vehicle_ids" />
             </div>
         </Card>
 
