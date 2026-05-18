@@ -26,6 +26,8 @@ final class InvoiceLineFactory extends Factory
         $weekly = 50_000;
         $monthly = 180_000;
 
+        $total = $months * $monthly + $weeks * $weekly + $days * $daily;
+
         return [
             'invoice_id' => Invoice::factory(),
             'vehicle_id' => Vehicle::factory(),
@@ -37,7 +39,12 @@ final class InvoiceLineFactory extends Factory
             'daily_rate_cents' => $daily,
             'weekly_rate_cents' => $weekly,
             'monthly_rate_cents' => $monthly,
-            'total_ht_cents' => $months * $monthly + $weeks * $weekly + $days * $daily,
+            'total_ht_cents' => $total,
+            // Sémantique « pas de réduction par défaut » · gross = net.
+            // Les tests RentalDiscount surchargent via state() au besoin.
+            'gross_total_cents' => $total,
+            'discount_cents' => 0,
+            'applied_discount_id' => null,
         ];
     }
 }

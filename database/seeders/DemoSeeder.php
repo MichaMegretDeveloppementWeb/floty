@@ -25,6 +25,7 @@ use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\FiscalDeclaration;
+use App\Models\RentalDiscount;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
@@ -67,6 +68,87 @@ final class DemoSeeder extends Seeder
         $this->seedDrivers($companies);
         $this->seedContractDrivers();
         $this->seedFiscalDeclarations($companies);
+        $this->seedRentalDiscounts($companies, $vehicles);
+    }
+
+    /**
+     * 4 réductions commerciales de démonstration · couvrent les cas
+     * d'usage typiques pour la démo client ·
+     *   - réduction "tous véhicules" sur une période passée terminée
+     *     (visible dans les factures déjà émises)
+     *   - réduction "tous véhicules" sur la période courante (active)
+     *   - réduction "véhicules ciblés" sur la période courante
+     *   - réduction "planifiée" pour le trimestre suivant (à venir)
+     *
+     * Affecte 2 entreprises (parmi les 5 du seeder) pour démontrer la
+     * coexistence sans casser la majorité du seed.
+     *
+     * @param  array<string, Company>  $companies
+     * @param  array<int, Vehicle>  $vehicles
+     */
+    private function seedRentalDiscounts(array $companies, array $vehicles): void
+    {
+        RentalDiscount::query()->forceDelete();
+
+        // Pas d'entreprise du seed = no-op (ne casse pas les tests qui
+        // n'utilisent pas le seeder complet).
+        if ($companies === [] || $vehicles === []) {
+            return;
+        }
+
+        $companyList = array_values($companies);
+        $vehicleList = array_values($vehicles);
+        $today = Carbon::today();
+
+        // Réduction 1 · cie #1, tous véhicules, T1 2024 (passé, terminé,
+        // peut figurer sur factures déjà émises).
+        RentalDiscount::factory()
+            ->forCompany($companyList[0])
+            ->withPeriod(Carbon::create(2024, 1, 1), Carbon::create(2024, 3, 31))
+            ->withDiscountPercent(10.0)
+            ->create([
+                'label' => 'Remise lancement Q1 2024',
+                'notes' => 'Démo · réduction "tous véhicules" sur trimestre passé.',
+            ]);
+
+        // Réduction 2 · cie #1, sous-ensemble véhicules, période active
+        // courante (jusqu'à fin année).
+        if (count($vehicleList) >= 2) {
+            RentalDiscount::factory()
+                ->forCompany($companyList[0])
+                ->withPeriod($today->copy()->subMonths(3), $today->copy()->addMonths(9))
+                ->withDiscountPercent(15.0)
+                ->appliesToVehicles([$vehicleList[0], $vehicleList[1]])
+                ->create([
+                    'label' => 'Pack fidélité véhicules pilotes',
+                    'notes' => 'Démo · réduction sur véhicules ciblés, période active.',
+                ]);
+        }
+
+        // Réduction 3 · cie #2 (si présente), tous véhicules, période
+        // active courante.
+        if (count($companyList) >= 2) {
+            RentalDiscount::factory()
+                ->forCompany($companyList[1])
+                ->withPeriod($today->copy()->subMonths(1), $today->copy()->addMonths(11))
+                ->withDiscountPercent(7.5)
+                ->create([
+                    'label' => 'Engagement annuel 2026',
+                    'notes' => null,
+                ]);
+        }
+
+        // Réduction 4 · cie #1, planifiée pour le trimestre suivant
+        // (statut "à venir"). Non-chevauchement garanti par le décalage
+        // temporel avec la réduction 2 (qui finit avant).
+        RentalDiscount::factory()
+            ->forCompany($companyList[0])
+            ->withPeriod($today->copy()->addMonths(10), $today->copy()->addMonths(12))
+            ->withDiscountPercent(5.0)
+            ->create([
+                'label' => 'Pré-engagement trimestre suivant',
+                'notes' => 'Démo · réduction planifiée à venir.',
+            ]);
     }
 
     /**

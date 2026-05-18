@@ -22,6 +22,8 @@ final class InvoiceFactory extends Factory
         $year = fake()->numberBetween(2024, 2026);
         $month = fake()->numberBetween(1, 12);
 
+        $totalHtCents = fake()->numberBetween(10_000, 1_000_000);
+
         return [
             'company_id' => Company::factory(),
             'year' => $year,
@@ -32,7 +34,12 @@ final class InvoiceFactory extends Factory
                 $month,
                 fake()->unique()->numberBetween(1, 9999),
             ),
-            'total_ht_cents' => fake()->numberBetween(10_000, 1_000_000),
+            'total_ht_cents' => $totalHtCents,
+            // Sémantique « pas de réduction par défaut » · gross = net
+            // (= total_ht_cents). Les tests RentalDiscount surchargent
+            // ces champs via state() quand ils ont besoin d'une réduction.
+            'total_gross_cents' => $totalHtCents,
+            'total_discount_cents' => 0,
             'pdf_path' => sprintf('invoices/%d/test/%s.pdf', $year, fake()->uuid()),
             'pdf_hash' => fake()->sha256(),
             'generated_at' => now(),

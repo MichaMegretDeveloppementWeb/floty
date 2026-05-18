@@ -23,6 +23,8 @@ use App\Contracts\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsWriteRe
 use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
+use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountReadRepositoryInterface;
+use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
 use App\Contracts\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentReadRepositoryInterface;
@@ -52,6 +54,8 @@ use App\Repositories\User\FiscalRiskSettings\FiscalRiskSettingsWriteRepository;
 use App\Repositories\User\FiscalRule\FiscalRuleReadRepository;
 use App\Repositories\User\Invoice\InvoiceReadRepository;
 use App\Repositories\User\Invoice\InvoiceWriteRepository;
+use App\Repositories\User\RentalDiscount\RentalDiscountReadRepository;
+use App\Repositories\User\RentalDiscount\RentalDiscountWriteRepository;
 use App\Repositories\User\Unavailability\UnavailabilityReadRepository;
 use App\Repositories\User\Unavailability\UnavailabilityWriteRepository;
 use App\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentReadRepository;
@@ -114,6 +118,10 @@ final class RepositoryServiceProvider extends ServiceProvider
         // Invoice (Phase 14.E V1.2) - facturation mensuelle immuable
         InvoiceReadRepositoryInterface::class => InvoiceReadRepository::class,
         InvoiceWriteRepositoryInterface::class => InvoiceWriteRepository::class,
+
+        // RentalDiscount (post Phase 14 V1.2) - réductions commerciales sur loyers
+        RentalDiscountReadRepositoryInterface::class => RentalDiscountReadRepository::class,
+        RentalDiscountWriteRepositoryInterface::class => RentalDiscountWriteRepository::class,
 
         // BillingSettings (Phase 14.G V1.2) - émetteur de facture (singleton)
         BillingSettingsReadRepositoryInterface::class => BillingSettingsReadRepository::class,
