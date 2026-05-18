@@ -45,6 +45,8 @@ final class InvoiceLineFactory extends Factory
             'gross_total_cents' => $total,
             'discount_cents' => 0,
             'applied_discount_id' => null,
+            'applied_discount_label_snapshot' => null,
+            'applied_discount_basis_points_snapshot' => null,
         ];
     }
 }

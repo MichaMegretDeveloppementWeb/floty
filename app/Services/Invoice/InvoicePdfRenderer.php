@@ -54,6 +54,16 @@ final readonly class InvoicePdfRenderer
                 'weeklyRate' => $this->formatEuros($line->weeklyRateCents),
                 'dailyRate' => $this->formatEuros($line->dailyRateCents),
                 'totalLabel' => $this->formatEuros($line->totalCents),
+                // Lot 3 réductions commerciales · snapshot brut/réduction
+                // par ligne pour affichage sous la décomposition tarifaire
+                // quand une réduction a été appliquée.
+                'grossTotalLabel' => $this->formatEuros($line->grossTotalCents),
+                'hasDiscount' => $line->discountCents > 0,
+                'discountLabel' => $line->discountCents > 0 ? $this->formatEuros($line->discountCents) : null,
+                'discountPercentLabel' => $line->appliedDiscountBasisPoints !== null
+                    ? $this->formatPercent($line->appliedDiscountBasisPoints)
+                    : null,
+                'discountName' => $line->appliedDiscountLabel,
             ],
             $calculation->lines,
         );
@@ -61,6 +71,9 @@ final readonly class InvoicePdfRenderer
         $periodLabel = $this->frenchMonthLabel($calculation->month).' '.$calculation->year;
         $generatedAtLabel = $generatedAt->format('d/m/Y');
         $totalLabel = $this->formatEuros($calculation->totalCents);
+        $hasDiscount = $calculation->totalDiscountCents > 0;
+        $grossTotalLabel = $this->formatEuros($calculation->grossTotalCents);
+        $totalDiscountLabel = $hasDiscount ? $this->formatEuros($calculation->totalDiscountCents) : null;
 
         $pdf = Pdf::loadView('invoices.monthly', [
             'invoiceNumber' => $invoiceNumber,
@@ -70,6 +83,9 @@ final readonly class InvoicePdfRenderer
             'generatedAtLabel' => $generatedAtLabel,
             'lines' => $lines,
             'totalLabel' => $totalLabel,
+            'hasDiscount' => $hasDiscount,
+            'grossTotalLabel' => $grossTotalLabel,
+            'totalDiscountLabel' => $totalDiscountLabel,
         ])->setPaper('A4', 'portrait');
 
         return $pdf->output();
@@ -81,6 +97,26 @@ final readonly class InvoicePdfRenderer
         $formatted = number_format($euros, 2, ',', "\u{202F}");
 
         return $formatted."\u{202F}€";
+    }
+
+    /**
+     * Format un pourcentage en basis points · convention FR (`,`
+     * décimal, NNBSP avant `%`). Élide les zéros terminaux (`10 %`
+     * plutôt que `10,00 %`).
+     */
+    private function formatPercent(int $basisPoints): string
+    {
+        $percent = $basisPoints / 100;
+
+        // 2 décimales max, mais élision des zéros (10,5 et pas 10,50,
+        // 10 et pas 10,00).
+        if (fmod($percent, 1.0) === 0.0) {
+            $formatted = number_format($percent, 0, ',', '');
+        } else {
+            $formatted = rtrim(rtrim(number_format($percent, 2, ',', ''), '0'), ',');
+        }
+
+        return $formatted."\u{202F}%";
     }
 
     private function frenchMonthLabel(int $month): string

@@ -37,6 +37,17 @@ final class InvoiceData extends Data
         public int $year,
         public int $month,
         public int $totalHtCents,
+        /**
+         * Total BRUT (= avant réduction commerciale) snapshot.
+         * Égal à `totalHtCents` quand aucune réduction appliquée.
+         * Lot 3 réductions commerciales.
+         */
+        public int $totalGrossCents,
+        /**
+         * Total des réductions commerciales appliquées (cents).
+         * 0 si aucune réduction. Lot 3 réductions commerciales.
+         */
+        public int $totalDiscountCents,
         public string $pdfHash,
         /** ISO 8601 (Y-m-d). */
         public string $generatedAt,
@@ -102,6 +113,8 @@ final class InvoiceData extends Data
             year: $invoice->year,
             month: $invoice->month,
             totalHtCents: $invoice->total_ht_cents,
+            totalGrossCents: $invoice->total_gross_cents,
+            totalDiscountCents: $invoice->total_discount_cents,
             pdfHash: $invoice->pdf_hash,
             generatedAt: $invoice->generated_at->toDateString(),
             generatedByUserName: trim($invoice->generatedBy->first_name.' '.$invoice->generatedBy->last_name),

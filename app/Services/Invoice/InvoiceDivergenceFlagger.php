@@ -82,6 +82,35 @@ final readonly class InvoiceDivergenceFlagger
     }
 
     /**
+     * Marque divergentes les factures de l'entreprise dont (year, month)
+     * tombe dans la période d'une réduction commerciale (Lot 3 ·
+     * propagation UI). Couvre la création / mutation / suppression d'une
+     * `RentalDiscount` · les factures émises avant la mutation ne reflètent
+     * plus la réalité commerciale en vigueur.
+     *
+     * Le snapshot facture reste figé (doctrine ADR-0008) · seule la flag
+     * `is_divergent` est mise à `true` pour permettre à l'utilisateur de
+     * décider d'une régénération.
+     */
+    public function flagForDiscountPeriod(
+        int $companyId,
+        string $startDate,
+        string $endDate,
+        ?string $previousStartDate = null,
+        ?string $previousEndDate = null,
+    ): int {
+        $tuples = $this->expandRange($startDate, $endDate);
+        if ($previousStartDate !== null && $previousEndDate !== null) {
+            $tuples = $this->deduplicate(array_merge(
+                $tuples,
+                $this->expandRange($previousStartDate, $previousEndDate),
+            ));
+        }
+
+        return $this->invoices->flagDivergentForCompanyAndTuples($companyId, $tuples);
+    }
+
+    /**
      * Marque divergentes toutes les factures correspondant à un contrat
      * existant du véhicule (cas Vehicle.exit_date qui clip la facturation,
      * cf. T5 / ADR-0018).

@@ -192,10 +192,16 @@ final class CompanyController extends Controller
                 fn () => $this->declarationLifecycle->resolveForCompanyYear($companyId, $selectedYear),
             ),
 
-            // Onglet "billing" · récap mensuel.
+            // Onglet "billing" · récap mensuel + réductions commerciales
+            // (Lot 3 chantier RentalDiscount · section dédiée listant les
+            // réductions de l'entreprise dans l'onglet Facturation).
             'companyBilling' => $this->eagerForTab(
                 $activeTab === 'billing',
                 fn () => $this->companyAggregates->billingForYear($companyId, $selectedYear),
+            ),
+            'companyRentalDiscounts' => $this->eagerForTab(
+                $activeTab === 'billing',
+                fn () => $this->companyAggregates->rentalDiscountsForCompany($companyId),
             ),
         ]);
     }

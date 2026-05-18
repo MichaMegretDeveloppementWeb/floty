@@ -12,6 +12,14 @@
  * grisée avec un libellé explicite invitant à renseigner les tarifs
  * sur la fiche véhicule. Les autres lignes affichent le total formaté
  * en euros, clavier-friendly et en tabular-nums (lecture verticale).
+ *
+ * **Lot 3 réductions commerciales** · si au moins un mois est concerné
+ * par une réduction (`yearTotalDiscountCentsPartial > 0`), la table
+ * bascule sur une présentation à 3 colonnes monétaires
+ * (Brut / Réduction / Net) pour exposer le détail de l'économie.
+ * Sinon, présentation simple inchangée (1 colonne Montant HT). Le
+ * comportement est auto-détecté · aucun flag manuel à propager depuis
+ * le parent.
  */
 import { AlertTriangle } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -74,6 +82,14 @@ const partialTotalLabel = computed<string | null>(() => {
 
     return formatEur(props.monthlyBilling.yearTotalCentsPartial / 100, 2);
 });
+
+/**
+ * Vrai dès qu'au moins un mois a appliqué une réduction commerciale ·
+ * détermine la présentation 3 colonnes (brut/réduction/net) vs simple.
+ */
+const hasAnyDiscount = computed<boolean>(
+    () => props.monthlyBilling.yearTotalDiscountCentsPartial > 0,
+);
 </script>
 
 <template>
@@ -124,7 +140,14 @@ const partialTotalLabel = computed<string | null>(() => {
                     <tr class="text-left text-xs font-medium tracking-wider uppercase text-slate-500">
                         <th scope="col" class="py-2 pr-3 font-medium">Mois</th>
                         <th scope="col" class="py-2 px-3 font-medium text-right">Jours utilisés</th>
-                        <th scope="col" class="py-2 px-3 font-medium text-right">Montant HT</th>
+                        <template v-if="hasAnyDiscount">
+                            <th scope="col" class="py-2 px-3 font-medium text-right">Brut</th>
+                            <th scope="col" class="py-2 px-3 font-medium text-right">Réduction</th>
+                            <th scope="col" class="py-2 px-3 font-medium text-right">Net</th>
+                        </template>
+                        <template v-else>
+                            <th scope="col" class="py-2 px-3 font-medium text-right">Montant HT</th>
+                        </template>
                         <th v-if="showInvoiceNumberColumn" scope="col" class="py-2 px-3 font-medium">N° annexe</th>
                         <th v-if="$slots['row-actions']" scope="col" class="py-2 pl-3 font-medium text-right">
                             Action
@@ -147,17 +170,56 @@ const partialTotalLabel = computed<string | null>(() => {
                         <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
                             {{ entry.daysUsed }}
                         </td>
-                        <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
-                            <template v-if="entry.hasMissingPricing">
-                                <span class="text-xs italic">Tarif manquant</span>
-                            </template>
-                            <template v-else-if="entry.daysUsed === 0">
-                                ·
-                            </template>
-                            <template v-else>
-                                {{ formatEur((entry.totalCents ?? 0) / 100, 2) }}
-                            </template>
-                        </td>
+                        <template v-if="hasAnyDiscount">
+                            <!-- Colonne Brut -->
+                            <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap text-slate-500">
+                                <template v-if="entry.hasMissingPricing">
+                                    <span class="text-xs italic">·</span>
+                                </template>
+                                <template v-else-if="entry.daysUsed === 0">
+                                    ·
+                                </template>
+                                <template v-else>
+                                    {{ formatEur((entry.grossTotalCents ?? 0) / 100, 2) }}
+                                </template>
+                            </td>
+                            <!-- Colonne Réduction -->
+                            <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
+                                <template v-if="entry.hasMissingPricing || entry.daysUsed === 0 || (entry.totalDiscountCents ?? 0) === 0">
+                                    <span class="text-slate-300">·</span>
+                                </template>
+                                <template v-else>
+                                    <span class="text-emerald-700">
+                                        -{{ formatEur((entry.totalDiscountCents ?? 0) / 100, 2) }}
+                                    </span>
+                                </template>
+                            </td>
+                            <!-- Colonne Net (final à payer) -->
+                            <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap font-medium">
+                                <template v-if="entry.hasMissingPricing">
+                                    <span class="text-xs italic">Tarif manquant</span>
+                                </template>
+                                <template v-else-if="entry.daysUsed === 0">
+                                    ·
+                                </template>
+                                <template v-else>
+                                    {{ formatEur((entry.totalCents ?? 0) / 100, 2) }}
+                                </template>
+                            </td>
+                        </template>
+                        <template v-else>
+                            <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
+                                <template v-if="entry.hasMissingPricing">
+                                    <span class="text-xs italic">Tarif manquant</span>
+                                </template>
+                                <template v-else-if="entry.daysUsed === 0">
+                                    ·
+                                </template>
+                                <template v-else>
+                                    {{ formatEur((entry.totalCents ?? 0) / 100, 2) }}
+                                </template>
+                            </td>
+                        </template>
                         <td v-if="showInvoiceNumberColumn" class="py-2 px-3 whitespace-nowrap">
                             <template v-if="entry.existingInvoiceNumber">
                                 <span class="inline-flex items-center gap-1.5">
@@ -215,6 +277,19 @@ const partialTotalLabel = computed<string | null>(() => {
                         <template v-else>
                             {{ formatEur((entry.totalCents ?? 0) / 100, 2) }}
                         </template>
+                    </span>
+                </div>
+                <!-- Sur mobile, le détail brut/réduction passe sous le total
+                     net en métadonnée discrète (pas de réorganisation full
+                     pour préserver la densité). Affiché uniquement si une
+                     réduction a été appliquée au mois. -->
+                <div
+                    v-if="hasAnyDiscount && (entry.totalDiscountCents ?? 0) > 0"
+                    class="mt-1.5 flex items-baseline justify-between gap-2 text-xs text-emerald-700"
+                >
+                    <span>Brut : <span class="font-mono tabular-nums text-slate-500">{{ formatEur((entry.grossTotalCents ?? 0) / 100, 2) }}</span></span>
+                    <span class="font-mono tabular-nums">
+                        -{{ formatEur((entry.totalDiscountCents ?? 0) / 100, 2) }}
                     </span>
                 </div>
                 <div class="mt-1 flex items-center justify-between gap-2 text-xs">

@@ -99,4 +99,15 @@ interface RentalDiscountReadRepositoryInterface
      * @return Collection<int, RentalDiscount>
      */
     public function findActiveListingVehicleOn(int $vehicleId, string $date): Collection;
+
+    /**
+     * Toutes les réductions non soft-deletées d'une entreprise, eager-load
+     * `vehicles`. Triées par `start_date` décroissant (plus récentes en
+     * premier, conforme à la convention UI Index). Sert à la section
+     * « Réductions commerciales » de l'onglet Facturation Company Show
+     * (Lot 3 · propagation UI).
+     *
+     * @return Collection<int, RentalDiscount>
+     */
+    public function findForCompany(int $companyId): Collection;
 }

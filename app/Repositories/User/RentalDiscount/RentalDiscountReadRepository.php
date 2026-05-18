@@ -101,4 +101,14 @@ final class RentalDiscountReadRepository implements RentalDiscountReadRepository
             ->orderBy('start_date')
             ->get();
     }
+
+    public function findForCompany(int $companyId): Collection
+    {
+        return RentalDiscount::query()
+            ->with('vehicles')
+            ->forCompany($companyId)
+            ->orderByDesc('start_date')
+            ->orderByDesc('id')
+            ->get();
+    }
 }

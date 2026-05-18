@@ -35,10 +35,13 @@ use Illuminate\Support\Carbon;
  * @property int $gross_total_cents
  * @property int $discount_cents
  * @property int|null $applied_discount_id
+ * @property string|null $applied_discount_label_snapshot
+ * @property int|null $applied_discount_basis_points_snapshot
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Invoice $invoice
  * @property-read Vehicle $vehicle
+ * @property-read RentalDiscount|null $appliedDiscount
  */
 #[Fillable([
     'invoice_id',
@@ -55,6 +58,8 @@ use Illuminate\Support\Carbon;
     'gross_total_cents',
     'discount_cents',
     'applied_discount_id',
+    'applied_discount_label_snapshot',
+    'applied_discount_basis_points_snapshot',
 ])]
 final class InvoiceLine extends Model
 {
@@ -77,6 +82,7 @@ final class InvoiceLine extends Model
             'total_ht_cents' => 'integer',
             'gross_total_cents' => 'integer',
             'discount_cents' => 'integer',
+            'applied_discount_basis_points_snapshot' => 'integer',
         ];
     }
 
@@ -94,5 +100,18 @@ final class InvoiceLine extends Model
     public function vehicle(): BelongsTo
     {
         return $this->belongsTo(Vehicle::class);
+    }
+
+    /**
+     * Réduction commerciale appliquée à cette ligne (snapshot label +
+     * basis points lus depuis les colonnes `*_snapshot` pour
+     * l'immuabilité ; cette relation sert UNIQUEMENT à construire le
+     * lien Show vers la réduction tant qu'elle existe encore).
+     *
+     * @return BelongsTo<RentalDiscount, $this>
+     */
+    public function appliedDiscount(): BelongsTo
+    {
+        return $this->belongsTo(RentalDiscount::class, 'applied_discount_id');
     }
 }

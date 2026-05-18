@@ -19,10 +19,13 @@
  *      (`MonthlyBillingBreakdownCard` en mode `unwrapped`).
  */
 import { router } from '@inertiajs/vue3';
+import { BadgePercent } from 'lucide-vue-next';
 import { computed } from 'vue';
 import GenerateInvoiceButton from '@/Components/Domain/Billing/GenerateInvoiceButton.vue';
 import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
+import RentalDiscountPill from '@/Components/Domain/RentalDiscount/RentalDiscountPill.vue';
 import { injectCompanyTabsState } from '@/Composables/Company/Show/useCompanyTabs';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
@@ -37,6 +40,14 @@ const props = defineProps<{
     activeYear: number;
     /** Années avec factures à générer · alimente le dot des tabs. */
     pendingInvoices?: App.Data.User.Billing.PendingInvoiceYearData[];
+    /**
+     * Réductions commerciales de l'entreprise (Lot 3 chantier
+     * RentalDiscount) · alimente la section dédiée affichée sous le
+     * récap mensuel. Liste vide = pas de réduction enregistrée. Servie
+     * en eager par {@see CompanyController::show()} quand l'onglet
+     * Facturation est actif.
+     */
+    companyRentalDiscounts?: App.Data.User.RentalDiscount.RentalDiscountListItemData[];
 }>();
 
 const yearsWithTodoSet = computed<Set<number>>(
@@ -157,6 +168,46 @@ const totalLabel = computed<string>(() => {
     return formatEur(props.monthlyBilling.yearTotalCents / 100, 2);
 });
 
+/**
+ * Lot 3 réductions commerciales · expose le total des réductions
+ * appliquées sur l'exercice. Mise en avant comme stat sous le hero
+ * uniquement si > 0 (sinon la cellule reste sobre, pas de bruit
+ * visuel sur les exercices sans réduction).
+ */
+const totalDiscountLabel = computed<string>(() =>
+    formatEur(props.monthlyBilling.yearTotalDiscountCentsPartial / 100, 2),
+);
+
+const grossTotalLabel = computed<string>(() =>
+    formatEur(props.monthlyBilling.yearTotalGrossCentsPartial / 100, 2),
+);
+
+const hasAnyDiscount = computed<boolean>(
+    () => props.monthlyBilling.yearTotalDiscountCentsPartial > 0,
+);
+
+/**
+ * Toutes les réductions enregistrées sur l'entreprise (active /
+ * planifiée / expirée), tri pre-trié backend par `start_date` DESC.
+ * Vide tant que le onglet Facturation n'a jamais été visité (prop
+ * `Inertia::optional`).
+ */
+const rentalDiscounts = computed<App.Data.User.RentalDiscount.RentalDiscountListItemData[]>(
+    () => props.companyRentalDiscounts ?? [],
+);
+
+const statusToTone = {
+    active: 'emerald',
+    planned: 'amber',
+    expired: 'slate',
+} as const;
+
+const statusLabelMap = {
+    active: 'Active',
+    planned: 'Planifiée',
+    expired: 'Expirée',
+} as const;
+
 const totalCaption = computed<string>(() => {
     if (isFutureYear.value) {
         return `Total HT prévisionnel ${props.activeYear}`;
@@ -258,6 +309,20 @@ function selectYear(year: number): void {
             </p>
             <p class="text-sm text-slate-500">
                 {{ totalCaption }}
+            </p>
+            <!-- Détail brut / réduction visible uniquement si au moins
+                 une réduction a été appliquée sur l'exercice ·
+                 transparent pour les entreprises sans réduction. -->
+            <p
+                v-if="hasAnyDiscount"
+                class="mt-1 inline-flex items-center gap-2 text-xs text-slate-500"
+            >
+                <span>Brut <span class="font-mono tabular-nums text-slate-700">{{ grossTotalLabel }}</span></span>
+                <span aria-hidden="true">·</span>
+                <span class="inline-flex items-center gap-1 text-emerald-700">
+                    <BadgePercent :size="13" :stroke-width="2" aria-hidden="true" />
+                    Économie réalisée <span class="font-mono tabular-nums">{{ totalDiscountLabel }}</span>
+                </span>
             </p>
         </div>
 
@@ -370,6 +435,66 @@ function selectYear(year: number): void {
                     />
                 </template>
             </MonthlyBillingBreakdownCard>
+        </section>
+
+        <!-- Section · réductions commerciales de l'entreprise (Lot 3).
+             Affichée uniquement si la liste n'est pas vide · sinon
+             aucun bruit visuel pour les entreprises sans réduction. -->
+        <section
+            v-if="rentalDiscounts.length > 0"
+            class="mt-12 flex flex-col gap-4"
+        >
+            <div class="flex items-baseline justify-between gap-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Réductions commerciales
+                </p>
+                <p class="text-xs text-slate-500">
+                    {{ rentalDiscounts.length }} réduction{{ rentalDiscounts.length > 1 ? 's' : '' }} enregistrée{{ rentalDiscounts.length > 1 ? 's' : '' }}
+                </p>
+            </div>
+            <ul class="divide-y divide-slate-100 border-y border-slate-100">
+                <li
+                    v-for="discount in rentalDiscounts"
+                    :key="discount.id"
+                    class="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4"
+                >
+                    <div class="flex flex-1 flex-col gap-1">
+                        <div class="flex items-center gap-2">
+                            <RentalDiscountPill
+                                :basis-points="discount.discountBasisPoints"
+                                :tone="statusToTone[discount.status as keyof typeof statusToTone]"
+                                size="md"
+                            />
+                            <span class="text-sm font-medium text-slate-900">
+                                {{ discount.label ?? 'Réduction sans libellé' }}
+                            </span>
+                            <span
+                                class="text-[10px] font-semibold uppercase tracking-[0.08em]"
+                                :class="{
+                                    'text-emerald-700': discount.status === 'active',
+                                    'text-amber-700': discount.status === 'planned',
+                                    'text-slate-500': discount.status === 'expired',
+                                }"
+                            >
+                                {{ statusLabelMap[discount.status as keyof typeof statusLabelMap] }}
+                            </span>
+                        </div>
+                        <p class="text-xs text-slate-500">
+                            Du {{ formatDateFr(discount.startDate) }} au {{ formatDateFr(discount.endDate) }}
+                            <span aria-hidden="true">·</span>
+                            <template v-if="discount.isAllVehicles">
+                                tous les véhicules
+                            </template>
+                            <template v-else>
+                                {{ discount.vehiclesCount }} véhicule{{ discount.vehiclesCount > 1 ? 's' : '' }} ciblé{{ discount.vehiclesCount > 1 ? 's' : '' }}
+                            </template>
+                        </p>
+                    </div>
+                </li>
+            </ul>
+            <p class="text-xs text-slate-400">
+                Les réductions actives sont automatiquement appliquées au calcul de la facture mensuelle. Le détail brut / réduction / net apparaît sur les mois concernés ci-dessus.
+            </p>
         </section>
     </div>
 </template>

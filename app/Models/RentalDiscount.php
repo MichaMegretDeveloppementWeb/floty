@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Observers\RentalDiscountObserver;
 use Database\Factories\RentalDiscountFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -56,6 +58,7 @@ use Illuminate\Support\Carbon;
     'notes',
     'created_by_user_id',
 ])]
+#[ObservedBy([RentalDiscountObserver::class])]
 final class RentalDiscount extends Model
 {
     /** @use HasFactory<RentalDiscountFactory> */

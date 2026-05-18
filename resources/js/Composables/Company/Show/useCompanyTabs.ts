@@ -64,7 +64,7 @@ const TAB_PROPS: Readonly<Record<CompanyTabKey, readonly string[]>> = {
     contracts: ['contracts', 'contractsStats', 'contractsQuery', 'billingYear'],
     drivers: ['options'],
     fiscal: ['companyFiscal', 'declarationLifecycle', 'billingYear'],
-    billing: ['companyBilling', 'billingYear'],
+    billing: ['companyBilling', 'companyRentalDiscounts', 'billingYear'],
 };
 
 export interface CompanyTabsState {

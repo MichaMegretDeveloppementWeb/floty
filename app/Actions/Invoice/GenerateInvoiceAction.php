@@ -182,6 +182,12 @@ final readonly class GenerateInvoiceAction
                         'gross_total_cents' => $line->grossTotalCents,
                         'discount_cents' => $line->discountCents,
                         'applied_discount_id' => $line->appliedDiscountId,
+                        // Lot 3 · snapshot label + pourcentage figés
+                        // pour préserver l'affichage historique exact
+                        // même si la réduction est ensuite renommée
+                        // (doctrine immuabilité ADR-0008, cf. migration).
+                        'applied_discount_label_snapshot' => $line->appliedDiscountLabel,
+                        'applied_discount_basis_points_snapshot' => $line->appliedDiscountBasisPoints,
                     ],
                     $calculation->lines,
                 );

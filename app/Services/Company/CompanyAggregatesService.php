@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Company;
 
+use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Company\CompanyFiscalYearData;
 use App\Data\User\Company\CompanyVehicleFiscalRowData;
+use App\Data\User\RentalDiscount\RentalDiscountListItemData;
 use App\Exceptions\Fiscal\FiscalCalculationException;
+use App\Models\RentalDiscount;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -31,6 +34,7 @@ final class CompanyAggregatesService
         private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly BillingBreakdownService $billingBreakdown,
+        private readonly RentalDiscountReadRepositoryInterface $rentalDiscounts,
     ) {}
 
     /**
@@ -42,6 +46,26 @@ final class CompanyAggregatesService
     public function billingForYear(int $companyId, int $year): MonthlyBillingBreakdownData
     {
         return $this->billingBreakdown->byCompanyForYear($companyId, $year);
+    }
+
+    /**
+     * Liste des réductions commerciales d'une entreprise (toutes
+     * périodes, planifiées + actives + expirées · tri DESC sur
+     * `start_date`) · alimente la section dédiée de l'onglet
+     * Facturation Company Show (Lot 3 du chantier RentalDiscount).
+     *
+     * Le DTO est slim · seul l'aperçu cliquable est porté ici ; le
+     * détail complet sera disponible sur la page Show RentalDiscount
+     * livrée au Lot 4.
+     *
+     * @return list<RentalDiscountListItemData>
+     */
+    public function rentalDiscountsForCompany(int $companyId): array
+    {
+        return $this->rentalDiscounts
+            ->findForCompany($companyId)
+            ->map(static fn (RentalDiscount $d): RentalDiscountListItemData => RentalDiscountListItemData::fromModel($d))
+            ->all();
     }
 
     /**

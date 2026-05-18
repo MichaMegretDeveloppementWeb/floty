@@ -271,14 +271,39 @@
                             }
                         @endphp
                         {{ implode(' + ', $parts) }}
+                        @if($line['hasDiscount'])
+                            <br>
+                            <span style="color:#0f766e;font-weight:bold;">
+                                Réduction
+                                @if(!empty($line['discountName']))
+                                    « {{ $line['discountName'] }} »
+                                @endif
+                                {{ $line['discountPercentLabel'] }} · -{{ $line['discountLabel'] }}
+                            </span>
+                        @endif
                     </td>
-                    <td class="num">{{ $line['totalLabel'] }}</td>
+                    <td class="num">
+                        @if($line['hasDiscount'])
+                            <span style="color:#64748b;text-decoration:line-through;font-size:8pt;">{{ $line['grossTotalLabel'] }}</span><br>
+                        @endif
+                        {{ $line['totalLabel'] }}
+                    </td>
                 </tr>
             @endforeach
         </tbody>
     </table>
 
     <div class="total-block">
+        @if($hasDiscount)
+            <div style="margin-bottom:1.5mm;">
+                <span style="font-size:7.5pt;text-transform:uppercase;letter-spacing:0.08em;color:#94a3b8;font-weight:bold;">Total brut</span>
+                <span style="font-size:10pt;color:#475569;margin-left:3mm;">{{ $grossTotalLabel }}</span>
+            </div>
+            <div style="margin-bottom:1.5mm;">
+                <span style="font-size:7.5pt;text-transform:uppercase;letter-spacing:0.08em;color:#0f766e;font-weight:bold;">Réductions appliquées</span>
+                <span style="font-size:10pt;color:#0f766e;margin-left:3mm;">-{{ $totalDiscountLabel }}</span>
+            </div>
+        @endif
         <div class="total-label">Total HT à régler</div>
         <div class="total-value">{{ $totalLabel }}</div>
     </div>

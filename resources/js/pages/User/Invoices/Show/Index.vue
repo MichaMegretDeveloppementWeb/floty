@@ -9,6 +9,7 @@ import { computed } from 'vue';
 import InvoiceDivergenceBanner from '@/Components/Domain/Billing/InvoiceDivergenceBanner.vue';
 import InvoiceHistoryTimeline from '@/Components/Domain/Billing/InvoiceHistoryTimeline.vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
+import AppliedDiscountTooltip from '@/Components/Domain/RentalDiscount/AppliedDiscountTooltip.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import { show as companiesShowRoute } from '@/routes/user/companies';
@@ -31,6 +32,16 @@ const periodLabel = computed<string>(
 
 const downloadUrl = computed<string>(() =>
     downloadRoute.url({ invoice: props.invoice.id }),
+);
+
+/**
+ * Lot 3 réductions commerciales · vrai si au moins une réduction a
+ * été appliquée à cette facture (somme snapshot > 0). Pilote
+ * l'affichage du tryptique Brut / Réduction / Net dans le récap et
+ * du badge inline sur les lignes concernées.
+ */
+const hasAnyDiscount = computed<boolean>(
+    () => props.invoice.totalDiscountCents > 0,
 );
 </script>
 
@@ -123,6 +134,20 @@ const downloadUrl = computed<string>(() =>
                         <dd class="mt-1 font-mono text-lg font-semibold text-slate-900 tabular-nums">
                             {{ formatEur(invoice.totalHtCents / 100, 2) }}
                         </dd>
+                        <!-- Lot 3 réductions · si la facture a appliqué
+                             une réduction, on expose l'origine (brut +
+                             économie) directement sous le net. -->
+                        <dd
+                            v-if="hasAnyDiscount"
+                            class="mt-1 flex flex-col gap-0.5 text-[11px] text-slate-500"
+                        >
+                            <span>
+                                Brut <span class="font-mono tabular-nums">{{ formatEur(invoice.totalGrossCents / 100, 2) }}</span>
+                            </span>
+                            <span class="text-emerald-700">
+                                Économie <span class="font-mono tabular-nums">-{{ formatEur(invoice.totalDiscountCents / 100, 2) }}</span>
+                            </span>
+                        </dd>
                     </div>
                 </dl>
             </Card>
@@ -181,21 +206,73 @@ const downloadUrl = computed<string>(() =>
                                     <template v-if="line.daysBilled > 0">
                                         {{ line.daysBilled }} j × {{ formatEur(line.dailyRateCents / 100, 2) }}
                                     </template>
+                                    <!-- Lot 3 · badge réduction tooltip sous
+                                         la décomposition tarifaire, avec
+                                         libellé snapshot + pourcentage +
+                                         économie en cents. -->
+                                    <div
+                                        v-if="line.discountCents > 0 && line.appliedDiscountBasisPoints !== null"
+                                        class="mt-2"
+                                    >
+                                        <AppliedDiscountTooltip
+                                            :basis-points="line.appliedDiscountBasisPoints"
+                                            :label="line.appliedDiscountLabel"
+                                            :discount-cents="line.discountCents"
+                                        />
+                                    </div>
                                 </td>
                                 <td class="py-4 pl-3 text-right font-mono font-medium tabular-nums">
+                                    <template v-if="line.discountCents > 0">
+                                        <span class="block text-[11px] font-normal text-slate-400 line-through">
+                                            {{ formatEur(line.grossTotalCents / 100, 2) }}
+                                        </span>
+                                    </template>
                                     {{ formatEur(line.totalHtCents / 100, 2) }}
                                 </td>
                             </tr>
                         </tbody>
                         <tfoot>
-                            <tr class="border-t-1 border-slate-700">
-                                <td class="pt-3 pr-4 font-semibold text-slate-900" colspan="3">
-                                    Total HT
-                                </td>
-                                <td class="pt-3 pl-3 text-right font-mono font-semibold text-slate-900 tabular-nums">
-                                    {{ formatEur(invoice.totalHtCents / 100, 2) }}
-                                </td>
-                            </tr>
+                            <!-- Lot 3 · si la facture a appliqué une
+                                 réduction, on affiche le trio brut /
+                                 réduction / net plutôt que le simple
+                                 total HT pour rendre l'économie
+                                 explicite dans l'annexe. -->
+                            <template v-if="hasAnyDiscount">
+                                <tr class="border-t-1 border-slate-200">
+                                    <td class="pt-3 pr-4 text-xs uppercase tracking-wider text-slate-500" colspan="3">
+                                        Total brut
+                                    </td>
+                                    <td class="pt-3 pl-3 text-right font-mono text-sm text-slate-600 tabular-nums">
+                                        {{ formatEur(invoice.totalGrossCents / 100, 2) }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="pt-1 pr-4 text-xs uppercase tracking-wider text-emerald-700" colspan="3">
+                                        Réductions appliquées
+                                    </td>
+                                    <td class="pt-1 pl-3 text-right font-mono text-sm text-emerald-700 tabular-nums">
+                                        -{{ formatEur(invoice.totalDiscountCents / 100, 2) }}
+                                    </td>
+                                </tr>
+                                <tr class="border-t border-slate-700">
+                                    <td class="pt-3 pr-4 font-semibold text-slate-900" colspan="3">
+                                        Total HT net
+                                    </td>
+                                    <td class="pt-3 pl-3 text-right font-mono font-semibold text-slate-900 tabular-nums">
+                                        {{ formatEur(invoice.totalHtCents / 100, 2) }}
+                                    </td>
+                                </tr>
+                            </template>
+                            <template v-else>
+                                <tr class="border-t-1 border-slate-700">
+                                    <td class="pt-3 pr-4 font-semibold text-slate-900" colspan="3">
+                                        Total HT
+                                    </td>
+                                    <td class="pt-3 pl-3 text-right font-mono font-semibold text-slate-900 tabular-nums">
+                                        {{ formatEur(invoice.totalHtCents / 100, 2) }}
+                                    </td>
+                                </tr>
+                            </template>
                         </tfoot>
                     </table>
                 </div>

@@ -34,6 +34,7 @@ const props = defineProps<{
     contractsStats?: App.Data.User.Company.CompanyContractsStatsData;
     companyFiscal?: App.Data.User.Company.CompanyFiscalYearData;
     companyBilling?: App.Data.User.Billing.MonthlyBillingBreakdownData;
+    companyRentalDiscounts?: App.Data.User.RentalDiscount.RentalDiscountListItemData[];
     declarationLifecycle?: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
 }>();
 
@@ -161,6 +162,7 @@ function handleGotoBillingYear(year: number): void {
                     :available-years="props.contractsAvailableYears"
                     :active-year="props.billingYear"
                     :pending-invoices="props.pendingInvoices"
+                    :company-rental-discounts="props.companyRentalDiscounts"
                 />
                 <TabLoadingSkeleton v-else />
             </template>

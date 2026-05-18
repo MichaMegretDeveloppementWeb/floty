@@ -9,14 +9,24 @@
  * c'est documenté côté backend et signalé subtilement à l'utilisateur
  * dans le footer de la card.
  */
+import { computed } from 'vue';
+import RentalDiscountPill from '@/Components/Domain/RentalDiscount/RentalDiscountPill.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import { formatEur } from '@/Utils/format/formatEur';
 import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
-defineProps<{
+const props = defineProps<{
     breakdown: App.Data.User.Billing.ContractBillingBreakdownData | null;
 }>();
 
+/**
+ * Lot 3 réductions commerciales · vrai si au moins un mois du
+ * breakdown contrat-isolé a appliqué une réduction. Pilote
+ * l'affichage du total réduction sous le total HT.
+ */
+const hasAnyDiscount = computed<boolean>(
+    () => (props.breakdown?.totalDiscountCentsPartial ?? 0) > 0,
+);
 </script>
 
 <template>
@@ -51,6 +61,15 @@ defineProps<{
                     <p class="font-mono text-xs text-slate-500 tabular-nums">
                         {{ breakdown.totalDaysUsed }} jour{{ breakdown.totalDaysUsed > 1 ? 's' : '' }}
                     </p>
+                    <!-- Lot 3 · si une réduction a été appliquée au
+                         contrat sur au moins un mois, l'économie totale
+                         apparaît sous le total HT en complément. -->
+                    <p
+                        v-if="hasAnyDiscount"
+                        class="mt-1 font-mono text-xs text-emerald-700 tabular-nums whitespace-nowrap"
+                    >
+                        Économie -{{ formatEur(breakdown.totalDiscountCentsPartial / 100, 2) }}
+                    </p>
                 </div>
             </div>
         </template>
@@ -82,7 +101,28 @@ defineProps<{
                             <span class="text-xs italic">Tarif {{ row.year }} manquant</span>
                         </template>
                         <template v-else>
-                            {{ formatEur((row.totalCents ?? 0) / 100, 2) }}
+                            <!-- Lot 3 · si une réduction a été appliquée
+                                 sur ce mois, on expose brut barré + net
+                                 + badge `RentalDiscountPill` discret. -->
+                            <template v-if="(row.discountCents ?? 0) > 0">
+                                <div class="flex items-center justify-end gap-2">
+                                    <RentalDiscountPill
+                                        :basis-points="Math.round(((row.discountCents ?? 0) / (row.grossTotalCents ?? 1)) * 10000)"
+                                        :with-icon="false"
+                                    />
+                                    <div class="flex flex-col items-end">
+                                        <span class="text-[11px] text-slate-400 line-through">
+                                            {{ formatEur((row.grossTotalCents ?? 0) / 100, 2) }}
+                                        </span>
+                                        <span>
+                                            {{ formatEur((row.totalCents ?? 0) / 100, 2) }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </template>
+                            <template v-else>
+                                {{ formatEur((row.totalCents ?? 0) / 100, 2) }}
+                            </template>
                         </template>
                     </td>
                 </tr>
