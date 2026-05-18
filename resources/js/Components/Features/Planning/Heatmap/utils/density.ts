@@ -49,6 +49,24 @@ export function textContrastClass(days: number): string {
     return days >= 3 ? 'text-white' : 'text-slate-500';
 }
 
+/**
+ * Ring inset bleu pour les cellules basse densité (1-2 jours).
+ *
+ * SC21 (2026-05-18) · les cellules `bg-blue-50` (1j) et `bg-blue-100`
+ * (2j) ont une luminance trop proche du fond `slate-100` du mois
+ * impair · un ring inset `blue-200` matérialise leur contour sans
+ * changer la teinte du fond. Conflit potentiel avec
+ * `ring-rose-500` (indispo) géré dans `WeekCellsRow` via un computed
+ * qui supprime ce ring si l'indispo est présente sur la cellule.
+ */
+export function densityRingClass(days: number): string {
+    if (days >= 1 && days <= 2) {
+        return 'ring-1 ring-blue-200 ring-inset';
+    }
+
+    return '';
+}
+
 /** Constantes de layout - partagées entre l'orchestrateur et les partials. */
 export const HEATMAP_CELL_WIDTH = 21;
 /**

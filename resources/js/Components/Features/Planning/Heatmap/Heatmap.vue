@@ -307,7 +307,7 @@ function syncFrom(e: Event): void {
             Container heatmap · simple wrapper avec border, sans
             overflow. Les 3 blocs internes gèrent chacun leur scroll.
         -->
-        <div class="rounded-xl border border-slate-200 bg-white">
+        <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
             <div class="flex">
                 <!--
                     Bloc gauche · VehicleInfo. Overflow-y auto (sync

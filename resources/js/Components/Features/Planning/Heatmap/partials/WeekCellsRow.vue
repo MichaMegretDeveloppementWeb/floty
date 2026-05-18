@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import type { HeatmapVehicleView } from '@/Components/Features/Planning/Heatmap/types';
 import {
     densityClass,
+    densityRingClass,
     textContrastClass,
 } from '@/Components/Features/Planning/Heatmap/utils/density';
 import { isCellAfterExit } from '@/Components/Features/Planning/Heatmap/utils/exitedWeeks';
@@ -39,6 +40,20 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
 
     return props.vehicleView.weeksForCount.map((_, idx) => set.has(idx + 1));
 });
+
+// SC21 (2026-05-18) · ring inset bleu sur les cellules 1-2 jours pour
+// les démarquer du fond slate-100 du mois impair (cf. `densityRingClass`).
+// Supprimé si l'indispo (`ring-rose-500`) est déjà appliquée · évite
+// le conflit de couleur (un seul ring par cellule).
+const lowDensityRingClasses = computed<string[]>(() =>
+    props.vehicleView.weeksForCount.map((_, idx) => {
+        if (unavailabilityWeekFlags.value[idx]) {
+            return '';
+        }
+
+        return densityRingClass(props.vehicleView.weeksForColor[idx] ?? 0);
+    }),
+);
 </script>
 
 <template>
@@ -62,6 +77,7 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
                 textContrastClass(vehicleView.weeksForColor[weekIndex] ?? 0),
                 'flex h-7 min-w-0 items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
                 exitedWeekFlags[weekIndex] && 'pointer-events-none opacity-30',
+                lowDensityRingClasses[weekIndex],
                 unavailabilityWeekFlags[weekIndex] && 'ring-1 ring-rose-500 ring-inset',
             ]"
             :aria-label="`Semaine ${weekIndex + 1} · ${vehicleView.licensePlate} · ${daysCount} jours utilisés${unavailabilityWeekFlags[weekIndex] ? ' (indisponibilité présente)' : ''}`"

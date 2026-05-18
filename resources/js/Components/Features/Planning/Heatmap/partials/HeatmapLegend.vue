@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { densityClass } from '@/Components/Features/Planning/Heatmap/utils/density';
+import {
+    densityClass,
+    densityRingClass,
+} from '@/Components/Features/Planning/Heatmap/utils/density';
 </script>
 
 <template>
@@ -10,7 +13,7 @@ import { densityClass } from '@/Components/Features/Planning/Heatmap/utils/densi
                 <span
                     v-for="n in 8"
                     :key="n"
-                    :class="[densityClass(n - 1), 'h-4 w-4 rounded-[3px]']"
+                    :class="[densityClass(n - 1), densityRingClass(n - 1), 'h-4 w-4 rounded-[3px]']"
                 />
             </div>
             <span>7 j / 7</span>

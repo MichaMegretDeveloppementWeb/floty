@@ -1,1 +1,0 @@
-function e(e){return e<=0?`bg-white border border-slate-200`:e===1?`bg-blue-50`:e===2?`bg-blue-100`:e===3?`bg-blue-300`:e===4?`bg-blue-500`:e===5?`bg-blue-700`:e===6?`bg-blue-800`:`bg-blue-900`}function t(e){return e>=3?`text-white`:`text-slate-500`}export{t as n,e as t};
