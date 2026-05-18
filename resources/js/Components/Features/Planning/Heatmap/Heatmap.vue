@@ -41,10 +41,10 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import {
     HEATMAP_CELL_WIDTH,
-    HEATMAP_GRID_WIDTH,
 } from '@/Components/Features/Planning/Heatmap/utils/density';
 import { monthBoundariesInPx } from '@/Components/Features/Planning/Heatmap/utils/monthBoundaries';
 import { weekBackgroundsForYear } from '@/Components/Features/Planning/Heatmap/utils/weekBackgrounds';
+import { isoWeeksInYear } from '@/Utils/Date/isoWeeks';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
 import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
@@ -120,6 +120,16 @@ const monthBands = computed(() =>
  * dans un flex SYNCHRONISÉ avec les vraies cellules.
  */
 const weekBackgrounds = computed(() => weekBackgroundsForYear(props.fiscalYear));
+
+/**
+ * SC14 (2026-05-18) · largeur grille DYNAMIQUE selon le nombre de
+ * semaines ISO de l'année (52 ou 53). 2026 a 53 semaines, il faut
+ * accommoder la 53e cellule sans compression.
+ */
+const gridWidthPx = computed(() => {
+    const weeksCount = isoWeeksInYear(props.fiscalYear);
+    return weeksCount * HEATMAP_CELL_WIDTH + (weeksCount - 1);
+});
 
 function isCompanyVariant(v: OverviewVehicle | CompanyVehicle): v is CompanyVehicle {
     return 'weeksGlobal' in v;
@@ -369,11 +379,11 @@ function syncFrom(e: Event): void {
                              semaine ISO chevauche 2 mois). -->
                         <div
                             class="sticky top-0 z-10 bg-white pt-4 pb-2"
-                            :style="{ minWidth: `${HEATMAP_GRID_WIDTH}px` }"
+                            :style="{ minWidth: `${gridWidthPx}px` }"
                         >
                             <div
                                 class="relative h-4"
-                                :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                                :style="{ width: `${gridWidthPx}px` }"
                             >
                                 <div
                                     v-for="band in monthBands"
@@ -394,7 +404,7 @@ function syncFrom(e: Event): void {
                                  sur le mois. Format entier sans centimes. -->
                             <div
                                 class="relative mt-1 h-3"
-                                :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                                :style="{ width: `${gridWidthPx}px` }"
                             >
                                 <div
                                     v-for="band in monthBands"
@@ -441,11 +451,11 @@ function syncFrom(e: Event): void {
                         -->
                         <div
                             class="relative"
-                            :style="{ minWidth: `${HEATMAP_GRID_WIDTH}px` }"
+                            :style="{ minWidth: `${gridWidthPx}px` }"
                         >
                             <div
                                 class="pointer-events-none absolute inset-y-0 left-0 flex gap-[1px]"
-                                :style="{ width: '100%', minWidth: `${HEATMAP_GRID_WIDTH}px` }"
+                                :style="{ width: '100%', minWidth: `${gridWidthPx}px` }"
                                 aria-hidden="true"
                             >
                                 <div

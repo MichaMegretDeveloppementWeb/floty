@@ -51,4 +51,10 @@ export function textContrastClass(days: number): string {
 
 /** Constantes de layout - partagées entre l'orchestrateur et les partials. */
 export const HEATMAP_CELL_WIDTH = 21;
+/**
+ * Largeur baseline pour une grille à 52 semaines · conservée pour
+ * compatibilité, mais préférer un calcul dynamique via
+ * {@link isoWeeksInYear} (cf. SC14 · 2026-05-18 · années à 53 semaines
+ * comme 2026).
+ */
 export const HEATMAP_GRID_WIDTH = 52 * HEATMAP_CELL_WIDTH;

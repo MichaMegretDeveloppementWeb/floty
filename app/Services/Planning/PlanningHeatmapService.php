@@ -24,6 +24,7 @@ use App\Services\Billing\Discount\DiscountResolver;
 use App\Services\Billing\Discount\ResolvedDiscountIndex;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
+use App\Support\Date\IsoWeeks;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\DataCollection;
 
@@ -68,6 +69,8 @@ final class PlanningHeatmapService
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
         $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
 
+        $weeksCount = IsoWeeks::inYear($year);
+
         $vehicleRows = [];
         foreach ($vehicles as $vehicle) {
             $fiscal = $vehicle->fiscalCharacteristics->first();
@@ -76,7 +79,7 @@ final class PlanningHeatmapService
             }
 
             $weeks = [];
-            for ($w = 1; $w <= 52; $w++) {
+            for ($w = 1; $w <= $weeksCount; $w++) {
                 $weeks[] = $weekDensity[$vehicle->id.'|'.$w] ?? 0;
             }
 
@@ -142,6 +145,8 @@ final class PlanningHeatmapService
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
         $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
 
+        $weeksCount = IsoWeeks::inYear($year);
+
         $vehicleRows = [];
         foreach ($vehicles as $vehicle) {
             $fiscal = $vehicle->fiscalCharacteristics->first();
@@ -151,7 +156,7 @@ final class PlanningHeatmapService
 
             $weeksGlobal = [];
             $weeksForCompany = [];
-            for ($w = 1; $w <= 52; $w++) {
+            for ($w = 1; $w <= $weeksCount; $w++) {
                 $weeksGlobal[] = $weekDensityGlobal[$vehicle->id.'|'.$w] ?? 0;
                 $weeksForCompany[] = $weekDensityForCompany[$vehicle->id.'|'.$w] ?? 0;
             }

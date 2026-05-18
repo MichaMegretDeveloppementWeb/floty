@@ -22,6 +22,7 @@
  * à la fin de la grille si déborde).
  */
 
+import { isoWeeksInYear } from '@/Utils/Date/isoWeeks';
 import { HEATMAP_CELL_WIDTH } from './density';
 
 /**
@@ -106,7 +107,8 @@ export function monthBoundariesInPx(
     gapPx: number = 1,
 ): MonthBand[] {
     const origin = startOfIsoWeek1(year);
-    const gridTotalPx = 52 * cellWidthPx + 51 * gapPx;
+    const weeksCount = isoWeeksInYear(year);
+    const gridTotalPx = weeksCount * cellWidthPx + (weeksCount - 1) * gapPx;
 
     const positions: number[] = [];
     for (let m = 0; m <= 12; m++) {

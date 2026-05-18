@@ -1,5 +1,7 @@
+import { isoWeeksInYear } from '@/Utils/Date/isoWeeks';
+
 /**
- * Backgrounds CSS pour les 52 cellules semaine de la grille heatmap ·
+ * Backgrounds CSS pour les 52 OU 53 cellules semaine de la grille heatmap ·
  * un par semaine ISO de l'année fiscale, alternant les mois pair/impair
  * pour matérialiser visuellement les frontières.
  *
@@ -59,9 +61,10 @@ function colorForMonth(monthIdx: number): string {
  */
 export function weekBackgroundsForYear(year: number): string[] {
     const origin = startOfIsoWeek1(year);
+    const weeksCount = isoWeeksInYear(year);
     const backgrounds: string[] = [];
 
-    for (let week = 0; week < 52; week++) {
+    for (let week = 0; week < weeksCount; week++) {
         // 7 jours de cette semaine, mois civil de chacun
         const months: number[] = [];
         for (let day = 0; day < 7; day++) {

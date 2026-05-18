@@ -10,6 +10,7 @@
  *     + preview des taxes induites (R-2024-021 LCD per-contract).
  */
 import { computed, ref, watch } from 'vue';
+import { isoWeeksInYear } from '@/Utils/Date/isoWeeks';
 import CompaniesOnWeekList from './partials/CompaniesOnWeekList.vue';
 import ContractForm from './partials/ContractForm.vue';
 import DrawerHeader from './partials/DrawerHeader.vue';
@@ -58,9 +59,44 @@ watch(
     },
 );
 
-const startMonth = computed((): number =>
-    props.week ? Number(props.week.weekStart.slice(5, 7)) : 1,
-);
+/**
+ * SC15 (2026-05-18) · mois sur lequel le calendrier du drawer s'ouvre ·
+ * convention ISO standard = mois du JEUDI de la semaine (équivalent au
+ * mois majoritaire car ≥ 4 jours sur 7 tombent dans ce mois).
+ *
+ * Exceptions ·
+ *   - Première cellule (sem 1) → on force JANVIER de l'année courante
+ *     même si le jeudi serait théoriquement en déc Y-1 (cas rare · ne
+ *     se produit pas en pratique car semaine ISO 1 contient toujours
+ *     le 4 janvier au minimum, donc jeudi toujours en janvier)
+ *   - Dernière cellule (sem 52 ou 53) → on force DÉCEMBRE de l'année
+ *     courante même si majorité de jours en jan Y+1 (cas typique sem 53
+ *     d'une année à 53 semaines)
+ */
+const startMonth = computed((): number => {
+    if (!props.week) {
+        return 1;
+    }
+
+    const weekNumber = props.week.weekNumber;
+    const weeksInFiscalYear = isoWeeksInYear(props.fiscalYear);
+
+    if (weekNumber === 1) {
+        return 1;
+    }
+
+    if (weekNumber === weeksInFiscalYear) {
+        return 12;
+    }
+
+    // Mois du jeudi (4ᵉ jour ISO) · 4ᵉ élément de week.days (index 3).
+    const thursday = props.week.days[3]?.date;
+    if (thursday === undefined) {
+        return Number(props.week.weekStart.slice(5, 7));
+    }
+
+    return Number(thursday.slice(5, 7));
+});
 
 // Dates déjà occupées par ce véhicule sur toute l'année - à griser
 // dans le picker. Auparavant le filtre se limitait aux 7 jours de la
