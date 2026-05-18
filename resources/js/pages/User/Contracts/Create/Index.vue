@@ -9,6 +9,7 @@ import Button from '@/Components/Ui/Button/Button.vue';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
 import { useContractFiscalPreview } from '@/Composables/Contract/useContractFiscalPreview';
 import { useContractForm } from '@/Composables/Contract/useContractForm';
+import { useContractRentalPreview } from '@/Composables/Contract/useContractRentalPreview';
 import { storePendingDocuments } from '@/Composables/Contract/useContractFormPendingDocuments';
 import { useToasts } from '@/Composables/Shared/useToasts';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
@@ -78,6 +79,14 @@ return null;
 
 // ── Fiscal preview live ─────────────────────────────────────────────
 const { preview, loading: previewLoading } = useContractFiscalPreview({
+    vehicleId: toRef(form, 'vehicle_id'),
+    companyId: toRef(form, 'company_id'),
+    startDate: toRef(form, 'start_date'),
+    endDate: toRef(form, 'end_date'),
+});
+
+// ── Rental preview live (SC4 · loyer induit) ────────────────────────
+const { preview: rentalPreview, loading: rentalPreviewLoading } = useContractRentalPreview({
     vehicleId: toRef(form, 'vehicle_id'),
     companyId: toRef(form, 'company_id'),
     startDate: toRef(form, 'start_date'),
@@ -212,6 +221,8 @@ async function submitWithDocuments(): Promise<void> {
                         :drivers-count="form.driver_ids.length"
                         :preview="preview"
                         :preview-loading="previewLoading"
+                        :rental-preview="rentalPreview"
+                        :rental-preview-loading="rentalPreviewLoading"
                         @open-detail="fiscalDetailOpen = true"
                     />
 
@@ -244,6 +255,8 @@ async function submitWithDocuments(): Promise<void> {
                             :drivers-count="form.driver_ids.length"
                             :preview="preview"
                             :preview-loading="previewLoading"
+                            :rental-preview="rentalPreview"
+                            :rental-preview-loading="rentalPreviewLoading"
                             @open-detail="fiscalDetailOpen = true"
                         />
                     </div>

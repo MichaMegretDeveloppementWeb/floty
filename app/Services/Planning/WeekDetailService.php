@@ -10,14 +10,20 @@ use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Fiscal\FiscalBreakdownData;
 use App\Data\User\Fiscal\FiscalPreviewData;
 use App\Data\User\Planning\PlanningWeekData;
+use App\Data\User\Planning\PreviewRentalsInputData;
 use App\Data\User\Planning\PreviewTaxesInputData;
+use App\Data\User\Planning\RentalPreviewData;
 use App\Data\User\Planning\WeekCompanyPresenceData;
 use App\Data\User\Planning\WeekDayContractData;
 use App\Data\User\Planning\WeekDaySlotData;
 use App\Enums\Contract\ContractType;
 use App\Models\Contract;
+use App\Models\RentalDiscount;
+use App\Services\Billing\BillingBreakdownService;
+use App\Services\Billing\Discount\DiscountResolver;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FiscalCalculator;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 
 /**
@@ -35,6 +41,8 @@ final class WeekDetailService
         private readonly ContractQueryService $contractQuery,
         private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
         private readonly FiscalCalculator $calculator,
+        private readonly BillingBreakdownService $billingBreakdown,
+        private readonly DiscountResolver $discountResolver,
     ) {}
 
     /**
@@ -241,6 +249,149 @@ final class WeekDetailService
             daysCount: $daysCount,
             breakdown: FiscalBreakdownData::fromBreakdown($breakdown),
         );
+    }
+
+    /**
+     * Aperçu du **loyer induit** d'une attribution (location/contrat) ·
+     * pendant non-fiscal de {@see previewTaxes} (SC4 · 2026-05-18).
+     *
+     * Sémantique strictement équivalente à la facture finale ·
+     * délègue à {@see BillingBreakdownService::byContract} (split par
+     * mois civil + `OptimalRateBreakdown` + `DiscountApplier`). Le total
+     * net retourné est celui qui apparaîtra sur la facture mensuelle
+     * effective si ce contrat est créé puis facturé tel quel.
+     *
+     * Le service expose en plus le libellé + taux de la réduction
+     * **dominante** (celle qui couvre le plus de jours sur la période)
+     * pour permettre à l'UI d'afficher « Réductions appliquées · -15 €
+     * (-3,5 %, Promo printemps 2026) ». Le `RentalDiscountConflictService`
+     * garantit qu'il n'y a qu'une réduction active par (vehicle × date)
+     * sur la période, donc la dominante est canonique.
+     */
+    public function previewRentals(PreviewRentalsInputData $input): RentalPreviewData
+    {
+        if ($input->dates === []) {
+            return new RentalPreviewData(
+                daysCount: 0,
+                grossTotalCents: 0,
+                discountCents: 0,
+                netTotalCents: 0,
+                appliedDiscountLabel: null,
+                appliedDiscountBasisPoints: null,
+                hasMissingPricing: false,
+            );
+        }
+
+        $dates = $input->dates;
+        sort($dates);
+        $rangeStart = $dates[0];
+        $rangeEnd = $dates[count($dates) - 1];
+
+        $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
+
+        $contract = $this->buildSyntheticContract(
+            $input->vehicleId,
+            $input->companyId,
+            $rangeStart,
+            $rangeEnd,
+        );
+        // Hydrate la relation vehicle in-memory · `BillingBreakdownService::byContract`
+        // n'accède pas à exit_date directement mais on reste cohérent
+        // avec le pattern fiscal (clip ADR-0018 défensif).
+        $contract->setRelation('vehicle', $vehicle);
+
+        $breakdown = $this->billingBreakdown->byContract($contract);
+
+        if ($breakdown->hasAnyMissingPricing) {
+            return new RentalPreviewData(
+                daysCount: $breakdown->totalDaysUsed,
+                grossTotalCents: null,
+                discountCents: null,
+                netTotalCents: null,
+                appliedDiscountLabel: null,
+                appliedDiscountBasisPoints: null,
+                hasMissingPricing: true,
+            );
+        }
+
+        [$label, $bp] = $this->resolveDominantDiscount(
+            $contract,
+            $breakdown->totalDiscountCentsPartial,
+        );
+
+        return new RentalPreviewData(
+            daysCount: $breakdown->totalDaysUsed,
+            grossTotalCents: $breakdown->totalGrossCentsPartial,
+            discountCents: $breakdown->totalDiscountCentsPartial,
+            netTotalCents: $breakdown->totalGrossCentsPartial - $breakdown->totalDiscountCentsPartial,
+            appliedDiscountLabel: $label,
+            appliedDiscountBasisPoints: $bp,
+            hasMissingPricing: false,
+        );
+    }
+
+    /**
+     * Détermine la réduction DOMINANTE (couvrant le plus de jours) sur
+     * la période d'un contrat synthétique. Scan jour par jour via
+     * `DiscountResolver` année par année. Court-circuit si le total
+     * réduction global est nul (skip scan inutile).
+     *
+     * @return array{0: ?string, 1: ?int} [label, basisPoints]
+     */
+    private function resolveDominantDiscount(Contract $contract, int $totalDiscountCents): array
+    {
+        if ($totalDiscountCents === 0) {
+            return [null, null];
+        }
+
+        $start = $contract->start_date->toImmutable();
+        $end = $contract->end_date->toImmutable();
+
+        /** @var array<int, array{discount: RentalDiscount, days: int}> $byDiscount */
+        $byDiscount = [];
+
+        for ($year = $start->year; $year <= $end->year; $year++) {
+            $index = $this->discountResolver->preloadForCompanyYear((int) $contract->company_id, $year);
+            if ($index->isEmpty()) {
+                continue;
+            }
+
+            $clipStart = $start->year < $year
+                ? CarbonImmutable::create($year, 1, 1)
+                : $start;
+            $clipEnd = $end->year > $year
+                ? CarbonImmutable::create($year, 12, 31)
+                : $end;
+
+            $cursor = $clipStart;
+            while (! $cursor->isAfter($clipEnd)) {
+                $discount = $index->findFor(
+                    (int) $contract->vehicle_id,
+                    $cursor->toDateString(),
+                );
+                if ($discount !== null) {
+                    $id = (int) $discount->id;
+                    if (! isset($byDiscount[$id])) {
+                        $byDiscount[$id] = ['discount' => $discount, 'days' => 0];
+                    }
+                    $byDiscount[$id]['days']++;
+                }
+                $cursor = $cursor->addDay();
+            }
+        }
+
+        if ($byDiscount === []) {
+            return [null, null];
+        }
+
+        usort(
+            $byDiscount,
+            static fn (array $a, array $b): int => $b['days'] <=> $a['days'],
+        );
+
+        $dominant = $byDiscount[0]['discount'];
+
+        return [$dominant->label, (int) $dominant->discount_basis_points];
     }
 
     /**

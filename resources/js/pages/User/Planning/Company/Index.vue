@@ -15,6 +15,7 @@ import CompanyOptionTag from '@/Components/Domain/Company/CompanyOptionTag.vue';
 import Heatmap from '@/Components/Features/Planning/Heatmap/Heatmap.vue';
 import type {
     HeatmapFullYearCosts,
+    HeatmapMonthlyRentals,
     HeatmapRealCosts,
 } from '@/Components/Features/Planning/Heatmap/types';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue';
@@ -35,12 +36,18 @@ const props = defineProps<{
      */
     fullYearCosts?: HeatmapFullYearCosts;
     realCosts?: HeatmapRealCosts;
+    /**
+     * Loyer mensuel cumulé pour CETTE entreprise · `Inertia::defer` group
+     * "rentals" (SC1 · 2026-05-18). `null` par mois si tarif manquant.
+     */
+    monthlyRentals?: HeatmapMonthlyRentals;
     selectedYear: number;
     yearScope: App.Data.Shared.YearScopeData;
 }>();
 
 const localFullYearCosts = ref<HeatmapFullYearCosts | undefined>(props.fullYearCosts);
 const localRealCosts = ref<HeatmapRealCosts | undefined>(props.realCosts);
+const localMonthlyRentals = ref<HeatmapMonthlyRentals | undefined>(props.monthlyRentals);
 
 watch(
     () => props.fullYearCosts,
@@ -54,6 +61,12 @@ watch(
         localRealCosts.value = next;
     },
 );
+watch(
+    () => props.monthlyRentals,
+    (next) => {
+        localMonthlyRentals.value = next;
+    },
+);
 
 const { selectedYear, selectYear } = useLocalYearSelector(
     props.selectedYear,
@@ -62,8 +75,10 @@ const { selectedYear, selectYear } = useLocalYearSelector(
         onSuccess: () => {
             localFullYearCosts.value = undefined;
             localRealCosts.value = undefined;
+            localMonthlyRentals.value = undefined;
             router.reload({ only: ['fullYearCosts'] });
             router.reload({ only: ['realCosts'] });
+            router.reload({ only: ['monthlyRentals'] });
         },
     },
 );
@@ -183,6 +198,7 @@ const { week, onContractsCreated } = useUserPlanningIndex();
                 :vehicles="vehicles"
                 :full-year-costs="localFullYearCosts"
                 :real-costs="localRealCosts"
+                :monthly-rentals="localMonthlyRentals"
                 :fiscal-year="selectedYear"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear, company.id)"
             />

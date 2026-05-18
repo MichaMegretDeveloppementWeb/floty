@@ -9,7 +9,7 @@ defineProps<{
 
 <template>
     <div
-        class="flex h-[40px] items-center justify-end border-t border-slate-100 text-right first:border-t-0"
+        class="flex h-[56px] items-center justify-end border-t border-slate-100 text-right first:border-t-0"
     >
         <div>
             <!-- Coût servi en différé · skeleton tant que la 2ᵉ RTT

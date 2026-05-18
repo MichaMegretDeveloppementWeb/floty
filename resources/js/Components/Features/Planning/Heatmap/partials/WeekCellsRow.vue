@@ -42,7 +42,7 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
 
 <template>
     <div
-        class="flex h-[40px] items-center gap-[1px] border-t border-slate-100 first:border-t-0"
+        class="flex h-[56px] items-center gap-[1px] border-t border-slate-100 first:border-t-0"
     >
         <button
             v-for="(daysCount, weekIndex) in vehicleView.weeksForCount"

@@ -48,7 +48,13 @@ import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
 import VehicleSummary from './partials/VehicleSummary.vue';
 import WeekCellsRow from './partials/WeekCellsRow.vue';
-import type { HeatmapFullYearCosts, HeatmapRealCosts, HeatmapVehicleView } from './types';
+import { formatEur } from '@/Utils/format/formatEur';
+import type {
+    HeatmapFullYearCosts,
+    HeatmapMonthlyRentals,
+    HeatmapRealCosts,
+    HeatmapVehicleView,
+} from './types';
 
 type OverviewVehicle = App.Data.User.Planning.PlanningHeatmapVehicleData;
 type CompanyVehicle = App.Data.User.Planning.PlanningHeatmapCompanyVehicleData;
@@ -68,6 +74,14 @@ const props = defineProps<{
      * « €XXXX · N j » à droite.
      */
     realCosts?: HeatmapRealCosts;
+    /**
+     * Loyer mensuel cumulé · servi en `Inertia::defer` group "rentals"
+     * (SC1 · 2026-05-18) · affiché sous chaque entête de mois.
+     * Valeur `null` par mois = au moins un véhicule sans tarif sur ce
+     * mois (vue entreprise) ou rendu agrégé partiel (vue fleet).
+     * Prop `undefined` tant que la wave defer n'a pas répondu · skeleton.
+     */
+    monthlyRentals?: HeatmapMonthlyRentals;
 }>();
 
 defineEmits<{
@@ -120,6 +134,9 @@ const vehicleViews = computed<HeatmapVehicleView[]>(() =>
                 weeksWithUnavailability: v.weeksWithUnavailability,
                 fullYearTax,
                 dailyTaxRate,
+                dailyRateCents: v.dailyRateCents,
+                weeklyRateCents: v.weeklyRateCents,
+                monthlyRateCents: v.monthlyRateCents,
             };
         }
 
@@ -141,6 +158,9 @@ const vehicleViews = computed<HeatmapVehicleView[]>(() =>
             weeksWithUnavailability: v.weeksWithUnavailability,
             fullYearTax,
             dailyTaxRate,
+            dailyRateCents: v.dailyRateCents,
+            weeklyRateCents: v.weeklyRateCents,
+            monthlyRateCents: v.monthlyRateCents,
         };
     }),
 );
@@ -269,9 +289,11 @@ function syncFrom(e: Event): void {
                     class="heatmap-pane shrink-0 max-h-[50em] overflow-y-auto bg-white scrollbar-hide-all"
                     @scroll="syncFrom"
                 >
-                    <!-- Header sticky · placeholder pour aligner avec les mois du centre -->
+                    <!-- Header sticky · placeholder pour aligner avec les mois du centre.
+                         SC1 (2026-05-18) · le header central porte désormais 2 lignes
+                         (mois + loyer mensuel) · placeholder passé à h-8 (32 px). -->
                     <div class="sticky top-0 z-10 bg-white pt-4 pb-2 pl-4 pr-3">
-                        <div class="h-4" />
+                        <div class="h-8" />
                     </div>
                     <!-- Body rows -->
                     <div
@@ -335,6 +357,34 @@ function syncFrom(e: Event): void {
                                     {{ month.name }}
                                 </div>
                             </div>
+                            <!-- SC1 (2026-05-18) · loyer mensuel cumulé NET
+                                 (post-réductions) sous chaque label. Skeleton
+                                 inline tant que la prop defer "rentals" n'a
+                                 pas répondu · tiret discret si tarif manquant
+                                 sur le mois. Format entier sans centimes. -->
+                            <div class="mt-1 flex h-3 gap-[1px]">
+                                <div
+                                    v-for="(month, idx) in monthLabels"
+                                    :key="`rent-${month.name}`"
+                                    :style="{
+                                        flex: `${month.weeks} 0 ${month.weeks * HEATMAP_CELL_WIDTH - 1}px`,
+                                    }"
+                                    class="font-mono text-[10px] text-slate-500 tabular-nums"
+                                >
+                                    <template v-if="monthlyRentals === undefined">
+                                        <span
+                                            class="skeleton-shimmer inline-block h-2.5 w-10 rounded"
+                                            aria-label="Calcul du loyer en cours"
+                                        ></span>
+                                    </template>
+                                    <template v-else-if="monthlyRentals[idx + 1] === null">
+                                        <span class="text-slate-300">-</span>
+                                    </template>
+                                    <template v-else>
+                                        {{ formatEur(monthlyRentals[idx + 1]! / 100, 0) }}
+                                    </template>
+                                </div>
+                            </div>
                         </div>
                         <!--
                             Body rows · `min-width` au lieu de `width`
@@ -342,18 +392,48 @@ function syncFrom(e: Event): void {
                             Les cellules à l'intérieur (WeekCellsRow)
                             utilisent `grow` pour absorber l'espace
                             supplémentaire au prorata.
+
+                            SC2 (2026-05-18) · wrapper relatif qui porte un
+                            overlay 12 bandes verticales mois pair/impair
+                            (`bg-slate-50` sur impairs · sobre, tokens DS
+                            seulement). L'overlay est `pointer-events-none`
+                            et derrière les rows · les boutons cellule
+                            (h-7, `bg-white` ou `bg-blue-*`) sont opaques
+                            et masquent l'overlay à leur emplacement · le
+                            signal de frontière de mois apparaît dans les
+                            ~14px de blanc au-dessus/en-dessous de chaque
+                            row (h-56 contient des boutons h-7) et dans les
+                            gaps verticaux `gap-[1px]` entre cellules.
                         -->
                         <div
-                            v-for="(view, idx) in vehicleViews"
-                            :key="`mid-${view.id}`"
+                            class="relative"
                             :style="{ minWidth: `${HEATMAP_GRID_WIDTH}px` }"
-                            :class="idx > 0 && 'border-t border-slate-100'"
                         >
-                            <WeekCellsRow
-                                :vehicle-view="view"
-                                :fiscal-year="fiscalYear"
-                                @cell-click="$emit('cell-click', $event)"
-                            />
+                            <div
+                                class="pointer-events-none absolute inset-0 flex gap-[1px]"
+                                aria-hidden="true"
+                            >
+                                <div
+                                    v-for="(month, idx) in monthLabels"
+                                    :key="`bg-${month.name}`"
+                                    :style="{
+                                        flex: `${month.weeks} 0 ${month.weeks * HEATMAP_CELL_WIDTH - 1}px`,
+                                    }"
+                                    :class="idx % 2 === 0 ? 'bg-slate-100' : ''"
+                                />
+                            </div>
+                            <div
+                                v-for="(view, idx) in vehicleViews"
+                                :key="`mid-${view.id}`"
+                                class="relative"
+                                :class="idx > 0 && 'border-t border-slate-100'"
+                            >
+                                <WeekCellsRow
+                                    :vehicle-view="view"
+                                    :fiscal-year="fiscalYear"
+                                    @cell-click="$emit('cell-click', $event)"
+                                />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -372,7 +452,7 @@ function syncFrom(e: Event): void {
                     @scroll="syncFrom"
                 >
                     <div class="sticky top-0 z-10 bg-white pt-4 pb-2 pl-3 pr-4">
-                        <div class="h-4" />
+                        <div class="h-8" />
                     </div>
                     <div
                         v-for="(view, idx) in vehicleViews"

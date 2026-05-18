@@ -44,6 +44,14 @@ export type HeatmapVehicleView = {
     fullYearTax: number | null;
     /** Prorata journalier (€/jour) · null tant que `fullYearCosts` n'a pas répondu. */
     dailyTaxRate: number | null;
+    /**
+     * Tarifs jour/semaine/mois (cents) pour l'année courante · `null` si
+     * aucun tarif saisi pour ce véhicule cette année. Eager (3 ints en
+     * batch SQL plat, coût négligeable · doctrine chargement-strict-par-ecran).
+     */
+    dailyRateCents: number | null;
+    weeklyRateCents: number | null;
+    monthlyRateCents: number | null;
 };
 
 /**
@@ -63,3 +71,14 @@ export type HeatmapFullYearCosts = Record<
  * Entreprise.
  */
 export type HeatmapRealCosts = Record<number, { annualTaxDue: number }>;
+
+/**
+ * Map `month [1..12] → totalCents` (loyer net post-réductions) servie en
+ * `Inertia::defer` group "rentals" (SC1 · 2026-05-18). Affichée sous
+ * chaque label de mois dans l'entête de la heatmap.
+ *
+ * `null` par mois = vue entreprise avec au moins un véhicule sans tarif
+ * ce mois-là (signal user). En vue fleet, les mois partiels sont déjà
+ * agrégés (skip silencieux des cies sans tarif, jamais `null`).
+ */
+export type HeatmapMonthlyRentals = Record<number, number | null>;

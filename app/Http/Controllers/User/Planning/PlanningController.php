@@ -8,6 +8,7 @@ use App\Actions\Contract\BulkCreateContractsAction;
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Contract\BulkStoreContractsData;
+use App\Data\User\Planning\PreviewRentalsInputData;
 use App\Data\User\Planning\PreviewTaxesInputData;
 use App\Data\User\Planning\WeekQueryData;
 use App\Http\Controllers\Controller;
@@ -66,6 +67,10 @@ final class PlanningController extends Controller
                 // longue attente.
                 'fullYearCosts' => Inertia::defer(fn () => $this->heatmap->fullYearCostsForVehicles($year), 'fast'),
                 'realCosts' => Inertia::defer(fn () => $this->heatmap->realCostsForVehicles($year), 'slow'),
+                // SC1 (2026-05-18) · loyer mensuel cumulé fleet sous chaque
+                // entête de mois · group « rentals » indépendant pour
+                // hydratation parallèle aux 2 autres vagues.
+                'monthlyRentals' => Inertia::defer(fn () => $this->heatmap->monthlyRentalTotalsForFleet($year), 'rentals'),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
@@ -124,6 +129,9 @@ final class PlanningController extends Controller
                 // 100 % usage), `realCosts` est scopé à l'entreprise.
                 'fullYearCosts' => Inertia::defer(fn () => $this->heatmap->fullYearCostsForVehicles($year), 'fast'),
                 'realCosts' => Inertia::defer(fn () => $this->heatmap->realCostsForVehicles($year, $company->id), 'slow'),
+                // SC1 (2026-05-18) · loyer mensuel cumulé pour cette
+                // entreprise uniquement · `null` par mois si tarif manquant.
+                'monthlyRentals' => Inertia::defer(fn () => $this->heatmap->monthlyRentalTotalsForCompany($year, $company->id), 'rentals'),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
@@ -167,6 +175,20 @@ final class PlanningController extends Controller
 
         return response()->json(
             $this->weekDetail->previewTaxes($input, $year),
+        );
+    }
+
+    /**
+     * POST /app/planning/preview-rentals · SC4 (2026-05-18) · loyer
+     * induit standalone pour le drawer + formulaire location, cohérent
+     * avec la facture finale (réductions incluses).
+     */
+    public function previewRentals(PreviewRentalsInputData $input): JsonResponse
+    {
+        Gate::authorize('view-planning');
+
+        return response()->json(
+            $this->weekDetail->previewRentals($input),
         );
     }
 

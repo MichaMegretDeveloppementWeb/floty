@@ -234,6 +234,9 @@ Route::middleware('auth')
         Route::post('/planning/preview-taxes', [PlanningController::class, 'previewTaxes'])
             ->middleware('throttle:30,1')
             ->name('planning.preview-taxes');
+        Route::post('/planning/preview-rentals', [PlanningController::class, 'previewRentals'])
+            ->middleware('throttle:30,1')
+            ->name('planning.preview-rentals');
         Route::post('/planning/contracts', [PlanningController::class, 'storeBulk'])
             ->middleware('throttle:60,1')
             ->name('planning.contracts.store-bulk');

@@ -34,6 +34,13 @@ final class PlanningHeatmapVehicleData extends Data
      *                                              Alimente la bordure
      *                                              rouge des cellules
      *                                              heatmap (ADR-0019 § 2 D5).
+     * @param  ?int  $dailyRateCents  tarif jour pour l'année courante
+     *                                (`vehicle_yearly_pricings`) · `null`
+     *                                si aucun tarif saisi. Eager (3 ints
+     *                                en batch SQL plat, coût négligeable
+     *                                · doctrine chargement-strict-par-ecran).
+     * @param  ?int  $weeklyRateCents  tarif semaine, `null` si absent.
+     * @param  ?int  $monthlyRateCents  tarif mois, `null` si absent.
      */
     public function __construct(
         public int $id,
@@ -49,5 +56,8 @@ final class PlanningHeatmapVehicleData extends Data
         public int $daysTotal,
         public ?string $exitDate,
         public array $weeksWithUnavailability,
+        public ?int $dailyRateCents,
+        public ?int $weeklyRateCents,
+        public ?int $monthlyRateCents,
     ) {}
 }

@@ -40,10 +40,18 @@ const props = withDefaults(
         driversCount: number;
         preview: App.Data.User.Fiscal.FiscalPreviewData | null;
         previewLoading: boolean;
+        /**
+         * Aperçu loyer induit (SC4 · 2026-05-18) · pendant non-fiscal
+         * du `preview`. Net après réductions appliquées.
+         */
+        rentalPreview?: App.Data.User.Planning.RentalPreviewData | null;
+        rentalPreviewLoading?: boolean;
         /** Mode replié par défaut avec toggle (placement < xl). */
         collapsible?: boolean;
     }>(),
     {
+        rentalPreview: null,
+        rentalPreviewLoading: false,
         collapsible: false,
     },
 );
@@ -59,6 +67,23 @@ const isComplete = computed<boolean>(
         && props.endDate !== ''
         && props.durationDays !== null,
 );
+
+const hasRentalDiscount = computed<boolean>(
+    () => props.rentalPreview !== null
+        && (props.rentalPreview.discountCents ?? 0) > 0,
+);
+
+const rentalDiscountPercentLabel = computed<string>(() => {
+    const bp = props.rentalPreview?.appliedDiscountBasisPoints ?? null;
+    if (bp === null) {
+        return '';
+    }
+
+    const pct = bp / 100;
+    return pct % 1 === 0
+        ? `${pct} %`
+        : `${pct.toString().replace('.', ',')} %`;
+});
 
 const startFr = computed<string>(() => props.startDate ? formatDateFr(props.startDate) : '');
 const endFr = computed<string>(() => props.endDate ? formatDateFr(props.endDate) : '');
@@ -228,6 +253,61 @@ const showBody = computed<boolean>(
                         >
                             Voir le détail →
                         </button>
+                    </template>
+                </div>
+
+                <!-- Bloc loyer induit (SC4 · 2026-05-18) · pendant
+                     non-fiscal · net après réductions appliquées. -->
+                <div class="flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
+                    <p class="eyebrow text-emerald-700">Loyer induit</p>
+
+                    <div v-if="rentalPreviewLoading" class="text-xs text-slate-500">
+                        Calcul en cours…
+                    </div>
+
+                    <template v-else-if="rentalPreview !== null">
+                        <div
+                            v-if="rentalPreview.hasMissingPricing"
+                            class="text-xs text-amber-700"
+                        >
+                            Tarif annuel non renseigné · complète la grille
+                            jour/semaine/mois sur la fiche véhicule pour
+                            calculer le loyer.
+                        </div>
+                        <template v-else>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="text-slate-600">Loyer brut</span>
+                                <span class="font-mono text-slate-900">
+                                    {{ formatEur((rentalPreview.grossTotalCents ?? 0) / 100, 0) }}
+                                </span>
+                            </div>
+                            <div
+                                v-if="hasRentalDiscount"
+                                class="flex items-center justify-between text-sm text-emerald-700"
+                            >
+                                <span>
+                                    Réductions appliquées
+                                    <span
+                                        v-if="rentalPreview.appliedDiscountLabel"
+                                        class="text-emerald-600"
+                                    >
+                                        ({{ rentalDiscountPercentLabel }}, {{ rentalPreview.appliedDiscountLabel }})
+                                    </span>
+                                    <span v-else class="text-emerald-600">
+                                        ({{ rentalDiscountPercentLabel }})
+                                    </span>
+                                </span>
+                                <span class="font-mono">
+                                    -{{ formatEur((rentalPreview.discountCents ?? 0) / 100, 0) }}
+                                </span>
+                            </div>
+                            <div class="flex items-center justify-between text-sm">
+                                <span class="font-medium text-slate-900">Total net</span>
+                                <span class="font-mono font-semibold text-slate-900">
+                                    {{ formatEur((rentalPreview.netTotalCents ?? 0) / 100, 0) }}
+                                </span>
+                            </div>
+                        </template>
                     </template>
                 </div>
             </template>

@@ -42,6 +42,12 @@ final class PlanningHeatmapCompanyVehicleData extends Data
      *                                              semaines portant au moins
      *                                              un jour d'indispo (ADR-0019
      *                                              § 2 D5).
+     * @param  ?int  $dailyRateCents  tarif jour pour l'année courante
+     *                                (`vehicle_yearly_pricings`) · `null`
+     *                                si aucun tarif saisi. Eager batch (cf.
+     *                                {@see PlanningHeatmapVehicleData}).
+     * @param  ?int  $weeklyRateCents  tarif semaine, `null` si absent.
+     * @param  ?int  $monthlyRateCents  tarif mois, `null` si absent.
      */
     public function __construct(
         public int $id,
@@ -58,5 +64,8 @@ final class PlanningHeatmapCompanyVehicleData extends Data
         public int $daysTotalForCompany,
         public ?string $exitDate,
         public array $weeksWithUnavailability,
+        public ?int $dailyRateCents,
+        public ?int $weeklyRateCents,
+        public ?int $monthlyRateCents,
     ) {}
 }

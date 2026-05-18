@@ -8,7 +8,15 @@
 
 export function densityClass(days: number): string {
     if (days <= 0) {
-        return 'bg-white border border-slate-200';
+        // SC2 (2026-05-18) · cellule vide volontairement TRANSPARENTE (pas
+        // de `bg-white`) pour laisser passer l'overlay alterné mois
+        // pair/impair posé en arrière-plan dans `Heatmap.vue` (bandes
+        // verticales `bg-slate-100` sur mois impairs). La bordure
+        // `border-slate-200` reste pour matérialiser la cellule.
+        // Note · les usages secondaires (HeatmapLegend, CompanyActivityCard)
+        // sont sur fond blanc parent → cellule reste visuellement
+        // identique (transparent sur blanc = blanc).
+        return 'border border-slate-200';
     }
 
     if (days === 1) {

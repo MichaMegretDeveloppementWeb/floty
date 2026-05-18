@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue';
 import Heatmap from '@/Components/Features/Planning/Heatmap/Heatmap.vue';
 import type {
     HeatmapFullYearCosts,
+    HeatmapMonthlyRentals,
     HeatmapRealCosts,
 } from '@/Components/Features/Planning/Heatmap/types';
 import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue';
@@ -27,6 +28,11 @@ const props = defineProps<{
      * ~250 ms). Cellule « €XXXX · N j » à droite.
      */
     realCosts?: HeatmapRealCosts;
+    /**
+     * Loyer mensuel cumulé cross-cies · `Inertia::defer` group "rentals"
+     * (SC1 · 2026-05-18) · affiché sous chaque entête de mois.
+     */
+    monthlyRentals?: HeatmapMonthlyRentals;
     selectedYear: number;
     /**
      * Scope d'années dynamique calculé depuis les contrats actifs
@@ -42,6 +48,7 @@ const props = defineProps<{
 // `feedback_inertia_defer_with_partial_reload`.
 const localFullYearCosts = ref<HeatmapFullYearCosts | undefined>(props.fullYearCosts);
 const localRealCosts = ref<HeatmapRealCosts | undefined>(props.realCosts);
+const localMonthlyRentals = ref<HeatmapMonthlyRentals | undefined>(props.monthlyRentals);
 
 watch(
     () => props.fullYearCosts,
@@ -55,19 +62,28 @@ watch(
         localRealCosts.value = next;
     },
 );
+watch(
+    () => props.monthlyRentals,
+    (next) => {
+        localMonthlyRentals.value = next;
+    },
+);
 
 const { selectedYear, selectYear } = useLocalYearSelector(
     props.selectedYear,
     ['vehicles', 'companies', 'selectedYear'],
     {
         // Enchaîné après le visit year-change · l'URL pointe désormais
-        // sur la nouvelle année, les 2 reload recalculent sur la bonne
-        // année · 2 fetchs parallèles via les groups defer "fast" + "slow".
+        // sur la nouvelle année, les 3 reload recalculent sur la bonne
+        // année · fetchs parallèles via les groups defer "fast" + "slow"
+        // + "rentals" (SC1).
         onSuccess: () => {
             localFullYearCosts.value = undefined;
             localRealCosts.value = undefined;
+            localMonthlyRentals.value = undefined;
             router.reload({ only: ['fullYearCosts'] });
             router.reload({ only: ['realCosts'] });
+            router.reload({ only: ['monthlyRentals'] });
         },
     },
 );
@@ -104,6 +120,7 @@ const { week, onContractsCreated } = useUserPlanningIndex();
                 :vehicles="vehicles"
                 :full-year-costs="localFullYearCosts"
                 :real-costs="localRealCosts"
+                :monthly-rentals="localMonthlyRentals"
                 :fiscal-year="selectedYear"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear)"
             />

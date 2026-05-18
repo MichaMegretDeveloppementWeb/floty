@@ -6,6 +6,7 @@ import DriversMultiPicker from '@/Components/Domain/Driver/DriversMultiPicker.vu
 import Button from '@/Components/Ui/Button/Button.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
+import { useRentalPreview } from '@/Composables/Billing/useRentalPreview';
 import { useContractDocuments } from '@/Composables/Contract/useContractDocuments';
 import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
 import { useApi } from '@/Composables/Shared/useApi';
@@ -13,6 +14,7 @@ import { storeBulk as storeBulkRoute } from '@/routes/user/planning/contracts';
 import { indexById } from '@/Utils/Common/indexById';
 import FiscalPreviewCard from './FiscalPreviewCard.vue';
 import MoreOptionsSection from './MoreOptionsSection.vue';
+import RentalPreviewCard from './RentalPreviewCard.vue';
 
 type Company = App.Data.User.Company.CompanyOptionData;
 type DateRange = { startDate: string | null; endDate: string | null };
@@ -48,6 +50,12 @@ const emit = defineEmits<{
 const api = useApi();
 const { uploadMany } = useContractDocuments();
 const { preview, loading: previewLoading, fetch: fetchPreview, reset: resetPreview } = useFiscalPreview();
+const {
+    preview: rentalPreview,
+    loading: rentalPreviewLoading,
+    fetch: fetchRentalPreview,
+    reset: resetRentalPreview,
+} = useRentalPreview();
 
 // ── Sélecteur entreprise enrichi ────────────────────────────────────
 const companyOptions = computed(() =>
@@ -151,6 +159,7 @@ watch(
         }
 
         fetchPreview({ vehicleId: props.vehicleId, companyId, dates });
+        fetchRentalPreview({ vehicleId: props.vehicleId, companyId, dates });
     },
     { deep: true },
 );
@@ -187,6 +196,7 @@ async function submit(): Promise<void> {
         }
 
         resetPreview();
+        resetRentalPreview();
         pendingFiles.value = [];
         contractReference.value = null;
         notes.value = null;
@@ -303,6 +313,10 @@ async function submit(): Promise<void> {
                 :preview="preview"
                 :loading="previewLoading"
                 :year="fiscalYear"
+            />
+            <RentalPreviewCard
+                :preview="rentalPreview"
+                :loading="rentalPreviewLoading"
             />
             <Button
                 type="button"

@@ -5,16 +5,23 @@ declare(strict_types=1);
 namespace App\Services\Planning;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
+use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Planning\PlanningHeatmapCompanyVehicleData;
 use App\Data\User\Planning\PlanningHeatmapVehicleData;
 use App\Data\User\Planning\PlanningHeatmapVehicleFullYearCostsData;
 use App\Data\User\Planning\PlanningHeatmapVehicleRealCostsData;
 use App\DTO\Fiscal\ContractsByPair;
+use App\Exceptions\Billing\MissingPricingException;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
 use App\Models\Unavailability;
+use App\Services\Billing\BillingCalculator;
+use App\Services\Billing\Discount\DiscountApplier;
+use App\Services\Billing\Discount\DiscountResolver;
+use App\Services\Billing\Discount\ResolvedDiscountIndex;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Carbon\CarbonImmutable;
@@ -42,6 +49,11 @@ final class PlanningHeatmapService
         private readonly CompanyReadRepositoryInterface $companies,
         private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
+        private readonly VehicleYearlyPricingReadRepositoryInterface $pricings,
+        private readonly BillingCalculator $billingCalculator,
+        private readonly DiscountResolver $discountResolver,
+        private readonly DiscountApplier $discountApplier,
+        private readonly ContractReadRepositoryInterface $contractReader,
     ) {}
 
     /**
@@ -54,6 +66,7 @@ final class PlanningHeatmapService
         $vehicles = $this->vehicles->findAllForHeatmap($year);
         $vehicleIds = $vehicles->pluck('id')->all();
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+        $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
 
         $vehicleRows = [];
         foreach ($vehicles as $vehicle) {
@@ -68,6 +81,7 @@ final class PlanningHeatmapService
             }
 
             $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
+            $pricing = $pricingsByVehicleId[$vehicle->id] ?? null;
 
             $vehicleRows[] = new PlanningHeatmapVehicleData(
                 id: $vehicle->id,
@@ -83,6 +97,9 @@ final class PlanningHeatmapService
                 daysTotal: array_sum($weeks),
                 exitDate: $vehicle->exit_date?->toDateString(),
                 weeksWithUnavailability: $this->collectWeeksWithUnavailability($vehicleUnavailabilities, $year),
+                dailyRateCents: $pricing?->daily_rate_cents,
+                weeklyRateCents: $pricing?->weekly_rate_cents,
+                monthlyRateCents: $pricing?->monthly_rate_cents,
             );
         }
 
@@ -123,6 +140,7 @@ final class PlanningHeatmapService
         $vehicles = $this->vehicles->findAllForHeatmap($year);
         $vehicleIds = $vehicles->pluck('id')->all();
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+        $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
 
         $vehicleRows = [];
         foreach ($vehicles as $vehicle) {
@@ -139,6 +157,7 @@ final class PlanningHeatmapService
             }
 
             $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
+            $pricing = $pricingsByVehicleId[$vehicle->id] ?? null;
 
             $vehicleRows[] = new PlanningHeatmapCompanyVehicleData(
                 id: $vehicle->id,
@@ -155,6 +174,9 @@ final class PlanningHeatmapService
                 daysTotalForCompany: array_sum($weeksForCompany),
                 exitDate: $vehicle->exit_date?->toDateString(),
                 weeksWithUnavailability: $this->collectWeeksWithUnavailability($vehicleUnavailabilities, $year),
+                dailyRateCents: $pricing?->daily_rate_cents,
+                weeklyRateCents: $pricing?->weekly_rate_cents,
+                monthlyRateCents: $pricing?->monthly_rate_cents,
             );
         }
 
@@ -297,6 +319,112 @@ final class PlanningHeatmapService
         }
 
         return $costs;
+    }
+
+    /**
+     * Totaux de loyer mensuel NET (post-réductions) pour une entreprise
+     * sur une année · `array<int month [1..12], ?int totalCents>` ·
+     * valeur `null` si au moins un véhicule présent sur le mois n'a pas
+     * de tarif annuel saisi (signal UX explicite côté heatmap header).
+     *
+     * Servi en `Inertia::defer` group « rentals » côté
+     * {@see App\Http\Controllers\User\Planning\PlanningController::companyIndex}.
+     * Méthode dédiée slim au besoin planning (cf. doctrine
+     * `chargement-strict-par-ecran`) · ne reconstruit pas la timeline
+     * 12 mois lourde de {@see App\Services\Billing\BillingBreakdownService::byCompanyForYear}
+     * (qui hydrate aussi factures émises + entrées détaillées).
+     *
+     * @return array<int, ?int> mois (1-12) → totalCents net post-discount, `null` si tarif manquant
+     */
+    public function monthlyRentalTotalsForCompany(int $year, int $companyId): array
+    {
+        $monthlyResults = $this->billingCalculator->calculateYear($companyId, $year);
+        $discountIndex = $this->discountResolver->preloadForCompanyYear($companyId, $year);
+        $monthlyResults = $this->discountApplier->applyToMonthlyResults($monthlyResults, $discountIndex);
+
+        $totals = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $result = $monthlyResults[$month];
+            $totals[$month] = $result instanceof MissingPricingException
+                ? null
+                : $result->totalCents;
+        }
+
+        return $totals;
+    }
+
+    /**
+     * Totaux de loyer mensuel NET cross-entreprises sur une année ·
+     * agrégat fleet pour la vue d'ensemble du planning.
+     *
+     * **3 SQL fixes** quel que soit le nombre de companies impliquées ·
+     *   1. contrats actifs croisant l'année (vehicle eager-loadé in-memory)
+     *   2. vehicles by IDs (avec `exit_date` pour clipping ADR-0018)
+     *   3. pricings batched `(vehicleIds × year)`
+     * Plus 1 SQL pour les réductions actives multi-cies.
+     *
+     * Sémantique · pour chaque company, on calcule indépendamment via
+     * `OptimalRateBreakdown` puis on applique les réductions de la
+     * company. La somme cross-cies est faite en mémoire (zéro query).
+     * **Mois avec tarif manquant partiel** · on additionne seulement les
+     * cies sans manquement (cohérent avec `BillingBreakdownService::totalRecettesForYears`).
+     *
+     * Servi en `Inertia::defer` group « rentals » côté
+     * {@see App\Http\Controllers\User\Planning\PlanningController::index}.
+     *
+     * @return array<int, int> mois (1-12) → totalCents net cross-cies (`0` si zéro contrat ce mois)
+     */
+    public function monthlyRentalTotalsForFleet(int $year): array
+    {
+        $contracts = $this->contractReader->findActiveForYearRange($year, $year);
+
+        if ($contracts->isEmpty()) {
+            return array_fill_keys(range(1, 12), 0);
+        }
+
+        $vehicleIdsSet = [];
+        foreach ($contracts as $contract) {
+            $vehicleIdsSet[(int) $contract->vehicle_id] = true;
+        }
+        $vehicleIdList = array_keys($vehicleIdsSet);
+
+        $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
+
+        foreach ($contracts as $contract) {
+            $contract->setRelation('vehicle', $vehiclesById->get($contract->vehicle_id));
+        }
+
+        $pricingsByVehicle = $this->pricings->findForVehiclesAndYear($vehicleIdList, $year);
+
+        $byCompany = [];
+        foreach ($contracts as $contract) {
+            $byCompany[(int) $contract->company_id][] = $contract;
+        }
+
+        $discountIndexByCompany = $this->discountResolver
+            ->preloadForCompaniesYear(array_keys($byCompany), $year);
+
+        $totals = array_fill_keys(range(1, 12), 0);
+
+        foreach ($byCompany as $companyId => $companyContracts) {
+            $monthlyResults = $this->billingCalculator->calculateYearWithPreloaded(
+                $companyId,
+                $year,
+                $companyContracts,
+                $pricingsByVehicle,
+            );
+            $index = $discountIndexByCompany[$companyId] ?? ResolvedDiscountIndex::empty();
+            $monthlyResults = $this->discountApplier->applyToMonthlyResults($monthlyResults, $index);
+
+            for ($month = 1; $month <= 12; $month++) {
+                $result = $monthlyResults[$month];
+                if (! $result instanceof MissingPricingException) {
+                    $totals[$month] += $result->totalCents;
+                }
+            }
+        }
+
+        return $totals;
     }
 
     /**

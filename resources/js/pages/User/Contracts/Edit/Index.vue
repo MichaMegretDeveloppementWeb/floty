@@ -8,6 +8,7 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import { useContractFiscalPreview } from '@/Composables/Contract/useContractFiscalPreview';
 import { useContractForm } from '@/Composables/Contract/useContractForm';
+import { useContractRentalPreview } from '@/Composables/Contract/useContractRentalPreview';
 import { show as contractsShowRoute } from '@/routes/user/contracts';
 import { computeContractDurationDays } from '@/Utils/Contract/contractDuration';
 import ContractFormFields from '../Create/partials/ContractFormFields.vue';
@@ -93,6 +94,14 @@ const { preview, loading: previewLoading } = useContractFiscalPreview({
     endDate: toRef(form, 'end_date'),
 });
 
+// ── Rental preview live (SC4 · loyer induit) ────────────────────────
+const { preview: rentalPreview, loading: rentalPreviewLoading } = useContractRentalPreview({
+    vehicleId: toRef(form, 'vehicle_id'),
+    companyId: toRef(form, 'company_id'),
+    startDate: toRef(form, 'start_date'),
+    endDate: toRef(form, 'end_date'),
+});
+
 const fiscalDetailOpen = ref<boolean>(false);
 </script>
 
@@ -149,6 +158,8 @@ const fiscalDetailOpen = ref<boolean>(false);
                         :drivers-count="form.driver_ids.length"
                         :preview="preview"
                         :preview-loading="previewLoading"
+                        :rental-preview="rentalPreview"
+                        :rental-preview-loading="rentalPreviewLoading"
                         @open-detail="fiscalDetailOpen = true"
                     />
 
@@ -183,6 +194,8 @@ const fiscalDetailOpen = ref<boolean>(false);
                             :drivers-count="form.driver_ids.length"
                             :preview="preview"
                             :preview-loading="previewLoading"
+                            :rental-preview="rentalPreview"
+                            :rental-preview-loading="rentalPreviewLoading"
                             @open-detail="fiscalDetailOpen = true"
                         />
                     </div>
