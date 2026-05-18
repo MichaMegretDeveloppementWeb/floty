@@ -40,5 +40,16 @@ final class MonthlyBillingBreakdownData extends Data
         public ?int $yearTotalCents,
         public int $yearTotalCentsPartial,
         public bool $hasAnyMissingPricing,
+        /**
+         * Total annuel BRUT (= somme `entries[].grossTotalCents` des
+         * mois sans missing pricing). Vaut `yearTotalCentsPartial` en
+         * l'absence de réduction (Lot 2 réductions commerciales).
+         */
+        public int $yearTotalGrossCentsPartial = 0,
+        /**
+         * Total annuel des réductions commerciales appliquées (sur les
+         * mois sans missing pricing). Vaut 0 en l'absence de réduction.
+         */
+        public int $yearTotalDiscountCentsPartial = 0,
     ) {}
 }

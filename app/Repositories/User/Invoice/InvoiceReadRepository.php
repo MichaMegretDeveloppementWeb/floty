@@ -74,8 +74,13 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
     {
         // `withSum` matérialise une sub-query SQL pour le total `days_used`
         // des `invoice_lines` rattachées · single query, pas de N+1.
+        //
+        // Lot 2 réductions commerciales · ajoute `total_gross_cents` et
+        // `total_discount_cents` au select pour permettre à
+        // {@see BillingBreakdownService} d'exposer le snapshot
+        // brut/réduction de la facture émise sans 2e requête.
         $rows = Invoice::query()
-            ->select('id', 'month', 'invoice_number', 'total_ht_cents')
+            ->select('id', 'month', 'invoice_number', 'total_ht_cents', 'total_gross_cents', 'total_discount_cents')
             ->where('company_id', $companyId)
             ->where('year', $year)
             ->withSum('lines as invoiced_days_used', 'days_used')
@@ -88,6 +93,8 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
                 'invoiceNumber' => (string) $row->invoice_number,
                 'totalHtCents' => (int) $row->total_ht_cents,
                 'invoicedDaysUsed' => (int) ($row->invoiced_days_used ?? 0),
+                'grossTotalCents' => (int) $row->total_gross_cents,
+                'totalDiscountCents' => (int) $row->total_discount_cents,
             ];
         }
 

@@ -45,5 +45,25 @@ final class MonthlyBreakdownEntryData extends Data
         public ?string $existingInvoiceNumber = null,
         public ?int $invoicedDaysUsed = null,
         public ?int $invoicedTotalCents = null,
+        /**
+         * Montant BRUT du mois (= somme `lines[].grossTotalCents` du
+         * calcul mensuel). `null` aligné sur `totalCents` quand un tarif
+         * manque. Égal à `totalCents` en l'absence de réduction
+         * commerciale (Lot 2 réductions commerciales).
+         */
+        public ?int $grossTotalCents = null,
+        /**
+         * Somme des réductions commerciales appliquées au mois.
+         * `null` si tarif manquant, `0` si pas de réduction.
+         */
+        public ?int $totalDiscountCents = null,
+        /**
+         * Snapshot brut figé à l'émission de facture (Lot 2). `null`
+         * tant qu'aucune facture émise. Permet à l'UI de présenter
+         * brut/réduction/net du snapshot facture en parallèle du recalc
+         * dynamique.
+         */
+        public ?int $invoicedGrossTotalCents = null,
+        public ?int $invoicedTotalDiscountCents = null,
     ) {}
 }

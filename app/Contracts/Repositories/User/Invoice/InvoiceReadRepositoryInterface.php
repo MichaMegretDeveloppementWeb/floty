@@ -59,7 +59,11 @@ interface InvoiceReadRepositoryInterface
      *
      * Single query (pas de N+1 sur les 12 mois).
      *
-     * @return array<int, array{id: int, invoiceNumber: string, totalHtCents: int, invoicedDaysUsed: int}> map[month] => snapshot
+     * Lot 2 réductions commerciales · ajoute `grossTotalCents` et
+     * `totalDiscountCents` au snapshot pour exposer le détail
+     * brut/réduction de la facture émise sur les écrans billing.
+     *
+     * @return array<int, array{id: int, invoiceNumber: string, totalHtCents: int, invoicedDaysUsed: int, grossTotalCents: int, totalDiscountCents: int}> map[month] => snapshot
      */
     public function findExistingByMonthForCompanyYear(int $companyId, int $year): array;
 

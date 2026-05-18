@@ -39,5 +39,15 @@ final class ContractBillingBreakdownData extends Data
         public int $totalDaysUsed,
         public ?int $totalCents,
         public bool $hasAnyMissingPricing,
+        /**
+         * Total BRUT cumulé sur les mois sans missing pricing (Lot 2
+         * réductions commerciales).
+         */
+        public int $totalGrossCentsPartial = 0,
+        /**
+         * Total des réductions cumulées sur les mois sans missing
+         * pricing. Vaut 0 en l'absence de réduction.
+         */
+        public int $totalDiscountCentsPartial = 0,
     ) {}
 }

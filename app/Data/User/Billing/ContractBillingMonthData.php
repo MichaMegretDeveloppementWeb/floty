@@ -23,5 +23,16 @@ final class ContractBillingMonthData extends Data
         public int $daysInMonth,
         public ?int $totalCents,
         public bool $hasMissingPricing,
+        /**
+         * Montant BRUT du mois (= avant réduction commerciale).
+         * `null` si tarif manquant. Égal à `totalCents` sans réduction
+         * (Lot 2 réductions commerciales).
+         */
+        public ?int $grossTotalCents = null,
+        /**
+         * Réduction commerciale appliquée au mois (cents). `null` si
+         * tarif manquant, `0` si pas de réduction.
+         */
+        public ?int $discountCents = null,
     ) {}
 }

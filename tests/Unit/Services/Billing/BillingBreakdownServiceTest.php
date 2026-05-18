@@ -391,13 +391,15 @@ final class BillingBreakdownServiceTest extends TestCase
 
     /**
      * Garantie batch · `totalRecettesForYears` exécute le scenario
-     * complet (2 cies × 2 ans, 2 véhicules) en exactement 4 queries
+     * complet (2 cies × 2 ans, 2 véhicules) en exactement N queries
      * SQL fixes, indépendamment du nombre de couples (cie × année) ·
      *   1. contrats sur le range (1 SQL)
      *   2. vehicles indexés (1 SQL)
      *   3. VFC eager-load par défaut du repo (1 SQL, no-op fiscal pour
      *      les recettes mais préservée pour cohérence inter-services)
      *   4. pricings batched (vehicleIds × years) (1 SQL)
+     *   5+ Lot 2 réductions commerciales · 1 SQL par année
+     *      (`preloadForCompaniesYear` × N years).
      *
      * Comparaison · avant batch · 15 cies × 2 ans × 3 queries
      * (`byCompanyForYear`) = ~90 queries pour le même calcul.
@@ -430,8 +432,11 @@ final class BillingBreakdownServiceTest extends TestCase
         $queries = \DB::getQueryLog();
         \DB::disableQueryLog();
 
-        $this->assertCount(4, $queries, sprintf(
-            'Attendu 4 queries fixes (contrats + vehicles + VFC eager + pricings), obtenu %d. Queries · %s',
+        // Lot 2 réductions commerciales · +1 SQL par année pour le
+        // préchargement des réductions (preloadForCompaniesYear × 2 ans).
+        // Total · 4 (fiscal/billing core) + 2 (réductions) = 6.
+        $this->assertCount(6, $queries, sprintf(
+            'Attendu 6 queries fixes (4 billing core + 2 réductions × années), obtenu %d. Queries · %s',
             count($queries),
             implode(' | ', array_map(static fn ($q) => $q['query'], $queries)),
         ));

@@ -17,6 +17,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  * {@see App\Exceptions\Billing\MissingPricingException} **avant** de
  * retourner ce DTO ; donc une instance présente garantit l'exhaustivité
  * des tarifs.
+ *
+ * **Sémantique réductions commerciales (Lot 2)** ·
+ *   - `totalCents` = NET (somme `lines[].totalCents`). Rétrocompat 100 %.
+ *   - `grossTotalCents` = BRUT (somme `lines[].grossTotalCents`).
+ *   - `totalDiscountCents` = somme des `lines[].discountCents`. Vaut 0
+ *     en l'absence de réduction.
  */
 #[TypeScript]
 final class BillingCalculationData extends Data
@@ -31,7 +37,11 @@ final class BillingCalculationData extends Data
         public int $month,
         #[DataCollectionOf(BillingLineData::class)]
         public array $lines,
-        /** Somme des `lines[].totalCents`. */
+        /** Somme des `lines[].totalCents` (= net). */
         public int $totalCents,
+        /** Somme des `lines[].grossTotalCents` (= brut avant réduction). */
+        public int $grossTotalCents = 0,
+        /** Somme des `lines[].discountCents`. */
+        public int $totalDiscountCents = 0,
     ) {}
 }

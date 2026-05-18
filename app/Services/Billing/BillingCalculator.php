@@ -73,8 +73,12 @@ final readonly class BillingCalculator
             );
         }
 
-        // Étape 3 : daysUsed par véhicule (dédoublonnage par set de dates).
-        $daysByVehicle = $this->aggregateDaysByVehicle($contracts, $monthStart, $monthEnd);
+        // Étape 3 : dates utilisées par véhicule (Lot 2 réductions
+        // commerciales) · on conserve la liste pour permettre au
+        // `DiscountApplier` de calculer le prorata jour par jour. Le
+        // daysUsed se déduit par `count($usedDates)`.
+        $usedDatesByVehicle = $this->aggregateUsedDatesByVehicle($contracts, $monthStart, $monthEnd);
+        $daysByVehicle = array_map(static fn (array $dates): int => count($dates), $usedDatesByVehicle);
 
         // Étape 4 : vérification exhaustive des tarifs · batch lookup
         // unique sur tous les véhicules présents ce mois (élimine N+1
@@ -111,6 +115,8 @@ final readonly class BillingCalculator
                 monthlyCents: $pricing->monthly_rate_cents,
             );
 
+            // Lot 2 · expose usedDates et grossTotalCents (= net tant
+            // qu'aucune réduction · DiscountApplier surchargera ensuite).
             $lines[] = new BillingLineData(
                 vehicleId: $vehicleId,
                 licensePlate: $vehicle->license_plate,
@@ -124,6 +130,12 @@ final readonly class BillingCalculator
                 weeklyRateCents: $pricing->weekly_rate_cents,
                 monthlyRateCents: $pricing->monthly_rate_cents,
                 totalCents: $breakdown->totalCents,
+                grossTotalCents: $breakdown->totalCents,
+                discountCents: 0,
+                appliedDiscountId: null,
+                appliedDiscountBasisPoints: null,
+                appliedDiscountLabel: null,
+                usedDates: $usedDatesByVehicle[$vehicleId] ?? [],
             );
         }
 
@@ -133,6 +145,8 @@ final readonly class BillingCalculator
         );
 
         $total = array_sum(array_map(static fn (BillingLineData $l): int => $l->totalCents, $lines));
+        $gross = array_sum(array_map(static fn (BillingLineData $l): int => $l->grossTotalCents, $lines));
+        $discount = array_sum(array_map(static fn (BillingLineData $l): int => $l->discountCents, $lines));
 
         return new BillingCalculationData(
             companyId: $companyId,
@@ -140,6 +154,8 @@ final readonly class BillingCalculator
             month: $month,
             lines: $lines,
             totalCents: $total,
+            grossTotalCents: $gross,
+            totalDiscountCents: $discount,
         );
     }
 
@@ -276,7 +292,9 @@ final readonly class BillingCalculator
             );
         }
 
-        $daysByVehicle = $this->aggregateDaysByVehicle($monthContracts, $monthStart, $monthEnd);
+        // Lot 2 · expose usedDates pour le DiscountApplier en aval.
+        $usedDatesByVehicle = $this->aggregateUsedDatesByVehicle($monthContracts, $monthStart, $monthEnd);
+        $daysByVehicle = array_map(static fn (array $dates): int => count($dates), $usedDatesByVehicle);
         $vehicleIds = array_keys($daysByVehicle);
 
         $missing = [];
@@ -306,6 +324,8 @@ final readonly class BillingCalculator
                 monthlyCents: $pricing->monthly_rate_cents,
             );
 
+            // Lot 2 · expose usedDates et grossTotalCents (= net tant
+            // qu'aucune réduction · DiscountApplier surchargera ensuite).
             $lines[] = new BillingLineData(
                 vehicleId: $vehicleId,
                 licensePlate: $vehicle->license_plate,
@@ -319,6 +339,12 @@ final readonly class BillingCalculator
                 weeklyRateCents: $pricing->weekly_rate_cents,
                 monthlyRateCents: $pricing->monthly_rate_cents,
                 totalCents: $breakdown->totalCents,
+                grossTotalCents: $breakdown->totalCents,
+                discountCents: 0,
+                appliedDiscountId: null,
+                appliedDiscountBasisPoints: null,
+                appliedDiscountLabel: null,
+                usedDates: $usedDatesByVehicle[$vehicleId] ?? [],
             );
         }
 
@@ -328,6 +354,8 @@ final readonly class BillingCalculator
         );
 
         $total = array_sum(array_map(static fn (BillingLineData $l): int => $l->totalCents, $lines));
+        $gross = array_sum(array_map(static fn (BillingLineData $l): int => $l->grossTotalCents, $lines));
+        $discount = array_sum(array_map(static fn (BillingLineData $l): int => $l->discountCents, $lines));
 
         return new BillingCalculationData(
             companyId: $companyId,
@@ -335,6 +363,8 @@ final readonly class BillingCalculator
             month: $month,
             lines: $lines,
             totalCents: $total,
+            grossTotalCents: $gross,
+            totalDiscountCents: $discount,
         );
     }
 
@@ -427,15 +457,21 @@ final readonly class BillingCalculator
     }
 
     /**
-     * Agrège les jours utilisés par véhicule sur la fenêtre `[start, end]`,
+     * Agrège les dates utilisées par véhicule sur la fenêtre `[start, end]`,
      * en dédoublonnant les dates communes à plusieurs contrats. Préserve
      * l'ordre d'apparition des véhicules (pas de tri ici · le tri par
      * plaque est appliqué en aval).
      *
+     * **Lot 2 réductions commerciales** · retourne désormais la liste
+     * complète des dates ISO Y-m-d (et non plus le count) pour permettre
+     * au `DiscountApplier` aval de calculer le prorata partiel jour par
+     * jour. Le count `daysUsed` se déduit par `count($dates)` sans coût
+     * supplémentaire.
+     *
      * @param  iterable<int, Contract>  $contracts
-     * @return array<int, int> vehicleId → daysUsed
+     * @return array<int, list<string>> vehicleId → list<dateStr ISO Y-m-d> triée
      */
-    private function aggregateDaysByVehicle(
+    private function aggregateUsedDatesByVehicle(
         iterable $contracts,
         CarbonImmutable $monthStart,
         CarbonImmutable $monthEnd,
@@ -447,7 +483,13 @@ final readonly class BillingCalculator
             static fn (Contract $contract): int => $contract->vehicle_id,
         );
 
-        return array_map(static fn (array $set): int => count($set), $datesByVehicle);
+        // Convertit array<dateStr, true> en list<dateStr> triée
+        // (clés du set en valeurs). L'ordre chronologique est garanti
+        // par l'insertion ordonnée dans `expandContractsByKey`.
+        return array_map(
+            static fn (array $set): array => array_keys($set),
+            $datesByVehicle,
+        );
     }
 
     /**

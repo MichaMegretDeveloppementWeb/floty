@@ -12,6 +12,8 @@ use App\Exceptions\Invoice\InvoiceAlreadyExistsException;
 use App\Models\Company;
 use App\Models\Invoice;
 use App\Services\Billing\BillingCalculator;
+use App\Services\Billing\Discount\DiscountApplier;
+use App\Services\Billing\Discount\DiscountResolver;
 use App\Services\Invoice\InvoicePdfRenderer;
 use App\Services\Invoice\InvoicePdfStorage;
 use Carbon\CarbonImmutable;
@@ -52,6 +54,8 @@ final readonly class GenerateInvoiceAction
         private BillingCalculator $calculator,
         private InvoicePdfRenderer $pdfRenderer,
         private InvoicePdfStorage $pdfStorage,
+        private DiscountResolver $discountResolver,
+        private DiscountApplier $discountApplier,
     ) {}
 
     /**
@@ -92,6 +96,14 @@ final readonly class GenerateInvoiceAction
 
         // Étape 2 : calcul (laisse remonter MissingPricingException).
         $calculation = $this->calculator->calculate($companyId, $year, $month);
+
+        // Étape 2.5 (Lot 2 réductions commerciales) · applique les
+        // réductions actives sur la période. Snapshot figé via les
+        // colonnes `gross_total_cents` / `discount_cents` /
+        // `applied_discount_id` ci-dessous. Branche d'équivalence
+        // stricte si aucune réduction active.
+        $discountIndex = $this->discountResolver->preloadForCompanyYear($companyId, $year);
+        $calculation = $this->discountApplier->applyWithIndex($calculation, $discountIndex);
 
         // Étape 3-7 en transaction.
         return DB::transaction(function () use (
@@ -139,6 +151,9 @@ final readonly class GenerateInvoiceAction
                     'month' => $month,
                     'invoice_number' => $invoiceNumber,
                     'total_ht_cents' => $calculation->totalCents,
+                    // Lot 2 · snapshot brut + total réductions figés.
+                    'total_gross_cents' => $calculation->grossTotalCents,
+                    'total_discount_cents' => $calculation->totalDiscountCents,
                     'pdf_path' => $storage['path'],
                     'pdf_hash' => $storage['hash'],
                     'generated_at' => $generatedAt,
@@ -163,6 +178,10 @@ final readonly class GenerateInvoiceAction
                         'weekly_rate_cents' => $line->weeklyRateCents,
                         'monthly_rate_cents' => $line->monthlyRateCents,
                         'total_ht_cents' => $line->totalCents,
+                        // Lot 2 · snapshot brut + réduction + FK réduction.
+                        'gross_total_cents' => $line->grossTotalCents,
+                        'discount_cents' => $line->discountCents,
+                        'applied_discount_id' => $line->appliedDiscountId,
                     ],
                     $calculation->lines,
                 );

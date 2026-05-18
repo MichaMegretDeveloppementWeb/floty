@@ -30,6 +30,8 @@ use Illuminate\Support\Carbon;
  * @property int $month
  * @property string $invoice_number
  * @property int $total_ht_cents
+ * @property int $total_gross_cents
+ * @property int $total_discount_cents
  * @property bool $is_divergent
  * @property int|null $superseded_by_id
  * @property Carbon|null $obsolete_at
@@ -51,6 +53,8 @@ use Illuminate\Support\Carbon;
     'month',
     'invoice_number',
     'total_ht_cents',
+    'total_gross_cents',
+    'total_discount_cents',
     'is_divergent',
     'superseded_by_id',
     'obsolete_at',
@@ -75,6 +79,8 @@ final class Invoice extends Model
             'year' => 'integer',
             'month' => 'integer',
             'total_ht_cents' => 'integer',
+            'total_gross_cents' => 'integer',
+            'total_discount_cents' => 'integer',
             'is_divergent' => 'boolean',
             'generated_at' => 'datetime',
             'obsolete_at' => 'datetime',

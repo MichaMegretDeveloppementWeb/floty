@@ -32,6 +32,9 @@ use Illuminate\Support\Carbon;
  * @property int $weekly_rate_cents
  * @property int $monthly_rate_cents
  * @property int $total_ht_cents
+ * @property int $gross_total_cents
+ * @property int $discount_cents
+ * @property int|null $applied_discount_id
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read Invoice $invoice
@@ -49,6 +52,9 @@ use Illuminate\Support\Carbon;
     'weekly_rate_cents',
     'monthly_rate_cents',
     'total_ht_cents',
+    'gross_total_cents',
+    'discount_cents',
+    'applied_discount_id',
 ])]
 final class InvoiceLine extends Model
 {
@@ -69,6 +75,8 @@ final class InvoiceLine extends Model
             'weekly_rate_cents' => 'integer',
             'monthly_rate_cents' => 'integer',
             'total_ht_cents' => 'integer',
+            'gross_total_cents' => 'integer',
+            'discount_cents' => 'integer',
         ];
     }
 

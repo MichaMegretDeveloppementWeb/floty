@@ -14,6 +14,9 @@ use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Billing\MonthlyBreakdownEntryData;
 use App\Exceptions\Billing\MissingPricingException;
 use App\Models\Contract;
+use App\Services\Billing\Discount\DiscountApplier;
+use App\Services\Billing\Discount\DiscountResolver;
+use App\Services\Billing\Discount\ResolvedDiscountIndex;
 
 /**
  * Compose les récaps mensuels 12-mois consommés par les fiches Show
@@ -66,6 +69,8 @@ final class BillingBreakdownService
         private readonly InvoiceReadRepositoryInterface $invoiceRepository,
         private readonly ContractReadRepositoryInterface $contractRepository,
         private readonly VehicleReadRepositoryInterface $vehicleRepository,
+        private readonly DiscountResolver $discountResolver,
+        private readonly DiscountApplier $discountApplier,
     ) {}
 
     /**
@@ -85,6 +90,8 @@ final class BillingBreakdownService
         $entries = [];
         $totalDays = 0;
         $totalCents = 0;
+        $totalGrossCents = 0;
+        $totalDiscountCents = 0;
         $hasAnyMissing = false;
 
         // Lookup unique des factures déjà émises pour le couple
@@ -95,6 +102,12 @@ final class BillingBreakdownService
         // Batch des 12 mois en 2 SQL totales (contrats année + pricings
         // batched) · au lieu de 12× findForCompanyInPeriod + N pricings.
         $monthlyResults = $this->calculator->calculateYear($companyId, $year);
+
+        // Lot 2 · applique les réductions commerciales en post-process.
+        // Branche d'équivalence stricte · si aucune réduction active,
+        // `applyToMonthlyResults` retourne les inputs inchangés.
+        $discountIndex = $this->discountResolver->preloadForCompanyYear($companyId, $year);
+        $monthlyResults = $this->discountApplier->applyToMonthlyResults($monthlyResults, $discountIndex);
 
         for ($month = 1; $month <= 12; $month++) {
             $existing = $existingInvoices[$month] ?? null;
@@ -114,6 +127,10 @@ final class BillingBreakdownService
                     existingInvoiceNumber: $existing['invoiceNumber'] ?? null,
                     invoicedDaysUsed: $existing['invoicedDaysUsed'] ?? null,
                     invoicedTotalCents: $existing['totalHtCents'] ?? null,
+                    grossTotalCents: null,
+                    totalDiscountCents: null,
+                    invoicedGrossTotalCents: $existing['grossTotalCents'] ?? null,
+                    invoicedTotalDiscountCents: $existing['totalDiscountCents'] ?? null,
                 );
                 $hasAnyMissing = true;
 
@@ -133,9 +150,15 @@ final class BillingBreakdownService
                 existingInvoiceNumber: $existing['invoiceNumber'] ?? null,
                 invoicedDaysUsed: $existing['invoicedDaysUsed'] ?? null,
                 invoicedTotalCents: $existing['totalHtCents'] ?? null,
+                grossTotalCents: $result->grossTotalCents,
+                totalDiscountCents: $result->totalDiscountCents,
+                invoicedGrossTotalCents: $existing['grossTotalCents'] ?? null,
+                invoicedTotalDiscountCents: $existing['totalDiscountCents'] ?? null,
             );
             $totalDays += $monthDays;
             $totalCents += $result->totalCents;
+            $totalGrossCents += $result->grossTotalCents;
+            $totalDiscountCents += $result->totalDiscountCents;
         }
 
         return new MonthlyBillingBreakdownData(
@@ -146,6 +169,8 @@ final class BillingBreakdownService
             // T11 / E.17 : total partiel (mois sans missing pricing) toujours peuplé.
             yearTotalCentsPartial: $totalCents,
             hasAnyMissingPricing: $hasAnyMissing,
+            yearTotalGrossCentsPartial: $totalGrossCents,
+            yearTotalDiscountCentsPartial: $totalDiscountCents,
         );
     }
 
@@ -258,7 +283,18 @@ final class BillingBreakdownService
             }
         }
 
+        // Lot 2 · précharge les réductions actives par (company × year)
+        // en 1 SQL par année (multi-cies). Index par companyId pour
+        // appliquer en aval ligne par ligne.
+        $companyIdList = array_keys($byCompanyByYear);
+        $discountIndexByCompanyByYear = [];
+        foreach ($years as $year) {
+            $discountIndexByCompanyByYear[$year] = $this->discountResolver
+                ->preloadForCompaniesYear($companyIdList, $year);
+        }
+
         // Compute totals en mémoire via BillingCalculator (0 query).
+        // Application DiscountApplier en post-process (no-op si index vide).
         $totals = array_fill_keys($years, 0);
         foreach ($byCompanyByYear as $companyId => $byYear) {
             foreach ($byYear as $year => $companyYearContracts) {
@@ -269,6 +305,8 @@ final class BillingBreakdownService
                     $companyYearContracts,
                     $pricingsForYear,
                 );
+                $index = $discountIndexByCompanyByYear[$year][$companyId] ?? ResolvedDiscountIndex::empty();
+                $monthlyResults = $this->discountApplier->applyToMonthlyResults($monthlyResults, $index);
                 for ($month = 1; $month <= 12; $month++) {
                     $result = $monthlyResults[$month];
                     if (! $result instanceof MissingPricingException) {
@@ -353,7 +391,17 @@ final class BillingBreakdownService
         $months = [];
         $totalDays = 0;
         $totalCents = 0;
+        $totalGrossCents = 0;
+        $totalDiscountCents = 0;
         $hasAnyMissing = false;
+
+        // Lot 2 · précharge les réductions actives par année du contrat
+        // (cache local pour éviter de précharger 2× si contrat monoyear).
+        $discountIndexByYear = [];
+        $loadIndex = function (int $year) use ($contract, &$discountIndexByYear): ResolvedDiscountIndex {
+            return $discountIndexByYear[$year] ??= $this->discountResolver
+                ->preloadForCompanyYear((int) $contract->company_id, $year);
+        };
 
         // Itère mois par mois entre start et end (inclus).
         $cursor = $start->startOfMonth();
@@ -379,6 +427,8 @@ final class BillingBreakdownService
                     daysInMonth: $daysInMonth,
                     totalCents: null,
                     hasMissingPricing: true,
+                    grossTotalCents: null,
+                    discountCents: null,
                 );
                 $totalDays += $daysInMonth;
                 $hasAnyMissing = true;
@@ -390,15 +440,59 @@ final class BillingBreakdownService
                     monthlyCents: $pricing->monthly_rate_cents,
                 );
 
+                // Lot 2 · applique la réduction inline · prorata par
+                // jours couverts par une réduction active. Équivalence
+                // stricte si index vide (cas dominant).
+                $grossCents = $breakdown->totalCents;
+                $discountCents = 0;
+                $index = $loadIndex($year);
+                if (! $index->isEmpty()) {
+                    $discountedDays = 0;
+                    $bp = 0;
+                    $cursor2 = $clipStart;
+                    while (! $cursor2->isAfter($clipEnd)) {
+                        $discount = $index->findFor(
+                            (int) $contract->vehicle_id,
+                            $cursor2->toDateString(),
+                        );
+                        if ($discount !== null) {
+                            $discountedDays++;
+                            // bp homogène garanti par le ConflictService
+                            // (1 seule réduction active par date sur ce
+                            // véhicule). On capture le bp de la 1ère
+                            // trouvée pour le prorata.
+                            if ($bp === 0) {
+                                $bp = $discount->discount_basis_points;
+                            }
+                        }
+                        $cursor2 = $cursor2->addDay();
+                    }
+
+                    if ($discountedDays > 0 && $bp > 0) {
+                        $discountCents = (int) round(
+                            $grossCents * $discountedDays * $bp
+                                / ($daysInMonth * 10000),
+                        );
+                        if ($discountCents > $grossCents) {
+                            $discountCents = $grossCents;
+                        }
+                    }
+                }
+                $netCents = $grossCents - $discountCents;
+
                 $months[] = new ContractBillingMonthData(
                     year: $year,
                     month: $cursor->month,
                     daysInMonth: $daysInMonth,
-                    totalCents: $breakdown->totalCents,
+                    totalCents: $netCents,
                     hasMissingPricing: false,
+                    grossTotalCents: $grossCents,
+                    discountCents: $discountCents,
                 );
                 $totalDays += $daysInMonth;
-                $totalCents += $breakdown->totalCents;
+                $totalCents += $netCents;
+                $totalGrossCents += $grossCents;
+                $totalDiscountCents += $discountCents;
             }
 
             $cursor = $cursor->addMonth();
@@ -409,6 +503,8 @@ final class BillingBreakdownService
             totalDaysUsed: $totalDays,
             totalCents: $hasAnyMissing ? null : $totalCents,
             hasAnyMissingPricing: $hasAnyMissing,
+            totalGrossCentsPartial: $totalGrossCents,
+            totalDiscountCentsPartial: $totalDiscountCents,
         );
     }
 }
