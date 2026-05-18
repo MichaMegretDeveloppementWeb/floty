@@ -13,6 +13,7 @@ import InputError from '@/Components/Ui/InputError/InputError.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
 import { useVehicleFullYearTax } from '@/Composables/Contract/useVehicleFullYearTax';
+import { useVehicleYearlyRates } from '@/Composables/Contract/useVehicleYearlyRates';
 import {
     findLongestFreeSubrange,
     rangeConflicts,
@@ -89,6 +90,26 @@ const { result: vehicleFullYearTax, loading: vehicleFullYearTaxLoading } = useVe
     vehicleId: toRef(props.form, 'vehicle_id'),
     startDate: toRef(props.form, 'start_date'),
 });
+
+// SC9 (2026-05-18) · tarifs annuels J/S/M du véhicule sélectionné ·
+// même pattern que la taxe pleine (defer AJAX à la sélection, debounce
+// 200 ms). Affiché sous la ligne « Taxe pleine » au format
+// `Loyer J 77 € · S 440 € · M 1 540 €`.
+const { result: vehicleYearlyRates, loading: vehicleYearlyRatesLoading } = useVehicleYearlyRates({
+    vehicleId: toRef(props.form, 'vehicle_id'),
+    startDate: toRef(props.form, 'start_date'),
+});
+
+const hasYearlyRates = computed<boolean>(
+    () =>
+        vehicleYearlyRates.value !== null
+        && (vehicleYearlyRates.value.dailyCents !== null
+            || vehicleYearlyRates.value.weeklyCents !== null
+            || vehicleYearlyRates.value.monthlyCents !== null),
+);
+
+const formatRate = (cents: number | null): string =>
+    cents === null ? '-' : formatEur(cents / 100, 0);
 
 const selectedVehicleFullYearTax = computed<{ year: number; tax: number; fallback: boolean } | null>(() => {
     const r = vehicleFullYearTax.value;
@@ -246,6 +267,29 @@ return null;
                             (dernière année connue · {{ selectedVehicleFullYearTax.year }})
                         </span>
                         <span v-else>({{ selectedVehicleFullYearTax.year }})</span>
+                    </p>
+                    <!-- SC9 (2026-05-18) · tarifs annuels jour/semaine/mois du
+                         véhicule sélectionné · même format que la cellule
+                         planning. Tiret muet pour chaque tarif non renseigné. -->
+                    <p
+                        v-if="form.vehicle_id !== null && vehicleYearlyRatesLoading"
+                        class="mt-1 font-mono text-[11px] text-slate-400 tabular-nums"
+                    >
+                        Loyer <span class="inline-block animate-pulse">…</span>
+                    </p>
+                    <p
+                        v-else-if="vehicleYearlyRates && hasYearlyRates"
+                        class="mt-1 font-mono text-[11px] text-slate-500 tabular-nums"
+                    >
+                        Loyer
+                        <span class="text-slate-400">J</span>
+                        <span class="text-slate-700">{{ formatRate(vehicleYearlyRates.dailyCents) }}</span>
+                        <span class="mx-1 text-slate-300">·</span>
+                        <span class="text-slate-400">S</span>
+                        <span class="text-slate-700">{{ formatRate(vehicleYearlyRates.weeklyCents) }}</span>
+                        <span class="mx-1 text-slate-300">·</span>
+                        <span class="text-slate-400">M</span>
+                        <span class="text-slate-700">{{ formatRate(vehicleYearlyRates.monthlyCents) }}</span>
                     </p>
                     <InputError :message="form.errors.vehicle_id" />
                 </div>

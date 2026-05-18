@@ -43,6 +43,7 @@ import {
     HEATMAP_CELL_WIDTH,
     HEATMAP_GRID_WIDTH,
 } from '@/Components/Features/Planning/Heatmap/utils/density';
+import { monthBoundariesInPx } from '@/Components/Features/Planning/Heatmap/utils/monthBoundaries';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
 import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
@@ -88,20 +89,27 @@ defineEmits<{
     'cell-click': [payload: { vehicleId: number; week: number }];
 }>();
 
-const monthLabels = [
-    { name: 'Jan', weeks: 4 },
-    { name: 'Fév', weeks: 4 },
-    { name: 'Mar', weeks: 5 },
-    { name: 'Avr', weeks: 4 },
-    { name: 'Mai', weeks: 4 },
-    { name: 'Juin', weeks: 5 },
-    { name: 'Juil', weeks: 4 },
-    { name: 'Août', weeks: 4 },
-    { name: 'Sept', weeks: 5 },
-    { name: 'Oct', weeks: 4 },
-    { name: 'Nov', weeks: 4 },
-    { name: 'Déc', weeks: 5 },
-];
+const MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+
+/**
+ * SC6 (2026-05-18) · 12 bandes mensuelles avec positions pixel EXACTES
+ * du 1er de chaque mois (au lieu de l'approximation ratio fixe). Utilisé
+ * pour ·
+ *   - le header (entêtes mois) · chaque label positionné au début de sa
+ *     bande (avec width = endPx - startPx pour répartir le label centré)
+ *   - l'overlay alterné mois pair/impair derrière les body rows (bandes
+ *     bg-slate-100 sur impairs, transparentes sur pairs) · la frontière
+ *     entre 2 mois tombe pile à la transition, même si elle est au
+ *     milieu d'une cellule semaine.
+ */
+const monthBands = computed(() =>
+    monthBoundariesInPx(props.fiscalYear, HEATMAP_CELL_WIDTH, 1)
+        .map((band) => ({
+            ...band,
+            name: MONTH_NAMES[band.monthIdx - 1]!,
+            widthPx: band.endPx - band.startPx,
+        })),
+);
 
 function isCompanyVariant(v: OverviewVehicle | CompanyVehicle): v is CompanyVehicle {
     return 'weeksGlobal' in v;
@@ -341,20 +349,32 @@ function syncFrom(e: Event): void {
                             alignés avec les cellules du body, même en
                             croissance.
                         -->
+                        <!-- SC6 (2026-05-18) · header positions PIXEL EXACTES
+                             (au lieu d'un ratio fixe weeks). Chaque bande
+                             monthBand a son startPx + widthPx précis · le
+                             label « Jan/Fév/... » et le montant loyer sont
+                             positionnés en absolute pour être strictement
+                             alignés avec les frontières de mois (qui peuvent
+                             tomber au milieu d'une cellule semaine quand une
+                             semaine ISO chevauche 2 mois). -->
                         <div
                             class="sticky top-0 z-10 bg-white pt-4 pb-2"
                             :style="{ minWidth: `${HEATMAP_GRID_WIDTH}px` }"
                         >
-                            <div class="flex h-4 gap-[1px]">
+                            <div
+                                class="relative h-4"
+                                :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                            >
                                 <div
-                                    v-for="month in monthLabels"
-                                    :key="month.name"
+                                    v-for="band in monthBands"
+                                    :key="band.name"
                                     :style="{
-                                        flex: `${month.weeks} 0 ${month.weeks * HEATMAP_CELL_WIDTH - 1}px`,
+                                        left: `${band.startPx}px`,
+                                        width: `${band.widthPx}px`,
                                     }"
-                                    class="text-xs font-medium text-slate-500"
+                                    class="absolute top-0 truncate text-xs font-medium text-slate-500"
                                 >
-                                    {{ month.name }}
+                                    {{ band.name }}
                                 </div>
                             </div>
                             <!-- SC1 (2026-05-18) · loyer mensuel cumulé NET
@@ -362,14 +382,18 @@ function syncFrom(e: Event): void {
                                  inline tant que la prop defer "rentals" n'a
                                  pas répondu · tiret discret si tarif manquant
                                  sur le mois. Format entier sans centimes. -->
-                            <div class="mt-1 flex h-3 gap-[1px]">
+                            <div
+                                class="relative mt-1 h-3"
+                                :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
+                            >
                                 <div
-                                    v-for="(month, idx) in monthLabels"
-                                    :key="`rent-${month.name}`"
+                                    v-for="band in monthBands"
+                                    :key="`rent-${band.name}`"
                                     :style="{
-                                        flex: `${month.weeks} 0 ${month.weeks * HEATMAP_CELL_WIDTH - 1}px`,
+                                        left: `${band.startPx}px`,
+                                        width: `${band.widthPx}px`,
                                     }"
-                                    class="font-mono text-[10px] text-slate-500 tabular-nums"
+                                    class="absolute top-0 truncate font-mono text-[10px] text-slate-500 tabular-nums"
                                 >
                                     <template v-if="monthlyRentals === undefined">
                                         <span
@@ -377,11 +401,11 @@ function syncFrom(e: Event): void {
                                             aria-label="Calcul du loyer en cours"
                                         ></span>
                                     </template>
-                                    <template v-else-if="monthlyRentals[idx + 1] === null">
+                                    <template v-else-if="monthlyRentals[band.monthIdx] === null">
                                         <span class="text-slate-300">-</span>
                                     </template>
                                     <template v-else>
-                                        {{ formatEur(monthlyRentals[idx + 1]! / 100, 0) }}
+                                        {{ formatEur(monthlyRentals[band.monthIdx]! / 100, 0) }}
                                     </template>
                                 </div>
                             </div>
@@ -393,33 +417,37 @@ function syncFrom(e: Event): void {
                             utilisent `grow` pour absorber l'espace
                             supplémentaire au prorata.
 
-                            SC2 (2026-05-18) · wrapper relatif qui porte un
-                            overlay 12 bandes verticales mois pair/impair
-                            (`bg-slate-50` sur impairs · sobre, tokens DS
-                            seulement). L'overlay est `pointer-events-none`
-                            et derrière les rows · les boutons cellule
-                            (h-7, `bg-white` ou `bg-blue-*`) sont opaques
-                            et masquent l'overlay à leur emplacement · le
-                            signal de frontière de mois apparaît dans les
-                            ~14px de blanc au-dessus/en-dessous de chaque
-                            row (h-56 contient des boutons h-7) et dans les
-                            gaps verticaux `gap-[1px]` entre cellules.
+                            SC6 (2026-05-18) · l'overlay utilise désormais des
+                            positions PIXEL EXACTES (monthBands) au lieu d'un
+                            ratio fixe approximatif. La frontière entre 2 mois
+                            tombe exactement à la transition jour, même au
+                            milieu d'une cellule semaine ISO chevauchant 2
+                            mois. Les cellules vides (`bg-white` opaque)
+                            masquent l'overlay à leur emplacement · l'effet
+                            « le fond passe DESSOUS les cellules » apparaît
+                            dans les gaps verticaux 1px entre cellules et
+                            dans les 14px de blanc au-dessus/en-dessous de
+                            chaque row (les boutons h-7 ne remplissent pas
+                            les 56px de la row).
                         -->
                         <div
                             class="relative"
                             :style="{ minWidth: `${HEATMAP_GRID_WIDTH}px` }"
                         >
                             <div
-                                class="pointer-events-none absolute inset-0 flex gap-[1px]"
+                                class="pointer-events-none absolute inset-y-0 left-0"
+                                :style="{ width: `${HEATMAP_GRID_WIDTH}px` }"
                                 aria-hidden="true"
                             >
                                 <div
-                                    v-for="(month, idx) in monthLabels"
-                                    :key="`bg-${month.name}`"
+                                    v-for="band in monthBands"
+                                    :key="`bg-${band.name}`"
                                     :style="{
-                                        flex: `${month.weeks} 0 ${month.weeks * HEATMAP_CELL_WIDTH - 1}px`,
+                                        left: `${band.startPx}px`,
+                                        width: `${band.widthPx}px`,
                                     }"
-                                    :class="idx % 2 === 0 ? 'bg-slate-100' : ''"
+                                    class="absolute inset-y-0"
+                                    :class="band.isOdd ? 'bg-slate-100' : ''"
                                 />
                             </div>
                             <div

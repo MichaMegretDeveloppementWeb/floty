@@ -6,20 +6,25 @@ namespace App\Services\Planning;
 
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Data\User\Billing\ContractBillingBreakdownData;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Fiscal\FiscalBreakdownData;
 use App\Data\User\Fiscal\FiscalPreviewData;
 use App\Data\User\Planning\PlanningWeekData;
 use App\Data\User\Planning\PreviewRentalsInputData;
 use App\Data\User\Planning\PreviewTaxesInputData;
+use App\Data\User\Planning\RentalMonthlyImpactData;
 use App\Data\User\Planning\RentalPreviewData;
 use App\Data\User\Planning\WeekCompanyPresenceData;
 use App\Data\User\Planning\WeekDayContractData;
 use App\Data\User\Planning\WeekDaySlotData;
 use App\Enums\Contract\ContractType;
+use App\Exceptions\Billing\MissingPricingException;
 use App\Models\Contract;
 use App\Models\RentalDiscount;
 use App\Services\Billing\BillingBreakdownService;
+use App\Services\Billing\BillingCalculator;
+use App\Services\Billing\Discount\DiscountApplier;
 use App\Services\Billing\Discount\DiscountResolver;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FiscalCalculator;
@@ -43,6 +48,8 @@ final class WeekDetailService
         private readonly FiscalCalculator $calculator,
         private readonly BillingBreakdownService $billingBreakdown,
         private readonly DiscountResolver $discountResolver,
+        private readonly BillingCalculator $billingCalculator,
+        private readonly DiscountApplier $discountApplier,
     ) {}
 
     /**
@@ -327,7 +334,68 @@ final class WeekDetailService
             appliedDiscountLabel: $label,
             appliedDiscountBasisPoints: $bp,
             hasMissingPricing: false,
+            monthlyImpact: $this->buildMonthlyImpact($contract, $breakdown),
         );
+    }
+
+    /**
+     * Construit la liste « impact mensuel » du contrat synthétique sur le
+     * loyer de l'entreprise · pour chaque mois civil touché par le
+     * contrat, retourne le total mensuel EXISTANT (sans le contrat) et
+     * le NOUVEAU total mensuel (après ajout du contrat, addition simple
+     * car le DateRangePicker garantit l'absence de chevauchement avec
+     * un contrat existant).
+     *
+     * Implémentation · 1 appel `BillingCalculator::calculateYear` par
+     * année touchée (généralement 1, parfois 2 si contrat cross-année) ·
+     * batch 2 SQL totales chacun. Application des réductions actives
+     * pour la cohérence avec la facture finale.
+     *
+     * @return list<RentalMonthlyImpactData>
+     */
+    private function buildMonthlyImpact(
+        Contract $contract,
+        ContractBillingBreakdownData $breakdown,
+    ): array {
+        $companyId = (int) $contract->company_id;
+
+        $yearsTouched = [];
+        foreach ($breakdown->months as $monthData) {
+            $yearsTouched[$monthData->year] = true;
+        }
+
+        /** @var array<string, int> $existingByYearMonth */
+        $existingByYearMonth = [];
+        foreach (array_keys($yearsTouched) as $year) {
+            $monthlyResults = $this->billingCalculator->calculateYear($companyId, $year);
+            $index = $this->discountResolver->preloadForCompanyYear($companyId, $year);
+            $monthlyResults = $this->discountApplier->applyToMonthlyResults($monthlyResults, $index);
+
+            foreach ($monthlyResults as $month => $result) {
+                $existingByYearMonth[$year.'|'.$month] = $result instanceof MissingPricingException
+                    ? 0
+                    : $result->totalCents;
+            }
+        }
+
+        $impact = [];
+        foreach ($breakdown->months as $monthData) {
+            if ($monthData->hasMissingPricing) {
+                continue;
+            }
+
+            $existing = $existingByYearMonth[$monthData->year.'|'.$monthData->month] ?? 0;
+            $induced = $monthData->totalCents ?? 0;
+
+            $impact[] = new RentalMonthlyImpactData(
+                year: $monthData->year,
+                month: $monthData->month,
+                existingNetCents: $existing,
+                newTotalCents: $existing + $induced,
+            );
+        }
+
+        return $impact;
     }
 
     /**

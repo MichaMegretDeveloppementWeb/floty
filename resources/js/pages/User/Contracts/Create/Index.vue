@@ -7,6 +7,7 @@ import FiscalDetailModal from '@/Components/Domain/Contract/FiscalDetailModal.vu
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.vue';
+import { useCompanyMonthlyRentals } from '@/Composables/Contract/useCompanyMonthlyRentals';
 import { useContractFiscalPreview } from '@/Composables/Contract/useContractFiscalPreview';
 import { useContractForm } from '@/Composables/Contract/useContractForm';
 import { useContractRentalPreview } from '@/Composables/Contract/useContractRentalPreview';
@@ -92,6 +93,15 @@ const { preview: rentalPreview, loading: rentalPreviewLoading } = useContractRen
     startDate: toRef(form, 'start_date'),
     endDate: toRef(form, 'end_date'),
 });
+
+// ── Company monthly rentals (SC9 · mini-timeline 12 mois) ───────────
+const { result: companyMonthlyRentalsResult, loading: companyMonthlyRentalsLoading } = useCompanyMonthlyRentals({
+    companyId: toRef(form, 'company_id'),
+    startDate: toRef(form, 'start_date'),
+});
+
+const companyMonthlyRentals = computed(() => companyMonthlyRentalsResult.value?.rentals ?? null);
+const companyMonthlyRentalsYear = computed(() => companyMonthlyRentalsResult.value?.year ?? null);
 
 const fiscalDetailOpen = ref<boolean>(false);
 
@@ -223,6 +233,9 @@ async function submitWithDocuments(): Promise<void> {
                         :preview-loading="previewLoading"
                         :rental-preview="rentalPreview"
                         :rental-preview-loading="rentalPreviewLoading"
+                        :company-monthly-rentals="companyMonthlyRentals"
+                        :company-monthly-rentals-loading="companyMonthlyRentalsLoading"
+                        :company-monthly-rentals-year="companyMonthlyRentalsYear"
                         @open-detail="fiscalDetailOpen = true"
                     />
 
@@ -257,6 +270,9 @@ async function submitWithDocuments(): Promise<void> {
                             :preview-loading="previewLoading"
                             :rental-preview="rentalPreview"
                             :rental-preview-loading="rentalPreviewLoading"
+                            :company-monthly-rentals="companyMonthlyRentals"
+                            :company-monthly-rentals-loading="companyMonthlyRentalsLoading"
+                            :company-monthly-rentals-year="companyMonthlyRentalsYear"
                             @open-detail="fiscalDetailOpen = true"
                         />
                     </div>

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\Planning;
 
+use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -31,6 +32,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 #[TypeScript]
 final class RentalPreviewData extends Data
 {
+    /**
+     * @param  list<RentalMonthlyImpactData>  $monthlyImpact  SC8 · pour chaque mois
+     *                                                        civil touché par le contrat
+     *                                                        synthétique · existant +
+     *                                                        nouveau total. Vide si
+     *                                                        hasMissingPricing.
+     */
     public function __construct(
         public int $daysCount,
         public ?int $grossTotalCents,
@@ -39,5 +47,7 @@ final class RentalPreviewData extends Data
         public ?string $appliedDiscountLabel,
         public ?int $appliedDiscountBasisPoints,
         public bool $hasMissingPricing,
+        #[DataCollectionOf(RentalMonthlyImpactData::class)]
+        public array $monthlyImpact = [],
     ) {}
 }

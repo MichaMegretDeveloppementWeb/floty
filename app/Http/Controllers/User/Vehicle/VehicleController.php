@@ -9,6 +9,7 @@ use App\Actions\Vehicle\ExitVehicleAction;
 use App\Actions\Vehicle\ReactivateVehicleAction;
 use App\Actions\Vehicle\UpdateVehicleAction;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Vehicle\ExitVehicleData;
 use App\Data\User\Vehicle\StoreVehicleData;
@@ -49,6 +50,7 @@ final class VehicleController extends Controller
         private readonly VehicleAggregatesService $vehicleAggregates,
         private readonly VehicleListingService $vehicleListing,
         private readonly VehicleReadRepositoryInterface $vehicleRead,
+        private readonly VehicleYearlyPricingReadRepositoryInterface $vehiclePricings,
         private readonly CreateVehicleAction $createVehicle,
         private readonly UpdateVehicleAction $updateVehicle,
         private readonly ExitVehicleAction $exitVehicle,
@@ -228,6 +230,27 @@ final class VehicleController extends Controller
         }
 
         return response()->json($result);
+    }
+
+    /**
+     * SC9 (2026-05-18) · tarifs annuels (jour/semaine/mois) du véhicule
+     * pour une année donnée · consommé en AJAX par le form Create/Edit
+     * Contract (composable `useVehicleYearlyRates`). Retourne `null` sur
+     * chaque champ si aucun tarif saisi pour cette année.
+     */
+    public function yearlyRates(Vehicle $vehicle, Request $request): JsonResponse
+    {
+        Gate::authorize('viewAny', Vehicle::class);
+
+        $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
+        $pricing = $this->vehiclePricings->findForVehicleAndYear($vehicle->id, $year);
+
+        return response()->json([
+            'year' => $year,
+            'dailyCents' => $pricing?->daily_rate_cents,
+            'weeklyCents' => $pricing?->weekly_rate_cents,
+            'monthlyCents' => $pricing?->monthly_rate_cents,
+        ]);
     }
 
     public function create(): Response

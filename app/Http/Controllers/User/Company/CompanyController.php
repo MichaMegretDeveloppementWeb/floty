@@ -24,6 +24,9 @@ use App\Services\Driver\DriverQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\Declaration\DeclarationLifecycleResolver;
 use App\Services\Fiscal\Declaration\PendingDeclarationsResolver;
+use App\Services\Planning\PlanningHeatmapService;
+use Carbon\CarbonImmutable;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -47,7 +50,28 @@ final class CompanyController extends Controller
         private readonly PendingDeclarationsResolver $pendingDeclarations,
         private readonly PendingInvoicesResolver $pendingInvoices,
         private readonly DeclarationLifecycleResolver $declarationLifecycle,
+        private readonly PlanningHeatmapService $planningHeatmap,
     ) {}
+
+    /**
+     * SC9 (2026-05-18) · 12 montants mensuels NET (post-réductions) pour
+     * cette entreprise × année · consommé en AJAX par le form Create/Edit
+     * Contract (composable `useCompanyMonthlyRentals`, mini-timeline 12
+     * mois dans le récap). Délègue à
+     * {@see PlanningHeatmapService::monthlyRentalTotalsForCompany} (méthode
+     * dédiée slim · doctrine chargement-strict-par-ecran).
+     */
+    public function monthlyRentals(Company $company, Request $request): JsonResponse
+    {
+        Gate::authorize('view', $company);
+
+        $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
+
+        return response()->json([
+            'year' => $year,
+            'rentals' => $this->planningHeatmap->monthlyRentalTotalsForCompany($year, $company->id),
+        ]);
+    }
 
     public function index(CompanyIndexQueryData $query): Response
     {

@@ -29,6 +29,13 @@ import Plate from '@/Components/Ui/Plate/Plate.vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
+/**
+ * Libellés courts FR pour les 12 mois (1=jan, 12=déc) · utilisés sur la
+ * ligne « Nouveau total · Juin 1 350 € · Juil 980 € » du bloc loyer
+ * induit (SC8 · 2026-05-18). Format spécifique à cet affichage compact.
+ */
+const MONTH_LABELS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+
 const props = withDefaults(
     defineProps<{
         vehicle: { plate: string; label: string } | null;
@@ -46,12 +53,23 @@ const props = withDefaults(
          */
         rentalPreview?: App.Data.User.Planning.RentalPreviewData | null;
         rentalPreviewLoading?: boolean;
+        /**
+         * SC9 (2026-05-18) · 12 montants mensuels NET de l'entreprise
+         * sélectionnée × année (defer AJAX). Mini-timeline 12 mois
+         * affichée dans le récap, même forme que sur le planning.
+         */
+        companyMonthlyRentals?: Record<number, number | null> | null;
+        companyMonthlyRentalsLoading?: boolean;
+        companyMonthlyRentalsYear?: number | null;
         /** Mode replié par défaut avec toggle (placement < xl). */
         collapsible?: boolean;
     }>(),
     {
         rentalPreview: null,
         rentalPreviewLoading: false,
+        companyMonthlyRentals: null,
+        companyMonthlyRentalsLoading: false,
+        companyMonthlyRentalsYear: null,
         collapsible: false,
     },
 );
@@ -213,102 +231,189 @@ const showBody = computed<boolean>(
                     </span>
                 </div>
 
-                <!-- Bloc taxes induites -->
-                <div class="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50/40 p-3">
-                    <p class="eyebrow text-blue-700">Taxes induites</p>
-
-                    <div v-if="previewLoading" class="text-xs text-slate-500">
-                        Calcul en cours…
-                    </div>
-
-                    <template v-else-if="preview !== null">
-                        <div class="flex items-center justify-between text-sm">
-                            <span class="text-slate-600">Durée</span>
-                            <span class="font-mono text-slate-900">
-                                {{ preview.daysCount }} j
-                            </span>
-                        </div>
-                        <div class="flex items-center justify-between text-sm">
-                            <span class="text-slate-600">Total</span>
-                            <span class="font-mono font-semibold text-slate-900">
+                <!-- Bloc taxes induites · SC7 refonte design sobre (mockup B) -->
+                <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-slate-100">
+                        <span class="text-[11px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
+                            Taxes induites
+                        </span>
+                        <span v-if="!previewLoading && preview !== null" class="inline-flex items-center gap-2 text-xs">
+                            <span class="font-mono text-slate-500 tabular-nums">{{ preview.daysCount }} j</span>
+                            <span class="text-slate-300">·</span>
+                            <span class="font-mono font-semibold text-slate-900 tabular-nums">
                                 {{ formatEur(preview.breakdown.totalDue, 2) }}
                             </span>
+                        </span>
+                    </div>
+                    <div class="px-3 py-3 text-sm">
+                        <div v-if="previewLoading" class="text-xs text-slate-500">
+                            Calcul en cours…
                         </div>
-                        <div
-                            v-if="preview.breakdown.appliedExemptions.length > 0"
-                            class="text-xs text-emerald-700"
-                        >
-                            ✓ {{ preview.breakdown.appliedExemptions[0]!.reason }}
-                            <span
-                                v-if="preview.breakdown.appliedExemptions.length > 1"
-                                class="text-emerald-600"
+                        <template v-else-if="preview !== null">
+                            <div
+                                v-if="preview.breakdown.appliedExemptions.length > 0"
+                                class="mb-2 rounded-md bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700"
                             >
-                                (+ {{ preview.breakdown.appliedExemptions.length - 1 }} autre{{ preview.breakdown.appliedExemptions.length - 1 > 1 ? 's' : '' }})
-                            </span>
-                        </div>
-                        <button
-                            type="button"
-                            class="self-start text-xs text-blue-700 underline-offset-2 hover:text-blue-900 hover:underline"
-                            @click="$emit('open-detail')"
-                        >
-                            Voir le détail →
-                        </button>
-                    </template>
+                                <span class="font-medium text-emerald-700">✓</span>
+                                {{ preview.breakdown.appliedExemptions[0]!.reason }}
+                                <span
+                                    v-if="preview.breakdown.appliedExemptions.length > 1"
+                                    class="ml-1 text-slate-400"
+                                >
+                                    + {{ preview.breakdown.appliedExemptions.length - 1 }}
+                                </span>
+                            </div>
+                            <button
+                                type="button"
+                                class="text-xs font-medium text-slate-600 underline-offset-2 transition-colors duration-[120ms] hover:text-slate-900 hover:underline"
+                                @click="$emit('open-detail')"
+                            >
+                                Voir le détail →
+                            </button>
+                        </template>
+                    </div>
                 </div>
 
-                <!-- Bloc loyer induit (SC4 · 2026-05-18) · pendant
-                     non-fiscal · net après réductions appliquées. -->
-                <div class="flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50/40 p-3">
-                    <p class="eyebrow text-emerald-700">Loyer induit</p>
-
-                    <div v-if="rentalPreviewLoading" class="text-xs text-slate-500">
-                        Calcul en cours…
+                <!-- Bloc loyer induit · SC7 refonte design sobre (mockup B).
+                     Pendant non-fiscal · net après réductions appliquées. -->
+                <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-slate-100">
+                        <span class="text-[11px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
+                            Loyer induit
+                        </span>
+                        <template v-if="!rentalPreviewLoading && rentalPreview !== null">
+                            <span v-if="rentalPreview.hasMissingPricing" class="text-xs text-amber-700">
+                                Tarif manquant
+                            </span>
+                            <span v-else-if="rentalPreview.netTotalCents !== null" class="inline-flex items-center gap-2 text-xs">
+                                <span class="font-mono text-slate-500 tabular-nums">{{ rentalPreview.daysCount }} j</span>
+                                <span class="text-slate-300">·</span>
+                                <span class="font-mono font-semibold text-slate-900 tabular-nums">
+                                    {{ formatEur(rentalPreview.netTotalCents / 100, 0) }}
+                                </span>
+                            </span>
+                        </template>
                     </div>
-
-                    <template v-else-if="rentalPreview !== null">
-                        <div
-                            v-if="rentalPreview.hasMissingPricing"
-                            class="text-xs text-amber-700"
-                        >
-                            Tarif annuel non renseigné · complète la grille
-                            jour/semaine/mois sur la fiche véhicule pour
-                            calculer le loyer.
+                    <div class="px-3 py-3 text-sm">
+                        <div v-if="rentalPreviewLoading" class="text-xs text-slate-500">
+                            Calcul en cours…
                         </div>
-                        <template v-else>
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="text-slate-600">Loyer brut</span>
-                                <span class="font-mono text-slate-900">
-                                    {{ formatEur((rentalPreview.grossTotalCents ?? 0) / 100, 0) }}
-                                </span>
-                            </div>
+                        <template v-else-if="rentalPreview !== null">
                             <div
-                                v-if="hasRentalDiscount"
-                                class="flex items-center justify-between text-sm text-emerald-700"
+                                v-if="rentalPreview.hasMissingPricing"
+                                class="rounded-md bg-slate-50 px-2.5 py-2 text-xs text-amber-700"
                             >
-                                <span>
-                                    Réductions appliquées
-                                    <span
-                                        v-if="rentalPreview.appliedDiscountLabel"
-                                        class="text-emerald-600"
-                                    >
-                                        ({{ rentalDiscountPercentLabel }}, {{ rentalPreview.appliedDiscountLabel }})
-                                    </span>
-                                    <span v-else class="text-emerald-600">
-                                        ({{ rentalDiscountPercentLabel }})
-                                    </span>
-                                </span>
-                                <span class="font-mono">
-                                    -{{ formatEur((rentalPreview.discountCents ?? 0) / 100, 0) }}
-                                </span>
+                                Tarif annuel non renseigné · complète la grille
+                                jour/semaine/mois sur la fiche véhicule pour
+                                calculer le loyer.
                             </div>
-                            <div class="flex items-center justify-between text-sm">
-                                <span class="font-medium text-slate-900">Total net</span>
-                                <span class="font-mono font-semibold text-slate-900">
-                                    {{ formatEur((rentalPreview.netTotalCents ?? 0) / 100, 0) }}
-                                </span>
+                            <div v-else class="flex flex-col">
+                                <div class="flex justify-between border-b border-slate-100 py-2">
+                                    <span class="text-slate-600">Loyer brut</span>
+                                    <span class="font-mono text-slate-900 tabular-nums">
+                                        {{ formatEur((rentalPreview.grossTotalCents ?? 0) / 100, 0) }}
+                                    </span>
+                                </div>
+                                <div
+                                    v-if="hasRentalDiscount"
+                                    class="flex justify-between border-b border-slate-100 py-2"
+                                >
+                                    <span class="text-emerald-700">
+                                        Réductions appliquées
+                                        <span
+                                            v-if="rentalPreview.appliedDiscountLabel"
+                                            class="ml-1 text-xs text-slate-400"
+                                        >
+                                            {{ rentalDiscountPercentLabel }} · {{ rentalPreview.appliedDiscountLabel }}
+                                        </span>
+                                        <span v-else class="ml-1 text-xs text-slate-400">
+                                            {{ rentalDiscountPercentLabel }}
+                                        </span>
+                                    </span>
+                                    <span class="font-mono text-emerald-700 tabular-nums">
+                                        −{{ formatEur((rentalPreview.discountCents ?? 0) / 100, 0) }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between pt-3">
+                                    <span class="font-medium text-slate-900">Total net</span>
+                                    <span class="font-mono font-semibold text-slate-900 tabular-nums">
+                                        {{ formatEur((rentalPreview.netTotalCents ?? 0) / 100, 0) }}
+                                    </span>
+                                </div>
+                                <!-- SC8 (2026-05-18) · impact mois par mois sur
+                                     la facture entreprise. -->
+                                <div
+                                    v-if="rentalPreview.monthlyImpact && rentalPreview.monthlyImpact.length > 0"
+                                    class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-slate-500"
+                                >
+                                    <span class="text-[10px] font-semibold tracking-[0.1em] text-slate-400 uppercase">
+                                        Nouveau total
+                                    </span>
+                                    <template
+                                        v-for="(impact, idx) in rentalPreview.monthlyImpact"
+                                        :key="`${impact.year}-${impact.month}`"
+                                    >
+                                        <span v-if="idx > 0" class="text-slate-300">·</span>
+                                        <span class="inline-flex items-baseline gap-1">
+                                            <span class="text-slate-600">{{ MONTH_LABELS[impact.month - 1] }}</span>
+                                            <span class="font-mono text-slate-900 tabular-nums">
+                                                {{ formatEur(impact.newTotalCents / 100, 0) }}
+                                            </span>
+                                        </span>
+                                    </template>
+                                </div>
                             </div>
                         </template>
-                    </template>
+                    </div>
+                </div>
+
+                <!-- SC9 (2026-05-18) · mini-timeline 12 mois loyer cumulé
+                     pour l'entreprise sélectionnée × année · même forme
+                     que les montants sous l'entête mois du planning.
+                     Disposition 6×2 (sm) ou 12×1 (md+) pour lisibilité
+                     dans l'aside récap (largeur ~300px). -->
+                <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
+                    <div class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-slate-100">
+                        <span class="text-[11px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
+                            Loyer mensuel
+                        </span>
+                        <span
+                            v-if="companyMonthlyRentalsYear !== null"
+                            class="font-mono text-xs text-slate-400 tabular-nums"
+                        >
+                            {{ companyMonthlyRentalsYear }}
+                        </span>
+                    </div>
+                    <div class="px-3 py-3">
+                        <div v-if="companyMonthlyRentalsLoading" class="text-xs text-slate-500">
+                            Calcul en cours…
+                        </div>
+                        <div
+                            v-else-if="companyMonthlyRentals"
+                            class="grid grid-cols-3 gap-x-3 gap-y-1.5 text-xs"
+                        >
+                            <div
+                                v-for="m in 12"
+                                :key="`mc-${m}`"
+                                class="flex items-baseline justify-between gap-1"
+                            >
+                                <span class="text-slate-500">{{ MONTH_LABELS[m - 1] }}</span>
+                                <span
+                                    v-if="companyMonthlyRentals[m] === null"
+                                    class="text-slate-300"
+                                >-</span>
+                                <span
+                                    v-else
+                                    class="font-mono text-slate-900 tabular-nums"
+                                >
+                                    {{ formatEur(companyMonthlyRentals[m]! / 100, 0) }}
+                                </span>
+                            </div>
+                        </div>
+                        <div v-else class="text-xs text-slate-400">
+                            Sélectionne une entreprise pour voir le loyer mensuel.
+                        </div>
+                    </div>
                 </div>
             </template>
         </div>

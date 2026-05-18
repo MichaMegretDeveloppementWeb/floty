@@ -64,6 +64,13 @@ Route::middleware('auth')
             ->whereNumber('company')
             ->middleware('throttle:60,1')
             ->name('companies.update');
+        // SC9 (2026-05-18) · loyer mensuel cumulé NET (post-réductions)
+        // pour cette entreprise × année · consommé par le form Create/Edit
+        // Contract (mini timeline 12 mois dans le récap).
+        Route::get('/companies/{company}/monthly-rentals', [CompanyController::class, 'monthlyRentals'])
+            ->whereNumber('company')
+            ->middleware('throttle:60,1')
+            ->name('companies.monthly-rentals');
 
         // Vehicles
         Route::get('/vehicles', [VehicleController::class, 'index'])->name('vehicles.index');
@@ -91,6 +98,13 @@ Route::middleware('auth')
             ->whereNumber('vehicle')
             ->middleware('throttle:60,1')
             ->name('vehicles.full-year-tax');
+        // SC9 (2026-05-18) · tarifs annuels jour/semaine/mois du véhicule
+        // pour une année donnée · consommé par le form Create/Edit Contract
+        // (ligne `Loyer J 12 € · S 60 € · M 220 €` sous Taxe pleine).
+        Route::get('/vehicles/{vehicle}/yearly-rates', [VehicleController::class, 'yearlyRates'])
+            ->whereNumber('vehicle')
+            ->middleware('throttle:60,1')
+            ->name('vehicles.yearly-rates');
         Route::get('/vehicles/{vehicle}/edit', [VehicleController::class, 'edit'])
             ->whereNumber('vehicle')
             ->name('vehicles.edit');
