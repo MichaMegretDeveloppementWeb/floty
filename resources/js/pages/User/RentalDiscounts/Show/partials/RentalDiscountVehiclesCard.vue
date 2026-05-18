@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { Car } from 'lucide-vue-next';
-import Card from '@/Components/Ui/Card/Card.vue';
+import { ArrowUpRight, Car } from 'lucide-vue-next';
 import { show as vehicleShowRoute } from '@/routes/user/vehicles';
 
 defineProps<{
@@ -11,53 +10,53 @@ defineProps<{
 </script>
 
 <template>
-    <Card>
-        <template #header>
-            <div class="flex items-baseline justify-between gap-3">
-                <h2 class="text-base font-semibold text-slate-900">
-                    Véhicules concernés
-                </h2>
-                <p v-if="!isAllVehicles" class="text-xs text-slate-500">
-                    {{ vehicles.length }} véhicule{{ vehicles.length > 1 ? 's' : '' }}
-                </p>
-            </div>
-        </template>
+    <section class="rounded-xl border border-slate-200 bg-white">
+        <header class="flex items-baseline justify-between gap-3 px-5 py-3.5 border-b border-slate-100">
+            <h2 class="text-sm font-semibold text-slate-900">
+                Périmètre véhicules
+            </h2>
+            <p v-if="!isAllVehicles" class="font-mono text-xs text-slate-500 tabular-nums">
+                {{ vehicles.length }} véhicule{{ vehicles.length > 1 ? 's' : '' }}
+            </p>
+        </header>
 
-        <div v-if="isAllVehicles" class="flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50/40 px-4 py-3">
-            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-                <Car :size="18" :stroke-width="1.75" />
+        <div v-if="isAllVehicles" class="flex items-center gap-4 px-5 py-4">
+            <span class="inline-flex size-9 shrink-0 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-500">
+                <Car :size="16" :stroke-width="1.75" />
             </span>
-            <div class="flex flex-col gap-0.5">
-                <p class="text-sm font-medium text-blue-900">
+            <div class="flex-1">
+                <p class="text-sm font-medium text-slate-900">
                     Tous les véhicules de l'entreprise
                 </p>
-                <p class="text-xs text-blue-700">
-                    La réduction s'applique à l'ensemble des véhicules utilisés par l'entreprise sur la période, sans liste explicite.
+                <p class="mt-0.5 text-xs text-slate-500">
+                    Inclut les véhicules ajoutés ultérieurement, sans liste explicite.
                 </p>
             </div>
+            <span class="font-mono text-xs text-slate-500 tabular-nums">
+                périmètre dynamique
+            </span>
         </div>
 
         <ul v-else class="divide-y divide-slate-100">
             <li
                 v-for="vehicle in vehicles"
                 :key="vehicle.id"
-                class="flex items-center justify-between gap-3 py-2"
+                class="group flex items-center gap-4 px-5 py-3 transition-colors hover:bg-slate-50"
             >
-                <div class="flex items-center gap-3">
-                    <span class="font-mono text-sm font-medium text-slate-900">
-                        {{ vehicle.licensePlate }}
-                    </span>
-                    <span class="text-sm text-slate-600">
-                        {{ vehicle.brand }} {{ vehicle.model }}
-                    </span>
-                </div>
+                <span class="font-mono text-sm font-medium text-slate-900 tabular-nums">
+                    {{ vehicle.licensePlate }}
+                </span>
+                <span class="flex-1 truncate text-sm text-slate-600">
+                    {{ vehicle.brand }} {{ vehicle.model }}
+                </span>
                 <Link
                     :href="vehicleShowRoute.url({ vehicle: vehicle.id })"
-                    class="text-xs font-medium text-blue-600 hover:underline"
+                    class="inline-flex items-center gap-1 text-xs font-medium text-slate-500 transition-colors group-hover:text-slate-900"
                 >
                     Voir
+                    <ArrowUpRight :size="12" :stroke-width="1.75" />
                 </Link>
             </li>
         </ul>
-    </Card>
+    </section>
 </template>

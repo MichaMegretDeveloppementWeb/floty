@@ -1,6 +1,6 @@
 {
-  "_ActionsBar-DQ7CRgMB.js": {
-    "file": "assets/ActionsBar-DQ7CRgMB.js",
+  "_ActionsBar-BVOv-yzl.js": {
+    "file": "assets/ActionsBar-BVOv-yzl.js",
     "name": "ActionsBar",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -29,13 +29,13 @@
       "assets/ActionsMenu-DaUs72Cj.css"
     ]
   },
-  "_AddressSection-SGkC94Nm.js": {
-    "file": "assets/AddressSection-SGkC94Nm.js",
+  "_AddressSection-DJXLSTMb.js": {
+    "file": "assets/AddressSection-DJXLSTMb.js",
     "name": "AddressSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_TextInput-C_8YxWQj.js"
+      "_TextInput-viB1y8NF.js"
     ]
   },
   "_AlertRow-Cxde8Hdl.js": {
@@ -47,8 +47,8 @@
       "_chevron-right-WNVbfpbh.js"
     ]
   },
-  "_AppliedVfcCard-BplPgkzV.js": {
-    "file": "assets/AppliedVfcCard-BplPgkzV.js",
+  "_AppliedVfcCard-CX_weVWh.js": {
+    "file": "assets/AppliedVfcCard-CX_weVWh.js",
     "name": "AppliedVfcCard",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -99,20 +99,20 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_ChangePasswordForm-lg0J8P3_.js": {
-    "file": "assets/ChangePasswordForm-lg0J8P3_.js",
+  "_ChangePasswordForm-CZ71HU0t.js": {
+    "file": "assets/ChangePasswordForm-CZ71HU0t.js",
     "name": "ChangePasswordForm",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Button-CkBjruQD.js",
-      "_TextInput-C_8YxWQj.js",
+      "_TextInput-viB1y8NF.js",
       "_change-password-D4B7JuHe.js"
     ]
   },
-  "_CheckboxInput-Ct01LrSc.js": {
-    "file": "assets/CheckboxInput-Ct01LrSc.js",
+  "_CheckboxInput-BUJhf7Us.js": {
+    "file": "assets/CheckboxInput-BUJhf7Us.js",
     "name": "CheckboxInput",
     "imports": [
       "resources/js/app.ts",
@@ -121,28 +121,28 @@
       "_InputError-DsC4rQHB.js"
     ]
   },
-  "_CompaniesTable-j9mhN1CN.js": {
-    "file": "assets/CompaniesTable-j9mhN1CN.js",
+  "_CompaniesTable-BqfEEsKU.js": {
+    "file": "assets/CompaniesTable-BqfEEsKU.js",
     "name": "CompaniesTable",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_SortableHeader-Vz-uJp_x.js",
       "_CompanyTag-DZXEfoJj.js",
-      "_DataTable-DMHMI1rn.js",
+      "_DataTable-BAAYP8Zw.js",
       "_formatEur-D-TjNgb7.js"
     ]
   },
-  "_CompanyActivityCard-CXpf0ZcB.js": {
-    "file": "assets/CompanyActivityCard-CXpf0ZcB.js",
+  "_CompanyActivityCard-BQgycNnn.js": {
+    "file": "assets/CompanyActivityCard-BQgycNnn.js",
     "name": "CompanyActivityCard",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_density-CcAWzmm2.js",
       "_Card-CDwJhlbV.js",
-      "_YearSelector---IHyQo1.js",
-      "_useLocalYearSelector-DPhmCoGT.js",
+      "_YearSelector-CwUgDUCx.js",
+      "_useLocalYearSelector-Dn8IZSUY.js",
       "_monthLabels-BOy5vaXc.js"
     ]
   },
@@ -156,8 +156,8 @@
       "_Card-CDwJhlbV.js"
     ]
   },
-  "_CompanyBillingTab-BmdyItNs.js": {
-    "file": "assets/CompanyBillingTab-BmdyItNs.js",
+  "_CompanyBillingTab-ChX2mxOg.js": {
+    "file": "assets/CompanyBillingTab-ChX2mxOg.js",
     "name": "CompanyBillingTab",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -167,12 +167,12 @@
       "_badge-percent-DWQU4pLx.js",
       "_file-text-BJ1r-f86.js",
       "_loader-circle-rZAulu1y.js",
-      "_useInvoiceRegeneration-CIo0oLFP.js",
-      "_MonthlyBillingBreakdownCard-DhBW_giC.js",
+      "_useInvoiceRegeneration-Do5HtPwx.js",
+      "_MonthlyBillingBreakdownCard-DSThJEp_.js",
       "_RentalDiscountPill-ChzVKSAv.js",
       "_ConfirmModal-z_bq5fHc.js",
-      "_Tooltip-BZRLNy38.js",
-      "_useCompanyTabs-BqbpxxDQ.js",
+      "_Tooltip-yFqzOHc3.js",
+      "_useCompanyTabs-B5MxtMjY.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_formatEur-D-TjNgb7.js",
       "_invoices-Dwfnq0DM.js"
@@ -199,26 +199,26 @@
       "_formatDateFr-Bc2JfAXr.js"
     ]
   },
-  "_CompanyContractsTab-dB22TObh.js": {
-    "file": "assets/CompanyContractsTab-dB22TObh.js",
+  "_CompanyContractsTab-CDM0lSSe.js": {
+    "file": "assets/CompanyContractsTab-CDM0lSSe.js",
     "name": "CompanyContractsTab",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_calendar-days-DqOXln9E.js",
-      "_DateRangePicker-DV3I4B1S.js",
+      "_DateRangePicker-2dJf9ZTb.js",
       "_Button-CkBjruQD.js",
-      "_useServerTableState-Bk1WjEaG.js",
-      "_useCompanyTabs-BqbpxxDQ.js",
+      "_useServerTableState-krEaCgIi.js",
+      "_useCompanyTabs-B5MxtMjY.js",
       "_contractEnumLabels-DTL2P_HJ.js",
       "_CompanyContractsActiveFilterChip-c75OdmcR.js",
-      "_CompanyContractsTable-BH-Jo5Ap.js",
+      "_CompanyContractsTable-CI6sTctR.js",
       "_contracts-C5AGrWNd.js"
     ]
   },
-  "_CompanyContractsTable-BH-Jo5Ap.js": {
-    "file": "assets/CompanyContractsTable-BH-Jo5Ap.js",
+  "_CompanyContractsTable-CI6sTctR.js": {
+    "file": "assets/CompanyContractsTable-CI6sTctR.js",
     "name": "CompanyContractsTable",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -226,14 +226,14 @@
       "_chevron-right-WNVbfpbh.js",
       "_SortableHeader-Vz-uJp_x.js",
       "_Badge-i3JN7p09.js",
-      "_DataTable-DMHMI1rn.js",
+      "_DataTable-BAAYP8Zw.js",
       "_Plate-BRosSBF0.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_formatEur-D-TjNgb7.js"
     ]
   },
-  "_CompanyDriversTab-6h38xO5K.js": {
-    "file": "assets/CompanyDriversTab-6h38xO5K.js",
+  "_CompanyDriversTab-ujYnORxJ.js": {
+    "file": "assets/CompanyDriversTab-ujYnORxJ.js",
     "name": "CompanyDriversTab",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -243,20 +243,20 @@
       "_plus-ClKcb-uT.js",
       "_users-BOCzQ_xk.js",
       "_DriverBadge-BNVhd6hZ.js",
-      "_LeaveDriverCompanyModal-DAcnz5b4.js",
+      "_LeaveDriverCompanyModal-BnPAzbF4.js",
       "_Button-CkBjruQD.js",
       "_ConfirmModal-z_bq5fHc.js",
-      "_DateInput-r_y-AWPY.js",
+      "_DateInput-yGZAo6k5.js",
       "_FieldLabel-olj7kMYb.js",
       "_InputError-DsC4rQHB.js",
       "_Modal-g4QR0t1j.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_SelectInput-Dig8wkMM.js",
       "_drivers-BR0P94xm.js",
       "_memberships-DFsskAqP.js"
     ]
   },
-  "_CompanyFiscalTab-B77MJWii.js": {
-    "file": "assets/CompanyFiscalTab-B77MJWii.js",
+  "_CompanyFiscalTab-BgmW_6Z0.js": {
+    "file": "assets/CompanyFiscalTab-BgmW_6Z0.js",
     "name": "CompanyFiscalTab",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -268,9 +268,9 @@
       "_file-text-BJ1r-f86.js",
       "_loader-circle-rZAulu1y.js",
       "_recycle-CAcmYMEx.js",
-      "_DeclarationHistoryTimeline-Cdtu8fm2.js",
+      "_DeclarationHistoryTimeline-DymkV4Op.js",
       "_Button-CkBjruQD.js",
-      "_useCompanyTabs-BqbpxxDQ.js",
+      "_useCompanyTabs-B5MxtMjY.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_formatEur-D-TjNgb7.js",
       "_invalidationReason-STJWa1dM.js",
@@ -278,8 +278,8 @@
       "_declarations-BOSc-BgX.js"
     ]
   },
-  "_CompanyHeader-Dttsmc9s.js": {
-    "file": "assets/CompanyHeader-Dttsmc9s.js",
+  "_CompanyHeader-CfiC9RT3.js": {
+    "file": "assets/CompanyHeader-CfiC9RT3.js",
     "name": "CompanyHeader",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -302,15 +302,15 @@
       "_formatEur-D-TjNgb7.js"
     ]
   },
-  "_CompanyOverviewTab-BBt0KIPG.js": {
-    "file": "assets/CompanyOverviewTab-BBt0KIPG.js",
+  "_CompanyOverviewTab-3fHnoQLY.js": {
+    "file": "assets/CompanyOverviewTab-3fHnoQLY.js",
     "name": "CompanyOverviewTab",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_CompanyContactCard-DwnQs5vY.js",
       "_CompanyAddressCard-CJEANaYb.js",
-      "_CompanyActivityCard-CXpf0ZcB.js",
+      "_CompanyActivityCard-BQgycNnn.js",
       "_CompanyKpiCards-D3QZYcgC.js",
       "_CompanyYearHistoryCard-BryqYWgd.js",
       "_PendingActionsAlert-DZIF7Yqs.js"
@@ -350,13 +350,13 @@
       "_Modal-g4QR0t1j.js"
     ]
   },
-  "_ContactSection-D7ehwcHZ.js": {
-    "file": "assets/ContactSection-D7ehwcHZ.js",
+  "_ContactSection-D9Vc-XAm.js": {
+    "file": "assets/ContactSection-D9Vc-XAm.js",
     "name": "ContactSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_TextInput-C_8YxWQj.js"
+      "_TextInput-viB1y8NF.js"
     ]
   },
   "_ContractDetails-D0ZqUZMD.js": {
@@ -370,8 +370,8 @@
       "_contractEnumLabels-DTL2P_HJ.js"
     ]
   },
-  "_ContractDocumentsSection-DZ_sktgA.js": {
-    "file": "assets/ContractDocumentsSection-DZ_sktgA.js",
+  "_ContractDocumentsSection-DIwKxcfy.js": {
+    "file": "assets/ContractDocumentsSection-DIwKxcfy.js",
     "name": "ContractDocumentsSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -381,7 +381,7 @@
       "_file-text-BJ1r-f86.js",
       "_plus-ClKcb-uT.js",
       "_trash-2-DtflIATy.js",
-      "_DocumentDropZone-DNLB5SUo.js",
+      "_DocumentDropZone-BrOzZJs0.js",
       "_Button-CkBjruQD.js",
       "_Card-CDwJhlbV.js",
       "_ConfirmModal-z_bq5fHc.js",
@@ -391,8 +391,8 @@
       "_formatDateFr-Bc2JfAXr.js"
     ]
   },
-  "_ContractEntityCards-Bjzh-9xW.js": {
-    "file": "assets/ContractEntityCards-Bjzh-9xW.js",
+  "_ContractEntityCards-DDD6JWcb.js": {
+    "file": "assets/ContractEntityCards-DDD6JWcb.js",
     "name": "ContractEntityCards",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -406,28 +406,28 @@
       "_vehicles-CMe-m-8T.js"
     ]
   },
-  "_ContractFormFields-o51tWlnU.js": {
-    "file": "assets/ContractFormFields-o51tWlnU.js",
+  "_ContractFormFields-DH--yzes.js": {
+    "file": "assets/ContractFormFields-DH--yzes.js",
     "name": "ContractFormFields",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_DateRangePicker-DV3I4B1S.js",
-      "_DriversMultiPicker-D-hNk4Kx.js",
-      "_DateInput-r_y-AWPY.js",
+      "_DateRangePicker-2dJf9ZTb.js",
+      "_DriversMultiPicker-Cq4Cf8ib.js",
+      "_DateInput-yGZAo6k5.js",
       "_FieldLabel-olj7kMYb.js",
       "_InputError-DsC4rQHB.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_TextInput-C_8YxWQj.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_TextInput-viB1y8NF.js",
       "_useApi-DV-GFrWJ.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_formatEur-D-TjNgb7.js",
       "_vehicles-CMe-m-8T.js"
     ]
   },
-  "_ContractTitle-Brb1HzeS.js": {
-    "file": "assets/ContractTitle-Brb1HzeS.js",
+  "_ContractTitle-C53vb0gq.js": {
+    "file": "assets/ContractTitle-C53vb0gq.js",
     "name": "ContractTitle",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -440,8 +440,8 @@
       "_contracts-C5AGrWNd.js"
     ]
   },
-  "_ContractsTable-o9-Qigpk.js": {
-    "file": "assets/ContractsTable-o9-Qigpk.js",
+  "_ContractsTable-DfWC0K9Z.js": {
+    "file": "assets/ContractsTable-DfWC0K9Z.js",
     "name": "ContractsTable",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -450,14 +450,14 @@
       "_SortableHeader-Vz-uJp_x.js",
       "_Badge-i3JN7p09.js",
       "_CompanyTag-DZXEfoJj.js",
-      "_DataTable-DMHMI1rn.js",
+      "_DataTable-BAAYP8Zw.js",
       "_Plate-BRosSBF0.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_formatEur-D-TjNgb7.js"
     ]
   },
-  "_CurrentFiscalCharacteristicsCard-DE_Q7jY6.js": {
-    "file": "assets/CurrentFiscalCharacteristicsCard-DE_Q7jY6.js",
+  "_CurrentFiscalCharacteristicsCard-rlkWz93e.js": {
+    "file": "assets/CurrentFiscalCharacteristicsCard-rlkWz93e.js",
     "name": "CurrentFiscalCharacteristicsCard",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -469,16 +469,16 @@
       "_Button-CkBjruQD.js",
       "_Card-CDwJhlbV.js",
       "_Modal-g4QR0t1j.js",
-      "_VfcCreateModal-BHIoCRa4.js",
-      "_VfcDeleteConfirmModal-VlGYF5cf.js",
-      "_VfcEditModal-BF2quA-2.js",
-      "_FiscalHistoryTimeline-DnwVG6e0.js",
+      "_VfcCreateModal-BBoGfKpD.js",
+      "_VfcDeleteConfirmModal-CZGs59eX.js",
+      "_VfcEditModal-CByjcLQj.js",
+      "_FiscalHistoryTimeline-o49gLv5x.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_vehicleEnumLabels-BwHmpMtv.js"
     ]
   },
-  "_DashboardEvolutionChart-DEV8kHPu.js": {
-    "file": "assets/DashboardEvolutionChart-DEV8kHPu.js",
+  "_DashboardEvolutionChart-DhfTE1lB.js": {
+    "file": "assets/DashboardEvolutionChart-DhfTE1lB.js",
     "name": "DashboardEvolutionChart",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -527,26 +527,26 @@
       "_formatEur-D-TjNgb7.js"
     ]
   },
-  "_DashboardPendingTasksRow-rST6_cFu.js": {
-    "file": "assets/DashboardPendingTasksRow-rST6_cFu.js",
+  "_DashboardPendingTasksRow-BFGaXh47.js": {
+    "file": "assets/DashboardPendingTasksRow-BFGaXh47.js",
     "name": "DashboardPendingTasksRow",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_PendingDeclarationsPanel-hdVjCAMb.js",
-      "_PendingInvoicesPanel-CjuvDLgZ.js"
+      "_PendingDeclarationsPanel-CPj_wKi6.js",
+      "_PendingInvoicesPanel-zGCbMLvw.js"
     ]
   },
-  "_DataTable-DMHMI1rn.js": {
-    "file": "assets/DataTable-DMHMI1rn.js",
+  "_DataTable-BAAYP8Zw.js": {
+    "file": "assets/DataTable-BAAYP8Zw.js",
     "name": "DataTable",
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_DateInput-r_y-AWPY.js": {
-    "file": "assets/DateInput-r_y-AWPY.js",
+  "_DateInput-yGZAo6k5.js": {
+    "file": "assets/DateInput-yGZAo6k5.js",
     "name": "DateInput",
     "imports": [
       "resources/js/app.ts",
@@ -556,8 +556,8 @@
       "_InputError-DsC4rQHB.js"
     ]
   },
-  "_DateRangePicker-DV3I4B1S.js": {
-    "file": "assets/DateRangePicker-DV3I4B1S.js",
+  "_DateRangePicker-2dJf9ZTb.js": {
+    "file": "assets/DateRangePicker-2dJf9ZTb.js",
     "name": "DateRangePicker",
     "imports": [
       "resources/js/app.ts",
@@ -569,8 +569,8 @@
       "_Button-CkBjruQD.js"
     ]
   },
-  "_DeclarationHistoryTimeline-Cdtu8fm2.js": {
-    "file": "assets/DeclarationHistoryTimeline-Cdtu8fm2.js",
+  "_DeclarationHistoryTimeline-DymkV4Op.js": {
+    "file": "assets/DeclarationHistoryTimeline-DymkV4Op.js",
     "name": "DeclarationHistoryTimeline",
     "imports": [
       "resources/js/app.ts",
@@ -580,8 +580,8 @@
       "_declarations-BOSc-BgX.js"
     ]
   },
-  "_DeclarationsTable-mYBiE4Uk.js": {
-    "file": "assets/DeclarationsTable-mYBiE4Uk.js",
+  "_DeclarationsTable-CsFFU-Rk.js": {
+    "file": "assets/DeclarationsTable-CsFFU-Rk.js",
     "name": "DeclarationsTable",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -589,15 +589,15 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_chevron-right-WNVbfpbh.js",
       "_SortableHeader-Vz-uJp_x.js",
-      "_DataTable-DMHMI1rn.js",
+      "_DataTable-BAAYP8Zw.js",
       "_StatusPill-BjuMFEik.js",
       "_declarationStatus-B3B39QD2.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_declarations-BOSc-BgX.js"
     ]
   },
-  "_DocumentDropZone-DNLB5SUo.js": {
-    "file": "assets/DocumentDropZone-DNLB5SUo.js",
+  "_DocumentDropZone-BrOzZJs0.js": {
+    "file": "assets/DocumentDropZone-BrOzZJs0.js",
     "name": "DocumentDropZone",
     "imports": [
       "resources/js/app.ts",
@@ -605,8 +605,8 @@
       "_createLucideIcon-JhZP7PhB.js"
     ]
   },
-  "_DriverActionsBar-udgpJawH.js": {
-    "file": "assets/DriverActionsBar-udgpJawH.js",
+  "_DriverActionsBar-DcRvdzSn.js": {
+    "file": "assets/DriverActionsBar-DcRvdzSn.js",
     "name": "DriverActionsBar",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -626,8 +626,8 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_DriverCompaniesSection-BH3_LyLp.js": {
-    "file": "assets/DriverCompaniesSection-BH3_LyLp.js",
+  "_DriverCompaniesSection-DL-xCHHs.js": {
+    "file": "assets/DriverCompaniesSection-DL-xCHHs.js",
     "name": "DriverCompaniesSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -642,21 +642,21 @@
       "_memberships-DFsskAqP.js"
     ]
   },
-  "_DriverFormFields-NEsddLrD.js": {
-    "file": "assets/DriverFormFields-NEsddLrD.js",
+  "_DriverFormFields-BrTWD-s9.js": {
+    "file": "assets/DriverFormFields-BrTWD-s9.js",
     "name": "DriverFormFields",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_building-2-D8thmFCK.js",
       "_id-card-DRv6Pqwl.js",
-      "_DateInput-r_y-AWPY.js",
-      "_SelectInput-D7MNx1Te.js",
-      "_TextInput-C_8YxWQj.js"
+      "_DateInput-yGZAo6k5.js",
+      "_SelectInput-Dig8wkMM.js",
+      "_TextInput-viB1y8NF.js"
     ]
   },
-  "_DriverHeader-DeD1ZBEt.js": {
-    "file": "assets/DriverHeader-DeD1ZBEt.js",
+  "_DriverHeader-DmTg2Mfe.js": {
+    "file": "assets/DriverHeader-DmTg2Mfe.js",
     "name": "DriverHeader",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -667,8 +667,8 @@
       "_drivers-BR0P94xm.js"
     ]
   },
-  "_DriverKpiCards-CeWHtmmg.js": {
-    "file": "assets/DriverKpiCards-CeWHtmmg.js",
+  "_DriverKpiCards-Dw9HS_UI.js": {
+    "file": "assets/DriverKpiCards-Dw9HS_UI.js",
     "name": "DriverKpiCards",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -680,18 +680,18 @@
       "_contracts-C5AGrWNd.js"
     ]
   },
-  "_DriversMultiPicker-D-hNk4Kx.js": {
-    "file": "assets/DriversMultiPicker-D-hNk4Kx.js",
+  "_DriversMultiPicker-Cq4Cf8ib.js": {
+    "file": "assets/DriversMultiPicker-Cq4Cf8ib.js",
     "name": "DriversMultiPicker",
     "imports": [
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_SearchableSelect-BGLNDqwO.js",
+      "_SearchableSelect-CO34gRFv.js",
       "_useApi-DV-GFrWJ.js",
       "_drivers-BR0P94xm.js"
     ]
   },
-  "_DriversTable-CD-6LJtM.js": {
-    "file": "assets/DriversTable-CD-6LJtM.js",
+  "_DriversTable-CZrdDyFf.js": {
+    "file": "assets/DriversTable-CZrdDyFf.js",
     "name": "DriversTable",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -699,11 +699,11 @@
       "_SortableHeader-Vz-uJp_x.js",
       "_DriverBadge-BNVhd6hZ.js",
       "_CompanyTag-DZXEfoJj.js",
-      "_DataTable-DMHMI1rn.js"
+      "_DataTable-BAAYP8Zw.js"
     ]
   },
-  "_EmptyCompaniesState-CZ7s_SOE.js": {
-    "file": "assets/EmptyCompaniesState-CZ7s_SOE.js",
+  "_EmptyCompaniesState-C3--llvH.js": {
+    "file": "assets/EmptyCompaniesState-C3--llvH.js",
     "name": "EmptyCompaniesState",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -716,8 +716,8 @@
       "_companies-CATnWfOh.js"
     ]
   },
-  "_EmptyContractsState-BqWiaZhp.js": {
-    "file": "assets/EmptyContractsState-BqWiaZhp.js",
+  "_EmptyContractsState-CyfxI2AE.js": {
+    "file": "assets/EmptyContractsState-CyfxI2AE.js",
     "name": "EmptyContractsState",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -729,8 +729,8 @@
       "_contracts-C5AGrWNd.js"
     ]
   },
-  "_EmptyFleetState-CDzNqF7G.js": {
-    "file": "assets/EmptyFleetState-CDzNqF7G.js",
+  "_EmptyFleetState-B19QlL6Q.js": {
+    "file": "assets/EmptyFleetState-B19QlL6Q.js",
     "name": "EmptyFleetState",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -759,19 +759,19 @@
       "_file-check-corner-DPdccdE7.js"
     ]
   },
-  "_ExitVehicleModal-DSfd5zfR.js": {
-    "file": "assets/ExitVehicleModal-DSfd5zfR.js",
+  "_ExitVehicleModal-BBU3F3j8.js": {
+    "file": "assets/ExitVehicleModal-BBU3F3j8.js",
     "name": "ExitVehicleModal",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Button-CkBjruQD.js",
-      "_DateInput-r_y-AWPY.js",
+      "_DateInput-yGZAo6k5.js",
       "_InputError-DsC4rQHB.js",
       "_Modal-g4QR0t1j.js",
-      "_SelectInput-D7MNx1Te.js",
-      "_inertiaModalCallbacks-BzBGsqmQ.js",
+      "_SelectInput-Dig8wkMM.js",
+      "_inertiaModalCallbacks-BWLzd83K.js",
       "_vehicleEnumLabels-BwHmpMtv.js",
       "_vehicles-CMe-m-8T.js"
     ]
@@ -791,44 +791,44 @@
       "_funnel-BEieCKkk.js"
     ]
   },
-  "_FiscalChangeMetadataSection-COVUALit.js": {
-    "file": "assets/FiscalChangeMetadataSection-COVUALit.js",
+  "_FiscalChangeMetadataSection-DSnBpeTf.js": {
+    "file": "assets/FiscalChangeMetadataSection-DSnBpeTf.js",
     "name": "FiscalChangeMetadataSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_history-v7uTovJE.js",
-      "_DateInput-r_y-AWPY.js",
-      "_SelectInput-D7MNx1Te.js",
-      "_TextInput-C_8YxWQj.js"
+      "_DateInput-yGZAo6k5.js",
+      "_SelectInput-Dig8wkMM.js",
+      "_TextInput-viB1y8NF.js"
     ]
   },
-  "_FiscalCharacteristicsSection-BDqioKKM.js": {
-    "file": "assets/FiscalCharacteristicsSection-BDqioKKM.js",
+  "_FiscalCharacteristicsSection-BRrW1CKo.js": {
+    "file": "assets/FiscalCharacteristicsSection-BRrW1CKo.js",
     "name": "FiscalCharacteristicsSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_derivePollutantCategory-COEW2iNz.js",
-      "_CheckboxInput-Ct01LrSc.js",
-      "_NumberInput-Wkzdv7qb.js",
-      "_SelectInput-D7MNx1Te.js"
+      "_CheckboxInput-BUJhf7Us.js",
+      "_NumberInput-Bzm5DlXZ.js",
+      "_SelectInput-Dig8wkMM.js"
     ]
   },
-  "_FiscalCharacteristicsSection-wjy05sOu.js": {
-    "file": "assets/FiscalCharacteristicsSection-wjy05sOu.js",
+  "_FiscalCharacteristicsSection-_ZDgwiMi.js": {
+    "file": "assets/FiscalCharacteristicsSection-_ZDgwiMi.js",
     "name": "FiscalCharacteristicsSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_derivePollutantCategory-COEW2iNz.js",
-      "_CheckboxInput-Ct01LrSc.js",
-      "_NumberInput-Wkzdv7qb.js",
-      "_SelectInput-D7MNx1Te.js"
+      "_CheckboxInput-BUJhf7Us.js",
+      "_NumberInput-Bzm5DlXZ.js",
+      "_SelectInput-Dig8wkMM.js"
     ]
   },
-  "_FiscalHistoryTimeline-DnwVG6e0.js": {
-    "file": "assets/FiscalHistoryTimeline-DnwVG6e0.js",
+  "_FiscalHistoryTimeline-o49gLv5x.js": {
+    "file": "assets/FiscalHistoryTimeline-o49gLv5x.js",
     "name": "FiscalHistoryTimeline",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -841,14 +841,14 @@
       "_vehicleEnumLabels-BwHmpMtv.js"
     ]
   },
-  "_FleetTable-BJtjs4k-.js": {
-    "file": "assets/FleetTable-BJtjs4k-.js",
+  "_FleetTable-CGSImOvf.js": {
+    "file": "assets/FleetTable-CGSImOvf.js",
     "name": "FleetTable",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_SortableHeader-Vz-uJp_x.js",
-      "_DataTable-DMHMI1rn.js",
+      "_DataTable-BAAYP8Zw.js",
       "_Plate-BRosSBF0.js",
       "_Skeleton-CutZhzW6.js",
       "_formatDateFr-Bc2JfAXr.js",
@@ -862,8 +862,8 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_ForgotPasswordForm-Cg_n4Buc.js": {
-    "file": "assets/ForgotPasswordForm-Cg_n4Buc.js",
+  "_ForgotPasswordForm-cGwJl9Fg.js": {
+    "file": "assets/ForgotPasswordForm-cGwJl9Fg.js",
     "name": "ForgotPasswordForm",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -871,7 +871,7 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_circle-check-DoHfWoMY.js",
       "_Button-CkBjruQD.js",
-      "_TextInput-C_8YxWQj.js",
+      "_TextInput-viB1y8NF.js",
       "_password-pPhEYbPT.js"
     ]
   },
@@ -883,8 +883,8 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_FullYearTaxBreakdownPanel-DSfqrDuq.js": {
-    "file": "assets/FullYearTaxBreakdownPanel-DSfqrDuq.js",
+  "_FullYearTaxBreakdownPanel-CK-bzN07.js": {
+    "file": "assets/FullYearTaxBreakdownPanel-CK-bzN07.js",
     "name": "FullYearTaxBreakdownPanel",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -898,17 +898,17 @@
       "_vehicleEnumLabels-BwHmpMtv.js"
     ]
   },
-  "_GuestLayout-wymJZMIy.js": {
-    "file": "assets/GuestLayout-wymJZMIy.js",
+  "_GuestLayout-B9bfN6YY.js": {
+    "file": "assets/GuestLayout-B9bfN6YY.js",
     "name": "GuestLayout",
     "imports": [
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_ToastContainer-DG3ChXOI.js",
-      "_useFlashToasts-B1G1qltV.js"
+      "_useFlashToasts-qyNI4nft.js"
     ]
   },
-  "_Header-IGnVpCM6.js": {
-    "file": "assets/Header-IGnVpCM6.js",
+  "_Header-ChGsfIip.js": {
+    "file": "assets/Header-ChGsfIip.js",
     "name": "Header",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -926,40 +926,40 @@
       "_declarations-BOSc-BgX.js"
     ]
   },
-  "_IdentitySection-AVfG8U2d.js": {
-    "file": "assets/IdentitySection-AVfG8U2d.js",
+  "_IdentitySection-BIiepbBp.js": {
+    "file": "assets/IdentitySection-BIiepbBp.js",
+    "name": "IdentitySection",
+    "imports": [
+      "_rolldown-runtime-WNZMJCWm.js",
+      "_runtime-core.esm-bundler-ZxkLjTIG.js",
+      "_id-card-DRv6Pqwl.js",
+      "_NumberInput-Bzm5DlXZ.js",
+      "_TextInput-viB1y8NF.js"
+    ]
+  },
+  "_IdentitySection-ChR-lHsD.js": {
+    "file": "assets/IdentitySection-ChR-lHsD.js",
     "name": "IdentitySection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_check-DVfJJQO1.js",
-      "_TextInput-C_8YxWQj.js"
+      "_TextInput-viB1y8NF.js"
     ]
   },
-  "_IdentitySection-B5sEuQyC.js": {
-    "file": "assets/IdentitySection-B5sEuQyC.js",
+  "_IdentitySection-Q0cx40TR.js": {
+    "file": "assets/IdentitySection-Q0cx40TR.js",
     "name": "IdentitySection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_id-card-DRv6Pqwl.js",
-      "_NumberInput-Wkzdv7qb.js",
-      "_TextInput-C_8YxWQj.js"
+      "_NumberInput-Bzm5DlXZ.js",
+      "_TextInput-viB1y8NF.js"
     ]
   },
-  "_IdentitySection-DQQ4ElFe.js": {
-    "file": "assets/IdentitySection-DQQ4ElFe.js",
-    "name": "IdentitySection",
-    "imports": [
-      "_rolldown-runtime-WNZMJCWm.js",
-      "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_id-card-DRv6Pqwl.js",
-      "_NumberInput-Wkzdv7qb.js",
-      "_TextInput-C_8YxWQj.js"
-    ]
-  },
-  "_InlineYearSelector-CEiJIYK6.js": {
-    "file": "assets/InlineYearSelector-CEiJIYK6.js",
+  "_InlineYearSelector-B-sY1QIq.js": {
+    "file": "assets/InlineYearSelector-B-sY1QIq.js",
     "name": "InlineYearSelector",
     "imports": [
       "resources/js/app.ts",
@@ -974,8 +974,8 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_InvoicesTable-CzD72JBi.js": {
-    "file": "assets/InvoicesTable-CzD72JBi.js",
+  "_InvoicesTable-DzVRZ8Qk.js": {
+    "file": "assets/InvoicesTable-DzVRZ8Qk.js",
     "name": "InvoicesTable",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -983,8 +983,8 @@
       "_chevron-right-WNVbfpbh.js",
       "_SortableHeader-Vz-uJp_x.js",
       "_triangle-alert-Cow-9UMY.js",
-      "_DataTable-DMHMI1rn.js",
-      "_Tooltip-BZRLNy38.js",
+      "_DataTable-BAAYP8Zw.js",
+      "_Tooltip-yFqzOHc3.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_formatEur-D-TjNgb7.js",
       "_monthLabels-BOy5vaXc.js"
@@ -1006,35 +1006,35 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_LeaveDriverCompanyModal-DAcnz5b4.js": {
-    "file": "assets/LeaveDriverCompanyModal-DAcnz5b4.js",
+  "_LeaveDriverCompanyModal-BnPAzbF4.js": {
+    "file": "assets/LeaveDriverCompanyModal-BnPAzbF4.js",
     "name": "LeaveDriverCompanyModal",
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_loader-circle-rZAulu1y.js",
       "_Button-CkBjruQD.js",
-      "_DateInput-r_y-AWPY.js",
+      "_DateInput-yGZAo6k5.js",
       "_FieldLabel-olj7kMYb.js",
       "_InputError-DsC4rQHB.js",
       "_Modal-g4QR0t1j.js",
       "_Plate-BRosSBF0.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_SelectInput-Dig8wkMM.js",
       "_useApi-DV-GFrWJ.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_contractEnumLabels-DTL2P_HJ.js",
       "_memberships-DFsskAqP.js"
     ]
   },
-  "_LoginForm-354razzr.js": {
-    "file": "assets/LoginForm-354razzr.js",
+  "_LoginForm-C6FJ2T3A.js": {
+    "file": "assets/LoginForm-C6FJ2T3A.js",
     "name": "LoginForm",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Button-CkBjruQD.js",
-      "_TextInput-C_8YxWQj.js",
+      "_TextInput-viB1y8NF.js",
       "_password-pPhEYbPT.js",
       "_wayfinder-C20m1sjn.js"
     ]
@@ -1048,20 +1048,20 @@
       "_x-7rkOjE8z.js"
     ]
   },
-  "_MonthlyBillingBreakdownCard-DhBW_giC.js": {
-    "file": "assets/MonthlyBillingBreakdownCard-DhBW_giC.js",
+  "_MonthlyBillingBreakdownCard-DSThJEp_.js": {
+    "file": "assets/MonthlyBillingBreakdownCard-DSThJEp_.js",
     "name": "MonthlyBillingBreakdownCard",
     "imports": [
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_triangle-alert-Cow-9UMY.js",
       "_Card-CDwJhlbV.js",
-      "_Tooltip-BZRLNy38.js",
+      "_Tooltip-yFqzOHc3.js",
       "_formatEur-D-TjNgb7.js",
       "_monthLabels-BOy5vaXc.js"
     ]
   },
-  "_NumberInput-Wkzdv7qb.js": {
-    "file": "assets/NumberInput-Wkzdv7qb.js",
+  "_NumberInput-Bzm5DlXZ.js": {
+    "file": "assets/NumberInput-Bzm5DlXZ.js",
     "name": "NumberInput",
     "imports": [
       "resources/js/app.ts",
@@ -1080,8 +1080,8 @@
       "_invalidationReason-STJWa1dM.js"
     ]
   },
-  "_PageHeader-ByFG3QBM.js": {
-    "file": "assets/PageHeader-ByFG3QBM.js",
+  "_PageHeader-07wvbdXt.js": {
+    "file": "assets/PageHeader-07wvbdXt.js",
     "name": "PageHeader",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1092,36 +1092,8 @@
       "_vehicles-CMe-m-8T.js"
     ]
   },
-  "_PageHeader-C9YG3_tF.js": {
-    "file": "assets/PageHeader-C9YG3_tF.js",
-    "name": "PageHeader",
-    "imports": [
-      "_rolldown-runtime-WNZMJCWm.js",
-      "_runtime-core.esm-bundler-ZxkLjTIG.js"
-    ]
-  },
-  "_PageHeader-DOWETmDT.js": {
-    "file": "assets/PageHeader-DOWETmDT.js",
-    "name": "PageHeader",
-    "imports": [
-      "_rolldown-runtime-WNZMJCWm.js",
-      "resources/js/app.ts",
-      "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_plus-ClKcb-uT.js",
-      "_Button-CkBjruQD.js",
-      "_contracts-C5AGrWNd.js"
-    ]
-  },
-  "_PageHeader-DQZJrbJI.js": {
-    "file": "assets/PageHeader-DQZJrbJI.js",
-    "name": "PageHeader",
-    "imports": [
-      "_rolldown-runtime-WNZMJCWm.js",
-      "_runtime-core.esm-bundler-ZxkLjTIG.js"
-    ]
-  },
-  "_PageHeader-DxK5buyW.js": {
-    "file": "assets/PageHeader-DxK5buyW.js",
+  "_PageHeader-ByIzQ_Gz.js": {
+    "file": "assets/PageHeader-ByIzQ_Gz.js",
     "name": "PageHeader",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1132,8 +1104,36 @@
       "_companies-CATnWfOh.js"
     ]
   },
-  "_PdfCard-CEqJCjv_.js": {
-    "file": "assets/PdfCard-CEqJCjv_.js",
+  "_PageHeader-C9YG3_tF.js": {
+    "file": "assets/PageHeader-C9YG3_tF.js",
+    "name": "PageHeader",
+    "imports": [
+      "_rolldown-runtime-WNZMJCWm.js",
+      "_runtime-core.esm-bundler-ZxkLjTIG.js"
+    ]
+  },
+  "_PageHeader-DQZJrbJI.js": {
+    "file": "assets/PageHeader-DQZJrbJI.js",
+    "name": "PageHeader",
+    "imports": [
+      "_rolldown-runtime-WNZMJCWm.js",
+      "_runtime-core.esm-bundler-ZxkLjTIG.js"
+    ]
+  },
+  "_PageHeader-D_AxQf5z.js": {
+    "file": "assets/PageHeader-D_AxQf5z.js",
+    "name": "PageHeader",
+    "imports": [
+      "_rolldown-runtime-WNZMJCWm.js",
+      "resources/js/app.ts",
+      "_runtime-core.esm-bundler-ZxkLjTIG.js",
+      "_plus-ClKcb-uT.js",
+      "_Button-CkBjruQD.js",
+      "_contracts-C5AGrWNd.js"
+    ]
+  },
+  "_PdfCard-Gndh17Hp.js": {
+    "file": "assets/PdfCard-Gndh17Hp.js",
     "name": "PdfCard",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1169,8 +1169,8 @@
       "_triangle-alert-Cow-9UMY.js"
     ]
   },
-  "_PendingDeclarationRow-CHU7Kd-W.js": {
-    "file": "assets/PendingDeclarationRow-CHU7Kd-W.js",
+  "_PendingDeclarationRow-B8eXM3N7.js": {
+    "file": "assets/PendingDeclarationRow-B8eXM3N7.js",
     "name": "PendingDeclarationRow",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1180,18 +1180,18 @@
       "_companies-CATnWfOh.js"
     ]
   },
-  "_PendingDeclarationsPanel-hdVjCAMb.js": {
-    "file": "assets/PendingDeclarationsPanel-hdVjCAMb.js",
+  "_PendingDeclarationsPanel-CPj_wKi6.js": {
+    "file": "assets/PendingDeclarationsPanel-CPj_wKi6.js",
     "name": "PendingDeclarationsPanel",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_file-clock-BSSb9Av1.js",
-      "_PendingDeclarationRow-CHU7Kd-W.js"
+      "_PendingDeclarationRow-B8eXM3N7.js"
     ]
   },
-  "_PendingInvoiceRow-BtopMLVr.js": {
-    "file": "assets/PendingInvoiceRow-BtopMLVr.js",
+  "_PendingInvoiceRow-DMdrjO5P.js": {
+    "file": "assets/PendingInvoiceRow-DMdrjO5P.js",
     "name": "PendingInvoiceRow",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1200,14 +1200,14 @@
       "_companies-CATnWfOh.js"
     ]
   },
-  "_PendingInvoicesPanel-CjuvDLgZ.js": {
-    "file": "assets/PendingInvoicesPanel-CjuvDLgZ.js",
+  "_PendingInvoicesPanel-zGCbMLvw.js": {
+    "file": "assets/PendingInvoicesPanel-zGCbMLvw.js",
     "name": "PendingInvoicesPanel",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_receipt-BRFH0Nur.js",
-      "_PendingInvoiceRow-BtopMLVr.js"
+      "_PendingInvoiceRow-DMdrjO5P.js"
     ]
   },
   "_Plate-BRosSBF0.js": {
@@ -1217,8 +1217,8 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_PredecessorNoticeBanner-BZNMAoFG.js": {
-    "file": "assets/PredecessorNoticeBanner-BZNMAoFG.js",
+  "_PredecessorNoticeBanner-BZRVO_p7.js": {
+    "file": "assets/PredecessorNoticeBanner-BZRVO_p7.js",
     "name": "PredecessorNoticeBanner",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1229,8 +1229,8 @@
       "_declarations-BOSc-BgX.js"
     ]
   },
-  "_QuickLinksGrid-Cghf2fvH.js": {
-    "file": "assets/QuickLinksGrid-Cghf2fvH.js",
+  "_QuickLinksGrid-Ciai8NsK.js": {
+    "file": "assets/QuickLinksGrid-Ciai8NsK.js",
     "name": "QuickLinksGrid",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1250,8 +1250,8 @@
       "_vehicles-CMe-m-8T.js"
     ]
   },
-  "_ReactivateVehicleModal-ykOj6RaP.js": {
-    "file": "assets/ReactivateVehicleModal-ykOj6RaP.js",
+  "_ReactivateVehicleModal-DemI5KlM.js": {
+    "file": "assets/ReactivateVehicleModal-DemI5KlM.js",
     "name": "ReactivateVehicleModal",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1259,60 +1259,34 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Button-CkBjruQD.js",
       "_Modal-g4QR0t1j.js",
-      "_inertiaModalCallbacks-BzBGsqmQ.js",
+      "_inertiaModalCallbacks-BWLzd83K.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_vehicleEnumLabels-BwHmpMtv.js",
       "_vehicles-CMe-m-8T.js"
     ]
   },
-  "_RegistrationSection-BeMXXrne.js": {
-    "file": "assets/RegistrationSection-BeMXXrne.js",
+  "_RegistrationSection-D4-vas5Z.js": {
+    "file": "assets/RegistrationSection-D4-vas5Z.js",
     "name": "RegistrationSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_calendar-days-DqOXln9E.js",
-      "_DateInput-r_y-AWPY.js"
+      "_DateInput-yGZAo6k5.js"
     ]
   },
-  "_RegistrationSection-BqXsVzYD.js": {
-    "file": "assets/RegistrationSection-BqXsVzYD.js",
+  "_RegistrationSection-DtvXAogK.js": {
+    "file": "assets/RegistrationSection-DtvXAogK.js",
     "name": "RegistrationSection",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_calendar-days-DqOXln9E.js",
-      "_DateInput-r_y-AWPY.js"
+      "_DateInput-yGZAo6k5.js"
     ]
   },
-  "_RentalDiscountActionsBar-BGAot5Ho.js": {
-    "file": "assets/RentalDiscountActionsBar-BGAot5Ho.js",
-    "name": "RentalDiscountActionsBar",
-    "imports": [
-      "_rolldown-runtime-WNZMJCWm.js",
-      "resources/js/app.ts",
-      "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_pencil-B9fuggGN.js",
-      "_trash-2-DtflIATy.js",
-      "_Card-CDwJhlbV.js",
-      "_rental-discounts-CtvyjVFV.js"
-    ]
-  },
-  "_RentalDiscountApplicationCard-DRDDvZRP.js": {
-    "file": "assets/RentalDiscountApplicationCard-DRDDvZRP.js",
-    "name": "RentalDiscountApplicationCard",
-    "imports": [
-      "_rolldown-runtime-WNZMJCWm.js",
-      "resources/js/app.ts",
-      "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_file-text-BJ1r-f86.js",
-      "_Card-CDwJhlbV.js",
-      "_formatDateFr-Bc2JfAXr.js",
-      "_invoices-Dwfnq0DM.js"
-    ]
-  },
-  "_RentalDiscountDeleteModal-B0DDgwSc.js": {
-    "file": "assets/RentalDiscountDeleteModal-B0DDgwSc.js",
+  "_RentalDiscountDeleteModal-DJaxpzkw.js": {
+    "file": "assets/RentalDiscountDeleteModal-DJaxpzkw.js",
     "name": "RentalDiscountDeleteModal",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1322,39 +1296,66 @@
       "_Modal-g4QR0t1j.js"
     ]
   },
-  "_RentalDiscountFormFields-BEUGGS-z.js": {
-    "file": "assets/RentalDiscountFormFields-BEUGGS-z.js",
+  "_RentalDiscountFormFields-lZpw20dt.js": {
+    "file": "assets/RentalDiscountFormFields-lZpw20dt.js",
     "name": "RentalDiscountFormFields",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_DateRangePicker-DV3I4B1S.js",
+      "_DateRangePicker-2dJf9ZTb.js",
       "_Card-CDwJhlbV.js",
-      "_CheckboxInput-Ct01LrSc.js",
+      "_CheckboxInput-BUJhf7Us.js",
       "_FieldLabel-olj7kMYb.js",
       "_InputError-DsC4rQHB.js",
-      "_NumberInput-Wkzdv7qb.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_TextInput-C_8YxWQj.js",
+      "_NumberInput-Bzm5DlXZ.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_TextInput-viB1y8NF.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_formatPercent-DEtjZOAp.js"
     ]
   },
-  "_RentalDiscountHeader-FbP7wXer.js": {
-    "file": "assets/RentalDiscountHeader-FbP7wXer.js",
+  "_RentalDiscountHeader-BfFNzelX.js": {
+    "file": "assets/RentalDiscountHeader-BfFNzelX.js",
     "name": "RentalDiscountHeader",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_chevron-left-C48SeyyI.js",
-      "_RentalDiscountPill-ChzVKSAv.js",
-      "_CompanyTag-DZXEfoJj.js",
-      "_formatDateFr-Bc2JfAXr.js",
-      "_companies-CATnWfOh.js",
+      "_pencil-B9fuggGN.js",
+      "_trash-2-DtflIATy.js",
       "_rental-discounts-CtvyjVFV.js"
+    ]
+  },
+  "_RentalDiscountKeyTiles-D4DazeNb.js": {
+    "file": "assets/RentalDiscountKeyTiles-D4DazeNb.js",
+    "name": "RentalDiscountKeyTiles",
+    "imports": [
+      "_rolldown-runtime-WNZMJCWm.js",
+      "_runtime-core.esm-bundler-ZxkLjTIG.js",
+      "_formatPercent-DEtjZOAp.js"
+    ]
+  },
+  "_RentalDiscountKpiStrip-DYQsp9lE.js": {
+    "file": "assets/RentalDiscountKpiStrip-DYQsp9lE.js",
+    "name": "RentalDiscountKpiStrip",
+    "imports": [
+      "_rolldown-runtime-WNZMJCWm.js",
+      "resources/js/app.ts",
+      "_runtime-core.esm-bundler-ZxkLjTIG.js",
+      "_formatDateFr-Bc2JfAXr.js",
+      "_invoices-Dwfnq0DM.js"
+    ]
+  },
+  "_RentalDiscountNotesStrip-A2s8q_pG.js": {
+    "file": "assets/RentalDiscountNotesStrip-A2s8q_pG.js",
+    "name": "RentalDiscountNotesStrip",
+    "imports": [
+      "_rolldown-runtime-WNZMJCWm.js",
+      "_runtime-core.esm-bundler-ZxkLjTIG.js",
+      "_file-text-BJ1r-f86.js"
     ]
   },
   "_RentalDiscountPill-ChzVKSAv.js": {
@@ -1366,15 +1367,15 @@
       "_formatPercent-DEtjZOAp.js"
     ]
   },
-  "_RentalDiscountVehiclesCard-h3OXTalJ.js": {
-    "file": "assets/RentalDiscountVehiclesCard-h3OXTalJ.js",
+  "_RentalDiscountVehiclesCard-oq8V7RWE.js": {
+    "file": "assets/RentalDiscountVehiclesCard-oq8V7RWE.js",
     "name": "RentalDiscountVehiclesCard",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
+      "_arrow-up-right-Bkh3Giik.js",
       "_car-70CUYeb4.js",
-      "_Card-CDwJhlbV.js",
       "_vehicles-CMe-m-8T.js"
     ]
   },
@@ -1387,8 +1388,8 @@
       "_badge-percent-DWQU4pLx.js"
     ]
   },
-  "_RentalDiscountsTable-Dm8i8HIx.js": {
-    "file": "assets/RentalDiscountsTable-Dm8i8HIx.js",
+  "_RentalDiscountsTable-BlYk-MLr.js": {
+    "file": "assets/RentalDiscountsTable-BlYk-MLr.js",
     "name": "RentalDiscountsTable",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1396,24 +1397,24 @@
       "_SortableHeader-Vz-uJp_x.js",
       "_RentalDiscountPill-ChzVKSAv.js",
       "_CompanyTag-DZXEfoJj.js",
-      "_DataTable-DMHMI1rn.js",
+      "_DataTable-BAAYP8Zw.js",
       "_formatDateFr-Bc2JfAXr.js"
     ]
   },
-  "_ResetPasswordForm-CUzhp5DW.js": {
-    "file": "assets/ResetPasswordForm-CUzhp5DW.js",
+  "_ResetPasswordForm-ciF6vYX7.js": {
+    "file": "assets/ResetPasswordForm-ciF6vYX7.js",
     "name": "ResetPasswordForm",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Button-CkBjruQD.js",
-      "_TextInput-C_8YxWQj.js",
+      "_TextInput-viB1y8NF.js",
       "_password-pPhEYbPT.js"
     ]
   },
-  "_ReviewActionsBar-Z-CBsch9.js": {
-    "file": "assets/ReviewActionsBar-Z-CBsch9.js",
+  "_ReviewActionsBar-CEChWWHJ.js": {
+    "file": "assets/ReviewActionsBar-CEChWWHJ.js",
     "name": "ReviewActionsBar",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1424,7 +1425,7 @@
       "_loader-circle-rZAulu1y.js",
       "_Button-CkBjruQD.js",
       "_Modal-g4QR0t1j.js",
-      "_Tooltip-BZRLNy38.js",
+      "_Tooltip-yFqzOHc3.js",
       "_declarations-BOSc-BgX.js"
     ]
   },
@@ -1484,8 +1485,8 @@
       "_RuleCard-BvzVBt2b.js"
     ]
   },
-  "_SearchInput-O6RRxrFs.js": {
-    "file": "assets/SearchInput-O6RRxrFs.js",
+  "_SearchInput-Cy18wD1t.js": {
+    "file": "assets/SearchInput-Cy18wD1t.js",
     "name": "SearchInput",
     "imports": [
       "resources/js/app.ts",
@@ -1493,8 +1494,8 @@
       "_Kbd-CYW9v5-T.js"
     ]
   },
-  "_SearchableSelect-BGLNDqwO.js": {
-    "file": "assets/SearchableSelect-BGLNDqwO.js",
+  "_SearchableSelect-CO34gRFv.js": {
+    "file": "assets/SearchableSelect-CO34gRFv.js",
     "name": "SearchableSelect",
     "imports": [
       "resources/js/app.ts",
@@ -1505,8 +1506,8 @@
       "_InputError-DsC4rQHB.js"
     ]
   },
-  "_SelectInput-D7MNx1Te.js": {
-    "file": "assets/SelectInput-D7MNx1Te.js",
+  "_SelectInput-Dig8wkMM.js": {
+    "file": "assets/SelectInput-Dig8wkMM.js",
     "name": "SelectInput",
     "imports": [
       "resources/js/app.ts",
@@ -1568,8 +1569,8 @@
       "_vehicleEnumLabels-BwHmpMtv.js"
     ]
   },
-  "_TextInput-C_8YxWQj.js": {
-    "file": "assets/TextInput-C_8YxWQj.js",
+  "_TextInput-viB1y8NF.js": {
+    "file": "assets/TextInput-viB1y8NF.js",
     "name": "TextInput",
     "imports": [
       "resources/js/app.ts",
@@ -1598,22 +1599,22 @@
     "file": "assets/ToastContainer-v4kobFvv.css",
     "src": "_ToastContainer-v4kobFvv.css"
   },
-  "_Tooltip-BZRLNy38.js": {
-    "file": "assets/Tooltip-BZRLNy38.js",
+  "_Tooltip-yFqzOHc3.js": {
+    "file": "assets/Tooltip-yFqzOHc3.js",
     "name": "Tooltip",
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_UnavailabilitiesCard-23arurbB.js": {
-    "file": "assets/UnavailabilitiesCard-23arurbB.js",
+  "_UnavailabilitiesCard-Digprtsq.js": {
+    "file": "assets/UnavailabilitiesCard-Digprtsq.js",
     "name": "UnavailabilitiesCard",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UnavailabilityFormModal-Bjf1uDS2.js",
+      "_UnavailabilityFormModal-BUKNJn7Z.js",
       "_pencil-B9fuggGN.js",
       "_plus-ClKcb-uT.js",
       "_trash-2-DtflIATy.js",
@@ -1625,8 +1626,8 @@
       "_unavailabilities-BQkLgtsQ.js"
     ]
   },
-  "_UnavailabilityFormModal-Bjf1uDS2.js": {
-    "file": "assets/UnavailabilityFormModal-Bjf1uDS2.js",
+  "_UnavailabilityFormModal-BUKNJn7Z.js": {
+    "file": "assets/UnavailabilityFormModal-BUKNJn7Z.js",
     "name": "UnavailabilityFormModal",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1635,23 +1636,23 @@
       "_createLucideIcon-JhZP7PhB.js",
       "_download-U-hlwA6V.js",
       "_file-text-BJ1r-f86.js",
-      "_DateRangePicker-DV3I4B1S.js",
+      "_DateRangePicker-2dJf9ZTb.js",
       "_trash-2-DtflIATy.js",
-      "_DocumentDropZone-DNLB5SUo.js",
+      "_DocumentDropZone-BrOzZJs0.js",
       "_Button-CkBjruQD.js",
-      "_CheckboxInput-Ct01LrSc.js",
+      "_CheckboxInput-BUJhf7Us.js",
       "_ConfirmModal-z_bq5fHc.js",
       "_InputError-DsC4rQHB.js",
       "_Modal-g4QR0t1j.js",
-      "_TextInput-C_8YxWQj.js",
-      "_inertiaModalCallbacks-BzBGsqmQ.js",
+      "_TextInput-viB1y8NF.js",
+      "_inertiaModalCallbacks-BWLzd83K.js",
       "_useApi-DV-GFrWJ.js",
       "_useToasts-ZE-NEvvY.js",
       "_unavailabilities-BQkLgtsQ.js"
     ]
   },
-  "_UserLayout-BCIQdsYF.js": {
-    "file": "assets/UserLayout-BCIQdsYF.js",
+  "_UserLayout-hiy54TBv.js": {
+    "file": "assets/UserLayout-hiy54TBv.js",
     "name": "UserLayout",
     "imports": [
       "resources/js/app.ts",
@@ -1676,7 +1677,7 @@
       "_FlotyMark-BY_NkBy2.js",
       "_CarIcon-CEINQJa8.js",
       "_Skeleton-CutZhzW6.js",
-      "_useFlashToasts-B1G1qltV.js",
+      "_useFlashToasts-qyNI4nft.js",
       "_routes-M9j3Bkf9.js",
       "_change-password-D4B7JuHe.js",
       "_companies-CATnWfOh.js",
@@ -1691,34 +1692,34 @@
       "_vehicles-CMe-m-8T.js"
     ]
   },
-  "_VehicleBillingTab-DeQQfavz.js": {
-    "file": "assets/VehicleBillingTab-DeQQfavz.js",
+  "_VehicleBillingTab-BFTbYeMi.js": {
+    "file": "assets/VehicleBillingTab-BFTbYeMi.js",
     "name": "VehicleBillingTab",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_MonthlyBillingBreakdownCard-DhBW_giC.js",
-      "_useVehicleTabs-C1PAdCwk.js",
+      "_MonthlyBillingBreakdownCard-DSThJEp_.js",
+      "_useVehicleTabs-BfEwfZXi.js",
       "_formatEur-D-TjNgb7.js",
-      "_VehiclePricingsCard-DzWo9vfq.js"
+      "_VehiclePricingsCard-Bb4Y53U5.js"
     ]
   },
-  "_VehicleFiscalTab-Bt2e0IEP.js": {
-    "file": "assets/VehicleFiscalTab-Bt2e0IEP.js",
+  "_VehicleFiscalTab-C_Nfo0XD.js": {
+    "file": "assets/VehicleFiscalTab-C_Nfo0XD.js",
     "name": "VehicleFiscalTab",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_FullYearTaxBreakdownPanel-DSfqrDuq.js",
-      "_useVehicleTabs-C1PAdCwk.js",
+      "_FullYearTaxBreakdownPanel-CK-bzN07.js",
+      "_useVehicleTabs-BfEwfZXi.js",
       "_formatEur-D-TjNgb7.js",
-      "_AppliedVfcCard-BplPgkzV.js"
+      "_AppliedVfcCard-CX_weVWh.js"
     ]
   },
-  "_VehicleHeader-CKyNWRMK.js": {
-    "file": "assets/VehicleHeader-CKyNWRMK.js",
+  "_VehicleHeader-DGXPtSwe.js": {
+    "file": "assets/VehicleHeader-DGXPtSwe.js",
     "name": "VehicleHeader",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1731,8 +1732,8 @@
       "_Button-CkBjruQD.js",
       "_Plate-BRosSBF0.js",
       "_StatusPill-BjuMFEik.js",
-      "_ExitVehicleModal-DSfd5zfR.js",
-      "_ReactivateVehicleModal-ykOj6RaP.js",
+      "_ExitVehicleModal-BBU3F3j8.js",
+      "_ReactivateVehicleModal-DemI5KlM.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_vehicleEnumLabels-BwHmpMtv.js",
       "_vehicles-CMe-m-8T.js"
@@ -1751,23 +1752,23 @@
       "_formatEur-D-TjNgb7.js"
     ]
   },
-  "_VehicleOverviewTab-Bh2GxcCw.js": {
-    "file": "assets/VehicleOverviewTab-Bh2GxcCw.js",
+  "_VehicleOverviewTab-BavFuYCC.js": {
+    "file": "assets/VehicleOverviewTab-BavFuYCC.js",
     "name": "VehicleOverviewTab",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_VehicleKpiCards-D3hzUOpd.js",
-      "_CurrentFiscalCharacteristicsCard-DE_Q7jY6.js",
+      "_CurrentFiscalCharacteristicsCard-rlkWz93e.js",
       "_Skeleton-CutZhzW6.js",
-      "_VehicleUsageAndBreakdownCard-x4yN7bYf.js",
-      "_UnavailabilitiesCard-23arurbB.js",
-      "_VehicleYearHistoryCard-D-B7iTfC.js"
+      "_VehicleUsageAndBreakdownCard-Cqvt7g5z.js",
+      "_UnavailabilitiesCard-Digprtsq.js",
+      "_VehicleYearHistoryCard-CFNiOMJV.js"
     ]
   },
-  "_VehiclePricingFormModal-wZMT7Qpv.js": {
-    "file": "assets/VehiclePricingFormModal-wZMT7Qpv.js",
+  "_VehiclePricingFormModal-BvDDrveC.js": {
+    "file": "assets/VehiclePricingFormModal-BvDDrveC.js",
     "name": "VehiclePricingFormModal",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1775,14 +1776,14 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Button-CkBjruQD.js",
       "_Modal-g4QR0t1j.js",
-      "_NumberInput-Wkzdv7qb.js",
-      "_SelectInput-D7MNx1Te.js",
-      "_inertiaModalCallbacks-BzBGsqmQ.js",
+      "_NumberInput-Bzm5DlXZ.js",
+      "_SelectInput-Dig8wkMM.js",
+      "_inertiaModalCallbacks-BWLzd83K.js",
       "_vehicle-yearly-pricings-BaqnKokf.js"
     ]
   },
-  "_VehiclePricingsCard-DzWo9vfq.js": {
-    "file": "assets/VehiclePricingsCard-DzWo9vfq.js",
+  "_VehiclePricingsCard-Bb4Y53U5.js": {
+    "file": "assets/VehiclePricingsCard-Bb4Y53U5.js",
     "name": "VehiclePricingsCard",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1794,12 +1795,12 @@
       "_Button-CkBjruQD.js",
       "_Card-CDwJhlbV.js",
       "_ConfirmModal-z_bq5fHc.js",
-      "_VehiclePricingFormModal-wZMT7Qpv.js",
+      "_VehiclePricingFormModal-BvDDrveC.js",
       "_formatEur-D-TjNgb7.js"
     ]
   },
-  "_VehicleTabsNav-ZaXPoZAm.js": {
-    "file": "assets/VehicleTabsNav-ZaXPoZAm.js",
+  "_VehicleTabsNav-l6mN2wS0.js": {
+    "file": "assets/VehicleTabsNav-l6mN2wS0.js",
     "name": "VehicleTabsNav",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1810,8 +1811,8 @@
     "file": "assets/VehicleUsageAndBreakdownCard-B0m_z5fl.css",
     "src": "_VehicleUsageAndBreakdownCard-B0m_z5fl.css"
   },
-  "_VehicleUsageAndBreakdownCard-x4yN7bYf.js": {
-    "file": "assets/VehicleUsageAndBreakdownCard-x4yN7bYf.js",
+  "_VehicleUsageAndBreakdownCard-Cqvt7g5z.js": {
+    "file": "assets/VehicleUsageAndBreakdownCard-Cqvt7g5z.js",
     "name": "VehicleUsageAndBreakdownCard",
     "imports": [
       "__plugin-vue_export-helper-DM8EaX1S.js",
@@ -1819,11 +1820,11 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Card-CDwJhlbV.js",
       "_CompanyTag-DZXEfoJj.js",
-      "_DataTable-DMHMI1rn.js",
-      "_Tooltip-BZRLNy38.js",
-      "_YearSelector---IHyQo1.js",
-      "_useCompanyFiscalBreakdownTable-CCdQX6Zr.js",
-      "_companyColor-HSVxo7_1.js",
+      "_DataTable-BAAYP8Zw.js",
+      "_Tooltip-yFqzOHc3.js",
+      "_YearSelector-CwUgDUCx.js",
+      "_useCompanyFiscalBreakdownTable-jADmj-Qa.js",
+      "_companyColor-BP5A_aQa.js",
       "_formatEur-D-TjNgb7.js",
       "_vehicles-CMe-m-8T.js"
     ],
@@ -1831,8 +1832,8 @@
       "assets/VehicleUsageAndBreakdownCard-B0m_z5fl.css"
     ]
   },
-  "_VehicleYearHistoryCard-D-B7iTfC.js": {
-    "file": "assets/VehicleYearHistoryCard-D-B7iTfC.js",
+  "_VehicleYearHistoryCard-CFNiOMJV.js": {
+    "file": "assets/VehicleYearHistoryCard-CFNiOMJV.js",
     "name": "VehicleYearHistoryCard",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1841,27 +1842,27 @@
       "_formatEur-D-TjNgb7.js"
     ]
   },
-  "_VfcCreateModal-BHIoCRa4.js": {
-    "file": "assets/VfcCreateModal-BHIoCRa4.js",
+  "_VfcCreateModal-BBoGfKpD.js": {
+    "file": "assets/VfcCreateModal-BBoGfKpD.js",
     "name": "VfcCreateModal",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Button-CkBjruQD.js",
-      "_DateInput-r_y-AWPY.js",
+      "_DateInput-yGZAo6k5.js",
       "_Modal-g4QR0t1j.js",
-      "_SelectInput-D7MNx1Te.js",
-      "_TextInput-C_8YxWQj.js",
-      "_inertiaModalCallbacks-BzBGsqmQ.js",
-      "_computeVfcUpdateImpact-Dp8XQSQ-.js",
+      "_SelectInput-Dig8wkMM.js",
+      "_TextInput-viB1y8NF.js",
+      "_inertiaModalCallbacks-BWLzd83K.js",
+      "_computeVfcUpdateImpact-BFUuOWQ9.js",
       "_formatDateFr-Bc2JfAXr.js",
-      "_FiscalCharacteristicsSection-BDqioKKM.js",
+      "_FiscalCharacteristicsSection-_ZDgwiMi.js",
       "_vehicle-fiscal-characteristics-VjSh7gs3.js"
     ]
   },
-  "_VfcDeleteConfirmModal-VlGYF5cf.js": {
-    "file": "assets/VfcDeleteConfirmModal-VlGYF5cf.js",
+  "_VfcDeleteConfirmModal-CZGs59eX.js": {
+    "file": "assets/VfcDeleteConfirmModal-CZGs59eX.js",
     "name": "VfcDeleteConfirmModal",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
@@ -1871,35 +1872,35 @@
       "_Button-CkBjruQD.js",
       "_InputError-DsC4rQHB.js",
       "_Modal-g4QR0t1j.js",
-      "_inertiaModalCallbacks-BzBGsqmQ.js",
+      "_inertiaModalCallbacks-BWLzd83K.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_vehicle-fiscal-characteristics-VjSh7gs3.js"
     ]
   },
-  "_VfcEditModal-BF2quA-2.js": {
-    "file": "assets/VfcEditModal-BF2quA-2.js",
+  "_VfcEditModal-CByjcLQj.js": {
+    "file": "assets/VfcEditModal-CByjcLQj.js",
     "name": "VfcEditModal",
     "imports": [
       "_rolldown-runtime-WNZMJCWm.js",
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Button-CkBjruQD.js",
-      "_DateInput-r_y-AWPY.js",
+      "_DateInput-yGZAo6k5.js",
       "_Modal-g4QR0t1j.js",
-      "_SelectInput-D7MNx1Te.js",
-      "_TextInput-C_8YxWQj.js",
-      "_inertiaModalCallbacks-BzBGsqmQ.js",
-      "_computeVfcUpdateImpact-Dp8XQSQ-.js",
-      "_FiscalCharacteristicsSection-BDqioKKM.js",
+      "_SelectInput-Dig8wkMM.js",
+      "_TextInput-viB1y8NF.js",
+      "_inertiaModalCallbacks-BWLzd83K.js",
+      "_computeVfcUpdateImpact-BFUuOWQ9.js",
+      "_FiscalCharacteristicsSection-_ZDgwiMi.js",
       "_vehicle-fiscal-characteristics-VjSh7gs3.js"
     ]
   },
-  "_YearSelector---IHyQo1.js": {
-    "file": "assets/YearSelector---IHyQo1.js",
+  "_YearSelector-CwUgDUCx.js": {
+    "file": "assets/YearSelector-CwUgDUCx.js",
     "name": "YearSelector",
     "imports": [
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_SelectInput-D7MNx1Te.js"
+      "_SelectInput-Dig8wkMM.js"
     ]
   },
   "__plugin-vue_export-helper-DM8EaX1S.js": {
@@ -2011,19 +2012,19 @@
       "_wayfinder-C20m1sjn.js"
     ]
   },
-  "_companyColor-HSVxo7_1.js": {
-    "file": "assets/companyColor-HSVxo7_1.js",
+  "_companyColor-BP5A_aQa.js": {
+    "file": "assets/companyColor-BP5A_aQa.js",
     "name": "companyColor",
     "imports": [
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_computeVfcUpdateImpact-Dp8XQSQ-.js": {
-    "file": "assets/computeVfcUpdateImpact-Dp8XQSQ-.js",
+  "_computeVfcUpdateImpact-BFUuOWQ9.js": {
+    "file": "assets/computeVfcUpdateImpact-BFUuOWQ9.js",
     "name": "computeVfcUpdateImpact"
   },
-  "_contractDuration-B-8U7nsC.js": {
-    "file": "assets/contractDuration-B-8U7nsC.js",
+  "_contractDuration-otpX25JX.js": {
+    "file": "assets/contractDuration-otpX25JX.js",
     "name": "contractDuration",
     "imports": [
       "resources/js/app.ts",
@@ -2177,8 +2178,8 @@
       "_createLucideIcon-JhZP7PhB.js"
     ]
   },
-  "_inertiaModalCallbacks-BzBGsqmQ.js": {
-    "file": "assets/inertiaModalCallbacks-BzBGsqmQ.js",
+  "_inertiaModalCallbacks-BWLzd83K.js": {
+    "file": "assets/inertiaModalCallbacks-BWLzd83K.js",
     "name": "inertiaModalCallbacks"
   },
   "_info-B5vo92dB.js": {
@@ -2309,15 +2310,15 @@
       "_useToasts-ZE-NEvvY.js"
     ]
   },
-  "_useCompanyFiscalBreakdownTable-CCdQX6Zr.js": {
-    "file": "assets/useCompanyFiscalBreakdownTable-CCdQX6Zr.js",
+  "_useCompanyFiscalBreakdownTable-jADmj-Qa.js": {
+    "file": "assets/useCompanyFiscalBreakdownTable-jADmj-Qa.js",
     "name": "useCompanyFiscalBreakdownTable",
     "imports": [
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_useCompanyTabs-BqbpxxDQ.js": {
-    "file": "assets/useCompanyTabs-BqbpxxDQ.js",
+  "_useCompanyTabs-B5MxtMjY.js": {
+    "file": "assets/useCompanyTabs-B5MxtMjY.js",
     "name": "useCompanyTabs",
     "imports": [
       "resources/js/app.ts",
@@ -2338,8 +2339,8 @@
     "file": "assets/useContractFormPendingDocuments-CxwZCIWd.js",
     "name": "useContractFormPendingDocuments"
   },
-  "_useDriverForm-C5SG2w6u.js": {
-    "file": "assets/useDriverForm-C5SG2w6u.js",
+  "_useDriverForm-eoAxq_W6.js": {
+    "file": "assets/useDriverForm-eoAxq_W6.js",
     "name": "useDriverForm",
     "imports": [
       "resources/js/app.ts",
@@ -2355,8 +2356,8 @@
       "_fiscal-rules-BU1BK1OM.js"
     ]
   },
-  "_useFlashToasts-B1G1qltV.js": {
-    "file": "assets/useFlashToasts-B1G1qltV.js",
+  "_useFlashToasts-qyNI4nft.js": {
+    "file": "assets/useFlashToasts-qyNI4nft.js",
     "name": "useFlashToasts",
     "imports": [
       "resources/js/app.ts",
@@ -2364,8 +2365,8 @@
       "_useToasts-ZE-NEvvY.js"
     ]
   },
-  "_useInvoiceRegeneration-CIo0oLFP.js": {
-    "file": "assets/useInvoiceRegeneration-CIo0oLFP.js",
+  "_useInvoiceRegeneration-Do5HtPwx.js": {
+    "file": "assets/useInvoiceRegeneration-Do5HtPwx.js",
     "name": "useInvoiceRegeneration",
     "imports": [
       "resources/js/app.ts",
@@ -2374,16 +2375,16 @@
       "_invoices-Dwfnq0DM.js"
     ]
   },
-  "_useLocalYearSelector-DPhmCoGT.js": {
-    "file": "assets/useLocalYearSelector-DPhmCoGT.js",
+  "_useLocalYearSelector-Dn8IZSUY.js": {
+    "file": "assets/useLocalYearSelector-Dn8IZSUY.js",
     "name": "useLocalYearSelector",
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_useRentalDiscountForm-BcYOHO4p.js": {
-    "file": "assets/useRentalDiscountForm-BcYOHO4p.js",
+  "_useRentalDiscountForm-t9ImzZl6.js": {
+    "file": "assets/useRentalDiscountForm-t9ImzZl6.js",
     "name": "useRentalDiscountForm",
     "imports": [
       "resources/js/app.ts",
@@ -2391,8 +2392,8 @@
       "_rental-discounts-CtvyjVFV.js"
     ]
   },
-  "_useServerTableState-Bk1WjEaG.js": {
-    "file": "assets/useServerTableState-Bk1WjEaG.js",
+  "_useServerTableState-krEaCgIi.js": {
+    "file": "assets/useServerTableState-krEaCgIi.js",
     "name": "useServerTableState",
     "imports": [
       "resources/js/app.ts",
@@ -2408,8 +2409,8 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js"
     ]
   },
-  "_useUserPlanningIndex-CKBxuifa.js": {
-    "file": "assets/useUserPlanningIndex-CKBxuifa.js",
+  "_useUserPlanningIndex-CYEDEZu3.js": {
+    "file": "assets/useUserPlanningIndex-CYEDEZu3.js",
     "name": "useUserPlanningIndex",
     "imports": [
       "__plugin-vue_export-helper-DM8EaX1S.js",
@@ -2418,17 +2419,17 @@
       "_createLucideIcon-JhZP7PhB.js",
       "_chevron-down-DTPXVWLn.js",
       "_file-text-BJ1r-f86.js",
-      "_DateRangePicker-DV3I4B1S.js",
-      "_DocumentDropZone-DNLB5SUo.js",
+      "_DateRangePicker-2dJf9ZTb.js",
+      "_DocumentDropZone-BrOzZJs0.js",
       "_x-7rkOjE8z.js",
-      "_DriversMultiPicker-D-hNk4Kx.js",
+      "_DriversMultiPicker-Cq4Cf8ib.js",
       "_density-CcAWzmm2.js",
       "_Button-CkBjruQD.js",
       "_CompanyTag-DZXEfoJj.js",
       "_FieldLabel-olj7kMYb.js",
       "_Modal-g4QR0t1j.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_TextInput-C_8YxWQj.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_TextInput-viB1y8NF.js",
       "_useContractDocuments-TcWxWKDD.js",
       "_useFiscalPreview-eRY6v8dq.js",
       "_useApi-DV-GFrWJ.js",
@@ -2446,8 +2447,8 @@
     "file": "assets/useUserPlanningIndex-D_w8p6bA.css",
     "src": "_useUserPlanningIndex-D_w8p6bA.css"
   },
-  "_useVehicleTabs-C1PAdCwk.js": {
-    "file": "assets/useVehicleTabs-C1PAdCwk.js",
+  "_useVehicleTabs-BfEwfZXi.js": {
+    "file": "assets/useVehicleTabs-BfEwfZXi.js",
     "name": "useVehicleTabs",
     "imports": [
       "resources/js/app.ts",
@@ -2626,7 +2627,7 @@
     "src": "node_modules/@fontsource/dm-sans/files/dm-sans-latin-ext-700-normal.woff2"
   },
   "resources/css/app.css": {
-    "file": "assets/app-BagcN0cK.css",
+    "file": "assets/app-C3hFxHQR.css",
     "name": "app",
     "names": [
       "app.css"
@@ -2661,7 +2662,7 @@
     ]
   },
   "resources/js/app.ts": {
-    "file": "assets/app-BSPgttcF.js",
+    "file": "assets/app-KuVA09ZT.js",
     "name": "app",
     "src": "resources/js/app.ts",
     "isEntry": true,
@@ -2670,87 +2671,87 @@
     ],
     "dynamicImports": [
       "resources/js/pages/Auth/ForgotPassword/Index.vue",
-      "_ForgotPasswordForm-Cg_n4Buc.js",
+      "_ForgotPasswordForm-cGwJl9Fg.js",
       "resources/js/pages/Auth/Login/Index.vue",
-      "_LoginForm-354razzr.js",
+      "_LoginForm-C6FJ2T3A.js",
       "resources/js/pages/Auth/ResetPassword/Index.vue",
-      "_ResetPasswordForm-CUzhp5DW.js",
+      "_ResetPasswordForm-ciF6vYX7.js",
       "resources/js/pages/Dev/UiKitShowcase.vue",
       "resources/js/pages/Dev/UiKitUserLayoutDemo.vue",
       "resources/js/pages/Errors/Index.vue",
       "resources/js/pages/User/Companies/Create/Index.vue",
-      "_AddressSection-SGkC94Nm.js",
-      "_ContactSection-D7ehwcHZ.js",
-      "_IdentitySection-AVfG8U2d.js",
+      "_AddressSection-DJXLSTMb.js",
+      "_ContactSection-D9Vc-XAm.js",
+      "_IdentitySection-ChR-lHsD.js",
       "resources/js/pages/User/Companies/Edit/Index.vue",
       "resources/js/pages/User/Companies/Index/Index.vue",
-      "_CompaniesTable-j9mhN1CN.js",
-      "_EmptyCompaniesState-CZ7s_SOE.js",
-      "_PageHeader-DxK5buyW.js",
+      "_CompaniesTable-BqfEEsKU.js",
+      "_EmptyCompaniesState-C3--llvH.js",
+      "_PageHeader-ByIzQ_Gz.js",
       "resources/js/pages/User/Companies/Show/Index.vue",
-      "_CompanyBillingTab-BmdyItNs.js",
+      "_CompanyBillingTab-ChX2mxOg.js",
       "_CompanyContractsActiveFilterChip-c75OdmcR.js",
-      "_CompanyContractsTab-dB22TObh.js",
-      "_CompanyContractsTable-BH-Jo5Ap.js",
-      "_CompanyDriversTab-6h38xO5K.js",
-      "_CompanyFiscalTab-B77MJWii.js",
-      "_CompanyHeader-Dttsmc9s.js",
-      "_CompanyOverviewTab-BBt0KIPG.js",
+      "_CompanyContractsTab-CDM0lSSe.js",
+      "_CompanyContractsTable-CI6sTctR.js",
+      "_CompanyDriversTab-ujYnORxJ.js",
+      "_CompanyFiscalTab-BgmW_6Z0.js",
+      "_CompanyHeader-CfiC9RT3.js",
+      "_CompanyOverviewTab-3fHnoQLY.js",
       "_CompanyTabsNav-CJf-oHso.js",
       "_TabLoadingSkeleton-BJpWyY3W.js",
-      "_CompanyActivityCard-CXpf0ZcB.js",
+      "_CompanyActivityCard-BQgycNnn.js",
       "_CompanyAddressCard-CJEANaYb.js",
       "_CompanyContactCard-DwnQs5vY.js",
       "_CompanyKpiCards-D3QZYcgC.js",
       "_CompanyYearHistoryCard-BryqYWgd.js",
       "_PendingActionsAlert-DZIF7Yqs.js",
       "resources/js/pages/User/Contracts/Create/Index.vue",
-      "_ContractFormFields-o51tWlnU.js",
+      "_ContractFormFields-DH--yzes.js",
       "resources/js/pages/User/Contracts/Edit/Index.vue",
       "resources/js/pages/User/Contracts/Index/Index.vue",
-      "_ContractsTable-o9-Qigpk.js",
-      "_EmptyContractsState-BqWiaZhp.js",
-      "_PageHeader-DOWETmDT.js",
+      "_ContractsTable-DfWC0K9Z.js",
+      "_EmptyContractsState-CyfxI2AE.js",
+      "_PageHeader-D_AxQf5z.js",
       "resources/js/pages/User/Contracts/Show/Index.vue",
-      "_ActionsBar-DQ7CRgMB.js",
+      "_ActionsBar-BVOv-yzl.js",
       "_BillingBreakdownPanel-a-BKt7QB.js",
       "_ContractDetails-D0ZqUZMD.js",
-      "_ContractDocumentsSection-DZ_sktgA.js",
-      "_ContractEntityCards-Bjzh-9xW.js",
-      "_ContractTitle-Brb1HzeS.js",
+      "_ContractDocumentsSection-DIwKxcfy.js",
+      "_ContractEntityCards-DDD6JWcb.js",
+      "_ContractTitle-C53vb0gq.js",
       "_TaxBreakdownPanel-DR5p_kWu.js",
       "resources/js/pages/User/Dashboard/Index/Index.vue",
-      "_DashboardEvolutionChart-DEV8kHPu.js",
+      "_DashboardEvolutionChart-DhfTE1lB.js",
       "_DashboardEvolutionChartSkeleton-Dx1JtYe_.js",
       "_DashboardKpiCardSkeleton-rU_oIbKp.js",
       "_DashboardKpiFiscalCards-COg4n0fo.js",
       "_DashboardKpiRecettesCard-eV_IxYe5.js",
-      "_DashboardPendingTasksRow-rST6_cFu.js",
+      "_DashboardPendingTasksRow-BFGaXh47.js",
       "_PageHeader-C9YG3_tF.js",
-      "_PendingDeclarationRow-CHU7Kd-W.js",
-      "_PendingDeclarationsPanel-hdVjCAMb.js",
-      "_PendingInvoiceRow-BtopMLVr.js",
-      "_PendingInvoicesPanel-CjuvDLgZ.js",
-      "_QuickLinksGrid-Cghf2fvH.js",
+      "_PendingDeclarationRow-B8eXM3N7.js",
+      "_PendingDeclarationsPanel-CPj_wKi6.js",
+      "_PendingInvoiceRow-DMdrjO5P.js",
+      "_PendingInvoicesPanel-zGCbMLvw.js",
+      "_QuickLinksGrid-Ciai8NsK.js",
       "resources/js/pages/User/Declarations/Index/Index.vue",
-      "_DeclarationsTable-mYBiE4Uk.js",
+      "_DeclarationsTable-CsFFU-Rk.js",
       "_EmptyState-VggD0Tdc.js",
       "resources/js/pages/User/Declarations/Show/Index.vue",
-      "_Header-IGnVpCM6.js",
+      "_Header-ChGsfIip.js",
       "_ObsolescenceBanner-RLK22n70.js",
-      "_PdfCard-CEqJCjv_.js",
-      "_PredecessorNoticeBanner-BZNMAoFG.js",
-      "_ReviewActionsBar-Z-CBsch9.js",
+      "_PdfCard-Gndh17Hp.js",
+      "_PredecessorNoticeBanner-BZRVO_p7.js",
+      "_ReviewActionsBar-CEChWWHJ.js",
       "resources/js/pages/User/Drivers/Create/Index.vue",
-      "_DriverFormFields-NEsddLrD.js",
+      "_DriverFormFields-BrTWD-s9.js",
       "resources/js/pages/User/Drivers/Edit/Index.vue",
       "resources/js/pages/User/Drivers/Index/Index.vue",
-      "_DriversTable-CD-6LJtM.js",
+      "_DriversTable-CZrdDyFf.js",
       "resources/js/pages/User/Drivers/Show/Index.vue",
-      "_DriverActionsBar-udgpJawH.js",
-      "_DriverCompaniesSection-BH3_LyLp.js",
-      "_DriverHeader-DeD1ZBEt.js",
-      "_DriverKpiCards-CeWHtmmg.js",
+      "_DriverActionsBar-DcRvdzSn.js",
+      "_DriverCompaniesSection-DL-xCHHs.js",
+      "_DriverHeader-DmTg2Mfe.js",
+      "_DriverKpiCards-Dw9HS_UI.js",
       "resources/js/pages/User/FiscalRules/Index/Index.vue",
       "_FormulaCard-AQCB2Iff.js",
       "_RuleBracketsFlat-DBgOEkS3.js",
@@ -2760,70 +2761,71 @@
       "_RuleLegalReferences-Cne91_SN.js",
       "_RuleSection-znLV3nht.js",
       "resources/js/pages/User/Invoices/Index/Index.vue",
-      "_InvoicesTable-CzD72JBi.js",
+      "_InvoicesTable-DzVRZ8Qk.js",
       "resources/js/pages/User/Invoices/Show/Index.vue",
       "resources/js/pages/User/Planning/Company/Empty.vue",
       "resources/js/pages/User/Planning/Company/Index.vue",
       "resources/js/pages/User/Planning/Index/Index.vue",
       "_PageHeader-DQZJrbJI.js",
       "resources/js/pages/User/Profile/ChangePassword/Index.vue",
-      "_ChangePasswordForm-lg0J8P3_.js",
+      "_ChangePasswordForm-CZ71HU0t.js",
       "resources/js/pages/User/RentalDiscounts/Create/Index.vue",
-      "_RentalDiscountFormFields-BEUGGS-z.js",
+      "_RentalDiscountFormFields-lZpw20dt.js",
       "resources/js/pages/User/RentalDiscounts/Edit/Index.vue",
       "resources/js/pages/User/RentalDiscounts/Index/Index.vue",
       "_RentalDiscountsStats-DWxTM5Kn.js",
-      "_RentalDiscountsTable-Dm8i8HIx.js",
+      "_RentalDiscountsTable-BlYk-MLr.js",
       "resources/js/pages/User/RentalDiscounts/Show/Index.vue",
-      "_RentalDiscountActionsBar-BGAot5Ho.js",
-      "_RentalDiscountApplicationCard-DRDDvZRP.js",
-      "_RentalDiscountDeleteModal-B0DDgwSc.js",
-      "_RentalDiscountHeader-FbP7wXer.js",
-      "_RentalDiscountVehiclesCard-h3OXTalJ.js",
+      "_RentalDiscountDeleteModal-DJaxpzkw.js",
+      "_RentalDiscountHeader-BfFNzelX.js",
+      "_RentalDiscountKeyTiles-D4DazeNb.js",
+      "_RentalDiscountKpiStrip-DYQsp9lE.js",
+      "_RentalDiscountNotesStrip-A2s8q_pG.js",
+      "_RentalDiscountVehiclesCard-oq8V7RWE.js",
       "resources/js/pages/User/Settings/Billing/Index.vue",
       "resources/js/pages/User/Settings/FiscalRisk/Index.vue",
       "resources/js/pages/User/Vehicles/Create/Index.vue",
-      "_FiscalCharacteristicsSection-wjy05sOu.js",
-      "_IdentitySection-B5sEuQyC.js",
-      "_RegistrationSection-BeMXXrne.js",
+      "_FiscalCharacteristicsSection-BRrW1CKo.js",
+      "_IdentitySection-BIiepbBp.js",
+      "_RegistrationSection-D4-vas5Z.js",
       "resources/js/pages/User/Vehicles/Edit/Index.vue",
-      "_FiscalChangeMetadataSection-COVUALit.js",
-      "_FiscalCharacteristicsSection-BDqioKKM.js",
-      "_IdentitySection-DQQ4ElFe.js",
-      "_RegistrationSection-BqXsVzYD.js",
+      "_FiscalChangeMetadataSection-DSnBpeTf.js",
+      "_FiscalCharacteristicsSection-_ZDgwiMi.js",
+      "_IdentitySection-Q0cx40TR.js",
+      "_RegistrationSection-DtvXAogK.js",
       "resources/js/pages/User/Vehicles/Index/Index.vue",
-      "_EmptyFleetState-CDzNqF7G.js",
-      "_FleetTable-BJtjs4k-.js",
-      "_PageHeader-ByFG3QBM.js",
+      "_EmptyFleetState-B19QlL6Q.js",
+      "_FleetTable-CGSImOvf.js",
+      "_PageHeader-07wvbdXt.js",
       "resources/js/pages/User/Vehicles/Show/Index.vue",
       "resources/js/pages/User/Vehicles/Show/partials/CompanyFiscalBreakdownTable.vue",
-      "_CurrentFiscalCharacteristicsCard-DE_Q7jY6.js",
-      "_ExitVehicleModal-DSfd5zfR.js",
-      "_FiscalHistoryTimeline-DnwVG6e0.js",
-      "_FullYearTaxBreakdownPanel-DSfqrDuq.js",
-      "_ReactivateVehicleModal-ykOj6RaP.js",
-      "_UnavailabilitiesCard-23arurbB.js",
-      "_UnavailabilityFormModal-Bjf1uDS2.js",
-      "_VehicleBillingTab-DeQQfavz.js",
-      "_VehicleFiscalTab-Bt2e0IEP.js",
-      "_VehicleHeader-CKyNWRMK.js",
+      "_CurrentFiscalCharacteristicsCard-rlkWz93e.js",
+      "_ExitVehicleModal-BBU3F3j8.js",
+      "_FiscalHistoryTimeline-o49gLv5x.js",
+      "_FullYearTaxBreakdownPanel-CK-bzN07.js",
+      "_ReactivateVehicleModal-DemI5KlM.js",
+      "_UnavailabilitiesCard-Digprtsq.js",
+      "_UnavailabilityFormModal-BUKNJn7Z.js",
+      "_VehicleBillingTab-BFTbYeMi.js",
+      "_VehicleFiscalTab-C_Nfo0XD.js",
+      "_VehicleHeader-DGXPtSwe.js",
       "_VehicleKpiCards-D3hzUOpd.js",
-      "_VehicleOverviewTab-Bh2GxcCw.js",
-      "_VehicleTabsNav-ZaXPoZAm.js",
-      "_VehicleYearHistoryCard-D-B7iTfC.js",
+      "_VehicleOverviewTab-BavFuYCC.js",
+      "_VehicleTabsNav-l6mN2wS0.js",
+      "_VehicleYearHistoryCard-CFNiOMJV.js",
       "resources/js/pages/User/Vehicles/Show/partials/VehicleYearlyUsageTimeline.vue",
-      "_VfcCreateModal-BHIoCRa4.js",
-      "_VfcDeleteConfirmModal-VlGYF5cf.js",
-      "_VfcEditModal-BF2quA-2.js",
-      "_VehiclePricingFormModal-wZMT7Qpv.js",
-      "_VehiclePricingsCard-DzWo9vfq.js",
-      "_AppliedVfcCard-BplPgkzV.js",
-      "_VehicleUsageAndBreakdownCard-x4yN7bYf.js",
+      "_VfcCreateModal-BBoGfKpD.js",
+      "_VfcDeleteConfirmModal-CZGs59eX.js",
+      "_VfcEditModal-CByjcLQj.js",
+      "_VehiclePricingFormModal-BvDDrveC.js",
+      "_VehiclePricingsCard-Bb4Y53U5.js",
+      "_AppliedVfcCard-CX_weVWh.js",
+      "_VehicleUsageAndBreakdownCard-Cqvt7g5z.js",
       "resources/js/pages/Welcome.vue"
     ]
   },
   "resources/js/pages/Auth/ForgotPassword/Index.vue": {
-    "file": "assets/Index-DoIaqoIT.js",
+    "file": "assets/Index-U5gq3k5n.js",
     "name": "Index",
     "src": "resources/js/pages/Auth/ForgotPassword/Index.vue",
     "isDynamicEntry": true,
@@ -2831,13 +2833,13 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_FlotyMark-BY_NkBy2.js",
-      "_GuestLayout-wymJZMIy.js",
-      "_ForgotPasswordForm-Cg_n4Buc.js",
+      "_GuestLayout-B9bfN6YY.js",
+      "_ForgotPasswordForm-cGwJl9Fg.js",
       "_routes-M9j3Bkf9.js"
     ]
   },
   "resources/js/pages/Auth/Login/Index.vue": {
-    "file": "assets/Index-NneQdEYM.js",
+    "file": "assets/Index-BcmkxI5E.js",
     "name": "Index",
     "src": "resources/js/pages/Auth/Login/Index.vue",
     "isDynamicEntry": true,
@@ -2845,12 +2847,12 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_FlotyMark-BY_NkBy2.js",
-      "_GuestLayout-wymJZMIy.js",
-      "_LoginForm-354razzr.js"
+      "_GuestLayout-B9bfN6YY.js",
+      "_LoginForm-C6FJ2T3A.js"
     ]
   },
   "resources/js/pages/Auth/ResetPassword/Index.vue": {
-    "file": "assets/Index-DVTTgRkQ.js",
+    "file": "assets/Index-C2N-ixot.js",
     "name": "Index",
     "src": "resources/js/pages/Auth/ResetPassword/Index.vue",
     "isDynamicEntry": true,
@@ -2858,13 +2860,13 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_FlotyMark-BY_NkBy2.js",
-      "_GuestLayout-wymJZMIy.js",
-      "_ResetPasswordForm-CUzhp5DW.js",
+      "_GuestLayout-B9bfN6YY.js",
+      "_ResetPasswordForm-ciF6vYX7.js",
       "_routes-M9j3Bkf9.js"
     ]
   },
   "resources/js/pages/Dev/UiKitShowcase.vue": {
-    "file": "assets/UiKitShowcase-sl8JVEtX.js",
+    "file": "assets/UiKitShowcase-BH7oefNG.js",
     "name": "UiKitShowcase",
     "src": "resources/js/pages/Dev/UiKitShowcase.vue",
     "isDynamicEntry": true,
@@ -2880,7 +2882,7 @@
       "_download-U-hlwA6V.js",
       "_file-clock-BSSb9Av1.js",
       "_funnel-BEieCKkk.js",
-      "_DateRangePicker-DV3I4B1S.js",
+      "_DateRangePicker-2dJf9ZTb.js",
       "_pencil-B9fuggGN.js",
       "_plus-ClKcb-uT.js",
       "_Kbd-CYW9v5-T.js",
@@ -2892,27 +2894,27 @@
       "_Badge-i3JN7p09.js",
       "_Button-CkBjruQD.js",
       "_Card-CDwJhlbV.js",
-      "_CheckboxInput-Ct01LrSc.js",
+      "_CheckboxInput-BUJhf7Us.js",
       "_CompanyTag-DZXEfoJj.js",
       "_ConfirmModal-z_bq5fHc.js",
-      "_DataTable-DMHMI1rn.js",
-      "_DateInput-r_y-AWPY.js",
+      "_DataTable-BAAYP8Zw.js",
+      "_DateInput-yGZAo6k5.js",
       "_EmptyState-Br0_k-Jh.js",
       "_InputError-DsC4rQHB.js",
       "_KpiCard-uSpcS2oK.js",
       "_Modal-g4QR0t1j.js",
-      "_NumberInput-Wkzdv7qb.js",
+      "_NumberInput-Bzm5DlXZ.js",
       "_Plate-BRosSBF0.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_SelectInput-Dig8wkMM.js",
       "_StatusPill-BjuMFEik.js",
-      "_TextInput-C_8YxWQj.js",
+      "_TextInput-viB1y8NF.js",
       "_useToasts-ZE-NEvvY.js"
     ]
   },
   "resources/js/pages/Dev/UiKitUserLayoutDemo.vue": {
-    "file": "assets/UiKitUserLayoutDemo-C0g5vosI.js",
+    "file": "assets/UiKitUserLayoutDemo-DP0xgJfi.js",
     "name": "UiKitUserLayoutDemo",
     "src": "resources/js/pages/Dev/UiKitUserLayoutDemo.vue",
     "isDynamicEntry": true,
@@ -2921,19 +2923,19 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_circle-check-DoHfWoMY.js",
       "_file-clock-BSSb9Av1.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_plus-ClKcb-uT.js",
       "_AlertRow-Cxde8Hdl.js",
       "_triangle-alert-Cow-9UMY.js",
       "_Badge-i3JN7p09.js",
       "_Button-CkBjruQD.js",
-      "_DataTable-DMHMI1rn.js",
+      "_DataTable-BAAYP8Zw.js",
       "_KpiCard-uSpcS2oK.js",
       "_Plate-BRosSBF0.js"
     ]
   },
   "resources/js/pages/Errors/Index.vue": {
-    "file": "assets/Index-CbFsOx2-.js",
+    "file": "assets/Index-E8iXR7TO.js",
     "name": "Index",
     "src": "resources/js/pages/Errors/Index.vue",
     "isDynamicEntry": true,
@@ -2945,81 +2947,81 @@
     ]
   },
   "resources/js/pages/User/Companies/Create/Index.vue": {
-    "file": "assets/Index-BFQ5iJV1.js",
+    "file": "assets/Index-DPCdL0-z.js",
     "name": "Index",
     "src": "resources/js/pages/User/Companies/Create/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_IdentitySection-AVfG8U2d.js",
+      "_UserLayout-hiy54TBv.js",
+      "_IdentitySection-ChR-lHsD.js",
       "_Button-CkBjruQD.js",
-      "_AddressSection-SGkC94Nm.js",
-      "_ContactSection-D7ehwcHZ.js",
+      "_AddressSection-DJXLSTMb.js",
+      "_ContactSection-D9Vc-XAm.js",
       "_companies-CATnWfOh.js"
     ]
   },
   "resources/js/pages/User/Companies/Edit/Index.vue": {
-    "file": "assets/Index-CyyxlRRH.js",
+    "file": "assets/Index-z7q1SNrK.js",
     "name": "Index",
     "src": "resources/js/pages/User/Companies/Edit/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_IdentitySection-AVfG8U2d.js",
+      "_UserLayout-hiy54TBv.js",
+      "_IdentitySection-ChR-lHsD.js",
       "_Button-CkBjruQD.js",
-      "_AddressSection-SGkC94Nm.js",
-      "_ContactSection-D7ehwcHZ.js",
+      "_AddressSection-DJXLSTMb.js",
+      "_ContactSection-D9Vc-XAm.js",
       "_companies-CATnWfOh.js"
     ]
   },
   "resources/js/pages/User/Companies/Index/Index.vue": {
-    "file": "assets/Index-CYvEWrYz.js",
+    "file": "assets/Index-CW73h3EZ.js",
     "name": "Index",
     "src": "resources/js/pages/User/Companies/Index/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_FieldLabel-olj7kMYb.js",
-      "_InlineYearSelector-CEiJIYK6.js",
-      "_useServerTableState-Bk1WjEaG.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_InlineYearSelector-B-sY1QIq.js",
+      "_useServerTableState-krEaCgIi.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SelectInput-Dig8wkMM.js",
       "_FilterPopover-BULlWLZy.js",
-      "_TextInput-C_8YxWQj.js",
-      "_CompaniesTable-j9mhN1CN.js",
-      "_EmptyCompaniesState-CZ7s_SOE.js",
-      "_PageHeader-DxK5buyW.js",
+      "_TextInput-viB1y8NF.js",
+      "_CompaniesTable-BqfEEsKU.js",
+      "_EmptyCompaniesState-C3--llvH.js",
+      "_PageHeader-ByIzQ_Gz.js",
       "_companies-CATnWfOh.js"
     ]
   },
   "resources/js/pages/User/Companies/Show/Index.vue": {
-    "file": "assets/Index-C2jI0cMu.js",
+    "file": "assets/Index-CGSLyg44.js",
     "name": "Index",
     "src": "resources/js/pages/User/Companies/Show/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_CompanyFiscalTab-B77MJWii.js",
-      "_CompanyBillingTab-BmdyItNs.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_CompanyDriversTab-6h38xO5K.js",
-      "_CompanyContractsTab-dB22TObh.js",
-      "_useCompanyTabs-BqbpxxDQ.js",
-      "_CompanyHeader-Dttsmc9s.js",
-      "_CompanyOverviewTab-BBt0KIPG.js",
+      "_CompanyFiscalTab-BgmW_6Z0.js",
+      "_CompanyBillingTab-ChX2mxOg.js",
+      "_UserLayout-hiy54TBv.js",
+      "_CompanyDriversTab-ujYnORxJ.js",
+      "_CompanyContractsTab-CDM0lSSe.js",
+      "_useCompanyTabs-B5MxtMjY.js",
+      "_CompanyHeader-CfiC9RT3.js",
+      "_CompanyOverviewTab-3fHnoQLY.js",
       "_CompanyTabsNav-CJf-oHso.js",
       "_TabLoadingSkeleton-BJpWyY3W.js"
     ]
   },
   "resources/js/pages/User/Contracts/Create/Index.vue": {
-    "file": "assets/Index-CLrqWijw.js",
+    "file": "assets/Index-C3ftbSCH.js",
     "name": "Index",
     "src": "resources/js/pages/User/Contracts/Create/Index.vue",
     "isDynamicEntry": true,
@@ -3028,20 +3030,20 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_arrow-left-DXMuoGa0.js",
       "_file-text-BJ1r-f86.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_DocumentDropZone-DNLB5SUo.js",
+      "_UserLayout-hiy54TBv.js",
+      "_DocumentDropZone-BrOzZJs0.js",
       "_x-7rkOjE8z.js",
-      "_DriversMultiPicker-D-hNk4Kx.js",
-      "_contractDuration-B-8U7nsC.js",
+      "_DriversMultiPicker-Cq4Cf8ib.js",
+      "_contractDuration-otpX25JX.js",
       "_Button-CkBjruQD.js",
       "_useContractFormPendingDocuments-CxwZCIWd.js",
-      "_ContractFormFields-o51tWlnU.js",
+      "_ContractFormFields-DH--yzes.js",
       "_useToasts-ZE-NEvvY.js",
       "_contracts-C5AGrWNd.js"
     ]
   },
   "resources/js/pages/User/Contracts/Edit/Index.vue": {
-    "file": "assets/Index-RQqW5BEf.js",
+    "file": "assets/Index-V7fYTpSk.js",
     "name": "Index",
     "src": "resources/js/pages/User/Contracts/Edit/Index.vue",
     "isDynamicEntry": true,
@@ -3049,15 +3051,15 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_arrow-left-DXMuoGa0.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_contractDuration-B-8U7nsC.js",
+      "_UserLayout-hiy54TBv.js",
+      "_contractDuration-otpX25JX.js",
       "_Button-CkBjruQD.js",
-      "_ContractFormFields-o51tWlnU.js",
+      "_ContractFormFields-DH--yzes.js",
       "_contracts-C5AGrWNd.js"
     ]
   },
   "resources/js/pages/User/Contracts/Index/Index.vue": {
-    "file": "assets/Index-BhgxsVxV.js",
+    "file": "assets/Index-EZ96Oygy.js",
     "name": "Index",
     "src": "resources/js/pages/User/Contracts/Index/Index.vue",
     "isDynamicEntry": true,
@@ -3065,86 +3067,86 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_calendar-days-DqOXln9E.js",
-      "_DateRangePicker-DV3I4B1S.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_DateRangePicker-2dJf9ZTb.js",
+      "_UserLayout-hiy54TBv.js",
       "_FieldLabel-olj7kMYb.js",
-      "_InlineYearSelector-CEiJIYK6.js",
-      "_useServerTableState-Bk1WjEaG.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_InlineYearSelector-B-sY1QIq.js",
+      "_useServerTableState-krEaCgIi.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_SelectInput-Dig8wkMM.js",
       "_FilterPopover-BULlWLZy.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_contractEnumLabels-DTL2P_HJ.js",
-      "_ContractsTable-o9-Qigpk.js",
-      "_EmptyContractsState-BqWiaZhp.js",
-      "_PageHeader-DOWETmDT.js",
+      "_ContractsTable-DfWC0K9Z.js",
+      "_EmptyContractsState-CyfxI2AE.js",
+      "_PageHeader-D_AxQf5z.js",
       "_contracts-C5AGrWNd.js"
     ]
   },
   "resources/js/pages/User/Contracts/Show/Index.vue": {
-    "file": "assets/Index-BZXT5RJr2.js",
+    "file": "assets/Index-DMKOxCjX2.js",
     "name": "Index",
     "src": "resources/js/pages/User/Contracts/Show/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_ActionsBar-DQ7CRgMB.js",
+      "_UserLayout-hiy54TBv.js",
+      "_ActionsBar-BVOv-yzl.js",
       "_TaxBreakdownPanel-DR5p_kWu.js",
       "_useContractDocuments-TcWxWKDD.js",
       "_useContractFormPendingDocuments-CxwZCIWd.js",
       "_BillingBreakdownPanel-a-BKt7QB.js",
       "_ContractDetails-D0ZqUZMD.js",
-      "_ContractDocumentsSection-DZ_sktgA.js",
-      "_ContractEntityCards-Bjzh-9xW.js",
-      "_ContractTitle-Brb1HzeS.js"
+      "_ContractDocumentsSection-DIwKxcfy.js",
+      "_ContractEntityCards-DDD6JWcb.js",
+      "_ContractTitle-C53vb0gq.js"
     ]
   },
   "resources/js/pages/User/Dashboard/Index/Index.vue": {
-    "file": "assets/Index-C3cKqxJB.js",
+    "file": "assets/Index-CGl_DzhS.js",
     "name": "Index",
     "src": "resources/js/pages/User/Dashboard/Index/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
-      "_DashboardEvolutionChart-DEV8kHPu.js",
+      "_DashboardEvolutionChart-DhfTE1lB.js",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_Skeleton-CutZhzW6.js",
-      "_QuickLinksGrid-Cghf2fvH.js",
+      "_QuickLinksGrid-Ciai8NsK.js",
       "_DashboardEvolutionChartSkeleton-Dx1JtYe_.js",
       "_DashboardKpiCardSkeleton-rU_oIbKp.js",
       "_DashboardKpiFiscalCards-COg4n0fo.js",
       "_DashboardKpiRecettesCard-eV_IxYe5.js",
-      "_DashboardPendingTasksRow-rST6_cFu.js",
+      "_DashboardPendingTasksRow-BFGaXh47.js",
       "_PageHeader-C9YG3_tF.js"
     ]
   },
   "resources/js/pages/User/Declarations/Index/Index.vue": {
-    "file": "assets/Index-CWqALTn2.js",
+    "file": "assets/Index-DQnzAf3D.js",
     "name": "Index",
     "src": "resources/js/pages/User/Declarations/Index/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_CheckboxInput-Ct01LrSc.js",
+      "_UserLayout-hiy54TBv.js",
+      "_CheckboxInput-BUJhf7Us.js",
       "_FieldLabel-olj7kMYb.js",
-      "_useServerTableState-Bk1WjEaG.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_useServerTableState-krEaCgIi.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_SelectInput-Dig8wkMM.js",
       "_FilterPopover-BULlWLZy.js",
-      "_DeclarationsTable-mYBiE4Uk.js",
+      "_DeclarationsTable-CsFFU-Rk.js",
       "_EmptyState-VggD0Tdc.js",
       "_declarations-BOSc-BgX.js"
     ]
   },
   "resources/js/pages/User/Declarations/Show/Index.vue": {
-    "file": "assets/Index-B0z5c-fX.js",
+    "file": "assets/Index-DypHz9h6.js",
     "name": "Index",
     "src": "resources/js/pages/User/Declarations/Show/Index.vue",
     "isDynamicEntry": true,
@@ -3155,14 +3157,14 @@
       "_arrow-up-right-Bkh3Giik.js",
       "_circle-check-DoHfWoMY.js",
       "_clock-my8eHJhF.js",
-      "_PdfCard-CEqJCjv_.js",
+      "_PdfCard-Gndh17Hp.js",
       "_file-plus-corner-Buc7t_bS.js",
       "_history-v7uTovJE.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_pencil-B9fuggGN.js",
       "_recycle-CAcmYMEx.js",
-      "_Header-IGnVpCM6.js",
-      "_DeclarationHistoryTimeline-Cdtu8fm2.js",
+      "_Header-ChGsfIip.js",
+      "_DeclarationHistoryTimeline-DymkV4Op.js",
       "_Button-CkBjruQD.js",
       "_Card-CDwJhlbV.js",
       "_Modal-g4QR0t1j.js",
@@ -3172,14 +3174,14 @@
       "_formatEur-D-TjNgb7.js",
       "_invalidationReason-STJWa1dM.js",
       "_ObsolescenceBanner-RLK22n70.js",
-      "_PredecessorNoticeBanner-BZNMAoFG.js",
-      "_ReviewActionsBar-Z-CBsch9.js",
+      "_PredecessorNoticeBanner-BZRVO_p7.js",
+      "_ReviewActionsBar-CEChWWHJ.js",
       "_contracts-C5AGrWNd.js",
       "_declarations-BOSc-BgX.js"
     ]
   },
   "resources/js/pages/User/Drivers/Create/Index.vue": {
-    "file": "assets/Index-CaqpNiQl.js",
+    "file": "assets/Index-DV9_FT5O.js",
     "name": "Index",
     "src": "resources/js/pages/User/Drivers/Create/Index.vue",
     "isDynamicEntry": true,
@@ -3187,15 +3189,15 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_chevron-left-C48SeyyI.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_Button-CkBjruQD.js",
-      "_useDriverForm-C5SG2w6u.js",
-      "_DriverFormFields-NEsddLrD.js",
+      "_useDriverForm-eoAxq_W6.js",
+      "_DriverFormFields-BrTWD-s9.js",
       "_drivers-BR0P94xm.js"
     ]
   },
   "resources/js/pages/User/Drivers/Edit/Index.vue": {
-    "file": "assets/Index-6JrZeUkq.js",
+    "file": "assets/Index-BYxYRpID.js",
     "name": "Index",
     "src": "resources/js/pages/User/Drivers/Edit/Index.vue",
     "isDynamicEntry": true,
@@ -3204,15 +3206,15 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_chevron-left-C48SeyyI.js",
       "_id-card-DRv6Pqwl.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_Button-CkBjruQD.js",
-      "_TextInput-C_8YxWQj.js",
-      "_useDriverForm-C5SG2w6u.js",
+      "_TextInput-viB1y8NF.js",
+      "_useDriverForm-eoAxq_W6.js",
       "_drivers-BR0P94xm.js"
     ]
   },
   "resources/js/pages/User/Drivers/Index/Index.vue": {
-    "file": "assets/Index-TeDQGONj.js",
+    "file": "assets/Index-GPEQtTaU.js",
     "name": "Index",
     "src": "resources/js/pages/User/Drivers/Index/Index.vue",
     "isDynamicEntry": true,
@@ -3220,81 +3222,81 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_createLucideIcon-JhZP7PhB.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_plus-ClKcb-uT.js",
       "_Button-CkBjruQD.js",
       "_FieldLabel-olj7kMYb.js",
-      "_useServerTableState-Bk1WjEaG.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_useServerTableState-krEaCgIi.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_SelectInput-Dig8wkMM.js",
       "_FilterPopover-BULlWLZy.js",
-      "_DriversTable-CD-6LJtM.js",
+      "_DriversTable-CZrdDyFf.js",
       "_drivers-BR0P94xm.js"
     ]
   },
   "resources/js/pages/User/Drivers/Show/Index.vue": {
-    "file": "assets/Index-D94loeAu.js",
+    "file": "assets/Index-BQvaKbhr.js",
     "name": "Index",
     "src": "resources/js/pages/User/Drivers/Show/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_LeaveDriverCompanyModal-DAcnz5b4.js",
+      "_UserLayout-hiy54TBv.js",
+      "_LeaveDriverCompanyModal-BnPAzbF4.js",
       "_Button-CkBjruQD.js",
-      "_DateInput-r_y-AWPY.js",
+      "_DateInput-yGZAo6k5.js",
       "_FieldLabel-olj7kMYb.js",
       "_InputError-DsC4rQHB.js",
       "_Modal-g4QR0t1j.js",
-      "_SelectInput-D7MNx1Te.js",
-      "_DriverActionsBar-udgpJawH.js",
-      "_DriverCompaniesSection-BH3_LyLp.js",
-      "_DriverHeader-DeD1ZBEt.js",
-      "_DriverKpiCards-CeWHtmmg.js",
+      "_SelectInput-Dig8wkMM.js",
+      "_DriverActionsBar-DcRvdzSn.js",
+      "_DriverCompaniesSection-DL-xCHHs.js",
+      "_DriverHeader-DmTg2Mfe.js",
+      "_DriverKpiCards-Dw9HS_UI.js",
       "_memberships-DFsskAqP.js"
     ]
   },
   "resources/js/pages/User/FiscalRules/Index/Index.vue": {
-    "file": "assets/Index-DhZfl6ns.js",
+    "file": "assets/Index-B9dlzkYS.js",
     "name": "Index",
     "src": "resources/js/pages/User/FiscalRules/Index/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_FieldLabel-olj7kMYb.js",
-      "_SelectInput-D7MNx1Te.js",
-      "_useLocalYearSelector-DPhmCoGT.js",
+      "_SelectInput-Dig8wkMM.js",
+      "_useLocalYearSelector-Dn8IZSUY.js",
       "_FormulaCard-AQCB2Iff.js",
       "_RuleSection-znLV3nht.js"
     ]
   },
   "resources/js/pages/User/Invoices/Index/Index.vue": {
-    "file": "assets/Index-WAnQF8Vy.js",
+    "file": "assets/Index-3vCFYCap.js",
     "name": "Index",
     "src": "resources/js/pages/User/Invoices/Index/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_CheckboxInput-Ct01LrSc.js",
+      "_UserLayout-hiy54TBv.js",
+      "_CheckboxInput-BUJhf7Us.js",
       "_FieldLabel-olj7kMYb.js",
-      "_useServerTableState-Bk1WjEaG.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_useServerTableState-krEaCgIi.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_SelectInput-Dig8wkMM.js",
       "_FilterPopover-BULlWLZy.js",
       "_monthLabels-BOy5vaXc.js",
-      "_InvoicesTable-CzD72JBi.js",
+      "_InvoicesTable-DzVRZ8Qk.js",
       "_invoices-Dwfnq0DM.js"
     ]
   },
   "resources/js/pages/User/Invoices/Show/Index.vue": {
-    "file": "assets/Index-CPn5MJ4l.js",
+    "file": "assets/Index-CE21hF5U.js",
     "name": "Index",
     "src": "resources/js/pages/User/Invoices/Show/Index.vue",
     "isDynamicEntry": true,
@@ -3303,15 +3305,15 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_download-U-hlwA6V.js",
       "_file-text-BJ1r-f86.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_useInvoiceRegeneration-CIo0oLFP.js",
+      "_UserLayout-hiy54TBv.js",
+      "_useInvoiceRegeneration-Do5HtPwx.js",
       "_triangle-alert-Cow-9UMY.js",
       "_RentalDiscountPill-ChzVKSAv.js",
       "_Card-CDwJhlbV.js",
       "_ConfirmModal-z_bq5fHc.js",
       "_Skeleton-CutZhzW6.js",
       "_StatusPill-BjuMFEik.js",
-      "_Tooltip-BZRLNy38.js",
+      "_Tooltip-yFqzOHc3.js",
       "_formatDateFr-Bc2JfAXr.js",
       "_formatEur-D-TjNgb7.js",
       "_formatPercent-DEtjZOAp.js",
@@ -3322,7 +3324,7 @@
     ]
   },
   "resources/js/pages/User/Planning/Company/Empty.vue": {
-    "file": "assets/Empty-bMAP91ur.js",
+    "file": "assets/Empty-GmBEwMYb.js",
     "name": "Empty",
     "src": "resources/js/pages/User/Planning/Company/Empty.vue",
     "isDynamicEntry": true,
@@ -3330,58 +3332,58 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_building-2-D8thmFCK.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_plus-ClKcb-uT.js",
       "_Button-CkBjruQD.js",
       "_companies-CATnWfOh.js"
     ]
   },
   "resources/js/pages/User/Planning/Company/Index.vue": {
-    "file": "assets/Index-CBBPgsZ7.js",
+    "file": "assets/Index-CRFdApJY.js",
     "name": "Index",
     "src": "resources/js/pages/User/Planning/Company/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_useUserPlanningIndex-CKBxuifa.js",
-      "_DriversMultiPicker-D-hNk4Kx.js",
-      "_InlineYearSelector-CEiJIYK6.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_useLocalYearSelector-DPhmCoGT.js",
+      "_UserLayout-hiy54TBv.js",
+      "_useUserPlanningIndex-CYEDEZu3.js",
+      "_DriversMultiPicker-Cq4Cf8ib.js",
+      "_InlineYearSelector-B-sY1QIq.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_useLocalYearSelector-Dn8IZSUY.js",
       "_companies-CYnzuWSZ.js"
     ]
   },
   "resources/js/pages/User/Planning/Index/Index.vue": {
-    "file": "assets/Index-BTRc46FL.js",
+    "file": "assets/Index-DjDd-rRd.js",
     "name": "Index",
     "src": "resources/js/pages/User/Planning/Index/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_useUserPlanningIndex-CKBxuifa.js",
-      "_InlineYearSelector-CEiJIYK6.js",
-      "_useLocalYearSelector-DPhmCoGT.js",
+      "_UserLayout-hiy54TBv.js",
+      "_useUserPlanningIndex-CYEDEZu3.js",
+      "_InlineYearSelector-B-sY1QIq.js",
+      "_useLocalYearSelector-Dn8IZSUY.js",
       "_PageHeader-DQZJrbJI.js"
     ]
   },
   "resources/js/pages/User/Profile/ChangePassword/Index.vue": {
-    "file": "assets/Index-BYccM0Ri.js",
+    "file": "assets/Index-D9QYJKnA.js",
     "name": "Index",
     "src": "resources/js/pages/User/Profile/ChangePassword/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_ChangePasswordForm-lg0J8P3_.js"
+      "_UserLayout-hiy54TBv.js",
+      "_ChangePasswordForm-CZ71HU0t.js"
     ]
   },
   "resources/js/pages/User/RentalDiscounts/Create/Index.vue": {
-    "file": "assets/Index-D8aPnp3g.js",
+    "file": "assets/Index-CTjrN6mt.js",
     "name": "Index",
     "src": "resources/js/pages/User/RentalDiscounts/Create/Index.vue",
     "isDynamicEntry": true,
@@ -3389,15 +3391,15 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_chevron-left-C48SeyyI.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_RentalDiscountFormFields-BEUGGS-z.js",
+      "_UserLayout-hiy54TBv.js",
+      "_RentalDiscountFormFields-lZpw20dt.js",
       "_Button-CkBjruQD.js",
-      "_useRentalDiscountForm-BcYOHO4p.js",
+      "_useRentalDiscountForm-t9ImzZl6.js",
       "_rental-discounts-CtvyjVFV.js"
     ]
   },
   "resources/js/pages/User/RentalDiscounts/Edit/Index.vue": {
-    "file": "assets/Index-D16GQi80.js",
+    "file": "assets/Index-Bc3-v1-p.js",
     "name": "Index",
     "src": "resources/js/pages/User/RentalDiscounts/Edit/Index.vue",
     "isDynamicEntry": true,
@@ -3405,15 +3407,15 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_chevron-left-C48SeyyI.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_RentalDiscountFormFields-BEUGGS-z.js",
+      "_UserLayout-hiy54TBv.js",
+      "_RentalDiscountFormFields-lZpw20dt.js",
       "_Button-CkBjruQD.js",
-      "_useRentalDiscountForm-BcYOHO4p.js",
+      "_useRentalDiscountForm-t9ImzZl6.js",
       "_rental-discounts-CtvyjVFV.js"
     ]
   },
   "resources/js/pages/User/RentalDiscounts/Index/Index.vue": {
-    "file": "assets/Index-DgiTqKkC.js",
+    "file": "assets/Index-27UJxDqL.js",
     "name": "Index",
     "src": "resources/js/pages/User/RentalDiscounts/Index/Index.vue",
     "isDynamicEntry": true,
@@ -3421,146 +3423,147 @@
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_badge-percent-DWQU4pLx.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_plus-ClKcb-uT.js",
       "_Button-CkBjruQD.js",
       "_FieldLabel-olj7kMYb.js",
-      "_useServerTableState-Bk1WjEaG.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SearchableSelect-BGLNDqwO.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_useServerTableState-krEaCgIi.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SearchableSelect-CO34gRFv.js",
+      "_SelectInput-Dig8wkMM.js",
       "_FilterPopover-BULlWLZy.js",
       "_RentalDiscountsStats-DWxTM5Kn.js",
-      "_RentalDiscountsTable-Dm8i8HIx.js",
+      "_RentalDiscountsTable-BlYk-MLr.js",
       "_rental-discounts-CtvyjVFV.js"
     ]
   },
   "resources/js/pages/User/RentalDiscounts/Show/Index.vue": {
-    "file": "assets/Index-DddwbQCD.js",
+    "file": "assets/Index-DN8TiYWe2.js",
     "name": "Index",
     "src": "resources/js/pages/User/RentalDiscounts/Show/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_RentalDiscountActionsBar-BGAot5Ho.js",
-      "_RentalDiscountApplicationCard-DRDDvZRP.js",
-      "_RentalDiscountDeleteModal-B0DDgwSc.js",
-      "_RentalDiscountHeader-FbP7wXer.js",
-      "_RentalDiscountVehiclesCard-h3OXTalJ.js",
+      "_UserLayout-hiy54TBv.js",
+      "_RentalDiscountKeyTiles-D4DazeNb.js",
+      "_RentalDiscountDeleteModal-DJaxpzkw.js",
+      "_RentalDiscountHeader-BfFNzelX.js",
+      "_RentalDiscountKpiStrip-DYQsp9lE.js",
+      "_RentalDiscountNotesStrip-A2s8q_pG.js",
+      "_RentalDiscountVehiclesCard-oq8V7RWE.js",
       "_rental-discounts-CtvyjVFV.js"
     ]
   },
   "resources/js/pages/User/Settings/Billing/Index.vue": {
-    "file": "assets/Index-B_tzfjqz2.js",
+    "file": "assets/Index-BHujFF0N.js",
     "name": "Index",
     "src": "resources/js/pages/User/Settings/Billing/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_receipt-BRFH0Nur.js",
       "_Button-CkBjruQD.js",
       "_Card-CDwJhlbV.js",
-      "_TextInput-C_8YxWQj.js",
+      "_TextInput-viB1y8NF.js",
       "_user-C564DU0X.js"
     ]
   },
   "resources/js/pages/User/Settings/FiscalRisk/Index.vue": {
-    "file": "assets/Index--Z17_5dH.js",
+    "file": "assets/Index-DBCe31VL.js",
     "name": "Index",
     "src": "resources/js/pages/User/Settings/FiscalRisk/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_Button-CkBjruQD.js",
       "_Card-CDwJhlbV.js",
-      "_NumberInput-Wkzdv7qb.js",
+      "_NumberInput-Bzm5DlXZ.js",
       "_user-C564DU0X.js"
     ]
   },
   "resources/js/pages/User/Vehicles/Create/Index.vue": {
-    "file": "assets/Index-DOugoKJf2.js",
+    "file": "assets/Index-DSwlsNDu2.js",
     "name": "Index",
     "src": "resources/js/pages/User/Vehicles/Create/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_Button-CkBjruQD.js",
-      "_FiscalCharacteristicsSection-wjy05sOu.js",
-      "_IdentitySection-B5sEuQyC.js",
-      "_RegistrationSection-BeMXXrne.js",
+      "_FiscalCharacteristicsSection-BRrW1CKo.js",
+      "_IdentitySection-BIiepbBp.js",
+      "_RegistrationSection-D4-vas5Z.js",
       "_vehicles-CMe-m-8T.js"
     ]
   },
   "resources/js/pages/User/Vehicles/Edit/Index.vue": {
-    "file": "assets/Index-Ba7LGXBa2.js",
+    "file": "assets/Index-tyVG7ztY.js",
     "name": "Index",
     "src": "resources/js/pages/User/Vehicles/Edit/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
+      "_UserLayout-hiy54TBv.js",
       "_Button-CkBjruQD.js",
       "_ConfirmModal-z_bq5fHc.js",
       "_formatDateFr-Bc2JfAXr.js",
-      "_FiscalChangeMetadataSection-COVUALit.js",
-      "_FiscalCharacteristicsSection-BDqioKKM.js",
-      "_IdentitySection-DQQ4ElFe.js",
-      "_RegistrationSection-BqXsVzYD.js",
+      "_FiscalChangeMetadataSection-DSnBpeTf.js",
+      "_FiscalCharacteristicsSection-_ZDgwiMi.js",
+      "_IdentitySection-Q0cx40TR.js",
+      "_RegistrationSection-DtvXAogK.js",
       "_vehicles-CMe-m-8T.js"
     ]
   },
   "resources/js/pages/User/Vehicles/Index/Index.vue": {
-    "file": "assets/Index-BtzYR5WG.js",
+    "file": "assets/Index-DrP3_q60.js",
     "name": "Index",
     "src": "resources/js/pages/User/Vehicles/Index/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_CheckboxInput-Ct01LrSc.js",
+      "_UserLayout-hiy54TBv.js",
+      "_CheckboxInput-BUJhf7Us.js",
       "_FieldLabel-olj7kMYb.js",
-      "_InlineYearSelector-CEiJIYK6.js",
-      "_useServerTableState-Bk1WjEaG.js",
-      "_SearchInput-O6RRxrFs.js",
-      "_SelectInput-D7MNx1Te.js",
+      "_InlineYearSelector-B-sY1QIq.js",
+      "_useServerTableState-krEaCgIi.js",
+      "_SearchInput-Cy18wD1t.js",
+      "_SelectInput-Dig8wkMM.js",
       "_FilterPopover-BULlWLZy.js",
       "_vehicleEnumLabels-BwHmpMtv.js",
-      "_EmptyFleetState-CDzNqF7G.js",
-      "_FleetTable-BJtjs4k-.js",
-      "_PageHeader-ByFG3QBM.js",
+      "_EmptyFleetState-B19QlL6Q.js",
+      "_FleetTable-CGSImOvf.js",
+      "_PageHeader-07wvbdXt.js",
       "_vehicles-CMe-m-8T.js"
     ]
   },
   "resources/js/pages/User/Vehicles/Show/Index.vue": {
-    "file": "assets/Index-DPVQORSP.js",
+    "file": "assets/Index-16KVtBiu.js",
     "name": "Index",
     "src": "resources/js/pages/User/Vehicles/Show/Index.vue",
     "isDynamicEntry": true,
     "imports": [
       "resources/js/app.ts",
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
-      "_VehicleHeader-CKyNWRMK.js",
-      "_UserLayout-BCIQdsYF.js",
-      "_VehicleFiscalTab-Bt2e0IEP.js",
-      "_useVehicleTabs-C1PAdCwk.js",
+      "_VehicleHeader-DGXPtSwe.js",
+      "_UserLayout-hiy54TBv.js",
+      "_VehicleFiscalTab-C_Nfo0XD.js",
+      "_useVehicleTabs-BfEwfZXi.js",
       "_TabLoadingSkeleton-BJpWyY3W.js",
-      "_VehicleBillingTab-DeQQfavz.js",
-      "_VehicleOverviewTab-Bh2GxcCw.js",
-      "_VehicleTabsNav-ZaXPoZAm.js"
+      "_VehicleBillingTab-BFTbYeMi.js",
+      "_VehicleOverviewTab-BavFuYCC.js",
+      "_VehicleTabsNav-l6mN2wS0.js"
     ]
   },
   "resources/js/pages/User/Vehicles/Show/partials/CompanyFiscalBreakdownTable.vue": {
-    "file": "assets/CompanyFiscalBreakdownTable-BG_8u1sD.js",
+    "file": "assets/CompanyFiscalBreakdownTable-DeA1yU6o.js",
     "name": "CompanyFiscalBreakdownTable",
     "src": "resources/js/pages/User/Vehicles/Show/partials/CompanyFiscalBreakdownTable.vue",
     "isDynamicEntry": true,
@@ -3568,25 +3571,25 @@
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Card-CDwJhlbV.js",
       "_CompanyTag-DZXEfoJj.js",
-      "_DataTable-DMHMI1rn.js",
-      "_useCompanyFiscalBreakdownTable-CCdQX6Zr.js",
+      "_DataTable-BAAYP8Zw.js",
+      "_useCompanyFiscalBreakdownTable-jADmj-Qa.js",
       "_formatEur-D-TjNgb7.js"
     ]
   },
   "resources/js/pages/User/Vehicles/Show/partials/VehicleYearlyUsageTimeline.vue": {
-    "file": "assets/VehicleYearlyUsageTimeline-CGOH58Qk.js",
+    "file": "assets/VehicleYearlyUsageTimeline-CgeGOzja.js",
     "name": "VehicleYearlyUsageTimeline",
     "src": "resources/js/pages/User/Vehicles/Show/partials/VehicleYearlyUsageTimeline.vue",
     "isDynamicEntry": true,
     "imports": [
       "_runtime-core.esm-bundler-ZxkLjTIG.js",
       "_Card-CDwJhlbV.js",
-      "_Tooltip-BZRLNy38.js",
-      "_companyColor-HSVxo7_1.js"
+      "_Tooltip-yFqzOHc3.js",
+      "_companyColor-BP5A_aQa.js"
     ]
   },
   "resources/js/pages/Welcome.vue": {
-    "file": "assets/Welcome-CD3edgUr.js",
+    "file": "assets/Welcome-BlujirCI.js",
     "name": "Welcome",
     "src": "resources/js/pages/Welcome.vue",
     "isDynamicEntry": true,
