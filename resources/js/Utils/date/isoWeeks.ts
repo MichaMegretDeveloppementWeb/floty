@@ -14,6 +14,30 @@
 export const CELLS_PER_YEAR = 53;
 
 /**
+ * Largeur fixe d'une cellule heatmap en pixels.
+ *
+ * SC20 (2026-05-18) · les cellules sont désormais d'une taille fixe
+ * indépendante de la largeur du viewport (avant · `minmax(14px, 1fr)`
+ * qui faisait shrink les cellules en dessous d'un certain seuil →
+ * UX inconsistante entre grand et petit écran). Avec 21px fixe ·
+ *   - largeur totale grille · 53 × 21 + 52 (gaps) = 1165 px
+ *   - sur grand écran (max-w-1600) · le bloc central « gagne » 79 px
+ *     d'espace vide à droite (acceptable visuellement, card bg-white)
+ *   - sur petit écran · scroll horizontal sur le bloc central uniquement
+ *     (overflow-auto déjà en place), cellules restent à 21 px = même
+ *     UX que grand écran.
+ */
+export const CELL_WIDTH_PX = 21;
+
+/**
+ * Largeur totale (en px) de la grille heatmap year · cellules + gaps.
+ * Utilisée comme `width` fixe du wrapper interne du bloc central pour
+ * que `calc(100% - 52px)` des labels mois s'aligne sur la zone cellules.
+ */
+export const GRID_CONTENT_WIDTH_PX =
+    CELLS_PER_YEAR * CELL_WIDTH_PX + (CELLS_PER_YEAR - 1);
+
+/**
  * Lundi de la cellule 1 de la heatmap year · semaine ISO contenant le
  * 1er janvier (peut être en décembre Y-1).
  */

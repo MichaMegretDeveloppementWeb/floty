@@ -1,0 +1,1 @@
+import{O as e,_ as t,g as n,j as r,r as i,u as a}from"./runtime-core.esm-bundler-ZxkLjTIG.js";import{t as o}from"./ToastContainer-DG3ChXOI.js";import{t as s}from"./useFlashToasts-D1iOBZQ_.js";var c=t({__name:`GuestLayout`,setup(t){return s(),(t,s)=>(e(),a(i,null,[r(t.$slots,`default`),n(o)],64))}});export{c as t};

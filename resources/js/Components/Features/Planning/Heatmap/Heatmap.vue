@@ -45,7 +45,7 @@ import {
     widthCalcBetweenDayOffsets,
 } from '@/Components/Features/Planning/Heatmap/utils/monthLabelPositions';
 import { weekBackgroundsForYear } from '@/Components/Features/Planning/Heatmap/utils/weekBackgrounds';
-import { CELLS_PER_YEAR } from '@/Utils/Date/isoWeeks';
+import { CELLS_PER_YEAR, CELL_WIDTH_PX, GRID_CONTENT_WIDTH_PX } from '@/Utils/Date/isoWeeks';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
 import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
@@ -120,12 +120,18 @@ const weekBackgrounds = computed(() => weekBackgroundsForYear(props.fiscalYear))
 
 /**
  * SC18 (2026-05-18) · grid 53 colonnes identiques · expression CSS
- * partagée entre header (mois + loyer), overlay backgrounds et
- * `WeekCellsRow`. Garantie · toutes les cellules sont alignées
- * pixel-perfect colonne par colonne entre les rows (l'ancien flex
- * grow basis-0 produisait des décalages sub-pixel d'une ligne à l'autre).
+ * partagée entre overlay backgrounds et `WeekCellsRow`. Garantie ·
+ * toutes les cellules sont alignées pixel-perfect colonne par colonne
+ * entre les rows (l'ancien flex grow basis-0 produisait des décalages
+ * sub-pixel d'une ligne à l'autre).
+ *
+ * SC20 (2026-05-18) · largeur de colonne FIXE `CELL_WIDTH_PX` (21 px)
+ * au lieu de `minmax(14px, 1fr)` · taille de cellule indépendante de
+ * la largeur du viewport. Wrapper interne (`gridContentWidth` px) sert
+ * de référence pour le `calc(100% - 52px)` des labels mois.
  */
-const gridColumns = `repeat(${CELLS_PER_YEAR}, minmax(14px, 1fr))`;
+const gridColumns = `repeat(${CELLS_PER_YEAR}, ${CELL_WIDTH_PX}px)`;
+const gridContentWidth = GRID_CONTENT_WIDTH_PX;
 
 function isCompanyVariant(v: OverviewVehicle | CompanyVehicle): v is CompanyVehicle {
     return 'weeksGlobal' in v;
@@ -353,6 +359,16 @@ function syncFrom(e: Event): void {
                         :style="{ marginRight: `-${scrollbarWidth}px` }"
                         @scroll="syncFrom"
                     >
+                        <!-- SC20 (2026-05-18) · wrapper interne LARGEUR FIXE
+                             (`gridContentWidth` = 53 × CELL_WIDTH_PX + 52) ·
+                             sert de référence pour `calc(100% - 52px)` des
+                             labels mois ET garantit que les cellules conservent
+                             leur taille indépendamment de la largeur du
+                             viewport. Sur grand écran le bloc central a un
+                             espace vide à droite (acceptable, card bg-white) ;
+                             sur petit écran scroll H sur le bloc central
+                             (overflow-auto déjà en place sur `middleRef`). -->
+                        <div :style="{ width: `${gridContentWidth}px` }">
                         <!-- SC17 (2026-05-18) · header en FLEX 12 enfants ·
                              chaque mois a `flex-grow: span` proportionnel au
                              nombre de cellules qu'il couvre. Alignement
@@ -367,7 +383,17 @@ function syncFrom(e: Event): void {
                              largeur totale moins les gaps, plus les gaps déjà
                              franchis. -->
                         <div class="sticky top-0 z-10 bg-white pt-4 pb-2">
-                            <div class="relative h-4 overflow-x-hidden">
+                            <!-- SC20 (2026-05-18) · `overflow-hidden` (et NON
+                                 `overflow-x-hidden`) car Chrome force
+                                 `overflow-y: auto` quand seul X est hidden,
+                                 ce qui fait apparaître une scrollbar V si le
+                                 contenu dépasse en hauteur (cas du parent
+                                 rental `h-3` avec ligne 15 px) · la scrollbar
+                                 V réservée subtilise ~15 px au `clientWidth`
+                                 et `100%` dans `calc()` résout vers 1150 au
+                                 lieu de 1165 · décalage progressif des labels
+                                 entre les 2 lignes (mois OK, rental shifté). -->
+                            <div class="relative h-4 overflow-hidden">
                                 <div
                                     v-for="label in monthLabels"
                                     :key="`m-${label.name}`"
@@ -382,7 +408,7 @@ function syncFrom(e: Event): void {
                                  inline tant que la prop defer "rentals" n'a
                                  pas répondu · tiret discret si tarif manquant
                                  sur le mois. Format entier sans centimes. -->
-                            <div class="relative mt-1 h-3 overflow-x-hidden">
+                            <div class="relative mt-1 h-3 overflow-hidden">
                                 <div
                                     v-for="label in monthLabels"
                                     :key="`rent-${label.name}`"
@@ -448,6 +474,7 @@ function syncFrom(e: Event): void {
                                     @cell-click="$emit('cell-click', $event)"
                                 />
                             </div>
+                        </div>
                         </div>
                     </div>
                 </div>

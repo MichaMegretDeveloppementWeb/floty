@@ -6,6 +6,7 @@ import {
     textContrastClass,
 } from '@/Components/Features/Planning/Heatmap/utils/density';
 import { isCellAfterExit } from '@/Components/Features/Planning/Heatmap/utils/exitedWeeks';
+import { CELL_WIDTH_PX } from '@/Utils/Date/isoWeeks';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 const props = defineProps<{
@@ -43,13 +44,14 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
 <template>
     <!-- SC18 (2026-05-18) · grid 53 colonnes identiques (au lieu de flex
          grow basis-0 qui produisait des décalages sub-pixel entre rows).
-         minmax(14px, 1fr) · cellule min 14px (sinon scroll H sur viewport
-         étroit), sinon partage équitable de l'espace disponible. Toutes
-         les rows utilisent la même grille → alignement parfait colonne
-         par colonne. -->
+         SC20 (2026-05-18) · largeur de colonne FIXE `CELL_WIDTH_PX` (21
+         px) au lieu de `minmax(14px, 1fr)` · les cellules ne shrinkent
+         plus avec la taille du viewport · taille stable = même UX entre
+         grand et petit écran (le bloc central scrolle H si plus étroit
+         que la grille). -->
     <div
         class="grid h-[56px] items-center gap-[1px] border-t border-slate-100 first:border-t-0"
-        :style="{ gridTemplateColumns: `repeat(${vehicleView.weeksForCount.length}, minmax(14px, 1fr))` }"
+        :style="{ gridTemplateColumns: `repeat(${vehicleView.weeksForCount.length}, ${CELL_WIDTH_PX}px)` }"
     >
         <button
             v-for="(daysCount, weekIndex) in vehicleView.weeksForCount"
