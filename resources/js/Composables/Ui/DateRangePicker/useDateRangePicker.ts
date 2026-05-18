@@ -238,6 +238,50 @@ export function useDateRangePicker(
         currentMonth.value = value;
     });
 
+    // Failsafe · garantit que le calendrier suit toujours la borne
+    // qui vient d'être modifiée, peu importe l'origine (input natif,
+    // clic calendrier, set programmatique par le parent, preset…).
+    // Sans ce watcher, modifier la date de fin via l'input pour
+    // atterrir dans un autre mois laissait le calendrier figé sur
+    // l'ancien mois (les appels manuels à `jumpToIsoMonth` dans les
+    // handlers d'input étaient parfois shuntés par le cycle de
+    // réactivité Vue lors d'un re-render du parent).
+    //
+    // La borne suivie est celle qui a effectivement changé entre prev
+    // et next · l'utilisateur s'attend à voir le résultat de SA dernière
+    // édition (modifier le début → on saute au début ; modifier la fin
+    // → on saute à la fin). Si les deux changent en même temps (reset
+    // ou pose initiale), on privilégie endDate.
+    watch(
+        () => [range.value.startDate, range.value.endDate] as const,
+        ([nextStart, nextEnd], prev) => {
+            const [prevStart, prevEnd] = prev ?? [null, null];
+            const startChanged = nextStart !== prevStart;
+            const endChanged = nextEnd !== prevEnd;
+
+            const target = endChanged && nextEnd !== null
+                ? nextEnd
+                : startChanged && nextStart !== null
+                    ? nextStart
+                    : nextEnd ?? nextStart;
+
+            if (target === null) {
+                return;
+            }
+
+            const targetYear = Number(target.slice(0, 4));
+            const targetMonth = Number(target.slice(5, 7));
+
+            if (
+                targetYear !== currentYear.value
+                || targetMonth !== currentMonth.value
+            ) {
+                currentYear.value = targetYear;
+                currentMonth.value = targetMonth;
+            }
+        },
+    );
+
     const monthLabel = computed<string>(() => {
         const date = new Date(currentYear.value, currentMonth.value - 1, 1);
 
