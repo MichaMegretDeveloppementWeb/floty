@@ -41,6 +41,7 @@
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { monthSpansForYear } from '@/Components/Features/Planning/Heatmap/utils/monthSpans';
 import { weekBackgroundsForYear } from '@/Components/Features/Planning/Heatmap/utils/weekBackgrounds';
+import { CELLS_PER_YEAR } from '@/Utils/Date/isoWeeks';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
 import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
@@ -110,6 +111,15 @@ const monthSpans = computed(() =>
  * classes basis-0 grow shrink-0 + min-w-[14px] + gap-[1px]).
  */
 const weekBackgrounds = computed(() => weekBackgroundsForYear(props.fiscalYear));
+
+/**
+ * SC18 (2026-05-18) · grid 53 colonnes identiques · expression CSS
+ * partagée entre header (mois + loyer), overlay backgrounds et
+ * `WeekCellsRow`. Garantie · toutes les cellules sont alignées
+ * pixel-perfect colonne par colonne entre les rows (l'ancien flex
+ * grow basis-0 produisait des décalages sub-pixel d'une ligne à l'autre).
+ */
+const gridColumns = `repeat(${CELLS_PER_YEAR}, minmax(14px, 1fr))`;
 
 function isCompanyVariant(v: OverviewVehicle | CompanyVehicle): v is CompanyVehicle {
     return 'weeksGlobal' in v;
@@ -344,12 +354,15 @@ function syncFrom(e: Event): void {
                              shrink-0 + min-w · 53 enfants poids 1 chacun ·
                              total 53 = Σ spans des 12 mois). -->
                         <div class="sticky top-0 z-10 bg-white pt-4 pb-2">
-                            <div class="flex h-4 gap-[1px]">
+                            <div
+                                class="grid h-4 gap-[1px]"
+                                :style="{ gridTemplateColumns: gridColumns }"
+                            >
                                 <div
                                     v-for="span in monthSpans"
                                     :key="`m-${span.name}`"
-                                    :style="{ flexGrow: span.span }"
-                                    class="flex min-w-0 basis-0 truncate text-xs font-medium text-slate-500"
+                                    :style="{ gridColumn: `span ${span.span}` }"
+                                    class="min-w-0 truncate text-xs font-medium text-slate-500"
                                 >
                                     {{ span.name }}
                                 </div>
@@ -359,12 +372,15 @@ function syncFrom(e: Event): void {
                                  inline tant que la prop defer "rentals" n'a
                                  pas répondu · tiret discret si tarif manquant
                                  sur le mois. Format entier sans centimes. -->
-                            <div class="mt-1 flex h-3 gap-[1px]">
+                            <div
+                                class="mt-1 grid h-3 gap-[1px]"
+                                :style="{ gridTemplateColumns: gridColumns }"
+                            >
                                 <div
                                     v-for="span in monthSpans"
                                     :key="`rent-${span.name}`"
-                                    :style="{ flexGrow: span.span }"
-                                    class="flex min-w-0 basis-0 truncate font-mono text-[10px] text-slate-500 tabular-nums"
+                                    :style="{ gridColumn: `span ${span.span}` }"
+                                    class="min-w-0 truncate font-mono text-[10px] text-slate-500 tabular-nums"
                                 >
                                     <template v-if="monthlyRentals === undefined">
                                         <span
@@ -402,13 +418,14 @@ function syncFrom(e: Event): void {
                         -->
                         <div class="relative">
                             <div
-                                class="pointer-events-none absolute inset-y-0 left-0 right-0 flex gap-[1px]"
+                                class="pointer-events-none absolute inset-y-0 left-0 right-0 grid gap-[1px]"
+                                :style="{ gridTemplateColumns: gridColumns }"
                                 aria-hidden="true"
                             >
                                 <div
                                     v-for="(bg, weekIdx) in weekBackgrounds"
                                     :key="`bg-w${weekIdx}`"
-                                    class="min-w-[14px] shrink-0 grow basis-0"
+                                    class="min-w-0"
                                     :style="{ background: bg }"
                                 />
                             </div>

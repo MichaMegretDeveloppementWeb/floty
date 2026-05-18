@@ -41,8 +41,15 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
 </script>
 
 <template>
+    <!-- SC18 (2026-05-18) · grid 53 colonnes identiques (au lieu de flex
+         grow basis-0 qui produisait des décalages sub-pixel entre rows).
+         minmax(14px, 1fr) · cellule min 14px (sinon scroll H sur viewport
+         étroit), sinon partage équitable de l'espace disponible. Toutes
+         les rows utilisent la même grille → alignement parfait colonne
+         par colonne. -->
     <div
-        class="flex h-[56px] items-center gap-[1px] border-t border-slate-100 first:border-t-0"
+        class="grid h-[56px] items-center gap-[1px] border-t border-slate-100 first:border-t-0"
+        :style="{ gridTemplateColumns: `repeat(${vehicleView.weeksForCount.length}, minmax(14px, 1fr))` }"
     >
         <button
             v-for="(daysCount, weekIndex) in vehicleView.weeksForCount"
@@ -51,7 +58,7 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
             :class="[
                 densityClass(vehicleView.weeksForColor[weekIndex] ?? 0),
                 textContrastClass(vehicleView.weeksForColor[weekIndex] ?? 0),
-                'flex h-7 grow shrink-0 basis-0 min-w-[14px] items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
+                'flex h-7 min-w-0 items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
                 exitedWeekFlags[weekIndex] && 'pointer-events-none opacity-30',
                 unavailabilityWeekFlags[weekIndex] && 'ring-1 ring-rose-500 ring-inset',
             ]"
