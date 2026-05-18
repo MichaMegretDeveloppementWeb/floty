@@ -39,7 +39,11 @@
  * partials, qui ne connaissent que le type unifié `HeatmapVehicleView`.
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-import { monthSpansForYear } from '@/Components/Features/Planning/Heatmap/utils/monthSpans';
+import {
+    leftCalcForDayOffset,
+    monthLabelPositionsForYear,
+    widthCalcBetweenDayOffsets,
+} from '@/Components/Features/Planning/Heatmap/utils/monthLabelPositions';
 import { weekBackgroundsForYear } from '@/Components/Features/Planning/Heatmap/utils/weekBackgrounds';
 import { CELLS_PER_YEAR } from '@/Utils/Date/isoWeeks';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
@@ -90,15 +94,17 @@ defineEmits<{
 const MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
 
 /**
- * SC17 (2026-05-18) · 12 spans mensuels pour le header · chaque mois
- * occupe `span` cellules dans la grille (flex-grow proportionnel).
- * Alignement parfait avec les cellules grâce à un calcul de poids
- * équivalent : 1 cellule = 1 unité flex, 1 mois = span unités flex.
+ * SC19 (2026-05-18) · 12 positions mensuelles avec offsets en jours
+ * exacts dans la grille · alignement pixel-perfect entre label et
+ * transition de background (au milieu d'une cellule semaine si
+ * la frontière de mois tombe en milieu de semaine ISO).
  */
-const monthSpans = computed(() =>
-    monthSpansForYear(props.fiscalYear).map((s) => ({
-        ...s,
-        name: MONTH_NAMES[s.monthIdx - 1]!,
+const monthLabels = computed(() =>
+    monthLabelPositionsForYear(props.fiscalYear).map((p) => ({
+        ...p,
+        name: MONTH_NAMES[p.monthIdx - 1]!,
+        leftCalc: leftCalcForDayOffset(p.startDayOffset),
+        widthCalc: widthCalcBetweenDayOffsets(p.startDayOffset, p.endDayOffset),
     })),
 );
 
@@ -353,18 +359,22 @@ function syncFrom(e: Event): void {
                              parfait avec les cellules (qui sont basis-0 grow
                              shrink-0 + min-w · 53 enfants poids 1 chacun ·
                              total 53 = Σ spans des 12 mois). -->
+                        <!-- SC19 (2026-05-18) · header en position absolute avec
+                             left/width en calc() · alignement pixel-perfect des
+                             labels mois sur les transitions de background. La
+                             grille contient 53 cellules de cellW chacune et 52
+                             gaps de 1px ; positions calculées en fraction de la
+                             largeur totale moins les gaps, plus les gaps déjà
+                             franchis. -->
                         <div class="sticky top-0 z-10 bg-white pt-4 pb-2">
-                            <div
-                                class="grid h-4 gap-[1px]"
-                                :style="{ gridTemplateColumns: gridColumns }"
-                            >
+                            <div class="relative h-4 overflow-x-hidden">
                                 <div
-                                    v-for="span in monthSpans"
-                                    :key="`m-${span.name}`"
-                                    :style="{ gridColumn: `span ${span.span}` }"
-                                    class="min-w-0 truncate text-xs font-medium text-slate-500"
+                                    v-for="label in monthLabels"
+                                    :key="`m-${label.name}`"
+                                    :style="{ left: label.leftCalc, width: label.widthCalc }"
+                                    class="absolute top-0 truncate text-xs font-medium text-slate-500"
                                 >
-                                    {{ span.name }}
+                                    {{ label.name }}
                                 </div>
                             </div>
                             <!-- SC1 (2026-05-18) · loyer mensuel cumulé NET
@@ -372,15 +382,12 @@ function syncFrom(e: Event): void {
                                  inline tant que la prop defer "rentals" n'a
                                  pas répondu · tiret discret si tarif manquant
                                  sur le mois. Format entier sans centimes. -->
-                            <div
-                                class="mt-1 grid h-3 gap-[1px]"
-                                :style="{ gridTemplateColumns: gridColumns }"
-                            >
+                            <div class="relative mt-1 h-3 overflow-x-hidden">
                                 <div
-                                    v-for="span in monthSpans"
-                                    :key="`rent-${span.name}`"
-                                    :style="{ gridColumn: `span ${span.span}` }"
-                                    class="min-w-0 truncate font-mono text-[10px] text-slate-500 tabular-nums"
+                                    v-for="label in monthLabels"
+                                    :key="`rent-${label.name}`"
+                                    :style="{ left: label.leftCalc, width: label.widthCalc }"
+                                    class="absolute top-0 truncate font-mono text-[10px] text-slate-500 tabular-nums"
                                 >
                                     <template v-if="monthlyRentals === undefined">
                                         <span
@@ -388,11 +395,11 @@ function syncFrom(e: Event): void {
                                             aria-label="Calcul du loyer en cours"
                                         ></span>
                                     </template>
-                                    <template v-else-if="monthlyRentals[span.monthIdx] === null">
+                                    <template v-else-if="monthlyRentals[label.monthIdx] === null">
                                         <span class="text-slate-300">-</span>
                                     </template>
                                     <template v-else>
-                                        {{ formatEur(monthlyRentals[span.monthIdx]! / 100, 0) }}
+                                        {{ formatEur(monthlyRentals[label.monthIdx]! / 100, 0) }}
                                     </template>
                                 </div>
                             </div>
