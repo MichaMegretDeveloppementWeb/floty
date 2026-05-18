@@ -69,7 +69,7 @@ final class PlanningHeatmapService
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
         $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
 
-        $weeksCount = IsoWeeks::inYear($year);
+        $weeksCount = IsoWeeks::CELLS_PER_YEAR;
 
         $vehicleRows = [];
         foreach ($vehicles as $vehicle) {
@@ -145,7 +145,7 @@ final class PlanningHeatmapService
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
         $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
 
-        $weeksCount = IsoWeeks::inYear($year);
+        $weeksCount = IsoWeeks::CELLS_PER_YEAR;
 
         $vehicleRows = [];
         foreach ($vehicles as $vehicle) {

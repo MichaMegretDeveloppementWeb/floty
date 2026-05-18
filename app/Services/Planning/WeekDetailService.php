@@ -28,6 +28,7 @@ use App\Services\Billing\Discount\DiscountApplier;
 use App\Services\Billing\Discount\DiscountResolver;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FiscalCalculator;
+use App\Support\Date\IsoWeeks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 
@@ -63,8 +64,12 @@ final class WeekDetailService
     {
         $vehicle = $this->vehicles->findOrFailWithFiscal($vehicleId);
 
-        $start = Carbon::now()->setISODate($year, $weekNumber)->startOfWeek();
-        $end = $start->copy()->endOfWeek();
+        // SC16 (2026-05-18) · `$weekNumber` est désormais une position de
+        // CELLULE (1..53) dans la heatmap year · le lundi correspondant
+        // se calcule via `IsoWeeks::cellOriginForYear` + offset.
+        $origin = IsoWeeks::cellOriginForYear($year);
+        $start = Carbon::instance($origin->addDays(($weekNumber - 1) * 7));
+        $end = $start->copy()->addDays(6);
 
         $weekContracts = $this->contractQuery->findWindowContractsForVehicle(
             $vehicleId,

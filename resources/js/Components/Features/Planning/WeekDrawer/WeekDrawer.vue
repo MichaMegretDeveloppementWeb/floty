@@ -10,7 +10,7 @@
  *     + preview des taxes induites (R-2024-021 LCD per-contract).
  */
 import { computed, ref, watch } from 'vue';
-import { isoWeeksInYear } from '@/Utils/Date/isoWeeks';
+import { CELLS_PER_YEAR } from '@/Utils/Date/isoWeeks';
 import CompaniesOnWeekList from './partials/CompaniesOnWeekList.vue';
 import ContractForm from './partials/ContractForm.vue';
 import DrawerHeader from './partials/DrawerHeader.vue';
@@ -79,13 +79,15 @@ const startMonth = computed((): number => {
     }
 
     const weekNumber = props.week.weekNumber;
-    const weeksInFiscalYear = isoWeeksInYear(props.fiscalYear);
 
     if (weekNumber === 1) {
         return 1;
     }
 
-    if (weekNumber === weeksInFiscalYear) {
+    // SC16 (2026-05-18) · la heatmap a toujours CELLS_PER_YEAR (53)
+    // cellules · la dernière est forcée à décembre de l'année courante
+    // (peut être cell 53 de Y où le jeudi est physiquement en jan Y+1).
+    if (weekNumber === CELLS_PER_YEAR) {
         return 12;
     }
 

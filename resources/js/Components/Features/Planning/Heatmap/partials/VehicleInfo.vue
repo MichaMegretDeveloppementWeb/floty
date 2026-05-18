@@ -54,7 +54,7 @@ const formatRate = (cents: number | null): string =>
             </span>
             <Link
                 :href="vehiclesShowRoute.url({ vehicle: vehicleView.id })"
-                class="group flex w-[160px] min-w-0 flex-col cursor-pointer"
+                class="group flex w-[140px] min-w-0 flex-col cursor-pointer"
             >
                 <div class="flex items-center gap-1.5">
                     <p class="truncate font-mono text-xs font-medium text-slate-900 group-hover:underline">

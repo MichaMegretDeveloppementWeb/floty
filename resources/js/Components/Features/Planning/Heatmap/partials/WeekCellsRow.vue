@@ -51,7 +51,7 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
             :class="[
                 densityClass(vehicleView.weeksForColor[weekIndex] ?? 0),
                 textContrastClass(vehicleView.weeksForColor[weekIndex] ?? 0),
-                'flex h-7 grow shrink-0 basis-5 items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
+                'flex h-7 grow shrink-0 basis-0 min-w-[14px] items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
                 exitedWeekFlags[weekIndex] && 'pointer-events-none opacity-30',
                 unavailabilityWeekFlags[weekIndex] && 'ring-1 ring-rose-500 ring-inset',
             ]"

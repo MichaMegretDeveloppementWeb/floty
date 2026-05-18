@@ -28,16 +28,18 @@ final class PlanningHeatmapServiceTest extends TestCase
     }
 
     #[Test]
-    public function build_heatmap_construit_la_matrice_52_semaines(): void
+    public function build_heatmap_construit_la_matrice_53_cellules(): void
     {
+        // SC16 (2026-05-18) · la heatmap a désormais TOUJOURS 53 cellules
+        // (au lieu de 52 ou 53 selon l'année) pour couvrir TOUTES les
+        // semaines ISO contenant au moins 1 jour de l'année. Pour 2024
+        // (1er jan = lundi, sem ISO 1 = lun 1/1 - dim 7/1), la cellule 10
+        // correspond à la semaine ISO 10 = lun 4/3 - dim 10/3/2024.
         $year = 2024;
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
-        // Contrat 1 jour en semaine 10 (durée=1 → LCD ≤ 30 j, mais ce
-        // test vérifie la heatmap brute (densité de jours occupés),
-        // pas la fiscalité - donc l'exonération LCD n'invalide pas
-        // l'assertion `weeks[9] = 1`).
+        // Contrat 1 jour en cellule 10 (lun 4/3/2024 = semaine ISO 10).
         $weekStart = Carbon::now()->setISODate($year, 10)->startOfWeek();
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => $weekStart->toDateString(),
@@ -48,8 +50,8 @@ final class PlanningHeatmapServiceTest extends TestCase
 
         $vehicles = $payload['vehicles']->toArray();
         self::assertCount(1, $vehicles);
-        self::assertCount(52, $vehicles[0]['weeks']);
-        self::assertSame(1, $vehicles[0]['weeks'][9]); // semaine 10 indexée [9]
+        self::assertCount(53, $vehicles[0]['weeks']);
+        self::assertSame(1, $vehicles[0]['weeks'][9]); // cellule 10 indexée [9]
         self::assertSame(1, $vehicles[0]['daysTotal']);
 
         $companies = $payload['companies']->toArray();

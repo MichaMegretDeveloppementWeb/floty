@@ -1,4 +1,4 @@
-import { isoWeeksInYear } from '@/Utils/Date/isoWeeks';
+import { CELLS_PER_YEAR, cellOriginForYear } from '@/Utils/Date/isoWeeks';
 
 /**
  * Backgrounds CSS pour les 52 OU 53 cellules semaine de la grille heatmap ·
@@ -26,20 +26,6 @@ import { isoWeeksInYear } from '@/Utils/Date/isoWeeks';
 const COLOR_ODD = 'rgb(241 245 249)'; // slate-100
 const COLOR_EVEN = 'transparent';
 
-/**
- * Origine de la grille · lundi de la semaine ISO 1 de l'année (peut être
- * physiquement en décembre Y-1).
- */
-function startOfIsoWeek1(year: number): Date {
-    const jan4 = new Date(Date.UTC(year, 0, 4));
-    const jsDay = jan4.getUTCDay();
-    const isoDay = jsDay === 0 ? 7 : jsDay;
-    const monday = new Date(jan4);
-    monday.setUTCDate(jan4.getUTCDate() - (isoDay - 1));
-
-    return monday;
-}
-
 function colorForMonth(monthIdx: number): string {
     return monthIdx % 2 === 1 ? COLOR_ODD : COLOR_EVEN;
 }
@@ -60,11 +46,10 @@ function colorForMonth(monthIdx: number): string {
  * @return list de 52 strings CSS `background` à appliquer en :style="{ background: ... }"
  */
 export function weekBackgroundsForYear(year: number): string[] {
-    const origin = startOfIsoWeek1(year);
-    const weeksCount = isoWeeksInYear(year);
+    const origin = cellOriginForYear(year);
     const backgrounds: string[] = [];
 
-    for (let week = 0; week < weeksCount; week++) {
+    for (let week = 0; week < CELLS_PER_YEAR; week++) {
         // 7 jours de cette semaine, mois civil de chacun
         const months: number[] = [];
         for (let day = 0; day < 7; day++) {

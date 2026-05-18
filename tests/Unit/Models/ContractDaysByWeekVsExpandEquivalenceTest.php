@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Tests\Unit\Models;
 
 use App\Models\Contract;
+use App\Support\Date\IsoWeeks;
 use DateTimeImmutable;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
@@ -177,8 +178,14 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
 
     /**
      * Vérifie que `daysByWeekInYear` retourne EXACTEMENT le même
-     * dictionnaire `week → days` que `groupBy(format('W'))` sur
+     * dictionnaire `cell → days` que `groupBy(cellIndex)` sur
      * `expandToDaysInYear`, sur tous les cas du provider.
+     *
+     * SC16 (2026-05-18) · changement de convention de l'oracle ·
+     * indexation par CELLULE (1..53) dans la heatmap year au lieu du
+     * numéro de semaine ISO `format('W')`. La cellule N correspond aux
+     * jours de la semaine commençant au lundi N de la grille year ·
+     * cellule 1 = semaine contenant le 1er janvier.
      */
     #[Test]
     #[DataProvider('casesProvider')]
@@ -189,11 +196,15 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
     ): void {
         $contract = $this->makeContract($startDate, $endDate);
 
-        // Oracle · groupby sur expand.
+        // Oracle · groupby par index de cellule sur expand.
+        $origin = IsoWeeks::cellOriginForYear($year);
         $expected = [];
         foreach ($contract->expandToDaysInYear($year) as $iso) {
-            $week = (int) (new DateTimeImmutable($iso))->format('W');
-            $expected[$week] = ($expected[$week] ?? 0) + 1;
+            $date = new DateTimeImmutable($iso);
+            $originPhp = new DateTimeImmutable($origin->toDateString());
+            $diffDays = (int) $originPhp->diff($date)->days;
+            $cellIdx = (int) floor($diffDays / 7) + 1;
+            $expected[$cellIdx] = ($expected[$cellIdx] ?? 0) + 1;
         }
         ksort($expected);
 
@@ -204,7 +215,7 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
         $this->assertSame(
             $expected,
             $actual,
-            "daysByWeekInYear({$year}) doit matcher groupBy(format('W')) sur expandToDaysInYear pour [{$startDate} → {$endDate}].",
+            "daysByWeekInYear({$year}) doit matcher groupBy(cellIndex) sur expandToDaysInYear pour [{$startDate} → {$endDate}].",
         );
     }
 

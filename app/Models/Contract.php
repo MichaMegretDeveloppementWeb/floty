@@ -8,6 +8,7 @@ use App\Enums\Contract\ContractType;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Observers\ContractObserver;
 use App\Services\Contract\ContractQueryService;
+use App\Support\Date\IsoWeeks;
 use Carbon\CarbonImmutable;
 use Database\Factories\ContractFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -293,22 +294,32 @@ final class Contract extends Model
             return [];
         }
 
-        $byWeek = [];
+        // SC16 (2026-05-18) · indexation par position de CELLULE dans la
+        // heatmap year (1..53) au lieu du numéro de semaine ISO (W01-W53).
+        // Garantit que les 1-3 jours de fin Y tombant en sem 1 ISO de Y+1
+        // (cas 2024/2025) atterrissent bien dans la dernière cellule de
+        // la heatmap year, pas dans la cellule 1 par collision.
+        $origin = IsoWeeks::cellOriginForYear($year);
+
+        $byCell = [];
         $cursor = $rangeStart;
         while (! $cursor->isAfter($rangeEnd)) {
-            // ISO weekday · 1=lundi .. 7=dimanche. Jours restants
-            // jusqu'à la fin de la semaine ISO en cours (dimanche).
+            // Jours restants jusqu'à la fin de la semaine ISO en cours
+            // (dimanche). dayOfWeekIso · 1=lundi .. 7=dimanche.
             $daysToSunday = 7 - (int) $cursor->dayOfWeekIso;
             $weekEndCandidate = $cursor->addDays($daysToSunday);
             $segmentEnd = $weekEndCandidate->isAfter($rangeEnd) ? $rangeEnd : $weekEndCandidate;
 
-            $weekNumber = (int) $cursor->format('W');
+            // Index de cellule dans la heatmap year (1..53)
+            $daysSinceOrigin = (int) $origin->diffInDays($cursor);
+            $cellIdx = (int) floor($daysSinceOrigin / 7) + 1;
+
             $daysInThisWeek = (int) $cursor->diffInDays($segmentEnd) + 1;
-            $byWeek[$weekNumber] = ($byWeek[$weekNumber] ?? 0) + $daysInThisWeek;
+            $byCell[$cellIdx] = ($byCell[$cellIdx] ?? 0) + $daysInThisWeek;
 
             $cursor = $segmentEnd->addDay();
         }
 
-        return $byWeek;
+        return $byCell;
     }
 }
