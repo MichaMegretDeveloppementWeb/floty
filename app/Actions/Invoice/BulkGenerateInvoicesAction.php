@@ -61,7 +61,7 @@ final readonly class BulkGenerateInvoicesAction
     ) {}
 
     /**
-     * @param  array{name: string, addressLine1?: string|null, addressLine2?: string|null, postalCode?: string|null, city?: string|null, siren?: string|null, contactEmail?: string|null}  $issuer
+     * @param  IssuerPayload  $issuer
      */
     public function execute(
         int $companyId,

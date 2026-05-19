@@ -44,6 +44,8 @@ use Illuminate\Support\Facades\DB;
  * **Émetteur (Phase 14.G)** : pour V1.2 minimum, les métadonnées
  * émetteur sont passées en paramètre. Le contrôleur appelant est
  * responsable de les fournir (sera lu depuis `BillingSettings` en 14.G).
+ *
+ * @phpstan-type IssuerPayload array{name: string, addressLine1?: string|null, addressLine2?: string|null, postalCode?: string|null, city?: string|null, siren?: string|null, contactEmail?: string|null}
  */
 final readonly class GenerateInvoiceAction
 {
@@ -59,7 +61,7 @@ final readonly class GenerateInvoiceAction
     ) {}
 
     /**
-     * @param  array{name: string, addressLine1?: string|null, addressLine2?: string|null, postalCode?: string|null, city?: string|null, siren?: string|null, contactEmail?: string|null}  $issuer
+     * @param  IssuerPayload  $issuer
      */
     public function execute(
         int $companyId,
