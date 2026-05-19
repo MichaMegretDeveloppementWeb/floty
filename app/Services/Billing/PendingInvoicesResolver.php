@@ -71,46 +71,14 @@ final readonly class PendingInvoicesResolver
             return [];
         }
 
-        $now = CarbonImmutable::now();
-        $currentYear = $now->year;
-        $currentMonth = $now->month;
-
         $pending = [];
         foreach ($contractYears as $year) {
-            $breakdown = $this->breakdown->byCompanyForYear($companyId, $year);
+            $months = $this->pendingMonthsForCompanyYear($companyId, $year);
 
-            $count = 0;
-            foreach ($breakdown->entries as $entry) {
-                // Mois éligibles à génération :
-                //   - utilisation effective (daysUsed > 0)
-                //   - tarif présent (sinon l'utilisateur doit d'abord
-                //     corriger sur la fiche véhicule)
-                //   - pas encore facturé (pas de row Invoice active)
-                //   - mois écoulé (le mois en cours ou futur ne se
-                //     facture pas tant qu'il n'est pas clos)
-                if ($entry->daysUsed <= 0) {
-                    continue;
-                }
-                if ($entry->hasMissingPricing) {
-                    continue;
-                }
-                if ($entry->existingInvoiceId !== null) {
-                    continue;
-                }
-
-                $isPastMonth = $year < $currentYear
-                    || ($year === $currentYear && $entry->month < $currentMonth);
-                if (! $isPastMonth) {
-                    continue;
-                }
-
-                $count++;
-            }
-
-            if ($count > 0) {
+            if ($months !== []) {
                 $pending[] = new PendingInvoiceYearData(
                     fiscalYear: $year,
-                    missingInvoicesCount: $count,
+                    missingInvoicesCount: count($months),
                 );
             }
         }
@@ -121,6 +89,57 @@ final readonly class PendingInvoicesResolver
         );
 
         return $pending;
+    }
+
+    /**
+     * Liste ordonnée des mois civils (1-12) pour lesquels une annexe est
+     * effectivement à générer sur le couple `(companyId, year)`. Mêmes
+     * critères que {@see pendingForCompany()} appliqués à un seul exercice ·
+     * factorise la logique de filtrage avec le {@see BulkGenerateInvoicesAction}
+     * pour garantir qu'un mois compté côté UI est exactement le mois traité
+     * côté batch.
+     *
+     * @return list<int> mois en ordre chronologique croissant (Jan → Déc)
+     */
+    public function pendingMonthsForCompanyYear(int $companyId, int $year): array
+    {
+        $breakdown = $this->breakdown->byCompanyForYear($companyId, $year);
+
+        $now = CarbonImmutable::now();
+        $currentYear = $now->year;
+        $currentMonth = $now->month;
+
+        $months = [];
+        foreach ($breakdown->entries as $entry) {
+            // Critères d'éligibilité (cf. doctrine billing) ·
+            //   - utilisation effective (daysUsed > 0)
+            //   - tarif présent (sinon le user doit d'abord renseigner
+            //     le tarif sur la fiche véhicule)
+            //   - pas encore facturé (pas de row Invoice active)
+            //   - mois écoulé (le mois en cours ou futur ne se
+            //     facture pas tant qu'il n'est pas clos)
+            if ($entry->daysUsed <= 0) {
+                continue;
+            }
+            if ($entry->hasMissingPricing) {
+                continue;
+            }
+            if ($entry->existingInvoiceId !== null) {
+                continue;
+            }
+
+            $isPastMonth = $year < $currentYear
+                || ($year === $currentYear && $entry->month < $currentMonth);
+            if (! $isPastMonth) {
+                continue;
+            }
+
+            $months[] = $entry->month;
+        }
+
+        sort($months);
+
+        return $months;
     }
 
     /**

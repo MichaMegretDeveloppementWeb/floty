@@ -189,6 +189,15 @@ Route::middleware('auth')
         Route::post('/invoices/generate', [InvoiceController::class, 'generate'])
             ->middleware('throttle:6,1')
             ->name('invoices.generate');
+        // Génération en masse · 1 appel → jusqu'à 12 PDFs séquentiels.
+        // Throttle 2/min · 2 batches successifs (12 + 12) suffisent
+        // largement pour reprise après échec partiel sans permettre un
+        // spam serveur. Chaque appel reste plafonné par
+        // `set_time_limit(0)` côté Action mais demande au moins ~10-30 s
+        // CPU sur année complète chargée.
+        Route::post('/invoices/bulk-generate', [InvoiceController::class, 'bulkGenerate'])
+            ->middleware('throttle:2,1')
+            ->name('invoices.bulk-generate');
         // `withTrashed` (D5.10.P) : les versions obsolètes (soft-deletées
         // par régénération) restent navigables via leur fiche Show et
         // leur PDF reste téléchargeable · audit trail légal.

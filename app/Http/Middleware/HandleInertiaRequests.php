@@ -7,6 +7,7 @@ namespace App\Http\Middleware;
 use App\Data\Auth\CurrentUserData;
 use App\Data\Shared\FlashData;
 use App\Data\Shared\ToastEntryData;
+use App\Data\User\Invoice\BulkInvoiceGenerationReportData;
 use App\Support\Toasts\ToastDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -59,7 +60,35 @@ final class HandleInertiaRequests extends Middleware
             ],
 
             'flash' => fn (): FlashData => $this->buildFlashData($request),
+
+            // Canal dédié au rapport de fin du `BulkGenerateInvoicesAction`.
+            // Vit en session flash · seul le render qui suit immédiatement
+            // le POST `invoices.bulk-generate` le voit · null partout
+            // ailleurs. Distinct de `flash.toasts` (texte court mono-line)
+            // car le payload est structurel (lignes generated/failed avec
+            // numéros d'annexes) et doit pouvoir être affiché en récap
+            // inline détaillé.
+            'bulkInvoiceReport' => fn (): ?BulkInvoiceGenerationReportData => $this->resolveBulkInvoiceReport($request),
         ];
+    }
+
+    private function resolveBulkInvoiceReport(Request $request): ?BulkInvoiceGenerationReportData
+    {
+        $payload = $request->session()->get('bulkInvoiceReport');
+
+        // Session flash applique `Arrayable::toArray()` au stockage ·
+        // on récupère donc soit un DTO (cas rare hors flash) soit un
+        // array · on rehydrate proprement via `Spatie\LaravelData::from()`
+        // pour fournir un type stable au consommateur Inertia.
+        if ($payload instanceof BulkInvoiceGenerationReportData) {
+            return $payload;
+        }
+
+        if (is_array($payload)) {
+            return BulkInvoiceGenerationReportData::from($payload);
+        }
+
+        return null;
     }
 
     /**

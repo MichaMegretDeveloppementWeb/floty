@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\User\Invoice;
 
+use App\Actions\Invoice\BulkGenerateInvoicesAction;
 use App\Actions\Invoice\CancelInvoiceAction;
 use App\Actions\Invoice\GenerateInvoiceAction;
 use App\Actions\Invoice\RegenerateInvoiceAction;
 use App\Contracts\Repositories\User\Billing\BillingSettingsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Data\User\Billing\BillingSettingsData;
+use App\Data\User\Invoice\BulkGenerateInvoicesRequestData;
 use App\Data\User\Invoice\GenerateInvoiceRequestData;
 use App\Data\User\Invoice\InvoiceIndexQueryData;
 use App\Data\User\Invoice\RegenerateInvoiceRequestData;
@@ -144,6 +146,54 @@ final class InvoiceController extends Controller
         }
 
         return back()->with('toast-success', "Facture {$invoice->invoice_number} générée.");
+    }
+
+    /**
+     * Génère en masse toutes les annexes en attente pour le couple
+     * (entreprise × année). Délègue intégralement la doctrine d'exécution
+     * (séquence, best-effort, rapport) au {@see BulkGenerateInvoicesAction}.
+     *
+     * Le rapport de fin est flashé sous la clé `bulkInvoiceReport` côté
+     * Inertia · le partial reload sur l'onglet Facturation le récupère
+     * via `usePage().props.flash` et affiche un récap inline 7s + toast.
+     */
+    public function bulkGenerate(
+        BulkGenerateInvoicesRequestData $data,
+        Request $request,
+        BulkGenerateInvoicesAction $action,
+    ): RedirectResponse {
+        Gate::authorize('create', Invoice::class);
+
+        $user = $request->user();
+        if ($user === null) {
+            abort(Response::HTTP_UNAUTHORIZED);
+        }
+
+        $report = $action->execute(
+            companyId: $data->companyId,
+            year: $data->year,
+            generatedByUserId: $user->id,
+            issuer: BillingSettingsData::fromModel($this->billingSettings->get())->toIssuerPayload(),
+        );
+
+        $generatedCount = count($report->generated);
+        $failedCount = count($report->failed);
+
+        if ($generatedCount === 0 && $failedCount === 0) {
+            return back()->with(
+                'toast-info',
+                "Aucune annexe à générer pour {$data->year}.",
+            );
+        }
+
+        $toastKey = $failedCount === 0 ? 'toast-success' : 'toast-warning';
+        $message = $failedCount === 0
+            ? "{$generatedCount} annexe".($generatedCount > 1 ? 's' : '').' générée'.($generatedCount > 1 ? 's' : '')." pour {$data->year}."
+            : "{$generatedCount} générée".($generatedCount > 1 ? 's' : '').", {$failedCount} en échec pour {$data->year}.";
+
+        return back()
+            ->with($toastKey, $message)
+            ->with('bulkInvoiceReport', $report);
     }
 
     /**

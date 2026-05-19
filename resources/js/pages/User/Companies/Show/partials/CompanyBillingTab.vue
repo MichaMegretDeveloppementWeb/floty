@@ -21,6 +21,8 @@
 import { router } from '@inertiajs/vue3';
 import { BadgePercent } from 'lucide-vue-next';
 import { computed } from 'vue';
+import BulkGenerateInvoicesButton from '@/Components/Domain/Billing/BulkGenerateInvoicesButton.vue';
+import BulkInvoiceGenerationReportAlert from '@/Components/Domain/Billing/BulkInvoiceGenerationReportAlert.vue';
 import GenerateInvoiceButton from '@/Components/Domain/Billing/GenerateInvoiceButton.vue';
 import MonthlyBillingBreakdownCard from '@/Components/Domain/Billing/MonthlyBillingBreakdownCard.vue';
 import RentalDiscountPill from '@/Components/Domain/RentalDiscount/RentalDiscountPill.vue';
@@ -125,6 +127,28 @@ const invoicedMonthsCount = computed<number>(
  */
 const blockedMonthsCount = computed<number>(
     () => props.monthlyBilling.entries.filter((e) => e.hasMissingPricing).length,
+);
+
+/**
+ * Mois civils (1-12) éligibles à la génération d'annexe pour l'année
+ * active · alimente le bouton « Générer tout » et la modale de
+ * confirmation. Mêmes critères que `PendingInvoicesResolver` côté
+ * backend · daysUsed > 0 ET pas de tarif manquant ET pas de facture
+ * existante ET mois écoulé. Le backend reste autoritaire · cette
+ * dérivation client est purement UI.
+ */
+const pendingMonthsForActiveYear = computed<number[]>(() =>
+    props.monthlyBilling.entries
+        .filter(
+            (e) =>
+                e.daysUsed > 0
+                && !e.hasMissingPricing
+                && e.existingInvoiceId === null
+                && (props.monthlyBilling.year < currentRealYear.value
+                    || (props.monthlyBilling.year === currentRealYear.value
+                        && e.month < currentRealMonth.value)),
+        )
+        .map((e) => e.month),
 );
 
 const activeMonthsPercent = computed<number>(() => {
@@ -410,9 +434,18 @@ function selectYear(year: number): void {
 
         <!-- Section · table mensuelle flush -->
         <section class="mt-12 flex flex-col gap-4">
-            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
-                Mensualités
-            </p>
+            <div class="flex items-baseline justify-between gap-3">
+                <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                    Mensualités
+                </p>
+                <BulkGenerateInvoicesButton
+                    :company-id="companyId"
+                    :year="monthlyBilling.year"
+                    :pending-months="pendingMonthsForActiveYear"
+                />
+            </div>
+
+            <BulkInvoiceGenerationReportAlert />
 
             <MonthlyBillingBreakdownCard
                 :monthly-billing="monthlyBilling"

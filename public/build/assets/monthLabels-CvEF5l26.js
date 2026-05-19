@@ -1,0 +1,1 @@
+var e=[`Janvier`,`Février`,`Mars`,`Avril`,`Mai`,`Juin`,`Juillet`,`Août`,`Septembre`,`Octobre`,`Novembre`,`Décembre`];function t(t){if(t<1||t>12)throw RangeError(`Month must be in [1, 12], got ${t}.`);return e[t-1]}export{t as n,e as t};
