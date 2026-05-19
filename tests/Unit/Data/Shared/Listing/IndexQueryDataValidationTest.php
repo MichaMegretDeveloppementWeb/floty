@@ -11,12 +11,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Unit pour {@see IndexQueryData} · validation des paramètres
- * partagés (page, perPage, search, sortKey, sortDirection) et de la
- * whitelist `sortKey` via late static binding sur les sous-classes.
- *
- * Utilise une fixture {@see FixtureIndexQuery} avec une whitelist
- * sortKey contrôlée pour valider le comportement abstrait.
+ * Valide les paramètres partagés (page, perPage, search, sortKey,
+ * sortDirection) et la whitelist `sortKey` via late static binding.
  */
 final class IndexQueryDataValidationTest extends TestCase
 {
@@ -111,9 +107,8 @@ final class IndexQueryDataValidationTest extends TestCase
 }
 
 /**
- * Fixture concrète pour tester {@see IndexQueryData}. Whitelist
- * sortKey volontairement réduite à 2 valeurs pour valider la logique
- * de late static binding.
+ * Fixture concrète : whitelist sortKey réduite à 2 valeurs pour
+ * valider la logique de late static binding.
  */
 final class FixtureIndexQuery extends IndexQueryData
 {

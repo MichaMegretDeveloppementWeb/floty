@@ -12,12 +12,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests de la suppression (soft delete) d'un contrat. Un contrat
- * supprimé n'apparaît plus dans la détection d'overlap (le trigger DB
- * filtre `deleted_at IS NULL`), donc sa plage est immédiatement
- * réutilisable pour un nouveau contrat.
- */
 final class DeleteContractActionTest extends TestCase
 {
     use RefreshDatabase;

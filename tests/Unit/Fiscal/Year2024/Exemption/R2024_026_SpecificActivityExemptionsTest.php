@@ -14,14 +14,10 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Sanity tests pour R-2024-026 · exonérations propres à certaines
- * activités économiques (transport public personnes, agricole/forestier,
- * enseignement conduite + compétitions).
- *
- * La règle est INACTIVE par défaut (`isActive: false`) · Floty ne couvre
- * aucune entreprise utilisatrice de ces types. L'évaluation est différée
- * (mêmes raisons que R-2024-018 OIG · le PipelineContext ne porte pas
- * l'activité de l'entreprise utilisatrice en V1).
+ * Sanity tests pour R-2024-026 (exonérations activités spécifiques).
+ * Règle INACTIVE par défaut : Floty ne couvre aucune entreprise
+ * utilisatrice de ces types ; évaluation différée (PipelineContext ne
+ * porte pas l'activité en V1).
  */
 final class R2024_026_SpecificActivityExemptionsTest extends TestCase
 {

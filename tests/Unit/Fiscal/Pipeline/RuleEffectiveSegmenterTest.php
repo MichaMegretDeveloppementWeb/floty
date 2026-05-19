@@ -18,26 +18,15 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre {@see RuleEffectiveSegmenter} (chantier κ.3).
+ * Couvre {@see RuleEffectiveSegmenter}.
  *
- * Les tests utilisent une **année stub 2090** non enregistrée en
- * production : pour chaque cas, on enregistre des classes anonymes
- * implémentant `FiscalRule` avec des bornes d'applicabilité spécifiques,
- * et on vérifie le découpage produit.
- *
- * Pour permettre l'enregistrement de classes anonymes (qui n'ont pas de
- * `class-string` stable), on bypass le constructeur par défaut du
- * registry et on **subcontracte** un registry custom : un sous-classe de
- * `FiscalRuleRegistry` ne nous aiderait pas car le registry instancie
- * via le container. On utilise donc des **classes nommées** déclarées
- * dans ce fichier, enregistrées par leur `::class`.
+ * Année stub 2090 non enregistrée en production : on enregistre des
+ * classes nommées implémentant `FiscalRule` avec des bornes
+ * d'applicabilité spécifiques, et on vérifie le découpage produit.
  */
 final class RuleEffectiveSegmenterTest extends TestCase
 {
-    /**
-     * Année stub réservée aux tests de ce fichier (non enregistrée en
-     * production via `floty.fiscal.year_boots`).
-     */
+    /** Année stub réservée aux tests (non enregistrée en production). */
     private const int STUB_YEAR = 2090;
 
     private FiscalRuleRegistry $registry;
@@ -48,9 +37,8 @@ final class RuleEffectiveSegmenterTest extends TestCase
     {
         parent::setUp();
 
-        // Le registry est un singleton applicatif - on le récupère et on
-        // y enregistre l'année stub à la volée. Le segmenteur doit être
-        // ré-instancié pour repartir d'un cache propre à chaque test.
+        // Registry singleton : enregistrer l'année stub à la volée.
+        // Segmenteur ré-instancié pour repartir d'un cache propre.
         $this->registry = $this->app->make(FiscalRuleRegistry::class);
         $this->app->forgetInstance(RuleEffectiveSegmenter::class);
         $this->segmenter = $this->app->make(RuleEffectiveSegmenter::class);
@@ -65,8 +53,7 @@ final class RuleEffectiveSegmenterTest extends TestCase
         $only = $segments[0];
         self::assertSame('2024-01-01', $only->start->toDateString());
         self::assertSame('2024-12-31', $only->end->toDateString());
-        // 18 règles pipeline (16 historiques + R-2024-026 et R-2024-027
-        // ajoutées au chantier d'audit exhaustif du 14/05/2026).
+        // 18 règles pipeline (16 historiques + R-2024-026 + R-2024-027).
         self::assertCount(18, $only->rules);
     }
 
@@ -131,8 +118,7 @@ final class RuleEffectiveSegmenterTest extends TestCase
     #[Test]
     public function transition_synchronisee_au_premier_juillet_donne_deux_segments_adjacents(): void
     {
-        // Règle A : 01-01 -> 06-30. Règle B : 07-01 -> 12-31. Pas de gap,
-        // pas de recouvrement, pas de full-year derrière.
+        // A : 01-01→06-30, B : 07-01→12-31. Adjacents, sans full-year.
         $this->registry->register(self::STUB_YEAR, [
             StubEndsJune30Rule::class,
             StubAppearsJuly1Rule::class,
@@ -180,22 +166,16 @@ final class RuleEffectiveSegmenterTest extends TestCase
         $first = $this->segmenter->segmentsForYear(self::STUB_YEAR);
         $second = $this->segmenter->segmentsForYear(self::STUB_YEAR);
 
-        // Le cache mémorise la liste produite : on récupère exactement
-        // la même référence (pas une nouvelle liste recalculée).
         self::assertSame($first, $second);
     }
 
     #[Test]
     public function clear_cache_force_le_recalcul_apres_mutation_du_registry(): void
     {
-        // Phase 1 : peuple le cache avec 1 règle.
         $this->registry->register(self::STUB_YEAR, [StubFullYearRuleA::class]);
         $before = $this->segmenter->segmentsForYear(self::STUB_YEAR);
         self::assertCount(1, $before[0]->rules);
 
-        // Phase 2 : muter le registry à la volée + invalider explicitement
-        // le cache du segmenteur (cas typique des tests qui muted le
-        // registry singleton entre deux assertions).
         $this->registry->register(self::STUB_YEAR, [
             StubFullYearRuleA::class,
             StubFullYearRuleB::class,
@@ -210,13 +190,11 @@ final class RuleEffectiveSegmenterTest extends TestCase
     #[Test]
     public function clear_cache_sans_year_purge_tout_le_cache(): void
     {
-        // Peuple deux années dans le cache.
         $this->registry->register(2090, [StubFullYearRuleA::class]);
         $this->registry->register(2091, [StubFullYearRuleB::class]);
         $this->segmenter->segmentsForYear(2090);
         $this->segmenter->segmentsForYear(2091);
 
-        // Mute les deux + clearCache global.
         $this->registry->register(2090, [StubFullYearRuleA::class, StubFullYearRuleB::class]);
         $this->registry->register(2091, []);
         $this->segmenter->clearCache();
@@ -226,11 +204,8 @@ final class RuleEffectiveSegmenterTest extends TestCase
     }
 }
 
-// ---------------------------------------------------------------------
-// Stubs : règles fictives pour l'année 2090, exposant des bornes
-// d'applicabilité personnalisées (sans `AnnualRuleTrait` qui forcerait
-// le full-year).
-// ---------------------------------------------------------------------
+// Stubs : règles fictives année 2090, bornes d'applicabilité custom
+// (sans AnnualRuleTrait qui forcerait le full-year).
 
 abstract class StubBaseRule implements FiscalRule
 {
@@ -281,7 +256,7 @@ abstract class StubBaseRule implements FiscalRule
             tab: RuleTab::Calcul,
             section: RuleSection::Bareme,
             title: 'Test stub',
-            pitch: 'Stub utilisé en tests · non rendu en UI.',
+            pitch: 'Stub utilisé en tests, non rendu en UI.',
         );
     }
 }

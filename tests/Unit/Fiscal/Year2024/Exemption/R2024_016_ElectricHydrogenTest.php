@@ -18,20 +18,9 @@ use Tests\TestCase;
 /**
  * Couvre l'exonération CO₂ électrique / hydrogène (CIBS L. 421-124).
  *
- * Spécificités :
- * - Périmètre **CO₂ uniquement** (scope `Co2Only`). La taxe polluants
- *   reste due si le véhicule n'est pas catégorie E. En pratique, la
- *   cascade `PollutantCategory::derive()` (testée séparément dans
- *   `PollutantCategoryDeriveTest`) garantit que tout véhicule électrique /
- *   hydrogène / electric+hydrogène est en catégorie E → polluants à 0 €
- *   via R-2024-014. La règle R-2024-016 est donc l'élément du couple
- *   CIBS L. 421-124 qui annule explicitement le tarif CO₂.
- * - Tarifs annuels conservés dans le breakdown (pas de zeroing) : on
- *   continue d'afficher « ce que vous auriez payé sans exonération » à
- *   titre informatif.
- *
- * Cf. `taxes-rules/2024.md` § R-2024-016 et la note d'audit produit du
- * 2026-05-04 (D1) : la couverture du test était identifiée manquante.
+ * Périmètre CO₂ uniquement (scope Co2Only) ; les polluants restent dus
+ * si le véhicule n'est pas catégorie E. Tarifs annuels conservés dans
+ * le breakdown (pas de zeroing).
  */
 final class R2024_016_ElectricHydrogenTest extends TestCase
 {

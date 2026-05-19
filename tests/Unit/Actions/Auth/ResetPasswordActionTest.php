@@ -14,11 +14,6 @@ use Illuminate\Support\Facades\Password;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests Unit isolés sur l'orchestration `ResetPasswordAction` ·
- * vérifie la levée de l'exception sur token invalide et la mise à
- * jour effective du password sur token valide.
- */
 final class ResetPasswordActionTest extends TestCase
 {
     use RefreshDatabase;

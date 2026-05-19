@@ -11,11 +11,6 @@ use Illuminate\Support\Facades\Validator;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests du DTO `FiscalRiskSettingsData` (Phase 11 D1) : mapping
- * snake_case → camelCase via `fromModel`, et règles de validation
- * Spatie Data (Min, GreaterThan).
- */
 final class FiscalRiskSettingsDataTest extends TestCase
 {
     use RefreshDatabase;

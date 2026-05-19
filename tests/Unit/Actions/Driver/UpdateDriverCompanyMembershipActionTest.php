@@ -15,11 +15,6 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Couvre l'édition `joined_at` d'une membership Driver↔Company existante
- * (chantier B). Vérifie le happy path + les deux refus métier (pivot
- * introuvable et chronologie violée).
- */
 final class UpdateDriverCompanyMembershipActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -55,9 +50,8 @@ final class UpdateDriverCompanyMembershipActionTest extends TestCase
     #[Test]
     public function met_a_jour_joined_at_en_preservant_left_at_explicite(): void
     {
-        // Sémantique chantier B-bis : pour préserver `left_at`, le payload
-        // doit le passer explicitement (sinon `leftAt: null` par défaut
-        // déclenche la réactivation).
+        // Pour préserver `left_at`, le payload doit le passer explicitement
+        // (sinon `leftAt: null` par défaut déclenche la réactivation).
         $driver = Driver::factory()->create();
         $company = Company::factory()->create();
         $driver->companies()->attach($company->id, [
@@ -84,7 +78,6 @@ final class UpdateDriverCompanyMembershipActionTest extends TestCase
     #[Test]
     public function autorise_joined_at_egal_a_left_at(): void
     {
-        // Borne inclusive (`<=`) : passer joined_at == left_at est valide.
         $driver = Driver::factory()->create();
         $company = Company::factory()->create();
         $driver->companies()->attach($company->id, [
@@ -122,8 +115,7 @@ final class UpdateDriverCompanyMembershipActionTest extends TestCase
     #[Test]
     public function reactive_une_membership_sortie_quand_left_at_est_null(): void
     {
-        // Cas chantier B-bis : envoyer `leftAt: null` réactive la
-        // membership (efface `left_at` en base).
+        // `leftAt: null` réactive la membership (efface `left_at`).
         $driver = Driver::factory()->create();
         $company = Company::factory()->create();
         $driver->companies()->attach($company->id, [

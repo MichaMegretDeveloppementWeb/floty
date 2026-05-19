@@ -8,10 +8,6 @@ use App\Data\User\Vehicle\StoreVehicleData;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests sur la normalisation appliquée pré-validation par
- * {@see StoreVehicleData::prepareForPipeline()}.
- */
 final class StoreVehicleDataTest extends TestCase
 {
     #[Test]

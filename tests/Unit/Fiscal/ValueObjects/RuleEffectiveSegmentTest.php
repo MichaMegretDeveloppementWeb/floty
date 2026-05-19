@@ -18,11 +18,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Couvre le VO {@see RuleEffectiveSegment} (chantier κ.3).
- *
- * Le VO est un simple porteur de données (start, end, rules). Tests
- * minimaux : construction, exposition des champs, immutabilité (héritée
- * de `final readonly`).
+ * Le VO {@see RuleEffectiveSegment} est un simple porteur de données
+ * (start, end, rules). Tests minimaux : construction et exposition.
  */
 final class RuleEffectiveSegmentTest extends TestCase
 {

@@ -76,7 +76,6 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             ),
         );
 
-        // Pivot mise à jour, mais le contrat futur reste rattaché au driver sortant
         $this->assertDatabaseHas('driver_company', [
             'driver_id' => $driver->id,
             'left_at' => '2026-06-30',
@@ -113,7 +112,6 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             ),
         );
 
-        // Le sortant n'est plus attaché à aucun des deux contrats.
         $this->assertDatabaseMissing('contract_drivers', [
             'contract_id' => $c1->id, 'driver_id' => $driver->id,
         ]);
@@ -125,7 +123,6 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
     #[Test]
     public function mode_detach_preserve_les_autres_conducteurs_du_contrat(): void
     {
-        // Cas multi-conducteurs : retirer X laisse les autres en place.
         $driver = Driver::factory()->create();
         $autre = Driver::factory()->create();
         $company = Company::factory()->create();
@@ -183,7 +180,6 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             ),
         );
 
-        // Sortant retiré, remplaçant attaché
         $this->assertDatabaseMissing('contract_drivers', [
             'contract_id' => $c1->id, 'driver_id' => $sortant->id,
         ]);
@@ -213,7 +209,7 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             new LeaveDriverCompanyMembershipData(
                 leftAt: '2026-06-30',
                 futureContractsResolution: FutureContractsResolutionMode::Replace,
-                replacementMap: [], // vide → contrat sans replacement assigné
+                replacementMap: [],
             ),
         );
     }
@@ -239,7 +235,7 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             new LeaveDriverCompanyMembershipData(
                 leftAt: '2026-06-30',
                 futureContractsResolution: FutureContractsResolutionMode::Replace,
-                replacementMap: [$c1->id => 99999], // driver inexistant
+                replacementMap: [$c1->id => 99999],
             ),
         );
     }
@@ -254,7 +250,7 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
         $sortant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => null]);
 
         $remplacant = Driver::factory()->create();
-        // Le remplaçant sort de la company avant le contrat à remplacer
+        // Remplaçant sort avant le contrat à remplacer.
         $remplacant->companies()->attach($company->id, ['joined_at' => '2024-01-01', 'left_at' => '2026-12-31']);
 
         $c1 = Contract::factory()->withDrivers([$sortant])->create([
@@ -308,7 +304,6 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             ),
         );
 
-        // cDetache : sortant retiré, aucun remplaçant ajouté
         $this->assertDatabaseMissing('contract_drivers', [
             'contract_id' => $cDetache->id, 'driver_id' => $sortant->id,
         ]);
@@ -316,7 +311,6 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             'contract_id' => $cDetache->id, 'driver_id' => $remplacant->id,
         ]);
 
-        // cReplace : sortant retiré + remplaçant attaché
         $this->assertDatabaseMissing('contract_drivers', [
             'contract_id' => $cReplace->id, 'driver_id' => $sortant->id,
         ]);
@@ -338,7 +332,7 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             new LeaveDriverCompanyMembershipData(
                 leftAt: '2026-06-30',
                 futureContractsResolution: FutureContractsResolutionMode::Replace,
-                replacementMap: [], // vide OK car aucun contrat futur
+                replacementMap: [],
             ),
         );
 
@@ -353,7 +347,6 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
     {
         $driver = Driver::factory()->create();
         $company = Company::factory()->create();
-        // Pas de pivot active : on n'attache pas
 
         $this->expectException(DriverMembershipNotFoundException::class);
 
@@ -388,7 +381,7 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             new LeaveDriverCompanyMembershipData(
                 leftAt: '2026-06-30',
                 futureContractsResolution: FutureContractsResolutionMode::Replace,
-                replacementMap: [$c1->id => $sortant->id], // pointage circulaire
+                replacementMap: [$c1->id => $sortant->id],
             ),
         );
     }
@@ -396,8 +389,6 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
     #[Test]
     public function mode_replace_refuse_un_remplacant_deja_attache_au_contrat(): void
     {
-        // Défense en profondeur : le remplaçant doit être un nouveau driver,
-        // pas quelqu'un déjà sur le contrat (cf. chantier #3 multi-conducteurs).
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
@@ -420,7 +411,7 @@ final class LeaveDriverCompanyMembershipActionTest extends TestCase
             new LeaveDriverCompanyMembershipData(
                 leftAt: '2026-06-30',
                 futureContractsResolution: FutureContractsResolutionMode::Replace,
-                replacementMap: [$c1->id => $autre->id], // déjà sur le contrat
+                replacementMap: [$c1->id => $autre->id],
             ),
         );
     }

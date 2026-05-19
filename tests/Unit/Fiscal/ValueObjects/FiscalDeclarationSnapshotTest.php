@@ -15,11 +15,6 @@ use Carbon\CarbonImmutable;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
-/**
- * Couvre les VO {@see FiscalDeclarationSnapshot},
- * {@see ContractSnapshotEntry} et {@see AppliedDecisionEntry} (Phase 11
- * D5.2, refondu D5.8 avec breakdown par contrat).
- */
 final class FiscalDeclarationSnapshotTest extends TestCase
 {
     #[Test]
@@ -136,7 +131,6 @@ final class FiscalDeclarationSnapshotTest extends TestCase
         );
 
         $this->expectException(\Error::class);
-        // PHP 8.4 : tentative de mutation sur readonly property → Error.
         // @phpstan-ignore-next-line property.readOnlyAssignNotInConstructor
         $entry->daysInYearAssigned = 999;
     }

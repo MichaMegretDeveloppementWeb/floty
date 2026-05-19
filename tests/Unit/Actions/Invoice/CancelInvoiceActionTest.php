@@ -16,12 +16,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests de `CancelInvoiceAction` (Phase 14.I V1.2).
- *
- * L'annulation est la seule mutation autorisée par la doctrine
- * immuabilité (ADR-0008). Vérifie : suppression DB de la facture +
- * cascade des lignes (FK ON DELETE CASCADE) + suppression du PDF du
- * disque, le tout dans une transaction.
+ * Annulation = seule mutation autorisée par ADR-0008 (immuabilité).
+ * Suppression DB + cascade lignes + suppression PDF, en transaction.
  */
 final class CancelInvoiceActionTest extends TestCase
 {
@@ -50,10 +46,8 @@ final class CancelInvoiceActionTest extends TestCase
                 'pdf_path' => 'invoices/2024/1/2024-01-0001.pdf',
             ]);
 
-        // Stub PDF on the fake disk.
         Storage::disk('local')->put($invoice->pdf_path, '%PDF-stub-content');
 
-        // 2 lignes attachées (test cascade).
         InvoiceLine::factory()->count(2)->for($invoice)->for($vehicle)->create();
 
         $this->assertDatabaseHas('invoices', ['id' => $invoice->id]);
@@ -80,8 +74,6 @@ final class CancelInvoiceActionTest extends TestCase
                 'pdf_path' => 'invoices/2024/1/disparu.pdf',
             ]);
 
-        // PDF jamais créé sur le disque (cas pathologique : suppression
-        // manuelle hors-app). L'action doit fonctionner quand même.
         Storage::disk('local')->assertMissing($invoice->pdf_path);
 
         $this->action->execute($invoice);

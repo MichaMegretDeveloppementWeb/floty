@@ -14,13 +14,8 @@ use PHPUnit\Framework\TestCase;
 /**
  * Tests purs (sans bootstrap Laravel) du contexte d'année fiscale.
  *
- * Couvre la logique bissextile (cas limite 1900/2000/2100/2400) et la
- * validation d'année supportée déléguée au {@see FiscalRuleRegistry}.
- *
- * Note chantier η Phase 5 : la config statique
- * `floty.fiscal.available_years` a été supprimée. La source d'autorité
- * pour `isSupported()` est désormais le registry des règles codées
- * (sémantique : "le moteur fiscal sait calculer cette année").
+ * Couvre la logique bissextile et la validation d'année supportée
+ * déléguée au {@see FiscalRuleRegistry} (« le moteur sait calculer »).
  */
 final class FiscalYearContextTest extends TestCase
 {

@@ -11,13 +11,9 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre `FiscalRuleRegistry::rulesEffectiveAt()` (chantier κ.3).
- *
- * Toutes les règles 2024 étant annuelles full-year (cf.
- * {@see App\Fiscal\Contracts\Concerns\AnnualRuleTrait}), le registry doit
- * retourner les 16 règles à n'importe quelle date dans l'année 2024 et
- * une liste vide en dehors. Le filtrage temporel est purement additif :
- * `rulesForYear()` reste inchangé.
+ * Toutes les règles 2024 étant annuelles full-year, le registry doit
+ * retourner les 18 règles à n'importe quelle date dans 2024 et une
+ * liste vide en dehors.
  */
 final class FiscalRuleRegistryEffectiveAtTest extends TestCase
 {
@@ -34,8 +30,7 @@ final class FiscalRuleRegistryEffectiveAtTest extends TestCase
     {
         $rules = $this->registry->rulesEffectiveAt(2024, CarbonImmutable::create(2024, 7, 1));
 
-        // 18 règles pipeline 2024 · 16 historiques + R-2024-026 et
-        // R-2024-027 ajoutées au chantier d'audit exhaustif 14/05/2026.
+        // 18 règles pipeline 2024 (16 historiques + R-2024-026 + R-2024-027).
         self::assertCount(18, $rules);
     }
 
@@ -52,7 +47,6 @@ final class FiscalRuleRegistryEffectiveAtTest extends TestCase
     #[Test]
     public function retourne_liste_vide_pour_une_date_hors_periode_des_regles(): void
     {
-        // Date hors année consultée : aucune règle 2024 ne couvre 2025-06-01.
         $rules = $this->registry->rulesEffectiveAt(2024, CarbonImmutable::create(2025, 6, 1));
 
         self::assertSame([], $rules);

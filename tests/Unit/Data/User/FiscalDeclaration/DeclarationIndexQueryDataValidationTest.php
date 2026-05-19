@@ -11,12 +11,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Lot 5 D7 (F-19-010) · valide que la validation du filtre `status`
- * suit l'enum {@see FiscalDeclarationStatus} via `Rule::enum`, et pas
- * une liste codée en dur `in:draft,deferred,generated`.
- *
- * Garde-fou : si l'enum gagne ou perd un case, la validation doit
- * suivre automatiquement.
+ * Garde-fou : la validation du filtre `status` suit l'enum
+ * FiscalDeclarationStatus via Rule::enum (pas de liste codée en dur).
  */
 final class DeclarationIndexQueryDataValidationTest extends TestCase
 {

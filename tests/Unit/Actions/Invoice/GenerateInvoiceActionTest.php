@@ -26,11 +26,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests d'intégration de `GenerateInvoiceAction` (Phase 14.E V1.2).
- *
- * Le PDF est rendu via dompdf · coût ~200ms par test, on couvre les
- * cas critiques sans exhaustivité (les calculs financiers sont déjà
- * couverts par `BillingCalculatorTest`).
+ * PDF rendu via dompdf (~200ms/test) : couvre les cas critiques.
+ * Les calculs financiers sont couverts par BillingCalculatorTest.
  */
 final class GenerateInvoiceActionTest extends TestCase
 {
@@ -84,7 +81,6 @@ final class GenerateInvoiceActionTest extends TestCase
             issuer: self::ISSUER,
         );
 
-        // Persistance Invoice + InvoiceLine.
         $this->assertDatabaseHas('invoices', [
             'id' => $invoice->id,
             'company_id' => $company->id,
@@ -94,20 +90,18 @@ final class GenerateInvoiceActionTest extends TestCase
             'total_ht_cents' => 77_000,
             'generated_by_user_id' => $user->id,
         ]);
-        // T6 / Phase 14.R : facture neuve = pas de divergence.
+        // Facture neuve = pas de divergence.
         $this->assertFalse($invoice->is_divergent);
         $this->assertCount(1, $invoice->lines);
         $this->assertSame(10, $invoice->lines[0]->days_used);
         $this->assertSame(77_000, $invoice->lines[0]->total_ht_cents);
         $this->assertSame('AA-001-AA Renault Megane', $invoice->lines[0]->vehicle_label_snapshot);
 
-        // PDF persiste sous le chemin attendu et le hash colle au binaire.
         Storage::disk('local')->assertExists($invoice->pdf_path);
         $binary = Storage::disk('local')->get($invoice->pdf_path);
         $this->assertNotNull($binary);
         $this->assertSame(hash('sha256', $binary), $invoice->pdf_hash);
 
-        // Snippet de signature PDF (entête `%PDF-`).
         $this->assertStringStartsWith('%PDF-', $binary);
     }
 
@@ -151,7 +145,6 @@ final class GenerateInvoiceActionTest extends TestCase
         $user = User::factory()->create();
         $company = Company::factory()->create();
         $vehicle = Vehicle::factory()->create();
-        // Pas de tarif.
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => '2024-03-01', 'end_date' => '2024-03-05',
         ]);
@@ -166,7 +159,6 @@ final class GenerateInvoiceActionTest extends TestCase
             issuer: self::ISSUER,
         );
 
-        // Aucune facture créée + aucun fichier PDF persisté.
         $this->assertDatabaseCount('invoices', 0);
         $this->assertDatabaseCount('invoice_lines', 0);
     }
@@ -190,8 +182,7 @@ final class GenerateInvoiceActionTest extends TestCase
     #[Test]
     public function refuse_la_generation_pour_le_mois_en_cours(): void
     {
-        // P4 · une facture ne se génère qu'à mois écoulé. Le mois en
-        // cours n'est pas encore terminé · génération refusée.
+        // Une facture ne se génère qu'à mois écoulé.
         CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
         $user = User::factory()->create();
         $company = Company::factory()->create();
@@ -277,7 +268,6 @@ final class GenerateInvoiceActionTest extends TestCase
             issuer: self::ISSUER,
         );
 
-        // Deuxième facture pour le même mois mais entreprise différente.
         Contract::factory()->forVehicle($vehicle)->forCompany($companyB)->create([
             'start_date' => '2024-03-15', 'end_date' => '2024-03-19',
         ]);
@@ -297,9 +287,8 @@ final class GenerateInvoiceActionTest extends TestCase
     #[Test]
     public function rollback_complete_si_le_pdf_storage_echoue(): void
     {
-        // Simulons une collision filesystem en pré-créant le fichier
-        // attendu : `InvoicePdfStorage::store()` refuse l'écrasement et
-        // remonte InvoicePdfAlreadyExistsException (T11 / E.14) : la
+        // Collision filesystem : `InvoicePdfStorage::store()` refuse
+        // l'écrasement → InvoicePdfAlreadyExistsException, et la
         // transaction rollback les INSERT déjà passés.
         $user = User::factory()->create();
         $company = Company::factory()->create();
@@ -313,7 +302,6 @@ final class GenerateInvoiceActionTest extends TestCase
             'start_date' => '2024-03-01', 'end_date' => '2024-03-05',
         ]);
 
-        // Pré-pose le fichier qui sera tenté.
         Storage::disk('local')->put(
             "invoices/2024/{$company->id}/2024-03-0001.pdf",
             'collision',
@@ -330,8 +318,6 @@ final class GenerateInvoiceActionTest extends TestCase
                 issuer: self::ISSUER,
             );
         } finally {
-            // Quoi qu'il arrive, les tables Invoice / InvoiceLine doivent
-            // rester vides (rollback transactionnel).
             $this->assertSame(0, Invoice::query()->count());
             $this->assertSame(0, InvoiceLine::query()->count());
         }
@@ -340,12 +326,8 @@ final class GenerateInvoiceActionTest extends TestCase
     #[Test]
     public function cleanup_pdf_orphan_si_insert_db_echoue_apres_storage_put(): void
     {
-        // Cas symétrique du test précédent : ici le `Storage::put` réussit
-        // mais l'INSERT DB qui suit échoue. Le chantier T4 (Phase 14.P)
-        // a ajouté un try/catch qui supprime le PDF orphelin avant le
-        // re-throw, pour ne pas laisser d'orphan file ni bloquer un retry.
-        //
-        // Simulation : on mocke `InvoiceWriteRepository::persist` pour throw.
+        // `Storage::put` réussit puis l'INSERT DB échoue : try/catch
+        // supprime le PDF orphelin avant re-throw (pas d'orphan file).
         $user = User::factory()->create();
         $company = Company::factory()->create();
         $vehicle = Vehicle::factory()->create();
@@ -360,15 +342,13 @@ final class GenerateInvoiceActionTest extends TestCase
 
         $expectedPdfPath = "invoices/2024/{$company->id}/2024-03-0001.pdf";
 
-        // Override le binding du writer : `persist` throw une exception
-        // simulée, simulant un crash DB après le `Storage::put` réussi.
+        // `persist` throw → crash DB après `Storage::put` réussi.
         $writerMock = Mockery::mock(InvoiceWriteRepositoryInterface::class);
         // @phpstan-ignore-next-line Mockery PHPStan stub friction
         $writerMock->shouldReceive('persist')->once()
             ->andThrow(new \RuntimeException('Simulated DB INSERT failure'));
         $this->app->instance(InvoiceWriteRepositoryInterface::class, $writerMock);
 
-        // Refait l'Action avec la nouvelle dépendance mockée.
         $action = $this->app->make(GenerateInvoiceAction::class);
 
         try {
@@ -384,7 +364,6 @@ final class GenerateInvoiceActionTest extends TestCase
             self::assertSame('Simulated DB INSERT failure', $e->getMessage());
         }
 
-        // Le PDF a été nettoyé : ni INSERT DB, ni fichier orphelin.
         $this->assertSame(0, Invoice::query()->count());
         Storage::disk('local')->assertMissing($expectedPdfPath);
     }

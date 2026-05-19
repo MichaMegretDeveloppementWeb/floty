@@ -10,9 +10,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Vérifie que les factory methods de `FiscalCalculationException`
- * produisent les bons messages techniques (anglais) et utilisateurs
- * (français), conformément à `gestion-erreurs.md`.
+ * Vérifie les messages techniques (en) et utilisateur (fr) selon
+ * `gestion-erreurs.md`.
  */
 final class FiscalCalculationExceptionTest extends TestCase
 {

@@ -19,13 +19,6 @@ use PHPUnit\Framework\Attributes\Test;
 use RuntimeException;
 use Tests\TestCase;
 
-/**
- * Tests Unit de l'Action UploadContractDocumentAction (chantier 04.N).
- *
- * Vérifie la limite V1 des 5 documents par contrat (lève
- * `TooManyContractDocumentsException`) et le happy path (stockage
- * physique + persistance DB).
- */
 final class UploadContractDocumentActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -72,7 +65,6 @@ final class UploadContractDocumentActionTest extends TestCase
             ->forCompany(Company::factory()->create())
             ->create();
 
-        // Pré-pose 5 documents (limite V1).
         ContractDocument::factory()->count(5)->forContract($contract)->create([
             'uploaded_by' => $user->id,
         ]);
@@ -97,7 +89,6 @@ final class UploadContractDocumentActionTest extends TestCase
             ->forCompany(Company::factory()->create())
             ->create();
 
-        // Mock du writer qui throw → simule un échec DB après écriture du fichier.
         $writerMock = $this->createMock(ContractDocumentWriteRepositoryInterface::class);
         $writerMock->expects($this->once())
             ->method('create')
@@ -119,11 +110,9 @@ final class UploadContractDocumentActionTest extends TestCase
             $this->assertSame('DB write failed', $e->getMessage());
         }
 
-        // Aucun fichier ne doit subsister sur le disk : la compensation a nettoyé.
         Storage::disk(config('filesystems.default'))
             ->assertDirectoryEmpty("contract-documents/{$contract->id}");
 
-        // Aucune ligne DB non plus.
         $this->assertDatabaseCount('contract_documents', 0);
     }
 }

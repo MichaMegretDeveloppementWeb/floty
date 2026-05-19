@@ -15,11 +15,6 @@ use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests de la création multi-contrats en transaction unique. Vérifie
- * que la transaction rollback complètement si l'un des véhicules a un
- * conflit d'overlap (l'utilisateur soumet un lot global ou rien).
- */
 final class BulkCreateContractsActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -59,8 +54,6 @@ final class BulkCreateContractsActionTest extends TestCase
         $vehicleA = Vehicle::factory()->create();
         $vehicleB = Vehicle::factory()->create();
 
-        // Préposer un contrat sur vehicleB qui chevauchera la plage du
-        // bulk → l'ensemble doit être rollback.
         Contract::factory()->forVehicle($vehicleB)->forCompany($company)->create([
             'start_date' => '2024-03-10',
             'end_date' => '2024-03-20',
@@ -78,19 +71,9 @@ final class BulkCreateContractsActionTest extends TestCase
             $this->assertSame($vehicleB->id, $e->vehicleId);
         }
 
-        // Aucun nouveau contrat n'a été inséré (rollback du transaction).
         $this->assertSame($countBefore, Contract::query()->count());
     }
 
-    // ---------- Lot 3 D01 · batch overlap-check (1 query au lieu de N) ----------
-
-    /**
-     * Lot 3 D01 · garantit que le bulk create utilise un budget query
-     * borné par une constante (pas N+1 par véhicule). Avant le refactor,
-     * on observait `N appels findOverlapping = N queries SELECT` pour
-     * N véhicules. Après · 1 seule query batch via
-     * `findAllOverlappingForVehicles`.
-     */
     #[Test]
     public function bulk_create_respecte_un_budget_query_borne_par_constante(): void
     {
@@ -109,16 +92,9 @@ final class BulkCreateContractsActionTest extends TestCase
         DB::disableQueryLog();
 
         self::assertCount(20, $createdIds);
-        // Cap raisonnable Lot 3 D01 · baseline mesurée 101 queries pour
-        // 20 véhicules · décomposition · 1 batch overlap + 20 INSERT
-        // contract (Eloquent create) + 20×~3 queries syncDrivers (findOrFail
-        // + sync DELETE + sync INSERT) + transaction overhead. Le batch
-        // overlap a éliminé les 20 SELECT findOverlapping individuels
-        // (gain ~19 queries). Cap à 115 · marge +14 sur baseline pour
-        // évolutions Observer/middleware sans masquer une régression
-        // ré-introduisant le N+1 overlap (qui ferait sauter ≥20 queries).
-        // Dette résiduelle hors-D01 · `syncDrivers` × N (3N queries pivot)
-        // pourrait être factorisé en 1 INSERT multi-rows séparément.
+        // Cap 115 : baseline 101 (1 batch overlap + 20 INSERT + 20×~3 syncDrivers + tx).
+        // Marge +14 pour évolutions Observer/middleware sans masquer une régression
+        // ré-introduisant le N+1 overlap (≥20 queries).
         self::assertLessThan(
             115,
             $queryCount,
@@ -126,22 +102,13 @@ final class BulkCreateContractsActionTest extends TestCase
         );
     }
 
-    /**
-     * Lot 3 D01 · équivalence sémantique fail-fast · si un véhicule
-     * présente plusieurs overlaps existants, l'exception doit pointer le
-     * **premier** par start_date ASC (déterministe, cohérent avec l'ordre
-     * SQL `vehicle_id, start_date` du repo). Garantit qu'on ne casse pas
-     * l'UX "le 1er conflit rencontré" au passage du refactor.
-     */
     #[Test]
     public function exception_pointe_le_premier_overlap_par_start_date_asc(): void
     {
         $company = Company::factory()->create();
         $vehicle = Vehicle::factory()->create();
 
-        // 2 contrats existants sur le même véhicule, tous deux chevauchent
-        // la plage du bulk `[2024-03-01, 2024-03-15]`. L'ordre SQL doit
-        // sélectionner le plus ancien (start_date 2024-02-25).
+        // Ordre SQL `vehicle_id, start_date` : le plus ancien (2024-02-25) doit ressortir.
         $earliest = Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => '2024-02-25',
             'end_date' => '2024-03-05',

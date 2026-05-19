@@ -25,28 +25,15 @@ use Random\Randomizer;
 
 /**
  * Générateur de scénarios fiscaux valides pour les tests d'invariants
- * (cf. {@see FiscalInvariantsTest}). Déterministe via une seed entière
- * (chaque seed produit toujours le même scénario), pour que tout
- * contre-exemple révélé par un invariant puisse être reproduit en
- * isolation.
+ * (cf. {@see FiscalInvariantsTest}). Déterministe via une seed entière.
  *
- * **Garanties par construction** :
+ * Garanties par construction :
  *   - 1 à 3 VFC successives sans chevauchement, couvrant l'année cible
- *     intégralement
- *   - 1 à 3 contrats LLD/LCD non chevauchants au sein d'un même couple
- *     `(vehicleId, companyId)` (les contrats sur des companyId distincts
- *     peuvent se chevaucher, c'est la sémantique métier)
+ *   - 1 à 3 contrats LLD/LCD non chevauchants par couple (vehicle, company)
  *   - 0 à 3 indispos non-chevauchantes dans l'année
- *   - Tous les véhicules sont M1 essence Euro 6 WLTP (config la plus
- *     courante du parc) · le but n'est pas de varier les classifications
- *     (couvertes par les tests de règles individuelles) mais d'exercer
- *     les invariants de prorata, segmentation et arrondi.
+ *   - Tous M1 essence Euro 6 WLTP : exercent prorata, segmentation, arrondi
  *
- * Pour faire varier la classification (catégories N1, énergie, etc.)
- * il faudrait un second générateur dédié (hors scope premier livré).
- *
- * **Persistance** : Vehicle + VFCs sont persistés en DB (la pipeline
- * lit les segments via repository). Contracts et Unavailabilities sont
+ * Persistance : Vehicle + VFCs en DB. Contracts et Unavailabilities
  * synthétiques in-memory via `setRawAttributes(..., true)`.
  */
 final class FiscalScenarioGenerator
@@ -57,12 +44,8 @@ final class FiscalScenarioGenerator
 
     public function __construct(private readonly int $seed)
     {
-        // Initialise un générateur déterministe **isolé** (Lot 6 D9 ·
-        // F-32-011) · toute construction d'une nouvelle instance avec la
-        // même seed reproduit le scénario, sans polluer l'état global PHP
-        // de `mt_rand` (l'ancien `mt_srand($seed)` re-seed le RNG global
-        // et perturbait les autres tests utilisant `mt_rand`).
-        // Mt19937 conservé pour stabilité bit-à-bit avec l'ancien comportement.
+        // Générateur déterministe isolé : ne pollue pas l'état global
+        // PHP `mt_rand`. Mt19937 conservé pour stabilité bit-à-bit.
         $this->rng = new Randomizer(new Mt19937($seed));
     }
 
@@ -105,28 +88,19 @@ final class FiscalScenarioGenerator
         $yearStart = Carbon::parse(sprintf('%04d-01-01', $year));
         $yearEnd = Carbon::parse(sprintf('%04d-12-31', $year));
 
-        // Choix de N-1 dates de pivot uniformes dans l'année.
+        // N-1 pivots uniformes (marge ±30j pour éviter les bornes).
         $pivots = [];
         for ($i = 1; $i < $count; $i++) {
-            // Marge ±30 j pour éviter pivots aux bornes (qui réduisent
-            // l'intérêt de la segmentation).
             $offset = $this->rng->getInt(45, 320);
             $pivots[] = $yearStart->copy()->addDays($offset);
         }
-        // Tri croissant des pivots
         usort($pivots, static fn (Carbon $a, Carbon $b): int => $a->timestamp <=> $b->timestamp);
-        // Dédoublonnage simple : si deux pivots tombent le même jour, on
-        // shifte le second d'un jour.
         for ($i = 1; $i < count($pivots); $i++) {
             if ($pivots[$i]->isSameDay($pivots[$i - 1])) {
                 $pivots[$i] = $pivots[$i]->copy()->addDay();
             }
         }
 
-        // Construction des plages [from, to] :
-        //   - VFC 0 : 2022-01-01 → pivot[0] - 1 (ou yearEnd si aucun pivot)
-        //   - VFC i : pivot[i-1] → pivot[i] - 1
-        //   - VFC dernier : pivot[N-1] → null (courante)
         $vfcs = [];
         $previousFrom = Carbon::parse('2022-01-01');
         for ($i = 0; $i < $count; $i++) {
@@ -153,9 +127,7 @@ final class FiscalScenarioGenerator
      */
     private function vfcCommonFields(): array
     {
-        // Tirage CO₂ dans une plage qui couvre la quasi-totalité du
-        // barème WLTP 2024 (du paliers bas 14g jusqu'à au-dessus du seuil
-        // ouvert 175g).
+        // Tirage CO₂ couvrant la quasi-totalité du barème WLTP 2024.
         return [
             'reception_category' => ReceptionCategory::M1,
             'vehicle_user_type' => VehicleUserType::PassengerCar,
@@ -173,9 +145,8 @@ final class FiscalScenarioGenerator
     }
 
     /**
-     * Génère 1 à 3 contrats. Chaque contrat est posé sur un companyId
-     * distinct pour éviter de devoir gérer la non-cohabitation par
-     * couple (qui est une contrainte applicative, pas fiscale).
+     * 1 à 3 contrats, chacun sur un companyId distinct (évite la
+     * gestion de la non-cohabitation, contrainte applicative).
      *
      * @return list<Contract>
      */
@@ -192,7 +163,6 @@ final class FiscalScenarioGenerator
             $duration = $this->rng->getInt(20, max(20, $daysInYear - $offset - 1));
             $start = $yearStart->copy()->addDays($offset);
             $end = $start->copy()->addDays($duration - 1);
-            // Bias LLD majoritaire (75% LLD, 25% LCD)
             $type = $this->rng->getInt(0, 3) === 0 ? ContractType::Lcd : ContractType::Lld;
             $contracts[] = $this->syntheticContract(
                 $vehicle,

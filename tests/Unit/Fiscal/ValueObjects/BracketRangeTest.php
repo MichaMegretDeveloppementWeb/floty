@@ -59,7 +59,7 @@ final class BracketRangeTest extends TestCase
 
         self::assertSame(1, $bracket->slice(15));
         self::assertSame(41, $bracket->slice(55));
-        self::assertSame(41, $bracket->slice(100)); // capé au upper
+        self::assertSame(41, $bracket->slice(100));
     }
 
     #[Test]

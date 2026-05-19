@@ -70,13 +70,11 @@ final class UpsertVehicleYearlyPricingActionTest extends TestCase
             ),
         );
 
-        // Même row physique (idempotence : pas de duplication)
         $this->assertSame($existing->id, $result->id);
         $this->assertSame(12_000, $result->daily_rate_cents);
         $this->assertSame(70_000, $result->weekly_rate_cents);
         $this->assertSame(220_000, $result->monthly_rate_cents);
 
-        // Une seule ligne en base
         $this->assertSame(
             1,
             VehicleYearlyPricing::query()
@@ -106,7 +104,6 @@ final class UpsertVehicleYearlyPricingActionTest extends TestCase
             ),
         );
 
-        // 2 lignes : 2023 (préservée) + 2024 (nouvelle)
         $this->assertSame(2, VehicleYearlyPricing::query()->where('vehicle_id', $vehicle->id)->count());
         $this->assertDatabaseHas('vehicle_yearly_pricings', [
             'vehicle_id' => $vehicle->id,
@@ -118,9 +115,7 @@ final class UpsertVehicleYearlyPricingActionTest extends TestCase
     #[Test]
     public function permet_un_tarif_zero_pour_les_vehicules_en_usage_gratuit(): void
     {
-        // Cas légitime : véhicule de courtoisie interne, tarif 0 documenté
-        // (et non « tarif manquant » qui est un état NULL = absence de
-        // ligne dans la table).
+        // Tarif 0 documenté (≠ NULL = absence de ligne).
         $vehicle = Vehicle::factory()->create();
 
         $result = $this->action->execute(

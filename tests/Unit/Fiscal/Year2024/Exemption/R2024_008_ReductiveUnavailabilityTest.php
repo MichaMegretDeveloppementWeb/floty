@@ -18,10 +18,7 @@ use Tests\TestCase;
 
 /**
  * Couvre les 10 cas-tests permanents d'ADR-0016 § 7 rev. 1.1.
- *
- * Toute modification de R-2024-008 doit conserver ces invariants -
- * c'est le filet de sécurité fiscal de la règle « indispos
- * fiscalement réductrices ».
+ * Filet de sécurité fiscal de R-2024-008 « indispos réductrices ».
  */
 final class R2024_008_ReductiveUnavailabilityTest extends TestCase
 {

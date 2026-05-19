@@ -15,10 +15,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests de l'orchestration création + validation applicative anti-overlap
- * en amont du trigger MySQL (cf. ADR-0014 D5).
- */
 final class StoreContractActionTest extends TestCase
 {
     use RefreshDatabase;

@@ -14,14 +14,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre le DTO {@see YearScopeData} : construction directe, factory
- * `fromResolver()`, et round-trip Spatie Data (sérialisation +
- * hydratation).
- *
- * Tests purs (pas de framework Laravel booté ni de DB). Le test de
- * `fromResolver()` injecte un vrai `AvailableYearsResolver` (classe
- * `final`) avec ses dépendances mockées · pattern aligné sur
- * `AvailableYearsResolverTest`.
+ * Couvre construction directe, `fromResolver()`, et round-trip Spatie Data.
  */
 final class YearScopeDataTest extends TestCase
 {
@@ -56,10 +49,8 @@ final class YearScopeDataTest extends TestCase
     #[Test]
     public function from_resolver_compose_le_dto_depuis_les_3_methodes_du_service(): void
     {
-        // Resolver `final` instancié pour de vrai avec dépendances mockées
-        // (PHPUnit refuse de mocker une classe final ; cf. pattern aligné
-        // sur AvailableYearsResolverTest). On contrôle les bornes via le
-        // repo mocké.
+        // Resolver `final` instancié pour de vrai (PHPUnit refuse de
+        // mocker une classe final) avec dépendances mockées.
         $repo = $this->createMock(ContractReadRepositoryInterface::class);
         $repo->method('yearBounds')->willReturn(['min' => 2023, 'max' => 2024]);
         $resolver = new AvailableYearsResolver($repo, new CacheRepository(new ArrayStore));

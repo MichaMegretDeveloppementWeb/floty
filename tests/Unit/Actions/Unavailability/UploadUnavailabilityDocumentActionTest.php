@@ -17,13 +17,6 @@ use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests Unit de UploadUnavailabilityDocumentAction (P1).
- *
- * Vérifie la limite V1 des 5 documents par indispo (lève
- * `TooManyUnavailabilityDocumentsException`) et le happy path (stockage
- * physique + persistance DB) sur les 2 formats acceptés (img + PDF).
- */
 final class UploadUnavailabilityDocumentActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -114,10 +107,7 @@ final class UploadUnavailabilityDocumentActionTest extends TestCase
             ->for(Vehicle::factory()->create())
             ->create();
 
-        // On rebind le writer pour qu'il jette à l'écriture · le fichier
-        // doit être stocké avant la persistance, donc l'action a déjà
-        // posé le fichier au moment où l'exception est levée. Le rollback
-        // dans le try/catch doit nettoyer le disque.
+        // Writer throw à l'écriture : le rollback doit nettoyer le disque.
         $writer = new class implements UnavailabilityDocumentWriteRepositoryInterface
         {
             public function create(array $row): UnavailabilityDocument
@@ -133,7 +123,6 @@ final class UploadUnavailabilityDocumentActionTest extends TestCase
             $writer,
         );
 
-        // Re-resolve l'action pour qu'elle prenne le writer mocké.
         $action = $this->app->make(UploadUnavailabilityDocumentAction::class);
 
         $file = UploadedFile::fake()->create('rollback.pdf', 100, 'application/pdf');
@@ -149,7 +138,6 @@ final class UploadUnavailabilityDocumentActionTest extends TestCase
             );
             $this->fail('Expected RuntimeException not thrown.');
         } catch (\RuntimeException) {
-            // OK · on attend l'exception, on vérifie que le disque est propre.
         }
 
         $filesAfterExecution = $disk->allFiles();

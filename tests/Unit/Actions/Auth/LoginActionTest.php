@@ -17,12 +17,6 @@ use Illuminate\Support\Facades\Request;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests isolés de l'orchestration auth - vérifie que l'Action :
- *   - délègue le rate-limit au service avant de tenter Auth::attempt
- *   - lève les exceptions typées attendues
- *   - met à jour `last_login_at` au succès et clear les compteurs.
- */
 final class LoginActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -121,20 +115,16 @@ final class LoginActionTest extends TestCase
 
         $service = $this->app->make(LoginAttemptService::class);
 
-        // Pré-charge 4 tentatives ratées pour s'approcher du seuil.
         for ($i = 0; $i < 4; $i++) {
             $service->recordFailedAttempt(self::EMAIL, self::IP);
         }
 
         $this->action->execute(self::EMAIL, 'correct-password', self::IP);
 
-        // Après succès, les compteurs sont vidés → on peut faire 5
-        // nouvelles tentatives avant blocage.
         for ($i = 0; $i < LoginAttemptService::MAX_ATTEMPTS_PER_EMAIL - 1; $i++) {
             $service->recordFailedAttempt(self::EMAIL, self::IP);
         }
 
-        // Pas d'exception → preuve que le compteur a bien été reset.
         $service->ensureNotRateLimited(self::EMAIL, self::IP);
 
         $this->expectNotToPerformAssertions();

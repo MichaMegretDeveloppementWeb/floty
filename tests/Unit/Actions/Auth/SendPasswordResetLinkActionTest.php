@@ -14,10 +14,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Unit isolés sur l'orchestration `SendPasswordResetLinkAction`.
- *
- * Vérifie l'invariant clé · l'Action n'expose JAMAIS au consommateur le
- * statut interne de `Password::sendResetLink()` (anti email enumeration).
+ * Invariant : l'Action n'expose JAMAIS le statut interne de
+ * Password::sendResetLink() (anti email enumeration).
  */
 final class SendPasswordResetLinkActionTest extends TestCase
 {
@@ -42,13 +40,10 @@ final class SendPasswordResetLinkActionTest extends TestCase
     #[Test]
     public function ne_leve_pas_d_exception_pour_un_user_inexistant(): void
     {
-        // Invariant anti email enumeration · l'Action ne doit jamais
-        // signaler au consommateur que l'email est inconnu.
         Notification::fake();
 
         $action = $this->app->make(SendPasswordResetLinkAction::class);
 
-        // Ne doit pas lever.
         $action->execute('ghost@floty.test', '127.0.0.1');
 
         Notification::assertNothingSent();

@@ -12,9 +12,8 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Couvre la cascade {@see PollutantCategory::derive()} (CIBS art. L. 421-134),
- * source unique de vérité côté backend (Repository à l'écriture +
- * R-2024-013 au calcul).
+ * Couvre PollutantCategory::derive() (CIBS art. L. 421-134), source
+ * unique de vérité backend (Repository à l'écriture + R-2024-013).
  */
 final class PollutantCategoryDeriveTest extends TestCase
 {
@@ -165,9 +164,8 @@ final class PollutantCategoryDeriveTest extends TestCase
     #[Test]
     public function hybride_sans_sous_jacent_renseigne_donne_categorie_les_plus_polluants(): void
     {
-        // Defensive default : sans information sur le moteur thermique,
-        // on ne peut pas attribuer la Catégorie 1 - sécuritaire pour le
-        // contribuable comme pour le fisc.
+        // Defensive default : sans info sur le moteur thermique,
+        // on ne peut pas attribuer la Catégorie 1.
         $category = PollutantCategory::derive(
             EnergySource::NonPluginHybrid,
             EuroStandard::Euro6,

@@ -25,7 +25,7 @@ final class ProgressiveScaleTest extends TestCase
         $this->expectException(FiscalCalculationException::class);
         new ProgressiveScale([
             new BracketRange(0, 14, 0.0),
-            new BracketRange(20, 50, 1.0), // ← devrait commencer à 14
+            new BracketRange(20, 50, 1.0),
         ]);
     }
 
@@ -70,9 +70,9 @@ final class ProgressiveScaleTest extends TestCase
             new BracketRange(55, null, 2.0),
         ]);
 
-        // 50 → 0 (tranche 1) + (50-14)*1 = 36
+        // 50 → 0 + (50-14)*1 = 36
         self::assertSame(36.0, $scale->apply(50));
-        // 100 → 0 + 41 + (100-55)*2 = 41 + 90 = 131
+        // 100 → 0 + 41 + (100-55)*2 = 131
         self::assertSame(131.0, $scale->apply(100));
     }
 }

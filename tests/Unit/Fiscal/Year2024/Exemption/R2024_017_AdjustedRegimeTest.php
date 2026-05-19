@@ -24,20 +24,11 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Φ.1 · couverture exhaustive du régime aménagé R-2024-017
- * (CIBS L. 421-125 v 2024).
+ * Régime aménagé R-2024-017 (CIBS L. 421-125 v 2024) : véhicule < 3 ans
+ * au 01/01/2024, seuils doublés (WLTP ≤ 120, NEDC ≤ 100, PA ≤ 6 CV).
  *
- * **Régime aménagé** · véhicule < 3 ans au 01/01/2024 · seuils
- * doublés ·
- *   - WLTP ≤ 120 g/km
- *   - NEDC ≤ 100 g/km
- *   - PA ≤ 6 CV
- *
- * Les tests existants (R2024_017_ConditionalHybridExemptionTest)
- * couvrent WLTP + PA général + WLTP aménagé. Ce fichier complète ·
- *   - NEDC général et aménagé (manquant)
- *   - PA aménagé (manquant)
- *   - Bornes inclusives et exclusives de l'âge 3 ans
+ * Complète R2024_017_ConditionalHybridExemptionTest pour NEDC général,
+ * NEDC aménagé, PA aménagé et bornes ±3 ans.
  */
 final class R2024_017_AdjustedRegimeTest extends TestCase
 {

@@ -18,12 +18,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests d'intégration du `BulkGenerateInvoicesAction`.
- *
- * Stratégie · on appelle l'Action avec de vraies données (`Contract`,
- * `VehicleYearlyPricing`) plutôt que de mocker l'Action unitaire interne ·
- * valide la chaîne complète Bulk → Resolver → Generate → Invoice + PDF
- * sans risque de fausse couverture.
+ * Données réelles plutôt que mocks : valide la chaîne complète
+ * Bulk → Resolver → Generate → Invoice + PDF.
  */
 final class BulkGenerateInvoicesActionTest extends TestCase
 {
@@ -55,7 +51,6 @@ final class BulkGenerateInvoicesActionTest extends TestCase
         try {
             [$user, $company, $vehicle] = $this->seedCompanyVehiclePricing(2024);
 
-            // 3 contrats sur 3 mois distincts de 2024 · tous éligibles.
             Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
                 'start_date' => '2024-01-05', 'end_date' => '2024-01-10',
             ]);
@@ -78,15 +73,12 @@ final class BulkGenerateInvoicesActionTest extends TestCase
             $this->assertSame($company->id, $report->companyId);
             $this->assertSame(2024, $report->year);
 
-            // Ordre chronologique strict (Jan → Avr → Juil).
             $this->assertSame([1, 4, 7], array_map(
                 static fn ($g) => $g->month,
                 $report->generated,
             ));
 
-            // Chaque numéro respecte le format `YYYY-MM-NNNN` séquentiel
-            // sur son couple (year, month) · au premier passage = 0001
-            // sur les 3 couples distincts (pas de partage de séquence).
+            // Numéro `YYYY-MM-NNNN` séquentiel par couple (year, month).
             $this->assertSame('2024-01-0001', $report->generated[0]->invoiceNumber);
             $this->assertSame('2024-04-0001', $report->generated[1]->invoiceNumber);
             $this->assertSame('2024-07-0001', $report->generated[2]->invoiceNumber);
@@ -105,31 +97,16 @@ final class BulkGenerateInvoicesActionTest extends TestCase
         try {
             [$user, $company, $vehicleWithPricing] = $this->seedCompanyVehiclePricing(2024);
 
-            // Second véhicule SANS tarif 2024 · introduit l'échec ciblé
-            // sur Mars uniquement (les autres mois n'utilisent que le
-            // véhicule avec tarif).
+            // Second véhicule SANS tarif 2024 : Mars sera filtré par
+            // le resolver (pré-filtre missing pricing).
             $vehicleNoPricing = Vehicle::factory()->create();
 
             Contract::factory()->forVehicle($vehicleWithPricing)->forCompany($company)->create([
                 'start_date' => '2024-01-10', 'end_date' => '2024-01-14',
             ]);
-            // Mars · vehicule sans tarif → l'Action de génération
-            // unitaire lèvera MissingPricingException sur ce mois.
             Contract::factory()->forVehicle($vehicleNoPricing)->forCompany($company)->create([
                 'start_date' => '2024-03-05', 'end_date' => '2024-03-08',
             ]);
-            // Hmm · le filtre `pendingMonthsForCompanyYear` exclut
-            // déjà les mois avec missing pricing. Pour forcer le cas
-            // « échec en cours d'exécution », on ajoute un contrat
-            // valide en Mai (qui passe le filtre) et on simule un
-            // hasMissingPricing en cassant le tarif APRÈS resolver.
-            // Plus simple · pousser un contrat sans tarif sur un mois
-            // distinct du « bon » contrat, et compter sur le fait que
-            // le resolver le skip via pré-filtre · résultat attendu ·
-            // ce test couvre la branche « le resolver filtre déjà ».
-            // Pour réellement tester le catch MissingPricing in-loop,
-            // il faudrait mocker le PendingInvoicesResolver. Voir test
-            // dédié ci-dessous.
             Contract::factory()->forVehicle($vehicleWithPricing)->forCompany($company)->create([
                 'start_date' => '2024-05-02', 'end_date' => '2024-05-04',
             ]);
@@ -141,8 +118,7 @@ final class BulkGenerateInvoicesActionTest extends TestCase
                 issuer: self::ISSUER,
             );
 
-            // Le resolver pré-filtre Mars (missing pricing) · l'Action
-            // n'attaque que Janvier et Mai · 2 generated, 0 failed.
+            // Resolver pré-filtre Mars (missing pricing) : 2 generated, 0 failed.
             $this->assertCount(2, $report->generated);
             $this->assertCount(0, $report->failed);
             $this->assertSame([1, 5], array_map(
@@ -168,7 +144,6 @@ final class BulkGenerateInvoicesActionTest extends TestCase
                 'start_date' => '2024-08-10', 'end_date' => '2024-08-15',
             ]);
 
-            // Premier passage · 2 annexes générées.
             $first = $this->action->execute(
                 companyId: $company->id,
                 year: 2024,
@@ -178,12 +153,9 @@ final class BulkGenerateInvoicesActionTest extends TestCase
             $this->assertCount(2, $first->generated);
             $this->assertDatabaseCount('invoices', 2);
 
-            // BillingBreakdownService est singleton (memoization intra-
-            // requête voulue en prod · 1 requête HTTP = 1 instance).
-            // Dans ce test, on simule une seconde requête HTTP en vidant
-            // le cache d'instance avant le second appel · sinon le
-            // breakdown lit le cache stale et ne voit pas les invoices
-            // créées au premier passage.
+            // BillingBreakdownService est singleton (memo intra-requête en prod).
+            // Simulons une seconde requête HTTP en vidant le cache d'instance,
+            // sinon le breakdown lit le cache stale.
             $this->app->forgetInstance(BillingBreakdownService::class);
             $secondAction = $this->app->make(BulkGenerateInvoicesAction::class);
 
@@ -208,9 +180,8 @@ final class BulkGenerateInvoicesActionTest extends TestCase
         try {
             [$user, $company, $vehicle] = $this->seedCompanyVehiclePricing(2024);
 
-            // 1 contrat en Février (mois écoulé) · 1 contrat en Mai
-            // (mois en cours · doit être ignoré) · 1 contrat en Juillet
-            // (mois futur · doit être ignoré).
+            // Février (mois écoulé) garde, Mai (mois en cours) et
+            // Juillet (mois futur) sont ignorés.
             Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
                 'start_date' => '2024-02-05', 'end_date' => '2024-02-10',
             ]);

@@ -14,11 +14,6 @@ use Illuminate\Support\Facades\Hash;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests Unit isolés sur l'orchestration `ChangePasswordAction` ·
- * vérifie la mise à jour effective du password et la levée
- * d'exception sur current password mismatch.
- */
 final class ChangePasswordActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -30,7 +25,6 @@ final class ChangePasswordActionTest extends TestCase
             'password' => Hash::make('the-current-pwd'),
         ]);
 
-        // Auth::logoutOtherDevices nécessite un user connecté.
         Auth::login($user);
 
         $action = $this->app->make(ChangePasswordAction::class);
@@ -69,7 +63,6 @@ final class ChangePasswordActionTest extends TestCase
             '127.0.0.1',
         );
 
-        // Le password ne doit pas avoir bougé.
         $user->refresh();
         self::assertTrue(Hash::check('correct-pwd', $user->password));
     }

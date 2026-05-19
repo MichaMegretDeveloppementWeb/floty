@@ -19,7 +19,6 @@ final class PollutantTariffTest extends TestCase
         new PollutantTariff([
             PollutantCategory::E->value => 0.0,
             PollutantCategory::Category1->value => 100.0,
-            // MostPolluting manque
         ]);
     }
 

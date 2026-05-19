@@ -19,10 +19,7 @@ use RuntimeException;
 use Tests\TestCase;
 
 /**
- * Tests Unit de l'Action DeleteContractDocumentAction (chantier γ.2).
- *
- * Vérifie la doctrine de robustesse : DB d'abord (record disparaît
- * immédiatement de l'UI), filesystem ensuite (best-effort, log si échec).
+ * Doctrine : DB d'abord, filesystem ensuite (best-effort).
  * Si la suppression DB échoue, on remonte sans toucher au disque.
  */
 final class DeleteContractDocumentActionTest extends TestCase
@@ -44,7 +41,6 @@ final class DeleteContractDocumentActionTest extends TestCase
             ->forCompany(Company::factory()->create())
             ->create();
 
-        // Pose un document via l'upload réel pour avoir un fichier sur disk fake.
         $upload = $this->app->make(UploadContractDocumentAction::class);
         $document = $upload->execute(
             contract: $contract,
@@ -80,7 +76,6 @@ final class DeleteContractDocumentActionTest extends TestCase
 
         $storagePath = $document->storage_path;
 
-        // Mock du writer qui throw → simule un échec DB.
         $writerMock = $this->createMock(ContractDocumentWriteRepositoryInterface::class);
         $writerMock->expects($this->once())
             ->method('delete')
@@ -97,8 +92,6 @@ final class DeleteContractDocumentActionTest extends TestCase
             $this->assertSame('DB delete failed', $e->getMessage());
         }
 
-        // Le fichier physique doit toujours exister : on n'a pas touché
-        // au disque tant que la DB n'a pas été modifiée.
         Storage::disk(config('filesystems.default'))->assertExists($storagePath);
     }
 }

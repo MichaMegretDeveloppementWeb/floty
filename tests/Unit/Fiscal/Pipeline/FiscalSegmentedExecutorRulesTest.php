@@ -35,17 +35,11 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Unit du chef d'orchestre `FiscalSegmentedExecutor` sur le
- * **produit cartésien VFC × Règles** (chantier κ.4).
+ * `FiscalSegmentedExecutor` sur le produit cartésien VFC × Règles.
  *
- * Les tests utilisent une **année stub 2090** non enregistrée en
- * production : le registry est garni à la volée avec des règles fakes
- * qui exposent des bornes d'applicabilité partielles ou full-year. On
- * vérifie ensuite la structure du `FiscalSegmentBreakdown` produit
- * (count, intersections start/end, association vfcSegment/ruleSegment).
- *
- * Le no-regression sur 2024 (mono règle full-year × N VFC) est couvert
- * par {@see FiscalSegmentedExecutorTest} qui n'a pas été modifié.
+ * Année stub 2090 non enregistrée en production : registry garni à la
+ * volée avec des règles fakes à bornes d'applicabilité partielles ou
+ * full-year. Vérifie la structure du `FiscalSegmentBreakdown` produit.
  */
 final class FiscalSegmentedExecutorRulesTest extends TestCase
 {
@@ -66,8 +60,8 @@ final class FiscalSegmentedExecutorRulesTest extends TestCase
         $this->registry = $this->app->make(FiscalRuleRegistry::class);
         $this->yearContext = $this->app->make(FiscalYearContext::class);
 
-        // Le segmenteur est singleton avec cache - on l'invalide pour
-        // que le registry stub year 2090 soit ré-évalué dans chaque test.
+        // Segmenteur singleton avec cache : invalidé pour ré-évaluer
+        // le registry stub 2090 à chaque test.
         $this->app->forgetInstance(RuleEffectiveSegmenter::class);
         $this->executor = $this->app->make(FiscalSegmentedExecutor::class);
     }

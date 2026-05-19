@@ -15,11 +15,6 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests de la mise à jour d'un contrat - vérifie l'exclusion de la
- * ligne courante dans la recherche d'overlap (un contrat ne se
- * chevauche pas avec lui-même).
- */
 final class UpdateContractActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -61,8 +56,6 @@ final class UpdateContractActionTest extends TestCase
             'end_date' => '2024-03-15',
         ]);
 
-        // La nouvelle plage chevauche la ligne courante elle-même ; ce
-        // n'est pas un conflit, l'update doit passer.
         $updated = $this->action->execute(
             $contract->id,
             $this->makeData($vehicle->id, $company->id, '2024-03-05', '2024-03-20'),
@@ -77,8 +70,6 @@ final class UpdateContractActionTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
 
-        // Contrat existant sur Avril → la mise à jour de $contract pour
-        // déborder dessus doit déclencher l'exception d'overlap.
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => '2024-04-01',
             'end_date' => '2024-04-30',
@@ -102,15 +93,12 @@ final class UpdateContractActionTest extends TestCase
     {
         $vehicle = Vehicle::factory()->create();
         $company = Company::factory()->create();
-        // Contrat LCD initial (10 jours) - création directe via la
-        // factory pour pré-poser le type LCD en DB.
         $contract = Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => '2024-03-01',
             'end_date' => '2024-03-10',
             'contract_type' => ContractType::Lcd,
         ]);
 
-        // Étend le contrat à 60 jours → le type doit basculer à LLD.
         $updated = $this->action->execute(
             $contract->id,
             $this->makeData($vehicle->id, $company->id, '2024-03-01', '2024-04-29'),

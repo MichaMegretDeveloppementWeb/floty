@@ -14,12 +14,6 @@ use Illuminate\Support\Facades\Storage;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Tests Unit de DeleteUnavailabilityDocumentAction (P1).
- *
- * Vérifie le hard-delete combiné DB + fichier physique et la tolérance
- * au cas où le fichier disque est déjà manquant (idempotence safeDelete).
- */
 final class DeleteUnavailabilityDocumentActionTest extends TestCase
 {
     use RefreshDatabase;
@@ -63,8 +57,6 @@ final class DeleteUnavailabilityDocumentActionTest extends TestCase
             ->for(Vehicle::factory()->create())
             ->create();
 
-        // On crée le record sans poser le fichier physique · simule un
-        // état orphelin (cleanup job, S3 lost, etc.).
         $document = UnavailabilityDocument::factory()->forUnavailability($unavailability)->create([
             'uploaded_by' => $user->id,
             'storage_path' => "unavailability-documents/{$unavailability->id}/ghost.pdf",
@@ -72,7 +64,6 @@ final class DeleteUnavailabilityDocumentActionTest extends TestCase
 
         $this->action->execute($document);
 
-        // Aucune exception, record supprimé. safeDelete avale silencieusement.
         $this->assertDatabaseMissing('unavailability_documents', ['id' => $document->id]);
     }
 }

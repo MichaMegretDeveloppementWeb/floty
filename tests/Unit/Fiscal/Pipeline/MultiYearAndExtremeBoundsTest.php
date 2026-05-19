@@ -55,12 +55,9 @@ final class MultiYearAndExtremeBoundsTest extends TestCase
         //   - 2025 : 59 jours (1er janvier → 28 février)
         // Total brut = 442 jours.
         //
-        // Note : seule l'année 2024 est supportée par le moteur fiscal
-        // (cf. `app/Fiscal/Year2024/Year2024Boot.php`, autres années à
-        // venir chantier δ Phase 11). On teste donc :
-        //   - le borneur `Contract::expandToDaysInYear()` pour les 3
-        //     années (pur, sans pipeline)
-        //   - le pipeline complet sur 2024 (année supportée)
+        // On teste le borneur `Contract::expandToDaysInYear()` sur les 3
+        // années et le pipeline complet uniquement sur 2024 (autres
+        // années non encore supportées par le moteur fiscal).
         $vehicle = $this->makeVehicleWltp(co2: 100, vfcStartsAt: '2022-01-01');
         $contract = $this->syntheticContract($vehicle, '2023-12-15', '2025-02-28');
 
