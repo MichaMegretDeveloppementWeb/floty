@@ -9,22 +9,21 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Rapport de fin d'exécution du `BulkGenerateInvoicesAction` (génération
- * en masse des annexes d'une (entreprise × année).
+ * Report returned by `BulkGenerateInvoicesAction` (bulk generation of all
+ * annexes for a (company × year)).
  *
- * Stratégie d'exécution best-effort · chaque mois est traité dans sa
- * propre transaction par `GenerateInvoiceAction` ; un échec sur un mois
- * n'interrompt pas la séquence. Le rapport collecte les trois issues
- * possibles ·
+ * Best-effort strategy: each month runs in its own transaction via
+ * `GenerateInvoiceAction`; a failure on one month does not abort the
+ * sequence. The report collects the three possible outcomes:
  *
- *   - `generated` · annexes effectivement émises (numéro figé, PDF persisté)
- *   - `failed`    · mois pour lesquels une exception domaine a été levée
- *                   (tarif manquant, race condition d'unicité, etc.)
- *   - `skipped`   · mois exclus en amont du try (déjà facturé entre temps,
- *                   pas d'activité, mois non écoulé, etc.)
+ *   - `generated`: actually emitted (number fixed, PDF persisted)
+ *   - `failed`: months where a domain exception was thrown (missing
+ *      tariff, unicity race, etc.)
+ *   - `skipped`: months excluded before the try block (already invoiced
+ *      meanwhile, no activity, month not elapsed, etc.)
  *
- * Aucune fusion n'est faite côté DTO · le contrôleur et le composant Vue
- * affichent les trois sections séparément pour rester lisibles.
+ * No merging happens DTO-side; the controller and Vue components display
+ * the three sections separately for readability.
  */
 #[TypeScript]
 final class BulkInvoiceGenerationReportData extends Data

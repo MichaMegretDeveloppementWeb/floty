@@ -9,9 +9,9 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Mois exclus de la génération avant tout appel à `GenerateInvoiceAction`.
- * Cas attendus · facture déjà émise (race entre clic et bulk), aucun jour
- * utilisé, mois non encore écoulé, tarif annuel manquant.
+ * Month excluded from generation before any `GenerateInvoiceAction` call.
+ * Expected cases: invoice already issued (race between click and bulk),
+ * no days used, month not elapsed, missing yearly tariff.
  */
 #[TypeScript]
 final class BulkInvoiceGenerationSkippedItemData extends Data

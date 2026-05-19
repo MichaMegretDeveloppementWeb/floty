@@ -11,13 +11,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail complet d'une réduction commerciale pour la page Show
- * (Lot 4 du chantier RentalDiscount).
+ * Full detail of a commercial discount for the Show page.
  *
- * Inclut · identité métier + entreprise rattachée + liste véhicules
- * ciblés + status calculé + créateur. Les statistiques d'application
- * (nombre de contrats actifs, factures émises) sont chargées séparément
- * pour rester explicites sur le coût.
+ * Includes business identity + attached company + targeted vehicles +
+ * computed status + creator. Application stats (active contract count,
+ * issued invoices) are loaded separately to keep the cost explicit.
  */
 #[TypeScript]
 final class RentalDiscountData extends Data
@@ -39,23 +37,23 @@ final class RentalDiscountData extends Data
         public ?string $label,
         public ?string $notes,
         /**
-         * Véhicules ciblés explicitement par la réduction (peut être vide
-         * = applique à tous les véhicules de l'entreprise sur la période,
-         * sémantique applicative décodée par `DiscountResolver`).
+         * Vehicles explicitly targeted by the discount; empty means
+         * "applies to every vehicle of the company over the period"
+         * (decoded by `DiscountResolver`).
          *
          * @var array<int, RentalDiscountVehicleTagData>
          */
         #[DataCollectionOf(RentalDiscountVehicleTagData::class)]
         public array $vehicles,
         public bool $isAllVehicles,
-        /** `'planned' | 'active' | 'expired'` calculé vs. la date du jour. */
+        /** `'planned' | 'active' | 'expired'` computed vs. today. */
         public string $status,
         public ?string $createdByUserName,
-        /** ISO Y-m-d, jamais null (timestamps non nullable en base). */
+        /** ISO Y-m-d, never null (timestamps non-nullable in DB). */
         public string $createdAt,
-        /** ISO Y-m-d ou null si jamais modifiée après création. */
+        /** ISO Y-m-d or null if never modified after creation. */
         public ?string $updatedAt,
-        /** ISO Y-m-d ou null si non soft-deletée. */
+        /** ISO Y-m-d or null if not soft-deleted. */
         public ?string $deletedAt,
     ) {}
 

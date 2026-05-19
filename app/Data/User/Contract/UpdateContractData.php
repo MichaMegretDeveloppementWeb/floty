@@ -23,21 +23,19 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload d'édition d'un contrat (chantier 04.G - page Edit).
+ * Update payload for an existing contract.
  *
- * Sémantique d'avenant : modifier un contrat met à jour ses bornes en
- * place. Pas d'historique d'avenant en V1 - la traçabilité passera par
- * les documents joints (cf. ADR-0014 D6 et chantier 04.K).
- *
- * Mêmes validations que {@see StoreContractData}. Note : le trigger
- * MySQL anti-overlap exclut déjà la ligne courante via `id <> NEW.id`.
+ * Mutates the contract in place (no amendment history in V1; durable trace
+ * lives in attached documents). The MySQL anti-overlap trigger excludes
+ * the current row via `id <> NEW.id`. Same validation surface as
+ * {@see StoreContractData}.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
 final class UpdateContractData extends Data
 {
     /**
-     * @param  list<int>  $driverIds  Identifiants des conducteurs à associer au contrat (0, 1 ou plusieurs ; pivot `contract_drivers`). Distincts.
+     * @param  list<int>  $driverIds  Distinct driver IDs to attach via the `contract_drivers` pivot (0..N).
      */
     public function __construct(
         #[Required, IntegerType, Exists('vehicles', 'id')]
@@ -58,17 +56,13 @@ final class UpdateContractData extends Data
         #[Max(5000)]
         public ?string $notes,
 
-        // Driver IDs en N:N (cf. chantier #3 multi-conducteurs). Default
-        // `[]` pour rester cohérent avec {@see StoreContractData}. Cf.
-        // commentaire sur `Sometimes` là-bas.
         #[Sometimes, Nullable, ArrayType, Distinct]
         public array $driverIds = [],
     ) {}
 
     /**
-     * Règle dynamique : si le véhicule est sorti de flotte, bloquer
-     * tout contrat dont la période chevauche ou dépasse `exit_date`
-     * (cf. ADR-0018 § 5).
+     * Dynamic rule: if the vehicle is exited, reject any period that
+     * overlaps or extends past `exit_date` (ADR-0018 §5).
      *
      * @return array<string, array<int, mixed>>
      */

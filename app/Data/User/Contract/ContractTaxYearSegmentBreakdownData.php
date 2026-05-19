@@ -12,34 +12,32 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail tarifaire d'une **fenêtre** (segment VFC × Règles) dans le
- * calcul fiscal d'un contrat pour une année donnée.
+ * Tariff breakdown for a single window (VFC × Rules segment) inside a
+ * contract's yearly fiscal calculation.
  *
- * Une fenêtre apparaît quand un changement de règle ou de VFC scinde
- * la période contrat × année en sous-périodes tarifées différemment.
- * Exemples ·
- *   - Polluants 2026 · scission au 01/03 (LF 2026 art. 58 V IV, +30 %).
- *     Un contrat 15/01-24/04 a 2 fenêtres · 01/01-28/02 (R-2026-014,
- *     Cat1=100 €) et 01/03-31/12 (R-2026-014-bis, Cat1=130 €). Le
- *     contrat est clippé à 45 + 55 jours.
- *   - Multi-VFC · véhicule qui passe de Diesel à Hybride en cours
- *     d'année · 2 fenêtres avec tarifs polluants distincts.
+ * A window emerges when a rule or VFC change splits `contract × year` into
+ * sub-periods tariffed differently. Examples:
+ *   - Pollutants 2026 split at 01/03 (LF 2026 art. 58 V IV, +30%): a
+ *     15/01-24/04 contract has two windows (01/01-28/02 R-2026-014
+ *     Cat1=100€, 01/03-31/12 R-2026-014-bis Cat1=130€), clipped to 45 + 55
+ *     days.
+ *   - Multi-VFC: a vehicle switching from Diesel to Hybrid mid-year
+ *     produces two windows with distinct pollutant tariffs.
  *
- * Si aucune scission ne s'applique au contrat × année, la liste contient
- * un seul segment couvrant toute la période contrat-dans-l'année.
+ * When no split applies, the list holds a single segment covering the
+ * whole `contract × year` period.
  *
- * Champs ·
- *   - `effectiveFromInYear` / `effectiveToInYear` · bornes inclusives
- *     de la fenêtre (après intersection contrat × VFC × Règles).
- *   - `daysAssignedToContract` · jours du contrat tombant dans la
- *     fenêtre, après exonérations journalières. Sert de numérateur
- *     dans le prorata tarif × daysAssigned / daysInYear.
- *   - `co2FullYearTariff` / `pollutantsFullYearTariff` · tarif annuel
- *     applicable à la fenêtre (peut différer d'une fenêtre à l'autre).
- *   - `co2Due` / `pollutantsDue` · montant dû pour cette fenêtre
- *     uniquement (= tarif × daysAssigned / daysInYear, arrondi half-up).
- *   - `appliedRuleCodes` / `appliedExemptions` · règles et exonérations
- *     spécifiquement actives sur cette fenêtre.
+ * Fields:
+ *   - `effectiveFromInYear` / `effectiveToInYear`: inclusive window
+ *     bounds after contract × VFC × Rules intersection.
+ *   - `daysAssignedToContract`: contract days inside the window, after
+ *     daily exemptions; numerator of `tariff × daysAssigned / daysInYear`.
+ *   - `co2FullYearTariff` / `pollutantsFullYearTariff`: annual tariff
+ *     applicable to this window (may differ across windows).
+ *   - `co2Due` / `pollutantsDue`: due amount for this window only
+ *     (tariff × daysAssigned / daysInYear, rounded half-up).
+ *   - `appliedRuleCodes` / `appliedExemptions`: rules and exemptions
+ *     active specifically on this window.
  */
 #[TypeScript]
 final class ContractTaxYearSegmentBreakdownData extends Data

@@ -9,17 +9,16 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne d'une facture (snapshot immuable · Phase 14.E V1.2).
+ * One line of an invoice (immutable snapshot).
  *
- * Tous les champs reflètent l'état au moment de l'émission ; ne
- * suivent pas les mutations ultérieures du véhicule ou de ses tarifs.
+ * Every field reflects the state at issuance and does not track later
+ * vehicle/tariff mutations.
  *
- * **Lot 3 réductions commerciales** · ajoute `grossTotalCents`,
- * `discountCents`, `appliedDiscountId` (FK navigable tant que la
- * réduction existe encore) et les snapshots `appliedDiscountLabel` /
- * `appliedDiscountBasisPoints` (figés pour rester exacts même après
- * renommage de la réduction). `totalHtCents` reste le NET (= gross -
- * discount), rétro-compat 100 %.
+ * Commercial discount fields: `grossTotalCents`, `discountCents`,
+ * `appliedDiscountId` (navigable FK while the discount still exists) and
+ * the `appliedDiscountLabel` / `appliedDiscountBasisPoints` snapshots
+ * (frozen so they stay accurate even after the discount is renamed).
+ * `totalHtCents` is the NET (= gross - discount).
  */
 #[TypeScript]
 final class InvoiceLineData extends Data

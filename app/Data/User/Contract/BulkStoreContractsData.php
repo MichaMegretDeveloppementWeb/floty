@@ -26,14 +26,12 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 use Throwable;
 
 /**
- * Payload de création multiple de contrats - création groupée depuis
- * la page planning.
+ * Bulk-create payload for contracts from the planning page.
  *
- * **Forme** : une plage commune `[start_date, end_date]` + un type
- * + une référence optionnelle, et la liste des `vehicleIds` à attribuer
- * à la `companyId`. Une transaction unique en {@see BulkCreateContractsAction}
- * crée N contrats en bloc, avec rollback complet si l'un des inserts
- * échoue (notamment via le trigger anti-overlap MySQL).
+ * Shape: shared `[start_date, end_date]` + type + optional reference, plus
+ * the list of `vehicleIds` to assign to `companyId`. A single transaction
+ * in {@see BulkCreateContractsAction} inserts N contracts atomically (rolls
+ * back if any insert fails, e.g. on the anti-overlap trigger).
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -41,7 +39,7 @@ final class BulkStoreContractsData extends Data
 {
     /**
      * @param  list<int>  $vehicleIds
-     * @param  list<int>  $driverIds  Conducteurs à associer à chacun des contrats créés (0, 1 ou plusieurs ; pivot `contract_drivers`).
+     * @param  list<int>  $driverIds  Drivers attached to every created contract (0..N, via `contract_drivers` pivot).
      */
     public function __construct(
         #[Required, ArrayType, Min(1), Max(100)]
@@ -62,27 +60,17 @@ final class BulkStoreContractsData extends Data
         #[Max(5000)]
         public ?string $notes,
 
-        // Liste de conducteurs partagée appliquée à chaque contrat créé
-        // (cf. chantier #3 multi-conducteurs). Default `[]` cohérent avec
-        // {@see StoreContractData} - `Sometimes` évite l'auto-required.
         #[Sometimes, Nullable, ArrayType, Distinct]
         public array $driverIds = [],
     ) {}
 
     /**
-     * Étend les règles attributs-based ·
-     *
-     *   - `driver_ids.*` · chaque ID doit exister dans `drivers.id`.
-     *   - `vehicle_ids.*` · chaque ID doit être un integer et exister
-     *     dans `vehicles.id` (sécurise le pipeline bulk contre les IDs
-     *     orphelines · cf. F-12-002).
-     *   - `vehicle_ids.{idx}` · pour chaque véhicule du tableau, applique
-     *     {@see AvailableForPeriod} avec la plage `[startDate, endDate]`
-     *     commune. Empêche la création d'un contrat dont la période
-     *     dépasse `vehicles.exit_date` (ADR-0018 § 5). Comble le trou
-     *     historique où la voie bulk court-circuitait cette invariante.
-     *
-     * Cf. plan-remédiation Vague 1 Lot 1 D8 (F-12-002).
+     * Extends attribute-based rules:
+     *   - `driver_ids.*` must exist in `drivers.id`.
+     *   - `vehicle_ids.*` must be integer + exist in `vehicles.id`.
+     *   - `vehicle_ids.{idx}` applies {@see AvailableForPeriod} per
+     *     vehicle for the shared `[startDate, endDate]` range, enforcing
+     *     ADR-0018 §5 on the bulk path as well.
      *
      * @return array<string, array<int, mixed>>
      */
@@ -99,10 +87,9 @@ final class BulkStoreContractsData extends Data
         $startDate = $payload['start_date'] ?? null;
         $endDate = $payload['end_date'] ?? null;
 
-        // AvailableForPeriod par véhicule · attache la rule uniquement
-        // si on a une période parseable. Si elle est manquante ou
-        // malformée, les règles `Required` / `Date` sur startDate/endDate
-        // traitent l'erreur en amont · pas besoin de doubler ici.
+        // Only attach AvailableForPeriod when the period is parseable.
+        // Missing/malformed dates are surfaced by the `Required`/`Date`
+        // rules upstream.
         if (
             ! is_array($vehicleIds)
             || ! is_string($startDate) || $startDate === ''
@@ -115,7 +102,7 @@ final class BulkStoreContractsData extends Data
             $start = CarbonImmutable::parse($startDate);
             $end = CarbonImmutable::parse($endDate);
         } catch (Throwable) {
-            return $rules; // dates malformées · règles `Date` lèveront en amont
+            return $rules;
         }
 
         foreach ($vehicleIds as $idx => $vehicleId) {
@@ -126,7 +113,7 @@ final class BulkStoreContractsData extends Data
             };
 
             if ($resolvedId === null) {
-                continue; // règle `integer` sur vehicle_ids.* échouera en amont
+                continue;
             }
 
             $rules["vehicle_ids.{$idx}"] = [

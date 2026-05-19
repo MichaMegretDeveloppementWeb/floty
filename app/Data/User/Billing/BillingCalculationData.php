@@ -9,27 +9,25 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Résultat du calcul de facture mensuelle pour une (entreprise × année
- * × mois) · N lignes véhicule + total HT.
+ * Monthly billing result for a (company × year × month): N vehicle lines
+ * + HT total.
  *
- * Produit par {@see App\Services\Billing\BillingCalculator::calculate}.
- * En cas de tarif manquant pour au moins un véhicule, le service lève
- * {@see App\Exceptions\Billing\MissingPricingException} **avant** de
- * retourner ce DTO ; donc une instance présente garantit l'exhaustivité
- * des tarifs.
+ * Produced by {@see App\Services\Billing\BillingCalculator::calculate}.
+ * If at least one vehicle has no tariff defined, the service throws
+ * {@see App\Exceptions\Billing\MissingPricingException} BEFORE returning
+ * this DTO; a present instance therefore guarantees tariff exhaustivity.
  *
- * **Sémantique réductions commerciales (Lot 2)** ·
- *   - `totalCents` = NET (somme `lines[].totalCents`). Rétrocompat 100 %.
- *   - `grossTotalCents` = BRUT (somme `lines[].grossTotalCents`).
- *   - `totalDiscountCents` = somme des `lines[].discountCents`. Vaut 0
- *     en l'absence de réduction.
+ * Commercial discount semantics:
+ *   - `totalCents` = NET (sum of `lines[].totalCents`).
+ *   - `grossTotalCents` = GROSS (sum of `lines[].grossTotalCents`).
+ *   - `totalDiscountCents` = sum of `lines[].discountCents`. 0 when no
+ *     discount applies.
  */
 #[TypeScript]
 final class BillingCalculationData extends Data
 {
     /**
-     * @param  list<BillingLineData>  $lines  Une ligne par véhicule, triées
-     *                                        par plaque pour stabilité d'affichage.
+     * @param  list<BillingLineData>  $lines  One line per vehicle, sorted by plate for display stability.
      */
     public function __construct(
         public int $companyId,
@@ -37,11 +35,11 @@ final class BillingCalculationData extends Data
         public int $month,
         #[DataCollectionOf(BillingLineData::class)]
         public array $lines,
-        /** Somme des `lines[].totalCents` (= net). */
+        /** Sum of `lines[].totalCents` (= net). */
         public int $totalCents,
-        /** Somme des `lines[].grossTotalCents` (= brut avant réduction). */
+        /** Sum of `lines[].grossTotalCents` (= gross before discount). */
         public int $grossTotalCents = 0,
-        /** Somme des `lines[].discountCents`. */
+        /** Sum of `lines[].discountCents`. */
         public int $totalDiscountCents = 0,
     ) {}
 }

@@ -11,12 +11,10 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload du POST regenerate facture (Phase 14.O). Le client passe une
- * cible de redirection explicite plutôt que de s'appuyer sur le header
- * Referer côté backend (cf. {@see RegenerateRedirectTarget}).
- *
- * Le défaut `Show` correspond au cas usuel où l'utilisateur regénère
- * depuis la page détail facture et veut voir la nouvelle facture.
+ * Payload for POST regenerate. The client picks an explicit redirect
+ * target instead of relying on the Referer header server-side (see
+ * {@see RegenerateRedirectTarget}). Default `Show` matches the common
+ * "regenerate from the invoice detail page" flow.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

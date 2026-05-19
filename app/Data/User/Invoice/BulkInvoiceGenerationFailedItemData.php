@@ -9,10 +9,10 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Mois ayant levé une exception pendant `GenerateInvoiceAction::execute()`.
- * Le `reason` est typé par enum pour pouvoir afficher un label cohérent
- * côté front sans dépendre de la string `errorMessage` (sujette à i18n et
- * à reformulation).
+ * Month that raised an exception during `GenerateInvoiceAction::execute()`.
+ * `reason` is enum-typed so the front-end can render a consistent label
+ * without depending on the `errorMessage` string (subject to i18n and
+ * rewording).
  */
 #[TypeScript]
 final class BulkInvoiceGenerationFailedItemData extends Data

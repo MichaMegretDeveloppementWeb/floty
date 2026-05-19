@@ -10,20 +10,17 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Item de listing condensé pour ·
- *  - la table Index `/rental-discounts` (Lot 4)
- *  - la section "Réductions commerciales" intégrée à l'onglet
- *    Facturation de la page Show Company (Lot 3)
+ * Listing row for:
+ *  - the `/rental-discounts` index table
+ *  - the "Réductions commerciales" section in the Company Show Billing tab
  *
- * Sert d'aperçu cliquable (lien Show construit par le front · le DTO
- * expose `id` pour cela).
+ * Acts as a clickable preview (the front-end builds the Show link from `id`).
  *
- * Volontairement slim · pas de détail véhicule (la section affiche un
- * badge "Tous" ou "N véhicules" basé sur `vehiclesCount` ;
- * `isAllVehicles` distingue les 2 sémantiques). L'identité entreprise
- * est toujours embarquée pour permettre l'affichage de la cellule
- * Entreprise sur l'Index (sur Company Show la cellule est cachée car
- * redondante avec le contexte).
+ * Intentionally slim: no vehicle detail (the section renders a "Tous" /
+ * "N véhicules" badge from `vehiclesCount`; `isAllVehicles` distinguishes
+ * the two semantics). Company identity is always embedded so the index
+ * can render the Company cell; Company Show hides it as redundant with
+ * the context.
  */
 #[TypeScript]
 final class RentalDiscountListItemData extends Data
@@ -42,12 +39,12 @@ final class RentalDiscountListItemData extends Data
         public ?string $label,
         public int $vehiclesCount,
         /**
-         * `true` ssi la liste véhicules est vide en base (= applique à
-         * tous les véhicules de l'entreprise sur la période · sémantique
-         * applicative décodée par {@see App\Services\Billing\Discount\DiscountResolver}).
+         * `true` iff the vehicle list is empty in DB (= applies to every
+         * vehicle of the company over the period; applicative semantics
+         * decoded by {@see App\Services\Billing\Discount\DiscountResolver}).
          */
         public bool $isAllVehicles,
-        /** `'planned' | 'active' | 'expired'` calculé vs. la date du jour. */
+        /** `'planned' | 'active' | 'expired'` computed vs. today. */
         public string $status,
     ) {}
 

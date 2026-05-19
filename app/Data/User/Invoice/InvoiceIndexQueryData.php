@@ -9,18 +9,20 @@ use App\Data\Shared\Listing\SortDirection;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * DTO d'entrée pour l'Index Invoices server-side (cf. ADR-0020).
+ * Query input for the server-side Invoices index (ADR-0020).
  *
- * Filtres :
- *   - `companyId` : filtre exact match sur l'entreprise
- *   - `year` / `month` : période exacte (un mois civil)
- *   - `divergentOnly` : ne retourne que les factures avec
- *     `is_divergent = true` (flag matérialisé posé par observers, cf.
- *     {@see App\Services\Invoice\InvoiceDivergenceFlagger}). Filtre
- *     SQL natif depuis T6 / Phase 14.R, plus de post-traitement PHP.
+ * Filters:
+ *   - `companyId`: exact company match
+ *   - `year` / `month`: exact period (one civil month)
+ *   - `divergentOnly`: restrict to rows with `is_divergent = true` (the
+ *     materialised flag is set by observers, see
+ *     {@see App\Services\Invoice\InvoiceDivergenceFlagger}). Native SQL
+ *     filter, no PHP post-processing.
+ *   - `includeObsolete`: include soft-deleted older versions (defaults to
+ *     `false`; UI keeps the listing dense by hiding them).
  *
- * Whitelist sortKey : `invoiceNumber | company | period | totalHt |
- * generatedAt`. Toutes traduisibles en SQL pure.
+ * Allowed sort keys: `invoiceNumber | company | period | totalHt |
+ * generatedAt` (all translatable to pure SQL).
  */
 #[TypeScript]
 final class InvoiceIndexQueryData extends IndexQueryData
@@ -30,12 +32,6 @@ final class InvoiceIndexQueryData extends IndexQueryData
         public ?int $year = null,
         public ?int $month = null,
         public bool $divergentOnly = false,
-        /**
-         * Inclut les versions obsolètes (factures soft-deletées après
-         * régénération) dans la liste. Défaut `false` · la liste cache
-         * les anciennes versions par défaut pour rester dense (12
-         * factures actives / an / entreprise vs déclarations N=1).
-         */
         public bool $includeObsolete = false,
         int $page = 1,
         int $perPage = self::DEFAULT_PER_PAGE,

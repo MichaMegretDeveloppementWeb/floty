@@ -18,24 +18,20 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création d'une réduction commerciale (Lot 4 du chantier
- * RentalDiscount).
+ * Create payload for a commercial discount.
  *
- * `discountBasisPoints` est en basis points (1..10000 = 0,01 %..100 %),
- * conversion UI · pourcentage saisi avec décimales `0.5..100` step `0.5`
- * → `bp = round(percent * 100)`.
+ * `discountBasisPoints` is in basis points (1..10000 = 0.01%..100%). The
+ * UI captures a percentage with `0.5..100` step `0.5` and submits
+ * `bp = round(percent * 100)`.
  *
- * `vehicleIds` peut être vide · sémantique applicative « applique à
- * tous les véhicules de l'entreprise sur la période » (cf. doctrine
- * Lot 1 / `DiscountResolver`).
+ * `vehicleIds` may be empty (applicative semantics: "applies to every
+ * vehicle of the company over the period", decoded by `DiscountResolver`).
  *
- * `notes` champ libre, text long, jamais affiché à l'extérieur de la
- * fiche Show.
+ * `notes` is a free long-text field, never surfaced outside the Show page.
  *
- * **Validation chevauchement** · faite côté Action via
- * {@see App\Services\RentalDiscount\RentalDiscountConflictService}.
- * Pas dans les rules ici car nécessite un check inter-rows complexe
- * non exprimable en CHECK MySQL ni en rule Laravel pure.
+ * Overlap validation lives in
+ * {@see App\Services\RentalDiscount\RentalDiscountConflictService} (not
+ * expressible as a CHECK constraint nor a single Laravel rule).
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -64,9 +60,9 @@ final class StoreRentalDiscountData extends Data
         public ?string $notes = null,
 
         /**
-         * Liste vide ou null = applique à tous les véhicules de la company.
-         * Type nullable pour que Spatie ne génère pas une rule `required`
-         * sur le champ (cf. {@see static::rules()}).
+         * Empty or null list means "applies to every vehicle of the
+         * company". Nullable type so Spatie does not generate a `required`
+         * rule on the field (see {@see static::rules()}).
          *
          * @var array<int, int>|null
          */

@@ -13,16 +13,10 @@ use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Data;
 
 /**
- * Payload d'upload d'un document PDF (chantier 04.N).
+ * Upload payload for a contract PDF document (PDF only, max 10 MB).
  *
- * Validation V1 :
- *   - Required + File : un fichier doit être présent
- *   - Mimes pdf : strictement PDF (validation MIME serveur)
- *   - Max 10240 KB (= 10 Mo)
- *
- * La limite des 5 documents par contrat est vérifiée dans
- * {@see UploadContractDocumentAction} (lève
- * `TooManyContractDocumentsException` avec message FR).
+ * The per-contract document limit is enforced in
+ * {@see UploadContractDocumentAction}.
  */
 final class UploadContractDocumentData extends Data
 {

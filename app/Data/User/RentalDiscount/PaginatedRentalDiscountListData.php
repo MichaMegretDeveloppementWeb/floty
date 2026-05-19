@@ -10,12 +10,12 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Wrapper de retour pour l'Index Rental Discounts server-side (cf.
- * ADR-0020).
+ * Server-side paginated result wrapper for the Rental Discounts index
+ * (ADR-0020).
  *
- * Choix DTO concret (vs générique `PaginatedListData<T>`) · produit un
- * type TS plat `App.Data.User.RentalDiscount.PaginatedRentalDiscountListData`
- * lisible côté front sans cast.
+ * Concrete DTO (rather than a generic `PaginatedListData<T>`) so the
+ * generated TS type is the flat
+ * `App.Data.User.RentalDiscount.PaginatedRentalDiscountListData`.
  */
 #[TypeScript]
 final class PaginatedRentalDiscountListData extends Data

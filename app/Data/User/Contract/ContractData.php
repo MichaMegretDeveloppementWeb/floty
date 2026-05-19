@@ -13,17 +13,15 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue détaillée d'un contrat - utilisée par la page de détail
- * (chantier 04.G : `User/Contracts/Show/Index.vue`).
+ * Full view of a contract for the detail page.
  *
- * Cf. ADR-0014 D6 (page détail + documents joints) et `taxes-rules/2024.md`
- * v2.0 R-2024-021 pour la mécanique LCD par contrat individuel.
+ * See R-2024-021 in `taxes-rules/2024.md` for the per-contract LCD mechanics.
  */
 #[TypeScript]
 final class ContractData extends Data
 {
     /**
-     * @param  list<DriverOptionData>  $drivers  Conducteurs désignés sur ce contrat (0, 1 ou plusieurs ; pivot pur égalitaire `contract_drivers`)
+     * @param  list<DriverOptionData>  $drivers  Drivers assigned to this contract (0..N, via `contract_drivers` pivot)
      */
     public function __construct(
         public int $id,
@@ -51,7 +49,7 @@ final class ContractData extends Data
         $start = $contract->start_date;
         $end = $contract->end_date;
 
-        // Durée inclusive : (end - start) en jours + 1
+        // Inclusive duration: (end - start) in days + 1.
         $duration = (int) $start->diffInDays($end) + 1;
 
         $drivers = $contract->drivers

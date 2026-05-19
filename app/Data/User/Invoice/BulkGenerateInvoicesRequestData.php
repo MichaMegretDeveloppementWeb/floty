@@ -14,9 +14,9 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload du POST `bulk-generate` · génération en masse des annexes en
- * attente pour le couple `(entreprise, année)`. Pas de `month` · l'Action
- * dérive la liste depuis le {@see App\Services\Billing\PendingInvoicesResolver}.
+ * Payload for POST `bulk-generate`: emit every pending annex for the
+ * (company, year) pair. No `month` field: the Action derives the list
+ * from {@see App\Services\Billing\PendingInvoicesResolver}.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

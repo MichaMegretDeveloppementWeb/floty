@@ -9,23 +9,19 @@ use App\Data\Shared\Listing\SortDirection;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * DTO d'entrée pour l'Index Contracts server-side (cf. ADR-0020).
+ * Query input for the server-side Contracts index (ADR-0020).
  *
- * Filtres spécifiques :
- *  - `vehicleId`, `companyId`, `driverId` : filtres exact match sur FK
- *  - `type: 'lcd'|'lld'|null` : filtre exact sur enum
- *  - `year` (chantier J) : sélecteur **mode année** · exercice complet,
- *    mutuellement exclusif avec `periodStart`/`periodEnd` côté front
- *    (le toggle UI choisit l'un OU l'autre). Côté backend, si `year`
- *    présent on dérive `periodStart=YYYY-01-01, periodEnd=YYYY-12-31`
- *    avant filtrage SQL.
- *  - `periodStart` + `periodEnd` (Y-m-d) : filtre **chevauchement** ·
- *    le contrat doit chevaucher la fenêtre `[periodStart, periodEnd]`
- *    (start_date <= periodEnd ET end_date >= periodStart).
+ * Filters:
+ *  - `vehicleId`, `companyId`, `driverId`: exact FK match
+ *  - `type` (lcd|lld): exact enum match
+ *  - `year`: full-year mode, mutually exclusive with custom range. When
+ *    set without a custom range, derives `periodStart=YYYY-01-01,
+ *    periodEnd=YYYY-12-31` before SQL filtering.
+ *  - `periodStart` + `periodEnd` (Y-m-d): overlap filter
+ *    (`start_date <= periodEnd AND end_date >= periodStart`).
  *
- * Whitelist sortKey : `vehicle | company | startDate | endDate |
- * duration | type`. Toutes traduisibles en SQL pure (DATEDIFF pour
- * `duration`, JOIN pour `vehicle`/`company`).
+ * Allowed sort keys: `vehicle | company | startDate | endDate | duration |
+ * type` (all translatable to pure SQL).
  */
 #[TypeScript]
 final class ContractIndexQueryData extends IndexQueryData
@@ -54,8 +50,8 @@ final class ContractIndexQueryData extends IndexQueryData
 
     public static function rules(): array
     {
-        // Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 3) :
-        // l'année saisie est libre. Cf. note dans VehicleIndexQueryData.
+        // Business data is decoupled from fiscal rule coverage: the year is
+        // accepted freely (mirrors VehicleIndexQueryData).
         $yearRule = ['nullable', 'integer', 'min:1900', 'max:2100'];
 
         return array_merge(parent::rules(), [
@@ -70,12 +66,11 @@ final class ContractIndexQueryData extends IndexQueryData
     }
 
     /**
-     * Période effective. Priorité (D5.10.U) :
-     *   1. Plage custom `periodStart`/`periodEnd` si présente · permet à
-     *      la fiche Company de garder `?year=` comme exercice partagé
-     *      entre onglets sans écraser un filtre custom Contrats.
-     *   2. À défaut, dérivation de l'exercice complet depuis `year`.
-     *   3. Sinon, périodes nulles (pas de filtre période).
+     * Resolve the effective period. Priority:
+     *   1. Custom `periodStart`/`periodEnd` range when present (preserves a
+     *      tab-level custom filter when the parent page also passes `year`).
+     *   2. Full fiscal year derived from `year`.
+     *   3. No period filter.
      *
      * @return array{periodStart: ?string, periodEnd: ?string}
      */

@@ -9,13 +9,12 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Entrée minimale de la timeline historique d'une facture (Phase D5.10.P
- * option C). Une entrée par version connue du couple (entreprise × année
- * × mois) · ordre par `id DESC` côté composant front (plus récent en haut).
+ * Minimal entry in the version history timeline of an invoice
+ * (company × year × month). Ordered `id DESC` by the front-end (newest
+ * on top).
  *
- * Champs identitaires uniquement (pas de divergence, pas de lignes) ·
- * la timeline est purement présentationnelle, l'utilisateur clique sur
- * une entrée pour ouvrir la fiche Show de la version souhaitée.
+ * Identity fields only (no divergence, no lines): the timeline is purely
+ * presentational and clicking a row opens the Show page of that version.
  */
 #[TypeScript]
 final class InvoiceHistoryEntryData extends Data
@@ -25,7 +24,7 @@ final class InvoiceHistoryEntryData extends Data
         public string $invoiceNumber,
         /** ISO 8601 (Y-m-d). */
         public string $generatedAt,
-        /** `true` ssi soft-deletée (remplacée par une régénération). */
+        /** `true` iff soft-deleted (superseded by a regeneration). */
         public bool $isObsolete,
     ) {}
 

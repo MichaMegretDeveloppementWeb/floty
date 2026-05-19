@@ -9,12 +9,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail fiscal complet d'un contrat - affiché dans la section
- * « Taxes générées » de la page Show contrat.
+ * Full fiscal breakdown of a contract.
  *
- * Structure pluriannuelle : un contrat chevauchant 2 années porte 2
- * entrées dans `years`. Le `totalDue` est la somme des `totalDue` de
- * chaque année (déjà arrondies half-up à 2 décimales par année).
+ * A contract spanning two civil years carries two `years` entries.
+ * `totalDue` is the sum of each year's `totalDue` (each already rounded
+ * half-up to 2 decimals).
  */
 #[TypeScript]
 final class ContractTaxBreakdownData extends Data

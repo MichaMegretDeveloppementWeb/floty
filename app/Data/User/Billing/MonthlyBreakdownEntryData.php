@@ -8,30 +8,26 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Une cellule du tableau récapitulatif 12 mois × {jours, montant} pour
- * une entité (véhicule ou entreprise) sur une année donnée.
+ * One cell of the 12-month × {days, amount} recap table for an entity
+ * (vehicle or company) over a given year.
  *
- * `totalCents` est `null` lorsqu'au moins un véhicule présent sur le
- * mois n'a pas de tarif annuel défini : on **ne peut pas** estimer le
- * montant correctement, donc on le marque explicitement comme
- * « facturable mais bloqué » via `hasMissingPricing = true`.
+ * `totalCents` is `null` when at least one vehicle present in the month
+ * has no yearly tariff: the amount cannot be estimated reliably, so it
+ * is flagged "billable but blocked" via `hasMissingPricing = true`.
  *
- * `daysUsed` reste défini dans tous les cas · c'est de l'agrégation
- * pure de données métier qui n'a pas besoin des tarifs.
+ * `daysUsed` is always defined: pure aggregation of business data, no
+ * tariff dependency.
  *
- * `existingInvoiceId` / `existingInvoiceNumber` sont peuplés sur le
- * récap **fiche entreprise** quand une facture a déjà été émise pour
- * ce couple (entreprise × année × mois). L'UI bascule alors le bouton
- * « Générer » en lien « Voir #YYYY-MM-NNNN ». Toujours `null` sur le
- * récap véhicule (plusieurs entreprises peuvent émettre une facture
- * sur le même mois).
+ * `existingInvoiceId` / `existingInvoiceNumber` are populated on the
+ * Company recap when an invoice already exists for the
+ * (company, year, month) tuple. The UI then swaps the "Générer" button
+ * for a "Voir #YYYY-MM-NNNN" link. Always `null` on the vehicle recap
+ * (several companies may issue invoices in the same month).
  *
- * `invoicedDaysUsed` / `invoicedTotalCents` exposent le **snapshot
- * figé** au moment de l'émission de la facture (jamais recalculé). La
- * comparaison avec `daysUsed` / `totalCents` (recalcul dynamique)
- * permet à l'UI de détecter une divergence et d'afficher un avertissement
- * « données ont changé depuis l'émission ». Toujours `null` quand
- * aucune facture n'existe pour ce mois.
+ * `invoicedDaysUsed` / `invoicedTotalCents` carry the snapshot frozen at
+ * issuance (never recomputed). Comparing with `daysUsed` / `totalCents`
+ * (dynamic recompute) lets the UI detect divergence and warn about
+ * "data changed since issuance". Always `null` when no invoice exists.
  */
 #[TypeScript]
 final class MonthlyBreakdownEntryData extends Data
@@ -46,22 +42,21 @@ final class MonthlyBreakdownEntryData extends Data
         public ?int $invoicedDaysUsed = null,
         public ?int $invoicedTotalCents = null,
         /**
-         * Montant BRUT du mois (= somme `lines[].grossTotalCents` du
-         * calcul mensuel). `null` aligné sur `totalCents` quand un tarif
-         * manque. Égal à `totalCents` en l'absence de réduction
-         * commerciale (Lot 2 réductions commerciales).
+         * GROSS month total (= sum `lines[].grossTotalCents` of the
+         * monthly computation). `null` when a tariff is missing (mirrors
+         * `totalCents`). Equal to `totalCents` when no commercial
+         * discount applies.
          */
         public ?int $grossTotalCents = null,
         /**
-         * Somme des réductions commerciales appliquées au mois.
-         * `null` si tarif manquant, `0` si pas de réduction.
+         * Sum of commercial discounts applied during the month.
+         * `null` when a tariff is missing, `0` when no discount applies.
          */
         public ?int $totalDiscountCents = null,
         /**
-         * Snapshot brut figé à l'émission de facture (Lot 2). `null`
-         * tant qu'aucune facture émise. Permet à l'UI de présenter
-         * brut/réduction/net du snapshot facture en parallèle du recalc
-         * dynamique.
+         * GROSS snapshot frozen at issuance. `null` until an invoice is
+         * issued. Lets the UI display gross/discount/net of the invoice
+         * snapshot alongside the dynamic recompute.
          */
         public ?int $invoicedGrossTotalCents = null,
         public ?int $invoicedTotalDiscountCents = null,

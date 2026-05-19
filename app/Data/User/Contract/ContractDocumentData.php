@@ -9,16 +9,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue d'un document PDF joint à un contrat - utilisée par la section
- * « Documents » de la page Show contrat (chantier 04.N).
+ * PDF document attached to a contract.
  *
- * `downloadUrl` est calculé côté serveur via `route()` pour que le
- * front puisse l'utiliser directement sans dépendre de Wayfinder
- * pour cette URL spécifique (et permet à un futur endpoint signé
- * d'évoluer transparemment).
- *
- * `sizeFormatted` est pré-calculé serveur (« 2,3 Mo », « 540 Ko »)
- * pour ne pas dupliquer la logique de formatage côté front.
+ * `downloadUrl` is resolved server-side so the front-end does not need a
+ * dedicated Wayfinder binding. `sizeFormatted` is pre-computed to avoid
+ * duplicating formatting logic on the client.
  */
 #[TypeScript]
 final class ContractDocumentData extends Data
@@ -50,9 +45,8 @@ final class ContractDocumentData extends Data
     }
 
     /**
-     * Conversion bytes → format humain FR : « 540 Ko », « 2,3 Mo ».
-     * Seuils décimaux (Ko = 1000 octets, pas 1024) pour cohérence
-     * avec l'affichage navigateur quand on télécharge.
+     * Format bytes as a French human-readable size (decimal thresholds:
+     * Ko = 1000 bytes, matching browser download UI).
      */
     private static function formatSize(int $bytes): string
     {

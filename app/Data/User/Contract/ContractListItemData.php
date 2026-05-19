@@ -13,22 +13,19 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue liste d'un contrat - utilisée par la table de la page
- * `User/Contracts/Index/Index.vue` (chantier 04.G). Champs essentiels
- * uniquement pour limiter le payload Inertia.
+ * Contract row used by the listing table.
  *
- * **Chantier perf 2026-05-16 Option 1** · `totalTax` et `rentalPrice`
- * deviennent nullable. Quand l'appelant a besoin du DTO sans payer le
- * pipeline fiscal (Index, où ces 2 champs arrivent en différé via
- * `Inertia::defer`), il instancie le DTO sans ces champs (defaults
- * null). Quand le DTO est servi avec les costs déjà résolus (page
- * Show / Company tab via `listForCompany`), il les passe.
+ * `totalTax` and `rentalPrice` are nullable to support the slim listing
+ * path: when the caller cannot pay for the fiscal pipeline up front (the
+ * index defers costs via `Inertia::defer`), they instantiate the DTO
+ * without these fields. Pages that resolve costs server-side
+ * (Show / Company tab via `listForCompany`) pass them.
  */
 #[TypeScript]
 final class ContractListItemData extends Data
 {
     /**
-     * @param  list<DriverOptionData>  $drivers  Conducteurs désignés sur ce contrat (pivot `contract_drivers`, 0 à N).
+     * @param  list<DriverOptionData>  $drivers  Drivers attached via the `contract_drivers` pivot (0..N).
      */
     public function __construct(
         public int $id,
@@ -47,21 +44,16 @@ final class ContractListItemData extends Data
         public ContractType $contractType,
         public ?string $contractReference,
         /**
-         * Phase 13 D5.10.L · taxe fiscale due par ce contrat (somme CO₂ +
-         * polluants), arrondie en cents puis convertie en euros. Calcul
-         * effectué côté backend lors du chargement de la liste.
-         *
-         * Nullable depuis chantier perf 2026-05-16 · l'Index Contracts
-         * sert le DTO avec `totalTax = null` au premier render et
-         * remplit la valeur via une 2e requête (`Inertia::defer` +
-         * `ContractQueryService::costsForContractIds`). Côté Vue, un
-         * skeleton est affiché tant que la valeur n'est pas arrivée.
+         * Fiscal tax due by this contract (CO2 + pollutants, half-up
+         * rounded then converted to euros). Nullable on the deferred
+         * listing path: the row is rendered with a skeleton until the
+         * second request (`ContractQueryService::costsForContractIds`)
+         * fills it in.
          */
         public ?float $totalTax = null,
         /**
-         * Phase 13 D5.10.L · prix location du contrat (cents → euros).
-         * Null si tarif annuel manquant pour le véhicule OU si pas
-         * encore résolu (Index Contracts · servi en différé).
+         * Rental price (cents to euros). Null when the vehicle has no
+         * yearly tariff defined OR when not yet resolved (deferred path).
          */
         public ?float $rentalPrice = null,
     ) {}

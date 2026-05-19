@@ -17,14 +17,12 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de mise à jour d'une réduction commerciale (Lot 4 chantier
- * RentalDiscount).
+ * Update payload for a commercial discount.
  *
- * **Sans `companyId`** · changer l'entreprise d'une réduction existante
- * équivaut à une nouvelle réduction. La doctrine projet veut qu'on en
- * crée une nouvelle plutôt que de muter le rattachement (audit immuable
- * des factures émises). Le form Edit affiche l'entreprise en lecture
- * seule.
+ * Intentionally without `companyId`: switching the company of an existing
+ * discount is equivalent to a new discount. Project doctrine requires
+ * creating a new row rather than mutating attachment (immutable audit of
+ * issued invoices). The Edit form renders the company read-only.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -50,9 +48,9 @@ final class UpdateRentalDiscountData extends Data
         public ?string $notes = null,
 
         /**
-         * Liste vide ou null = applique à tous les véhicules de la company.
-         * Type nullable pour que Spatie ne génère pas une rule `required`
-         * sur le champ (cf. {@see static::rules()}).
+         * Empty or null list means "applies to every vehicle of the
+         * company". Nullable type so Spatie does not generate a `required`
+         * rule on the field (see {@see static::rules()}).
          *
          * @var array<int, int>|null
          */

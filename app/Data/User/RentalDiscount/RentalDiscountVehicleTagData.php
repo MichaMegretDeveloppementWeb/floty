@@ -8,10 +8,9 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Identité minimale d'un véhicule ciblé par une réduction commerciale.
- * Suffit pour afficher une plaque + marque/modèle dans la liste Show
- * et alimenter un lien vers la fiche véhicule (Lot 4 chantier
- * RentalDiscount).
+ * Minimal identity of a vehicle targeted by a commercial discount.
+ * Carries enough to render a plate + brand/model in the Show list and
+ * link back to the vehicle detail page.
  */
 #[TypeScript]
 final class RentalDiscountVehicleTagData extends Data

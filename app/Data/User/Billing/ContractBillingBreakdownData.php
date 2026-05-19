@@ -9,29 +9,28 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Récap facturation **contrat-isolé** · une ligne par mois civil que
- * le contrat couvre (Phase 14.D V1.2).
+ * Contract-isolated billing recap: one row per civil month the contract
+ * covers.
  *
- * **Convention de calcul (caveat important)** : ce récap calcule le
- * coût en isolation du contrat. Si le véhicule a plusieurs contrats
- * sur le même mois pour la même entreprise, l'addition individuelle
- * des contrats peut différer de la facture mensuelle réelle (qui
- * consolide les jours pour un combo optimal multi-contrats).
+ * Calculation caveat: this recap computes cost in isolation. When the
+ * vehicle has several contracts in the same month for the same company,
+ * summing per-contract amounts may differ from the actual monthly invoice
+ * (which consolidates days to pick the optimal multi-contract combo).
  *
- * Concrètement :
- *   - 1 contrat 10 jours en mars (90/500/1800) = 1 sem + 3 jours = 77 000
- *   - 2 contrats de 10 jours sur le même mois pour la même entreprise =
- *     20 jours consolidés = 3 sem = 150 000
- *   - L'addition isolée donnerait 154 000 ; la facture réelle 150 000.
+ * Example:
+ *   - 1 contract of 10 days in March (90/500/1800) = 1 week + 3 days = 77 000
+ *   - 2 contracts of 10 days each, same month, same company = 20
+ *     consolidated days = 3 weeks = 150 000
+ *   - Isolated sum gives 154 000; the actual invoice gives 150 000.
  *
- * En V1.2 on assume cette approximation : c'est utile et lisible pour
- * la fiche contrat, et la facture réelle reste la source de vérité.
+ * The approximation is accepted: it is useful and readable on the contract
+ * page, and the actual invoice remains the source of truth.
  */
 #[TypeScript]
 final class ContractBillingBreakdownData extends Data
 {
     /**
-     * @param  list<ContractBillingMonthData>  $months  Triés par (year, month) croissant.
+     * @param  list<ContractBillingMonthData>  $months  Sorted by (year, month) ascending.
      */
     public function __construct(
         #[DataCollectionOf(ContractBillingMonthData::class)]
@@ -39,14 +38,11 @@ final class ContractBillingBreakdownData extends Data
         public int $totalDaysUsed,
         public ?int $totalCents,
         public bool $hasAnyMissingPricing,
-        /**
-         * Total BRUT cumulé sur les mois sans missing pricing (Lot 2
-         * réductions commerciales).
-         */
+        /** GROSS cumulative over months without missing pricing. */
         public int $totalGrossCentsPartial = 0,
         /**
-         * Total des réductions cumulées sur les mois sans missing
-         * pricing. Vaut 0 en l'absence de réduction.
+         * Cumulative discounts over months without missing pricing. 0
+         * when no discount applies.
          */
         public int $totalDiscountCentsPartial = 0,
     ) {}

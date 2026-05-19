@@ -9,8 +9,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne de l'Index Invoices (Phase 14.F V1.2). Identité minimale +
- * total + métadonnées d'émission, sans les lignes détaillées.
+ * Invoice row for the Invoices index. Minimal identity + total + issuance
+ * metadata, without detailed lines.
  */
 #[TypeScript]
 final class InvoiceListItemData extends Data
@@ -27,27 +27,27 @@ final class InvoiceListItemData extends Data
         /** ISO 8601 (Y-m-d). */
         public string $generatedAt,
         /**
-         * `true` si le périmètre contractuel a potentiellement changé
-         * depuis l'émission. Lu directement sur la colonne matérialisée
-         * `invoices.is_divergent` (T6 / Phase 14.R) · flag posé par les
-         * observers (Contract / VehicleYearlyPricing / Vehicle.exit_date).
-         * La liste se contente d'un signal binaire ; les valeurs détaillées
-         * sont sur la fiche Show via `InvoiceDivergenceChecker`.
+         * `true` if the contractual scope may have changed since issuance.
+         * Read directly from the materialised `invoices.is_divergent`
+         * column (flag set by observers on Contract / VehicleYearlyPricing
+         * / Vehicle.exit_date). The list only carries a binary signal;
+         * detailed values are on the Show page via
+         * `InvoiceDivergenceChecker`.
          */
         public bool $hasDivergence = false,
         /**
-         * `true` ssi cette ligne est une version soft-deletée (régénération
-         * antérieure). Visible uniquement quand le filtre Index
-         * `includeObsolete = true`. Permet de griser la ligne et d'afficher
-         * la mention « Remplacée par #YYYY-MM-NNNN ».
+         * `true` iff this row is a soft-deleted older version (previously
+         * regenerated). Visible only when the index filter `includeObsolete
+         * = true`. Lets the UI grey the row and surface a "Replaced by
+         * #YYYY-MM-NNNN" mention.
          */
         public bool $isObsolete = false,
         /**
-         * Numéro de la facture qui remplace celle-ci · `null` pour les
-         * factures actives et pour les obsolètes orphelines (rare).
+         * Number of the invoice replacing this one. `null` for active rows
+         * and for orphan obsolete rows (rare).
          */
         public ?string $supersededByInvoiceNumber = null,
-        /** ID de la facture qui remplace · pour générer le lien navigation. */
+        /** ID of the replacing invoice, for navigation links. */
         public ?int $supersededByInvoiceId = null,
     ) {}
 

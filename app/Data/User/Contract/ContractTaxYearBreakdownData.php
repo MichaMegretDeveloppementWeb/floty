@@ -13,23 +13,21 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail fiscal d'un contrat **pour une année traversée**.
+ * Fiscal breakdown of a contract for a single civil year it crosses.
  *
- * Un contrat peut chevaucher 2 années civiles (ex. 1er nov 2024 → 31 jan
- * 2025). Le moteur fiscal tourne par année - chaque exécution produit
- * une instance de ce DTO. L'agrégat parent {@see ContractTaxBreakdownData}
- * porte la liste des années et le total cross-year.
+ * A contract may span two civil years (e.g. 1 Nov 2024 to 31 Jan 2025).
+ * The fiscal engine runs per year and emits one instance per year; the
+ * parent {@see ContractTaxBreakdownData} carries the list and cross-year
+ * total.
  *
- * - `daysInContractInYear` : jours du contrat tombant dans l'année (avant
- *   exonération) - utile pour expliquer « X jours dans l'année ».
- * - `daysAssigned` : jours retenus au numérateur du prorata, après
- *   application des règles d'exonération journalière (R-2024-021 LCD,
- *   R-2024-008 indispos réductrices). C'est ce nombre qui multiplie
- *   le tarif annuel.
- * - `daysInYear` : dénominateur (366 en 2024 bissextile).
- * - `appliedRules` : détail complet (nom, description, refs légales) des
- *   règles listées dans `appliedRuleCodes` - permet d'ouvrir la fiche
- *   d'une règle directement depuis le panel sans aller-retour serveur.
+ * - `daysInContractInYear`: contract days falling in the year before
+ *   exemption (helps explain "X days in the year").
+ * - `daysAssigned`: prorata numerator after daily exemption rules
+ *   (R-2024-021 LCD, R-2024-008 reducing unavailabilities).
+ * - `daysInYear`: denominator (366 in leap year 2024).
+ * - `appliedRules`: full detail (name, description, legal refs) for the
+ *   codes listed in `appliedRuleCodes`, letting the UI surface a rule
+ *   sheet without a server round-trip.
  */
 #[TypeScript]
 final class ContractTaxYearBreakdownData extends Data
@@ -58,26 +56,24 @@ final class ContractTaxYearBreakdownData extends Data
         #[DataCollectionOf(FiscalRuleListItemData::class)]
         public array $appliedRules,
         /**
-         * Détail par fenêtre VFC × Règles. Contient toujours au moins 1
-         * élément. Si la liste a plus d'1 élément, l'année est scindée
-         * (changement de barème en cours d'année ou multi-VFC). Permet
-         * à l'UI d'afficher la formule explicite par fenêtre au lieu
-         * d'agréger en une seule ligne trompeuse.
+         * Per-window detail (VFC × Rules). Always contains at least one
+         * element; more than one means the year is split (mid-year tariff
+         * change or multi-VFC), letting the UI render the explicit formula
+         * per window instead of a misleading aggregated line.
          *
          * @var list<ContractTaxYearSegmentBreakdownData>
          */
         #[DataCollectionOf(ContractTaxYearSegmentBreakdownData::class)]
         public array $segments = [],
         /**
-         * Montant CO₂ hypothétique « si pas LCD » (D5.10.T) · peuplé
-         * uniquement quand l'exonération R-2024-021 est effectivement
-         * appliquée sur ce contrat (sinon `null`, info redondante).
-         * Aide à la décision de requalification cluster.
+         * Hypothetical CO2 amount "if not LCD"; populated only when
+         * R-2024-021 is actually applied (null otherwise to avoid
+         * redundant noise). Drives the cluster reclassification UI hint.
          */
         public ?float $hypotheticalCo2DueIfNoLcd = null,
-        /** Montant Polluants hypothétique « si pas LCD ». */
+        /** Hypothetical pollutants amount "if not LCD". */
         public ?float $hypotheticalPollutantsDueIfNoLcd = null,
-        /** Total hypothétique = co2 + polluants. */
+        /** Hypothetical total = co2 + pollutants. */
         public ?float $hypotheticalTotalDueIfNoLcd = null,
     ) {}
 }

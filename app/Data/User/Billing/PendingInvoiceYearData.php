@@ -8,18 +8,17 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Synthèse 1-ligne par année des factures qui restent à générer pour
- * une entreprise (Phase D5.10.S · encart « À faire » Show Entreprise).
+ * One-line per-year summary of invoices left to generate for a company
+ * (Company Show "À faire" panel).
  *
- * Une « facture à générer » = mois où `daysUsed > 0` ET tarif présent
- * ET pas encore de row `Invoice` active sur le couple
- * `(company, year, month)`. On ne compte pas :
- *   - les mois sans contrat (rien à facturer)
- *   - les mois bloqués par tarif manquant (utilisateur doit d'abord
- *     renseigner le tarif véhicule · message porté par l'onglet
- *     Facturation, pas par cet encart)
- *   - les mois futurs (le mois en cours et au-delà ne sont pas
- *     facturables tant qu'ils ne sont pas écoulés)
+ * A "pending invoice" = month where `daysUsed > 0` AND tariff present AND
+ * no active `Invoice` row on the (company, year, month) tuple. Months are
+ * excluded when:
+ *   - no contract exists (nothing to bill)
+ *   - missing tariff blocks the month (user must first fill the vehicle
+ *     yearly tariff; messaging owned by the Billing tab, not this panel)
+ *   - the month is future (current or later months are not billable until
+ *     elapsed)
  */
 #[TypeScript]
 final class PendingInvoiceYearData extends Data

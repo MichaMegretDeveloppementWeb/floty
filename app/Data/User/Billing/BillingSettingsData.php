@@ -14,13 +14,12 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Métadonnées émetteur de facture (Phase 14.G V1.2). Sert à la fois :
- *   - en sortie pour la page Paramètres (lecture)
- *   - en entrée HTTP (validation Spatie via `rules`)
+ * Invoice issuer metadata. Used as both:
+ *   - output for the Settings page (read)
+ *   - HTTP input (validation via Spatie `rules`)
  *
- * Tous les champs sont optionnels : l'utilisateur peut sauvegarder une
- * configuration partielle au démarrage et la compléter plus tard. Le
- * `InvoicePdfRenderer` gère gracieusement les champs manquants.
+ * Every field is optional: the user may save a partial configuration and
+ * complete it later. `InvoicePdfRenderer` handles missing fields gracefully.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -29,9 +28,9 @@ final class BillingSettingsData extends Data
     public function __construct(
         #[Nullable, Max(128)]
         public ?string $name,
-        // Override explicite : `Str::snake('addressLine1')` produit
-        // `address_line1` sans underscore avant le chiffre, mais la
-        // colonne et le form utilisent `address_line_1`.
+        // Explicit override: `Str::snake('addressLine1')` produces
+        // `address_line1` (no underscore before the digit), but the column
+        // and the form use `address_line_1`.
         #[MapInputName('address_line_1'), Nullable, Max(128)]
         public ?string $addressLine1,
         #[MapInputName('address_line_2'), Nullable, Max(128)]
@@ -60,18 +59,18 @@ final class BillingSettingsData extends Data
     }
 
     /**
-     * Convertit en payload pour le `InvoicePdfRenderer::render()`. Les
-     * `null` sont préservés (le template gère l'affichage conditionnel).
+     * Build the payload consumed by `InvoicePdfRenderer::render()`. Nulls
+     * are preserved (the template handles conditional rendering).
      *
      * @return array{name: string, addressLine1?: string|null, addressLine2?: string|null, postalCode?: string|null, city?: string|null, siren?: string|null, contactEmail?: string|null}
      */
     public function toIssuerPayload(): array
     {
         return [
-            // Le nom est obligatoire pour le rendu PDF. Si non configuré,
-            // on affiche un placeholder explicite invitant à renseigner
-            // les paramètres `Émetteur facture`. **Jamais** « Floty »
-            // (Floty est l'outil de gestion, pas l'émetteur des factures).
+            // The name is mandatory for the PDF render. If not configured,
+            // fall back to an explicit placeholder inviting the user to
+            // fill the `Émetteur facture` settings. NEVER "Floty" (Floty
+            // is the management tool, not the invoice issuer).
             'name' => $this->name ?? 'Émetteur non configuré',
             'addressLine1' => $this->addressLine1,
             'addressLine2' => $this->addressLine2,

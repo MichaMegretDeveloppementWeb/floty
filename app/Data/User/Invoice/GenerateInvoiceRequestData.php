@@ -14,9 +14,8 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload du POST `generate` facture (T7 / Phase 14.S). Aligne le
- * domaine Invoice sur la doctrine projet : validation par DTO Spatie
- * Data, plus de `$request->validate([...])` inline.
+ * Payload for POST generate invoice (Spatie Data validation, no inline
+ * `$request->validate([...])`).
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

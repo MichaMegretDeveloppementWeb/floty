@@ -9,8 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Wrapper de retour pour l'Index Invoices server-side (Phase 14.F V1.2,
- * cf. ADR-0020).
+ * Server-side paginated result wrapper for the Invoices index (ADR-0020).
  */
 #[TypeScript]
 final class PaginatedInvoiceListData extends Data

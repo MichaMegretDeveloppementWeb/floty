@@ -24,24 +24,21 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création d'un contrat (chantier 04.G - page Create).
+ * Create payload for a contract.
  *
- * **Validations posées par DB et par les triggers** (en plus de celles
- * ci-dessous) :
- *   - `CHECK end_date >= start_date` (DB)
- *   - Trigger MySQL anti-overlap (refuse si autre contrat actif sur le
- *     même véhicule chevauche la plage)
- *
- * **Validation côté Action** (cf. {@see StoreContractAction}) :
- *   - Pré-vérification d'overlap pour produire un message FR explicite
- *     avant de heurter le trigger DB.
+ * Additional safeguards beyond these rules:
+ *   - DB `CHECK end_date >= start_date`
+ *   - MySQL anti-overlap trigger (rejects overlapping active contracts on
+ *     the same vehicle)
+ *   - {@see StoreContractAction} pre-checks overlaps to produce a clearer
+ *     French error message before hitting the DB trigger.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
 final class StoreContractData extends Data
 {
     /**
-     * @param  list<int>  $driverIds  Identifiants des conducteurs à associer au contrat (0, 1 ou plusieurs ; pivot `contract_drivers`). Distincts.
+     * @param  list<int>  $driverIds  Distinct driver IDs to attach via the `contract_drivers` pivot (0..N).
      */
     public function __construct(
         #[Required, IntegerType, Exists('vehicles', 'id')]
@@ -62,20 +59,15 @@ final class StoreContractData extends Data
         #[Max(5000)]
         public ?string $notes,
 
-        // Driver IDs en N:N (cf. chantier #3 multi-conducteurs). Par
-        // défaut `[]` : un contrat peut être créé sans conducteur, et
-        // un payload qui omet entièrement la clé `driver_ids` (form-data
-        // sans champ équivalent à array vide) est valide. `Sometimes`
-        // évite la règle `required` auto-inférée par Spatie sur le type
-        // `array`.
+        // `Sometimes` neutralises Spatie's auto-inferred `required` rule
+        // on the array type so the key can be omitted entirely.
         #[Sometimes, Nullable, ArrayType, Distinct]
         public array $driverIds = [],
     ) {}
 
     /**
-     * Règle dynamique : si le véhicule est sorti de flotte, bloquer
-     * tout contrat dont la période chevauche ou dépasse `exit_date`
-     * (cf. ADR-0018 § 5).
+     * Dynamic rule: if the vehicle is exited, reject any period that
+     * overlaps or extends past `exit_date` (ADR-0018 §5).
      *
      * @return array<string, array<int, mixed>>
      */
@@ -86,17 +78,16 @@ final class StoreContractData extends Data
         $startDate = (string) ($payload['start_date'] ?? '');
         $endDate = (string) ($payload['end_date'] ?? '');
 
-        // `driver_ids` est optionnel : Spatie auto-infère `required` sur
-        // un type `array`, on remplace la règle complète pour ce champ.
+        // `driver_ids` is optional; replace the auto-inferred `required`
+        // rule that Spatie applies to array-typed properties.
         $driverIdsRules = [
             'driver_ids' => ['sometimes', 'nullable', 'array'],
             'driver_ids.*' => ['integer', 'exists:drivers,id'],
         ];
 
-        // Spatie Data : retourner un tableau ici **remplace** les rules
-        // de l'attribut `#[Required, Date, AfterOrEqual('start_date')]`
-        // sur `end_date`. On doit donc ré-énumérer toutes les rules
-        // en ajoutant `AvailableForPeriod` à la liste.
+        // Returning an array here REPLACES the attribute rules on
+        // `end_date`, so we must re-list them all when adding
+        // `AvailableForPeriod`.
         if ($vehicleId === 0 || $startDate === '' || $endDate === '') {
             return $driverIdsRules;
         }

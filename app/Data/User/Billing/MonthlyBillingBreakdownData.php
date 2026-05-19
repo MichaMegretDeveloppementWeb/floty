@@ -9,28 +9,23 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Récap annuel par mois civil, pour la fiche véhicule ou la fiche
- * entreprise (Phase 14.D V1.2).
+ * Per-civil-month annual recap for a vehicle or company.
  *
- * **Toujours 12 entrées** dans `entries` (mois 1 → 12), même pour
- * les mois sans utilisation : la grille affichage reste stable.
+ * Always 12 entries (months 1 → 12), even for unused months, so the grid
+ * layout stays stable.
  *
- * `yearTotalCents` est `null` si **au moins un mois** a un tarif
- * manquant (`hasMissingPricing = true`) : on ne peut alors pas calculer
- * un cumul exact.
+ * `yearTotalCents` is `null` when at least one month has a missing tariff
+ * (`hasMissingPricing = true`): the exact cumulative cannot be computed.
  *
- * `yearTotalCentsPartial` est toujours peuplé : somme des mois sans
- * tarif manquant. Égal à `yearTotalCents` si `hasAnyMissingPricing`
- * vaut `false`, sinon donne une vue honnête de ce qui a été chiffré
- * (T11 / E.17).
+ * `yearTotalCentsPartial` is always populated: sum of months without a
+ * missing tariff. Equals `yearTotalCents` when `hasAnyMissingPricing` is
+ * `false`; otherwise gives an honest view of the priced portion.
  */
 #[TypeScript]
 final class MonthlyBillingBreakdownData extends Data
 {
     /**
-     * @param  list<MonthlyBreakdownEntryData>  $entries  Toujours de longueur 12
-     *                                                    (un objet par mois civil,
-     *                                                    janvier en première position).
+     * @param  list<MonthlyBreakdownEntryData>  $entries  Always length 12 (one entry per civil month, January first).
      */
     public function __construct(
         public int $year,
@@ -41,14 +36,14 @@ final class MonthlyBillingBreakdownData extends Data
         public int $yearTotalCentsPartial,
         public bool $hasAnyMissingPricing,
         /**
-         * Total annuel BRUT (= somme `entries[].grossTotalCents` des
-         * mois sans missing pricing). Vaut `yearTotalCentsPartial` en
-         * l'absence de réduction (Lot 2 réductions commerciales).
+         * Annual GROSS total (sum of `entries[].grossTotalCents` for
+         * months without missing pricing). Equal to
+         * `yearTotalCentsPartial` when no commercial discount applies.
          */
         public int $yearTotalGrossCentsPartial = 0,
         /**
-         * Total annuel des réductions commerciales appliquées (sur les
-         * mois sans missing pricing). Vaut 0 en l'absence de réduction.
+         * Annual sum of commercial discounts applied (over months without
+         * missing pricing). 0 when no discount applies.
          */
         public int $yearTotalDiscountCentsPartial = 0,
     ) {}

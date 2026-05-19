@@ -9,19 +9,16 @@ use App\Data\Shared\Listing\SortDirection;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * DTO d'entrée pour l'Index Rental Discounts server-side (cf. ADR-0020).
+ * Query input for the server-side Rental Discounts index (ADR-0020).
  *
- * Filtres :
- *  - `companyId` : réductions d'une entreprise précise
- *  - `status` : `'active' | 'planned' | 'expired'` calculé par rapport
- *    à la date du jour côté SQL (`start_date <= today AND end_date >=
- *    today` → active ; `start_date > today` → planned ; `end_date <
- *    today` → expired).
+ * Filters:
+ *  - `companyId`: discounts attached to a specific company
+ *  - `status` (`active|planned|expired`): computed SQL-side against today
+ *    (`start_date <= today AND end_date >= today` => active;
+ *    `start_date > today` => planned; `end_date < today` => expired).
  *
- * Whitelist sortKey : `company | period | discount | createdAt`.
- *
- * Sécurité · la whitelist `sortKey` empêche toute injection SQL via
- * `orderBy($_GET['sortKey'])`.
+ * Allowed sort keys: `company | period | discount | createdAt`. The
+ * whitelist prevents `orderBy($_GET['sortKey'])` injection.
  */
 #[TypeScript]
 final class RentalDiscountIndexQueryData extends IndexQueryData

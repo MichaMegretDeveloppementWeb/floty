@@ -10,11 +10,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail complet d'une facture pour la page Show (Phase 14.F V1.2) :
- * identité + métadonnées émission + lignes véhicule.
+ * Full invoice detail for the Show page: identity + issuance metadata +
+ * vehicle lines.
  *
- * Le PDF n'est pas embarqué dans le DTO ; la page Show propose un
- * lien `download` séparé qui sert le binaire.
+ * The PDF binary is not embedded; the Show page exposes a separate
+ * `download` link.
  */
 #[TypeScript]
 final class InvoiceData extends Data
@@ -22,11 +22,9 @@ final class InvoiceData extends Data
     /**
      * @param  list<InvoiceLineData>  $lines
      *
-     * Note · la `divergence` (comparaison snapshot vs reel actuel)
-     * n'est PAS dans ce DTO. Elle est servie cote Show via
-     * `Inertia::defer` en prop racine `divergence` (audit perf
-     * 2026-05-16 / 06-invoices.md P1 #1) pour ne pas bloquer le mount
-     * sur un BillingCalculator complet.
+     * Note: `divergence` (snapshot vs current recompute) is not on this
+     * DTO. The Show page receives it as a deferred root prop to avoid
+     * blocking mount on a full `BillingCalculator` run.
      */
     public function __construct(
         public int $id,
@@ -38,14 +36,12 @@ final class InvoiceData extends Data
         public int $month,
         public int $totalHtCents,
         /**
-         * Total BRUT (= avant réduction commerciale) snapshot.
-         * Égal à `totalHtCents` quand aucune réduction appliquée.
-         * Lot 3 réductions commerciales.
+         * GROSS total snapshot (= before commercial discount). Equal to
+         * `totalHtCents` when no discount applied.
          */
         public int $totalGrossCents,
         /**
-         * Total des réductions commerciales appliquées (cents).
-         * 0 si aucune réduction. Lot 3 réductions commerciales.
+         * Sum of commercial discounts applied (cents). 0 when no discount.
          */
         public int $totalDiscountCents,
         public string $pdfHash,
@@ -55,24 +51,23 @@ final class InvoiceData extends Data
         #[DataCollectionOf(InvoiceLineData::class)]
         public array $lines,
         /**
-         * `true` ssi la facture est une version obsolète (soft-deletée
-         * par une régénération). Permet l'affichage bandeau « Cette
-         * facture a été remplacée par #XXX ».
+         * `true` iff this row is a soft-deleted version (superseded by a
+         * regeneration). Enables the "This invoice has been replaced by
+         * #XXX" banner.
          */
         public bool $isObsolete = false,
-        /** Numéro de la facture qui remplace celle-ci. */
+        /** Number of the invoice replacing this one. */
         public ?string $supersededByInvoiceNumber = null,
-        /** ID de la facture qui remplace · pour la navigation. */
+        /** ID of the replacing invoice, for navigation. */
         public ?int $supersededByInvoiceId = null,
-        /** Numéro de la facture remplacée par celle-ci · bandeau inverse. */
+        /** Number of the invoice this one replaces (reverse banner). */
         public ?string $supersedesInvoiceNumber = null,
-        /** ID de la facture remplacée · pour la navigation. */
+        /** ID of the replaced invoice, for navigation. */
         public ?int $supersedesInvoiceId = null,
         /**
-         * Chaîne historique complète des versions du couple (entreprise ×
-         * année × mois) · liste non triée (le front trie par `id DESC`
-         * = plus récent en haut). Inclut la version courante elle-même.
-         * Vide ou singleton si jamais régénérée.
+         * Full version chain of the (company × year × month) tuple,
+         * unordered (front-end sorts by `id DESC`). Includes the current
+         * version itself. Empty or singleton when never regenerated.
          *
          * @var list<InvoiceHistoryEntryData>
          */
@@ -80,7 +75,7 @@ final class InvoiceData extends Data
     ) {}
 
     /**
-     * @param  list<Invoice>  $historyChain  les versions du couple, dans un ordre quelconque (trié front)
+     * @param  list<Invoice>  $historyChain  All versions of the tuple, any order (sorted on the client).
      */
     public static function fromModel(
         Invoice $invoice,

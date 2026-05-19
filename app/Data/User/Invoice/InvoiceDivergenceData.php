@@ -8,29 +8,26 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Snapshot de comparaison facture émise (figée) vs réalité actuelle
- * recalculée (Phase 14.I+ V1.2). Sert à signaler à l'utilisateur que
- * les données contractuelles ont changé après émission de la facture
- * et qu'une régénération est probablement nécessaire.
+ * Comparison snapshot between an issued invoice (frozen) and the current
+ * recalculated reality. Signals to the user that contractual data changed
+ * after issuance and regeneration is likely needed.
  *
- * `currentDaysUsed` / `currentTotalCents` peuvent être `null` si le
- * recalcul actuel est bloqué (ex. tarif annuel manquant pour un
- * véhicule qui était présent à l'émission). Dans ce cas, `hasDivergence`
- * est forcément `true` puisque la facture ne peut plus être recalculée
- * dans les mêmes conditions.
+ * `currentDaysUsed` / `currentTotalCents` may be `null` if the current
+ * recompute is blocked (e.g. missing yearly tariff for a vehicle that was
+ * present at issuance); `hasDivergence` is then necessarily `true`.
  */
 #[TypeScript]
 final class InvoiceDivergenceData extends Data
 {
     public function __construct(
         public bool $hasDivergence,
-        /** Snapshot figé à l'émission de la facture (Σ days_used des lignes). */
+        /** Frozen snapshot at issuance (sum of line `days_used`). */
         public int $invoicedDaysUsed,
-        /** Snapshot figé à l'émission de la facture (total_ht_cents). */
+        /** Frozen snapshot at issuance (`total_ht_cents`). */
         public int $invoicedTotalCents,
-        /** Recalcul à l'instant T sur le périmètre actuel des contrats. */
+        /** Recompute now over the current contractual scope. */
         public ?int $currentDaysUsed,
-        /** Recalcul à l'instant T sur le périmètre actuel des contrats. */
+        /** Recompute now over the current contractual scope. */
         public ?int $currentTotalCents,
     ) {}
 }

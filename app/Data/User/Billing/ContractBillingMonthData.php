@@ -8,10 +8,10 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Une cellule du tableau récap facturation contrat · un mois civil.
+ * One cell of the contract billing recap, for a single civil month.
  *
- * Si le tarif annuel n'est pas défini sur le véhicule pour l'année
- * concernée, `totalCents` vaut `null` et `hasMissingPricing = true`.
+ * When the yearly tariff is not defined on the vehicle for the relevant
+ * year, `totalCents` is `null` and `hasMissingPricing = true`.
  */
 #[TypeScript]
 final class ContractBillingMonthData extends Data
@@ -19,19 +19,18 @@ final class ContractBillingMonthData extends Data
     public function __construct(
         public int $year,
         public int $month,
-        /** Nombre de jours du contrat dans ce mois civil (intersection). */
+        /** Number of contract days falling in this civil month (intersection). */
         public int $daysInMonth,
         public ?int $totalCents,
         public bool $hasMissingPricing,
         /**
-         * Montant BRUT du mois (= avant réduction commerciale).
-         * `null` si tarif manquant. Égal à `totalCents` sans réduction
-         * (Lot 2 réductions commerciales).
+         * GROSS month total (= before commercial discount). `null` when
+         * tariff missing. Equal to `totalCents` when no discount applies.
          */
         public ?int $grossTotalCents = null,
         /**
-         * Réduction commerciale appliquée au mois (cents). `null` si
-         * tarif manquant, `0` si pas de réduction.
+         * Commercial discount applied to the month (cents). `null` when
+         * tariff missing, `0` when no discount applies.
          */
         public ?int $discountCents = null,
     ) {}
