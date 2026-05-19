@@ -8,7 +8,7 @@ use App\Models\Driver;
 use Carbon\CarbonInterface;
 
 /**
- * Écritures Driver - slim conforme ADR-0013.
+ * Driver writes · slim per ADR-0013.
  */
 interface DriverWriteRepositoryInterface
 {
@@ -25,30 +25,30 @@ interface DriverWriteRepositoryInterface
     public function softDelete(Driver $driver): void;
 
     /**
-     * Crée une membership Driver↔Company (insertion dans la pivot).
+     * Creates a Driver↔Company membership (pivot insert).
      */
     public function attachCompany(int $driverId, int $companyId, CarbonInterface $joinedAt): void;
 
     /**
-     * Pose `left_at` sur la membership donnée.
+     * Sets `left_at` on the given membership.
      */
     public function setLeaveDate(int $pivotId, CarbonInterface $leftAt): void;
 
     /**
-     * Met à jour les dates d'une membership existante (`joined_at`
-     * requis, `left_at` optionnel). Permet :
-     *   - correction `joined_at` seul (chantier B)
-     *   - édition simultanée des deux dates
-     *   - réactivation : `leftAt: null` réinitialise `left_at` (chantier B-bis)
+     * Updates the dates of an existing membership (`joined_at` required,
+     * `left_at` optional). Allows:
+     *   - correcting `joined_at` alone
+     *   - editing both dates at once
+     *   - reactivation: `leftAt: null` resets `left_at`
      *
-     * La cohérence chronologique (`joined_at <= left_at` si non null) est
-     * vérifiée côté Action.
+     * Chronological consistency (`joined_at <= left_at` when not null)
+     * is checked by the Action.
      */
     public function updateMembership(int $pivotId, CarbonInterface $joinedAt, ?CarbonInterface $leftAt): void;
 
     /**
-     * Supprime une membership (uniquement si elle n'a aucun contrat
-     * associé - la garde est faite côté Action).
+     * Deletes a membership (only if it has no associated contracts ·
+     * the guard is in the Action).
      */
     public function deleteMembership(int $pivotId): void;
 }

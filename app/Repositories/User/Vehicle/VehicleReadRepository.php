@@ -13,11 +13,11 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
- * Implémentation Eloquent des lectures Vehicle.
+ * Eloquent implementation of Vehicle reads.
  *
- * Eager-loading systématique des `fiscalCharacteristics` actives
- * (`effective_to IS NULL`) pour éviter tout N+1 dans les agrégations
- * fiscales en aval.
+ * Active `fiscalCharacteristics` (`effective_to IS NULL`) are
+ * systematically eager-loaded to avoid N+1 in downstream fiscal
+ * aggregations.
  */
 final class VehicleReadRepository implements VehicleReadRepositoryInterface
 {
@@ -54,7 +54,6 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             $eloquentQuery->where('current_status', $query->status->value);
         }
 
-        // Search LIKE sur license_plate OR brand OR model.
         if ($query->search !== null) {
             $term = '%'.$query->search.'%';
             $eloquentQuery->where(function ($w) use ($term): void {
@@ -64,7 +63,7 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             });
         }
 
-        // Filtres VFC active (effective_to IS NULL).
+        // Active VFC filters (effective_to IS NULL).
         if ($query->energySource !== null) {
             $energyValue = $query->energySource->value;
             $eloquentQuery->whereHas('fiscalCharacteristics', function ($q) use ($energyValue): void {
@@ -85,7 +84,6 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             });
         }
 
-        // Fourchette année de 1ʳᵉ immatriculation française.
         if ($query->firstRegistrationYearMin !== null) {
             $eloquentQuery->whereYear('first_french_registration_date', '>=', $query->firstRegistrationYearMin);
         }
@@ -94,7 +92,6 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             $eloquentQuery->whereYear('first_french_registration_date', '<=', $query->firstRegistrationYearMax);
         }
 
-        // Tri whitelist (cf. VehicleIndexQueryData::allowedSortKeys()).
         match ($query->sortKey) {
             'licensePlate' => $eloquentQuery->orderBy('license_plate', $direction),
             'model' => $eloquentQuery
@@ -103,7 +100,6 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             'firstFrenchRegistrationDate' => $eloquentQuery->orderBy('first_french_registration_date', $direction),
             'acquisitionDate' => $eloquentQuery->orderBy('acquisition_date', $direction),
             'currentStatus' => $eloquentQuery->orderBy('current_status', $direction),
-            // Défaut : tri historique acquisition_date DESC (ordre d'achat).
             default => $eloquentQuery->orderByDesc('acquisition_date'),
         };
 

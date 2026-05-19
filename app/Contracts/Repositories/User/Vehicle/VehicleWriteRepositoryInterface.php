@@ -11,45 +11,46 @@ use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Models\Vehicle;
 
 /**
- * Écritures sur l'entité Vehicle stricto sensu.
+ * Writes on the Vehicle entity proper.
  *
- * Ne porte plus la transaction « Vehicle + caractéristiques fiscales »
- * - l'orchestration multi-entités est désormais à la charge de
- * {@see CreateVehicleAction} (ADR-0013 R3 :
- * tout enchaînement de plusieurs services/repositories autour d'une
- * décision métier appartient à la couche Action).
+ * Does not carry the "Vehicle + fiscal characteristics" transaction ·
+ * multi-entity orchestration is the responsibility of
+ * {@see CreateVehicleAction} (ADR-0013 R3: any chaining of multiple
+ * services/repositories around a business decision belongs to the
+ * Action layer).
  */
 interface VehicleWriteRepositoryInterface
 {
     /**
-     * Persiste un véhicule sans toucher à son historique fiscal.
+     * Persists a vehicle without touching its fiscal history.
      */
     public function create(StoreVehicleData $data): Vehicle;
 
     /**
-     * Met à jour les seuls champs **identité** d'un véhicule
-     * (license_plate, brand, model, vin, color, dates immat,
-     * acquisition, kilométrage, notes). Ne touche pas à l'historique
-     * fiscal - celui-ci est géré séparément par
-     * {@see VehicleFiscalCharacteristicsWriteRepositoryInterface}
-     * sous l'orchestration d'une Action.
+     * Updates the identity fields of a vehicle only (license_plate,
+     * brand, model, vin, color, registration dates, acquisition,
+     * mileage, notes). Does not touch the fiscal history · that is
+     * handled separately by
+     * {@see VehicleFiscalCharacteristicsWriteRepositoryInterface} under
+     * Action orchestration.
      */
     public function update(int $vehicleId, UpdateVehicleData $data): Vehicle;
 
     /**
-     * Marque un véhicule comme sorti de flotte : pose `exit_date`,
-     * `exit_reason`, et met à jour `current_status` cohérent (mapping
-     * sold→Sold, destroyed→Destroyed, autres motifs→Other ; cf. ADR-0018
-     * § 3 - asymétrie acceptée pour minimiser le scope).
+     * Marks a vehicle as exited from the fleet: sets `exit_date`,
+     * `exit_reason`, and updates `current_status` consistently
+     * (sold → Sold, destroyed → Destroyed, others → Other ·
+     * ADR-0018 § 3).
      *
-     * La validation des conflits (contrats/indispos débordants) est à
-     * la charge de l'Action appelante via {@see App\Services\Vehicle\VehicleExitImpactComputer}.
+     * Validation of overflowing conflicts (contracts/unavailabilities)
+     * is the responsibility of the calling Action via
+     * {@see App\Services\Vehicle\VehicleExitImpactComputer}.
      */
     public function markAsExited(int $vehicleId, ExitVehicleData $data): Vehicle;
 
     /**
-     * Réactive un véhicule précédemment sorti : reset `exit_date`,
-     * `exit_reason` à NULL et `current_status` à Active.
+     * Reactivates a previously exited vehicle: resets `exit_date`,
+     * `exit_reason` to NULL and `current_status` to Active.
      */
     public function markAsActive(int $vehicleId): Vehicle;
 }

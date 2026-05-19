@@ -9,29 +9,29 @@ use App\Services\Unavailability\UnavailabilityQueryService;
 use Illuminate\Support\Collection;
 
 /**
- * Lectures sur le domaine Unavailability.
+ * Reads on the Unavailability domain.
  *
- * Aucune transformation ni composition de DTO ici (R3) - retourne
- * des Collections de Models bruts ou des arrays primitifs. La
- * composition vit dans {@see UnavailabilityQueryService}.
+ * No transformation, no DTO composition (R3) · returns raw Model
+ * collections or primitive arrays. Composition lives in
+ * {@see UnavailabilityQueryService}.
  */
 interface UnavailabilityReadRepositoryInterface
 {
     /**
-     * Toutes les indispos d'un véhicule (hors soft-deleted), triées
-     * par `start_date DESC` pour affichage antéchronologique.
+     * All unavailabilities of a vehicle (excluding soft-deleted),
+     * sorted by `start_date DESC` for reverse-chronological display.
      *
      * @return Collection<int, Unavailability>
      */
     public function findForVehicle(int $vehicleId): Collection;
 
     /**
-     * Indispos de plusieurs véhicules en **un seul SELECT IN** -
-     * retourne un map `vehicleId → list<Unavailability>` (véhicule
-     * sans indispo absent du map ; aux appelants de défaulter sur `[]`).
+     * Unavailabilities for several vehicles in one `SELECT IN` · returns
+     * a map `vehicleId → list<Unavailability>` (vehicles without any
+     * unavailability are absent from the map; callers default to `[]`).
      *
-     * Remplace l'antipattern N+1 d'une boucle PHP appelant
-     * {@see self::findForVehicle()} pour chaque id.
+     * Replaces the N+1 anti-pattern of a PHP loop calling
+     * {@see self::findForVehicle()} for each id.
      *
      * @param  list<int>  $vehicleIds
      * @return array<int, list<Unavailability>>
@@ -39,31 +39,30 @@ interface UnavailabilityReadRepositoryInterface
     public function findForVehicleIds(array $vehicleIds): array;
 
     /**
-     * Lookup unitaire - échoue si l'id n'existe pas (404).
+     * Unitary lookup · throws 404 if the id does not exist.
      */
     public function findById(int $id): Unavailability;
 
     /**
-     * Nombre de jours d'indisponibilité (tous types confondus) par
-     * semaine ISO de l'année. Utilisé pour dimensionner un segment
-     * « indispo » empilé au-dessus des attributions dans la timeline
-     * 52 semaines de la fiche véhicule.
+     * Days of unavailability (all types) per ISO week of the year.
+     * Used to size a stacked "unavailable" segment above contracts in
+     * the 52-week timeline of the vehicle page.
      *
-     * Une indispo couvrant 3 jours d'une semaine retournera `[N => 3]`
-     * (et non pas la semaine entière comme un overlay).
+     * An unavailability covering 3 days of a week returns `[N => 3]`
+     * (not the whole week like an overlay).
      *
-     * @return array<int, int> weekNumber (1-53) → jours d'indispo (1-7)
+     * @return array<int, int> weekNumber (1-53) → unavailable days (1-7)
      */
     public function findUnavailableDaysByWeekForVehicle(int $vehicleId, int $year): array;
 
     /**
-     * Indispos d'un véhicule dont la plage `[start_date, end_date]`
-     * déborde la date passée - c'est-à-dire `end_date > $date` ou
-     * `end_date IS NULL` (indispo encore ouverte).
+     * Unavailabilities of a vehicle whose `[start_date, end_date]`
+     * range extends past the given date · i.e. `end_date > $date` or
+     * `end_date IS NULL` (still-open unavailability).
      *
-     * Utilisé par {@see App\Services\Vehicle\VehicleExitImpactComputer}
-     * pour énumérer les conflits qui bloqueraient une sortie de flotte
-     * proposée à `$date` (cf. ADR-0018 § 8.1).
+     * Used by {@see App\Services\Vehicle\VehicleExitImpactComputer} to
+     * enumerate conflicts blocking a proposed fleet exit at `$date`
+     * (ADR-0018 § 8.1).
      *
      * @return Collection<int, Unavailability>
      */

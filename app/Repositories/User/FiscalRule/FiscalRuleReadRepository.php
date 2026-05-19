@@ -8,8 +8,8 @@ use App\Contracts\Repositories\User\FiscalRule\FiscalRuleReadRepositoryInterface
 use App\Models\FiscalRule;
 
 /**
- * Implémentation Eloquent des lectures FiscalRule (Phase 13 D5.14 ·
- * ADR-0022 v1.4 · BDD = index minimal).
+ * Eloquent implementation of FiscalRule reads (ADR-0022 v1.4 · DB
+ * acts as a minimal index).
  */
 final class FiscalRuleReadRepository implements FiscalRuleReadRepositoryInterface
 {

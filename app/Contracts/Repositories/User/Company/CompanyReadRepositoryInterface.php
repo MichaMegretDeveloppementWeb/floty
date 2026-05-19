@@ -10,72 +10,69 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
- * Lectures sur le domaine Company.
+ * Reads on the Company domain.
  *
- * Toutes les requêtes Eloquent ciblant {@see Company} vivent ici. Les
- * services consomment ces méthodes pour orchestrer la logique métier
- * sans toucher à `Company::query()`.
+ * All Eloquent queries targeting {@see Company} live here. Services
+ * consume these methods to orchestrate business logic without touching
+ * `Company::query()` directly.
  */
 interface CompanyReadRepositoryInterface
 {
     public function findById(int $id): ?Company;
 
     /**
-     * Liste de toutes les entreprises pour la page « Entreprises
-     * utilisatrices », triées par raison sociale.
+     * All companies sorted by legal name.
      *
      * @return Collection<int, Company>
      *
-     * @deprecated Conservé temporairement · sera retiré en L6 du
-     *             chantier ADR-0020 une fois les pages migrées.
-     *             Utiliser {@see paginateForIndex()}.
+     * @deprecated Use {@see paginateForIndex()} instead.
      */
     public function findAllOrderedByName(): Collection;
 
     /**
-     * Liste paginée server-side de l'Index Companies (cf. ADR-0020).
-     * Applique `{search, isActive, sortKey, sortDirection, page,
-     * perPage}` du DTO en SQL pur.
+     * Server-side paginated list for the Companies Index (ADR-0020).
+     * Applies `{search, isActive, sortKey, sortDirection, page,
+     * perPage}` from the DTO as raw SQL.
      *
-     * Search : LIKE sur `short_code OR legal_name OR siren`.
-     * Sort whitelist : shortCode | legalName | siren | city.
+     * Search: LIKE on `short_code OR legal_name OR siren`.
+     * Sort whitelist: shortCode | legalName | siren | city.
      *
      * @return LengthAwarePaginator<int, Company>
      */
     public function paginateForIndex(CompanyIndexQueryData $query): LengthAwarePaginator;
 
     /**
-     * `true` ssi au moins une entreprise existe en base (`SELECT EXISTS`).
-     * Utilisé par l'Index pour distinguer « table intrinsèquement vide »
-     * du « filtre actif retournant 0 ».
+     * Returns true iff at least one company exists (`SELECT EXISTS`).
+     * Used by the Index to distinguish an intrinsically empty table
+     * from an active filter returning zero rows.
      */
     public function existsAny(): bool;
 
     /**
-     * Liste des entreprises actives pour les `<SelectInput>`, colonnes
-     * minimales, triées par raison sociale.
+     * Active companies for `<SelectInput>` widgets, minimal columns,
+     * sorted by legal name.
      *
      * @return Collection<int, Company>
      */
     public function findAllForOptions(): Collection;
 
     /**
-     * Liste des entreprises actives pour la heatmap planning, colonnes
-     * minimales, triées par code court.
+     * Active companies for the planning heatmap, minimal columns,
+     * sorted by short code.
      *
      * @return Collection<int, Company>
      */
     public function findAllForHeatmap(): Collection;
 
     /**
-     * Compte les entreprises actives.
+     * Counts active companies.
      */
     public function countActive(): int;
 
     /**
-     * Précharge en bulk un ensemble d'entreprises par ids, indexées par
-     * id. Inclut les colonnes nécessaires à l'affichage (raison sociale,
-     * code court, couleur). Renvoie une collection vide si `$ids` l'est.
+     * Bulk loads companies by ids, indexed by id. Includes columns
+     * needed for display (legal name, short code, color). Returns an
+     * empty collection if `$ids` is empty.
      *
      * @param  list<int>  $ids
      * @return Collection<int, Company>
@@ -83,9 +80,9 @@ interface CompanyReadRepositoryInterface
     public function findByIdsIndexed(array $ids): Collection;
 
     /**
-     * Vérifie si un code court est déjà utilisé par une entreprise non
-     * supprimée. Utilisé par CreateCompanyAction pour la pré-vérification
-     * d'unicité avant l'insert (génération auto du short_code, chantier A).
+     * Checks whether a short code is already used by a non-deleted
+     * company. Used by CreateCompanyAction for the pre-insert uniqueness
+     * check (short_code is auto-generated).
      */
     public function existsByShortCode(string $shortCode): bool;
 }

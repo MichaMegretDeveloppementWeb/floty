@@ -12,7 +12,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
- * Implémentation Eloquent des lectures Company.
+ * Eloquent implementation of Company reads.
  */
 final class CompanyReadRepository implements CompanyReadRepositoryInterface
 {
@@ -51,7 +51,7 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
             $eloquentQuery->where('city', 'like', '%'.$query->city.'%');
         }
 
-        // Search LIKE sur short_code OR legal_name OR siren.
+        // Search LIKE on short_code OR legal_name OR siren.
         if ($query->search !== null) {
             $term = '%'.$query->search.'%';
             $eloquentQuery->where(function ($w) use ($term): void {
@@ -61,7 +61,7 @@ final class CompanyReadRepository implements CompanyReadRepositoryInterface
             });
         }
 
-        // Tri whitelist (cf. CompanyIndexQueryData::allowedSortKeys()).
+        // Whitelisted sort (cf. CompanyIndexQueryData::allowedSortKeys()).
         match ($query->sortKey) {
             'shortCode' => $eloquentQuery->orderBy('short_code', $direction),
             'legalName' => $eloquentQuery->orderBy('legal_name', $direction),

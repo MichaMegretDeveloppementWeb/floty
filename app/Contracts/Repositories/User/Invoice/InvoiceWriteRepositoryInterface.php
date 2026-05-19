@@ -8,15 +8,15 @@ use App\Models\Invoice;
 use App\Models\InvoiceLine;
 
 /**
- * Écritures Invoice · création seulement. Pas d'update : conformément
- * à la doctrine immuabilité (Phase 14.E V1.2), une facture émise est
- * figée. La seule mutation autorisée est `delete` (cascade des lignes).
+ * Invoice writes · creation only. No update: per the immutability
+ * doctrine, an emitted invoice is frozen. The only allowed mutation is
+ * `delete` (cascading on the lines).
  */
 interface InvoiceWriteRepositoryInterface
 {
     /**
-     * Persiste une facture en base. Les lignes sont créées séparément
-     * via {@see persistLines} dans la même transaction (cf.
+     * Persists an invoice. Lines are created separately via
+     * {@see persistLines} in the same transaction (cf.
      * `GenerateInvoiceAction`).
      *
      * @param  array<string, mixed>  $attributes
@@ -24,7 +24,7 @@ interface InvoiceWriteRepositoryInterface
     public function persist(array $attributes): Invoice;
 
     /**
-     * Persiste les lignes attachées à une facture. Bulk insert.
+     * Persists the lines attached to an invoice. Bulk insert.
      *
      * @param  list<array<string, mixed>>  $linesAttributes
      * @return list<InvoiceLine>
@@ -32,48 +32,48 @@ interface InvoiceWriteRepositoryInterface
     public function persistLines(int $invoiceId, array $linesAttributes): array;
 
     /**
-     * Suppression soft (Invoice utilise `SoftDeletes`). Conservée pour
-     * la régénération · cf. {@see RegenerateInvoiceAction}.
+     * Soft-delete (Invoice uses `SoftDeletes`). Kept for regeneration ·
+     * cf. {@see RegenerateInvoiceAction}.
      */
     public function delete(Invoice $invoice): void;
 
     /**
-     * Suppression physique (hard delete) avec cascade des lignes. Utilisé
-     * par {@see CancelInvoiceAction} pour l'annulation explicite, qui
-     * effacent intégralement la facture · à distinguer du soft-delete
-     * de la régénération qui matérialise l'historique.
+     * Hard-delete with cascading on the lines. Used by
+     * {@see CancelInvoiceAction} for explicit cancellation, which
+     * fully erases the invoice · distinct from the regeneration
+     * soft-delete that materialises history.
      */
     public function forceDelete(Invoice $invoice): void;
 
     /**
-     * Lot 4 D01 (F-34-001) · bulk UPDATE conditionnel posant
-     * `is_divergent = true` sur les factures de l'entreprise dont
-     * `(year, month)` matche l'un des tuples passés. Skippe les
-     * factures déjà divergentes (idempotence + économie d'écriture).
+     * Bulk conditional UPDATE setting `is_divergent = true` on
+     * invoices of the company whose `(year, month)` matches one of the
+     * tuples. Skips already-divergent invoices (idempotence + write
+     * economy).
      *
-     * Retourne le nombre de lignes flippées.
+     * Returns the number of rows flipped.
      *
-     * Note doctrinale · `is_divergent` est une métadonnée
-     * d'observabilité (pas un champ figé du snapshot ADR-0008) ·
-     * sa mutation post-émission est légitime.
+     * Doctrinal note: `is_divergent` is an observability metadata (not
+     * a frozen snapshot field per ADR-0008) · its mutation
+     * post-emission is legitimate.
      *
      * @param  list<array{year:int,month:int}>  $tuples
      */
     public function flagDivergentForCompanyAndTuples(int $companyId, array $tuples): int;
 
     /**
-     * Lot 4 D01 (F-34-001) · bulk UPDATE conditionnel posant
-     * `is_divergent = true` sur toutes les factures `year` donné qui
-     * appartiennent à des companies ayant eu un contrat actif sur le
-     * véhicule chevauchant cette année (cf. T6 / Phase 14.R V1.2 ·
-     * cas tarif véhicule modifié).
+     * Bulk conditional UPDATE setting `is_divergent = true` on all
+     * invoices of the given `year` that belong to companies which had
+     * an active contract on the vehicle crossing that year (case of a
+     * vehicle rate change).
      *
-     * Le pivot vehicle → companies passe par une **subquery embedded**
-     * dans l'UPDATE pour rester atomique côté SQL (1 round-trip BDD).
-     * Contraint à `deleted_at IS NULL` car la subquery utilise le
-     * Query Builder bas-niveau qui bypass le scope SoftDeletes Eloquent.
+     * The vehicle → companies pivot is computed via an embedded
+     * subquery in the UPDATE to remain atomic SQL-side (one DB
+     * round-trip). Constrained to `deleted_at IS NULL` because the
+     * subquery uses the low-level Query Builder which bypasses the
+     * Eloquent SoftDeletes scope.
      *
-     * Retourne le nombre de factures flippées.
+     * Returns the number of invoices flipped.
      */
     public function flagDivergentForVehiclePricingYear(int $vehicleId, int $year): int;
 }

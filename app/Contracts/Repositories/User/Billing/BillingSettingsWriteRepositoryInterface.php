@@ -8,13 +8,13 @@ use App\Data\User\Billing\BillingSettingsData;
 use App\Models\BillingSettings;
 
 /**
- * Mise à jour de l'émetteur de facture (Phase 14.G V1.2 · singleton).
+ * Invoice issuer write (singleton).
  */
 interface BillingSettingsWriteRepositoryInterface
 {
     /**
-     * Met à jour la ligne singleton avec les valeurs du DTO. Crée la
-     * ligne au premier appel si elle n'existait pas encore.
+     * Updates the singleton row with the DTO values. Creates the row
+     * on first call if it did not exist yet.
      */
     public function update(BillingSettingsData $data): BillingSettings;
 }

@@ -8,26 +8,23 @@ use App\Data\User\Vehicle\VehicleYearlyPricingData;
 use App\Models\VehicleYearlyPricing;
 
 /**
- * Écritures sur les tarifs jour/semaine/mois d'un véhicule par année.
+ * Writes on per-year vehicle day/week/month rates.
  *
- * Cf. ADR-0013 (couches strictes Controller→Action→Service→Repository).
- *
- * **Idempotence** : la méthode {@see self::upsert()} repose sur la
- * contrainte UNIQUE(vehicle_id, year) en base + `updateOrCreate`. Appeler
- * deux fois avec les mêmes paramètres produit le même résultat.
+ * Idempotency: {@see self::upsert()} relies on the UNIQUE(vehicle_id,
+ * year) database constraint combined with `updateOrCreate`. Calling
+ * twice with the same parameters produces the same result.
  */
 interface VehicleYearlyPricingWriteRepositoryInterface
 {
     /**
-     * Crée ou met à jour le tarif d'un véhicule pour une année donnée.
-     * Idempotent grâce à la contrainte UNIQUE(vehicle_id, year).
+     * Creates or updates the rate of a vehicle for a given year.
+     * Idempotent thanks to the UNIQUE(vehicle_id, year) constraint.
      */
     public function upsert(int $vehicleId, VehicleYearlyPricingData $data): VehicleYearlyPricing;
 
     /**
-     * Supprime le tarif d'un véhicule pour une année donnée. Retourne
-     * `true` si une ligne a été supprimée, `false` si aucun tarif
-     * n'existait.
+     * Deletes the rate of a vehicle for a given year. Returns true if
+     * a row was deleted, false if no rate existed.
      */
     public function deleteForVehicleAndYear(int $vehicleId, int $year): bool;
 }

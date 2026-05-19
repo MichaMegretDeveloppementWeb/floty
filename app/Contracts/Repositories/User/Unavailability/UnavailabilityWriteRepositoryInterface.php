@@ -7,10 +7,10 @@ namespace App\Contracts\Repositories\User\Unavailability;
 use App\Models\Unavailability;
 
 /**
- * Écritures sur le domaine Unavailability.
+ * Writes on the Unavailability domain.
  *
- * Repo pur : aucune décision métier (calcul de `has_fiscal_impact`
- * via l'enum, validation, etc.) - c'est le rôle des Actions.
+ * Pure repository: no business decision (computing `has_fiscal_impact`
+ * via the enum, validation, etc.) · that is the role of the Actions.
  */
 interface UnavailabilityWriteRepositoryInterface
 {

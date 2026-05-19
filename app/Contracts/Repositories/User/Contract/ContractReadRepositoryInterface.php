@@ -13,10 +13,11 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Lectures Contract - interface slim conforme ADR-0013 (zéro
- * transformation, zéro décision métier ; les retours sont des
- * Collections / Models bruts. Toute composition de DTO ou agrégat
- * vit dans {@see ContractQueryService}).
+ * Contract reads · slim interface per ADR-0013.
+ *
+ * Zero transformation, zero business decision · returns raw Collections
+ * and Models. DTO composition and aggregations live in
+ * {@see ContractQueryService}.
  */
 interface ContractReadRepositoryInterface
 {
@@ -25,15 +26,9 @@ interface ContractReadRepositoryInterface
     public function findByIdWithRelations(int $id): ?Contract;
 
     /**
-     * Variante batch de {@see findByIdWithRelations} · charge en
-     * **1 query** les contrats (avec leurs relations vehicle,
-     * vehicle.fiscalCharacteristics, company, drivers) pour une liste
-     * d'IDs.
-     *
-     * Cas d'usage · `ContractQueryService::costsForContractIds`
-     * (Inertia::defer prop de l'Index Contracts) qui doit re-hydrater
-     * les contrats de la page avec leur VFC pour calculer les coûts
-     * en batch.
+     * Batch variant of {@see findByIdWithRelations} · loads in one query
+     * the contracts (with their vehicle, vehicle.fiscalCharacteristics,
+     * company, drivers relations) for a list of IDs.
      *
      * @param  list<int>  $ids
      * @return Collection<int, Contract>
@@ -41,71 +36,68 @@ interface ContractReadRepositoryInterface
     public function findByIdsWithRelations(array $ids): Collection;
 
     /**
-     * Liste des contrats actifs d'un véhicule sur l'année - utilisée
-     * par le moteur fiscal pour expansion en jours (cf. R-2024-002).
+     * Active contracts for a vehicle over a given year · used by the
+     * fiscal engine for day expansion (R-2024-002).
      *
      * @return Collection<int, Contract>
      */
     public function findByVehicleAndYear(int $vehicleId, int $year): Collection;
 
     /**
-     * Tous les contrats actifs croisant l'année - pivot du moteur fiscal
-     * (composé en `ContractsByPair` dans le service). Eager-load
-     * minimal pour les agrégations.
+     * All contracts active during the given calendar year · pivot of
+     * the fiscal engine (composed into `ContractsByPair` in the service).
+     * Minimal eager-load for aggregations.
      *
      * @return Collection<int, Contract>
      */
     public function findActiveForYear(int $year): Collection;
 
     /**
-     * Variante range de {@see findActiveForYear} · tous les contrats
-     * actifs croisant **au moins une** année du range `[from..to]` en
-     * **1 seule query SQL**. Pivot consommé par
-     * {@see ContractQueryService::loadContractsByPairForYearRange()}
-     * pour éviter N chargements year-by-year sur les pages multi-années
-     * (Show Company Overview, Dashboard history) · cf. F-11-001.
+     * Range variant of {@see findActiveForYear} · all contracts active
+     * during at least one year of `[from..to]` in a single SQL query.
+     * Pivot consumed by
+     * {@see ContractQueryService::loadContractsByPairForYearRange()} to
+     * avoid N loads year-by-year on multi-year pages.
      *
      * @return Collection<int, Contract>
      */
     public function findActiveForYearRange(int $from, int $to): Collection;
 
     /**
-     * Liste des contrats actifs d'une entreprise utilisatrice.
+     * Active contracts of a user company.
      *
      * @return Collection<int, Contract>
      */
     public function listForCompany(int $companyId): Collection;
 
     /**
-     * Tous les contrats actifs d'une `(entreprise, année)` croisant
-     * l'année civile (`start_date <= 31/12 AND end_date >= 01/01`).
-     * Eager-load `vehicle` pour les services qui consomment les
-     * caractéristiques véhicule du contrat (libellé plate, etc.).
-     * Cas d'usage : moteur de détection de risque fiscal (Phase 11 D2).
+     * All active contracts of `(company, year)` crossing the calendar
+     * year (`start_date <= 31/12 AND end_date >= 01/01`). Eager-loads
+     * `vehicle` for services consuming the vehicle attributes.
      *
-     * Tri déterministe `start_date ASC, id ASC` requis par les
-     * algorithmes de chaînage : deux contrats à dates de début égales
-     * sont ordonnés par id pour éviter toute ambiguïté.
+     * Deterministic sort `start_date ASC, id ASC` required by chaining
+     * algorithms: two contracts with equal start dates are ordered by
+     * id to avoid any ambiguity.
      *
      * @return Collection<int, Contract>
      */
     public function findForCompanyAndYear(int $companyId, int $year): Collection;
 
     /**
-     * Liste des contrats actifs d'un véhicule (toutes périodes).
+     * All active contracts of a vehicle, all periods.
      *
      * @return Collection<int, Contract>
      */
     public function listForVehicle(int $vehicleId): Collection;
 
     /**
-     * Variante batched pour usage Index/Listings (Phase 13 D5.10.L) ·
-     * récupère en une seule SQL tous les contrats actifs des véhicules
-     * fournis qui chevauchent l'année civile demandée. Évite les N+1
-     * sur les pages paginées qui calculent un prix location annuel.
+     * Batched variant for Index/listing usage · fetches in one SQL all
+     * active contracts of the given vehicles overlapping the requested
+     * calendar year. Avoids N+1 on paginated pages computing a yearly
+     * rental price.
      *
-     * Tri déterministe `start_date ASC, id ASC`. Eager-load `vehicle` +
-     * `company` minimal pour l'agrégation côté service.
+     * Deterministic sort `start_date ASC, id ASC`. Minimal eager-load of
+     * `vehicle` + `company`.
      *
      * @param  list<int>  $vehicleIds
      * @return Collection<int, Contract>
@@ -113,8 +105,8 @@ interface ContractReadRepositoryInterface
     public function findForVehiclesInYear(array $vehicleIds, int $year): Collection;
 
     /**
-     * Liste des contrats actifs d'un véhicule chevauchant la fenêtre
-     * `[start, end]`. Eager-load `company` pour le drawer semaine.
+     * Active contracts of a vehicle overlapping the `[start, end]`
+     * window. Eager-loads `company` for the week drawer.
      *
      * @return Collection<int, Contract>
      */
@@ -125,12 +117,12 @@ interface ContractReadRepositoryInterface
     ): Collection;
 
     /**
-     * Recherche un contrat actif sur le même véhicule dont la plage
-     * `[start_date, end_date]` chevauche celle passée en argument.
-     * Utilisé par les Actions Store/Update pour la validation
-     * applicative (défense en profondeur avant le trigger DB).
+     * Looks up an active contract on the same vehicle whose
+     * `[start_date, end_date]` range overlaps the passed one. Used by
+     * Store/Update Actions for application-level validation (defence in
+     * depth before the DB trigger).
      *
-     * Le `excludeId` permet d'exclure le contrat en cours d'édition.
+     * `excludeId` skips the contract currently being edited.
      */
     public function findOverlapping(
         int $vehicleId,
@@ -140,11 +132,10 @@ interface ContractReadRepositoryInterface
     ): ?Contract;
 
     /**
-     * Tous les contrats actifs d'un véhicule chevauchant `[start, end]`.
-     * Différent de {@see findOverlapping} qui retourne le premier
-     * conflit pour vérification booléenne ; utilisé par les services
-     * qui doivent ENUMÉRER les conflits (typiquement pour exposer la
-     * liste exhaustive de dates conflictuelles à un utilisateur).
+     * All active contracts of a vehicle overlapping `[start, end]`.
+     * Unlike {@see findOverlapping} which returns the first conflict for
+     * a boolean check, this method enumerates every conflict (typically
+     * to expose the full list of conflicting dates to the user).
      *
      * @return Collection<int, Contract>
      */
@@ -155,14 +146,13 @@ interface ContractReadRepositoryInterface
     ): Collection;
 
     /**
-     * Variante batch de {@see findOverlapping} pour la création multiple
-     * de contrats sur une plage commune (Lot 3 D01).
+     * Batch variant of {@see findOverlapping} for multi-vehicle contract
+     * creation on a shared range.
      *
-     * Charge en **1 seule query SQL** tous les contrats actifs des
-     * véhicules listés qui chevauchent la plage `[startDate, endDate]`.
-     * Le consommateur (typiquement {@see BulkCreateContractsAction})
-     * itère ensuite en mémoire pour décider quel véhicule présente un
-     * conflit · pas de N×SELECT.
+     * Loads in one SQL all active contracts of the listed vehicles
+     * overlapping the `[startDate, endDate]` range. The consumer
+     * iterates in memory to decide which vehicle has a conflict · no
+     * N×SELECT.
      *
      * @param  list<int>  $vehicleIds
      * @return Collection<int, Contract>
@@ -174,67 +164,65 @@ interface ContractReadRepositoryInterface
     ): Collection;
 
     /**
-     * Liste paginée server-side de l'Index Contracts (cf. ADR-0020).
-     * Applique `{search, vehicleId, companyId, driverId, type,
+     * Server-side paginated list for the Contracts Index (ADR-0020).
+     * Applies `{search, vehicleId, companyId, driverId, type,
      * periodStart, periodEnd, sortKey, sortDirection, page, perPage}`
-     * du DTO en SQL pure.
+     * from the DTO as raw SQL.
      *
-     * Search : LIKE sur `vehicle.license_plate, vehicle.brand,
+     * Search: LIKE on `vehicle.license_plate, vehicle.brand,
      * vehicle.model, company.short_code, company.legal_name,
      * driver.first_name, driver.last_name` via `whereHas`.
      *
-     * Sort whitelist : vehicle | company | startDate | endDate |
-     * duration | type. `vehicle`/`company` utilisent un join temporaire
-     * pour ordonner sur la colonne textuelle de la relation. `duration`
-     * via `DATEDIFF(end_date, start_date)`.
+     * Sort whitelist: vehicle | company | startDate | endDate |
+     * duration | type. `vehicle`/`company` use a temporary join to
+     * order by the relation's textual column. `duration` uses
+     * `DATEDIFF(end_date, start_date)`.
      *
-     * Filtre période : chevauchement
-     * (`start_date <= periodEnd AND end_date >= periodStart`).
+     * Period filter: overlap (`start_date <= periodEnd AND end_date >=
+     * periodStart`).
      *
      * @return LengthAwarePaginator<int, Contract>
      */
     public function paginateForIndex(ContractIndexQueryData $query): LengthAwarePaginator;
 
     /**
-     * `true` ssi au moins un contrat existe en base (`SELECT EXISTS`).
-     * Utilisé par l'Index pour distinguer « table intrinsèquement vide »
-     * du « filtre actif retournant 0 ».
+     * Returns true iff at least one contract exists (`SELECT EXISTS`).
+     * Used by the Index to distinguish an intrinsically empty table
+     * from an active filter returning zero rows.
      */
     public function existsAny(): bool;
 
     /**
-     * Tous les contrats actifs (toutes plates) chevauchant la fenêtre
-     * `[start, end]`. Utilisé pour pré-calculer la table
-     * `vehicleId → busyDates` consommée par le picker du formulaire
-     * Contract Create/Edit (chantier H).
+     * All active contracts (all license plates) overlapping the
+     * `[start, end]` window. Used to pre-compute the
+     * `vehicleId → busyDates` map consumed by the date picker on the
+     * Contract Create/Edit form.
      *
      * @return Collection<int, Contract>
      */
     public function findAllInWindow(string $start, string $end): Collection;
 
     /**
-     * Compte les contrats référençant ce driver dans cette company
-     * (toutes périodes confondues). Utilisé par
-     * `DetachDriverCompanyMembershipAction` pour bloquer la suppression
-     * d'une membership encore liée à des contrats.
+     * Counts contracts referencing this driver in this company, all
+     * periods. Used by `DetachDriverCompanyMembershipAction` to block
+     * deleting a membership that still has contracts.
      */
     public function countForDriverInCompany(int $driverId, int $companyId): int;
 
     /**
-     * Compte total des contrats (non soft-deleted) d'une entreprise,
-     * tous exercices confondus. Alimente la stat lifetime
-     * `contractsCount` de la fiche entreprise (chantier K, ADR-0020 D3).
+     * Total count of contracts (non soft-deleted) of a company, all
+     * fiscal years. Feeds the lifetime `contractsCount` stat on the
+     * company detail page.
      */
     public function countForCompany(int $companyId): int;
 
     /**
-     * Stats sur les contrats d'une entreprise dans une fenêtre temporelle
-     * optionnelle (chantier N.1.fixes). Le `totalDays` est calculé en
-     * **intersection** avec la fenêtre : un contrat 01/01–31/12 dans
-     * un filtre Q3 ne compte que les jours de juillet–septembre.
+     * Stats on contracts of a company within an optional time window.
+     * `totalDays` is intersection-clamped to the window: a contract
+     * 01/01–31/12 with a Q3 filter only counts July–September days.
      *
-     * Sans fenêtre (`$periodStart` et `$periodEnd` null), retourne le
-     * cumul lifetime sur tous les contrats de l'entreprise.
+     * Without a window (`$periodStart` and `$periodEnd` null), returns
+     * the lifetime totals across all contracts of the company.
      *
      * @return array{totalDays: int, lcdCount: int, lldCount: int}
      */
@@ -245,42 +233,41 @@ interface ContractReadRepositoryInterface
     ): array;
 
     /**
-     * Année du premier contrat de l'entreprise (la plus ancienne `start_date`).
-     * Utilisé pour générer la plage `[firstYear..currentYear]` des pills
-     * de filtre rapide année (chantier N.1.fixes).
+     * Year of the company's first contract (oldest `start_date`). Used
+     * to generate the `[firstYear..currentYear]` range for quick-filter
+     * year pills.
      *
-     * Retourne `null` si l'entreprise n'a aucun contrat.
+     * Returns `null` when the company has no contract.
      */
     public function firstContractYearForCompany(int $companyId): ?int;
 
     /**
-     * Liste triée et dédoublonnée des années (ISO calendaire) au cours
-     * desquelles l'entreprise a au moins un contrat actif (peu importe
-     * que le contrat couvre l'année entière ou n'y déborde que
-     * partiellement).
+     * Sorted, deduplicated list of ISO calendar years during which the
+     * company has at least one active contract (even if it covers only
+     * part of the year).
      *
-     * Une entreprise dont le seul contrat va du 15/12/2024 au 10/01/2025
-     * remonte donc `[2024, 2025]`.
+     * A company whose only contract runs 15/12/2024 to 10/01/2025 thus
+     * returns `[2024, 2025]`.
      *
-     * Alimente :
-     *   - `availableYears` (peuple le sélecteur d'année local de la fiche)
-     *   - les itérations du `history` (1 entrée `CompanyYearStatsData`
-     *     par année)
+     * Feeds:
+     *   - `availableYears` (populates the local year selector on the
+     *     company page)
+     *   - `history` iterations (one `CompanyYearStatsData` entry per
+     *     year)
      *
      * @return list<int>
      */
     public function findActiveYearsForCompany(int $companyId): array;
 
     /**
-     * Contrats d'une entreprise chevauchant la fenêtre `[start, end]`,
-     * avec `vehicle` eager-loadé (license_plate, brand, model). Pivot
-     * du module Facturation V1.2 ({@see App\Services\Billing\BillingCalculator})
-     * pour énumérer les véhicules à facturer sur un mois donné.
+     * Contracts of a company overlapping the `[start, end]` window with
+     * `vehicle` eager-loaded (license_plate, brand, model). Pivot of
+     * the billing module ({@see App\Services\Billing\BillingCalculator})
+     * to enumerate vehicles to bill for a given month.
      *
-     * Tri par `vehicle_id` puis `start_date` pour permettre un
-     * regroupement linéaire côté service (un véhicule peut avoir
-     * plusieurs contrats successifs sur une même entreprise dans
-     * le même mois).
+     * Sort by `vehicle_id` then `start_date` to allow linear grouping
+     * server-side (a vehicle may have several successive contracts with
+     * the same company in the same month).
      *
      * @return Collection<int, Contract>
      */
@@ -291,50 +278,46 @@ interface ContractReadRepositoryInterface
     ): Collection;
 
     /**
-     * Lot 4 D01 (F-34-001) · liste minimale des contrats actifs (non
-     * soft-deletés) sur un véhicule donné, projetés sur les seules
-     * colonnes `(company_id, start_date, end_date)`. Utilisé par
-     * {@see App\Services\Invoice\InvoiceDivergenceFlagger::flagForVehicle}
-     * pour pivoter vehicle → companies + plages mensuelles à flagger.
+     * Minimal list of active contracts (non soft-deleted) on a given
+     * vehicle, projected on `(company_id, start_date, end_date)`. Used
+     * by {@see App\Services\Invoice\InvoiceDivergenceFlagger::flagForVehicle}
+     * to pivot vehicle → companies + monthly ranges to flag.
      *
-     * Retourne une `Collection<int, Contract>` (instances Eloquent
-     * partielles, scope SoftDeletes appliqué).
+     * Returns a `Collection<int, Contract>` (partial Eloquent
+     * instances, SoftDeletes scope applied).
      *
      * @return Collection<int, Contract>
      */
     public function findContractDateRangesForVehicle(int $vehicleId): Collection;
 
     /**
-     * Lot 4 D04 (F-34-006) · pour une entreprise donnée, retourne le
-     * nombre de contrats par driver via le pivot N:N `contract_drivers`.
-     * Un contrat avec 2 drivers compte 1 fois pour chacun.
+     * For a given company, returns the number of contracts per driver
+     * via the N:N pivot `contract_drivers`. A contract with two drivers
+     * counts once for each.
      *
-     * Format retour · `[driver_id => count]` · clé = `driver_id` (int),
-     * valeur = nombre de contrats associés au couple `(driver, company)`.
-     * Drivers sans contrat sur cette company sont **absents** du tableau
-     * (pas une entrée à 0).
+     * Return shape: `[driver_id => count]`. Drivers with no contract on
+     * this company are absent (not an entry at 0).
      *
-     * Utilisé par {@see App\Services\Company\CompanyDetailService::detail}
-     * pour enrichir chaque driver row avec son `contractsCount`.
+     * Used by {@see App\Services\Company\CompanyDetailService::detail}
+     * to enrich each driver row with its `contractsCount`.
      *
      * @return array<int, int>
      */
     public function countContractsByDriverForCompany(int $companyId): array;
 
     /**
-     * Bornes globales des années sur les contrats **non soft-deletés**.
+     * Global year bounds on non soft-deleted contracts.
      *
-     * Source de vérité du sélecteur d'année dynamique exposé par
-     * {@see AvailableYearsResolver} (chantier η).
+     * Source of truth for the dynamic year selector exposed by
+     * {@see AvailableYearsResolver}.
      *
-     * Retourne `['min' => null, 'max' => null]` si la table est vide
-     * (laisse au resolver le soin du fallback sur l'année calendaire
-     * courante).
+     * Returns `['min' => null, 'max' => null]` when the table is empty
+     * (lets the resolver handle the fallback to the current year).
      *
-     * Implémentation attendue : 1 query SQL pure avec
-     * `YEAR(MIN(start_date))` et `YEAR(MAX(start_date))`, filter explicite
-     * `deleted_at IS NULL` pour contourner l'absence de scope global
-     * SoftDeletes lorsqu'on attaque la table via `DB::table()`.
+     * Implementation note: one raw SQL query with `YEAR(MIN(start_date))`
+     * and `YEAR(MAX(start_date))`, explicit `deleted_at IS NULL` filter
+     * to bypass the absence of SoftDeletes global scope when querying
+     * via `DB::table()`.
      *
      * @return array{min: int|null, max: int|null}
      */

@@ -8,14 +8,14 @@ use App\Data\User\FiscalRiskSettings\FiscalRiskSettingsData;
 use App\Models\FiscalRiskSettings;
 
 /**
- * Écriture des seuils de détection de risque fiscal (Phase 11 D1,
- * singleton ADR-0015 § D7 rev. 1.1).
+ * Writes of the fiscal risk detection thresholds (singleton per
+ * ADR-0015 § D7 rev. 1.1).
  */
 interface FiscalRiskSettingsWriteRepositoryInterface
 {
     /**
-     * Met à jour la ligne singleton avec les valeurs du DTO. Crée la
-     * ligne au premier appel si elle n'existait pas encore.
+     * Updates the singleton row with the DTO values. Creates the row
+     * on first call if it did not exist yet.
      */
     public function update(FiscalRiskSettingsData $data): FiscalRiskSettings;
 }

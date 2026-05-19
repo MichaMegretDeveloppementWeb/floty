@@ -7,48 +7,47 @@ namespace App\Contracts\Repositories\User\Vehicle;
 use App\Models\VehicleYearlyPricing;
 
 /**
- * Lectures sur les tarifs jour/semaine/mois d'un véhicule par année.
+ * Reads on per-year vehicle day/week/month rates.
  *
- * Cf. ADR-0013 (couches strictes Controller→Action→Service→Repository).
- *
- * Consommé par :
- *   - `VehicleYearlyPricing[Read|Write]Repository` (cohérence applicative)
- *   - `BillingCalculator` (chantier 14.C) pour récupérer les tarifs à
- *     appliquer lors d'un calcul de facture
- *   - Future couche de présentation `VehicleData` (chantier 14.B) pour
- *     exposer les tarifs existants à l'UI Vehicle Show
+ * Consumed by:
+ *   - `VehicleYearlyPricing[Read|Write]Repository` (application
+ *     consistency)
+ *   - `BillingCalculator` to retrieve the rates to apply when computing
+ *     an invoice
+ *   - The presentation layer (`VehicleData`) to expose existing rates
+ *     to the Vehicle Show UI
  */
 interface VehicleYearlyPricingReadRepositoryInterface
 {
     /**
-     * Tarif d'un véhicule pour une année donnée. Retourne `null` si
-     * aucun tarif n'a été défini pour cette année.
+     * Rate of a vehicle for a given year. Returns `null` if no rate
+     * has been defined for that year.
      */
     public function findForVehicleAndYear(int $vehicleId, int $year): ?VehicleYearlyPricing;
 
     /**
-     * Tous les tarifs définis pour un véhicule, triés par année
-     * croissante. Liste vide si aucun tarif n'a encore été défini.
+     * All rates defined for a vehicle, sorted by year ascending. Empty
+     * list if no rate has been defined yet.
      *
      * @return list<VehicleYearlyPricing>
      */
     public function findAllForVehicle(int $vehicleId): array;
 
     /**
-     * Variante batched pour usage Index/Listings (Phase 13 D5.10.L) ·
-     * récupère les tarifs de plusieurs véhicules pour une année en
-     * une seule SQL. Évite les N+1 sur les pages paginées.
+     * Batched variant for Index/listing usage · loads rates for
+     * several vehicles for a given year in a single SQL query. Avoids
+     * N+1 on paginated pages.
      *
      * @param  list<int>  $vehicleIds
-     * @return array<int, VehicleYearlyPricing> vehicleId → pricing (clé manquante si pas de tarif)
+     * @return array<int, VehicleYearlyPricing> vehicleId → pricing (missing key when no rate)
      */
     public function findForVehiclesAndYear(array $vehicleIds, int $year): array;
 
     /**
-     * Variante batched multi-années · récupère en **1 SQL** les tarifs
-     * de plusieurs véhicules sur plusieurs années. Indexé par
-     * `[year][vehicleId]` pour permettre la dispatch en mémoire dans
-     * les agrégats qui itèrent par année (cf.
+     * Multi-year batched variant · loads in a single SQL query the
+     * rates of several vehicles over several years. Indexed by
+     * `[year][vehicleId]` to allow in-memory dispatch in aggregators
+     * iterating per year (cf.
      * {@see App\Services\Billing\BillingBreakdownService::totalRecettesForYears}).
      *
      * @param  list<int>  $vehicleIds

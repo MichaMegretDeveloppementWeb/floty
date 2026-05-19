@@ -7,13 +7,13 @@ namespace App\Contracts\Repositories\User\FiscalRiskSettings;
 use App\Models\FiscalRiskSettings;
 
 /**
- * Lecture des seuils de détection de risque fiscal (Phase 11 D1,
- * singleton ADR-0015 § D7 rev. 1.1).
+ * Reads of the fiscal risk detection thresholds (singleton per
+ * ADR-0015 § D7 rev. 1.1).
  */
 interface FiscalRiskSettingsReadRepositoryInterface
 {
     /**
-     * Retourne l'unique row (création automatique si table vide).
+     * Returns the unique row (auto-creation when the table is empty).
      */
     public function get(): FiscalRiskSettings;
 }

@@ -8,9 +8,10 @@ use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryIn
 use App\Models\VehicleYearlyPricing;
 
 /**
- * Implémentation Eloquent du contrat de lecture des tarifs véhicule × année.
+ * Eloquent implementation of vehicle × year rate reads.
  *
- * Repository sans état (singleton via {@see App\Providers\RepositoryServiceProvider}).
+ * Stateless repository (singleton via
+ * {@see App\Providers\RepositoryServiceProvider}).
  */
 final class VehicleYearlyPricingReadRepository implements VehicleYearlyPricingReadRepositoryInterface
 {

@@ -7,34 +7,33 @@ namespace App\Contracts\Repositories\User\FiscalReviewDecision;
 use App\Models\FiscalReviewDecision;
 
 /**
- * Écritures FiscalReviewDecision (Phase 11 D1, ADR-0015 § 5.2).
+ * FiscalReviewDecision writes (ADR-0015 § 5.2).
  *
- * Une décision n'est jamais « update » au sens classique : un
- * utilisateur peut changer d'avis sur le même cluster (même fingerprint),
- * mais la base ne conserve qu'une ligne par `(company, year, fingerprint)`.
- * Pattern `upsert` aligne ce comportement.
+ * A decision is never `update` in the classic sense: a user can change
+ * their mind on the same cluster (same fingerprint), but the database
+ * only keeps one row per `(company, year, fingerprint)`. The `upsert`
+ * pattern reflects this behaviour.
  */
 interface FiscalReviewDecisionWriteRepositoryInterface
 {
     /**
-     * Crée ou remplace la décision identifiée par
-     * `(company_id, fiscal_year, cluster_fingerprint)`. Les attributs
-     * d'audit (`decided_by`, `decided_at`) sont posés à chaque appel.
+     * Creates or replaces the decision identified by
+     * `(company_id, fiscal_year, cluster_fingerprint)`. Audit attributes
+     * (`decided_by`, `decided_at`) are set on every call.
      *
      * @param  array<string, mixed>  $attributes
      */
     public function upsert(array $attributes): FiscalReviewDecision;
 
     /**
-     * Supprime toutes les décisions de revue d'un couple
-     * `(company, fiscal_year)`. Appelé par {@see DiscardDraftDeclarationAction}
-     * pour garantir qu'un brouillon supprimé ne laisse pas ses décisions
-     * persister · sinon elles seraient automatiquement rechargées par
-     * `DeclarationPreviewService` lors du prochain brouillon créé sur
-     * le même couple (la clé d'unicité étant `(company, year, fingerprint)`,
-     * pas l'id de déclaration).
+     * Deletes all review decisions of a `(company, fiscal_year)` couple.
+     * Called by {@see DiscardDraftDeclarationAction} to ensure a deleted
+     * draft does not leave its decisions behind · otherwise they would
+     * be auto-rehydrated by `DeclarationPreviewService` on the next
+     * draft created for the same couple (the uniqueness key being
+     * `(company, year, fingerprint)`, not the declaration id).
      *
-     * Retourne le nombre de décisions effacées (audit / log).
+     * Returns the number of decisions erased (audit / log).
      */
     public function deleteByCompanyYear(int $companyId, int $fiscalYear): int;
 }

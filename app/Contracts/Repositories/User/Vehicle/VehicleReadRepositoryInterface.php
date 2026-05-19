@@ -10,66 +10,62 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
- * Lectures sur le domaine Vehicle.
+ * Reads on the Vehicle domain.
  *
- * Toutes les requêtes Eloquent non triviales (eager-loading conditionnel,
- * filtres, agrégations) qui ciblent {@see Vehicle} vivent ici (R3-bis +
- * R4 d'ADR-0013). Les services consomment ces méthodes pour orchestrer
- * la logique métier sans toucher à `Vehicle::query()`.
+ * All non-trivial Eloquent queries targeting {@see Vehicle} live here
+ * (ADR-0013 R3-bis + R4). Services consume these methods to orchestrate
+ * business logic without touching `Vehicle::query()` directly.
  */
 interface VehicleReadRepositoryInterface
 {
     /**
-     * Liste de tous les véhicules pour la page « Flotte », triés par
-     * `acquisition_date DESC` avec eager-loading des caractéristiques
-     * fiscales actives (`effective_to IS NULL`).
+     * Lists all vehicles for the fleet page, sorted by `acquisition_date
+     * DESC` with eager-loaded active fiscal characteristics
+     * (`effective_to IS NULL`).
      *
-     * @param  bool  $includeExited  Si false (défaut), exclut les véhicules
-     *                               dont `exit_date` est antérieure ou égale
-     *                               à aujourd'hui (cf. ADR-0018 § 4 - Index
-     *                               Flotte par défaut "aujourd'hui").
+     * @param  bool  $includeExited  When false (default), excludes vehicles
+     *                               whose `exit_date` is on or before today
+     *                               (ADR-0018 § 4).
      * @return Collection<int, Vehicle>
      *
-     * @deprecated Conservé temporairement · sera retiré en L6 du chantier
-     *             ADR-0020. Utiliser {@see paginateForIndex()}.
+     * @deprecated Use {@see paginateForIndex()} instead.
      */
     public function findAllForFleetView(bool $includeExited = false): Collection;
 
     /**
-     * Liste paginée server-side de l'Index Vehicles (cf. ADR-0020).
-     * Applique `{search, includeExited, status, sortKey, sortDirection,
-     * page, perPage}` du DTO en SQL pur.
+     * Server-side paginated list for the Vehicles Index (ADR-0020).
+     * Applies `{search, includeExited, status, sortKey, sortDirection,
+     * page, perPage}` from the DTO as raw SQL.
      *
-     * Search : LIKE sur `license_plate OR brand OR model`.
-     * Sort whitelist : licensePlate | model | firstFrenchRegistrationDate
+     * Search: LIKE on `license_plate OR brand OR model`.
+     * Sort whitelist: licensePlate | model | firstFrenchRegistrationDate
      * | acquisitionDate | currentStatus.
      *
-     * Eager-load des `fiscalCharacteristics` actives pour éviter N+1 sur
-     * le calcul de `fullYearTax` côté service.
+     * Eager-loads active `fiscalCharacteristics` to avoid N+1 on the
+     * `fullYearTax` computation downstream.
      *
      * @return LengthAwarePaginator<int, Vehicle>
      */
     public function paginateForIndex(VehicleIndexQueryData $query): LengthAwarePaginator;
 
     /**
-     * `true` ssi au moins un véhicule existe en base (`SELECT EXISTS`).
-     * Utilisé par l'Index pour distinguer « table intrinsèquement vide »
-     * du « filtre actif retournant 0 ». Inclut les véhicules retirés
-     * (un véhicule retiré n'est pas un véhicule "absent").
+     * Returns true iff at least one vehicle exists (`SELECT EXISTS`).
+     * Used by the Index to distinguish an intrinsically empty table from
+     * an active filter returning zero rows. Includes exited vehicles.
      */
     public function existsAny(): bool;
 
     /**
-     * Liste des véhicules disponibles (non sortis) pour les `<SelectInput>`,
-     * colonnes minimales, triés par plaque.
+     * Available vehicles (non-exited) for `<SelectInput>` widgets,
+     * minimal columns, sorted by license plate.
      *
      * @return Collection<int, Vehicle>
      */
     public function findAllForOptions(): Collection;
 
     /**
-     * Précharge en bulk un ensemble de véhicules par ids avec eager-loading
-     * des caractéristiques fiscales actives, indexés par id.
+     * Bulk loads vehicles by ids with eager-loaded active fiscal
+     * characteristics, indexed by id.
      *
      * @param  list<int>  $ids
      * @return Collection<int, Vehicle>
@@ -77,56 +73,54 @@ interface VehicleReadRepositoryInterface
     public function findByIdsIndexed(array $ids): Collection;
 
     /**
-     * Lookup unitaire **nullable** sans eager-loading. Retourne `null` si
-     * l'id n'existe pas ou si le véhicule est soft-deleted.
+     * Nullable unitary lookup without eager-loading. Returns `null` if
+     * the id does not exist or the vehicle is soft-deleted.
      *
-     * Utilisé par les Validation Rules qui ne peuvent pas faire d'injection
-     * de dépendance via constructor (instanciation `new` dans les DTOs)
-     * et qui ont besoin d'un lookup PK trivial sans charger la chaîne
-     * fiscale (cf. ADR-0013 R3 · pas de `Model::query()` direct hors Repo).
+     * Used by Validation Rules that cannot rely on constructor DI
+     * (instantiated via `new` in DTOs) and only need a trivial PK lookup
+     * without loading the fiscal chain (ADR-0013 R3).
      */
     public function findById(int $id): ?Vehicle;
 
     /**
-     * Lookup unitaire avec eager-loading des caractéristiques fiscales
-     * actives, échoue si l'id n'existe pas.
+     * Unitary lookup with eager-loaded active fiscal characteristics,
+     * throws 404 if the id does not exist.
      */
     public function findOrFailWithFiscal(int $id): Vehicle;
 
     /**
-     * Lookup unitaire avec eager-loading de **toutes** les versions
-     * fiscales du véhicule (historique complet, ordonné `effective_from
-     * DESC`). Échoue avec 404 si l'id n'existe pas.
+     * Unitary lookup with eager-loading of all fiscal versions of the
+     * vehicle (full history, ordered `effective_from DESC`). Throws 404
+     * if the id does not exist.
      *
-     * Utilisé par la page Show pour composer `VehicleData` avec à la
-     * fois la version courante et la timeline historique.
+     * Used by the Show page to compose `VehicleData` with both the
+     * current version and the historical timeline.
      */
     public function findByIdWithFiscalHistory(int $id): Vehicle;
 
     /**
-     * Liste des véhicules pour la heatmap planning d'une **année donnée** :
-     * inclut tous les véhicules actifs au moins une partie de l'année
-     * (cf. scope {@see Vehicle::scopeActiveAt} avec `start_of_year`),
-     * eager-loading des caractéristiques fiscales actives, triés par
-     * plaque.
+     * Vehicles for the planning heatmap of a given year: includes all
+     * vehicles active for at least part of the year (see
+     * {@see Vehicle::scopeActiveAt} with `start_of_year`), eager-loads
+     * active fiscal characteristics, sorted by license plate.
      *
-     * Cf. ADR-0018 § 4 - un véhicule sorti mi-année reste affiché dans
-     * la heatmap de l'année où il était partiellement actif (cellules
-     * postérieures à exit_date grisées côté frontend).
+     * Per ADR-0018 § 4, a vehicle exited mid-year remains visible in the
+     * heatmap of the year it was partially active in (cells after
+     * exit_date are greyed out client-side).
      *
      * @return Collection<int, Vehicle>
      */
     public function findAllForHeatmap(int $year): Collection;
 
     /**
-     * Compte les véhicules actifs (sans `exit_date`).
+     * Counts active vehicles (those with no `exit_date`).
      */
     public function countActive(): int;
 
     /**
-     * Bornes min/max des années de 1ʳᵉ immatriculation française parmi
-     * tous les véhicules. Utilisé par le filtre Index pour borner le
-     * sélecteur d'année. Retourne `null` si la table est vide.
+     * Min/max bounds of first French registration years across all
+     * vehicles. Used by the Index filter to bound the year selector.
+     * Returns `null` when the table is empty.
      *
      * @return array{min: int, max: int}|null
      */

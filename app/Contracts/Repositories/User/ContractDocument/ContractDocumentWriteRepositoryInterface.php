@@ -7,10 +7,10 @@ namespace App\Contracts\Repositories\User\ContractDocument;
 use App\Models\ContractDocument;
 
 /**
- * Écritures ContractDocument - interface slim conforme ADR-0013.
+ * ContractDocument writes · slim interface per ADR-0013.
  *
- * Aucune décision métier ici (validation max 5 docs, hash, upload
- * fichier physique) - c'est le rôle des Actions du domaine.
+ * No business decision here (5-document cap, hash, physical upload) ·
+ * that is the role of the domain Actions.
  */
 interface ContractDocumentWriteRepositoryInterface
 {
@@ -20,7 +20,7 @@ interface ContractDocumentWriteRepositoryInterface
     public function create(array $row): ContractDocument;
 
     /**
-     * Hard-delete (pas de soft-delete sur ContractDocument en V1).
+     * Hard-delete (no soft-delete on ContractDocument in V1).
      */
     public function delete(int $id): void;
 }

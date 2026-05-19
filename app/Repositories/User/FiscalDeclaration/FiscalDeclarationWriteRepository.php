@@ -57,14 +57,14 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
         string $reference,
         array $snapshotPayload,
     ): void {
-        // Lock pessimiste + double-check atomique du statut/obsolescence
-        // pour fermer la fenêtre TOCTOU entre la décision de générer
-        // (`GenerateDeclarationAction::guardCanGenerate`) et la
-        // finalisation BDD. Si une mutation concurrente a fait passer
-        // la déclaration en `obsolete` ou changé son statut entre
-        // temps, l'INSERT échoue proprement. Phase 13 D5.10.Z · accepte
-        // aussi `deferred` (= brouillon mis de côté) car la génération
-        // peut être déclenchée directement depuis ce statut.
+        // Pessimistic lock + atomic double-check on status/obsolescence
+        // to close the TOCTOU window between the generate decision
+        // (`GenerateDeclarationAction::guardCanGenerate`) and the DB
+        // finalisation. If a concurrent mutation flipped the
+        // declaration to `obsolete` or changed its status in the
+        // meantime, the operation aborts cleanly. Accepts also
+        // `deferred` (= draft set aside) since generation can be
+        // triggered directly from that status.
         $declaration = FiscalDeclaration::query()
             ->whereKey($declarationId)
             ->whereIn('status', [
@@ -89,10 +89,10 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
             'generated_pdf_hash' => $pdfHash,
             'reference' => $reference,
             'generated_snapshot_payload' => $snapshotPayload,
-            // Lot 5 D13 · clear `defer_reason` à la génération · si la
-            // déclaration provient d'un état `deferred` avec une raison
-            // saisie, celle-ci n'a plus de sens une fois le document
-            // figé · cohérent avec le clear effectué à `revertDefer`.
+            // Clear `defer_reason` on generation: if the declaration
+            // came from a `deferred` state with a typed reason, that
+            // reason no longer makes sense once the document is
+            // frozen (consistent with the clear done at `revertDefer`).
             'defer_reason' => null,
         ]);
         $declaration->save();
@@ -146,11 +146,11 @@ final class FiscalDeclarationWriteRepository implements FiscalDeclarationWriteRe
 
     public function reactivate(int $declarationId): void
     {
-        // Lot 5 D9 (F-19D-005) · `obsolete_reasons` est volontairement
-        // **PRÉSERVÉ** · trace audit factuel régulatoire de l'historique
-        // d'obsolescence (« cette déclaration a connu une obsolescence
-        // résolue le DATE »). Seuls le flag, la date et le pointeur de
-        // chaîne sont nettoyés pour rendre l'entité active à nouveau.
+        // `obsolete_reasons` is intentionally PRESERVED · regulatory
+        // audit trace of the obsolescence history ("this declaration
+        // went through an obsolescence resolved on DATE"). Only the
+        // flag, the timestamp and the chain pointer are reset to make
+        // the entity active again.
         FiscalDeclaration::query()
             ->whereKey($declarationId)
             ->update([

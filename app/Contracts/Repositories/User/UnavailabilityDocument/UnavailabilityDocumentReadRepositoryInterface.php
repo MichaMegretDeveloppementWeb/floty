@@ -9,24 +9,24 @@ use App\Models\UnavailabilityDocument;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Lectures UnavailabilityDocument · interface slim conforme ADR-0013.
+ * UnavailabilityDocument reads · slim interface per ADR-0013.
  */
 interface UnavailabilityDocumentReadRepositoryInterface
 {
     public function findById(int $id): ?UnavailabilityDocument;
 
     /**
-     * Liste des documents d'une indispo, triés du plus récent au plus
-     * ancien (UX naturelle pour la section Documents).
+     * Documents of an unavailability, newest first (natural UX for the
+     * Documents section).
      *
      * @return Collection<int, UnavailabilityDocument>
      */
     public function listForUnavailability(int $unavailabilityId): Collection;
 
     /**
-     * Compte des documents existants pour une indispo · utilisé par
-     * {@see UploadUnavailabilityDocumentsAction} pour vérifier la
-     * limite des 5 documents avant insert.
+     * Number of existing documents for an unavailability · used by
+     * {@see UploadUnavailabilityDocumentsAction} to enforce the
+     * 5-document cap before insert.
      */
     public function countForUnavailability(int $unavailabilityId): int;
 }

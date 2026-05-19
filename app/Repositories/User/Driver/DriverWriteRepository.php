@@ -10,7 +10,7 @@ use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Implémentation Eloquent des écritures Driver - slim conforme ADR-0013.
+ * Eloquent implementation of Driver writes · slim per ADR-0013.
  */
 final class DriverWriteRepository implements DriverWriteRepositoryInterface
 {
@@ -59,9 +59,9 @@ final class DriverWriteRepository implements DriverWriteRepositoryInterface
             ->where('id', $pivotId)
             ->update([
                 'joined_at' => $joinedAt->toDateString(),
-                // `null` est explicite ici · réactivation d'une membership
-                // précédemment sortie. Le caller passe `null` ou un
-                // CarbonInterface après validation chronologique.
+                // Explicit `null` here · reactivation of a previously
+                // closed membership. The caller passes `null` or a
+                // CarbonInterface after chronological validation.
                 'left_at' => $leftAt?->toDateString(),
                 'updated_at' => now(),
             ]);

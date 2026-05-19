@@ -12,14 +12,14 @@ use App\Models\Contract;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Implémentation Eloquent des écritures Contract - slim conforme
- * ADR-0013 (zéro transformation, zéro décision métier ; les Actions
- * portent les transactions multi-entités et les pré-validations
- * applicatives).
+ * Eloquent implementation of Contract writes · slim per ADR-0013.
  *
- * **Refonte 04.K** : `contract_type` est désormais dérivé par l'Action
- * (cf. {@see Contract::deriveTypeFromDates()}) et passé au writer en
- * paramètre séparé - le DTO ne le porte plus.
+ * Zero transformation, zero business decision; Actions carry the
+ * multi-entity transactions and the application-level pre-validations.
+ *
+ * `contract_type` is derived by the Action (cf.
+ * {@see Contract::deriveTypeFromDates()}) and passed to the writer as
+ * a separate parameter.
  */
 final class ContractWriteRepository implements ContractWriteRepositoryInterface
 {
@@ -79,7 +79,7 @@ final class ContractWriteRepository implements ContractWriteRepositoryInterface
     public function attachDriver(int $contractId, int $driverId): void
     {
         $contract = Contract::findOrFail($contractId);
-        // syncWithoutDetaching = idempotent : pas de duplicate si déjà attaché.
+        // syncWithoutDetaching is idempotent: no duplicate if already attached.
         $contract->drivers()->syncWithoutDetaching([$driverId]);
     }
 

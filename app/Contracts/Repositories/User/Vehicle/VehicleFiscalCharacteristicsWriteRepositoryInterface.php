@@ -13,22 +13,22 @@ use App\Models\VehicleFiscalCharacteristics;
 use DateTimeInterface;
 
 /**
- * Écritures sur l'historique fiscal d'un véhicule.
+ * Writes on a vehicle's fiscal history.
  *
- * Séparé de {@see VehicleWriteRepositoryInterface} : le cycle de vie
- * d'une période fiscale (création initiale, nouvelle version, correction
- * d'une version existante, cascade rétroactive) est piloté par les
- * Actions du domaine (cf. ADR-0013 R3 - orchestration multi-entités
- * appartient à la couche Action, pas au repository).
+ * Separated from {@see VehicleWriteRepositoryInterface}: the lifecycle
+ * of a fiscal period (initial creation, new version, correction of an
+ * existing version, retroactive cascade) is driven by domain Actions
+ * (ADR-0013 R3 · multi-entity orchestration belongs to the Action
+ * layer, not the repository).
  */
 interface VehicleFiscalCharacteristicsWriteRepositoryInterface
 {
     /**
-     * Crée la première période fiscale d'un véhicule fraîchement
-     * inséré (`change_reason = InitialCreation`, `effective_to = null`).
+     * Creates the first fiscal period of a freshly inserted vehicle
+     * (`change_reason = InitialCreation`, `effective_to = null`).
      *
-     * Les invariants métier (homologation, cohérence WLTP/CO₂, etc.)
-     * sont supposés validés en amont (FormRequest + Action).
+     * Business invariants (homologation, WLTP/CO₂ consistency, etc.)
+     * are assumed validated upstream (FormRequest + Action).
      */
     public function createInitialVersion(
         int $vehicleId,
@@ -37,9 +37,8 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): VehicleFiscalCharacteristics;
 
     /**
-     * Crée une nouvelle ligne d'historique avec les caractéristiques
-     * fournies. Utilisé par l'Action `UpdateVehicleAction` après
-     * fermeture/suppression des versions adjacentes.
+     * Creates a new history row with the provided characteristics. Used
+     * by `UpdateVehicleAction` after closing/deleting adjacent versions.
      */
     public function createNewVersion(
         int $vehicleId,
@@ -50,10 +49,9 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): VehicleFiscalCharacteristics;
 
     /**
-     * Met à jour la borne `effective_to` d'une version existante.
-     * Utilisé pour clôturer une version courante quand on en crée
-     * une nouvelle, ou pour restaurer `null` quand la version
-     * courante est supprimée.
+     * Updates the `effective_to` bound of an existing version. Used to
+     * close a current version when creating a new one, or to restore
+     * `null` when the current version is deleted.
      */
     public function setEffectiveTo(
         int $fiscalId,
@@ -61,14 +59,12 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): VehicleFiscalCharacteristics;
 
     /**
-     * Supprime physiquement (HARD DELETE) toutes les versions VFC
-     * d'un véhicule dont `effective_from` est postérieure ou égale à
-     * la date donnée. Utilisé par la cascade rétroactive : quand on
-     * crée une nouvelle version avec `effective_from` dans le passé,
-     * toutes les versions postérieures n'ont plus de sens et sont
-     * effacées.
+     * Physically deletes (HARD DELETE) all VFC versions of a vehicle
+     * whose `effective_from` is on or after the given date. Used by the
+     * retroactive cascade: when a new version is created in the past,
+     * all later versions no longer make sense and are wiped.
      *
-     * @return int Nombre de lignes supprimées
+     * @return int Number of deleted rows
      */
     public function deleteVersionsFromDate(
         int $vehicleId,
@@ -76,9 +72,9 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): int;
 
     /**
-     * Met à jour la borne `effective_from` d'une version existante.
-     * Utilisé pour ajuster la VFC suivante quand sa précédente est
-     * supprimée et que l'utilisateur a choisi `ExtendNext`.
+     * Updates the `effective_from` bound of an existing version. Used
+     * to adjust the next VFC when its predecessor is deleted and the
+     * user chose `ExtendNext`.
      */
     public function setEffectiveFrom(
         int $fiscalId,
@@ -86,9 +82,9 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): VehicleFiscalCharacteristics;
 
     /**
-     * UPDATE complet (bornes + champs fiscaux + motif/note) d'une VFC
-     * historique depuis la modale Historique. Les invariants
-     * inter-versions sont validés en amont par l'Action.
+     * Full UPDATE (bounds + fiscal fields + reason/note) of a historical
+     * VFC from the History modal. Inter-version invariants are validated
+     * upstream by the Action.
      */
     public function updateBoundsAndFields(
         int $fiscalId,
@@ -96,10 +92,10 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): VehicleFiscalCharacteristics;
 
     /**
-     * INSERT d'une nouvelle VFC ajoutée depuis la modale Historique
-     * (bouton « + Ajouter une entrée »). L'orchestration des impacts
-     * sur les voisines (Delete/Adjust) est gérée par l'Action appelante
-     * en amont · ce writer ne s'occupe que de l'insertion brute.
+     * Inserts a new VFC added from the History modal ("+ Add entry"
+     * button). Adjustments on neighbours (Delete/Adjust) are handled by
+     * the calling Action upstream · this writer only performs the raw
+     * insert.
      */
     public function createFromBoundsAndFields(
         int $vehicleId,
@@ -107,8 +103,8 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): VehicleFiscalCharacteristics;
 
     /**
-     * Supprime physiquement (HARD DELETE) une VFC unique. L'éventuel
-     * comblement du trou laissé est à la charge de l'Action appelante.
+     * Physically deletes (HARD DELETE) a single VFC. Backfilling any
+     * gap left behind is the responsibility of the calling Action.
      */
     public function deleteOne(int $fiscalId): void;
 }

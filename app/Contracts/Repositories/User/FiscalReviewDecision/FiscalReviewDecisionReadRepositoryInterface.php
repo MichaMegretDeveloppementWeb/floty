@@ -8,21 +8,21 @@ use App\Models\FiscalReviewDecision;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Lectures FiscalReviewDecision (Phase 11 D1, ADR-0015 § 5.2).
+ * FiscalReviewDecision reads (ADR-0015 § 5.2).
  *
- * Identité fonctionnelle : `(company, year, cluster_fingerprint)`. Le
- * fingerprint est le hash déterministe d'un cluster de risque, ce qui
- * permet la persistance « cross-régénération » (D3 : si le cluster
- * existe toujours après recalcul, sa décision est auto-reprise).
+ * Functional identity: `(company, year, cluster_fingerprint)`. The
+ * fingerprint is the deterministic hash of a risk cluster, allowing
+ * cross-regeneration persistence (if the cluster still exists after a
+ * recompute, its decision is automatically rehydrated).
  */
 interface FiscalReviewDecisionReadRepositoryInterface
 {
     public function findByFingerprint(int $companyId, int $year, string $fingerprint): ?FiscalReviewDecision;
 
     /**
-     * Toutes les décisions (conservées + requalifiées) pour le couple
-     * `(company, year)`. Sert au moteur de revue D3 pour réinjecter les
-     * décisions persistées sur les clusters fraîchement détectés.
+     * All decisions (kept + requalified) for the `(company, year)`
+     * couple. Used by the review engine to reinject persisted decisions
+     * onto freshly detected clusters.
      *
      * @return Collection<int, FiscalReviewDecision>
      */

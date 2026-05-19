@@ -10,70 +10,68 @@ use App\Models\VehicleFiscalCharacteristics;
 use DateTimeInterface;
 
 /**
- * Lectures sur l'historique des caractéristiques fiscales d'un véhicule.
+ * Reads on the historical fiscal characteristics of a vehicle.
  *
- * Utilisé par le moteur fiscal pour résoudre la période active à un
- * instant donné. Séparé de {@see VehicleReadRepositoryInterface} car le
- * moteur fiscal ne dépend pas du Vehicle dans son ensemble - uniquement
- * de la période fiscale courante.
+ * Used by the fiscal engine to resolve the active period at a given
+ * instant. Separated from {@see VehicleReadRepositoryInterface}
+ * because the fiscal engine does not depend on the Vehicle as a whole,
+ * only on the current fiscal period.
  */
 interface VehicleFiscalCharacteristicsReadRepositoryInterface
 {
     /**
-     * Caractéristiques fiscales courantes (`effective_to IS NULL`,
-     * dernière en date par `effective_from`) d'un véhicule donné.
-     * Renvoie `null` si le véhicule n'a aucune période active.
+     * Current fiscal characteristics (`effective_to IS NULL`, latest
+     * by `effective_from`) of a vehicle. Returns `null` if the vehicle
+     * has no active period.
      */
     public function findCurrentForVehicle(Vehicle $vehicle): ?VehicleFiscalCharacteristics;
 
     /**
-     * Tous les segments VFC effectifs durant l'année fiscale donnée,
-     * triés par `start ASC`. Bornes clippées à `[year-01-01,
-     * year-12-31]` (incluses).
+     * All VFC segments effective during the given fiscal year, sorted
+     * by `start ASC`. Bounds clipped to `[year-01-01, year-12-31]`
+     * (inclusive).
      *
-     * Une VFC est incluse ssi `effective_from <= year-12-31` ET
-     * (`effective_to IS NULL` OU `effective_to >= year-01-01`).
+     * A VFC is included iff `effective_from <= year-12-31` AND
+     * (`effective_to IS NULL` OR `effective_to >= year-01-01`).
      *
-     * Renvoie une liste vide si aucune VFC n'est active sur l'année
-     * (véhicule créé après l'année calculée par exemple). C'est à
-     * l'appelant ({@see App\Fiscal\Pipeline\FiscalSegmentedExecutor})
-     * de décider quoi faire · typiquement throw
+     * Returns an empty list when no VFC is active over the year
+     * (vehicle created after the computed year for example). It is up
+     * to the caller ({@see App\Fiscal\Pipeline\FiscalSegmentedExecutor})
+     * to decide what to do · typically throw
      * `FiscalCalculationException::missingFiscalCharacteristics`.
      *
-     * Toujours une query SQL · cf. doc-block sur l'implémentation pour
-     * l'historique du raccourci `relationLoaded()` retiré (les
-     * eager-loads VFC du projet sont quasi tous restreints à
-     * `effective_to IS NULL`, donc le raccourci masquait silencieusement
-     * les VFC historiques sur les véhicules multi-VFC).
+     * Always issues a SQL query: most eager-loads in the project are
+     * restricted to `effective_to IS NULL`, so a `relationLoaded()`
+     * shortcut would silently mask historical VFCs on multi-VFC
+     * vehicles.
      *
-     * Pour batcher la lecture sur N véhicules dans le même contexte
-     * (Index pages, prewarm aggregator), préférer
-     * {@see findEffectiveSegmentsForYearBatch} qui collapse N+1 queries
-     * en 1 seule.
+     * To batch the read on N vehicles in the same context (Index
+     * pages, aggregator prewarm), prefer
+     * {@see findEffectiveSegmentsForYearBatch} which collapses N+1
+     * queries into a single one.
      *
      * @return list<VfcEffectiveSegment>
      */
     public function findEffectiveSegmentsForYear(Vehicle $vehicle, int $year): array;
 
     /**
-     * Variante batch de {@see findEffectiveSegmentsForYear} · charge en
-     * **une seule query SQL** les segments VFC effectifs sur l'année
-     * pour tous les `$vehicleIds` demandés, et retourne un map
-     * `vehicleId → list<VfcEffectiveSegment>` (chaque liste triée par
+     * Batch variant of {@see findEffectiveSegmentsForYear} · loads in a
+     * single SQL query the VFC segments effective over the year for
+     * all `$vehicleIds`, and returns a map
+     * `vehicleId → list<VfcEffectiveSegment>` (each list sorted by
      * `start ASC`).
      *
-     * Cas d'usage · l'Index Contracts a N véhicules distincts dont
-     * il faut calculer la taxe pleine année · au lieu de N queries
-     * (1 par véhicule) on en fait 1.
+     * Use case: the Contracts Index has N distinct vehicles whose full
+     * year tax must be computed · instead of N queries (one per
+     * vehicle), one query is issued.
      *
-     * **Équivalence garantie** · pour tout `vehicleId` présent dans
-     * `$vehicleIds`, le résultat est strictement identique à
-     * `findEffectiveSegmentsForYear($vehicle, $year)`. Cette
-     * équivalence est couverte par
+     * Equivalence guarantee: for any `vehicleId` present in
+     * `$vehicleIds`, the result is strictly identical to
+     * `findEffectiveSegmentsForYear($vehicle, $year)`. Covered by
      * `VehicleFiscalCharacteristicsReadRepositoryTest::batch_equivalent_a_appel_individuel`.
      *
-     * Les véhicules sans aucune VFC sur l'année apparaissent dans le
-     * map avec une liste vide.
+     * Vehicles without any VFC over the year appear in the map with an
+     * empty list.
      *
      * @param  list<int>  $vehicleIds
      * @return array<int, list<VfcEffectiveSegment>>
@@ -81,10 +79,9 @@ interface VehicleFiscalCharacteristicsReadRepositoryInterface
     public function findEffectiveSegmentsForYearBatch(array $vehicleIds, int $year): array;
 
     /**
-     * Dernière VFC d'un véhicule dont `effective_from` est strictement
-     * antérieure à la date donnée. Utilisée pour ajuster la borne
-     * `effective_to` de la version qui précède une nouvelle version
-     * insérée à `$date`.
+     * Latest VFC of a vehicle whose `effective_from` is strictly before
+     * the given date. Used to adjust the `effective_to` bound of the
+     * version preceding a new version inserted at `$date`.
      */
     public function findLastVersionStrictlyBefore(
         int $vehicleId,
@@ -92,18 +89,18 @@ interface VehicleFiscalCharacteristicsReadRepositoryInterface
     ): ?VehicleFiscalCharacteristics;
 
     /**
-     * Lookup unitaire - échoue si l'id n'existe pas (404).
+     * Unitary lookup · throws 404 if the id does not exist.
      */
     public function findById(int $id): VehicleFiscalCharacteristics;
 
     /**
-     * VFC immédiatement adjacente (par ordre `effective_from`) à une
-     * VFC donnée - soit la précédente (`direction = -1`), soit la
-     * suivante (`direction = +1`). Utilisée pour combler les trous
-     * créés par la modification des bornes ou la suppression.
+     * VFC immediately adjacent (by `effective_from` order) to a given
+     * VFC · either the previous one (`direction = -1`) or the next one
+     * (`direction = +1`). Used to fill gaps created by bound
+     * modification or deletion.
      *
-     * Renvoie `null` si la VFC fournie est respectivement la première
-     * ou la dernière de l'historique.
+     * Returns `null` if the given VFC is respectively the first or the
+     * last in the history.
      *
      * @param  -1|1  $direction
      */
@@ -113,15 +110,16 @@ interface VehicleFiscalCharacteristicsReadRepositoryInterface
     ): ?VehicleFiscalCharacteristics;
 
     /**
-     * Compte le nombre de VFC d'un véhicule. Utilisé par l'Action de
-     * suppression pour bloquer la suppression de l'unique VFC.
+     * Counts the VFCs of a vehicle. Used by the deletion Action to
+     * block deleting the only VFC.
      */
     public function countForVehicle(int $vehicleId): int;
 
     /**
-     * Toutes les VFC d'un véhicule sauf une (par id), triées par
-     * `effective_from ASC`. Utilisé par l'Action d'édition pour calculer
-     * les impacts sur les voisines (cf. {@see App\Services\Vehicle\FiscalCharacteristicsImpactComputer}).
+     * All VFCs of a vehicle except one (by id), sorted by
+     * `effective_from ASC`. Used by the edit Action to compute impacts
+     * on neighbours (cf.
+     * {@see App\Services\Vehicle\FiscalCharacteristicsImpactComputer}).
      *
      * @return list<VehicleFiscalCharacteristics>
      */

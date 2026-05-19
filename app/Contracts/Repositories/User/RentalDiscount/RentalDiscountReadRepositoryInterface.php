@@ -10,58 +10,56 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Lectures sur les réductions commerciales appliquées aux loyers.
+ * Reads on commercial rental discounts applied to rents.
  *
- * Cf. ADR-0013 (couches strictes Controller→Action→Service→Repository).
- *
- * Consommé par ·
- *   - `RentalDiscountConflictService` pour la validation chevauchement
- *   - `DiscountResolver` (lot 2) pour le préchargement batch lors du
- *     calcul de facture
- *   - `RentalDiscountQueryService` (lot 4) pour les vues Index/Show
- *   - `Vehicle*Repository` (lot 2) pour le check « véhicule listé dans
- *     une réduction active » avant suppression
+ * Consumed by:
+ *   - `RentalDiscountConflictService` for overlap validation
+ *   - `DiscountResolver` for batch preloading during invoice
+ *     computation
+ *   - `RentalDiscountQueryService` for the Index/Show views
+ *   - `Vehicle*Repository` for the "vehicle listed in an active
+ *     discount" check before deletion
  */
 interface RentalDiscountReadRepositoryInterface
 {
     /**
-     * Récupère une réduction par id avec ses véhicules attachés
-     * (eager-load `vehicles`). Renvoie `null` si non trouvée ou
-     * soft-deletée.
+     * Retrieves a discount by id with its attached vehicles
+     * (eager-load `vehicles`). Returns `null` if not found or
+     * soft-deleted.
      */
     public function findById(int $id): ?RentalDiscount;
 
     /**
-     * Variante incluant les soft-deletées · pour les vues d'audit /
-     * détails de facture émises qui référencent une réduction archivée.
+     * Variant including soft-deleted · for audit views / details of
+     * emitted invoices referencing an archived discount.
      */
     public function findByIdWithTrashed(int $id): ?RentalDiscount;
 
     /**
-     * Retourne **vrai** ssi au moins une réduction non soft-deletée
-     * existe en base. Sert au flag `hasAnyRentalDiscount` exposé en
-     * payload Inertia pour distinguer empty state de "filtre actif
-     * sans résultat" (mémoire `feedback_index_has_any_required`).
+     * Returns true iff at least one non soft-deleted discount exists.
+     * Feeds the `hasAnyRentalDiscount` flag exposed in the Inertia
+     * payload to distinguish empty state from "active filter without
+     * results".
      */
     public function existsAny(): bool;
 
     /**
-     * Toutes les réductions actives ou planifiées d'une entreprise qui
-     * croisent l'année donnée (start_date <= 31/12/Y et end_date >= 01/01/Y).
-     * Eager-load `vehicles`. Triées par `start_date` croissante.
+     * All active or planned discounts of a company crossing the given
+     * year (start_date <= 31/12/Y and end_date >= 01/01/Y). Eager-loads
+     * `vehicles`. Sorted by `start_date` ascending.
      *
-     * Utilisée par le `DiscountResolver` pour préchargement batch.
+     * Used by `DiscountResolver` for batch preloading.
      *
      * @return Collection<int, RentalDiscount>
      */
     public function findActiveForCompanyYear(int $companyId, int $year): Collection;
 
     /**
-     * Variante multi-entreprises · 1 SQL pour N entreprises sur
-     * l'année donnée. Eager-load `vehicles`.
+     * Multi-company variant · one SQL query for N companies on the
+     * given year. Eager-loads `vehicles`.
      *
-     * Utilisée par le `DiscountResolver` lors du batch Dashboard
-     * `totalRecettesForYears` (cross-cies × cross-années).
+     * Used by `DiscountResolver` during the Dashboard batch
+     * `totalRecettesForYears` (cross-companies × cross-years).
      *
      * @param  list<int>  $companyIds
      * @return Collection<int, RentalDiscount>
@@ -69,13 +67,13 @@ interface RentalDiscountReadRepositoryInterface
     public function findActiveForCompaniesYear(array $companyIds, int $year): Collection;
 
     /**
-     * Retourne les réductions d'une entreprise dont la période
-     * chevauche `[startDate, endDate]` (inclusif). Eager-load `vehicles`.
-     * `excludeId` permet d'exclure une réduction en cours d'édition.
+     * Returns the company's discounts whose period overlaps
+     * `[startDate, endDate]` (inclusive). Eager-loads `vehicles`.
+     * `excludeId` allows excluding a discount being edited.
      *
-     * Utilisée par le `RentalDiscountConflictService`. Le filtrage par
-     * intersection véhicules se fait en PHP côté service (le pivot est
-     * petit, < 50 véhicules typique).
+     * Used by `RentalDiscountConflictService`. The vehicle intersection
+     * filter is done in PHP server-side (the pivot is small,
+     * typically < 50 vehicles).
      *
      * @return Collection<int, RentalDiscount>
      */
@@ -87,50 +85,48 @@ interface RentalDiscountReadRepositoryInterface
     ): Collection;
 
     /**
-     * Retourne les réductions actives à une date donnée qui listent
-     * explicitement le véhicule donné (= pivot non vide ET vehicle_id
-     * y figure). Sert au check « ce véhicule est-il bloqué pour
-     * suppression ? » (lot 2 · `VehicleInUseByDiscountException`).
+     * Returns the discounts active at a given date that explicitly
+     * list the given vehicle (pivot non-empty AND vehicle_id is in
+     * it). Feeds the "is this vehicle blocked for deletion?" check
+     * (cf. `VehicleInUseByDiscountException`).
      *
-     * Note · les réductions « tous véhicules » (pivot vide) ne bloquent
-     * PAS la suppression d'un véhicule, car ce dernier n'y est pas
-     * référencé · sa suppression réduit silencieusement le périmètre
-     * effectif (cohérent avec la sémantique « tous les véhicules
-     * actuels »).
+     * Note: "all vehicles" discounts (empty pivot) do NOT block
+     * vehicle deletion, because the vehicle is not referenced there ·
+     * its deletion silently shrinks the effective perimeter (consistent
+     * with the "all current vehicles" semantic).
      *
      * @return Collection<int, RentalDiscount>
      */
     public function findActiveListingVehicleOn(int $vehicleId, string $date): Collection;
 
     /**
-     * Toutes les réductions non soft-deletées d'une entreprise, eager-load
-     * `vehicles` + `company`. Triées par `start_date` décroissant (plus
-     * récentes en premier, conforme à la convention UI Index). Sert à la
-     * section « Réductions commerciales » de l'onglet Facturation Company
-     * Show (Lot 3 · propagation UI).
+     * All non soft-deleted discounts of a company, eager-loading
+     * `vehicles` + `company`. Sorted by `start_date` descending
+     * (newest first, per Index UI convention). Feeds the "Commercial
+     * discounts" section of the Billing tab on Company Show.
      *
      * @return Collection<int, RentalDiscount>
      */
     public function findForCompany(int $companyId): Collection;
 
     /**
-     * Index server-side paginé (cf. ADR-0020) · Lot 4 du chantier
-     * RentalDiscount. Applique filtres (companyId, status, search) et
-     * tri whitelisté en SQL natif. Eager-load `vehicles` + `company`
-     * pour alimenter `RentalDiscountListItemData`.
+     * Server-side paginated Index (ADR-0020). Applies filters
+     * (companyId, status, search) and a whitelisted sort in raw SQL.
+     * Eager-loads `vehicles` + `company` to feed
+     * `RentalDiscountListItemData`.
      *
      * @return LengthAwarePaginator<int, RentalDiscount>
      */
     public function paginateForIndex(RentalDiscountIndexQueryData $query): LengthAwarePaginator;
 
     /**
-     * Détail Show · eager-load `vehicles` + `company` + `createdBy`.
+     * Show detail · eager-loads `vehicles` + `company` + `createdBy`.
      */
     public function findByIdForShow(int $id): ?RentalDiscount;
 
     /**
-     * Compteurs pour le bandeau stats sur la page Index ·
-     * `{actives, planned, expired}` par rapport à la date du jour.
+     * Counters for the stats banner on the Index ·
+     * `{active, planned, expired}` relative to today.
      *
      * @return array{active: int, planned: int, expired: int}
      */

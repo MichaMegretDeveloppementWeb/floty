@@ -7,12 +7,12 @@ namespace App\Contracts\Repositories\User\Billing;
 use App\Models\BillingSettings;
 
 /**
- * Lecture de l'émetteur de facture (Phase 14.G V1.2 · singleton).
+ * Invoice issuer read (singleton).
  */
 interface BillingSettingsReadRepositoryInterface
 {
     /**
-     * Retourne l'unique row (création automatique si table vide).
+     * Returns the unique row (auto-creation when the table is empty).
      */
     public function get(): BillingSettings;
 }

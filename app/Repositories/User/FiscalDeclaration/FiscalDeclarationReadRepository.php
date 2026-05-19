@@ -25,18 +25,18 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
 
     public function findActiveForCompanyYear(int $companyId, int $year): ?FiscalDeclaration
     {
-        // Lot 5 D3 · `orderByDesc('id')` garantit le déterminisme dans
-        // le cas pathologique où 2 lignes actives co-existeraient pour le
-        // même couple. En production cet état est désormais impossible
-        // par construction grâce à l'index unique partial introduit par
-        // la migration `add_unique_index_to_fiscal_declarations` (colonne
-        // virtuelle MySQL 8 `active_uniqueness_key`), mais on maintient
-        // l'ordre côté repo comme défense en profondeur (et pour les
-        // tests qui pourraient encore créer des doublons via factory en
-        // bypassant la contrainte par erreur).
+        // `orderByDesc('id')` guarantees determinism in the
+        // pathological case where two active rows coexist for the same
+        // couple. In production this state is now impossible by
+        // construction thanks to the partial UNIQUE index introduced
+        // by the `add_unique_index_to_fiscal_declarations` migration
+        // (MySQL 8 virtual column `active_uniqueness_key`), but the
+        // order is kept here as defence in depth (and for tests that
+        // could still create duplicates via factory bypassing the
+        // constraint by mistake).
         //
-        // Eager loading `company` aligné sur `findCurrentForCompanyYear`
-        // pour éviter un éventuel N+1 chez les consumers.
+        // Eager loading `company` aligned with
+        // `findCurrentForCompanyYear` to avoid N+1 in consumers.
         return FiscalDeclaration::query()
             ->with(['company:id,short_code,legal_name,color'])
             ->where('company_id', $companyId)
@@ -48,12 +48,12 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
 
     public function findCurrentForCompanyYear(int $companyId, int $year): ?FiscalDeclaration
     {
-        // « Head » de la chaîne · dernier maillon, la déclaration qui
-        // ne pointe vers aucune autre via `superseded_by_id` (donc
-        // n'a pas encore été remplacée). Une déclaration obsolète
-        // orpheline (S6) reste « head » jusqu'à ce qu'un Draft de
-        // régénération soit créé et lui assigne `superseded_by_id`,
-        // moment où le Draft devient la nouvelle head (S7).
+        // Head of the chain · last link, the declaration that points
+        // to no other via `superseded_by_id` (so has not yet been
+        // replaced). An orphan obsolete declaration remains head until
+        // a regeneration Draft is created and assigns
+        // `superseded_by_id`, at which point the Draft becomes the
+        // new head.
         return FiscalDeclaration::query()
             ->with(['company:id,short_code,legal_name,color'])
             ->where('company_id', $companyId)
@@ -65,8 +65,8 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
 
     public function findPredecessorOf(int $declarationId): ?FiscalDeclaration
     {
-        // Déclaration X telle que X.superseded_by_id = $declarationId.
-        // En pratique 1 seule (chaîne linéaire 1 ancien → 1 nouveau).
+        // Declaration X such that X.superseded_by_id = $declarationId.
+        // In practice a single one (linear chain old → new).
         return FiscalDeclaration::query()
             ->with(['company:id,short_code,legal_name,color'])
             ->where('superseded_by_id', $declarationId)
@@ -136,15 +136,14 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
             ->select('fiscal_declarations.*')
             ->with([
                 'company:id,short_code,legal_name,color',
-                // Phase 11 D5.8.5 · charge le successeur pour pouvoir
-                // distinguer S6 (obsolète orphan) de S7 (Draft chaîné)
-                // dans la pill statut de l'Index. Phase 13 D5.10.F · on
-                // ajoute la `reference` pour rendre les sous-mentions
-                // « Régénération en cours · DECL-XXX » et « Remplacée
-                // par DECL-XXX ».
+                // Loads the successor so we can distinguish an orphan
+                // obsolete from a chained Draft in the Index status
+                // pill; `reference` feeds the sub-mentions
+                // "Regeneration in progress · DECL-XXX" and "Replaced
+                // by DECL-XXX".
                 'supersededBy:id,status,reference',
-                // Phase 13 D5.10.F · charge le predecessor pour rendre
-                // la sous-mention « Remplace DECL-XXX » côté Index.
+                // Loads the predecessor to render the sub-mention
+                // "Replaces DECL-XXX" on the Index.
                 'supersedes:id,status,reference,superseded_by_id',
             ]);
 
@@ -161,29 +160,25 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
             $eloquentQuery->where('fiscal_declarations.is_obsolete', true);
         }
 
-        // Phase 13 D5.10.F + D5.10.H · recherche par référence avec
-        // expansion de chaîne (algorithme 2-branches). L'utilisateur
-        // tape une référence (fragment de DECL-XXX-YYYY-NNNN) OU un
-        // label brouillon (« Brouillon #4 » / « #4 » / « 4 ») · on
-        // identifie les couples `(company_id, fiscal_year)` qui
-        // matchent, puis on retourne **toutes** les déclarations de
-        // ces couples (expansion chaîne).
+        // Reference search with chain expansion (two-branch algorithm).
+        // The user types a reference (fragment of DECL-XXX-YYYY-NNNN)
+        // OR a draft label ("Brouillon #4" / "#4" / "4"). The matching
+        // `(company_id, fiscal_year)` couples are identified, then all
+        // declarations of those couples are returned (chain expansion).
         //
-        // Branche Q1 · LIKE %term% sur la colonne reference. Le
-        // domaine fiscal Floty est structurellement borné (~300
-        // lignes max sur 10 ans pour un client), donc le full scan
-        // est sub-100ms. Pas de FULLTEXT, pas de dette · c'est le bon
-        // choix architectural pour ce domaine.
+        // Branch Q1 · LIKE %term% on the `reference` column. The Floty
+        // fiscal domain is structurally bounded (~300 rows max over 10
+        // years for a client), so a full scan is sub-100ms.
         //
-        // Branche Q2 · si `term` matche un pattern brouillon, on fait
-        // un lookup PK direct (instantané) sur l'id extrait.
+        // Branch Q2 · if `term` matches a draft pattern, direct PK
+        // lookup on the extracted id (instantaneous).
         if ($query->search !== null && trim($query->search) !== '') {
             $term = trim($query->search);
 
-            // Q1 · couples avec une reference matchante. `toBase()` pour
-            // que `merge()` utilise la déduplication d'Illuminate Collection
-            // (sur clés) au lieu de l'Eloquent Collection (sur PK · qui
-            // exige `id` dans le select).
+            // Q1 · couples with a matching reference. `toBase()` so
+            // `merge()` uses Illuminate Collection deduplication (by
+            // keys) instead of Eloquent Collection (by PK, which would
+            // require `id` in the select).
             $pairsFromReference = FiscalDeclaration::query()
                 ->whereNotNull('reference')
                 ->where('reference', 'LIKE', '%'.$term.'%')
@@ -228,7 +223,7 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
             'reference' => $eloquentQuery->orderBy('fiscal_declarations.reference', $direction),
             'status' => $eloquentQuery->orderBy('fiscal_declarations.status', $direction),
             'generatedAt' => $eloquentQuery->orderBy('fiscal_declarations.generated_at', $direction),
-            // Défaut : plus récente en premier (year DESC, company ASC).
+            // Default: newest first (year DESC, company ASC).
             default => $eloquentQuery
                 ->orderByDesc('fiscal_declarations.fiscal_year')
                 ->orderBy('fiscal_declarations.company_id')

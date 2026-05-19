@@ -15,11 +15,11 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 {
     public function findById(int $id): ?Invoice
     {
-        // `withTrashed()` : la page Show est navigable même pour les
-        // versions obsolètes (soft-deletées par régénération) · l'UI
-        // affichera un bandeau « Remplacée par #XXX ». Les listings
-        // utilisent leur propre builder via `paginateForIndex` qui gère
-        // le filtre `includeObsolete` séparément.
+        // `withTrashed()`: the Show page is navigable even for
+        // obsolete versions (soft-deleted by regeneration) · the UI
+        // displays a "Replaced by #XXX" banner. Listings use their
+        // own builder via `paginateForIndex` which handles the
+        // `includeObsolete` filter separately.
         return Invoice::query()
             ->withTrashed()
             ->with([
@@ -33,8 +33,8 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 
     public function findHistoryChainFor(Invoice $invoice): array
     {
-        // Toutes les versions du même couple (company, year, month),
-        // incluant les soft-deletées. Une seule requête, pas de N+1.
+        // All versions of the same (company, year, month) couple,
+        // including soft-deleted ones. Single query, no N+1.
         return Invoice::query()
             ->withTrashed()
             ->where('company_id', $invoice->company_id)
@@ -46,11 +46,11 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 
     public function findPredecessor(int $invoiceId): ?Invoice
     {
-        // Une facture est « predecessor » de $invoiceId si elle pointe
-        // vers $invoiceId via `superseded_by_id`. Si plusieurs versions
-        // ont été chaînées (cas multi-régénération), on prend la plus
-        // récente directement remplacée · l'historique antérieur est
-        // accessible via le predecessor du predecessor.
+        // An invoice is "predecessor" of $invoiceId if it points to
+        // $invoiceId via `superseded_by_id`. With multiple chained
+        // versions (multi-regeneration case), the most recent direct
+        // predecessor is returned · earlier history is reachable via
+        // the predecessor's own predecessor.
         return Invoice::query()
             ->withTrashed()
             ->where('superseded_by_id', $invoiceId)
@@ -60,9 +60,9 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 
     public function findForCompanyYearMonth(int $companyId, int $year, int $month): ?Invoice
     {
-        // `withoutTrashed()` (défaut) : seules les factures actives
-        // bloquent une nouvelle génération · les versions obsolètes
-        // soft-deletées ne sont plus considérées comme « existantes ».
+        // `withoutTrashed()` (default): only active invoices block a
+        // new generation · soft-deleted obsolete versions are no
+        // longer considered "existing".
         return Invoice::query()
             ->where('company_id', $companyId)
             ->where('year', $year)
@@ -72,13 +72,12 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 
     public function findExistingByMonthForCompanyYear(int $companyId, int $year): array
     {
-        // `withSum` matérialise une sub-query SQL pour le total `days_used`
-        // des `invoice_lines` rattachées · single query, pas de N+1.
-        //
-        // Lot 2 réductions commerciales · ajoute `total_gross_cents` et
-        // `total_discount_cents` au select pour permettre à
-        // {@see BillingBreakdownService} d'exposer le snapshot
-        // brut/réduction de la facture émise sans 2e requête.
+        // `withSum` materialises a SQL sub-query for the total
+        // `days_used` of attached `invoice_lines` · single query, no
+        // N+1. `total_gross_cents` and `total_discount_cents` are
+        // selected so {@see BillingBreakdownService} can expose the
+        // gross/discount snapshot of the emitted invoice without a
+        // second query.
         $rows = Invoice::query()
             ->select('id', 'month', 'invoice_number', 'total_ht_cents', 'total_gross_cents', 'total_discount_cents')
             ->where('company_id', $companyId)
@@ -103,20 +102,21 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
 
     public function maxSequenceForYearMonth(int $year, int $month): int
     {
-        // `invoice_number` format `YYYY-MM-NNNN` ; la séquence est les
-        // 4 derniers caractères. SQLite (tests) ne supporte pas le cast
-        // SUBSTRING en int dans MAX() de manière portable ; on extrait
-        // côté PHP · coût O(n) acceptable (n = factures du mois, < 100).
+        // `invoice_number` format `YYYY-MM-NNNN`; the sequence is the
+        // last 4 characters. SQLite (tests) does not portably support
+        // SUBSTRING cast to int inside MAX(); extracted in PHP · O(n)
+        // cost acceptable (n = invoices of the month, < 100).
         //
-        // `lockForUpdate()` (chantier T4 / Phase 14.P) : verrou pessimiste
-        // pour empêcher deux générations concurrentes de calculer la même
-        // séquence et de violer l'UNIQUE `invoice_number`. N'a d'effet
-        // qu'à l'intérieur d'une transaction (cas appelant garanti par
-        // `GenerateInvoiceAction::execute()` qui wrappe en `DB::transaction`).
-        // `withTrashed()` : on inclut les factures soft-deletées (versions
-        // obsolètes après régénération) pour ne JAMAIS réutiliser un
-        // numéro déjà attribué · conforme à l'art. 242 nonies A annexe II
-        // CGI (numérotation continue sans rupture, jamais de réutilisation).
+        // `lockForUpdate()`: pessimistic lock preventing two
+        // concurrent generations from computing the same sequence and
+        // violating the UNIQUE `invoice_number`. Only effective inside
+        // a transaction (caller `GenerateInvoiceAction::execute()`
+        // wraps in `DB::transaction`).
+        //
+        // `withTrashed()`: includes soft-deleted invoices (obsolete
+        // versions after regeneration) to NEVER reuse a previously
+        // attributed number · per art. 242 nonies A annexe II CGI
+        // (continuous numbering, no gap and no reuse).
         $rows = Invoice::query()
             ->withTrashed()
             ->where('year', $year)
@@ -170,13 +170,11 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
     }
 
     /**
-     * Builder de l'Index Invoices. Applique tous les filtres SQL
-     * (company, year, month, search, divergentOnly) et le tri
-     * whitelisté.
+     * Index Invoices builder. Applies all SQL filters (company, year,
+     * month, search, divergentOnly) and the whitelisted sort.
      *
-     * Depuis T6 / Phase 14.R, `divergentOnly` est un simple
-     * `WHERE is_divergent = 1` SQL natif (la flag est posée par
-     * observers à l'écriture, plus de recalcul à la lecture).
+     * `divergentOnly` is a plain `WHERE is_divergent = 1` · the flag
+     * is set by observers on write, no recompute at read time.
      *
      * @return Builder<Invoice>
      */
@@ -191,16 +189,16 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
                 'supersededBy:id,invoice_number',
             ]);
 
-        // Inclusion des versions obsolètes (soft-deletées). Défaut `false`
-        // pour garder la liste dense · le user a expliqué qu'avec ~12
-        // factures/an/entreprise, masquer les obsolètes par défaut est
-        // crucial. La case « Inclure les versions obsolètes » du filtre
-        // débraye le scope global SoftDeletes.
+        // Include obsolete (soft-deleted) versions. Default `false`
+        // to keep the list dense · with ~12 invoices/year/company,
+        // hiding obsoletes by default is crucial. The "Include
+        // obsolete versions" filter checkbox releases the global
+        // SoftDeletes scope.
         if ($query->includeObsolete) {
             $eloquentQuery->withTrashed();
         }
 
-        // Filtres exact match.
+        // Exact-match filters.
         if ($query->companyId !== null) {
             $eloquentQuery->where('invoices.company_id', $query->companyId);
         }
@@ -214,7 +212,7 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
             $eloquentQuery->where('invoices.is_divergent', true);
         }
 
-        // Search LIKE sur invoice_number + company short_code + legal_name.
+        // Search LIKE on invoice_number + company short_code + legal_name.
         if ($query->search !== null) {
             $term = '%'.$query->search.'%';
             $eloquentQuery->where(function (Builder $w) use ($term): void {
@@ -225,7 +223,7 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
             });
         }
 
-        // Tri whitelist.
+        // Whitelisted sort.
         match ($query->sortKey) {
             'invoiceNumber' => $eloquentQuery->orderBy('invoices.invoice_number', $direction),
             'company' => $eloquentQuery
@@ -236,7 +234,7 @@ final class InvoiceReadRepository implements InvoiceReadRepositoryInterface
                 ->orderBy('invoices.month', $direction),
             'totalHt' => $eloquentQuery->orderBy('invoices.total_ht_cents', $direction),
             'generatedAt' => $eloquentQuery->orderBy('invoices.generated_at', $direction),
-            // Défaut : plus récente en premier (year+month DESC).
+            // Default: newest first (year+month DESC).
             default => $eloquentQuery
                 ->orderByDesc('invoices.year')
                 ->orderByDesc('invoices.month')

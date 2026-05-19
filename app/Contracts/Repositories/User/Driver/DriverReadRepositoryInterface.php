@@ -14,10 +14,10 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Lectures Driver - interface slim conforme ADR-0013 (zéro transformation,
- * zéro décision métier ; les retours sont des Models / Collections bruts).
+ * Driver reads · slim interface per ADR-0013.
  *
- * Toute composition de DTO ou agrégat vit dans
+ * Zero transformation, zero business decision · returns raw Models /
+ * Collections. DTO composition lives in
  * {@see DriverQueryService}.
  */
 interface DriverReadRepositoryInterface
@@ -25,17 +25,18 @@ interface DriverReadRepositoryInterface
     public function findById(int $id): ?Driver;
 
     /**
-     * Driver avec memberships company + counts contrats - pour la page Show.
+     * Driver with company memberships + contract counts for the Show
+     * page.
      */
     public function findByIdWithRelations(int $id): ?Driver;
 
     /**
-     * Liste paginée server-side de l'Index drivers (cf. ADR-0020).
-     * Applique les paramètres `{search, sortKey, sortDirection, page,
-     * perPage}` du DTO en SQL pur via `where`/`orderBy`/`paginate`.
+     * Server-side paginated list for the Drivers Index (ADR-0020).
+     * Applies `{search, sortKey, sortDirection, page, perPage}` from
+     * the DTO as raw SQL via `where`/`orderBy`/`paginate`.
      *
-     * Eager-load des memberships actives + counts contracts + count
-     * companies actives pour permettre le tri sur `contractsCount` et
+     * Eager-loads active memberships + contracts counts + active
+     * companies count to allow sorting by `contractsCount` and
      * `activeCompaniesCount`.
      *
      * @return LengthAwarePaginator<int, Driver>
@@ -43,35 +44,34 @@ interface DriverReadRepositoryInterface
     public function paginateForIndex(DriverIndexQueryData $query): LengthAwarePaginator;
 
     /**
-     * `true` ssi au moins un driver existe en base (`SELECT EXISTS`).
-     * Utilisé par l'Index pour distinguer « table intrinsèquement vide
-     * (pas encore d'entité créée) » du « filtre actif retournant 0 ».
-     * Cf. note d'archi sur le flash placeholder.
+     * Returns true iff at least one driver exists (`SELECT EXISTS`).
+     * Used by the Index to distinguish an intrinsically empty table
+     * from an active filter returning zero rows.
      */
     public function existsAny(): bool;
 
     /**
-     * Liste plate de tous les drivers (triés nom/prénom). Utilisé par le
-     * filtre conducteur du Contracts Index, qui n'est pas restreint à une
-     * company / période.
+     * Flat list of all drivers (sorted by name/firstname). Used by the
+     * driver filter of the Contracts Index, which is not restricted to
+     * a company / period.
      *
      * @return Collection<int, Driver>
      */
     public function listAllForOptions(): Collection;
 
     /**
-     * Liste des drivers ayant **au moins une membership** (active ou
-     * historique) avec la company donnée. Utilisé par la section
-     * Conducteurs de Show Company.
+     * Drivers with at least one membership (active or historical) with
+     * the given company. Used by the Drivers section on the Company
+     * Show page.
      *
      * @return Collection<int, Driver>
      */
     public function listForCompany(int $companyId, bool $includeInactive = true): Collection;
 
     /**
-     * Drivers actifs dans la company sur **toute la période** [start, end] :
+     * Drivers active in the company over the whole period [start, end]:
      * `joined_at <= start AND (left_at IS NULL OR left_at >= end)`.
-     * Utilisé par le picker driver dans le formulaire Contract.
+     * Used by the driver picker on the Contract form.
      *
      * @return Collection<int, Driver>
      */
@@ -82,24 +82,24 @@ interface DriverReadRepositoryInterface
     ): Collection;
 
     /**
-     * Charge tous les drivers ayant au moins une membership (active ou
-     * passée) dans la company donnée, **avec leur(s) membership(s)**
-     * pré-chargée(s) (eager-load du pivot `driver_company` filtré sur
-     * cette company uniquement).
+     * Loads all drivers with at least one membership (active or past)
+     * in the given company, with their memberships eager-loaded (pivot
+     * `driver_company` filtered on this company only).
      *
-     * Variante batch utilisée par les services qui doivent appliquer en
-     * mémoire un filtre `joined_at <= X AND (left_at IS NULL OR left_at >= Y)`
-     * pour plusieurs (X, Y) distincts dans la même requête (Lot 3 D03 ·
-     * `DriverQueryService::futureContractsForLeavePreview` itère sur N
-     * contrats futurs et appelait N fois `listActiveInCompanyDuring`).
+     * Batch variant for services that need to apply in memory a filter
+     * `joined_at <= X AND (left_at IS NULL OR left_at >= Y)` for
+     * several (X, Y) pairs in the same request (e.g.
+     * `DriverQueryService::futureContractsForLeavePreview` iterates on
+     * N future contracts and used to call N times
+     * `listActiveInCompanyDuring`).
      *
      * @return Collection<int, Driver>
      */
     public function listAllInCompanyWithMemberships(int $companyId): Collection;
 
     /**
-     * Compte les contrats à venir (`start_date > leftAt`) du driver dans
-     * la company donnée. Utilisé par le workflow Q6 de pose de `left_at`.
+     * Counts the driver's upcoming contracts (`start_date > leftAt`) in
+     * the given company. Used by the "set left_at" workflow.
      */
     public function countFutureContractsInCompany(
         int $driverId,
@@ -108,8 +108,8 @@ interface DriverReadRepositoryInterface
     ): int;
 
     /**
-     * Liste les contrats à venir (`start_date > leftAt`) du driver dans
-     * la company donnée - pour exposer la liste dans la modale Q6.
+     * Lists the driver's upcoming contracts (`start_date > leftAt`) in
+     * the given company, to expose them in the leave modal.
      *
      * @return Collection<int, Contract>
      */
@@ -120,27 +120,28 @@ interface DriverReadRepositoryInterface
     ): Collection;
 
     /**
-     * Compte les contrats du driver groupés par company (1 seule requête).
-     * Utilisé par le détail driver pour alimenter les memberships sans N+1.
+     * Counts the driver's contracts grouped by company (single query).
+     * Used by the driver detail page to populate memberships without
+     * N+1.
      *
      * @return array<int, int> Map `[companyId => count]`
      */
     public function countContractsForDriverGroupedByCompany(int $driverId): array;
 
     /**
-     * Récupère la membership active la plus récente du driver dans la
-     * company donnée. Utilisée par le workflow Q6 (sortie d'une entreprise).
+     * Retrieves the most recent active membership of the driver in the
+     * given company. Used by the leave workflow.
      */
     public function findActiveMembership(int $driverId, int $companyId): ?DriverCompany;
 
     /**
-     * Récupère une membership par son id de pivot. Utilisée par le détachement.
+     * Retrieves a membership by its pivot id. Used by detachment.
      */
     public function findMembershipById(int $pivotId): ?DriverCompany;
 
     /**
-     * Compte le nombre total de contrats référençant ce driver (toutes
-     * companies, toutes périodes). Utilisé par la vérification pré-suppression.
+     * Counts the total number of contracts referencing this driver
+     * (all companies, all periods). Used by the pre-deletion check.
      */
     public function countContractsForDriver(int $driverId): int;
 }

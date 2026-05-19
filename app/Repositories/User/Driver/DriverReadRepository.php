@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Implémentation Eloquent des lectures Driver - slim conforme ADR-0013.
+ * Eloquent implementation of Driver reads · slim per ADR-0013.
  */
 final class DriverReadRepository implements DriverReadRepositoryInterface
 {
@@ -54,7 +54,7 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
                 $q->whereNull('driver_company.left_at');
             }]);
 
-        // Search par nom (LIKE sur first_name OU last_name).
+        // Name search (LIKE on first_name OR last_name).
         if ($query->search !== null) {
             $term = '%'.$query->search.'%';
             $eloquentQuery->where(function ($w) use ($term): void {
@@ -63,10 +63,10 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             });
         }
 
-        // Filtre entreprise · drivers ACTIVEMENT rattachés à l'entreprise
-        // (membership ouvert, left_at IS NULL). Les rattachements clos ne
-        // sont pas remontés : si un conducteur a quitté l'entreprise, on
-        // ne le voit plus apparaître quand on filtre sur celle-ci.
+        // Company filter · drivers actively bound to the company
+        // (open membership, left_at IS NULL). Closed memberships are
+        // excluded: a driver who left the company no longer appears
+        // when filtering on it.
         if ($query->companyId !== null) {
             $companyId = $query->companyId;
             $eloquentQuery->whereHas('companies', function ($q) use ($companyId): void {
@@ -75,7 +75,7 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             });
         }
 
-        // Filtre statut activité · au moins un membership ouvert / aucun.
+        // Activity status filter · at least one open membership / none.
         if ($query->activityStatus === 'active') {
             $eloquentQuery->whereHas('companies', function ($q): void {
                 $q->whereNull('driver_company.left_at');
@@ -86,21 +86,21 @@ final class DriverReadRepository implements DriverReadRepositoryInterface
             });
         }
 
-        // Filtre périmètre contrats · avec / sans contrat.
+        // Contracts scope filter · with / without contracts.
         if ($query->contractsScope === 'with') {
             $eloquentQuery->has('contracts');
         } elseif ($query->contractsScope === 'without') {
             $eloquentQuery->doesntHave('contracts');
         }
 
-        // Tri whitelisté (cf. DriverIndexQueryData::allowedSortKeys()).
+        // Whitelisted sort (cf. DriverIndexQueryData::allowedSortKeys()).
         match ($query->sortKey) {
             'fullName' => $eloquentQuery
                 ->orderBy('last_name', $direction)
                 ->orderBy('first_name', $direction),
             'contractsCount' => $eloquentQuery->orderBy('contracts_count', $direction),
             'activeCompaniesCount' => $eloquentQuery->orderBy('active_companies_count', $direction),
-            // Pas de sortKey explicite : tri par défaut alphabétique.
+            // No explicit sortKey: default alphabetical sort.
             default => $eloquentQuery->orderBy('last_name')->orderBy('first_name'),
         };
 

@@ -12,18 +12,17 @@ use Carbon\CarbonImmutable;
 use DateTimeInterface;
 
 /**
- * Implémentation Eloquent des lectures sur l'historique fiscal d'un
- * véhicule.
+ * Eloquent implementation of reads on the vehicle's fiscal history.
  */
 final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalCharacteristicsReadRepositoryInterface
 {
     public function findCurrentForVehicle(Vehicle $vehicle): ?VehicleFiscalCharacteristics
     {
-        // Si la relation est préchargée (eager load via `with(...)`),
-        // on travaille sur la collection en mémoire pour éviter une
-        // nouvelle requête SQL inutile. Évite le N+1 sur l'Index Flotte
-        // qui itère sur tous les véhicules avec leurs VFC déjà
-        // eager-loadées par {@see VehicleReadRepository::findAllForFleetView}.
+        // When the relation is already eager-loaded, work on the
+        // in-memory collection to avoid a useless extra SQL query.
+        // Avoids N+1 on the fleet Index iterating over all vehicles
+        // with their VFCs eager-loaded by
+        // {@see VehicleReadRepository::findAllForFleetView}.
         if ($vehicle->relationLoaded('fiscalCharacteristics')) {
             return $vehicle->fiscalCharacteristics
                 ->where('effective_to', null)
@@ -42,14 +41,14 @@ final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalC
         $yearStart = CarbonImmutable::create($year, 1, 1);
         $yearEnd = CarbonImmutable::create($year, 12, 31);
 
-        // Pas d'optimisation `relationLoaded('fiscalCharacteristics')`
-        // ici : les eager-loads VFC du projet sont quasi tous restreints
-        // à `effective_to IS NULL` (cf. `findOrFailWithFiscal`,
-        // `findAllForFleetView`, `findByIdsIndexed`, `findAllForHeatmap`).
-        // Filtrer en mémoire sur cette collection partielle masquerait
-        // toutes les VFC historiques et produirait silencieusement un
-        // calcul fiscal à 0 € sur les véhicules multi-VFC. Toujours
-        // interroger la base garantit la complétude de la segmentation.
+        // No `relationLoaded('fiscalCharacteristics')` shortcut here:
+        // most VFC eager-loads in the project are restricted to
+        // `effective_to IS NULL` (cf. `findOrFailWithFiscal`,
+        // `findAllForFleetView`, `findByIdsIndexed`,
+        // `findAllForHeatmap`). Filtering in memory on that partial
+        // collection would mask all historical VFCs and silently
+        // produce a 0 € fiscal computation on multi-VFC vehicles.
+        // Always querying the DB guarantees segmentation completeness.
         $matching = $vehicle->fiscalCharacteristics()
             ->where('effective_from', '<=', $yearEnd)
             ->where(static function ($q) use ($yearStart): void {
@@ -76,10 +75,9 @@ final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalC
         $yearStart = CarbonImmutable::create($year, 1, 1);
         $yearEnd = CarbonImmutable::create($year, 12, 31);
 
-        // Une seule query SQL pour tous les véhicules · le `IN (...)` +
-        // les bornes effective_from / effective_to sont indexées (les
-        // PK + FK suffisent · pas d'index spécifique nécessaire pour
-        // un volume V1.0 typique).
+        // Single SQL query for all vehicles · `IN (...)` plus
+        // effective_from / effective_to bounds (PK + FK indexes are
+        // sufficient for V1.0 volumes, no dedicated index needed).
         $rows = VehicleFiscalCharacteristics::query()
             ->whereIn('vehicle_id', $vehicleIds)
             ->where('effective_from', '<=', $yearEnd)
@@ -102,14 +100,13 @@ final class VehicleFiscalCharacteristicsReadRepository implements VehicleFiscalC
     }
 
     /**
-     * Helper · construit le segment effectif d'une VFC pour une année
-     * donnée en clippant ses bornes à `[yearStart, yearEnd]`.
-     * Mutualisé entre {@see findEffectiveSegmentsForYear} et
-     * {@see findEffectiveSegmentsForYearBatch} pour garantir
-     * l'équivalence stricte des deux méthodes (cf. doctrine
-     * `optimisations-conditionnelles.md` · le batch et l'unitaire
-     * doivent produire exactement le même `VfcEffectiveSegment` pour
-     * un même `vehicleId`).
+     * Builds the effective segment of a VFC for a given year by
+     * clipping its bounds to `[yearStart, yearEnd]`. Shared between
+     * {@see findEffectiveSegmentsForYear} and
+     * {@see findEffectiveSegmentsForYearBatch} to guarantee strict
+     * equivalence between the two methods (batch and unitary must
+     * produce the exact same `VfcEffectiveSegment` for a given
+     * `vehicleId`).
      */
     private function clampVfcToYear(
         VehicleFiscalCharacteristics $vfc,

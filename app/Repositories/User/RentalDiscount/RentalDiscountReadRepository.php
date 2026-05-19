@@ -13,11 +13,10 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
- * Implémentation Eloquent du contrat de lecture des réductions
- * commerciales.
+ * Eloquent implementation of commercial rental discount reads.
  *
- * Repository sans état · singleton via
- * {@see App\Providers\RepositoryServiceProvider}.
+ * Stateless repository (singleton via
+ * {@see App\Providers\RepositoryServiceProvider}).
  */
 final class RentalDiscountReadRepository implements RentalDiscountReadRepositoryInterface
 {
@@ -92,10 +91,10 @@ final class RentalDiscountReadRepository implements RentalDiscountReadRepository
 
     public function findActiveListingVehicleOn(int $vehicleId, string $date): Collection
     {
-        // Une réduction « liste explicitement » un véhicule si la table
-        // pivot contient l'association. Les réductions « tous véhicules »
-        // (pivot vide) ne sont **pas** retournées · cf. doc-block de
-        // l'interface (sémantique du check de suppression véhicule).
+        // A discount "explicitly lists" a vehicle iff the pivot table
+        // contains the association. "All vehicles" discounts (empty
+        // pivot) are NOT returned · cf. interface doc-block (semantic
+        // of the vehicle deletion check).
         return RentalDiscount::query()
             ->with('vehicles')
             ->activeOn($date)
@@ -129,7 +128,7 @@ final class RentalDiscountReadRepository implements RentalDiscountReadRepository
             $eloquent->where('rental_discounts.company_id', $query->companyId);
         }
 
-        // Search LIKE sur label + company short_code + legal_name.
+        // Search LIKE on label + company short_code + legal_name.
         if ($query->search !== null) {
             $term = '%'.$query->search.'%';
             $eloquent->where(function (Builder $w) use ($term): void {
@@ -158,7 +157,7 @@ final class RentalDiscountReadRepository implements RentalDiscountReadRepository
                 ->orderBy('rental_discounts.end_date', $direction),
             'discount' => $eloquent->orderBy('rental_discounts.discount_basis_points', $direction),
             'createdAt' => $eloquent->orderBy('rental_discounts.created_at', $direction),
-            // Défaut · plus récente en premier (start_date DESC).
+            // Default: newest first (start_date DESC).
             default => $eloquent
                 ->orderByDesc('rental_discounts.start_date')
                 ->orderByDesc('rental_discounts.id'),
@@ -183,8 +182,8 @@ final class RentalDiscountReadRepository implements RentalDiscountReadRepository
 
     public function statsForIndex(string $today): array
     {
-        // 3 sous-requêtes scalaires · payload léger, 1 round-trip BDD
-        // groupé sur le serveur SQL via aggregat unique avec CASE.
+        // 3 scalar sub-queries · light payload, one DB round-trip
+        // grouped server-side via a single aggregate with CASE.
         $row = RentalDiscount::query()
             ->selectRaw(
                 'SUM(CASE WHEN start_date <= ? AND end_date >= ? THEN 1 ELSE 0 END) as active_count,'

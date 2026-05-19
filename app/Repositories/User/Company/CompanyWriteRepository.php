@@ -10,7 +10,7 @@ use App\Data\User\Company\UpdateCompanyData;
 use App\Models\Company;
 
 /**
- * Implémentation Eloquent des écritures Company.
+ * Eloquent implementation of Company writes.
  */
 final class CompanyWriteRepository implements CompanyWriteRepositoryInterface
 {

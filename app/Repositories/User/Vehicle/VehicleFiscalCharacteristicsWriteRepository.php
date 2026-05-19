@@ -15,13 +15,13 @@ use App\Models\VehicleFiscalCharacteristics;
 use DateTimeInterface;
 
 /**
- * Implémentation Eloquent des écritures de l'historique fiscal.
+ * Eloquent implementation of fiscal history writes.
  *
- * Le champ `pollutant_category` n'est jamais saisi par l'utilisateur :
- * il est dérivé à chaque écriture par {@see PollutantCategory::derive()}
- * à partir des champs canoniques (source d'énergie, norme Euro, type
- * de moteur thermique sous-jacent). Le DB reste cohérent avec la même
- * cascade que celle appliquée au calcul fiscal (R-2024-013).
+ * `pollutant_category` is never user-input: it is derived on every
+ * write by {@see PollutantCategory::derive()} from the canonical
+ * fields (energy source, Euro standard, underlying combustion engine
+ * type). The DB stays consistent with the same cascade applied by the
+ * fiscal computation (R-2024-013).
  */
 final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscalCharacteristicsWriteRepositoryInterface
 {

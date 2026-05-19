@@ -14,7 +14,7 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
     public function findForVehicle(int $vehicleId): Collection
     {
         return Unavailability::query()
-            ->with('documents') // P1 · documents joints exposés sur la fiche véhicule
+            ->with('documents')
             ->where('vehicle_id', $vehicleId)
             ->orderByDesc('start_date')
             ->get();
@@ -69,8 +69,8 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
             })
             ->get(['start_date', 'end_date']);
 
-        // [weekNumber => Set<dayKey>] - Set pour dédupliquer si deux
-        // indispos chevauchent la même journée (cas exceptionnel).
+        // [weekNumber => Set<dayKey>] · Set deduplicates if two
+        // unavailabilities overlap the same day (rare).
         /** @var array<int, array<string, bool>> $byWeekDays */
         $byWeekDays = [];
         foreach ($rows as $row) {
@@ -79,9 +79,9 @@ final class UnavailabilityReadRepository implements UnavailabilityReadRepository
                 ? $yearEnd
                 : $row->end_date;
 
-            // Réassignation explicite - `start_date`/`end_date` sont castés
-            // en CarbonImmutable (cf. AppServiceProvider::Date::use), donc
-            // `addDay()` ne mute pas l'instance en place.
+            // Explicit reassignment · `start_date`/`end_date` are cast
+            // to CarbonImmutable (cf. AppServiceProvider::Date::use),
+            // so `addDay()` does not mutate the instance in place.
             $cursor = $start;
             while ($cursor->lessThanOrEqualTo($end)) {
                 if ($cursor->year === $year) {

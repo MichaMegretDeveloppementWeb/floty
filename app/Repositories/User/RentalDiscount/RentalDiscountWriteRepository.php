@@ -8,14 +8,13 @@ use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountWriteRepository
 use App\Models\RentalDiscount;
 
 /**
- * Implémentation Eloquent du contrat d'écriture des réductions
- * commerciales.
+ * Eloquent implementation of commercial rental discount writes.
  *
- * Repository sans état · singleton via
- * {@see App\Providers\RepositoryServiceProvider}.
+ * Stateless repository (singleton via
+ * {@see App\Providers\RepositoryServiceProvider}).
  *
- * Toutes les mutations passent par les Actions du domaine (lot 4) qui
- * orchestrent la validation chevauchement et la transaction.
+ * All mutations go through the domain Actions which orchestrate
+ * overlap validation and the transaction.
  */
 final class RentalDiscountWriteRepository implements RentalDiscountWriteRepositoryInterface
 {
@@ -38,9 +37,9 @@ final class RentalDiscountWriteRepository implements RentalDiscountWriteReposito
 
     public function syncVehicles(RentalDiscount $discount, array $vehicleIds): void
     {
-        // sync() supprime les associations absentes et insère les
-        // nouvelles · idempotent, parfait pour update form qui passe
-        // toujours la liste complète.
+        // sync() drops missing associations and inserts the new ones
+        // · idempotent, perfect for an update form that always passes
+        // the full list.
         $discount->vehicles()->sync($vehicleIds);
     }
 }

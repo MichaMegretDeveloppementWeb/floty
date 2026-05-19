@@ -7,43 +7,41 @@ namespace App\Contracts\Repositories\User\RentalDiscount;
 use App\Models\RentalDiscount;
 
 /**
- * Écritures sur les réductions commerciales.
+ * Writes on commercial rental discounts.
  *
- * Cf. ADR-0013 (couches strictes Controller→Action→Service→Repository).
- *
- * Toutes les mutations passent par les Actions du domaine
+ * All mutations go through the domain Actions
  * (`CreateRentalDiscountAction`, `UpdateRentalDiscountAction`,
- * `DeleteRentalDiscountAction` · lot 4) qui orchestrent la validation
- * chevauchement avant l'écriture en transaction.
+ * `DeleteRentalDiscountAction`) which orchestrate overlap validation
+ * before the transactional write.
  */
 interface RentalDiscountWriteRepositoryInterface
 {
     /**
-     * Persiste une nouvelle réduction. La synchronisation des véhicules
-     * (pivot) se fait via {@see syncVehicles}.
+     * Persists a new discount. Vehicle pivot sync is done via
+     * {@see syncVehicles}.
      *
      * @param  array<string, mixed>  $attributes
      */
     public function create(array $attributes): RentalDiscount;
 
     /**
-     * Met à jour les attributs scalaires de la réduction (sans toucher
-     * au pivot · cf. {@see syncVehicles}).
+     * Updates the discount's scalar attributes (without touching the
+     * pivot · cf. {@see syncVehicles}).
      *
      * @param  array<string, mixed>  $attributes
      */
     public function update(RentalDiscount $discount, array $attributes): RentalDiscount;
 
     /**
-     * Soft-delete la réduction · préserve l'ID pour référence depuis
-     * les invoice_lines déjà émises (audit immuable).
+     * Soft-deletes the discount · preserves the ID for reference from
+     * already-emitted invoice_lines (immutable audit).
      */
     public function softDelete(RentalDiscount $discount): void;
 
     /**
-     * Synchronise la liste des véhicules ciblés par la réduction.
-     * Liste vide = pivot vidé = sémantique « applique à tous les
-     * véhicules de la company sur la période ».
+     * Syncs the list of vehicles targeted by the discount. Empty list
+     * = empty pivot = semantic "applies to all vehicles of the company
+     * over the period".
      *
      * @param  list<int>  $vehicleIds
      */

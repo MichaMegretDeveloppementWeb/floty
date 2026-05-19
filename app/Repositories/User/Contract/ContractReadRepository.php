@@ -16,11 +16,10 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Implémentation Eloquent des lectures Contract - slim conforme
- * ADR-0013 (zéro transformation, zéro décision métier).
+ * Eloquent implementation of Contract reads · slim per ADR-0013.
  *
- * La composition de DTOs vit dans
- * {@see ContractQueryService}.
+ * Zero transformation, zero business decision. DTO composition lives
+ * in {@see ContractQueryService}.
  */
 final class ContractReadRepository implements ContractReadRepositoryInterface
 {
@@ -61,7 +60,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         $yearStart = sprintf('%04d-01-01', $year);
         $yearEnd = sprintf('%04d-12-31', $year);
 
-        // Plages contrats qui croisent l'année : start_date <= 31/12 ET end_date >= 01/01.
+        // Contracts crossing the year: start_date <= 31/12 AND end_date >= 01/01.
         return Contract::query()
             ->where('vehicle_id', $vehicleId)
             ->where('start_date', '<=', $yearEnd)
@@ -236,15 +235,14 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             ->select('contracts.*')
             ->with([
                 'vehicle:id,license_plate,exit_date,exit_reason',
-                // Eager load des VFC nécessaires au pipeline fiscal
-                // exécuté lors de l'enrichissement DTO (`fullYearTax`) ·
-                // sans cela, lazy load N+1 par contrat (Phase D5.10.V).
+                // Eager load VFCs required by the fiscal pipeline run
+                // during DTO enrichment (`fullYearTax`); avoids N+1 lazy
+                // loads per contract.
                 'vehicle.fiscalCharacteristics' => fn ($q) => $q->orderByDesc('effective_from'),
                 'company:id,short_code,legal_name,color',
                 'drivers:id,first_name,last_name',
             ]);
 
-        // Filtres exact match.
         if ($query->vehicleId !== null) {
             $eloquentQuery->where('contracts.vehicle_id', $query->vehicleId);
         }
@@ -252,8 +250,6 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             $eloquentQuery->where('contracts.company_id', $query->companyId);
         }
         if ($query->driverId !== null) {
-            // Pivot N:N : on cherche les contrats où ce driver figure
-            // parmi les conducteurs (`whereHas('drivers')`).
             $driverId = $query->driverId;
             $eloquentQuery->whereHas('drivers', fn (Builder $qd) => $qd
                 ->where('drivers.id', $driverId));
@@ -262,10 +258,9 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             $eloquentQuery->where('contracts.contract_type', $query->type);
         }
 
-        // Filtre période : chevauchement [periodStart, periodEnd].
-        // `effectivePeriod()` dérive l'exercice complet quand `year` est
-        // présent (mode « Année » du toggle UI), sinon retourne les bornes
-        // saisies tel quel (mode « Période personnalisée »).
+        // Period filter: overlap with [periodStart, periodEnd].
+        // `effectivePeriod()` derives the full year when `year` is
+        // present (UI "Year" toggle), otherwise returns the raw bounds.
         $period = $query->effectivePeriod();
         if ($period['periodStart'] !== null) {
             $eloquentQuery->where('contracts.end_date', '>=', $period['periodStart']);
@@ -274,7 +269,7 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             $eloquentQuery->where('contracts.start_date', '<=', $period['periodEnd']);
         }
 
-        // Search combo : LIKE sur vehicle/company/driver via whereHas.
+        // Combo search: LIKE on vehicle/company/driver via whereHas.
         if ($query->search !== null) {
             $term = '%'.$query->search.'%';
             $eloquentQuery->where(function (Builder $w) use ($term): void {
@@ -291,9 +286,8 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             });
         }
 
-        // Tri whitelist (cf. ContractIndexQueryData::allowedSortKeys()).
-        // `vehicle` et `company` utilisent un leftJoin temporaire pour
-        // ordonner sur la colonne textuelle de la relation.
+        // `vehicle` and `company` sort use a temporary leftJoin to
+        // order by the relation's textual column.
         match ($query->sortKey) {
             'vehicle' => $eloquentQuery
                 ->leftJoin('vehicles', 'contracts.vehicle_id', '=', 'vehicles.id')
@@ -307,7 +301,6 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
                 'DATEDIFF(contracts.end_date, contracts.start_date) '.($direction === 'desc' ? 'desc' : 'asc'),
             ),
             'type' => $eloquentQuery->orderBy('contracts.contract_type', $direction),
-            // Défaut : tri historique start_date DESC.
             default => $eloquentQuery->orderByDesc('contracts.start_date'),
         };
 
@@ -357,10 +350,9 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             $query->where('start_date', '<=', $periodEnd);
         }
 
-        // Intersection (clamp) start/end à la fenêtre filtrée pour le
-        // cumul de jours. Sans fenêtre, on prend la durée brute du contrat.
-        // Bindings paramétrés (défense en profondeur · le DTO valide déjà
-        // `date_format:Y-m-d`).
+        // Clamp start/end to the filtered window for day cumulation.
+        // Without window, raw contract duration. Parameterised bindings
+        // for defence in depth (the DTO already validates `date_format`).
         $clampedEndExpr = $periodEnd !== null ? 'LEAST(end_date, ?)' : 'end_date';
         $clampedStartExpr = $periodStart !== null ? 'GREATEST(start_date, ?)' : 'start_date';
 
@@ -373,9 +365,9 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
             $bindings[] = $periodStart;
         }
 
-        // `toBase()` pour passer en QueryBuilder : `first()` retourne
-        // ?stdClass (et non ?Contract), ce qui permet l'accès aux colonnes
-        // calculées via selectRaw sans déclaration sur le Model.
+        // `toBase()` switches to QueryBuilder: `first()` returns
+        // ?stdClass (not ?Contract), letting selectRaw-aliased columns
+        // be read without a Model declaration.
         $row = (clone $query)
             ->toBase()
             ->selectRaw($totalDaysExpr, $bindings)
@@ -413,9 +405,9 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
         string $startDate,
         string $endDate,
     ): Collection {
-        // `exit_date` est inclus dans la sélection véhicule (chantier T5 /
-        // Phase 14.Q) pour que le `BillingCalculator` puisse clipper les
-        // jours facturables à la date de sortie sans N+1.
+        // `exit_date` is included in the vehicle selection so the
+        // `BillingCalculator` can clip billable days to the exit date
+        // without N+1.
         return Contract::query()
             ->with('vehicle:id,license_plate,brand,model,exit_date')
             ->where('company_id', $companyId)
@@ -448,12 +440,11 @@ final class ContractReadRepository implements ContractReadRepositoryInterface
 
     public function countContractsByDriverForCompany(int $companyId): array
     {
-        // Lot 4 D04 (F-34-006) · agrégation pivot N:N `contract_drivers`
-        // pour compter les contrats par driver sur une company donnée.
-        //
-        // Le scope SoftDeletes du model Contract est appliqué
-        // automatiquement via Eloquent · les contrats `deleted_at IS NOT
-        // NULL` sont exclus du JOIN sans `whereNull` explicite.
+        // Aggregation through the N:N pivot `contract_drivers` to count
+        // contracts per driver for a given company. The SoftDeletes
+        // scope on Contract is applied automatically by Eloquent · rows
+        // with `deleted_at IS NOT NULL` are excluded without an explicit
+        // `whereNull`.
         return Contract::query()
             ->join('contract_drivers', 'contracts.id', '=', 'contract_drivers.contract_id')
             ->where('contracts.company_id', $companyId)

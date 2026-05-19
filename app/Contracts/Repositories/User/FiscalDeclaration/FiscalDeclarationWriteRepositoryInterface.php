@@ -9,56 +9,54 @@ use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
 
 /**
- * Écritures FiscalDeclaration (Phase 11 D1, ADR-0015 § 5.1 rev. 1.1).
+ * FiscalDeclaration writes (ADR-0015 § 5.1 rev. 1.1).
  *
- * Les déclarations émises sont immuables : pas de méthode `update`
- * généraliste. Les seules mutations autorisées sont :
- *   - `markAsObsolete` : flag d'obsolescence + append d'un motif typé
- *   - `markAsGenerated` : matérialisation du PDF lié à une déclaration
- *     `draft`/`deferred`
- *   - `linkSupersededBy` : chaînage `obsolete -> régénéré`
+ * Emitted declarations are immutable: no general-purpose `update`
+ * method. The only allowed mutations are:
+ *   - `markAsObsolete` · obsolescence flag + append of a typed reason
+ *   - `markAsGenerated` · materialisation of the PDF attached to a
+ *     `draft`/`deferred` declaration
+ *   - `linkSupersededBy` · chaining `obsolete -> regenerated`
  *
- * La logique métier (transition d'état, append du motif) vit dans les
- * Actions D3 ; les méthodes ici sont des primitives SQL atomiques.
+ * The business logic (state transitions, reason append) lives in the
+ * Actions; methods here are atomic SQL primitives.
  */
 interface FiscalDeclarationWriteRepositoryInterface
 {
     /**
-     * Persiste une déclaration en base. Utilisé par les Actions D3
-     * (création initiale + régénération).
+     * Persists a declaration. Used by Actions (initial creation +
+     * regeneration).
      *
      * @param  array<string, mixed>  $attributes
      */
     public function persist(array $attributes): FiscalDeclaration;
 
     /**
-     * Marque la déclaration `$declarationId` comme obsolète et append le
-     * motif `$reason` au tableau JSON `obsolete_reasons`. Idempotent :
-     * si déjà obsolète, le motif est tout de même ajouté à l'historique
-     * (un seul `obsolete_at` toutefois, qui correspond au premier flag).
+     * Marks declaration `$declarationId` as obsolete and appends
+     * `$reason` to the JSON array `obsolete_reasons`. Idempotent: if
+     * already obsolete, the reason is still appended to the history
+     * (only one `obsolete_at` is kept, corresponding to the first
+     * flag).
      *
-     * Lot 5 D7 (F-19-024) · retourne le model fraîchement mis à jour pour
-     * que l'appelant puisse exploiter l'entité mutée sans relecture
-     * supplémentaire (pattern uniformisé avec les autres Actions
-     * FiscalDeclaration qui retournent `FiscalDeclaration`).
+     * Returns the freshly updated model so callers can use the mutated
+     * entity without re-reading.
      */
     public function markAsObsolete(int $declarationId, InvalidationReasonData $reason): FiscalDeclaration;
 
     /**
-     * Matérialise une déclaration `draft`/`deferred` en `generated` :
-     * passage du statut + pose des champs PDF + persistance de la
-     * référence lisible `DECL-{shortCode}-{year}-{NNNN}` (Phase 11
-     * D5.5, calculée par {@see App\Services\Fiscal\Declaration\DeclarationReferenceGenerator})
-     * + persistance du snapshot fiscal complet (Phase 11 D5.7.5,
-     * audit pré-livraison B5).
+     * Materialises a `draft`/`deferred` declaration as `generated`:
+     * transitions the status, sets the PDF fields, persists the
+     * readable reference `DECL-{shortCode}-{year}-{NNNN}` (computed by
+     * {@see App\Services\Fiscal\Declaration\DeclarationReferenceGenerator})
+     * + persists the full fiscal snapshot.
      *
-     * **Lock pessimiste + double-check atomique** sur l'invariant
-     * `status=draft && is_obsolete=false` : ferme la fenêtre TOCTOU
-     * entre le guard de l'Action et la finalisation BDD. Throws
-     * `DomainException` si l'invariant n'est plus tenu (mutation
-     * concurrente).
+     * Pessimistic lock + atomic double-check on the invariant
+     * `status=draft && is_obsolete=false`: closes the TOCTOU window
+     * between the Action guard and the DB finalisation. Throws
+     * `DomainException` if the invariant no longer holds (concurrent
+     * mutation).
      *
-     * @param  array<string, mixed>  $snapshotPayload  Sérialisation JSON du DTO {@see App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData}
+     * @param  array<string, mixed>  $snapshotPayload  JSON payload of {@see App\Data\User\FiscalDeclaration\FiscalDeclarationSnapshotData}
      */
     public function markAsGenerated(
         int $declarationId,
@@ -69,77 +67,73 @@ interface FiscalDeclarationWriteRepositoryInterface
     ): void;
 
     /**
-     * Chaîne une déclaration obsolète vers sa version régénérée
-     * (`superseded_by_id = $newId`). Appelé par `RegenerateDeclarationAction`
-     * (D3) après création de la nouvelle ligne.
+     * Chains an obsolete declaration to its regenerated version
+     * (`superseded_by_id = $newId`). Called by
+     * `RegenerateDeclarationAction` after creating the new row.
      */
     public function linkSupersededBy(int $oldId, int $newId): void;
 
     /**
-     * Soft delete une déclaration. Pose `deleted_at` sans purger les
-     * données (auditabilité préservée, ADR-0015 doctrine immuabilité).
-     * Utilisé par `DiscardDraftDeclarationAction` (Phase 13 D5.10.E)
-     * pour annuler un brouillon créé par erreur ou abandonné.
+     * Soft-deletes a declaration. Sets `deleted_at` without purging the
+     * data (auditability preserved, ADR-0015 immutability doctrine).
+     * Used by `DiscardDraftDeclarationAction` to cancel a draft created
+     * by mistake or abandoned.
      */
     public function softDelete(int $declarationId): void;
 
     /**
-     * Soft delete avec **lock pessimiste + double-check atomique** sur
-     * l'invariant `status ∈ $allowedStatuses` (Lot 5 D2 · ferme la
-     * fenêtre TOCTOU entre `findById` côté Action et `delete` côté
-     * repo). Pattern aligné sur {@see markAsGenerated()}.
+     * Soft-delete with pessimistic lock + atomic double-check on the
+     * invariant `status ∈ $allowedStatuses` (closes the TOCTOU window
+     * between `findById` in the Action and `delete` in the repo).
+     * Pattern aligned with {@see markAsGenerated()}.
      *
-     * Throws `DomainException` si la déclaration n'existe plus ou si
-     * son statut n'est plus dans la liste autorisée (mutation
-     * concurrente · ex. autre utilisateur a déjà supprimé ou généré).
+     * Throws `DomainException` if the declaration no longer exists or
+     * if its status is no longer in the allowed list (concurrent
+     * mutation, e.g. another user already deleted or generated it).
      *
-     * Retourne le model verrouillé chargé (rafraîchi de la BDD), pour
-     * que l'appelant puisse lire `company_id`, `fiscal_year`,
-     * `superseded_by_id`, `status` etc. dans la même transaction
-     * sans relecture.
+     * Returns the locked model (refreshed from DB), so callers can
+     * read `company_id`, `fiscal_year`, `superseded_by_id`, `status`
+     * etc. in the same transaction without re-reading.
      *
      * @param  list<FiscalDeclarationStatus>  $allowedStatuses
      */
     public function softDeleteWithLock(int $declarationId, array $allowedStatuses): FiscalDeclaration;
 
     /**
-     * Lock pessimiste sur le predecessor d'un brouillon en cours de
-     * suppression (Lot 5 D2). Doit être appelé **dans la même
-     * transaction** que {@see softDeleteWithLock()} pour garantir
-     * qu'aucune autre opération ne modifie le predecessor entre la
-     * détection du lien `superseded_by_id` et son éventuelle
-     * réactivation/déliaison. Retourne `null` si le predecessor
-     * n'existe plus (cas dégénéré · race condition extrême).
+     * Pessimistic lock on the predecessor of a draft being deleted.
+     * Must be called within the same transaction as
+     * {@see softDeleteWithLock()} to guarantee that no other operation
+     * mutates the predecessor between the detection of the
+     * `superseded_by_id` link and its potential reactivation/unlinking.
+     * Returns `null` if the predecessor no longer exists (extreme race
+     * condition).
      */
     public function lockPredecessor(int $predecessorId): ?FiscalDeclaration;
 
     /**
-     * Ré-active une déclaration obsolète : remet `is_obsolete = false`,
-     * vide `obsolete_at` et `superseded_by_id`. Utilisé par
-     * `DiscardDraftDeclarationAction` (Phase 13 D5.10.E) quand la
-     * suppression d'un brouillon qui était une régénération volontaire
-     * doit rendre son predecessor à nouveau actif. **Ne réactive PAS**
-     * si l'obsolescence avait des motifs réels (mutation périmètre) ·
-     * la décision revient à l'Action.
+     * Re-activates an obsolete declaration: resets `is_obsolete = false`,
+     * clears `obsolete_at` and `superseded_by_id`. Used by
+     * `DiscardDraftDeclarationAction` when deleting a draft that was a
+     * voluntary regeneration should make its predecessor active again.
+     * Does NOT reactivate if the obsolescence had real reasons (scope
+     * mutation) · the decision belongs to the Action.
      *
-     * Lot 5 D9 (F-19D-005) · `obsolete_reasons` est **PRÉSERVÉ**, pas
-     * purgé · le tableau JSON garde la trace audit factuelle de
-     * l'historique d'obsolescence (« cette déclaration a connu une
-     * tentative de modification volontaire annulée le DATE »). Seul le
-     * flag d'état actif est remis à false. La purge éventuelle des
-     * `fiscal_review_decisions` (choix utilisateur tactiques du cycle
-     * remplacé) est de la responsabilité de l'Action appelante, pas
-     * du repo.
+     * `obsolete_reasons` is PRESERVED, not purged · the JSON array
+     * keeps the audit trace of the obsolescence history ("this
+     * declaration went through a voluntary modification attempt that
+     * was cancelled on DATE"). Only the active state flag is reset.
+     * The optional purge of `fiscal_review_decisions` (tactical user
+     * choices of the replaced cycle) is the responsibility of the
+     * calling Action, not the repo.
      */
     public function reactivate(int $declarationId): void;
 
     /**
-     * Délie une déclaration de son successeur (`superseded_by_id = NULL`)
-     * sans toucher au flag `is_obsolete` ni aux motifs. Utilisé par
-     * `DiscardDraftDeclarationAction` (Phase 13 D5.10.E) quand la
-     * suppression d'un brouillon de régénération doit laisser le
-     * predecessor obsolète mais permettre de relancer une nouvelle
-     * régénération.
+     * Unlinks a declaration from its successor (`superseded_by_id =
+     * NULL`) without touching the `is_obsolete` flag or the reasons.
+     * Used by `DiscardDraftDeclarationAction` when deleting a
+     * regeneration draft should leave the predecessor obsolete but
+     * allow a new regeneration to be started.
      */
     public function unlinkSupersededBy(int $declarationId): void;
 }

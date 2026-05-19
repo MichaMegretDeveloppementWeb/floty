@@ -7,10 +7,10 @@ namespace App\Contracts\Repositories\User\UnavailabilityDocument;
 use App\Models\UnavailabilityDocument;
 
 /**
- * Écritures UnavailabilityDocument · interface slim conforme ADR-0013.
+ * UnavailabilityDocument writes · slim interface per ADR-0013.
  *
- * Aucune décision métier ici (validation max 5 docs, hash, upload
- * fichier physique) · c'est le rôle des Actions du domaine.
+ * No business decision here (5-document cap, hash, physical upload) ·
+ * that is the role of the domain Actions.
  */
 interface UnavailabilityDocumentWriteRepositoryInterface
 {
@@ -20,7 +20,7 @@ interface UnavailabilityDocumentWriteRepositoryInterface
     public function create(array $row): UnavailabilityDocument;
 
     /**
-     * Hard-delete (pas de soft-delete sur UnavailabilityDocument en V1).
+     * Hard-delete (no soft-delete on UnavailabilityDocument in V1).
      */
     public function delete(int $id): void;
 }
