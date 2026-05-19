@@ -61,18 +61,12 @@ final class HandleInertiaRequests extends Middleware
 
             'bulkInvoiceReport' => fn (): ?BulkInvoiceGenerationReportData => $this->resolveBulkInvoiceReport($request),
 
-            // Pilote l'affichage du bouton « Pré-remplir depuis la
-            // carte grise » dans le formulaire véhicule. `false` tant
-            // qu'aucune strategy n'est implémentée (cas AAA Data avant
-            // signature contrat) · garantit qu'aucune entrée UI n'est
-            // exposée sans backend opérationnel.
             'vehicleRegistryLookupEnabled' => fn (): bool => $this->resolveVehicleRegistryLookupEnabled(),
         ];
     }
 
     /**
-     * Disponibilité de la feature lookup véhicule par plaque. Délègue
-     * au triple verrou de {@see VehicleRegistryLookupStrategyFactory::isAvailable()}.
+     * Resolve whether the vehicle registry lookup feature is currently usable.
      */
     private function resolveVehicleRegistryLookupEnabled(): bool
     {

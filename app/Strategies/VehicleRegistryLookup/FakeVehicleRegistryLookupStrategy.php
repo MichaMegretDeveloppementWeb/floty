@@ -19,23 +19,8 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
 /**
- * Strategy stub pour tests automatisés et développement local.
- *
- * Refusée en production par la factory (cf. `VehicleRegistryLookupStrategyFactory::isAvailable()`).
- *
- * Source des données :
- *   - fixtures injectées via `config('vehicle-registry.providers.fake.fixtures')`
- *     (clé = plaque normalisée, valeur = tableau partiel matchant les
- *     champs de {@see VehicleRegistryLookupResultData}) ·
- *   - sinon un panel de plaques prédéfinies couvrant les 7 cas de test
- *     de référence définis dans le workflow fournisseur (essence Euro 6,
- *     diesel Euro 6, électrique, hybride rechargeable, utilitaire N1,
- *     pre-2004 PA, etc.) · permet à un dev/test d'exercer tout le
- *     parcours UI sans configuration supplémentaire.
- *
- * Comportement déterministe · les mêmes plaques renvoient les mêmes
- * données dans toute l'application (utile pour les snapshots et les
- * tests E2E).
+ * Stub strategy backed by config fixtures and a built-in default set.
+ * Forbidden in production by the factory's environment guard.
  */
 final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistryLookupInterface
 {
@@ -48,6 +33,9 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
         return RegistryLookupProvider::Fake;
     }
 
+    /**
+     * @throws VehicleNotFoundException
+     */
     public function lookup(string $licensePlate): VehicleRegistryLookupResultData
     {
         $plate = LicensePlateNormalizer::normalize($licensePlate);
@@ -85,6 +73,8 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
     }
 
     /**
+     * Merge user-defined fixtures (normalised keys) over the built-in defaults.
+     *
      * @return array<string, array<string, mixed>>
      */
     private function loadFixtures(): array
@@ -101,16 +91,13 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
     }
 
     /**
-     * Panel de fixtures par défaut. Plaques fictives au format SIV
-     * post-2009 (`AA-123-AA`). Couvre les 7 cas de test du workflow
-     * fournisseur pour valider le parcours UI complet.
+     * Built-in fixtures covering representative vehicle profiles for local testing.
      *
      * @return array<string, array<string, mixed>>
      */
     private static function defaultFixtures(): array
     {
         return [
-            // Cas 1 · véhicule récent essence Euro 6 (M1, cas le plus courant)
             'AA123AA' => [
                 'brand' => 'Peugeot',
                 'model' => '308',
@@ -129,7 +116,6 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
                 'kerbMass' => 1320,
             ],
 
-            // Cas 2 · diesel Euro 6 (M1 · pollutant = MostPolluting)
             'BB456BB' => [
                 'brand' => 'Renault',
                 'model' => 'Mégane Estate',
@@ -148,7 +134,6 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
                 'kerbMass' => 1450,
             ],
 
-            // Cas 3 · véhicule électrique (M1 · pollutant = E, exempté)
             'CC789CC' => [
                 'brand' => 'Tesla',
                 'model' => 'Model 3',
@@ -166,7 +151,6 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
                 'kerbMass' => 1760,
             ],
 
-            // Cas 4 · hybride rechargeable essence (sous-jacent essence)
             'DD012DD' => [
                 'brand' => 'Toyota',
                 'model' => 'Prius',
@@ -186,7 +170,6 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
                 'kerbMass' => 1530,
             ],
 
-            // Cas 5 · utilitaire N1 (CTTE)
             'EE345EE' => [
                 'brand' => 'Citroën',
                 'model' => 'Berlingo Van',
@@ -205,7 +188,6 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
                 'kerbMass' => 1380,
             ],
 
-            // Cas 6 · véhicule ancien pre-2004 (pas de CO₂ · homologation PA)
             'FF678FF' => [
                 'brand' => 'Volkswagen',
                 'model' => 'Golf IV',
@@ -223,7 +205,6 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
                 'kerbMass' => 1180,
             ],
 
-            // Cas 7 · pick-up N1 (BE)
             'GG901GG' => [
                 'brand' => 'Ford',
                 'model' => 'Ranger',
@@ -245,6 +226,8 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
     }
 
     /**
+     * Resolve a string into a backed enum case, or null when missing.
+     *
      * @template T of \BackedEnum
      *
      * @param  class-string<T>  $enumClass

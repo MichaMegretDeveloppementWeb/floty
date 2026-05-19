@@ -6,12 +6,11 @@ namespace App\Exceptions\VehicleRegistryLookup;
 
 use App\Exceptions\BaseAppException;
 
-/**
- * Quota provider dépassé. À distinguer du throttle controller (côté
- * Floty) · ici c'est le fournisseur tiers qui refuse temporairement.
- */
 final class RegistryLookupRateLimitedException extends BaseAppException
 {
+    /**
+     * Build the exception when the upstream provider returns a rate-limit response.
+     */
     public static function fromProvider(string $provider, ?int $retryAfterSeconds = null): self
     {
         $userHint = $retryAfterSeconds !== null

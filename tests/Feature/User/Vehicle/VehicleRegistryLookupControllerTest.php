@@ -100,7 +100,6 @@ final class VehicleRegistryLookupControllerTest extends TestCase
 
         $response->assertStatus(404);
         $response->assertJsonPath('error.code', 'not_found');
-        // Message utilisateur en français (cf. VehicleNotFoundException).
         $response->assertJsonPath('error.message', fn (string $msg) => str_contains($msg, 'introuvable'));
     }
 
@@ -114,7 +113,7 @@ final class VehicleRegistryLookupControllerTest extends TestCase
 
         $response = $this->actingAs($user)
             ->postJson('/app/vehicles/registry-lookup', [
-                'license_plate' => 'AB', // trop court
+                'license_plate' => 'AB',
             ]);
 
         $response->assertStatus(422);

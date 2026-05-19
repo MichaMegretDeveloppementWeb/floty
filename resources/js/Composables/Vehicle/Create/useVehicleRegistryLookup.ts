@@ -1,28 +1,3 @@
-/**
- * Composable de pré-remplissage du formulaire véhicule depuis la
- * plaque d'immatriculation (cf. Strategy pattern côté backend dans
- * `app/Strategies/VehicleRegistryLookup`).
- *
- * Côté UX :
- *   - Le bouton « Pré-remplir depuis la carte grise » n'est rendu que
- *     si `vehicleRegistryLookupEnabled` est `true` dans les props
- *     Inertia partagées (cf. `HandleInertiaRequests`).
- *   - `lookup()` appelle l'endpoint POST et hydrate les 15 champs
- *     récupérables côté form + ajuste les 5 champs déduits côté
- *     serveur (pollutant_category live + vehicle_user_type) ou côté
- *     composable (homologation_method dérivable de la date, déjà
- *     pré-renseignée si fournie par l'API).
- *   - Les erreurs réseau/serveur sont déjà toastées par `useApi()` ·
- *     le composable expose juste un état `loading` + `lastError` pour
- *     que l'UI ajuste son rendu (badge orange, lien « réessayer »,
- *     etc.).
- *
- * Le composable ne touche PAS aux 6 cases à cocher manuelles
- * (`accepts_e85`, `handicap_access`, `m1_special_use`, `n1_*`).
- * L'utilisateur les remplit dans l'encart « À vérifier manuellement »
- * du formulaire.
- */
-
 import type { InertiaForm } from '@inertiajs/vue3';
 import { ref, type Ref } from 'vue';
 import { useApi } from '@/Composables/Shared/useApi';
@@ -40,11 +15,7 @@ export type RegistryLookupState = {
 };
 
 /**
- * Crée un binding entre l'endpoint de lookup et le formulaire Inertia
- * de création/édition véhicule. Le composable est volontairement
- * minimal · ossature en place, le polish UX (badges « auto »
- * par champ, encart « à vérifier manuellement », handling d'erreurs
- * granulaire) sera ajouté quand un provider réel sera implémenté.
+ * Bind the registry lookup endpoint to a vehicle Inertia form.
  */
 export function useVehicleRegistryLookup(
     form: InertiaForm<VehicleFormShape>,
@@ -54,6 +25,9 @@ export function useVehicleRegistryLookup(
     const lastFetchedAt = ref<string | null>(null);
     const lastError = ref<string | null>(null);
 
+    /**
+     * Trigger the lookup and hydrate the form from the response.
+     */
     async function lookup(licensePlate: string): Promise<void> {
         if (loading.value) {
             return;
@@ -72,9 +46,7 @@ export function useVehicleRegistryLookup(
             lastFetchedAt.value = result.fetchedAt;
         } catch (error) {
             lastError.value =
-                error instanceof Error
-                    ? error.message
-                    : 'lookup failed';
+                error instanceof Error ? error.message : 'lookup failed';
         } finally {
             loading.value = false;
         }
@@ -84,16 +56,7 @@ export function useVehicleRegistryLookup(
 }
 
 /**
- * Hydrate les champs du formulaire à partir du résultat API.
- *
- * - `license_plate` est ré-aligné sur la version normalisée renvoyée
- *   par le backend (uppercase, sans tirets) pour cohérence visuelle.
- * - Les enums sont assignés directement (le type est garanti par le
- *   DTO #[TypeScript]).
- * - `first_economic_use_date` n'est PAS hydraté ici · valeur Floty
- *   interne, pré-initialisée par le formulaire à partir de
- *   `acquisition_date` (saisie utilisateur).
- * - Les 6 flags manuels (E85, handicap, M1/N1) ne sont pas touchés.
+ * Copy non-null fields from the lookup result into the vehicle form.
  */
 function applyResultToForm(
     form: InertiaForm<VehicleFormShape>,

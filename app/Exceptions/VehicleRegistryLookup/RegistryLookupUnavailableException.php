@@ -8,22 +8,11 @@ use App\Enums\VehicleRegistryLookup\RegistryLookupProvider;
 use App\Exceptions\BaseAppException;
 use Throwable;
 
-/**
- * Aucun provider opérationnel pour servir la requête.
- *
- * 4 cas distincts (factory `make()` + controller fall-back) :
- *   - Feature désactivée via `vehicle-registry.enabled = false`.
- *   - Aucun driver configuré (`vehicle-registry.default` vide ou
- *     valeur enum invalide).
- *   - Driver configuré pointe sur une strategy non implémentée (cas
- *     AAA Data avant signature contrat).
- *   - Provider configuré refusé dans l'environnement courant (cas
- *     Fake en production · garde-fou anti-déploiement accidentel).
- *
- * Renvoyée par le controller avec HTTP 503.
- */
 final class RegistryLookupUnavailableException extends BaseAppException
 {
+    /**
+     * Build the exception when the feature is globally disabled.
+     */
     public static function featureDisabled(): self
     {
         return new self(
@@ -32,6 +21,9 @@ final class RegistryLookupUnavailableException extends BaseAppException
         );
     }
 
+    /**
+     * Build the exception when no valid driver is configured.
+     */
     public static function noProviderConfigured(?string $configuredValue = null): self
     {
         $hint = $configuredValue === null || $configuredValue === ''
@@ -44,6 +36,9 @@ final class RegistryLookupUnavailableException extends BaseAppException
         );
     }
 
+    /**
+     * Build the exception when the configured provider has no concrete strategy yet.
+     */
     public static function providerNotImplemented(RegistryLookupProvider $provider): self
     {
         return new self(
@@ -52,6 +47,9 @@ final class RegistryLookupUnavailableException extends BaseAppException
         );
     }
 
+    /**
+     * Build the exception when the provider is not allowed in the current environment.
+     */
     public static function providerRefusedInEnvironment(RegistryLookupProvider $provider, string $env): self
     {
         return new self(
@@ -60,6 +58,9 @@ final class RegistryLookupUnavailableException extends BaseAppException
         );
     }
 
+    /**
+     * Build the exception when the upstream provider fails for an unspecified reason.
+     */
     public static function fromProviderFailure(string $provider, string $reason, ?Throwable $previous = null): self
     {
         return new self(

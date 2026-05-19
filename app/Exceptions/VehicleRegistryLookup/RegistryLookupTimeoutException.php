@@ -7,12 +7,11 @@ namespace App\Exceptions\VehicleRegistryLookup;
 use App\Exceptions\BaseAppException;
 use Throwable;
 
-/**
- * Le provider n'a pas répondu dans la fenêtre de timeout configurée.
- * L'utilisateur peut réessayer ou saisir manuellement.
- */
 final class RegistryLookupTimeoutException extends BaseAppException
 {
+    /**
+     * Build the exception when the provider exceeds the configured timeout.
+     */
     public static function afterSeconds(int $seconds, ?Throwable $previous = null): self
     {
         return new self(

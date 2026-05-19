@@ -46,8 +46,6 @@ final class VehicleRegistryLookupStrategyFactoryTest extends TestCase
         config(['vehicle-registry.enabled' => true]);
         config(['vehicle-registry.default' => 'aaa_data']);
 
-        // AaaData n'est pas encore implémentée (cf. workflow fournisseur) ·
-        // la branche `isProviderImplemented` retourne false.
         $this->assertFalse($this->makeFactory()->isAvailable());
     }
 
@@ -57,7 +55,6 @@ final class VehicleRegistryLookupStrategyFactoryTest extends TestCase
         config(['vehicle-registry.enabled' => true]);
         config(['vehicle-registry.default' => 'fake']);
 
-        // L'environnement de test n'est pas `production` · Fake est autorisé.
         $this->assertFalse($this->app->isProduction());
         $this->assertTrue($this->makeFactory()->isAvailable());
     }
@@ -116,6 +113,9 @@ final class VehicleRegistryLookupStrategyFactoryTest extends TestCase
         $this->makeFactory()->make(RegistryLookupProvider::AaaData);
     }
 
+    /**
+     * Resolve a factory instance through the container.
+     */
     private function makeFactory(): VehicleRegistryLookupStrategyFactory
     {
         return $this->app->make(VehicleRegistryLookupStrategyFactory::class);

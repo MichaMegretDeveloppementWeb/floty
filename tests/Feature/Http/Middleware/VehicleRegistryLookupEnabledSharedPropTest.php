@@ -10,14 +10,6 @@ use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-/**
- * Vérifie que la prop Inertia `vehicleRegistryLookupEnabled` reflète
- * exactement le résultat de `VehicleRegistryLookupStrategyFactory::isAvailable()`.
- *
- * Couvre le contrat UI/backend · le bouton « Pré-remplir » côté Vue
- * doit être caché tant que `false`, et le controller back doit
- * refuser le bypass.
- */
 final class VehicleRegistryLookupEnabledSharedPropTest extends TestCase
 {
     use RefreshDatabase;

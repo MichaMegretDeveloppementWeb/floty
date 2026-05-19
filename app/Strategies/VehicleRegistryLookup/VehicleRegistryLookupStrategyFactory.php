@@ -11,25 +11,6 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 
-/**
- * Factory du Strategy pattern de lookup véhicule.
- *
- * Triple verrou de disponibilité (cf. {@see self::isAvailable()}) :
- *   1. Feature flag global `vehicle-registry.enabled`.
- *   2. Driver configuré valide (`vehicle-registry.default` ∈ enum).
- *   3. Strategy effectivement implémentée pour le driver (la branche
- *      match `case AaaData` renvoie `false` tant que la strategy
- *      production n'est pas écrite ; PHP exhaustive match nous
- *      forcera à mettre à jour ce point quand on l'ajoutera).
- *   4. Provider autorisé dans l'environnement courant (Fake refusé en
- *      production · garde-fou anti-déploiement accidentel).
- *
- * Cette factory est référencée :
- *   - par le ServiceProvider qui bind l'interface vers le driver actif.
- *   - par le controller qui Gate l'endpoint sur `isAvailable()`.
- *   - par le middleware Inertia qui partage `vehicleRegistryLookupEnabled`
- *     côté Vue pour cacher le bouton si indisponible.
- */
 final readonly class VehicleRegistryLookupStrategyFactory
 {
     public function __construct(
@@ -39,15 +20,9 @@ final readonly class VehicleRegistryLookupStrategyFactory
     ) {}
 
     /**
-     * Résout la strategy active. Si `$provider` est omis, lit
-     * `vehicle-registry.default` après validation complète via
-     * {@see self::isAvailable()}.
+     * Resolve the active strategy, or throw if none can be served.
      *
-     * @throws RegistryLookupUnavailableException si la feature est
-     *                                            indisponible ou si
-     *                                            la strategy demandée
-     *                                            n'est pas implémentée
-     *                                            / autorisée
+     * @throws RegistryLookupUnavailableException
      */
     public function make(?RegistryLookupProvider $provider = null): VehicleRegistryLookupInterface
     {
@@ -71,8 +46,7 @@ final readonly class VehicleRegistryLookupStrategyFactory
     }
 
     /**
-     * Vérifie si la feature est disponible (UI + backend). Utilisé par
-     * le middleware Inertia (shared prop) et le controller (Gate).
+     * Whether the feature is currently usable (enabled, configured, implemented, allowed in env).
      */
     public function isAvailable(): bool
     {
@@ -90,9 +64,7 @@ final readonly class VehicleRegistryLookupStrategyFactory
     }
 
     /**
-     * Provider actuellement configuré (sans contrôle de disponibilité).
-     * Renvoie `null` si la config est vide ou pointe sur une valeur
-     * absente de l'enum.
+     * Provider currently set in config, or null if missing or invalid.
      */
     public function configuredProvider(): ?RegistryLookupProvider
     {
@@ -104,17 +76,18 @@ final readonly class VehicleRegistryLookupStrategyFactory
         return RegistryLookupProvider::tryFrom($raw);
     }
 
+    /**
+     * Whether the feature flag is on.
+     */
     private function isEnabled(): bool
     {
         return (bool) $this->config->get('vehicle-registry.enabled', false);
     }
 
     /**
-     * Source unique de vérité pour « cette strategy est-elle écrite ? ».
+     * Whether a concrete strategy class exists for the provider.
      *
-     * **Important** · quand `AaaDataVehicleRegistryLookupStrategy`
-     * sera implémentée, ne pas oublier de basculer la branche
-     * `RegistryLookupProvider::AaaData` à `true` ici.
+     * Flip the AaaData branch to true once AaaDataVehicleRegistryLookupStrategy is implemented.
      */
     private function isProviderImplemented(RegistryLookupProvider $provider): bool
     {
@@ -125,9 +98,9 @@ final readonly class VehicleRegistryLookupStrategyFactory
     }
 
     /**
-     * Garde-fous d'environnement. Le driver Fake est strictement
-     * interdit en production · il n'est destiné qu'aux tests et au
-     * dev local.
+     * Whether the provider is allowed in the current environment.
+     *
+     * Fake is forbidden in production to prevent accidental deployment.
      */
     private function isProviderAllowedInEnvironment(RegistryLookupProvider $provider): bool
     {
@@ -137,6 +110,11 @@ final readonly class VehicleRegistryLookupStrategyFactory
         };
     }
 
+    /**
+     * Ensure the provider is implemented and allowed before building.
+     *
+     * @throws RegistryLookupUnavailableException
+     */
     private function guardProvider(RegistryLookupProvider $provider): void
     {
         if (! $this->isProviderImplemented($provider)) {
@@ -151,6 +129,11 @@ final readonly class VehicleRegistryLookupStrategyFactory
         }
     }
 
+    /**
+     * Instantiate the concrete strategy bound to the provider.
+     *
+     * @throws RegistryLookupUnavailableException
+     */
     private function build(RegistryLookupProvider $provider): VehicleRegistryLookupInterface
     {
         return match ($provider) {

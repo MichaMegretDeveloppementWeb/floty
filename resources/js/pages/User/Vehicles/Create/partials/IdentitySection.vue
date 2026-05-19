@@ -13,16 +13,6 @@ const props = defineProps<{
     form: InertiaForm<VehicleFormShape>;
 }>();
 
-/**
- * Bouton « Pré-remplir depuis la carte grise » · n'apparaît que si
- * le backend a déclaré une strategy active (cf. shared prop
- * `vehicleRegistryLookupEnabled` exposée par `HandleInertiaRequests`).
- * Garantit qu'aucune entrée UI n'est exposée tant qu'aucun provider
- * réel n'est implémenté.
- *
- * Cast `Record<string, unknown>` aligné sur la convention projet pour
- * les shared props non typées globalement (cf. `BulkInvoiceGenerationReportAlert.vue`).
- */
 const page = usePage();
 const registryLookupEnabled = computed(
     () => (page.props as Record<string, unknown>).vehicleRegistryLookupEnabled === true,
@@ -39,6 +29,9 @@ const canTriggerLookup = computed(() => {
     return props.form.license_plate.replace(/\s+/g, '').length >= 4;
 });
 
+/**
+ * Trigger the registry lookup if the form is ready.
+ */
 function triggerLookup(): void {
     if (!canTriggerLookup.value) {
         return;

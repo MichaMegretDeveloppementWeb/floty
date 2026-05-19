@@ -84,6 +84,9 @@ final class FakeVehicleRegistryLookupStrategyTest extends TestCase
         $this->assertSame(EnergySource::Electric, $result->energySource);
     }
 
+    /**
+     * Resolve a strategy instance through the container.
+     */
     private function makeStrategy(): FakeVehicleRegistryLookupStrategy
     {
         return $this->app->make(FakeVehicleRegistryLookupStrategy::class);
