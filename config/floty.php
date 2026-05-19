@@ -10,26 +10,22 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Catalogues de règles par année
+    | Fiscal year boots
     |--------------------------------------------------------------------------
     |
-    | Liste des classes implémentant `App\Fiscal\Contracts\FiscalYearBoot`,
-    | une par année fiscale supportée. `App\Providers\FiscalServiceProvider`
-    | les itère au boot pour peupler le `FiscalRuleRegistry`.
+    | Classes implementing `App\Fiscal\Contracts\FiscalYearBoot`, one per
+    | supported fiscal year. `App\Providers\FiscalServiceProvider` iterates
+    | over them at boot time to populate the `FiscalRuleRegistry`.
     |
-    | **Source d'autorité unique** des années connues du moteur fiscal :
-    | `FiscalRuleRegistry::registeredYears()` (alimenté par les boots ici).
-    | L'ancienne config `fiscal.available_years` (qui doublait cette
-    | source) a été supprimée chantier η Phase 5.
+    | This list is the single source of authority for the years known to the
+    | fiscal engine: `FiscalRuleRegistry::registeredYears()`.
     |
-    | Pour ajouter une année :
-    |   1. Créer `app/Fiscal/Year{YYYY}/Year{YYYY}Boot.php`.
-    |   2. Lister les classes de règles dans sa méthode `rules()`.
-    |   3. Ajouter la classe au tableau `year_boots` ci-dessous.
+    | To add a new year:
+    |   1. Create `app/Fiscal/Year{YYYY}/Year{YYYY}Boot.php`.
+    |   2. List its rule classes in the `rules()` method.
+    |   3. Append the boot class to `year_boots` below.
     |
-    | Aucune modification du provider n'est requise.
-    |
-    | Cf. `project-management/taxes-rules/_adding-a-new-year.md`.
+    | See `project-management/taxes-rules/_adding-a-new-year.md`.
     */
 
     'fiscal' => [
@@ -42,19 +38,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Déclarations fiscales (annexes PDF)
+    | Declarations (PDF annexes)
     |--------------------------------------------------------------------------
     |
-    | Disque Storage utilisé par {@see App\Services\Pdf\DeclarationPdfStorage}
-    | pour persister immuablement les annexes PDF des déclarations fiscales
-    | (ADR-0008/ADR-0015 § 5.1 + D8). Doit être un disque privé · les PDF
-    | contiennent des données fiscales sensibles non destinées au public.
+    | Storage disk used by `App\Services\Pdf\DeclarationPdfStorage` to
+    | immutably persist declaration PDF annexes (ADR-0008 / ADR-0015 § 5.1).
+    | The disk must be private because PDFs contain sensitive fiscal data.
     |
-    | Lot 5 D10 (F-19-016) · variable d'env `DECLARATIONS_PDF_DISK` · permet
-    | de basculer sur S3/GCS en prod sans toucher au code. Default `local`
-    | reste compatible avec le développement et la stack Floty actuelle
-    | (ADR `project_infra_no_queue_no_cron`, pas d'object storage actif).
+    | The `DECLARATIONS_PDF_DISK` env variable lets production switch to
+    | S3 / GCS without code changes. The default `local` matches the current
+    | Floty stack (no object storage in use).
     */
+
     'declarations' => [
         'pdf_storage_disk' => env('DECLARATIONS_PDF_DISK', 'local'),
     ],

@@ -112,11 +112,10 @@ return [
     |
     | Some session drivers must manually sweep their storage location to get
     | rid of old sessions from storage. Here are the chances that it will
-    | happen on a given request. Floty utilise [25, 100] (au lieu du défaut
-    | Laravel [2, 100]) car le trafic est faible : le GC à 2 % laisserait
-    | trop de sessions mortes s'accumuler en BDD. À 25 %, le balayage tombe
-    | environ une fois toutes les 4 requêtes · largement suffisant pour
-    | éviter toute accumulation, et négligeable en coût (un DELETE indexé).
+    | happen on a given request. Raised to [25, 100] (vs Laravel's default
+    | [2, 100]) because traffic is low: a 2% sweep would let dead sessions
+    | accumulate. 25% triggers an indexed DELETE about once every four
+    | requests, which is plenty and effectively free.
     |
     */
 
@@ -175,18 +174,16 @@ return [
     |
     */
 
-    // Défaut sûr · si SESSION_SECURE_COOKIE n'est pas défini, on émet le
-    // cookie en mode Secure dès que `APP_ENV=production`. Évite que le
-    // cookie de session voyage en HTTP clair si l'admin de prod oublie
-    // de poser la variable. En dev local Herd HTTP, poser explicitement
-    // SESSION_SECURE_COOKIE=false dans .env.
+    // Safe default: when SESSION_SECURE_COOKIE is unset, emit the cookie in
+    // Secure mode as soon as `APP_ENV=production` to prevent the session
+    // cookie from travelling over plain HTTP. For local Herd HTTP set
+    // SESSION_SECURE_COOKIE=false explicitly in `.env`.
     //
-    // Note · on lit `APP_ENV` directement plutôt que d'appeler
-    // `app()->environment()` car le container n'est pas encore bootstrappé
-    // au moment où ce fichier est évalué (sinon erreur "Class env does
-    // not exist" pendant la résolution).
+    // `APP_ENV` is read directly because the container is not yet booted
+    // when this file is evaluated (calling `app()->environment()` would
+    // fail with "Class env does not exist").
     //
-    // Cf. ADR-0011 § 2 + plan-remédiation Vague 1 Lot 1 D5.
+    // See ADR-0011 § 2.
     'secure' => env('SESSION_SECURE_COOKIE', env('APP_ENV') === 'production'),
 
     /*

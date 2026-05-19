@@ -9,13 +9,11 @@ return [
     | Server Side Rendering
     |--------------------------------------------------------------------------
     |
-    | Floty est une application B2B applicative privée · pas de pages publiques
-    | référencées par les moteurs de recherche, donc aucun bénéfice SEO ou
-    | first-paint à attendre du SSR. Désactivé en V1.
+    | Floty is a private B2B application with no public pages, so there is no
+    | SEO or first-paint benefit to SSR. Disabled by default.
     |
-    | Si réactivation V2 · Inertia v3 fait le SSR via le plugin `@inertiajs/vite`
-    | (cf. inertia-laravel/core rules) · pas besoin de réactiver le `bundle`
-    | hérité du skeleton Laravel.
+    | If re-enabled later, Inertia v3 handles SSR through the `@inertiajs/vite`
+    | plugin and the legacy `bundle` workflow does not need to be restored.
     |
     | See: https://inertiajs.com/server-side-rendering
     |

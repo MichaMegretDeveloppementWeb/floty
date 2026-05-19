@@ -11,12 +11,11 @@ Route::inertia('/', 'Welcome')->name('home');
 
 /*
 |--------------------------------------------------------------------------
-| Routes de développement (local uniquement)
+| Development Routes (local only)
 |--------------------------------------------------------------------------
 |
-| Ces routes ne sont exposées qu'en environnement local. Elles servent à la
-| mise au point du design system et ne doivent jamais être accessibles en
-| production.
+| Exposed only in the local environment. Used to develop the design system
+| and must never be reachable in production.
 */
 
 if (App::environment('local')) {

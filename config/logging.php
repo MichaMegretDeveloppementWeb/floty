@@ -131,30 +131,28 @@ return [
 
         /*
         |----------------------------------------------------------------------
-        | Canaux thématiques Floty
+        | Floty domain channels
         |----------------------------------------------------------------------
         |
-        | Cf. `project-management/implementation-rules/gestion-erreurs.md`
-        | § « Canaux thématiques Floty » + plan-remédiation Vague 1 Lot 2 D2
-        | (F-33-002 + F-30-004 + F-19-009).
+        | See `project-management/implementation-rules/gestion-erreurs.md`.
         |
-        | Rétentions (par criticité régulatoire) ·
-        |   - 365 j  declarations, invoices  (pièces justificatives officielles)
-        |   -  90 j  fiscal, contracts       (audit moteur fiscal + grade fiscal)
-        |   -  30 j  auth, vehicles, companies, drivers, unavailabilities, pdf
-        |   -   7 j  cache                   (très volumineux, peu utile au-delà)
+        | Retention (by regulatory criticality):
+        |   - 365 days  declarations, invoices   (official supporting docs)
+        |   -  90 days  fiscal, contracts        (engine + grade audit)
+        |   -  30 days  auth, vehicles, companies, drivers, unavailabilities, pdf
+        |   -   7 days  cache                    (very high volume, low value)
         |
-        | Levels · chaque canal a sa propre variable `*_LOG_LEVEL` (default
-        | `notice`). En prod un `LOG_LEVEL=warning` global ne doit PAS
-        | filtrer silencieusement les events d'audit fonctionnel (success,
-        | mutations, décisions) qui sont émis en `notice`.
+        | Levels: each channel exposes a `*_LOG_LEVEL` variable (default
+        | `notice`). A global `LOG_LEVEL=warning` must not silently drop the
+        | functional audit events (success, mutations, decisions) emitted
+        | at `notice`.
         */
 
         'auth' => [
             'driver' => 'daily',
             'path' => storage_path('logs/auth.log'),
-            // Le canal reçoit login.success + login.failed (notice) en plus
-            // des login.lockout (warning). Cf. ADR-0011 § 3 + Lot 1 D2.
+            // Captures login.success + login.failed (notice) and
+            // login.lockout (warning). See ADR-0011 § 3.
             'level' => env('AUTH_LOG_LEVEL', 'notice'),
             'days' => 30,
             'replace_placeholders' => true,

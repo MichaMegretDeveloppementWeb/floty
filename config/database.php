@@ -5,11 +5,9 @@ declare(strict_types=1);
 use Illuminate\Support\Str;
 use Pdo\Mysql;
 
-// Note · `Pdo\Mysql` n'existe qu'à partir de PHP 8.5. L'`use` top-level est
-// inoffensif car `composer.json` impose `php: ^8.5` (cf. F-33-007 ·
-// `ext-pdo_mysql` également déclaré pour échec rapide à l'install si
-// l'extension manque). Le ternaire `PHP_VERSION_ID >= 80500` ci-dessous
-// reste pour les futures rétro-compatibilités opportunistes.
+// `Pdo\Mysql` is only available from PHP 8.5. The top-level `use` is safe
+// because composer.json pins `php: ^8.5` and declares `ext-pdo_mysql`. The
+// `PHP_VERSION_ID >= 80500` check below stays for forward compatibility.
 
 return [
 
@@ -66,11 +64,10 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'strict' => true,
-            // Floty impose InnoDB explicitement (transactions, FK, row format
-            // DYNAMIC, index prefix limit 3072 bytes). Sans cela, un serveur
-            // MySQL configuré avec default_storage_engine = MyISAM produit
-            // un `Key too long: 1000` dès qu'une colonne varchar(255) unique
-            // est définie en utf8mb4 (4 × 255 = 1020 > 1000 MyISAM).
+            // Force InnoDB for transactions, foreign keys, DYNAMIC row format
+            // and the 3072-byte index prefix limit. A server defaulting to
+            // MyISAM would otherwise fail on `varchar(255) unique` columns
+            // in utf8mb4 (4 × 255 = 1020 > 1000 MyISAM limit).
             'engine' => env('DB_ENGINE', 'InnoDB'),
             'options' => extension_loaded('pdo_mysql') ? array_filter([
                 (PHP_VERSION_ID >= 80500 ? Mysql::ATTR_SSL_CA : PDO::MYSQL_ATTR_SSL_CA) => env('MYSQL_ATTR_SSL_CA'),
