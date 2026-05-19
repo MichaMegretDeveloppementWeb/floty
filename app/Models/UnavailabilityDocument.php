@@ -12,10 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Justificatif (image ou PDF) joint à une indisponibilité véhicule (P1).
+ * Supporting evidence (image or PDF) attached to a vehicle unavailability.
  *
- * Pas de soft-delete · la suppression côté UI fait un hard-delete DB
- * + fichier physique (cf. `DeleteUnavailabilityDocumentAction`).
+ * No soft-delete: deletion hard-removes the DB row and the physical file
+ * (see `DeleteUnavailabilityDocumentAction`).
  *
  * @property int $id
  * @property int $unavailability_id

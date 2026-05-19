@@ -5,12 +5,9 @@ declare(strict_types=1);
 namespace App\Enums\Vehicle;
 
 /**
- * Type de moteur thermique sous-jacent - renseigné pour les véhicules
- * hybrides (cf. {@see EnergySource::requiresUnderlyingCombustionEngine()}).
- *
- * La valeur `NotApplicable` couvre les cas exotiques où l'énergie
- * primaire est hybride mais sans moteur thermique au sens classique
- * (ex. futur véhicule pile à combustible + batterie - `electric_hydrogen`).
+ * Underlying combustion engine type for hybrids
+ * (see {@see EnergySource::requiresUnderlyingCombustionEngine()}).
+ * `NotApplicable` covers hybrid energies without a classic thermal engine.
  */
 enum UnderlyingCombustionEngineType: string
 {
@@ -18,6 +15,9 @@ enum UnderlyingCombustionEngineType: string
     case Diesel = 'diesel';
     case NotApplicable = 'not_applicable';
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

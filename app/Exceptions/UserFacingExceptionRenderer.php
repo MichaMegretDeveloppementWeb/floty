@@ -24,25 +24,16 @@ use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Composer une réponse de redirection conviviale pour les exceptions HTTP
- * qui aboutiraient sinon à une page d'erreur Inertia.
+ * Composes friendly redirect responses for HTTP exceptions that would otherwise hit a raw error page.
  *
- * Doctrine UX Floty : préférer un redirect transparent vers une page
- * utile (index du domaine concerné, ou dashboard en fallback) + un toast
- * explicite, plutôt qu'une page d'erreur 404/403 isolée. Voir
- * `bootstrap/app.php` pour le câblage des render handlers.
- *
- * Limites : seules les requêtes HTML (pas `expectsJson()`) doivent
- * passer par ce renderer. Le câblage d'appel s'en assure côté
- * `bootstrap/app.php`.
+ * Floty UX doctrine: redirect to a useful index (or dashboard fallback) with a toast,
+ * rather than showing an isolated 404/403. Wired in `bootstrap/app.php`. HTML requests only.
  */
 final class UserFacingExceptionRenderer
 {
     /**
-     * Mapping explicite des Models de domaine vers leur route d'index +
-     * label utilisateur en français. Les entités sans index propre
-     * tombent sur le parent contextuel le plus pertinent (ex. les tarifs
-     * véhicule renvoient vers la liste véhicules).
+     * Domain model to index route and French user label mapping.
+     * Entities without a dedicated index fall back to the closest contextual parent.
      *
      * @var array<class-string, array{route: string, label: string}>
      */
@@ -63,13 +54,13 @@ final class UserFacingExceptionRenderer
     ];
 
     /**
-     * Fallback générique quand le Model n'est pas mappé (ex. nouvelle
-     * entité ajoutée sans déclaration ici, ou Models hors domaine
-     * utilisateur comme User qui ne devrait pas atteindre ce renderer).
+     * Generic fallback when the model is not mapped.
      */
     private const FALLBACK = ['route' => 'user.dashboard', 'label' => 'cet élément'];
 
     /**
+     * Render a `ModelNotFoundException` as a redirect with a contextual toast.
+     *
      * @param  ModelNotFoundException<Model>  $e
      */
     public static function renderModelNotFound(ModelNotFoundException $e): RedirectResponse
@@ -85,6 +76,9 @@ final class UserFacingExceptionRenderer
             );
     }
 
+    /**
+     * Render an `AuthorizationException` as a dashboard redirect with a generic toast.
+     */
     public static function renderAuthorization(AuthorizationException $e): RedirectResponse
     {
         return redirect()
@@ -92,6 +86,9 @@ final class UserFacingExceptionRenderer
             ->with('toast-error', "Vous n'avez pas accès à cet élément.");
     }
 
+    /**
+     * Render a `NotFoundHttpException` as a dashboard redirect with a generic toast.
+     */
     public static function renderNotFoundHttp(NotFoundHttpException $e): RedirectResponse
     {
         return redirect()

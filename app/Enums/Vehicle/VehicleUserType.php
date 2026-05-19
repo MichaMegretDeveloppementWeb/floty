@@ -5,17 +5,16 @@ declare(strict_types=1);
 namespace App\Enums\Vehicle;
 
 /**
- * Type d'utilisation du véhicule (rubrique J.3 de la carte grise).
- * Codes administratifs français préservés (cf. E1).
- *
- * - VP : Voiture Particulière
- * - VU : Véhicule Utilitaire
+ * Vehicle usage type (registration field J.3). French administrative codes preserved.
  */
 enum VehicleUserType: string
 {
     case PassengerCar = 'VP';
     case CommercialVehicle = 'VU';
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

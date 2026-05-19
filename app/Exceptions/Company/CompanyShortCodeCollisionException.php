@@ -7,11 +7,8 @@ namespace App\Exceptions\Company;
 use App\Exceptions\BaseAppException;
 
 /**
- * Levée par CreateCompanyAction quand le code court auto-généré entre en
- * collision avec une entreprise existante (UNIQUE constraint sur
- * `companies.short_code`). Le code court n'étant plus saisi par
- * l'utilisateur (auto-généré depuis le nom légal), la collision se résout
- * en lui demandant de reformuler le nom de la nouvelle entreprise.
+ * Auto-generated short code collides with an existing company (UNIQUE constraint on `companies.short_code`).
+ * Resolution: ask the user to reformulate the legal name to produce a different code.
  */
 final class CompanyShortCodeCollisionException extends BaseAppException
 {

@@ -6,6 +6,9 @@ namespace App\Exceptions\Driver;
 
 use App\Exceptions\BaseAppException;
 
+/**
+ * Driver not found by id.
+ */
 final class DriverNotFoundException extends BaseAppException
 {
     public static function byId(int $driverId): self

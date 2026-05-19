@@ -11,10 +11,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Seuils paramétrables de la grille de détection des zones de risque
- * fiscal (Phase 11 D1, ADR-0015 § D7 rev. 1.1, refondu D5.10.Q ·
- * suppression de `lld_breaks_chain`). Singleton applicatif ·
- * `id=1` toujours, créé à la volée au premier accès.
+ * Configurable thresholds for the LCD fiscal risk detection grid (ADR-0015 § D7 rev. 1.1).
+ * Application singleton (always `id=1`), auto-created with defaults on first access.
  *
  * @property int $id
  * @property int $max_interval
@@ -38,18 +36,10 @@ final class FiscalRiskSettings extends Model
     protected $table = 'fiscal_risk_settings';
 
     /**
-     * Singleton applicatif · retourne l'unique ligne, création
-     * automatique avec les valeurs par défaut au premier accès.
+     * Returns the application singleton row, auto-creating it with defaults on first access.
      *
-     * Pattern `firstOrCreate(['id' => 1], [...])` aligné sur
-     * `BillingSettings::singleton` (Lot 6 D5 · F-31-015) · le `id = 1`
-     * force MySQL à rejeter une éventuelle 2ᵉ insertion concurrente par
-     * PK violation, garantissant l'unicité atomique côté BDD.
-     *
-     * Les défauts sont matérialisés ici (et non délégués aux `default()`
-     * SQL des colonnes) pour rester portables · selon le driver (SQLite,
-     * MySQL ≥8, etc.), un `INSERT` sans colonne explicite n'honore pas
-     * forcément les défauts SQL. Source de vérité unique côté PHP.
+     * Defaults are materialized in PHP (not delegated to SQL column defaults) to stay
+     * portable across drivers. Same race-safe pattern as {@see BillingSettings::singleton()}.
      */
     public static function singleton(): self
     {

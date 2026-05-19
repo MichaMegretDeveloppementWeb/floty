@@ -7,11 +7,8 @@ namespace App\Enums\FiscalReviewDecision;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Niveau de risque associé à un cluster détecté (ADR-0015 § 3.2).
- *
- * Le niveau pilote l'UI (badge couleur) et la validation : une
- * justification écrite est obligatoire pour conserver l'exonération
- * LCD sur un cluster de niveau `Eleve`.
+ * Risk level for a detected cluster (ADR-0015 § 3.2). Drives badge color
+ * and validation: a written justification is required to conserve a high-risk cluster.
  */
 #[TypeScript]
 enum RiskLevel: string
@@ -20,8 +17,7 @@ enum RiskLevel: string
     case Eleve = 'eleve';
 
     /**
-     * Une justification écrite est requise pour décider
-     * `conserved` sur un cluster de niveau élevé (ADR-0015 § 6.2).
+     * Whether a written justification is required for `conserved` on this level (ADR-0015 § 6.2).
      */
     public function requiresJustificationOnConserved(): bool
     {

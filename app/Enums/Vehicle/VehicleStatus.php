@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Enums\Vehicle;
 
 /**
- * Statut courant d'un véhicule (colonne `vehicles.current_status`).
+ * Current vehicle status (`vehicles.current_status`).
  *
- * Invariants (validés en applicatif, cf. 01-schema-metier.md § 2) :
- *   - Si `vehicles.exit_date IS NULL` → statut ∈ { Active, Maintenance }
- *   - Si `vehicles.exit_date IS NOT NULL` → statut ∈ { Sold, Destroyed, Other }
+ * Application-level invariants:
+ * - `exit_date IS NULL` → status ∈ { Active, Maintenance }
+ * - `exit_date IS NOT NULL` → status ∈ { Sold, Destroyed, Other }
  */
 enum VehicleStatus: string
 {
@@ -19,6 +19,9 @@ enum VehicleStatus: string
     case Destroyed = 'destroyed';
     case Other = 'other';
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

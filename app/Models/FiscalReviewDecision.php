@@ -14,13 +14,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Décision humaine de revue fiscale par cluster (Phase 11 D1,
- * ADR-0015 § 5.2).
+ * Human review decision per LCD risk cluster (ADR-0015 § 5.2).
  *
- * Identifiée par `(company_id, fiscal_year, cluster_fingerprint)` pour
- * permettre la persistence indépendante des déclarations : à la
- * régénération d'une déclaration obsolète, les décisions dont le
- * fingerprint est inchangé sont auto-reprises.
+ * Identified by `(company_id, fiscal_year, cluster_fingerprint)` so that
+ * decisions persist independently of declarations: when regenerating an
+ * obsolete declaration, decisions whose fingerprint is unchanged are re-used.
  *
  * @property int $id
  * @property int $company_id

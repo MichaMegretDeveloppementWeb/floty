@@ -7,9 +7,7 @@ namespace App\Exceptions\RentalDiscount;
 use App\Exceptions\BaseAppException;
 
 /**
- * Levée quand on tente d'accéder à une réduction commerciale qui
- * n'existe pas ou a été soft-deletée et n'est pas demandée en mode
- * `withTrashed`.
+ * Rental discount not found (missing id, or soft-deleted without `withTrashed`).
  */
 final class RentalDiscountNotFoundException extends BaseAppException
 {

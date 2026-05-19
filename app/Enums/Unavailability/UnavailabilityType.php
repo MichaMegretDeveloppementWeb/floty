@@ -5,40 +5,25 @@ declare(strict_types=1);
 namespace App\Enums\Unavailability;
 
 /**
- * Type d'indisponibilité d'un véhicule (ADR-0016 rev. 1.1, 9 valeurs).
+ * Vehicle unavailability type (ADR-0016 rev. 1.1, 9 values). Three values reduce
+ * the fiscal prorata numerator (R-2024-008); the six others are operational.
  *
- * Trois cas réduisent le numérateur du prorata fiscal (R-2024-008) ;
- * les six autres représentent des indispos opérationnelles sans effet
- * fiscal. La colonne `unavailabilities.has_fiscal_impact` dénormalise
- * cette information pour le requêtage rapide ; un CHECK constraint en
- * base garantit la cohérence avec les 3 cases réducteurs ci-dessous.
+ * Legal references:
+ * - CIBS L. 421-96
+ * - BOFiP BOI-AIS-MOB-10-30-10 § 50 / § 60 / § 190
+ * - C. route L. 325-1 to L. 325-1-2, L. 325-12, R. 322-6, L. 327-4 / L. 327-5
  *
- * **Bases légales** :
- *   - CIBS art. L. 421-96 (« le véhicule immobilisé ou mis en fourrière
- *     à la demande des pouvoirs publics est réputé ne pas être affecté
- *     à des fins économiques »)
- *   - BOFiP BOI-AIS-MOB-10-30-10 § 50 (suspension CI + interdiction
- *     post-sinistre), § 60 (fourrière publique), § 190 (effet sur la
- *     proportion annuelle d'affectation)
- *   - C. route L. 325-1 → L. 325-1-2 (fourrière publique)
- *   - C. route L. 325-12 (fourrière privée - non réducteur)
- *   - C. route R. 322-6 (suspension CI)
- *   - C. route L. 327-4 / L. 327-5 (interdiction circulation post-sinistre)
- *
- * Note : la destruction VHU (certificat C. route R. 322-9) n'est PAS
- * dans cet enum - elle relève d'ADR-0018 cycle de vie véhicule
- * (`vehicles.exit_reason = Destroyed`). Idem pour le vol non résolu
- * définitif (`exit_reason = StolenUnrecovered`) - `theft` ici représente
- * un vol récent susceptible de retour à la flotte.
+ * Definitive fleet exit cases (VHU destruction, unrecovered theft) live in
+ * {@see App\Enums\Vehicle\VehicleExitReason} per ADR-0018.
  */
 enum UnavailabilityType: string
 {
-    // Réducteurs fiscaux (3)
+    // Fiscal reducers (3)
     case AccidentNoCirculation = 'accident_no_circulation';
     case PoundPublic = 'pound_public';
     case CiSuspension = 'ci_suspension';
 
-    // Non réducteurs (6)
+    // Non-reducers (6)
     case Maintenance = 'maintenance';
     case TechnicalInspection = 'technical_inspection';
     case AccidentRepair = 'accident_repair';
@@ -47,9 +32,8 @@ enum UnavailabilityType: string
     case Other = 'other';
 
     /**
-     * Vrai ssi ce type réduit le numérateur du prorata fiscal - c.-à-d.
-     * caractérise une mise hors-circulation administrative ou par les
-     * pouvoirs publics au sens BOFiP § 50 / § 60.
+     * Whether this type reduces the fiscal prorata numerator
+     * (administrative or public-authority off-road status, BOFiP § 50 / § 60).
      */
     public function isFiscallyReductive(): bool
     {
@@ -62,8 +46,7 @@ enum UnavailabilityType: string
     }
 
     /**
-     * Référence de la base légale principale au format français court.
-     * Utilisé dans le payload du verdict R-2024-008 et la fiche front.
+     * Primary legal reference in short French form. Used in the R-2024-008 verdict payload.
      */
     public function legalReference(): string
     {

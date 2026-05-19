@@ -8,15 +8,7 @@ use App\Models\Driver;
 use App\Models\User;
 
 /**
- * Policy conducteur · stub V1 mono-tenant (ADR-0011 § 7).
- *
- * Toutes les méthodes retournent `true` en V1. Les controllers appellent
- * `Gate::authorize(...)` pour préparer V2 multi-tenant sans refactor.
- *
- * Migration V2 attendue · scoper l'accès par appartenance à la société
- * de location ou par entreprise utilisatrice destinataire selon le rôle.
- *
- * Cf. plan-remédiation Vague 1 Lot 1 D7 (F-30-003).
+ * Driver policy. V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  */
 final class DriverPolicy
 {

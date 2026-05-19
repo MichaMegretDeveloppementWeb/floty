@@ -7,16 +7,10 @@ namespace App\Enums\FiscalReviewDecision;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Code de la grille V1 des risques fiscaux LCD (ADR-0015 § 3.2).
+ * LCD fiscal risk codes (ADR-0015 § 3.2).
  *
- *  - `R-LCD-CHAIN` (niveau moyen) : chaîne de ≥2 contrats LCD avec
- *    intervalles ≤ `max_interval` jours et cumul > `threshold_low`.
- *  - `R-LCD-CHAIN-FORT` (niveau élevé) : chaîne avec cumul >
- *    `threshold_high` ou ≥ `count_high` contrats.
- *
- * Note ADR-0015 § 3.2 : `R-LCD-DRIVER` (chaîne avec même conducteur)
- * est reporté en V1.x, le temps que la méthode multi-conducteur soit
- * stabilisée avec Renaud.
+ * - `R-LCD-CHAIN` (medium): chain of ≥2 LCD contracts with intervals ≤ `max_interval` days and cumul > `threshold_low`.
+ * - `R-LCD-CHAIN-FORT` (high): chain with cumul > `threshold_high` or ≥ `count_high` contracts.
  */
 #[TypeScript]
 enum RiskCode: string
@@ -25,7 +19,7 @@ enum RiskCode: string
     case ChainFort = 'R-LCD-CHAIN-FORT';
 
     /**
-     * Niveau de risque associé au code, mappage déterministe.
+     * Deterministic mapping to the associated risk level.
      */
     public function level(): RiskLevel
     {

@@ -7,13 +7,8 @@ namespace App\Exceptions\Invoice;
 use App\Exceptions\BaseAppException;
 
 /**
- * Levée par {@see App\Actions\Invoice\GenerateInvoiceAction} quand une
- * facture existe déjà pour le couple `(company, year, month)`. Cohérent
- * avec la doctrine immuabilité (Phase 14.E V1.2) : pas de regénération
- * silencieuse en V1.2.
- *
- * L'utilisateur doit explicitement supprimer la facture existante (via
- * un endpoint dédié, hors scope V1.2) ou attendre le mois suivant.
+ * Invoice already exists for the given `(company, year, month)` triplet.
+ * Aligned with the immutability doctrine: no silent regeneration.
  */
 final class InvoiceAlreadyExistsException extends BaseAppException
 {

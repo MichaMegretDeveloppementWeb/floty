@@ -12,10 +12,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Document PDF joint à un contrat (chantier 04.N).
+ * PDF document attached to a contract.
  *
- * Pas de soft-delete : la suppression côté UI fait un hard-delete DB
- * + fichier physique (cf. `DeleteContractDocumentAction`).
+ * No soft-delete: deletion hard-removes the DB row and the physical file
+ * (see `DeleteContractDocumentAction`).
  *
  * @property int $id
  * @property int $contract_id

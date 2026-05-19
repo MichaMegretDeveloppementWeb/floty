@@ -8,12 +8,9 @@ use App\Exceptions\BaseAppException;
 use App\Models\RentalDiscount;
 
 /**
- * Levée quand la création ou la modification d'une réduction commerciale
- * entrerait en conflit avec une ou plusieurs autres réductions existantes
- * (chevauchement de période ET intersection véhicules non vides).
- *
- * Le message utilisateur cite les réductions conflictuelles pour que
- * l'utilisateur puisse les retrouver et arbitrer.
+ * Rental discount create/update would overlap one or more existing discounts
+ * (period overlap AND non-empty vehicle intersection). The user message cites
+ * the conflicting discounts so the operator can locate and arbitrate them.
  *
  * @phpstan-type ConflictItem array{id: int, label: string|null, startDate: string, endDate: string}
  */
@@ -67,10 +64,11 @@ final class RentalDiscountOverlapException extends BaseAppException
         ));
     }
 
+    /**
+     * Light ISO Y-m-d to d/m/Y conversion without a Carbon dependency.
+     */
     private static function formatDateFr(string $iso): string
     {
-        // Conversion légère ISO Y-m-d -> d/m/Y sans dépendance Carbon
-        // pour rester pur dans l'exception.
         [$y, $m, $d] = explode('-', $iso);
 
         return sprintf('%s/%s/%s', $d, $m, $y);

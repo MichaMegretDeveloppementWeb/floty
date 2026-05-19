@@ -8,13 +8,9 @@ use App\Models\FiscalRiskSettings;
 use App\Models\User;
 
 /**
- * Policy paramètres détection de risque fiscal (singleton seuils).
- * Stub V1 mono-tenant (Phase 11 D1). Cf. {@see BillingSettingsPolicy}
- * pour la doctrine globale.
+ * Fiscal risk settings policy (singleton). V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  *
- * Pas d'ability `viewAny` ni `delete` : c'est un singleton applicatif
- * (toujours présent, jamais supprimable). Seul `view` (page Settings)
- * et `update` ont du sens.
+ * No `viewAny` / `delete` ability: risk thresholds are an application singleton.
  */
 final class FiscalRiskSettingsPolicy
 {

@@ -16,9 +16,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Entreprise utilisatrice de la flotte partagée.
- *
- * Cf. 01-schema-metier.md § 4.
+ * User company sharing the fleet.
  *
  * @property int $id
  * @property string $legal_name
@@ -42,15 +40,10 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
  */
-// **Note V1** : `is_oig` et `is_individual_business` volontairement
-// **exclus du Fillable** · les règles d'exonération R-2024-018 (OIG) et
-// R-2024-019 (EIRL) sont des stubs en V1 (cf.
-// `R2024_018And019_StubExemptionsTest`). Tant qu'elles ne sont pas
-// finalisées, autoriser une création/update mass-assignment de ces flags
-// produirait un calcul fiscal silencieusement faux pour les entreprises
-// concernées (taxe due alors qu'exonérée par CIBS L. 421-122). À
-// réactiver dans le `Fillable` quand les règles seront implémentées,
-// après ADR validant la sémantique exacte.
+// V1 note: `is_oig` and `is_individual_business` are deliberately excluded
+// from `Fillable` because the matching R-2024-018 / R-2024-019 exemption rules
+// are V1 stubs. Mass-assigning these flags would yield silently incorrect tax
+// calculations; reintroduce them once the rules are fully implemented.
 #[Fillable([
     'legal_name',
     'siren',
@@ -90,10 +83,7 @@ final class Company extends Model
     }
 
     /**
-     * Conducteurs rattachés à cette entreprise (actuellement ou par le
-     * passé) via la pivot `driver_company` avec dates d'entrée/sortie.
-     *
-     * Cf. Phase 06 V1.2 (refonte N:N).
+     * Drivers attached to this company (current or historical) with join/leave dates.
      *
      * @return BelongsToMany<Driver, $this, DriverCompany, 'pivot'>
      */
@@ -106,8 +96,7 @@ final class Company extends Model
     }
 
     /**
-     * Contrats de location signés par cette entreprise (entité pivot
-     * post ADR-0014).
+     * Rental contracts signed by this company (ADR-0014).
      *
      * @return HasMany<Contract, $this>
      */
@@ -117,28 +106,24 @@ final class Company extends Model
     }
 
     /**
-     * Génère un code court à 3 lettres en majuscules à partir du nom légal.
+     * Generates a three-letter uppercase short code from the legal name.
      *
-     * Algo (validé chantier A) :
-     *   1. Normalisation : retire les accents, garde [A-Za-z], trim espaces multiples
-     *   2. Split en mots
-     *   3. Si >= 3 mots : initiales des 3 premiers
-     *   4. Si 2 mots : 1ère du 1er + 2 premières du 2e
-     *   5. Si 1 mot : 3 premières lettres
-     *   6. Padding 'X' à droite si moins de 3 lettres obtenues
+     * Strategy: strip accents, keep [A-Za-z], split on words, then take
+     * either the first letter of the first three words, the first letter of
+     * the first word and the first two of the second, or the first three
+     * letters of the single word. Pads with 'X' if the result is shorter than 3.
      *
-     * Helper pur, ne touche pas la BDD. La vérification d'unicité est de la
-     * responsabilité de l'Action appelante (CreateCompanyAction).
+     * Pure helper; uniqueness must be enforced by the caller (CreateCompanyAction).
      */
     public static function generateShortCode(string $legalName): string
     {
-        // Normalise les accents : "Café Hôtelier" -> "Cafe Hotelier"
+        // Strip accents: "Café Hôtelier" -> "Cafe Hotelier".
         $ascii = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $legalName);
         if ($ascii === false) {
             $ascii = $legalName;
         }
 
-        // Garde lettres + espaces, supprime le reste, trim, normalise espaces multiples
+        // Keep letters + spaces, drop the rest, trim, collapse repeated spaces.
         $cleaned = preg_replace('/[^A-Za-z\s]/', '', $ascii) ?? '';
         $cleaned = trim((string) preg_replace('/\s+/', ' ', $cleaned));
 
@@ -156,7 +141,7 @@ final class Company extends Model
             $code = mb_strtoupper(mb_substr($words[0], 0, 3));
         }
 
-        // Padding 'X' si moins de 3 chars (ex. mot court "ON" -> "ONX")
+        // Right-pad to 3 chars with 'X' (e.g. short word "ON" -> "ONX").
         return str_pad($code, 3, 'X');
     }
 }

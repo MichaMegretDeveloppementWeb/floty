@@ -17,14 +17,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Indisponibilité d'un véhicule sur une plage continue de jours.
+ * Vehicle unavailability over a continuous day range.
  *
- * Cf. 01-schema-metier.md § 7.
- *
- * Trois types réduisent le numérateur du prorata fiscal - cf. ADR-0016
- * rev. 1.1 et {@see UnavailabilityType::isFiscallyReductive()}. La colonne
- * `has_fiscal_impact` est dénormalisée pour un requêtage rapide ;
- * un CHECK SQL garantit la cohérence avec `type`.
+ * Three types reduce the fiscal prorata numerator (ADR-0016 rev. 1.1,
+ * see {@see UnavailabilityType::isFiscallyReductive()}). The `has_fiscal_impact`
+ * column is denormalized for fast querying; a SQL CHECK enforces consistency with `type`.
  *
  * @property int $id
  * @property int $vehicle_id
@@ -67,6 +64,8 @@ final class Unavailability extends Model
     }
 
     /**
+     * Owning vehicle.
+     *
      * @return BelongsTo<Vehicle, $this>
      */
     public function vehicle(): BelongsTo
@@ -75,7 +74,7 @@ final class Unavailability extends Model
     }
 
     /**
-     * Justificatifs joints (P1 · image ou PDF, 5 max).
+     * Attached supporting documents (image or PDF, max 5).
      *
      * @return HasMany<UnavailabilityDocument, $this>
      */

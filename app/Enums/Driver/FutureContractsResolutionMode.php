@@ -7,15 +7,11 @@ namespace App\Enums\Driver;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Mode de résolution des contrats à venir lors de la sortie d'un
- * conducteur d'une entreprise (workflow Q6 - Phase 06 V1.2).
+ * Resolution mode for upcoming contracts when a driver leaves a company.
  *
- * - `Replace` : pour chaque contrat à venir, l'utilisateur choisit un
- *   driver de remplacement (actif sur la période exacte du contrat).
- * - `Detach` : tous les contrats à venir passent à `driver_id = NULL`.
- * - `None` : il n'y a aucun contrat à venir, ou l'utilisateur a
- *   explicitement choisi de ne rien faire (cas dégénéré : `left_at`
- *   tardif après tous les contrats).
+ * - `Replace`: per contract, pick a replacement driver active on that period.
+ * - `Detach`: upcoming contracts have `driver_id` set to `NULL`.
+ * - `None`: no upcoming contracts, or the user opted to do nothing.
  */
 #[TypeScript]
 enum FutureContractsResolutionMode: string

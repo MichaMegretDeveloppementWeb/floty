@@ -8,19 +8,12 @@ use RuntimeException;
 use Throwable;
 
 /**
- * Classe racine de toute exception métier Floty.
+ * Root class for all Floty business exceptions.
  *
- * Sépare explicitement deux messages :
- *   - {@see getMessage()} : technique (anglais, détails de diagnostic - va dans les logs).
- *   - {@see getUserMessage()} : utilisateur (français, destiné à l'affichage via flash/toast).
- *
- * Les sous-classes exposent des factory methods statiques (`::byId()`,
- * `::vehicleAlreadyAssigned()`…) plutôt qu'un constructeur direct. Cela
- * centralise la rédaction des deux messages et rend le code appelant lisible
- * ({@code throw VehicleNotFoundException::byId($id)}).
- *
- * Référence : implementation-rules/gestion-erreurs.md § « Exceptions
- * personnalisées ».
+ * Splits a technical message ({@see getMessage()}, English, for logs) from a user-facing
+ * message ({@see getUserMessage()}, French, surfaced via flash/toast). Subclasses expose
+ * static factory methods rather than a public constructor so both messages are authored
+ * together at the call site.
  */
 abstract class BaseAppException extends RuntimeException
 {
@@ -34,8 +27,7 @@ abstract class BaseAppException extends RuntimeException
     }
 
     /**
-     * Message destiné à l'utilisateur - français, ton formel,
-     * aucun détail technique (nom de classe, SQL, stack trace).
+     * User-facing message (French, formal, no technical details).
      */
     public function getUserMessage(): string
     {

@@ -14,15 +14,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Tarifs jour/semaine/mois d'un véhicule pour une année donnée. Pierre
- * angulaire du module Facturation (Phase 14 V1.2).
+ * Daily / weekly / monthly rental rates for a vehicle on a given year.
  *
- * Une seule ligne par couple (vehicle_id, year) · contrainte UNIQUE en
- * base, idempotence garantie via `updateOrCreate` côté repository.
- *
- * Cf. ADR-0006 (architecture du moteur fiscal), spec Phase 14
- * (`project-management/plan-implementation/tasks/phase-14-billing/`),
- * mémoire `roadmap_v12_facturation`.
+ * One row per `(vehicle_id, year)` pair (DB UNIQUE constraint). Repositories
+ * guarantee idempotence via `updateOrCreate`.
  *
  * @property int $id
  * @property int $vehicle_id
@@ -61,7 +56,7 @@ final class VehicleYearlyPricing extends Model
     }
 
     /**
-     * Véhicule de rattachement.
+     * Owning vehicle.
      *
      * @return BelongsTo<Vehicle, $this>
      */

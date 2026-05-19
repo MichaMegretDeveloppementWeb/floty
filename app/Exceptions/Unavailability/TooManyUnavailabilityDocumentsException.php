@@ -7,9 +7,7 @@ namespace App\Exceptions\Unavailability;
 use App\Exceptions\BaseAppException;
 
 /**
- * Tentative d'upload d'un 6ᵉ document sur une indisponibilité · la
- * limite V1 est de 5 documents par indisponibilité (cf.
- * `UploadUnavailabilityDocumentsAction`).
+ * Upload refused: unavailability has reached its document cap (5 per unavailability in V1).
  */
 final class TooManyUnavailabilityDocumentsException extends BaseAppException
 {

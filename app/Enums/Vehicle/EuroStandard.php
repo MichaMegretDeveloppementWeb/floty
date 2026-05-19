@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace App\Enums\Vehicle;
 
 /**
- * Norme Euro du véhicule (rubrique V.9 de la carte grise).
- *
- * Les sous-déclinaisons Euro 5a/5b et Euro 6b/6c/6d-Temp/6d/6d-ISC/6d-ISC-FCM
- * sont toutes représentées explicitement car le catalogue fiscal 2024 les
- * traite (cf. R-2024-013 § catégorie polluants).
+ * Vehicle Euro standard (registration field V.9). All Euro 5/6 sub-variants are
+ * represented explicitly because the 2024 fiscal catalog handles them (R-2024-013).
  */
 enum EuroStandard: string
 {
@@ -29,8 +26,7 @@ enum EuroStandard: string
     case Euro6dIscFcm = 'euro_6d_isc_fcm';
 
     /**
-     * Vrai pour les normes Euro 5 ou Euro 6 (toutes sous-déclinaisons),
-     * utilisé par la règle R-2024-013 pour la catégorisation polluants.
+     * Whether this standard is Euro 5 or above (any sub-variant). Used by R-2024-013.
      */
     public function isEuro5OrAbove(): bool
     {
@@ -40,6 +36,9 @@ enum EuroStandard: string
         };
     }
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

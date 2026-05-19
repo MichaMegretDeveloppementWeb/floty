@@ -7,10 +7,7 @@ namespace App\Exceptions\Fiscal;
 use App\Exceptions\BaseAppException;
 
 /**
- * Erreur du moteur fiscal - données d'entrée incohérentes ou état
- * véhicule manquant pour produire un calcul.
- *
- * Référence : implementation-rules/gestion-erreurs.md.
+ * Fiscal engine error. Inconsistent input or missing vehicle state preventing a calculation.
  */
 final class FiscalCalculationException extends BaseAppException
 {
@@ -47,14 +44,7 @@ final class FiscalCalculationException extends BaseAppException
     }
 
     /**
-     * Levée par {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} quand
-     * le produit cartésien VFC × Règles est entièrement vide pour
-     * l'année donnée (chantier κ.4). Cas dégénéré distinct de la VFC
-     * manquante : la VFC existe mais ne croise aucun segment de règles
-     * (ou aucune règle n'est applicable).
-     *
-     * Typiquement : règles 2025 effectives 01/07 → 31/12 + véhicule dont
-     * la VFC s'arrête le 15/06/2025 = 0 intersection.
+     * Empty VFC × Rules cartesian product for the given year (VFC exists but no rule segment intersects it).
      */
     public static function noViableCalculationWindow(int $vehicleId, int $year): self
     {

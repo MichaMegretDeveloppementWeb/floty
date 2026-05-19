@@ -7,8 +7,7 @@ namespace App\Exceptions\Driver;
 use App\Exceptions\BaseAppException;
 
 /**
- * Suppression d'un driver refusée car il a des contrats associés
- * (passés, actifs ou futurs). Cohérence historique préservée.
+ * Driver deletion blocked because at least one contract references the driver.
  */
 final class DriverDeletionBlockedException extends BaseAppException
 {

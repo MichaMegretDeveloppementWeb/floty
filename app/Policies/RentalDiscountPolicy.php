@@ -8,14 +8,7 @@ use App\Models\RentalDiscount;
 use App\Models\User;
 
 /**
- * Policy stub V1 · tous les gestionnaires de flotte authentifiés ont
- * accès complet aux réductions commerciales (lecture + création +
- * édition + suppression). Aligné avec le pattern des policies sœurs
- * (`DriverPolicy`, `CompanyPolicy`).
- *
- * V2 (post-livraison) pourra introduire des ACL plus fines (lecture
- * seule pour certains rôles, séparation create/edit) sans casser
- * l'API publique de la classe.
+ * Rental discount policy. V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  */
 final class RentalDiscountPolicy
 {

@@ -6,18 +6,21 @@ namespace App\Enums\Invoice;
 
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+/**
+ * Reason a `(company, year, month)` is skipped during bulk invoice generation.
+ */
 #[TypeScript]
 enum BulkInvoiceGenerationSkipReason: string
 {
-    /** Aucun jour utilisé sur le mois · rien à facturer. */
+    /** No usage day on the month, nothing to bill. */
     case NoActivity = 'no_activity';
 
-    /** Tarif annuel manquant pour au moins un véhicule. */
+    /** Missing yearly pricing for at least one vehicle. */
     case MissingPricing = 'missing_pricing';
 
-    /** Annexe déjà émise sur le couple `(entreprise, année, mois)`. */
+    /** Invoice already issued for this `(company, year, month)` triplet. */
     case AlreadyInvoiced = 'already_invoiced';
 
-    /** Mois en cours ou futur · non facturable tant que pas écoulé. */
+    /** Current or future month, not yet billable. */
     case NotPastMonth = 'not_past_month';
 }

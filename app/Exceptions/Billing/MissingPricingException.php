@@ -7,23 +7,14 @@ namespace App\Exceptions\Billing;
 use App\Exceptions\BaseAppException;
 
 /**
- * Levée par {@see App\Services\Billing\BillingCalculator} quand un ou
- * plusieurs véhicules présents sur la période n'ont pas de tarif
- * `VehicleYearlyPricing` défini pour l'année concernée.
- *
- * **Politique UX** : on collecte l'**ensemble** des véhicules manquants
- * en un seul passage, plutôt que de stopper au premier ; l'utilisateur
- * voit d'un seul coup d'œil tout ce qu'il doit renseigner.
+ * One or more vehicles on the period lack a `VehicleYearlyPricing` row for the year.
+ * Collects all missing vehicles in a single pass so the user sees the full list at once.
  *
  * @phpstan-type MissingItem array{vehicleId: int, licensePlate: string, year: int}
  */
 final class MissingPricingException extends BaseAppException
 {
-    /**
-     * Limite l'énumération des plaques dans le message UX pour rester
-     * lisible quand de nombreux véhicules sont concernés. Au-delà, on
-     * suffixe « (et N autres) » (T11 / E.15).
-     */
+    /** Caps the plate list in the user message; the technical message keeps the full list. */
     private const int USER_MESSAGE_PLATES_CAP = 5;
 
     /**
@@ -47,9 +38,7 @@ final class MissingPricingException extends BaseAppException
     }
 
     /**
-     * Cape la liste à `USER_MESSAGE_PLATES_CAP` plaques et suffixe
-     * `(et N autres)` si nécessaire. Le message technique conserve
-     * la liste complète pour le debug.
+     * Caps the plate list at `USER_MESSAGE_PLATES_CAP` and appends a "(and N more)" suffix.
      *
      * @param  list<string>  $plates
      */
@@ -68,6 +57,8 @@ final class MissingPricingException extends BaseAppException
     }
 
     /**
+     * Build the exception from a list of missing items.
+     *
      * @param  list<MissingItem>  $missing
      */
     public static function forMissingItems(array $missing): self

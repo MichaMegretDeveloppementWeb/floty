@@ -8,12 +8,9 @@ use App\Models\BillingSettings;
 use App\Models\User;
 
 /**
- * Policy paramètres facturation (singleton émetteur) : stub V1 mono-tenant
- * (Phase 14.O). Cf. {@see InvoicePolicy} pour la doctrine globale.
+ * Billing settings policy (singleton). V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  *
- * Pas d'ability `viewAny` ni `delete` : les paramètres émetteur sont un
- * singleton applicatif (toujours présent, jamais supprimable). Seul
- * `view` (page Settings) et `update` ont du sens.
+ * No `viewAny` / `delete` ability: issuer settings are an application singleton.
  */
 final class BillingSettingsPolicy
 {

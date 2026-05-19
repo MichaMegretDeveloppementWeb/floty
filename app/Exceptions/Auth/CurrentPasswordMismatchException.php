@@ -7,12 +7,7 @@ namespace App\Exceptions\Auth;
 use App\Exceptions\BaseAppException;
 
 /**
- * Échec de changement de mot de passe · le mot de passe actuel fourni
- * ne correspond pas au password stocké pour l'utilisateur connecté.
- *
- * Comme pour les autres exceptions Auth · pas d'information détaillée
- * (un attaquant ayant volé une session pourrait sinon brute-forcer
- * le password actuel via ce formulaire).
+ * Change-password failure: provided current password does not match the stored hash.
  */
 final class CurrentPasswordMismatchException extends BaseAppException
 {

@@ -8,16 +8,9 @@ use App\Models\User;
 use App\Providers\AuthServiceProvider;
 
 /**
- * Policy planning · stub V1 mono-tenant (ADR-0011 § 7).
+ * Planning policy. V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  *
- * Pas de Model dédié · la Policy s'attache à une « intention » de
- * consultation du planning. Branchée via `Gate::define('view-planning', ...)`
- * dans {@see AuthServiceProvider::boot()}.
- *
- * Migration V2 attendue · scoper l'accès par société dont l'utilisateur
- * est gestionnaire ou par entreprise utilisatrice destinataire selon le rôle.
- *
- * Cf. plan-remédiation Vague 1 Lot 1 D7 (F-30-003).
+ * Bound to the `view-planning` ability in {@see AuthServiceProvider::boot()}.
  */
 final class PlanningPolicy
 {

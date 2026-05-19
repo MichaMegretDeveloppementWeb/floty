@@ -11,19 +11,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Index minimal d'une règle fiscale (Phase 13 D5.14 · ADR-0022 v1.4).
- *
- * **Doctrine** · les classes PHP des règles fiscales sont la source
- * de vérité unique. Cette table ne porte plus que l'index nécessaire
- * pour relier l'id BDD à la classe PHP · toutes les métadonnées
- * (name, description, legal_basis, etc.) vivent désormais
- * exclusivement dans les classes PHP, lues via le registry.
- *
- * **Aucune colonne de version** (ADR-0009) · si une règle est erronée,
- * on corrige directement sa classe PHP, le `rule_code` reste stable.
- *
- * **Jamais de suppression** · le seeder en mode miroir supprime les
- * entrées orphelines uniquement (cf. `FiscalRulesSeeder`).
+ * Minimal index of a fiscal rule (ADR-0022 v1.4). PHP rule classes are the single
+ * source of truth; this table only carries the bridge from DB id to PHP class.
+ * All metadata (name, description, legal basis, etc.) lives in the PHP classes
+ * and is read via the registry. No versioning column (ADR-0009).
  *
  * @property int $id
  * @property string $rule_code

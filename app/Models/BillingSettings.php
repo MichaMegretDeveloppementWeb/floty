@@ -9,8 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
 
 /**
- * Métadonnées émetteur (loueur) imprimées sur les factures
- * (Phase 14.G V1.2). Singleton applicatif : `id=1` toujours.
+ * Issuer (lessor) metadata printed on invoices. Application singleton (always `id=1`).
  *
  * @property int $id
  * @property string|null $name
@@ -37,18 +36,11 @@ final class BillingSettings extends Model
     protected $table = 'billing_settings';
 
     /**
-     * Singleton applicatif · retourne l'unique ligne (création automatique
-     * si la table est vide). Tous les caller du domaine Invoice passent
-     * par cette méthode pour lire les paramètres émetteur.
+     * Returns the application singleton row, auto-creating it on first access.
      *
-     * Implémenté via `firstOrCreate(['id' => 1], [])` (Lot 6 D5 · F-31-015)
-     * pour fermer la fenêtre de race condition entre deux requêtes HTTP
-     * concurrentes au démarrage à froid (table vide) · le `id = 1` force
-     * MySQL à rejeter la 2ᵉ insertion par PK violation, Laravel récupère
-     * atomiquement la ligne créée par la 1ʳᵉ. Pas de doublon possible.
-     *
-     * L'ancienne version `firstOrCreate([], [])` (T4 / 14.P) puis
-     * `first()` + `new save()` (origine) étaient vulnérables.
+     * Uses `firstOrCreate(['id' => 1], [])` so a concurrent second insertion is
+     * rejected by MySQL with a PK violation; the loser atomically retrieves the
+     * winner's row, leaving no duplicates.
      */
     public static function singleton(): self
     {

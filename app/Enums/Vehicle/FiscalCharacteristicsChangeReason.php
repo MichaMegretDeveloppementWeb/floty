@@ -5,23 +5,13 @@ declare(strict_types=1);
 namespace App\Enums\Vehicle;
 
 /**
- * Motif d'un enregistrement `vehicle_fiscal_characteristics`.
+ * Reason for a `vehicle_fiscal_characteristics` row.
  *
- * Distingue les flux métier :
- *   - `InitialCreation`    : 1ʳᵉ version créée à l'insertion du véhicule.
- *   - `Recharacterization` : reclassement fiscal du véhicule (changement
- *                            d'énergie, de catégorie polluants, conversion
- *                            E85, ajout 2ᵉ rang…) - crée une nouvelle
- *                            version, ferme la précédente.
- *   - `RegulationChange`   : adaptation suite à un changement de cadre
- *                            réglementaire (loi de finances, nouvelle norme
- *                            Euro applicable…) - crée une nouvelle version.
- *   - `OtherChange`        : autre changement effectif non couvert par les
- *                            deux précédents - `change_note` doit alors
- *                            être renseignée.
- *   - `InputCorrection`    : correction d'une saisie erronée sur la version
- *                            existante - `UPDATE` direct, pas de nouvelle
- *                            ligne.
+ * - `InitialCreation`: first version inserted with the vehicle.
+ * - `Recharacterization`: fiscal reclassification (new version, closes the previous).
+ * - `RegulationChange`: regulatory change (new version).
+ * - `OtherChange`: other effective change; `change_note` then required.
+ * - `InputCorrection`: typo fix on the existing version (`UPDATE`, no new row).
  */
 enum FiscalCharacteristicsChangeReason: string
 {
@@ -31,6 +21,9 @@ enum FiscalCharacteristicsChangeReason: string
     case OtherChange = 'other_change';
     case InputCorrection = 'input_correction';
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {
@@ -43,9 +36,7 @@ enum FiscalCharacteristicsChangeReason: string
     }
 
     /**
-     * Sous-ensemble exposé dans le sélecteur « motif » du formulaire
-     * d'édition véhicule, mode « Nouvelle version ». Exclut les motifs
-     * réservés au système (`InitialCreation`, `InputCorrection`).
+     * Reasons exposed in the "new version" picker. Excludes system-reserved reasons.
      *
      * @return list<self>
      */

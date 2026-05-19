@@ -21,19 +21,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Contrat de location véhicule × entreprise sur une plage temporelle
- * inclusive `[start_date, end_date]`. Entité pivot du domaine fiscal
- * post-refonte (cf. ADR-0014 « Modèle Contract et règle LCD par
- * contrat individuel »).
+ * Vehicle x company rental contract over an inclusive `[start_date, end_date]` range.
+ * Pivot entity of the fiscal domain (ADR-0014).
  *
- * Cf. `taxes-rules/2024.md` v2.0 R-2024-021 pour la mécanique
- * d'exonération LCD et `database/migrations/2026_04_29_140000_create_contracts_table.php`
- * pour la structure DB.
- *
- * **Invariants critiques** (matérialisés en DB) :
- *   - `end_date >= start_date` (CHECK SQL)
- *   - Pas deux contrats actifs chevauchants sur le même véhicule
- *     (triggers MySQL `contracts_no_overlap_*`)
+ * Invariants enforced in DB:
+ * - `end_date >= start_date` (SQL CHECK).
+ * - No two active contracts overlap on the same vehicle
+ *   (`contracts_no_overlap_*` MySQL triggers).
  *
  * @property int $id
  * @property int $vehicle_id
@@ -77,6 +71,8 @@ final class Contract extends Model
     }
 
     /**
+     * Rented vehicle.
+     *
      * @return BelongsTo<Vehicle, $this>
      */
     public function vehicle(): BelongsTo
@@ -85,6 +81,8 @@ final class Contract extends Model
     }
 
     /**
+     * Renting company.
+     *
      * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
@@ -93,12 +91,9 @@ final class Contract extends Model
     }
 
     /**
-     * Conducteurs désignés sur ce contrat (0, 1 ou plusieurs). Pivot
-     * pur égalitaire `contract_drivers` · pas de notion de conducteur
-     * principal/secondaire, tous les conducteurs sont équivalents.
-     *
-     * Optionnel à la création (un contrat peut être créé sans conducteur
-     * et complété ensuite).
+     * Drivers listed on this contract (0, 1 or many), via the egalitarian
+     * `contract_drivers` pivot (no primary/secondary distinction). Optional at
+     * creation; can be completed later.
      *
      * @return BelongsToMany<Driver, $this>
      */
@@ -109,24 +104,16 @@ final class Contract extends Model
     }
 
     /**
-     * Dérive le `contract_type` à partir d'une plage `[start, end]`.
+     * Derives the `contract_type` label from a `[start, end]` range
+     * (BOFiP § 180-190 convention): `Lcd` if duration ≤ 30 days or if the
+     * range covers exactly one calendar month, `Lld` otherwise.
      *
-     * Convention BOFiP § 180-190 (« éternelle ») :
-     *   - durée ≤ 30 jours consécutifs → `Lcd`
-     *   - **OU** plage couvrant exactement un mois civil entier
-     *     (1er → dernier jour du même mois) → `Lcd`
-     *   - sinon → `Lld`
+     * Pure static helper; reused by Store / Update / BulkCreate actions.
      *
-     * Méthode statique pure : pas d'IO, pas d'état. Réutilisable côté
-     * Actions (Store/Update/BulkCreate) qui posent automatiquement le
-     * type avant persistance.
-     *
-     * **Note architecture** : cette dérivation est distincte de la
-     * qualification fiscale annuelle portée par
-     * {@see R2024_021_ShortTermRental::isShortTermRental()}.
-     * Le `contract_type` persisté est un **libellé indicatif** figé à
-     * la création/édition ; la qualification fiscale réelle s'évalue
-     * dans le pipeline avec la règle de l'année concernée.
+     * Note: this derivation is distinct from the annual fiscal qualification
+     * implemented by {@see R2024_021_ShortTermRental::isShortTermRental()}.
+     * The persisted `contract_type` is an indicative label; the real fiscal
+     * qualification is computed by the year-specific rule at pipeline time.
      */
     public static function deriveTypeFromDates(string $startDate, string $endDate): ContractType
     {
@@ -152,13 +139,9 @@ final class Contract extends Model
     }
 
     /**
-     * Expansion du contrat en liste de dates ISO (Y-m-d), bornée à
-     * l'année passée en argument. Inclut les deux bornes du contrat.
-     *
-     * Helper réutilisé par les règles fiscales (R-2024-002 numérateur
-     * du prorata, R-2024-021 qualification LCD per-contract,
-     * R-2024-008 jours indispos réductrices ∩ contrats taxables) et
-     * par {@see ContractQueryService}.
+     * Expands the contract into ISO `Y-m-d` strings, clipped to the given year.
+     * Both contract bounds are included. Reused by fiscal rules (R-2024-002, R-2024-021,
+     * R-2024-008) and by {@see ContractQueryService}.
      *
      * @return list<string>
      */
@@ -188,17 +171,11 @@ final class Contract extends Model
     }
 
     /**
-     * Compte le nombre de jours du contrat tombant dans l'année donnée
-     * (bornes incluses, mêmes règles de clipping que
-     * {@see expandToDaysInYear}).
-     *
-     * Variante perf · ne matérialise pas l'array de 365 strings · juste
-     * une diff arithmétique. Doit retourner exactement
-     * `count($this->expandToDaysInYear($year))` (équivalence prouvée par
-     * `ContractCountVsExpandEquivalenceTest`). Préférer cette méthode
-     * aux 11 sites qui ne consommaient que la cardinalité.
-     *
-     * Cf. plan-remédiation Vague 1 Lot 3 D02 (F-12-006 et consolidés).
+     * Counts the contract days falling in the given year (same clipping as
+     * {@see expandToDaysInYear}). Performance variant: arithmetic diff without
+     * materializing the 365-string array; must always equal
+     * `count($this->expandToDaysInYear($year))` (proven by
+     * `ContractCountVsExpandEquivalenceTest`).
      */
     public function countDaysInYear(int $year): int
     {
@@ -215,25 +192,18 @@ final class Contract extends Model
             return 0;
         }
 
-        // `diffInDays` exclut la borne d'arrivée · +1 pour matcher la
-        // sémantique « bornes incluses » de `expandToDaysInYear`.
+        // `diffInDays` excludes the end bound: +1 to match the "bounds included"
+        // semantics of `expandToDaysInYear`.
         return (int) $rangeStart->diffInDays($rangeEnd) + 1;
     }
 
     /**
-     * Variante YTD de {@see countDaysInYear} avec plafond date supplémentaire ·
-     * compte les jours du contrat dans `[1er janvier $year, min(31 déc $year,
-     * $upToDate)]`. Pour `$upToDate >= 31 déc $year` (cas année passée vue
-     * depuis aujourd'hui), équivaut à `countDaysInYear`.
+     * YTD variant of {@see countDaysInYear} with an extra date cap; counts the
+     * contract days in `[Jan 1st $year, min(Dec 31st $year, $upToDate)]`.
+     * Equivalent to `countDaysInYear` when `$upToDate >= Dec 31st $year`.
      *
-     * Doit retourner exactement
-     * `count(array_filter(expandToDaysInYear($year), fn($d) => $d <= $upToDate))`
-     * (équivalence prouvée par
-     * {@see Tests\Unit\Models\ContractCountVsExpandEquivalenceTest::count_up_to_egal_count_filtre_de_expand}).
-     *
-     * Cf. chantier perf Dashboard 2026-05-17 · remplace l'allocation des
-     * 365 strings + filtre `<= upToDate` dans `DashboardStatsService::computePeriodMetrics`
-     * (8 ans × N pairs × 365 cmp string · gros consommateur CPU history).
+     * Must equal `count(array_filter(expandToDaysInYear($year), fn($d) => $d <= $upToDate))`
+     * (proven by the equivalence test in `ContractCountVsExpandEquivalenceTest`).
      */
     public function countDaysInYearUpTo(int $year, string $upToDate): int
     {
@@ -256,26 +226,13 @@ final class Contract extends Model
     }
 
     /**
-     * Distribution des jours du contrat par semaine ISO de l'année donnée.
-     * Clé · numéro de semaine ISO (1..53) · valeur · nombre de jours du
-     * contrat dans cette semaine. Bornes incluses, contrat clippé à
-     * `[1er janvier $year, 31 décembre $year]`.
+     * Distribution of contract days per heatmap cell of the given year.
+     * Keys are cell indices `1..53`; values are the contract day counts.
+     * Both contract bounds are clipped to `[Jan 1st $year, Dec 31st $year]`.
      *
-     * Variante perf · ne matérialise pas l'array de 365 strings, itère
-     * semaine par semaine (au plus 53 itérations) en arithmétique pure.
-     * Doit retourner exactement le résultat de
-     * `expandToDaysInYear → groupBy(format('W'))` (équivalence prouvée
-     * par {@see ContractDaysByWeekVsExpandEquivalenceTest}).
-     *
-     * **Sémantique W = `format('W')`** · cohérente avec
-     * `loadWeekDensity` historique · une journée appartient à la
-     * semaine ISO contenant son jeudi (norme ISO 8601). Le 30 décembre
-     * 2024 (lundi) est en `W01` (de 2025) selon ISO ; donc filtré pour
-     * `year=2024` il atterrit dans le bucket `1` au lieu de `53`. C'est
-     * le comportement strictement préservé de `loadWeekDensity`.
-     *
-     * Cf. plan optim perf 2026-05-15 S2.1 (cause C-6 ·
-     * expandToDaysInYear day-by-day).
+     * Performance variant: arithmetic, week-by-week (at most 53 iterations).
+     * Equivalent to `expandToDaysInYear → groupBy(cell)` (proven by
+     * `ContractDaysByWeekVsExpandEquivalenceTest`).
      *
      * @return array<int, int>
      */
@@ -294,23 +251,21 @@ final class Contract extends Model
             return [];
         }
 
-        // SC16 (2026-05-18) · indexation par position de CELLULE dans la
-        // heatmap year (1..53) au lieu du numéro de semaine ISO (W01-W53).
-        // Garantit que les 1-3 jours de fin Y tombant en sem 1 ISO de Y+1
-        // (cas 2024/2025) atterrissent bien dans la dernière cellule de
-        // la heatmap year, pas dans la cellule 1 par collision.
+        // Index by CELL position in the heatmap year (1..53) rather than ISO week
+        // number, so 1-3 trailing days that ISO-belong to week 1 of Y+1 land in the
+        // last cell of year Y instead of colliding with cell 1.
         $origin = IsoWeeks::cellOriginForYear($year);
 
         $byCell = [];
         $cursor = $rangeStart;
         while (! $cursor->isAfter($rangeEnd)) {
-            // Jours restants jusqu'à la fin de la semaine ISO en cours
-            // (dimanche). dayOfWeekIso · 1=lundi .. 7=dimanche.
+            // Remaining days until the current ISO week ends (Sunday).
+            // `dayOfWeekIso`: 1=Monday .. 7=Sunday.
             $daysToSunday = 7 - (int) $cursor->dayOfWeekIso;
             $weekEndCandidate = $cursor->addDays($daysToSunday);
             $segmentEnd = $weekEndCandidate->isAfter($rangeEnd) ? $rangeEnd : $weekEndCandidate;
 
-            // Index de cellule dans la heatmap year (1..53)
+            // Cell index in the heatmap year (1..53).
             $daysSinceOrigin = (int) $origin->diffInDays($cursor);
             $cellIdx = (int) floor($daysSinceOrigin / 7) + 1;
 

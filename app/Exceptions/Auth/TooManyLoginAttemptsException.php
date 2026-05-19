@@ -7,18 +7,10 @@ namespace App\Exceptions\Auth;
 use App\Exceptions\BaseAppException;
 
 /**
- * Rate-limit déclenché sur les tentatives de connexion (ADR-0011).
+ * Login rate-limit hit (ADR-0011).
  *
- * Deux portées distinctes :
- *   - {@see SCOPE_EMAIL} : 5 tentatives / 15 min sur le couple email+IP
- *     (anti bruteforce ciblé d'un compte précis)
- *   - {@see SCOPE_IP} : 50 tentatives / 15 min sur l'IP seule
- *     (anti attaques distribuées multi-comptes depuis une même origine)
- *
- * `retryAfterSeconds` est le délai exact retourné par RateLimiter, exposé
- * à l'utilisateur dans le message pour qu'il sache quand réessayer.
- *
- * Référence : implementation-rules/gestion-erreurs.md.
+ * Two scopes: {@see SCOPE_EMAIL} (5 attempts / 15 min on email+IP) and {@see SCOPE_IP}
+ * (50 attempts / 15 min on IP alone). `retryAfterSeconds` is the exact RateLimiter delay.
  */
 final class TooManyLoginAttemptsException extends BaseAppException
 {

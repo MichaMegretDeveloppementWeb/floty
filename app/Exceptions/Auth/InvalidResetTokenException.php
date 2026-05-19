@@ -7,12 +7,9 @@ namespace App\Exceptions\Auth;
 use App\Exceptions\BaseAppException;
 
 /**
- * Échec de réinitialisation · token invalide ou expiré.
+ * Password reset failure (invalid or expired token).
  *
- * Le message utilisateur est volontairement ambigu (ne distingue pas
- * « token expiré » de « token jamais émis ») pour ne pas divulguer
- * d'information utile à un attaquant. Cohérent avec
- * {@see InvalidCredentialsException} (anti email enumeration).
+ * User message is intentionally ambiguous to avoid leaking token state to attackers.
  */
 final class InvalidResetTokenException extends BaseAppException
 {

@@ -8,15 +8,10 @@ use App\Exceptions\BaseAppException;
 use Illuminate\Support\Carbon;
 
 /**
- * Un contrat est créé ou modifié sur une plage qui chevauche au moins
- * un autre contrat actif du même véhicule.
+ * Contract create/update overlaps another active contract on the same vehicle (ADR-0014 D5).
  *
- * Cf. ADR-0014 D5 : un véhicule ne peut avoir deux contrats actifs
- * (non soft-deleted) qui se chevauchent dans le temps. Le trigger
- * MySQL `contracts_no_overlap_*` est la source de vérité de cet
- * invariant ; cette exception est la défense en profondeur côté Action
- * pour produire un message FR explicite avant que la requête atteigne
- * la DB.
+ * The `contracts_no_overlap_*` MySQL trigger is the source of truth; this exception is the
+ * defense-in-depth layer that produces an explicit French message before reaching the DB.
  */
 final class ContractOverlapException extends BaseAppException
 {

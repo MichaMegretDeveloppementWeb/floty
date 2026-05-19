@@ -7,13 +7,7 @@ namespace App\Exceptions\Vehicle;
 use App\Exceptions\BaseAppException;
 
 /**
- * Tentative de suppression de l'unique VFC d'un véhicule. Un véhicule
- * doit toujours avoir au moins une période fiscale active - supprimer
- * la dernière reviendrait à laisser le moteur fiscal sans données.
- *
- * Pour réinitialiser complètement la fiscalité d'un véhicule, l'opérateur
- * doit passer par le formulaire d'édition (mode « Correction ») plutôt
- * que de supprimer l'unique VFC.
+ * Cannot delete the only fiscal version of a vehicle. A vehicle must always retain at least one active VFC.
  */
 final class CannotDeleteOnlyVersionException extends BaseAppException
 {

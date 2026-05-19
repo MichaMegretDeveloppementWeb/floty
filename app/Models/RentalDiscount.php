@@ -18,18 +18,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Réduction commerciale appliquée sur le loyer d'une entreprise pour
- * une période donnée, sur un sous-ensemble de véhicules (ou tous si la
- * relation `vehicles` est vide · décision applicative lue par
- * `DiscountResolver`).
+ * Commercial discount applied to a company's rent for a given period, on a
+ * subset of vehicles (or all vehicles when the `vehicles` relation is empty,
+ * resolved by `DiscountResolver`).
  *
- * **Pourcentage stocké en basis points** (1050 bp = 10,50 %) · cohérent
- * avec la doctrine projet « entiers partout ».
- *
- * **Soft deletes** · une réduction supprimée préserve son ID pour
- * référence depuis les invoice_lines déjà émises (audit immuable).
- *
- * **Non-chevauchement** garanti applicativement par
+ * Percentage stored in basis points (1050 bp = 10.50 %), in line with the
+ * project's "integers everywhere" doctrine. Soft-deleted to preserve the id
+ * for already-issued invoice lines. Non-overlap is enforced applicatively by
  * {@see App\Services\RentalDiscount\RentalDiscountConflictService}.
  *
  * @property int $id
@@ -77,7 +72,7 @@ final class RentalDiscount extends Model
     }
 
     /**
-     * Entreprise utilisatrice bénéficiaire de la réduction.
+     * Beneficiary user company.
      *
      * @return BelongsTo<Company, $this>
      */
@@ -87,9 +82,8 @@ final class RentalDiscount extends Model
     }
 
     /**
-     * Véhicules ciblés explicitement par la réduction. **Vide = applique
-     * à tous les véhicules de l'entreprise sur la période** (décision
-     * applicative lue dans le `DiscountResolver`, pas SQL).
+     * Vehicles explicitly targeted by the discount. Empty means "applies to all
+     * the company's vehicles on the period" (resolved in `DiscountResolver`, not SQL).
      *
      * @return BelongsToMany<Vehicle, $this>
      */
@@ -104,7 +98,7 @@ final class RentalDiscount extends Model
     }
 
     /**
-     * Utilisateur ayant créé la réduction. Nullable (FK nullOnDelete).
+     * User who created the discount (nullable via `nullOnDelete`).
      *
      * @return BelongsTo<User, $this>
      */
@@ -114,8 +108,7 @@ final class RentalDiscount extends Model
     }
 
     /**
-     * Scope · réductions actives à une date donnée (inclusif sur les
-     * 2 bornes). Convention `Y-m-d`.
+     * Scope: discounts active on the given `Y-m-d` date (inclusive on both bounds).
      *
      * @param  Builder<self>  $query
      */
@@ -126,9 +119,8 @@ final class RentalDiscount extends Model
     }
 
     /**
-     * Scope · réductions chevauchant une période donnée (inclusif).
-     * Deux périodes `[a,b]` et `[c,d]` se chevauchent ssi `a <= d` et
-     * `c <= b`.
+     * Scope: discounts overlapping the given period (inclusive).
+     * Two ranges `[a,b]` and `[c,d]` overlap iff `a <= d` and `c <= b`.
      *
      * @param  Builder<self>  $query
      */
@@ -139,7 +131,7 @@ final class RentalDiscount extends Model
     }
 
     /**
-     * Scope · réductions d'une entreprise donnée.
+     * Scope: discounts belonging to a given company.
      *
      * @param  Builder<self>  $query
      */

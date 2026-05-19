@@ -7,10 +7,9 @@ namespace App\Exceptions\Driver;
 use App\Exceptions\BaseAppException;
 
 /**
- * Workflow Q6 : la résolution proposée par l'utilisateur n'est pas
- * cohérente avec les contrats détectés (par exemple, mode 'replace'
- * sans `replacementMap` complet, ou driver de remplacement non actif
- * sur la période du contrat).
+ * The leave-resolution proposal is inconsistent with the detected contracts
+ * (e.g. `replace` mode without a full `replacementMap`, or a replacement driver
+ * inactive on the contract period).
  */
 final class LeaveResolutionInvalidException extends BaseAppException
 {

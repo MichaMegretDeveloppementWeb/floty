@@ -24,22 +24,16 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Version effective des caractéristiques fiscales d'un véhicule sur une
- * période (`effective_from` → `effective_to`, incluse).
+ * Effective version of a vehicle's fiscal characteristics over a period
+ * (`effective_from` → `effective_to`, inclusive).
  *
- * Cf. 01-schema-metier.md § 3.
+ * Periods for the same vehicle never overlap (triple protection: application
+ * service, MySQL trigger, pessimistic lock).
  *
- * Les périodes pour un même véhicule ne se chevauchent **jamais** -
- * protection triple : service applicatif + trigger BEFORE INSERT/UPDATE +
- * verrou pessimiste (cf. § 0.3 du schema doc).
- *
- * **Pas de soft-delete** : la suppression d'une version historique est un
- * hard-delete (cf. {@see DeleteFiscalCharacteristicsAction}),
- * conditionné par l'absence de contrat couvrant la période. Une version
- * « courante » n'est jamais supprimée mais corrigée ou clôturée par
- * création d'une nouvelle version (chantier 04.B). La doctrine d'audit
- * fiscal repose sur les contrats (immutables soft-deletables) plutôt que
- * sur l'historique des caractéristiques techniques du véhicule.
+ * No soft-delete: deleting a historic version is a hard-delete (gated by the
+ * absence of an overlapping contract, see {@see DeleteFiscalCharacteristicsAction}).
+ * The "current" version is never deleted: it is either corrected in place or
+ * replaced by creating a new version.
  *
  * @property int $id
  * @property int $vehicle_id
@@ -128,7 +122,7 @@ final class VehicleFiscalCharacteristics extends Model
     }
 
     /**
-     * Véhicule de rattachement.
+     * Owning vehicle.
      *
      * @return BelongsTo<Vehicle, $this>
      */
@@ -138,9 +132,8 @@ final class VehicleFiscalCharacteristics extends Model
     }
 
     /**
-     * Vrai ssi cette version est la version courante (`effective_to IS NULL`).
-     * Alignée sur la colonne générée virtuelle `is_current` utilisée pour
-     * l'index partiel émulé côté SQL.
+     * Whether this version is the current one (`effective_to IS NULL`).
+     * Mirrors the SQL-side virtual `is_current` column used by the partial index emulation.
      */
     public function isCurrent(): bool
     {

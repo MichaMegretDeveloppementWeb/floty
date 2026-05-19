@@ -8,13 +8,7 @@ use App\Models\UnavailabilityDocument;
 use App\Models\User;
 
 /**
- * Policy document indisponibilité · stub V1 mono-tenant (ADR-0011 § 7).
- *
- * Toutes les méthodes retournent `true` en V1. Préparation V2 multi-tenant ·
- * scoper par société propriétaire du véhicule via l'indispo parent · les
- * controllers ne changeront pas.
- *
- * Aligné sur {@see ContractDocumentPolicy}.
+ * Unavailability document policy. V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  */
 final class UnavailabilityDocumentPolicy
 {

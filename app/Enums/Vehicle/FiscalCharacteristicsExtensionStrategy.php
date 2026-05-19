@@ -7,22 +7,10 @@ namespace App\Enums\Vehicle;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Stratégie de comblement du trou laissé par la suppression d'une
- * VFC depuis l'historique. L'utilisateur choisit dans le ConfirmModal :
+ * Strategy for filling the gap left by deleting a VFC from history.
  *
- *   - `ExtendPrevious` : la VFC qui précédait la supprimée voit son
- *                        `effective_to` repoussé jusqu'à
- *                        l'`effective_to` de la supprimée (ou à null
- *                        si la supprimée était courante).
- *
- *   - `ExtendNext`     : la VFC qui suivait la supprimée voit son
- *                        `effective_from` ramené à l'`effective_from`
- *                        de la supprimée (ou à la date d'acquisition
- *                        du véhicule si la supprimée était la version
- *                        initiale).
- *
- * Le 3ᵉ choix « Annuler » est purement UI (l'utilisateur ferme le
- * modal sans soumettre) - il ne remonte pas au backend.
+ * - `ExtendPrevious`: the preceding VFC absorbs the deleted range (`effective_to` extended).
+ * - `ExtendNext`: the following VFC absorbs the deleted range (`effective_from` pulled back).
  */
 #[TypeScript]
 enum FiscalCharacteristicsExtensionStrategy: string
@@ -30,6 +18,9 @@ enum FiscalCharacteristicsExtensionStrategy: string
     case ExtendPrevious = 'extend_previous';
     case ExtendNext = 'extend_next';
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

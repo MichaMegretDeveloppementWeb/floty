@@ -8,17 +8,9 @@ use App\Models\FiscalDeclaration;
 use App\Models\User;
 
 /**
- * Policy déclaration fiscale : stub V1 mono-tenant (Phase 11 D4).
+ * Fiscal declaration policy. V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  *
- * Toutes les méthodes retournent `true` en V1. Cohérent avec
- * {@see InvoicePolicy} et {@see BillingSettingsPolicy} : la logique
- * multi-tenant V2 s'ajoutera ici sans toucher aux controllers qui
- * appellent déjà `Gate::authorize(...)`.
- *
- * Pas d'ability `delete` exposée : conformément à la doctrine
- * immuabilité fiscale (ADR-0008 + ADR-0015 § D8 rev. 1.1), une
- * déclaration `generated` ne peut JAMAIS être supprimée hors-app
- * (soft-delete uniquement, jamais déclenché par un user direct).
+ * No `delete` ability: a `generated` declaration is immutable (ADR-0008 + ADR-0015 § D8 rev. 1.1) and only soft-deletable internally.
  */
 final class FiscalDeclarationPolicy
 {

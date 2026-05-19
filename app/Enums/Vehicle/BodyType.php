@@ -5,14 +5,7 @@ declare(strict_types=1);
 namespace App\Enums\Vehicle;
 
 /**
- * Carrosserie du véhicule (rubrique J.2 de la carte grise).
- * Codes administratifs français préservés (cf. E1).
- *
- * - CI   : Conduite Intérieure (berline, monospace)
- * - BB   : Break
- * - CTTE : Camionnette
- * - BE   : Pick-up
- * - HB   : Handicap / véhicule aménagé
+ * Vehicle body type (registration field J.2). French administrative codes preserved.
  */
 enum BodyType: string
 {
@@ -22,6 +15,9 @@ enum BodyType: string
     case Pickup = 'BE';
     case Handicap = 'HB';
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

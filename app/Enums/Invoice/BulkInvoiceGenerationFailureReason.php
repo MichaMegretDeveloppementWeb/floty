@@ -6,26 +6,21 @@ namespace App\Enums\Invoice;
 
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
+/**
+ * Failure reason emitted during bulk invoice generation.
+ */
 #[TypeScript]
 enum BulkInvoiceGenerationFailureReason: string
 {
-    /** Tarif annuel manquant pour au moins un véhicule du mois. */
+    /** Missing yearly pricing for at least one vehicle on the month. */
     case MissingPricing = 'missing_pricing';
 
-    /**
-     * Race condition · une autre génération concurrente a posé une
-     * facture sur ce mois entre la résolution de la liste et l'appel
-     * `GenerateInvoiceAction`. Géré comme un skip a posteriori côté UI.
-     */
+    /** Race condition: a concurrent generation already posted an invoice on the same month. */
     case AlreadyExists = 'already_exists';
 
-    /**
-     * Garde-fou refusant la génération sur un mois non écoulé. Normalement
-     * filtré en amont par le resolver, ce cas couvre les régressions UI
-     * ou les appels forgés.
-     */
+    /** Safety net refusing generation on a non-elapsed month. */
     case NotPastMonth = 'not_past_month';
 
-    /** Toute autre exception non typée (bug applicatif, panne PDF, etc.). */
+    /** Any other untyped exception. */
     case Unexpected = 'unexpected';
 }

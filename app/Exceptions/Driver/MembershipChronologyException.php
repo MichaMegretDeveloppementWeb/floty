@@ -7,9 +7,7 @@ namespace App\Exceptions\Driver;
 use App\Exceptions\BaseAppException;
 
 /**
- * Levée par l'édition d'une membership Driver↔Company quand la
- * chronologie est invalide : `joined_at > left_at`. Cf. chantier B ·
- * `UpdateDriverCompanyMembershipAction`.
+ * Invalid membership chronology: `joined_at > left_at`.
  */
 final class MembershipChronologyException extends BaseAppException
 {

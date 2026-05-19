@@ -7,16 +7,11 @@ namespace App\Enums\FiscalDeclaration;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Types d'événements pouvant invalider une déclaration fiscale
- * `generated` (ADR-0015 § D9 rev. 1.1).
+ * Event types that can invalidate a `generated` fiscal declaration (ADR-0015 § D9 rev. 1.1).
  *
- * Toute action invalidante détectée par les Observers (D3) doit
- * empiler une entrée dans `fiscal_declarations.obsolete_reasons` avec
- * un `type` strictement parmi ces valeurs. Tout autre type est rejeté
- * à l'insertion (validation côté `MarkAsObsoleteAction`).
- *
- * La liste exhaustive des actions effectivement invalidantes (vs
- * non-invalidantes) est cadrée à l'ADR-0015 § D8.
+ * Every invalidating mutation detected by Observers stacks an entry in
+ * `fiscal_declarations.obsolete_reasons` with a `type` strictly within this enum;
+ * any other value is rejected at insertion time.
  */
 #[TypeScript]
 enum InvalidationReasonType: string
@@ -33,19 +28,11 @@ enum InvalidationReasonType: string
     case UnavailabilityUpdated = 'unavailability_updated';
     case UnavailabilityDeleted = 'unavailability_deleted';
 
-    // Phase 11 D5.7.8 audit : Vehicle.exit_date modifie le périmètre
-    // taxable (clip des contrats post-clôture). Doit invalider les
-    // déclarations de l'année qui contiennent un contrat de ce
-    // véhicule. Cf. `VehicleObserver` + `DeclarationInvalidationDetector::flagForVehicle`.
+    // Vehicle.exit_date alters the taxable scope (clipping of post-exit contracts).
     case VehicleUpdated = 'vehicle_updated';
 
-    // Phase 13 D5.10.E : l'utilisateur déclenche manuellement la
-    // régénération d'une déclaration active depuis Show (S5 → S7) sans
-    // mutation de périmètre. La déclaration précédente devient
-    // obsolète mais reste consultable. Distinction utilisée par
-    // `DiscardDraftDeclarationAction` pour la réversibilité de
-    // l'opération : si `obsolete_reasons` ne contient que des entrées
-    // VoluntaryModification, la suppression du brouillon ré-active
-    // le predecessor.
+    // Manual user-triggered regeneration of an active declaration without a scope mutation.
+    // Used by `DiscardDraftDeclarationAction` to reversibly reactivate the predecessor when
+    // `obsolete_reasons` contains only `VoluntaryModification` entries.
     case VoluntaryModification = 'voluntary_modification';
 }

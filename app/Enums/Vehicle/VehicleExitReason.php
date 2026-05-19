@@ -5,24 +5,10 @@ declare(strict_types=1);
 namespace App\Enums\Vehicle;
 
 /**
- * Motif de sortie de flotte (colonne `vehicles.exit_reason`).
+ * Reason for definitive fleet exit (`vehicles.exit_reason`), set iff `exit_date IS NOT NULL`.
  *
- * Renseigné ssi `vehicles.exit_date IS NOT NULL`
- * (cf. 01-schema-metier.md § 2 - invariant applicatif).
- *
- * Distinction avec {@see App\Enums\Unavailability\UnavailabilityType} :
- * `VehicleExitReason` caractérise une **sortie définitive** de flotte
- * (le véhicule ne reviendra pas), tandis que `UnavailabilityType`
- * caractérise une **indisponibilité temporaire** (le véhicule reste en
- * flotte). Cf. ADR-0018 (cycle de vie véhicule).
- *
- * En particulier :
- *   - `StolenUnrecovered` : vol acté définitivement sans suite (≠
- *     `UnavailabilityType::theft` qui est un vol récent susceptible
- *     d'être résolu).
- *   - `Destroyed` : destruction VHU (C. route R. 322-9), sortie
- *     définitive (≠ ancien `UnavailabilityType::destruction_certificate`
- *     retiré par ADR-0016 rev. 1.1).
+ * Distinct from {@see App\Enums\Unavailability\UnavailabilityType} which represents
+ * temporary unavailability (vehicle remains in fleet). See ADR-0018.
  */
 enum VehicleExitReason: string
 {
@@ -32,6 +18,9 @@ enum VehicleExitReason: string
     case StolenUnrecovered = 'stolen_unrecovered';
     case Other = 'other';
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

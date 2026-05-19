@@ -8,18 +8,8 @@ use App\DTO\Vehicle\FiscalCharacteristicsImpact;
 use App\Exceptions\BaseAppException;
 
 /**
- * L'édition d'une VFC produit des effets de bord destructifs (suppression
- * d'au moins une autre version de l'historique) que l'utilisateur n'a
- * pas explicitement confirmés.
- *
- * Le handler global (`bootstrap/app.php`) transforme cette exception
- * en flash `toast-warning` côté Inertia avec le détail des impacts -
- * l'utilisateur doit alors re-soumettre le formulaire en cochant la
- * case de confirmation pour appliquer la cascade.
- *
- * Le front mirroir (`computeVfcUpdateImpact.ts`) prévient ce cas en
- * affichant une modale de confirmation avant le submit, mais cette
- * exception reste le filet de sécurité backend.
+ * VFC edit has destructive side effects (deleting one or more historic versions) that the user has not confirmed.
+ * Backend safety net; the frontend confirmation modal (`computeVfcUpdateImpact.ts`) catches this in advance.
  */
 final class FiscalCharacteristicsRequiresConfirmationException extends BaseAppException
 {

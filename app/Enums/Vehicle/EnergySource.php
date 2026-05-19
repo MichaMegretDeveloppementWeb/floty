@@ -5,11 +5,8 @@ declare(strict_types=1);
 namespace App\Enums\Vehicle;
 
 /**
- * Source d'énergie du véhicule (rubrique P.3 de la carte grise).
- *
- * Pour les hybrides et assimilés, la caractéristique
- * {@see UnderlyingCombustionEngineType} est obligatoire (invariant
- * cross-champs validé par `VehicleFiscalCharacteristicsService`).
+ * Vehicle energy source (registration field P.3).
+ * Hybrids and similar variants require {@see UnderlyingCombustionEngineType}.
  */
 enum EnergySource: string
 {
@@ -25,9 +22,8 @@ enum EnergySource: string
     case ElectricHydrogen = 'electric_hydrogen';
 
     /**
-     * Renvoie vrai pour les sources qui impliquent un moteur thermique
-     * sous-jacent - l'implémentation fiscale doit alors renseigner
-     * {@see UnderlyingCombustionEngineType} sur la même caractéristique.
+     * Whether this source implies an underlying combustion engine
+     * (then {@see UnderlyingCombustionEngineType} must be set on the same VFC).
      */
     public function requiresUnderlyingCombustionEngine(): bool
     {
@@ -39,6 +35,9 @@ enum EnergySource: string
         };
     }
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

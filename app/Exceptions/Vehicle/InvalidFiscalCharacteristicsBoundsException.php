@@ -8,14 +8,10 @@ use App\Exceptions\BaseAppException;
 use Carbon\CarbonImmutable;
 
 /**
- * Les bornes (`effective_from` / `effective_to`) soumises par
- * l'utilisateur sont invalides à elles seules - sans considérer
- * l'historique du véhicule.
+ * Submitted VFC bounds (`effective_from` / `effective_to`) are invalid in isolation.
  *
- * Cas couverts :
- *   - `effective_from` postérieur à `effective_to`
- *   - tentative de transformer la VFC courante (effective_to=null)
- *     en VFC bornée, ou inversement (créerait deux courantes)
+ * Covers: end before start, current↔bounded transformation attempts, and strict-containment
+ * inside an existing version.
  */
 final class InvalidFiscalCharacteristicsBoundsException extends BaseAppException
 {
@@ -71,15 +67,10 @@ final class InvalidFiscalCharacteristicsBoundsException extends BaseAppException
     {
         $existingFromFr = self::formatFr($existingFrom);
 
-        // Branche courante (existingTo === null) : message guidant
-        // l'utilisateur vers le fix simple = retirer la date de fin de la
-        // nouvelle VFC. La précédente sera automatiquement clôturée à
-        // newFrom-1 par l'`ImpactComputer`. Le wording générique
-        // « modifier ou raccourcir d'abord cette version » est trompeur
-        // dans ce cas · il pousse vers une voie inutile.
-        //
-        // Branche finie : wording générique conservé (le seul fix possible
-        // côté UI est bien de modifier l'existante en amont).
+        // Current branch (existingTo === null): guide the user to drop the new end date
+        // so the existing current VFC gets auto-closed at newFrom - 1 by the ImpactComputer.
+        // Bounded branch: keep the generic wording since the only fix is to edit the existing
+        // version first.
         if ($existingTo === null) {
             $newFromMinus1Fr = self::formatFr(self::previousDay($newFrom));
             $userMessage = "Cette plage est entièrement contenue dans la version courante (commencée le {$existingFromFr}). "

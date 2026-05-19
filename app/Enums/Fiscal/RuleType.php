@@ -5,18 +5,16 @@ declare(strict_types=1);
 namespace App\Enums\Fiscal;
 
 /**
- * Les cinq sous-types fonctionnels d'une règle fiscale Floty (ADR-0006 § 1).
+ * The five functional subtypes of a Floty fiscal rule (ADR-0006 § 1).
  *
- * Chaque règle du catalogue (R-{year}-{nnn}) implémente exactement un de
- * ces sous-types, qui détermine son rôle dans le pipeline (ADR-0006 § 2).
+ * Each catalog rule (R-{year}-{nnn}) implements exactly one subtype, which
+ * determines its role in the pipeline (ADR-0006 § 2):
  *
- * | Sous-type         | Rôle                                                                 |
- * |-------------------|----------------------------------------------------------------------|
- * | Classification    | Produit une qualification à partir des caractéristiques véhicule.    |
- * | Tariff            | Produit un tarif annuel plein à partir des caractéristiques.         |
- * | Exemption         | Vérifie une condition d'exonération (éventuellement avec cumul état).|
- * | Abatement         | Modifie une caractéristique d'entrée avant la tarification.          |
- * | Transversal       | Opérations transverses (prorata, arrondi, indispos, historisation).  |
+ * - `Classification`: produces a qualification from vehicle characteristics.
+ * - `Tariff`: produces a full annual tariff from characteristics.
+ * - `Exemption`: checks an exoneration condition (possibly stateful).
+ * - `Abatement`: alters an input characteristic before tariffing.
+ * - `Transversal`: cross-cutting operations (proration, rounding, unavailabilities, history).
  */
 enum RuleType: string
 {

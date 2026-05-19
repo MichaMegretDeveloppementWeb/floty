@@ -18,14 +18,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Déclaration fiscale annuelle pour un couple `(company, fiscal_year)`
- * (Phase 11 D1, ADR-0015 § 5.1 rev. 1.1).
+ * Annual fiscal declaration for a `(company, fiscal_year)` pair (ADR-0015 § 5.1 rev. 1.1).
  *
- * Plusieurs déclarations historiques peuvent coexister pour un même
- * couple grâce à la chaîne d'obsolescence (`is_obsolete` +
- * `superseded_by_id`). La déclaration **active** d'un couple est
- * celle dont `is_obsolete = false` ; l'unicité fonctionnelle est
- * garantie par le repository, pas par contrainte SQL.
+ * Several historic declarations may coexist via the obsolescence chain
+ * (`is_obsolete` + `superseded_by_id`). The active declaration is the one with
+ * `is_obsolete = false`; uniqueness is enforced by the repository, not by SQL.
  *
  * @property int $id
  * @property int $company_id
@@ -89,6 +86,8 @@ final class FiscalDeclaration extends Model
     }
 
     /**
+     * Owning company.
+     *
      * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
@@ -97,9 +96,8 @@ final class FiscalDeclaration extends Model
     }
 
     /**
-     * Déclaration suivante (régénérée) qui rend celle-ci obsolète. Null
-     * si la déclaration est encore active OU si elle est obsolète mais
-     * pas encore régénérée.
+     * Successor declaration (regenerated) that makes this one obsolete.
+     * Null if still active or obsolete but not yet regenerated.
      *
      * @return BelongsTo<FiscalDeclaration, $this>
      */
@@ -109,8 +107,7 @@ final class FiscalDeclaration extends Model
     }
 
     /**
-     * Déclarations historiques que celle-ci remplace (rare en pratique :
-     * chaîne linéaire 1 ancien → 1 nouveau). Inverse de `supersededBy`.
+     * Historic declarations replaced by this one. Inverse of `supersededBy`.
      *
      * @return HasMany<FiscalDeclaration, $this>
      */
@@ -120,11 +117,8 @@ final class FiscalDeclaration extends Model
     }
 
     /**
-     * Déclaration prédécesseur unique que celle-ci remplace (Phase 13
-     * D5.10.F). Variante ergonomique HasOne de `obsoletes()` · la chaîne
-     * d'obsolescence étant strictement linéaire (1 ancien → 1 nouveau),
-     * il y a au plus une déclaration X telle que `X.superseded_by_id =
-     * $this->id`. Utile pour l'eager-load côté Index Déclarations.
+     * Single predecessor declaration replaced by this one (HasOne variant of
+     * `obsoletes()`; the chain is strictly linear). Convenient for eager loading.
      *
      * @return HasOne<FiscalDeclaration, $this>
      */
@@ -134,10 +128,9 @@ final class FiscalDeclaration extends Model
     }
 
     /**
-     * Décisions de revue rattachées au couple `(company_id,
-     * fiscal_year)` de cette déclaration. Pas une vraie relation
-     * Eloquent (clé composite non supportée nativement) : retourne un
-     * Builder filtré, à éager-loader manuellement par les services.
+     * Review decisions matched on `(company_id, fiscal_year)`. Not an Eloquent
+     * relation (composite key not supported natively); returns a filtered Builder
+     * for manual eager loading by services.
      *
      * @return Builder<FiscalReviewDecision>
      */

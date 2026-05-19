@@ -7,8 +7,7 @@ namespace App\Exceptions\Cache;
 use App\Exceptions\BaseAppException;
 
 /**
- * Erreur de configuration ou d'utilisation du gestionnaire de tags de
- * cache émulés (Floty utilise le driver `database` en V1, cf. ADR-0008).
+ * Configuration or usage error in the emulated cache tags manager (Floty uses the `database` driver, ADR-0008).
  */
 final class CacheTagsException extends BaseAppException
 {

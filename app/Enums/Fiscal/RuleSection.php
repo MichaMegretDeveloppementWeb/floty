@@ -7,9 +7,8 @@ namespace App\Enums\Fiscal;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Section pédagogique d'une règle fiscale dans son onglet (Phase 13
- * D5.12 · complément ADR-0022). Détermine son groupage à l'affichage
- * et porte le titre + sous-titre de la section parente.
+ * Pedagogical section of a fiscal rule within its tab. Drives display grouping
+ * and provides the parent section's title and subtitle.
  */
 #[TypeScript]
 enum RuleSection: string
@@ -24,6 +23,9 @@ enum RuleSection: string
     case CadreDeclaratif = 'cadre-declaratif';
     case TaxeConnexe = 'taxe-connexe';
 
+    /**
+     * French title for display.
+     */
     public function title(): string
     {
         return match ($this) {
@@ -39,6 +41,9 @@ enum RuleSection: string
         };
     }
 
+    /**
+     * French subtitle for display.
+     */
     public function subtitle(): string
     {
         return match ($this) {

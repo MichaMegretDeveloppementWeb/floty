@@ -20,13 +20,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Véhicule (attributs non fiscaux - les caractéristiques fiscalement
- * déterminantes sont dans {@see VehicleFiscalCharacteristics}).
- *
- * Cf. 01-schema-metier.md § 2.
+ * Vehicle (non-fiscal attributes; fiscally relevant data lives in {@see VehicleFiscalCharacteristics}).
  *
  * @property int $id
- * @property bool $is_exited Computed accessor : true ssi exit_date IS NOT NULL
+ * @property bool $is_exited Computed accessor: true iff `exit_date IS NOT NULL`.
  * @property string $license_plate
  * @property string $brand
  * @property string $model
@@ -88,8 +85,7 @@ final class Vehicle extends Model
     }
 
     /**
-     * Chaîne historisée des caractéristiques fiscales (périodes qui ne se
-     * chevauchent jamais).
+     * Historized chain of fiscal characteristics (non-overlapping periods).
      *
      * @return HasMany<VehicleFiscalCharacteristics, $this>
      */
@@ -99,7 +95,7 @@ final class Vehicle extends Model
     }
 
     /**
-     * Contrats du véhicule (entité pivot post ADR-0014).
+     * Rental contracts on this vehicle (ADR-0014).
      *
      * @return HasMany<Contract, $this>
      */
@@ -109,7 +105,7 @@ final class Vehicle extends Model
     }
 
     /**
-     * Indisponibilités du véhicule.
+     * Unavailabilities on this vehicle.
      *
      * @return HasMany<Unavailability, $this>
      */
@@ -119,9 +115,7 @@ final class Vehicle extends Model
     }
 
     /**
-     * Tarifs jour/semaine/mois du véhicule, indexés par année (Phase 14
-     * facturation V1.2). Une seule ligne par année grâce à la contrainte
-     * UNIQUE(vehicle_id, year) en base.
+     * Daily / weekly / monthly rates indexed by year (UNIQUE on `(vehicle_id, year)`).
      *
      * @return HasMany<VehicleYearlyPricing, $this>
      */
@@ -131,11 +125,10 @@ final class Vehicle extends Model
     }
 
     /**
-     * Vrai ssi le véhicule est sorti de flotte (`exit_date IS NOT NULL`).
-     * Sémantique purement booléenne ; pour les filtrations applicatives
-     * **toujours préférer les scopes date-aware** ({@see scopeActiveAt},
-     * {@see scopeActiveDuring}) - un véhicule sorti reste pleinement
-     * opérationnel sur sa période d'activité antérieure (cf. ADR-0018 D3).
+     * Whether the vehicle has exited the fleet (`exit_date IS NOT NULL`).
+     *
+     * Purely boolean; for filtering always prefer the date-aware scopes
+     * {@see scopeActiveAt} and {@see scopeActiveDuring} (ADR-0018 D3).
      *
      * @return Attribute<bool, never>
      */
@@ -147,16 +140,8 @@ final class Vehicle extends Model
     }
 
     /**
-     * Scope : véhicules actifs **à la date donnée** (jamais sortis ou
-     * sortis postérieurement à cette date).
-     *
-     * Critère : `exit_date IS NULL OR exit_date >= $date`.
-     *
-     * Utilisé pour les vues "aujourd'hui" (Dashboard, Index Flotte) et
-     * pour le filtre annuel via {@see scopeActiveDuring} (qui prend
-     * `start_of_year` comme date pivot).
-     *
-     * Cf. ADR-0018 § 4 (matrice de visibilité date-aware).
+     * Scope: vehicles active at the given date (`exit_date IS NULL OR exit_date >= $date`).
+     * See ADR-0018 § 4 (date-aware visibility matrix).
      *
      * @param  Builder<Vehicle>  $query
      * @return Builder<Vehicle>
@@ -170,16 +155,8 @@ final class Vehicle extends Model
     }
 
     /**
-     * Scope : véhicules actifs **à un moment quelconque** de la fenêtre
-     * `[start, end]`. Utile pour la heatmap année N et pour les calculs
-     * fiscaux annuels - un véhicule sorti mi-année reste affiché pour
-     * l'année où il était partiellement actif.
-     *
-     * Critère : `exit_date IS NULL OR exit_date >= $start`.
-     * (Si exit_date >= start, le véhicule était actif au moins jusqu'à
-     * cette date dans la fenêtre.)
-     *
-     * Cf. ADR-0018 § 4.
+     * Scope: vehicles active at any point of `[start, end]`
+     * (`exit_date IS NULL OR exit_date >= $start`). See ADR-0018 § 4.
      *
      * @param  Builder<Vehicle>  $query
      * @return Builder<Vehicle>

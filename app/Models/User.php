@@ -16,9 +16,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 
 /**
- * Compte applicatif gestionnaire flotte Floty.
- *
- * Cf. 01-schema-metier.md § 1 + ADR-0012 rev. 1.1.
+ * Floty fleet manager user account (ADR-0012 rev. 1.1).
  *
  * @property int $id
  * @property string $email
@@ -58,7 +56,7 @@ final class User extends Authenticatable
     }
 
     /**
-     * Concatène `first_name` + `last_name` pour l'affichage compact.
+     * Concatenated `first_name` + `last_name` (trimmed).
      *
      * @return Attribute<string, never>
      */
@@ -70,9 +68,8 @@ final class User extends Authenticatable
     }
 
     /**
-     * Override la notification par défaut Laravel pour utiliser le
-     * Mailable français custom (sujet + template Blade `emails.password-reset`).
-     * Branchée automatiquement par `Password::sendResetLink()`.
+     * Overrides the default Laravel password reset notification to use the
+     * custom French Mailable bound to the `emails.password-reset` Blade template.
      */
     public function sendPasswordResetNotification(mixed $token): void
     {

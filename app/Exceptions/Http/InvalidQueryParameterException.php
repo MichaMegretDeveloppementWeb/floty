@@ -7,13 +7,9 @@ namespace App\Exceptions\Http;
 use App\Exceptions\BaseAppException;
 
 /**
- * Paramètre de requête HTTP manquant ou hors plage. Remplace les
- * `abort(400, ...)` directs dans les controllers qui consommaient des
- * query strings.
+ * Missing or out-of-range HTTP query parameter.
  *
- * Toujours renvoyée par les controllers ; le handler global
- * (bootstrap/app.php) la convertit en JSON 422 pour les requêtes Ajax
- * (`useApi`) ou en flash + back pour les visites Inertia.
+ * Converted to JSON 422 (Ajax) or flash + back (Inertia) by the global handler in `bootstrap/app.php`.
  */
 final class InvalidQueryParameterException extends BaseAppException
 {

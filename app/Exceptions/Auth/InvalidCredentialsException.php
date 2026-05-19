@@ -7,13 +7,9 @@ namespace App\Exceptions\Auth;
 use App\Exceptions\BaseAppException;
 
 /**
- * Échec d'authentification - email inconnu ou mot de passe incorrect.
+ * Authentication failure (unknown email or wrong password).
  *
- * Le message utilisateur est volontairement ambigu (ne distingue pas
- * « email inconnu » de « mot de passe faux ») pour ne pas divulguer
- * l'existence d'un compte (OWASP, ADR-0011).
- *
- * Référence : implementation-rules/gestion-erreurs.md.
+ * The user message is intentionally ambiguous to avoid account enumeration (OWASP, ADR-0011).
  */
 final class InvalidCredentialsException extends BaseAppException
 {

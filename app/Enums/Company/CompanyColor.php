@@ -5,15 +5,8 @@ declare(strict_types=1);
 namespace App\Enums\Company;
 
 /**
- * Couleur affectée à une entreprise utilisatrice pour son affichage
- * (chip, timeline véhicule, heatmap). Contraint aux **8 teintes** du
- * design system Floty - cf. UI Kit `company-chip` et les variables CSS
- * `--color-company-*` de `resources/css/app.css`.
- *
- * Le frontend expose un type TS jumeau `CompanyColor` dans
- * `resources/js/types/ui.ts` - les deux doivent rester synchronisés
- * (le générateur Spatie TS Transformer assurera cette synchro dès
- * que cet enum apparaît dans un Data DTO, phase 05).
+ * Color assigned to a user company for display (chip, vehicle timeline, heatmap).
+ * Constrained to the 8 design system tints (`--color-company-*` in `resources/css/app.css`).
  */
 enum CompanyColor: string
 {
@@ -26,6 +19,9 @@ enum CompanyColor: string
     case Orange = 'orange';
     case Cyan = 'cyan';
 
+    /**
+     * French label for display.
+     */
     public function label(): string
     {
         return match ($this) {

@@ -8,13 +8,8 @@ use App\Actions\Driver\LeaveDriverCompanyMembershipAction;
 use App\Exceptions\BaseAppException;
 
 /**
- * Suppression d'une membership Driver↔Company refusée car elle a
- * au moins un contrat associé (le détachement ne doit être possible
- * que si aucun contrat n'est rattaché à cette company pour ce driver).
- *
- * Pour sortir un driver d'une entreprise tout en conservant l'historique,
- * utiliser plutôt {@see LeaveDriverCompanyMembershipAction}
- * qui pose `left_at` sur la pivot.
+ * Driver-Company membership detach blocked because at least one contract references it.
+ * Use {@see LeaveDriverCompanyMembershipAction} to set `left_at` while preserving history.
  */
 final class DriverCompanyMembershipBlockedException extends BaseAppException
 {

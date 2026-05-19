@@ -12,13 +12,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
- * Ligne d'une facture mensuelle · un véhicule sur le mois (Phase 14.E
- * V1.2).
+ * Monthly invoice line covering a single vehicle.
  *
- * Snapshot complet à l'émission : `vehicle_label_snapshot` archive
- * l'identité du véhicule (plaque + marque + modèle) au moment de la
- * facture pour rester valide même si le véhicule est ensuite renommé
- * ou retiré de flotte.
+ * Full snapshot at emission time: `vehicle_label_snapshot` archives the
+ * vehicle identity (plate + brand + model) so the line stays valid even if
+ * the vehicle is later renamed or removed from the fleet.
  *
  * @property int $id
  * @property int $invoice_id
@@ -87,6 +85,8 @@ final class InvoiceLine extends Model
     }
 
     /**
+     * Parent invoice.
+     *
      * @return BelongsTo<Invoice, $this>
      */
     public function invoice(): BelongsTo
@@ -95,6 +95,8 @@ final class InvoiceLine extends Model
     }
 
     /**
+     * Billed vehicle.
+     *
      * @return BelongsTo<Vehicle, $this>
      */
     public function vehicle(): BelongsTo
@@ -103,10 +105,9 @@ final class InvoiceLine extends Model
     }
 
     /**
-     * Réduction commerciale appliquée à cette ligne (snapshot label +
-     * basis points lus depuis les colonnes `*_snapshot` pour
-     * l'immuabilité ; cette relation sert UNIQUEMENT à construire le
-     * lien Show vers la réduction tant qu'elle existe encore).
+     * Rental discount applied to this line. Label and basis points are read
+     * from the `*_snapshot` columns for immutability; this relation only
+     * exists to build a "Show" link while the discount still exists.
      *
      * @return BelongsTo<RentalDiscount, $this>
      */

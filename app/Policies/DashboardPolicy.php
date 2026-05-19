@@ -8,16 +8,9 @@ use App\Models\User;
 use App\Providers\AuthServiceProvider;
 
 /**
- * Policy dashboard · stub V1 mono-tenant (ADR-0011 § 7).
+ * Dashboard policy. V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  *
- * Pas de Model dédié · la Policy s'attache à une « intention » de
- * consultation du dashboard. Branchée via `Gate::define('view-dashboard', ...)`
- * dans {@see AuthServiceProvider::boot()}.
- *
- * Migration V2 attendue · le contenu du dashboard sera filtré par rôle
- * (gestionnaire de société vs entreprise utilisatrice).
- *
- * Cf. plan-remédiation Vague 1 Lot 1 D7 (F-30-003).
+ * Bound to the `view-dashboard` ability in {@see AuthServiceProvider::boot()}.
  */
 final class DashboardPolicy
 {

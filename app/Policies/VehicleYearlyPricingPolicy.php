@@ -8,12 +8,7 @@ use App\Models\User;
 use App\Models\VehicleYearlyPricing;
 
 /**
- * Policy tarifs annuels véhicule : stub V1 mono-tenant (Phase 14.O).
- * Cf. {@see InvoicePolicy} pour la doctrine globale.
- *
- * Les tarifs sont rattachés à un véhicule de la société de location ; en
- * V2, l'autorisation pourrait dépendre de l'appartenance de l'utilisateur
- * à la société propriétaire de la flotte.
+ * Vehicle yearly pricing policy. V1 stub returning `true`; multi-tenant scoping ships in V2 (ADR-0011 § 7).
  */
 final class VehicleYearlyPricingPolicy
 {

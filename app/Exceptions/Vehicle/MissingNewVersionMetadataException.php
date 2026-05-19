@@ -7,14 +7,8 @@ namespace App\Exceptions\Vehicle;
 use App\Exceptions\BaseAppException;
 
 /**
- * L'utilisateur a modifié au moins une caractéristique fiscale dans
- * le formulaire d'édition véhicule sans fournir les métadonnées
- * requises (`effective_from` et `change_reason`) pour matérialiser la
- * nouvelle version d'historique.
- *
- * Filet de sécurité backend : l'UI doit normalement afficher la
- * section « Métadonnées de la nouvelle version » dès qu'un champ
- * fiscal change et bloquer le submit si elle est incomplète.
+ * Vehicle update has fiscal changes but lacks the `effective_from` / `change_reason` metadata
+ * required to materialize a new history version. Backend safety net.
  */
 final class MissingNewVersionMetadataException extends BaseAppException
 {

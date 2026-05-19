@@ -15,14 +15,11 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Facture mensuelle d'une entreprise utilisatrice (Phase 14.E V1.2).
+ * Monthly invoice for a user company.
  *
- * **Doctrine immuabilité** : une facture émise est figée. Les colonnes
- * `total_ht_cents`, `pdf_path`, `pdf_hash` capturent l'état au moment
- * de l'émission ; toute modification ultérieure des contrats / tarifs
- * ne propage **pas** sur la facture (responsabilité utilisateur de
- * regénérer si besoin · non automatique en V1.2, cf. mémoire
- * `roadmap_v12_facturation`).
+ * Immutability doctrine: an issued invoice is frozen. `total_ht_cents`,
+ * `pdf_path`, `pdf_hash` capture the state at emission time; subsequent
+ * contract or pricing changes do NOT propagate to the invoice.
  *
  * @property int $id
  * @property int $company_id
@@ -88,6 +85,8 @@ final class Invoice extends Model
     }
 
     /**
+     * Owning company.
+     *
      * @return BelongsTo<Company, $this>
      */
     public function company(): BelongsTo
@@ -96,6 +95,8 @@ final class Invoice extends Model
     }
 
     /**
+     * User who triggered the generation.
+     *
      * @return BelongsTo<User, $this>
      */
     public function generatedBy(): BelongsTo
@@ -104,6 +105,8 @@ final class Invoice extends Model
     }
 
     /**
+     * Invoice lines.
+     *
      * @return HasMany<InvoiceLine, $this>
      */
     public function lines(): HasMany
@@ -112,9 +115,8 @@ final class Invoice extends Model
     }
 
     /**
-     * Facture qui remplace celle-ci (NULL pour la dernière version
-     * active). Permet de tracer la chaîne « v1 → v2 → v3 » suite à
-     * une ou plusieurs régénérations.
+     * Invoice that replaces this one (null on the latest active version).
+     * Traces the `v1 → v2 → v3` chain across regenerations.
      *
      * @return BelongsTo<Invoice, $this>
      */

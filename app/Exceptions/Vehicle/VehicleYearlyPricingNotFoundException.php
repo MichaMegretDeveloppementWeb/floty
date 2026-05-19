@@ -7,13 +7,8 @@ namespace App\Exceptions\Vehicle;
 use App\Exceptions\BaseAppException;
 
 /**
- * Aucun tarif trouvé pour le couple (vehicle_id, year) demandé.
- *
- * Levée par {@see App\Actions\Vehicle\DeleteVehicleYearlyPricingAction}
- * quand l'utilisateur tente de supprimer un tarif inexistant. Le
- * `BillingCalculator` utilisera sa propre `MissingPricingException`
- * (chantier 14.C) pour le cas « calcul facture sans tarif » qui demande
- * un message UX plus contextualisé.
+ * No yearly pricing found for the given (vehicle_id, year) pair.
+ * The billing pipeline uses {@see App\Exceptions\Billing\MissingPricingException} instead for invoice-time misses.
  */
 final class VehicleYearlyPricingNotFoundException extends BaseAppException
 {

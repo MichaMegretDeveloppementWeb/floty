@@ -15,10 +15,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Conducteur, peut être rattaché à plusieurs entreprises au cours du temps
- * via la pivot `driver_company` (joined_at, left_at).
- *
- * Cf. Phase 06 V1.2 (refonte N:N depuis le schéma 1:1 initial).
+ * Driver. May be attached to several companies over time via the
+ * `driver_company` pivot (`joined_at`, `left_at`).
  *
  * @property int $id
  * @property string $first_name
@@ -28,8 +26,8 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $deleted_at
  * @property-read string $full_name
  * @property-read string $initials
- * @property-read int|null $active_companies_count Computed via withCount('companies as ...') (cf. DriverReadRepository::paginateForIndex)
- * @property-read int|null $contracts_count Computed via withCount('contracts')
+ * @property-read int|null $active_companies_count Computed via withCount.
+ * @property-read int|null $contracts_count Computed via withCount('contracts').
  */
 #[Fillable([
     'first_name',
@@ -43,6 +41,8 @@ final class Driver extends Model
     use SoftDeletes;
 
     /**
+     * Full name (first + last, trimmed).
+     *
      * @return Attribute<string, never>
      */
     protected function fullName(): Attribute
@@ -53,7 +53,7 @@ final class Driver extends Model
     }
 
     /**
-     * Initiales du prénom + nom (2 lettres en majuscules).
+     * Two-letter uppercase initials (first letter of first + last name).
      *
      * @return Attribute<string, never>
      */
@@ -67,8 +67,7 @@ final class Driver extends Model
     }
 
     /**
-     * Entreprises auxquelles ce conducteur a été rattaché (actuellement
-     * ou dans le passé) avec dates d'entrée et de sortie.
+     * Companies this driver has been or is attached to, with join/leave dates.
      *
      * @return BelongsToMany<Company, $this, DriverCompany, 'pivot'>
      */
@@ -81,9 +80,7 @@ final class Driver extends Model
     }
 
     /**
-     * Contrats où ce conducteur est désigné. Relation N:N via le pivot
-     * `contract_drivers` (un contrat peut avoir plusieurs conducteurs,
-     * un conducteur peut figurer sur plusieurs contrats).
+     * Contracts where this driver is listed (N:N via `contract_drivers`).
      *
      * @return BelongsToMany<Contract, $this>
      */
@@ -94,8 +91,7 @@ final class Driver extends Model
     }
 
     /**
-     * Le conducteur est-il actif dans cette entreprise pendant toute la
-     * période [start, end] ? (un membership unique doit couvrir la période)
+     * Whether the driver has a single membership in `$company` that covers `[start, end]`.
      */
     public function isActiveInCompanyDuring(Company $company, Carbon $start, Carbon $end): bool
     {
@@ -110,8 +106,7 @@ final class Driver extends Model
     }
 
     /**
-     * Le conducteur a-t-il actuellement au moins un membership actif
-     * (left_at NULL) dans une entreprise ?
+     * Whether the driver currently has at least one active membership (`left_at` null).
      */
     public function hasAnyActiveMembership(): bool
     {
