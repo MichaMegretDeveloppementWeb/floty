@@ -10,19 +10,17 @@ use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
 
 /**
- * Notification de récupération de mot de passe Floty (ADR-0012 rev. 1.1).
+ * Floty password-reset notification (ADR-0012 rev. 1.1). Overrides
+ * Laravel's default markdown notification with a French custom Blade
+ * template (`emails.password-reset`).
  *
- * Override la `Illuminate\Auth\Notifications\ResetPassword` par défaut
- * pour envoyer un mail français custom (sujet, template Blade
- * `emails.password-reset`) plutôt que le markdown générique Laravel.
+ * Wired through `User::sendPasswordResetNotification()`, invoked by
+ * `Password::sendResetLink()` inside {@see SendPasswordResetLinkAction}.
  *
- * Branchée via `User::sendPasswordResetNotification()` qui est appelée
- * par `Password::sendResetLink()` dans
- * {@see SendPasswordResetLinkAction}.
- *
- * Le token est éphémère (60 min, cf. `config/auth.php` passwords.users.expire)
- * et stocké hashé dans la table `password_reset_tokens`. La validité est
- * vérifiée par `Password::reset()` au moment du reset effectif.
+ * The token is short-lived (60 minutes, configured via
+ * `auth.passwords.users.expire`) and stored hashed in the
+ * `password_reset_tokens` table; `Password::reset()` validates it on
+ * the actual reset.
  */
 final class PasswordResetNotification extends Notification
 {
@@ -33,6 +31,8 @@ final class PasswordResetNotification extends Notification
     ) {}
 
     /**
+     * Notification channels for this notification (mail only).
+     *
      * @return array<int, string>
      */
     public function via(mixed $notifiable): array
@@ -40,6 +40,9 @@ final class PasswordResetNotification extends Notification
         return ['mail'];
     }
 
+    /**
+     * Build the mail message with the reset link.
+     */
     public function toMail(mixed $notifiable): MailMessage
     {
         $resetUrl = url(route('password.reset', [

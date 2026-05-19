@@ -13,28 +13,20 @@ use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Profiling **interne** des hot paths Floty (Phase 1 audit perf
- * 2026-05-16).
+ * In-process profiler for Floty hot paths. Complements
+ * {@see PerfBenchmarkCommand} (which measures real HTTP TTFB) by
+ * dispatching the controllers in-process through `Kernel::handle()` and
+ * instrumenting the request:
+ *   - Total wall-clock time
+ *   - Cumulative SQL time (via `DB::listen`)
+ *   - PHP time (= total - SQL)
+ *   - Peak memory
+ *   - Top N slowest queries
+ *   - Grouped SQL signatures to spot N+1 patterns
  *
- * Complément à `perf:bench` (TTFB HTTP réel) · cette commande dispatch
- * les controllers **in-process** via `Kernel::handle()` et instrumente
- * le breakdown ·
- *   - Temps total wall-clock
- *   - Temps SQL cumulé (via `DB::listen`)
- *   - Temps PHP (= total - SQL)
- *   - Mémoire peak
- *   - Top 5 queries SQL les plus lentes
- *   - Signatures SQL groupées (détection N+1 patterns)
- *
- * Objectif · identifier la **vraie cause** des latences (SQL ? PHP
- * pipeline fiscal ? sérialisation ?) avant de décider du chantier
- * S3.x. Sans ce diagnostic on continue à optimiser à l'aveugle.
- *
- * Usage ·
+ * Usage:
  *   php artisan perf:profile dashboard
- *   php artisan perf:profile contracts_index
- *   php artisan perf:profile planning_2025
- *   php artisan perf:profile --all  (tous les scenarios)
+ *   php artisan perf:profile --all
  */
 final class PerfProfileCommand extends Command
 {
@@ -45,11 +37,11 @@ final class PerfProfileCommand extends Command
                             {--top-queries=10 : Nb de top queries lentes à afficher}
                             {--top-signatures=10 : Nb de top signatures (N+1) à afficher}';
 
-    protected $description = 'Profile in-process des hot paths · breakdown SQL/PHP + top queries (audit perf)';
+    protected $description = 'Profile in-process des hot paths · breakdown SQL/PHP + top queries';
 
     /**
-     * Scenarios alignés sur `PerfBenchmarkCommand` pour la comparaison
-     * profil ↔ TTFB HTTP.
+     * Scenarios profiled by the command — aligned with
+     * {@see PerfBenchmarkCommand::SCENARIOS} for direct comparison.
      *
      * @var array<string, string>
      */
@@ -65,6 +57,10 @@ final class PerfProfileCommand extends Command
         'vehicle_show' => '/app/vehicles/1',
     ];
 
+    /**
+     * Resolve the test user and profile either the requested scenario or
+     * every scenario when `--all` is passed.
+     */
     public function handle(): int
     {
         $user = User::where('email', $this->option('email'))->first();
@@ -95,12 +91,12 @@ final class PerfProfileCommand extends Command
         return self::SUCCESS;
     }
 
+    /**
+     * Dispatch the scenario once for warm-up, then measure a real run
+     * (kernel + serialization) and render the profile report.
+     */
     private function profileScenario(string $scenario, string $path, User $user): void
     {
-        // Réinitialise l'état entre 2 scenarios (cache services per-request).
-        // Re-bind un container neuf serait plus propre mais coûte cher · on
-        // accepte que les caches singleton (S1.1 + S2.3) restent chauds pour
-        // approximer "navigation intra-app" plutôt que "cold load".
         Auth::login($user);
 
         $queries = [];
@@ -113,13 +109,9 @@ final class PerfProfileCommand extends Command
             ];
         });
 
-        // Warmup · dispatch une fois pour amortir cold-start OPcache.
         $this->dispatchOnce($path, $user);
         $queries = [];
 
-        // Mesure réelle. On capture aussi la taille du body via
-        // `getContent()` pour forcer toute sérialisation lazy
-        // (Inertia DTO Spatie Data → JSON → HTML wrapper).
         $memBefore = memory_get_usage(true);
         $start = microtime(true);
         $response = $this->dispatchOnce($path, $user);
@@ -145,11 +137,13 @@ final class PerfProfileCommand extends Command
         );
     }
 
+    /**
+     * Build an HTTPS-flavoured Request that targets the configured host,
+     * inject the authenticated user, then dispatch it through the kernel
+     * so every middleware (Auth, CSRF, Inertia version) runs as in prod.
+     */
     private function dispatchOnce(string $path, User $user): Response
     {
-        // Construit une Request HTTP-like avec Host correct (Herd) + auth user
-        // injecté · le Kernel applique tous les middlewares (Auth, CSRF
-        // validate-only sur GET, Inertia version, etc.).
         $request = Request::create(
             $path,
             'GET',
@@ -168,6 +162,9 @@ final class PerfProfileCommand extends Command
     }
 
     /**
+     * Print the per-scenario report: header line, wall-time breakdown,
+     * memory delta, top slowest queries and grouped signatures.
+     *
      * @param  list<array{sql: string, time_ms: float, bindings_count: int}>  $queries
      */
     private function renderReport(
@@ -204,7 +201,6 @@ final class PerfProfileCommand extends Command
             return;
         }
 
-        // Top N queries les plus lentes (instances individuelles).
         $sortedBySpeed = $queries;
         usort($sortedBySpeed, static fn ($a, $b) => $b['time_ms'] <=> $a['time_ms']);
         $topSlow = array_slice($sortedBySpeed, 0, (int) $this->option('top-queries'));
@@ -220,7 +216,6 @@ final class PerfProfileCommand extends Command
             ));
         }
 
-        // Signatures groupées · détecte N+1 (même requête répétée N fois).
         $signatures = [];
         foreach ($queries as $q) {
             $sig = $this->signatureOf($q['sql']);
@@ -230,7 +225,6 @@ final class PerfProfileCommand extends Command
             $signatures[$sig]['count']++;
             $signatures[$sig]['time_ms'] += $q['time_ms'];
         }
-        // Tri par temps cumulé desc.
         uasort($signatures, static fn ($a, $b) => $b['time_ms'] <=> $a['time_ms']);
         $topSig = array_slice($signatures, 0, (int) $this->option('top-signatures'), true);
 
@@ -252,20 +246,21 @@ final class PerfProfileCommand extends Command
     }
 
     /**
-     * Normalise une query SQL en signature · remplace les valeurs scalaires
-     * par `?` et les listes IN (?, ?, ?) par `IN (...)`. Permet de regrouper
-     * les requêtes identiques aux paramètres près (détecte le N+1).
+     * Normalise a SQL statement to a signature by collapsing `IN (?, ?…)`
+     * clauses and runs of whitespace, so identical queries with different
+     * bindings group together (used for N+1 detection).
      */
     private function signatureOf(string $sql): string
     {
-        // Compresser les listes "in (?, ?, ?, ...)" en "in (...)".
         $sql = preg_replace('/\bin\s*\(\s*\?(\s*,\s*\?)*\s*\)/i', 'in (...)', $sql) ?? $sql;
-        // Réduire les espaces multiples.
         $sql = preg_replace('/\s+/', ' ', $sql) ?? $sql;
 
         return trim($sql);
     }
 
+    /**
+     * Truncate a string to `$max` characters with an ellipsis suffix.
+     */
     private function truncate(string $s, int $max): string
     {
         if (mb_strlen($s) <= $max) {

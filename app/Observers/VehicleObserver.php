@@ -6,24 +6,22 @@ namespace App\Observers;
 
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use App\Models\Vehicle;
+use App\Services\Billing\BillingCalculator;
 use App\Services\Fiscal\Declaration\DeclarationInvalidationDetector;
 use App\Services\Invoice\InvoiceDivergenceFlagger;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Observer Vehicle · 2 responsabilités sur mutations du modèle ·
+ * Reacts to {@see Vehicle} mutations that change the billable or
+ * declarable scope. Currently the only watched field is `exit_date`:
+ *   - invoices that include the vehicle are flagged divergent because
+ *     {@see BillingCalculator} clips usage to
+ *     `exit_date`;
+ *   - fiscal declarations covering the vehicle are flagged obsolete
+ *     because `exit_date` closes the contracts and changes the taxable
+ *     scope.
  *
- *   1. **Flag divergence factures** (T5 ADR-0018) · sur changement
- *      d'`exit_date`, {@see InvoiceDivergenceFlagger::flagForVehicle}
- *      car `BillingCalculator` clip à `exit_date`.
- *
- *   2. **Invalidation déclarations fiscales** (audit pré-livraison
- *      D5.7.8) · sur changement d'`exit_date`,
- *      {@see DeclarationInvalidationDetector::flagForVehicle} car
- *      `exit_date` clôture les contrats et change le périmètre taxable.
- *
- * **Branchement** · `#[ObservedBy([VehicleObserver::class])]` sur le
- * Model.
+ * Wired through `#[ObservedBy]` on the model.
  */
 final class VehicleObserver
 {
@@ -32,6 +30,10 @@ final class VehicleObserver
         private readonly DeclarationInvalidationDetector $declarationInvalidator,
     ) {}
 
+    /**
+     * Flag invoices and declarations when `exit_date` is added, moved or
+     * cleared.
+     */
     public function updated(Vehicle $vehicle): void
     {
         if (! $vehicle->wasChanged('exit_date')) {

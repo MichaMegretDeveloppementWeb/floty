@@ -14,21 +14,17 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Commande de benchmark du moteur fiscal Floty (chantier κ).
+ * Benchmark the fiscal engine over 4 representative scenarios on the
+ * current dataset, then archive the timings as JSON for historical
+ * comparison.
  *
- * Mesure 4 scénarios représentatifs sur le dataset de demo et
- * archive les chiffres en JSON pour comparaison historique. Permet
- * de vérifier que les modifications du moteur fiscal (refonte
- * granularité temporelle κ et chantiers ultérieurs) ne dégradent
- * pas la performance.
+ * Methodology: for each scenario, run N times and keep the median wall
+ * time (resistant to outliers caused by system load). Wall time is
+ * measured around the targeted call only, with millisecond precision.
  *
- * Méthodologie : N runs par scénario, on garde la médiane (résiste
- * aux outliers de charge système). Mesure via `microtime(true)`
- * avant/après l'appel cible. Précision ms suffisante.
- *
- * **Usage** : `php artisan fiscal:benchmark --year=2024 --runs=5`
- * **Output** : tableau ASCII console + fichier JSON archivé dans
- *              `storage/app/benchmarks/baseline-{label}-{timestamp}.json`
+ *   Usage : `php artisan fiscal:benchmark --year=2024 --runs=5`
+ *   Output: console table + JSON archive in
+ *           `storage/app/benchmarks/{label}-{year}-{timestamp}.json`
  */
 final class BenchmarkCommand extends Command
 {
@@ -43,7 +39,7 @@ final class BenchmarkCommand extends Command
     /**
      * @var string
      */
-    protected $description = 'Mesure la performance du moteur fiscal sur 4 scénarios représentatifs (chantier κ).';
+    protected $description = 'Mesure la performance du moteur fiscal sur 4 scénarios représentatifs.';
 
     public function __construct(
         private readonly FleetFiscalAggregator $aggregator,
@@ -54,6 +50,10 @@ final class BenchmarkCommand extends Command
         parent::__construct();
     }
 
+    /**
+     * Run the 4 scenarios and render both the console table and the JSON
+     * archive.
+     */
     public function handle(): int
     {
         $year = (int) $this->option('year');
@@ -135,6 +135,8 @@ final class BenchmarkCommand extends Command
     }
 
     /**
+     * Run `$callback` `$runs` times and return min/median/max wall times in milliseconds.
+     *
      * @return array{name: string, runs: list<float>, median_ms: float, min_ms: float, max_ms: float}
      */
     private function measureScenario(string $name, int $runs, callable $callback): array
@@ -159,6 +161,8 @@ final class BenchmarkCommand extends Command
     }
 
     /**
+     * Render the result set as a console table.
+     *
      * @param  list<array{name: string, runs: list<float>, median_ms: float, min_ms: float, max_ms: float}>  $results
      */
     private function renderTable(array $results): void
@@ -177,6 +181,9 @@ final class BenchmarkCommand extends Command
     }
 
     /**
+     * Persist the result set as a timestamped JSON archive under
+     * `storage/app/private/benchmarks/`.
+     *
      * @param  list<array{name: string, runs: list<float>, median_ms: float, min_ms: float, max_ms: float}>  $results
      */
     private function writeJsonArchive(array $results, string $label, int $year, int $runs): void
@@ -201,10 +208,8 @@ final class BenchmarkCommand extends Command
     }
 
     /**
-     * Recherche un véhicule à VFC multiples sur l'année. Tombe sur le
-     * premier disponible. Si aucun n'est trouvé, retourne le premier
-     * véhicule disponible (S4 sera quand même mesuré, juste sans le
-     * coût de la segmentation multi-VFC).
+     * Pick the first vehicle with at least two fiscal characteristics on
+     * the year; fall back to the first available vehicle when none qualify.
      */
     private function findMultiVfcVehicle(int $year): ?Vehicle
     {

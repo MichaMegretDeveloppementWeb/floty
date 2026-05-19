@@ -8,15 +8,16 @@ use App\Data\User\Vehicle\EnumOptionData;
 use BackedEnum;
 
 /**
- * Helper transverse pour convertir une liste de cases d'enum
- * en options `<SelectInput>` exposées au front.
- *
- * Chaque enum métier expose une méthode `label()` qui retourne le
- * libellé FR affichable - la valeur brute reste envoyée au backend.
+ * Converts a list of backed-enum cases into `<SelectInput>` options for
+ * the frontend. Each enum is expected to expose a `label()` method
+ * returning the user-facing French label; the raw value remains the
+ * one sent back to the backend.
  */
 final class EnumOptions
 {
     /**
+     * Build the option list from the provided enum cases.
+     *
      * @param  array<int, BackedEnum>  $cases
      * @return list<EnumOptionData>
      */

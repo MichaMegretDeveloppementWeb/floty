@@ -8,26 +8,24 @@ use App\Models\Contract;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
- * Liste des contrats actifs sur l'année regroupés par couple
- * (véhicule, entreprise utilisatrice).
+ * Active contracts of a fiscal year, grouped by (vehicle, company) pair.
  *
- * Remplace `AnnualCumulByPair` (cumul annuel agrégé) - la sémantique de
- * cumul-annuel-par-couple a été révoquée par ADR-0014. Le moteur fiscal
- * reçoit désormais la matière brute (la liste des contrats du couple)
- * et chaque règle fiscale décide (ex. R-2024-021 qualifie chaque
- * contrat individuellement comme LCD ou non).
+ * Per ADR-0014 the fiscal engine receives the raw contract list for each
+ * pair (rather than a pre-aggregated annual cumul) so each rule decides
+ * how to treat it — for instance R-2024-021 qualifies each contract
+ * individually as LCD or not.
  *
- * Les clés du map sous-jacent sont au format `"{vehicleId}|{companyId}"`.
+ * Keys of the underlying map have the shape `"{vehicleId}|{companyId}"`.
  */
 final readonly class ContractsByPair
 {
     /**
-     * @param  array<string, list<Contract>>  $byPair  "vehicleId|companyId" → contrats du couple sur l'année
+     * @param  array<string, list<Contract>>  $byPair  "vehicleId|companyId" → contracts of the pair on the year.
      */
     public function __construct(public array $byPair) {}
 
     /**
-     * Contrats d'un couple précis sur l'année.
+     * Contracts of a specific pair on the year.
      *
      * @return list<Contract>
      */
@@ -37,7 +35,7 @@ final readonly class ContractsByPair
     }
 
     /**
-     * Map companyId → contrats pour un véhicule donné.
+     * Map of companyId → contracts for a given vehicle.
      *
      * @return array<int, list<Contract>>
      */
@@ -56,9 +54,9 @@ final readonly class ContractsByPair
     }
 
     /**
-     * Map vehicleId → contrats pour une entreprise donnée - symétrique
-     * de {@see pairsForVehicle}. Utilisé par l'aggregator pour sommer
-     * la taxe annuelle d'une entreprise sans ré-itérer toute la flotte.
+     * Map of vehicleId → contracts for a given company; symmetric to
+     * {@see pairsForVehicle}. Used by the aggregator to sum a company's
+     * annual tax without iterating the full fleet.
      *
      * @return array<int, list<Contract>>
      */
@@ -77,8 +75,7 @@ final readonly class ContractsByPair
     }
 
     /**
-     * Itérateur sur tous les couples renseignés (pratique pour
-     * sommer toute la flotte sans recharger).
+     * Iterate over every (vehicle, company) pair recorded in the DTO.
      *
      * @return iterable<array{vehicleId: int, companyId: int, contracts: list<Contract>}>
      */
@@ -95,12 +92,9 @@ final readonly class ContractsByPair
     }
 
     /**
-     * Total des jours-contrat occupés par une entreprise sur la
-     * flotte de l'année (tous véhicules confondus).
-     *
-     * Note : KPI brut (sans déduction LCD ni indispos réductrices) -
-     * pour la valeur fiscalement taxable, passer par
-     * {@see FleetFiscalAggregator}.
+     * Total contract-days used by a given company across the whole fleet
+     * on the year. Raw KPI — no LCD / reductive unavailability deduction;
+     * use {@see FleetFiscalAggregator} for the taxable amount.
      */
     public function daysByCompany(int $companyId, int $year): int
     {
@@ -119,12 +113,10 @@ final readonly class ContractsByPair
     }
 
     /**
-     * Total des jours-contrat occupés sur l'année tous couples
-     * confondus - KPI Dashboard.
-     *
-     * Sémantique : un même jour compté deux fois s'il est porté par
-     * deux pairs distincts (cohérent avec le total fiscal qui taxe
-     * chaque couple indépendamment).
+     * Total contract-days across every pair on the year (Dashboard KPI).
+     * A single calendar day counts twice when carried by two distinct
+     * pairs — consistent with the fiscal total that taxes each pair
+     * independently.
      */
     public function totalDays(int $year): int
     {

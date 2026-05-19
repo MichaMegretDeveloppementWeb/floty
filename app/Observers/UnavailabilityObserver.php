@@ -10,16 +10,16 @@ use App\Services\Fiscal\Declaration\DeclarationInvalidationDetector;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Invalide les déclarations fiscales impactées par une mutation
- * d'indispo réductrice (Phase 11 D3, ADR-0015 § D8).
+ * Invalidates fiscal declarations impacted by a reductive unavailability
+ * mutation (ADR-0015 § D8).
  *
- * **Court-circuit** : le {@see DeclarationInvalidationDetector} skippe
- * lui-même les indispos non réductrices (`has_fiscal_impact = false`).
- * L'observer envoie systématiquement, le service décide.
+ * The observer always notifies the detector; the
+ * {@see DeclarationInvalidationDetector} skips non-reductive
+ * unavailabilities itself (`has_fiscal_impact = false`).
  *
- * Cas particulier `updated` : si l'utilisateur change le `type` d'une
- * indispo (réductrice → non-réductrice), il faut quand même flag les
- * déclarations existantes (le state ancien était impactant).
+ * On `updated`, the previous value of `has_fiscal_impact` is forwarded
+ * so a transition from reductive to non-reductive (or vice versa) still
+ * flags the existing declarations.
  */
 final class UnavailabilityObserver
 {
@@ -27,6 +27,9 @@ final class UnavailabilityObserver
         private readonly DeclarationInvalidationDetector $detector,
     ) {}
 
+    /**
+     * Flag declarations that include the unavailability period.
+     */
     public function created(Unavailability $unavailability): void
     {
         $this->detector->flagForUnavailability(
@@ -36,6 +39,10 @@ final class UnavailabilityObserver
         );
     }
 
+    /**
+     * Flag declarations impacted by the update, propagating the previous
+     * `has_fiscal_impact` when it changed.
+     */
     public function updated(Unavailability $unavailability): void
     {
         $previousHasFiscalImpact = $unavailability->wasChanged('has_fiscal_impact')
@@ -50,6 +57,9 @@ final class UnavailabilityObserver
         );
     }
 
+    /**
+     * Flag declarations on deletion.
+     */
     public function deleted(Unavailability $unavailability): void
     {
         $this->detector->flagForUnavailability(
@@ -59,6 +69,10 @@ final class UnavailabilityObserver
         );
     }
 
+    /**
+     * Resolve the acting user id, falling back to 0 in non-authenticated
+     * contexts.
+     */
     private function actorUserId(): int
     {
         return (int) (Auth::id() ?? 0);

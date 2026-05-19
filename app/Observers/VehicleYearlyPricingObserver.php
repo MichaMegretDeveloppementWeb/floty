@@ -8,16 +8,8 @@ use App\Models\VehicleYearlyPricing;
 use App\Services\Invoice\InvoiceDivergenceFlagger;
 
 /**
- * Marque divergentes les factures impactées par un changement de tarif
- * véhicule × année (T6 / Phase 14.R).
- *
- * Toute mutation d'un `VehicleYearlyPricing` (création, modification,
- * suppression) recalcule potentiellement le total des factures déjà
- * émises pour cette année × ce véhicule × les entreprises clientes
- * concernées. Le {@see InvoiceDivergenceFlagger} fait le tri en SQL.
- *
- * **Branchement** : `#[ObservedBy([VehicleYearlyPricingObserver::class])]`
- * sur le Model.
+ * Flags as divergent every invoice impacted by a change of vehicle
+ * pricing for a given year. Wired through `#[ObservedBy]` on the model.
  */
 final class VehicleYearlyPricingObserver
 {
@@ -25,16 +17,25 @@ final class VehicleYearlyPricingObserver
         private readonly InvoiceDivergenceFlagger $flagger,
     ) {}
 
+    /**
+     * Flag impacted invoices on creation of a yearly pricing row.
+     */
     public function created(VehicleYearlyPricing $pricing): void
     {
         $this->flagger->flagForVehiclePricingYear($pricing->vehicle_id, $pricing->year);
     }
 
+    /**
+     * Flag impacted invoices on update of a yearly pricing row.
+     */
     public function updated(VehicleYearlyPricing $pricing): void
     {
         $this->flagger->flagForVehiclePricingYear($pricing->vehicle_id, $pricing->year);
     }
 
+    /**
+     * Flag impacted invoices on deletion of a yearly pricing row.
+     */
     public function deleted(VehicleYearlyPricing $pricing): void
     {
         $this->flagger->flagForVehiclePricingYear($pricing->vehicle_id, $pricing->year);

@@ -10,38 +10,35 @@ use GuzzleHttp\Cookie\CookieJar;
 use Illuminate\Console\Command;
 
 /**
- * Benchmark performance HTTP réel des pages Inertia critiques de Floty
- * (P0 du plan optimisation perf · audit 2026-05-15).
+ * Benchmark median TTFB over real HTTP requests against the critical
+ * Inertia pages of the application.
  *
- * Mesure pour chaque scénario · TTFB médian sur N runs (3 par défaut)
- * via une **vraie requête HTTP** au serveur Herd local (pas une simulation
- * `Kernel::handle` interne, qui sous-estimait le perçu utilisateur d'un
- * facteur 4-100×).
+ * Unlike an in-process `Kernel::handle()` simulation, this command issues
+ * real GET requests against the configured base URL (Herd by default) so
+ * the measured timings reflect the end-user experience.
  *
- * Méthodologie ·
- *   - Authentification HTTP réelle · POST /login avec credentials d'un
- *     user de test (par défaut `admin@floty.test` / `password`).
- *   - Cookies de session conservés via `GuzzleHttp\Cookie\CookieJar`.
- *   - Chaque scénario fait un GET HTTP sur `https://floty.test/...` avec
- *     le header `X-Inertia: true` (réponse JSON Inertia, pas full HTML).
- *     Plus représentatif des navigations intra-app que d'un cold load.
- *   - Warmup · 1 run jeté avant les N runs comptés (absorbe le cold-
- *     start OPcache + chargement classes).
- *   - Médiane (pas moyenne) sur les N runs, plus robuste aux outliers
- *     I/O / Herd / disk cache.
+ * Methodology:
+ *   - Real HTTP login (`POST /login`) with a test user; session cookies
+ *     are kept in a Guzzle cookie jar across requests.
+ *   - Each scenario issues a `X-Inertia: true` GET so the server returns
+ *     the Inertia JSON payload (closer to intra-app navigation than to a
+ *     cold load).
+ *   - One warm-up run per scenario is discarded; the median of the
+ *     remaining N runs is reported.
  *
- * Output ·
- *   - Stdout · table markdown immédiate.
- *   - JSON · sauvegardé dans `project-management/perf-bench/snapshots/`.
+ * Output:
+ *   - stdout — Markdown table.
+ *   - JSON   — saved under `project-management/perf-bench/snapshots/`
+ *              unless `--no-save` is passed.
  *
- * Prérequis ·
- *   - Herd lancé sur `https://floty.test` (ou URL passée via `--base-url=`).
- *   - User de test existant en DB avec password en clair connu.
+ * Prerequisites:
+ *   - The base URL must be reachable (Herd usually serves
+ *     https://floty.test).
+ *   - The test user must exist in the database with a known cleartext password.
  *
- * Usage ·
+ * Usage:
  *   php artisan perf:bench
  *   php artisan perf:bench --runs=5 --label="post-S1.1"
- *   php artisan perf:bench --base-url=https://floty.test --email=admin@floty.test --password=password
  */
 final class PerfBenchmarkCommand extends Command
 {
@@ -50,22 +47,21 @@ final class PerfBenchmarkCommand extends Command
                             {--base-url= : URL de base (défaut · APP_URL)}
                             {--email=admin@floty.test : Email du user de test}
                             {--password=password : Password du user de test}
-                            {--label= : Libellé du snapshot (ex post-S1.1, baseline)}
+                            {--label= : Libellé du snapshot}
                             {--no-save : Ne pas sauvegarder le JSON (sortie stdout uniquement)}';
 
-    protected $description = 'Benchmark TTFB HTTP réel des pages Inertia critiques (perf audit P0)';
+    protected $description = 'Benchmark TTFB HTTP réel des pages Inertia critiques';
 
     /**
-     * Scénarios mesurés · les 7 pages pivots identifiées par l'audit
-     * 2026-05-15 + 4 variantes "sorted/filtered" qui reproduisent les
-     * cas user "tri prend 3s".
+     * Pages benchmarked by the command. Each scenario points to a stable
+     * URL that can be served against the seeded dataset.
      *
      * @var array<string, array{path: string, label: string}>
      */
     private const SCENARIOS = [
-        'dashboard' => ['path' => '/app/dashboard', 'label' => 'Dashboard (worst offender · 199 SQL)'],
+        'dashboard' => ['path' => '/app/dashboard', 'label' => 'Dashboard'],
         'contracts_index' => ['path' => '/app/contracts', 'label' => 'Contracts Index (défaut)'],
-        'contracts_index_sorted' => ['path' => '/app/contracts?sort=start_date&direction=asc', 'label' => 'Contracts Index avec tri (cas user "3s")'],
+        'contracts_index_sorted' => ['path' => '/app/contracts?sort=start_date&direction=asc', 'label' => 'Contracts Index avec tri'],
         'planning_2025' => ['path' => '/app/planning?year=2025', 'label' => 'Planning Heatmap 2025'],
         'companies_index' => ['path' => '/app/companies', 'label' => 'Companies Index'],
         'companies_index_sorted' => ['path' => '/app/companies?sort=legal_name&direction=desc', 'label' => 'Companies Index avec tri'],
@@ -73,9 +69,13 @@ final class PerfBenchmarkCommand extends Command
         'vehicles_index_sorted' => ['path' => '/app/vehicles?sort=license_plate&direction=desc', 'label' => 'Vehicles Index avec tri'],
         'company_show_overview' => ['path' => '/app/companies/1', 'label' => 'Company Show overview'],
         'company_show_fiscal' => ['path' => '/app/companies/1?tab=fiscal', 'label' => 'Company Show onglet Fiscalité'],
-        'vehicle_show' => ['path' => '/app/vehicles/1', 'label' => 'Vehicle Show (sanity check)'],
+        'vehicle_show' => ['path' => '/app/vehicles/1', 'label' => 'Vehicle Show'],
     ];
 
+    /**
+     * Authenticate the HTTP client, warm each scenario then collect the
+     * median TTFB across the requested number of runs.
+     */
     public function handle(): int
     {
         $runs = max(1, (int) $this->option('runs'));
@@ -90,7 +90,7 @@ final class PerfBenchmarkCommand extends Command
         $client = new Client([
             'base_uri' => $baseUrl,
             'cookies' => $cookieJar,
-            'verify' => false, // self-signed cert Herd
+            'verify' => false,
             'allow_redirects' => true,
             'http_errors' => false,
             'timeout' => 60,
@@ -110,7 +110,6 @@ final class PerfBenchmarkCommand extends Command
 
         $results = [];
         foreach (self::SCENARIOS as $key => $config) {
-            // Warmup · cache OPcache, classes chargées, etc.
             $client->get($config['path'], [
                 'headers' => ['Accept' => 'text/html, application/xhtml+xml'],
             ]);
@@ -166,18 +165,13 @@ final class PerfBenchmarkCommand extends Command
     }
 
     /**
-     * Login HTTP réel via le formulaire `/login` · récupère le cookie XSRF
-     * via GET puis POST le form avec le token. Cookies de session conservés
-     * dans le `CookieJar` Guzzle (utilisé pour toutes les requêtes
-     * suivantes).
+     * Authenticate against the Floty login route using the cookie-based
+     * CSRF mechanism. Floty is an Inertia SPA, so the CSRF token comes
+     * from the `XSRF-TOKEN` cookie and must be sent back as the
+     * `X-XSRF-TOKEN` header on the POST. Returns true on success.
      */
     private function loginHttp(Client $client, CookieJar $cookieJar): bool
     {
-        // GET /login · démarre la session et récupère le cookie XSRF-TOKEN
-        // (chiffré par EncryptCookies côté serveur). Floty est une SPA
-        // Inertia · pas de hidden `_token` dans le HTML · le mécanisme
-        // CSRF est purement basé sur le cookie + header X-XSRF-TOKEN
-        // (convention axios/fetch).
         $client->get('/login');
 
         $xsrfRaw = null;
@@ -195,14 +189,8 @@ final class PerfBenchmarkCommand extends Command
             return false;
         }
 
-        // URL-decode · le cookie est URL-encoded en wire format. La valeur
-        // décodée est passée telle quelle au header X-XSRF-TOKEN ·
-        // EncryptCookies côté serveur déchiffre automatiquement.
         $xsrfToken = urldecode($xsrfRaw);
 
-        // POST /login · convention SPA · header X-XSRF-TOKEN + Accept JSON
-        // pour court-circuiter l'éventuel redirect HTML et obtenir une
-        // réponse Inertia.
         $response = $client->post('/login', [
             'form_params' => [
                 'email' => $this->option('email'),
@@ -222,8 +210,6 @@ final class PerfBenchmarkCommand extends Command
             return false;
         }
 
-        // Vérification que la session est bien établie · GET /app/dashboard
-        // doit retourner 200 (et pas 302 vers /login).
         $check = $client->get('/app/dashboard', ['allow_redirects' => false]);
         if ($check->getStatusCode() !== 200) {
             $this->error("Vérification session échouée · GET /app/dashboard a retourné HTTP {$check->getStatusCode()} (attendu 200)");
@@ -235,6 +221,8 @@ final class PerfBenchmarkCommand extends Command
     }
 
     /**
+     * Render the results as a Markdown table for stdout.
+     *
      * @param  array<string, array{label: string, path: string, ttfb_ms_median: float, http_status: string, runs_ms: list<float>}>  $results
      */
     private function renderMarkdownTable(array $results, string $label): void
@@ -256,6 +244,8 @@ final class PerfBenchmarkCommand extends Command
     }
 
     /**
+     * Save the full result set as a timestamped JSON snapshot.
+     *
      * @param  array<string, array{label: string, path: string, ttfb_ms_median: float, http_status: string, runs_ms: list<float>}>  $results
      */
     private function saveSnapshot(array $results, string $label, string $email, int $runs, string $baseUrl): string

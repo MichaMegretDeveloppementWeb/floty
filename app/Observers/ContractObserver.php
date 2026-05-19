@@ -12,34 +12,22 @@ use App\Services\Invoice\InvoiceDivergenceFlagger;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Invalide le cache des bornes d'années sélectionnables (chantier η,
- * Phase 0.2) **et** marque divergentes les factures impactées (T6 /
- * Phase 14.R) à chaque mutation d'un {@see Contract}.
+ * Reacts to every {@see Contract} mutation by:
+ *   1. invalidating the cached list of selectable fiscal years,
+ *   2. flagging the impacted invoices as divergent,
+ *   3. flagging the impacted fiscal declarations as obsolete.
  *
- * **Pourquoi un Observer plutôt qu'un Event Listener ou une invalidation
- * dans les Actions** :
- *   - **Couverture totale** : capte aussi les mutations passant par
- *     factories, seeders, console (`tinker`), tests, sans que ces
- *     chemins aient besoin de connaître les invalidations.
- *   - **Single source of truth** : 1 seul fichier porte la responsabilité
- *     « toute mutation de Contract = invalidations associées ».
- *   - **Découplage** : les Actions Contract restent agnostiques des
- *     consommateurs (séparation des préoccupations ADR-0013).
+ * Implemented as an Observer (rather than an event listener or a call
+ * from inside each Action) so factories, seeders, console code and tests
+ * benefit from the same guarantees without having to know about these
+ * invalidations themselves.
  *
- * **Branchement** : déclaré sur le modèle {@see Contract} via l'attribut
- * `#[ObservedBy([ContractObserver::class])]` (Laravel 11+, cohérent avec
- * `#[Fillable]` déjà utilisé sur ce modèle). Pas de bind dans
- * `AppServiceProvider::boot()`.
+ * Wired through `#[ObservedBy([ContractObserver::class])]` on the model
+ * (no manual binding in `AppServiceProvider::boot()`).
  *
- * **Hooks couverts** : created / updated / deleted / restored /
- * forceDeleted. Couvre l'intégralité du cycle de vie possible (incluant
- * la pose et le retrait du `deleted_at` qui modifient le périmètre des
- * contrats actifs vu par {@see AvailableYearsResolver}).
- *
- * **Invalidation factures (T6)** : seules les mutations modifiant le
- * périmètre facturable déclenchent un flag `is_divergent = true`.
- * Les changements purement annotatifs (`notes`, `contract_reference`)
- * sont skippés pour éviter les faux positifs.
+ * Only field changes that affect the billable scope trigger a flag;
+ * purely annotative changes (`notes`, `contract_reference`) are skipped
+ * to avoid false positives.
  */
 final class ContractObserver
 {
@@ -56,6 +44,10 @@ final class ContractObserver
         private readonly DeclarationInvalidationDetector $declarationDetector,
     ) {}
 
+    /**
+     * Invalidate caches and propagate the creation to invoices and
+     * declarations.
+     */
     public function created(Contract $contract): void
     {
         $this->resolver->forgetCache();
@@ -73,6 +65,11 @@ final class ContractObserver
         );
     }
 
+    /**
+     * Invalidate caches and propagate the update only when an impacting
+     * field changed; flag both the previous and the new periods (and both
+     * companies when the contract was moved across companies).
+     */
     public function updated(Contract $contract): void
     {
         $this->resolver->forgetCache();
@@ -97,9 +94,6 @@ final class ContractObserver
                 $oldEnd,
             );
         } else {
-            // Changement de company : flag les deux périmètres séparément
-            // (l'ancienne entreprise n'est plus liée mais ses factures
-            // doivent quand même refléter la perte du contrat).
             $this->flagger->flagForContractRange($oldCompanyId, $oldStart, $oldEnd);
             $this->flagger->flagForContractRange($newCompanyId, $newStart, $newEnd);
         }
@@ -118,6 +112,9 @@ final class ContractObserver
         );
     }
 
+    /**
+     * Invalidate caches and propagate the soft deletion.
+     */
     public function deleted(Contract $contract): void
     {
         $this->resolver->forgetCache();
@@ -135,6 +132,10 @@ final class ContractObserver
         );
     }
 
+    /**
+     * Invalidate caches and propagate the restoration; treated as a fresh
+     * creation since the contract reappears in the billable scope.
+     */
     public function restored(Contract $contract): void
     {
         $this->resolver->forgetCache();
@@ -145,8 +146,6 @@ final class ContractObserver
             $contract->end_date->toDateString(),
         );
 
-        // Restoration = ré-ajout d'un contrat soft-deleted = mêmes
-        // implications fiscales qu'une création.
         $this->declarationDetector->flagForContract(
             $contract,
             InvalidationReasonType::ContractCreated,
@@ -154,6 +153,9 @@ final class ContractObserver
         );
     }
 
+    /**
+     * Invalidate caches and propagate the hard deletion.
+     */
     public function forceDeleted(Contract $contract): void
     {
         $this->resolver->forgetCache();
@@ -172,9 +174,8 @@ final class ContractObserver
     }
 
     /**
-     * Identifie l'utilisateur acteur de la mutation pour la traçabilité
-     * des motifs `obsolete_reasons`. `0` si contexte sans auth (CLI,
-     * factories, seeders, tests sans `actingAs()`).
+     * Resolve the acting user id for traceability; falls back to 0 in
+     * contexts without auth (CLI, seeders, tests without `actingAs()`).
      */
     private function actorUserId(): int
     {
@@ -182,8 +183,8 @@ final class ContractObserver
     }
 
     /**
-     * `getOriginal` peut retourner un Carbon (cast) ou une string (avant
-     * cast). Normalise en `Y-m-d`.
+     * Normalise a date value coming from `getOriginal()` to a `Y-m-d`
+     * string regardless of whether the cast already ran.
      */
     private function dateToString(mixed $value): string
     {

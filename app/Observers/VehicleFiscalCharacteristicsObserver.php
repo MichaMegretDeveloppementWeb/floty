@@ -10,13 +10,12 @@ use App\Services\Fiscal\Declaration\DeclarationInvalidationDetector;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Observer VFC · invalidation des déclarations fiscales (Phase 11 D3,
- * ADR-0015 § D8). Flag les déclarations dont au moins un contrat utilise
- * ce véhicule sur l'année. Périmètre dérivé par
- * {@see DeclarationInvalidationDetector::flagForVfcMutation}. Distingue
- * `created` / `updated` / `deleted` pour le type d'`InvalidationReasonType`.
+ * Invalidates fiscal declarations whose contracts use a vehicle whose
+ * fiscal characteristics changed (ADR-0015 § D8).
  *
- * Branchement via attribut `#[ObservedBy]` sur le modèle.
+ * Wired through `#[ObservedBy]` on the model. The detector resolves the
+ * impacted declarations via
+ * {@see DeclarationInvalidationDetector::flagForVfcMutation}.
  */
 final class VehicleFiscalCharacteristicsObserver
 {
@@ -24,6 +23,9 @@ final class VehicleFiscalCharacteristicsObserver
         private readonly DeclarationInvalidationDetector $detector,
     ) {}
 
+    /**
+     * Flag declarations when a new fiscal-characteristics row is created.
+     */
     public function created(VehicleFiscalCharacteristics $vfc): void
     {
         $this->detector->flagForVfcMutation(
@@ -33,6 +35,10 @@ final class VehicleFiscalCharacteristicsObserver
         );
     }
 
+    /**
+     * Flag declarations when an existing fiscal-characteristics row is
+     * updated.
+     */
     public function updated(VehicleFiscalCharacteristics $vfc): void
     {
         $this->detector->flagForVfcMutation(
@@ -42,6 +48,9 @@ final class VehicleFiscalCharacteristicsObserver
         );
     }
 
+    /**
+     * Flag declarations when a fiscal-characteristics row is deleted.
+     */
     public function deleted(VehicleFiscalCharacteristics $vfc): void
     {
         $this->detector->flagForVfcMutation(
@@ -51,6 +60,10 @@ final class VehicleFiscalCharacteristicsObserver
         );
     }
 
+    /**
+     * Resolve the acting user id, falling back to 0 in non-authenticated
+     * contexts.
+     */
     private function actorUserId(): int
     {
         return (int) (Auth::id() ?? 0);

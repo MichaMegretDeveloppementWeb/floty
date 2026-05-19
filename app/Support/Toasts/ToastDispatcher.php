@@ -8,43 +8,34 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 
 /**
- * Dispatcher centralisé pour empiler N toasts dans la même requête
- * (Lot 5 D6 · F-19-007).
+ * Stacks several toasts within the same request. Laravel's
+ * `Session::flash('toast-success', $msg)` only stores a single scalar
+ * per key, so two successive calls with the same key overwrite each
+ * other; this dispatcher accumulates entries in a single list under
+ * `toasts` so multiple toasts of any tone can coexist.
  *
- * **Limitation Laravel native** · `Session::flash('toast-success', $msg)`
- * écrit dans une zone session « next request » qui n'accepte qu'une
- * valeur scalaire par clé · 2 appels successifs avec la même clé
- * écrasent le premier. Pour accumuler N messages d'un même tone (ex.
- * « 3 contrats créés » + « 2 déjà existants »), on contourne via une
- * **liste accumulée** sous la clé unique `'toasts'` · chaque entrée
- * est une structure `{id, tone, message}` qui sera décodée côté
- * `HandleInertiaRequests` en `ToastEntryData[]`.
- *
- * **Pattern d'usage** ·
+ * Usage:
  * ```php
- * use App\Support\Toasts\ToastDispatcher;
- *
  * ToastDispatcher::success('3 contrats créés.');
  * ToastDispatcher::warning('2 déjà existants ignorés.');
  *
- * return back();  // Les 2 toasts seront affichés en pile côté front
+ * return back();
  * ```
  *
- * **Rétrocompatibilité** · le pattern existant
- * `back()->with('toast-success', '…')` continue de fonctionner. Le
- * middleware Inertia lit les 4 anciens canaux ET la nouvelle pile
- * accumulée, et fusionne le tout dans `flash.toasts`. Les nouveaux
- * cas d'usage qui exigent l'accumulation passent par ce dispatcher.
+ * The legacy `back()->with('toast-success', '…')` pattern keeps working;
+ * the Inertia middleware reads both channels and merges them.
  *
- * **Identifiant unique** · chaque entry porte un UUID v4. Le front
- * s'en sert pour dédupliquer · sans cet ID, un retour navigateur
- * (Inertia restaure `flash` depuis son cache history.state) déclenche
- * une re-apparition du toast.
+ * Each entry carries a UUID so the frontend can deduplicate on back/forward
+ * navigation, which would otherwise restore the toast from Inertia's
+ * cached `history.state`.
  */
 final class ToastDispatcher
 {
     public const SESSION_KEY = 'toasts';
 
+    /**
+     * Push a toast of the given tone onto the accumulated stack.
+     */
     public static function push(string $tone, string $message): void
     {
         /** @var list<array{id: string, tone: string, message: string}> $existing */
@@ -57,21 +48,33 @@ final class ToastDispatcher
         Session::flash(self::SESSION_KEY, $existing);
     }
 
+    /**
+     * Push a success toast.
+     */
     public static function success(string $message): void
     {
         self::push('success', $message);
     }
 
+    /**
+     * Push an error toast.
+     */
     public static function error(string $message): void
     {
         self::push('error', $message);
     }
 
+    /**
+     * Push a warning toast.
+     */
     public static function warning(string $message): void
     {
         self::push('warning', $message);
     }
 
+    /**
+     * Push an informational toast.
+     */
     public static function info(string $message): void
     {
         self::push('info', $message);

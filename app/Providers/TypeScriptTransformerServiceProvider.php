@@ -11,20 +11,20 @@ use Spatie\TypeScriptTransformer\TypeScriptTransformerConfigFactory;
 use Spatie\TypeScriptTransformer\Writers\GlobalNamespaceWriter;
 
 /**
- * Configuration de la génération des types TS depuis les enums et les
- * Data classes Spatie. La sortie alimente
- * `resources/js/types/generated/generated.d.ts` (ignoré par Git, regénéré
- * à chaque `npm run build`).
+ * Configures TypeScript generation from Enums and Spatie Data classes.
  *
- * Les types générés sont consommés par les pages Vue via :
- *
- *     import type { VehicleListItemData } from '@/types/generated';
- *
- * Aucun type métier ne doit être redéclaré inline dans les composants -
- * la source de vérité est ici, côté PHP.
+ * Output goes to `resources/js/types/generated/generated.d.ts` (ignored by
+ * Git, regenerated on every `npm run build`). Vue components consume the
+ * generated types via `import type { ... } from '@/types/generated'`;
+ * domain types should never be redeclared inline on the frontend — the
+ * single source of truth lives in PHP.
  */
 class TypeScriptTransformerServiceProvider extends BaseTypeScriptTransformerServiceProvider
 {
+    /**
+     * Configure the transformer factory: scanned directories, output
+     * directory and writer.
+     */
     protected function configure(TypeScriptTransformerConfigFactory $config): void
     {
         $outputDirectory = resource_path('js/types/generated');

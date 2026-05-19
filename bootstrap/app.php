@@ -25,10 +25,9 @@ return Application::configure(basePath: dirname(__DIR__))
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
         then: function (): void {
-            // Segmentation Floty : auth/ et user/ chargés en plus de web/.
-            // Tous partagent le middleware group "web" (sessions, CSRF, cookies)
-            // imposé par Inertia. L'authentification propre est appliquée par
-            // groupe DANS chaque fichier (`auth.php` et `user.php`).
+            // auth/ and user/ are loaded on top of web/; they all share the
+            // `web` middleware group (sessions, CSRF, cookies) required by
+            // Inertia. Authentication is enforced per group inside each file.
             Route::middleware('web')->group(base_path('routes/auth.php'));
             Route::middleware('web')->group(base_path('routes/user.php'));
         },
@@ -40,13 +39,10 @@ return Application::configure(basePath: dirname(__DIR__))
             SecurityHeaders::class,
         ]);
 
-        // ADR-0011 § 1 · faire confiance aux proxies en amont pour
-        // résoudre correctement `isSecure()` derrière LB Hostinger.
-        // `at: '*'` est acceptable car Floty est derrière un LB
-        // Hostinger qu'on ne peut pas lister par IP statique. Sans
-        // cette config, le cookie session `Secure` (cf. ADR-0011 § 2)
-        // ne se déclenche pas et le rate-limit IP (cf. § 3 rev. 1.1)
-        // utiliserait l'IP du LB au lieu de l'IP réelle.
+        // Trust upstream proxies so `isSecure()`, the `Secure` session
+        // cookie and the IP-based rate limiter resolve correctly behind the
+        // Hostinger load balancer (ADR-0011 § 1-3). `at: '*'` is acceptable
+        // because the LB cannot be listed by static IP.
         $middleware->trustProxies(
             at: '*',
             headers: Request::HEADER_X_FORWARDED_FOR
@@ -56,11 +52,8 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
-        // Render des exceptions métier Floty.
-        // - Requêtes Ajax/JSON (ex. useApi) → JSON structuré 422 avec
-        //   `message` (français, getUserMessage) et `code` (class basename).
-        // - Visites web/Inertia → flash 'toast-error' + back() pour rester
-        //   sur la page courante avec les inputs préservés.
+        // Domain exceptions: JSON 422 with `message` + `code` for XHR
+        // clients, flash `toast-error` + back() for Inertia visits.
         $exceptions->render(function (BaseAppException $e, Request $request) {
             if ($request->expectsJson()) {
                 return response()->json([
@@ -72,18 +65,14 @@ return Application::configure(basePath: dirname(__DIR__))
             return back()->withInput()->with('toast-error', $e->getUserMessage());
         });
 
-        // Render JSON ciblé pour ValidationException (endpoints `useApi.post`
-        // / `postJson`). Compose un `message` français explicite listant les
-        // champs invalides — sans dépendre de `lang:publish` ni des clés
-        // brutes Laravel comme `validation.required`. `errors` reste au
-        // format standard (map `field => list<message>`) pour permettre,
-        // plus tard, l'affichage inline par champ côté front.
-        //
-        // Guard `expectsJson()` : on ne touche pas le redirect-back-with-
-        // errors d'Inertia côté formulaires HTML classiques.
+        // JSON render for ValidationException on XHR endpoints (useApi.post
+        // / postJson). Builds a French `message` that lists the invalid
+        // fields explicitly without depending on `lang:publish` or exposing
+        // raw `validation.xxx` keys. `errors` keeps the standard
+        // field => list<message> shape for inline display.
         $exceptions->render(function (ValidationException $e, Request $request) {
             if (! $request->expectsJson()) {
-                return null; // laisse Laravel gérer (redirect back + flash errors)
+                return null;
             }
 
             $errors = $e->errors();
@@ -95,9 +84,6 @@ return Application::configure(basePath: dirname(__DIR__))
             } elseif ($count === 1) {
                 $field = $fields[0];
                 $first = $errors[$field][0] ?? 'invalide';
-                // Si le message est encore une clé brute `validation.xxx`
-                // (pas de lang/fr publié), on tombe sur un format générique
-                // FR plutôt que d'exposer la clé.
                 $detail = str_starts_with($first, 'validation.')
                     ? 'invalide ou manquant'
                     : $first;
@@ -124,31 +110,20 @@ return Application::configure(basePath: dirname(__DIR__))
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         });
 
-        // Réponses globales selon le statut HTTP final, après le render
-        // par défaut de Laravel (pour 419 / 403 / 404 / 500 / 503).
-        //
-        // Doctrine UX Floty (chantier T2 / Phase 14.N) : pour les visites
-        // HTML/Inertia normales, on préfère un redirect transparent vers
-        // une page utile (index du domaine concerné ou dashboard) + un
-        // toast explicite, plutôt qu'une page d'erreur isolée. Les
-        // requêtes XHR/JSON conservent la sémantique HTTP standard.
+        // Global response shaping by HTTP status. For HTML/Inertia visits,
+        // soft-fail to a useful page (back() or domain index) with a toast
+        // rather than showing an isolated error page. XHR/JSON requests
+        // keep standard HTTP semantics.
         $exceptions->respond(function (Response $response, Throwable $e, Request $request) {
-            // XHR/JSON : on laisse Laravel rendre le statut natif (404/403/etc.).
             if ($request->expectsJson()) {
                 return $response;
             }
 
             $status = $response->getStatusCode();
 
-            // Visites Inertia : intercepter 419 (CSRF), 403 (autorisation)
-            // et 429 (rate-limit middleware) pour rester sur la page courante
-            // avec un toast (l'action a échoué mais on ne veut pas naviguer
-            // ailleurs depuis une simple soumission refusée). Sans cette
-            // interception, Inertia reçoit la page HTML d'erreur brute et
-            // l'affiche dans une modale d'erreur générique · UX médiocre
-            // sur des routes guest/non indexées (login, forgot-password,
-            // reset-password, change-password). Le 404 Inertia retombe
-            // dans la logique générique ci-dessous (redirect domaine).
+            // Inertia visits: intercept CSRF (419), authorization (403) and
+            // middleware rate-limit (429) to stay on the current page with
+            // a toast rather than navigating to an error page.
             if ($request->header('X-Inertia') && in_array($status, [419, 403, 429], true)) {
                 return match ($status) {
                     419 => back()->with('toast-warning', 'Votre session a expiré. Veuillez réessayer.'),
@@ -160,10 +135,9 @@ return Application::configure(basePath: dirname(__DIR__))
                 };
             }
 
-            // 404 ModelNotFoundException (route binding) : redirect vers
-            // l'index du domaine concerné. Laravel encapsule souvent la
-            // ModelNotFoundException dans une NotFoundHttpException — on
-            // remonte la chaîne `previous` pour récupérer le Model.
+            // 404 from route model binding: redirect to the domain index.
+            // Laravel often wraps ModelNotFoundException in a
+            // NotFoundHttpException — unwrap to recover the Model.
             $modelNotFound = $e instanceof ModelNotFoundException
                 ? $e
                 : (
@@ -177,24 +151,21 @@ return Application::configure(basePath: dirname(__DIR__))
                 return UserFacingExceptionRenderer::renderModelNotFound($modelNotFound);
             }
 
-            // 403 (toute origine) : redirect dashboard + toast.
             if ($status === 403) {
                 return UserFacingExceptionRenderer::renderAuthorization(
                     $e instanceof AuthorizationException ? $e : new AuthorizationException,
                 );
             }
 
-            // 404 générique (URL inexistante, findOrFail manuel sans Model
-            // bind) : redirect dashboard + toast « page introuvable ».
             if ($status === 404) {
                 return UserFacingExceptionRenderer::renderNotFoundHttp(
                     $e instanceof NotFoundHttpException ? $e : new NotFoundHttpException,
                 );
             }
 
-            // Pages d'erreur Inertia (500 / 503) en non-local et
-            // non-testing uniquement — on garde Whoops Laravel en local
-            // pour le debug, et le testing utilise le framework natif.
+            // Inertia error pages for 500/503 outside of local and testing
+            // environments (local keeps Whoops, testing uses the framework
+            // native behaviour).
             if (
                 ! app()->environment(['local', 'testing'])
                 && in_array($status, [500, 503], true)

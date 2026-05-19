@@ -9,19 +9,20 @@ use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Logge sur le canal `auth` chaque déclenchement de rate-limit login.
+ * Writes a warning entry on the `auth` log channel each time the login
+ * rate limiter trips (ADR-0011 § 3). Coupled with the {@see Lockout}
+ * event dispatched by {@see LoginAttemptService}.
  *
- * Couplé à l'événement {@see Lockout} dispatché par
- * {@see LoginAttemptService} (cf. ADR-0011 § 3).
- *
- * PII · l'email présent dans la request est haché SHA-256 avant log
- * pour permettre la corrélation forensique sans fuiter l'identité si
- * les fichiers de log sont compromis. Le password n'est jamais logué.
- *
- * Cf. plan-remédiation Vague 1 Lot 1 D2 (F-10-002).
+ * The submitted email is hashed (SHA-256) before logging so forensic
+ * correlation remains possible without leaking the identity in case the
+ * log files are compromised. The password is never logged.
  */
 final readonly class LogLockoutAttempt
 {
+    /**
+     * Log the lockout event with the request IP, hashed email and user
+     * agent.
+     */
     public function handle(Lockout $event): void
     {
         $request = $event->request;

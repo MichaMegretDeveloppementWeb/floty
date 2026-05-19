@@ -10,33 +10,25 @@ use Illuminate\Support\Facades\App;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Headers de sécurité ajoutés à toutes les réponses du groupe `web`.
+ * Adds the standard security headers to every response of the `web`
+ * middleware group:
  *
- * - `X-Frame-Options: DENY` · empêche l'inclusion en iframe (anti
- *   clickjacking). L'application Floty ne s'embed pas légitimement
- *   dans un autre site.
- * - `X-Content-Type-Options: nosniff` · empêche le MIME-sniffing
- *   navigateur, oblige le respect du Content-Type déclaré.
- * - `Referrer-Policy: strict-origin-when-cross-origin` · limite la
- *   fuite d'URL de pages internes vers les sites tiers.
- * - `Permissions-Policy: ...` · désactive **explicitement** toutes
- *   les API browser non utilisées par Floty (camera, microphone,
- *   geolocation, payment, usb, serial, bluetooth, autoplay, sensors,
- *   midi). Défense en profondeur contre XSS résiduel ·
- *   un attaquant ne peut pas déclencher l'API même via un script
- *   injecté. `fullscreen=(self)` est conservé pour permettre une
- *   future modale PDF en plein écran. Cf. plan-remediation Vague 1
- *   Lot 2 D1 (F-30-011).
- * - `Strict-Transport-Security` · force HTTPS pendant 1 an, posé
- *   uniquement sur connexion sécurisée pour ne pas verrouiller le
- *   dev local Herd HTTP.
- * - `Content-Security-Policy` · politique V1 stricte (ADR-0011 § 6).
- *   `'unsafe-inline'` style est admis V1 pour Tailwind runtime · à
- *   durcir V2 avec nonces si besoin. Cf. plan-remédiation Vague 1
- *   Lot 1 D3 (F-30-001). **Skip en environnement `local`** ·
- *   `script-src 'self'` bloque les scripts inline du Laravel Debugbar
- *   et du HMR Vite, qui n'ont aucune utilité en production. Les autres
- *   headers de sécurité restent appliqués partout.
+ *   - `X-Frame-Options: DENY` — prevents iframe embedding (clickjacking).
+ *   - `X-Content-Type-Options: nosniff` — forces the declared Content-Type.
+ *   - `Referrer-Policy: strict-origin-when-cross-origin` — limits URL
+ *     leakage to third parties.
+ *   - `Permissions-Policy` — disables every browser API Floty does not
+ *     use (defence in depth against XSS); `fullscreen=(self)` is kept
+ *     for the planned fullscreen PDF modal.
+ *   - `Strict-Transport-Security` — forces HTTPS for one year; only
+ *     emitted on secure requests to avoid trapping the local Herd HTTP
+ *     setup.
+ *   - `Content-Security-Policy` — strict V1 policy (ADR-0011 § 6).
+ *     `'unsafe-inline'` is allowed on styles for Tailwind runtime; to
+ *     be tightened later with nonces. The CSP is skipped in the `local`
+ *     environment because `script-src 'self'` would block both the
+ *     Laravel Debugbar and the Vite HMR inline scripts, which have no
+ *     production purpose; other headers still apply everywhere.
  */
 final class SecurityHeaders
 {
@@ -51,6 +43,9 @@ final class SecurityHeaders
         ."base-uri 'self'; "
         ."form-action 'self';";
 
+    /**
+     * Apply every security header to the outgoing response.
+     */
     public function handle(Request $request, Closure $next): Response
     {
         $response = $next($request);
@@ -75,10 +70,8 @@ final class SecurityHeaders
     }
 
     /**
-     * Politique étendue désactivant toutes les API browser non
-     * utilisées par Floty (défense en profondeur). Plan-remediation
-     * Vague 1 Lot 2 D1 (F-30-011) · `fullscreen=(self)` est laissé
-     * actif pour une future modale PDF en plein écran.
+     * Build the `Permissions-Policy` header value, disabling every
+     * browser API except fullscreen (kept for a planned PDF modal).
      */
     private function permissionsPolicy(): string
     {

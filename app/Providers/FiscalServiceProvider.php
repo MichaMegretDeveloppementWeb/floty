@@ -22,44 +22,40 @@ use Illuminate\Support\ServiceProvider;
 use InvalidArgumentException;
 
 /**
- * Enregistre le {@see FiscalRuleRegistry} en singleton et y déclare les
- * classes règles applicables par année.
+ * Registers the fiscal rule registry, per-year boot classes and shared
+ * fiscal service singletons.
  *
- * **Architecture (chantier ζ · extensibilité multi-année)** · la liste
- * des années supportées vit dans `config('floty.fiscal.year_boots')`.
- * Chaque année a sa classe `Year{YYYY}Boot` qui implémente
- * {@see FiscalYearBoot} et déclare ses propres règles. Le provider se
- * contente de boucler dessus · il ne **connaît plus** d'année particulière.
+ * Supported years are configured via `floty.fiscal.year_boots`; each year
+ * ships a `Year{YYYY}Boot` implementing {@see FiscalYearBoot} and
+ * declares its own rules. Adding a year only requires creating the boot
+ * class and listing it in config (see
+ * `project-management/taxes-rules/_adding-a-new-year.md`).
  *
- * **Pour ajouter une nouvelle année** · créer `app/Fiscal/Year{YYYY}/Year{YYYY}Boot.php`
- * + ajouter la classe dans la config. Procédure complète dans
- * `project-management/taxes-rules/_adding-a-new-year.md`.
+ * {@see LcdQualifier} is bound globally to its 2024 implementation since
+ * CIBS L.421-129 has been unchanged since 2022-01-01. Contextual bindings
+ * pair each year's R-YYYY-008 with its matching R-YYYY-021 to prevent
+ * cross-year contamination (ADR-0022).
  *
- * **Bindings LcdQualifier** (Bloc 4 Phase J · multi-année) :
- * - Binding par défaut · `LcdQualifier` → `R2024_021_ShortTermRental`.
- *   Utilisé par `LcdContractFilter` (risk detection cluster-by-fingerprint
- *   indépendante de l'année · les deux classes 2024 et 2025 ont une
- *   logique identique CIBS L. 421-129 inchangée depuis 01/01/2022).
- * - Binding contextuel `R-2024-008` → `R-2024-021` · alignement strict
- *   pipeline 2024.
- * - Binding contextuel `R-2025-008` → `R-2025-021` · alignement strict
- *   pipeline 2025 (sinon Laravel injecterait le binding global 2024 dans
- *   la règle 2025, viol ADR-0022).
+ * Rules living outside the pipeline (architectural, structural, UX) are
+ * documented in ADR-0006 § 2 and are not registered here:
+ *   - R-YYYY-001, R-YYYY-007, R-YYYY-009, R-YYYY-020, R-YYYY-024
+ *   - R-2024-023 (placeholder, only R-2025-023 E85 is active)
  *
- * Note · certaines règles du catalogue 2024 ne sont **pas** enregistrées
- * via les `FiscalYearBoot` car elles vivent hors pipeline (cf. ADR-0006 § 2) :
- * - R-YYYY-001 (redevable / fait générateur) · architecturale
- * - R-YYYY-007 (historisation des caractéristiques) · structurelle
- *   (gérée par {@see VehicleFiscalCharacteristicsReadRepository})
- * - R-YYYY-009 (mise hors-service) · UX produit (formulaire véhicule)
- * - R-YYYY-020 (loueur) · architecture Floty par construction
- * - R-2024-023 (abattements 2024) · placeholder vide, pas applicable
- *   en 2024 (R-2025-023 E85 monte en pipeline 2025)
- * - R-YYYY-024 (garde-fou Crit'Air) · validation UI côté formulaire
- *   véhicule (`useCritAirCheck`)
+ * {@see VehicleFiscalCharacteristicsReadRepository} owns the historisation
+ * logic of R-YYYY-007.
  */
 final class FiscalServiceProvider extends ServiceProvider
 {
+    /**
+     * Register the fiscal rule registry, the per-year boot classes and the
+     * shared fiscal service singletons. Each singleton owns per-request
+     * caches that must be shared across all consumers within an HTTP
+     * request to avoid recomputing the same pipeline several times.
+     *
+     * @throws InvalidArgumentException If a configured boot class does not
+     *                                  exist or does not implement
+     *                                  {@see FiscalYearBoot}.
+     */
     public function register(): void
     {
         $this->app->singleton(FiscalRuleRegistry::class, function (Application $app): FiscalRuleRegistry {
@@ -88,50 +84,12 @@ final class FiscalServiceProvider extends ServiceProvider
             return $registry;
         });
 
-        // RuleEffectiveSegmenter porte un cache mémoire process des
-        // segments par année (chantier κ.3). Il doit être singleton
-        // pour amortir le calcul sur plusieurs accès dans la même
-        // requête HTTP.
         $this->app->singleton(RuleEffectiveSegmenter::class);
-
-        // FleetFiscalAggregator porte 3 caches d'instance scopés
-        // requête (`$rulesCache`, `$fullYearResultCache`,
-        // `$fullYearBreakdownCache`) indexés par `(vehicleId, year)`.
-        // Sans singleton, chaque service consommateur (VehicleListing,
-        // ContractQueryService, DashboardStatsService, PlanningHeatmap,
-        // CompanyDetail, etc.) recevait sa propre instance avec caches
-        // vides · le pipeline pour le même couple (véhicule, année)
-        // était recalculé 2-5× par requête HTTP. Le singleton partage
-        // les caches sur toute la requête · gain mesuré ~30-50% sur
-        // Dashboard et Contracts Index (audit perf 2026-05-15 · C-1).
-        //
-        // Note · `DeclarationAggregatorFactory` instancie son aggregator
-        // ad-hoc via `new FleetFiscalAggregator(...)` (pas via container)
-        // donc il garde son propre cache scopé à la déclaration ·
-        // pas de cross-contamination avec le singleton.
         $this->app->singleton(FleetFiscalAggregator::class);
-
-        // RiskDetectionService porte `$clustersCache` indexé par
-        // `(companyId, year)`. Mêmes raisons · le `DeclarationFiscalEngine`
-        // et le `PendingDeclarationsResolver` consomment tous les deux
-        // `detectClusters()` dans la même requête · sans singleton, le
-        // chaînage LCD + fingerprint était calculé 2× pour la même paire
-        // (audit perf 2026-05-15 · C-1).
         $this->app->singleton(RiskDetectionService::class);
 
-        // Binding par défaut · résolu par `LcdContractFilter` (risk
-        // detection) qui n'a pas de contexte année spécifique au moment
-        // de la résolution. Les deux classes 2024 et 2025 ont une logique
-        // identique (CIBS L. 421-129 inchangé depuis 2022). Le
-        // `DeclarationFiscalEngine` (D5.2) construit un
-        // `OverlayedRuleRegistry` qui substitue localement cette
-        // implémentation par un decorator porteur des décisions
-        // « Requalified » du workflow de revue.
         $this->app->bind(LcdQualifier::class, R2024_021_ShortTermRental::class);
 
-        // Bindings contextuels · chaque règle réductrice R-YYYY-008 doit
-        // recevoir le LcdQualifier de SA propre année pour éviter toute
-        // contamination cross-année dans le pipeline (ADR-0022).
         $this->app->when(R2024_008_ReductiveUnavailability::class)
             ->needs(LcdQualifier::class)
             ->give(R2024_021_ShortTermRental::class);

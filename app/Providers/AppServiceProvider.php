@@ -21,33 +21,18 @@ use Illuminate\Validation\Rules\Password;
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Register application services.
+     *
+     * Services exposing per-request in-memory caches are bound as
+     * singletons so all consumers within an HTTP request share state.
      */
     public function register(): void
     {
-        // Singleton : garantit qu'un seul resolver vit par requête HTTP
-        // (cache mémoire process partagé entre tous les consumers d'une
-        // même requête). Cf. chantier η Phase 0.1.
         $this->app->singleton(AvailableYearsResolver::class);
-
-        // Singleton · `BillingBreakdownService` porte 2 caches d'instance
-        // (`$byCompanyForYearCache`, `$byVehicleForYearCache`) indexés
-        // par `(companyId|vehicleId, year)`. Hot path Dashboard ·
-        // `DashboardStatsService::computePeriodMetrics` itère 8 ans ×
-        // 15 entreprises = 120 appels `byCompanyForYear` par mount,
-        // dont la grande majorité touchent les mêmes couples à travers
-        // les services consommateurs. S1.2 du plan optim perf 2026-05-15.
         $this->app->singleton(BillingBreakdownService::class);
 
-        // PDF annexe déclaration fiscale : binding vers le renderer
-        // production Blade + DomPDF (Phase 11 D5.5). NullDeclarationPdfRenderer
-        // reste disponible pour les tests qui le bindent explicitement.
         $this->app->bind(DeclarationPdfRendererInterface::class, BladeDomPdfDeclarationRenderer::class);
 
-        // Lot 5 D10 (F-19-016) · `DeclarationPdfStorage` reçoit le disque
-        // Storage configuré via `floty.declarations.pdf_storage_disk` (env
-        // `DECLARATIONS_PDF_DISK`). Permet de basculer sur S3/GCS en prod
-        // sans modifier le code.
         $this->app->bind(
             DeclarationPdfStorage::class,
             fn (): DeclarationPdfStorage => new DeclarationPdfStorage(
@@ -57,7 +42,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Bootstrap any application services.
+     * Bootstrap application services.
      */
     public function boot(): void
     {
@@ -69,9 +54,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Utilise CarbonImmutable partout : aucune mutation accidentelle d'une
-     * date passée par référence entre couches. La locale applicative FR est
-     * propagée à toute instance Carbon produite (formatage jours/mois).
+     * Use CarbonImmutable globally and align Carbon's locale to the app locale.
      */
     protected function configureDates(): void
     {
@@ -80,15 +63,8 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Active le strict mode Eloquent en non-production :
-     *   - preventLazyLoading : lève une exception à la moindre N+1.
-     *   - preventAccessingMissingAttributes : lève si un code accède à un
-     *     attribut qui n'a pas été sélectionné par la requête.
-     *   - preventSilentlyDiscardingAttributes : lève si un fillable rejette
-     *     silencieusement un attribut assignable.
-     *
-     * En production on relâche pour ne pas casser l'UX sur un oubli isolé,
-     * les tests et la CI détectent les violations avant mise en prod.
+     * Enable Eloquent strict mode outside of production to catch lazy
+     * loading, missing attributes and silently discarded assignments early.
      */
     protected function configureEloquent(): void
     {
@@ -96,9 +72,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Interdit les commandes destructives (`migrate:fresh`, `db:wipe`, etc.)
-     * en production. Seule parade si un script de déploiement mal câblé les
-     * invoque malgré nous.
+     * Prevent destructive database commands (migrate:fresh, db:wipe…) in production.
      */
     protected function configureDatabase(): void
     {
@@ -108,12 +82,8 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Politique de mot de passe Floty (cf. ADR-0011) : longueur 8 minimum,
-     * pas de complexité imposée. Alignement sur NIST SP 800-63B 2024 qui
-     * privilégie la longueur au forçage de caractères spéciaux.
-     *
-     * En non-production : pas de règle appliquée pour laisser les factories
-     * et les seeders générer des mots de passe courts à la volée.
+     * Apply the Floty password policy in production; relax defaults elsewhere
+     * so factories and seeders can generate short passwords.
      */
     protected function configurePasswordDefaults(): void
     {
@@ -125,14 +95,7 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Force HTTPS en prod pour toutes les URL générées (route(), url(),
-     * etc.). Conforme ADR-0011 § 1. Cohérent avec `TrustProxies` activé
-     * dans `bootstrap/app.php` pour la résolution correcte de
-     * `isSecure()` derrière LB Hostinger.
-     *
-     * Sans cette protection, les URLs générées en prod peuvent retomber
-     * sur `http://` derrière un proxy mal interprété, et le cookie
-     * session `Secure` ne se déclencherait pas (ADR-0011 § 2).
+     * Force HTTPS on generated URLs in production (ADR-0011 § 1).
      */
     protected function configureUrlScheme(): void
     {

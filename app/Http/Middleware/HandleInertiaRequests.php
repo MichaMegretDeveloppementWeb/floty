@@ -14,38 +14,35 @@ use Illuminate\Support\Str;
 use Inertia\Middleware;
 
 /**
- * Shared props Inertia Floty.
+ * Inertia shared props exposed on every page of Floty.
  *
- * Exposées à chaque page sans duplication côté controller. Typées strict
- * côté TypeScript via les DTOs Spatie Data (générés automatiquement dans
- * `resources/js/types/generated/generated.d.ts`).
+ * All props are strictly typed on the TypeScript side via Spatie Data
+ * DTOs (auto-generated into `resources/js/types/generated/generated.d.ts`).
  *
- * Invariants :
- *   - `appName` : chaîne non vide, stable pour toute la durée de vie du
- *     déploiement.
- *   - `auth.user` : `null` tant qu'aucun utilisateur n'est authentifié,
- *     sinon un {@see CurrentUserData}.
- *   - `flash` : quatre canaux indépendants correspondants aux quatre tons
- *     de Toast du design system (success / error / warning / info).
- *     Le controller alimente via `->with('toast-success', 'Message')` et
- *     le front lit `flash.success`.
- *
- * **Chantier η Phase 5** : la shared prop `fiscal.availableYears` a été
- * supprimée. Chaque page consommatrice reçoit désormais sa prop locale
- * `yearScope` ({@see App\Data\Shared\YearScopeData}) · alimentée soit par
- * `AvailableYearsResolver` (scope contrats), soit par
- * `FiscalRuleRegistry::registeredYears()` (scope moteur fiscal).
+ * Invariants:
+ *   - `appName` — non-empty string, stable for the deployment lifetime.
+ *   - `auth.user` — `null` until a user is authenticated, otherwise a
+ *     {@see CurrentUserData}.
+ *   - `flash` — four independent channels matching the four toast tones
+ *     of the design system (success / error / warning / info). The
+ *     controller writes via `->with('toast-success', '...')`; the
+ *     frontend reads `flash.success`.
  */
 final class HandleInertiaRequests extends Middleware
 {
     protected $rootView = 'app';
 
+    /**
+     * Return the Inertia version of the application assets.
+     */
     public function version(Request $request): ?string
     {
         return parent::version($request);
     }
 
     /**
+     * Build the shared props payload for every Inertia response.
+     *
      * @return array<string, mixed>
      */
     public function share(Request $request): array
@@ -61,25 +58,21 @@ final class HandleInertiaRequests extends Middleware
 
             'flash' => fn (): FlashData => $this->buildFlashData($request),
 
-            // Canal dédié au rapport de fin du `BulkGenerateInvoicesAction`.
-            // Vit en session flash · seul le render qui suit immédiatement
-            // le POST `invoices.bulk-generate` le voit · null partout
-            // ailleurs. Distinct de `flash.toasts` (texte court mono-line)
-            // car le payload est structurel (lignes generated/failed avec
-            // numéros d'annexes) et doit pouvoir être affiché en récap
-            // inline détaillé.
             'bulkInvoiceReport' => fn (): ?BulkInvoiceGenerationReportData => $this->resolveBulkInvoiceReport($request),
         ];
     }
 
+    /**
+     * Resolve the bulk-invoice generation report from the flash session.
+     * The payload only lives across one render after a bulk invoice
+     * generation; everywhere else it is `null`. Distinct from
+     * `flash.toasts` because the payload is structured (lines, annex
+     * numbers) and is rendered as a detailed inline summary.
+     */
     private function resolveBulkInvoiceReport(Request $request): ?BulkInvoiceGenerationReportData
     {
         $payload = $request->session()->get('bulkInvoiceReport');
 
-        // Session flash applique `Arrayable::toArray()` au stockage ·
-        // on récupère donc soit un DTO (cas rare hors flash) soit un
-        // array · on rehydrate proprement via `Spatie\LaravelData::from()`
-        // pour fournir un type stable au consommateur Inertia.
         if ($payload instanceof BulkInvoiceGenerationReportData) {
             return $payload;
         }
@@ -92,12 +85,11 @@ final class HandleInertiaRequests extends Middleware
     }
 
     /**
-     * Lot 5 D6 (F-19-007 + bug back-button) · combine les 4 anciens
-     * canaux flash scalaires (rétrocompat ~30 controllers existants)
-     * et la pile accumulée poussée par {@see ToastDispatcher} dans une
-     * unique liste typée `flash.toasts: ToastEntryData[]`. Chaque
-     * entry porte un ID unique consommé par le front pour la dédup
-     * back-button.
+     * Merge the four legacy scalar flash channels (kept for backward
+     * compatibility with the existing controllers) and the accumulated
+     * stack pushed by {@see ToastDispatcher} into a single typed list
+     * `flash.toasts: ToastEntryData[]`. Every entry carries a unique id
+     * so the frontend can deduplicate on browser back/forward.
      */
     private function buildFlashData(Request $request): FlashData
     {
@@ -110,9 +102,6 @@ final class HandleInertiaRequests extends Middleware
 
         $toasts = [];
 
-        // Conversion des 4 anciens canaux en ToastEntry · ID virtuel
-        // basé sur tone + UUID pour garantir l'unicité (pas de collision
-        // possible si le même message texte est posté en double).
         foreach (['success' => $success, 'error' => $error, 'warning' => $warning, 'info' => $info] as $tone => $message) {
             if ($message !== null && $message !== '') {
                 $toasts[] = new ToastEntryData(
@@ -123,8 +112,6 @@ final class HandleInertiaRequests extends Middleware
             }
         }
 
-        // Pile accumulée via ToastDispatcher · chaque entry porte
-        // déjà son UUID (généré au push).
         /** @var list<array{id: string, tone: string, message: string}> $accumulated */
         $accumulated = $session->get(ToastDispatcher::SESSION_KEY, []);
         foreach ($accumulated as $entry) {
@@ -144,6 +131,9 @@ final class HandleInertiaRequests extends Middleware
         );
     }
 
+    /**
+     * Resolve the currently authenticated user as a {@see CurrentUserData}.
+     */
     private function resolveAuthenticatedUser(Request $request): ?CurrentUserData
     {
         $user = $request->user();

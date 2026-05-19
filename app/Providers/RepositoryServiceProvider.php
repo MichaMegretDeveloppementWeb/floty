@@ -69,21 +69,16 @@ use App\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
- * Enregistre le binding Contract → Implémentation pour chaque Repository
- * Floty. Le conteneur injecte ainsi l'implémentation Eloquent dès qu'un
- * service type-hint un {@see \App\Contracts\Repositories\...} dans son
- * constructeur.
+ * Binds Repository contracts to their Eloquent implementations.
  *
- * Les repositories Floty étant sans état (requêtes Eloquent stateless),
- * on les enregistre en **singletons** : une seule instance réutilisée
- * par requête HTTP, ce qui évite des instanciations répétées quand
- * plusieurs services l'injectent.
+ * Repositories are stateless query objects and are registered as
+ * singletons so a single instance is reused per HTTP request, avoiding
+ * repeated instantiation when several services inject the same contract.
  */
 final class RepositoryServiceProvider extends ServiceProvider
 {
     /**
-     * Contract → Implémentation. Ajouter une entrée ici dès qu'un nouveau
-     * Repository est créé dans `app/Repositories/`.
+     * Contract → Implementation bindings, exposed as singletons.
      *
      * @var array<class-string, class-string>
      */
@@ -100,50 +95,38 @@ final class RepositoryServiceProvider extends ServiceProvider
         CompanyReadRepositoryInterface::class => CompanyReadRepository::class,
         CompanyWriteRepositoryInterface::class => CompanyWriteRepository::class,
 
-        // Contract (ADR-0014) - entité pivot du domaine fiscal
+        // Contract
         ContractReadRepositoryInterface::class => ContractReadRepository::class,
         ContractWriteRepositoryInterface::class => ContractWriteRepository::class,
-
-        // ContractDocument (chantier 04.N) - PDF joints aux contrats
         ContractDocumentReadRepositoryInterface::class => ContractDocumentReadRepository::class,
         ContractDocumentWriteRepositoryInterface::class => ContractDocumentWriteRepository::class,
 
-        // Driver (Phase 06 V1.2) - many-to-many avec Company via pivot driver_company
+        // Driver
         DriverReadRepositoryInterface::class => DriverReadRepository::class,
         DriverWriteRepositoryInterface::class => DriverWriteRepository::class,
 
-        // FiscalRule
+        // Fiscal rules
         FiscalRuleReadRepositoryInterface::class => FiscalRuleReadRepository::class,
 
-        // Invoice (Phase 14.E V1.2) - facturation mensuelle immuable
+        // Invoicing
         InvoiceReadRepositoryInterface::class => InvoiceReadRepository::class,
         InvoiceWriteRepositoryInterface::class => InvoiceWriteRepository::class,
-
-        // RentalDiscount (post Phase 14 V1.2) - réductions commerciales sur loyers
         RentalDiscountReadRepositoryInterface::class => RentalDiscountReadRepository::class,
         RentalDiscountWriteRepositoryInterface::class => RentalDiscountWriteRepository::class,
-
-        // BillingSettings (Phase 14.G V1.2) - émetteur de facture (singleton)
         BillingSettingsReadRepositoryInterface::class => BillingSettingsReadRepository::class,
         BillingSettingsWriteRepositoryInterface::class => BillingSettingsWriteRepository::class,
 
-        // FiscalRiskSettings (Phase 11 D1) - seuils détection de risque (singleton)
+        // Fiscal declaration workflow (ADR-0015)
         FiscalRiskSettingsReadRepositoryInterface::class => FiscalRiskSettingsReadRepository::class,
         FiscalRiskSettingsWriteRepositoryInterface::class => FiscalRiskSettingsWriteRepository::class,
-
-        // FiscalDeclaration (Phase 11 D1) - déclaration fiscale annuelle, ADR-0015 rev. 1.1
         FiscalDeclarationReadRepositoryInterface::class => FiscalDeclarationReadRepository::class,
         FiscalDeclarationWriteRepositoryInterface::class => FiscalDeclarationWriteRepository::class,
-
-        // FiscalReviewDecision (Phase 11 D1) - décisions humaines de revue par cluster
         FiscalReviewDecisionReadRepositoryInterface::class => FiscalReviewDecisionReadRepository::class,
         FiscalReviewDecisionWriteRepositoryInterface::class => FiscalReviewDecisionWriteRepository::class,
 
         // Unavailability
         UnavailabilityReadRepositoryInterface::class => UnavailabilityReadRepository::class,
         UnavailabilityWriteRepositoryInterface::class => UnavailabilityWriteRepository::class,
-
-        // UnavailabilityDocument (P1) · justificatifs image/PDF joints
         UnavailabilityDocumentReadRepositoryInterface::class => UnavailabilityDocumentReadRepository::class,
         UnavailabilityDocumentWriteRepositoryInterface::class => UnavailabilityDocumentWriteRepository::class,
     ];

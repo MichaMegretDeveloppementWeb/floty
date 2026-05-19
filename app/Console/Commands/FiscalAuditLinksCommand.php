@@ -10,27 +10,24 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
 /**
- * Audit des URLs Légifrance/BOFiP citées dans les `legalBasis()` des
- * règles fiscales · pipeline + informatives (AUDIT-E · audit fiscal
- * renforcé 14/05/2026).
+ * Audit the Légifrance and BOFiP URLs referenced by each fiscal rule's
+ * `legalBasis()` array.
  *
- * Vérifie deux invariants ·
- *  1. **Atteignabilité HTTP** · l'URL ne retourne pas 404. Légifrance
- *     bloque les requêtes non-navigateur (WAF) · on utilise un User-Agent
- *     Chrome réaliste. Tout autre code que 2xx/3xx est flaggé.
- *  2. **Fraîcheur** · l'entrée `consulted_at` doit dater de moins de
- *     12 mois. Au-delà, signaler pour reconsultation manuelle (la
- *     doctrine BOFiP peut avoir évolué).
+ * Two invariants are checked:
+ *   1. HTTP reachability — the URL must not return 404. Légifrance blocks
+ *      non-browser requests through a WAF, so a Chrome user-agent is used;
+ *      403 responses on legifrance.gouv.fr are tolerated as known WAF
+ *      false-positives.
+ *   2. Freshness — `consulted_at` must be at most `--max-age` days old;
+ *      anything older is flagged for manual re-consultation.
  *
- * **Mode `--strict`** · exit code != 0 si une anomalie est détectée
- * (utile pour intégration CI/CD).
+ * Modes:
+ *   - `--strict` exits non-zero on any anomaly (suitable for CI).
+ *   - `--no-http` skips the HTTP check and only validates freshness
+ *     (offline / quick audit).
  *
- * **Mode `--no-http`** · skip le check HTTP, ne vérifie que la fraîcheur
- * `consulted_at` (utile en offline / pour audit rapide).
- *
- * Cette commande est **synchrone** et **manuelle** · pas de queue,
- * pas de cron (cf. ADR-0023 · infra sans queue ni planificateur). À
- * lancer lors des passes d'audit fiscal régulières.
+ * The command is synchronous and must be run manually (Floty has no
+ * queue worker and no scheduler).
  */
 final class FiscalAuditLinksCommand extends Command
 {
@@ -41,6 +38,10 @@ final class FiscalAuditLinksCommand extends Command
 
     protected $description = 'Audit URLs Légifrance/BOFiP citées par les règles fiscales (atteignabilité + fraîcheur)';
 
+    /**
+     * Collect every `legalBasis` entry across all years, then run the
+     * freshness and reachability checks.
+     */
     public function handle(): int
     {
         $boots = $this->fiscalYearBoots();
@@ -80,7 +81,6 @@ final class FiscalAuditLinksCommand extends Command
         foreach ($entries as $entry) {
             $issues = [];
 
-            // 1. Fraîcheur consulted_at
             if ($entry['consulted_at'] === null) {
                 $issues[] = 'consulted_at manquant';
             } else {
@@ -95,21 +95,17 @@ final class FiscalAuditLinksCommand extends Command
                 }
             }
 
-            // 2. Atteignabilité HTTP
             if ($checkHttp) {
                 if ($entry['url'] === null || $entry['url'] === '') {
                     $issues[] = 'URL manquante';
                 } else {
                     $status = $this->headStatus((string) $entry['url']);
-                    // 2xx/3xx OK · 4xx/5xx KO. Légifrance répond 403 sur
-                    // User-Agent suspect même si l'URL est valide · on
-                    // tolère 403 pour Légifrance avec un avertissement.
                     if ($status === 404) {
                         $issues[] = '404 Not Found';
                     } elseif ($status >= 500) {
                         $issues[] = sprintf('serveur KO (%d)', $status);
                     } elseif ($status === 403 && str_contains((string) $entry['url'], 'legifrance.gouv.fr')) {
-                        // 403 Légifrance · WAF sur User-Agent · faux positif typique, on ignore.
+                        // Légifrance WAF false positive — ignored.
                     } elseif ($status >= 400) {
                         $issues[] = sprintf('HTTP %d', $status);
                     }
@@ -144,6 +140,8 @@ final class FiscalAuditLinksCommand extends Command
     }
 
     /**
+     * Instantiate every fiscal-year boot class declared in the config.
+     *
      * @return list<FiscalYearBoot>
      */
     private function fiscalYearBoots(): array
@@ -155,7 +153,7 @@ final class FiscalAuditLinksCommand extends Command
     }
 
     /**
-     * Concatène les classes pipeline + informatives d'une année.
+     * Return the pipeline and informative rule classes of a given year.
      *
      * @return list<class-string>
      */
@@ -165,9 +163,8 @@ final class FiscalAuditLinksCommand extends Command
     }
 
     /**
-     * Retourne le code HTTP renvoyé par l'URL (HEAD avec User-Agent
-     * navigateur pour contourner le WAF Légifrance) · 0 en cas de
-     * timeout / DNS error.
+     * HEAD the URL with a browser user-agent (bypasses Légifrance's WAF
+     * on default clients). Returns 0 on timeout or DNS error.
      */
     private function headStatus(string $url): int
     {

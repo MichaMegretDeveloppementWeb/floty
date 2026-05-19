@@ -7,49 +7,44 @@ namespace App\Support\Date;
 use Carbon\CarbonImmutable;
 
 /**
- * Helpers ISO 8601 sur les semaines d'une année.
+ * ISO-8601 week helpers tailored to the planning heatmap.
  *
- * SC16 (2026-05-18) · convention « cellules » pour la heatmap planning ·
- * chaque année Y est représentée par exactement **53 cellules** (= 53
- * semaines de 7 jours) ·
- *   - Cellule 1 = lundi → dimanche de la semaine ISO contenant le 1er
- *     janvier de Y (peut commencer en déc Y-1 si 1/1 n'est pas un lundi)
- *   - Cellule 53 = lundi → dimanche de la semaine contenant le 31
- *     décembre de Y (peut finir en jan Y+1)
- *   - Toutes les cellules ont 7 jours · au moins 1 de ces jours tombe
- *     dans l'année Y · une même semaine cross-année apparaît dans 2
- *     heatmaps consécutives (filtrage des jours fait au niveau densité)
+ * Every year is rendered as exactly **53 cells** (= 53 weeks of 7 days):
+ *   - cell 1 covers the Monday-to-Sunday week containing January 1st of
+ *     the year (may start in December of Y-1 when January 1st is not a
+ *     Monday);
+ *   - cell 53 covers the week containing December 31st of the year
+ *     (may end in January of Y+1);
+ *   - every cell has 7 days and at least one of them falls inside the
+ *     year; a week that straddles two years appears in both heatmaps,
+ *     with day-level filtering applied at the density step.
  *
- * Garantie : pour toute année, il y a toujours exactement 53 lundis
- * dans `[lundi_sem(1/1), lundi_sem(31/12)]` → 53 cellules fixes.
- *
- * Cette convention remplace la convention ISO stricte (52 ou 53 cellules
- * selon l'année) qui laissait invisibles les 1-3 jours de fin Y tombant
- * en sem 1 ISO de Y+1 (cas 2024, 2025).
+ * For any year there are always exactly 53 Mondays in
+ * `[monday_of_week(1/1), monday_of_week(31/12)]`, so the cell count is
+ * always constant. This replaces the strict ISO convention (52 or 53
+ * cells) which left the last 1-3 days of years like 2024/2025 invisible.
  */
 final class IsoWeeks
 {
     /**
-     * Nombre fixe de cellules par année · 53.
-     *
-     * @see static::cellsForYear pour la liste détaillée
+     * Number of cells in a heatmap year.
      */
     public const CELLS_PER_YEAR = 53;
 
     /**
-     * Lundi de la cellule 1 de la heatmap year · semaine ISO contenant
-     * le 1er janvier (peut être en décembre Y-1).
+     * Monday of cell 1 of the heatmap for the given year — the ISO week
+     * containing January 1st (may fall in December of Y-1).
      */
     public static function cellOriginForYear(int $year): CarbonImmutable
     {
         $jan1 = CarbonImmutable::create($year, 1, 1);
 
-        // dayOfWeekIso · 1=lundi, 7=dimanche
         return $jan1->subDays((int) $jan1->dayOfWeekIso - 1);
     }
 
     /**
-     * Liste des 53 lundis correspondant aux cellules de la heatmap year.
+     * Return the 53 Mondays representing each cell of the heatmap for
+     * the given year.
      *
      * @return list<CarbonImmutable>
      */
@@ -65,9 +60,9 @@ final class IsoWeeks
     }
 
     /**
-     * Index de cellule (1..53) qui contient une date donnée dans la
-     * heatmap de l'année year. Retourne `null` si la date est hors
-     * grille (avant cellule 1 ou après cellule 53).
+     * Return the cell index (1..53) containing the given date in the
+     * heatmap of the given year, or `null` when the date sits outside
+     * the grid.
      */
     public static function cellIndexForDate(int $year, CarbonImmutable $date): ?int
     {
@@ -82,9 +77,9 @@ final class IsoWeeks
     }
 
     /**
-     * Numéro de semaines ISO dans une année (52 ou 53) · conservé pour
-     * usages historiques · ne plus utiliser pour la heatmap planning
-     * qui se base désormais sur {@see static::cellsForYear} (toujours 53).
+     * Number of ISO weeks in the given year (52 or 53). Kept for legacy
+     * usages; the planning heatmap now relies on
+     * {@see static::cellsForYear} (always 53 cells).
      */
     public static function inYear(int $year): int
     {

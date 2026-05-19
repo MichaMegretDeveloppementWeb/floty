@@ -11,24 +11,21 @@ use App\Fiscal\ValueObjects\AppliedExemption;
 use App\Services\Fiscal\FiscalCalculator;
 
 /**
- * Résultat détaillé d'un calcul fiscal pour un couple
- * (véhicule, entreprise utilisatrice) sur un nombre de jours donné.
+ * Detailed result of a fiscal computation for a (vehicle, company) pair
+ * over a given number of days.
  *
- * DTO interne, produit par {@see FiscalCalculator} pour la preview
- * taxes du drawer planning. Les autres consommateurs métier
- * (`FleetFiscalAggregator`, etc.) opèrent directement sur
- * `PipelineResult` via le `FiscalSegmentedExecutor`.
+ * Internal DTO produced by {@see FiscalCalculator} for the planning
+ * drawer tax preview. Other consumers (`FleetFiscalAggregator`, …) work
+ * directly against `PipelineResult` through the `FiscalSegmentedExecutor`.
  *
- * Pour exposition au front : convertir via
- * {@see FiscalBreakdownData::fromBreakdown()}.
- *
- * Les montants sont en euros, deux décimales (arrondi commercial half-up).
+ * Amounts are expressed in euros with two decimals (commercial half-up
+ * rounding). Convert to {@see FiscalBreakdownData::fromBreakdown()} when
+ * exposing to the frontend.
  */
 final readonly class FiscalBreakdown
 {
     /**
-     * @param  list<AppliedExemption>  $appliedExemptions  Exonérations
-     *                                                     appliquées (couples raison + ruleCode)
+     * @param  list<AppliedExemption>  $appliedExemptions  Exemptions applied to the result.
      */
     public function __construct(
         public int $daysAssigned,

@@ -4,28 +4,30 @@ declare(strict_types=1);
 
 namespace App\DTO\Vehicle;
 
+use App\Actions\Vehicle\UpdateFiscalCharacteristicsAction;
 use App\Enums\Vehicle\FiscalCharacteristicsImpactType;
 use App\Models\VehicleFiscalCharacteristics;
+use App\Services\Vehicle\FiscalCharacteristicsImpactComputer;
 use Carbon\CarbonImmutable;
 
 /**
- * Effet de bord que l'édition d'une VFC produit sur l'une de ses
- * voisines dans l'historique du véhicule.
+ * Side effect that editing a vehicle's fiscal characteristics produces on
+ * one of its neighbours in the historisation timeline.
  *
- * Posé par {@see App\Services\Vehicle\FiscalCharacteristicsImpactComputer}
- * et appliqué (DELETE / UPDATE de borne) par
- * {@see App\Actions\Vehicle\UpdateFiscalCharacteristicsAction}.
+ * Computed by
+ * {@see FiscalCharacteristicsImpactComputer} and
+ * applied (DELETE / UPDATE of bound) by
+ * {@see UpdateFiscalCharacteristicsAction}.
  *
- * Les bornes sont conservées en `Y-m-d` pour faciliter les comparaisons
- * et la sérialisation dans les messages utilisateur (toast info,
- * confirmation modale). Aucune logique métier ici - pure structure de
- * données.
+ * Bounds are kept as `Y-m-d` strings to ease comparisons and serialisation
+ * in user-facing messages (toast info, modal confirmation). Pure data
+ * holder — no business logic.
  */
 final readonly class FiscalCharacteristicsImpact
 {
     /**
-     * @param  string  $targetEffectiveFrom  Borne actuelle (avant impact, format Y-m-d)
-     * @param  ?string  $targetEffectiveTo  Borne actuelle (avant impact)
+     * @param  string  $targetEffectiveFrom  Existing lower bound (Y-m-d).
+     * @param  ?string  $targetEffectiveTo  Existing upper bound (Y-m-d) or null when open-ended.
      */
     public function __construct(
         public FiscalCharacteristicsImpactType $type,
@@ -36,6 +38,9 @@ final readonly class FiscalCharacteristicsImpact
         public ?CarbonImmutable $newEffectiveTo = null,
     ) {}
 
+    /**
+     * Build a delete impact for the given target.
+     */
     public static function delete(VehicleFiscalCharacteristics $target): self
     {
         return new self(
@@ -46,6 +51,9 @@ final readonly class FiscalCharacteristicsImpact
         );
     }
 
+    /**
+     * Build an impact that shifts the target's upper bound to `$newEffectiveTo`.
+     */
     public static function adjustEffectiveTo(
         VehicleFiscalCharacteristics $target,
         CarbonImmutable $newEffectiveTo,
@@ -59,6 +67,9 @@ final readonly class FiscalCharacteristicsImpact
         );
     }
 
+    /**
+     * Build an impact that shifts the target's lower bound to `$newEffectiveFrom`.
+     */
     public static function adjustEffectiveFrom(
         VehicleFiscalCharacteristics $target,
         CarbonImmutable $newEffectiveFrom,
@@ -72,24 +83,22 @@ final readonly class FiscalCharacteristicsImpact
         );
     }
 
+    /**
+     * Return true when the impact removes a neighbour entirely.
+     */
     public function isDestructive(): bool
     {
         return $this->type === FiscalCharacteristicsImpactType::Delete;
     }
 
     /**
-     * Détermine l'ordre d'application relatif au `UPDATE` de la VFC
-     * éditée pour ne jamais violer le trigger DB qui interdit deux
-     * périodes chevauchantes pour un même véhicule (« protection
-     * triple »).
+     * Return true when the impact must be applied before the UPDATE of
+     * the edited fiscal-characteristics row to avoid violating the DB
+     * trigger that forbids two overlapping periods on the same vehicle.
      *
-     * Règle :
-     *   - une cascade qui **rétrécit** une voisine (libère de l'espace)
-     *     ou la **supprime** doit s'exécuter AVANT l'`UPDATE` afin
-     *     d'éviter un état intermédiaire chevauchant.
-     *   - une cascade qui **prolonge** une voisine (comble un trou)
-     *     doit s'exécuter APRÈS l'`UPDATE` pour la même raison -
-     *     prolonger avant aurait empiété sur les bornes existantes.
+     * Cascades that shrink or remove a neighbour run BEFORE the UPDATE
+     * (they free space); cascades that extend a neighbour run AFTER
+     * (extending earlier would temporarily overlap existing bounds).
      */
     public function mustApplyBeforeUpdate(): bool
     {
@@ -102,14 +111,17 @@ final readonly class FiscalCharacteristicsImpact
         };
     }
 
+    /**
+     * Decide whether the new upper bound is strictly smaller than the
+     * current one (open-ended counts as shrinking when a concrete value
+     * is set).
+     */
     private function isShrinkingEffectiveTo(): bool
     {
         if ($this->newEffectiveTo === null) {
             return false;
         }
 
-        // Borne courante ouverte (effective_to = null) → toute valeur
-        // concrète est un raccourcissement.
         if ($this->targetEffectiveTo === null) {
             return true;
         }
@@ -119,6 +131,10 @@ final readonly class FiscalCharacteristicsImpact
         );
     }
 
+    /**
+     * Decide whether the new lower bound is strictly later than the
+     * current one (i.e. shrinks the period from the left).
+     */
     private function isShrinkingEffectiveFrom(): bool
     {
         if ($this->newEffectiveFrom === null) {
@@ -131,8 +147,8 @@ final readonly class FiscalCharacteristicsImpact
     }
 
     /**
-     * Phrase française décrivant l'impact, prête à être empilée dans
-     * un message utilisateur (toast info ou confirmation).
+     * Return a French sentence describing the impact, ready to be stacked
+     * in a user-facing message (toast info or modal confirmation).
      */
     public function describe(): string
     {
@@ -153,6 +169,10 @@ final readonly class FiscalCharacteristicsImpact
         };
     }
 
+    /**
+     * Format a date range as a French human-readable string ("du …",
+     * "depuis le …").
+     */
     private function formatPeriod(string $from, ?string $to): string
     {
         $fromFr = CarbonImmutable::parse($from)->format('d/m/Y');

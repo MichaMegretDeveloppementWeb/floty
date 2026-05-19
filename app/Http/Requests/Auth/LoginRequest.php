@@ -9,32 +9,30 @@ use App\Services\Auth\LoginAttemptService;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Validation des inputs de connexion.
+ * Validates the inputs of the login form.
  *
- * La logique métier (rate-limit, tentative d'authentification, mise à
- * jour `last_login_at`) vit dans {@see LoginAction}
- * et {@see LoginAttemptService} - ce FormRequest
- * ne fait que la validation des inputs (ADR-0013 R3 : pas de logique
- * métier dans la couche HTTP).
+ * Business logic (rate limiting, authentication attempt, `last_login_at`
+ * update) lives in {@see LoginAction} and {@see LoginAttemptService};
+ * this FormRequest only validates inputs (ADR-0013 R3 — no business
+ * logic on the HTTP layer).
  */
 final class LoginRequest extends FormRequest
 {
+    /**
+     * Authorise the request; login is open to anonymous users.
+     */
     public function authorize(): bool
     {
         return true;
     }
 
     /**
-     * Bornes `max:255` sur email et password (RFC 5321 limite email à
-     * 254 caractères ; 255 est le standard défensif). Sans bornes, un
-     * attaquant pourrait envoyer plusieurs Mo · soft-DoS sur la clé
-     * RateLimiter (cf. {@see LoginAttemptService}) et bcrypt qui
-     * tronque silencieusement à 72 bytes après avoir consommé l'overhead.
+     * Validation rules.
      *
-     * `email:rfc` (sans `dns`) cohérent avec décision client de ne pas
-     * faire de DNS check (plan-remediation Vague 1 Lot 2 décision 9).
-     *
-     * Cf. plan-remediation Vague 1 Lot 2 D1 (F-10-009).
+     * `max:255` bounds defend against a soft-DoS where an attacker would
+     * pass several MB to inflate the bcrypt cost and the rate-limiter
+     * key (bcrypt silently truncates to 72 bytes anyway). `email:rfc`
+     * is used without the `dns` check by client decision.
      *
      * @return array<string, array<int, string>>
      */

@@ -10,29 +10,23 @@ use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 
 /**
- * Rejette toute saisie de période (création/édition de contrat ou
- * d'indisponibilité) sur un véhicule sorti de flotte dès lors que la
- * période chevauche ou dépasse `vehicles.exit_date`.
+ * Rejects any contract or unavailability period whose dates overlap or
+ * exceed `vehicles.exit_date` (ADR-0018 § 5):
  *
- * Cf. ADR-0018 § 5 (4 cas du tableau de validation période) :
+ *   | Case                                       | Behaviour |
+ *   |--------------------------------------------|-----------|
+ *   | exit_date IS NULL                          | accepted  |
+ *   | end < exit_date (entirely before)          | accepted  |
+ *   | start >= exit_date (entirely after)        | rejected  |
+ *   | start < exit_date <= end (overlaps)        | rejected  |
  *
- *   | Cas                                    | Comportement |
- *   |----------------------------------------|--------------|
- *   | exit_date IS NULL                      | autorisé     |
- *   | end < exit_date (entièrement avant)    | autorisé     |
- *   | start >= exit_date (entièrement après) | rejeté       |
- *   | start < exit_date <= end (chevauche)   | rejeté       |
+ * The rule does not validate the decorated field; the full period is
+ * passed via the constructor and the rule acts as an "implies" check on
+ * the `vehicleId` + `[start, end]` triplet. It is typically attached to
+ * the `vehicleId` field or to the end date of the owning DTO.
  *
- * La règle ne valide pas le champ qu'elle décore (la date est passée
- * en argument constructor, comme la période complète) ; elle agit comme
- * un "implies" sur la combinaison `vehicleId` + `[start, end]`. Elle
- * appartient donc typiquement au bloc des règles "globales" d'un DTO
- * Spatie Data, attachée au champ `vehicleId` ou à la date de fin (au
- * choix du DTO).
- *
- * Le véhicule est lookupé en BDD à chaque évaluation. Performance : 1
- * requête simple par appel ; négligeable au regard du chemin de
- * validation où elle s'insère.
+ * The vehicle is looked up on every evaluation — a single primary-key
+ * query negligible compared to the rest of the validation chain.
  */
 final class AvailableForPeriod implements ValidationRule
 {
@@ -42,22 +36,22 @@ final class AvailableForPeriod implements ValidationRule
         private readonly CarbonImmutable $endDate,
     ) {}
 
+    /**
+     * Validate the period against the vehicle's exit date and report a
+     * French message via `$fail` when the period is not acceptable.
+     */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        // ADR-0013 R3 · le lookup PK passe par le Repo plutôt qu'un
-        // `Vehicle::query()` direct. Résolution via container car la
-        // Rule est instanciée par `new` dans les DTOs Spatie Data, ce
-        // qui empêche l'injection par constructor.
+        // ADR-0013 R3 — the lookup goes through the repository (instantiated
+        // by `app()` because Spatie Data DTOs build the rule with `new`).
         $vehicle = app(VehicleReadRepositoryInterface::class)->findById($this->vehicleId);
 
-        // Véhicule introuvable : on ne lève pas ici (une autre règle
-        // `exists:vehicles,id` couvre ce cas en amont). Pas de
-        // validation à faire si on n'a pas de référence.
+        // A missing vehicle is caught by the upstream `exists:vehicles,id`
+        // rule; nothing to validate here.
         if ($vehicle === null) {
             return;
         }
 
-        // Cas 1 : véhicule jamais sorti, toujours autorisé.
         if ($vehicle->exit_date === null) {
             return;
         }
@@ -65,12 +59,10 @@ final class AvailableForPeriod implements ValidationRule
         $exitDate = $vehicle->exit_date->toImmutable();
         $exitFr = $exitDate->format('d/m/Y');
 
-        // Cas 2 : période entièrement avant exit_date, autorisé.
         if ($this->endDate->lessThan($exitDate)) {
             return;
         }
 
-        // Cas 3 : période entièrement après exit_date.
         if ($this->startDate->greaterThanOrEqualTo($exitDate)) {
             $fail(sprintf(
                 'Véhicule retiré depuis le %s. Aucune période n\'est autorisée à partir de cette date.',
@@ -80,7 +72,6 @@ final class AvailableForPeriod implements ValidationRule
             return;
         }
 
-        // Cas 4 : période chevauche exit_date (start < exit_date <= end).
         $fail(sprintf(
             'Véhicule retiré le %s. La période ne peut pas dépasser cette date.',
             $exitFr,
