@@ -17,17 +17,18 @@ use App\Fiscal\ValueObjects\FlatBracketRow;
 use App\Fiscal\ValueObjects\FlatBracketsTable;
 use App\Fiscal\ValueObjects\PollutantTariff;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
+use App\Fiscal\Year2024\Classification\R2024_013_PollutantCategoryAssignment;
 
 /**
- * R-2024-014 - Tarif annuel forfaitaire polluants (CIBS L. 421-135).
+ * R-2024-014 · flat annual pollutants tariff (CIBS L. 421-135).
  *
- *   - E (électrique / hydrogène)        →   0 €
- *   - Catégorie 1 (essence/gaz Euro 5/6)→ 100 €
- *   - Plus polluants                    → 500 €
+ *   - E (electric / hydrogen)             →   0 €
+ *   - Category 1 (petrol/gas Euro 5/6)    → 100 €
+ *   - Most polluting                      → 500 €
  *
- * La catégorie elle-même est résolue à partir des caractéristiques
- * fiscales (champ `pollutant_category` stocké, posé sur le contexte
- * par {@see R2024_005_Co2MethodSelection}).
+ * The category itself is derived from the vehicle's fiscal
+ * characteristics (`pollutant_category`, set on the context by
+ * {@see R2024_013_PollutantCategoryAssignment}).
  */
 final readonly class R2024_014_PollutantsFlat implements PricingRule
 {

@@ -20,32 +20,31 @@ use App\Models\Unavailability;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2024-008 - Indisponibilités fiscalement réductrices.
+ * R-2024-008 · fiscally reductive unavailabilities.
  *
- * **Sémantique v2.1 (ADR-0014 + ADR-0016 rev. 1.1, chantier F)** : règle
- * souveraine. Itère sur les indispos du véhicule et calcule les jours
- * retirés du numérateur du prorata appliqué par R-2024-002.
+ * Per ADR-0014 + ADR-0016 rev. 1.1, a sovereign rule. Iterates over
+ * the vehicle's unavailabilities and computes the days removed from
+ * the R-2024-002 prorata numerator.
  *
- * **Sémantique de calcul** :
- * Un jour d'indisponibilité est réducteur s'il :
- *   1. tombe dans un contrat **taxable** du couple (non LCD au sens de
- *      `R2024_021_ShortTermRental::isShortTermRental()`) ;
- *   2. ET porte un type d'indispo `has_fiscal_impact = true` - soit
- *      l'un des 3 cases réducteurs définis par
- *      {@see UnavailabilityType::isFiscallyReductive()} :
+ * Computation: an unavailability day is reductive if
+ *   1. it falls in a taxable contract of the pair (non-LCD per
+ *      {@see R2024_021_ShortTermRental::isShortTermRental()});
+ *   2. AND the unavailability type has `has_fiscal_impact = true` ·
+ *      one of the three reductive cases defined by
+ *      {@see UnavailabilityType::isFiscallyReductive()}:
  *      `pound_public`, `accident_no_circulation`, `ci_suspension`.
  *
- * Les jours d'indispo qui tombent dans un contrat LCD sont déjà retirés
- * via R-2024-021 - les compter ici serait un double-décompte.
+ * Days falling inside an LCD contract are already removed by
+ * R-2024-021; counting them here would double-count.
  *
- * **Source légale** : CIBS art. L. 421-96 · « le véhicule immobilisé ou
- * mis en fourrière à la demande des pouvoirs publics est réputé ne pas
- * être affecté à des fins économiques ». La doctrine BOI-AIS-MOB-10-30-10
- * détaille les 3 cas réducteurs : § 50 (suspension du certificat
- * d'immatriculation R. 322-6 + interdiction post-sinistre L. 327-4 / L. 327-5
- * du C. route), § 60 (fourrière publique L. 325-1 à L. 325-1-2 du C. route),
- * § 190 (effet sur la proportion annuelle d'affectation).
- * Mapping enum → effet fiscal : ADR-0016 § 4 rev. 1.1.
+ * Legal basis: CIBS L. 421-96 · "a vehicle immobilised or impounded at
+ * the request of public authorities is deemed not assigned to economic
+ * purposes". Doctrine BOI-AIS-MOB-10-30-10 details the three reductive
+ * cases: § 50 (registration certificate suspension R. 322-6 +
+ * post-accident ban L. 327-4 / L. 327-5 Code de la route), § 60
+ * (public pound L. 325-1 to L. 325-1-2 Code de la route), § 190
+ * (effect on the annual assignment proportion). Enum → fiscal effect
+ * mapping in ADR-0016 § 4 rev. 1.1.
  */
 final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
 {
@@ -141,16 +140,11 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
             return ExemptionVerdict::notExempt();
         }
 
-        // Intersection avec les jours des contrats taxables du couple
-        // (= les contrats du couple qui ne sont PAS LCD).
-        //
-        // Si une `daysWindow` est posée (mode segmenté par VFC, cf.
-        // FiscalSegmentedExecutor), on filtre les jours présents
-        // pour ne compter que ceux qui tombent dans le segment courant
-        // · sinon le count des jours réducteurs serait calculé sur
-        // l'année entière et soustrait à chaque segment, conduisant
-        // à un sur-décompte (chantier dette VFC, garantie cohérence
-        // multi-VFC + indispo réductrice).
+        // Intersect with the pair's taxable contracts (non-LCD).
+        // When a `daysWindow` is set (VFC-segmented mode), filter the
+        // present days to keep only those inside the current segment.
+        // Without this, reductive days would be counted on the full
+        // year and subtracted in each segment, leading to over-counting.
         $window = $context->daysWindow;
         $taxableDates = [];
         foreach ($context->contractsForPair as $contract) {
@@ -189,8 +183,8 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
     }
 
     /**
-     * Liste des dates ISO (Y-m-d) des indispos fiscalement réductrices
-     * du véhicule clampées à l'année fiscale.
+     * ISO `Y-m-d` dates of the vehicle's reductive unavailabilities,
+     * clipped to the fiscal year.
      *
      * @param  list<Unavailability>  $unavailabilities
      * @return list<string>
@@ -207,8 +201,8 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
             }
 
             $start = $unavailability->start_date->toImmutable();
-            // end_date est nullable côté DB (indispo « ouverte ») -
-            // dans ce cas, on clamp à fin d'année.
+            // end_date is nullable (open-ended unavailability); clamp
+            // to year end.
             $end = $unavailability->end_date !== null
                 ? $unavailability->end_date->toImmutable()
                 : $yearEnd;

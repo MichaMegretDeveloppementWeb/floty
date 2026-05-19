@@ -9,55 +9,47 @@ use App\Fiscal\Year2024\Year2024Boot;
 use App\Providers\FiscalServiceProvider;
 
 /**
- * Définit le contrat d'enregistrement des règles fiscales d'une année
- * dans le {@see FiscalRuleRegistry}.
+ * Contract for registering a fiscal year's rules into the
+ * {@see FiscalRuleRegistry}.
  *
- * **Pourquoi ce contrat** : avant ζ, le {@see FiscalServiceProvider}
- * appelait en dur `registerYear2024()` et listait les classes de règles
- * inline. Ajouter 2025 imposait de modifier le provider. Cette interface
- * inverse la dépendance : chaque année déclare ses propres règles dans
- * sa propre classe `Year{YYYY}Boot`, et le provider les découvre via
- * `config('floty.fiscal.year_boots')`.
+ * Each year declares its rules in its own `Year{YYYY}Boot` class.
+ * {@see FiscalServiceProvider} discovers boot classes via
+ * `config('floty.fiscal.year_boots')` so adding a new year does not
+ * require provider changes.
  *
- * **Conventions** :
- * - Une implémentation par année (ex. {@see Year2024Boot}).
- * - `year()` retourne l'année civile de référence (ex. 2024).
- * - `rules()` retourne la liste des **classes** de règles (FQCN), pas des
- *   instances · la résolution est faite par le registry via le container.
- * - L'ordre n'est pas significatif côté registry, mais on garde l'ordre
- *   logique (Classification → Exemption → Pricing → Transversal) pour
- *   lisibilité (cf. `taxes-rules/2024.md`).
+ * Conventions:
+ * - One implementation per year (e.g. {@see Year2024Boot}).
+ * - `year()` returns the civil year (e.g. 2024).
+ * - `rules()` returns class-strings (FQCNs), not instances; the
+ *   registry resolves them through the container.
+ * - Order is not significant for the registry but the logical order
+ *   (Classification → Exemption → Pricing → Transversal) is kept for
+ *   readability and to match `taxes-rules/{year}.md`.
  *
- * **Règles documentaires-only** (Phase 13 D5.11 · complément ADR-0022) ·
- * les règles « architecturales » qui ne participent pas au pipeline de
- * calcul (R-2024-001 redevable, R-2024-024 garde-fou Crit'Air, etc.)
- * sont déclarées via {@see informativeRules()}. Elles partagent les
- * métadonnées des règles pipeline mais ne sont jamais résolues par le
- * registry · uniquement consommées par le seeder pour peupler l'index
- * `fiscal_rules`.
+ * Documentary-only rules (informative) are declared via
+ * {@see informativeRules()}. They share the metadata shape of pipeline
+ * rules but are never resolved by the registry: only the seeder
+ * consumes them to populate the `fiscal_rules` index.
  */
 interface FiscalYearBoot
 {
     /**
-     * Année civile pour laquelle ces règles s'appliquent.
+     * Civil year these rules apply to.
      */
     public function year(): int;
 
     /**
-     * Liste des classes de règles fiscales **pipeline** (calculatoires)
-     * à enregistrer pour cette année. Les classes sont résolues par le
-     * container Laravel via {@see FiscalRuleRegistry::rulesForYear()}.
+     * Pipeline (calculating) rule classes registered for this year.
+     * Resolved by the Laravel container via
+     * {@see FiscalRuleRegistry::rulesForYear()}.
      *
      * @return list<class-string<FiscalRule>>
      */
     public function rules(): array;
 
     /**
-     * Liste des classes de règles fiscales **documentaires-only**
-     * (Phase 13 D5.11 · complément ADR-0022). Ces règles ne sont pas
-     * exécutées par le pipeline · uniquement seedées dans `fiscal_rules`
-     * pour alimenter la page « Règles de calcul ». Une année sans
-     * règles documentaires retourne `[]`.
+     * Documentary-only rule classes. Not executed by the pipeline;
+     * seeded into `fiscal_rules` to feed the "Règles de calcul" page.
      *
      * @return list<class-string<InformativeRule>>
      */

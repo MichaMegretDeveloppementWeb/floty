@@ -7,22 +7,19 @@ namespace App\Fiscal\Contracts\Concerns;
 use Carbon\CarbonImmutable;
 
 /**
- * Trait à appliquer sur toute règle fiscale dont l'applicabilité couvre
- * l'année fiscale entière (cas par défaut, applicable à la grande
- * majorité des règles 2024).
+ * Adopted by any fiscal rule whose applicability covers a full fiscal
+ * year (the default case for the vast majority of rules).
  *
- * La classe consommatrice doit fournir {@see fiscalYear()} ; les bornes
- * temporelles sont alors dérivées automatiquement :
- *   - `applicabilityStart()` retourne `{year}-01-01` 00:00:00
- *   - `applicabilityEnd()` retourne `{year}-12-31` 23:59:59
+ * The consumer class must provide {@see fiscalYear()}; temporal bounds
+ * are then derived automatically:
+ *   - `applicabilityStart()` returns `{year}-01-01 00:00:00`
+ *   - `applicabilityEnd()` returns `{year}-12-31 23:59:59`
  *
- * Pour une règle partielle (apparition ou disparition en cours d'année),
- * ne PAS utiliser ce trait : implémenter directement les méthodes
- * `applicabilityStart()` / `applicabilityEnd()` dans la classe.
+ * For a partial rule (appearing or disappearing mid-year), do NOT use
+ * this trait: implement `applicabilityStart()` / `applicabilityEnd()`
+ * directly.
  *
- * **Concern orthogonal** : le défaut « actif » de `isActive()` vit dans
- * {@see RuleActiveByDefaultTrait} (séparé pour ne pas coupler temporalité
- * et état actif).
+ * The active-flag default lives in {@see RuleActiveByDefaultTrait}.
  */
 trait AnnualRuleTrait
 {

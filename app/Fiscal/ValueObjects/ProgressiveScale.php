@@ -7,18 +7,17 @@ namespace App\Fiscal\ValueObjects;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 
 /**
- * Barème progressif à tarif marginal. Composition continue de
- * {@see BracketRange} :
+ * Marginal-rate progressive bracket. Composition of continuous
+ * {@see BracketRange} slices:
  *
- *   - chaque `lowerExclusive` doit égaler le `upperInclusive` de la
- *     tranche précédente (continuité parfaite, pas de trou ni de
- *     chevauchement)
- *   - la première tranche commence en `lowerExclusive = 0`
- *   - la dernière tranche peut être ouverte (`upperInclusive = null`)
- *     pour couvrir l'infini
+ *   - each `lowerExclusive` must equal the previous slice's
+ *     `upperInclusive` (perfect continuity, no gap or overlap)
+ *   - the first slice starts at `lowerExclusive = 0`
+ *   - the last slice may be open (`upperInclusive = null`) to cover
+ *     infinity
  *
- * Validé au constructeur - toute incohérence lève une
- * {@see FiscalCalculationException} immédiatement.
+ * Validated at construction; any inconsistency throws a
+ * {@see FiscalCalculationException} immediately.
  */
 final readonly class ProgressiveScale
 {
@@ -52,8 +51,8 @@ final readonly class ProgressiveScale
     }
 
     /**
-     * Applique le barème à une valeur entière (CO₂ g/km, CV
-     * administratifs, etc.). Retourne le tarif annuel plein.
+     * Applies the bracket to an integer input (CO₂ g/km, administrative
+     * horsepower, …). Returns the full-year tariff.
      */
     public function apply(int $value): float
     {

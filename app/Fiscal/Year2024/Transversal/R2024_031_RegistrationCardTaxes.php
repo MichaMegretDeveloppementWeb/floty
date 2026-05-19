@@ -13,27 +13,25 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-031 · Taxes liées au certificat d'immatriculation (carte grise).
+ * R-2024-031 · taxes attached to the registration certificate.
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY.**
+ * Documentary-only rule, OUT OF FLOTY SCOPE.
  *
- * Regroupe trois taxes ponctuelles acquittées lors de l'établissement
- * d'un certificat d'immatriculation :
- *   - Taxe régionale Y1 (CIBS art. L. 421-41 à L. 421-54-1) · perçue
- *     par la région, basée sur la puissance fiscale (CV) avec tarif
- *     régional du cheval. Moyenne 53,39 €/CV en 2024.
- *   - Taxe Y2 (CIBS art. L. 421-55 à L. 421-57) · pour le développement
- *     des actions de formation professionnelle dans les transports
- *     routiers, applicable aux VUL et camions.
- *   - Taxe fixe Y4 (CIBS art. L. 421-49) · 11 € fixe à chaque
- *     délivrance.
+ * Groups three one-shot taxes paid when the registration certificate
+ * is issued:
+ *   - Regional tax Y1 (CIBS L. 421-41 to L. 421-54-1) · collected by
+ *     the region, based on horsepower (CV) at the regional rate.
+ *     Average 53,39 €/CV in 2024.
+ *   - Tax Y2 (CIBS L. 421-55 to L. 421-57) · for the development of
+ *     professional training in road transport, applicable to LCV and
+ *     trucks.
+ *   - Flat tax Y4 (CIBS L. 421-49) · flat 11 € on each issuance.
  *
- * **Redevable** · titulaire du certificat d'immatriculation.
+ * Taxpayer: holder of the registration certificate.
  *
- * **Pourquoi hors périmètre Floty** · idem malus · le bailleur
- * immatricule et acquitte ces taxes. Les entreprises utilisatrices
- * ne sont jamais directement redevables (même si refacturation dans
- * le loyer LLD est habituelle).
+ * Why out of Floty scope: same as malus. The renter registers and
+ * pays these taxes. Using companies are never directly liable (even
+ * though LLD rent re-invoicing is common).
  */
 final readonly class R2024_031_RegistrationCardTaxes implements InformativeRule
 {

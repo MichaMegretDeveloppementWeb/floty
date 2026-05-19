@@ -14,15 +14,13 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-007 · Historisation des caractéristiques véhicule.
+ * R-2024-007 · vehicle characteristics historisation.
  *
- * **Règle documentaire-only** (ADR-0022 · complément Phase 13 D5.11) ·
- * cette règle pose le principe d'historisation des VFC
- * (VehicleFiscalCharacteristics) · à chaque jour d'affectation, la
- * version effective des caractéristiques fiscales du véhicule à cette
- * date est utilisée pour le calcul. C'est l'exécuteur segmenté
- * (FiscalSegmentedExecutor) qui matérialise cette doctrine en
- * découpant le pipeline par sous-période de VFC effective.
+ * Documentary-only rule (ADR-0022). States the VFC historisation
+ * principle: for each assignment day, the calculation uses the
+ * vehicle's fiscal characteristics version effective on that date.
+ * The segmented executor (`FiscalSegmentedExecutor`) materialises
+ * this doctrine by slicing the pipeline per effective-VFC sub-period.
  */
 final readonly class R2024_007_VehicleCharacteristicsHistorization implements InformativeRule
 {

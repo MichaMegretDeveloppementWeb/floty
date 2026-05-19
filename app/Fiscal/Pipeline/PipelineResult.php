@@ -10,28 +10,26 @@ use App\Fiscal\ValueObjects\AppliedExemption;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
- * Sortie structurée d'un calcul fiscal complet (cf. ADR-0006 § 2 étape 8).
+ * Structured output of a fiscal calculation (ADR-0006 § 2 step 8).
  *
- * Ce DTO interne sert à la fois :
- *   - de retour public du {@see FiscalPipeline::execute()},
- *   - de pivot pour la conversion vers le DTO de présentation
- *     `FiscalBreakdown` (compat consommateurs existants).
+ * This internal DTO serves as both the public return of
+ * {@see FiscalPipeline::execute()} and the pivot for conversion to the
+ * presentation DTO `FiscalBreakdown`.
  *
- * Les `appliedRuleCodes` permettent au snapshot PDF de référencer
- * précisément quelles règles ont participé au calcul (ADR-0006 § 5
- * + ADR-0009 - pas de version, juste le rule_code).
+ * `appliedRuleCodes` lets PDF snapshots reference which rules
+ * participated in the calculation (ADR-0006 § 5 + ADR-0009 · no
+ * version, just the rule code).
  *
  * @phpstan-type FiscalRuleCode string
  */
 final readonly class PipelineResult
 {
     /**
-     * `co2Due`, `pollutantsDue`, `totalDue` sont **arrondis half-up à
-     * 2 décimales** pour l'affichage par couple (PDF ligne véhicule,
-     * drawer planning). Les `*Raw` portent la valeur **avant arrondi**
-     * - utilisés par le {@see FleetFiscalAggregator}
-     * pour appliquer R-2024-003 (un seul arrondi par redevable au
-     * niveau entreprise).
+     * `co2Due`, `pollutantsDue`, `totalDue` are rounded half-up to 2
+     * decimals for per-pair display (PDF row, planning drawer). The
+     * `*Raw` fields carry the pre-rounding values used by
+     * {@see FleetFiscalAggregator} to apply R-2024-003 (one rounding
+     * per taxpayer at the company level).
      *
      * @param  list<AppliedExemption>  $appliedExemptions
      * @param  list<string>  $appliedRuleCodes

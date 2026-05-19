@@ -15,25 +15,22 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-026 · Exonérations propres à certaines activités économiques.
+ * R-2024-026 · exemptions for specific economic activities.
  *
- * Regroupe trois exonérations légales prévues par le CIBS (et leurs
- * miroirs polluants à texte identique) :
- *   - Transport public de personnes · CIBS L. 421-130 (CO₂) / L. 421-142 (polluants)
- *   - Activités agricoles ou forestières · CIBS L. 421-131 (CO₂) / L. 421-143 (polluants)
- *     (soumise au plafond de minimis européen)
- *   - Enseignement de la conduite ou du pilotage + compétitions sportives ·
- *     CIBS L. 421-132 (CO₂) / L. 421-144 (polluants)
+ * Groups three legal exemptions in the CIBS (with their identical
+ * pollutants-tax mirrors):
+ *   - public passenger transport · CIBS L. 421-130 (CO₂) / L. 421-142 (pollutants)
+ *   - agricultural or forestry activities · CIBS L. 421-131 (CO₂) / L. 421-143 (pollutants)
+ *     (subject to the European de minimis ceiling)
+ *   - driving / piloting instruction + sport competitions ·
+ *     CIBS L. 421-132 (CO₂) / L. 421-144 (pollutants)
  *
- * **INACTIVE par défaut V1** · aucune entreprise utilisatrice Floty
- * actuelle n'exerce ces activités (clients = sociétés commerciales
- * standard, hors transport public / agricole / auto-école / compétition).
- * La règle est structurellement câblée pour activation future via
- * seeder/UI si le périmètre métier évolue.
+ * Inactive by default in V1: no current Floty using company performs
+ * these activities. Wired for future activation via seeder / UI if
+ * the business scope evolves.
  *
- * Note V1 : tant que {@see PipelineContext} ne porte pas l'activité de
- * l'entreprise utilisatrice, cette règle retourne `notExempt()`. Le
- * critère d'activité spécifique serait évalué côté contrat (V2+).
+ * As long as {@see PipelineContext} does not carry the using
+ * company's activity, this rule returns `notExempt()`.
  */
 final readonly class R2024_026_SpecificActivityExemptions implements ExemptionRule
 {

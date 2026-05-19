@@ -20,12 +20,11 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-011 - Barème CO₂ NEDC 2024 (CIBS art. L. 421-121).
+ * R-2024-011 · NEDC CO₂ bracket 2024 (CIBS art. L. 421-121).
  *
- * Barème progressif sur les émissions CO₂ NEDC (g/km). Concerne les
- * véhicules antérieurs à WLTP. 9 tranches, dernière ouverte
- * (≥ 145 g/km). S'exécute uniquement si la méthode CO₂ résolue est
- * NEDC.
+ * Progressive bracket on NEDC CO₂ emissions (g/km), used for vehicles
+ * predating WLTP. Nine slices, the last one open (≥ 145 g/km). Runs
+ * only if the resolved CO₂ method is NEDC.
  */
 final readonly class R2024_011_NedcProgressive implements PricingRule
 {

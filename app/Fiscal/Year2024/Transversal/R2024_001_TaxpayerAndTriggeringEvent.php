@@ -14,17 +14,16 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-001 · Redevable et fait générateur.
+ * R-2024-001 · taxpayer and triggering event.
  *
- * **Règle documentaire-only** (ADR-0022 · complément Phase 13 D5.11) ·
- * cette règle ne participe pas au pipeline de calcul. Elle pose le
- * cadre architectural · l'entreprise utilisatrice est redevable de la
- * taxe (et non le détenteur du véhicule), et le fait générateur est
- * l'affectation du véhicule à des fins économiques.
+ * Documentary-only rule (ADR-0022). Does not participate in the
+ * calculation pipeline. Sets the architectural framework: the using
+ * company is the taxpayer (not the vehicle holder), and the
+ * triggering event is the assignment of the vehicle to economic
+ * purposes.
  *
- * Toute la logique d'attribution des contrats (CompanyVehicleContract)
- * et le filtrage des couples (entreprise, véhicule) dans le pipeline
- * en découle.
+ * All contract assignment logic (CompanyVehicleContract) and pair
+ * filtering in the pipeline derive from this.
  */
 final readonly class R2024_001_TaxpayerAndTriggeringEvent implements InformativeRule
 {
@@ -73,11 +72,9 @@ final readonly class R2024_001_TaxpayerAndTriggeringEvent implements Informative
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000051214924/2024-06-01',
                 'consulted_at' => '2026-05-06',
             ],
-            // Phase 13 D5.11 (audit sémantique) · qualification explicite
-            // du redevable (« entreprise affectataire ») · le périmètre
-            // de L. 421-95 (« véhicule affecté à des fins économiques »)
-            // est défini là, mais c'est L. 421-98 qui qualifie qui
-            // est redevable pour chaque cas d'affectation.
+            // L. 421-98 explicitly qualifies who is the taxpayer for
+            // each assignment case. L. 421-95 defines the scope
+            // ("vehicle assigned to economic purposes").
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-98',

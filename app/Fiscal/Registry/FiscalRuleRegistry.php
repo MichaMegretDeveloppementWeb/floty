@@ -10,20 +10,18 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Container\Container;
 
 /**
- * Catalogue des classes règles fiscales par année (cf. ADR-0006 § 3
- * rev. Phase 13 D5.14 · classes PHP source de vérité unique, BDD =
- * index minimal).
+ * Catalog of fiscal rule classes per year (ADR-0006 § 3, ADR-0022).
  *
- * Le mapping `year → list<class-string<FiscalRule>>` est posé au boot
- * via {@see register()} (typiquement dans `FiscalServiceProvider`). Le
- * pipeline ET l'affichage interrogent {@see rulesForYear()} qui résout
- * les classes en instances via le container Laravel - chaque règle est
- * instanciée en singleton (les règles sont sans état).
+ * The `year → list<class-string<FiscalRule>>` mapping is set at boot
+ * via {@see register()} (typically in `FiscalServiceProvider`). The
+ * pipeline and the display layer both query {@see rulesForYear()},
+ * which resolves the classes through the Laravel container. Rules are
+ * stateless singletons.
  *
- * **Doctrine ADR-0022 v1.4** · ce registry est l'unique point d'entrée
- * de lecture des règles fiscales en production. La table BDD
- * `fiscal_rules` n'est qu'un index minimal (id + rule_code +
- * fiscal_year + code_reference) maintenu par le seeder en miroir.
+ * Per ADR-0022, this registry is the single read entry point for
+ * fiscal rules in production. The `fiscal_rules` DB table is a thin
+ * mirror index (id + rule_code + fiscal_year + code_reference)
+ * maintained by the seeder.
  */
 class FiscalRuleRegistry
 {
@@ -58,8 +56,7 @@ class FiscalRuleRegistry
     }
 
     /**
-     * Liste les années pour lesquelles le registry a au moins une
-     * classe enregistrée. Utile pour l'audit et les tests.
+     * Years for which the registry holds at least one rule.
      *
      * @return list<int>
      */
@@ -69,10 +66,9 @@ class FiscalRuleRegistry
     }
 
     /**
-     * Liste des `class-string` règles enregistrées pour une année,
-     * sans les résoudre en instances. Utilisée par
-     * {@see OverlayedRuleRegistry} (Phase 11 D5.1) pour substituer
-     * certaines instances tout en gardant la liste de référence.
+     * Rule class-strings registered for a year, without resolving them
+     * into instances. Used by {@see OverlayedRuleRegistry} to substitute
+     * some instances while keeping the reference list.
      *
      * @return list<class-string<FiscalRule>>
      */
@@ -86,22 +82,17 @@ class FiscalRuleRegistry
     }
 
     /**
-     * Filtre les règles de l'année par leur période d'applicabilité
-     * temporelle (chantier κ - granularité temporelle des règles).
+     * Filters the rules of a year by their applicability window.
      *
-     * Retourne les règles dont la fenêtre `[applicabilityStart,
-     * applicabilityEnd]` contient `$date`. Comparaison à la
-     * granularité du jour (heures ignorées). Une règle dont
-     * `applicabilityEnd === null` est traitée comme « valide jusqu'à
-     * indéfini ».
+     * Returns rules whose `[applicabilityStart, applicabilityEnd]`
+     * window contains `$date`. Comparison at day granularity. A rule
+     * with `applicabilityEnd === null` is "valid indefinitely".
      *
-     * Si l'année n'est pas enregistrée, propage la même exception que
-     * {@see rulesForYear()} ({@see FiscalCalculationException::yearNotSupported()}).
+     * Propagates `yearNotSupported` if the year is not registered.
      *
-     * **Note** : ne contraint pas `$date` à appartenir à `$year` -
-     * l'appelant peut interroger une règle « hors année » ; dans ce cas
-     * la liste est typiquement vide. Cohérent avec la sémantique « date
-     * isolée », sans posture défensive.
+     * `$date` is not constrained to belong to `$year`: the caller may
+     * query an out-of-year date, in which case the list is typically
+     * empty.
      *
      * @return list<FiscalRule>
      */

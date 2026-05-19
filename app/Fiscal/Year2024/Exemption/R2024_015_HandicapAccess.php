@@ -16,13 +16,12 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-015 - Exonération handicap (CIBS L. 421-123 / L. 421-136).
+ * R-2024-015 · handicap-access exemption (CIBS L. 421-123 / L. 421-136).
  *
- * Véhicules accessibles aux personnes à mobilité réduite : exonération
- * **totale** des deux taxes ET les tarifs annuels pleins ne sont PAS
- * affichés dans le breakdown (zeroisés). Sémantique préservée pour
- * compat avec les goldens : on ne montre pas « ce que vous auriez
- * payé » dans ce cas.
+ * Vehicles accessible to persons with reduced mobility: total
+ * exemption of both taxes AND the full-year tariffs are zeroed in the
+ * breakdown (we deliberately do not show "what you would have paid"
+ * in this case · contract preserved by the goldens).
  */
 final readonly class R2024_015_HandicapAccess implements ExemptionRule
 {

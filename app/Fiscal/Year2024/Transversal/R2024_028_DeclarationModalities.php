@@ -14,43 +14,41 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-028 · Modalités de déclaration et de paiement.
+ * R-2024-028 · declaration and payment modalities.
  *
- * **Règle documentaire-only** · regroupe les 11 articles CIBS section 3
- * paragraphe 7 qui décrivent comment l'entreprise déclare et acquitte
- * les taxes annuelles (redevable, exigibilité, formulaire, état
- * récapitulatif, paiement) :
+ * Documentary-only rule. Groups the 11 CIBS section 3 paragraph 7
+ * articles describing how the company declares and pays the annual
+ * taxes (taxpayer, due date, form, annual recap, payment):
  *
- *   - L. 421-157 · règles de personnes soumises aux obligations.
- *   - L. 421-158 · obligations fiscales.
- *   - L. 421-159 · redevable de la taxe (= entreprise affectataire).
- *   - L. 421-160 · obligation de représentation fiscale.
- *   - L. 421-161 · règles transverses.
- *   - L. 421-162 · règles de constatation des taxes.
- *   - L. 421-163 · pas de déclaration si montant nul.
- *   - L. 421-164 · état récapitulatif annuel.
- *   - L. 421-165 · règles de paiement.
- *   - L. 421-166 · contrôle, recouvrement, contentieux.
- *   - L. 421-167 · divers.
+ *   - L. 421-157 · persons subject to the obligations.
+ *   - L. 421-158 · fiscal obligations.
+ *   - L. 421-159 · taxpayer (= the assigning company).
+ *   - L. 421-160 · fiscal representation obligation.
+ *   - L. 421-161 · cross-cutting rules.
+ *   - L. 421-162 · tax statement rules.
+ *   - L. 421-163 · no declaration when the amount is zero.
+ *   - L. 421-164 · annual recap.
+ *   - L. 421-165 · payment rules.
+ *   - L. 421-166 · audit, collection, litigation.
+ *   - L. 421-167 · miscellaneous.
  *
- * **Modalités pratiques 2024** (cf. notice DGFiP n° 2857-FC-NOT-SD) :
- *   - Régime réel normal TVA · déclaration sur annexe n° 3310-A en
- *     janvier 2025 (taxe due au titre de 2024).
- *   - Non-redevables TVA · annexe 3310-A déposée au plus tard le 25
- *     janvier 2025.
- *   - Régime simplifié TVA (RSI) · formulaire n° 3517 à déposer au
- *     titre de l'exercice au cours duquel la taxe est devenue exigible.
- *   - Fiche d'aide au calcul · formulaire n° 2857-FC-SD (non joint à
- *     la déclaration, peut être demandé par l'administration · c'est
- *     le récapitulatif que Floty produit en PDF).
- *   - Pas de déclaration si montant nul après exonérations
+ * Practical modalities for 2024 (DGFiP notice n° 2857-FC-NOT-SD):
+ *   - Standard VAT regime · declared via appendix n° 3310-A in
+ *     January 2025 (tax owed for 2024).
+ *   - Non VAT taxpayers · appendix 3310-A filed by 25 January 2025.
+ *   - Simplified VAT regime (RSI) · form n° 3517 filed for the
+ *     financial year during which the tax became due.
+ *   - Aid-to-calculation sheet · form n° 2857-FC-SD (not attached to
+ *     the declaration, may be requested by the administration · the
+ *     recap Floty produces as PDF).
+ *   - No declaration when the amount is zero after exemptions
  *     (L. 421-163).
- *   - État récapitulatif annuel à tenir à jour, communiqué sur demande
- *     de l'administration (L. 421-164).
+ *   - Keep an up-to-date annual recap, communicated on request
+ *     (L. 421-164).
  *
- * Floty produit le récapitulatif fiscal PDF (= équivalent fiche 2857-FC-SD)
- * mais ne dépose pas la déclaration · ce dépôt reste à la charge du
- * service comptable de chaque entreprise utilisatrice.
+ * Floty produces the fiscal recap PDF (equivalent of sheet
+ * 2857-FC-SD) but does not file the declaration; filing remains the
+ * responsibility of the using company's accounting department.
  */
 final readonly class R2024_028_DeclarationModalities implements InformativeRule
 {

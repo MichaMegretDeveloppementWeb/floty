@@ -21,26 +21,25 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 
 /**
- * Orchestrateur du moteur fiscal Floty (cf. ADR-0006 § 2 - pipeline
- * fixe en 8 étapes).
+ * Orchestrator of the Floty fiscal engine (ADR-0006 § 2 · fixed 8-step
+ * pipeline).
  *
- *   1. Récupération du contexte (caractéristiques fiscales courantes)
- *   2. Classifications (méthode CO₂, catégorie polluants)
- *   3. Cumul (alimenté par l'appelant via `contractsForPair` et
- *      `vehicleUnavailabilitiesInYear` dans le PipelineContext)
- *   4. Exonérations (collecte des verdicts ; court-circuit hors scope)
- *   5. Abatements (vide en 2024)
- *   6. Tarification (CO₂ + polluants)
- *   7. Prorata + arrondi (Transversal - R-2024-002 calcule le numérateur
- *      depuis les contrats taxables et applique le prorata)
- *   8. Output structuré (PipelineResult)
+ *   1. Context bootstrap (current fiscal characteristics)
+ *   2. Classifications (CO₂ method, pollutant category)
+ *   3. Cumul (provided by the caller via `contractsForPair` and
+ *      `vehicleUnavailabilitiesInYear` on the PipelineContext)
+ *   4. Exemptions (verdict collection; out-of-scope short-circuit)
+ *   5. Abatements (empty in 2024)
+ *   6. Pricing (CO₂ + pollutants)
+ *   7. Prorata + rounding (Transversal · R-2024-002 computes the
+ *      numerator from taxable contracts and applies the prorata)
+ *   8. Structured output (PipelineResult)
  *
- * **Refonte 04.F (ADR-0014)** :
- * Le pipeline ne reçoit plus de cumuls agrégés (`daysAssignedToCompany`,
- * `cumulativeDaysForPair`) - il reçoit la matière brute (les contrats
- * du couple, les indispos du véhicule) et les règles souveraines
- * R-2024-021 et R-2024-008 décident des jours exonérés. R-2024-002
- * (Transversal) calcule le numérateur final et l'écrit dans le contexte.
+ * Per ADR-0014, the pipeline no longer receives aggregated cumuls.
+ * It receives raw material (the pair's contracts, the vehicle's
+ * unavailabilities) and the sovereign rules R-2024-021 and R-2024-008
+ * decide which days are exempted. R-2024-002 (Transversal) computes the
+ * final numerator and writes it back to the context.
  */
 final class FiscalPipeline
 {
@@ -50,6 +49,9 @@ final class FiscalPipeline
         private readonly VehicleFiscalCharacteristicsReadRepositoryInterface $fiscalCharacteristics,
     ) {}
 
+    /**
+     * Runs the pipeline using the registry's rules for the context year.
+     */
     public function execute(PipelineContext $context): PipelineResult
     {
         return $this->executeWithRules(
@@ -59,12 +61,10 @@ final class FiscalPipeline
     }
 
     /**
-     * Variante de {@see execute()} qui consomme une **liste de règles
-     * pré-fournie** au lieu de la résoudre via le registry.
-     *
-     * Utilisée par {@see FiscalSegmentedExecutor} (chantier κ.4) pour
-     * exécuter le pipeline sur un sous-segment temporel avec uniquement
-     * les règles applicables sur ce sous-segment.
+     * Variant of {@see execute()} that consumes a pre-supplied rule list
+     * instead of resolving from the registry. Used by
+     * {@see FiscalSegmentedExecutor} to run the pipeline on a temporal
+     * sub-segment with only the rules applicable to that sub-segment.
      *
      * @param  list<FiscalRule>  $rules
      */
@@ -72,22 +72,18 @@ final class FiscalPipeline
     {
         $this->validateInputs($context);
 
-        // Étape 1 - récupération des caractéristiques fiscales courantes
         $context = $this->loadFiscalCharacteristics($context);
 
-        // Étape 2 - Classifications
         foreach ($this->filterByType($rules, ClassificationRule::class) as $rule) {
             $context = $rule->classify($context);
         }
 
-        // Court-circuit R-2024-004 : véhicule hors champ → toutes les
-        // taxes à 0, on saute exonérations / abatements / pricing /
-        // transversal.
+        // R-2024-004 short-circuit: vehicle out of fiscal scope → all
+        // taxes at 0, skip exemptions / abatements / pricing / transversal.
         if ($context->isFiscallyTaxable === false) {
             return $this->buildResult($context);
         }
 
-        // Étape 4 - Exonérations (collecte des verdicts)
         foreach ($this->filterByType($rules, ExemptionRule::class) as $rule) {
             $verdict = $rule->evaluate($context);
             if ($verdict->isExempt) {
@@ -97,31 +93,27 @@ final class FiscalPipeline
             }
         }
 
-        // Étape 5 - Abatements (vide en 2024 mais déjà cablé)
         foreach ($this->filterByType($rules, AbatementRule::class) as $rule) {
             $context = $rule->abate($context);
         }
 
-        // Étape 6 - Tarification
         foreach ($this->filterByType($rules, PricingRule::class) as $rule) {
             $context = $rule->price($context);
         }
 
-        // Application des verdicts d'exonération **totaux** sur les
-        // tarifs (avant prorata) - handicap, électrique, OIG, etc. Les
-        // verdicts journaliers (partialDays, scope null) ne neutralisent
-        // pas les tariffs : ils n'agissent que sur le numérateur dans
-        // R-2024-002.
+        // Apply *total* exemption verdicts (handicap, electric, OIG,…)
+        // to the tariffs before prorata. Daily verdicts (partialDays,
+        // scope null) do not zero the tariffs: they only affect the
+        // numerator in R-2024-002.
         $context = $this->applyExemptionsToTariffs($context);
 
-        // Étape 7 - Transversales (prorata + arrondi)
-        // R-2024-002 calcule daysAssignedToCompany depuis contractsForPair
-        // et soustrait les verdicts partialDays.
+        // Transversals (prorata + rounding). R-2024-002 derives
+        // daysAssignedToCompany from contractsForPair and subtracts the
+        // partialDays verdicts.
         foreach ($this->filterByType($rules, TransversalRule::class) as $rule) {
             $context = $rule->apply($context);
         }
 
-        // Étape 8 - Sortie structurée
         return $this->buildResult($context);
     }
 
@@ -130,8 +122,6 @@ final class FiscalPipeline
         if (! $this->yearContext->isSupported($context->fiscalYear)) {
             throw FiscalCalculationException::yearNotSupported($context->fiscalYear);
         }
-        // daysAssignedToCompany et cumulativeDaysForPair sont nullable
-        // (calculés par R-2024-002). Aucune validation amont possible.
     }
 
     private function loadFiscalCharacteristics(PipelineContext $context): PipelineContext
@@ -173,8 +163,8 @@ final class FiscalPipeline
         $hasZeroingTariffs = false;
         $covers = [];
         foreach ($verdicts as $verdict) {
-            // Verdicts journaliers (partialDays) → scope null → ne
-            // neutralisent pas les tariffs (effet via numérateur R-2024-002).
+            // Daily verdicts (scope null) do not zero tariffs; they
+            // affect the numerator in R-2024-002.
             if ($verdict->scope === null) {
                 continue;
             }
@@ -208,13 +198,11 @@ final class FiscalPipeline
     {
         $verdicts = $context->exemptionVerdicts;
 
-        // Cas spécial R-2024-004 : véhicule hors champ fiscal - pas de
-        // verdict d'exonération (pipeline court-circuité avant la phase
-        // exonérations) mais on doit exposer un motif explicatif sinon
-        // l'utilisateur voit « voir motif ci-dessous » sans liste. Le
-        // motif précis selon la branche d'exclusion est posé par
-        // R-2024-004 elle-même via `withFiscallyTaxableReason()`. Le
-        // fallback en chaîne dur-codée ne sert que de filet de sécurité.
+        // R-2024-004 special case: vehicle out of fiscal scope. No
+        // exemption verdict was emitted (short-circuited before the
+        // exemption stage) but a human-readable reason must still be
+        // shown. R-2024-004 sets `withFiscallyTaxableReason()` according
+        // to the branch taken; the hard-coded fallback is a safety net.
         if ($context->isFiscallyTaxable === false) {
             $appliedExemptions = [new AppliedExemption(
                 reason: $context->isFiscallyTaxableReason
@@ -240,27 +228,23 @@ final class FiscalPipeline
             if ($verdict->scope === ExemptionScope::Co2Only) {
                 $electricExempt = true;
             }
-            // LCD : marqueur présent dès qu'un contrat du couple est
-            // qualifié LCD (R-2024-021 a posé un verdict partialDays).
-            // Avec la sémantique per-contract, c'est désormais possible
-            // d'avoir un mix LCD/LLD sur le même couple - le bool
-            // signale juste qu'il y a au moins un contrat LCD.
+            // LCD marker: set as soon as at least one contract in the
+            // pair is qualified LCD (R-2024-021 emitted a partialDays
+            // verdict). Per-contract semantics allow a mixed LCD/LLD
+            // pair; the flag only signals presence.
             if ($verdict->exemptDaysCount !== null && $verdict->exemptDaysCount > 0) {
                 $lcdExempt = true;
             }
         }
 
-        // Valeurs RAW : ce que R-2024-002 (DailyProrata) a posé sur le
-        // contexte, **avant** arrondi par couple. Servent à
-        // l'agrégation par redevable dans `FleetFiscalAggregator`
-        // (R-2024-003 sémantique BOFiP : un seul arrondi par
-        // entreprise).
+        // Raw values: what R-2024-002 (DailyProrata) wrote before
+        // rounding. Used by `FleetFiscalAggregator` for per-taxpayer
+        // aggregation (R-2024-003 BOFiP semantics · one rounding per
+        // company).
         $co2DueRaw = $context->co2Due ?? 0.0;
         $pollutantsDueRaw = $context->pollutantsDue ?? 0.0;
 
-        // Valeurs ARRONDIES : pour l'affichage par ligne du PDF /
-        // drawer planning. Sémantique 1.8 préservée pour les
-        // consommateurs existants (`FiscalCalculator::calculate()`).
+        // Rounded values for per-row display (PDF, planning drawer).
         $co2Due = round($co2DueRaw, 2, PHP_ROUND_HALF_UP);
         $pollutantsDue = round($pollutantsDueRaw, 2, PHP_ROUND_HALF_UP);
         $totalDue = round($co2Due + $pollutantsDue, 2, PHP_ROUND_HALF_UP);

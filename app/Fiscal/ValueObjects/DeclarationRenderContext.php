@@ -4,29 +4,29 @@ declare(strict_types=1);
 
 namespace App\Fiscal\ValueObjects;
 
+use App\Actions\FiscalDeclaration\GenerateDeclarationAction;
 use App\Data\User\FiscalDeclaration\DeclarationPreviewData;
+use App\Services\Pdf\BladeDomPdfDeclarationRenderer;
 use Carbon\CarbonImmutable;
 
 /**
- * Contexte complet de rendu d'une déclaration fiscale (Phase 11 D5.4).
+ * Complete render context for a fiscal declaration PDF.
  *
- * Embarque les trois sources d'information nécessaires à la production
- * du PDF annexe documentaire :
+ * Carries the three information sources needed to produce the
+ * documentary annex PDF:
  *
- *   - {@see $preview} (D3) : clusters re-détectés enrichis des décisions
- *     persistées (source d'information sur les chaînes LCD). Utilisé par
- *     le template pour la section « Décisions de revue appliquées ».
- *   - {@see $snapshot} (D5.2) : montants fiscaux post-décisions
- *     Requalified (source de vérité pour le PDF). Utilisé par le
- *     template pour la synthèse fiscale et le détail par véhicule.
- *   - {@see $reference} (D5.3) : numéro lisible
- *     `DECL-{shortCode}-{year}-{NNNN}`. Affichée en encadré dans
- *     l'en-tête et dans le sceau de génération.
- *   - {@see $generatedAt} : horodatage de génération, affiché dans le
- *     sceau et le pied de page.
+ *   - {@see $preview}: re-detected clusters enriched with persisted
+ *     decisions (source for LCD chains).
+ *   - {@see $snapshot}: fiscal amounts post-Requalified decisions
+ *     (source of truth for the PDF).
+ *   - {@see $reference}: human-readable number
+ *     `DECL-{shortCode}-{year}-{NNNN}` shown in the header and seal.
+ *   - {@see $generatedAt}: generation timestamp, shown in the seal and
+ *     footer.
  *
- * Construit ad-hoc par {@see App\Actions\FiscalDeclaration\GenerateDeclarationAction}
- * en D5.5 ; consommé par {@see App\Services\Pdf\BladeDomPdfDeclarationRenderer}.
+ * Built ad-hoc by
+ * {@see GenerateDeclarationAction};
+ * consumed by {@see BladeDomPdfDeclarationRenderer}.
  */
 final readonly class DeclarationRenderContext
 {

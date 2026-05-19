@@ -16,20 +16,20 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
- * R-2024-003 - Arrondi half-up commercial (CIBS L. 131-1).
+ * R-2024-003 · commercial half-up rounding (CIBS L. 131-1).
  *
- * **Sémantique BOFiP** : « le montant total à payer par chaque
- * redevable est arrondi à l'euro le plus proche, sans arrondi
- * intermédiaire ». L'arrondi par redevable s'opère donc dans
- * {@see FleetFiscalAggregator::companyAnnualTax()},
- * qui somme les `co2DueRaw` + `pollutantsDueRaw` de tous les véhicules
- * d'une entreprise et arrondit **une seule fois**.
+ * BOFiP semantics: "the total amount owed by each taxpayer is rounded
+ * to the nearest euro without intermediate rounding". The per-taxpayer
+ * rounding therefore happens in
+ * {@see FleetFiscalAggregator::companyAnnualTax()}, which sums
+ * `co2DueRaw` + `pollutantsDueRaw` across the company's vehicles and
+ * rounds once.
  *
- * Cette classe règle est conservée comme **marqueur** dans le pipeline
- * (apparaît dans `appliedRuleCodes` du snapshot, page « Règles de
- * calcul »). Elle ne modifie pas les montants - l'arrondi par couple
- * (utile pour l'affichage par ligne du PDF / drawer planning) est
- * appliqué par le pipeline lui-même dans `buildResult()`.
+ * This rule class is kept as a marker in the pipeline (appearing in
+ * `appliedRuleCodes` of the snapshot and on the Règles page). It does
+ * not change amounts: the per-pair rounding used for row display
+ * (PDF, planning drawer) is applied by the pipeline itself in
+ * `buildResult()`.
  */
 final readonly class R2024_003_FinalRounding implements TransversalRule
 {
@@ -72,23 +72,22 @@ final readonly class R2024_003_FinalRounding implements TransversalRule
     public function legalBasis(): array
     {
         return [
-            // CIBS L. 131-1 · article pivot du Livre I qui dispose que
-            // les bases d'imposition CIBS sont arrondies « dans les
-            // conditions prévues à l'article 1649 undecies du CGI ».
+            // CIBS L. 131-1 · Book I pivot article stating that CIBS
+            // tax bases are rounded "under the conditions of CGI art.
+            // 1649 undecies".
             [
                 'type' => 'CIBS',
                 'article' => 'L. 131-1',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044604185/2024-06-01',
                 'consulted_at' => '2026-05-06',
             ],
-            // Phase 13 D5.11 (audit sémantique) · article cible du
-            // renvoi de L. 131-1 · principe half-up arithmétique
-            // (« la fraction d'euro égale à 0,50 est comptée pour 1 »).
-            // À noter · 1649 undecies arrondit les bases à **l'euro**
-            // au sens général · l'arrondi **au centime** par couple
-            // appliqué par Floty (R-2024-003) en dérive par analogie
-            // de la règle half-up, formalisé par la pratique BOFiP des
-            // taxes CIBS sur les véhicules (BOI-AIS-MOB-10-30-10).
+            // CGI 1649 undecies · target of the L. 131-1 reference,
+            // arithmetic half-up principle ("a fraction equal to 0.50
+            // counts for 1"). Note: 1649 undecies rounds bases to the
+            // euro in the general sense; Floty's per-pair cent-level
+            // rounding derives by analogy of the half-up rule,
+            // formalised by BOFiP practice for CIBS vehicle taxes
+            // (BOI-AIS-MOB-10-30-10).
             [
                 'type' => 'CGI',
                 'article' => '1649 undecies',

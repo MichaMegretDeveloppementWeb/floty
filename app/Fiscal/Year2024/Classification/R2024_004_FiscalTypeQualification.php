@@ -13,42 +13,34 @@ use App\Enums\Vehicle\ReceptionCategory;
 use App\Fiscal\Contracts\ClassificationRule;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
+use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * R-2024-004 - Qualification du type fiscal (frontière M1 / N1).
+ * R-2024-004 · fiscal type qualification (M1 / N1 boundary).
  *
- * Cf. CIBS art. L. 421-2 + BOFiP `BOI-AIS-MOB-10-30-20-20240710` § 60.
+ * Legal basis: CIBS art. L. 421-2 + BOFiP `BOI-AIS-MOB-10-30-20-20240710` § 60.
  *
- * Cascade :
- *   - **M1 sans usage spécial** (corbillard, ambulance, blindé) → taxable
- *   - **N1 pick-up ≥ 5 places** non strictement skiable → taxable
- *   - **N1 camionnette ≥ 2 rangs** affectée transport personnes → taxable
- *   - sinon → **non taxable** (pose `isFiscallyTaxable = false` sur le
- *     contexte ; le pipeline court-circuite l'exécution)
+ * Cascade:
+ *   - M1 with no special use (hearse, ambulance, armoured) → taxable
+ *   - N1 pickup ≥ 5 seats, not strictly ski-lift → taxable
+ *   - N1 light truck ≥ 2 rows assigned to passenger transport → taxable
+ *   - otherwise → not taxable (sets `isFiscallyTaxable = false` on the
+ *     context and the pipeline short-circuits)
  *
- * **Complément CIBS L. 421-97 · véhicules réputés non affectés** ·
- * par dérogation à L. 421-95 (qui définit l'affectation à des fins
- * économiques), un véhicule autorisé à circuler pour les seuls besoins
- * de sa construction, commercialisation, réparation ou contrôle
- * technique, et qui ne réalise aucune opération de transport autre que
- * strictement nécessaire à ces besoins, est réputé **ne pas être
- * affecté à des fins économiques**. Cela inclut notamment les
- * véhicules sous régime « W garage » (immatriculation provisoire des
- * professionnels de l'automobile). Ces véhicules sont par construction
- * hors du périmètre Floty (la flotte Floty ne contient que des
- * véhicules en exploitation effective, jamais en W-garage), mais la
- * règle complète le cadre conceptuel de R-2024-004.
+ * CIBS L. 421-97 complement: vehicles authorised to circulate solely
+ * for their construction, marketing, repair or technical inspection
+ * (notably "W garage" registration) are deemed not assigned to
+ * economic purposes. These are out of Floty's scope by construction
+ * but the rule completes R-2024-004's conceptual framework.
  *
- * En complément du verdict booléen, la règle pose sur le contexte un
- * **motif d'exclusion précis** (`isFiscallyTaxableReason`) selon la
- * branche d'exclusion empruntée. Ce motif est consommé par
- * {@see App\Fiscal\Pipeline\FiscalPipeline::buildResult()} pour
- * afficher à l'utilisateur la justification exacte du « hors champ »
- * (ex. « Camionnette N1 sans 2ᵉ rangée amovible - hors champ fiscal »
- * plutôt qu'un message générique).
+ * In addition to the boolean verdict the rule sets a precise exclusion
+ * reason (`isFiscallyTaxableReason`) based on the branch taken. This
+ * reason is consumed by {@see FiscalPipeline::buildResult()}
+ * to display the exact "out of scope" justification rather than a
+ * generic message.
  */
 final readonly class R2024_004_FiscalTypeQualification implements ClassificationRule
 {
@@ -97,10 +89,9 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048844510/2024-06-01',
                 'consulted_at' => '2026-05-06',
             ],
-            // Phase 13 D5.13 (audit exhaustif 14/05/2026) · complément
-            // CIBS L. 421-97 sur les véhicules réputés ne pas être
-            // affectés à des fins économiques (W garage, démonstration,
-            // commercialisation, réparation, contrôle technique).
+            // CIBS L. 421-97 complement: vehicles deemed not assigned
+            // to economic purposes (W garage, demonstration, marketing,
+            // repair, technical inspection).
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-97',
@@ -137,10 +128,10 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
     private function isTaxable(VehicleFiscalCharacteristics $fiscal): bool
     {
         return match ($fiscal->reception_category) {
-            // M1 - voiture particulière taxable sauf usage spécial.
+            // M1: passenger car, taxable unless special use.
             ReceptionCategory::M1 => $fiscal->m1_special_use === false,
-            // N1 - pick-up ≥ 5 places non skiable, OU camionnette avec
-            // banquette amovible 2 rangs ET affectée transport personnes.
+            // N1: pickup ≥ 5 seats not ski-lift, OR light truck with
+            // removable 2nd row AND assigned to passenger transport.
             ReceptionCategory::N1 => (
                 $fiscal->body_type === BodyType::Pickup
                 && $fiscal->seats_count >= 5
@@ -154,15 +145,13 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
     }
 
     /**
-     * Détermine le motif précis d'exclusion du champ fiscal selon la
-     * branche de la cascade qui sort le véhicule. Appelée uniquement
-     * quand `isTaxable === false`.
+     * Resolves the exclusion reason based on the cascade branch that
+     * dropped the vehicle. Called only when `isTaxable === false`.
      */
     private function nonTaxableReason(VehicleFiscalCharacteristics $fiscal): string
     {
         return match ($fiscal->reception_category) {
-            // M1 hors champ ⇒ forcément m1_special_use=true (autre cas =
-            // taxable). On ne défensive pas inutilement.
+            // M1 out of scope ⇒ necessarily m1_special_use=true.
             ReceptionCategory::M1 => 'Véhicule M1 à usage spécial (corbillard, ambulance, véhicule blindé) - hors champ fiscal (CIBS L. 421-2).',
             ReceptionCategory::N1 => $this->n1NonTaxableReason($fiscal),
         };
@@ -175,7 +164,7 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
                 return 'Pick-up N1 affecté à l\'exploitation de remontées mécaniques - hors champ fiscal (CIBS L. 421-2).';
             }
 
-            // Reste de la branche pickup : seats_count < 5
+            // Remaining pickup branch: seats_count < 5.
             return 'Pick-up N1 de moins de 5 places - hors champ fiscal (CIBS L. 421-2).';
         }
 
@@ -191,11 +180,9 @@ final readonly class R2024_004_FiscalTypeQualification implements Classification
                 return 'Camionnette N1 sans 2ᵉ rangée amovible - hors champ fiscal (CIBS L. 421-2).';
             }
 
-            // Reste : ! $isPassengerTransport
             return 'Camionnette N1 non affectée au transport de personnes - hors champ fiscal (CIBS L. 421-2).';
         }
 
-        // N1 avec une carrosserie ni Pickup ni LightTruck.
         return 'Véhicule N1 hors des cas taxables (pick-up ≥ 5 places ou camionnette aménagée transport de personnes) - hors champ fiscal (CIBS L. 421-2).';
     }
 

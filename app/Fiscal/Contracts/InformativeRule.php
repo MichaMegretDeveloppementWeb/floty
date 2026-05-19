@@ -4,30 +4,27 @@ declare(strict_types=1);
 
 namespace App\Fiscal\Contracts;
 
+use Database\Seeders\FiscalRulesSeeder;
+
 /**
- * Marker interface · règle fiscale documentaire-only (Phase 13 D5.11 ·
- * complément ADR-0022).
+ * Marker interface for documentary-only fiscal rules (ADR-0022).
  *
- * **Pourquoi cette interface séparée** · certaines règles fiscales ne
- * participent **pas** au pipeline de calcul (`FiscalPipeline`) mais
- * portent une connaissance fiscale métier (cadre légal, principe
- * architectural, garde-fou UI). Exemples 2024 · R-2024-001 redevable,
- * R-2024-009 mise hors-service, R-2024-024 garde-fou Crit'Air, etc.
+ * Some fiscal rules do not participate in the calculating pipeline but
+ * still carry domain knowledge (legal framework, architectural
+ * principle, UI guard). Examples for 2024: R-2024-001 taxpayer,
+ * R-2024-009 mid-year decommissioning, R-2024-024 Crit'Air guard.
  *
- * **Avantage du contrat séparé** (vs flag booléen sur `FiscalRule`) ·
- * le typage statique interdit l'inclusion accidentelle d'une règle
- * documentaire dans `FiscalRuleRegistry::register()` (pipeline), qui
- * accepte uniquement `list<class-string<FiscalRule>>` sans inclure les
- * `InformativeRule`. Le pipeline reste donc strictement isolé.
+ * A separate contract (vs a boolean flag on `FiscalRule`) lets static
+ * typing prevent accidental inclusion of documentary rules in
+ * `FiscalRuleRegistry::register()`, which accepts only
+ * `list<class-string<FiscalRule>>`. The pipeline stays strictly
+ * isolated.
  *
- * **Ce qu'elles partagent avec les règles pipeline** · les métadonnées
- * (code, nom, description, base légale enrichie d'URLs officielles,
- * type, taxes concernées, dates d'applicabilité, ordre d'affichage,
- * état actif). Toutes ces données vivent dans la classe PHP, conformes
- * à ADR-0022 (« classes PHP = source de vérité unique »).
- *
- * **Consommation** · uniquement par {@see Database\Seeders\FiscalRulesSeeder}
- * pour peupler la table-index `fiscal_rules` et alimenter la page
- * « Règles de calcul » (User/FiscalRules/Index).
+ * Documentary rules share the same metadata shape as pipeline rules
+ * (code, name, description, legal basis with official URLs, type,
+ * concerned taxes, applicability window, display order, active flag).
+ * They are consumed only by
+ * {@see FiscalRulesSeeder} to populate the
+ * `fiscal_rules` index for the "Règles de calcul" page.
  */
 interface InformativeRule extends FiscalRule {}

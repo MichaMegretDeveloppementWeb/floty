@@ -13,28 +13,26 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-032 · Taxe annuelle sur les véhicules lourds de transport de
- * marchandises (ex-taxe à l'essieu).
+ * R-2024-032 · annual tax on heavy freight vehicles (former axle tax).
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY.**
+ * Documentary-only rule, OUT OF FLOTY SCOPE.
  *
- * Taxe annuelle distincte des deux taxes Floty (CO₂ et polluants
- * tourisme), applicable aux véhicules **lourds** de transport de
- * marchandises (catégories N2, N3 et certaines remorques O4) dont la
- * masse en charge maximale techniquement admissible est ≥ 12 tonnes.
+ * Annual tax distinct from the two Floty taxes (passenger CO₂ and
+ * pollutants), applicable to heavy freight vehicles (N2, N3 and some
+ * O4 trailers) whose maximum technically permissible mass is
+ * ≥ 12 tonnes.
  *
- * **Redevable** · entreprise utilisatrice du véhicule lourd (au sens
- * équivalent à celui des taxes tourisme).
+ * Taxpayer: the using company of the heavy vehicle (equivalent sense
+ * to the passenger taxes).
  *
- * **Pourquoi hors périmètre Floty** · le périmètre véhicule Floty est
- * strictement limité aux catégories **M1 (voitures de tourisme) et
- * N1 (utilitaires légers ≤ 3,5 t)**, cf. cahier des charges. Les
- * véhicules ≥ 12 t (N2/N3/O4) sont structurellement hors champ.
+ * Why out of Floty scope: Floty's vehicle scope is strictly limited
+ * to categories M1 (passenger cars) and N1 (light commercial
+ * ≤ 3.5 t). Vehicles ≥ 12 t (N2/N3/O4) are out of scope by
+ * construction.
  *
- * Documentée pour exhaustivité fiscale · si une entreprise utilisatrice
- * Floty exploite par ailleurs des véhicules lourds (en dehors de la
- * flotte Floty), elle est redevable de cette taxe distincte mais
- * Floty ne la calcule pas.
+ * Documented for fiscal completeness: if a Floty using company also
+ * runs heavy vehicles outside the Floty fleet, it is liable for this
+ * distinct tax but Floty does not compute it.
  */
 final readonly class R2024_032_HeavyVehiclesTax implements InformativeRule
 {

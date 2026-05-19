@@ -5,30 +5,26 @@ declare(strict_types=1);
 namespace App\Fiscal\ValueObjects;
 
 /**
- * Résultat d'évaluation d'une `ExemptionRule` sur un contexte.
+ * Verdict produced by an `ExemptionRule` for a given context.
  *
- * Modes d'exonération :
+ * Exemption modes:
+ * - `notExempt()`            · the rule does not apply
+ * - `full(...)`              · total exemption on both taxes; full-year
+ *                              tariffs remain visible in the breakdown
+ * - `fullZeroingTariffs(...)`· total exemption AND zeroes the full-year
+ *                              tariffs in the breakdown (handicap case
+ *                              where we hide the "what you would have
+ *                              paid" amount)
+ * - `onlyCo2(...)`           · CO₂ exemption only (electric / hydrogen)
+ * - `onlyPollutants(...)`    · pollutants exemption only
+ * - `partialDays(count, ...)`· daily exemption: `count` days subtracted
+ *                              from the R-2024-002 prorata numerator.
+ *                              Full-year tariffs stay visible. Used by
+ *                              per-contract LCD (R-2024-021) and
+ *                              reductive unavailabilities (R-2024-008).
  *
- * - `notExempt()`            : la règle ne s'applique pas
- * - `full(...)`              : exonération totale (deux taxes) - les
- *                              tarifs annuels pleins restent affichés
- *                              dans le breakdown
- * - `fullZeroingTariffs(...)`: exonération totale ET les tarifs annuels
- *                              sont mis à zéro dans le breakdown (cas
- *                              handicap, où l'on ne veut pas montrer
- *                              « ce que vous auriez payé »)
- * - `onlyCo2(...)`           : exonération CO₂ seule, polluants normal
- *                              (cas électrique / hydrogène)
- * - `onlyPollutants(...)`    : exonération polluants seule, CO₂ normal
- * - `partialDays(count, ...)`: exonération journalière - `count` jours
- *                              sont retirés du numérateur du prorata
- *                              R-2024-002. Les tarifs annuels restent
- *                              visibles. Utilisé pour LCD per-contract
- *                              (R-2024-021) et indispos fiscalement
- *                              réductrices (R-2024-008).
- *
- * Le `reason` est un message français destiné au breakdown utilisateur
- * (PDF, drawer planning, etc.).
+ * `reason` is a French message destined for the user-facing breakdown
+ * (PDF, planning drawer, etc.).
  */
 final readonly class ExemptionVerdict
 {
@@ -67,9 +63,8 @@ final readonly class ExemptionVerdict
     }
 
     /**
-     * Exonération journalière : `daysCount` jours sont retirés du
-     * numérateur du prorata. Les tarifs annuels pleins restent visibles
-     * dans le breakdown (info utilisateur).
+     * Daily exemption: `daysCount` days are subtracted from the prorata
+     * numerator. Full-year tariffs stay visible in the breakdown.
      */
     public static function partialDays(int $daysCount, string $reason, string $ruleCode): self
     {

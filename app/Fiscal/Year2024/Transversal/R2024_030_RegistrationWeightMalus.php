@@ -13,26 +13,24 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-030 · Malus au poids à l'immatriculation (« taxe sur la masse
- * en ordre de marche »).
+ * R-2024-030 · weight malus at registration ("running-mass tax").
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY.**
+ * Documentary-only rule, OUT OF FLOTY SCOPE.
  *
- * Taxe ponctuelle à l'immatriculation d'un véhicule de tourisme dont
- * la masse en ordre de marche dépasse un seuil.
+ * One-shot tax at registration of a passenger vehicle whose running
+ * mass exceeds a threshold.
  *
- * **Redevable** · titulaire du certificat d'immatriculation (idem
- * malus CO₂).
+ * Taxpayer: holder of the registration certificate (same as CO₂
+ * malus).
  *
- * **Pourquoi hors périmètre Floty** · même raison que le malus CO₂ ·
- * dans le modèle Floty, le bailleur (société de location) immatricule
- * les véhicules et acquitte le malus poids. Les entreprises
- * utilisatrices ne sont jamais redevables.
+ * Why out of Floty scope: same as CO₂ malus. The renter registers
+ * vehicles and pays the weight malus. Using companies are never
+ * liable.
  *
- * **Paramètres 2024** · seuil 1 600 kg, barème 10 €/kg au-dessus du
- * seuil, abattement familial de 70 kg par enfant à charge à partir
- * du 3ᵉ enfant. Exonération totale pour véhicules à motorisation
- * exclusivement électrique ou hydrogène (cf. L. 421-71 et suivants).
+ * 2024 parameters: threshold 1 600 kg, 10 €/kg above the threshold,
+ * 70 kg family allowance per dependent child from the 3rd onwards.
+ * Full exemption for strictly electric or hydrogen powertrains (cf.
+ * L. 421-71 ff.).
  */
 final readonly class R2024_030_RegistrationWeightMalus implements InformativeRule
 {

@@ -14,29 +14,26 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-027 · Coefficient pondérateur et minoration des frais
- * kilométriques.
+ * R-2024-027 · mileage-reimbursement weighting coefficient and tax
+ * reduction.
  *
- * Sous-paragraphe CIBS dédié aux véhicules affectés à des fins
- * économiques via prise en charge des frais kilométriques par
- * l'entreprise (au sens du 2° de L. 421-95) :
- *   - L. 421-109 · chapeau du sous-paragraphe.
- *   - L. 421-110 · coefficient pondérateur appliqué au facteur prorata
- *     selon les kilomètres remboursés (0 / 25 / 50 / 75 / 100 %).
- *   - L. 421-111 · minoration de 15 000 € sur le cumul des taxes par
- *     entreprise (sous plafond de minimis européen).
+ * CIBS sub-paragraph dedicated to vehicles assigned to economic
+ * purposes through company mileage reimbursement (L. 421-95 2°):
+ *   - L. 421-109 · sub-paragraph header.
+ *   - L. 421-110 · weighting coefficient applied to the prorata
+ *     factor by reimbursed mileage (0 / 25 / 50 / 75 / 100 %).
+ *   - L. 421-111 · 15 000 € reduction on the company's cumulative
+ *     taxes (under the European de minimis ceiling).
  *
- * **INACTIVE par défaut V1** · Floty couvre des véhicules de flotte
- * détenus par la société de location et mis à disposition d'entreprises
- * utilisatrices · pas des véhicules personnels de salariés/dirigeants
- * donnant lieu à remboursement kilométrique. Le sous-paragraphe
- * L. 421-109 délimite explicitement le champ d'application aux véhicules
- * du 2° de L. 421-95, hors usage Floty par construction architecturale.
+ * Inactive by default in V1. Floty covers fleet vehicles held by the
+ * renter and made available to using companies, not employee /
+ * director personal vehicles giving rise to mileage reimbursement.
+ * L. 421-109 explicitly scopes the sub-paragraph to L. 421-95 2°
+ * vehicles, outside Floty's usage by architectural construction.
  *
- * La règle est cependant documentée pour exhaustivité fiscale · si
- * Floty étend un jour son périmètre aux frais kilométriques, la
- * mécanique de coefficient pondérateur et de minoration devra être
- * codée et la règle bascule en `isActive: true`.
+ * Documented for fiscal completeness: if Floty ever extends to
+ * mileage reimbursement, the coefficient + reduction mechanics will
+ * be coded and the rule will become active.
  */
 final readonly class R2024_027_MileageReimbursementCoefficient implements TransversalRule
 {

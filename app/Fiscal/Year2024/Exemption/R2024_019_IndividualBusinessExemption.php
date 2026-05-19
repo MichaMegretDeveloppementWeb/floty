@@ -15,19 +15,19 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-019 - Exonération entreprise individuelle (CIBS L. 421-127
- * / L. 421-139).
+ * R-2024-019 · individual-business exemption (CIBS L. 421-127 /
+ * L. 421-139).
  *
- * Si l'entreprise utilisatrice est une personne physique exerçant en
- * son nom propre (entrepreneur individuel BIC/BNC), l'exonération
- * s'applique sur les deux taxes. Flag : `companies.is_individual_business`.
+ * If the using company is a sole trader (BIC/BNC individual
+ * entrepreneur), both taxes are waived. Flag:
+ * `companies.is_individual_business`.
  *
- * **Inactif par défaut V1** : aucune entreprise utilisatrice Floty
- * actuelle n'est en nom propre (toutes sont des sociétés). La règle
- * est structurellement câblée pour activation future via seeder/UI.
+ * Inactive by default in V1: no current Floty using company is a sole
+ * trader (all are corporations). Wired for future activation via
+ * seeder / UI.
  *
- * Note V1 : tant que le {@see PipelineContext} ne porte pas la
- * `Company` du couple, cette règle retourne `notExempt()`.
+ * As long as the {@see PipelineContext} does not carry the pair's
+ * `Company`, this rule returns `notExempt()`.
  */
 final readonly class R2024_019_IndividualBusinessExemption implements ExemptionRule
 {

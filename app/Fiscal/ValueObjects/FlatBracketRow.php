@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Fiscal\ValueObjects;
 
 /**
- * Une ligne d'un {@see FlatBracketsTable}. La `note` est un astérisque
- * d'explication facultatif affiché sous le tableau (ex. norme Euro de
- * référence pour une catégorie).
+ * One row of a {@see FlatBracketsTable}. `note` is an optional
+ * asterisk-style explanation shown below the table (e.g. reference
+ * Euro norm for a category).
  */
 final readonly class FlatBracketRow
 {

@@ -17,18 +17,18 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * R-2024-005 - Sélection du barème CO₂ + R-2024-006 - bascule PA si
- * donnée CO₂ manquante.
+ * R-2024-005 · CO₂ bracket selection + R-2024-006 · PA fallback when
+ * CO₂ data is missing.
  *
- * Règle :
- *   - Si la méthode d'homologation du véhicule est WLTP et qu'on a un
- *     `co2_wltp` renseigné → barème WLTP.
- *   - Sinon, si NEDC et qu'on a un `co2_nedc` renseigné → barème NEDC.
- *   - Sinon → barème Puissance Administrative (R-2024-006 fallback).
+ * Legal basis: CIBS art. L. 421-119-1.
  *
- * Le résultat (`HomologationMethod`) est attaché au contexte pour les
- * `PricingRule` CO₂ qui ne s'exécutent que si elles correspondent à la
- * méthode résolue.
+ * Resolution:
+ *   - WLTP homologation method + `co2_wltp` set → WLTP bracket.
+ *   - NEDC homologation method + `co2_nedc` set → NEDC bracket.
+ *   - Otherwise → Administrative Horsepower bracket (R-2024-006 fallback).
+ *
+ * The resolved {@see HomologationMethod} is attached to the context;
+ * CO₂ `PricingRule`s only run if they match the resolved method.
  */
 final readonly class R2024_005_Co2MethodSelection implements ClassificationRule
 {

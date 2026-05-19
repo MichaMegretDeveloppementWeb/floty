@@ -7,11 +7,10 @@ namespace App\Fiscal\Contracts;
 use App\Fiscal\Pipeline\PipelineContext;
 
 /**
- * Règle de tarification : calcule un tarif annuel plein (CO₂ ou
- * polluants) et le pose sur le contexte. Plusieurs règles Pricing
- * peuvent s'exécuter dans le pipeline (typiquement WLTP/NEDC/PA
- * exclusifs selon la classification CO₂ + un tarif polluants
- * forfaitaire).
+ * Pricing rule: computes a full-year tariff (CO₂ or pollutants) and
+ * writes it onto the context. Multiple pricing rules can run in the
+ * pipeline (typically mutually exclusive WLTP/NEDC/PA brackets plus a
+ * flat pollutants tariff).
  */
 interface PricingRule extends FiscalRule
 {

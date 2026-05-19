@@ -10,38 +10,29 @@ use App\Fiscal\ValueObjects\RuleEffectiveSegment;
 use Carbon\CarbonImmutable;
 
 /**
- * Découpe une année fiscale en sous-périodes sur lesquelles l'ensemble
- * des règles applicables est stable (chantier κ).
+ * Slices a fiscal year into sub-periods over which the set of
+ * applicable rules is stable.
  *
- * **Pourquoi** : depuis κ.2, chaque règle déclare sa période
- * d'applicabilité. La grande majorité des règles couvrent l'année
- * entière, mais à terme certaines apparaîtront ou disparaîtront en
- * cours d'année (ex. modification d'un barème CIBS au 1er juillet, règle
- * 2025 partielle prolongée jusqu'au 03/03/2026, etc.). Ce service est
- * la brique de lecture exploitée par
- * {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} (chantier κ.4) pour
- * que le pipeline tarife chaque sous-période avec son propre jeu de
- * règles.
+ * Each rule declares its applicability window. Most rules cover the
+ * whole year, but eventually some may appear or disappear mid-year
+ * (e.g. CIBS bracket change on July 1st, partial 2025 rule extended to
+ * 2026-03-03). Consumed by {@see FiscalSegmentedExecutor} so the
+ * pipeline can tariff each sub-period with its own rule set.
  *
- * **Algorithme** : sweep-line sur les bornes uniques des règles clippées
- * à l'année. Complexité O(N log N) sur N règles. Cas typique 2024 (16
- * règles annuelles) : 1 seul segment couvrant `[2024-01-01,
- * 2024-12-31]`.
+ * Algorithm: sweep-line over unique rule bounds clipped to the year.
+ * Complexity O(N log N) on N rules. Typical 2024 case (16 annual
+ * rules): a single segment covering `[2024-01-01, 2024-12-31]`.
  *
- * **Cache mémoire process** : enregistré en singleton (cf.
- * {@see App\Providers\FiscalServiceProvider} - binding par défaut Laravel
- * sur classe résolue) ; les segments sont mémoïsés par année. Coût zéro
- * si la même année est demandée plusieurs fois dans la même requête
- * HTTP. **Pour invalider en test** :
+ * Per-process memory cache: the segmenter is registered as a singleton,
+ * segments are memoised by year. Same-year queries within one HTTP
+ * request cost nothing. To invalidate in tests:
  * `$this->app->forgetInstance(RuleEffectiveSegmenter::class)`.
  *
- * **Sémantique des bornes** : inclusives, à la granularité du jour. Un
- * segment couvre toujours au moins 1 jour. La liste de règles d'un
- * segment est toujours non-vide.
+ * Bound semantics: inclusive, day granularity. A segment always covers
+ * at least one day. The rules list of a segment is always non-empty.
  *
- * Analogue temporel du repo
- * {@see App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository::findEffectiveSegmentsForYear()}
- * (segments VFC).
+ * Temporal analogue of the VFC segment repository
+ * (`VehicleFiscalCharacteristicsReadRepository::findEffectiveSegmentsForYear()`).
  */
 final class RuleEffectiveSegmenter
 {
@@ -80,7 +71,6 @@ final class RuleEffectiveSegmenter
                 $end = $yearEnd;
             }
 
-            // Règle entièrement hors année : ignorée.
             if ($start->greaterThan($end)) {
                 continue;
             }
@@ -92,14 +82,11 @@ final class RuleEffectiveSegmenter
             return $this->cache[$year] = [];
         }
 
-        // Bornes uniques (start de chaque règle + end+1jour de chaque
-        // règle). Le +1jour permet au sweep de produire des segments
-        // adjacents sans recouvrement ni gap.
-        //
-        // Astuce d'indexation : on indexe par la string ISO `YYYY-MM-DD`
-        // qui est lexicographiquement = chronologiquement triée. `ksort`
-        // produit donc les bornes dans l'ordre temporel sans avoir à
-        // comparer des objets Carbon coûteux.
+        // Unique boundaries (each rule's start + end+1day). The +1day
+        // lets the sweep produce adjacent segments without overlap or
+        // gap. Indexing by the ISO `YYYY-MM-DD` string lets `ksort`
+        // produce boundaries in chronological order without expensive
+        // Carbon comparisons.
         $boundaryKeys = [];
         foreach ($clipped as $c) {
             $boundaryKeys[$c['start']->toDateString()] = $c['start'];
@@ -137,16 +124,15 @@ final class RuleEffectiveSegmenter
     }
 
     /**
-     * Invalide le cache mémoire process des segments.
+     * Invalidates the per-process memory cache.
      *
-     * **Usage** : à appeler explicitement quand le `FiscalRuleRegistry`
-     * est muté à la volée (typiquement dans les tests qui font
-     * `$registry->register($stubYear, [...])`). En production le registry
-     * est figé au boot via `FiscalServiceProvider`, donc `clearCache()`
-     * n'est jamais nécessaire.
+     * Used when the `FiscalRuleRegistry` is mutated at runtime
+     * (typically tests calling `$registry->register($stubYear, [...])`).
+     * In production the registry is frozen at boot, so `clearCache()`
+     * is unnecessary.
      *
-     * Si `$year` est fourni, seul ce slot est purgé ; sinon tout le
-     * cache est vidé.
+     * When `$year` is provided only that slot is purged; otherwise the
+     * whole cache is emptied.
      */
     public function clearCache(?int $year = null): void
     {

@@ -20,12 +20,11 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-012 - Barème Puissance Administrative 2024 (CIBS L. 421-122).
+ * R-2024-012 · Administrative Horsepower bracket 2024 (CIBS L. 421-122).
  *
- * Barème progressif sur la puissance administrative en chevaux fiscaux
- * (CV). Fallback historique pour les véhicules sans donnée CO₂. 5
- * tranches, dernière ouverte (> 15 CV). S'exécute uniquement si la
- * méthode CO₂ résolue est PA.
+ * Progressive bracket on the administrative horsepower (CV). Historic
+ * fallback for vehicles without CO₂ data. Five slices, the last one
+ * open (> 15 CV). Runs only if the resolved CO₂ method is PA.
  */
 final readonly class R2024_012_PaProgressive implements PricingRule
 {

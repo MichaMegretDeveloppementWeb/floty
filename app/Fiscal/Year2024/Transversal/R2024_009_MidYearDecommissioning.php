@@ -14,14 +14,13 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-009 · Mise hors-service en cours d'année.
+ * R-2024-009 · mid-year decommissioning.
  *
- * **Règle documentaire-only** (ADR-0022 · complément Phase 13 D5.11) ·
- * cette règle énonce le principe de proratisation temporelle de
- * l'affectation pour un véhicule sorti du parc en cours d'année
- * (cession, destruction). La date de sortie (`vehicles.exit_date`)
- * borne l'affectation supérieure ; les contrats ne peuvent pas
- * déborder cette date (cf. ADR-0018 rev. 1.1).
+ * Documentary-only rule (ADR-0022). States the temporal proration
+ * principle for a vehicle that left the fleet mid-year (sale,
+ * destruction). The exit date (`vehicles.exit_date`) caps the
+ * assignment upper bound; contracts cannot extend past this date
+ * (cf. ADR-0018 rev. 1.1).
  */
 final readonly class R2024_009_MidYearDecommissioning implements InformativeRule
 {

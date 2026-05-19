@@ -18,15 +18,17 @@ use App\Fiscal\ValueObjects\ProgressiveBracketRow;
 use App\Fiscal\ValueObjects\ProgressiveBracketsTable;
 use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
+use App\Fiscal\Year2024\Classification\R2024_005_Co2MethodSelection;
 
 /**
- * R-2024-010 - Barème CO₂ WLTP 2024 (CIBS art. L. 421-120).
+ * R-2024-010 · WLTP CO₂ bracket 2024 (CIBS art. L. 421-120).
  *
- * Tarif progressif par tranches à tarif marginal sur les émissions
- * CO₂ WLTP (g/km). 9 tranches, dernière ouverte (≥ 175 g/km).
+ * Marginal-rate progressive bracket on WLTP CO₂ emissions (g/km).
+ * Nine slices, the last one open (≥ 175 g/km).
  *
- * S'exécute uniquement si la méthode CO₂ résolue par
- * {@see R2024_005_Co2MethodSelection} est WLTP. Sinon no-op.
+ * Runs only if the CO₂ method resolved by
+ * {@see R2024_005_Co2MethodSelection}
+ * is WLTP; no-op otherwise.
  */
 final readonly class R2024_010_WltpProgressive implements PricingRule
 {

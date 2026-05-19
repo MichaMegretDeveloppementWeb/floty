@@ -42,13 +42,11 @@ use App\Fiscal\Year2024\Transversal\R2024_032_HeavyVehiclesTax;
 use App\Providers\FiscalServiceProvider;
 
 /**
- * Catalogue des règles fiscales 2024 (cf. `taxes-rules/2024.md`).
+ * Catalog of 2024 fiscal rules (see `taxes-rules/2024.md`).
  *
- * Référencée par `config('floty.fiscal.year_boots')` et instanciée par
- * {@see FiscalServiceProvider} au boot.
- *
- * Pour modifier le périmètre des règles 2024 (ajout, retrait, réordonnance),
- * éditer la liste {@see rules()} ci-dessous · sans toucher au provider.
+ * Referenced by `config('floty.fiscal.year_boots')` and instantiated by
+ * {@see FiscalServiceProvider} at boot. Edit {@see rules()} to change
+ * the 2024 rule set; the provider does not need changes.
  */
 final class Year2024Boot implements FiscalYearBoot
 {
@@ -89,15 +87,14 @@ final class Year2024Boot implements FiscalYearBoot
     }
 
     /**
-     * Phase 13 D5.11 · règles documentaires-only seedées dans
-     * `fiscal_rules` pour alimenter la page « Règles de calcul »
-     * (User/FiscalRules/Index) mais qui ne participent **pas** au
-     * pipeline de calcul (cf. {@see InformativeRule}). Ces règles
-     * portent des principes architecturaux (R-2024-001 redevable,
-     * R-2024-007 historisation VFC, R-2024-009 mise hors-service,
-     * R-2024-020 loueur, R-2024-022 période contractuelle vs usage)
-     * ou des cas vides (R-2024-023 abattements 2024) ou des contrôles
-     * UI (R-2024-024 garde-fou Crit'Air).
+     * Documentary-only rules seeded into `fiscal_rules` to feed the
+     * "Règles de calcul" page (User/FiscalRules/Index). They do not
+     * participate in the calculation pipeline (cf. {@see InformativeRule}).
+     * Cover architectural principles (R-2024-001 taxpayer, R-2024-007
+     * VFC historisation, R-2024-009 mid-year decommissioning,
+     * R-2024-020 renter, R-2024-022 contractual period vs usage), empty
+     * cases (R-2024-023 abatements in 2024) and UI controls (R-2024-024
+     * Crit'Air guard).
      *
      * @return list<class-string<InformativeRule>>
      */
@@ -112,7 +109,6 @@ final class Year2024Boot implements FiscalYearBoot
             R2024_022_ContractualPeriodVsEffectiveUsage::class,
             R2024_023_NoIsolatedAbatement::class,
             R2024_024_CritAirGuard::class,
-            // Phase 13 D5.13 · ajouts audit exhaustif 14/05/2026
             R2024_025_WeightedAverageTariff::class,
             R2024_028_DeclarationModalities::class,
             R2024_029_RegistrationCo2Malus::class,

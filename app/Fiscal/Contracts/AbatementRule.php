@@ -7,10 +7,9 @@ namespace App\Fiscal\Contracts;
 use App\Fiscal\Pipeline\PipelineContext;
 
 /**
- * Règle d'abattement : modifie une caractéristique d'entrée AVANT que
- * la tarification soit calculée (ex. : abattement E85 réduit le CO₂
- * pris en compte par le barème). Vide en 2024 - sera utilisé en
- * 2025+.
+ * Abatement rule: alters an input characteristic before the pricing
+ * stage (e.g. E85 abatement on the CO₂ value used by the bracket).
+ * Empty in 2024, used from 2025 onwards.
  */
 interface AbatementRule extends FiscalRule
 {

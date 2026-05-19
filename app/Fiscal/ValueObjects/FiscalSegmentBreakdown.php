@@ -4,34 +4,33 @@ declare(strict_types=1);
 
 namespace App\Fiscal\ValueObjects;
 
+use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineResult;
+use App\Services\Fiscal\FleetFiscalAggregator;
 use Carbon\CarbonImmutable;
 
 /**
- * Détail d'une exécution de pipeline pour un sous-segment du produit
- * cartésien {VFC × Règles} (chantier κ.4 - granularité temporelle).
+ * Detail of one pipeline execution for a sub-segment of the cartesian
+ * product {VFC × rules}.
  *
- * Émis par
- * {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor::executeWithSegments()}.
+ * Emitted by
+ * {@see FiscalSegmentedExecutor::executeWithSegments()}.
  *
- * Sémantique des champs :
- * - `start` / `end` : bornes inclusives de l'**intersection** entre le
- *   segment VFC et le segment règles. C'est sur cette fenêtre que le
- *   pipeline a été exécuté.
- * - `vfcSegment` : VFC active pendant cet intervalle (utile pour
- *   exposer les caractéristiques du véhicule à l'UI).
- * - `ruleSegment` : règles applicables pendant cet intervalle (utile
- *   pour l'audit et l'exposition « quelles règles ont produit ce
- *   montant »).
- * - `result` : `PipelineResult` partiel (raw co2 / raw pollutants
- *   prorata sur cette fenêtre). Le total annuel se reconstruit en
- *   sommant les `co2DueRaw` + `pollutantsDueRaw` puis en arrondissant
- *   une seule fois (cf. R-2024-003).
+ * Field semantics:
+ * - `start` / `end`: inclusive bounds of the intersection between the
+ *   VFC segment and the rule segment. The pipeline ran on this window.
+ * - `vfcSegment`: VFC active over the interval (used to expose vehicle
+ *   characteristics to the UI).
+ * - `ruleSegment`: rules applicable over the interval (for audit and
+ *   "which rules produced this amount" exposure).
+ * - `result`: partial `PipelineResult` (raw CO₂ / raw pollutants
+ *   prorated over the window). The annual total is rebuilt by summing
+ *   `co2DueRaw` + `pollutantsDueRaw` then rounding once (R-2024-003).
  *
- * Permet aux consommateurs (typiquement
- * {@see App\Services\Fiscal\FleetFiscalAggregator::vehicleFullYearTaxBreakdown()})
- * d'exposer un détail tarifaire par sous-segment dans l'UI : tarif
- * annuel, dûs prorata, exonérations propres au segment.
+ * Lets consumers (typically
+ * {@see FleetFiscalAggregator::vehicleFullYearTaxBreakdown()})
+ * expose a per-sub-segment tariff detail in the UI: full-year tariff,
+ * prorated amounts, segment-specific exemptions.
  */
 final readonly class FiscalSegmentBreakdown
 {
@@ -44,9 +43,8 @@ final readonly class FiscalSegmentBreakdown
     ) {}
 
     /**
-     * Nombre de jours dans l'intersection (bornes inclusives, granularité
-     * jour). Helper pour les consommateurs UI qui exposent un libellé
-     * « X jours » ou un calcul prorata du segment.
+     * Number of days in the intersection (inclusive bounds, day
+     * granularity).
      */
     public function days(): int
     {

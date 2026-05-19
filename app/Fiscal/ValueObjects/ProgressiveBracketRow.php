@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Fiscal\ValueObjects;
 
 /**
- * Une tranche d'un {@see ProgressiveBracketsTable}. Le label décrit
- * la plage (ex. `'0 à 14 g/km'`) et le rate le tarif marginal
- * appliqué (ex. `'0 €'`, `'1 € / g'`).
+ * One row of a {@see ProgressiveBracketsTable}. `label` describes the
+ * range (e.g. `'0 à 14 g/km'`); `rate` is the applied marginal rate
+ * (e.g. `'0 €'`, `'1 € / g'`).
  */
 final readonly class ProgressiveBracketRow
 {

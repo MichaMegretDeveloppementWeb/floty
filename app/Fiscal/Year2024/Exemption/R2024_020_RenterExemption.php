@@ -14,14 +14,12 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-020 · Exonération loueur · redevable = entreprise utilisatrice.
+ * R-2024-020 · renter exemption · taxpayer = using company.
  *
- * **Règle documentaire-only** (ADR-0022 · complément Phase 13 D5.11) ·
- * cette règle pose le principe que le loueur (entreprise qui détient
- * des véhicules pour les louer ou les mettre à disposition de ses
- * clients) n'est pas redevable de la taxe · ce sont les entreprises
- * utilisatrices qui le sont. La règle pipeline R-2024-001 (redevable
- * documentaire) découle de ce principe.
+ * Documentary-only rule (ADR-0022). States that the renter (a company
+ * that holds vehicles to rent or supply to its clients) is not the
+ * taxpayer; the using companies are. R-2024-001 derives from this
+ * principle.
  */
 final readonly class R2024_020_RenterExemption implements InformativeRule
 {

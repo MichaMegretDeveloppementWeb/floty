@@ -8,21 +8,20 @@ use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
 
 /**
- * Trace d'une décision de revue persistée matchée par fingerprint sur
- * un cluster fraîchement re-détecté lors du calcul de la déclaration
- * (Phase 11 D5.2).
+ * Persisted review decision matched (by fingerprint) on a cluster
+ * re-detected during the declaration calculation.
  *
- * Les décisions `Conserved` figurent dans la liste à des fins d'audit
- * (le PDF affichera « Acceptée ») mais n'ont aucun effet sur le calcul
- * fiscal. Seules les `Requalified` alimentent
- * {@see FiscalDeclarationSnapshot::$optOutContractIds} et impactent les
- * montants.
+ * `Conserved` decisions appear in the list for audit purposes (the PDF
+ * displays "Acceptée") but have no effect on the calculation. Only
+ * `Requalified` decisions feed
+ * {@see FiscalDeclarationSnapshot::$optOutContractIds} and impact the
+ * amounts.
  */
 final readonly class AppliedDecisionEntry
 {
     /**
-     * @param  list<int>  $contractIds  IDs des contrats membres du cluster (source du fingerprint)
-     * @param  list<int>  $excludedContractIds  Phase 13 D5.10.S · IDs des contrats explicitement exclus du cluster par l'utilisateur
+     * @param  list<int>  $contractIds  IDs of the contracts inside the cluster (fingerprint source)
+     * @param  list<int>  $excludedContractIds  IDs of contracts explicitly excluded from the cluster by the user
      */
     public function __construct(
         public string $clusterFingerprint,

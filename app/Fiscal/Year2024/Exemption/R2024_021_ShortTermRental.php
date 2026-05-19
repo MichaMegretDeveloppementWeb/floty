@@ -18,29 +18,27 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\Contract;
 
 /**
- * R-2024-021 - Exonération Location de Courte Durée (LCD).
+ * R-2024-021 · short-term rental (LCD) exemption.
  *
- * **Sémantique v2.0 (ADR-0014, conforme BOFiP § 180-190)** :
- * Un contrat de location est qualifié de courte durée si **l'une** des
- * conditions suivantes est vérifiée :
- *   - durée du contrat ≤ 30 jours consécutifs (`end - start + 1`)
- *   - **OU** le contrat couvre exactement un mois civil entier
- *     (premier au dernier jour d'un même mois calendaire)
+ * Per ADR-0014 and BOFiP § 180-190, a rental contract is short-term
+ * iff one of the following holds:
+ *   - contract duration ≤ 30 consecutive days (`end - start + 1`)
+ *   - OR contract covers exactly one full civil month (first to last
+ *     day of the same calendar month)
  *
- * Tous les jours d'un contrat LCD sont exonérés des deux taxes (CO₂ +
- * polluants) - ils sont retirés du numérateur du prorata appliqué par
- * R-2024-002. La qualification s'apprécie **par contrat individuel**,
- * jamais en cumul du couple.
+ * Every day of an LCD contract is exempt from both taxes (CO₂ +
+ * pollutants) and removed from the prorata numerator handled by
+ * R-2024-002. Qualification is per individual contract, never on the
+ * pair's cumulative duration.
  *
- * **Source légale** : CIBS art. L. 421-129 et L. 421-141 (renvoi à la
- * définition « location de courte durée » du Code monétaire et
- * financier) ; doctrine BOFiP-IS-DG-30-10-30.
+ * Legal basis: CIBS art. L. 421-129 and L. 421-141 (referring to the
+ * "short-term rental" definition from the Code monétaire et
+ * financier); doctrine BOFiP-IS-DG-30-10-30.
  *
- * **Architecture** (cf. memory `feedback_fiscal_rules_authority`) : la
- * qualification LCD est portée par cette règle souveraine - aucun
- * service ne décide à sa place. R-2024-008 (indispos réductrices)
- * délègue à `isShortTermRental()` pour distinguer contrats taxables et
- * contrats déjà LCD-exonérés.
+ * Architecture: LCD qualification is owned by this sovereign rule, no
+ * service decides instead. R-2024-008 (reductive unavailabilities)
+ * delegates to `isShortTermRental()` to distinguish taxable contracts
+ * from already-LCD-exempt contracts.
  */
 final readonly class R2024_021_ShortTermRental implements ExemptionRule, LcdQualifier
 {

@@ -15,22 +15,20 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-018 - Exonération organisme d'intérêt général (CIBS L. 421-126
+ * R-2024-018 · public-interest organisation exemption (CIBS L. 421-126
  * / L. 421-138).
  *
- * Si l'entreprise utilisatrice est un organisme d'intérêt général
- * (CGI art. 261, 7°) ET que le véhicule est exclusivement affecté à son
- * activité non lucrative, l'exonération s'applique sur les deux taxes.
- * Flag : `companies.is_oig`.
+ * If the using company is a public-interest organisation (CGI art.
+ * 261, 7°) AND the vehicle is exclusively assigned to its
+ * non-profit activity, both taxes are waived. Flag: `companies.is_oig`.
  *
- * **Inactif par défaut V1** : aucune entreprise utilisatrice Floty
- * actuelle n'est OIG. La règle est structurellement câblée pour
- * activation future via seeder/UI.
+ * Inactive by default in V1: no current Floty using company is an
+ * OIG. The rule is wired for future activation via the seeder / UI.
  *
- * Note V1 : tant que le {@see PipelineContext} ne porte pas la
- * `Company` du couple, cette règle retourne `notExempt()`. Le critère
- * d'affectation exclusive sera évalué côté contrat (V2) - pas sur la
- * VFC, qui ne porte pas la sémantique d'usage par entreprise.
+ * As long as the {@see PipelineContext} does not carry the pair's
+ * `Company`, this rule returns `notExempt()`. The exclusive-assignment
+ * criterion will be evaluated at contract level in V2, not on the VFC
+ * (which does not carry per-company usage semantics).
  */
 final readonly class R2024_018_OigExemption implements ExemptionRule
 {
@@ -72,29 +70,27 @@ final readonly class R2024_018_OigExemption implements ExemptionRule
     public function legalBasis(): array
     {
         return [
-            // CIBS L. 421-126 · exonération taxe CO₂ pour les véhicules
-            // affectés aux opérations exonérées de TVA mentionnées au
-            // 9° du 4 et au 7 de l'article 261 du CGI.
+            // CIBS L. 421-126 · CO₂ tax exemption for vehicles
+            // assigned to VAT-exempt operations under CGI art. 261, 9°
+            // of 4 and 7.
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-126',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602965/2024-06-01',
                 'consulted_at' => '2026-05-06',
             ],
-            // Phase 13 D5.11 (audit sémantique) · jumeau strict de
-            // L. 421-126 pour la taxe polluants (texte identique
-            // mot pour mot · cf. description PHP). Indispensable pour
-            // la traçabilité fiscale sur les 2 taxes.
+            // L. 421-138 mirrors L. 421-126 word-for-word for the
+            // pollutants tax. Required for fiscal traceability on both
+            // taxes.
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-138',
                 'url' => 'https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044602927/2024-06-01',
                 'consulted_at' => '2026-05-13',
             ],
-            // Phase 13 D5.11 (audit sémantique) · texte source du
-            // périmètre OIG · le 7 de l'art. 261 CGI définit les
-            // organismes d'utilité générale exonérés de TVA, auxquels
-            // les exonérations CIBS L. 421-126 / L. 421-138 renvoient.
+            // Source defining the OIG scope. CGI art. 261, 7° defines
+            // the public-interest organisations exempt from VAT to
+            // which CIBS L. 421-126 / L. 421-138 refer.
             [
                 'type' => 'CGI',
                 'article' => '261',
@@ -120,8 +116,8 @@ final readonly class R2024_018_OigExemption implements ExemptionRule
 
     public function evaluate(PipelineContext $context): ExemptionVerdict
     {
-        // Tant que le contexte ne porte pas la company, pas
-        // d'évaluation possible. Cas attendu V1.
+        // Cannot evaluate while the context does not carry the company
+        // (expected V1 state).
         return ExemptionVerdict::notExempt();
     }
 

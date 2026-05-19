@@ -8,9 +8,9 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 
 /**
- * Tarif annuel forfaitaire par catégorie polluants (R-2024-014).
- * Chaque {@see PollutantCategory} doit avoir un tarif explicite -
- * impossible de construire un tarif partiel.
+ * Flat annual tariff per pollutant category (R-2024-014). Each
+ * {@see PollutantCategory} must have an explicit tariff: partial
+ * tariffs are forbidden.
  */
 final readonly class PollutantTariff
 {

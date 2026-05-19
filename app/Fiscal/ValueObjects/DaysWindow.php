@@ -4,21 +4,23 @@ declare(strict_types=1);
 
 namespace App\Fiscal\ValueObjects;
 
+use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
+use App\Fiscal\Pipeline\PipelineContext;
 use Carbon\CarbonImmutable;
 
 /**
- * Fenêtre temporelle [start, end] (bornes inclusives) utilisée pour
- * restreindre le compte des jours présents dans le pipeline fiscal.
+ * Inclusive `[start, end]` day window used to restrict the day counter
+ * in the fiscal pipeline.
  *
- * Posée par {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} sur
- * le {@see App\Fiscal\Pipeline\PipelineContext} quand un calcul est
- * segmenté par VFC : chaque sous-calcul reçoit la fenêtre du segment
- * VFC actif, mais voit toujours les contrats entiers (pour que les
- * règles per-contract comme R-2024-021 LCD jugent sur la durée totale
- * du contrat, pas sur la portion clippée).
+ * Set by {@see FiscalSegmentedExecutor} on the
+ * {@see PipelineContext} when a calculation is
+ * segmented by VFC: each sub-calculation receives the VFC segment's
+ * window but still sees the full contracts (so per-contract rules like
+ * R-2024-021 LCD judge on the contract's total duration, not on the
+ * clipped portion).
  *
- * R-2024-002 (DailyProrata) intersecte les jours présents
- * (`expandToDaysInYear`) avec cette fenêtre si elle est posée.
+ * R-2024-002 (DailyProrata) intersects its day enumeration with this
+ * window when set.
  */
 final readonly class DaysWindow
 {
@@ -28,8 +30,8 @@ final readonly class DaysWindow
     ) {}
 
     /**
-     * Vrai ssi la date est dans la fenêtre (bornes incluses), comparée
-     * à la granularité du jour (heure/minute ignorées).
+     * True iff the date is inside the window (inclusive bounds),
+     * compared at day granularity.
      */
     public function contains(CarbonImmutable $date): bool
     {

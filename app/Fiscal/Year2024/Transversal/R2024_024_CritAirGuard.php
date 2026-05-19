@@ -14,19 +14,19 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-024 · Garde-fou Crit'Air.
+ * R-2024-024 · Crit'Air guard.
  *
- * **Règle documentaire-only** (ADR-0022 · complément Phase 13 D5.11) ·
- * cette règle décrit un garde-fou UI non bloquant qui contrôle la
- * cohérence entre la catégorie polluants CIBS calculée (E / 1 / les
- * plus polluants, L. 421-134) et la vignette Crit'Air attendue. La
- * vignette Crit'Air relève du Code de la route (R. 318-2) et de
- * l'arrêté du 21 juin 2016, indépendamment de la fiscalité.
+ * Documentary-only rule (ADR-0022). Describes a non-blocking UI guard
+ * that checks consistency between the computed CIBS pollutants
+ * category (E / 1 / most polluting, L. 421-134) and the expected
+ * Crit'Air sticker. The Crit'Air sticker is governed by the Code de
+ * la route (R. 318-2) and the 21 June 2016 decree, independent of
+ * taxation.
  *
- * **Implémentation effective** · le garde-fou est codé côté frontend
- * dans `resources/js/Composables/Vehicle/useCritAirCheck.ts`. Cette
- * classe porte uniquement les métadonnées pour la page « Règles de
- * calcul » et le seeder de l'index `fiscal_rules`.
+ * Effective implementation: the guard is coded in the frontend
+ * composable `resources/js/Composables/Vehicle/useCritAirCheck.ts`.
+ * This class only carries metadata for the "Règles de calcul" page
+ * and the `fiscal_rules` index seeder.
  */
 final readonly class R2024_024_CritAirGuard implements InformativeRule
 {
@@ -87,10 +87,9 @@ final readonly class R2024_024_CritAirGuard implements InformativeRule
     }
 
     /**
-     * Override · l'implémentation effective du garde-fou Crit'Air vit
-     * dans le composable Vue `useCritAirCheck.ts`, pas dans cette classe
-     * PHP. Cette méthode informe le seeder pour que la page « Règles de
-     * calcul » expose le bon chemin à l'utilisateur curieux.
+     * Overrides the default code reference: the Crit'Air guard lives
+     * in the Vue composable, not in this PHP class. Informs the seeder
+     * so the Règles page exposes the right path.
      */
     public function codeReference(): string
     {

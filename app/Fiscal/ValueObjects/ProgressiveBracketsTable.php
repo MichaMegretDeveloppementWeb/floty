@@ -5,18 +5,17 @@ declare(strict_types=1);
 namespace App\Fiscal\ValueObjects;
 
 /**
- * Barème progressif à tarif marginal d'une règle de tarification
- * (Pricing) · ex. barème WLTP CO₂, NEDC, PA (Phase 13 D5.12).
+ * Marginal-rate progressive bracket of a pricing rule (e.g. WLTP CO₂,
+ * NEDC, PA), formatted for display.
  *
- * Représentation pour affichage uniquement · les valeurs numériques
- * utilisées par le moteur de calcul vivent dans la méthode `apply()`
- * de la classe Rule. Les deux doivent rester cohérentes (cf. tests
- * goldens des barèmes).
+ * Numerical values used by the engine live in the rule's `apply()`
+ * method. Both representations must stay consistent (covered by the
+ * bracket golden tests).
  *
- * `header` · 2 colonnes (libellé de tranche, taux marginal). Ex.
+ * `header`: two columns (bracket label, marginal rate), e.g.
  * `['Tranche WLTP', 'Tarif marginal']`.
  *
- * `unit` · unité de la grandeur en abscisse (g/km, CV, etc.).
+ * `unit`: unit of the input variable (g/km, CV, etc.).
  */
 final readonly class ProgressiveBracketsTable
 {

@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Fiscal\ValueObjects;
 
 /**
- * Barème forfaitaire d'une règle de tarification · ex. tarif
- * polluants (catégorie → montant forfaitaire annuel · Phase 13 D5.12).
+ * Flat-tariff bracket of a pricing rule (e.g. pollutants: category →
+ * flat annual amount).
  *
- * `header` · 2 colonnes (libellé de catégorie, montant). Ex.
+ * `header`: two columns (category label, amount), e.g.
  * `['Catégorie polluants', 'Tarif annuel']`.
  */
 final readonly class FlatBracketsTable

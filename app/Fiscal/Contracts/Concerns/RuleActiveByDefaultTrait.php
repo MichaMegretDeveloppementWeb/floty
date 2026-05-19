@@ -5,18 +5,15 @@ declare(strict_types=1);
 namespace App\Fiscal\Contracts\Concerns;
 
 /**
- * Trait minimal qui fournit le défaut « actif » pour `isActive()`.
+ * Provides the default `isActive() = true` behaviour for fiscal rules.
  *
- * **Pourquoi ce trait isolé** : la grande majorité des règles fiscales
- * sont actives par défaut. Auparavant, ce défaut vivait dans
- * {@see AnnualRuleTrait}, ce qui mélangeait deux concerns orthogonaux
- * (temporalité annuelle vs état actif). Une règle partielle peut être
- * active ; une règle annuelle peut être inactive (R-2024-018 OIG,
- * R-2024-019 IndividualBusiness en V1).
+ * Kept separate from {@see AnnualRuleTrait} so the orthogonal concerns
+ * (temporal scope vs active flag) do not couple: a partial rule can be
+ * active and an annual rule can be inactive (R-2024-018 OIG,
+ * R-2024-019 IndividualBusiness in V1).
  *
- * **Usage** : adopter ce trait sur toute règle pipeline qui doit être
- * active par défaut. Pour désactiver, ne PAS utiliser le trait et
- * implémenter directement `isActive(): bool { return false; }`.
+ * To disable a rule, do NOT use this trait and implement directly
+ * `isActive(): bool { return false; }`.
  */
 trait RuleActiveByDefaultTrait
 {

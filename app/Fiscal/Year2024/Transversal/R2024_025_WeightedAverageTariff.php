@@ -11,30 +11,28 @@ use App\Enums\Fiscal\TaxType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\InformativeRule;
+use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-025 · Moyenne pondérée des tarifs en cas de bascule en cours d'année.
+ * R-2024-025 · weighted-average tariff on mid-year switches.
  *
- * **Règle documentaire-only** (ADR-0022 · ajout audit exhaustif 14/05/2026).
- * Quand plusieurs tarifs s'appliquent successivement au cours d'une même
- * année civile pour un même couple (véhicule, entreprise), le tarif
- * annuel utilisé dans le prorata journalier (R-2024-002) est remplacé
- * par la moyenne pondérée des tarifs, chacun pondéré par la durée en
- * nombre de jours de sa période d'application. Si plusieurs tarifs sont
- * susceptibles de s'appliquer le même jour, le tarif le plus élevé est
- * retenu.
+ * Documentary-only rule (ADR-0022). When several tariffs apply
+ * successively within the same civil year for the same pair (vehicle,
+ * company), the annual tariff used in R-2024-002 prorata is replaced
+ * by the weighted average of those tariffs, each weighted by the
+ * number of days it applies. If several tariffs would apply on the
+ * same day, the highest is retained.
  *
- * **Implémentation effective** : la mécanique est déjà appliquée
- * mathématiquement par {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor}
- * via la segmentation par VFC effective (ADR-0021). Pour chaque segment,
- * le tarif annuel est calculé sur la VFC du segment puis proratisé sur
- * ses jours, et tous les segments sont sommés. Mathématiquement
- * équivalent à la moyenne pondérée de L. 421-108.
+ * Effective implementation: the mechanic is already applied
+ * mathematically by {@see FiscalSegmentedExecutor}
+ * through effective-VFC segmentation (ADR-0021). For each segment the
+ * annual tariff is computed on the segment's VFC and prorated on its
+ * days; all segments are summed. Mathematically equivalent to the
+ * weighted average of L. 421-108.
  *
- * Cette classe n'a pas de logique d'exécution propre · elle existe
- * uniquement pour matérialiser la règle dans le catalogue documentaire
- * et exposer sa traçabilité légale.
+ * This class has no own execution logic; it exists to materialise the
+ * rule in the documentary catalog and expose its legal traceability.
  */
 final readonly class R2024_025_WeightedAverageTariff implements InformativeRule
 {

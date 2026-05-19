@@ -7,10 +7,10 @@ namespace App\Fiscal\Contracts;
 use App\Fiscal\Pipeline\PipelineContext;
 
 /**
- * Règle de classification : produit une qualification (méthode CO₂,
- * catégorie polluants, type fiscal M1/N1) à partir des caractéristiques
- * véhicule. Le résultat est attaché au contexte via une méthode `with*`
- * dédiée - la règle ne mute jamais le contexte d'entrée.
+ * Classification rule: qualifies a vehicle characteristic (CO₂ method,
+ * pollutant category, M1/N1 fiscal type) from the vehicle's fiscal
+ * properties. The result is attached to the context via a dedicated
+ * `with*` method; the rule never mutates the input context.
  */
 interface ClassificationRule extends FiscalRule
 {

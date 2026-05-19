@@ -7,37 +7,33 @@ namespace App\Fiscal\ValueObjects;
 use Carbon\CarbonImmutable;
 
 /**
- * Image immuable du calcul fiscal d'une déclaration pour un couple
- * `(company, year)` (Phase 11 D5.2, refondu D5.8 avec breakdown par
- * contrat au lieu de par véhicule).
+ * Immutable image of the fiscal calculation of a declaration for a
+ * `(company, year)` pair.
  *
- * **Pourquoi** : le calcul d'une déclaration n'est pas un calcul fiscal
- * standard : il applique en plus les décisions humaines de revue
- * (« Requalified » sur certains clusters LCD). Le snapshot capture le
- * résultat tel qu'il a été calculé au moment précis de la génération,
- * avec la trace des décisions appliquées et des contrats opt-out
- * effectifs.
+ * Declaration calculation is not a plain fiscal calculation: it also
+ * applies human review decisions ("Requalified" on some LCD clusters).
+ * The snapshot captures the result exactly as computed at generation
+ * time, with traces of the applied decisions and the effective opt-out
+ * contracts.
  *
- * **Refonte D5.8** : le breakdown est désormais **par contrat trié
- * chronologiquement** plutôt que par véhicule. Cette vue permet à
- * l'utilisateur de comprendre chaque ligne (date, durée, motif
- * d'exonération éventuel) et matérialise les chaînes LCD à risque
- * directement dans la liste via le champ `clusterFingerprint` partagé
- * par les contrats d'un même cluster. Cf. `ContractSnapshotEntry`.
+ * Per-contract breakdown sorted chronologically (rather than
+ * per-vehicle) lets the user understand each row (date, duration,
+ * exemption motive) and materialises risky LCD chains directly in the
+ * list via the shared `clusterFingerprint`. See `ContractSnapshotEntry`.
  *
- * **Immuabilité stricte** : `final readonly` + propriétés promues + sous-VO
- * `final readonly`. Aucune mutation possible après construction.
+ * Strict immutability: `final readonly` + promoted properties +
+ * `final readonly` sub-VOs. No mutation possible after construction.
  *
- * **Persistance** : sérialisé via `FiscalDeclarationSnapshotData` au
- * moment de `markAsGenerated()` (D5.5) pour garantir l'immuabilité
- * fiscale du PDF historique vs recalcul à la volée.
+ * Persistence: serialised via `FiscalDeclarationSnapshotData` at
+ * `markAsGenerated()` time to guarantee fiscal immutability of the
+ * historical PDF vs on-the-fly recomputation.
  */
 final readonly class FiscalDeclarationSnapshot
 {
     /**
-     * @param  list<ContractSnapshotEntry>  $contractBreakdown  Détail par contrat trié chronologiquement (vehicleId, startDate)
-     * @param  list<AppliedDecisionEntry>  $appliedDecisions  Décisions de revue persistées matchées sur les clusters re-détectés
-     * @param  list<int>  $optOutContractIds  IDs des contrats requalifiés effectivement appliqués (collation Requalified)
+     * @param  list<ContractSnapshotEntry>  $contractBreakdown  Per-contract detail, sorted by (vehicleId, startDate)
+     * @param  list<AppliedDecisionEntry>  $appliedDecisions  Persisted review decisions matched on re-detected clusters
+     * @param  list<int>  $optOutContractIds  IDs of contracts effectively requalified
      */
     public function __construct(
         public int $companyId,
@@ -52,10 +48,10 @@ final readonly class FiscalDeclarationSnapshot
         public array $appliedDecisions,
         public array $optOutContractIds,
         /**
-         * Phase 13 D5.10.Y · adresse postale formatée de l'entreprise
-         * utilisatrice, capturée au moment de la génération pour figer
-         * l'identité fiscale dans le PDF. Lignes séparées par `\n`.
-         * Null si aucune partie de l'adresse n'est renseignée.
+         * Formatted postal address of the user company, captured at
+         * generation time to freeze the fiscal identity in the PDF.
+         * Lines separated by `\n`. Null if no part of the address is
+         * filled.
          */
         public ?string $companyAddress = null,
     ) {}

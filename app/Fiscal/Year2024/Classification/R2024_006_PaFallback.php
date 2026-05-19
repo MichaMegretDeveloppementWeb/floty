@@ -14,14 +14,13 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-006 · Bascule sur barème PA (CO₂ manquant).
+ * R-2024-006 · fallback to PA bracket (missing CO₂).
  *
- * **Règle documentaire-only** (ADR-0022 · complément Phase 13 D5.11) ·
- * cette règle décrit la doctrine de fallback fiscale · lorsque la
- * donnée d'émissions CO₂ est manquante sur la VFC, le barème
- * Puissance Administrative (PA) est appliqué à la place du barème
- * WLTP/NEDC. La sélection effective de méthode est faite par la
- * règle pipeline {@see App\Fiscal\Year2024\Classification\R2024_005_Co2MethodSelection}.
+ * Documentary-only rule (ADR-0022). Describes the fiscal fallback
+ * doctrine: when the CO₂ emissions value is missing on the VFC, the
+ * Administrative Horsepower (PA) bracket is applied instead of the
+ * WLTP/NEDC bracket. Actual method selection is done by the pipeline
+ * rule {@see R2024_005_Co2MethodSelection}.
  */
 final readonly class R2024_006_PaFallback implements InformativeRule
 {

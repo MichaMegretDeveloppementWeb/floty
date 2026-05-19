@@ -7,15 +7,15 @@ namespace App\Fiscal\ValueObjects;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 
 /**
- * Une tranche d'un barème progressif à tarif marginal.
+ * One slice of a marginal-rate progressive bracket.
  *
- * Sémantique : pour la fraction de la valeur d'entrée comprise dans
- * `(lowerExclusive, upperInclusive]`, on applique `marginalRate`. La
- * dernière tranche d'un barème peut avoir `upperInclusive = null` pour
- * désigner une borne ouverte (au lieu du PHP_INT_MAX historique).
+ * Semantics: for the portion of the input value falling in
+ * `(lowerExclusive, upperInclusive]`, the `marginalRate` applies. The
+ * last slice of a bracket may have `upperInclusive = null` to express
+ * an open upper bound (instead of the legacy PHP_INT_MAX).
  *
- * Immuable et validée au constructeur - impossible de construire une
- * tranche incohérente.
+ * Immutable and validated at construction; building an inconsistent
+ * slice throws immediately.
  */
 final readonly class BracketRange
 {
@@ -33,8 +33,8 @@ final readonly class BracketRange
     }
 
     /**
-     * Portion entière de `$value` qui tombe dans cette tranche, ou 0
-     * si la valeur est sous le `lowerExclusive`.
+     * Integer portion of `$value` that falls in this slice, or 0 if
+     * the value is below `lowerExclusive`.
      */
     public function slice(int $value): int
     {
@@ -48,8 +48,8 @@ final readonly class BracketRange
     }
 
     /**
-     * Vrai si la tranche n'a pas de borne supérieure (utilisée pour
-     * fermer un barème progressif).
+     * True if the slice has no upper bound (used to close a progressive
+     * bracket).
      */
     public function isOpenEnded(): bool
     {

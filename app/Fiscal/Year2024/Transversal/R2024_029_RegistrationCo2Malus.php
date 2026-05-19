@@ -13,28 +13,25 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-029 · Malus CO₂ à l'immatriculation (« malus écologique »).
+ * R-2024-029 · CO₂ registration malus ("ecological malus").
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY.**
+ * Documentary-only rule, OUT OF FLOTY SCOPE.
  *
- * Taxe ponctuelle à l'immatriculation d'un véhicule de tourisme neuf
- * (ou occasion importée non précédemment immatriculée en France),
- * basée sur les émissions de CO₂.
+ * One-shot tax at registration of a new passenger vehicle (or imported
+ * second-hand not previously registered in France), based on CO₂
+ * emissions.
  *
- * **Redevable** · titulaire du certificat d'immatriculation, c'est-à-dire
- * la personne au nom de laquelle la carte grise est établie.
+ * Taxpayer: the holder of the registration certificate.
  *
- * **Pourquoi hors périmètre Floty** · dans le modèle Floty, les
- * véhicules de la flotte sont détenus par une **société de location**
- * qui les immatricule à son nom. C'est donc le bailleur qui acquitte
- * le malus CO₂ à l'achat. Les entreprises utilisatrices, qui prennent
- * en location longue durée, ne sont **jamais redevables** de cette
- * taxe ponctuelle (même si le coût peut être refacturé dans le loyer,
- * la redevabilité juridique reste au bailleur).
+ * Why out of Floty scope: in Floty, fleet vehicles are held by a
+ * renter company that registers them in its name. The renter
+ * therefore pays the CO₂ malus at purchase. Using companies (LLD
+ * tenants) are never liable for this one-shot tax (the cost may be
+ * re-invoiced in the rent, but legal liability stays with the renter).
  *
- * **Paramètres 2024** · seuil de déclenchement 118 g CO₂/km, plafond
- * 60 000 €, plafonnement à 50 % du prix d'acquisition (LF 2024 art. 100).
- * Détails sur Légifrance et BOFiP-AIS-MOB-10-20-40.
+ * 2024 parameters: trigger 118 g CO₂/km, cap 60 000 €, capped at 50 %
+ * of acquisition price (LF 2024 art. 100). Details on Légifrance and
+ * BOFiP-AIS-MOB-10-20-40.
  */
 final readonly class R2024_029_RegistrationCo2Malus implements InformativeRule
 {

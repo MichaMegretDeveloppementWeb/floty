@@ -15,34 +15,31 @@ use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * État accumulé pendant l'exécution d'un calcul fiscal.
+ * State accumulated while a fiscal calculation runs.
  *
- * Immuable : chaque règle reçoit le contexte courant et retourne une
- * nouvelle instance via les méthodes `with*()`. Le pipeline garde la
- * trace de la dernière instance et la passe à l'étape suivante.
+ * Immutable: each rule receives the current context and returns a new
+ * instance via `with*()` methods. The pipeline keeps the latest
+ * instance and passes it to the next step.
  *
- * Les champs `?type $foo = null` représentent des données calculées au
- * fil du pipeline. Un champ encore `null` à l'étape de tarification
- * indique soit qu'il n'y a pas eu de classification (cas dégénéré),
- * soit que la règle correspondante n'est pas encore exécutée.
+ * Fields typed `?type = null` are computed during the pipeline. A field
+ * still `null` at the pricing stage means either no classification was
+ * done (degenerate case) or the corresponding rule has not yet run.
  *
- * **Refonte 04.F (ADR-0014)** :
- * - Le pipeline reçoit désormais la liste des contrats du couple
- *   (`contractsForPair`) et les indispos du véhicule de l'année
- *   (`vehicleUnavailabilitiesInYear`), pour permettre aux règles
- *   souveraines (R-2024-021, R-2024-008) d'agir sur la matière brute.
- * - `daysAssignedToCompany` et `cumulativeDaysForPair` deviennent
- *   nullable et sont calculés par {@see R2024_002_DailyProrata}
- *   à partir des contrats taxables (post-application des verdicts
- *   d'exonération journalière).
+ * Per ADR-0014, the pipeline receives the pair's contracts
+ * (`contractsForPair`) and the vehicle's unavailabilities for the year
+ * (`vehicleUnavailabilitiesInYear`) so sovereign rules (R-2024-021,
+ * R-2024-008) can act on raw material. `daysAssignedToCompany` and
+ * `cumulativeDaysForPair` are nullable and computed by
+ * {@see R2024_002_DailyProrata} from the taxable contracts (after
+ * applying daily exemption verdicts).
  */
 final readonly class PipelineContext
 {
     /**
-     * @param  list<Contract>  $contractsForPair  Contrats actifs du couple sur l'année
-     * @param  list<Unavailability>  $vehicleUnavailabilitiesInYear  Indispos du véhicule sur l'année
-     * @param  list<ExemptionVerdict>  $exemptionVerdicts  Verdicts collectés étape 4
-     * @param  list<string>  $appliedRuleCodes  Trace pour le snapshot PDF
+     * @param  list<Contract>  $contractsForPair  Active contracts of the pair over the year
+     * @param  list<Unavailability>  $vehicleUnavailabilitiesInYear  Vehicle unavailabilities over the year
+     * @param  list<ExemptionVerdict>  $exemptionVerdicts  Verdicts collected at step 4
+     * @param  list<string>  $appliedRuleCodes  Trace for the PDF snapshot
      */
     public function __construct(
         public Vehicle $vehicle,
@@ -64,12 +61,11 @@ final readonly class PipelineContext
         public array $exemptionVerdicts = [],
         public array $appliedRuleCodes = [],
         /**
-         * Fenêtre de jours posée par
-         * {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} quand
-         * un calcul est segmenté par VFC. Restreint le compte des
-         * jours présents dans R-2024-002 sans clipper la définition
-         * des contrats (R-2024-021 LCD juge sur la durée totale du
-         * contrat). `null` = pas de restriction (mode mono-VFC).
+         * Day window set by {@see FiscalSegmentedExecutor} when a
+         * calculation is segmented by VFC. Restricts the day count in
+         * R-2024-002 without clipping contract definitions (R-2024-021
+         * LCD judges on the contract's full duration). `null` means no
+         * restriction (single-VFC mode).
          */
         public ?DaysWindow $daysWindow = null,
     ) {}
@@ -140,13 +136,11 @@ final readonly class PipelineContext
     }
 
     /**
-     * Helper interne qui clone l'instance en remplaçant les champs
-     * fournis. Évite la répétition des champs à chaque méthode
-     * `with*()`. Un nouveau champ ajouté au constructeur ne nécessite
-     * aucune modification ici.
+     * Clones the instance replacing the supplied fields. Adding a new
+     * field to the constructor needs no change here.
      *
-     * Utilise `array_key_exists` (pas `??`) pour autoriser les valeurs
-     * falsy intentionnelles (`false`, `0`, `null`).
+     * Uses `array_key_exists` (not `??`) so intentional falsy overrides
+     * (`false`, `0`, `null`) are honoured.
      *
      * @param  array<string, mixed>  $overrides
      */

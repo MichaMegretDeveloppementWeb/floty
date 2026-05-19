@@ -5,28 +5,30 @@ declare(strict_types=1);
 namespace App\Fiscal\ValueObjects;
 
 use App\Fiscal\Contracts\FiscalRule;
+use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
+use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
 use Carbon\CarbonImmutable;
 
 /**
- * Segment temporel d'une année fiscale sur lequel l'ensemble des règles
- * applicables est stable (chantier κ - granularité temporelle).
+ * Temporal segment of a fiscal year over which the set of applicable
+ * rules is stable.
  *
- * Émis par
- * {@see App\Fiscal\Pipeline\RuleEffectiveSegmenter::segmentsForYear()}.
- * Bornes inclusives, clippées à l'année consultée :
+ * Emitted by
+ * {@see RuleEffectiveSegmenter::segmentsForYear()}.
+ * Bounds inclusive, clipped to the queried year:
  *   - `start` >= year-01-01
  *   - `end`   <= year-12-31
  *
- * Un segment couvre toujours au moins 1 jour. La liste `rules` est
- * toujours non-vide (les segments sans règle applicable ne sont pas
- * matérialisés). L'ordre des règles dans la liste est celui du registry
- * pour l'année consultée (préserve l'ordre d'exécution du pipeline).
+ * A segment always spans at least one day. The `rules` list is always
+ * non-empty (segments without applicable rule are not materialised).
+ * Rule order matches the registry order for the year (preserves the
+ * pipeline execution order).
  *
- * Consommé par {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor}
- * (chantier κ.4) qui combine ce segment avec les segments VFC pour
- * exécuter le pipeline sur le produit cartésien VFC × Règles.
+ * Consumed by {@see FiscalSegmentedExecutor},
+ * which combines this segment with VFC segments to run the pipeline on
+ * the cartesian product VFC × rules.
  *
- * Analogue temporel de {@see VfcEffectiveSegment} (segment VFC).
+ * Temporal analogue of {@see VfcEffectiveSegment}.
  */
 final readonly class RuleEffectiveSegment
 {

@@ -16,25 +16,24 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2024-002 - Prorata journalier (jours d'utilisation effective /
- * dénominateur dynamique selon l'année, 366 en 2024 bissextile).
+ * R-2024-002 · daily prorata (effective use days / dynamic denominator,
+ * 366 in leap year 2024).
  *
- * **Sémantique v2.0 (ADR-0014)** :
- * Le numérateur est calculé ici à partir des contrats du couple
- * (`contractsForPair`) en soustrayant les jours signalés exonérés par
- * les règles d'exonération journalière (R-2024-021 LCD,
- * R-2024-008 indispos réductrices).
+ * Legal basis: CIBS L. 421-107.
  *
- *   numérateur = totalDays(contractsForPair, year)
- *              − Σ verdicts.exemptDaysCount  (R-2024-021 + R-2024-008)
+ * Per ADR-0014, the numerator is computed from the pair's contracts
+ * (`contractsForPair`) by subtracting the days flagged exempt by the
+ * daily exemption rules (R-2024-021 LCD, R-2024-008 reductive
+ * unavailabilities):
  *
- * Cette règle est aussi celle qui pose `daysAssignedToCompany` et
- * `cumulativeDaysForPair` dans le contexte (champs nullable jusqu'ici)
- * pour que `PipelineResult` puisse les exposer aux consommateurs en
- * aval (PDF, breakdown UI).
+ *   numerator = totalDays(contractsForPair, year)
+ *             − Σ verdicts.exemptDaysCount  (R-2024-021 + R-2024-008)
  *
- * Cette règle ne s'occupe PAS de l'arrondi - c'est le rôle de
- * {@see R2024_003_FinalRounding}.
+ * This rule also writes `daysAssignedToCompany` and
+ * `cumulativeDaysForPair` onto the context (nullable until now) so the
+ * `PipelineResult` can expose them downstream (PDF, breakdown UI).
+ *
+ * Rounding is not done here; {@see R2024_003_FinalRounding} handles it.
  */
 final readonly class R2024_002_DailyProrata implements TransversalRule
 {
@@ -96,17 +95,14 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
 
     public function apply(PipelineContext $context): PipelineContext
     {
-        // 1. Total jours dans l'année des contrats du couple (les
-        // triggers anti-overlap garantissent l'absence de chevauchement
-        // entre contrats actifs du couple, mais on agrège via un set
-        // pour rester strict).
-        //
-        // Si une `daysWindow` est posée (mode segmenté par VFC, cf.
-        // FiscalSegmentedExecutor), on filtre les jours présents
-        // pour ne compter que ceux qui tombent dans la fenêtre du
-        // segment courant. Les contrats restent passés entiers au
-        // pipeline (nécessaire pour que R-2024-021 LCD juge sur leur
-        // durée totale, pas sur la portion clippée).
+        // 1. Total days in the year across the pair's contracts. The
+        // anti-overlap triggers guarantee no overlap between the pair's
+        // active contracts but we aggregate through a set to stay
+        // strict. If a `daysWindow` is set (VFC-segmented mode), filter
+        // present days to keep only those inside the current segment.
+        // Contracts are still passed whole to the pipeline so
+        // R-2024-021 LCD judges on the full contract duration, not the
+        // clipped portion.
         $window = $context->daysWindow;
         $totalDates = [];
         foreach ($context->contractsForPair as $contract) {
@@ -119,8 +115,8 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
         }
         $totalDays = count($totalDates);
 
-        // 2. Soustraction des jours exonérés (verdicts partialDays
-        // posés par R-2024-021 et R-2024-008).
+        // 2. Subtract exempt days (partialDays verdicts emitted by
+        // R-2024-021 and R-2024-008).
         $exemptDays = 0;
         foreach ($context->exemptionVerdicts as $verdict) {
             if ($verdict->exemptDaysCount !== null) {
@@ -130,9 +126,8 @@ final readonly class R2024_002_DailyProrata implements TransversalRule
 
         $daysAssignedToCompany = max(0, $totalDays - $exemptDays);
 
-        // 3. Application du prorata sur les tarifs annuels (déjà
-        // éventuellement neutralisés par les exonérations totales -
-        // handicap, électrique, OIG, etc.).
+        // 3. Apply the prorata to the annual tariffs (already possibly
+        // zeroed by total exemptions: handicap, electric, OIG, …).
         $co2Full = $context->co2FullYearTariff ?? 0.0;
         $pollutantsFull = $context->pollutantsFullYearTariff ?? 0.0;
         $denominator = $context->daysInYear;

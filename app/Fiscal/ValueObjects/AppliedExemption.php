@@ -5,11 +5,11 @@ declare(strict_types=1);
 namespace App\Fiscal\ValueObjects;
 
 /**
- * Couple `(reason, ruleCode)` exposé dans le résultat du pipeline pour
- * affichage utilisateur (panneau "Exonérations applicables").
+ * Pair `(reason, ruleCode)` exposed in the pipeline result for the
+ * user-facing "Exonérations applicables" panel.
  *
- * Permet de tracer chaque motif textuel jusqu'à la règle métier qui l'a
- * produit, pour ouvrir la fiche R-2024-XXX correspondante depuis l'UI.
+ * Lets each textual motive be traced to the rule that produced it so
+ * the UI can open the matching R-YYYY-XXX rule sheet.
  */
 final readonly class AppliedExemption
 {

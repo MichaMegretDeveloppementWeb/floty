@@ -8,41 +8,38 @@ use App\Enums\Contract\ContractType;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
 use App\Enums\FiscalReviewDecision\RiskLevel;
+use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 
 /**
- * Ligne « contrat » d'un {@see FiscalDeclarationSnapshot} (Phase 11
- * D5.8). Remplace l'ancien `VehicleSnapshotEntry` : la déclaration
- * est désormais détaillée **par contrat** (vue chronologique), pas
- * par véhicule (vue agrégée opaque).
+ * "Contract" row of a {@see FiscalDeclarationSnapshot}. The declaration
+ * is broken down per contract (chronological view), not per vehicle
+ * (aggregated opaque view).
  *
- * **Pourquoi par contrat** : un véhicule utilisé 91 jours pour Y €
- * de taxe ne dit rien sur la répartition temporelle ni les motifs
- * (motorisation EV, opt-out LCD, cumul LCD). La vue par contrat
- * permet à l'utilisateur (et à l'administration en audit) de
- * comprendre **chaque ligne**, et matérialise les clusters LCD à
- * risque visuellement dans la liste elle-même (les contrats d'un
- * cluster partagent le même `clusterFingerprint`).
+ * Why per contract: a vehicle used 91 days for Y € of tax tells nothing
+ * about temporal repartition or motives (EV motorisation, LCD opt-out,
+ * LCD cumul). The per-contract view lets the user (and tax
+ * administration in audit) understand each line, and materialises
+ * risky LCD clusters visually (contracts of a cluster share the same
+ * `clusterFingerprint`).
  *
- * **Tri** : le snapshot range les entrées par `(vehicleId,
- * startDate)` pour un groupage visuel naturel côté frontend. Les
- * contrats consécutifs d'un même cluster LCD sont donc adjacents,
- * permettant au composant frontend `<ClusterGroup>` de les
- * enrouler dans une « boîte » visuelle.
+ * Sort order: entries are sorted by `(vehicleId, startDate)` for a
+ * natural visual grouping on the frontend. Consecutive contracts of
+ * the same LCD cluster are adjacent so the `<ClusterGroup>` component
+ * can wrap them in a single visual box.
  *
- * **Montants** : `co2Due`, `pollutantsDue`, `totalDue` sont
- * arrondis au centime (HALF_UP). Leur somme sur l'ensemble des
- * entries égale {@see FiscalDeclarationSnapshot::$totalDue} à
- * l'arrondi près (R-2024-003 invariant d'arrondi unique par
- * redevable).
+ * Amounts: `co2Due`, `pollutantsDue`, `totalDue` are rounded to the
+ * cent (HALF_UP). Their sum across all entries equals
+ * {@see FiscalDeclarationSnapshot::$totalDue} up to rounding
+ * (R-2024-003 single rounding per taxpayer invariant).
  *
- * **Répartition proportionnelle** : la taxe par contrat est
- * `(jours_contrat_année / jours_couple_année) × taxe_couple`,
- * cohérente avec le prorata journalier R-2024-002. Si tous les
- * contrats d'un couple sont LCD exonérés, taxe = 0 €.
+ * Proportional split: per-contract tax is
+ * `(days_in_contract_year / days_in_pair_year) × tax_pair`, matching
+ * the R-2024-002 daily prorata. If every contract of a pair is
+ * LCD-exempt, tax = 0 €.
  *
- * **Caractéristiques fiscales véhicule** : `vehicleFiscalSummary`
- * pré-formatée (ex. `M1 · WLTP 100 g · Euro 6`), utile à
- * l'administration en audit, plus parlant qu'un simple label.
+ * Vehicle fiscal characteristics: `vehicleFiscalSummary` is
+ * pre-formatted (e.g. `M1 · WLTP 100 g · Euro 6`), more informative
+ * than a plain label and useful in audit.
  */
 final readonly class ContractSnapshotEntry
 {
@@ -54,7 +51,7 @@ final readonly class ContractSnapshotEntry
         public string $startDate,
         /** ISO 8601 `Y-m-d`. */
         public string $endDate,
-        /** Jours du contrat **dans l'année cible** (peut être < durée totale si à cheval). */
+        /** Days of the contract **inside the target year** (may be < total duration if straddling). */
         public int $daysInYearAssigned,
         public int $vehicleId,
         public string $vehicleLabel,
@@ -68,27 +65,24 @@ final readonly class ContractSnapshotEntry
         public ?ReviewDecisionType $clusterDecision,
         public ?string $clusterJustification,
         /**
-         * ID de la déclaration prédécesseur d'où la décision a été
-         * **reprise auto** par fingerprint matching (Phase 11 D5.8.2,
-         * amélioration B audit). Null si :
-         *  - aucune décision sur ce cluster, OU
-         *  - décision prise pendant la session de revue courante.
+         * ID of the predecessor declaration from which the decision was
+         * automatically retained by fingerprint matching. Null if:
+         *  - no decision exists for this cluster, OR
+         *  - the decision was taken during the current review session.
          *
-         * Permet au composant frontend `<ClusterGroup>` de matérialiser
-         * un badge `🔁 Décision reprise de la version précédente` qui
-         * distingue les décisions héritées des décisions à
-         * trancher dans la session courante.
+         * Lets the frontend `<ClusterGroup>` show a retained-decision
+         * badge distinguishing inherited decisions from those taken in
+         * the current session.
          */
         public ?int $clusterDecisionRetainedFrom,
         public bool $isOptedOut,
         /**
-         * Phase 13 D5.10.W · raison d'exonération du contrat formatée
-         * pour affichage utilisateur (PDF + UI). Null si le contrat
-         * est taxé. Format · `« Exonéré R-XXXX-YYY · {nom court}
-         * (CIBS L. {article}) »`. Calculé par
-         * {@see App\Services\Fiscal\Declaration\DeclarationFiscalEngine}
-         * d'après la qualification fiscale du contrat (LCD individuel
-         * non opt-out → R-2024-021 ; autres cas à venir).
+         * User-facing exemption reason for this contract (PDF + UI).
+         * Null if the contract is taxed. Format: `« Exonéré R-XXXX-YYY
+         * · {short name} (CIBS L. {article}) »`. Computed by
+         * {@see DeclarationFiscalEngine}
+         * from the contract's fiscal qualification (individual non
+         * opt-out LCD → R-2024-021; other cases to come).
          */
         public ?string $exemptionReason,
     ) {}

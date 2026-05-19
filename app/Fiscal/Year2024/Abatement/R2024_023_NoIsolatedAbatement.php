@@ -14,18 +14,13 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2024-023 · Aucun abattement isolé applicable en 2024.
+ * R-2024-023 · no isolated abatement applicable in 2024.
  *
- * **Règle documentaire-only** (ADR-0022 · complément Phase 13 D5.11) ·
- * cette règle documente l'**absence** d'abattement isolé applicable
- * en 2024 (la catégorie Abatement est vide cette année). Le tableau
- * `legalBasis()` est volontairement vide · aucun article du CIBS ni
- * paragraphe BOFiP ne fonde un abattement isolé en 2024 (lecture
- * exhaustive du CIBS et de la doctrine confirmée).
- *
- * Conservée pour rester visible sur la page « Règles de calcul » et
- * matérialiser le constat « pas d'abattement en 2024 » plutôt que
- * laisser un silence trompeur.
+ * Documentary-only rule (ADR-0022). Documents the absence of any
+ * isolated abatement applicable in 2024 (the Abatement category is
+ * empty that year). Kept visible on the Règles page to materialise
+ * the "no 2024 abatement" finding rather than leave a misleading
+ * silence.
  */
 final readonly class R2024_023_NoIsolatedAbatement implements InformativeRule
 {

@@ -7,8 +7,7 @@ namespace App\Fiscal\ValueObjects;
 use App\Enums\Fiscal\TaxType;
 
 /**
- * Périmètre d'une exonération fiscale : touche-t-elle les deux taxes
- * ou une seule ?
+ * Scope of an exemption: does it cover both taxes or just one?
  */
 enum ExemptionScope
 {
@@ -17,7 +16,7 @@ enum ExemptionScope
     case PollutantsOnly;
 
     /**
-     * Vrai si le scope couvre la {@see TaxType} donnée.
+     * True if this scope covers the given {@see TaxType}.
      */
     public function covers(TaxType $tax): bool
     {
