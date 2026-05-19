@@ -2,6 +2,7 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { computed, ref, type ComputedRef, type Ref } from 'vue';
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 import { registryLookup as registryLookupRoute } from '@/routes/user/vehicles';
+import { requiresUnderlyingCombustionEngine } from '@/Utils/derivePollutantCategory';
 
 type VehicleRegistryLookupResult =
     App.Data.User.Vehicle.VehicleRegistryLookupResultData;
@@ -19,6 +20,7 @@ export type RegistryLookupState = {
     lastFetchedAt: Ref<string | null>;
     errorMessage: Ref<string | null>;
     missingFields: ComputedRef<ManualCheckField[]>;
+    isMissing: (key: FormFieldKey) => boolean;
     lookup: (licensePlate: string) => Promise<void>;
 };
 
@@ -31,37 +33,53 @@ const MANUAL_CHECK_FIELDS: ReadonlyArray<ManualCheckField> = [
     { key: 'first_french_registration_date', label: '1ère immatriculation France' },
     { key: 'acquisition_date', label: "Date d'acquisition" },
     { key: 'mileage_current', label: 'Kilométrage actuel' },
-    { key: 'reception_category', label: 'Catégorie de réception' },
+    { key: 'reception_category', label: 'Catégorie réception' },
     { key: 'body_type', label: 'Carrosserie' },
     { key: 'seats_count', label: 'Nombre de places' },
     { key: 'energy_source', label: "Source d'énergie" },
-    { key: 'underlying_combustion_engine_type', label: 'Type de moteur thermique sous-jacent' },
+    {
+        key: 'underlying_combustion_engine_type',
+        label: 'Moteur thermique sous-jacent',
+        applicable: (form) => requiresUnderlyingCombustionEngine(form.energy_source),
+    },
     { key: 'euro_standard', label: 'Norme Euro' },
     { key: 'homologation_method', label: "Méthode d'homologation" },
-    { key: 'co2_wltp', label: 'CO₂ WLTP' },
-    { key: 'co2_nedc', label: 'CO₂ NEDC' },
-    { key: 'taxable_horsepower', label: 'Puissance fiscale' },
+    {
+        key: 'co2_wltp',
+        label: 'CO₂ WLTP',
+        applicable: (form) => form.homologation_method === 'WLTP',
+    },
+    {
+        key: 'co2_nedc',
+        label: 'CO₂ NEDC',
+        applicable: (form) => form.homologation_method === 'NEDC',
+    },
+    {
+        key: 'taxable_horsepower',
+        label: 'Puissance admin.',
+        applicable: (form) => form.homologation_method === 'PA',
+    },
     { key: 'kerb_mass', label: 'Masse à vide' },
-    { key: 'accepts_e85', label: "Acceptation du superéthanol E85" },
-    { key: 'handicap_access', label: 'Accès handicapés' },
+    { key: 'handicap_access', label: 'Aménagé pour fauteuil roulant ou conduite handicapée' },
+    { key: 'accepts_e85', label: 'Compatible superéthanol E85 (flex-fuel)' },
     {
         key: 'm1_special_use',
-        label: 'Usage spécial M1',
+        label: 'Usage spécial : corbillard, ambulance, véhicule blindé',
         applicable: (form) => form.reception_category === 'M1',
     },
     {
         key: 'n1_passenger_transport',
-        label: 'Transport de personnes (N1)',
+        label: 'Affectée au transport de personnes',
         applicable: (form) => form.body_type === 'CTTE',
     },
     {
         key: 'n1_removable_second_row_seat',
-        label: 'Banquette amovible (N1)',
+        label: '2ᵉ rangée amovible installée',
         applicable: (form) => form.body_type === 'CTTE',
     },
     {
         key: 'n1_ski_lift_use',
-        label: 'Usage remontée mécanique (N1)',
+        label: "Affecté à l'exploitation de remontées mécaniques",
         applicable: (form) => form.body_type === 'BE',
     },
 ];
@@ -96,6 +114,17 @@ export function useVehicleRegistryLookup(
             return value === '' || value === null || value === undefined;
         });
     });
+
+    const missingKeys = computed<Set<FormFieldKey>>(
+        () => new Set(missingFields.value.map((field) => field.key)),
+    );
+
+    /**
+     * Whether a given form field is currently listed as needing manual entry.
+     */
+    function isMissing(key: FormFieldKey): boolean {
+        return missingKeys.value.has(key);
+    }
 
     /**
      * Trigger the lookup and hydrate the form from the response.
@@ -143,7 +172,7 @@ export function useVehicleRegistryLookup(
         }
     }
 
-    return { loading, lastFetchedAt, errorMessage, missingFields, lookup };
+    return { loading, lastFetchedAt, errorMessage, missingFields, isMissing, lookup };
 }
 
 /**
@@ -174,6 +203,19 @@ function mapErrorMessage(code: string | null): string {
 }
 
 /**
+ * Format a normalised license plate back to the SIV display format
+ * (`AA123AA` → `AA-123-AA`). Non-SIV plates are returned unchanged.
+ */
+function formatLicensePlate(normalised: string): string {
+    const match = /^([A-Z]{2})(\d{3})([A-Z]{2})$/.exec(normalised);
+    if (match) {
+        return `${match[1]}-${match[2]}-${match[3]}`;
+    }
+
+    return normalised;
+}
+
+/**
  * Hydrate the form from a successful lookup result and track which
  * fields the API actually provided.
  */
@@ -184,7 +226,7 @@ function applyResultToForm(
 ): void {
     provided.clear();
 
-    form.license_plate = result.licensePlate;
+    form.license_plate = formatLicensePlate(result.licensePlate);
     provided.add('license_plate');
 
     if (result.brand !== null) {

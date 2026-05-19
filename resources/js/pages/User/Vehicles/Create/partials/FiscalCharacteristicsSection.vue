@@ -10,12 +10,14 @@ import {
     derivePollutantCategory,
     requiresUnderlyingCombustionEngine,
 } from '@/Utils/derivePollutantCategory';
+import FieldWithManualHint from './FieldWithManualHint.vue';
 
 type SelectOption = { value: string; label: string };
 
 const props = defineProps<{
     form: InertiaForm<VehicleFormShape>;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
+    isMissing: (key: keyof VehicleFormShape) => boolean;
 }>();
 
 // Affichage conditionnel des champs CO₂/CV selon la méthode d'homologation
@@ -68,13 +70,15 @@ const pollutantCategoryLabel = computed((): string => {
         </header>
 
         <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-3">
-            <SelectInput
-                v-model="form.reception_category"
-                label="Catégorie réception"
-                :options="options.receptionCategories"
-                :error="form.errors.reception_category"
-                required
-            />
+            <FieldWithManualHint :active="isMissing('reception_category')">
+                <SelectInput
+                    v-model="form.reception_category"
+                    label="Catégorie réception"
+                    :options="options.receptionCategories"
+                    :error="form.errors.reception_category"
+                    required
+                />
+            </FieldWithManualHint>
             <SelectInput
                 v-model="form.vehicle_user_type"
                 label="Type utilisateur"
@@ -82,52 +86,66 @@ const pollutantCategoryLabel = computed((): string => {
                 :error="form.errors.vehicle_user_type"
                 required
             />
-            <SelectInput
-                v-model="form.body_type"
-                label="Carrosserie"
-                :options="options.bodyTypes"
-                :error="form.errors.body_type"
-                required
-            />
-            <NumberInput
-                v-model="form.seats_count"
-                label="Nombre de places"
-                :min="1"
-                :max="20"
-                :error="form.errors.seats_count"
-                required
-            />
-            <SelectInput
-                v-model="form.energy_source"
-                label="Source d'énergie"
-                :options="options.energySources"
-                :error="form.errors.energy_source"
-                required
-            />
-            <SelectInput
-                v-model="form.euro_standard"
-                label="Norme Euro"
-                :options="options.euroStandards"
-                :error="form.errors.euro_standard"
-            />
+            <FieldWithManualHint :active="isMissing('body_type')">
+                <SelectInput
+                    v-model="form.body_type"
+                    label="Carrosserie"
+                    :options="options.bodyTypes"
+                    :error="form.errors.body_type"
+                    required
+                />
+            </FieldWithManualHint>
+            <FieldWithManualHint :active="isMissing('seats_count')">
+                <NumberInput
+                    v-model="form.seats_count"
+                    label="Nombre de places"
+                    :min="1"
+                    :max="20"
+                    :error="form.errors.seats_count"
+                    required
+                />
+            </FieldWithManualHint>
+            <FieldWithManualHint :active="isMissing('energy_source')">
+                <SelectInput
+                    v-model="form.energy_source"
+                    label="Source d'énergie"
+                    :options="options.energySources"
+                    :error="form.errors.energy_source"
+                    required
+                />
+            </FieldWithManualHint>
+            <FieldWithManualHint :active="isMissing('euro_standard')">
+                <SelectInput
+                    v-model="form.euro_standard"
+                    label="Norme Euro"
+                    :options="options.euroStandards"
+                    :error="form.errors.euro_standard"
+                />
+            </FieldWithManualHint>
         </div>
         <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
-            <SelectInput
+            <FieldWithManualHint
                 v-if="isHybrid"
-                v-model="form.underlying_combustion_engine_type"
-                label="Moteur thermique sous-jacent"
-                :options="options.underlyingCombustionEngineTypes"
-                :error="form.errors.underlying_combustion_engine_type"
-                hint="Indispensable pour catégoriser un hybride : essence → Catégorie 1, Diesel → Plus polluants."
-                required
-            />
-            <SelectInput
-                v-model="form.homologation_method"
-                label="Méthode d'homologation"
-                :options="options.homologationMethods"
-                :error="form.errors.homologation_method"
-                required
-            />
+                :active="isMissing('underlying_combustion_engine_type')"
+            >
+                <SelectInput
+                    v-model="form.underlying_combustion_engine_type"
+                    label="Moteur thermique sous-jacent"
+                    :options="options.underlyingCombustionEngineTypes"
+                    :error="form.errors.underlying_combustion_engine_type"
+                    hint="Indispensable pour catégoriser un hybride : essence → Catégorie 1, Diesel → Plus polluants."
+                    required
+                />
+            </FieldWithManualHint>
+            <FieldWithManualHint :active="isMissing('homologation_method')">
+                <SelectInput
+                    v-model="form.homologation_method"
+                    label="Méthode d'homologation"
+                    :options="options.homologationMethods"
+                    :error="form.errors.homologation_method"
+                    required
+                />
+            </FieldWithManualHint>
         </div>
         <div
             class="flex items-start gap-3 rounded-lg border border-slate-200 bg-slate-50/70 px-4 py-3"
@@ -152,90 +170,120 @@ const pollutantCategoryLabel = computed((): string => {
             </div>
         </div>
         <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-3">
-            <NumberInput
+            <FieldWithManualHint
                 v-if="showWltp"
-                v-model="form.co2_wltp"
-                label="CO₂ WLTP"
-                :error="form.errors.co2_wltp"
-                required
+                :active="isMissing('co2_wltp')"
             >
-                <template #unit>g/km</template>
-            </NumberInput>
-            <NumberInput
+                <NumberInput
+                    v-model="form.co2_wltp"
+                    label="CO₂ WLTP"
+                    :error="form.errors.co2_wltp"
+                    required
+                >
+                    <template #unit>g/km</template>
+                </NumberInput>
+            </FieldWithManualHint>
+            <FieldWithManualHint
                 v-if="showNedc"
-                v-model="form.co2_nedc"
-                label="CO₂ NEDC"
-                :error="form.errors.co2_nedc"
-                required
+                :active="isMissing('co2_nedc')"
             >
-                <template #unit>g/km</template>
-            </NumberInput>
-            <NumberInput
+                <NumberInput
+                    v-model="form.co2_nedc"
+                    label="CO₂ NEDC"
+                    :error="form.errors.co2_nedc"
+                    required
+                >
+                    <template #unit>g/km</template>
+                </NumberInput>
+            </FieldWithManualHint>
+            <FieldWithManualHint
                 v-if="showPa"
-                v-model="form.taxable_horsepower"
-                label="Puissance admin."
-                :error="form.errors.taxable_horsepower"
-                required
+                :active="isMissing('taxable_horsepower')"
             >
-                <template #unit>CV</template>
-            </NumberInput>
-            <NumberInput
-                v-model="form.kerb_mass"
-                label="Masse à vide"
-                :min="0"
-                :max="10000"
-                :error="form.errors.kerb_mass"
-                hint="Optionnelle. Utilisée par les barèmes fiscaux à venir (2026+)."
-            >
-                <template #unit>kg</template>
-            </NumberInput>
+                <NumberInput
+                    v-model="form.taxable_horsepower"
+                    label="Puissance admin."
+                    :error="form.errors.taxable_horsepower"
+                    required
+                >
+                    <template #unit>CV</template>
+                </NumberInput>
+            </FieldWithManualHint>
+            <FieldWithManualHint :active="isMissing('kerb_mass')">
+                <NumberInput
+                    v-model="form.kerb_mass"
+                    label="Masse à vide"
+                    :min="0"
+                    :max="10000"
+                    :error="form.errors.kerb_mass"
+                    hint="Optionnelle. Utilisée par les barèmes fiscaux à venir (2026+)."
+                >
+                    <template #unit>kg</template>
+                </NumberInput>
+            </FieldWithManualHint>
         </div>
 
         <div class="flex flex-col gap-4 border-t border-slate-100 pt-6">
             <p class="eyebrow">Exonérations, abattements et usages spéciaux</p>
-            <CheckboxInput
-                v-model="form.handicap_access"
-                label="Aménagé pour fauteuil roulant ou conduite handicapée"
-                hint="Déclenche l'exonération totale des deux taxes (CIBS L. 421-123 / L. 421-136)."
-                :error="form.errors.handicap_access"
-            />
-            <CheckboxInput
-                v-model="form.accepts_e85"
-                label="Compatible superéthanol E85 (flex-fuel)"
-                hint="Cocher si la rubrique P.3 du certificat d'immatriculation ∈ {FE, FG, FN, FL, FH, FR, FQ, FM, FP}. Déclenche dès 2025 l'abattement de 40 % sur les émissions CO₂ (WLTP/NEDC ≤ 250 g/km) ou de 2 CV sur la puissance (PA ≤ 12 CV) · CIBS L. 421-125."
-                :error="form.errors.accepts_e85"
-            />
-            <CheckboxInput
+            <FieldWithManualHint :active="isMissing('handicap_access')">
+                <CheckboxInput
+                    v-model="form.handicap_access"
+                    label="Aménagé pour fauteuil roulant ou conduite handicapée"
+                    hint="Déclenche l'exonération totale des deux taxes (CIBS L. 421-123 / L. 421-136)."
+                    :error="form.errors.handicap_access"
+                />
+            </FieldWithManualHint>
+            <FieldWithManualHint :active="isMissing('accepts_e85')">
+                <CheckboxInput
+                    v-model="form.accepts_e85"
+                    label="Compatible superéthanol E85 (flex-fuel)"
+                    hint="Cocher si la rubrique P.3 du certificat d'immatriculation ∈ {FE, FG, FN, FL, FH, FR, FQ, FM, FP}. Déclenche dès 2025 l'abattement de 40 % sur les émissions CO₂ (WLTP/NEDC ≤ 250 g/km) ou de 2 CV sur la puissance (PA ≤ 12 CV) · CIBS L. 421-125."
+                    :error="form.errors.accepts_e85"
+                />
+            </FieldWithManualHint>
+            <FieldWithManualHint
                 v-if="isM1"
-                v-model="form.m1_special_use"
-                label="Usage spécial : corbillard, ambulance, véhicule blindé"
-                hint="Exclut le véhicule du champ fiscal des deux taxes annuelles (CIBS L. 421-2)."
-                :error="form.errors.m1_special_use"
-            />
+                :active="isMissing('m1_special_use')"
+            >
+                <CheckboxInput
+                    v-model="form.m1_special_use"
+                    label="Usage spécial : corbillard, ambulance, véhicule blindé"
+                    hint="Exclut le véhicule du champ fiscal des deux taxes annuelles (CIBS L. 421-2)."
+                    :error="form.errors.m1_special_use"
+                />
+            </FieldWithManualHint>
             <template v-if="isN1 && isLightTruck">
-                <CheckboxInput
-                    v-model="form.n1_removable_second_row_seat"
-                    label="2ᵉ rangée amovible installée"
-                    :error="form.errors.n1_removable_second_row_seat"
-                />
-                <CheckboxInput
-                    v-model="form.n1_passenger_transport"
-                    label="Affectée au transport de personnes"
-                    :error="form.errors.n1_passenger_transport"
-                />
+                <FieldWithManualHint :active="isMissing('n1_removable_second_row_seat')">
+                    <CheckboxInput
+                        v-model="form.n1_removable_second_row_seat"
+                        label="2ᵉ rangée amovible installée"
+                        :error="form.errors.n1_removable_second_row_seat"
+                    />
+                </FieldWithManualHint>
+                <FieldWithManualHint :active="isMissing('n1_passenger_transport')">
+                    <CheckboxInput
+                        v-model="form.n1_passenger_transport"
+                        label="Affectée au transport de personnes"
+                        :error="form.errors.n1_passenger_transport"
+                    />
+                </FieldWithManualHint>
                 <p class="text-xs leading-snug text-slate-500">
                     Les deux ensemble rendent la camionnette N1 taxable
                     (CIBS L. 421-2). Si l'un manque, le véhicule reste hors
                     champ fiscal.
                 </p>
             </template>
-            <CheckboxInput
+            <FieldWithManualHint
                 v-if="isN1 && isPickup"
-                v-model="form.n1_ski_lift_use"
-                label="Affecté à l'exploitation de remontées mécaniques"
-                hint="Exclut le pick-up N1 du champ fiscal."
-                :error="form.errors.n1_ski_lift_use"
-            />
+                :active="isMissing('n1_ski_lift_use')"
+            >
+                <CheckboxInput
+                    v-model="form.n1_ski_lift_use"
+                    label="Affecté à l'exploitation de remontées mécaniques"
+                    hint="Exclut le pick-up N1 du champ fiscal."
+                    :error="form.errors.n1_ski_lift_use"
+                />
+            </FieldWithManualHint>
         </div>
     </section>
 </template>

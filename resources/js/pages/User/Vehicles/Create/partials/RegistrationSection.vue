@@ -3,9 +3,11 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { CalendarDays } from 'lucide-vue-next';
 import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
+import FieldWithManualHint from './FieldWithManualHint.vue';
 
 defineProps<{
     form: InertiaForm<VehicleFormShape>;
+    isMissing: (key: keyof VehicleFormShape) => boolean;
 }>();
 </script>
 
@@ -26,24 +28,30 @@ defineProps<{
         </header>
 
         <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
-            <DateInput
-                v-model="form.first_origin_registration_date"
-                label="1ère immatriculation (origine)"
-                :error="form.errors.first_origin_registration_date"
-                required
-            />
-            <DateInput
-                v-model="form.first_french_registration_date"
-                label="1ère immatriculation France"
-                :error="form.errors.first_french_registration_date"
-                required
-            />
-            <DateInput
-                v-model="form.acquisition_date"
-                label="Date d'acquisition"
-                :error="form.errors.acquisition_date"
-                required
-            />
+            <FieldWithManualHint :active="isMissing('first_origin_registration_date')">
+                <DateInput
+                    v-model="form.first_origin_registration_date"
+                    label="1ère immatriculation (origine)"
+                    :error="form.errors.first_origin_registration_date"
+                    required
+                />
+            </FieldWithManualHint>
+            <FieldWithManualHint :active="isMissing('first_french_registration_date')">
+                <DateInput
+                    v-model="form.first_french_registration_date"
+                    label="1ère immatriculation France"
+                    :error="form.errors.first_french_registration_date"
+                    required
+                />
+            </FieldWithManualHint>
+            <FieldWithManualHint :active="isMissing('acquisition_date')">
+                <DateInput
+                    v-model="form.acquisition_date"
+                    label="Date d'acquisition"
+                    :error="form.errors.acquisition_date"
+                    required
+                />
+            </FieldWithManualHint>
             <DateInput
                 v-model="form.first_economic_use_date"
                 label="1ère affectation économique"

@@ -22,8 +22,19 @@ const registryLookupEnabled = computed(
     () => (page.props as Record<string, unknown>).registryLookupEnabled === true,
 );
 
-const { loading: registryLookupLoading, errorMessage: registryLookupError, missingFields, lookup: registryLookup } =
-    useVehicleRegistryLookup(form);
+const {
+    loading: registryLookupLoading,
+    errorMessage: registryLookupError,
+    missingFields,
+    isMissing,
+    lookup: registryLookup,
+} = useVehicleRegistryLookup(form);
+
+const missingCountLabel = computed(() => {
+    const n = missingFields.value.length;
+
+    return `${n} ${n > 1 ? 'éléments à vérifier' : 'élément à vérifier'}`;
+});
 </script>
 
 <template>
@@ -48,35 +59,50 @@ const { loading: registryLookupLoading, errorMessage: registryLookupError, missi
             >
                 <IdentitySection
                     :form="form"
+                    :is-missing="isMissing"
                     :registry-lookup-enabled="registryLookupEnabled"
                     :registry-lookup-loading="registryLookupLoading"
                     :registry-lookup-error="registryLookupError"
                     @trigger-registry-lookup="registryLookup"
                 />
-                <RegistrationSection :form="form" />
-                <FiscalCharacteristicsSection :form="form" :options="props.options" />
+                <RegistrationSection :form="form" :is-missing="isMissing" />
+                <FiscalCharacteristicsSection
+                    :form="form"
+                    :options="props.options"
+                    :is-missing="isMissing"
+                />
 
                 <section
                     v-if="missingFields.length > 0"
-                    class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-6 md:p-8"
+                    class="flex flex-col gap-5 rounded-xl border border-slate-200 bg-white p-6 md:p-8"
                 >
                     <header class="flex items-start gap-3">
-                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
                             <ClipboardCheck :size="18" :stroke-width="1.75" />
                         </span>
-                        <div class="flex flex-col">
-                            <h2 class="text-base font-semibold text-slate-900">
-                                À compléter manuellement
-                            </h2>
+                        <div class="flex flex-col gap-1">
+                            <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-700">
+                                À compléter manuellement · {{ missingCountLabel }}
+                            </p>
                             <p class="text-sm text-slate-600">
-                                Ces informations n'ont pas été fournies par le service de récupération. Vérifiez-les avant d'enregistrer le véhicule.
+                                Ces informations n'ont pas été fournies par le service de récupération. Repérez les champs marqués d'une pastille
+                                <span class="mx-0.5 inline-block h-1.5 w-1.5 translate-y-[-1px] rounded-full bg-amber-500 align-middle" />
+                                et vérifiez-les avant d'enregistrer le véhicule.
                             </p>
                         </div>
                     </header>
 
-                    <ul class="ml-12 list-disc text-sm text-slate-700">
-                        <li v-for="field in missingFields" :key="field.key">
-                            {{ field.label }}
+                    <ul class="flex flex-col gap-2.5 pl-12">
+                        <li
+                            v-for="field in missingFields"
+                            :key="field.key"
+                            class="flex items-start gap-3 text-sm text-slate-800"
+                        >
+                            <span
+                                class="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                                aria-hidden="true"
+                            />
+                            <span>{{ field.label }}</span>
                         </li>
                     </ul>
                 </section>
