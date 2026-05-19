@@ -13,7 +13,7 @@ use Tests\TestCase;
 /**
  * Tests Unit de UnavailabilityDocumentStorage (P1).
  *
- * Couvre les comportements défensifs · safeExtension whitelist + fallback
+ * Couvre les comportements défensifs : safeExtension whitelist + fallback
  * MIME, safeDelete idempotence.
  */
 final class UnavailabilityDocumentStorageTest extends TestCase
@@ -46,7 +46,7 @@ final class UnavailabilityDocumentStorageTest extends TestCase
     #[Test]
     public function store_fallback_sur_le_mime_quand_lextension_est_invalide(): void
     {
-        // Fichier avec extension exotique mais mime déclaré valide · le
+        // Fichier avec extension exotique mais mime déclaré valide : le
         // fallback `safeExtension` doit traduire image/jpeg → .jpg.
         $file = UploadedFile::fake()->create('sans-extension.xyz', 50, 'image/jpeg');
 
@@ -58,8 +58,8 @@ final class UnavailabilityDocumentStorageTest extends TestCase
     #[Test]
     public function safe_delete_navale_silencieusement_un_path_inexistant(): void
     {
-        // Aucune exception attendue · safeDelete avale les erreurs driver
-        // (test documentaire · l'absence d'exception levée vaut assertion).
+        // Aucune exception attendue : safeDelete avale les erreurs driver
+        // (test documentaire : l'absence d'exception levée vaut assertion).
         $this->expectNotToPerformAssertions();
 
         $this->storage->safeDelete('does/not/exist.pdf');

@@ -19,7 +19,7 @@ use Tests\TestCase;
 /**
  * Couvre l'algorithme de détection des clusters de risque fiscal
  * (Phase 11 D2, ADR-0015 § 4 + cas-tests permanents § 7, refondu
- * D5.10.Q · les LLD sont silencieusement ignorés, refondu Lot 5 D1 ·
+ * D5.10.Q : les LLD sont silencieusement ignorés, refondu Lot 5 D1 ·
  * critère de qualification = union des jours uniques couverts).
  *
  * Service piloté par les seuils du singleton `FiscalRiskSettings` ·
@@ -60,9 +60,9 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function cas2_2_lcd_20j_separes_5j_chain_moyen(): void
     {
-        // 2 LCD de 20j séparés de 5j · union des jours = 20+20 = 40 jours
+        // 2 LCD de 20j séparés de 5j : union des jours = 20+20 = 40 jours
         // (pas de chevauchement). 40 > 30 (threshold_low) → ChainMoyen.
-        // Bornes affichées dans l'UI · 2025-01-01 → 2025-02-14.
+        // Bornes affichées dans l'UI : 2025-01-01 → 2025-02-14.
         $this->makeContract('2025-01-01', '2025-01-20'); // 20 j
         $this->makeContract('2025-01-26', '2025-02-14'); // 20 j, intervalle 5
 
@@ -118,7 +118,7 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function cas5_lld_intercale_n_interrompt_pas_la_chaine(): void
     {
-        // Phase 13 D5.10.Q · les LLD sont silencieusement ignorés
+        // Phase 13 D5.10.Q : les LLD sont silencieusement ignorés
         // lors du chaînage. Les 2 LCD séparés de 51 jours pleins
         // (au-delà de max_interval=15) ne forment pas de chaîne, mais
         // c'est l'intervalle inter-LCD qui le décide, pas le LLD
@@ -134,11 +134,11 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function lld_intercale_sur_autre_vehicule_n_interrompt_pas_la_chaine(): void
     {
-        // Phase 13 D5.10.Q · cas régression ECO 2024 ·
+        // Phase 13 D5.10.Q : cas régression ECO 2024 ·
         // LCD Nevada → LLD Toyota (autre véhicule, intercalé) → LCD Nevada.
-        // Le LLD doit être silencieusement ignoré · les 2 LCD à
+        // Le LLD doit être silencieusement ignoré : les 2 LCD à
         // intervalle 3j forment une chaîne sur Nevada.
-        // Union des jours · LCD1 (1-23 avr) = 23 j + LCD2 (26 avr-18 mai) = 23 j
+        // Union des jours : LCD1 (1-23 avr) = 23 j + LCD2 (26 avr-18 mai) = 23 j
         // (pas de chevauchement) = 46 j > 30 → ChainMoyen.
         $vehicleNevada = $this->vehicle;
         $vehicleToyota = Vehicle::factory()->create();
@@ -236,7 +236,7 @@ final class RiskDetectionServiceTest extends TestCase
     {
         // Union 77 j (30 + 30 + 17, aucun chevauchement, intervalles 7 j) ·
         // > 30 (threshold_low) mais pas > 90 (threshold_high) → CHAIN moyen.
-        // count = 3 < count_high (5) · pas de bascule par count.
+        // count = 3 < count_high (5) : pas de bascule par count.
         $this->makeContract('2025-01-01', '2025-01-30'); // 30 j
         $this->makeContract('2025-02-06', '2025-03-07'); // 30 j, intervalle 7
         $this->makeContract('2025-03-15', '2025-03-31'); // 17 j, intervalle 7
@@ -366,10 +366,10 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function union_bornee_a_l_annee_fiscale_quand_la_chaine_deborde(): void
     {
-        // Chaîne à cheval 2024 → 2025 · seule la portion 2025 compte.
+        // Chaîne à cheval 2024 → 2025 : seule la portion 2025 compte.
         // LCD 1 : 2024-12-26 → 2025-01-15 → borné à 2025-01-01 → 2025-01-15 = 15 j
         // LCD 2 : 2025-01-22 → 2025-02-10 = 20 j
-        // Aucun chevauchement entre les bornés · union = 15 + 20 = 35 j > 30
+        // Aucun chevauchement entre les bornés : union = 15 + 20 = 35 j > 30
         // → ChainMoyen.
         $this->makeContract('2024-12-26', '2025-01-15');
         $this->makeContract('2025-01-22', '2025-02-10'); // intervalle 6
@@ -386,10 +386,10 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function distinct_vehicles_count_reflete_les_vehicules_du_cluster(): void
     {
-        // Chaîne multi-véhicules · 3 LCD chevauchants sur 3 véhicules
+        // Chaîne multi-véhicules : 3 LCD chevauchants sur 3 véhicules
         // différents (1 → 26 avr, 2 → 21 avr ⊂ premier, 22 avr → 3 mai
         // recouvre les 22-26 avr du premier). Union des intervalles =
-        // bloc continu 1 avr → 3 mai = 33 jours · 33 > 30 → ChainMoyen.
+        // bloc continu 1 avr → 3 mai = 33 jours : 33 > 30 → ChainMoyen.
         // distinctVehiclesCount = 3.
         $vehicleB = Vehicle::factory()->create();
         $vehicleC = Vehicle::factory()->create();
@@ -424,12 +424,12 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertSame(3, $clusters[0]->contractsCount);
     }
 
-    // ---------- Lot 5 D1 · sémantique union des jours uniques ----------
+    // ---------- Lot 5 D1 : sémantique union des jours uniques ----------
 
     #[Test]
     public function union_jours_lcd_chevauchants_pas_de_double_comptage(): void
     {
-        // Lot 5 D1 · 3 LCD de 17 jours superposés sur les MÊMES 17 jours
+        // Lot 5 D1 : 3 LCD de 17 jours superposés sur les MÊMES 17 jours
         // (3 véhicules distincts pour contourner l'unicité d'overlap
         // par véhicule). Union = 17 j, pas 51 j. < 30 → pas de cluster.
         // L'ancienne sémantique « plage début → fin » donnait pareil
@@ -466,11 +466,11 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function union_jours_lcd_chevauchants_partiel_au_dessus_threshold(): void
     {
-        // Lot 5 D1 · 3 LCD partiellement chevauchants formant un bloc
+        // Lot 5 D1 : 3 LCD partiellement chevauchants formant un bloc
         // continu de 35 jours (1-15 mai, 10-25 mai, 20 mai-4 juin) ·
         // chaque LCD seul fait 15-16 j (donc reste LCD ≤ 30j).
         // Union des fusions : 1 mai → 4 juin = 35 j > 30 → ChainMoyen.
-        // Cumul brut donnerait 47 j (15+16+16) · ici les chevauchements
+        // Cumul brut donnerait 47 j (15+16+16) : ici les chevauchements
         // sont absorbés par la fusion d'intervalles.
         $vehicleB = Vehicle::factory()->create();
         $vehicleC = Vehicle::factory()->create();
@@ -509,7 +509,7 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function union_jours_lcd_avec_trous_n_inflate_pas_la_plage(): void
     {
-        // Lot 5 D1 · 4 LCD séparés par des trous de quelques jours.
+        // Lot 5 D1 : 4 LCD séparés par des trous de quelques jours.
         // Plage début → fin = 1-jan → 24-fév = 55 j (l'ancienne
         // sémantique gonflait avec les trous).
         // Union = 14 + 11 + 6 + 9 = 40 j (pas de chevauchement).
@@ -524,13 +524,13 @@ final class RiskDetectionServiceTest extends TestCase
         self::assertCount(1, $clusters);
         self::assertSame(RiskCode::Chain, $clusters[0]->code);
         self::assertSame(40, $clusters[0]->coveragePeriodDays);
-        // Bornes externes inchangées · servent à l'affichage UI
+        // Bornes externes inchangées : servent à l'affichage UI
         // uniquement, pas au seuil.
         self::assertSame('2025-01-01', $clusters[0]->coverageStartDate);
         self::assertSame('2025-02-24', $clusters[0]->coverageEndDate);
     }
 
-    // ---------- Lot 3 D08 · mémoïsation per-request (clustersCache) ----------
+    // ---------- Lot 3 D08 : mémoïsation per-request (clustersCache) ----------
 
     /**
      * Garantit que la mémoïsation `$clustersCache` retourne strictement
@@ -541,7 +541,7 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function detect_clusters_est_memoise_sur_appels_repetes(): void
     {
-        // Fixture · 2 LCD chaînés produisent un cluster ChainMoyen.
+        // Fixture : 2 LCD chaînés produisent un cluster ChainMoyen.
         $this->makeContract('2025-01-01', '2025-01-20');
         $this->makeContract('2025-01-26', '2025-02-14');
 
@@ -554,7 +554,7 @@ final class RiskDetectionServiceTest extends TestCase
 
     /**
      * Garantit que le cache discrimine bien sur le couple
-     * `(companyId, year)` · 2 entreprises distinctes ou 2 années
+     * `(companyId, year)` : 2 entreprises distinctes ou 2 années
      * distinctes doivent produire 2 entrées de cache séparées.
      */
     #[Test]
@@ -576,7 +576,7 @@ final class RiskDetectionServiceTest extends TestCase
     }
 
     /**
-     * Lot 3 D08 · garantit que `clearCache()` force le recompute · si un
+     * Lot 3 D08 : garantit que `clearCache()` force le recompute : si un
      * consommateur mute des contracts entre deux appels intra-requête,
      * il peut explicitement invalider le cache pour relire la nouvelle
      * réalité plutôt que de servir un résultat stale.
@@ -584,19 +584,19 @@ final class RiskDetectionServiceTest extends TestCase
     #[Test]
     public function clear_cache_force_le_recompute_apres_mutation(): void
     {
-        // Premier appel · aucun contrat · liste vide cachée.
+        // Premier appel : aucun contrat : liste vide cachée.
         $first = $this->service->detectClusters($this->company->id, 2025);
         self::assertSame([], $first);
 
-        // Mutation intra-requête · ajout de 2 LCD chaînés.
+        // Mutation intra-requête : ajout de 2 LCD chaînés.
         $this->makeContract('2025-01-01', '2025-01-20');
         $this->makeContract('2025-01-26', '2025-02-14');
 
-        // Sans clearCache · le cache renvoie encore la liste vide stale.
+        // Sans clearCache : le cache renvoie encore la liste vide stale.
         $stale = $this->service->detectClusters($this->company->id, 2025);
         self::assertSame([], $stale);
 
-        // Avec clearCache · re-calcul détecte le cluster.
+        // Avec clearCache : re-calcul détecte le cluster.
         $this->service->clearCache();
         $fresh = $this->service->detectClusters($this->company->id, 2025);
         self::assertCount(1, $fresh);

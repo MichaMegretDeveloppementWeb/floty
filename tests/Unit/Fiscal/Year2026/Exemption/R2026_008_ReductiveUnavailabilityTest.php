@@ -21,7 +21,7 @@ use Tests\TestCase;
  * 421-107 stable depuis 2022). Reconduction stricte de R-2025-008
  * couvrant les invariants ADR-0016 § 7 rev. 1.1.
  *
- * 2026 non bissextile · suspension du 01/02 au 31/03 = 28+31 = 59 jours
+ * 2026 non bissextile : suspension du 01/02 au 31/03 = 28+31 = 59 jours
  * (vs 60 j en 2024 bissextile). Le compte du moteur suit le calendrier
  * réel.
  */
@@ -124,7 +124,7 @@ final class R2026_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_5_suspension_ci_59_jours_reduit_de_59_en_2026_non_bissextile(): void
     {
-        // 2026 non bissextile · 01/02 → 31/03 = 28 + 31 = 59 jours
+        // 2026 non bissextile : 01/02 → 31/03 = 28 + 31 = 59 jours
         // (vs 60 jours en 2024 bissextile).
         $unavailability = Unavailability::factory()->ciSuspension()->create([
             'vehicle_id' => $this->vehicle->id,

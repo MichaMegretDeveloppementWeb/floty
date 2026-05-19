@@ -20,11 +20,11 @@ use Tests\TestCase;
  * Couvre la cascade de catégorisation polluants 2026 v 01/09-31/12/2026
  * (CIBS L. 421-134 toilettage rédactionnel par Ordo 2025-1247 art. 7).
  *
- * **Invariant testé** · R-2026-013-bis produit la **même catégorie** que
+ * **Invariant testé** : R-2026-013-bis produit la **même catégorie** que
  * R-2026-013 pour chaque combinaison de VFC. Le toilettage est purement
- * rédactionnel · la doctrine ne change pas.
+ * rédactionnel : la doctrine ne change pas.
  *
- * **Cohérence avec PollutantCategoryAssignmentLogicTrait** · les deux
+ * **Cohérence avec PollutantCategoryAssignmentLogicTrait** : les deux
  * règles partagent le même trait factorisé, donc l'invariant est par
  * construction. Ce test prévient une régression future qui violerait
  * cette équivalence (par exemple si quelqu'un modifie l'une des classes

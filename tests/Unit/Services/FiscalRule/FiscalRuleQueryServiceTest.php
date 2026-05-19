@@ -22,9 +22,9 @@ use Tests\TestCase;
 
 /**
  * Couvre le service de lecture des règles fiscales pour la page
- * « Règles de calcul » (Phase 13 D5.13 · ADR-0022 finalisée v1.3).
+ * « Règles de calcul » (Phase 13 D5.13 : ADR-0022 finalisée v1.3).
  *
- * **Stratégie post-D5.13** · le service consomme désormais le registry
+ * **Stratégie post-D5.13** : le service consomme désormais le registry
  * (les classes PHP) au lieu de la table `fiscal_rules`. Les tests
  * enregistrent des stubs runtime sur une année factice (2099) pour
  * isoler le comportement du service sans dépendre des 24 règles 2024
@@ -100,7 +100,7 @@ final class FiscalRuleQueryServiceTest extends TestCase
 }
 
 /**
- * Trait commun aux stubs · réduit le boilerplate dans chaque classe.
+ * Trait commun aux stubs : réduit le boilerplate dans chaque classe.
  */
 trait FiscalRuleQueryServiceTestStub
 {

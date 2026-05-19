@@ -18,14 +18,14 @@ use Tests\TestCase;
  * Tests d'intégration de {@see DashboardPendingTasksAggregator} (Phase
  * 13 D5.15).
  *
- * Les resolvers sous-jacents sont `final readonly` · on ne peut pas
+ * Les resolvers sous-jacents sont `final readonly` : on ne peut pas
  * les mocker. On s'appuie donc sur des factories réelles pour vérifier
- * la valeur ajoutée du service · enrichissement contexte entreprise +
+ * la valeur ajoutée du service : enrichissement contexte entreprise +
  * tri par urgence + cap top 5 + compteur total exhaustif.
  *
- * Périmètre testé · uniquement les déclarations (les factures
+ * Périmètre testé : uniquement les déclarations (les factures
  * nécessitent un setup de tarifs annuels et de breakdown beaucoup plus
- * lourd · couvert indirectement par DashboardControllerTest et la
+ * lourd : couvert indirectement par DashboardControllerTest et la
  * suite de tests de `PendingInvoicesResolver`).
  */
 final class DashboardPendingTasksAggregatorTest extends TestCase
@@ -79,9 +79,9 @@ final class DashboardPendingTasksAggregatorTest extends TestCase
         $vehicleA = $this->makeVehicleWithFiscal();
         $vehicleB = $this->makeVehicleWithFiscal();
 
-        // A · contrat 2025 (deadline 2026-04-30 · pas encore overdue au 15/04)
+        // A : contrat 2025 (deadline 2026-04-30 : pas encore overdue au 15/04)
         $this->makeContract($companyA, $vehicleA, '2025-03-01', '2025-03-15');
-        // B · contrats 2023 et 2024 (deadlines 2024-04-30 et 2025-04-30 ·
+        // B : contrats 2023 et 2024 (deadlines 2024-04-30 et 2025-04-30 ·
         // les deux overdue au 15/04/2026)
         $this->makeContract($companyB, $vehicleB, '2023-06-01', '2023-06-30');
         $this->makeContract($companyB, $vehicleB, '2024-09-01', '2024-09-15');
@@ -106,7 +106,7 @@ final class DashboardPendingTasksAggregatorTest extends TestCase
     {
         Carbon::setTestNow('2026-06-01');
 
-        // 7 entreprises · 1 contrat 2024 (overdue) chacune → 7 items
+        // 7 entreprises : 1 contrat 2024 (overdue) chacune → 7 items
         // pending. Top 5 affiché, count total = 7.
         for ($i = 1; $i <= 7; $i++) {
             $company = Company::factory()->create([
@@ -140,7 +140,7 @@ final class DashboardPendingTasksAggregatorTest extends TestCase
     {
         Carbon::setTestNow('2026-06-01');
 
-        // Deux entreprises avec un contrat 2024 chacune · même année,
+        // Deux entreprises avec un contrat 2024 chacune : même année,
         // même statut overdue → départage par short_code croissant.
         $companyB = Company::factory()->create(['short_code' => 'BBB']);
         $companyA = Company::factory()->create(['short_code' => 'AAA']);

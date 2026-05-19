@@ -19,19 +19,13 @@ use Tests\TestCase;
  * Couvre l'exonération CO₂ électrique / hydrogène (CIBS L. 421-124).
  *
  * Spécificités :
- * - Périmètre **CO₂ uniquement** (scope `Co2Only`). La taxe polluants
- *   reste due si le véhicule n'est pas catégorie E. En pratique, la
- *   cascade `PollutantCategory::derive()` (testée séparément dans
- *   `PollutantCategoryDeriveTest`) garantit que tout véhicule électrique /
- *   hydrogène / electric+hydrogène est en catégorie E → polluants à 0 €
- *   via R-2025-014. La règle R-2025-016 est donc l'élément du couple
- *   CIBS L. 421-124 qui annule explicitement le tarif CO₂.
- * - Tarifs annuels conservés dans le breakdown (pas de zeroing) : on
- *   continue d'afficher « ce que vous auriez payé sans exonération » à
- *   titre informatif.
+ * - Périmètre CO₂ uniquement (scope `Co2Only`). La taxe polluants reste
+ *   due si le véhicule n'est pas catégorie E. En pratique, la cascade
+ *   `PollutantCategory::derive()` garantit que tout véhicule électrique /
+ *   hydrogène est en catégorie E → polluants à 0 € via R-2025-014.
+ * - Tarifs annuels conservés dans le breakdown (pas de zeroing).
  *
- * Cf. `taxes-rules/2024.md` § R-2025-016 et la note d'audit produit du
- * 2026-05-04 (D1) : la couverture du test était identifiée manquante.
+ * Cf. `taxes-rules/2024.md` § R-2025-016.
  */
 final class R2025_016_ElectricHydrogenTest extends TestCase
 {
@@ -49,9 +43,9 @@ final class R2025_016_ElectricHydrogenTest extends TestCase
     public function rule_code_et_taxes_concernees(): void
     {
         self::assertSame('R-2025-016', $this->rule->ruleCode());
-        // **Périmètre CO₂ uniquement** · invariant clé du couple CIBS
-        // L. 421-124 : si on étend un jour à `Pollutants`, la cohérence
-        // avec R-2025-013 (cascade polluants) doit être ré-évaluée.
+        // Périmètre CO₂ uniquement : invariant clé du couple CIBS
+        // L. 421-124. Si extension à `Pollutants`, ré-évaluer la
+        // cohérence avec R-2025-013 (cascade polluants).
         self::assertSame([TaxType::Co2], $this->rule->taxesConcerned());
     }
 
@@ -118,7 +112,7 @@ final class R2025_016_ElectricHydrogenTest extends TestCase
     public function vehicule_hybride_rechargeable_n_a_pas_d_exoneration_via_cette_regle(): void
     {
         // L'hybride relève éventuellement de R-2025-017 (régime conditionnel),
-        // jamais de R-2025-016 · cette règle est strictement réservée aux
+        // jamais de R-2025-016 : cette règle est strictement réservée aux
         // véhicules à propulsion full-électrique ou full-hydrogène.
         $vfc = $this->makeVfc(['energy_source' => EnergySource::PluginHybrid]);
 
@@ -131,8 +125,8 @@ final class R2025_016_ElectricHydrogenTest extends TestCase
     public function contexte_sans_vfc_n_a_pas_d_exoneration(): void
     {
         // Cas race : pipeline appelé avant la classification VFC. La
-        // règle doit retourner notExempt sans lever · elle se taira et
-        // une autre étape lèvera l'erreur applicative si VFC manque.
+        // règle doit retourner notExempt sans lever ; une autre étape
+        // lèvera l'erreur applicative si VFC manque.
         $context = new PipelineContext(
             vehicle: Vehicle::factory()->create(),
             fiscalYear: 2024,

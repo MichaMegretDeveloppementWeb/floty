@@ -13,11 +13,8 @@ use PHPUnit\Framework\TestCase;
 
 /**
  * Garantit la stabilité du catalogue des règles fiscales 2025.
- *
- * Toute modification (ajout, retrait, renommage) d'une règle 2025 fait
- * échouer ce test · c'est voulu. Règle d'or ADR-0009 · on ne touche pas
- * à un catalogue d'année déjà déployé sans tracer le changement dans
- * `taxes-rules/2025.md`.
+ * Toute modification (ajout, retrait, renommage) doit être tracée dans
+ * `taxes-rules/2025.md` (ADR-0009).
  */
 final class Year2025BootTest extends TestCase
 {
@@ -38,12 +35,8 @@ final class Year2025BootTest extends TestCase
     {
         $rules = (new Year2025Boot)->rules();
 
-        // 19 règles dans le pipeline (cf. taxes-rules/2025.md) ·
-        // 4 Classification (incl. R-2025-004-bis suite scission ADR-0022
-        // sur L. 421-2 modifié 01/03/2025 par LF 2025 art. 28) +
-        // 7 Exemption (R-2024-017 supprimée) + 4 Pricing +
-        // 1 Abatement (R-2025-023 E85 nouveauté) + 3 Transversal = 19.
-        // Le décorateur LCD R2025_021_WithOptOuts n'est PAS inscrit
+        // 19 règles dans le pipeline (cf. taxes-rules/2025.md). Le
+        // décorateur LCD R2025_021_WithOptOuts n'est PAS inscrit
         // (résolu runtime par OverlayedRuleRegistry).
         self::assertCount(19, $rules);
     }
@@ -53,16 +46,6 @@ final class Year2025BootTest extends TestCase
     {
         $informative = (new Year2025Boot)->informativeRules();
 
-        // 18 règles documentaires-only · composition ·
-        // - 7 reconductions 2024 (cadre architectural et garde-fous)
-        // - 6 ajouts audit 14/05/2026 (moyenne pondérée, déclaration,
-        //   5 taxes connexes hors périmètre · malus CO₂ immat., malus
-        //   poids immat., carte grise, véhicules lourds)
-        // - 1 nouveauté 2025 (TAI · L. 421-132-1 à 6)
-        // - 4 bis issues de la scission ADR-0022 stricte ·
-        //   * R-2025-001-bis + R-2025-028-bis · LF 2025 art. 28 (01/03)
-        //   * R-2025-029-bis · durcissement malus CO₂ immat. (01/03)
-        //   * R-2025-031-bis · évolution Y1 carte grise (01/05)
         self::assertCount(18, $informative);
     }
 

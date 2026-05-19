@@ -15,13 +15,12 @@ use Tests\TestCase;
 /**
  * Couvre l'exonération handicap (CIBS L. 421-123 / L. 421-136).
  *
- * Spécificité : exonération **totale** des deux taxes ET les tarifs
- * annuels pleins sont zéroés dans le breakdown (pas d'affichage « ce
- * que vous auriez payé »). C'est la seule règle qui utilise le
+ * Spécificité : exonération totale des deux taxes ET les tarifs annuels
+ * pleins sont zéroés dans le breakdown. Seule règle utilisant le
  * `fullZeroingTariffs()` factory de l'ExemptionVerdict.
  *
- * Le flag `handicap_access` est ce qui fait foi - la carrosserie HB
- * (ou autre) ne suffit pas à elle seule.
+ * Le flag `handicap_access` est ce qui fait foi : la carrosserie HB
+ * ne suffit pas à elle seule.
  */
 final class R2025_015_HandicapAccessTest extends TestCase
 {

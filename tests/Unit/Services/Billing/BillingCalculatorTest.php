@@ -21,13 +21,13 @@ use Tests\TestCase;
  * Tests d'intégration du BillingCalculator (Phase 14.C facturation V1.2).
  *
  * Exécutés sur MySQL (`floty_testing`) via `RefreshDatabase` plutôt qu'avec
- * des mocks de repositories · la mécanique de découpage civil + dédup des
+ * des mocks de repositories : la mécanique de découpage civil + dédup des
  * jours par véhicule mérite un vrai cycle DB pour valider le pipeline (cf.
- * doctrine projet · tests Action/Service contre la vraie DB, MySQL en
+ * doctrine projet : tests Action/Service contre la vraie DB, MySQL en
  * tests pour bénéficier des CHECK constraints, triggers, FK RESTRICT et
  * autres features non portables SQLite).
  *
- * Tarifs constants · 90 € / 500 € / 1 800 € (cents · 9 000 / 50 000 / 180 000).
+ * Tarifs constants : 90 € / 500 € / 1 800 € (cents : 9 000 / 50 000 / 180 000).
  */
 final class BillingCalculatorTest extends TestCase
 {
@@ -194,7 +194,7 @@ final class BillingCalculatorTest extends TestCase
     public function exception_collecte_tous_les_vehicules_manquants_en_un_seul_passage(): void
     {
         // Politique UX : le service ne stoppe pas au premier vehicule
-        // sans tarif · il scanne tout et liste tous les manquants.
+        // sans tarif : il scanne tout et liste tous les manquants.
         $company = Company::factory()->create();
         $v1 = Vehicle::factory()->create(['license_plate' => 'AA-111-AA']);
         $v2 = Vehicle::factory()->create(['license_plate' => 'BB-222-BB']);
@@ -345,7 +345,7 @@ final class BillingCalculatorTest extends TestCase
     }
 
     // ---------------------------------------------------------------
-    // Scénarios CDC § 9.1 · Audit auto-documenté pour le client (T5).
+    // Scénarios CDC § 9.1 : Audit auto-documenté pour le client (T5).
     //
     // Tarifs : 20 € / 100 € / 350 € (cents : 2 000 / 10 000 / 35 000).
     // Ces 6 tests gravent dans la suite les comportements du brief CDC
@@ -385,7 +385,7 @@ final class BillingCalculatorTest extends TestCase
     public function cdc_vingt_six_jours_facture_un_mois_plein_car_plus_avantageux(): void
     {
         // 26 j × 20 = 520, 3 sem + 5 j = 300 + 100 = 400, 1 mois = 350.
-        // Optimal : 350 € (mois plein) · démontre la doctrine « tarif le
+        // Optimal : 350 € (mois plein) : démontre la doctrine « tarif le
         // plus avantageux » même quand on n'atteint pas 30 j d'utilisation.
         [$company, $vehicle] = $this->seedCdcVehicle();
 
@@ -481,7 +481,7 @@ final class BillingCalculatorTest extends TestCase
 
         // Contrat plein mois : 31 jours en mars. 31 j → 1 mois (35 000)
         // + 1 j (2 000) = 37 000. (Le mois unitaire couvre 30 j, le 31e
-        // jour est facturé à l'unité · comportement déjà prouvé par les
+        // jour est facturé à l'unité : comportement déjà prouvé par les
         // tests OptimalRateBreakdown.)
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => '2024-03-01',

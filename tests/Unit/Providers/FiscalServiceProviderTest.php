@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 /**
  * Garantit que `FiscalServiceProvider` peuple le registry **uniquement**
- * via `config('floty.fiscal.year_boots')` · sans aucune référence en dur
+ * via `config('floty.fiscal.year_boots')` : sans aucune référence en dur
  * à une année particulière (chantier ζ).
  *
  * Une régression qui ramènerait du code spécifique à 2024 dans le
@@ -32,7 +32,7 @@ final class FiscalServiceProviderTest extends TestCase
         $registry = $this->app->make(FiscalRuleRegistry::class);
 
         self::assertSame([2024], $registry->registeredYears());
-        // 18 règles pipeline 2024 · 16 historiques + R-2024-026 et
+        // 18 règles pipeline 2024 : 16 historiques + R-2024-026 et
         // R-2024-027 (inactives par défaut) ajoutées au chantier
         // d'audit exhaustif du 14/05/2026.
         self::assertCount(18, $registry->rulesForYear(2024));
@@ -57,7 +57,7 @@ final class FiscalServiceProviderTest extends TestCase
 
     public function test_le_registry_supporte_plusieurs_year_boots(): void
     {
-        // Stub nommé pour simuler un futur Year2025Boot · pas besoin
+        // Stub nommé pour simuler un futur Year2025Boot : pas besoin
         // d'attendre la vraie classe pour valider la mécanique multi-
         // année. Le FQCN doit être résolvable par `class_exists` depuis
         // le provider (cf. validation dans FiscalServiceProvider).

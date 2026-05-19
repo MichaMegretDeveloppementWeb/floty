@@ -30,7 +30,7 @@ final class PlanningHeatmapServiceTest extends TestCase
     #[Test]
     public function build_heatmap_construit_la_matrice_53_cellules(): void
     {
-        // SC16 (2026-05-18) · la heatmap a désormais TOUJOURS 53 cellules
+        // SC16 (2026-05-18) : la heatmap a désormais TOUJOURS 53 cellules
         // (au lieu de 52 ou 53 selon l'année) pour couvrir TOUTES les
         // semaines ISO contenant au moins 1 jour de l'année. Pour 2024
         // (1er jan = lundi, sem ISO 1 = lun 1/1 - dim 7/1), la cellule 10
@@ -107,9 +107,9 @@ final class PlanningHeatmapServiceTest extends TestCase
     #[Test]
     public function real_costs_for_vehicles_compte_taxe_uniquement_pour_l_entreprise_scopee(): void
     {
-        // Chantier perf Étape 3 (2026-05-17) · `realCostsForVehicles`
+        // Chantier perf Étape 3 (2026-05-17) : `realCostsForVehicles`
         // scopée à companyA ne doit refléter que la part de companyA,
-        // pas celle de companyB · sémantique strictement équivalente
+        // pas celle de companyB : sémantique strictement équivalente
         // à l'ancien `annualTaxDueForCompany`.
         $year = 2024;
         $vehicle = Vehicle::factory()->create();
@@ -147,8 +147,8 @@ final class PlanningHeatmapServiceTest extends TestCase
         // annuelle globale = somme des parts toutes entreprises.
         // Garantit que le scope global ≠ scope entreprise.
         //
-        // Précondition cache · `vehicleAnnualTax` mémoïsé par
-        // `{vehicleId}|{year}` sans considérer le scope · on force un
+        // Précondition cache : `vehicleAnnualTax` mémoïsé par
+        // `{vehicleId}|{year}` sans considérer le scope : on force un
         // container neuf entre chaque appel pour simuler 2 requêtes
         // Inertia::defer indépendantes (cas réel d'usage en prod).
         $year = 2024;
@@ -180,9 +180,9 @@ final class PlanningHeatmapServiceTest extends TestCase
     #[Test]
     public function full_year_costs_for_vehicles_independant_du_scope(): void
     {
-        // Chantier perf Étape 3 · `fullYearCostsForVehicles` est
-        // toujours indépendant du scope entreprise · valeurs théoriques
-        // 100 % usage. Aucun param companyId · cohérent avec l'UI où
+        // Chantier perf Étape 3 : `fullYearCostsForVehicles` est
+        // toujours indépendant du scope entreprise : valeurs théoriques
+        // 100 % usage. Aucun param companyId : cohérent avec l'UI où
         // la « Taxe pleine » est affichée à l'identique en Vue
         // d'ensemble et en Vue Entreprise.
         $year = 2024;

@@ -15,16 +15,12 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Goldens R-2025-002 · Prorata journalier (dénominateur 365 en 2025).
+ * Goldens R-2025-002 : Prorata journalier (dénominateur 365 en 2025).
  *
- * Sémantique ADR-0014 ·
+ * Sémantique ADR-0014 :
  *   numérateur = jours contractuels du couple
  *              − Σ verdicts.exemptDaysCount (R-2025-021 LCD + R-2025-008 indispos)
  *   prorata = tarif annuel plein × numérateur / 365
- *
- * Reconduction de R-2024-002 avec dénominateur 365 au lieu de 366 (2025
- * n'est pas bissextile). Couverture par cas représentatifs des bordures
- * (full year, partial, à la journée, cumul exemptions, dénominateur zéro).
  */
 final class R2025_002_DailyProrataTest extends TestCase
 {
@@ -65,7 +61,7 @@ final class R2025_002_DailyProrataTest extends TestCase
     #[Test]
     public function contrat_6_mois_donne_184_sur_365(): void
     {
-        // 184 jours · 01/07 → 31/12 inclusif
+        // 184 jours : 01/07 → 31/12 inclusif
         $context = $this->makeContext(
             contracts: [$this->makeContract('2025-07-01', '2025-12-31')],
             verdicts: [],
@@ -194,7 +190,7 @@ final class R2025_002_DailyProrataTest extends TestCase
     #[Test]
     public function deux_contrats_disjoints_somment_correctement_leurs_jours(): void
     {
-        // Deux contrats successifs · le total = somme exacte (pas de
+        // Deux contrats successifs : le total = somme exacte (pas de
         // chevauchement possible par contrainte BDD `contracts: overlapping
         // period for this vehicle`).
         $context = $this->makeContext(

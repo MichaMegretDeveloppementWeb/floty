@@ -36,14 +36,14 @@ use PHPUnit\Framework\TestCase;
  *  - `ruleCode()` au format `R-2026-{nnn}` (avec suffixe `-bis` pour les
  *    3 paires scindées par ADR-0022 strict 2026)
  *  - `applicabilityStart/End` couvrent 2026
- *  - `isActive()` cohérent · règles « Cadre » actives, règles
+ *  - `isActive()` cohérent : règles « Cadre » actives, règles
  *    « TaxeConnexe » inactives
  *  - `name()`, `description()` non vides
  *  - `taxesConcerned()` non vide
  *  - `displayOrder()` cohérent avec le code (R-2026-029 + bis → 29, etc.)
  *  - `legalBasis()` enrichi d'URL + consulted_at sur chaque entrée
  *
- * **Composition 17 classes** · 9 actives (cadre architectural + garde-fous)
+ * **Composition 17 classes** : 9 actives (cadre architectural + garde-fous)
  * + 8 inactives (TaxeConnexe, dont 3 paires bis scissions ADR-0022 2026 ·
  * R-2026-029/029-bis, R-2026-031/031-bis, R-2026-033/033-bis).
  */
@@ -55,7 +55,7 @@ final class InformativeRulesMetadataTest extends TestCase
     public static function classesProvider(): array
     {
         return [
-            // Cadre actif · périmètre fonctionnel de l'application
+            // Cadre actif : périmètre fonctionnel de l'application
             [R2026_001_TaxpayerAndTriggeringEvent::class, 'R-2026-001', 1, RuleType::Transversal, true],
             [R2026_006_PaFallback::class, 'R-2026-006', 6, RuleType::Classification, true],
             [R2026_007_VehicleCharacteristicsHistorization::class, 'R-2026-007', 7, RuleType::Transversal, true],
@@ -65,7 +65,7 @@ final class InformativeRulesMetadataTest extends TestCase
             [R2026_024_CritAirGuard::class, 'R-2026-024', 24, RuleType::Transversal, true],
             [R2026_025_WeightedAverageTariff::class, 'R-2026-025', 25, RuleType::Transversal, true],
             [R2026_028_DeclarationModalities::class, 'R-2026-028', 28, RuleType::Transversal, true],
-            // TaxeConnexe inactive · hors périmètre fonctionnel
+            // TaxeConnexe inactive : hors périmètre fonctionnel
             [R2026_029_RegistrationCo2Malus::class, 'R-2026-029', 29, RuleType::Transversal, false],
             [R2026_029bis_RegistrationCo2Malus::class, 'R-2026-029-bis', 29, RuleType::Transversal, false],
             [R2026_030_RegistrationWeightMalus::class, 'R-2026-030', 30, RuleType::Transversal, false],

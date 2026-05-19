@@ -20,24 +20,11 @@ use Tests\TestCase;
 /**
  * Goldens BOFiP au centime près pour les barèmes progressifs CO₂ 2025
  * (R-2025-010 WLTP, R-2025-011 NEDC, R-2025-012 PA) et le tarif plat
- * polluants (R-2025-014).
- *
- * **Durcissement majeur 2025** vs 2024 · LF 2024 art. 97, 19° au
- * 01/01/2025. Toute régression accidentelle d'une borne ou d'un tarif
- * marginal sera capturée ici. Les valeurs cibles sont les exemples
- * publiés au BOFiP `BOI-AIS-MOB-10-30-20-20250528` + calcul manuel
- * tranche par tranche.
+ * polluants (R-2025-014). Référence BOFiP BOI-AIS-MOB-10-30-20-20250528.
  */
 final class R2025_PricingScalesTest extends TestCase
 {
     use RefreshDatabase;
-
-    // ============================================================
-    // R-2025-010 WLTP · barème durci 2025
-    // Tranches · 0-9 (0€/g) · 9-50 (1) · 50-58 (2) · 58-90 (3) ·
-    // 90-110 (4) · 110-130 (10) · 130-150 (50) · 150-170 (60) ·
-    // 170+ (65)
-    // ============================================================
 
     #[Test]
     public function wltp_co2_0_donne_tarif_zero(): void
@@ -48,8 +35,8 @@ final class R2025_PricingScalesTest extends TestCase
     #[Test]
     public function wltp_co2_9_borne_basse_premiere_tranche_taxee_reste_zero(): void
     {
-        // Tranche 0-9 exclusive · 9 lui-même tombe encore dans la
-        // tranche zéro (lowerExclusive sémantique BracketRange).
+        // Tranche 0-9 exclusive : 9 reste dans la tranche zéro
+        // (lowerExclusive sémantique BracketRange).
         self::assertSame(0.0, $this->wltpTariff(9));
     }
 
@@ -58,7 +45,6 @@ final class R2025_PricingScalesTest extends TestCase
     {
         // (50-9)*1 + (58-50)*2 + (90-58)*3 + (100-90)*4
         // = 41 + 16 + 96 + 40 = 193 €
-        // Cf. BOFiP BOI-AIS-MOB-10-30-20-20250528 (exemple WLTP 100 g/km).
         self::assertSame(193.0, $this->wltpTariff(100));
     }
 
@@ -90,13 +76,6 @@ final class R2025_PricingScalesTest extends TestCase
         self::assertSame(4583.0, $this->wltpTariff(200));
     }
 
-    // ============================================================
-    // R-2025-011 NEDC · barème durci 2025
-    // Tranches · 0-7 (0) · 7-41 (1) · 41-48 (2) · 48-74 (3) ·
-    // 74-91 (4) · 91-107 (10) · 107-124 (50) · 124-140 (60) ·
-    // 140+ (65)
-    // ============================================================
-
     #[Test]
     public function nedc_co2_100_donne_284_euros(): void
     {
@@ -119,12 +98,6 @@ final class R2025_PricingScalesTest extends TestCase
         // 1204 + (140-124)*60 = 1204 + 960 = 2164 €
         self::assertSame(2164.0, $this->nedcTariff(140));
     }
-
-    // ============================================================
-    // R-2025-012 PA · barème durci 2025
-    // Tranches · 0-3 (1750/CV) · 3-6 (2500) · 6-10 (4250) ·
-    // 10-15 (5000) · 15+ (6250)
-    // ============================================================
 
     #[Test]
     public function pa_3_cv_donne_5250_euros(): void
@@ -160,10 +133,6 @@ final class R2025_PricingScalesTest extends TestCase
         // 54750 + 5*6250 = 54750 + 31250 = 86000 €
         self::assertSame(86000.0, $this->paTariff(20));
     }
-
-    // ============================================================
-    // R-2025-014 Polluants flat · reconduction stricte 2024 (0/100/500)
-    // ============================================================
 
     #[Test]
     public function polluants_categorie_e_donne_zero(): void

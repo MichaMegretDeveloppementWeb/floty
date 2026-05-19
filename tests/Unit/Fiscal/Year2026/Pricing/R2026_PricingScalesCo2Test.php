@@ -19,29 +19,14 @@ use Tests\TestCase;
  * Goldens au centime près pour les barèmes progressifs CO₂ 2026
  * (R-2026-010 WLTP, R-2026-011 NEDC, R-2026-012 PA).
  *
- * **Durcissement majeur 2026** vs 2025 · LF 2024 art. 97-20° par
- * anticipation programmée au 01/01/2026. Toute régression accidentelle
- * d'une borne ou d'un tarif marginal sera capturée ici.
+ * Durcissement majeur 2026 vs 2025 : LF 2024 art. 97-20° par
+ * anticipation programmée au 01/01/2026.
  *
- * **Valeurs cibles WLTP 2026** · 100 g/km = 213 € (vs 193 € en 2025,
- * +10,4 %). Calcul tranche par tranche documenté en commentaires.
- *
- * **Valeurs cibles NEDC 2026** · 100 g/km = 324 € (vs 284 € en 2025,
- * +14,1 %).
- *
- * **Valeurs cibles PA 2026** · 10 CV = 33 000 € (vs 29 750 € en 2025,
- * +10,9 %).
+ * Valeurs cibles : WLTP 100 g = 213 €, NEDC 100 g = 324 €, PA 10 CV = 33 000 €.
  */
 final class R2026_PricingScalesCo2Test extends TestCase
 {
     use RefreshDatabase;
-
-    // ============================================================
-    // R-2026-010 WLTP · barème durci 2026
-    // Tranches · (0,4](0) · (4,45](1) · (45,53](2) · (53,85](3) ·
-    // (85,105](4) · (105,125](10) · (125,145](50) · (145,165](60) ·
-    // (165,+∞)(65)
-    // ============================================================
 
     #[Test]
     public function wltp_co2_0_donne_tarif_zero(): void
@@ -52,7 +37,7 @@ final class R2026_PricingScalesCo2Test extends TestCase
     #[Test]
     public function wltp_co2_4_borne_basse_premiere_tranche_taxee_reste_zero(): void
     {
-        // Tranche (0,4] inclusive · 4 lui-même tombe dans la tranche zéro.
+        // Tranche (0,4] inclusive : 4 lui-même tombe dans la tranche zéro.
         self::assertSame(0.0, $this->wltpTariff(4));
     }
 
@@ -99,13 +84,6 @@ final class R2026_PricingScalesCo2Test extends TestCase
         self::assertSame(4908.0, $this->wltpTariff(200));
     }
 
-    // ============================================================
-    // R-2026-011 NEDC · barème durci 2026
-    // Tranches · (0,3](0) · (3,37](1) · (37,44](2) · (44,70](3) ·
-    // (70,87](4) · (87,103](10) · (103,120](50) · (120,136](60) ·
-    // (136,+∞)(65)
-    // ============================================================
-
     #[Test]
     public function nedc_co2_100_donne_324_euros_durcissement_2026(): void
     {
@@ -128,12 +106,6 @@ final class R2026_PricingScalesCo2Test extends TestCase
         // 1204 + (136-120)*60 = 1204 + 960 = 2164 €
         self::assertSame(2164.0, $this->nedcTariff(136));
     }
-
-    // ============================================================
-    // R-2026-012 PA · barème durci 2026
-    // Tranches · (0,3](2000/CV) · (3,6](3000) · (6,10](4500) ·
-    // (10,15](5250) · (15,+∞)(6500)
-    // ============================================================
 
     #[Test]
     public function pa_3_cv_donne_6000_euros(): void

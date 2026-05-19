@@ -15,14 +15,14 @@ use Tests\TestCase;
 
 /**
  * Goldens BOFiP pour l'abattement E85 2026 (CIBS L. 421-125 stable
- * depuis 01/01/2025 · reconduction stricte sans modification matérielle
+ * depuis 01/01/2025 : reconduction stricte sans modification matérielle
  * audit Chrome live 15/05/2026).
  *
  * Mécanique testée ·
- * - WLTP/NEDC · réduction de 40 % (co2 × 0,60) sauf si > 250 g/km.
- * - PA · soustraction de 2 CV sauf si > 12 CV.
- * - Flag `accepts_e85=false` · aucun effet.
- * - Plafonds inclusifs · 250 g/km exact reste éligible, 251 non.
+ * - WLTP/NEDC : réduction de 40 % (co2 × 0,60) sauf si > 250 g/km.
+ * - PA : soustraction de 2 CV sauf si > 12 CV.
+ * - Flag `accepts_e85=false` : aucun effet.
+ * - Plafonds inclusifs : 250 g/km exact reste éligible, 251 non.
  *   Idem 12 CV exact éligible, 13 non.
  */
 final class R2026_023_E85AbatementTest extends TestCase
@@ -69,7 +69,7 @@ final class R2026_023_E85AbatementTest extends TestCase
     #[Test]
     public function wltp_co2_250_borne_inclusive_garde_l_abattement(): void
     {
-        // « Sauf lorsque ces émissions dépassent 250 g/km » · « dépassent »
+        // « Sauf lorsque ces émissions dépassent 250 g/km » : « dépassent »
         // = strictement supérieur. 250 exact reste éligible.
         // 250 × 0,60 = 150 g/km
         $vfc = $this->makeVfc(['accepts_e85' => true, 'co2_wltp' => 250]);
@@ -84,7 +84,7 @@ final class R2026_023_E85AbatementTest extends TestCase
     #[Test]
     public function wltp_co2_251_perd_l_abattement(): void
     {
-        // 251 > 250 · abattement non applicable · contexte inchangé.
+        // 251 > 250 : abattement non applicable : contexte inchangé.
         $vfc = $this->makeVfc(['accepts_e85' => true, 'co2_wltp' => 251]);
         $context = $this->makeContext($vfc, HomologationMethod::Wltp);
 
@@ -133,7 +133,7 @@ final class R2026_023_E85AbatementTest extends TestCase
     #[Test]
     public function pa_12_cv_borne_inclusive_garde_l_abattement(): void
     {
-        // 12 exact reste éligible · 12 - 2 = 10
+        // 12 exact reste éligible : 12 - 2 = 10
         $vfc = $this->makeVfc([
             'homologation_method' => HomologationMethod::Pa,
             'accepts_e85' => true,
@@ -169,7 +169,7 @@ final class R2026_023_E85AbatementTest extends TestCase
     #[Test]
     public function ne_modifie_pas_la_vfc_originale(): void
     {
-        // Cohérence ADR-0021 · le clone via replicate() doit empêcher
+        // Cohérence ADR-0021 : le clone via replicate() doit empêcher
         // toute mutation accidentelle de la VFC persistée.
         $vfc = $this->makeVfc(['accepts_e85' => true, 'co2_wltp' => 130]);
         $context = $this->makeContext($vfc, HomologationMethod::Wltp);

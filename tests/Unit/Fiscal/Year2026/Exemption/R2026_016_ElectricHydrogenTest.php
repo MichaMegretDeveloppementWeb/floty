@@ -18,7 +18,7 @@ use Tests\TestCase;
 /**
  * Couvre l'exonération CO₂ électrique / hydrogène 2026 (CIBS L. 421-124
  * stable). Reconduction stricte de R-2025-016. Périmètre CO₂ uniquement
- * (scope Co2Only) · tarifs conservés (pas de zeroing).
+ * (scope Co2Only) : tarifs conservés (pas de zeroing).
  */
 final class R2026_016_ElectricHydrogenTest extends TestCase
 {

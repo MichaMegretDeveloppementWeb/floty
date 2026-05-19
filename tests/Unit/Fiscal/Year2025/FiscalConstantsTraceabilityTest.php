@@ -15,16 +15,16 @@ use Tests\TestCase;
  *
  * Chaque constante numérique du moteur 2025 doit être tracée à un texte
  * légal précis (CIBS article + paragraphe). Ce test verrouille la valeur
- * attendue · une modification accidentelle (typo, mise à jour mal
+ * attendue : une modification accidentelle (typo, mise à jour mal
  * propagée) sera détectée immédiatement.
  *
- * **Pourquoi un test dédié** · les goldens (R2025_PricingScalesTest,
+ * **Pourquoi un test dédié** : les goldens (R2025_PricingScalesTest,
  * R2025_ExhaustiveGoldensTest, R2025_023_E85AbatementTest) testent les
  * comportements aux bordures (250/251 E85, 30/31 LCD, etc.) mais ne
  * matérialisent pas explicitement le **lien constante ↔ source légale**.
  * Ce test sert de documentation exécutable.
  *
- * **Si une constante doit changer** · vérifier d'abord que la source
+ * **Si une constante doit changer** : vérifier d'abord que la source
  * légale a effectivement été modifiée (LF nouvelle, BOFiP réécrit),
  * puis mettre à jour le test + la classe simultanément.
  */
@@ -45,7 +45,7 @@ final class FiscalConstantsTraceabilityTest extends TestCase
     public function r2025_023_e85_reduction_factor_60_pourcent_vient_de_cibs_l421_125(): void
     {
         // CIBS L. 421-125 (réformé par LF 2024 art. 97-23°, en vigueur
-        // 01/01/2025) · « abattement de 40 % des émissions de dioxyde
+        // 01/01/2025) : « abattement de 40 % des émissions de dioxyde
         // de carbone ». 40 % d'abattement = facteur de réduction 0,60
         // (CO₂ retenu = CO₂ × 0,60).
         $reflection = new \ReflectionClass(R2025_023_E85Abatement::class);
@@ -57,9 +57,9 @@ final class FiscalConstantsTraceabilityTest extends TestCase
     #[Test]
     public function r2025_023_e85_plafond_co2_250_grammes_inclusif_vient_de_cibs_l421_125(): void
     {
-        // CIBS L. 421-125 (en vigueur 01/01/2025) · « sauf lorsque ces
+        // CIBS L. 421-125 (en vigueur 01/01/2025) : « sauf lorsque ces
         // émissions excèdent 250 grammes par kilomètre ». « Excèdent »
-        // = strictement supérieur · 250 exact reste éligible, 251 non.
+        // = strictement supérieur : 250 exact reste éligible, 251 non.
         $reflection = new \ReflectionClass(R2025_023_E85Abatement::class);
         $constant = $reflection->getReflectionConstant('CO2_THRESHOLD_INCLUSIVE');
         self::assertNotFalse($constant);
@@ -69,7 +69,7 @@ final class FiscalConstantsTraceabilityTest extends TestCase
     #[Test]
     public function r2025_023_e85_reduction_pa_2_cv_vient_de_cibs_l421_125(): void
     {
-        // CIBS L. 421-125 (en vigueur 01/01/2025) · « abattement de
+        // CIBS L. 421-125 (en vigueur 01/01/2025) : « abattement de
         // [...] 2 chevaux administratifs pour la puissance
         // administrative ». PA retenue = PA - 2 (clampée à 0).
         $reflection = new \ReflectionClass(R2025_023_E85Abatement::class);
@@ -81,9 +81,9 @@ final class FiscalConstantsTraceabilityTest extends TestCase
     #[Test]
     public function r2025_023_e85_plafond_pa_12_cv_inclusif_vient_de_cibs_l421_125(): void
     {
-        // CIBS L. 421-125 (en vigueur 01/01/2025) · « sauf lorsque
+        // CIBS L. 421-125 (en vigueur 01/01/2025) : « sauf lorsque
         // cette dernière excède 12 chevaux administratifs ». « Excède »
-        // = strictement supérieur · 12 CV exact reste éligible,
+        // = strictement supérieur : 12 CV exact reste éligible,
         // 13 CV non.
         $reflection = new \ReflectionClass(R2025_023_E85Abatement::class);
         $constant = $reflection->getReflectionConstant('PA_THRESHOLD_INCLUSIVE');

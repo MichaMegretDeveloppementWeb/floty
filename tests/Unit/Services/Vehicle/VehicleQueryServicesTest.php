@@ -59,7 +59,7 @@ final class VehicleQueryServicesTest extends TestCase
     #[Test]
     public function history_for_vehicle_couvre_les_annees_passees_du_scope_global(): void
     {
-        // Audit perf 2026-05-16 / 02-vehicle.md P0 #1 · l'historique
+        // Audit perf 2026-05-16 / 02-vehicle.md P0 #1 : l'historique
         // annuel est extrait de findVehicleData() vers une methode
         // dediee historyForVehicle() servie en Inertia::defer. Ce test
         // verifie l'equivalence stricte avec l'ancien comportement ·
@@ -80,9 +80,9 @@ final class VehicleQueryServicesTest extends TestCase
         $history = $this->detail->historyForVehicle($vehicle->id);
 
         self::assertCount(count($expectedYears), $history);
-        // Ordre DESC · index 0 = currentYear - 1
+        // Ordre DESC : index 0 = currentYear - 1
         self::assertSame($currentYear - 1, $history[0]->year);
-        // Dernier element · 2024 avec 15 jours utilises
+        // Dernier element : 2024 avec 15 jours utilises
         self::assertSame(2024, $history[count($expectedYears) - 1]->year);
         self::assertSame(15, $history[count($expectedYears) - 1]->daysUsed);
     }
@@ -106,7 +106,7 @@ final class VehicleQueryServicesTest extends TestCase
 
         $year = 2026;
 
-        // Référence · valeurs sans prewarm batch (1 aggregator FRESH par
+        // Référence : valeurs sans prewarm batch (1 aggregator FRESH par
         // véhicule pour éviter contamination cache).
         $expected = [];
         foreach ([$v1, $v2, $v3] as $v) {
@@ -114,7 +114,7 @@ final class VehicleQueryServicesTest extends TestCase
             $expected[$v->id] = $fresh->vehicleFullYearTax($v, $year);
         }
 
-        // Service à tester · avec prewarm batch.
+        // Service à tester : avec prewarm batch.
         $actual = $this->listing->costsForVehicleIds([$v1->id, $v2->id, $v3->id], $year);
 
         foreach ([$v1, $v2, $v3] as $v) {
@@ -127,14 +127,14 @@ final class VehicleQueryServicesTest extends TestCase
     }
 
     /**
-     * Garde-fou perf · `costsForVehicleIds` exécute exactement 2 queries
+     * Garde-fou perf : `costsForVehicleIds` exécute exactement 2 queries
      * VFC batchées indépendamment du nombre de véhicules (pas N+1) ·
      *   1. `findByIdsIndexed` eager-load `fiscalCharacteristics` (WHERE
-     *      effective_to IS NULL · 1 query batched)
+     *      effective_to IS NULL : 1 query batched)
      *   2. `prewarmFullYearForVehicles` (segments effectifs pour l'année ·
      *      1 query batched via `findEffectiveSegmentsForYearBatch`)
      *
-     * Avant ce chantier · `vehicleFullYearTax` appelé en boucle déclenchait
+     * Avant ce chantier : `vehicleFullYearTax` appelé en boucle déclenchait
      * N queries VFC individuelles (N+1 monstrueux).
      */
     #[Test]
@@ -172,7 +172,7 @@ final class VehicleQueryServicesTest extends TestCase
         // permettre la consultation et l'édition rétroactive ; le
         // frontend distingue actifs/retirés via `isExited`.
         //
-        // S2.4 + S2.5 (audit perf 2026-05-16) · renommé `listForOptions`
+        // S2.4 + S2.5 (audit perf 2026-05-16) : renommé `listForOptions`
         // → `listForLightSelector` après suppression de la version
         // lourde avec `fullYearTaxByYear` pré-calculé (192 pipeline
         // runs gaspillés). Calcul taxe pleine désormais on-demand
@@ -198,7 +198,7 @@ final class VehicleQueryServicesTest extends TestCase
     }
 
     // ----------------------------------------------------------------
-    // Timeline 52 semaines · split indispos réductrices vs non-réductrices
+    // Timeline 52 semaines : split indispos réductrices vs non-réductrices
     // (chantier #1, ADR-0016 + ADR-0019).
     // ----------------------------------------------------------------
 

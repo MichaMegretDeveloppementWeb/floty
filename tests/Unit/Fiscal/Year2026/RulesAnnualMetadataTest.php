@@ -10,22 +10,22 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Sanity exhaustive · chaque règle déclarée dans
+ * Sanity exhaustive : chaque règle déclarée dans
  * {@see Year2026Boot::rules()} expose une période d'applicabilité
  * qui couvre 2026 entièrement (`2026-01-01` → `2026-12-31`) avec
  * contiguïté stricte entre versions scindées par ADR-0022.
  *
- * **Spécificité 2026 vs 2025** · 3 paires bis dans le pipeline ·
- *   - R-2026-013 / R-2026-013-bis · catégorisation polluants
+ * **Spécificité 2026 vs 2025** : 3 paires bis dans le pipeline ·
+ *   - R-2026-013 / R-2026-013-bis : catégorisation polluants
  *     (rédactionnel Ordo 2025-1247 art. 7 au 01/09/2026)
- *   - R-2026-014 / R-2026-014-bis · tarif polluants
- *     (matériel LF 2026 art. 58 au 01/03/2026 · +30 %)
- *   - R-2026-018 / R-2026-018-bis · OIG (rédactionnel Ordo 2025-1247
- *     art. 4 au 01/09/2026 · inactives Floty V1)
+ *   - R-2026-014 / R-2026-014-bis : tarif polluants
+ *     (matériel LF 2026 art. 58 au 01/03/2026 : +30 %)
+ *   - R-2026-018 / R-2026-018-bis : OIG (rédactionnel Ordo 2025-1247
+ *     art. 4 au 01/09/2026 : inactives Floty V1)
  *
  * Ce test couvre automatiquement toute nouvelle règle 2026 ajoutée au
- * boot · si une règle est ajoutée sans `applicabilityStart/End` couvrant
- * 2026, ou si une scission introduit un trou, il casse · ce qui est voulu.
+ * boot : si une règle est ajoutée sans `applicabilityStart/End` couvrant
+ * 2026, ou si une scission introduit un trou, il casse : ce qui est voulu.
  */
 final class RulesAnnualMetadataTest extends TestCase
 {
@@ -35,7 +35,7 @@ final class RulesAnnualMetadataTest extends TestCase
         /** @var Container $container */
         $container = $this->app;
 
-        // Regroupement par code logique · R-2026-013-bis → R-2026-013.
+        // Regroupement par code logique : R-2026-013-bis → R-2026-013.
         $families = [];
         foreach ((new Year2026Boot)->rules() as $class) {
             $rule = $container->make($class);
@@ -69,7 +69,7 @@ final class RulesAnnualMetadataTest extends TestCase
                 "Famille {$logicalCode} · applicabilityEnd() de la dernière version doit être 2026-12-31 23:59:59.",
             );
 
-            // Contiguïté pour les familles scindées · chaque version
+            // Contiguïté pour les familles scindées : chaque version
             // doit démarrer immédiatement après la fin de la précédente
             // (1 seconde) afin d'éviter tout trou temporel.
             for ($i = 1; $i < count($rules); $i++) {
@@ -122,11 +122,11 @@ final class RulesAnnualMetadataTest extends TestCase
     }
 
     /**
-     * Z9 · audit URLs exhaustif 15/05/2026 · 66/66 URLs vérifiées
+     * Z9 : audit URLs exhaustif 15/05/2026 : 66/66 URLs vérifiées
      * (bulk curl avec détection « Document non trouvé » + spot-check
-     * Chrome live sur 3 URLs critiques · L. 421-120 WLTP, L. 421-121
+     * Chrome live sur 3 URLs critiques : L. 421-120 WLTP, L. 421-121
      * NEDC, L. 421-122 PA). Toutes les URLs Légifrance pointent vers
-     * du contenu valide au 15/05/2026 · les barèmes 2026 affichés
+     * du contenu valide au 15/05/2026 : les barèmes 2026 affichés
      * (Jusqu'à 4 / 5-45 / 46-53 / 54-85 / 86-105 / 106-125 / 126-145 /
      * 146-165 / 166+ pour WLTP) correspondent exactement aux
      * `BracketRange` codés dans R-2026-010/011/012.

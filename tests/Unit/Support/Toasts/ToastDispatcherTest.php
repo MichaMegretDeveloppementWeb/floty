@@ -10,7 +10,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Lot 5 D6 (F-19-007) · valide l'accumulation N messages par requête
+ * Lot 5 D6 (F-19-007) : valide l'accumulation N messages par requête
  * sur la pile session `'toasts'`. Chaque entry porte un UUID unique
  * généré au push (utilisé côté front pour la dédup back-button).
  */
@@ -33,7 +33,7 @@ final class ToastDispatcherTest extends TestCase
     #[Test]
     public function push_n_toasts_les_accumule_dans_la_pile(): void
     {
-        // F-19-007 · le pattern Laravel natif `Session::flash` écraserait
+        // F-19-007 : le pattern Laravel natif `Session::flash` écraserait
         // le 1er message si on utilisait la même clé. Le dispatcher
         // contourne via `get + append + reflash` → 3 toasts coexistent.
         ToastDispatcher::success('3 contrats créés');
@@ -52,7 +52,7 @@ final class ToastDispatcherTest extends TestCase
     public function chaque_push_genere_un_id_unique(): void
     {
         // L'ID unique est consommé par le front pour dédupliquer au
-        // back-button · 2 messages identiques (même tone, même contenu)
+        // back-button : 2 messages identiques (même tone, même contenu)
         // doivent quand même avoir 2 IDs distincts pour s'afficher.
         ToastDispatcher::success('Message identique');
         ToastDispatcher::success('Message identique');

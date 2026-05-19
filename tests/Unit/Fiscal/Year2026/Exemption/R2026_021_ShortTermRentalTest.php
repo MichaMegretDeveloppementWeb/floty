@@ -15,14 +15,14 @@ use Tests\TestCase;
 
 /**
  * Couvre la qualification LCD 2026 (CIBS art. L. 421-129 / L. 421-141
- * stables · URL L. 421-141 = LEGIARTI000044602919 verrouillée).
+ * stables : URL L. 421-141 = LEGIARTI000044602919 verrouillée).
  *
  * Reconduction stricte de R-2025-021. Deux conditions OR ·
  *   - durée ≤ 30 jours consécutifs
  *   - OU contrat couvre exactement un mois civil entier (1er → dernier
  *     jour du même mois).
  *
- * 2026 non bissextile · février 2026 = 28 jours.
+ * 2026 non bissextile : février 2026 = 28 jours.
  */
 final class R2026_021_ShortTermRentalTest extends TestCase
 {
@@ -69,7 +69,7 @@ final class R2026_021_ShortTermRentalTest extends TestCase
     #[Test]
     public function contrat_couvrant_fevrier_2026_non_bissextile_28j_qualifie_lcd(): void
     {
-        // Février 2026 fait 28 j (année non bissextile) · qualifie par
+        // Février 2026 fait 28 j (année non bissextile) : qualifie par
         // durée (< 30 j) ET par mois entier. Test redondant qui documente
         // la différence vs 2024 (29 j) et 2025 (28 j aussi).
         $contract = $this->makeContract('2026-02-01', '2026-02-28');

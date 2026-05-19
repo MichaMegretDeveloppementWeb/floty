@@ -23,9 +23,7 @@ use Tests\TestCase;
  *     Euro 5+ → Catégorie 1
  *   - sinon → « les plus polluants »
  *
- * La cascade vit dans `PollutantCategory::derive()` ; cette règle pose
- * le résultat sur le contexte. On teste les principales combinaisons +
- * une bordure Euro4 / Euro5.
+ * Cascade dans `PollutantCategory::derive()`.
  */
 final class R2025_013_PollutantCategoryAssignmentTest extends TestCase
 {

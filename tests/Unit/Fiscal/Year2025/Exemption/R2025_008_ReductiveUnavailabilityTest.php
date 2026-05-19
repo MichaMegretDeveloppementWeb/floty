@@ -17,11 +17,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre les 10 cas-tests permanents d'ADR-0016 § 7 rev. 1.1.
- *
- * Toute modification de R-2025-008 doit conserver ces invariants -
- * c'est le filet de sécurité fiscal de la règle « indispos
- * fiscalement réductrices ».
+ * Couvre les 10 cas-tests permanents d'ADR-0016 § 7 rev. 1.1
+ * (règle « indispos fiscalement réductrices »).
  */
 final class R2025_008_ReductiveUnavailabilityTest extends TestCase
 {
@@ -122,10 +119,9 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_5_suspension_ci_59_jours_reduit_de_59_en_2025_non_bissextile(): void
     {
-        // Différence cruciale 2024/2025 · l'année 2025 n'est pas bissextile,
+        // Différence cruciale 2024/2025 : l'année 2025 n'est pas bissextile,
         // donc une suspension du 01/02 au 31/03 = 59 jours (28 + 31), alors
-        // qu'en 2024 ce serait 60 jours (29 + 31). Le compte du moteur
-        // doit suivre le calendrier réel.
+        // qu'en 2024 ce serait 60 jours (29 + 31).
         $unavailability = Unavailability::factory()->ciSuspension()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2025-02-01',
@@ -196,7 +192,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
             'end_date' => '2025-09-05',
         ]);
 
-        // Contrat couvrant uniquement Janvier - l'indispo de Septembre
+        // Contrat couvrant uniquement Janvier : l'indispo de Septembre
         // ne croise aucun jour taxable du couple.
         $contract = Contract::factory()->create([
             'vehicle_id' => $this->vehicle->id,

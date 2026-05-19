@@ -41,7 +41,7 @@ final class YearBoundsCacheTest extends TestCase
     #[Test]
     public function start_renvoie_la_meme_instance_pour_des_appels_repetes_meme_annee(): void
     {
-        // Identité === (pas seulement ==) · l'objectif du cache est
+        // Identité === (pas seulement ==) : l'objectif du cache est
         // d'éviter de re-construire un CarbonImmutable à chaque appel.
         $a = YearBoundsCache::start(2026);
         $b = YearBoundsCache::start(2026);

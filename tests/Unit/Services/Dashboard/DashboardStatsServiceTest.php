@@ -17,7 +17,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests des méthodes du `DashboardStatsService` · Présent (KPIs +
+ * Tests des méthodes du `DashboardStatsService` : Présent (KPIs +
  * comparaison Y-1), Évolution (history), Tâches en attente.
  */
 final class DashboardStatsServiceTest extends TestCase
@@ -38,7 +38,7 @@ final class DashboardStatsServiceTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
-        // Contrat actif aujourd'hui · 30 jours autour du « now »
+        // Contrat actif aujourd'hui : 30 jours autour du « now »
         $today = CarbonImmutable::today();
         Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
             'start_date' => $today->subDays(15)->toDateString(),
@@ -110,7 +110,7 @@ final class DashboardStatsServiceTest extends TestCase
     #[Test]
     public function compute_kpis_fiscal_ne_porte_plus_de_comparaison_y_1(): void
     {
-        // v3 · `previousYearComparison` retiré du DTO · le pipeline
+        // v3 : `previousYearComparison` retiré du DTO : le pipeline
         // fiscal ne tourne plus que sur 1 année au mount Dashboard
         // (l'historique multi-années chargé à la demande sert de
         // support temporel).
@@ -131,7 +131,7 @@ final class DashboardStatsServiceTest extends TestCase
     #[Test]
     public function compute_history_jours_vehicule_se_borne_au_scope_dynamique(): void
     {
-        // v4 · computeHistory split en 4 méthodes par dimension.
+        // v4 : computeHistory split en 4 méthodes par dimension.
         // joursVehicule est l'onglet par défaut (cheap, sert au mount).
         // Sans contrat, scope = [currentYear] → 1 entrée à value=0.
         $today = CarbonImmutable::today();
@@ -150,7 +150,7 @@ final class DashboardStatsServiceTest extends TestCase
     #[Test]
     public function compute_kpis_charge_les_contrats_et_vehicules_en_bulk_via_scope_context(): void
     {
-        // F-21-001/002 · garde-fou perf · `computeKpis` doit construire
+        // F-21-001/002 : garde-fou perf : `computeKpis` doit construire
         // un `DashboardScopeContext` qui pré-charge en 1 query unique
         // les contrats du range [year-1, year], les véhicules concernés
         // et les indispos. Le test compte spécifiquement les SELECT
@@ -161,7 +161,7 @@ final class DashboardStatsServiceTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
         // 3 entreprises, chacune avec 1 contrat sur 2024 ET 2025 ·
-        // avant fix · 2× loadContractsByPair (1 par année).
+        // avant fix : 2× loadContractsByPair (1 par année).
         foreach (range(1, 3) as $i) {
             $company = Company::factory()->create();
             foreach ([2024, 2025] as $year) {
@@ -181,7 +181,7 @@ final class DashboardStatsServiceTest extends TestCase
 
         // Les pivots `loadContractsByPair*` produisent un SELECT
         // signature unique (order by `vehicle_id` asc, `start_date` asc).
-        // Discriminant signature `loadContractsByPair*` · pivot global
+        // Discriminant signature `loadContractsByPair*` : pivot global
         // sans filtre company_id, ordre vehicle_id puis start_date.
         $pivotQueries = array_filter(
             $queries,
@@ -201,10 +201,10 @@ final class DashboardStatsServiceTest extends TestCase
     #[Test]
     public function compute_history_jours_vehicule_charge_en_1_pivot_range(): void
     {
-        // v4 · l'onglet `joursVehicule` (chargé au mount avec les KPIs)
+        // v4 : l'onglet `joursVehicule` (chargé au mount avec les KPIs)
         // ne fait qu'1 pivot range query couvrant toutes les années du
-        // scope · pas de pipeline fiscal, pas de vehicles, pas d'indispos.
-        // Garde-fou perf · count constant qq soit le nombre d'années.
+        // scope : pas de pipeline fiscal, pas de vehicles, pas d'indispos.
+        // Garde-fou perf : count constant qq soit le nombre d'années.
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
@@ -240,8 +240,8 @@ final class DashboardStatsServiceTest extends TestCase
     #[Test]
     public function compute_pending_tasks_delegue_a_l_aggregator(): void
     {
-        // Phase 13 D5.15 · `computePendingTasks` ne retourne plus de
-        // placeholders 0 · délègue à `DashboardPendingTasksAggregator`
+        // Phase 13 D5.15 : `computePendingTasks` ne retourne plus de
+        // placeholders 0 : délègue à `DashboardPendingTasksAggregator`
         // qui agrège les items pending de toutes les entreprises. Sur
         // une BDD de test vide (RefreshDatabase + pas de seed
         // applicatif), aucune entreprise → 0 items partout.

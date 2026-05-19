@@ -15,11 +15,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Vérifications anti-inversion (chaque règle est dans le bon catalogue).
- *
- * Une règle 2025 inscrite dans `Year2024Boot::rules()` (ou inversement)
- * cassait silencieusement la conformité au centime près · ce test
- * verrouille les inscriptions croisées.
+ * Vérifications anti-inversion : chaque règle est dans le bon catalogue.
+ * Verrouille les inscriptions croisées 2024 ↔ 2025.
  */
 final class Year2025BootInversionTest extends TestCase
 {
@@ -77,8 +74,8 @@ final class Year2025BootInversionTest extends TestCase
     #[Test]
     public function r2025_033_tai_n_est_pas_dans_year2024_boot(): void
     {
-        // La TAI (R-2025-033) est créée par LF 2025 art. 95. Elle ne
-        // doit pas être rétro-inscrite dans 2024.
+        // La TAI (R-2025-033) est créée par LF 2025 art. 95.
+        // Elle ne doit pas être rétro-inscrite dans 2024.
         $boot2024 = new Year2024Boot;
         $allClasses = array_merge($boot2024->rules(), $boot2024->informativeRules());
 
@@ -93,7 +90,7 @@ final class Year2025BootInversionTest extends TestCase
     public function r2025_023_e85_n_est_pas_dans_year2024_boot(): void
     {
         // L'abattement E85 (R-2025-023) est créé par LF 2024 art. 97, 23°
-        // au 01/01/2025. Il ne doit pas être rétro-inscrit dans 2024.
+        // au 01/01/2025 : ne doit pas être rétro-inscrit dans 2024.
         $boot2024 = new Year2024Boot;
         $allClasses = array_merge($boot2024->rules(), $boot2024->informativeRules());
 
@@ -107,7 +104,7 @@ final class Year2025BootInversionTest extends TestCase
     #[Test]
     public function r2024_001_n_est_pas_dans_year2025_boot(): void
     {
-        // Garde-fou symétrique · chaque année a sa propre R-YYYY-001
+        // Garde-fou symétrique : chaque année a sa propre R-YYYY-001
         // (texte CIBS identique mais classe PHP distincte ADR-0022).
         $boot = new Year2025Boot;
         $allClasses = array_merge($boot->rules(), $boot->informativeRules());

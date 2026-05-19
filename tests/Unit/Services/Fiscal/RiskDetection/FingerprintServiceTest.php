@@ -137,11 +137,11 @@ final class FingerprintServiceTest extends TestCase
     #[Test]
     public function lot5_d10_leve_json_exception_sur_payload_invalide(): void
     {
-        // Lot 5 D10 (F-19-019) · garde-fou · le `JSON_THROW_ON_ERROR`
+        // Lot 5 D10 (F-19-019) : garde-fou : le `JSON_THROW_ON_ERROR`
         // doit propager toute corruption d'encodage JSON (ex. payload
         // contenant un float non-finite NAN/INF). Sans ce flag, json_encode
         // retournerait `false` silencieusement et le hash serait dérivé
-        // d'une chaîne vide · fingerprint corrompu non détecté.
+        // d'une chaîne vide : fingerprint corrompu non détecté.
         //
         // On contourne le typage iterable<Contract> en passant directement
         // un objet anonyme avec les propriétés Carbon attendues qui force
@@ -161,9 +161,9 @@ final class FingerprintServiceTest extends TestCase
 
         $this->expectException(\JsonException::class);
 
-        // L'iterable accepte tout objet · le service va lire les
+        // L'iterable accepte tout objet : le service va lire les
         // propriétés et passer NAN à json_encode qui lève l'exception.
-        // PHPStan ignore · cast volontaire stdClass→Contract pour le test
+        // PHPStan ignore : cast volontaire stdClass→Contract pour le test
         // pathological (NAN vehicle_id non persistable via Eloquent).
         // @phpstan-ignore-next-line argument.type
         $service->compute([$bad]);

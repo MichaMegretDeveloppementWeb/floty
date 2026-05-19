@@ -21,9 +21,9 @@ use Tests\TestCase;
  * **Scission matérielle ADR-0022 unique du pipeline 2026** ·
  * LF 2026 art. 58 (V), IV (LOI n° 2026-103 du 19/02/2026) revalorise
  * de +30 % les tarifs polluants au 01/03/2026 ·
- *   - E (électrique / hydrogène) · 0 € (inchangé)
- *   - Catégorie 1 · 100 € → 130 € (+30 %)
- *   - Les plus polluants · 500 € → 650 € (+30 %)
+ *   - E (électrique / hydrogène) : 0 € (inchangé)
+ *   - Catégorie 1 : 100 € → 130 € (+30 %)
+ *   - Les plus polluants : 500 € → 650 € (+30 %)
  *
  * Toute régression d'une borne tarifaire entre les 2 versions sera
  * capturée. L'invariant +30 % est testé explicitement.
@@ -31,10 +31,6 @@ use Tests\TestCase;
 final class R2026_PricingScalesPollutantsTest extends TestCase
 {
     use RefreshDatabase;
-
-    // ============================================================
-    // R-2026-014 v 01/01-28/02/2026 · tarifs hérités 2025
-    // ============================================================
 
     #[Test]
     public function v1_categorie_e_donne_zero(): void
@@ -54,14 +50,10 @@ final class R2026_PricingScalesPollutantsTest extends TestCase
         self::assertSame(500.0, $this->v1Tariff(PollutantCategory::MostPolluting));
     }
 
-    // ============================================================
-    // R-2026-014-bis v 01/03-31/12/2026 · revalorisation +30 % LF 2026
-    // ============================================================
-
     #[Test]
     public function bis_categorie_e_reste_zero_inchange_vs_v1(): void
     {
-        // Pas de revalorisation pour les véhicules électriques · effet
+        // Pas de revalorisation pour les véhicules électriques : effet
         // du barème (0 €), pas une exonération.
         self::assertSame(0.0, $this->bisTariff(PollutantCategory::E));
     }
@@ -79,10 +71,6 @@ final class R2026_PricingScalesPollutantsTest extends TestCase
         // 500 € × 1.30 = 650 €
         self::assertSame(650.0, $this->bisTariff(PollutantCategory::MostPolluting));
     }
-
-    // ============================================================
-    // Invariant croisé · revalorisation +30 % vs v1
-    // ============================================================
 
     #[Test]
     public function invariant_bis_egale_v1_fois_1_30_pour_categorie_1(): void

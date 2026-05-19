@@ -32,23 +32,10 @@ use PHPUnit\Framework\TestCase;
 /**
  * Tests unitaires sur les 18 classes documentaires-only Year2025.
  *
- * Vérifie les invariants de chaque classe ·
- *  - implémente {@see InformativeRule} (marker)
- *  - `ruleCode()` au format `R-2025-{nnn}` (avec suffixe `-bis` pour les
- *    versions scindées par LF 2025 art. 28 · ADR-0022 strict)
- *  - `applicabilityStart/End` couvrent 2025 (`AnnualRuleTrait` pour la
- *    plupart, sauf les pairs `-bis` qui couvrent une portion d'année)
- *  - `isActive()` cohérent · règles « Cadre » actives, règles
- *    « TaxeConnexe » inactives (grisées dans l'UI)
- *  - `name()`, `description()` non vides
- *  - `taxesConcerned()` non vide
- *  - `displayOrder()` cohérent avec le code (ex. R-2025-001 et
- *    R-2025-001-bis → 1, R-2025-033 → 33)
- *  - `legalBasis()` enrichi d'URL + consulted_at sur chaque entrée
- *
- * Composition 18 classes · 11 actives (Cadre/Exonération · périmètre
- * fonctionnel de l'application) + 7 inactives (TaxeConnexe · véhicules
- * hors périmètre de l'application).
+ * Vérifie les invariants de chaque classe : interface InformativeRule,
+ * ruleCode, applicabilityStart/End, isActive cohérent, name/description
+ * non vides, taxesConcerned non vide, displayOrder cohérent avec le code,
+ * legalBasis enrichi d'URL + consulted_at.
  */
 final class InformativeRulesMetadataTest extends TestCase
 {
@@ -58,7 +45,7 @@ final class InformativeRulesMetadataTest extends TestCase
     public static function classesProvider(): array
     {
         return [
-            // Cadre actif · périmètre fonctionnel de l'application
+            // Cadre actif : périmètre fonctionnel de l'application
             [R2025_001_TaxpayerAndTriggeringEvent::class, 'R-2025-001', 1, RuleType::Transversal, true],
             [R2025_001bis_TaxpayerAndTriggeringEvent::class, 'R-2025-001-bis', 1, RuleType::Transversal, true],
             [R2025_006_PaFallback::class, 'R-2025-006', 6, RuleType::Classification, true],
@@ -70,7 +57,7 @@ final class InformativeRulesMetadataTest extends TestCase
             [R2025_025_WeightedAverageTariff::class, 'R-2025-025', 25, RuleType::Transversal, true],
             [R2025_028_DeclarationModalities::class, 'R-2025-028', 28, RuleType::Transversal, true],
             [R2025_028bis_DeclarationModalities::class, 'R-2025-028-bis', 28, RuleType::Transversal, true],
-            // TaxeConnexe inactive · hors périmètre fonctionnel
+            // TaxeConnexe inactive : hors périmètre fonctionnel
             [R2025_029_RegistrationCo2Malus::class, 'R-2025-029', 29, RuleType::Transversal, false],
             [R2025_029bis_RegistrationCo2Malus::class, 'R-2025-029-bis', 29, RuleType::Transversal, false],
             [R2025_030_RegistrationWeightMalus::class, 'R-2025-030', 30, RuleType::Transversal, false],
@@ -132,7 +119,7 @@ final class InformativeRulesMetadataTest extends TestCase
         self::assertSame($expectedCode, $rule->ruleCode());
         self::assertSame($expectedOrder, $rule->displayOrder());
         self::assertSame($expectedType, $rule->ruleType());
-        self::assertSame($expectedActive, $rule->isActive(), "{$class} · isActive() attendu = ".($expectedActive ? 'true' : 'false').'.');
+        self::assertSame($expectedActive, $rule->isActive(), "{$class} : isActive() attendu = ".($expectedActive ? 'true' : 'false').'.');
 
         self::assertNotEmpty($rule->name());
         self::assertNotEmpty($rule->description());
@@ -140,9 +127,9 @@ final class InformativeRulesMetadataTest extends TestCase
 
         $start = $rule->applicabilityStart();
         $end = $rule->applicabilityEnd();
-        self::assertSame(2025, $start->year, "{$class} · applicabilityStart doit être en 2025.");
+        self::assertSame(2025, $start->year, "{$class} : applicabilityStart doit être en 2025.");
         self::assertNotNull($end);
-        self::assertSame(2025, $end->year, "{$class} · applicabilityEnd doit être en 2025.");
+        self::assertSame(2025, $end->year, "{$class} : applicabilityEnd doit être en 2025.");
     }
 
     /**
@@ -155,7 +142,7 @@ final class InformativeRulesMetadataTest extends TestCase
         $rule = new $class;
         $basis = $rule->legalBasis();
 
-        self::assertNotEmpty($basis, sprintf('%s · legalBasis ne peut pas être vide (toute règle informative 2025 doit citer au moins une source).', $rule->ruleCode()));
+        self::assertNotEmpty($basis, sprintf('%s : legalBasis ne peut pas être vide.', $rule->ruleCode()));
 
         foreach ($basis as $entry) {
             self::assertArrayHasKey('url', $entry);

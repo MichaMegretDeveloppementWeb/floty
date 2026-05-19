@@ -119,7 +119,7 @@ final class PendingDeclarationsResolverTest extends TestCase
             $pending[0]->state,
         );
         self::assertSame($obsolete->id, $pending[0]->currentDeclarationId);
-        // Phase 13 D5.10.A · contexte d'obsolescence renseigné pour S6.
+        // Phase 13 D5.10.A : contexte d'obsolescence renseigné pour S6.
         self::assertNotNull(
             $pending[0]->obsoleteSinceDate,
             'obsoleteSinceDate doit être renseigné pour une obsolète orphan.',
@@ -145,7 +145,7 @@ final class PendingDeclarationsResolverTest extends TestCase
         self::assertCount(1, $pending);
         self::assertSame(DeclarationLifecycleState::Deferred, $pending[0]->state);
         self::assertSame($deferred->id, $pending[0]->currentDeclarationId);
-        // Phase 13 D5.10.A · Deferred n'a pas de contexte d'obsolescence.
+        // Phase 13 D5.10.A : Deferred n'a pas de contexte d'obsolescence.
         self::assertNull($pending[0]->obsoleteSinceDate);
         self::assertSame(0, $pending[0]->obsoleteReasonsCount);
 
@@ -203,7 +203,7 @@ final class PendingDeclarationsResolverTest extends TestCase
             $pending[0]->state,
         );
         self::assertSame($draft->id, $pending[0]->currentDeclarationId);
-        // Phase 13 D5.10.A · contexte d'obsolescence vient du predecessor en S7.
+        // Phase 13 D5.10.A : contexte d'obsolescence vient du predecessor en S7.
         self::assertNotNull(
             $pending[0]->obsoleteSinceDate,
             'obsoleteSinceDate doit être renseigné depuis le predecessor en régénération.',

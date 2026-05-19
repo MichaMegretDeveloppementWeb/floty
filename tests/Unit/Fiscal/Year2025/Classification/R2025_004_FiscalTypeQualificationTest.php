@@ -159,8 +159,8 @@ final class R2025_004_FiscalTypeQualificationTest extends TestCase
     #[Test]
     public function camionnette_n1_sans_2eme_rangee_seule_est_hors_champ_avec_motif_specifique(): void
     {
-        // Cas EB-002-BB : camionnette N1 + transport personnes coché
-        // mais sans 2ᵉ rangée amovible.
+        // Camionnette N1 + transport personnes coché mais sans 2ᵉ
+        // rangée amovible.
         $vfc = $this->makeVfc([
             'reception_category' => ReceptionCategory::N1,
             'vehicle_user_type' => VehicleUserType::CommercialVehicle,

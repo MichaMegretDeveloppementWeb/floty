@@ -20,7 +20,7 @@ use Tests\TestCase;
  * Couvre la cascade de catégorisation polluants 2026 v 01/01-31/08/2026
  * (CIBS L. 421-134 stable depuis 01/01/2025). Reconduction stricte de
  * R-2025-013. La période 01/09-31/12/2026 (toilettage rédactionnel
- * Ordo 2025-1247 art. 7) est portée par R-2026-013-bis · doctrine
+ * Ordo 2025-1247 art. 7) est portée par R-2026-013-bis : doctrine
  * identique testée dans le test bis.
  */
 final class R2026_013_PollutantCategoryAssignmentTest extends TestCase

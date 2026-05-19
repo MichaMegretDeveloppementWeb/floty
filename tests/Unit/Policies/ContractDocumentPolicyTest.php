@@ -11,7 +11,7 @@ use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Vérifie le comportement V1 mono-tenant · toutes les abilities retournent
+ * Vérifie le comportement V1 mono-tenant : toutes les abilities retournent
  * `true`. Filet de sécurité contre une régression involontaire si V2
  * modifie la logique sans mettre à jour les tests.
  *

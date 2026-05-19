@@ -15,7 +15,7 @@ use Tests\TestCase;
  * possibles (clipping gauche, droite, des deux côtés, hors année,
  * contrat 1 jour, année bissextile).
  *
- * **Pourquoi** · `countDaysInYear` est la variante perf qui ne
+ * **Pourquoi** : `countDaysInYear` est la variante perf qui ne
  * matérialise pas l'array de 365 strings. Cette équivalence garantit
  * que les 11 sites de comptage simple (`count(expandToDaysInYear)`)
  * peuvent être migrés sans aucun risque sur les calculs fiscaux.
@@ -147,7 +147,7 @@ final class ContractCountVsExpandEquivalenceTest extends TestCase
      */
     public static function upToCasesProvider(): iterable
     {
-        // Cas pivot · upToDate >= 31/12 → équivalent à countDaysInYear.
+        // Cas pivot : upToDate >= 31/12 → équivalent à countDaysInYear.
         yield 'année passée, upToDate = 31/12' => [
             'startDate' => '2025-03-15',
             'endDate' => '2025-09-30',
@@ -183,7 +183,7 @@ final class ContractCountVsExpandEquivalenceTest extends TestCase
             'expectedDays' => 1,
         ];
 
-        // Contrat débordant à gauche · upToDate clip droite.
+        // Contrat débordant à gauche : upToDate clip droite.
         yield 'contrat débordant gauche · upToDate mi-année' => [
             'startDate' => '2025-11-01',
             'endDate' => '2026-08-15',
@@ -192,7 +192,7 @@ final class ContractCountVsExpandEquivalenceTest extends TestCase
             'expectedDays' => 120, // 31+28+31+30 (jan-avr 2026)
         ];
 
-        // upToDate avant l'année · 0 jour.
+        // upToDate avant l'année : 0 jour.
         yield 'upToDate antérieur à year' => [
             'startDate' => '2026-01-01',
             'endDate' => '2026-12-31',
@@ -201,7 +201,7 @@ final class ContractCountVsExpandEquivalenceTest extends TestCase
             'expectedDays' => 0,
         ];
 
-        // Contrat hors année · 0 jour quel que soit upToDate.
+        // Contrat hors année : 0 jour quel que soit upToDate.
         yield 'contrat hors année · upToDate dans year' => [
             'startDate' => '2024-05-01',
             'endDate' => '2024-12-31',
@@ -214,7 +214,7 @@ final class ContractCountVsExpandEquivalenceTest extends TestCase
     /**
      * Équivalence stricte entre {@see Contract::countDaysInYearUpTo} et
      * `count(array_filter(expandToDaysInYear, fn($d) => $d <= upToDate))`.
-     * Chantier perf Dashboard 2026-05-17 · garantit que la refacto de
+     * Chantier perf Dashboard 2026-05-17 : garantit que la refacto de
      * `DashboardStatsService::computePeriodMetrics` (arithmétique au lieu
      * de matérialisation 365 strings) ne casse aucun calcul YTD.
      */
@@ -254,7 +254,7 @@ final class ContractCountVsExpandEquivalenceTest extends TestCase
 
     private function makeContract(string $startDate, string $endDate): Contract
     {
-        // Pas de DB · on instancie un Contract en mémoire avec juste les
+        // Pas de DB : on instancie un Contract en mémoire avec juste les
         // dates castées comme Carbon. `forceFill` passe par le cast
         // Eloquent `'date'` configuré sur Contract → on récupère un
         // Carbon prêt à l'emploi pour `expandToDaysInYear` /

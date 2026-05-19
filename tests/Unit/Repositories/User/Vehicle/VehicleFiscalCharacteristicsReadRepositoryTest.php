@@ -226,7 +226,7 @@ final class VehicleFiscalCharacteristicsReadRepositoryTest extends TestCase
         self::assertSame('2024-12-31', $segments[1]->end->toDateString());
     }
 
-    // --- findEffectiveSegmentsForYearBatch (3b · prewarm batch) --------
+    // --- findEffectiveSegmentsForYearBatch (3b : prewarm batch) --------
 
     #[Test]
     public function batch_equivalent_a_appel_individuel_pour_chaque_vehicule(): void
@@ -239,14 +239,14 @@ final class VehicleFiscalCharacteristicsReadRepositoryTest extends TestCase
         $v2 = Vehicle::factory()->create();
         $v3 = Vehicle::factory()->create();
 
-        // V1 · mono-VFC sur l'année.
+        // V1 : mono-VFC sur l'année.
         VehicleFiscalCharacteristics::factory()->create([
             'vehicle_id' => $v1->id,
             'effective_from' => '2022-06-01',
             'effective_to' => null,
         ]);
 
-        // V2 · multi-VFC intra-année.
+        // V2 : multi-VFC intra-année.
         VehicleFiscalCharacteristics::factory()->create([
             'vehicle_id' => $v2->id,
             'effective_from' => '2024-01-01',
@@ -258,7 +258,7 @@ final class VehicleFiscalCharacteristicsReadRepositoryTest extends TestCase
             'effective_to' => null,
         ]);
 
-        // V3 · aucune VFC sur l'année (créée après).
+        // V3 : aucune VFC sur l'année (créée après).
         VehicleFiscalCharacteristics::factory()->create([
             'vehicle_id' => $v3->id,
             'effective_from' => '2025-06-01',
@@ -271,7 +271,7 @@ final class VehicleFiscalCharacteristicsReadRepositoryTest extends TestCase
 
         $batch = $this->repo->findEffectiveSegmentsForYearBatch([$v1->id, $v2->id, $v3->id], 2024);
 
-        // Comparaison sémantique · ce qui compte fiscalement c'est
+        // Comparaison sémantique : ce qui compte fiscalement c'est
         // l'identité de la VFC, le start clippé, le end clippé. Les
         // états internes Eloquent (`preventsLazyLoading`, etc.)
         // diffèrent entre Collection->groupBy et appel direct, mais

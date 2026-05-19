@@ -11,7 +11,7 @@ use PHPUnit\Framework\TestCase;
 /**
  * Tests exhaustifs du choix de tarif optimal (Phase 14.C facturation V1.2).
  *
- * Tarifs « pivot » utilisés dans la majorité des cas · proches d'une
+ * Tarifs « pivot » utilisés dans la majorité des cas : proches d'une
  * politique réaliste de loueur :
  *   - jour : 90,00 €  (9 000 cents)
  *   - semaine : 500,00 €  (50 000 cents)
@@ -181,7 +181,7 @@ final class OptimalRateBreakdownTest extends TestCase
     public function tarifs_a_zero_renvoient_un_total_zero(): void
     {
         // Cas véhicule de courtoisie (tarif 0 documenté côté backend
-        // 14.A · `permet_un_tarif_zero_pour_les_vehicules_en_usage_gratuit`).
+        // 14.A : `permet_un_tarif_zero_pour_les_vehicules_en_usage_gratuit`).
         $r = OptimalRateBreakdown::compute(15, dailyCents: 0, weeklyCents: 0, monthlyCents: 0);
 
         $this->assertSame(0, $r->totalCents);
@@ -220,13 +220,13 @@ final class OptimalRateBreakdownTest extends TestCase
     }
 
     /**
-     * Lot 3 D07 · garde-fou perf défensif. L'algorithme est O(1) déterministe
+     * Lot 3 D07 : garde-fou perf défensif. L'algorithme est O(1) déterministe
      * (12 itérations max), 1000 appels doivent rester très en-dessous de
-     * 50ms · cap permet de capter une éventuelle complexification future
+     * 50ms : cap permet de capter une éventuelle complexification future
      * qui dégraderait silencieusement la perf (ex. ajout d'un palier sans
      * borner correctement l'espace de recherche).
      *
-     * Cf. tracker D07 · Option A skip avec bonus test perf défensif ·
+     * Cf. tracker D07 : Option A skip avec bonus test perf défensif ·
      * le finding F-18-005 décrivait un problème de perf inexistant
      * (algo déjà optimal O(1)), ce test verrouille cet état.
      */
@@ -236,7 +236,7 @@ final class OptimalRateBreakdownTest extends TestCase
         $start = hrtime(true);
 
         for ($i = 0; $i < 1000; $i++) {
-            // Mix de tailles variées · couvre les cas typiques BillingCalculator.
+            // Mix de tailles variées : couvre les cas typiques BillingCalculator.
             $days = ($i % 31) + 1;
             OptimalRateBreakdown::compute($days, self::DAILY, self::WEEKLY, self::MONTHLY);
         }

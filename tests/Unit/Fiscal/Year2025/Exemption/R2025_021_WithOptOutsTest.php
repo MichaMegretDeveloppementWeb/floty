@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre le decorator {@see R2025_021_WithOptOuts} (Phase 11 D5.1).
+ * Couvre le decorator {@see R2025_021_WithOptOuts}.
  *
  * Sémantique :
  *   - sans opt-outs : strictement identique à la règle wrappée

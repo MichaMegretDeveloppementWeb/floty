@@ -15,8 +15,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Goldens R-2026-002 · Prorata journalier (dénominateur 365 en 2026,
- * non bissextile · identique à 2025).
+ * Goldens R-2026-002 : Prorata journalier (dénominateur 365 en 2026,
+ * non bissextile : identique à 2025).
  *
  * Sémantique ADR-0014 ·
  *   numérateur = jours contractuels du couple
@@ -64,7 +64,7 @@ final class R2026_002_DailyProrataTest extends TestCase
     #[Test]
     public function contrat_6_mois_donne_184_sur_365(): void
     {
-        // 184 jours · 01/07 → 31/12 inclusif (juillet 31 + août 31 +
+        // 184 jours : 01/07 → 31/12 inclusif (juillet 31 + août 31 +
         // sept 30 + oct 31 + nov 30 + déc 31 = 184).
         $context = $this->makeContext(
             contracts: [$this->makeContract('2026-07-01', '2026-12-31')],

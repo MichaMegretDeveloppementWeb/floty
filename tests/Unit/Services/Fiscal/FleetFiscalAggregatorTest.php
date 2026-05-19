@@ -142,7 +142,7 @@ final class FleetFiscalAggregatorTest extends TestCase
 
         // Mono-VFC : un seul segment couvrant l'année entière. Les
         // tarifs et méthodes/catégories vivent désormais dans le segment
-        // (chantier dette VFC L3 · cohérence affichage par segment).
+        // (chantier dette VFC L3 : cohérence affichage par segment).
         self::assertCount(1, $breakdown->taxSegments);
         $segment = $breakdown->taxSegments[0];
         self::assertSame(173.0, $segment->co2FullYearTariff);
@@ -155,9 +155,9 @@ final class FleetFiscalAggregatorTest extends TestCase
     }
 
     /**
-     * Lot 3 D05 · garantit que la mémoïsation `$fullYearBreakdownCache`
+     * Lot 3 D05 : garantit que la mémoïsation `$fullYearBreakdownCache`
      * retourne strictement la même instance DTO sur appels répétés pour un
-     * même couple `(vehicle, year)` · prouve que le cache hit, sans
+     * même couple `(vehicle, year)` : prouve que le cache hit, sans
      * re-exécution du pipeline. Test de comportement, pas d'équivalence
      * sémantique (cette dernière étant déjà couverte par les autres tests).
      */
@@ -169,13 +169,13 @@ final class FleetFiscalAggregatorTest extends TestCase
         $first = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, self::YEAR);
         $second = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, self::YEAR);
 
-        // Identité d'instance · le cache renvoie le DTO précédemment construit
+        // Identité d'instance : le cache renvoie le DTO précédemment construit
         self::assertSame($first, $second);
     }
 
     /**
-     * Lot 3 D05 · garantit que le cache discrimine bien sur le couple
-     * `(vehicleId, year)` · 2 véhicules distincts ou 2 années distinctes
+     * Lot 3 D05 : garantit que le cache discrimine bien sur le couple
+     * `(vehicleId, year)` : 2 véhicules distincts ou 2 années distinctes
      * doivent produire 2 instances différentes (pas de cross-pollution).
      */
     #[Test]
@@ -187,15 +187,15 @@ final class FleetFiscalAggregatorTest extends TestCase
         $a2024 = $this->aggregator->vehicleFullYearTaxBreakdown($vehicleA, self::YEAR);
         $b2024 = $this->aggregator->vehicleFullYearTaxBreakdown($vehicleB, self::YEAR);
 
-        // Instances distinctes · 2 véhicules différents = 2 entrées cache
+        // Instances distinctes : 2 véhicules différents = 2 entrées cache
         self::assertNotSame($a2024, $b2024);
         // Mais valeurs équivalentes (mêmes caractéristiques fiscales)
         self::assertSame($a2024->total, $b2024->total);
     }
 
     /**
-     * Chantier perf 2026-05-16 Option 3b · doctrine
-     * `optimisations-conditionnelles.md` stratégie 2 · le prewarm
+     * Chantier perf 2026-05-16 Option 3b : doctrine
+     * `optimisations-conditionnelles.md` stratégie 2 : le prewarm
      * batch DOIT produire des taxes pleines année strictement
      * identiques aux appels individuels. Sinon le prewarm masque
      * silencieusement des écarts (ex. un VFC oublié dans le batch
@@ -204,7 +204,7 @@ final class FleetFiscalAggregatorTest extends TestCase
     #[Test]
     public function prewarm_equivalent_aux_appels_individuels(): void
     {
-        // Référence · 3 instances vierges, on calcule chaque taxe
+        // Référence : 3 instances vierges, on calcule chaque taxe
         // individuellement (chemin sans prewarm).
         $aggregatorRef = $this->app->make(FleetFiscalAggregator::class);
         $v1Ref = $this->makeVehicleWltp100Essence();
@@ -215,7 +215,7 @@ final class FleetFiscalAggregatorTest extends TestCase
         $t2Ref = $aggregatorRef->vehicleFullYearTax($v2Ref, self::YEAR);
         $t3Ref = $aggregatorRef->vehicleFullYearTax($v3Ref, self::YEAR);
 
-        // Cible · même fixtures mais avec prewarm avant les appels
+        // Cible : même fixtures mais avec prewarm avant les appels
         // individuels (le prewarm doit remplir le cache de telle sorte
         // que les 3 appels ne déclenchent plus de pipeline).
         $aggregatorPrewarm = $this->app->make(FleetFiscalAggregator::class);
@@ -243,7 +243,7 @@ final class FleetFiscalAggregatorTest extends TestCase
 
         $aggregator = $this->app->make(FleetFiscalAggregator::class);
 
-        // Baseline · sans prewarm, 1 query VFC par véhicule au moment
+        // Baseline : sans prewarm, 1 query VFC par véhicule au moment
         // du vehicleFullYearTax (3 queries au total dans le pipeline).
         // Avec prewarm, ces 3 queries doivent collapser en 1 seule.
         DB::enableQueryLog();
@@ -282,10 +282,10 @@ final class FleetFiscalAggregatorTest extends TestCase
         $v1 = $this->makeVehicleWltp100Essence();
         $aggregator = $this->app->make(FleetFiscalAggregator::class);
 
-        // 1er appel · pipeline complet
+        // 1er appel : pipeline complet
         $first = $aggregator->vehicleFullYearTax($v1, self::YEAR);
 
-        // 2e prewarm sur le même véhicule · doit être no-op (idempotent).
+        // 2e prewarm sur le même véhicule : doit être no-op (idempotent).
         DB::enableQueryLog();
         DB::flushQueryLog();
 
@@ -309,10 +309,10 @@ final class FleetFiscalAggregatorTest extends TestCase
     #[Test]
     public function prewarm_vfc_segments_equivalent_pour_vehicle_full_year_tax_breakdown(): void
     {
-        // Doctrine `optimisations-conditionnelles.md` stratégie 2 · les
+        // Doctrine `optimisations-conditionnelles.md` stratégie 2 : les
         // valeurs `vehicleFullYearTaxBreakdown` avec prewarm DOIVENT être
         // strictement identiques à celles sans prewarm. Sinon le prewarm
-        // masque silencieusement un écart fiscal · risque inacceptable.
+        // masque silencieusement un écart fiscal : risque inacceptable.
         $aggregatorRef = $this->app->make(FleetFiscalAggregator::class);
         $v1Ref = $this->makeVehicleWltp100Essence();
         $v2Ref = $this->makeVehicleWltp100Essence();
@@ -488,9 +488,9 @@ final class FleetFiscalAggregatorTest extends TestCase
     }
 
     /**
-     * Bloc Φ.bis · vérifie qu'un contrat à cheval sur la scission
+     * Bloc Φ.bis : vérifie qu'un contrat à cheval sur la scission
      * polluants du 01/03/2026 (LF 2026 art. 58 V IV, +30 %) expose
-     * 2 segments distincts dans son breakdown · le premier avec tarif
+     * 2 segments distincts dans son breakdown : le premier avec tarif
      * Cat1 100 €/an (R-2026-014), le second avec tarif Cat1 130 €/an
      * (R-2026-014-bis). Garantit la transparence pédagogique de l'UI
      * fiche contrat.
@@ -500,7 +500,7 @@ final class FleetFiscalAggregatorTest extends TestCase
     {
         $vehicle = $this->makeVehicleWltp100EssenceFor(2026);
         $company = Company::factory()->create();
-        // Contrat 15/01/2026 → 24/04/2026 · 100 jours, à cheval 01/03.
+        // Contrat 15/01/2026 → 24/04/2026 : 100 jours, à cheval 01/03.
         $contract = Contract::create([
             'vehicle_id' => $vehicle->id,
             'company_id' => $company->id,
@@ -517,10 +517,10 @@ final class FleetFiscalAggregatorTest extends TestCase
         self::assertSame(2026, $year->year);
         self::assertSame(100, $year->daysAssigned);
 
-        // 2 segments dans l'année · scission au 01/03/2026.
+        // 2 segments dans l'année : scission au 01/03/2026.
         self::assertCount(2, $year->segments);
 
-        // Segment 1 · 01/01-28/02 · R-2026-014 · Cat1 = 100 €/an.
+        // Segment 1 : 01/01-28/02 : R-2026-014 : Cat1 = 100 €/an.
         $seg1 = $year->segments[0];
         self::assertSame('2026-01-01', $seg1->effectiveFromInYear);
         self::assertSame('2026-02-28', $seg1->effectiveToInYear);
@@ -529,7 +529,7 @@ final class FleetFiscalAggregatorTest extends TestCase
         self::assertSame(12.33, $seg1->pollutantsDue); // 100 × 45/365
         self::assertContains('R-2026-014', $seg1->appliedRuleCodes);
 
-        // Segment 2 · 01/03-... · R-2026-014-bis · Cat1 = 130 €/an.
+        // Segment 2 : 01/03-... : R-2026-014-bis : Cat1 = 130 €/an.
         $seg2 = $year->segments[1];
         self::assertSame('2026-03-01', $seg2->effectiveFromInYear);
         self::assertSame(55, $seg2->daysAssignedToContract); // 01/03 → 24/04
@@ -537,9 +537,9 @@ final class FleetFiscalAggregatorTest extends TestCase
         self::assertSame(19.59, $seg2->pollutantsDue); // 130 × 55/365
         self::assertContains('R-2026-014-bis', $seg2->appliedRuleCodes);
 
-        // Total année · somme cohérente des 2 segments.
+        // Total année : somme cohérente des 2 segments.
         self::assertSame(31.92, $year->pollutantsDue); // 12,33 + 19,59
-        // CO₂ pas scindé en 2026 · 213 €/an constant.
+        // CO₂ pas scindé en 2026 : 213 €/an constant.
         self::assertSame(213.0, $year->co2FullYearTariff);
         self::assertSame(58.36, $year->co2Due); // 213 × 100/365
     }

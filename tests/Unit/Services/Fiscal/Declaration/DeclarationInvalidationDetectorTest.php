@@ -216,7 +216,7 @@ final class DeclarationInvalidationDetectorTest extends TestCase
     #[Test]
     public function flag_for_contract_n_invalide_pas_les_brouillons_draft(): void
     {
-        // Phase 13 D5.10.O · un brouillon n'est jamais marqué obsolète.
+        // Phase 13 D5.10.O : un brouillon n'est jamais marqué obsolète.
         $draft = FiscalDeclaration::factory()
             ->forCompany($this->company)
             ->forYear(2025)
@@ -235,7 +235,7 @@ final class DeclarationInvalidationDetectorTest extends TestCase
     #[Test]
     public function flag_for_contract_n_invalide_pas_les_brouillons_deferred(): void
     {
-        // Phase 13 D5.10.O · un brouillon mis de côté reste à jour
+        // Phase 13 D5.10.O : un brouillon mis de côté reste à jour
         // dynamiquement à chaque ouverture en Review, donc pas de flag.
         $deferred = FiscalDeclaration::factory()
             ->forCompany($this->company)
@@ -255,7 +255,7 @@ final class DeclarationInvalidationDetectorTest extends TestCase
     #[Test]
     public function flag_for_contract_invalide_la_generee_meme_si_brouillon_coexiste(): void
     {
-        // Phase 13 D5.10.O · garantit que la coexistence d'un brouillon
+        // Phase 13 D5.10.O : garantit que la coexistence d'un brouillon
         // (de régénération) ne neutralise pas l'empilement du motif sur
         // la générée déjà obsolète.
         //

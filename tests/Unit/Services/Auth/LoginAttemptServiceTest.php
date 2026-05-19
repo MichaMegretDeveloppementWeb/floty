@@ -84,7 +84,7 @@ final class LoginAttemptServiceTest extends TestCase
     #[Test]
     public function constants_match_adr_0011_section_3_rev_1_1(): void
     {
-        // Anti-régression · les seuils sont prescrits par ADR-0011 § 3
+        // Anti-régression : les seuils sont prescrits par ADR-0011 § 3
         // rev. 1.1 (amendement en cours C6, plan-remediation Vague 1
         // Lot 1 D1 F-10-001). Modifier ces valeurs sans amender l'ADR
         // crée une dérive doctrinale silencieuse.

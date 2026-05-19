@@ -132,7 +132,7 @@ final class BillingBreakdownServiceTest extends TestCase
         $this->assertTrue($result->hasAnyMissingPricing);
         $this->assertNull($result->yearTotalCents);
 
-        // T11 / E.17 : total partiel toujours peuplé · somme uniquement
+        // T11 / E.17 : total partiel toujours peuplé : somme uniquement
         // des mois sans tarif manquant (mars OK = 77 000, mai bloqué exclu).
         $this->assertSame(77_000, $result->yearTotalCentsPartial);
     }
@@ -215,7 +215,7 @@ final class BillingBreakdownServiceTest extends TestCase
     #[Test]
     public function company_breakdown_expose_le_snapshot_facture_et_detecte_la_divergence(): void
     {
-        // Phase 14.I · quand une facture existe pour le couple
+        // Phase 14.I : quand une facture existe pour le couple
         // (entreprise × année × mois), on expose le snapshot figé
         // (`invoicedDaysUsed`, `invoicedTotalCents`) en plus du recalcul
         // dynamique (`daysUsed`, `totalCents`). L'UI compare et affiche
@@ -239,7 +239,7 @@ final class BillingBreakdownServiceTest extends TestCase
         ]);
 
         // Facture émise figeant 10 j / 70 000 cents (10 × 7 000 par
-        // exemple · ici on stocke des valeurs fixées pour le test).
+        // exemple : ici on stocke des valeurs fixées pour le test).
         $invoice = Invoice::factory()
             ->for($company)
             ->for($user, 'generatedBy')
@@ -282,13 +282,13 @@ final class BillingBreakdownServiceTest extends TestCase
      * `totalRecettesForYears([Y1, Y2])` retourne pour chaque année
      * EXACTEMENT la somme cross-cies de
      * `byCompanyForYear($cie, $year)->yearTotalCentsPartial`. Doctrine
-     * `optimisations-conditionnelles.md` stratégie 2 · garantit zéro
+     * `optimisations-conditionnelles.md` stratégie 2 : garantit zéro
      * régression Dashboard après le passage au batch 3 queries.
      */
     #[Test]
     public function total_recettes_for_years_equivalent_to_sum_by_company_for_year(): void
     {
-        // Scénario · 3 cies, 4 véhicules, 2 années couvertes, mix de
+        // Scénario : 3 cies, 4 véhicules, 2 années couvertes, mix de
         // contrats mono-mois / multi-mois / multi-année + 1 véhicule
         // sans pricing (mois marqué missing → exclu du partial).
         $cieA = Company::factory()->create();
@@ -310,7 +310,7 @@ final class BillingBreakdownServiceTest extends TestCase
         VehicleYearlyPricing::factory()->for($v4)->forYear(2025)
             ->withRates(self::DAILY, self::WEEKLY, self::MONTHLY)->create();
 
-        // Cie A · contrat janvier 2024 plein + contrat multi-année
+        // Cie A : contrat janvier 2024 plein + contrat multi-année
         // (chevauche 2024/2025).
         Contract::factory()->forVehicle($v1)->forCompany($cieA)->create([
             'start_date' => '2024-01-01', 'end_date' => '2024-01-31',
@@ -319,12 +319,12 @@ final class BillingBreakdownServiceTest extends TestCase
             'start_date' => '2024-11-15', 'end_date' => '2025-02-10',
         ]);
 
-        // Cie B · contrat unique mai 2025, autre véhicule.
+        // Cie B : contrat unique mai 2025, autre véhicule.
         Contract::factory()->forVehicle($v3)->forCompany($cieB)->create([
             'start_date' => '2025-05-01', 'end_date' => '2025-05-20',
         ]);
 
-        // Cie C · v4 en juin 2024 (sans pricing → mois missing pour Cie C)
+        // Cie C : v4 en juin 2024 (sans pricing → mois missing pour Cie C)
         // + v1 en juillet 2025 (pricing OK).
         Contract::factory()->forVehicle($v4)->forCompany($cieC)->create([
             'start_date' => '2024-06-10', 'end_date' => '2024-06-20',
@@ -336,7 +336,7 @@ final class BillingBreakdownServiceTest extends TestCase
         $years = [2024, 2025];
         $companies = [$cieA, $cieB, $cieC];
 
-        // Référence · somme cross-cies de la méthode legacy par
+        // Référence : somme cross-cies de la méthode legacy par
         // (companyId, year). On instancie un service FRESH pour ne pas
         // que le cache de la méthode batch teinte le calcul de
         // référence (et inversement).
@@ -355,13 +355,13 @@ final class BillingBreakdownServiceTest extends TestCase
         $actual = $batch->totalRecettesForYears($years);
 
         $this->assertSame($expected, $actual);
-        // Sanity · les totaux ne sont pas nuls (sinon le test ne prouve rien).
+        // Sanity : les totaux ne sont pas nuls (sinon le test ne prouve rien).
         $this->assertGreaterThan(0, $actual[2024]);
         $this->assertGreaterThan(0, $actual[2025]);
     }
 
     /**
-     * Mémoïsation per-instance · un second appel à
+     * Mémoïsation per-instance : un second appel à
      * `totalRecettesForYears` avec un sous-ensemble des années
      * précédemment calculées n'effectue aucune query SQL.
      */
@@ -390,7 +390,7 @@ final class BillingBreakdownServiceTest extends TestCase
     }
 
     /**
-     * Garantie batch · `totalRecettesForYears` exécute le scenario
+     * Garantie batch : `totalRecettesForYears` exécute le scenario
      * complet (2 cies × 2 ans, 2 véhicules) en exactement N queries
      * SQL fixes, indépendamment du nombre de couples (cie × année) ·
      *   1. contrats sur le range (1 SQL)
@@ -398,10 +398,10 @@ final class BillingBreakdownServiceTest extends TestCase
      *   3. VFC eager-load par défaut du repo (1 SQL, no-op fiscal pour
      *      les recettes mais préservée pour cohérence inter-services)
      *   4. pricings batched (vehicleIds × years) (1 SQL)
-     *   5+ Lot 2 réductions commerciales · 1 SQL par année
+     *   5+ Lot 2 réductions commerciales : 1 SQL par année
      *      (`preloadForCompaniesYear` × N years).
      *
-     * Comparaison · avant batch · 15 cies × 2 ans × 3 queries
+     * Comparaison : avant batch : 15 cies × 2 ans × 3 queries
      * (`byCompanyForYear`) = ~90 queries pour le même calcul.
      */
     #[Test]
@@ -432,9 +432,9 @@ final class BillingBreakdownServiceTest extends TestCase
         $queries = \DB::getQueryLog();
         \DB::disableQueryLog();
 
-        // Lot 2 réductions commerciales · +1 SQL par année pour le
+        // Lot 2 réductions commerciales : +1 SQL par année pour le
         // préchargement des réductions (preloadForCompaniesYear × 2 ans).
-        // Total · 4 (fiscal/billing core) + 2 (réductions) = 6.
+        // Total : 4 (fiscal/billing core) + 2 (réductions) = 6.
         $this->assertCount(6, $queries, sprintf(
             'Attendu 6 queries fixes (4 billing core + 2 réductions × années), obtenu %d. Queries · %s',
             count($queries),

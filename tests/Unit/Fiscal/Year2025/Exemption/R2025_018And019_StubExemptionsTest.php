@@ -14,13 +14,9 @@ use Tests\TestCase;
 
 /**
  * Sanity tests pour R-2025-018 (OIG) et R-2025-019 (Entreprise
- * individuelle). Les deux règles sont **scaffolds inactifs en V1**
+ * individuelle). Les deux règles sont des scaffolds inactifs en V1
  * (cf. docblock de chaque règle) car {@see PipelineContext} ne porte
- * pas encore la `Company` du couple - l'évaluation est différée à V2.
- *
- * Ce test fige la sémantique « toujours notExempt en V1 » pour qu'un
- * éventuel câblage futur soit conscient de devoir mettre à jour la
- * logique ET le test simultanément.
+ * pas encore la `Company` du couple : l'évaluation est différée à V2.
  */
 final class R2025_018And019_StubExemptionsTest extends TestCase
 {

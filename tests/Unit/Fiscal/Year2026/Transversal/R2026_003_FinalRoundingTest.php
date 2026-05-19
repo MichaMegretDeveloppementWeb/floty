@@ -13,10 +13,10 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * R-2026-003 · Arrondi half-up commercial · règle marqueur · reconduction
+ * R-2026-003 : Arrondi half-up commercial : règle marqueur : reconduction
  * stricte R-2025-003.
  *
- * Sémantique BOFiP · « le montant total à payer par chaque redevable
+ * Sémantique BOFiP : « le montant total à payer par chaque redevable
  * est arrondi à l'euro le plus proche, sans arrondi intermédiaire ».
  * L'arrondi par redevable s'opère dans
  * {@see FleetFiscalAggregator::companyAnnualTax()}.
@@ -41,7 +41,7 @@ final class R2026_003_FinalRoundingTest extends TestCase
     #[Test]
     public function apply_n_altere_pas_les_montants_de_taxe(): void
     {
-        // Sémantique marker · les montants intermédiaires ne sont pas
+        // Sémantique marker : les montants intermédiaires ne sont pas
         // arrondis ici. L'arrondi par redevable se fait dans
         // FleetFiscalAggregator (cf. PHPDoc).
         $context = $this->makeContext(co2Due: 173.4567, pollutantsDue: 99.999);

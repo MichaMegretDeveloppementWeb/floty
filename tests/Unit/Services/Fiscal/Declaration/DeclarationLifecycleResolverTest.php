@@ -244,12 +244,12 @@ final class DeclarationLifecycleResolverTest extends TestCase
         self::assertSame($a->id, $state->historyChain[1]->id);
     }
 
-    // ---------- Lot 5 D5 · robustesse lifecycle (F-19-008 + F-19D2-013) ----------
+    // ---------- Lot 5 D5 : robustesse lifecycle (F-19-008 + F-19D2-013) ----------
 
     #[Test]
     public function lot5_d5_build_history_chain_detecte_cycle_et_break(): void
     {
-        // F-19-008 · simulation TOCTOU pathologique · 2 déclarations
+        // F-19-008 : simulation TOCTOU pathologique : 2 déclarations
         // qui se référencent mutuellement via `superseded_by_id` (cas
         // impossible naturellement en BDD car chaque déclaration n'a
         // qu'un seul `superseded_by_id`, mais reproductible via
@@ -271,7 +271,7 @@ final class DeclarationLifecycleResolverTest extends TestCase
             ->obsolete()
             ->create();
 
-        // Cycle direct A ↔ B · chacun pointe vers l'autre.
+        // Cycle direct A ↔ B : chacun pointe vers l'autre.
         $a->update(['superseded_by_id' => $b->id]);
         $b->update(['superseded_by_id' => $a->id]);
 
@@ -289,10 +289,10 @@ final class DeclarationLifecycleResolverTest extends TestCase
     #[Test]
     public function lot5_d5_resolve_obsolete_reasons_renvoie_vide_si_type_non_array(): void
     {
-        // F-19D2-013 · si `obsolete_reasons` BDD contient une valeur
-        // non-array (ex. JSON scalar string · cast Eloquent renvoie
+        // F-19D2-013 : si `obsolete_reasons` BDD contient une valeur
+        // non-array (ex. JSON scalar string : cast Eloquent renvoie
         // alors le string non-décodé en PHP au lieu d'un array), le
-        // garde-fou retourne array vide au lieu de crasher · le canal
+        // garde-fou retourne array vide au lieu de crasher : le canal
         // log warning garde la trace pour audit forensic.
         $generated = FiscalDeclaration::factory()
             ->forCompany($this->company)
@@ -301,7 +301,7 @@ final class DeclarationLifecycleResolverTest extends TestCase
             ->create();
 
         // Update direct via DB::table pour bypasser le cast 'array'
-        // d'Eloquent à l'écriture · MySQL stocke un JSON string scalar.
+        // d'Eloquent à l'écriture : MySQL stocke un JSON string scalar.
         DB::table('fiscal_declarations')
             ->where('id', $generated->id)
             ->update([
@@ -319,7 +319,7 @@ final class DeclarationLifecycleResolverTest extends TestCase
     #[Test]
     public function lot5_d5_resolve_obsolete_reasons_renvoie_vide_si_entree_invalide(): void
     {
-        // F-19D2-013 · si `obsolete_reasons` est un array mais avec
+        // F-19D2-013 : si `obsolete_reasons` est un array mais avec
         // une entrée mal structurée (champ requis manquant pour
         // `InvalidationReasonData::fromArray`), le garde-fou intercepte
         // le Throwable et retourne array vide au lieu de propager

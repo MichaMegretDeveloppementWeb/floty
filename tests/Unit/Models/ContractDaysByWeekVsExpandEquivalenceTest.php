@@ -14,11 +14,11 @@ use Tests\TestCase;
 /**
  * Test d'équivalence stricte entre {@see Contract::daysByWeekInYear} et
  * `groupBy(format('W'))` sur `Contract::expandToDaysInYear`. Couvre les
- * bordures délicates ISO 8601 · années à 53 semaines, jours en bordure
+ * bordures délicates ISO 8601 : années à 53 semaines, jours en bordure
  * d'année appartenant à la semaine ISO de l'année voisine, contrats
  * débordants.
  *
- * **Pourquoi** · `daysByWeekInYear` est la variante perf qui ne
+ * **Pourquoi** : `daysByWeekInYear` est la variante perf qui ne
  * matérialise pas l'array de 365 strings ; itère semaine par semaine.
  * Cette équivalence garantit que les 3 méthodes
  * `ContractQueryService::loadWeekDensity`, `loadWeekDensityForCompany`
@@ -101,8 +101,8 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
             'year' => 2026,
         ];
 
-        // Bordures ISO weeks · les cas où la sémantique « format(W) »
-        // peut surprendre. ISO 8601 · une semaine appartient à l'année
+        // Bordures ISO weeks : les cas où la sémantique « format(W) »
+        // peut surprendre. ISO 8601 : une semaine appartient à l'année
         // qui contient son jeudi.
 
         // 2024-12-30 (lundi) appartient à W01 de 2025 selon format('W').
@@ -122,7 +122,7 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
             'year' => 2026,
         ];
 
-        // Contrat couvrant pile la transition année · clipping à droite
+        // Contrat couvrant pile la transition année : clipping à droite
         // mais inclut la bordure W01 de 2025 (sur fin 2024).
         yield 'bordure · transition 2024→2025 clipped à 2024' => [
             'startDate' => '2024-12-28',
@@ -130,7 +130,7 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
             'year' => 2024,
         ];
 
-        // Symétrique · pour year=2025, jan 1-5 2025 sont en W01 mais
+        // Symétrique : pour year=2025, jan 1-5 2025 sont en W01 mais
         // 2024-12-30/31 aussi (W01 selon ISO). Côté year=2025, on ne
         // garde que jan 1-5 → W01 = 5 jours.
         yield 'bordure · transition 2024→2025 clipped à 2025' => [
@@ -161,14 +161,14 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
             'year' => 2026,
         ];
 
-        // Cas pathologique · 1 jour pile sur dimanche (fin de semaine ISO).
+        // Cas pathologique : 1 jour pile sur dimanche (fin de semaine ISO).
         yield 'contrat 1 jour dimanche' => [
             'startDate' => '2026-03-15',
             'endDate' => '2026-03-15',
             'year' => 2026,
         ];
 
-        // Cas pathologique · 1 jour pile sur lundi (début de semaine ISO).
+        // Cas pathologique : 1 jour pile sur lundi (début de semaine ISO).
         yield 'contrat 1 jour lundi' => [
             'startDate' => '2026-03-16',
             'endDate' => '2026-03-16',
@@ -181,7 +181,7 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
      * dictionnaire `cell → days` que `groupBy(cellIndex)` sur
      * `expandToDaysInYear`, sur tous les cas du provider.
      *
-     * SC16 (2026-05-18) · changement de convention de l'oracle ·
+     * SC16 (2026-05-18) : changement de convention de l'oracle ·
      * indexation par CELLULE (1..53) dans la heatmap year au lieu du
      * numéro de semaine ISO `format('W')`. La cellule N correspond aux
      * jours de la semaine commençant au lundi N de la grille year ·
@@ -196,7 +196,7 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
     ): void {
         $contract = $this->makeContract($startDate, $endDate);
 
-        // Oracle · groupby par index de cellule sur expand.
+        // Oracle : groupby par index de cellule sur expand.
         $origin = IsoWeeks::cellOriginForYear($year);
         $expected = [];
         foreach ($contract->expandToDaysInYear($year) as $iso) {
@@ -220,7 +220,7 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
     }
 
     /**
-     * Garde-fou de cohérence · la somme des jours par semaine doit
+     * Garde-fou de cohérence : la somme des jours par semaine doit
      * égaler `countDaysInYear` (qui est lui-même équivalent à
      * `count(expandToDaysInYear)` cf. ContractCountVsExpandEquivalenceTest).
      */
@@ -246,7 +246,7 @@ final class ContractDaysByWeekVsExpandEquivalenceTest extends TestCase
 
     private function makeContract(string $startDate, string $endDate): Contract
     {
-        // Pas de DB · on instancie un Contract en mémoire avec juste les
+        // Pas de DB : on instancie un Contract en mémoire avec juste les
         // dates castées comme Carbon. `forceFill` passe par le cast
         // Eloquent `'date'` configuré sur Contract → on récupère un
         // Carbon prêt à l'emploi pour `expandToDaysInYear` /

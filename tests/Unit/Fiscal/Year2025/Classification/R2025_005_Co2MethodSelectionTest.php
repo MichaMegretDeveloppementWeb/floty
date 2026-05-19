@@ -15,15 +15,10 @@ use Tests\TestCase;
 
 /**
  * Couvre la cascade de sélection du barème CO₂ (R-2025-005 + R-2025-006
- * fallback PA). La règle :
+ * fallback PA) :
  *   - homologation WLTP + co2_wltp posé → barème WLTP
  *   - sinon homologation NEDC + co2_nedc posé → barème NEDC
  *   - sinon → barème PA (fallback R-2025-006)
- *
- * Les bordures testées correspondent aux situations réelles de la
- * flotte : véhicule WLTP avec valeur manquante (saisie incomplète),
- * véhicule NEDC sans valeur (vieux import), véhicule PA pur (avant
- * 2002 - pas de mesure CO₂).
  */
 final class R2025_005_Co2MethodSelectionTest extends TestCase
 {
@@ -87,8 +82,7 @@ final class R2025_005_Co2MethodSelectionTest extends TestCase
     #[Test]
     public function vehicule_nedc_sans_co2_nedc_bascule_en_pa_defense_en_profondeur(): void
     {
-        // Cf. note du test précédent : CHECK SQL exclut ce cas en BDD,
-        // mais la défense en profondeur du code reste testée.
+        // CHECK SQL exclut ce cas en BDD ; défense en profondeur testée.
         $vfc = new VehicleFiscalCharacteristics([
             'homologation_method' => HomologationMethod::Nedc,
             'co2_wltp' => null,

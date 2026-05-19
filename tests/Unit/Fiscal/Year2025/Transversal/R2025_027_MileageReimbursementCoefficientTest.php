@@ -14,10 +14,10 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Sanity tests pour R-2025-027 · coefficient pondérateur et minoration
+ * Sanity tests pour R-2025-027 : coefficient pondérateur et minoration
  * des frais kilométriques (CIBS L. 421-109, L. 421-110, L. 421-111).
  *
- * La règle est INACTIVE par défaut (`isActive: false`) · Floty ne couvre
+ * La règle est INACTIVE par défaut (`isActive: false`) : Floty ne couvre
  * pas les véhicules personnels de salariés/dirigeants avec frais
  * kilométriques pris en charge. La méthode `apply()` retourne le
  * contexte inchangé.

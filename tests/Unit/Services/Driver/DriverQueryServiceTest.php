@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests Lot 3 D03 · `DriverQueryService::futureContractsForLeavePreview` ·
+ * Tests Lot 3 D03 : `DriverQueryService::futureContractsForLeavePreview` ·
  * couvre l'équivalence sémantique du filtrage in-memory (vs ancien
  * appel SQL `listActiveInCompanyDuring` dans la boucle) et le query
  * budget post-refactor (1 query batch au lieu de N).
@@ -138,7 +138,7 @@ final class DriverQueryServiceTest extends TestCase
         DB::disableQueryLog();
 
         self::assertCount(5, $rows);
-        // Cap raisonnable Lot 3 D03 · 1 SELECT contracts (avec eager-load
+        // Cap raisonnable Lot 3 D03 : 1 SELECT contracts (avec eager-load
         // vehicle + company + drivers) + 1 SELECT batch
         // `listAllInCompanyWithMemberships` (avec eager-load companies pivot)
         // = ~4-6 queries indépendamment du nombre N de contrats. Avant

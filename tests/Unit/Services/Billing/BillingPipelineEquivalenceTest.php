@@ -37,7 +37,7 @@ final class BillingPipelineEquivalenceTest extends TestCase
     #[Test]
     public function sans_reduction_pipeline_post_lot2_renvoie_le_meme_resultat_numerique(): void
     {
-        // Scenario · 1 entreprise, 2 véhicules, plusieurs contrats sur
+        // Scenario : 1 entreprise, 2 véhicules, plusieurs contrats sur
         // une année, avec des tarifs variés.
         $company = Company::factory()->create();
         $vehicleA = Vehicle::factory()->create();
@@ -68,7 +68,7 @@ final class BillingPipelineEquivalenceTest extends TestCase
 
         $service = $this->app->make(BillingBreakdownService::class);
 
-        // Aucune RentalDiscount en base · l'index sera vide ·
+        // Aucune RentalDiscount en base : l'index sera vide ·
         // `DiscountApplier::applyToMonthlyResults` doit retourner les
         // inputs inchangés (branche early return `isEmpty()`).
         $breakdown = $service->byCompanyForYear($company->id, 2024);

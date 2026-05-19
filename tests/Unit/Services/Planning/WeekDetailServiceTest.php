@@ -112,7 +112,7 @@ final class WeekDetailServiceTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
         $company = Company::factory()->create();
 
-        // Plage 35 j (>30 → LLD) · coût taxable.
+        // Plage 35 j (>30 → LLD) : coût taxable.
         $start = Carbon::create($year, 7, 15);
         $dates = [
             $start->toDateString(),
@@ -137,7 +137,7 @@ final class WeekDetailServiceTest extends TestCase
     public function preview_taxes_ignore_les_autres_contrats_du_couple(): void
     {
         // Régression : avant le passage au calcul standalone, le service
-        // calculait un delta vs cumul existant · un contrat préexistant
+        // calculait un delta vs cumul existant : un contrat préexistant
         // pour le même couple déformait le résultat. Désormais le
         // preview est strictement standalone.
         $year = 2024;
@@ -152,7 +152,7 @@ final class WeekDetailServiceTest extends TestCase
             'end_date' => $start->copy()->addDays(34)->toDateString(),
         ]);
 
-        // Preview pour les MÊMES dates · sans cumul, le résultat doit
+        // Preview pour les MÊMES dates : sans cumul, le résultat doit
         // refléter le coût standalone du contrat (35 j, taxe non nulle).
         $sameDates = [
             $start->toDateString(),
