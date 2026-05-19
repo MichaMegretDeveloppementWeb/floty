@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Enums\VehicleRegistryLookup;
 
-enum RegistryLookupProvider: string
+enum RegistryLookupDriver: string
 {
     case Fake = 'fake';
     case AaaData = 'aaa_data';

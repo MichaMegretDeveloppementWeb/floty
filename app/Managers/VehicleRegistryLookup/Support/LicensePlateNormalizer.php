@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Strategies\VehicleRegistryLookup\Support;
+namespace App\Managers\VehicleRegistryLookup\Support;
 
 final class LicensePlateNormalizer
 {

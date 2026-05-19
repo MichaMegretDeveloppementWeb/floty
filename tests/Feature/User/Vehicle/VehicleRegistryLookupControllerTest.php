@@ -82,7 +82,7 @@ final class VehicleRegistryLookupControllerTest extends TestCase
         $response->assertJsonPath('brand', 'Peugeot');
         $response->assertJsonPath('receptionCategory', 'M1');
         $response->assertJsonPath('energySource', 'gasoline');
-        $response->assertJsonPath('sourceProvider', 'fake');
+        $response->assertJsonPath('sourceDriver', 'fake');
     }
 
     #[Test]

@@ -2,49 +2,49 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Strategies\VehicleRegistryLookup;
+namespace Tests\Unit\Managers\VehicleRegistryLookup\Drivers;
 
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\ReceptionCategory;
-use App\Enums\VehicleRegistryLookup\RegistryLookupProvider;
+use App\Enums\VehicleRegistryLookup\RegistryLookupDriver;
 use App\Exceptions\VehicleRegistryLookup\VehicleNotFoundException;
-use App\Strategies\VehicleRegistryLookup\FakeVehicleRegistryLookupStrategy;
+use App\Managers\VehicleRegistryLookup\Drivers\FakeVehicleRegistryLookupDriver;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
-final class FakeVehicleRegistryLookupStrategyTest extends TestCase
+final class FakeVehicleRegistryLookupDriverTest extends TestCase
 {
     #[Test]
-    public function expose_le_provider_fake(): void
+    public function expose_le_driver_fake(): void
     {
-        $strategy = $this->makeStrategy();
+        $driver = $this->makeDriver();
 
-        $this->assertSame(RegistryLookupProvider::Fake, $strategy->provider());
+        $this->assertSame(RegistryLookupDriver::Fake, $driver->driverName());
     }
 
     #[Test]
     public function renvoie_les_donnees_pour_une_plaque_de_fixture_par_defaut(): void
     {
-        $strategy = $this->makeStrategy();
+        $driver = $this->makeDriver();
 
-        $result = $strategy->lookup('AA-123-AA');
+        $result = $driver->lookup('AA-123-AA');
 
         $this->assertSame('AA123AA', $result->licensePlate);
         $this->assertSame('Peugeot', $result->brand);
         $this->assertSame('308', $result->model);
         $this->assertSame(ReceptionCategory::M1, $result->receptionCategory);
         $this->assertSame(EnergySource::Gasoline, $result->energySource);
-        $this->assertSame(RegistryLookupProvider::Fake, $result->sourceProvider);
+        $this->assertSame(RegistryLookupDriver::Fake, $result->sourceDriver);
         $this->assertNotEmpty($result->fetchedAt);
     }
 
     #[Test]
     public function normalise_la_plaque_avant_match_de_fixture(): void
     {
-        $strategy = $this->makeStrategy();
+        $driver = $this->makeDriver();
 
-        $resultLowercase = $strategy->lookup('aa 123 aa');
-        $resultUppercase = $strategy->lookup('AA123AA');
+        $resultLowercase = $driver->lookup('aa 123 aa');
+        $resultUppercase = $driver->lookup('AA123AA');
 
         $this->assertSame($resultUppercase->brand, $resultLowercase->brand);
         $this->assertSame('AA123AA', $resultLowercase->licensePlate);
@@ -53,11 +53,11 @@ final class FakeVehicleRegistryLookupStrategyTest extends TestCase
     #[Test]
     public function leve_vehicle_not_found_exception_pour_plaque_inconnue(): void
     {
-        $strategy = $this->makeStrategy();
+        $driver = $this->makeDriver();
 
         $this->expectException(VehicleNotFoundException::class);
 
-        $strategy->lookup('ZZ-999-ZZ');
+        $driver->lookup('ZZ-999-ZZ');
     }
 
     #[Test]
@@ -74,9 +74,9 @@ final class FakeVehicleRegistryLookupStrategyTest extends TestCase
             ],
         ]);
 
-        $strategy = $this->makeStrategy();
+        $driver = $this->makeDriver();
 
-        $result = $strategy->lookup('XX-111-XX');
+        $result = $driver->lookup('XX-111-XX');
 
         $this->assertSame('TestBrand', $result->brand);
         $this->assertSame('TestModel', $result->model);
@@ -85,10 +85,10 @@ final class FakeVehicleRegistryLookupStrategyTest extends TestCase
     }
 
     /**
-     * Resolve a strategy instance through the container.
+     * Resolve a driver instance through the container.
      */
-    private function makeStrategy(): FakeVehicleRegistryLookupStrategy
+    private function makeDriver(): FakeVehicleRegistryLookupDriver
     {
-        return $this->app->make(FakeVehicleRegistryLookupStrategy::class);
+        return $this->app->make(FakeVehicleRegistryLookupDriver::class);
     }
 }

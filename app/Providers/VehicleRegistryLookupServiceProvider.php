@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\VehicleRegistryLookup\VehicleRegistryLookupInterface;
-use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupManager;
+use App\Managers\VehicleRegistryLookup\VehicleRegistryLookupManager;
 use Illuminate\Support\ServiceProvider;
 
 final class VehicleRegistryLookupServiceProvider extends ServiceProvider

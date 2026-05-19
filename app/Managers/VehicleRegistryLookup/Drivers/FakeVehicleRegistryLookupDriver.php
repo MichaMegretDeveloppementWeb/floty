@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Strategies\VehicleRegistryLookup;
+namespace App\Managers\VehicleRegistryLookup\Drivers;
 
 use App\Contracts\VehicleRegistryLookup\VehicleRegistryLookupInterface;
 use App\Data\User\Vehicle\VehicleRegistryLookupResultData;
@@ -12,25 +12,25 @@ use App\Enums\Vehicle\EuroStandard;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
-use App\Enums\VehicleRegistryLookup\RegistryLookupProvider;
+use App\Enums\VehicleRegistryLookup\RegistryLookupDriver;
 use App\Exceptions\VehicleRegistryLookup\VehicleNotFoundException;
-use App\Strategies\VehicleRegistryLookup\Support\LicensePlateNormalizer;
+use App\Managers\VehicleRegistryLookup\Support\LicensePlateNormalizer;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
 /**
- * Stub strategy backed by config fixtures and a built-in default set.
- * Forbidden in production by the factory's environment guard.
+ * Stub driver backed by config fixtures and a built-in default set.
+ * Forbidden in production by the manager's environment guard.
  */
-final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistryLookupInterface
+final readonly class FakeVehicleRegistryLookupDriver implements VehicleRegistryLookupInterface
 {
     public function __construct(
         private ConfigRepository $config,
     ) {}
 
-    public function provider(): RegistryLookupProvider
+    public function driverName(): RegistryLookupDriver
     {
-        return RegistryLookupProvider::Fake;
+        return RegistryLookupDriver::Fake;
     }
 
     /**
@@ -67,7 +67,7 @@ final readonly class FakeVehicleRegistryLookupStrategy implements VehicleRegistr
             co2Nedc: $data['co2Nedc'] ?? null,
             taxableHorsepower: $data['taxableHorsepower'] ?? null,
             kerbMass: $data['kerbMass'] ?? null,
-            sourceProvider: RegistryLookupProvider::Fake,
+            sourceDriver: RegistryLookupDriver::Fake,
             fetchedAt: CarbonImmutable::now()->toIso8601String(),
         );
     }

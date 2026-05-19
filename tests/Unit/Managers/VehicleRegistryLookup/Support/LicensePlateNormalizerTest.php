@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Strategies\VehicleRegistryLookup\Support;
+namespace Tests\Unit\Managers\VehicleRegistryLookup\Support;
 
-use App\Strategies\VehicleRegistryLookup\Support\LicensePlateNormalizer;
+use App\Managers\VehicleRegistryLookup\Support\LicensePlateNormalizer;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;

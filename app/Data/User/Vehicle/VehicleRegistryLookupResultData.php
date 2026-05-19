@@ -10,7 +10,7 @@ use App\Enums\Vehicle\EuroStandard;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
-use App\Enums\VehicleRegistryLookup\RegistryLookupProvider;
+use App\Enums\VehicleRegistryLookup\RegistryLookupDriver;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
@@ -36,7 +36,7 @@ final class VehicleRegistryLookupResultData extends Data
         public ?int $co2Nedc,
         public ?int $taxableHorsepower,
         public ?int $kerbMass,
-        public RegistryLookupProvider $sourceProvider,
+        public RegistryLookupDriver $sourceDriver,
         public string $fetchedAt,
     ) {}
 }

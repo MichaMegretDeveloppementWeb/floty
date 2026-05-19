@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Tests\Unit\Strategies\VehicleRegistryLookup;
+namespace Tests\Unit\Managers\VehicleRegistryLookup;
 
-use App\Enums\VehicleRegistryLookup\RegistryLookupProvider;
+use App\Enums\VehicleRegistryLookup\RegistryLookupDriver;
 use App\Exceptions\VehicleRegistryLookup\RegistryLookupUnavailableException;
-use App\Strategies\VehicleRegistryLookup\FakeVehicleRegistryLookupStrategy;
-use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupManager;
+use App\Managers\VehicleRegistryLookup\Drivers\FakeVehicleRegistryLookupDriver;
+use App\Managers\VehicleRegistryLookup\VehicleRegistryLookupManager;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -41,7 +41,7 @@ final class VehicleRegistryLookupManagerTest extends TestCase
     }
 
     #[Test]
-    public function is_available_renvoie_false_quand_strategy_non_implementee(): void
+    public function is_available_renvoie_false_quand_driver_non_implemente(): void
     {
         config(['vehicle-registry.enabled' => true]);
         config(['vehicle-registry.default' => 'aaa_data']);
@@ -60,15 +60,15 @@ final class VehicleRegistryLookupManagerTest extends TestCase
     }
 
     #[Test]
-    public function driver_avec_fake_retourne_fake_vehicle_registry_lookup_strategy(): void
+    public function driver_avec_fake_retourne_fake_vehicle_registry_lookup_driver(): void
     {
         config(['vehicle-registry.enabled' => true]);
         config(['vehicle-registry.default' => 'fake']);
 
-        $strategy = $this->makeManager()->driver();
+        $instance = $this->makeManager()->driver();
 
-        $this->assertInstanceOf(FakeVehicleRegistryLookupStrategy::class, $strategy);
-        $this->assertSame(RegistryLookupProvider::Fake, $strategy->provider());
+        $this->assertInstanceOf(FakeVehicleRegistryLookupDriver::class, $instance);
+        $this->assertSame(RegistryLookupDriver::Fake, $instance->driverName());
     }
 
     #[Test]
@@ -84,7 +84,7 @@ final class VehicleRegistryLookupManagerTest extends TestCase
     }
 
     #[Test]
-    public function driver_leve_unavailable_quand_strategy_aaa_data_non_implementee(): void
+    public function driver_leve_unavailable_quand_driver_aaa_data_non_implemente(): void
     {
         config(['vehicle-registry.enabled' => true]);
         config(['vehicle-registry.default' => 'aaa_data']);
@@ -100,9 +100,9 @@ final class VehicleRegistryLookupManagerTest extends TestCase
     {
         config(['vehicle-registry.enabled' => false]);
 
-        $strategy = $this->makeManager()->driver(RegistryLookupProvider::Fake);
+        $instance = $this->makeManager()->driver(RegistryLookupDriver::Fake);
 
-        $this->assertInstanceOf(FakeVehicleRegistryLookupStrategy::class, $strategy);
+        $this->assertInstanceOf(FakeVehicleRegistryLookupDriver::class, $instance);
     }
 
     #[Test]
@@ -110,7 +110,7 @@ final class VehicleRegistryLookupManagerTest extends TestCase
     {
         $this->expectException(RegistryLookupUnavailableException::class);
 
-        $this->makeManager()->driver(RegistryLookupProvider::AaaData);
+        $this->makeManager()->driver(RegistryLookupDriver::AaaData);
     }
 
     /**
