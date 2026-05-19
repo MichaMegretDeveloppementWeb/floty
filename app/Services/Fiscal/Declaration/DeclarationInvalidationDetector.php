@@ -14,38 +14,29 @@ use App\Models\FiscalDeclaration;
 use App\Models\Unavailability;
 use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
-use App\Services\Invoice\InvoiceDivergenceFlagger;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Session;
 
 /**
- * Service centralisé d'invalidation des déclarations fiscales suite
- * à une mutation d'entité fiscalement liée (Phase 11 D3, ADR-0015 § D8,
- * refondu D5.10.O · un brouillon n'est jamais obsolète).
+ * Central detector of fiscal-declaration invalidation triggered by
+ * mutations on fiscally-linked entities (ADR-0015 § D8).
  *
- * Source unique de vérité de la liste des actions invalidantes /
- * non-invalidantes. Les Observers (Contract, VFC, Unavailability)
- * délèguent à ce service ; le service construit un
- * `InvalidationReasonData` typé et appelle
- * `MarkDeclarationAsObsoleteAction` pour chaque déclaration impactée.
+ * Single source of truth for the invalidating actions list. Observers
+ * (Contract, VFC, Unavailability, Vehicle) delegate here; the detector
+ * builds a typed `InvalidationReasonData` and runs
+ * `MarkDeclarationAsObsoleteAction` for every impacted declaration.
  *
- * Pattern direct {@see InvoiceDivergenceFlagger}.
+ * Scope · only `status=generated` declarations are marked obsolete.
+ * Drafts (`draft`, `deferred`) recompute their perimeter live in the
+ * review screen, so the obsolescence flag is meaningless for them and
+ * caused UX issues (false "obsolete" label, blocked review access).
  *
- * **Périmètre d'invalidation D5.10.O** · seules les déclarations
- * `status=generated` sont marquées obsolètes. Les brouillons
- * (`draft`, `deferred`) sont par essence en cours et recalculent
- * leur périmètre à chaque ouverture en Review (via
- * `DeclarationPreviewService::preview`) · le flag d'obsolescence n'a
- * pas de sens pour eux et créait des bugs UX (label faux « Générée ·
- * obsolète » sur un brouillon, accès Review bloqué).
+ * Cross-year · a contract mutation invalidates declarations for every
+ * year crossed by the contract before AND after the mutation.
  *
- * **Cross-année** : une mutation contrat invalide les déclarations de
- * toutes les années croisées par le contrat (avant ET après la
- * mutation). Cf. décision D3.2 du plan D3.
- *
- * **Court-circuit** : si l'entité n'a pas d'impact fiscal (indispo
- * non réductrice), le service est appelé mais ne flag rien.
+ * Short-circuit · if the entity has no fiscal impact (non-reductive
+ * unavailability) the detector is called but flags nothing.
  */
 final readonly class DeclarationInvalidationDetector
 {
@@ -56,11 +47,10 @@ final readonly class DeclarationInvalidationDetector
     ) {}
 
     /**
-     * Invalide les déclarations actives `(company, year)` impactées
-     * par une mutation `created`/`updated`/`deleted` de contrat.
-     *
-     * Pour `updated` : passer aussi les bornes ancienne (via
-     * `getOriginal()`) pour couvrir les changements de plage.
+     * Invalidates active `(company, year)` declarations impacted by a
+     * `created`/`updated`/`deleted` contract mutation. For `updated`
+     * also pass the previous bounds (via `getOriginal()`) so a range
+     * change is fully covered.
      *
      * @param  list<string>  $fieldsChanged
      */
@@ -106,8 +96,8 @@ final readonly class DeclarationInvalidationDetector
     }
 
     /**
-     * Invalide pour une mutation de VFC : les déclarations dont au
-     * moins un contrat utilise `$vfc->vehicle_id` sur l'année.
+     * Invalidates declarations whose contracts use `$vfc->vehicle_id`
+     * within the year.
      */
     public function flagForVfcMutation(
         VehicleFiscalCharacteristics $vfc,
@@ -141,15 +131,10 @@ final readonly class DeclarationInvalidationDetector
     }
 
     /**
-     * Invalide pour une mutation de Vehicle (Phase 11 D5.7.8 audit
-     * pré-livraison) : actuellement uniquement déclenché par
-     * {@see App\Observers\VehicleObserver::updated} sur changement
-     * d'`exit_date`. Le champ clôture les contrats au-delà de la date
-     * de sortie, donc le périmètre taxable change même si les
-     * contrats eux-mêmes n'ont pas été modifiés.
-     *
-     * Périmètre : les déclarations dont au moins un contrat utilise
-     * ce véhicule sur l'année.
+     * Invalidates on a Vehicle mutation (currently only triggered on
+     * `exit_date` change via {@see App\Observers\VehicleObserver}). The
+     * field closes contracts past the exit date, so the taxable
+     * perimeter shifts even when contracts themselves are unchanged.
      *
      * @param  list<string>  $fieldsChanged
      */
@@ -186,10 +171,10 @@ final readonly class DeclarationInvalidationDetector
     }
 
     /**
-     * Invalide pour une mutation d'indispo. Court-circuite si
-     * l'indispo n'a aucun impact fiscal (champ dénormalisé
-     * `has_fiscal_impact` cohérent avec
-     * `UnavailabilityType::isFiscallyReductive()` via CHECK SQL).
+     * Invalidates on an unavailability mutation. Short-circuits when
+     * neither the current nor the previous state had fiscal impact
+     * (`has_fiscal_impact` is the denormalised mirror of
+     * {@see App\Enums\UnavailabilityType::isFiscallyReductive()}).
      */
     public function flagForUnavailability(
         Unavailability $unavailability,
@@ -197,14 +182,10 @@ final readonly class DeclarationInvalidationDetector
         int $actorUserId,
         ?bool $previousHasFiscalImpact = null,
     ): void {
-        // Court-circuit si ni l'état actuel ni l'ancien n'avaient
-        // d'impact fiscal (indispo « notes only » par exemple).
         if (! $unavailability->has_fiscal_impact && $previousHasFiscalImpact !== true) {
             return;
         }
 
-        // Périmètre : les déclarations dont au moins un contrat
-        // utilise ce véhicule sur l'année croisée par l'indispo.
         $startCarbon = $unavailability->start_date;
         $endCarbon = $unavailability->end_date ?? Carbon::now()->endOfYear();
         $years = $this->yearsForRange($startCarbon->toDateString(), $endCarbon->toDateString());
@@ -258,16 +239,10 @@ final readonly class DeclarationInvalidationDetector
             return;
         }
 
-        // Phase 13 D5.10.O · seules les déclarations `generated` sont
-        // marquées obsolètes. Un brouillon (`draft` / `deferred`) est
-        // par essence en cours · son périmètre est recalculé live à
-        // chaque ouverture en Review, donc le flag d'obsolescence n'a
-        // pas de sens. L'obsolescence multiple est autorisée par
-        // doctrine D8 (motifs s'empilent), pas de filtre sur
-        // is_obsolete.
-        //
-        // Lot 4 D02 (F-34-002) · query déléguée au repo pour conformité
-        // ADR-0013 R3 (pas de SQL direct dans les Services).
+        // Only `generated` declarations are flagged. Drafts compute
+        // their perimeter live in Review; the obsolescence flag is
+        // meaningless for them. Multiple obsolescence reasons may
+        // accumulate (ADR-0015 § D8), so no `is_obsolete` filter.
         $declarations = $this->declarations->findGeneratedForCompanyYears($companyIds, $years);
 
         foreach ($declarations as $declaration) {
@@ -285,13 +260,11 @@ final readonly class DeclarationInvalidationDetector
     }
 
     /**
-     * Push toast warning cross-surface (Phase 11 D4) sur le canal flash
-     * Laravel `toast-warning`. Consommé automatiquement par
-     * `useFlashToasts` (UserLayout) au prochain Inertia response.
-     *
-     * Limitation : Laravel session ne stocke qu'un message par canal.
-     * Si plusieurs déclarations sont invalidées dans une même requête,
-     * seule la dernière est affichée. Acceptable en V1 (cas marginal).
+     * Cross-surface warning toast through the Laravel `toast-warning`
+     * flash channel, consumed by `useFlashToasts` on the next Inertia
+     * response. Laravel flash holds a single message per channel, so
+     * only the last invalidation of a given request surfaces · acceptable
+     * for V1 (marginal case).
      */
     private function pushToast(FiscalDeclaration $declaration): void
     {

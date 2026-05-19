@@ -31,121 +31,90 @@ use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Support\Collection;
 
 /**
- * Agrégateur fiscal annuel à l'échelle de la flotte · cœur fiscal CIBS Floty
- * (taxe CO₂ + taxe polluants).
+ * Fleet-wide annual fiscal aggregator · the fiscal core of Floty
+ * (CIBS CO₂ tax + pollutant tax).
  *
- * Centralise les sommations de taxe (par véhicule, par entreprise, par
- * flotte) qui étaient dupliquées dans 4 controllers (Vehicle, Company,
- * Dashboard, Planning).
+ * Centralises the tax summations (per vehicle, per company, per fleet)
+ * that used to be duplicated across four controllers (Vehicle,
+ * Company, Dashboard, Planning). Source of truth for fiscal
+ * computations (ADR-0022 · PHP classes as the source of truth, ADR-0006
+ * · fiscal engine V1).
  *
- * Source de vérité des calculs fiscaux (cf. ADR-0022 · classes PHP source
- * de vérité · ADR-0006 · moteur fiscal V1).
- *
- * **Note R-2024-003** : l'arrondi half-up au centime (`round(.., 2, ..)`)
- * est appliqué **une seule fois par redevable** (entreprise utilisatrice),
- * jamais par couple intermédiaire. L'aggregator somme les `*DueRaw` des
- * `PipelineResult` et arrondit en sortie. Cf. ADR-0006 § 2.
- *
- * **Refonte 04.F (ADR-0014)** : passe de `AnnualCumulByPair` à
- * `ContractsByPair`. Les indispos par véhicule sont passées séparément
- * (map `vehicleId → list<Unavailability>`) pour alimenter R-2024-008.
+ * R-2024-003 · the half-up centime rounding (`round(.., 2, ..)`) is
+ * applied once per taxpayer (using company), never per intermediate
+ * couple. The aggregator sums `*DueRaw` from `PipelineResult` and
+ * rounds at the end (ADR-0006 § 2). The 2024-passing handles `ContractsByPair`
+ * (ADR-0014); unavailabilities per vehicle are passed separately
+ * (`vehicleId → list<Unavailability>`) to feed R-2024-008.
  *
  * --------------------------------------------------------------------------
- * DOCTRINE V1 · NON REFONDU SOUS DOCTRINE ZÉRO-DETTE (Lot 4 D10 · F-17-001)
+ * Stability notice · NOT refactored under the zero-debt doctrine.
  * --------------------------------------------------------------------------
  *
- * Ce service fait ~620 lignes (dont ~239 lignes de commentaires explicatifs
- * · rappels BOFiP, bases légales CIBS, exemples chiffrés · ~38 % de
- * commentaires). L'audit production-ready 2026-05-11 (F-17-001) le marque
- * comme cible SRP > 500 l.
+ * This service is ~620 lines, ~38 % of which is explanatory comments
+ * (BOFiP references, CIBS legal basis, worked examples). It is
+ * intentionally above the SRP target of 500 lines because ·
  *
- * **Décision user explicite (plan-remediation Vague 1 Lot 4 D10 ·
- * 2026-05-13) · NON refondu.**
+ *   - It is the CIBS fiscal core · a poor refactor risks producing
+ *     incorrect tax in production (regulatory compliance LFi 2024 art. 14).
+ *   - Comments are explanatory and serve as audit material.
+ *   - The refactor cost (equivalence tests on ≥10 fixtures + exhaustive
+ *     Chrome live) outweighs the maintainability gain.
+ *   - ADR-0022 designates this service as the fiscal source of truth ·
+ *     prudent preservation beats cosmetic SRP.
  *
- * Justifications ·
- *  - Cœur fiscal CIBS · refonte mal faite = risque catastrophique
- *    (taxe fausse en prod, conformité réglementaire LFi 2024 art. 14)
- *  - ~38 % des lignes sont des commentaires explicatifs (lisibilité,
- *    audit BOFiP, traçabilité réglementaire)
- *  - Coût refonte (refonte + tests d'équivalence ≥10 fixtures + Chrome
- *    live exhaustif) disproportionné vs gain maintenabilité
- *  - ADR-0022 désigne ce service comme « source de vérité » fiscale ·
- *    préservation prudente prime sur SRP cosmétique
+ * Any change here must ·
+ *   1. Have a prior equivalence test on ≥ 3 representative fixtures.
+ *   2. Be validated through Chrome live on the declaration generator.
+ *   3. Cross-check against ≥ 2 existing CIBS computations.
  *
- * Conditions de réouverture du dossier (V2+) ·
- *  - Si une nouvelle règle fiscale doit être intégrée et que le code
- *    devient illisible, refondre AVEC tests d'équivalence ironclad
- *  - Si une dépendance externe change de signature, opportunité de
- *    découper la zone touchée
- *  - Si l'overhead cognitif empêche un dev junior de comprendre,
- *    réévaluer
- *
- * **Toute modification ici doit ·**
- *  1. Avoir un test d'équivalence préalable sur ≥3 fixtures représentatives
- *  2. Être validée Chrome live sur le moteur de génération de déclaration
- *  3. Spot-check croisé sur ≥2 calculs CIBS pré-existants
- *
- * Filet de sécurité existant · `FiscalCalculatorTest`,
- * `FiscalAdditivityTest`, `FiscalInvariantsTest`, `MultiYearContractTest`,
- * `MultiVfcEdgeCasesTest`. Tout changement doit y rester vert.
+ * Safety net · `FiscalCalculatorTest`, `FiscalAdditivityTest`,
+ * `FiscalInvariantsTest`, `MultiYearContractTest`, `MultiVfcEdgeCasesTest`.
+ * Every change must stay green there.
  */
 final class FleetFiscalAggregator
 {
     /**
-     * Cache mémoire intra-instance des projections DTO des règles
-     * fiscales indexé par `"{year}|{sortedCodes}"`. Évite la
-     * re-construction répétée quand l'aggregator est réutilisé sur
-     * plusieurs véhicules / contrats à l'intérieur d'une même
-     * requête. Phase 13 D5.14 · les DTOs viennent désormais du
-     * registry (classes PHP), plus de lecture BDD.
+     * Per-instance memoization of rule DTOs by `"{year}|{sortedCodes}"`.
+     * Avoids rebuilding when the aggregator is reused across vehicles
+     * and contracts within one request. DTOs come from the registry
+     * (PHP classes), no DB read.
      *
      * @var array<string, list<FiscalRuleListItemData>>
      */
     private array $rulesCache = [];
 
     /**
-     * Cache mémoire intra-instance des `PipelineResult` du « taxe pleine
-     * année théorique » indexé par `"{vehicleId}|{year}"`. Le résultat
-     * dépend exclusivement du véhicule et de l'année (contrat full-year
-     * synthétique, indispos vides), il est donc partageable entre
-     * `vehicleFullYearTax` et `vehicleFullYearTaxBreakdown` - la liste
-     * Flotte gagne ~50 % de pipeline runs.
+     * Per-instance memoization of full-year `PipelineResult` indexed by
+     * `"{vehicleId}|{year}"`. The result depends only on
+     * `(vehicle, year)` (synthetic full-year contract, no
+     * unavailabilities), so it is shareable between
+     * `vehicleFullYearTax` and `vehicleFullYearTaxBreakdown`.
      *
      * @var array<string, PipelineResult>
      */
     private array $fullYearResultCache = [];
 
     /**
-     * Cache mémoire intra-instance des DTOs `VehicleFullYearTaxBreakdownData`
-     * indexé par `"{vehicleId}|{year}"`. Le DTO est purement déterministe
-     * sur `(vehicle, year)` (contrat synthétique full-year, indispos vides) ·
-     * il est donc safe à mémoïser pour la durée de vie du Service Laravel
-     * (resolved per-request).
-     *
-     * Hot paths bénéficiaires (Lot 3 D05) ·
-     * - `VehicleListingService::listForOptions` · boucle vehicles × availableYears
-     * - `VehicleListingService::listPaginated` · N véhicules paginés × année courante
-     * - `PlanningHeatmapService::buildHeatmap[ForCompany]` · N véhicules × année
+     * Per-instance memoization of `VehicleFullYearTaxBreakdownData` by
+     * `"{vehicleId}|{year}"`. The DTO is deterministic on
+     * `(vehicle, year)` and safe to memoize for the lifetime of the
+     * Laravel service (per-request resolution).
      *
      * @var array<string, VehicleFullYearTaxBreakdownData>
      */
     private array $fullYearBreakdownCache = [];
 
     /**
-     * Cache mémoire intra-instance des **agrégats par couple** (S1.2 du
-     * plan optim perf 2026-05-15 · cause C-2 · les méthodes "agrégat
-     * par couple" exécutaient le pipeline sans mémoïsation).
+     * Per-instance memoization of "per-couple" aggregates. Scalar keys
+     * only; the other arguments (`Collection<Vehicle>`,
+     * `ContractsByPair`, unavailabilities) always come from the same
+     * `DashboardScopeContext` / `CompanyDetailScope` for a given
+     * `(companyId, year)` or `(vehicleId, year)` within a request.
      *
-     * **Clés scalaires uniquement** · les autres args (Collection vehicles,
-     * ContractsByPair, indispos) viennent toujours du même
-     * `DashboardScopeContext` / `CompanyDetailScope` pour un
-     * `(companyId, year)` ou `(vehicleId, year)` donné dans une requête.
-     * Pas de pattern « 2 sous-ensembles différents pour la même clé »
-     * dans le code (audit a vérifié).
-     *
-     * **Sécurité** · `ContractsByPair` est `final readonly` (immutable),
-     * pas de mutation entre 2 appels. `Collection<Vehicle>` est passée
-     * par valeur conceptuellement (pas mutée par les méthodes).
+     * Safety · `ContractsByPair` is `final readonly` (immutable), no
+     * mutation between calls. `Collection<Vehicle>` is conceptually
+     * passed by value (not mutated by the methods).
      *
      * @var array<string, float>
      */
@@ -164,21 +133,18 @@ final class FleetFiscalAggregator
     private array $fleetAnnualTaxCache = [];
 
     /**
-     * Cache mémoire intra-instance des segments VFC effectifs par
-     * `{vehicleId}|{year}` (chantier perf Planning 2026-05-16). Alimenté
-     * par {@see prewarmVfcSegmentsForVehicles()} via un seul
-     * `findEffectiveSegmentsForYearBatch` SQL · consommé par
-     * {@see vehicleFullYearTaxBreakdown()} et {@see vehicleAnnualTax()}
-     * pour éviter le N+1 query VFC dans leurs boucles.
+     * Per-instance cache of effective VFC segments keyed by
+     * `"{vehicleId}|{year}"`. Filled by
+     * {@see prewarmVfcSegmentsForVehicles()} via a single
+     * `findEffectiveSegmentsForYearBatch` SQL query and consumed by
+     * {@see vehicleFullYearTaxBreakdown()} and
+     * {@see vehicleAnnualTax()} to avoid the N+1 VFC query.
      *
-     * Sémantique cache · `[]` (segments vides) est une valeur valide
-     * (véhicule sans VFC sur l'année · throw `missingFiscalCharacteristics`
-     * à l'exécution). On distingue donc `isset()` (cache hit) de la
-     * valeur · seul un `array_key_exists()` permettrait la nuance
-     * stricte, mais `isset()` suffit ici car `[]` au pluriel est traité
-     * comme "miss" et déclenche le fallback BDD · cohérent avec le path
-     * existant qui throw aussi quand `findEffectiveSegmentsForYear`
-     * retourne `[]`.
+     * Cache semantics · `[]` (no segments) is a valid value (vehicle
+     * with no VFC for the year · throws
+     * `missingFiscalCharacteristics` at execution time). `isset()`
+     * indicates a cache hit; `[]` triggers the same throw as the
+     * no-cache path, so we do not distinguish strictly.
      *
      * @var array<string, list<VfcEffectiveSegment>>
      */
@@ -192,14 +158,14 @@ final class FleetFiscalAggregator
     ) {}
 
     /**
-     * Total fiscal annuel d'un véhicule sommé sur toutes les
-     * entreprises auxquelles il a été attribué.
+     * Annual fiscal total for one vehicle, summed across every
+     * company it has been attributed to.
      *
-     * Le véhicule doit avoir ses `fiscalCharacteristics` actives
-     * pré-chargées (sinon le pipeline déclenche une nouvelle requête
-     * par appel via le repository).
+     * The vehicle must come with its active `fiscalCharacteristics`
+     * preloaded (otherwise the pipeline issues a fresh repository
+     * query per call).
      *
-     * @param  list<Unavailability>  $vehicleUnavailabilities  Indispos du véhicule sur l'année
+     * @param  list<Unavailability>  $vehicleUnavailabilities  Year unavailabilities of the vehicle
      */
     public function vehicleAnnualTax(
         Vehicle $vehicle,
@@ -226,15 +192,12 @@ final class FleetFiscalAggregator
         array $vehicleUnavailabilities,
         int $year,
     ): float {
-        // Branche optimisée si le cache VFC est pré-chargé (cf.
-        // {@see prewarmVfcSegmentsForVehicles()}). Équivalence stricte
-        // garantie · cf. doctrine `optimisations-conditionnelles.md`
-        // stratégie 2 · test
-        // `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_pour_vehicle_annual_tax`.
-        // Note · `$cachedSegments === []` (véhicule connu sans VFC)
-        // déclenche le throw `missingFiscalCharacteristics` dans
-        // `executeWithPreloadedVfcSegments` · cohérent avec le path
-        // sans cache où `execute → fetchVfcSegments` throw identique.
+        // Optimised branch when the VFC cache is prewarmed (see
+        // {@see prewarmVfcSegmentsForVehicles()}). Strict equivalence
+        // is guaranteed; an empty `$cachedSegments` (vehicle without
+        // VFC) still triggers the `missingFiscalCharacteristics`
+        // throw in `executeWithPreloadedVfcSegments`, mirroring the
+        // no-cache path.
         $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
 
         $totalRaw = 0.0;
@@ -246,18 +209,18 @@ final class FleetFiscalAggregator
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
-        // Lot 5 D15 · arrondi half-up à l'EURO sur la taxe annuelle
-        // d'un véhicule (cohérence visuelle avec les agrégats par
-        // redevable, doctrine CIBS L. 131-1).
+        // Half-up rounding to the euro on a vehicle's annual tax
+        // (visual consistency with the other taxpayer aggregates,
+        // CIBS L. 131-1).
         return round($totalRaw, 0, PHP_ROUND_HALF_UP);
     }
 
     /**
-     * Total fiscal annuel d'une entreprise sommé sur tous les
-     * véhicules qu'elle a utilisés. **Implémente R-2024-003** : un
-     * seul arrondi par redevable.
+     * Annual fiscal total for one company, summed across every
+     * vehicle it has used. Implements R-2024-003 · single rounding
+     * per taxpayer.
      *
-     * @param  Collection<int, Vehicle>  $vehiclesById  Indexée par id
+     * @param  Collection<int, Vehicle>  $vehiclesById  Indexed by id
      * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
      */
     public function companyAnnualTax(
@@ -306,55 +269,49 @@ final class FleetFiscalAggregator
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
-        // Lot 5 D15 · arrondi half-up à l'EURO sur le total redevable
-        // (doctrine CIBS L. 131-1 + BOI-AIS-MOB-10-30-10) ·
-        // « le montant total à payer par chaque redevable est arrondi
-        // à l'euro le plus proche, sans arrondi intermédiaire ».
-        // Cohérent avec `DeclarationFiscalEngine::compute` qui sert
-        // les snapshots officiels.
+        // Half-up rounding to the euro on the taxpayer total
+        // (CIBS L. 131-1 + BOI-AIS-MOB-10-30-10). Aligned with
+        // `DeclarationFiscalEngine::compute`, which serves the
+        // official snapshots.
         return round($totalRaw, 0, PHP_ROUND_HALF_UP);
     }
 
     /**
-     * **Taxe pleine année théorique** d'un véhicule : ce qu'il
-     * coûterait s'il était attribué 100 % du temps à une seule
-     * entreprise (sans LCD, sans indispo, prorata = 1.0).
+     * Theoretical full-year vehicle tax · what the vehicle would
+     * cost if attributed 100 % of the year to a single company
+     * (no LCD, no unavailability, prorata = 1.0).
      *
-     * Construit un contrat synthétique non-persisté (1er jan → 31 déc)
-     * pour passer le pipeline normalement. Ce contrat est par
-     * construction non LCD (durée > 30 j et pas un mois civil entier)
-     * et sans indispo, donc R-2024-021 et R-2024-008 ne retirent rien
-     * du numérateur ; R-2024-002 calcule prorata = daysInYear / daysInYear = 1.0.
+     * Built from a synthetic non-persisted contract (Jan 1 → Dec 31)
+     * so it goes through the normal pipeline. By construction the
+     * contract is not LCD (length > 30 days, not a whole civil
+     * month) and there is no unavailability, so R-2024-021 and
+     * R-2024-008 take nothing from the numerator; R-2024-002
+     * computes prorata = daysInYear / daysInYear = 1.0.
      */
     public function vehicleFullYearTax(Vehicle $vehicle, int $year): float
     {
         $result = $this->fullYearPipelineResult($vehicle, $year);
 
-        // Lot 5 D15 · arrondi half-up à l'EURO (cohérence visuelle
-        // avec les autres agrégats fiscaux, doctrine CIBS L. 131-1).
         return round($result->co2DueRaw + $result->pollutantsDueRaw, 0, PHP_ROUND_HALF_UP);
     }
 
     /**
-     * Pré-charge le cache `$fullYearResultCache` pour un batch de
-     * véhicules en **1 query SQL** au lieu de N (chantier perf
-     * 2026-05-16 Option 3b). Aucun retour · l'effet est sur le cache
-     * interne, consommé ensuite par tous les appels suivants à
-     * {@see vehicleFullYearTax} / {@see vehicleFullYearTaxBreakdown}
-     * sur les mêmes `(vehicleId, year)`.
+     * Prewarms `$fullYearResultCache` for a batch of vehicles in a
+     * single SQL query rather than N. No return · the effect is on
+     * the cache, consumed by subsequent calls to
+     * {@see vehicleFullYearTax()} / {@see vehicleFullYearTaxBreakdown()}
+     * on the same `(vehicleId, year)` pairs.
      *
-     * Cas d'usage typique · Index Contracts (`ContractQueryService::costsForContractIds`)
-     * où la page affiche 25 contrats, 21 véhicules distincts ·
-     * sans prewarm, le pipeline exécute 21 queries VFC individuelles ·
-     * avec prewarm, 1 seule query SQL alimente les 21 runs.
+     * Typical use · Contracts Index
+     * (`ContractQueryService::costsForContractIds`) showing 25
+     * contracts across 21 distinct vehicles · without the prewarm,
+     * 21 individual VFC queries; with the prewarm, a single SQL
+     * feeds them all.
      *
-     * **Équivalence garantie** · pour tout véhicule `v` du batch,
-     * `vehicleFullYearTax(v, $year)` retourne strictement la même
-     * valeur que sans prewarm. Cette équivalence est couverte par
-     * `FleetFiscalAggregatorTest::prewarm_equivalent_aux_appels_individuels`
-     * (cf. doctrine `optimisations-conditionnelles.md` stratégie 2).
-     *
-     * No-op pour les véhicules déjà présents dans le cache · idempotent.
+     * Strict equivalence guaranteed against the per-call path
+     * (covered by
+     * `FleetFiscalAggregatorTest::prewarm_equivalent_aux_appels_individuels`).
+     * Idempotent · no-op for already-cached vehicles.
      *
      * @param  iterable<Vehicle>  $vehicles
      */
@@ -382,11 +339,10 @@ final class FleetFiscalAggregator
         foreach ($missing as $vehicle) {
             $segments = $segmentsByVehicleId[$vehicle->id] ?? [];
             if ($segments === []) {
-                // Cohérent avec `execute()` · si aucune VFC, la 1ère
-                // tentative de calcul throw. Le prewarm ne masque pas
-                // cette erreur en cachant `null` · on laisse l'appel
-                // ultérieur à `vehicleFullYearTax` lever l'exception
-                // au moment où le résultat sera demandé.
+                // Consistent with `execute()` · without VFC, the next
+                // computation throws. The prewarm does not mask that
+                // error by caching `null` · the later call will
+                // raise the exception when the result is needed.
                 continue;
             }
 
@@ -404,24 +360,19 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Pré-charge le cache `$vfcSegmentsCache` pour un batch de
-     * véhicules. Une seule query SQL `findEffectiveSegmentsForYearBatch`
-     * alimente le cache pour tous les véhicules manquants · les appels
-     * suivants à {@see vehicleFullYearTaxBreakdown()} et
-     * {@see vehicleAnnualTax()} consomment le cache au lieu de fetcher
-     * les VFC un par un (N+1 query supprimée).
+     * Prewarms `$vfcSegmentsCache` for a batch of vehicles. A single
+     * `findEffectiveSegmentsForYearBatch` SQL feeds the cache for
+     * every missing vehicle; subsequent calls to
+     * {@see vehicleFullYearTaxBreakdown()} and
+     * {@see vehicleAnnualTax()} read the cache instead of fetching
+     * VFCs one at a time (N+1 removed).
      *
-     * **Cas d'usage typique** · {@see App\Services\Planning\PlanningHeatmapService::costsForVehicles()}
-     * qui boucle 64 véhicules × 2 méthodes consommatrices ·
-     * sans prewarm, 64-128 queries VFC individuelles dans les boucles ·
-     * avec prewarm, 1 seule query SQL alimente les 64 runs.
-     *
-     * **Équivalence garantie** · pour tout véhicule `v` du batch,
-     * `vehicleFullYearTaxBreakdown(v, $year)` et `vehicleAnnualTax(v, ...)`
-     * retournent strictement la même valeur que sans prewarm. Couvert
-     * par `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_*`.
-     *
-     * No-op pour les véhicules déjà cachés · idempotent.
+     * Typical use · the Planning service iterating ~64 vehicles
+     * across two consumer methods · without the prewarm, 64-128
+     * individual VFC queries inside the loops; with it, a single
+     * SQL covers them all. Strict equivalence covered by
+     * `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_*`.
+     * Idempotent.
      *
      * @param  iterable<Vehicle>  $vehicles
      */
@@ -444,24 +395,24 @@ final class FleetFiscalAggregator
         );
 
         foreach ($missingIds as $vehicleId => $_) {
-            // Cache même les véhicules sans VFC (valeur `[]`) · ça
-            // évite une 2ᵉ query inutile si on rappelle pour le même
-            // véhicule. Le throw `missingFiscalCharacteristics` se
-            // produira à l'exécution du pipeline, comme dans le path
-            // sans cache.
+            // Cache even vehicles without VFC (value `[]`) to avoid a
+            // wasted second query if the same vehicle is requested
+            // again. The `missingFiscalCharacteristics` throw still
+            // fires at pipeline execution time, just like the no-cache
+            // path.
             $this->vfcSegmentsCache[$vehicleId.'|'.$year] = $batch[$vehicleId] ?? [];
         }
     }
 
     /**
-     * Détail complet du calcul de la taxe pleine année d'un véhicule -
-     * affiché dans la sidebar de la page Show pour expliquer comment
-     * le total a été obtenu (méthode CO₂, catégorie polluants,
-     * exonérations appliquées, codes règles).
+     * Full breakdown of a vehicle's annual tax · used by the
+     * sidebar of the Show page to explain how the total was reached
+     * (CO₂ method, pollutant category, applied exemptions, rule
+     * codes).
      *
-     * Mémoïsé per-request via `$fullYearBreakdownCache` (Lot 3 D05) · les
-     * boucles N véhicules × M années (Index Flotte, sélecteur véhicule,
-     * heatmap planning) ne paient le pipeline qu'une fois par couple.
+     * Memoized per-request through `$fullYearBreakdownCache` so the
+     * N vehicles × M years loops (Fleet Index, vehicle selector,
+     * planning heatmap) only pay the pipeline once per pair.
      */
     public function vehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
@@ -473,24 +424,21 @@ final class FleetFiscalAggregator
 
     private function computeVehicleFullYearTaxBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
-        // On exécute le pipeline avec un contrat synthétique full-year
-        // (1ᵉʳ jan → 31 déc) pour calculer le taxe pleine. L'orchestrateur
-        // segmente automatiquement par VFC : 1 breakdown en mono-VFC,
-        // N en multi-VFC.
+        // The pipeline runs against a synthetic full-year contract
+        // (Jan 1 → Dec 31) to compute the full-year tax. The
+        // orchestrator auto-segments by VFC · one breakdown in
+        // single-VFC vehicles, N in multi-VFC.
         $context = $this->buildContext(
             $vehicle,
             [$this->fullYearSyntheticContract($year)],
             [],
             $year,
         );
-        // Branche optimisée si le cache VFC est pré-chargé (cf.
-        // {@see prewarmVfcSegmentsForVehicles()}). Équivalence stricte
-        // garantie · cf. doctrine `optimisations-conditionnelles.md`
-        // stratégie 2 · test
-        // `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_pour_vehicle_full_year_tax_breakdown`.
-        // Note · `$cachedSegments === []` déclenche le throw
-        // `missingFiscalCharacteristics` côté executor · cohérent avec
-        // le path sans cache.
+        // Optimised branch when the VFC cache is prewarmed.
+        // Equivalence with the no-cache path is guaranteed; an empty
+        // `$cachedSegments` triggers the
+        // `missingFiscalCharacteristics` throw inside the executor,
+        // matching the no-cache behaviour.
         $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
         $breakdowns = $cachedSegments !== null
             ? $this->pipeline->executeWithSegmentsAndPreloadedVfc($context, $cachedSegments)
@@ -546,10 +494,10 @@ final class FleetFiscalAggregator
 
         return new VehicleFullYearTaxBreakdownData(
             daysInYear: $this->yearContext->daysInYear($year),
-            // Lot 5 D15 · total redevable arrondi half-up à l'EURO
-            // (doctrine CIBS L. 131-1). Les `taxSegments[].co2Due/
-            // pollutantsDue` restent au centime · ce sont des
-            // lignes par segment VFC, pas des totaux à déclarer.
+            // Taxpayer total rounded half-up to the euro (CIBS L. 131-1).
+            // The per-segment `co2Due/pollutantsDue` stay at centime
+            // precision · they are detail lines, not declaratory
+            // totals.
             total: round($totalRaw, 0, PHP_ROUND_HALF_UP),
             appliedExemptions: array_values($exemptionsByCode),
             appliedRuleCodes: $appliedRuleCodes,
@@ -559,22 +507,21 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Détail fiscal complet d'un contrat - affiché dans la section
-     * « Taxes générées » de la page Show contrat.
+     * Full fiscal detail of a single contract, displayed in the
+     * « Taxes générées » section of the contract Show page.
      *
-     * Le pipeline tourne par année. Si le contrat chevauche 2 années
-     * civiles (ex. 1er nov 2024 → 31 jan 2025), on exécute le pipeline
-     * deux fois et on agrège.
+     * The pipeline runs per year. A contract crossing two calendar
+     * years (e.g. Nov 1, 2024 → Jan 31, 2025) runs the pipeline
+     * twice and aggregates.
      *
-     * **Granularité par fenêtre (chantier Φ.bis)** · utilise
-     * `executeWithSegments()` pour exposer chaque sous-période VFC ×
-     * Règles dans le DTO. Indispensable quand un barème change en cours
-     * d'année (ex. polluants 2026 +30 % au 01/03, LF 2026 art. 58 V IV)
-     * ou quand la VFC évolue. L'agrégation au niveau année reste fournie
-     * dans les champs flat pour le résumé de tête.
+     * Per-window granularity · uses `executeWithSegments()` to expose
+     * each VFC × rules sub-period in the DTO. Required when a scale
+     * changes mid-year (e.g. 2026 pollutants +30 % on 01/03, LF 2026
+     * art. 58 V IV) or when the VFC evolves. Year-level aggregates
+     * remain in the flat fields for the summary header.
      *
-     * Le `$contract->vehicle->fiscalCharacteristics` doit être eager-loadé
-     * par l'appelant (cf. `ContractReadRepository::findByIdWithRelations`).
+     * Caller must eager-load `$contract->vehicle->fiscalCharacteristics`
+     * (see `ContractReadRepository::findByIdWithRelations`).
      *
      * @param  list<Unavailability>  $vehicleUnavailabilities
      */
@@ -591,14 +538,8 @@ final class FleetFiscalAggregator
 
         for ($year = $startYear; $year <= $endYear; $year++) {
             $context = $this->buildContext($vehicle, [$contract], $vehicleUnavailabilities, $year);
-            // Branche optimisée si le cache VFC est pré-chargé (cf.
-            // {@see prewarmVfcSegmentsForVehicles()}). Équivalence stricte
-            // garantie · même pattern que {@see vehicleFullYearTaxBreakdown()} ·
-            // doctrine `optimisations-conditionnelles.md` stratégie 2 ·
-            // test `FleetFiscalAggregatorTest::prewarm_vfc_segments_equivalent_pour_contract_tax_breakdown`.
-            // Note · `$cachedSegments === []` déclenche le throw
-            // `missingFiscalCharacteristics` côté executor · cohérent avec
-            // le path sans cache.
+            // Optimised branch when the VFC cache is prewarmed (same
+            // pattern as in {@see vehicleFullYearTaxBreakdown()}).
             $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
             $breakdowns = $cachedSegments !== null
                 ? $this->pipeline->executeWithSegmentsAndPreloadedVfc($context, $cachedSegments)
@@ -618,35 +559,31 @@ final class FleetFiscalAggregator
             foreach ($breakdowns as $b) {
                 $r = $b->result;
 
-                // Cas 1 · segment hors-fenêtre du contrat (ex. scission
-                // VFC qui crée un segment en dehors de la période du
-                // contrat). À ignorer entièrement · ses règles n'ont pas
-                // été « appliquées » à ce contrat. Signature · zéro jour
-                // assigné ET aucune exonération réelle (le segment est
-                // juste hors période).
+                // Case 1 · segment outside the contract window (e.g.
+                // a VFC split that produces a segment outside the
+                // contract period). Skip entirely · its rules were
+                // not "applied" to this contract. Signature · zero
+                // assigned days AND no real exemption.
                 if ($r->daysAssigned === 0 && $r->appliedExemptions === []) {
                     continue;
                 }
 
-                // Toujours collecter règles et exonérations si le
-                // segment a un impact réel sur le contrat (jours
-                // assignés OU exonération qui a réduit les jours à 0).
-                // Permet aux LCD pur ou aux véhicules hors champ
-                // (R-2024-004) ou électriques (R-2024-013) d'exposer
-                // leurs motifs dans la section « Exonérations
-                // appliquées » de la page Show, même quand daysAssigned
-                // est à 0.
+                // Always collect rules and exemptions when the
+                // segment has real impact on the contract (assigned
+                // days OR exemption that drove days to 0). Lets pure
+                // LCD, out-of-scope vehicles (R-2024-004) or electric
+                // vehicles (R-2024-013) surface their reasons in the
+                // « Exonérations appliquées » section, even when
+                // daysAssigned is 0.
                 //
-                // **Déduplication par (ruleCode, reason)** · pour les
-                // règles qui peuvent s'appliquer plusieurs fois sur des
-                // segments distincts avec des messages différents (ex.
-                // R-YYYY-008 indisponibilité réductrice scindée par une
-                // scission de barème → "28 jours" en fév + "31 jours"
-                // en mars), on doit garder les 2 lignes distinctes pour
-                // que la somme affichée corresponde au total
-                // effectivement soustrait du numérateur. Une dédup par
-                // ruleCode seul masquerait la 2ᵉ contribution et créerait
-                // un mismatch UI / calcul.
+                // Dedup by `(ruleCode, reason)` · rules that apply on
+                // multiple distinct segments with different wording
+                // (e.g. R-YYYY-008 reductive unavailability split by
+                // a scale scission · "28 jours" in Feb + "31 jours"
+                // in Mar) must keep both lines so the displayed sum
+                // matches the total actually subtracted from the
+                // numerator. Deduping on ruleCode alone would mask
+                // the second contribution.
                 foreach ($r->appliedExemptions as $exemption) {
                     $key = $exemption->ruleCode.'|'.$exemption->reason;
                     $exemptionsByCode[$key] ??= $exemption;
@@ -655,16 +592,16 @@ final class FleetFiscalAggregator
                     $ruleCodesSet[$code] = true;
                 }
 
-                // Cas 2 · segment entièrement exonéré (daysAssigned = 0
-                // mais appliedExemptions non vide). Pas de ligne dans
-                // segmentsDto (éviterait une ligne « 00 j » trompeuse
-                // dans la pédagogie UI) ni d'agrégat numérique (déjà 0).
+                // Case 2 · fully exempted segment (daysAssigned = 0
+                // but appliedExemptions non-empty). No segmentsDto
+                // line (would be a misleading « 00 j ») and no
+                // numeric aggregation (already 0).
                 if ($r->daysAssigned === 0) {
                     continue;
                 }
 
-                // Cas 3 · segment taxable · construction segmentsDto +
-                // agrégats numériques.
+                // Case 3 · taxable segment · segmentsDto + numeric
+                // aggregates.
                 $segCo2Tariff = round($r->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
                 $segPollutantsTariff = round($r->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
                 $segCo2Due = round($r->co2DueRaw, 2, PHP_ROUND_HALF_UP);
@@ -693,12 +630,12 @@ final class FleetFiscalAggregator
                 $daysAssignedYear += $r->daysAssigned;
             }
 
-            // Résumé année · agrégation des fenêtres non-vides. Le tarif
-            // affiché en tête est celui de la première fenêtre **utile**
-            // (avec jours-contrat assignés), pour éviter de tromper l'UI
-            // avec un tarif pré-scission alors que le contrat débute
-            // après la scission. L'UI doit afficher la scission via
-            // `segments` si len(segments) > 1.
+            // Year summary · aggregates non-empty windows. The
+            // header tariff is taken from the first useful window
+            // (one with assigned contract days) so the UI does not
+            // mislead with a pre-scission tariff when the contract
+            // begins after the scission. The UI surfaces the
+            // scission via `segments` when `len(segments) > 1`.
             $leaderResult = null;
             foreach ($breakdowns as $b) {
                 if ($b->result->daysAssigned > 0) {
@@ -706,10 +643,10 @@ final class FleetFiscalAggregator
                     break;
                 }
             }
-            // Cas dégénéré · aucun jour-contrat assigné (LCD pur,
-            // exemption totale, contrat hors year span effectif). On
-            // retombe sur le premier segment pour conserver des valeurs
-            // cohérentes (method, category, tariffs structurels).
+            // Degenerate case · no assigned contract day (pure LCD,
+            // full exemption, contract outside effective year span).
+            // Fall back to the first segment to keep coherent
+            // structural values (method, category, tariffs).
             $firstResult = $leaderResult ?? $breakdowns[0]->result;
             $co2Tariff = round($firstResult->co2FullYearTariff, 2, PHP_ROUND_HALF_UP);
             $pollutantsTariff = round($firstResult->pollutantsFullYearTariff, 2, PHP_ROUND_HALF_UP);
@@ -720,13 +657,15 @@ final class FleetFiscalAggregator
             $appliedRuleCodes = array_keys($ruleCodesSet);
             $appliedRules = $this->loadRulesByCodes($year, $appliedRuleCodes);
 
-            // Champs hypothétiques « si requalifié en LLD » laissés à
-            // null ici · enrichis par {@see ContractQueryService::findContractTaxBreakdown()}
-            // via le mécanisme d'opt-out R-YYYY-021 (cf.
-            // {@see DeclarationAggregatorFactory}). Le vrai calcul
-            // exact (multi-VFC, multi-règle) passe par une 2e passe
-            // pipeline scopée au contrat, pas par l'approximation
-            // tariff × jours/365 qui ignorait les scissions.
+            // Hypothetical « if requalified as LLD » fields stay
+            // null here · enriched by
+            // {@see ContractQueryService::findContractTaxBreakdown()}
+            // through the R-YYYY-021 opt-out mechanism (see
+            // {@see DeclarationAggregatorFactory}). The accurate
+            // multi-VFC / multi-rule computation runs a second
+            // pipeline pass scoped to the contract, not the
+            // `tariff × days/365` approximation that ignored
+            // scissions.
             $years[] = new ContractTaxYearBreakdownData(
                 year: $year,
                 daysInContractInYear: $daysInContractInYear,
@@ -773,10 +712,10 @@ final class FleetFiscalAggregator
             HomologationMethod::Pa => $vfc->taxable_horsepower !== null ? "{$vfc->taxable_horsepower} CV (puissance administrative)" : 'PA',
         };
 
-        // Tarif à 0 € → exonération applicable. L'utilisateur a la
-        // liste des motifs dans la section « Exonérations applicables »
-        // juste en-dessous, on évite donc de re-dérouler le calcul
-        // (qui serait trompeur : « ... → 0 € » sans contexte).
+        // Tariff at 0 € → exemption applies. The user has the list
+        // of reasons in the « Exonérations applicables » section
+        // below, so we avoid unrolling the computation again (would
+        // misleadingly show « ... → 0 € » out of context).
         if ($tariff === 0.0) {
             return sprintf(
                 '%s - exonérée pour ce véhicule (voir motif ci-dessous).',
@@ -822,10 +761,9 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Détail du coût annuel d'un véhicule réparti par entreprise
-     * utilisatrice avec **séparation CO₂ / polluants / total**. Une
-     * entrée par entreprise effectivement attributaire, non triée
-     * (tri par jours décroissants à la charge du consommateur).
+     * Vehicle annual cost split by using company with CO₂ /
+     * pollutants / total separated. One entry per actually attributed
+     * company; the consumer sorts (typically by descending days).
      *
      * @param  list<Unavailability>  $vehicleUnavailabilities
      * @return list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
@@ -862,14 +800,12 @@ final class FleetFiscalAggregator
                 $this->buildContext($vehicle, $pairContracts, $vehicleUnavailabilities, $year),
             );
 
-            // Lot 5 D15 · chaque ligne représente un redevable
-            // (entreprise utilisatrice de ce véhicule) · arrondi half-up
-            // à l'EURO conforme à la doctrine CIBS L. 131-1. Cohérent
-            // avec `companyAnnualTax` (total redevable arrondi à
-            // l'euro). Cf. `companyAnnualTaxBreakdownByVehicle` qui
-            // est l'inverse (lignes par véhicule pour une entreprise) ·
-            // ces lignes restent au centime car ce sont des breakdowns
-            // par véhicule, pas des totaux à déclarer.
+            // Each line represents a taxpayer (a company using this
+            // vehicle) · half-up rounding to the euro per CIBS
+            // L. 131-1. Aligned with `companyAnnualTax`. Note that
+            // `companyAnnualTaxBreakdownByVehicle` keeps centime
+            // precision because its lines are per-vehicle subtotals
+            // for one company, not declaratory totals.
             $taxCo2 = round($result->co2DueRaw, 0, PHP_ROUND_HALF_UP);
             $taxPollutants = round($result->pollutantsDueRaw, 0, PHP_ROUND_HALF_UP);
 
@@ -886,18 +822,16 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Miroir de `vehicleAnnualTaxBreakdownByCompany` côté entreprise :
-     * détail fiscal d'une entreprise réparti **par véhicule utilisé**
-     * sur l'année (chantier N.2). Utilisé par l'onglet Fiscalité de la
-     * fiche Company Show et par `DeclarationFiscalEngine` pour
-     * composer le snapshot de déclaration.
+     * Mirror of `vehicleAnnualTaxBreakdownByCompany` on the company
+     * side · a company's fiscal detail split by used vehicle. Used by
+     * the Fiscalité tab on the Company Show fiche and by
+     * `DeclarationFiscalEngine` to compose the declaration snapshot.
      *
-     * **`appliedExemptions`** propagés depuis le résultat pipeline ·
-     * permet au moteur de déclaration de matérialiser le motif
-     * d'exonération sur chaque ligne contrat (au-delà du seul R-021
-     * historiquement hardcodé).
+     * `appliedExemptions` propagated from the pipeline result lets the
+     * declaration engine materialise the exemption reason on each
+     * contract line (beyond the historical R-021 hardcode).
      *
-     * @param  Collection<int, Vehicle>  $vehiclesById  Indexée par id
+     * @param  Collection<int, Vehicle>  $vehiclesById  Indexed by id
      * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
      * @return list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float, appliedExemptions: list<AppliedExemption>}>
      */
@@ -964,11 +898,11 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Total fiscal annuel sommé sur toute la flotte (tous couples
-     * véhicule × entreprise confondus). Affiché côté Dashboard ;
-     * agrégat informatif (pas un montant déclaratif).
+     * Total annual fiscal across the whole fleet (every
+     * vehicle × company couple). Surfaced on the Dashboard as an
+     * informative aggregate, not a declaratory amount.
      *
-     * @param  Collection<int, Vehicle>  $vehiclesById  Indexée par id
+     * @param  Collection<int, Vehicle>  $vehiclesById  Indexed by id
      * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
      */
     public function fleetAnnualTax(
@@ -1009,9 +943,6 @@ final class FleetFiscalAggregator
                 $unavailabilitiesByVehicleId[$pair['vehicleId']] ?? [],
                 $year,
             );
-            // Branche optimisée si le cache VFC est pré-chargé (cf.
-            // {@see prewarmVfcSegmentsForVehicles()}). Équivalence
-            // stricte garantie · même pattern que {@see vehicleAnnualTax}.
             $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
             $result = $cachedSegments !== null
                 ? $this->pipeline->executeWithPreloadedVfcSegments($context, $cachedSegments)
@@ -1019,8 +950,6 @@ final class FleetFiscalAggregator
             $totalRaw += $result->co2DueRaw + $result->pollutantsDueRaw;
         }
 
-        // Lot 5 D15 · arrondi half-up à l'EURO (cohérence visuelle
-        // avec les autres agrégats fiscaux, doctrine CIBS L. 131-1).
         return round($totalRaw, 0, PHP_ROUND_HALF_UP);
     }
 
@@ -1044,13 +973,9 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Mémoïsation du chargement des règles fiscales par codes pour une
-     * année - clé `"{year}|{sortedCodes}"` afin que des appels avec un
-     * ordre de codes différent (mais même contenu) partagent l'entrée.
-     *
-     * Phase 13 D5.14 · les DTOs viennent désormais du registry (classes
-     * PHP), plus de lecture BDD. Le cache stocke des DTOs directement,
-     * plus de transformation `fromModel` côté caller.
+     * Memoized rule loading by codes for a year · key
+     * `"{year}|{sortedCodes}"` so calls with the same codes in
+     * different order share the cache entry.
      *
      * @param  list<string>  $codes
      * @return list<FiscalRuleListItemData>
@@ -1064,9 +989,8 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Mémoïsation du `PipelineResult` du calcul plein année théorique
-     * d'un véhicule - purement fonction de `(vehicleId, year)` (contrat
-     * synthétique full-year, indispos vides).
+     * Memoized `PipelineResult` for the synthetic full-year
+     * computation · purely a function of `(vehicleId, year)`.
      */
     private function fullYearPipelineResult(Vehicle $vehicle, int $year): PipelineResult
     {
@@ -1078,9 +1002,10 @@ final class FleetFiscalAggregator
     }
 
     /**
-     * Contrat synthétique non-persisté couvrant toute l'année (1er jan
-     * → 31 déc), utilisé pour calculer le taxe pleine année théorique.
-     * Par construction non LCD (durée > 30 j, pas un mois civil entier).
+     * Synthetic non-persisted contract covering the whole year
+     * (Jan 1 → Dec 31), used for the theoretical full-year tax. By
+     * construction not LCD (length > 30 days, not a whole civil
+     * month).
      */
     private function fullYearSyntheticContract(int $year): Contract
     {
@@ -1094,8 +1019,8 @@ final class FleetFiscalAggregator
             'notes' => null,
         ]);
 
-        // Force les casts (Eloquent ne caste pas les attributs hors
-        // sauvegarde DB).
+        // Force the casts (Eloquent only casts attributes during DB
+        // hydration / save).
         $contract->setRawAttributes([
             'start_date' => sprintf('%04d-01-01', $year),
             'end_date' => sprintf('%04d-12-31', $year),

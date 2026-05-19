@@ -9,10 +9,7 @@ use App\Data\User\Unavailability\UnavailabilityData;
 use App\Models\Unavailability;
 
 /**
- * Composition des indisponibilités vers les DTOs exposés au front.
- *
- * Le repo retourne des Models bruts ; ce service compose les DTOs
- * (calcul du `daysCount`, etc.).
+ * Query service composing unavailability DTOs for the frontend.
  */
 final readonly class UnavailabilityQueryService
 {

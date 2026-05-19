@@ -19,31 +19,26 @@ use App\Services\Billing\Discount\DiscountResolver;
 use App\Services\Billing\Discount\ResolvedDiscountIndex;
 
 /**
- * Compose les récaps mensuels 12-mois consommés par les fiches Show
- * Vehicle / Company (Phase 14.D V1.2).
+ * Composes the 12-month billing recaps consumed by the Vehicle and
+ * Company Show fiches.
  *
- * **Doctrine** : sur 12 mois, on accumule les facturations « cas par
- * cas » via {@see BillingCalculator}. Si un mois lève
- * `MissingPricingException`, on **n'interrompt pas** l'aller-retour ;
- * on marque ce mois comme `hasMissingPricing = true` et on continue.
- * Le récap reste utilisable même si l'utilisateur n'a renseigné qu'une
- * partie des tarifs.
+ * Doctrine · on 12 months, billing computations accumulate via
+ * {@see BillingCalculator}. When a month throws
+ * `MissingPricingException`, the loop is not interrupted · that month
+ * is flagged `hasMissingPricing = true` and the recap stays usable
+ * even if the user has only set part of the rates.
  */
 final class BillingBreakdownService
 {
     /**
-     * Cache mémoire intra-instance des récaps 12-mois par entreprise ·
-     * indexé par `"{companyId}|{year}"`. Hot path Dashboard ·
-     * `DashboardStatsService::computePeriodMetrics` itère 8 ans × 15
-     * entreprises = 120 appels par mount Dashboard, dont la grande
-     * majorité touchent les mêmes couples (companyId, year) à travers
-     * les services consommateurs. S1.2 du plan optim perf 2026-05-15.
+     * Per-instance cache of 12-month recaps per company, indexed by
+     * `"{companyId}|{year}"`. Hot path · the Dashboard iterates
+     * 8 years × 15 companies = 120 calls per mount; most touch the
+     * same `(companyId, year)` couples across consumer services.
      *
-     * **Sécurité** · le DTO `MonthlyBillingBreakdownData` est calculé
-     * de manière déterministe sur `(companyId, year)` à partir des
-     * tarifs annuels et factures existantes (state DB read-only). Pas
-     * de mutation entre 2 appels dans une même requête HTTP. Singleton
-     * scoped per-request (cf. `AppServiceProvider`).
+     * Safety · the DTO is deterministic on `(companyId, year)` from
+     * read-only DB state. No mutation between two calls in the same
+     * HTTP request. Singleton scoped per-request.
      *
      * @var array<string, MonthlyBillingBreakdownData>
      */
@@ -53,11 +48,9 @@ final class BillingBreakdownService
     private array $byVehicleForYearCache = [];
 
     /**
-     * Cache mémoire intra-instance des totaux annuels cross-cies par
-     * `(year)` calculés via {@see totalRecettesForYears} · permet à
-     * `Dashboard computeKpisRecettes` (year + Y-1) puis `computeHistory`
-     * (8 ans · defer wave séparé, instance différente) de bénéficier
-     * de la mémoïsation si on les rappelle dans la même défer wave.
+     * Per-instance cache of cross-company yearly totals computed via
+     * {@see totalRecettesForYears()} · lets Dashboard computations
+     * share results within a defer wave.
      *
      * @var array<int, int>
      */
@@ -74,9 +67,10 @@ final class BillingBreakdownService
     ) {}
 
     /**
-     * Récap 12-mois pour la **fiche entreprise** : agrégat tous véhicules
-     * utilisés × tarifs facturés. Un mois est marqué « tarif manquant »
-     * dès qu'un seul véhicule présent ce mois-là n'a pas de tarif annuel.
+     * 12-month recap for the Company fiche · cross-vehicle aggregate
+     * (used vehicles × billed rates). A month is flagged "missing
+     * pricing" as soon as a single vehicle present that month lacks
+     * a yearly pricing.
      */
     public function byCompanyForYear(int $companyId, int $year): MonthlyBillingBreakdownData
     {
@@ -94,18 +88,19 @@ final class BillingBreakdownService
         $totalDiscountCents = 0;
         $hasAnyMissing = false;
 
-        // Lookup unique des factures déjà émises pour le couple
-        // (entreprise × année), indexées par mois · sert au bouton UI
-        // « Voir #YYYY-MM-NNNN » sans payer 12 lookups.
+        // Single lookup for already-emitted invoices on the
+        // `(company × year)` pair, indexed by month · powers the
+        // « Voir #YYYY-MM-NNNN » CTA without paying 12 lookups.
         $existingInvoices = $this->invoiceRepository->findExistingByMonthForCompanyYear($companyId, $year);
 
-        // Batch des 12 mois en 2 SQL totales (contrats année + pricings
-        // batched) · au lieu de 12× findForCompanyInPeriod + N pricings.
+        // Batch all 12 months in 2 SQL queries (year contracts +
+        // batched pricings) instead of 12× findForCompanyInPeriod + N
+        // pricings.
         $monthlyResults = $this->calculator->calculateYear($companyId, $year);
 
-        // Lot 2 · applique les réductions commerciales en post-process.
-        // Branche d'équivalence stricte · si aucune réduction active,
-        // `applyToMonthlyResults` retourne les inputs inchangés.
+        // Apply commercial discounts in post-processing. Strict
+        // equivalence branch · when no active discount, the inputs
+        // are returned unchanged.
         $discountIndex = $this->discountResolver->preloadForCompanyYear($companyId, $year);
         $monthlyResults = $this->discountApplier->applyToMonthlyResults($monthlyResults, $discountIndex);
 
@@ -114,10 +109,9 @@ final class BillingBreakdownService
             $result = $monthlyResults[$month];
 
             if ($result instanceof MissingPricingException) {
-                // Mois bloqué : on conserve daysUsed à 0 pour ne pas
-                // induire en erreur. La présence du flag suffit pour le
-                // tooltip « renseignez le tarif <X> sur la fiche
-                // véhicule » côté UI.
+                // Blocked month · `daysUsed` stays at 0 to avoid
+                // misleading totals. The flag drives the UI tooltip
+                // « renseignez le tarif <X> sur la fiche véhicule ».
                 $entries[] = new MonthlyBreakdownEntryData(
                     month: $month,
                     daysUsed: 0,
@@ -166,7 +160,8 @@ final class BillingBreakdownService
             entries: $entries,
             yearTotalDaysUsed: $totalDays,
             yearTotalCents: $hasAnyMissing ? null : $totalCents,
-            // T11 / E.17 : total partiel (mois sans missing pricing) toujours peuplé.
+            // Partial total (months without missing pricing) is
+            // always populated.
             yearTotalCentsPartial: $totalCents,
             hasAnyMissingPricing: $hasAnyMissing,
             yearTotalGrossCentsPartial: $totalGrossCents,
@@ -175,30 +170,23 @@ final class BillingBreakdownService
     }
 
     /**
-     * Totaux annuels recettes HT cross-toutes-cies pour plein scope
-     * Dashboard (chantier perf Dashboard 2026-05-17). **3 queries SQL
-     * fixes** quel que soit le nombre de companies × years ·
-     *   1. contrats actifs croisant `[min(years), max(years)]`
-     *   2. vehicles by IDs (avec `exit_date` pour clipping ADR-0018)
-     *   3. pricings batched `(vehicleIds × years)`
+     * Cross-company HT revenue totals across the Dashboard scope ·
+     * three fixed SQL queries regardless of N companies × M years ·
      *
-     * Remplace les N×M appels à {@see byCompanyForYear} qui faisaient
-     * 3 queries chacun (contrats + pricings + invoices), soit jusqu'à
-     * 120+ queries pour Dashboard 15 cies × 2 ans, alors qu'on n'a
-     * besoin que de la somme `yearTotalCentsPartial`.
+     *   1. Active contracts crossing `[min(years), max(years)]`.
+     *   2. Vehicles by ids (with `exit_date` for ADR-0018 clipping).
+     *   3. Pricings batched `(vehicleIds × years)`.
      *
-     * Sémantique strictement identique à
-     * `Σ_cies byCompanyForYear(cie, year)->yearTotalCentsPartial` ·
-     * couvert par le test
-     * {@see Tests\Unit\Services\Billing\BillingBreakdownServiceTest::total_recettes_for_years_equivalent_to_sum_by_company}
-     * (doctrine `optimisations-conditionnelles.md` stratégie 2).
+     * Replaces the N × M calls to {@see byCompanyForYear()} (each
+     * doing 3 queries · contracts + pricings + invoices), up to 120+
+     * queries for a 15-company × 2-year Dashboard, when only the
+     * `yearTotalCentsPartial` is needed.
      *
-     * Mémoïsation per-request via `$totalRecettesForYearsCache` ·
-     * si appelé deux fois avec un overlap d'années dans la même défer
-     * wave, les couples (year) déjà calculés ne sont pas recalculés.
+     * Strictly equivalent to
+     * `Σ_companies byCompanyForYear(company, year)->yearTotalCentsPartial`.
      *
      * @param  list<int>  $years
-     * @return array<int, int> year → totalCentsPartial cross-toutes-cies
+     * @return array<int, int> year → totalCentsPartial cross-companies
      */
     public function totalRecettesForYears(array $years): array
     {
@@ -206,7 +194,6 @@ final class BillingBreakdownService
             return [];
         }
 
-        // Mémoïsation · ne recalcule que les années manquantes.
         $missingYears = array_values(array_filter(
             $years,
             fn (int $y): bool => ! array_key_exists($y, $this->totalRecettesForYearsCache),
@@ -236,41 +223,35 @@ final class BillingBreakdownService
         $minYear = min($years);
         $maxYear = max($years);
 
-        // 1 query · tous les contrats croisant le range (vehicle_id +
-        // company_id + dates). Tri `vehicle_id, start_date`.
         $contracts = $this->contractRepository->findActiveForYearRange($minYear, $maxYear);
 
         if ($contracts->isEmpty()) {
             return array_fill_keys($years, 0);
         }
 
-        // Collecte les vehicleIds distincts du scope.
         $vehicleIdsSet = [];
         foreach ($contracts as $contract) {
             $vehicleIdsSet[(int) $contract->vehicle_id] = true;
         }
         $vehicleIdList = array_keys($vehicleIdsSet);
 
-        // 1 query · vehicles indexés (avec exit_date pour le clipping
-        // ADR-0018 utilisé par `expandContractsByKey`).
         $vehiclesById = $this->vehicleRepository->findByIdsIndexed($vehicleIdList);
 
-        // Hydrate la relation `vehicle` sur chaque contrat in-memory ·
-        // évite N+1 dans `expandContractsByKey` qui consomme
+        // Hydrate `vehicle` on each contract in-memory · avoids N+1
+        // inside `expandContractsByKey` which reads
         // `$contract->vehicle?->exit_date`.
         foreach ($contracts as $contract) {
             $contract->setRelation('vehicle', $vehiclesById->get($contract->vehicle_id));
         }
 
-        // 1 query · pricings batched `(vehicleIds × years)`.
         $pricingsByYearByVehicle = $this->pricingRepository->findForVehiclesAndYears(
             $vehicleIdList,
             $years,
         );
 
-        // Group contracts par (companyId, year) en mémoire (0 query).
-        // Un contrat multi-année est dispatché dans chacune des années
-        // qu'il couvre ∩ $years.
+        // Group contracts by `(companyId, year)` in memory (zero
+        // query). A multi-year contract is dispatched into every
+        // year it covers ∩ $years.
         $byCompanyByYear = [];
         foreach ($contracts as $contract) {
             $startYear = (int) $contract->start_date->year;
@@ -283,9 +264,6 @@ final class BillingBreakdownService
             }
         }
 
-        // Lot 2 · précharge les réductions actives par (company × year)
-        // en 1 SQL par année (multi-cies). Index par companyId pour
-        // appliquer en aval ligne par ligne.
         $companyIdList = array_keys($byCompanyByYear);
         $discountIndexByCompanyByYear = [];
         foreach ($years as $year) {
@@ -293,8 +271,8 @@ final class BillingBreakdownService
                 ->preloadForCompaniesYear($companyIdList, $year);
         }
 
-        // Compute totals en mémoire via BillingCalculator (0 query).
-        // Application DiscountApplier en post-process (no-op si index vide).
+        // Compute the totals in memory (zero SQL). The discount
+        // applier is a no-op when the index is empty.
         $totals = array_fill_keys($years, 0);
         foreach ($byCompanyByYear as $companyId => $byYear) {
             foreach ($byYear as $year => $companyYearContracts) {
@@ -320,10 +298,10 @@ final class BillingBreakdownService
     }
 
     /**
-     * Récap 12-mois pour la **fiche véhicule** : agrégat de la recette
-     * mensuelle cross-entreprises pour ce véhicule. Pas de combinaison
-     * tarifaire mutualisée : chaque entreprise est facturée séparément
-     * (cf. {@see BillingCalculator::calculateForVehicleAndMonth}).
+     * 12-month recap for the Vehicle fiche · monthly cross-company
+     * revenue aggregate. No mutualised tariff combo · each company is
+     * billed separately
+     * (cf. {@see BillingCalculator::calculateForVehicleAndMonth()}).
      */
     public function byVehicleForYear(int $vehicleId, int $year): MonthlyBillingBreakdownData
     {
@@ -366,22 +344,21 @@ final class BillingBreakdownService
             entries: $entries,
             yearTotalDaysUsed: $totalDays,
             yearTotalCents: $hasAnyMissing ? null : $totalCents,
-            // T11 / E.17 : total partiel (mois sans missing pricing) toujours peuplé.
             yearTotalCentsPartial: $totalCents,
             hasAnyMissingPricing: $hasAnyMissing,
         );
     }
 
     /**
-     * Récap facturation **contrat-isolé** : pour chaque mois civil que
-     * le contrat couvre, calcule le coût en isolation (jours du contrat
-     * × tarif du véhicule pour l'année).
+     * Per-contract isolated billing recap · for every civil month the
+     * contract crosses, compute the isolated cost (contract days ×
+     * vehicle pricing for the year).
      *
-     * **Caveat sémantique** : si le véhicule a plusieurs contrats sur
-     * le même mois pour la même entreprise, le coût isolé peut différer
-     * de la facture mensuelle réelle (qui consolide via OptimalRateBreakdown
-     * sur les jours unionés). C'est une approximation acceptée pour la
-     * fiche contrat · la facture reste la source de vérité.
+     * Caveat · if the vehicle has several contracts for the same
+     * company over the same month, the isolated cost can differ from
+     * the actual monthly invoice (which consolidates via
+     * OptimalRateBreakdown on the unioned days). Accepted approximation
+     * for the contract fiche · the invoice remains the source of truth.
      */
     public function byContract(Contract $contract): ContractBillingBreakdownData
     {
@@ -395,15 +372,14 @@ final class BillingBreakdownService
         $totalDiscountCents = 0;
         $hasAnyMissing = false;
 
-        // Lot 2 · précharge les réductions actives par année du contrat
-        // (cache local pour éviter de précharger 2× si contrat monoyear).
+        // Local cache · do not preload twice for a single-year
+        // contract.
         $discountIndexByYear = [];
         $loadIndex = function (int $year) use ($contract, &$discountIndexByYear): ResolvedDiscountIndex {
             return $discountIndexByYear[$year] ??= $this->discountResolver
                 ->preloadForCompanyYear((int) $contract->company_id, $year);
         };
 
-        // Itère mois par mois entre start et end (inclus).
         $cursor = $start->startOfMonth();
         $endMonth = $end->startOfMonth();
 
@@ -411,7 +387,6 @@ final class BillingBreakdownService
             $monthStart = $cursor;
             $monthEnd = $cursor->endOfMonth();
 
-            // Intersection contrat ∩ mois.
             $clipStart = $start->isAfter($monthStart) ? $start : $monthStart;
             $clipEnd = $end->isBefore($monthEnd) ? $end : $monthEnd;
 
@@ -440,9 +415,9 @@ final class BillingBreakdownService
                     monthlyCents: $pricing->monthly_rate_cents,
                 );
 
-                // Lot 2 · applique la réduction inline · prorata par
-                // jours couverts par une réduction active. Équivalence
-                // stricte si index vide (cas dominant).
+                // Inline discount application · pro-rata by days
+                // covered by an active discount. Strict equivalence
+                // when the index is empty (dominant case).
                 $grossCents = $breakdown->totalCents;
                 $discountCents = 0;
                 $index = $loadIndex($year);
@@ -457,10 +432,10 @@ final class BillingBreakdownService
                         );
                         if ($discount !== null) {
                             $discountedDays++;
-                            // bp homogène garanti par le ConflictService
-                            // (1 seule réduction active par date sur ce
-                            // véhicule). On capture le bp de la 1ère
-                            // trouvée pour le prorata.
+                            // The ConflictService guarantees a single
+                            // active discount per `(vehicle, date)`,
+                            // so capture the first one for the
+                            // pro-rata.
                             if ($bp === 0) {
                                 $bp = $discount->discount_basis_points;
                             }

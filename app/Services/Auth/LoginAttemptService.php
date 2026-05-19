@@ -11,27 +11,18 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 /**
- * Gestion du rate-limit sur les tentatives de connexion (ADR-0011 § 3 rev. 1.1).
+ * Login rate-limiter (ADR-0011 § 3 rev. 1.1).
  *
- * Double couche :
- *   - 5 tentatives / 2 min sur le couple email+IP · anti bruteforce
- *     ciblé d'un compte précis.
- *   - 10 tentatives / 2 min sur l'IP seule · anti attaques distribuées
- *     (un attaquant avec N IPs ne peut pas faire 5×N tentatives par
- *     email).
+ * Two layers ·
+ *   - 5 attempts / 2 min per (email + IP) · bruteforce on a specific
+ *     account.
+ *   - 10 attempts / 2 min per IP · distributed account attacks.
  *
- * Cohérence avec la barrière externe · le middleware `throttle:10,2`
- * posé sur POST /login (Lot 1 D4) cape l'IP au même seuil 10/2min
- * **avant** d'atteindre cette couche applicative. La couche applicative
- * IP devient donc un filet en défense en profondeur (cohérent si le
- * middleware est bypassé · tests, détection IP via header proxy, etc.)
- * + le canal de l'audit log Lockout + les messages FR.
- *
- * L'événement {@see Lockout} est dispatché à chaque blocage pour
- * permettre aux listeners (audit, alerte sécurité) d'observer.
- *
- * Service stateless · toutes les bornes vivent dans le RateLimiter.
- * Testable sans HTTP via {@see RateLimiter::clear()} dans `setUp`.
+ * The throttle middleware on POST /login (`throttle:10,2`) caps the IP
+ * at the same rate ahead of this layer; the in-app IP counter is a
+ * defense-in-depth filet plus the source of {@see Lockout} events for
+ * audit listeners. Stateless · all counters live in the RateLimiter,
+ * easy to reset between tests via `RateLimiter::clear()`.
  */
 final class LoginAttemptService
 {
@@ -46,8 +37,8 @@ final class LoginAttemptService
     ) {}
 
     /**
-     * Vérifie qu'aucune des deux limites n'est atteinte. Lève
-     * {@see TooManyLoginAttemptsException} sinon (et émet `Lockout`).
+     * Throws {@see TooManyLoginAttemptsException} (and emits `Lockout`)
+     * when either counter is saturated.
      */
     public function ensureNotRateLimited(string $email, string $ip): void
     {
@@ -74,7 +65,7 @@ final class LoginAttemptService
     }
 
     /**
-     * Incrémente les deux compteurs (email+IP et IP seule).
+     * Increments both counters after a failed attempt.
      */
     public function recordFailedAttempt(string $email, string $ip): void
     {
@@ -83,7 +74,7 @@ final class LoginAttemptService
     }
 
     /**
-     * Reset les deux compteurs après une connexion réussie.
+     * Resets both counters after a successful login.
      */
     public function clearAttempts(string $email, string $ip): void
     {

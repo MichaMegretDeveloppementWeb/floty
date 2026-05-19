@@ -20,32 +20,28 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Calcule les blocs de données du Dashboard refondu (chantier η Phase 4)
- * selon la doctrine 3 lentilles Présent / Évolution / Exploration
- * alignée sur 4 KPIs pivots : jours-véhicule, contrats actifs, taxes
- * dues, taux d'occupation flotte.
+ * Computes the data blocks of the redesigned Dashboard along the three
+ * lenses (Present / Evolution / Exploration) and the four pivot KPIs
+ * (vehicle-days, active contracts, taxes due, fleet occupancy rate).
  *
- * **Sémantique du « YTD »** : du 1er janvier au jour calendaire courant.
- * Pour la comparaison vs Y-1, on calcule la même fenêtre du 1er janvier
- * Y-1 au jour-mois équivalent Y-1 (= « même jour-mois un an plus tôt »)
- * pour rester comparable.
+ * "YTD" means January 1st through today. The Y-1 comparison uses the
+ * same `[Jan 1, same day-month a year earlier]` window so both periods
+ * stay comparable.
  *
- * **Approximation des taxes YTD** : la taxe fiscale est un calcul
- * annuel (pas un cumul jour par jour). On approxime YTD par
- * `fleetAnnualTax × (joursÉcoulés / joursDansAnnée)`. C'est imparfait
- * (les barèmes ne sont pas linéaires) mais suffisant pour donner une
- * tendance cohérente entre Y et Y-1 sur le Dashboard. Pour le détail
- * exact, l'utilisateur consulte la fiche fiscale d'une entreprise ou
- * d'un véhicule.
+ * Taxes YTD approximation · the fiscal tax is an annual computation,
+ * not a daily cumulative. YTD is approximated as
+ * `fleetAnnualTax × (elapsedDays / daysInYear)`. Imperfect (scales are
+ * not linear) but enough to give a consistent trend on the Dashboard
+ * across Y and Y-1. For the exact figure the user opens the company or
+ * vehicle fiche.
  */
 final class DashboardStatsService
 {
     /**
-     * Nombre maximum de barres dans le graphique « Évolution ». Si le
-     * scope dynamique des contrats remonte plus loin, on tronque aux N
-     * dernières années pour garder une lecture visuelle claire ET
-     * limiter le coût du pipeline fiscal (chantier perf Dashboard
-     * 2026-05-17 v3 · réduit de 8 à 4 · 240 → 120 pipeline runs).
+     * Maximum number of bars in the « Évolution » chart. When the
+     * dynamic contract scope reaches further, we keep the N most
+     * recent years for visual clarity and to cap the fiscal pipeline
+     * cost.
      */
     private const HISTORY_MAX_YEARS = 4;
 
@@ -60,17 +56,10 @@ final class DashboardStatsService
     ) {}
 
     /**
-     * 4 KPIs fiscaux « Présent » de l'année calendaire courante.
-     *
-     * **Comparaison Y-1 retirée** (chantier perf Dashboard 2026-05-17 v3) ·
-     * l'historique multi-années (`computeHistory`, désormais chargé à la
-     * demande via un bouton) sert de support visuel à la comparaison
-     * temporelle. Gain CPU · le pipeline fiscal ne tourne plus que sur 1
-     * année au mount Dashboard (au lieu de 2) · ~50% du temps économisé.
-     *
-     * La date de référence est aujourd'hui. Pré-charge en bulk les
-     * contrats / véhicules / indispos pour l'année courante via
-     * {@see DashboardScopeContext}.
+     * Four "Present" fiscal KPIs for the current calendar year. The
+     * Y-1 comparison was retired · multi-year history (loaded
+     * on-demand through a button) carries that comparison. The fiscal
+     * pipeline now runs only once on Dashboard mount, halving the cost.
      */
     public function computeKpisFiscal(int $year): DashboardKpiData
     {
@@ -90,20 +79,13 @@ final class DashboardStatsService
     }
 
     /**
-     * Carte « Recettes locatives » isolée des 4 KPIs fiscaux (chantier
-     * perf Dashboard 2026-05-17). Sert en `Inertia::defer` distinct ·
-     * permet à la grille KPIs fiscaux d'apparaître sans attendre les
-     * ~60 queries de `BillingBreakdownService::byCompanyForYear`.
-     *
-     * Sémantique full year (jan-déc), indépendant d'aujourd'hui. Pour
-     * l'année courante, somme tous les mois 1..12 (réalisés + prévus).
-     * Pour Y-1, l'année est complète.
+     * Rental-revenue card, served as a dedicated `Inertia::defer`
+     * group so the fiscal KPI grid can mount without waiting on the
+     * ~60 queries of `BillingBreakdownService::byCompanyForYear`.
+     * Semantics · full year (Jan-Dec), independent of today.
      */
     public function computeKpisRecettes(int $year): DashboardKpiRecettesData
     {
-        // 1 appel batch sur l'année courante uniquement (v3 · drop Y-1).
-        // L'historique chart, désormais lazy-load, gère la comparaison
-        // temporelle pour les recettes (dimension dédiée).
         $totals = $this->billingBreakdown->totalRecettesForYears([$year]);
 
         return new DashboardKpiRecettesData(
@@ -113,24 +95,17 @@ final class DashboardStatsService
     }
 
     /**
-     * Construit un contexte mémoïsé pour les calculs Dashboard sur une
-     * plage d'années (F-21-001/002). Pré-charge en bulk · les contrats
-     * par couple groupés par année, les véhicules concernés, les
-     * indispos.
-     *
-     * Coût · ~3 queries SQL fixes (au lieu de ~2N + 3N queries avec
-     * une approche year-by-year). Les recettes locatives ne sont plus
-     * pré-calculées ici (chargement defer indépendant via
-     * {@see computeKpisRecettes()}).
+     * Memoised context for Dashboard computations over a year range.
+     * Pre-loads contracts grouped by `(vehicle, company)` per year,
+     * the relevant vehicles, and the unavailabilities. ~3 fixed SQL
+     * queries instead of `~2N + 3N` with a year-by-year approach.
+     * Rental revenues are no longer pre-fetched here · they get a
+     * dedicated defer through {@see computeKpisRecettes()}.
      */
     private function buildScopeContext(int $fromYear, int $toYear): DashboardScopeContext
     {
-        // 1 query · tous les contrats actifs croisant le range, groupés
-        // par couple (véhicule, entreprise) et dispatchés par année.
         $contractsByYear = $this->contracts->loadContractsByPairForYearRange($fromYear, $toYear);
 
-        // Union de tous les vehicleIds concernés par le scope (un même
-        // véhicule peut apparaître dans plusieurs années).
         $allVehicleIds = [];
         foreach ($contractsByYear as $pair) {
             foreach ($pair->vehicleCompanyPairs() as $vc) {
@@ -139,12 +114,10 @@ final class DashboardStatsService
         }
         $vehicleIdList = array_keys($allVehicleIds);
 
-        // 1 query (ou 0 si scope vide).
         $vehiclesById = $vehicleIdList === []
             ? new Collection
             : $this->vehicles->findByIdsIndexed($vehicleIdList);
 
-        // 1 query (ou 0 si scope vide).
         $unavailabilitiesByVehicleId = $vehicleIdList === []
             ? []
             : $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
@@ -157,12 +130,10 @@ final class DashboardStatsService
     }
 
     /**
-     * Scope d'années pour le graphique Évolution · années où l'entreprise
-     * a au moins un contrat actif, tronqué aux N plus récentes
-     * (cf. {@see HISTORY_MAX_YEARS}). L'année calendaire courante est
-     * toujours incluse, même si scope contrats vide.
-     *
-     * Doctrine "données métier" · cf. `AvailableYearsResolver`.
+     * Year scope for the Evolution chart · years where the company
+     * has at least one active contract, truncated to the N most recent
+     * (see {@see HISTORY_MAX_YEARS}). The current calendar year is
+     * always included, even when no contract crosses it.
      *
      * @return list<int>
      */
@@ -182,11 +153,10 @@ final class DashboardStatsService
     }
 
     /**
-     * Historique « Jours-véhicule » · 1 contracts query × scope, somme
-     * arithmétique pure (`countDaysInYearUpTo`). Pas de pipeline fiscal,
-     * pas de vehicles, pas d'indispos · **dimension la moins chère** ·
-     * sert d'onglet par défaut au mount Dashboard (chantier perf v4 ·
-     * lazy par onglet).
+     * « Jours-véhicule » history · 1 contracts query × scope, pure
+     * arithmetic sum (`countDaysInYearUpTo`). No fiscal pipeline, no
+     * vehicles, no unavailabilities · the cheapest dimension and
+     * default tab at Dashboard mount.
      *
      * @return list<DashboardHistoryPointData>
      */
@@ -223,9 +193,9 @@ final class DashboardStatsService
     }
 
     /**
-     * Historique « Locations » · compte des contrats ayant une activité
-     * sur la fenêtre `[1er jan, upToDate]`. Même contracts query que
-     * {@see computeHistoryJoursVehicule}, pas de pipeline.
+     * « Locations » history · counts the contracts with activity over
+     * `[Jan 1, upToDate]`. Same contracts query as
+     * {@see computeHistoryJoursVehicule()}, no pipeline.
      *
      * @return list<DashboardHistoryPointData>
      */
@@ -264,10 +234,10 @@ final class DashboardStatsService
     }
 
     /**
-     * Historique « Taxes dues » · YTD pour année courante, full year
-     * pour les passées. **Dimension chère** · exécute le pipeline fiscal
-     * × N pairs × scope. Servie en `Inertia::optional` (chargement au
-     * clic d'onglet).
+     * « Taxes dues » history · YTD for the current year, full year for
+     * earlier ones. Expensive dimension · runs the fiscal pipeline
+     * N pairs × scope. Served via `Inertia::optional` (loaded on tab
+     * click).
      *
      * @return list<DashboardHistoryPointData>
      */
@@ -286,8 +256,8 @@ final class DashboardStatsService
             $taxesAnnuelles = $this->safeFleetAnnualTax($context->contractsForYear($year), $year, $context);
             $daysInYear = $this->yearContext->daysInYear($year);
             $daysElapsed = $endDate->dayOfYear;
-            // Lot 5 D15 · prorata YTD arrondi à l'EURO (cohérence avec
-            // les agrégats fiscaux, doctrine CIBS L. 131-1).
+            // YTD prorata rounded to the euro, aligned with the fiscal
+            // aggregates (CIBS L. 131-1).
             $taxesDues = $daysInYear > 0 ? round($taxesAnnuelles * $daysElapsed / $daysInYear, 0, PHP_ROUND_HALF_UP) : 0.0;
 
             $points[] = new DashboardHistoryPointData(
@@ -301,9 +271,10 @@ final class DashboardStatsService
     }
 
     /**
-     * Historique « Recettes locatives » · plein année (jan-déc) cross-cies.
-     * Batch SQL via {@see BillingBreakdownService::totalRecettesForYears}
-     * (3-4 queries fixes quel que soit le scope). Servie en
+     * « Recettes locatives » history · full year (Jan-Dec), cross
+     * companies. Batched SQL via
+     * {@see BillingBreakdownService::totalRecettesForYears()} (3-4
+     * fixed queries regardless of scope). Served via
      * `Inertia::optional`.
      *
      * @return list<DashboardHistoryPointData>
@@ -328,10 +299,10 @@ final class DashboardStatsService
     }
 
     /**
-     * Tâches en attente sur la flotte (Phase 13 D5.15). Délègue à
-     * {@see DashboardPendingTasksAggregator} qui agrège les items
-     * pending de toutes les entreprises actives via les resolvers
-     * existants ({@see PendingDeclarationsResolver},
+     * Fleet-wide pending tasks. Delegates to
+     * {@see DashboardPendingTasksAggregator}, which gathers pending
+     * items across active companies via the existing resolvers
+     * ({@see PendingDeclarationsResolver},
      * {@see PendingInvoicesResolver}).
      */
     public function computePendingTasks(): DashboardPendingTasksData
@@ -340,13 +311,12 @@ final class DashboardStatsService
     }
 
     /**
-     * Métriques d'une année à une date de référence (1er janvier →
-     * `$upToDate`). Utilisé deux fois par {@see computeKpis} (année
-     * courante + même fenêtre Y-1) et N fois par {@see computeHistory}.
+     * Year metrics up to a reference date (Jan 1 → `$upToDate`).
+     * Reused by the Present KPI computation.
      *
-     * F-21-001/002 · si `$context` est fourni, lit le pivot contrats
-     * + véhicules + indispos depuis le bulk pré-chargé · zéro query
-     * de plus. Sinon comportement standalone (fallback).
+     * When `$context` is provided, every read comes from the bulk
+     * prefetched pivot · zero extra query. Falls back to standalone
+     * loads otherwise.
      *
      * @return array{joursVehicule: int, contracts: int, contractsActiveNow: int, taxesDues: float, tauxOccupation: float}
      */
@@ -358,29 +328,23 @@ final class DashboardStatsService
         $upToDateString = $upToDate->toDateString();
         $todayString = CarbonImmutable::today()->toDateString();
 
-        // Jours-véhicule YTD · arithmétique pure via `countDaysInYearUpTo`
-        // (chantier perf Dashboard 2026-05-17). Remplace l'allocation
-        // de jusqu'à 365 strings + filtre `<= upToDate` par contrat ·
-        // gros consommateur CPU sur history (8 ans × N pairs).
-        // Équivalence stricte garantie par
-        // `ContractCountVsExpandEquivalenceTest::count_up_to_egal_count_filtre_de_expand`.
+        // YTD vehicle-days · pure arithmetic via `countDaysInYearUpTo`,
+        // strictly equivalent to filtering an expanded list by
+        // `<= upToDate`. Big CPU saver on history (8 years × N pairs)
+        // since we no longer allocate up to 365 strings per contract.
         $joursVehicule = 0;
-        // Total contrats : tout contrat ayant chevauché [début année, upToDate]
-        // est compté une fois (déduplique cross-pair via id).
+        // Every contract that overlaps `[Jan 1, upToDate]` counts
+        // once (deduped across pairs by id).
         $contractsTotalIds = [];
-        // Sous-décompte « actifs aujourd'hui » : start_date <= today <= end_date.
-        // Sert uniquement à la lentille Présent (pas Y-1 ni history).
+        // « Active now » subset · `start_date <= today <= end_date`.
+        // Only used by the Present lens (no Y-1, no history).
         $contractsActiveNowIds = [];
         foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
             foreach ($pair['contracts'] as $contract) {
                 $joursVehicule += $contract->countDaysInYearUpTo($year, $upToDateString);
-                // Total : tout contrat dont la plage croise [1er janvier, upToDate]
-                // → start_date <= upToDate (la fin est forcément >= 1er janvier
-                // si on est ici, vu que loadContractsByPair filtre déjà).
                 if ($contract->start_date->toDateString() <= $upToDateString) {
                     $contractsTotalIds[$contract->id] = true;
                 }
-                // Actif aujourd'hui (∀ year, on regarde la photographie maintenant) :
                 if ($contract->start_date->toDateString() <= $todayString
                     && $contract->end_date->toDateString() >= $todayString
                 ) {
@@ -391,16 +355,17 @@ final class DashboardStatsService
         $contractsCount = count($contractsTotalIds);
         $contractsActiveNowCount = count($contractsActiveNowIds);
 
-        // Taxes YTD : approximation linéaire de la taxe annuelle.
-        // Cf. doctrine de classe ci-dessus.
+        // YTD taxes · linear approximation of the annual tax (see
+        // class PHPDoc).
         $taxesAnnuelles = $this->safeFleetAnnualTax($contractsByPair, $year, $context);
         $daysInYear = $this->yearContext->daysInYear($year);
         $daysElapsed = $upToDate->dayOfYear;
         $taxesDues = $daysInYear > 0 ? round($taxesAnnuelles * $daysElapsed / $daysInYear, 2) : 0.0;
 
-        // Taux d'occupation YTD : jours-véhicule réalisés / théoriques.
-        // Théoriques = nb véhicules actifs aujourd'hui × jours écoulés.
-        // Approximation : on prend l'effectif actuel et non l'effectif moyen.
+        // YTD occupancy · realised vehicle-days / theoretical.
+        // Theoretical = currently active vehicles × elapsed days. We
+        // use the current count rather than the daily average · good
+        // enough for the trend.
         $vehiclesActifs = $this->vehicles->countActive();
         $theoriques = $vehiclesActifs * $daysElapsed;
         $tauxOccupation = $theoriques > 0
@@ -417,25 +382,16 @@ final class DashboardStatsService
     }
 
     /**
-     * Encapsule l'appel à `fleetAnnualTax` avec tolérance des années
-     * sans règles fiscales (cf. doctrine "données métier ⊥ règles
-     * fiscales", chantier η Phase 3). Renvoie 0.0 si l'année n'a pas
-     * de boot configuré.
+     * Wraps `fleetAnnualTax` and tolerates years without registered
+     * fiscal rules · returns 0.0 when the year has no boot.
      *
-     * F-21-001/002 · si `$context` est fourni, lit les véhicules et
-     * indispos depuis le bulk pré-chargé · zéro query de plus. Sinon
-     * comportement standalone (fallback).
-     *
-     * **Prewarm VFC** (chantier perf Dashboard 2026-05-17) · pré-charge
-     * en 1 query SQL les segments VFC pour tous les véhicules avant
-     * d'invoquer le pipeline · sans cela, `fleetAnnualTax` exécute
-     * `executeWithSegments` qui fait 1 query VFC par véhicule
-     * (N+1 monstrueux · ~70 queries pour 30 véhicules × 2 ans). Le
-     * pipeline consomme automatiquement le cache via la branche
-     * `executeWithPreloadedVfcSegments`. Équivalence stricte garantie
-     * par les tests `prewarm_vfc_segments_equivalent_*` (doctrine
-     * `optimisations-conditionnelles.md` stratégie 2). Idempotent ·
-     * si déjà prewarmé, no-op.
+     * Always prewarms VFC segments in a single SQL query before the
+     * pipeline runs. Without the prewarm, `fleetAnnualTax` issues one
+     * VFC query per vehicle (a brutal N+1 · ~70 queries for 30
+     * vehicles × 2 years). The pipeline picks up the cache via the
+     * `executeWithPreloadedVfcSegments` branch. Strictly equivalent to
+     * the non-prewarmed call · covered by the
+     * `prewarm_vfc_segments_equivalent_*` tests. Idempotent.
      */
     private function safeFleetAnnualTax(ContractsByPair $contractsByPair, int $year, ?DashboardScopeContext $context = null): float
     {
@@ -451,10 +407,11 @@ final class DashboardStatsService
             }
 
             if ($context !== null) {
-                // `fleetAnnualTax` itère sur `vehicleCompanyPairs()` du
-                // pivot · il n'utilise que les véhicules effectivement
-                // présents, le superset `$context->vehiclesById` est
-                // donc safe (les véhicules en trop sont ignorés).
+                // `fleetAnnualTax` iterates the pivot's
+                // `vehicleCompanyPairs()` and only uses the vehicles
+                // that are actually present, so a superset
+                // `$context->vehiclesById` is safe (the extras are
+                // ignored).
                 $vehiclesById = $context->vehiclesById;
                 $unavailabilitiesByVehicleId = $context->unavailabilitiesByVehicleId;
             } else {
@@ -462,11 +419,8 @@ final class DashboardStatsService
                 $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
             }
 
-            // Prewarm VFC segments · supprime le N+1 du pipeline.
-            // On filtre `$vehiclesById` aux IDs effectivement présents
-            // dans le pivot pour ne pas prewarmer inutilement (le
-            // superset context peut contenir des véhicules d'autres
-            // années).
+            // Prewarm only the vehicles actually present in the pivot
+            // to avoid unnecessary work on a multi-year superset.
             $relevantVehicles = $vehiclesById->only($vehicleIdList);
             $this->aggregator->prewarmVfcSegmentsForVehicles($relevantVehicles, $year);
 

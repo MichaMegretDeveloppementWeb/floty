@@ -31,13 +31,10 @@ use Illuminate\Database\Eloquent\Collection;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Service Query du domaine Contract - composition pure des
- * Collections retournées par le Repository en DataCollection<DTO>,
- * et helpers d'agrégation utilisés par le moteur fiscal et les
- * services consommateurs (cf. chantier 04.F).
- *
- * Conforme ADR-0013 : zéro SQL ici, uniquement de la transformation
- * et du calcul applicatif.
+ * Query service for the Contract domain. Composes the collections
+ * returned by the repository into `DataCollection<DTO>` and exposes
+ * aggregation helpers consumed by the fiscal engine and downstream
+ * services. ADR-0013 compliant · no SQL here, only transformations.
  */
 final readonly class ContractQueryService
 {
@@ -52,10 +49,9 @@ final readonly class ContractQueryService
     ) {}
 
     /**
-     * Récap facturation contrat-isolé (Phase 14.D V1.2 · extension).
-     * Délègue à {@see App\Services\Billing\BillingBreakdownService::byContract}.
-     *
-     * Retourne `null` si le contrat est introuvable.
+     * Single-contract billing breakdown, delegated to
+     * {@see BillingBreakdownService::byContract()}. Returns `null` if
+     * the contract does not exist.
      */
     public function findContractBillingBreakdown(int $id): ?ContractBillingBreakdownData
     {
@@ -69,7 +65,7 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Liste les documents PDF joints à un contrat (chantier 04.N).
+     * Lists PDF documents attached to a contract.
      *
      * @return list<ContractDocumentData>
      */
@@ -94,24 +90,19 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Façade fiscale pour la page détail contrat. Charge le contrat
-     * (avec vehicle.fiscalCharacteristics eager-loadées via
-     * `findByIdWithRelations`) et les indispos du véhicule, puis
-     * délègue à {@see FleetFiscalAggregator::contractTaxBreakdown}.
+     * Fiscal façade for the contract detail page. Loads the contract
+     * (with `vehicle.fiscalCharacteristics` eager-loaded via
+     * `findByIdWithRelations`) and the vehicle unavailabilities, then
+     * delegates to {@see FleetFiscalAggregator::contractTaxBreakdown()}.
      *
-     * **Enrichissement hypothétique LCD** · pour les contrats de type
-     * LCD, lance une 2e passe pipeline avec opt-out R-YYYY-021 sur le
-     * contrat courant (mécanisme cluster requalification, cf.
-     * {@see DeclarationAggregatorFactory}) pour calculer ce que le
-     * contrat coûterait s'il était requalifié en LLD · vrai pipeline
-     * (multi-VFC, multi-règle) au lieu d'une approximation linéaire.
-     * Les valeurs sont injectées dans les `hypothetical*` du DTO Year.
-     *
-     * Coût payé UNIQUEMENT pour les LCD ET sur la page Show · l'Index
-     * n'invoque pas cette méthode (cf. `costsForContractIds`).
-     *
-     * Retourne `null` si le contrat est introuvable (cohérent avec
-     * `findContractData`).
+     * LCD hypothetical enrichment · for LCD contracts, runs a second
+     * pipeline pass with an opt-out on R-YYYY-021 for the current
+     * contract (cluster requalification mechanism, see
+     * {@see DeclarationAggregatorFactory}) to compute what the contract
+     * would cost if requalified as LLD · real pipeline (multi-VFC,
+     * multi-rule) instead of a linear approximation. The values feed
+     * the `hypothetical*` fields of the Year DTO. Paid only for LCD
+     * contracts and only on Show (the Index does not call this method).
      */
     public function findContractTaxBreakdown(int $id): ?ContractTaxBreakdownData
     {
@@ -127,7 +118,6 @@ final readonly class ContractQueryService
 
         $nominal = $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
 
-        // Pas un LCD · pas d'opt-out LCD pertinent, on retourne tel quel.
         if ($contract->contract_type !== ContractType::Lcd) {
             return $nominal;
         }
@@ -136,15 +126,14 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Pour un contrat LCD · reconstruit le breakdown nominal en
-     * peuplant les 3 champs `hypothetical*` de chaque année. Vrai
-     * calcul via aggregator opt-out (un par année traversée · les
-     * decorators sont year-scoped).
+     * For an LCD contract, rebuilds the nominal breakdown with the
+     * three `hypothetical*` fields populated through a real pipeline
+     * pass with an opt-out (one per traversed year · decorators are
+     * year-scoped).
      *
-     * Toujours peuplé pour les LCD, même si égal au nominal (cas du
-     * véhicule hors champ fiscal qui reste à 0 € même requalifié). UI
-     * affiche alors "0 € si requalifié en LLD" · l'utilisateur voit
-     * clairement que le contrat resterait à 0 €, pas de mystère.
+     * Always populated for LCDs, even when equal to the nominal
+     * (vehicle outside the fiscal perimeter stays at 0 € even
+     * requalified). The UI then renders "0 € si requalifié en LLD".
      *
      * @param  list<Unavailability>  $unavailabilities
      */
@@ -167,7 +156,6 @@ final readonly class ContractQueryService
                 }
             }
 
-            // Année hors registry · pas d'hypothétique calculable.
             if ($optOutYear === null) {
                 $enrichedYears[] = $year;
 
@@ -203,27 +191,26 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Index Contracts paginé server-side (cf. ADR-0020). Le repo gère
-     * pagination + filtres + search + tri en SQL pure ; le service mappe
-     * les models en DTO et enrichit avec coûts (totalTax + rentalPrice).
+     * Server-side paginated Contracts Index (ADR-0020). The repository
+     * handles pagination + filters + search + sort in SQL; the service
+     * maps models to DTOs and enriches with costs.
      *
-     * Utilisé par les pages qui veulent les coûts inclus dans le payload
-     * initial (ex. onglet Contrats sur la fiche Company). Pour
-     * l'Index Contracts standalone, préférer {@see listPaginatedSlim}
-     * + {@see costsForContractIds} en différé (chantier perf
-     * 2026-05-16 Option 1).
+     * Used by pages that need costs in the initial payload (e.g. the
+     * Contracts tab on the Company fiche). For the standalone Index,
+     * prefer {@see listPaginatedSlim()} + {@see costsForContractIds()}
+     * as a deferred prop.
      */
     public function listPaginated(ContractIndexQueryData $query): PaginatedContractListData
     {
         $paginator = $this->repository->paginateForIndex($query);
         $contracts = $paginator->items();
 
-        // Batch unique pour les loyers de la page · évite le N+1
-        // (`forContract` × 25 items × M mois lookups pricings).
+        // Single batch for the rentals of the page · avoids the N+1
+        // (`forContract` × 25 items × M monthly pricing lookups).
         $rentalByContractId = $this->rentalPrice->forContracts($contracts);
 
-        // Batch indispos par véhicule distinct · 1 query SQL au lieu
-        // de N (alimente le vrai pipeline fiscal dans enrichContractDto).
+        // Batch unavailabilities by distinct vehicle · 1 SQL instead
+        // of N (feeds the real fiscal pipeline inside enrichContractDto).
         $vehicleIds = array_values(array_unique(array_map(
             static fn (Contract $c): int => $c->vehicle_id,
             $contracts,
@@ -231,8 +218,8 @@ final readonly class ContractQueryService
         $unavailabilitiesByVehicleId = $this->unavailabilityRepository
             ->findForVehicleIds($vehicleIds);
 
-        // Prewarm VFC segments pour toutes les années traversées · évite
-        // le N+1 query VFC dans la boucle contractTaxBreakdown.
+        // Prewarm VFC segments for every traversed year · avoids the
+        // N+1 VFC query inside the contractTaxBreakdown loop.
         $this->prewarmVfcSegmentsForContracts($contracts);
 
         $items = array_map(
@@ -251,19 +238,12 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Variante **slim** de {@see listPaginated} · ne calcule PAS les
-     * coûts (`totalTax`, `rentalPrice` restent `null`). Le payload
-     * initial est servi sans payer le pipeline fiscal · les coûts
-     * arrivent dans une 2e requête Inertia::defer côté
-     * `ContractController::index` qui appelle {@see costsForContractIds}.
-     *
-     * Doctrine `chargement-strict-par-ecran.md` · l'Index n'a pas
-     * besoin des coûts pour s'afficher · skeleton ces 2 colonnes le
-     * temps du fetch différé.
-     *
-     * **Gain mesuré** · ~210 ms cold sur 25 contrats / 21 véhicules
-     * distincts (le pipeline fiscal `vehicleFullYearTax` n'est plus
-     * appelé au render initial).
+     * Slim variant of {@see listPaginated()} · does not compute costs
+     * (`totalTax`, `rentalPrice` stay `null`). The initial payload is
+     * served without paying the fiscal pipeline; the costs arrive in a
+     * second `Inertia::defer` round-trip from `ContractController::index`
+     * via {@see costsForContractIds()}. Saves ~210 ms cold on 25
+     * contracts / 21 distinct vehicles.
      */
     public function listPaginatedSlim(ContractIndexQueryData $query): PaginatedContractListData
     {
@@ -282,23 +262,17 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Calcule la map des coûts (`totalTax`, `rentalPrice`) pour un
-     * batch de contrats donnés par leurs IDs. Utilisé en
-     * `Inertia::defer` côté `ContractController::index` pour remplir
-     * les 2 colonnes de coûts après le render initial de l'Index.
+     * Per-contract costs map (`totalTax`, `rentalPrice`) for a batch
+     * of contract ids. Used via `Inertia::defer` to fill the two cost
+     * columns after the initial render.
      *
-     * **Calcul fiscal** · délègue à {@see FleetFiscalAggregator::contractTaxBreakdown()}
-     * - vrai pipeline par contrat, prend en compte les exonérations
-     * (R-2024-021 LCD = 0 €), les chevauchements multi-VFC, les
-     * changements de barème intra-année · strictement équivalent à
-     * la valeur affichée sur la page Show contrat. **Ne pas utiliser
-     * d'approximation `fullYearTax × jours/365`** · faux dès qu'il y
-     * a une exonération ou une scission.
-     *
-     * Performance ·
-     *   - Recharge les contrats avec relations en 1 query.
-     *   - Batch indispos par véhicule distinct en 1 query.
-     *   - Batch rental prices via `rentalPrice->forContracts()`.
+     * Fiscal computation delegates to
+     * {@see FleetFiscalAggregator::contractTaxBreakdown()} · real
+     * pipeline per contract, accounts for exemptions (R-2024-021 LCD =
+     * 0 €), multi-VFC overlaps, intra-year scale changes · strictly
+     * equivalent to the value displayed on the contract Show page.
+     * Do NOT use a `fullYearTax × days/365` approximation · wrong as
+     * soon as an exemption or scission applies.
      *
      * @param  list<int>  $contractIds
      * @return array<int, array{totalTax: float, rentalPrice: float|null}>
@@ -313,7 +287,6 @@ final readonly class ContractQueryService
             ->findByIdsWithRelations($contractIds)
             ->all();
 
-        // Batch indispos · 1 query SQL pour tous les véhicules distincts.
         $vehicleIds = array_values(array_unique(array_map(
             static fn (Contract $c): int => $c->vehicle_id,
             $contracts,
@@ -321,27 +294,21 @@ final readonly class ContractQueryService
         $unavailabilitiesByVehicleId = $this->unavailabilityRepository
             ->findForVehicleIds($vehicleIds);
 
-        // Batch rental prices · 1 query SQL pour tous les pricings.
         $rentalByContractId = $this->rentalPrice->forContracts($contracts);
 
-        // Prewarm VFC segments pour toutes les années traversées · évite
-        // le N+1 query VFC dans la boucle contractTaxBreakdown.
         $this->prewarmVfcSegmentsForContracts($contracts);
 
         $result = [];
         foreach ($contracts as $contract) {
             $totalTax = 0.0;
             try {
-                // Vrai pipeline fiscal par contrat (multi-VFC, multi-règle,
-                // exonération LCD R-2024-021, etc.) · strictement
-                // équivalent au calcul de la page Show contrat.
                 $breakdown = $this->aggregator->contractTaxBreakdown(
                     $contract,
                     $unavailabilitiesByVehicleId[$contract->vehicle_id] ?? [],
                 );
                 $totalTax = $breakdown->totalDue;
             } catch (\Throwable) {
-                // Année hors registry fiscal · totalTax = 0.
+                // Year outside the fiscal registry · totalTax = 0.
             }
 
             $rentalCents = $rentalByContractId[$contract->id] ?? null;
@@ -356,21 +323,19 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Phase 13 D5.10.L · enrichit le DTO de base avec `totalTax` et
-     * `rentalPrice` calculés en direct. **Le totalTax utilise le vrai
-     * pipeline fiscal** ({@see FleetFiscalAggregator::contractTaxBreakdown()})
-     * pour rester strictement équivalent à la valeur affichée sur la
-     * page Show contrat (prise en compte des exonérations LCD, des
-     * chevauchements multi-VFC, etc.).
+     * Enriches the base DTO with live `totalTax` and `rentalPrice`.
+     * The total tax goes through the real fiscal pipeline
+     * ({@see FleetFiscalAggregator::contractTaxBreakdown()}) so it
+     * matches the value shown on the contract Show page (LCD
+     * exemptions, multi-VFC overlaps, …).
      *
-     * `$preComputedRentalCents` : utilisé par les Index paginés qui ont
-     * batché les loyers en amont · si `null`, fallback au lookup
-     * individuel (utilisé sur fiche Contract isolée).
+     * `$preComputedRentalCents` · used by paginated indexes that have
+     * batched the rentals upstream; falls back to a single lookup
+     * when null (used on the isolated contract fiche).
      *
-     * `$preComputedVehicleUnavailabilities` : utilisé par les Index
-     * paginés qui ont batché les indispos en amont (1 query unique pour
-     * tous les véhicules distincts) · si `null`, fallback au lookup
-     * individuel par véhicule.
+     * `$preComputedVehicleUnavailabilities` · used by paginated
+     * indexes that batched unavailabilities (one query for every
+     * distinct vehicle); falls back to a per-vehicle lookup when null.
      *
      * @param  list<Unavailability>|null  $preComputedVehicleUnavailabilities
      */
@@ -389,7 +354,7 @@ final readonly class ContractQueryService
             $breakdown = $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
             $totalTax = $breakdown->totalDue;
         } catch (\Throwable) {
-            // Année hors registry fiscal · totalTax laissé à 0.
+            // Year outside the fiscal registry · totalTax left at 0.
         }
 
         $rentalCents = $preComputedRentalCents ?? $this->rentalPrice->forContract($contract->id);
@@ -416,9 +381,9 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Stats contextuelles affichées sous le titre de l'onglet Contrats
-     * de la fiche Company Show (chantier N.1.fixes). Les jours sont en
-     * intersection avec la fenêtre filtrée (cf. doc repo).
+     * Contextual stats displayed below the Contracts tab title on the
+     * Company Show fiche. Days are intersected with the filtered
+     * window (see repository PHPDoc).
      */
     public function statsForCompany(
         int $companyId,
@@ -439,15 +404,13 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Plage continue `[firstYear..currentRealYear]` pour les pills de
-     * filtre rapide année (chantier N.1.fixes). Si l'entreprise n'a
-     * aucun contrat, retourne un tableau vide · les pills ne sont
-     * pas affichées (l'empty state suffit).
+     * Continuous `[firstYear..currentRealYear]` range for the
+     * year-filter pills. Returns an empty array when the company has
+     * no contract (pills hidden, the empty state suffices).
      *
-     * Différent de `availableYears` (= années avec ≥ 1 contrat) :
-     * la plage des pills est continue pour ne pas créer de "trous"
-     * visuels et pour permettre de filtrer une année creuse afin de
-     * confirmer l'absence de contrats.
+     * Different from `availableYears` (= years with ≥ 1 contract) · the
+     * pill range is continuous to avoid visual gaps and to allow
+     * filtering an empty year to confirm the absence of contracts.
      *
      * @return list<int>
      */
@@ -464,10 +427,9 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Variante de `listPaginated` qui force le `companyId` à la valeur
-     * passée en paramètre · utilisée par l'onglet Contrats de la fiche
-     * Company (chantier N.1). On ne fait pas confiance au query param
-     * de l'URL : la fiche Company impose son propre `companyId`.
+     * Variant of `listPaginated` that forces `companyId` to the given
+     * value · used by the Contracts tab on the Company fiche. The URL
+     * query param is not trusted; the fiche imposes its `companyId`.
      */
     public function listPaginatedForCompany(
         int $companyId,
@@ -492,7 +454,7 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Liste des contrats d'une entreprise utilisatrice (page company show).
+     * Contracts of a using company, for the Company show page.
      *
      * @return DataCollection<int, ContractListItemData>
      */
@@ -502,8 +464,6 @@ final readonly class ContractQueryService
         $contractsAll = $contracts->all();
         $rentalByContractId = $this->rentalPrice->forContracts($contractsAll);
 
-        // Batch indispos par véhicule distinct · 1 query SQL au lieu
-        // de N (alimente le vrai pipeline fiscal dans enrichContractDto).
         $vehicleIds = array_values(array_unique(array_map(
             static fn (Contract $c): int => $c->vehicle_id,
             $contractsAll,
@@ -511,8 +471,6 @@ final readonly class ContractQueryService
         $unavailabilitiesByVehicleId = $this->unavailabilityRepository
             ->findForVehicleIds($vehicleIds);
 
-        // Prewarm VFC segments pour toutes les années traversées · évite
-        // le N+1 query VFC dans la boucle contractTaxBreakdown.
         $this->prewarmVfcSegmentsForContracts($contractsAll);
 
         /** @var DataCollection<int, ContractListItemData> */
@@ -529,8 +487,8 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Pivot du moteur fiscal - tous les contrats actifs croisant
-     * l'année regroupés par couple (vehicleId, companyId).
+     * Fiscal engine pivot · every active contract crossing the year
+     * grouped by `(vehicleId, companyId)`.
      */
     public function loadContractsByPair(int $year): ContractsByPair
     {
@@ -545,24 +503,22 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Variante range de {@see loadContractsByPair} · charge tous les
-     * contrats actifs d'un range d'années en **1 query SQL**, retourne
-     * un map `year → ContractsByPair`. Chaque contrat est dispatché
-     * dans toutes les années qu'il chevauche (un contrat 2023-2025
-     * apparaît dans les pivots de 2023, 2024 et 2025).
+     * Range variant of {@see loadContractsByPair()} · loads every
+     * active contract over a year range in a single SQL query, returns
+     * a `year → ContractsByPair` map. A contract is dispatched into
+     * every year it crosses (a 2023-2025 contract appears in pivots
+     * for 2023, 2024 and 2025).
      *
-     * Cas d'usage · pages multi-années (Show Company Overview, Dashboard
-     * history) qui itèrent N années · évite les N appels indépendants
-     * à `loadContractsByPair($year)` · cf. F-11-001.
+     * Use case · multi-year pages (Company Show overview, Dashboard
+     * history) iterating N years · avoids N independent
+     * `loadContractsByPair($year)` calls.
      *
-     * @return array<int, ContractsByPair> · keyé par année
+     * @return array<int, ContractsByPair> keyed by year
      */
     public function loadContractsByPairForYearRange(int $from, int $to): array
     {
         $contracts = $this->repository->findActiveForYearRange($from, $to);
 
-        // Pré-calcule les bornes d'année une fois par contrat (start_date
-        // et end_date sont des CarbonImmutable via le cast Eloquent).
         $byYear = [];
         for ($year = $from; $year <= $to; $year++) {
             $byYear[$year] = [];
@@ -591,11 +547,9 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Variante scopée d'un seul véhicule - utilisée par la page Show
-     * vehicle qui n'a aucun usage des autres véhicules de la flotte.
-     *
-     * Évite de matérialiser le pivot complet (cf. `loadContractsByPair`)
-     * juste pour en filtrer 1/N à l'arrivée.
+     * Single-vehicle variant · used by the Vehicle show page, which
+     * has no use for the rest of the fleet. Avoids materialising the
+     * full pivot just to filter 1/N out.
      */
     public function loadContractsByPairForVehicle(int $vehicleId, int $year): ContractsByPair
     {
@@ -610,13 +564,13 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Indispos par véhicule pour alimenter R-2024-008 (la règle filtre
-     * elle-même les indispos qui croisent l'année et les contrats
-     * taxables - voir `R2024_008_ReductiveUnavailability::evaluate()`).
+     * Unavailabilities by vehicle, feeding R-2024-008 (the rule
+     * filters those crossing the year and the taxable contracts in
+     * {@see App\Fiscal\Year2024\Reduction\R2024_008_ReductiveUnavailability::evaluate()}).
      *
-     * Délègue à un `WHERE vehicle_id IN (?)` unique côté repository ;
-     * un véhicule sans indispo est absent du map (les appelants
-     * défaultent sur `[]` à la lecture).
+     * Delegates to a single `WHERE vehicle_id IN (?)` on the repository;
+     * a vehicle with no unavailability is absent from the map (callers
+     * default to `[]`).
      *
      * @param  list<int>  $vehicleIds
      * @return array<int, list<Unavailability>>
@@ -627,10 +581,9 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Compte total des contrats d'une entreprise (toutes années).
-     * Délégué au repo, exposé via le service pour respecter la chaîne
-     * d'appels Service → Service → Repository (cf. ADR-0013) consommée
-     * par {@see AppServicesCompanyCompanyDetailService::detail()}.
+     * Total count of contracts for a company (all years). Delegated to
+     * the repository, exposed via the service to keep the
+     * Service → Service → Repository chain (ADR-0013).
      */
     public function countContractsForCompany(int $companyId): int
     {
@@ -638,8 +591,8 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Liste triée des années où l'entreprise a au moins un contrat
-     * actif (cf. {@see ContractReadRepositoryInterface::findActiveYearsForCompany}).
+     * Sorted list of years in which the company has at least one
+     * active contract.
      *
      * @return list<int>
      */
@@ -649,18 +602,17 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Pour le formulaire Contract Create/Edit : table
-     * `vehicleId → list<date ISO>` des jours déjà occupés par un autre
-     * contrat actif du véhicule, sur une fenêtre [today − 2 ans, today
-     * + 2 ans] qui couvre largement les saisies réalistes.
+     * For the Contract Create/Edit form · `vehicleId → list<ISO date>`
+     * map of days already busy with another active contract on the
+     * vehicle, over a `[today − 2 years, today + 2 years]` window.
      *
-     * Le picker de plage côté front consomme cette table pour griser les
-     * jours non-sélectionnables et empêcher l'utilisateur de tomber
-     * dans le filet du trigger MySQL anti-overlap.
+     * The range picker on the frontend consumes this map to grey out
+     * unselectable days and stop the user from falling into the MySQL
+     * anti-overlap trigger.
      *
-     * Pour l'écran Edit, on exclut les dates du contrat en cours
-     * d'édition via `excludeContractId` - sinon l'utilisateur ne pourrait
-     * pas réenregistrer son contrat sans le « déplacer » d'abord.
+     * On Edit, `excludeContractId` removes the dates of the currently
+     * edited contract · otherwise the user could not re-save without
+     * first "moving" it.
      *
      * @return array<int, list<string>>
      */
@@ -697,8 +649,8 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Liste des dates ISO occupées par un véhicule sur une période -
-     * source de `busyDates` côté page Vehicle Show (calendrier indispo).
+     * ISO dates busy for a vehicle over a period · feeds `busyDates`
+     * on the Vehicle Show page (unavailability calendar).
      *
      * @return list<string>
      */
@@ -724,8 +676,9 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Dates ISO d'un couple sur l'année - preview taxes (incrément
-     * journalier potentiel d'un nouvel ajout dans le drawer planning).
+     * ISO dates of a `(vehicle, company)` pair within the year · used
+     * by the taxes preview (potential daily increment of a new
+     * assignment in the planning drawer).
      *
      * @return list<string>
      */
@@ -747,8 +700,8 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Breakdown hebdomadaire `week → companyId → days` pour la
-     * timeline 52 semaines de la page Vehicle Show.
+     * Weekly breakdown `week → companyId → days` for the 52-week
+     * timeline on the Vehicle Show page.
      *
      * @return array<int, array<int, int>>
      */
@@ -756,11 +709,10 @@ final readonly class ContractQueryService
     {
         $contracts = $this->repository->findByVehicleAndYear($vehicleId, $year);
 
-        // S2.1 (plan optim perf 2026-05-15) · arithmétique semaine par
-        // semaine via {@see Contract::daysByWeekInYear}. Sécurité dédup ·
-        // la contrainte métier interdit deux contrats du même véhicule
-        // sur les mêmes jours, donc sommation cross-contracts safe (le
-        // `Set<date>` historique était défensif mais redondant).
+        // Per-week arithmetic via {@see Contract::daysByWeekInYear}.
+        // The business rule forbids two contracts of the same vehicle
+        // on the same day, so cross-contract summation is safe without
+        // a `Set<date>` defensive structure.
         $byWeek = [];
         foreach ($contracts as $contract) {
             $companyId = $contract->company_id;
@@ -775,9 +727,9 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Densité par véhicule × semaine ISO de l'année - heatmap planning.
-     * Clé = `"vehicleId|weekNumber"` ; valeur = nombre de jours
-     * occupés par au moins un contrat du véhicule cette semaine.
+     * Per-vehicle × ISO-week density for the planning heatmap.
+     * Key = `"vehicleId|weekNumber"`; value = number of days the
+     * vehicle is busy with at least one contract that week.
      *
      * @return array<string, int>
      */
@@ -785,10 +737,6 @@ final readonly class ContractQueryService
     {
         $contracts = $this->repository->findActiveForYear($year);
 
-        // S2.1 (plan optim perf 2026-05-15) · arithmétique semaine par
-        // semaine via {@see Contract::daysByWeekInYear}. Sécurité dédup ·
-        // la contrainte métier interdit deux contrats du même véhicule
-        // sur les mêmes jours, donc sommation cross-contracts safe.
         $density = [];
         foreach ($contracts as $contract) {
             $vehicleId = $contract->vehicle_id;
@@ -802,14 +750,10 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Variante de {@see loadWeekDensity} filtrée sur une entreprise
-     * donnée - alimente la heatmap Vue Entreprise (chantier P1) où le
-     * **chiffre cellule** ne reflète que les jours utilisés par cette
-     * entreprise (la couleur reste pilotée par la densité globale).
-     *
-     * Clé = `"vehicleId|weekNumber"` ; valeur = nombre de jours occupés
-     * par au moins un contrat de l'entreprise pour ce véhicule cette
-     * semaine.
+     * Company-scoped variant of {@see loadWeekDensity()} · powers the
+     * per-company planning heatmap where the cell number reflects
+     * only the days used by that company (the colour stays driven by
+     * the global density).
      *
      * @return array<string, int>
      */
@@ -817,10 +761,6 @@ final readonly class ContractQueryService
     {
         $contracts = $this->repository->findActiveForYear($year);
 
-        // S2.1 (plan optim perf 2026-05-15) · arithmétique semaine par
-        // semaine via {@see Contract::daysByWeekInYear}. Filtre company
-        // d'abord (skip rapide), puis sommation arithmétique safe (cf.
-        // commentaire {@see loadWeekDensity}).
         $density = [];
         foreach ($contracts as $contract) {
             if ($contract->company_id !== $companyId) {
@@ -838,8 +778,8 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Contrats du véhicule chevauchant la fenêtre [start, end] -
-     * drawer semaine planning (avec relation `company` eager-loaded).
+     * Contracts of the vehicle overlapping `[start, end]` · used by
+     * the planning week drawer (with `company` eager-loaded).
      *
      * @return Collection<int, Contract>
      */
@@ -852,12 +792,10 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Expansion d'un contrat en jours ISO (Y-m-d), bornée à l'année
-     * passée en argument. Délègue à {@see Contract::expandToDaysInYear()}
-     * (helper réutilisé par les règles fiscales).
-     *
-     * Méthode conservée pour compat avec les consommateurs qui
-     * passaient par le service.
+     * Expands a contract into ISO days (Y-m-d), bounded by the given
+     * year. Delegates to {@see Contract::expandToDaysInYear()} (helper
+     * reused by the fiscal rules). Kept for backwards compatibility
+     * with consumers that went through the service.
      *
      * @return list<string>
      */
@@ -867,17 +805,13 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Prewarm `$vfcSegmentsCache` de l'aggregator pour tous les couples
-     * `(vehicleId, year)` traversés par le batch de contrats. Une seule
-     * query SQL `findEffectiveSegmentsForYearBatch` par année alimente
-     * le cache · les `contractTaxBreakdown()` suivants consomment le
-     * cache au lieu de re-fetcher les VFC un contrat à la fois.
-     *
-     * Gain · sur 25 contrats / 21 véhicules distincts sur 1 année,
-     * passe de ~25 queries VFC à 1 (1 batch par année traversée).
-     *
-     * Multi-année · un contrat 2024→2025 prewarm les 2 années · la
-     * méthode regroupe sans doublon avant d'appeler le prewarm.
+     * Prewarms the aggregator's `$vfcSegmentsCache` for every
+     * `(vehicleId, year)` pair touched by the contract batch. A single
+     * `findEffectiveSegmentsForYearBatch` per year feeds the cache;
+     * subsequent `contractTaxBreakdown()` calls hit the cache instead
+     * of refetching VFCs one contract at a time. On 25 contracts / 21
+     * distinct vehicles for one year · drops from ~25 VFC queries to
+     * 1. Multi-year contracts are dispatched into every traversed year.
      *
      * @param  list<Contract>  $contracts
      */
@@ -901,8 +835,8 @@ final readonly class ContractQueryService
     }
 
     /**
-     * Expansion d'un contrat en jours ISO clampée à une fenêtre
-     * `[from, to]` arbitraire (pas forcément une année).
+     * Expands a contract into ISO days clipped to an arbitrary
+     * `[from, to]` window (not necessarily a year).
      *
      * @return list<string>
      */

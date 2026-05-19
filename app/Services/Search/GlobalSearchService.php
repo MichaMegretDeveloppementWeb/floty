@@ -19,41 +19,37 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Service de recherche globale (palette ⌘K, V1.1).
+ * Global search service powering the ⌘K palette.
  *
- * Pipeline · tokenize la query → 5 recherches en parallèle dont
- * 2 conditionnelles ·
+ * Pipeline · tokenize the query → five parallel searches, two of them
+ * conditional ·
  *
- *  - **Vehicles** · `CONCAT_WS(' ', brand, model, license_plate)`
- *    LIKE chaque token (AND).
- *  - **Companies** · `CONCAT_WS(' ', legal_name, siren)` LIKE chaque
- *    token (AND).
- *  - **Drivers** · `CONCAT_WS(' ', first_name, last_name)` LIKE chaque
- *    token (AND).
- *  - **Contracts shortcuts** (conditionnel) · activé ssi ≥ 2 tokens.
- *    Chaque token doit matcher soit côté véhicule, soit côté entreprise
- *    (logique OR par token, AND entre tokens). GROUP BY (vehicle_id,
- *    company_id) · 1 raccourci par couple effectivement contracté.
- *  - **Declarations** (conditionnel) · activé ssi la query contient
- *    une année (regex `\b(20\d{2})\b`) ET ≥ 1 token reste après retrait
- *    de l'année. Recherche entreprises avec ces tokens, puis dernière
- *    version active (`is_obsolete = false`) du couple (company, year).
+ *   - Vehicles · `CONCAT_WS(' ', brand, model, license_plate)` LIKE
+ *     every token (AND).
+ *   - Companies · `CONCAT_WS(' ', legal_name, siren)` LIKE every
+ *     token (AND).
+ *   - Drivers · `CONCAT_WS(' ', first_name, last_name)` LIKE every
+ *     token (AND).
+ *   - Contract shortcuts (conditional) · enabled iff ≥ 2 tokens. Each
+ *     token must match either the vehicle or the company side (OR per
+ *     token, AND across tokens). `GROUP BY (vehicle_id, company_id,
+ *     year)`.
+ *   - Declarations (conditional) · enabled iff the query contains a
+ *     year (regex `\b(20\d{2})\b`) and at least one remaining token
+ *     after removing the year. Looks up companies matching the tokens
+ *     then the latest active version (`is_obsolete = false`) of the
+ *     `(company, year)` pair.
  *
- * Recherche SQL en MySQL LIKE `%token%` (case-insensitive grâce à la
- * collation utf8mb4_unicode_ci par défaut). Sur les volumes Floty
- * (~5k véhicules max, ~500 entreprises, ~10k contrats), sub-50ms même
- * sans index FULLTEXT. Migration FULLTEXT possible plus tard si besoin.
- *
- * Sécurité · les tokens sont passés en bindings paramétrés (jamais
- * d'interpolation). Les wildcards `%` et `_` sont échappés via
- * {@see escapeLikeWildcards}.
+ * Implemented with MySQL `LIKE %token%` (case-insensitive via the
+ * default `utf8mb4_unicode_ci` collation). At Floty volumes (~5k
+ * vehicles, ~500 companies, ~10k contracts), sub-50 ms even without
+ * FULLTEXT indexes. Tokens are bound as parameters; `%` / `_` are
+ * escaped through {@see escapeLikeWildcards()}.
  */
 final class GlobalSearchService
 {
-    /** Limite max d'items par groupe retourné au frontend. */
     private const LIMIT_PER_GROUP = 5;
 
-    /** Regex de détection d'année dans la query (2000-2099). */
     private const YEAR_REGEX = '/\b(20\d{2})\b/';
 
     public function searchAll(string $query): GlobalSearchResultData
@@ -66,20 +62,16 @@ final class GlobalSearchService
 
         [$year, $nonYearTokens] = $this->extractYear($tokens);
 
-        // 3 recherches primaires (toujours actives)
         $vehicles = $this->searchVehicles($tokens);
         $companies = $this->searchCompanies($tokens);
         $drivers = $this->searchDrivers($tokens);
 
-        // Contrats · raccourcis vers /app/contracts filtré (≥ 2 tokens)
         $contractShortcuts = [];
 
         if (count($tokens) >= 2) {
             $contractShortcuts = $this->searchContractShortcuts($tokens);
         }
 
-        // Déclarations · 1 résultat par couple (company, year) (année
-        // détectée + ≥ 1 token entreprise après retrait année)
         $declarations = [];
 
         if ($year !== null && count($nonYearTokens) >= 1) {
@@ -97,7 +89,7 @@ final class GlobalSearchService
     }
 
     /**
-     * Split la query par espaces, lowercase, filter empty.
+     * Splits the query on whitespace, lowercases, drops empties.
      *
      * @return list<string>
      */
@@ -113,9 +105,9 @@ final class GlobalSearchService
     }
 
     /**
-     * Extrait la première année 20XX trouvée dans les tokens (regex
-     * `\b(20\d{2})\b`) et retourne les tokens restants. Si aucune
-     * année trouvée, retourne `[null, $tokens]`.
+     * Extracts the first 20XX year token (regex `\b(20\d{2})\b`) and
+     * returns the remaining tokens. `[null, $tokens]` when no year
+     * is found.
      *
      * @param  list<string>  $tokens
      * @return array{0: int|null, 1: list<string>}
@@ -139,9 +131,9 @@ final class GlobalSearchService
     }
 
     /**
-     * Échappe les caractères wildcards SQL LIKE (`%`, `_`) ainsi que
-     * l'antislash dans un token utilisateur. À combiner avec `%` autour
-     * pour un match « contains » safe.
+     * Escapes SQL LIKE wildcards (`%`, `_`) and the backslash in a
+     * user-supplied token. Combine with `%` on each side for a safe
+     * "contains" match.
      */
     private function escapeLikeWildcards(string $token): string
     {
@@ -149,9 +141,8 @@ final class GlobalSearchService
     }
 
     /**
-     * Applique un `WHERE CONCAT_WS(' ', ...cols) LIKE ?` pour chaque
-     * token, en AND. Compatible MySQL/MariaDB · collation par défaut
-     * utf8mb4_unicode_ci → case-insensitive.
+     * Adds a `WHERE CONCAT_WS(' ', ...cols) LIKE ?` per token, ANDed.
+     * Case-insensitive on the default MySQL collation.
      *
      * @template TModel of \Illuminate\Database\Eloquent\Model
      *
@@ -244,9 +235,8 @@ final class GlobalSearchService
     {
         $query = Driver::query()
             ->with([
-                // Entreprises actives uniquement (left_at IS NULL) pour
-                // alimenter le sublabel · 1 query supplémentaire en eager
-                // load (pas N+1).
+                // Active companies only (`left_at IS NULL`) for the
+                // sublabel · single eager-loaded query, no N+1.
                 'companies' => static function ($q): void {
                     $q->wherePivotNull('left_at')
                         ->select('companies.id', 'companies.legal_name');
@@ -281,21 +271,20 @@ final class GlobalSearchService
     }
 
     /**
-     * Cherche les triplets (véhicule, entreprise, année) qui ont au
-     * moins un contrat ET dont la combinaison matche tous les tokens
-     * (chaque token doit matcher soit côté véhicule, soit côté
-     * entreprise).
+     * Finds `(vehicle, company, year)` triplets with at least one
+     * contract, where the combination matches every token (each token
+     * must match the vehicle or the company side).
      *
-     * **Granularité par année (`YEAR(start_date)`)** · sinon, cliquer
-     * sur un raccourci sans filtre année atterrissait sur l'année
-     * courante du sélecteur Contracts Index, ce qui pouvait masquer
-     * les contrats du couple si ceux-ci étaient sur une autre année.
-     * 1 raccourci par triplet · ordonné par count desc puis year desc.
+     * Per-year granularity (`YEAR(start_date)`) · without it, clicking
+     * a shortcut without a year filter landed on the Contracts Index
+     * default year, which could hide the pair's contracts when on a
+     * different year. One shortcut per `(vehicle, company, year)` ·
+     * ordered by count DESC then year DESC.
      *
-     * Implémenté en `DB::table()` (query agrégat avec aliases SQL
-     * non-portés par le modèle Eloquent Contract) pour éviter les faux
-     * positifs PHPStan sur les `property.notFound`. Pas de N+1 · 1
-     * seule query avec GROUP BY et MAX() pour récupérer les libellés.
+     * Implemented as a `DB::table()` aggregate (SQL aliases not
+     * exposed on the Eloquent model) so PHPStan does not flag
+     * `property.notFound`. No N+1 · single query with GROUP BY and
+     * `MAX()` to fetch the display labels.
      *
      * @param  list<string>  $tokens
      * @return list<GlobalSearchContractShortcutData>
@@ -329,8 +318,8 @@ final class GlobalSearchService
 
         foreach ($tokens as $token) {
             $escaped = $this->escapeLikeWildcards($token);
-            // Chaque token doit matcher soit côté véhicule, soit côté
-            // entreprise · OR par token, AND entre tokens.
+            // Each token must match the vehicle side or the company
+            // side · OR per token, AND across tokens.
             $query->whereRaw(
                 "($vehicleConcat LIKE ? OR $companyConcat LIKE ?)",
                 ['%'.$escaped.'%', '%'.$escaped.'%'],
@@ -375,9 +364,9 @@ final class GlobalSearchService
     }
 
     /**
-     * Cherche les déclarations actives (`is_obsolete = false`) du
-     * couple (company matchant les tokens, year donnée). 1 résultat
-     * par couple (company, year).
+     * Active declarations (`is_obsolete = false`) for the
+     * `(company matching tokens, year)` pair. One row per
+     * `(company, year)`.
      *
      * @param  list<string>  $tokens
      * @return list<GlobalSearchDeclarationItemData>
@@ -416,8 +405,8 @@ final class GlobalSearchService
     }
 
     /**
-     * Formate le statut d'une déclaration en label humain pour le
-     * sublabel de la palette de recherche.
+     * Human label for a declaration status, used in the search
+     * palette sublabel.
      */
     private function formatDeclarationStatus(FiscalDeclaration $declaration): string
     {
@@ -431,8 +420,7 @@ final class GlobalSearchService
     }
 
     /**
-     * Formate un SIREN brut (9 chiffres) en groupes de 3 pour
-     * lisibilité (« 123 456 789 »).
+     * Formats a raw 9-digit SIREN into 3-digit groups (« 123 456 789 »).
      */
     private function formatSiren(string $siren): string
     {

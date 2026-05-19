@@ -15,50 +15,39 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
- * Détecte les clusters de risque fiscal pour un couple
- * `(entreprise, année)` (Phase 11 D2, ADR-0015 § 4).
+ * Detects fiscal risk clusters for a `(company, year)` pair (ADR-0015 § 4).
  *
- * Pure logique de calcul : aucune persistance, aucune mutation, aucune
- * IO autre que la lecture des contrats et des seuils. Sortie =
- * `list<ReviewClusterData>` consommable par les Actions D3 et la page
- * de revue D4.
+ * Pure computation · no persistence, no mutation, no IO besides
+ * reading contracts and risk settings. Output is consumed by the
+ * declaration Actions and the review page.
  *
- * **Périmètre** (ADR § 3.1) : entreprise utilisatrice × année civile,
- * tous véhicules confondus. Les chaînes ne traversent pas les
- * entreprises.
- *
- * **Source de vérité LCD** : la règle fiscale `R-2024-021`
- * (`LcdContractFilter`). Le `contract_type` BDD est ignoré, conformément
- * à la doctrine des règles fiscales souveraines (mémoire
- * `feedback_fiscal_rules_authority`).
- *
- * **Déterminisme** : tri SQL `start_date ASC, id ASC` côté repo +
- * fingerprint trié par `id` ASC = même entrée → même sortie, garantie
- * fonctionnelle de la régénération à fingerprint identique (§ 6.5).
+ * Scope · the using company × calendar year, all vehicles included.
+ * Chains never cross companies. LCD authority is the fiscal rule
+ * (`R-2024-021` · {@see LcdContractFilter}), never the persisted
+ * `contract_type`. SQL ordering (`start_date ASC, id ASC`) combined
+ * with fingerprint ordering by `id ASC` guarantees deterministic output
+ * for a given input (required by ADR § 6.5 re-review reuse).
  */
 final class RiskDetectionService
 {
     /**
-     * Cache mémoire intra-instance des clusters détectés indexé par
-     * `"{companyId}|{year}"` (Lot 3 D08).
+     * Per-request memoization keyed by `"{companyId}|{year}"`.
      *
-     * **Périmètre de sécurité** · purement per-request (Service Laravel
-     * resolved par requête HTTP) · garbage-collecté en fin de requête,
-     * aucun cache cross-request à invalider. Le contrat de mémoïsation
-     * est sûr tant qu'aucun consommateur ne mute les contracts ou les
-     * `FiscalRiskSettings` **entre deux appels intra-requête** sur le
-     * même couple `(companyId, year)`.
+     * Scope is strictly per-request (Laravel resolves the service per
+     * HTTP request and it is garbage-collected at the end). Safe as
+     * long as no consumer mutates contracts or `FiscalRiskSettings`
+     * between two calls for the same pair within the same request.
      *
-     * **Hot path bénéficiaire** · `GenerateDeclarationAction::execute`
-     * et `DeclarationController` (preview+show) appellent successivement
-     * `DeclarationPreviewService::preview()` puis
-     * `DeclarationFiscalEngine::compute()`, qui chacun déclenche un
-     * `detectClusters($companyId, $year)` · sans cache, le calcul
-     * (chaînage LCD + fingerprint) est exécuté 2 fois.
+     * Hot path · `GenerateDeclarationAction::execute` and
+     * `DeclarationController` (preview + show) both call
+     * `DeclarationPreviewService::preview()` then
+     * `DeclarationFiscalEngine::compute()`, each triggering
+     * `detectClusters($companyId, $year)`. Without the cache the
+     * chain + fingerprint work runs twice.
      *
-     * **Échappatoire** · {@see clearCache()} permet d'invalider
-     * manuellement si jamais une Action future doit muter contracts puis
-     * recalculer dans la même requête (cas non observé aujourd'hui).
+     * {@see clearCache()} provides a manual escape hatch for future
+     * actions that might mutate contracts and recompute in the same
+     * request.
      *
      * @var array<string, list<ReviewClusterData>>
      */
@@ -82,13 +71,9 @@ final class RiskDetectionService
     }
 
     /**
-     * Vide le cache de mémoïsation per-request.
-     *
-     * À utiliser uniquement par les rares consommateurs qui mutent les
-     * contracts ou les `FiscalRiskSettings` entre deux appels
-     * `detectClusters()` dans la même requête HTTP. Pas nécessaire en
-     * fonctionnement normal (le cache est garbage-collecté en fin de
-     * requête).
+     * Clears the per-request memoization cache. Use only when an Action
+     * mutates contracts or risk settings and must recompute clusters
+     * within the same HTTP request.
      */
     public function clearCache(): void
     {
@@ -121,13 +106,12 @@ final class RiskDetectionService
     }
 
     /**
-     * Algorithme de chaînage (ADR-0015 § 4, refondu D5.10.Q) · une
-     * chaîne regroupe des LCD successifs séparés au plus de
-     * `max_interval` jours pleins. Les contrats LLD intercalés sont
-     * silencieusement ignorés · ils n'ont aucun rapport métier avec
-     * une chaîne LCD (cohérence doctrine D5.10.N · la chaîne vise la
-     * continuité temporelle d'usage en LCD, indépendamment d'autres
-     * contrats LLD parallèles sur d'autres véhicules).
+     * Chain algorithm (ADR-0015 § 4) · a chain groups successive LCD
+     * contracts separated by at most `max_interval` full days.
+     * Interleaved LLD contracts are silently ignored · they bear no
+     * business relationship to an LCD chain (an LCD chain captures
+     * temporal continuity of short-term usage, independent of any LLD
+     * contract on other vehicles).
      *
      * @param  Collection<int, Contract>  $contracts
      * @return list<list<Contract>>
@@ -183,30 +167,22 @@ final class RiskDetectionService
     }
 
     /**
-     * Qualifie une chaîne en R-LCD-CHAIN, R-LCD-CHAIN-FORT ou rien.
+     * Qualifies a chain as R-LCD-CHAIN, R-LCD-CHAIN-FORT or nothing.
      *
-     * **Lot 5 D1 · critère union des jours uniques couverts** · le seuil
-     * de qualification se calcule sur l'union des jours **effectivement
-     * couverts** par au moins un contrat de la chaîne (intervalles
-     * fusionnés, bornés à l'année fiscale). Approche exacte qui couvre
-     * uniformément deux pièges :
+     * Threshold criterion · union of unique days covered by at least
+     * one contract in the chain, with intervals merged and clipped to
+     * the fiscal year. Exact handling for two symmetric traps ·
      *
-     *   - **Contrats chevauchants** (ex. 3 contrats de 17 j superposés
-     *     sur les mêmes 17 jours) · le cumul brut surcompterait
-     *     (51 j faux), l'union restitue la réalité (17 j).
-     *   - **Contrats avec trous** (ex. 15 j → trou 50 j → 8 j) · la
-     *     plage début→fin surcompterait (73 j faux), l'union retient
-     *     uniquement les jours d'usage réel (23 j).
+     *   - Overlapping contracts (e.g. three 17-day contracts on the
+     *     same 17 days) · the naive sum (51 d) overcounts; the union
+     *     restores reality (17 d).
+     *   - Sparse chains (e.g. 15 d → 50-day gap → 8 d) · the
+     *     start-to-end span (73 d) overcounts; the union retains only
+     *     the days of actual usage (23 d).
      *
-     * Le `coverageStartDate` / `coverageEndDate` continuent de désigner
-     * la borne extérieure de la chaîne (premier début · dernier fin,
-     * bornés à l'année) · ils servent uniquement à l'affichage UI du
-     * header de cluster, pas au seuil.
-     *
-     * **Historique** · D5.10.N avait migré du cumul brut vers la plage
-     * couverte ; cette doctrine a été remplacée par l'union des jours
-     * (Lot 5 D1) après identification du surcomptage symétrique de
-     * la plage en cas de trous internes.
+     * `coverageStartDate` / `coverageEndDate` keep their meaning as
+     * the outer bounds (first start, last end, clipped to the year)
+     * for header display only · they do not feed the threshold.
      *
      * @param  list<Contract>  $chain
      */
@@ -222,8 +198,6 @@ final class RiskDetectionService
 
         $coveragePeriodDays = $this->unionDays($intervals);
 
-        // Bornes externes de la chaîne (pour l'affichage UI uniquement,
-        // pas pour le seuil) · premier début ↔ dernier fin, bornés à l'année.
         $coverageStart = $intervals[0][0];
         $coverageEnd = $intervals[0][1];
         foreach ($intervals as [$start, $end]) {
@@ -267,9 +241,9 @@ final class RiskDetectionService
     }
 
     /**
-     * Renvoie la liste des intervalles `[start, end]` (CarbonImmutable)
-     * de chaque contrat de la chaîne, bornés à l'année fiscale et
-     * écartés s'ils tombent entièrement hors année.
+     * Returns the `[start, end]` interval list of every contract in
+     * the chain, clipped to the fiscal year and dropping contracts
+     * entirely outside the year.
      *
      * @param  list<Contract>  $chain
      * @return list<array{0: CarbonImmutable, 1: CarbonImmutable}>
@@ -294,11 +268,10 @@ final class RiskDetectionService
     }
 
     /**
-     * Union des jours uniques couverts par au moins un intervalle.
-     * Algorithme classique · tri par date de début, fusion des
-     * intervalles chevauchants ou contigus (un intervalle qui démarre
-     * le lendemain du précédent est fusionné · 1-10 ∪ 11-20 = 1-20),
-     * puis somme inclusive des durées des intervalles fusionnés.
+     * Union of unique days covered by at least one interval. Sorts by
+     * start, merges overlapping or contiguous intervals (an interval
+     * starting the day after the previous end is merged · 1-10 ∪ 11-20
+     * = 1-20), then sums inclusive durations.
      *
      * @param  list<array{0: CarbonImmutable, 1: CarbonImmutable}>  $intervals
      */

@@ -15,39 +15,36 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Agrège les items en attente (déclarations + factures) sur toute la
- * flotte multi-entreprises pour le Dashboard (Phase 13 D5.15 ·
- * réécrit en D5.15.3 pour batch SQL).
+ * Aggregates pending items (declarations + invoices) across the entire
+ * multi-company fleet for the Dashboard.
  *
- * **Pourquoi un service dédié** · le `DashboardStatsService` doit
- * rester focalisé sur les KPI/heatmap/évolution. La logique
- * d'agrégation multi-entreprises des items pending mérite son propre
- * service · testable isolément, performant grâce à un chemin batch
- * dédié.
+ * Why a dedicated service · `DashboardStatsService` stays focused on
+ * KPI / heatmap / evolution. Cross-company pending aggregation deserves
+ * its own service · testable in isolation, with a dedicated batch
+ * implementation tuned for the dashboard hot path.
  *
- * **Stratégie batch (D5.15.3)** · au lieu d'itérer les entreprises et
- * d'appeler les resolvers `pendingForCompany()` (qui font N appels à
- * `BillingBreakdownService::byCompanyForYear` · ~6 SQL/appel),
- * l'aggregator charge en **5 SQL globales** ·
+ * Batch strategy · instead of iterating companies and calling the
+ * `pendingForCompany()` resolvers (which themselves trigger ~6 SQL each
+ * via `BillingBreakdownService::byCompanyForYear`), the aggregator
+ * loads everything in 5 global SQL queries ·
  *
- * 1. liste entreprises actives
- * 2. tous les contrats non supprimés (company_id, vehicle_id, start_date, end_date)
- * 3. toutes les déclarations fiscales non supprimées
- * 4. tous les vehicle_yearly_pricings pertinents
- * 5. toutes les invoices existantes (company_id, fiscal_year, month)
+ *   1. Active companies.
+ *   2. Non-deleted contracts (`company_id`, `vehicle_id`, `start_date`,
+ *      `end_date`).
+ *   3. Non-deleted fiscal declarations.
+ *   4. Relevant `vehicle_yearly_pricings`.
+ *   5. Existing invoices (`company_id`, `year`, `month`).
  *
- * Puis dérive les états et compte les mois manquants en PHP. Pour
- * une flotte de 5 entreprises · de 38 SQL → 5 SQL.
+ * Then derives lifecycle states and counts missing months in PHP. On a
+ * 5-company fleet · ~38 SQL → 5 SQL.
  *
- * **Simplifications acceptées pour le dashboard** ·
- * - Pour les déclarations en `Draft` sans predecessor, l'état est
- *   toujours résolu en `DraftPending` (CTA · « Continuer la revue »).
- *   La distinction fine avec `DraftReadyToGenerate` (CTA · « Générer »)
- *   nécessiterait un appel à `RiskDetection::detectClusters()` par
- *   (company, year) · trop coûteux pour un dashboard top 5. Le user
- *   accède au vrai CTA en cliquant sur la ligne (fiche entreprise).
- * - `pendingClustersCount` toujours à 0 dans le DTO Dashboard (non
- *   affiché sur la carte).
+ * Dashboard-specific simplifications ·
+ *   - Drafts without a predecessor always resolve to `DraftPending`
+ *     ("Continuer la revue"). Distinguishing from `DraftReadyToGenerate`
+ *     ("Générer") would require a per-`(company, year)` call to
+ *     `RiskDetection::detectClusters()`; too costly for the dashboard
+ *     top 5. The full CTA is shown on the company fiche.
+ *   - `pendingClustersCount` is always 0 (not displayed on the card).
  */
 final readonly class DashboardPendingTasksAggregator
 {
@@ -156,8 +153,8 @@ final readonly class DashboardPendingTasksAggregator
     }
 
     /**
-     * Construit la map `[companyId => [year => true]]` représentant la
-     * plage d'années couvertes par les contrats de chaque entreprise.
+     * Builds the `[companyId => [year => true]]` map covering every
+     * year touched by each company's contracts.
      *
      * @param  Collection<int, \stdClass>  $contracts
      * @return array<int, array<int, true>>
@@ -177,8 +174,8 @@ final readonly class DashboardPendingTasksAggregator
     }
 
     /**
-     * Charge toutes les déclarations actives indexées par
-     * `"{companyId}|{fiscalYear}"` (newest first via order DESC).
+     * Loads every non-deleted declaration indexed by
+     * `"{companyId}|{fiscalYear}"` (newest first via descending id).
      *
      * @param  list<int>  $companyIds
      * @return array<string, list<object>>
@@ -211,7 +208,7 @@ final readonly class DashboardPendingTasksAggregator
     }
 
     /**
-     * Charge tous les tarifs annuels indexés par `"{vehicleId}|{year}"`.
+     * Loads every yearly pricing indexed by `"{vehicleId}|{year}"`.
      *
      * @param  list<int>  $vehicleIds
      * @return array<string, true>
@@ -236,8 +233,7 @@ final readonly class DashboardPendingTasksAggregator
     }
 
     /**
-     * Charge toutes les factures existantes indexées par
-     * `"{companyId}|{year}|{month}"`.
+     * Loads existing invoices indexed by `"{companyId}|{year}|{month}"`.
      *
      * @param  list<int>  $companyIds
      * @return array<string, true>
@@ -259,8 +255,8 @@ final readonly class DashboardPendingTasksAggregator
     }
 
     /**
-     * Construit un item « déclaration en attente » pour une (company,
-     * year) donnée, ou null si l'année n'est pas pending.
+     * Builds a "pending declaration" item for a `(company, year)` pair,
+     * or null when the year is not pending.
      *
      * @param  array<string, list<object>>  $declsByKey
      */
@@ -305,8 +301,8 @@ final readonly class DashboardPendingTasksAggregator
     }
 
     /**
-     * Construit un item « factures en attente » pour une (company,
-     * year) donnée, ou null s'il n'y a pas de mois manquants.
+     * Builds a "pending invoices" item for a `(company, year)` pair, or
+     * null when no month is missing.
      *
      * @param  Collection<int, \stdClass>  $companyContracts
      * @param  array<string, true>  $pricingByKey
@@ -338,11 +334,8 @@ final readonly class DashboardPendingTasksAggregator
 
             $vehicleIdsInMonth = [];
             foreach ($companyContracts as $c) {
-                $cStart = (string) $c->start_date;
-                $cEnd = (string) $c->end_date;
-                // Normalize datetime strings (e.g. "2024-03-01 00:00:00") to dates
-                $cStart = substr($cStart, 0, 10);
-                $cEnd = substr($cEnd, 0, 10);
+                $cStart = substr((string) $c->start_date, 0, 10);
+                $cEnd = substr((string) $c->end_date, 0, 10);
 
                 if ($cStart <= $monthEndStr && $cEnd >= $monthStartStr) {
                     $vehicleIdsInMonth[(int) $c->vehicle_id] = true;
@@ -384,8 +377,8 @@ final readonly class DashboardPendingTasksAggregator
     }
 
     /**
-     * Trouve la « head » de la chaîne (superseded_by_id IS NULL) et son
-     * éventuel predecessor (autre déclaration de la même année avec
+     * Locates the chain head (`superseded_by_id IS NULL`) and its
+     * optional predecessor (another declaration of the same year with
      * `superseded_by_id = head.id`).
      *
      * @param  list<object>  $declList
@@ -415,10 +408,10 @@ final readonly class DashboardPendingTasksAggregator
     }
 
     /**
-     * Mappe (head, predecessor) → DeclarationLifecycleState. Aligné sur
-     * {@see DeclarationLifecycleResolver::deriveState}
-     * sauf · pour Draft sans predecessor on retourne toujours
-     * `DraftPending` (cf. PHPDoc de la classe).
+     * Maps `(head, predecessor)` to a `DeclarationLifecycleState`,
+     * aligned with {@see DeclarationLifecycleResolver::deriveState()}
+     * except that drafts without predecessor always resolve to
+     * `DraftPending` (cf. class PHPDoc).
      */
     private function deriveState(?object $head, ?object $predecessor): DeclarationLifecycleState
     {
@@ -441,17 +434,14 @@ final readonly class DashboardPendingTasksAggregator
                 : DeclarationLifecycleState::Deferred;
         }
 
-        // generated
         return (int) $head->is_obsolete === 1
             ? DeclarationLifecycleState::GeneratedObsoleteOrphan
             : DeclarationLifecycleState::GeneratedActive;
     }
 
     /**
-     * Pour les états S6/S7 (GeneratedObsoleteOrphan / RegenerationInProgress
-     * / DeferredRegeneration), extrait `obsolete_at` et le nombre de
-     * motifs depuis la déclaration porteuse (head pour S6, predecessor
-     * pour S7).
+     * Extracts `obsolete_at` and the reasons count from the carrier
+     * declaration (head for S6, predecessor for S7).
      *
      * @return array{0: ?string, 1: int}
      */

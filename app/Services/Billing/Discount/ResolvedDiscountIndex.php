@@ -7,34 +7,32 @@ namespace App\Services\Billing\Discount;
 use App\Models\RentalDiscount;
 
 /**
- * Index in-memory `(vehicleId, dateStr Y-m-d) -> RentalDiscount|null`
- * pré-calculé pour une (entreprise × année) (ou multi-entreprises selon
- * le mode de préchargement).
+ * In-memory `(vehicleId, ISO date) → RentalDiscount|null` index
+ * precomputed for one `(company × year)` (or for a multi-company
+ * batch). The « empty pivot = every vehicle » semantic is handled at
+ * preload · a discount with no pivot is recorded under the wildcard
+ * bucket.
  *
- * Sémantique « pivot vide = tous les véhicules » prise en compte au
- * preload · si une réduction n'a aucun pivot, elle est enregistrée
- * sous le wildcard `null` pour le vehicleId.
- *
- * Lookup O(1) via {@see findFor}. Conçu pour être créé une fois par
- * (entreprise × année) puis interrogé en boucle par le `DiscountApplier`
- * sans nouvelle SQL.
+ * O(1) lookups via {@see findFor()}. Designed to be built once per
+ * `(company × year)` and queried in a loop by the
+ * {@see DiscountApplier} without further SQL.
  */
 final class ResolvedDiscountIndex
 {
     /**
-     * Réductions à appliquer aux véhicules listés explicitement. Indexé
-     * `vehicleId -> list<RentalDiscount>`. Les réductions sont triées
-     * par start_date pour assurer un ordre déterministe (et l'unicité
-     * d'application garantie par le ConflictService permet de prendre
-     * la première qui matche la date).
+     * Discounts attached to explicit vehicles, indexed as
+     * `vehicleId → list<RentalDiscount>`. Sorted by `start_date` for
+     * deterministic ordering · uniqueness is guaranteed by
+     * `RentalDiscountConflictService`, so the first one matching a
+     * given date wins.
      *
      * @var array<int, list<RentalDiscount>>
      */
     private array $byVehicle = [];
 
     /**
-     * Réductions « tous véhicules » (pivot vide) pour cette
-     * (entreprise × année). Triées par start_date.
+     * "All vehicles" discounts (empty pivot) for the
+     * `(company × year)`, sorted by `start_date`.
      *
      * @var list<RentalDiscount>
      */
@@ -43,7 +41,7 @@ final class ResolvedDiscountIndex
     private bool $empty = true;
 
     /**
-     * @param  iterable<int, RentalDiscount>  $discounts  Doivent avoir leur relation `vehicles` eager-loadée.
+     * @param  iterable<int, RentalDiscount>  $discounts  Must come with the `vehicles` relation eager-loaded.
      */
     public static function fromDiscounts(iterable $discounts): self
     {
@@ -74,25 +72,20 @@ final class ResolvedDiscountIndex
     }
 
     /**
-     * Retourne la réduction active pour `(vehicleId, dateStr)` ou `null`
-     * si aucune.
+     * Active discount for `(vehicleId, dateStr)`, or `null`.
      *
-     * Précédence · si une réduction "tous véhicules" et une réduction
-     * "subset" se trouvent toutes deux applicables sur le même véhicule
-     * à la même date, la garantie du `RentalDiscountConflictService`
-     * exclut ce cas en amont (overlap interdit). On peut donc prendre
-     * la première trouvée sans risque d'ambiguïté.
+     * Precedence · `RentalDiscountConflictService` forbids overlap
+     * between an « all vehicles » discount and a subset discount on
+     * the same date, so the first match is unambiguous.
      */
     public function findFor(int $vehicleId, string $date): ?RentalDiscount
     {
-        // 1. lookup explicite par véhicule.
         foreach ($this->byVehicle[$vehicleId] ?? [] as $discount) {
             if ($this->dateInDiscount($date, $discount)) {
                 return $discount;
             }
         }
 
-        // 2. fallback "tous véhicules".
         foreach ($this->allVehicles as $discount) {
             if ($this->dateInDiscount($date, $discount)) {
                 return $discount;
@@ -103,9 +96,9 @@ final class ResolvedDiscountIndex
     }
 
     /**
-     * Hot path · permet aux consommateurs d'esquiver entièrement le
-     * pipeline réduction si aucune réduction n'est active. Garantie
-     * d'équivalence stricte avec le pipeline pre-Lot 2.
+     * Hot path · lets consumers fully skip the discount pipeline when
+     * no discount is active, guaranteeing byte-identical equivalence
+     * with the pre-discount pipeline.
      */
     public function isEmpty(): bool
     {

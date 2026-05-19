@@ -27,21 +27,21 @@ use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
 
 /**
- * Détail complet d'une entreprise pour la page Show (extrait de
- * `CompanyQueryService` pour respecter SRP · Lot 4 D08 / F-11-004).
+ * Detail service for the Company Show page, extracted from
+ * `CompanyQueryService` for SRP.
  *
- * Concentre le flot le plus complexe du domaine Company (~180 l de
- * logique principale) qui agrège tout pour la page Show ·
- *   - hero d'identité (intemporel)
- *   - KPIs lifetime cumulés
- *   - section « Historique par année »
- *   - sous-stats par année (heatmap mensuelle + top 3 véhicules)
- *   - liste des drivers avec memberships actives + sorties
+ * Carries the most complex flow of the Company domain, aggregating ·
+ *   - identity hero (timeless)
+ *   - lifetime KPIs (cumulative)
+ *   - "Historique par année" section
+ *   - per-year sub-stats (monthly heatmap + top 3 vehicles)
+ *   - driver list with active memberships + departures
  *
- * **Doctrine temporelle (chantier η Phase 1)** · 3 lentilles distinctes ·
- *   - Présent · KPIs en haut (année calendaire courante)
- *   - Lifetime · KPIs cumulés toutes années confondues
- *   - Historique · 1 ligne par année du scope global, MÊME les années à 0
+ * Three temporal lenses ·
+ *   - Present · top-of-page KPIs (current calendar year).
+ *   - Lifetime · cumulative KPIs across every year.
+ *   - History · one row per year in the global scope, even when the
+ *     company has no contract that year (zeros row).
  */
 final class CompanyDetailService
 {
@@ -57,26 +57,12 @@ final class CompanyDetailService
     ) {}
 
     /**
-     * Détail complet d'une entreprise pour la page Show · alimente :
-     *  - le hero d'identité (intemporel)
-     *  - les KPIs lifetime cumulés (`lifetime`)
-     *  - la section « Historique par année » (`history`)
-     *  - les onglets restants (Drivers, etc.) qui consomment les
-     *    champs identitaires existants
+     * Slim projection for the Edit page · the 14 scalar identity /
+     * address / contact fields, without triggering the fiscal pipeline
+     * nor any multi-year aggregation.
      *
-     * `currentRealYear` est exposé pour permettre à l'historique de
-     * marquer l'exercice en cours sans dépendre de `new Date()`
-     * côté front (cf. ADR-0020 D4).
-     */
-    /**
-     * Vue slim pour la page Edit · projection des 14 champs scalaires
-     * d'identité / adresse / contact, **sans** déclencher le pipeline
-     * fiscal ni les agrégations multi-années.
-     *
-     * Économise ~280 ms cold vs `detail()` (qui exécute drivers +
-     * lifetime + history + activityByYear avec pipeline fiscal complet).
-     * Cf. `project-management/perf-audit-2026-05-16/03-company.md` P0 #2
-     * + doctrine `chargement-strict-par-ecran.md` § 2.
+     * Saves ~280 ms cold versus {@see detail()} (which runs drivers +
+     * lifetime + history + activityByYear with the full fiscal pipeline).
      */
     public function detailForEdit(int $companyId): ?CompanyEditData
     {
@@ -103,6 +89,13 @@ final class CompanyDetailService
         );
     }
 
+    /**
+     * Full detail for the Show page · identity hero, lifetime KPIs,
+     * history, per-year activity, drivers list.
+     *
+     * `currentRealYear` lets the history mark the in-progress fiscal
+     * exercise on the frontend without relying on `new Date()`.
+     */
     public function detail(int $companyId): ?CompanyDetailData
     {
         $company = $this->companies->findById($companyId);
@@ -113,18 +106,14 @@ final class CompanyDetailService
         $today = Carbon::today();
         $currentRealYear = (int) $today->year;
 
-        // Drivers de cette entreprise (toutes memberships, actives + sorties)
         $company->load(['drivers' => function ($query): void {
             $query->orderByPivot('joined_at');
         }]);
 
-        // Compte de contrats par driver dans la company donnée. Pivot
-        // N:N `contract_drivers` (cf. chantier #3 multi-conducteurs) :
-        // un contrat avec 2 drivers compte 1 fois pour chacun.
-        //
-        // Lot 4 D04 (F-34-006) · agrégation déléguée à
-        // `ContractReadRepository::countContractsByDriverForCompany`
-        // (conformité ADR-0013 R3 · pas de SQL direct dans les Services).
+        // Per-driver contract count in this company. The N:N pivot
+        // `contract_drivers` is used · a contract with two drivers
+        // counts once for each. Aggregation delegated to the repository
+        // (ADR-0013 R3 · no direct SQL in services).
         $contractsCountByDriver = $this->contractsRepo->countContractsByDriverForCompany($companyId);
 
         $driverRows = $company->drivers->map(function ($driver) use ($contractsCountByDriver): CompanyDriverRowData {
@@ -142,9 +131,8 @@ final class CompanyDetailService
                 initials: $initials !== '' ? $initials : '-',
                 joinedAt: $pivot->joined_at->toDateString(),
                 leftAt: $pivot->left_at?->toDateString(),
-                // Sémantique alignée sur `findActiveMembership` write-side
-                // (`left_at IS NULL`). Cf. chantier B + cohérence avec
-                // `DriverQueryService::detail`.
+                // Matches the write-side `findActiveMembership` semantic
+                // (`left_at IS NULL`). Mirrors `DriverQueryService::detail`.
                 isCurrentlyActive: $pivot->left_at === null,
                 contractsCount: (int) ($contractsCountByDriver[$driver->id] ?? 0),
             );
@@ -157,15 +145,13 @@ final class CompanyDetailService
             }
         }
 
-        // ADR-0020 D3 · calcul des stats temporelles (lifetime + history)
         $contractsCount = $this->contracts->countContractsForCompany($companyId);
         $availableYears = $this->contracts->findActiveYearsForCompany($companyId);
 
-        // F-11-001 · 1 chargement bulk en range au lieu de 2×N appels
-        // year-by-year à `loadContractsByPair()` depuis `computeYearStats`
-        // et `computeActivityForYear`. Le pivot pré-résolu est passé en
-        // paramètre aux 2 sous-méthodes pour court-circuiter leur
-        // chargement interne.
+        // Single bulk load over the year range instead of 2×N year-by-year
+        // calls to `loadContractsByPair()` from `computeYearStats` and
+        // `computeActivityForYear`. The pre-resolved pivot is forwarded
+        // to both sub-methods to short-circuit their internal loading.
         $contractsByYear = [];
         if ($availableYears !== []) {
             $contractsByYear = $this->contracts->loadContractsByPairForYearRange(
@@ -174,9 +160,6 @@ final class CompanyDetailService
             );
         }
 
-        // Toutes les années où l'entreprise a au moins un contrat,
-        // utilisées pour pré-calculer history + activityByYear (sans
-        // distinction encore présent/passé).
         $allYearStats = [];
         foreach ($availableYears as $year) {
             $allYearStats[$year] = $this->computeYearStats(
@@ -194,40 +177,35 @@ final class CompanyDetailService
                 2,
                 PHP_ROUND_HALF_UP,
             ),
-            // V1.2 · la facturation des loyers n'est pas livrée. Le champ
-            // est exposé en placeholder null pour que l'UI le rende dès
-            // maintenant (carte KPI, branchement réel quand le module
-            // facturation arrive).
+            // Rent total exposed as a nullable placeholder until the
+            // billing module is wired in. The UI renders the KPI card
+            // already; the real value lights up once available.
             rentTotal: null,
         );
 
-        // **Doctrine temporelle (chantier η Phase 1)** : 3 lentilles distinctes.
-        //
-        // Présent · KPIs en haut de page, toujours sur l'année calendaire
-        // courante. Si l'entreprise n'a pas de contrat sur cette année,
-        // on retourne un CompanyYearStatsData neutre (zéros) · l'UI
-        // affichera "0 j / 0 contrats / 0 €" sans crash.
+        // Present · top-of-page KPIs, always on the current calendar
+        // year. If the company has no contract that year, a neutral
+        // CompanyYearStatsData (zeros) is returned so the UI renders
+        // "0 j / 0 contrats / 0 €" without crashing.
         $kpiYear = $this->availableYears->currentYear();
         $kpiStats = $allYearStats[$kpiYear] ?? $this->emptyYearStats($kpiYear);
 
-        // Distingue "données absentes" (KPIs à 0) de "calcul fiscal
-        // impossible" (règles fiscales pas encore codées pour kpiYear).
-        // Permet à l'UI d'afficher un message court explicite sur la
-        // KPI Taxes uniquement (cf. doctrine HD6).
+        // Distinguishes "no data" (zero KPIs) from "fiscal computation
+        // unavailable" (rules not yet coded for `kpiYear`). Lets the UI
+        // surface a short explicit message on the Taxes KPI only.
         $kpiFiscalAvailable = in_array(
             $kpiYear,
             $this->fiscalRules->registeredYears(),
             true,
         );
 
-        // Évolution · section Historique : toutes les années passées du
-        // scope global `[minYear..kpiYear-1]`, MÊME celles où cette
-        // entreprise n'a aucun contrat (lignes neutres à zéros). Une
-        // année à 0 sur la fiche Entreprise est une info utile (« cette
-        // année-là, l'entreprise n'a rien utilisé »). Cohérent avec la
-        // doctrine HD4 : bornes globales partagées par toutes les pages.
-        // Si la DB est vide globalement, `minYear == kpiYear` → boucle
-        // vide → état empty UI déclenché.
+        // History · every past year in the global scope
+        // `[minYear..kpiYear-1]`, including years where the company has
+        // no contract (neutral zero rows). A zero year on a company
+        // fiche is informative ("this year nothing was used"). Consistent
+        // with the global-bounds doctrine shared across screens. When
+        // the DB is empty globally, `minYear == kpiYear` → empty loop
+        // → UI empty state.
         $historyMinYear = $this->availableYears->minYear();
         $history = [];
         for ($year = $historyMinYear; $year < $kpiYear; $year++) {
@@ -276,20 +254,14 @@ final class CompanyDetailService
     }
 
     /**
-     * Calcule l'activité détaillée d'une entreprise pour un exercice :
-     * heatmap mensuelle (12 entiers, jours-véhicules / mois) + top 3
-     * véhicules (triés desc par jours utilisés).
+     * Computes the per-year activity detail · 12-month heatmap (vehicle-days
+     * per month) and top 3 vehicles (descending by used days). Vehicle
+     * lookup is bulked to avoid N+1. Returns neutral data (zero heatmap
+     * + empty top) when the company has no pair for the year.
      *
-     * Cette méthode dépend des informations véhicule (licensePlate,
-     * brand, model) · les charge via le repo en bulk pour éviter les
-     * N+1 lors de l'itération. Si l'entreprise n'a aucun pair sur
-     * l'année (cas `availableYears` partiellement vide), retourne un
-     * `CompanyActivityYearData` à zéros (12 cases vides + top vide).
-     *
-     * F-11-001 · `$preloadedPair` permet à l'appelant (cf. `detail()`)
-     * de fournir un pivot déjà résolu en bulk via
-     * `loadContractsByPairForYearRange()` · économise N appels à
-     * `loadContractsByPair($year)`.
+     * `$preloadedPair` lets {@see detail()} feed the pivot resolved in
+     * bulk via `loadContractsByPairForYearRange()`, saving N
+     * `loadContractsByPair($year)` calls.
      */
     private function computeActivityForYear(
         int $companyId,
@@ -298,10 +270,10 @@ final class CompanyDetailService
     ): CompanyActivityYearData {
         $contractsByPair = $preloadedPair ?? $this->contracts->loadContractsByPair($year);
 
-        // Pré-passe : on accumule par véhicule (pour le top) et par mois
-        // (pour la heatmap), à partir des couples de l'entreprise sur
-        // l'année. Un jour-véhicule = 1 unité ; deux véhicules attribués
-        // simultanément le même jour = 2 unités sur le compteur du mois.
+        // Two-pass accumulator · by vehicle (for the top), by month (for
+        // the heatmap), driven by the company's pairs over the year.
+        // One vehicle-day = one unit; two vehicles attributed on the
+        // same day = two units on that month's counter.
         /** @var array<int, int> $daysPerVehicle */
         $daysPerVehicle = [];
         $daysByMonth = array_fill(0, 12, 0);
@@ -309,7 +281,7 @@ final class CompanyDetailService
         foreach ($contractsByPair->pairsForCompany($companyId) as $vehicleId => $pairContracts) {
             foreach ($pairContracts as $contract) {
                 foreach ($contract->expandToDaysInYear($year) as $iso) {
-                    $monthIndex = (int) substr($iso, 5, 2) - 1; // YYYY-MM-DD → 0..11
+                    $monthIndex = (int) substr($iso, 5, 2) - 1;
                     $daysByMonth[$monthIndex]++;
                     $daysPerVehicle[$vehicleId] = ($daysPerVehicle[$vehicleId] ?? 0) + 1;
                 }
@@ -324,12 +296,9 @@ final class CompanyDetailService
             );
         }
 
-        // Top 3 véhicules · tri desc, limite 3.
         arsort($daysPerVehicle);
         $topVehicleIds = array_slice(array_keys($daysPerVehicle), 0, 3, preserve_keys: true);
 
-        // Lookup bulk pour récupérer license_plate + brand + model des
-        // véhicules du top (au plus 3 · coût négligeable).
         $vehiclesById = $this->vehicles->findByIdsIndexed($topVehicleIds);
 
         $totalVehicleDays = (int) array_sum($daysPerVehicle);
@@ -361,9 +330,8 @@ final class CompanyDetailService
     }
 
     /**
-     * Stats neutres (tous compteurs à zéro) pour une année où l'entreprise
-     * n'a aucun contrat. Utilisé pour les KPIs et pour combler les trous
-     * dans l'historique.
+     * Neutral stats (all counters zero) for a year where the company
+     * has no contract. Used for KPIs and to fill history gaps.
      */
     private function emptyYearStats(int $year): CompanyYearStatsData
     {
@@ -379,14 +347,9 @@ final class CompanyDetailService
     }
 
     /**
-     * Calcule les KPIs annuels d'une entreprise pour une année donnée.
-     * Charge les contrats de l'année (toutes flottes via aggregator) puis
-     * filtre sur le couple `(vehicleId, $companyId)` côté `ContractsByPair`.
-     *
-     * F-11-001 · `$preloadedPair` permet à l'appelant (cf. `detail()`)
-     * de fournir un pivot déjà résolu en bulk via
-     * `loadContractsByPairForYearRange()` · économise N appels à
-     * `loadContractsByPair($year)`.
+     * Yearly KPIs for one company. Loads the year contracts (cross-fleet
+     * via aggregator) then filters on the `(vehicleId, $companyId)` pair
+     * on the `ContractsByPair` side.
      */
     private function computeYearStats(
         int $companyId,
@@ -424,13 +387,10 @@ final class CompanyDetailService
                     $year,
                 );
             } catch (FiscalCalculationException) {
-                // L'année n'est pas configurée dans le calculateur
-                // (cf. `config/floty.fiscal.available_years`). On laisse
-                // `annualTaxDue: 0.0` plutôt que faire crasher la page ·
-                // l'utilisateur voit quand même les jours et le compte
-                // de contrats pour cet exercice. Cas typique : contrats
-                // antérieurs à la config fiscale, ou en avance sur
-                // celle-ci.
+                // Year not registered in the fiscal calculator. We keep
+                // `annualTaxDue: 0.0` rather than crashing the page · the
+                // user still sees days and contracts count. Typical for
+                // contracts predating or postdating the supported range.
                 $annualTaxDue = 0.0;
             }
         }

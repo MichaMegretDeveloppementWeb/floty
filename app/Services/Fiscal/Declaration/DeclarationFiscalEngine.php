@@ -21,51 +21,44 @@ use Carbon\CarbonImmutable;
 use RuntimeException;
 
 /**
- * Orchestre le calcul fiscal d'une déclaration pour un couple
- * `(company, year)` en intégrant les décisions humaines de revue
- * (Phase 11 D5.2, refondu D5.8 avec breakdown par contrat).
+ * Orchestrates the fiscal computation of a declaration for a
+ * `(company, year)` pair, integrating human review decisions
+ * (ADR-0015 § D5.8).
  *
- * **Pourquoi un engine dédié** · le calcul d'une déclaration n'est pas
- * un calcul fiscal standard. Il applique en plus les décisions
- * « Requalified » prises par l'utilisateur sur les clusters LCD à
- * risque (D3-D4) en retirant l'exonération R-2024-021 aux contrats
- * concernés. La règle légale R-2024-021 reste pure (D5.1) ; les
- * opt-outs runtime sont portés par la **recette** (cet engine), pas
- * par la règle.
+ * Declaration tax is not a standard fiscal computation · it applies
+ * the user's « Requalified » decisions on risky LCD clusters by
+ * removing the R-2024-021 exemption from the affected contracts. The
+ * legal rule stays pure; the runtime opt-outs live in this engine.
  *
- * **Pipeline d'exécution** ·
- *   1. Re-détection des clusters via {@see RiskDetectionService}
- *      (déterministe par fingerprint, doctrine D2).
- *   2. Lecture des décisions persistées (D3) ; match decisions ↔ clusters
- *      par `cluster_fingerprint` via {@see DeclarationDecisionResolver}.
- *   3. Pour chaque cluster matché en `Requalified` · extraction des
- *      `contractId` membres → opt-out runtime.
- *   4. Construction ad-hoc d'un {@see App\Services\Fiscal\FleetFiscalAggregator}
- *      via {@see DeclarationAggregatorFactory} (overlay R-YYYY-021
- *      avec décorateur WithOptOuts).
- *   5. Calcul de la taxe **par couple véhicule × entreprise** via
- *      `companyAnnualTaxBreakdownByVehicle`.
- *   6. **Refonte D5.8** · répartition proportionnelle au niveau contrat ·
- *      `taxe_contrat = (jours_contrat_année / jours_couple_année) × taxe_couple`
- *      (cohérent avec R-2024-002 prorata journalier). Enrichissement
- *      de chaque entry avec · cluster fingerprint/riskCode/decision,
- *      caractéristiques fiscales véhicule pré-formatées, flag opt-out.
- *   7. Tri global `(startDate, vehicleId, contractId)` ASC pour groupage
- *      visuel naturel côté frontend (les contrats consécutifs d'un
- *      cluster LCD sont adjacents → enroulables dans `<ClusterGroup>`).
- *   8. Composition du {@see FiscalDeclarationSnapshot} immuable.
+ * Pipeline ·
+ *   1. Re-detect clusters through {@see RiskDetectionService}
+ *      (deterministic by fingerprint).
+ *   2. Load persisted decisions; match decisions ↔ clusters by
+ *      `cluster_fingerprint` via {@see DeclarationDecisionResolver}.
+ *   3. For each cluster matched as `Requalified` · extract member
+ *      `contractId`s → runtime opt-out.
+ *   4. Build an ad-hoc {@see App\Services\Fiscal\FleetFiscalAggregator}
+ *      via {@see DeclarationAggregatorFactory} (overlay of
+ *      R-YYYY-021 with the `WithOptOuts` decorator).
+ *   5. Compute tax `companyAnnualTaxBreakdownByVehicle()`.
+ *   6. Proportional split at the contract level ·
+ *      `contractTax = (contractDays / coupleDays) × coupleTax`.
+ *      Each entry is enriched with cluster fingerprint / riskCode /
+ *      decision, vehicle fiscal characteristics summary, opt-out flag.
+ *   7. Global sort by `(startDate, vehicleId, contractId)` ASC so the
+ *      frontend can roll up contiguous LCD-cluster contracts naturally.
+ *   8. Compose the immutable {@see FiscalDeclarationSnapshot}.
  *
- * **No-regression invariant** · sans aucune décision `Requalified`, les
- * totaux du snapshot restent **strictement identiques** au calcul
- * standard via `FleetFiscalAggregator::companyAnnualTax()`. La
- * répartition par contrat ne crée pas de divergence d'arrondi visible
- * grâce à `assertEqualsWithDelta(0.001)` dans les tests.
+ * No-regression invariant · without any `Requalified` decision, the
+ * snapshot totals stay strictly equal to the standard computation via
+ * `FleetFiscalAggregator::companyAnnualTax()`. The per-contract split
+ * never introduces a visible rounding divergence thanks to
+ * `assertEqualsWithDelta(0.001)` in tests.
  *
- * **SRP (Lot 4 D11 · F-19-004)** · les concerns « matching cluster ↔
- * décision » et « factory aggregator overlay » ont été extraits dans
- * deux services dédiés ({@see DeclarationDecisionResolver} et
- * {@see DeclarationAggregatorFactory}). Cet engine se concentre sur
- * l'orchestration et la composition du snapshot.
+ * SRP · cluster ↔ decision matching and aggregator overlay factory
+ * were extracted into {@see DeclarationDecisionResolver} and
+ * {@see DeclarationAggregatorFactory}; this engine focuses on
+ * orchestration and snapshot composition.
  */
 final readonly class DeclarationFiscalEngine
 {
@@ -95,11 +88,10 @@ final readonly class DeclarationFiscalEngine
             $persistedDecisions,
         );
 
-        // Phase D5.8.2 amélioration B · résout la traçabilité des
-        // décisions « reprises auto par fingerprint » depuis le
-        // prédécesseur de la déclaration courante. Permet au composant
-        // frontend `<ClusterGroup>` d'afficher le badge 🔁 distinguant
-        // décisions héritées vs décisions prises dans la session.
+        // Resolves traceability of "decisions reused from the
+        // predecessor by fingerprint" so the frontend can render the
+        // inherited-decision badge distinguishing reused vs
+        // session-fresh decisions.
         $retainedFromByFingerprint = $this->decisionResolver->resolveRetainedFromMap(
             $companyId,
             $year,
@@ -146,9 +138,6 @@ final readonly class DeclarationFiscalEngine
             $year,
         );
 
-        // Phase 13 D5.10.N · l'ordre intermédiaire par vehicleId n'a
-        // plus d'importance · le tri final est strictement
-        // chronologique en bout de boucle (cf. usort plus bas).
         $contractEntries = [];
         $totalCo2Raw = 0.0;
         $totalPollutantsRaw = 0.0;
@@ -170,34 +159,33 @@ final readonly class DeclarationFiscalEngine
             $coupleCo2 = (float) $row['taxCo2'];
             $couplePollutants = (float) $row['taxPollutants'];
 
-            // Accumule les totaux **au niveau couple** (déjà arrondis
-            // par `companyAnnualTaxBreakdownByVehicle`). Garantit
-            // l'invariant · snapshot.totalDue == calcul standard, même
-            // si la répartition par contrat introduit des écarts
-            // d'arrondi d'un centime sur certaines lignes.
+            // Accumulate totals at the couple level (already rounded by
+            // `companyAnnualTaxBreakdownByVehicle`). Guarantees the
+            // invariant · `snapshot.totalDue == standard computation`,
+            // even if per-contract distribution introduces ±0.01 €
+            // rounding differences on individual lines.
             $totalCo2Raw += $coupleCo2;
             $totalPollutantsRaw += $couplePollutants;
 
-            // Phase 13 D5.10.R · 1ère passe · calcul des jours taxables
-            // par contrat. Un contrat LCD bénéficie de l'exonération
-            // R-2024-021 sauf s'il a été opt-out (Requalified) par une
-            // décision de cluster. La taxe couple `$coupleCo2` est déjà
-            // calculée avec R-2024-021 appliqué via le pipeline · elle
-            // ne porte que sur les jours non-exonérés du couple. La
-            // répartition par contrat doit donc se faire au prorata des
-            // jours taxables, pas des jours bruts, sinon les contrats
-            // LCD exemptés reçoivent illégitimement une part de taxe.
-            // D5.15.5 · motifs d'exonération **véhicule-niveau** remontés
-            // depuis le pipeline (électrique/hydrogène, handicap, OIG,
-            // hybride conditionnel, activité spécifique, indispo
-            // réductrice, etc.). Ces motifs s'appliquent à TOUS les
-            // contrats du couple (entreprise, véhicule) puisqu'ils
-            // découlent des caractéristiques du véhicule.
+            // Compute taxable days per contract. An LCD contract is
+            // exempt by R-2024-021 unless it has been opt-out by a
+            // cluster decision (Requalified). The couple tax
+            // `$coupleCo2` is already computed with R-2024-021 applied,
+            // so it covers only the couple's non-exempt days. The
+            // per-contract split must therefore use taxable days, not
+            // raw days, otherwise the exempt LCDs would unduly receive
+            // a slice of the tax.
             //
-            // On exclut R-{year}-021 (LCD courte durée) du jeu propagé ·
-            // c'est une exonération **par contrat** (opt-out possible
-            // par cluster), gérée séparément avec une wording dédiée
-            // ci-dessous.
+            // Vehicle-level exemption reasons are propagated from the
+            // pipeline (electric / hydrogen, handicap, OIG, conditional
+            // hybrid, specific activity, reductive unavailability, …).
+            // These apply to ALL contracts of the `(company, vehicle)`
+            // couple since they come from the vehicle.
+            //
+            // R-{year}-021 (LCD short-term rental) is excluded from the
+            // propagated set · it is a per-contract exemption (cluster
+            // opt-out possible) handled separately with a dedicated
+            // wording below.
             $lcdRuleCode = sprintf('R-%d-021', $year);
             $vehicleLevelReasons = [];
             foreach ($row['appliedExemptions'] as $exemption) {
@@ -218,11 +206,6 @@ final readonly class DeclarationFiscalEngine
                 $isExempted = $isLcd && ! in_array($contract->id, $optOutContractIds, true);
                 $taxableDays = $isExempted ? 0 : $daysInYear;
 
-                // Compose la raison d'exonération à afficher (Show + PDF) ·
-                // - tous les motifs véhicule-niveau du pipeline
-                // - + le motif LCD (R-{year}-021) si ce contrat est LCD
-                //   non opt-out
-                // Séparateur · « · » (cohérent avec le reste de l'UI Floty).
                 $contractReasons = $vehicleLevelReasons;
                 if ($isExempted) {
                     $contractReasons[] = sprintf(
@@ -282,10 +265,10 @@ final readonly class DeclarationFiscalEngine
             }
         }
 
-        // Phase 13 D5.10.N · tri snapshot strictement chronologique
-        // pour un breakdown plat lisible (plus de pseudo-groupes par
-        // véhicule qui éparpillaient les clusters multi-véhicules).
-        // Ordre stable · `(startDate, vehicleId, contractId)` ASC.
+        // Strict chronological snapshot ordering produces a readable
+        // flat breakdown (no pseudo-groups by vehicle that would
+        // scatter multi-vehicle clusters). Stable order ·
+        // `(startDate, vehicleId, contractId)` ASC.
         usort(
             $contractEntries,
             static function (ContractSnapshotEntry $a, ContractSnapshotEntry $b): int {
@@ -302,24 +285,17 @@ final readonly class DeclarationFiscalEngine
             },
         );
 
-        // Lot 5 D15 · doctrine CIBS L. 131-1 + BOI-AIS-MOB-10-30-10
-        // formalisée `project-management/taxes-rules/2025.md` § 4 ·
-        // « le montant total à payer par chaque redevable est arrondi à
-        // l'euro le plus proche, sans arrondi intermédiaire ».
+        // CIBS L. 131-1 + BOI-AIS-MOB-10-30-10 · « the total amount due
+        // by each taxpayer is rounded to the nearest euro, without
+        // intermediate rounding ». A single rounding on `totalDue` (the
+        // only declaratory amount). `co2DueTotal` and
+        // `pollutantsDueTotal` stay at centime precision · they are
+        // breakdown lines for the PDF and Show page, not declaratory
+        // values.
         //
-        // **Arrondi unique sur `totalDue`** (l'unique montant à
-        // déclarer officiellement à l'administration). Les composantes
-        // `co2DueTotal` et `pollutantsDueTotal` restent en haute
-        // précision (centime) · elles sont des informations détaillées
-        // affichées sur le PDF et la page Show pour traçabilité, pas
-        // des montants déclaratifs en tant que tels.
-        //
-        // Invariant cross-engine · `totalDue` == `FleetFiscalAggregator::companyAnnualTax`
-        // pour le même couple `(company, year)` quand aucune décision
-        // de revue n'est appliquée · garantit qu'un brouillon
-        // recalculé live (`engine->compute`) et un agrégat global
-        // (`aggregator->companyAnnualTax` utilisé sur Companies Index)
-        // donnent le même euro déclaré. Cf. test
+        // Cross-engine invariant · `totalDue` ==
+        // `FleetFiscalAggregator::companyAnnualTax` for the same
+        // `(company, year)` when no review decision applies. Covered by
         // `DeclarationFiscalEngineTest::standardAggregatorTotalFor`.
         return new FiscalDeclarationSnapshot(
             companyId: $company->id,
@@ -338,15 +314,11 @@ final readonly class DeclarationFiscalEngine
     }
 
     /**
-     * Construit l'adresse postale formatée de l'entreprise utilisatrice
-     * (Phase 13 D5.10.Y) à figer dans le snapshot pour le PDF. Concatène
-     * les composants renseignés avec un saut de ligne entre ·
-     *   - voie (line_1 + line_2 sur la même ligne s'ils sont tous deux
-     *     renseignés)
-     *   - localité (`{postal_code} {city}`)
-     *   - pays (si différent de FR, pour éviter le bruit du cas par
-     *     défaut)
-     * Retourne null si aucune partie n'est renseignée.
+     * Frozen company postal address for the PDF · concatenates the
+     * populated components with newlines · street (line 1 + line 2 on
+     * the same line when both present), locality (`{postal_code} {city}`),
+     * country (only when different from FR to keep noise low). Returns
+     * `null` if every part is empty.
      */
     private function formatCompanyAddress(Company $company): ?string
     {
@@ -376,10 +348,9 @@ final readonly class DeclarationFiscalEngine
     }
 
     /**
-     * Trie les contrats d'un véhicule par `startDate ASC` et calcule
-     * leur durée dans l'année cible. Le tri par date garantit le
-     * groupage visuel naturel des clusters LCD côté frontend (les
-     * contrats consécutifs d'un cluster sont adjacents).
+     * Sorts a vehicle's contracts by `startDate ASC` and computes
+     * their length in the target year. Date ordering ensures natural
+     * visual grouping of LCD clusters on the frontend.
      *
      * @param  iterable<Contract>  $contracts
      * @return list<array{contract: Contract, days: int}>
@@ -415,14 +386,14 @@ final readonly class DeclarationFiscalEngine
     }
 
     /**
-     * Construit un résumé compact des caractéristiques fiscales du
-     * véhicule (catégorie · méthode CO₂ · norme Euro). Affiché par
-     * `<ContractRow>` côté frontend pour permettre à l'administration
-     * de vérifier d'un coup d'œil la cohérence du montant calculé.
+     * Compact summary of the vehicle's fiscal characteristics
+     * (reception category · CO₂ method · Euro standard), rendered by
+     * `<ContractRow>` so an auditor can sanity-check the computed
+     * amount at a glance.
      *
-     * Format · `M1 · WLTP 100 g · Euro 6` (3 segments séparés par
-     * point médian). Adapte aux méthodes NEDC/PA (puissance fiscale)
-     * et aux véhicules sans VFC active (placeholder « VFC absente »).
+     * Format · `M1 · WLTP 100 g · Euro 6` (3 segments). Adapts to
+     * NEDC/PA (fiscal horsepower) and to vehicles without an active
+     * VFC (placeholder « VFC absente »).
      */
     private function buildVehicleFiscalSummary(Vehicle $vehicle): string
     {
@@ -441,8 +412,6 @@ final readonly class DeclarationFiscalEngine
         $segments[] = $co2Method;
 
         if ($vfc->euro_standard !== null) {
-            // Phase 12 D5.9.B · libellé humain (« Euro 6 ») au lieu de
-            // l'enum value brut (« euro_6 »).
             $segments[] = $vfc->euro_standard->label();
         }
 

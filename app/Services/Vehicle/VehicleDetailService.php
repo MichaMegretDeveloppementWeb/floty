@@ -21,26 +21,25 @@ use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Collection;
 
 /**
- * Détail complet d'un véhicule pour la page Show (extrait de
- * `VehicleQueryService` pour respecter SRP · Lot 4 D09 / F-14-003).
+ * Detail service for the Vehicle Show page, extracted from
+ * `VehicleQueryService` for SRP.
  *
- * Concentre le flot le plus complexe du domaine Vehicle qui agrège tout
- * pour la page Show ·
- *   - identité + caractéristiques fiscales actives
- *   - historique antéchronologique des versions VFC
- *   - statistiques d'utilisation (KPI Présent + Évolution)
- *   - usageStats initial (carte Utilisation & Répartition · délégué à
- *     `VehicleAggregatesService::buildUsageStats` pour réutiliser le
- *     même algo que les endpoints lazy)
- *   - busyDates pour le DateRangePicker du modal indispos
+ * Aggregates ·
+ *   - identity + active fiscal characteristics
+ *   - reverse-chronological VFC history
+ *   - usage stats (Present KPI + Evolution)
+ *   - initial `usageStats` (Usage & Allocation card), delegated to
+ *     {@see VehicleAggregatesService::buildUsageStats()} so the
+ *     algorithm matches the lazy endpoints
+ *   - busyDates for the DateRangePicker in the unavailability modal
  *
- * **Doctrine temporelle (chantier η Phase 2)** · 3 lentilles distinctes ·
- *   - Présent (`kpiYear` + `kpiStats`) · année calendaire courante,
- *     non mutable depuis l'UI
- *   - Évolution (`history[]`) · `[minYear..kpiYear-1]`, lignes neutres
- *     (zéros) comprises pour les années sans contrat
- *   - Exploration (`usageStats` + `selectedYear`) · pilotée par le
- *     sélecteur d'année partagé (Timeline + Breakdown + FullYearTax)
+ * Three temporal lenses ·
+ *   - Present (`kpiYear` + `kpiStats`) · current calendar year, not
+ *     mutable from the UI.
+ *   - Evolution (`history[]`) · `[minYear..kpiYear-1]`, neutral zero
+ *     rows included for years with no contract.
+ *   - Exploration (`usageStats` + `selectedYear`) · driven by the
+ *     shared year selector (Timeline + Breakdown + FullYearTax).
  */
 final class VehicleDetailService
 {
@@ -52,36 +51,34 @@ final class VehicleDetailService
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRules,
         private readonly RentalPriceCalculator $rentalPrice,
-        // Couplage assumé · `findVehicleData` doit composer le `usageStats`
-        // initial avec exactement le même algo que `usageStatsForYear`
-        // (endpoint lazy). Réutiliser `VehicleAggregatesService::buildUsageStats`
-        // évite la duplication des ~70 l de timeline + breakdown.
+        // Coupling intent · `findVehicleData` must compose the initial
+        // `usageStats` with the exact same algorithm as
+        // `usageStatsForYear` (lazy endpoint). Reusing
+        // `VehicleAggregatesService::buildUsageStats` avoids the ~70
+        // duplicated lines of timeline + breakdown.
         private readonly VehicleAggregatesService $aggregates,
     ) {}
 
     /**
-     * Représentation complète d'un véhicule pour la page Show :
-     * identité + caractéristiques fiscales actives + historique
-     * antéchronologique des versions VFC + statistiques d'utilisation.
-     *
-     * Lève `ModelNotFoundException` (rendu 404 par Laravel) si l'id
-     * n'existe pas.
+     * Full vehicle representation for the Show page · identity +
+     * active VFC + reverse-chronological VFC history + usage stats.
+     * Throws `ModelNotFoundException` (404 rendered by Laravel) when
+     * the id does not exist.
      */
     public function findVehicleData(int $id): VehicleData
     {
         $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
 
-        // Charge la Collection brute UNE fois et la propage à
-        // `buildUsageStats` + à la composition des DTO de la timeline
-        // - auparavant la même requête `findForVehicle` partait deux
-        // fois (via `UnavailabilityQueryService` puis re-direct repo).
+        // Load the raw Collection once and propagate it to
+        // `buildUsageStats` and the timeline DTO composition · the
+        // previous version triggered the same `findForVehicle` query
+        // twice.
         $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
         $unavailabilityDtos = $unavailabilityModels
             ->map(static fn (Unavailability $u): UnavailabilityData => UnavailabilityData::fromModel($u))
             ->values()
             ->all();
 
-        // Présent · KPI sur l'année calendaire courante.
         $kpiYear = $this->availableYears->currentYear();
         $kpiStats = $this->computeVehicleYearStats($vehicle, $kpiYear, $unavailabilityModels);
         $kpiFiscalAvailable = in_array(
@@ -90,16 +87,13 @@ final class VehicleDetailService
             true,
         );
 
-        // Évolution (history annuel) · servi via `Inertia::defer` côté
-        // VehicleController::show pour ne pas bloquer le mount sur N
-        // pipelines fiscaux. Cf. `historyForVehicle()` ci-dessous et
-        // audit perf 2026-05-16 / 02-vehicle.md P0 #1.
+        // History is served via `Inertia::defer` from
+        // VehicleController::show so the mount is not blocked by N
+        // fiscal pipelines. See `historyForVehicle()` below.
 
-        // Exploration · `usageStats` initialisé sur `currentYear`. Les
-        // autres années sont fetchées à la demande côté front via les
-        // endpoints lazy `usageStatsForYear` / `fullYearBreakdownForYear`
-        // avec cache client (composable `useYearLazy`). Évite le pré-calcul
-        // backend pour des années qui ne seront jamais consultées.
+        // Exploration · `usageStats` initialised on the current year.
+        // Other years are fetched on demand by the frontend via the
+        // lazy endpoints with client-side cache (`useYearLazy`).
         $initialYear = $kpiYear;
 
         return VehicleData::fromModel(
@@ -116,13 +110,11 @@ final class VehicleDetailService
     }
 
     /**
-     * Historique annuel d'un véhicule · `[minYear..kpiYear-1]` ordonné
-     * DESC (le plus récent en haut), lignes neutres comprises pour les
-     * années sans contrat (cohérent avec doctrine temporelle Phase 2).
-     *
-     * Servi via `Inertia::defer` côté Show pour ne pas bloquer le mount
-     * initial sur N pipelines fiscaux (~100-150 ms cold gagnés selon
-     * profondeur du scope). Audit perf 2026-05-16 / 02-vehicle.md P0 #1.
+     * Vehicle history · `[minYear..kpiYear-1]` ordered DESC (newest
+     * first), neutral rows included for years with no contract.
+     * Served via `Inertia::defer` from Show so the mount is not
+     * blocked on N fiscal pipelines (~100-150 ms cold saved depending
+     * on scope depth).
      *
      * @return list<VehicleYearStatsData>
      */
@@ -143,15 +135,15 @@ final class VehicleDetailService
     }
 
     /**
-     * Calcule les stats annuelles d'un véhicule pour une année donnée
-     * (jours utilisés, nombre de contrats, taxe réelle, taxe pleine).
-     * Utilisé pour les KPI Présent et chaque ligne de history.
+     * Yearly stats for one vehicle (used days, contract count, actual
+     * tax, full-year tax). Drives both the Present KPI and every
+     * history row.
      *
-     * Tolère l'absence de configuration fiscale sur l'année : retourne
-     * `actualTax = 0` et `fullYearTax = 0` plutôt que de crasher la page
-     * · l'utilisateur voit quand même les jours et le compte de contrats.
+     * Tolerates a year without coded fiscal rules · returns
+     * `actualTax = 0` and `fullYearTax = 0` rather than crashing the
+     * page; the user still sees days and contract count.
      *
-     * @param  Collection<int, Unavailability>  $unavailabilityModels  Indispos pré-chargées (toutes années).
+     * @param  Collection<int, Unavailability>  $unavailabilityModels  All-year unavailabilities preloaded.
      */
     private function computeVehicleYearStats(
         Vehicle $vehicle,
@@ -184,11 +176,11 @@ final class VehicleDetailService
             }
             $fullYearTax = $this->aggregator->vehicleFullYearTax($vehicle, $year);
         } catch (FiscalCalculationException) {
-            // Année hors registry fiscal · chiffres taxes laissés à 0.
+            // Year outside the fiscal registry · tax figures left at 0.
         }
 
-        // Phase 13 D5.10.L · prix location single-vehicle · usage Show ·
-        // pas besoin du batched ici (1 véhicule = 2 SQL acceptables).
+        // Single-vehicle rental price on Show · the batched flavour is
+        // unnecessary here (one vehicle = 2 acceptable SQL queries).
         $rentalCents = $this->rentalPrice->forVehicleAndYear($vehicle->id, $year);
         $rentalPrice = $rentalCents === null ? null : $rentalCents / 100;
 
@@ -203,13 +195,13 @@ final class VehicleDetailService
     }
 
     /**
-     * Liste flat des dates ISO (Y-m-d) déjà occupées par un contrat
-     * actif sur le véhicule pour l'année. Alimente le `DateRangePicker`
-     * du modal indispos pour griser les jours non-sélectionnables.
+     * Flat list of ISO dates (Y-m-d) already busy with an active
+     * contract on the vehicle for the year. Feeds the unavailability
+     * modal's `DateRangePicker` to grey out unselectable days.
      *
-     * Bornée à `[01-01-Y, 31-12-Y]` - les contrats hors fenêtre ne
-     * bloquent pas l'UI (l'Action vérifie de toute façon avant écriture
-     * si l'utilisateur ouvre une plage débordante).
+     * Bounded to `[01-01-Y, 31-12-Y]` · contracts outside the window
+     * do not block the UI (the Action validates again before writing
+     * if the user opens an overlapping range).
      *
      * @return list<string>
      */

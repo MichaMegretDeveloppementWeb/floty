@@ -19,20 +19,18 @@ use App\Services\Shared\Fiscal\FiscalYearContext;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Listings et helpers énumérationnels du domaine Vehicle (extrait de
- * `VehicleQueryService` pour respecter SRP · Lot 4 D09 / F-14-003).
+ * Listings and enum helpers for the Vehicle domain, extracted from
+ * `VehicleQueryService` for SRP.
  *
- * Regroupe ·
- *   - `listPaginatedSlim` · Index server-side (zéro calcul fiscal/rental ·
- *      sert en payload initial, les coûts arrivent en `Inertia::defer`).
- *   - `costsForVehicleIds` · map des coûts par véhicule (fiscaux + rental)
- *      pour la 2e vague defer · prewarm VFC batch (1 query SQL).
- *   - `listForLightSelector` · liste slim (id, label, isExited) pour
- *      tous les sélecteurs UI (filter dropdown Index, form Create/Edit
- *      Contract). Zéro calcul fiscal · audit S2.4 + S2.5.
- *   - `fullYearTaxForVehicle` · calcul on-demand de la taxe pleine
- *      d'un véhicule pour l'endpoint AJAX du form Create/Edit Contract
- *   - `firstRegistrationYearBounds` · helper bounds années pour filtre Index
+ *   - `listPaginatedSlim` · server-side Index, no fiscal/rental
+ *     computation (initial payload, costs follow via `Inertia::defer`).
+ *   - `costsForVehicleIds` · per-vehicle cost map (fiscal + rental)
+ *     for the second wave, with batched VFC prewarm.
+ *   - `listForLightSelector` · slim list (id, label, isExited) for
+ *     every UI selector (filter dropdown, Create/Edit Contract form).
+ *   - `fullYearTaxForVehicle` · on-demand full-year tax for the AJAX
+ *     endpoint of the Create/Edit Contract form.
+ *   - `firstRegistrationYearBounds` · year bounds for the Index filter.
  */
 final class VehicleListingService
 {
@@ -45,22 +43,19 @@ final class VehicleListingService
     ) {}
 
     /**
-     * Variante **slim** dédiée à l'Index Flotte · liste paginée SANS
-     * coûts (fullYearTax/dailyTaxRate/rentalPriceFullYear restent
-     * `null`) · zéro pipeline fiscal, zéro batch rental.
+     * Slim Index variant · paginated list WITHOUT costs
+     * (`fullYearTax` / `dailyTaxRate` / `rentalPriceFullYear` stay
+     * `null`); no fiscal pipeline, no rental batch.
      *
-     * Le payload initial Inertia est servi immédiatement (juste les
-     * colonnes SQL · plaque, marque/modèle, statut, date 1ère immat).
-     * Les 3 colonnes calculées arrivent dans une 2e requête
-     * `Inertia::defer` côté {@see VehicleController::index} qui appelle
-     * {@see costsForVehicleIds}. Skeleton sur les 2 cellules le temps
-     * du fetch différé.
+     * The initial Inertia payload is served immediately (raw SQL
+     * columns · plate, brand/model, status, first registration date).
+     * The three computed columns arrive in a second `Inertia::defer`
+     * round-trip from {@see VehicleController::index}, which calls
+     * {@see costsForVehicleIds()}. Skeletons cover the cells while the
+     * defer is in flight.
      *
-     * Doctrine `chargement-strict-par-ecran.md` · méthode dédiée par
-     * usage · l'Index n'a pas besoin des coûts pour s'afficher.
-     *
-     * Cf. ADR-0020 D6 · le tri par `fullYearTax` est volontairement
-     * absent de la whitelist sortKey (valeur calculée non SQL).
+     * ADR-0020 D6 · sorting by `fullYearTax` is intentionally absent
+     * from the `sortKey` whitelist (computed value, not SQL).
      */
     public function listPaginatedSlim(VehicleIndexQueryData $query): PaginatedVehicleListData
     {
@@ -80,7 +75,6 @@ final class VehicleListingService
                 exitDate: $v->exit_date?->format('Y-m-d'),
                 exitReason: $v->exit_reason,
                 isExited: $v->is_exited,
-                // Coûts servis en `Inertia::defer` via `costsForVehicleIds`.
                 fullYearTax: null,
                 dailyTaxRate: null,
                 rentalPriceFullYear: null,
@@ -95,24 +89,24 @@ final class VehicleListingService
     }
 
     /**
-     * Map des coûts (taxe pleine + tarif location) pour un batch de
-     * vehicleIds, pour l'année cible. Utilisée en `Inertia::defer` côté
-     * {@see VehicleController::index} pour remplir les 3 cellules
-     * calculées après le render initial slim.
+     * Per-vehicle costs map (full-year tax + rental) for the target
+     * year. Used via `Inertia::defer` from
+     * {@see VehicleController::index} to fill the three computed cells
+     * after the initial slim render.
      *
-     * **Optimisation perf** ·
-     *   - `prewarmFullYearForVehicles` · 1 query SQL batch qui pré-charge
-     *     les segments VFC + pipeline results pour tous les véhicules
-     *     · supprime le N+1 query VFC (N véhicules · N queries · -95 % SQL).
-     *   - `rentalPrice->forVehiclesAndYear` · 2 SQL batched (vs 12 × N).
+     *   - `prewarmFullYearForVehicles` · single batch SQL pre-loading
+     *     VFC segments + pipeline results · drops the per-vehicle VFC
+     *     query (N vehicles · N queries · -95 % SQL).
+     *   - `rentalPrice->forVehiclesAndYear` · 2 batched SQL queries
+     *     (vs 12 × N).
      *
-     * **Équivalence stricte** garantie avec l'ancienne version `listPaginated` ·
-     * `vehicleFullYearTax($v, $year)` retourne strictement la même valeur
-     * que sans prewarm (cf. test FleetFiscalAggregatorTest::prewarm_equivalent_aux_appels_individuels).
+     * Strict equivalence guaranteed against the previous
+     * `listPaginated` · `vehicleFullYearTax($v, $year)` returns the
+     * same value as without prewarm (covered by
+     * `FleetFiscalAggregatorTest::prewarm_equivalent_aux_appels_individuels`).
      *
-     * **Tolère année hors registry** · si pipeline fiscal n'a pas de règles
-     * pour `$year`, affiche `0 €` plutôt que de crasher (cohérent doctrine
-     * « données métier ⊥ règles fiscales » Phase 2).
+     * Tolerates a year outside the registry · returns `0 €` rather
+     * than crashing.
      *
      * @param  list<int>  $vehicleIds
      * @return array<int, array{fullYearTax: float, dailyTaxRate: float, rentalPriceFullYear: float|null}>
@@ -126,12 +120,12 @@ final class VehicleListingService
         $vehicles = $this->vehicles->findByIdsIndexed($vehicleIds);
         $daysInYear = $this->yearContext->daysInYear($year);
 
-        // Prewarm VFC + pipeline results en 1 query SQL batch · supprime
-        // le N+1 query VFC dans la boucle `vehicleFullYearTax` ci-dessous.
+        // Batch prewarm of VFC + pipeline results · removes the N+1
+        // VFC query inside the `vehicleFullYearTax` loop below.
         $this->aggregator->prewarmFullYearForVehicles($vehicles, $year);
 
-        // Phase 13 D5.10.L · prix location batched · 2 SQL pour la page
-        // entière au lieu de 12 × N SQL.
+        // Batched rental prices · 2 SQL for the whole page instead of
+        // 12 × N.
         $rentalPricesByVehicle = $this->rentalPrice->forVehiclesAndYear($vehicleIds, $year);
 
         $result = [];
@@ -155,23 +149,17 @@ final class VehicleListingService
     }
 
     /**
-     * Liste **slim** pour les sélecteurs UI · filter dropdown Index,
-     * sélecteur véhicule du form Create/Edit Contract, picker dans le
-     * planning, etc. Aucun calcul fiscal, 1 query SQL sur 6 colonnes
-     * (cf. `findAllForOptions` du repo).
+     * Slim list for UI selectors · filter dropdown on the Index,
+     * vehicle selector of the Create/Edit Contract form, planning
+     * picker, etc. No fiscal computation, single SQL on 6 columns.
      *
-     * **Doctrine** · méthodes dédiées par usage avec strict minimum.
-     * Le calcul de taxe pleine année par véhicule (autrefois éager
-     * dans `listForOptions`) est désormais on-demand via l'endpoint
-     * `GET /app/vehicles/{vehicle}/full-year-tax` déclenché quand
-     * l'utilisateur sélectionne effectivement un véhicule (composable
-     * frontend `useVehicleFullYearTax`).
-     *
-     * Inclut les véhicules sortis (cf. ADR-0018 § 4 · permettre la
-     * consultation et l'édition rétroactive des contrats antérieurs).
-     *
-     * Audit perf 2026-05-16 · S2.4 + S2.5 · éliminé 192 pipeline runs
-     * par chargement de page Index/Create/Edit Contract.
+     * The vehicle's full-year tax (formerly eagerly computed in
+     * `listForOptions`) is now on-demand via
+     * `GET /app/vehicles/{vehicle}/full-year-tax`, triggered by the
+     * frontend when the user actually picks a vehicle
+     * (`useVehicleFullYearTax`). Includes exited vehicles
+     * (ADR-0018 § 4 · keep consultation and retroactive edit of past
+     * contracts accessible).
      *
      * @return DataCollection<int, VehicleFilterOptionData>
      */
@@ -192,21 +180,18 @@ final class VehicleListingService
     }
 
     /**
-     * Calcul **on-demand** de la taxe pleine année d'un véhicule pour
-     * une année cible. Sert l'endpoint AJAX déclenché par le composable
-     * frontend `useVehicleFullYearTax` quand l'utilisateur sélectionne
-     * un véhicule dans le form Create/Edit Contract (Calcul A · cf.
-     * doctrine perf 2026-05-16).
+     * On-demand full-year tax for a vehicle, for the AJAX endpoint
+     * called by `useVehicleFullYearTax` when the user picks a vehicle
+     * in the Create/Edit Contract form.
      *
-     * Si la `$targetYear` n'est pas dans le scope `AvailableYearsResolver`,
-     * tente un fallback sur la plus récente année disponible. Retourne
-     * `null` si aucune année du scope n'est calculable.
+     * When `$targetYear` is outside the `AvailableYearsResolver`
+     * scope, falls back to the most recent available year. Returns
+     * `null` when no in-scope year is computable.
      *
      * @return array{cents: int, year: int, fallback: bool}|null
      */
     public function fullYearTaxForVehicle(Vehicle $vehicle, int $targetYear): ?array
     {
-        // Essai direct sur l'année demandée.
         try {
             $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $targetYear);
 
@@ -216,7 +201,7 @@ final class VehicleListingService
                 'fallback' => false,
             ];
         } catch (FiscalCalculationException) {
-            // Fallback · descend dans le scope d'années connues.
+            // Fallback below.
         }
 
         $availableYears = $this->availableYears->availableYears();
@@ -242,10 +227,9 @@ final class VehicleListingService
     }
 
     /**
-     * Bornes min/max d'année de 1ʳᵉ immatriculation parmi tous les
-     * véhicules en BDD. Alimente le sélecteur de fourchette du filtre
-     * Index. Retourne `null` si la flotte est vide (le frontend cache
-     * alors le filtre).
+     * Min/max first-registration year across the fleet. Feeds the
+     * year-range filter on the Index. Returns `null` when the fleet
+     * is empty (the frontend hides the filter).
      *
      * @return array{min: int, max: int}|null
      */

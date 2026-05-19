@@ -10,25 +10,17 @@ use Illuminate\Support\Facades\DB;
 use RuntimeException;
 
 /**
- * Calcule la prochaine référence lisible d'une déclaration fiscale
- * (Phase 11 D5.3).
+ * Generates the next human-readable reference for a fiscal declaration.
  *
- * Format produit : `DECL-{shortCode}-{year}-{NNNN}`, où `NNNN` est un
- * compteur séquentiel à 4 chiffres par couple `(company_id, fiscal_year)`.
+ * Format · `DECL-{shortCode}-{year}-{NNNN}` where `NNNN` is a 4-digit
+ * counter per `(company_id, fiscal_year)` pair. The counter includes
+ * soft-deleted declarations whose `reference` is non-null, so numbers
+ * never regress after obsolescence (regeneration after `0001` produces
+ * `0002` even if `0001` was soft-deleted).
  *
- * **Stratégie de séquencement** : compte les déclarations existantes
- * **incluant les soft-deleted** dont la `reference` n'est pas null pour
- * le couple, puis +1. Les références ne reculent jamais après
- * obsolescence (la régénération produit `0002` même si la précédente
- * `0001` est devenue obsolete et soft-deleted).
- *
- * **Atomicité** : `DB::transaction` + `lockForUpdate` sur les rows du
- * couple pendant le COUNT, mesure défensive contre une éventuelle
- * concurrence intra-process.
- *
- * **Pas de consommateur production en D5.3** : ce service est branché à
- * {@see App\Actions\Fiscal\GenerateDeclarationAction} en D5.5 lors du
- * passage `Draft → Generated`.
+ * Atomic · `DB::transaction` + `lockForUpdate` on the rows of the pair
+ * during the COUNT, as a defensive measure against intra-process
+ * concurrency.
  */
 final readonly class DeclarationReferenceGenerator
 {
@@ -45,9 +37,6 @@ final readonly class DeclarationReferenceGenerator
                 throw new RuntimeException(sprintf('Entreprise %d introuvable.', $companyId));
             }
 
-            // Lot 4 D02 (F-34-004) · query déléguée au repo (conformité
-            // ADR-0013 R3). Le `lockForUpdate` reste valide car nous
-            // sommes dans un `DB::transaction` englobant.
             $existingCount = $this->declarations->countWithTrashedForReference($companyId, $year);
 
             return sprintf(

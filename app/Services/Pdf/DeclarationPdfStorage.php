@@ -5,26 +5,19 @@ declare(strict_types=1);
 namespace App\Services\Pdf;
 
 use App\Models\FiscalDeclaration;
-use App\Services\Invoice\InvoicePdfStorage;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Persistance immuable des PDF annexes de déclarations fiscales
- * (Phase 11 D3, ADR-0015 § 5.1 + D8). Pattern direct
- * {@see InvoicePdfStorage} (Phase 14.E).
+ * Immutable storage for fiscal declaration PDF annexes (ADR-0015).
  *
- * **Convention de chemin** :
- *   `declarations/{company_id}/{fiscal_year}/{declaration_id}.pdf`
- *   (disque `local`, racine privée).
+ * Path layout · `declarations/{company_id}/{fiscal_year}/{declaration_id}.pdf`
+ * on the private local disk. Returns SHA-256 hex alongside the path
+ * for {@see FiscalDeclaration::generated_pdf_hash}.
  *
- * **Hash SHA-256 hex** retourné en même temps que le path pour
- * stockage en base ({@see FiscalDeclaration::generated_pdf_hash}).
- *
- * **Conservation totale post-obsolescence** (D8) : la suppression
- * d'un PDF n'est jamais déclenchée par `MarkAsObsoleteAction` ; le
- * fichier reste sur disque indéfiniment, accessible via
- * `superseded_by_id`. Aucune méthode `delete()` exposée donc.
+ * Total post-obsolescence retention · `MarkAsObsoleteAction` never
+ * deletes the file; the binary remains on disk indefinitely, reachable
+ * through `superseded_by_id`. No `delete()` is exposed.
  */
 final readonly class DeclarationPdfStorage
 {
@@ -33,7 +26,7 @@ final readonly class DeclarationPdfStorage
     ) {}
 
     /**
-     * Persiste le binaire PDF + retourne `path` + `hash`.
+     * Persists the PDF binary and returns its path and hash.
      *
      * @return array{path: string, hash: string}
      */
@@ -49,8 +42,7 @@ final readonly class DeclarationPdfStorage
     }
 
     /**
-     * Lit un PDF persisté. Renvoie `null` si le fichier a disparu
-     * (cas pathologique : intervention manuelle hors-app).
+     * Reads a persisted PDF; returns `null` if the file is missing.
      */
     public function read(string $path): ?string
     {

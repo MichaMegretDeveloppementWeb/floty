@@ -28,20 +28,19 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
- * Agrégats annuels par-véhicule pour les onglets Show et endpoints JSON
- * lazy (extrait de `VehicleQueryService` pour respecter SRP · Lot 4 D09 /
- * F-14-003).
+ * Per-vehicle yearly aggregates for the Show tabs and lazy JSON
+ * endpoints (extracted from `VehicleQueryService` to respect SRP).
  *
- * Regroupe les 3 façades par-année consommées par la fiche véhicule ·
- *   - `billingForYear` · onglet Billing (récap mensuel facturation)
- *   - `usageStatsForYear` · endpoint JSON `useYearLazy` (carte
- *      Utilisation & Répartition de l'onglet Vue d'ensemble)
- *   - `fullYearBreakdownForYear` · endpoint JSON onglet Fiscalité
+ * Bundles the three per-year façades consumed by the vehicle fiche ·
+ *   - `billingForYear` · Billing tab (monthly billing recap).
+ *   - `usageStatsForYear` · JSON endpoint for the Usage & Allocation
+ *     card on the Overview tab.
+ *   - `fullYearBreakdownForYear` · JSON endpoint for the Fiscality tab.
  *
- * Centralise également les helpers privés qui composent
- * `VehicleUsageStatsData` (timeline hebdomadaire, breakdown par company,
- * fallbacks pour années sans règles codées) · réutilisés par
- * `VehicleDetailService::findVehicleData` via `buildUsageStats()`.
+ * Also centralises the private helpers that compose
+ * `VehicleUsageStatsData` (weekly timeline, breakdown by company,
+ * fallback for years without coded rules), reused by
+ * `VehicleDetailService::findVehicleData` through `buildUsageStats()`.
  */
 final class VehicleAggregatesService
 {
@@ -56,10 +55,10 @@ final class VehicleAggregatesService
     ) {}
 
     /**
-     * Récap mensuel facturation pour un véhicule et une année donnée
-     * (Phase 14.D V1.2). Sépare l'agrégation `BillingBreakdownService`
-     * du flot principal `findVehicleData()` pour permettre un sélecteur
-     * d'année indépendant côté UI.
+     * Monthly billing recap for a vehicle and a year. Separating
+     * `BillingBreakdownService` aggregation from the main
+     * `findVehicleData()` flow lets the UI carry an independent year
+     * selector.
      */
     public function billingForYear(int $vehicleId, int $year): MonthlyBillingBreakdownData
     {
@@ -67,13 +66,13 @@ final class VehicleAggregatesService
     }
 
     /**
-     * Endpoint lazy : recalcule `VehicleUsageStatsData` pour une année
-     * arbitraire du scope. Appelé par `useYearLazy` côté front quand
-     * l'utilisateur change l'année du sélecteur de la carte
-     * Utilisation & Répartition (onglet Vue d'ensemble).
+     * Lazy endpoint · recomputes `VehicleUsageStatsData` for any year
+     * in scope, called by `useYearLazy` when the Overview-tab Usage &
+     * Allocation year selector changes.
      *
-     * Tolère une année sans règles fiscales codées : Timeline et jours
-     * bruts intacts, chiffres taxes à 0 + breakdown FullYear neutre.
+     * Tolerates a year without coded fiscal rules · timeline and raw
+     * days stay intact, tax figures fall back to 0 with a neutral
+     * full-year breakdown.
      */
     public function usageStatsForYear(int $vehicleId, int $year): VehicleUsageStatsData
     {
@@ -84,12 +83,9 @@ final class VehicleAggregatesService
     }
 
     /**
-     * Endpoint lazy : recalcule `VehicleFullYearTaxBreakdownData` pour
-     * une année arbitraire du scope. Appelé par l'onglet Fiscalité au
-     * changement d'année du sélecteur dédié.
-     *
-     * Si l'année n'a pas de règles fiscales codées, retourne un DTO
-     * neutre (tarifs 0 + message « Règles non implémentées »).
+     * Lazy endpoint · recomputes `VehicleFullYearTaxBreakdownData` for
+     * any year. Returns a neutral DTO (tariffs 0 + « rules not
+     * implemented » message) when the year has no coded rules.
      */
     public function fullYearBreakdownForYear(int $vehicleId, int $year): VehicleFullYearTaxBreakdownData
     {
@@ -103,12 +99,13 @@ final class VehicleAggregatesService
     }
 
     /**
-     * Composition publique de `VehicleUsageStatsData` pour le mount
-     * initial de la page Show (consommée par `VehicleDetailService::findVehicleData`).
+     * Public composition of `VehicleUsageStatsData` for the initial
+     * mount of the Show page (called by
+     * `VehicleDetailService::findVehicleData`).
      *
-     * Le call-site Detail charge déjà le véhicule et les indispos en bulk
-     * pour partager avec les autres calculs ; on les passe en paramètres
-     * plutôt que de les ré-charger ici (économie 2 SQL).
+     * The Detail call site already loads the vehicle and the
+     * unavailabilities in bulk to share with other calculations; both
+     * are passed in to avoid reloading (saves two SQL queries).
      *
      * @param  Collection<int, Unavailability>  $unavailabilityModels
      */
@@ -120,10 +117,10 @@ final class VehicleAggregatesService
         $weeklyMap = $this->contracts->loadVehicleWeeklyBreakdown($vehicle->id, $year);
         $unavailabilityDaysByWeek = $this->computeUnavailabilityDaysByWeek($unavailabilityModels, $year);
 
-        // Calcul fiscal · encadré pour tolérer une année hors registry
-        // (doctrine « données métier ⊥ règles fiscales » : la Timeline et
-        // les jours bruts restent toujours affichables, seuls les
-        // chiffres de taxe tombent à 0 + breakdown FullYear neutre).
+        // Wrap fiscal computation so a year outside the rule registry
+        // does not break the page · timeline and raw days remain
+        // displayable, tax figures fall back to 0 with a neutral
+        // full-year breakdown.
         try {
             $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
                 $vehicle,
@@ -188,11 +185,10 @@ final class VehicleAggregatesService
     }
 
     /**
-     * Compose un breakdown par entreprise à partir des contrats seuls
-     * (jours uniquement, sans calcul fiscal). Utilisé en fallback quand
-     * le pipeline fiscal n'est pas disponible pour l'année · la colonne
-     * « Jours » reste informative, les colonnes Tax CO₂/Polluants/Total
-     * sont à 0.
+     * Composes a per-company breakdown from contracts only (days,
+     * without fiscal computation). Used as a fallback when the fiscal
+     * pipeline is unavailable for the year · the « Jours » column is
+     * informative, tax columns are 0.
      *
      * @return list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
      */
@@ -217,10 +213,10 @@ final class VehicleAggregatesService
     }
 
     /**
-     * DTO `VehicleFullYearTaxBreakdownData` neutre · tarifs à 0 et
-     * messages explicites pour l'UI quand l'année n'a pas de règles
-     * fiscales codées. Les enums `co2Method` / `pollutantCategory` sont
-     * pris du current VFC du véhicule (ou défaut WLTP/Category1).
+     * Neutral `VehicleFullYearTaxBreakdownData` · zero tariffs and
+     * explicit messages for years lacking coded fiscal rules. Enums
+     * `co2Method` / `pollutantCategory` come from the current VFC
+     * (defaults · WLTP / Category1).
      */
     private function emptyFullYearBreakdown(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
@@ -229,11 +225,11 @@ final class VehicleAggregatesService
 
         $message = sprintf('Règles fiscales %d non implémentées.', $year);
 
-        // Année non supportée → pas d'exécution du pipeline, pas de
-        // segments calculés. On expose la VFC actuelle (si elle existe)
-        // sous forme d'un segment unique couvrant l'année avec tarifs
-        // et dûs à 0, pour conserver la traçabilité dans l'UI sans
-        // mentir sur le calcul (qui n'a pas eu lieu).
+        // Unsupported year → no pipeline execution, no computed
+        // segments. Expose the current VFC (if any) as a single segment
+        // covering the year with zero tariffs and dues, so UI
+        // traceability survives without lying about a computation that
+        // did not happen.
         $taxSegments = [];
         if ($current !== null) {
             $taxSegments[] = new VehicleFullYearTaxSegmentData(
@@ -265,10 +261,9 @@ final class VehicleAggregatesService
     }
 
     /**
-     * Collecte tous les companyIds référencés par le breakdown
-     * fiscal et la timeline hebdo. Garantit qu'aucune lookup
-     * Eloquent n'est manquante (ex. semaine seedée mais 0 jour
-     * cumul filtré par fourrière).
+     * Collects every companyId referenced by the fiscal breakdown and
+     * the weekly timeline so no Eloquent lookup goes missing (e.g. a
+     * seeded week with zero retained days because of a fourrière).
      *
      * @param  list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>  $breakdown
      * @param  array<int, array<int, int>>  $weeklyMap
@@ -290,17 +285,17 @@ final class VehicleAggregatesService
     }
 
     /**
-     * Compose la liste des 52-53 entrées weekly (1 par semaine ISO
-     * de l'année) pour la timeline visuelle. Les semaines vides
-     * sont matérialisées avec `segments = []` et `totalDays = 0`.
+     * Composes the 52-53 weekly entries (one per ISO week) for the
+     * visual timeline. Empty weeks are materialised with empty
+     * segments and zero totalDays.
      *
-     * Les jours d'indispo sont splittés en deux dimensions :
-     * `reductiveUnavailabilityDays` (R-2024-008) et
-     * `nonReductiveUnavailabilityDays` · la timeline les rend en
-     * overlay distinct (rose vs slate). ADR-0019 autorisant la
-     * cohabitation indispo↔contrat, on **ne clamp plus** à
-     * `7 - totalDays` : l'utilisateur doit voir une indispo de
-     * fourrière même quand le contrat couvre toute la semaine.
+     * Unavailability days are split into
+     * `reductiveUnavailabilityDays` (R-2024-008) and
+     * `nonReductiveUnavailabilityDays`; the timeline overlays them
+     * differently (pink vs slate). ADR-0019 allows
+     * unavailability/contract cohabitation, so we no longer clamp to
+     * `7 - totalDays` · a fourrière must be visible even when the
+     * contract covers the whole week.
      *
      * @param  array<int, array<int, int>>  $weeklyMap  weekNumber → companyId → days
      * @param  array<int, array{reductive: int, nonReductive: int}>  $unavailabilityDaysByWeek
@@ -332,7 +327,6 @@ final class VehicleAggregatesService
                 );
                 $totalDays += $days;
             }
-            // Tri stable par companyId pour rendu déterministe
             usort(
                 $segments,
                 static fn (VehicleWeekSegmentData $a, VehicleWeekSegmentData $b): int => $a->companyId <=> $b->companyId,
@@ -353,14 +347,14 @@ final class VehicleAggregatesService
     }
 
     /**
-     * Comptage `weekNumber → {reductive, nonReductive}` à partir de la
-     * Collection brute déjà chargée. Une même date couverte par 2 indispos
-     * de types différents (cas autorisé par ADR-0019) est comptée une
-     * seule fois, avec priorité au caractère réducteur (impact fiscal R-2024-008
-     * étant l'info la plus parlante côté UI).
+     * Counts `weekNumber → {reductive, nonReductive}` from the already
+     * loaded Collection. A date covered by two unavailabilities of
+     * different types (allowed by ADR-0019) is counted once, with the
+     * fiscally reductive type taking priority (the most informative
+     * signal for the UI).
      *
      * @param  Collection<int, Unavailability>  $unavailabilityModels
-     * @return array<int, array{reductive: int, nonReductive: int}> weekNumber → totaux par type
+     * @return array<int, array{reductive: int, nonReductive: int}> weekNumber → totals per type
      */
     private function computeUnavailabilityDaysByWeek(Collection $unavailabilityModels, int $year): array
     {
@@ -370,7 +364,6 @@ final class VehicleAggregatesService
         /** @var array<int, array<string, 'reductive'|'nonReductive'>> $byWeekDays */
         $byWeekDays = [];
         foreach ($unavailabilityModels as $row) {
-            // Filtre indispo croisant l'année (équivalent du WHERE SQL).
             if ($row->start_date->greaterThan($yearEnd)) {
                 continue;
             }
@@ -391,7 +384,6 @@ final class VehicleAggregatesService
                     $date = $cursor->toDateString();
                     $existing = $byWeekDays[$week][$date] ?? null;
 
-                    // Priorité réductrice (impact fiscal) sur non-réductrice.
                     if ($existing !== 'reductive') {
                         $byWeekDays[$week][$date] = $isReductive ? 'reductive' : 'nonReductive';
                     }

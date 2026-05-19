@@ -29,19 +29,18 @@ use Carbon\CarbonImmutable;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Construction de la matrice véhicules × 52 semaines pour la page
- * « Vue d'ensemble » (planning).
+ * Builds the vehicles × 52 weeks matrix backing the planning overview.
  *
- * **Refonte 04.F (ADR-0014)** : la heatmap consomme désormais les
- * contrats (`ContractQueryService`). Les indispos par véhicule sont
- * passées au moteur fiscal pour permettre à R-2024-008 d'agir sur la
- * matière brute.
+ * Consumes contracts via `ContractQueryService`; per-vehicle
+ * unavailabilities are forwarded to the fiscal engine so R-2024-008
+ * acts on raw data.
  *
- * **Chantier perf 2026-05-16 · slim + defer costs** · {@see buildHeatmap}
- * et {@see buildHeatmapForCompany} ne calculent plus les coûts fiscaux
- * (~630 ms cold sur 64 véhicules). Les 3 montants par véhicule
- * (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`) sont désormais servis
- * via {@see costsForVehicles} en `Inertia::defer` côté controller.
+ * Slim + deferred costs · {@see buildHeatmap()} and
+ * {@see buildHeatmapForCompany()} no longer compute fiscal costs at
+ * mount (~630 ms cold on 64 vehicles). The three per-vehicle amounts
+ * (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`) ship via
+ * {@see fullYearCostsForVehicles()} and {@see realCostsForVehicles()}
+ * as `Inertia::defer` props.
  */
 final class PlanningHeatmapService
 {
@@ -123,11 +122,10 @@ final class PlanningHeatmapService
     }
 
     /**
-     * Variante company-scoped de {@see buildHeatmap} pour la Vue
-     * Entreprise (chantier P1). Le **chiffre cellule** ne reflète que
-     * les jours utilisés par l'entreprise sélectionnée ; la **couleur**
-     * reste pilotée par la densité globale (taux d'occupation toutes
-     * entreprises confondues = signal de disponibilité du véhicule).
+     * Company-scoped variant of {@see buildHeatmap()} for the Per
+     * Company view. The cell number reflects only days used by the
+     * selected company; the colour still follows the global density
+     * (overall availability signal).
      *
      * @return array{
      *     vehicles: DataCollection<int, PlanningHeatmapCompanyVehicleData>,
@@ -210,16 +208,13 @@ final class PlanningHeatmapService
     }
 
     /**
-     * Map `vehicleId → PlanningHeatmapVehicleFullYearCostsData` pour la
-     * heatmap planning. Coûts THÉORIQUES 100 % usage · indépendants du
-     * scope entreprise.
-     *
-     * Source · {@see FleetFiscalAggregator::vehicleFullYearTaxBreakdown}
-     * mémoïsée per-request. Cette méthode est servie en `Inertia::defer`
-     * group « fast » côté controller · les valeurs « Taxe pleine » à
-     * gauche de la heatmap apparaissent indépendamment de la taxe
-     * annuelle due réelle qui prend plus de temps (cf.
-     * {@see realCostsForVehicles}).
+     * Per-vehicle theoretical full-year fiscal costs. Independent of
+     * the company scope. Source ·
+     * {@see FleetFiscalAggregator::vehicleFullYearTaxBreakdown()}
+     * memoized per-request. Served as the "fast" `Inertia::defer`
+     * group so the « Taxe pleine » column on the left of the heatmap
+     * appears independently of the real annual tax (slower, see
+     * {@see realCostsForVehicles()}).
      *
      * @return array<int, PlanningHeatmapVehicleFullYearCostsData>
      */
@@ -227,8 +222,8 @@ final class PlanningHeatmapService
     {
         $vehicles = $this->vehicles->findAllForHeatmap($year);
 
-        // Prewarm batch VFC · économise les N+1 queries quand le cache
-        // fiscal n'a pas encore d'entrée pour ces véhicules (cold).
+        // Batch VFC prewarm · removes the N+1 queries when the
+        // fiscal cache has no entry for these vehicles yet.
         $this->aggregator->prewarmVfcSegmentsForVehicles($vehicles->all(), $year);
 
         $costs = [];
@@ -238,9 +233,8 @@ final class PlanningHeatmapService
                 continue;
             }
 
-            // Tolère une année hors règles fiscales codées (cf. doctrine
-            // « données métier ⊥ règles fiscales »). On affiche 0/0 plutôt
-            // que de crasher la heatmap.
+            // Tolerates a year without coded fiscal rules · display
+            // 0/0 instead of crashing the heatmap.
             try {
                 $fullYear = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
                 $fullYearTax = $fullYear->total;
@@ -262,16 +256,15 @@ final class PlanningHeatmapService
     }
 
     /**
-     * Map `vehicleId → PlanningHeatmapVehicleRealCostsData` pour la
-     * heatmap planning, scoped (Vue Entreprise) ou global (Vue
-     * d'ensemble) selon `$companyId`.
+     * Per-vehicle real annual taxes for the heatmap, scoped (per
+     * company view) or global (overview) depending on `$companyId`.
      *
-     * Source · {@see FleetFiscalAggregator::vehicleAnnualTax} · NON
-     * cachée (dépendrait des contrats + indispos + scope, invalidation
-     * complexe). ~3-5 ms / véhicule = ~200 ms sur 64 véhicules. Servi
-     * en `Inertia::defer` group « slow » · les valeurs « €XXXX · N j »
-     * à droite de la heatmap arrivent indépendamment de la « Taxe
-     * pleine » à gauche (cf. {@see fullYearCostsForVehicles}).
+     * Source · {@see FleetFiscalAggregator::vehicleAnnualTax()}, NOT
+     * cached (depends on contracts + unavailabilities + scope · complex
+     * invalidation). ~3-5 ms per vehicle = ~200 ms on 64 vehicles.
+     * Served as the "slow" `Inertia::defer` group so the « €XXXX · N j »
+     * column on the right of the heatmap arrives independently of the
+     * full-year column on the left.
      *
      * @return array<int, PlanningHeatmapVehicleRealCostsData>
      */
@@ -281,16 +274,15 @@ final class PlanningHeatmapService
         $vehicleIds = $vehicles->pluck('id')->all();
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
 
-        // Prewarm VFC batch · 1 query SQL au lieu du N+1 dans la boucle
-        // `vehicleAnnualTax` ci-dessous.
+        // VFC prewarm batch · single SQL instead of the N+1 inside
+        // the `vehicleAnnualTax` loop below.
         $this->aggregator->prewarmVfcSegmentsForVehicles($vehicles->all(), $year);
 
         $contractsByPair = $this->contracts->loadContractsByPair($year);
         if ($companyId !== null) {
-            // Mirror de la logique de scope appliquée historiquement dans
-            // `buildHeatmapForCompany` · on garde uniquement les paires
-            // de l'entreprise demandée pour que `vehicleAnnualTax` ne
-            // comptabilise que ses contrats.
+            // Mirror the historical scoping of `buildHeatmapForCompany`
+            // · keep only pairs for the requested company so
+            // `vehicleAnnualTax` accounts for its contracts only.
             $contractsForCalc = new ContractsByPair(
                 array_filter(
                     $contractsByPair->byPair,
@@ -327,19 +319,16 @@ final class PlanningHeatmapService
     }
 
     /**
-     * Totaux de loyer mensuel NET (post-réductions) pour une entreprise
-     * sur une année · `array<int month [1..12], ?int totalCents>` ·
-     * valeur `null` si au moins un véhicule présent sur le mois n'a pas
-     * de tarif annuel saisi (signal UX explicite côté heatmap header).
+     * Monthly NET rental totals (post-discount) for a company on a
+     * year · `array<month [1..12], ?int totalCents>`. Returns `null`
+     * for a month when at least one vehicle present that month lacks
+     * a yearly pricing (explicit UX signal in the heatmap header).
      *
-     * Servi en `Inertia::defer` group « rentals » côté
-     * {@see App\Http\Controllers\User\Planning\PlanningController::companyIndex}.
-     * Méthode dédiée slim au besoin planning (cf. doctrine
-     * `chargement-strict-par-ecran`) · ne reconstruit pas la timeline
-     * 12 mois lourde de {@see App\Services\Billing\BillingBreakdownService::byCompanyForYear}
-     * (qui hydrate aussi factures émises + entrées détaillées).
+     * Slim by design (no full 12-month timeline, no emitted invoices,
+     * no detailed entries) · served as the "rentals" `Inertia::defer`
+     * group.
      *
-     * @return array<int, ?int> mois (1-12) → totalCents net post-discount, `null` si tarif manquant
+     * @return array<int, ?int> month (1-12) → net cents (`null` if pricing missing)
      */
     public function monthlyRentalTotalsForCompany(int $year, int $companyId): array
     {
@@ -359,25 +348,22 @@ final class PlanningHeatmapService
     }
 
     /**
-     * Totaux de loyer mensuel NET cross-entreprises sur une année ·
-     * agrégat fleet pour la vue d'ensemble du planning.
+     * Monthly NET rental totals across the fleet (cross-company) ·
+     * 3 fixed SQL queries regardless of company count ·
+     *   1. Active contracts crossing the year (vehicle eager-loaded
+     *      in-memory).
+     *   2. Vehicles by ids (with `exit_date` for ADR-0018 clipping).
+     *   3. Pricings batched `(vehicleIds × year)`.
+     * Plus one SQL for multi-company active discounts.
      *
-     * **3 SQL fixes** quel que soit le nombre de companies impliquées ·
-     *   1. contrats actifs croisant l'année (vehicle eager-loadé in-memory)
-     *   2. vehicles by IDs (avec `exit_date` pour clipping ADR-0018)
-     *   3. pricings batched `(vehicleIds × year)`
-     * Plus 1 SQL pour les réductions actives multi-cies.
+     * For each company we compute independently via
+     * `OptimalRateBreakdown`, then apply that company's discounts.
+     * The cross-company sum happens in memory (zero query). When a
+     * month has a partial missing pricing we only sum the companies
+     * without a missing pricing (aligned with
+     * `BillingBreakdownService::totalRecettesForYears`).
      *
-     * Sémantique · pour chaque company, on calcule indépendamment via
-     * `OptimalRateBreakdown` puis on applique les réductions de la
-     * company. La somme cross-cies est faite en mémoire (zéro query).
-     * **Mois avec tarif manquant partiel** · on additionne seulement les
-     * cies sans manquement (cohérent avec `BillingBreakdownService::totalRecettesForYears`).
-     *
-     * Servi en `Inertia::defer` group « rentals » côté
-     * {@see App\Http\Controllers\User\Planning\PlanningController::index}.
-     *
-     * @return array<int, int> mois (1-12) → totalCents net cross-cies (`0` si zéro contrat ce mois)
+     * @return array<int, int> month (1-12) → net cents (0 when no contract that month)
      */
     public function monthlyRentalTotalsForFleet(int $year): array
     {
@@ -433,12 +419,11 @@ final class PlanningHeatmapService
     }
 
     /**
-     * Liste triée et dédoublonnée des numéros de semaines ISO (1-52) où
-     * au moins un jour d'indisponibilité (tous types confondus) tombe
-     * dans l'année fiscale demandée.
-     *
-     * Alimente la bordure rouge sur les cellules heatmap (ADR-0019 D5)
-     * - visibilité immédiate de la cohabitation indispo↔contrat.
+     * Sorted, deduplicated list of ISO week numbers (1-52) where at
+     * least one unavailability day (any type) falls within the
+     * fiscal year. Feeds the red border around heatmap cells
+     * (ADR-0019) for instant visibility on unavailability ↔ contract
+     * cohabitation.
      *
      * @param  list<Unavailability>  $unavailabilities
      * @return list<int>
@@ -450,7 +435,6 @@ final class PlanningHeatmapService
 
         $weeks = [];
         foreach ($unavailabilities as $unavailability) {
-            // Filtre indispos hors année (équivalent du WHERE SQL).
             if ($unavailability->start_date->greaterThan($yearEnd)) {
                 continue;
             }

@@ -18,14 +18,13 @@ use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
 
 /**
- * Agrégats annuels pour les onglets Show Company (extrait de
- * `CompanyQueryService` pour respecter SRP · Lot 4 D08 / F-11-004).
+ * Yearly aggregates feeding the Company Show tabs, extracted from
+ * `CompanyQueryService` for SRP.
  *
- * Regroupe les 2 méthodes qui composent un récap annuel d'une
- * entreprise pour un exercice fiscal donné ·
- *   - `billingForYear` · onglet Billing (récap mensuel facturation)
- *   - `fiscalBreakdownForYear` · onglet Fiscal (1 ligne par véhicule
- *      utilisé, totaux agrégés CO₂ + polluants)
+ *   - `billingForYear` · Billing tab (monthly billing recap).
+ *   - `fiscalBreakdownForYear` · Fiscal tab (one row per used
+ *     vehicle, aggregated CO₂ + pollutants totals).
+ *   - `rentalDiscountsForCompany` · commercial discounts list.
  */
 final class CompanyAggregatesService
 {
@@ -38,10 +37,10 @@ final class CompanyAggregatesService
     ) {}
 
     /**
-     * Récap mensuel facturation pour une entreprise et une année donnée
-     * (Phase 14.D V1.2). Sépare l'agrégation `BillingBreakdownService`
-     * du flot principal `detail()` pour permettre un sélecteur d'année
-     * indépendant côté UI (pattern aligné avec `fiscalBreakdownForYear`).
+     * Monthly billing recap for a company and a year. Separating
+     * `BillingBreakdownService` aggregation from the main `detail()`
+     * flow allows the UI to carry an independent year selector
+     * (pattern mirroring `fiscalBreakdownForYear`).
      */
     public function billingForYear(int $companyId, int $year): MonthlyBillingBreakdownData
     {
@@ -49,14 +48,10 @@ final class CompanyAggregatesService
     }
 
     /**
-     * Liste des réductions commerciales d'une entreprise (toutes
-     * périodes, planifiées + actives + expirées · tri DESC sur
-     * `start_date`) · alimente la section dédiée de l'onglet
-     * Facturation Company Show (Lot 3 du chantier RentalDiscount).
-     *
-     * Le DTO est slim · seul l'aperçu cliquable est porté ici ; le
-     * détail complet sera disponible sur la page Show RentalDiscount
-     * livrée au Lot 4.
+     * Commercial discounts list for a company (planned + active +
+     * expired, sorted `start_date DESC`). Feeds the dedicated section
+     * of the Billing tab. Slim DTO · the full Show page lives on the
+     * standalone RentalDiscount route.
      *
      * @return list<RentalDiscountListItemData>
      */
@@ -70,14 +65,12 @@ final class CompanyAggregatesService
     }
 
     /**
-     * Détail fiscal d'une entreprise pour l'année sélectionnée
-     * (chantier N.2). 1 ligne par véhicule utilisé, totaux agrégés
-     * (R-2024-003 : un seul arrondi par redevable).
+     * Fiscal detail for the selected year · one row per used vehicle,
+     * aggregated totals (R-2024-003 · single rounding per taxpayer).
      *
-     * Si l'année n'est pas configurée dans le calculateur fiscal
-     * (`config/floty.fiscal.available_years`), retourne des montants
-     * à 0 plutôt que de faire crasher la page · l'utilisateur voit
-     * quand même les jours et le compte de véhicules.
+     * When the year is not registered in the fiscal engine, returns
+     * zeroed amounts rather than crashing · the user still sees days
+     * and vehicle counts.
      */
     public function fiscalBreakdownForYear(int $companyId, int $year): CompanyFiscalYearData
     {
@@ -90,15 +83,13 @@ final class CompanyAggregatesService
 
         $vehicleIds = [];
         $daysPerVehicle = [];
-        // Phase 12 D5.9.A · compteur de contrats pour la carte recap
-        // (toutes paires véhicule × company sur l'exercice).
         $totalContracts = 0;
         foreach ($contractsByPair->pairsForCompany($companyId) as $vehicleId => $pairContracts) {
             $vehicleIds[] = $vehicleId;
             $totalContracts += count($pairContracts);
-            // Compteur de jours en pré-calcul, indépendant du pipeline
-            // fiscal · utilisé pour la colonne `daysUsed` même si la
-            // config fiscale de l'année est absente (cas FiscalCalculationException).
+            // Pre-compute days independently of the fiscal pipeline ·
+            // used for the `daysUsed` column even when the fiscal
+            // year is not configured (FiscalCalculationException).
             $days = 0;
             foreach ($pairContracts as $contract) {
                 $days += $contract->countDaysInYear($year);
@@ -123,8 +114,8 @@ final class CompanyAggregatesService
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
 
-        // Calcul du pipeline fiscal · encadré pour tolérer l'absence de
-        // config fiscale sur l'année (cf. doc).
+        // Wrap fiscal pipeline · tolerates years without registered
+        // fiscal rules.
         $taxRowsByVehicleId = [];
         try {
             $rawRows = $this->aggregator->companyAnnualTaxBreakdownByVehicle(
@@ -154,10 +145,11 @@ final class CompanyAggregatesService
                 continue;
             }
 
-            // `daysUsed` toujours pris du pré-calcul brut (jours d'attribution
-            // sur l'année), pas du pipeline qui retourne `daysAssigned`
-            // potentiellement réduit par R-2024-008 (indispos) ou R-2024-021
-            // (LCD < 30j hors période). On veut afficher le brut consommé.
+            // `daysUsed` always taken from the raw pre-compute (days
+            // attributed within the year), not from the pipeline's
+            // `daysAssigned`, which might be reduced by R-2024-008
+            // (unavailabilities) or R-2024-021 (LCD < 30 d out of
+            // period). We display the consumed days.
             $days = (int) ($daysPerVehicle[$vehicleId] ?? 0);
             $taxRow = $taxRowsByVehicleId[$vehicleId] ?? null;
             $taxCo2 = $taxRow !== null ? (float) $taxRow['taxCo2'] : 0.0;

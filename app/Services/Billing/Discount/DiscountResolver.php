@@ -7,13 +7,10 @@ namespace App\Services\Billing\Discount;
 use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountReadRepositoryInterface;
 
 /**
- * Précharge en 1 SQL les réductions actives pour une (entreprise × année)
- * ou un batch multi-entreprises, et construit un {@see ResolvedDiscountIndex}
- * exploitable en lookup O(1) par le {@see DiscountApplier}.
- *
- * Service stateless · enregistré singleton via `AppServiceProvider`
- * (ou injecté directement via le container Laravel · les repos sont
- * déjà singletons).
+ * Preloads in a single SQL the active discounts for a
+ * `(company × year)` or a multi-company batch, and builds a
+ * {@see ResolvedDiscountIndex} usable by the {@see DiscountApplier} as
+ * O(1) lookups. Stateless service, registered as a singleton.
  */
 final readonly class DiscountResolver
 {
@@ -22,8 +19,8 @@ final readonly class DiscountResolver
     ) {}
 
     /**
-     * 1 SQL · réductions actives pour (entreprise × année). Eager-load
-     * `vehicles`.
+     * Single SQL for the `(company × year)` active discounts, with
+     * `vehicles` eager-loaded.
      */
     public function preloadForCompanyYear(int $companyId, int $year): ResolvedDiscountIndex
     {
@@ -33,11 +30,11 @@ final readonly class DiscountResolver
     }
 
     /**
-     * 1 SQL · réductions actives pour N entreprises sur une année.
-     * Retourne un index PAR entreprise (chaque entreprise a son propre
-     * `ResolvedDiscountIndex`) pour préserver l'isolation.
-     *
-     * Utilisé par les batches multi-cies (Dashboard `totalRecettesForYears`).
+     * Single SQL for the active discounts of N companies on a year.
+     * Returns a per-company index (each company has its own
+     * `ResolvedDiscountIndex`) so isolation is preserved. Used by
+     * cross-company batches such as the Dashboard
+     * `totalRecettesForYears` aggregator.
      *
      * @param  list<int>  $companyIds
      * @return array<int, ResolvedDiscountIndex> companyId → index
@@ -50,15 +47,13 @@ final readonly class DiscountResolver
 
         $all = $this->reader->findActiveForCompaniesYear($companyIds, $year);
 
-        // Regroupe par company_id.
         $byCompany = [];
         foreach ($all as $discount) {
             $byCompany[(int) $discount->company_id][] = $discount;
         }
 
-        // Construit un index par company, même vide (pour les company
-        // sans réduction · permet au consommateur d'appeler isEmpty()
-        // sans test null préalable).
+        // Build an index even for companies without discount so
+        // consumers can `isEmpty()` directly without a null check.
         $result = [];
         foreach ($companyIds as $companyId) {
             $result[$companyId] = ResolvedDiscountIndex::fromDiscounts(

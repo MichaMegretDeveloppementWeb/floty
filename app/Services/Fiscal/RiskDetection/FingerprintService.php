@@ -7,26 +7,17 @@ namespace App\Services\Fiscal\RiskDetection;
 use App\Models\Contract;
 
 /**
- * Calcule un fingerprint déterministe pour un cluster de risque
- * (Phase 11 D2, ADR-0015 § D5).
+ * Deterministic fingerprint for a risk cluster (ADR-0015 § D5).
  *
- * Le fingerprint identifie fonctionnellement un cluster
- * indépendamment de l'ordre dans lequel ses contrats sont passés.
- * Toute modification des `(id, start_date, end_date, vehicle_id)`
- * d'un contrat membre du cluster (ou ajout/retrait d'un membre)
- * change le fingerprint et déclenche une re-revue à la régénération
- * (cf. § 6.5).
- *
- * Stateless. Aucune dépendance, aucune IO. Pure function.
+ * Identifies the cluster regardless of contract ordering. Any change to
+ * a member's `(id, start_date, end_date, vehicle_id)` (or the membership
+ * list itself) alters the fingerprint and triggers a re-review on
+ * regeneration. Pure function · no IO, no dependencies.
  */
 final class FingerprintService
 {
     /**
-     * Hash SHA-256 hex (64 caractères) du cluster, indépendant de
-     * l'ordre des contrats dans la liste.
-     *
-     * Format des items hashés (tri par `id` ASC) :
-     *   `[[id, start_date_iso, end_date_iso, vehicle_id], ...]`
+     * SHA-256 hex (64 chars) of the cluster contracts, sorted by id.
      *
      * @param  iterable<int, Contract>  $contracts
      */

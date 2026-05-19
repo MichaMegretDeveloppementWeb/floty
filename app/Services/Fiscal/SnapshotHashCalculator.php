@@ -7,40 +7,32 @@ namespace App\Services\Fiscal;
 use stdClass;
 
 /**
- * Calcul déterministe d'une empreinte SHA-256 sur le snapshot fiscal d'une
- * déclaration (Phase 13 D5.10.J).
+ * Deterministic SHA-256 hash of a fiscal declaration snapshot.
  *
- * **Sémantique** · empreinte du contenu fiscal (snapshot JSON canonique),
- * pas du PDF binaire. Le PDF binaire ne peut pas embarquer son propre
- * hash (paradoxe d'auto-référence). L'empreinte du snapshot est en
- * revanche calculable indépendamment du rendu, donc affichable à la
- * fois dans le PDF et sur la page Show de la déclaration · les deux
- * affichent la même valeur, vérifiable par toute partie qui dispose
- * du snapshot persisté.
+ * The hash describes the fiscal content (canonical JSON snapshot), not
+ * the PDF binary (a PDF cannot embed its own hash). The same value
+ * appears both in the PDF and on the declaration Show page; any third
+ * party with the persisted snapshot can recompute and verify it.
  *
- * **Doctrine immuabilité** · alignée sur ADR-0008/ADR-0015 · le snapshot
- * est figé au moment de la génération (markAsGenerated) et persisté
- * dans la colonne JSON `generated_snapshot_payload`. Toute modification
- * post-génération invaliderait l'empreinte · garantit l'intégrité
- * documentaire dans le temps.
+ * Aligned with the immutability doctrine (ADR-0008 / ADR-0015) · the
+ * snapshot is frozen at generation time (`markAsGenerated`) and stored
+ * in the JSON column `generated_snapshot_payload`. Any post-generation
+ * change would invalidate the hash, guaranteeing documentary integrity.
  *
- * **Canonisation** ·
- *   1. Tri récursif des clés alphabétiquement (ksortRecursive) · même
- *      payload sémantique → même ordre des clés
- *   2. Normalisation récursive `[]` → `(object) stdClass` · garantit
- *      qu'un array vide PHP et un objet vide JSON produisent le même
- *      hash (Lot 5 D8 · F-19D2-011 · ferme le bord PHP-vs-JSON sur
- *      sections optionnelles)
- *   3. `json_encode` avec `JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
- *      | JSON_THROW_ON_ERROR`
+ * Canonicalisation ·
+ *   1. Recursive ksort so an identical payload always yields the same
+ *      key order.
+ *   2. Recursive `[]` → empty `stdClass` normalisation so PHP empty
+ *      arrays and JSON empty objects hash identically.
+ *   3. `json_encode` with `JSON_UNESCAPED_UNICODE |
+ *      JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR`.
  *
- * **Cache statique intra-requête** (Lot 5 D8 · F-19D2-007) · clé = JSON
- * canonique sérialisé. Évite de recalculer SHA-256 sur le même payload
- * lorsque plusieurs hydratations Spatie de `FiscalDeclarationData::fromModel`
- * passent dans la même requête HTTP (page Show qui charge N déclarations
- * historiques). Le cache est scopé au lifecycle PHP du worker · pas de
- * contamination cross-requête. La méthode {@see flush()} permet aux tests
- * de réinitialiser entre cas.
+ * Static intra-request memoization keyed by the canonical JSON avoids
+ * recomputing SHA-256 when multiple Spatie hydrations of
+ * `FiscalDeclarationData::fromModel` happen in the same HTTP request
+ * (Show pages that load many historical declarations). The cache is
+ * worker-scoped, no cross-request bleed. {@see flush()} resets it for
+ * tests that need isolation.
  */
 final class SnapshotHashCalculator
 {
@@ -62,8 +54,8 @@ final class SnapshotHashCalculator
     }
 
     /**
-     * Vide le cache statique · à utiliser dans les tests qui assertent
-     * sur la mémoïsation ou qui veulent isoler chaque cas.
+     * Flushes the static cache. Used by tests that assert on
+     * memoization or need full per-case isolation.
      */
     public static function flush(): void
     {
@@ -71,11 +63,11 @@ final class SnapshotHashCalculator
     }
 
     /**
-     * Canonicalise récursivement une valeur ·
-     *   - Array vide → `stdClass` vide (cohérence PHP-vs-JSON)
-     *   - Array associatif → tri par clé ascendant + récursion
-     *   - Array de liste → récursion sur les éléments (ordre préservé)
-     *   - Scalaire → inchangé
+     * Recursive canonicalisation ·
+     *   - empty array → empty stdClass (PHP/JSON parity)
+     *   - associative array → sorted by key + recursion
+     *   - list array → recursion on elements (order preserved)
+     *   - scalar → unchanged
      */
     private static function canonicalize(mixed $value): mixed
     {

@@ -7,17 +7,11 @@ namespace App\Services\Shared\Fiscal;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 
 /**
- * Contexte de référence pour les propriétés calendaires d'une année
- * fiscale (jours dans l'année) et la vérification qu'une année est
- * couverte par le moteur fiscal (registry des règles codées).
+ * Calendar reference for a fiscal year (days in year, supported flag).
  *
- * **Doctrine "données métier ⊥ règles fiscales"** (chantier η Phase 5) :
- * la source d'autorité est désormais le {@see FiscalRuleRegistry} (les
- * règles que l'app sait calculer), pas une config statique parallèle.
- * La config `floty.fiscal.available_years` a été supprimée.
- *
- * **Stateless / immuable** : pas de propriété mutable, partageable en
- * singleton via le container Laravel sans précaution.
+ * The single source of authority for supported years is the
+ * {@see FiscalRuleRegistry} (years with at least one registered rule).
+ * Stateless and immutable, safe to share as a singleton.
  */
 final class FiscalYearContext
 {
@@ -26,11 +20,7 @@ final class FiscalYearContext
     ) {}
 
     /**
-     * Nombre de jours dans une année grégorienne :
-     * 366 si bissextile (divisible par 4 mais pas par 100, ou divisible
-     * par 400), 365 sinon.
-     *
-     * Source unique pour tous les prorata fiscaux côté backend.
+     * 366 for leap years, 365 otherwise. Single source for backend prorata.
      */
     public function daysInYear(int $year): int
     {
@@ -38,8 +28,7 @@ final class FiscalYearContext
     }
 
     /**
-     * Une année supportée par le moteur fiscal (au moins une règle
-     * enregistrée pour cette année dans le registry) ?
+     * True when at least one fiscal rule is registered for the year.
      */
     public function isSupported(int $year): bool
     {

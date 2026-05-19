@@ -10,64 +10,28 @@ use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 
 /**
- * Résout dynamiquement les bornes des années sélectionnables côté UI.
+ * Resolves the years selectable in UI dropdowns from the actual
+ * contract data, not from a static config list.
  *
- * **Doctrine temporelle (chantier η refondu, 2026-05-05)** : Floty ne
- * contraint plus en dur la liste des années via `config()`. Les bornes
- * sont calculées depuis les **contrats** :
+ *   - `minYear()` · `MIN(YEAR(start_date))` over non-soft-deleted
+ *     contracts; falls back to `currentYear()` when the table is empty.
+ *   - `maxYear()` · `MAX(currentYear(), MAX(YEAR(start_date)))`, so
+ *     contracts saved in advance for a future year still appear.
+ *   - `availableYears()` · continuous range `[minYear, …, maxYear]`.
  *
- *   - `minYear()` = `MIN(YEAR(start_date))` sur les contrats non
- *     soft-deletés ; si la table est vide → `currentYear()`.
- *   - `maxYear()` = `MAX(currentYear(), MAX(YEAR(start_date)))` · capture
- *     les contrats anticipés (saisis pour une année future).
- *   - `availableYears()` = range continu `[minYear, …, maxYear]`.
+ * Bounds are cached forever under {@see self::CACHE_KEY}; invalidation
+ * is driven by `ContractObserver` on any `Contract` mutation. The
+ * service is registered as a singleton in {@see AppServiceProvider}
+ * (one instance per PHP worker); the cache backend (`database` in V1
+ * per ADR-0008) is shared across workers and requests.
  *
- * **Conséquence métier** : si Renaud rentre un contrat 2023, l'année 2023
- * apparaît automatiquement dans tous les sélecteurs (sans intervention
- * de configuration). Si tous les contrats 2024 sont supprimés, 2024
- * disparaît à son tour. Le sélecteur reflète l'état réel des données.
- *
- * **Performance** : les bornes sont mises en cache sous la clé
- * {@see self::CACHE_KEY} avec TTL infini. L'invalidation est portée par
- * le `ContractObserver` (sous-chantier 0.2) qui appelle
- * {@see forgetCache()} sur tout `created`/`updated`/`deleted`/`restored`
- * d'un `Contract`. La query SQL sous-jacente est résolue en lecture
- * d'index seul (cf. `contracts_*` indexes sur `start_date`).
- *
- * **Portée du singleton et du cache** :
- *
- * Le service est enregistré en `singleton` dans {@see AppServiceProvider}
- * · le container retourne la **même instance par worker PHP**, donc
- * partagée entre toutes les requêtes HTTP servies par ce worker (FPM,
- * Octane, runqueue). Ce n'est **pas** un cache « par requête ».
- *
- * Le cache des données (`yearBounds`) est lui porté par {@see CacheRepository}
- * injecté · backend `database` en V1 (cf. ADR-0008), donc partagé entre
- * tous les workers et toutes les requêtes. La donnée résiste aux redémarrages.
- *
- * Conséquences :
- * - Au sein d'un même worker, l'instance singleton + le cache backend
- *   garantissent que `yearBounds` n'est résolu en SQL qu'au premier
- *   `cache miss` global, puis lu depuis le backend ensuite.
- * - {@see forgetCache()} invalide le cache backend (donc tous les workers),
- *   pas seulement la mémoire process du worker courant. C'est ce que
- *   {@see ContractObserver} déclenche · cohérence globale immédiate.
- * - En tests · une instance fraîche est résolue par test (TestCase
- *   reboote le container) ; le cache backend, lui, est rincé par
- *   `RefreshDatabase` ou par un mock `ArrayStore` (cf.
- *   `AvailableYearsResolverTest`).
- *
- * **Scope** : global (pas par entité). Décision HD4 du chantier η ·
- * cohérence UX : tous les sélecteurs de l'app affichent la même liste
- * d'années, peu importe la fiche consultée.
+ * Scope · global, not per-entity, so every selector in the app shows
+ * the same year list.
  */
 final class AvailableYearsResolver
 {
     /**
-     * Clé de cache des bornes.
-     *
-     * Sérialise un array de la forme `['min' => ?int, 'max' => ?int]`.
-     * Invalidée par {@see ContractObserver} sur toute mutation de Contract.
+     * Cache key for the year bounds. Stores `['min' => ?int, 'max' => ?int]`.
      */
     public const CACHE_KEY = 'floty:contracts:year_bounds';
 
@@ -77,7 +41,7 @@ final class AvailableYearsResolver
     ) {}
 
     /**
-     * Année calendaire réelle. Pas de cache (lecture horloge système).
+     * Current calendar year; not cached (system clock read).
      */
     public function currentYear(): int
     {
@@ -85,8 +49,7 @@ final class AvailableYearsResolver
     }
 
     /**
-     * Année min globale = MIN(YEAR(start_date)) sur contrats non
-     * soft-deletés. Fallback `currentYear()` si la table est vide.
+     * Global minimum year, or the current year when no contract exists.
      */
     public function minYear(): int
     {
@@ -97,8 +60,7 @@ final class AvailableYearsResolver
     }
 
     /**
-     * Année max = MAX(currentYear, MAX(YEAR(start_date))). Capture les
-     * contrats futurs saisis en avance.
+     * Global maximum year, never below the current calendar year.
      */
     public function maxYear(): int
     {
@@ -109,8 +71,7 @@ final class AvailableYearsResolver
     }
 
     /**
-     * Range continu [minYear, …, maxYear] · toutes les années
-     * sélectionnables côté UI.
+     * Continuous `[minYear, …, maxYear]` range for UI selectors.
      *
      * @return list<int>
      */
@@ -123,10 +84,9 @@ final class AvailableYearsResolver
     }
 
     /**
-     * Invalide le cache des bornes. Appelée par le `ContractObserver`
-     * (chantier 0.2) sur toute mutation de Contract. Exposée publique
-     * pour permettre une invalidation manuelle (commands artisan,
-     * tests, scénarios exceptionnels).
+     * Invalidates the cached bounds. Called by `ContractObserver` on
+     * Contract mutations; exposed publicly for manual flushes (artisan
+     * commands, exceptional flows).
      */
     public function forgetCache(): void
     {
@@ -134,9 +94,6 @@ final class AvailableYearsResolver
     }
 
     /**
-     * Bornes brutes depuis le repo (avec cache). Une seule query SQL
-     * indexée par cache miss.
-     *
      * @return array{min: int|null, max: int|null}
      */
     private function bounds(): array

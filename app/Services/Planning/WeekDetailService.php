@@ -33,12 +33,12 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 
 /**
- * Détail d'une semaine pour le drawer planning + preview des taxes
- * induites par la création d'un nouveau contrat.
+ * Week detail for the planning drawer plus the tax / rental previews
+ * for a new-contract creation.
  *
- * La preview simule l'ajout d'un contrat synthétique sur la plage
- * `[min(dates), max(dates)]` - sémantique cohérente avec la sélection
- * par plage début/fin du DateRangePicker.
+ * The preview simulates the addition of a synthetic contract on the
+ * `[min(dates), max(dates)]` range · semantically aligned with the
+ * range selection of the `DateRangePicker`.
  */
 final class WeekDetailService
 {
@@ -54,19 +54,17 @@ final class WeekDetailService
     ) {}
 
     /**
-     * Construit le payload du drawer pour une semaine donnée d'un véhicule.
-     *
-     * Liste les jours de la semaine ; pour chaque jour, on rapporte
-     * l'éventuel contrat actif qui le couvre (1 contrat max par jour
-     * grâce au trigger anti-overlap).
+     * Drawer payload for a given vehicle week. Lists the days; for
+     * each day reports the active contract covering it (one contract
+     * max per day thanks to the anti-overlap trigger).
      */
     public function buildWeek(int $vehicleId, int $weekNumber, int $year): PlanningWeekData
     {
         $vehicle = $this->vehicles->findOrFailWithFiscal($vehicleId);
 
-        // SC16 (2026-05-18) · `$weekNumber` est désormais une position de
-        // CELLULE (1..53) dans la heatmap year · le lundi correspondant
-        // se calcule via `IsoWeeks::cellOriginForYear` + offset.
+        // `$weekNumber` is a cell position (1..53) in the heatmap
+        // year · the matching Monday is derived from
+        // `IsoWeeks::cellOriginForYear()` plus the offset.
         $origin = IsoWeeks::cellOriginForYear($year);
         $start = Carbon::instance($origin->addDays(($weekNumber - 1) * 7));
         $end = $start->copy()->addDays(6);
@@ -77,10 +75,10 @@ final class WeekDetailService
             $end,
         );
 
-        // ADR-0019 D5 : pour la bordure rouge des jours d'indispo dans
-        // la grille « État de la semaine », on charge UNE fois les
-        // indispos du véhicule croisant la fenêtre semaine et on filtre
-        // par jour côté PHP.
+        // For the red border around unavailability days in the
+        // « État de la semaine » grid · load the vehicle's
+        // unavailabilities crossing the week window once and filter
+        // per day in PHP (ADR-0019).
         $weekUnavailabilities = $this->unavailabilityRepo
             ->findForVehicle($vehicleId)
             ->filter(static fn ($u): bool => $u->start_date->lessThanOrEqualTo($end)
@@ -121,10 +119,10 @@ final class WeekDetailService
 
         $companiesOnWeek = $this->buildCompaniesOnWeek($weekContracts, $start, $end);
 
-        // Toutes les dates de l'année où le véhicule est déjà sous
-        // contrat - pour empêcher la sélection conflictuelle dans le
-        // DateRangePicker même quand l'utilisateur navigue sur d'autres
-        // semaines / mois que la semaine ouverte au drawer.
+        // Every year date already booked for the vehicle · prevents
+        // conflicting selection in the DateRangePicker even when the
+        // user navigates through other weeks/months than the drawer
+        // origin.
         $vehicleBusyDates = $this->contractQuery->findDatesForVehicleInRange(
             $vehicleId,
             sprintf('%d-01-01', $year),
@@ -144,13 +142,12 @@ final class WeekDetailService
     }
 
     /**
-     * Variante company-scoped de {@see buildWeek} pour la Vue Entreprise
-     * (chantier P3). Anonymise les contrats des autres entreprises dans
-     * la grille semaine et filtre `companiesOnWeek` pour ne garder que
-     * l'entreprise demandée.
+     * Company-scoped variant of {@see buildWeek()} · anonymises
+     * contracts of other companies in the week grid and filters
+     * `companiesOnWeek` to keep only the requested company.
      *
-     * Sécurité : le frontend ne reçoit jamais l'identité ni la couleur
-     * de l'entreprise occupante quand le contrat n'est pas le sien.
+     * Security · the frontend never receives the identity or colour
+     * of the occupying company when the contract is not its own.
      */
     public function buildWeekForCompany(
         int $vehicleId,
@@ -199,20 +196,21 @@ final class WeekDetailService
     }
 
     /**
-     * Aperçu fiscal **standalone** d'une attribution (location/contrat).
+     * Standalone fiscal preview of an assignment.
      *
-     * Sémantique : LCD/LLD se qualifie **contrat par contrat
-     * individuellement** d'après la durée du contrat seul (≤ 30 j → LCD,
-     * sinon LLD). Aucune notion de cumul annuel pour un couple véhicule
-     * × entreprise. Le preview calcule donc strictement le coût fiscal
-     * de **ce contrat précis** : ses jours, sa CO₂, ses polluants, son
-     * total, ses exonérations applicables.
+     * LCD/LLD is qualified contract-by-contract individually from the
+     * contract length alone (≤ 30 days → LCD, otherwise LLD). No
+     * notion of annual cumul per `(vehicle × company)`. The preview
+     * therefore computes the strict fiscal cost of this contract
+     * exactly · its days, CO₂, pollutants, total, applicable
+     * exemptions.
      *
-     * On simule un contrat synthétique unique sur `[min(dates),
-     * max(dates)]` sans tenir compte d'autres contrats existants pour
-     * le même couple. Si la plage est partiellement chevauchante avec
-     * un contrat existant, l'aperçu reste indicatif (la création réelle
-     * passera par `BulkCreateContractsAction` qui détectera l'overlap).
+     * We simulate a single synthetic contract on `[min(dates),
+     * max(dates)]` without accounting for other contracts on the
+     * same pair. When the range partially overlaps an existing
+     * contract the preview stays indicative · the actual creation
+     * goes through `BulkCreateContractsAction` which detects the
+     * overlap.
      */
     public function previewTaxes(PreviewTaxesInputData $input, int $year): FiscalPreviewData
     {
@@ -264,21 +262,21 @@ final class WeekDetailService
     }
 
     /**
-     * Aperçu du **loyer induit** d'une attribution (location/contrat) ·
-     * pendant non-fiscal de {@see previewTaxes} (SC4 · 2026-05-18).
+     * Induced-rental preview · the non-fiscal counterpart of
+     * {@see previewTaxes()}.
      *
-     * Sémantique strictement équivalente à la facture finale ·
-     * délègue à {@see BillingBreakdownService::byContract} (split par
-     * mois civil + `OptimalRateBreakdown` + `DiscountApplier`). Le total
-     * net retourné est celui qui apparaîtra sur la facture mensuelle
-     * effective si ce contrat est créé puis facturé tel quel.
+     * Strictly equivalent to the final invoice · delegates to
+     * {@see BillingBreakdownService::byContract()} (civil-month split
+     * + `OptimalRateBreakdown` + `DiscountApplier`). The returned net
+     * total is the one that will appear on the actual monthly invoice
+     * if this contract is created and billed as-is.
      *
-     * Le service expose en plus le libellé + taux de la réduction
-     * **dominante** (celle qui couvre le plus de jours sur la période)
-     * pour permettre à l'UI d'afficher « Réductions appliquées · -15 €
-     * (-3,5 %, Promo printemps 2026) ». Le `RentalDiscountConflictService`
-     * garantit qu'il n'y a qu'une réduction active par (vehicle × date)
-     * sur la période, donc la dominante est canonique.
+     * The service additionally exposes the label and rate of the
+     * dominant discount (the one covering the most days over the
+     * period) so the UI can show « Réductions appliquées · -15 €
+     * (-3,5 %, Promo printemps 2026) ». The `RentalDiscountConflictService`
+     * guarantees a single active discount per
+     * `(vehicle × date)`, making the dominant value canonical.
      */
     public function previewRentals(PreviewRentalsInputData $input): RentalPreviewData
     {
@@ -307,9 +305,8 @@ final class WeekDetailService
             $rangeStart,
             $rangeEnd,
         );
-        // Hydrate la relation vehicle in-memory · `BillingBreakdownService::byContract`
-        // n'accède pas à exit_date directement mais on reste cohérent
-        // avec le pattern fiscal (clip ADR-0018 défensif).
+        // Hydrate the `vehicle` relation in-memory · keeps parity
+        // with the fiscal pattern (ADR-0018 defensive clip).
         $contract->setRelation('vehicle', $vehicle);
 
         $breakdown = $this->billingBreakdown->byContract($contract);
@@ -344,17 +341,17 @@ final class WeekDetailService
     }
 
     /**
-     * Construit la liste « impact mensuel » du contrat synthétique sur le
-     * loyer de l'entreprise · pour chaque mois civil touché par le
-     * contrat, retourne le total mensuel EXISTANT (sans le contrat) et
-     * le NOUVEAU total mensuel (après ajout du contrat, addition simple
-     * car le DateRangePicker garantit l'absence de chevauchement avec
-     * un contrat existant).
+     * Builds the "monthly impact" of the synthetic contract on the
+     * company's rental · for every civil month touched by the
+     * contract, return the EXISTING monthly total (without the new
+     * contract) and the NEW total (after addition, simple sum since
+     * the `DateRangePicker` guarantees no overlap with an existing
+     * contract).
      *
-     * Implémentation · 1 appel `BillingCalculator::calculateYear` par
-     * année touchée (généralement 1, parfois 2 si contrat cross-année) ·
-     * batch 2 SQL totales chacun. Application des réductions actives
-     * pour la cohérence avec la facture finale.
+     * Implementation · one `BillingCalculator::calculateYear()` call
+     * per touched year (typically 1, sometimes 2 for cross-year
+     * contracts) · 2 SQL each. Active discounts are applied for
+     * parity with the final invoice.
      *
      * @return list<RentalMonthlyImpactData>
      */
@@ -404,10 +401,10 @@ final class WeekDetailService
     }
 
     /**
-     * Détermine la réduction DOMINANTE (couvrant le plus de jours) sur
-     * la période d'un contrat synthétique. Scan jour par jour via
-     * `DiscountResolver` année par année. Court-circuit si le total
-     * réduction global est nul (skip scan inutile).
+     * Resolves the DOMINANT discount (covering the most days) over a
+     * synthetic contract's period. Day-by-day scan via
+     * `DiscountResolver`, year by year. Short-circuit when the global
+     * discount total is zero (skip the scan).
      *
      * @return array{0: ?string, 1: ?int} [label, basisPoints]
      */
@@ -468,7 +465,7 @@ final class WeekDetailService
     }
 
     /**
-     * Contrat synthétique non-persisté pour la simulation fiscale.
+     * Non-persisted synthetic contract for fiscal simulation.
      */
     private function buildSyntheticContract(
         int $vehicleId,
@@ -491,8 +488,8 @@ final class WeekDetailService
     }
 
     /**
-     * Compose la liste des entreprises présentes sur la semaine avec
-     * le nombre de jours occupés par chacune.
+     * Composes the list of companies present on the week with the
+     * number of days each occupies.
      *
      * @param  iterable<Contract>  $weekContracts
      * @return list<WeekCompanyPresenceData>

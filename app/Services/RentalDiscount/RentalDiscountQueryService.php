@@ -14,10 +14,7 @@ use App\Models\RentalDiscount;
 use Carbon\CarbonImmutable;
 
 /**
- * Composition des DTOs RentalDiscount à partir des Models bruts
- * (Lot 4 du chantier RentalDiscount · ADR-0013 R3).
- *
- * Pattern aligné avec `DriverQueryService`, `ContractQueryService`, etc.
+ * Composes RentalDiscount DTOs from raw models (ADR-0013 R3).
  */
 final readonly class RentalDiscountQueryService
 {
@@ -26,8 +23,8 @@ final readonly class RentalDiscountQueryService
     ) {}
 
     /**
-     * Index server-side (cf. ADR-0020). Délègue la query SQL au repo
-     * puis mappe les models en DTO de présentation.
+     * Server-side Index (ADR-0020). Delegates the SQL query to the
+     * repository and maps the models to presentation DTOs.
      */
     public function listPaginated(RentalDiscountIndexQueryData $query): PaginatedRentalDiscountListData
     {
@@ -49,8 +46,8 @@ final readonly class RentalDiscountQueryService
     }
 
     /**
-     * Détail pour la page Show. Retourne `null` si l'id ne correspond
-     * à aucune réduction (le controller throw 404).
+     * Detail for the Show page. Returns `null` when no discount
+     * matches (the controller raises a 404).
      */
     public function detail(int $id): ?RentalDiscountData
     {
@@ -63,8 +60,8 @@ final readonly class RentalDiscountQueryService
     }
 
     /**
-     * Stats pour le bandeau supérieur de la page Index (3 compteurs ·
-     * actives / planifiées / expirées · par rapport à la date du jour).
+     * Three counters (active / planned / expired) for the Index
+     * header banner, relative to today.
      *
      * @return array{active: int, planned: int, expired: int}
      */

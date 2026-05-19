@@ -13,17 +13,8 @@ use App\Models\Contract;
 use App\Models\Unavailability;
 
 /**
- * Calcule la liste des contrats et indisponibilités actifs d'un
- * véhicule qui débordent une date de sortie de flotte proposée.
- *
- * Consommé par :
- *   - {@see App\Actions\Vehicle\ExitVehicleAction} pour bloquer la
- *     sortie en présence de conflits (lève
- *     {@see App\Exceptions\Vehicle\VehicleExitBlockedByConflictsException}).
- *   - La modale Sortie côté frontend (via un endpoint dédié si
- *     pré-vérification UX nécessaire - défini chantier E.4).
- *
- * Cf. ADR-0018 § 8.1.
+ * Computes active contracts and unavailabilities that would overflow a
+ * proposed vehicle exit date (ADR-0018 § 8.1).
  */
 final readonly class VehicleExitImpactComputer
 {
@@ -33,20 +24,16 @@ final readonly class VehicleExitImpactComputer
     ) {}
 
     /**
-     * Conflit = contrat ou indispo dont `end_date > exitDate`.
-     *
-     * Un contrat dont la fin est exactement à `exitDate` n'est pas en
-     * conflit (le véhicule est utilisable jusqu'à exit_date inclus).
+     * A conflict is any contract or unavailability whose end is strictly
+     * after `exitDate`. A contract ending exactly at `exitDate` is not a
+     * conflict (vehicle remains usable through exit_date inclusive).
      */
     public function computeImpact(int $vehicleId, string $exitDate): VehicleExitImpactData
     {
-        // Tous les contrats overlappants la "fenêtre" [exitDate+1 jour, far future].
-        // En pratique : findAllOverlapping cherche tous les contrats overlappants
-        // l'intervalle ; on simplifie en filtrant ceux qui débordent strictement.
         $contracts = $this->contracts->findAllOverlapping(
             $vehicleId,
             $exitDate,
-            '9999-12-31', // borne supérieure technique
+            '9999-12-31',
         )->filter(static fn (Contract $c): bool => $c->end_date->greaterThan($exitDate))
             ->values();
 

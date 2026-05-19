@@ -9,21 +9,18 @@ use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Carbon;
 
 /**
- * Rendu HTML → PDF d'une facture mensuelle Floty (Phase 14.E V1.2).
+ * HTML → PDF renderer for a Floty monthly invoice.
  *
- * Reçoit en entrée :
- *   - le résultat brut de calcul ({@see BillingCalculationData})
- *   - les métadonnées entreprise destinataire (nom, SIREN, ville)
- *   - les métadonnées émetteur (Phase 14.G : lues depuis la table
- *     `billing_settings`, alimentées par la page Paramètres)
- *   - le numéro de facture pré-attribué et la date d'émission
+ * Takes the raw {@see BillingCalculationData}, the recipient company
+ * metadata (name, SIREN, city), the issuer metadata (read from the
+ * `billing_settings` table fed by the settings page), the
+ * pre-assigned invoice number and the emission date. Returns the PDF
+ * binary; the caller `GenerateInvoiceAction` persists it through
+ * {@see InvoicePdfStorage}.
  *
- * Retourne le binaire PDF (le caller `GenerateInvoiceAction` persiste
- * via {@see InvoicePdfStorage}).
- *
- * **Format des lignes** : on transmet à la vue Blade des chaînes déjà
- * formatées en €, format FR (ex. `1 800,00 €`). Le service centralise
- * le formatage pour éviter sa duplication dans le template.
+ * Line formatting · already-formatted FR euro strings (« 1 800,00 € »)
+ * are passed to the Blade view. The renderer centralises formatting
+ * to keep the template free of duplication.
  */
 final readonly class InvoicePdfRenderer
 {
@@ -54,9 +51,9 @@ final readonly class InvoicePdfRenderer
                 'weeklyRate' => $this->formatEuros($line->weeklyRateCents),
                 'dailyRate' => $this->formatEuros($line->dailyRateCents),
                 'totalLabel' => $this->formatEuros($line->totalCents),
-                // Lot 3 réductions commerciales · snapshot brut/réduction
-                // par ligne pour affichage sous la décomposition tarifaire
-                // quand une réduction a été appliquée.
+                // Per-line gross + discount snapshot for the
+                // discount breakdown shown below the rate split when
+                // a discount applied.
                 'grossTotalLabel' => $this->formatEuros($line->grossTotalCents),
                 'hasDiscount' => $line->discountCents > 0,
                 'discountLabel' => $line->discountCents > 0 ? $this->formatEuros($line->discountCents) : null,
@@ -100,16 +97,14 @@ final readonly class InvoicePdfRenderer
     }
 
     /**
-     * Format un pourcentage en basis points · convention FR (`,`
-     * décimal, NNBSP avant `%`). Élide les zéros terminaux (`10 %`
-     * plutôt que `10,00 %`).
+     * Formats basis points as an FR percentage (`,` decimal, NNBSP
+     * before `%`). Trailing zeros are elided (« 10 % » rather than
+     * « 10,00 % »).
      */
     private function formatPercent(int $basisPoints): string
     {
         $percent = $basisPoints / 100;
 
-        // 2 décimales max, mais élision des zéros (10,5 et pas 10,50,
-        // 10 et pas 10,00).
         if (fmod($percent, 1.0) === 0.0) {
             $formatted = number_format($percent, 0, ',', '');
         } else {

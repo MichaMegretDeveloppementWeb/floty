@@ -10,21 +10,12 @@ use App\Models\Invoice;
 use App\Services\Billing\BillingCalculator;
 
 /**
- * Détecte la divergence entre une facture émise (snapshot figé) et la
- * réalité contractuelle actuelle (recalcul à l'instant T) · Phase 14.I+
- * V1.2.
+ * Compares an emitted invoice (frozen snapshot) against the current
+ * contractual reality (live recompute) to surface divergence (ADR-0008).
  *
- * **Doctrine immuabilité** (cf. ADR-0008) : la facture émise ne change
- * jamais. Si un contrat est ajouté/modifié/supprimé sur le mois facturé
- * après émission, le recalcul actuel diverge du snapshot. Ce service
- * matérialise la comparaison pour exposer un signal UI clair (« Données
- * obsolètes ») et permettre la régénération sur demande explicite.
- *
- * **Coût** : un appel = un calcul `BillingCalculator::calculate` complet
- * pour le couple (entreprise × année × mois). Acceptable sur la fiche
- * Show (1 calcul) et sur le récap mensuel entreprise (jusqu'à 12 calculs
- * par page, déjà payés). Sur l'Index Invoices, on paie 1 calcul par
- * ligne paginée · acceptable pour V1.2 démo (max ~100 factures).
+ * One call equals one full `BillingCalculator::calculate` for the
+ * `(company × year × month)` tuple. Acceptable on detail screens; on
+ * paginated indexes the caller should batch.
  */
 final readonly class InvoiceDivergenceChecker
 {
@@ -34,9 +25,6 @@ final readonly class InvoiceDivergenceChecker
 
     public function check(Invoice $invoice): InvoiceDivergenceData
     {
-        // Snapshot figé : `total_ht_cents` est sur la facture, le total
-        // jours utilisés est la somme des lignes (chargées via la
-        // relation, à éager-loader par le caller pour éviter N+1).
         $invoicedDaysUsed = (int) $invoice->lines->sum('days_used');
         $invoicedTotalCents = (int) $invoice->total_ht_cents;
 
@@ -63,9 +51,9 @@ final readonly class InvoiceDivergenceChecker
                 currentTotalCents: $current->totalCents,
             );
         } catch (MissingPricingException) {
-            // Tarif annuel manquant désormais (a été supprimé après
-            // l'émission). On considère ça comme une divergence forte :
-            // la facture ne peut plus être reproduite à l'identique.
+            // Yearly pricing has since been removed; the invoice can no
+            // longer be reproduced verbatim, which counts as a strong
+            // divergence.
             return new InvoiceDivergenceData(
                 hasDivergence: true,
                 invoicedDaysUsed: $invoicedDaysUsed,

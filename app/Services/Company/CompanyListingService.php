@@ -22,14 +22,14 @@ use App\Services\Fiscal\FleetFiscalAggregator;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Listings et helpers énumérationnels du domaine Company (extrait de
- * `CompanyQueryService` pour respecter SRP · Lot 4 D08 / F-11-004).
+ * Listings and enum helpers for the Company domain, extracted from
+ * `CompanyQueryService` for SRP.
  *
- * Regroupe ·
- *   - `listPaginated` · Index server-side avec aggregates fiscaux par page
- *   - `listForOptions` · liste légère pour `<SelectInput>` (forms Contract,
- *      Invoice)
- *   - `colorOptions` · énumération de l'enum `CompanyColor` pour les forms
+ *   - `listPaginatedSlim` · server-side index without per-row fiscal
+ *     computation.
+ *   - `costsForCompanyIds` · per-company costs map served as a defer.
+ *   - `listForOptions` · light list for `<SelectInput>` forms.
+ *   - `colorOptions` · enumeration of `CompanyColor` for forms.
  */
 final class CompanyListingService
 {
@@ -42,29 +42,25 @@ final class CompanyListingService
     ) {}
 
     /**
-     * Index Companies paginé server-side (cf. ADR-0020) · **variante slim**.
+     * Server-side paginated Index (ADR-0020), slim variant.
      *
-     * P0.1 (audit perf 2026-05-16) · ne calcule PAS le pipeline fiscal
-     * (`annualTaxDue`) ni le rental calculator (`rentalPriceTotal`) au
-     * render initial · les 2 colonnes restent `null` dans le DTO et
-     * hydratent en 2e round-trip via la prop racine `costs` servie en
-     * `Inertia::defer` cote `CompanyController::index()`. Gain mesure
-     * ~250-375 ms cold sur 25 items.
+     * Does NOT run the fiscal pipeline (`annualTaxDue`) or the rental
+     * calculator (`rentalPriceTotal`) on initial render · both columns
+     * stay `null` in the DTO and hydrate via the root `costs` prop
+     * served as `Inertia::defer` from `CompanyController::index()`.
+     * Saves ~250-375 ms cold on 25 items.
      *
-     * `daysUsed` reste calcule eager · donnee brute (pas de dependance
-     * au pipeline fiscal), necessite seulement `loadContractsByPair($year)`
-     * qui sert deja aux endpoints AJAX.
-     *
-     * Doctrine `chargement-strict-par-ecran.md` § 3 · l'Index charge
-     * uniquement ce qu'il affiche d'office (skeleton pour le reste).
+     * `daysUsed` stays eager · raw data with no fiscal dependency,
+     * needs only `loadContractsByPair($year)` which also powers AJAX
+     * endpoints.
      */
     public function listPaginatedSlim(CompanyIndexQueryData $query, int $year): PaginatedCompanyListData
     {
         $paginator = $this->companies->paginateForIndex($query);
 
-        // Pre-charge bulk uniquement pour `daysUsed` (donnee brute).
-        // Le pipeline fiscal + rental sont servis via `costsForCompanyIds`
-        // appele en `Inertia::defer` cote controller.
+        // Pre-load bulk only for `daysUsed` (raw data). The fiscal
+        // pipeline + rental are served via `costsForCompanyIds`,
+        // called as `Inertia::defer` from the controller.
         $contractsByPair = $this->contracts->loadContractsByPair($year);
 
         $items = array_map(
@@ -90,18 +86,15 @@ final class CompanyListingService
     }
 
     /**
-     * Calcule la map des couts (`annualTaxDue`, `rentalPriceTotal`)
-     * pour un batch de companies donnees par leurs IDs. Utilise en
-     * `Inertia::defer` cote `CompanyController::index` pour remplir
-     * les 2 colonnes de couts apres le render initial de l'Index.
+     * Per-company costs map (`annualTaxDue`, `rentalPriceTotal`) for a
+     * batch of company ids. Used via `Inertia::defer` from
+     * `CompanyController::index` to fill the two cost columns after
+     * the initial render.
      *
-     * Performance ·
-     *   - Pre-charge bulk en 1 fois (`contractsByPair`, `vehiclesById`,
-     *     `unavailabilitiesByVehicleId`) puis itere sur la page.
-     *   - Pipeline fiscal `companyAnnualTax` per company + rental
-     *     calculator per company.
-     *
-     * Audit perf 2026-05-16 / 03-company.md P0 #1.
+     * One-shot bulk prefetch (`contractsByPair`, `vehiclesById`,
+     * `unavailabilitiesByVehicleId`), then iterate the page. The
+     * fiscal pipeline `companyAnnualTax` and the rental calculator
+     * run per company.
      *
      * @param  list<int>  $companyIds
      * @return array<int, array{annualTaxDue: float, rentalPriceTotal: float|null}>
@@ -112,8 +105,8 @@ final class CompanyListingService
             return [];
         }
 
-        // Memes prefetchs que l'ancien `listPaginated` · 1 fois pour
-        // tous les companies de la page (pas N+1).
+        // Same prefetch shape as the previous monolithic `listPaginated`,
+        // run once for every company on the page (no N+1).
         $contractsByPair = $this->contracts->loadContractsByPair($year);
         $vehicleIds = [];
         foreach ($contractsByPair->vehicleCompanyPairs() as $pair) {
@@ -125,7 +118,6 @@ final class CompanyListingService
 
         $result = [];
         foreach ($companyIds as $companyId) {
-            // Tolere annee hors registry fiscal · 0 € plutot que crash.
             try {
                 $annualTaxDue = $this->aggregator->companyAnnualTax(
                     $companyId,
@@ -151,7 +143,7 @@ final class CompanyListingService
     }
 
     /**
-     * Liste pour les `<SelectInput>`.
+     * Companies as `<SelectInput>` options.
      *
      * @return DataCollection<int, CompanyOptionData>
      */
@@ -171,8 +163,8 @@ final class CompanyListingService
     }
 
     /**
-     * Couleurs disponibles pour un `<SelectInput>` (formulaire create).
-     * Pas d'accès BDD : énumère un enum applicatif.
+     * Color options for the create form. No DB access · enumerates an
+     * application enum.
      *
      * @return DataCollection<int, CompanyColorOptionData>
      */

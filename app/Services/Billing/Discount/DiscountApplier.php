@@ -10,47 +10,42 @@ use App\Exceptions\Billing\MissingPricingException;
 use App\Models\RentalDiscount;
 
 /**
- * Applique les réductions commerciales actives sur un résultat de calcul
- * facture mensuelle. Service stateless · doctrine "branche d'équivalence
- * stricte" (cf. mémoire `feedback_conditional_perf_branch_equivalence`) ·
+ * Applies active commercial discounts to a monthly invoice
+ * computation. Stateless service following the "strict equivalence
+ * branch" doctrine ·
  *
- * - Si l'index est vide (cas dominant 99 % des entreprises sans réduction),
- *   retour `$calc` tel quel (zéro modification, zéro allocation, zéro
- *   différence de sérialisation).
- * - Si une réduction couvre tous les `usedDates` d'une ligne, prorata = 1.
- * - Si elle ne couvre qu'une partie, prorata = `discountedDays / daysUsed`.
+ *   - When the index is empty (99 % of companies without discount),
+ *     return the input unchanged · zero mutation, zero allocation,
+ *     byte-identical serialisation.
+ *   - When a discount covers all `usedDates` of a line, the pro-rata
+ *     is 1.
+ *   - When it covers only some days, pro-rata =
+ *     `discountedDays / daysUsed`.
  *
- * **Algorithme du prorata partiel** ·
+ * Pro-rata algorithm per line · iterate `usedDates`, ask the resolver
+ * `findFor(vehicleId, date)`, count discount days grouped by
+ * `RentalDiscount.id`, and compute
+ * `discount = round(grossTotalCents * discountedDays / daysUsed *
+ * basisPoints / 10000)`.
  *
- * Pour chaque ligne :
- *   1. Itère sur `usedDates`, demande au resolver `findFor(vehicleId, date)`.
- *   2. Compte les jours où une réduction est applicable (regroupés par
- *      `RentalDiscount.id` pour éviter le mélange).
- *   3. Si une seule réduction couvre des jours (cas dominant garanti par
- *      le ConflictService · pas de chevauchement sur intersection
- *      véhicules), calcule `discount = round(grossTotalCents *
- *      discountedDays / daysUsed * basisPoints / 10000)`.
- *   4. Met à jour `discountCents`, `totalCents`, `appliedDiscount*`.
- *
- * **Caveat documenté** · le prorata moyenne le coût/jour, alors que le
- * combo `OptimalRateBreakdown` donne des coûts/jour variables (un jour
- * dans un forfait mois coûte moins/jour qu'un jour à l'unité). C'est
- * l'approche standard d'un % de remise · simple, prévisible, explicable
- * au client. Voir doc du plan `moonlit-hatching-mist.md`.
+ * Caveat · the pro-rata averages the cost per day, while the
+ * `OptimalRateBreakdown` combo produces variable per-day costs
+ * (a day inside a monthly package costs less/day than a day at the
+ * unit rate). It is the standard approach for a percentage discount ·
+ * simple, predictable, explainable to the customer.
  */
 final readonly class DiscountApplier
 {
     /**
-     * Variante batch · applique sur tous les mois d'un `calculateYear()`.
-     * Évite de redéclarer le `ResolvedDiscountIndex` 12 fois.
+     * Batch variant · applies to every month of a `calculateYear()`
+     * result. Avoids redeclaring the index 12 times.
      *
      * @param  array<int, BillingCalculationData|MissingPricingException>  $monthlyResults
      * @return array<int, BillingCalculationData|MissingPricingException>
      */
     public function applyToMonthlyResults(array $monthlyResults, ResolvedDiscountIndex $index): array
     {
-        // Équivalence stricte · pas de réduction = passe-plat byte
-        // identique.
+        // Strict equivalence · no discount = byte-identical pass-through.
         if ($index->isEmpty()) {
             return $monthlyResults;
         }
@@ -69,9 +64,9 @@ final readonly class DiscountApplier
     }
 
     /**
-     * Variante mono-mois · pour `GenerateInvoiceAction` ou un appel à
-     * `BillingCalculator::calculate()` isolé. Précharge l'index pour
-     * la (companyId, year) du calcul.
+     * Single-month variant for `GenerateInvoiceAction` or an isolated
+     * `BillingCalculator::calculate()` call. The loader preloads the
+     * index lazily for the `(companyId, year)` of the calculation.
      *
      * @param  callable(int $companyId, int $year): ResolvedDiscountIndex  $indexLoader
      */
@@ -89,9 +84,9 @@ final readonly class DiscountApplier
     }
 
     /**
-     * Cœur du calcul. Reconstruit un `BillingCalculationData` immuable
-     * avec les lignes mises à jour. Spatie Data n'autorisant pas la
-     * mutation directe (final readonly), on recompose.
+     * Core of the computation. Rebuilds an immutable
+     * `BillingCalculationData` with updated lines (Spatie Data does
+     * not allow direct mutation on `final readonly` DTOs).
      */
     public function applyWithIndex(
         BillingCalculationData $calc,
@@ -126,11 +121,11 @@ final readonly class DiscountApplier
     }
 
     /**
-     * Calcule la réduction pour une ligne donnée. Cas particuliers ·
-     * - `daysUsed === 0` ou `grossTotalCents === 0` · pas de réduction
-     *   possible (ligne vide).
-     * - `usedDates === []` · ligne pre-Lot 2 ou snapshot · pas de prorata
-     *   possible, on retourne la ligne inchangée.
+     * Computes the discount for one line. Edge cases ·
+     *   - `daysUsed === 0` or `grossTotalCents === 0` · no discount
+     *     possible (empty line).
+     *   - `usedDates === []` · pre-discount line or snapshot without
+     *     per-day data · return unchanged (no pro-rata possible).
      */
     private function applyToLine(BillingLineData $line, ResolvedDiscountIndex $index): BillingLineData
     {
@@ -138,9 +133,9 @@ final readonly class DiscountApplier
             return $line;
         }
 
-        // Groupement des jours réduits par RentalDiscount (au cas où
-        // plusieurs réductions matchent · le ConflictService garantit
-        // que c'est exclu en réalité, mais on reste défensif).
+        // Group discount days by `RentalDiscount.id` in case multiple
+        // discounts match (the ConflictService prevents this in
+        // practice; we stay defensive).
         /** @var array<int, array{discount: RentalDiscount, days: int}> $byDiscount */
         $byDiscount = [];
 
@@ -160,7 +155,6 @@ final readonly class DiscountApplier
             return $line;
         }
 
-        // Calcul du discount total · somme des prorata par réduction.
         $totalDiscountCents = 0;
         $appliedDiscount = null;
         $appliedDays = 0;
@@ -170,8 +164,8 @@ final readonly class DiscountApplier
             $discount = $entry['discount'];
             $days = $entry['days'];
 
-            // Prorata · grossTotalCents × (days / daysUsed) × (bp / 10000)
-            // Arrondi à l'entier le plus proche pour rester en cents (int).
+            // Pro-rata · `grossTotalCents × (days / daysUsed) ×
+            // (bp / 10000)`. Rounded to the nearest cent integer.
             $cents = (int) round(
                 $line->grossTotalCents * $days * $discount->discount_basis_points
                     / ($line->daysUsed * 10000),
@@ -179,24 +173,23 @@ final readonly class DiscountApplier
 
             $totalDiscountCents += $cents;
 
-            // On capture la réduction "dominante" (celle qui couvre le
-            // plus de jours) pour le snapshot ligne. Cas dominant unique
-            // grâce au ConflictService.
+            // Capture the "dominant" discount (covers the most days)
+            // for the line snapshot. Dominance is unique thanks to
+            // the ConflictService.
             if ($appliedDiscount === null || $days > $appliedDays) {
                 $appliedDiscount = $discount;
                 $appliedDays = $days;
             }
         }
 
-        // Clamp · jamais de réduction supérieure au brut (défense
-        // contre les arrondis).
+        // Clamp · never deduct more than the gross (defensive against
+        // rounding).
         if ($totalDiscountCents > $line->grossTotalCents) {
             $totalDiscountCents = $line->grossTotalCents;
         }
 
-        // À ce stade `$appliedDiscount !== null` car `$byDiscount !== []`
-        // a été vérifié plus haut · pas de nullsafe nécessaire (PHPStan
-        // friendly).
+        // `$appliedDiscount` is guaranteed non-null since `$byDiscount`
+        // was non-empty.
         /** @var RentalDiscount $appliedDiscount */
         return new BillingLineData(
             vehicleId: $line->vehicleId,

@@ -13,23 +13,13 @@ use Illuminate\Contracts\Container\Container;
 use Spatie\LaravelData\DataCollection;
 
 /**
- * Lecture des règles fiscales pour la page « Règles de calcul ».
+ * Query service backing the "Règles de calcul" page (ADR-0022).
  *
- * **Phase 13 D5.13 (ADR-0022 finalisée v1.3)** · le service construit
- * les DTOs **directement depuis les classes PHP** (registry pour les
- * règles pipeline · boot pour les règles documentaires-only) plutôt
- * que depuis la table `fiscal_rules`. La BDD ne sert plus que d'index
- * référençable · une seule query batch récupère les `id` (utilisés
- * par le DTO pour préserver une signature stable mais non consommés
- * côté front).
- *
- * **Pourquoi ce changement** · cohérence avec la doctrine ADR-0022 ·
- * les classes PHP sont la source de vérité unique. Avant D5.13,
- * l'affichage lisait la BDD (miroir des classes), créant 2 chemins de
- * lecture parallèles. Désormais le moteur fiscal ET l'affichage
- * lisent les classes · symétrie parfaite. La table `fiscal_rules`
- * reste maintenue par le seeder pour servir d'index référençable
- * (FK potentielles, queries SQL d'audit, etc.).
+ * DTOs are built directly from the PHP rule classes (registry for
+ * pipeline rules, boot for documentation-only rules) rather than from
+ * the `fiscal_rules` table. The table remains as a referenceable index
+ * (one batch SQL fetches the ids the DTOs expose for stability), but
+ * the engine and the UI read the same source of truth · the classes.
  */
 final class FiscalRuleQueryService
 {
@@ -40,13 +30,8 @@ final class FiscalRuleQueryService
     ) {}
 
     /**
-     * Liste affichable des règles fiscales d'une année **filtrée par
-     * un sous-ensemble de codes** (Phase 13 D5.14). Utilisée par
-     * `FleetFiscalAggregator` pour exposer les `appliedRules` d'un
-     * calcul fiscal (breakdown véhicule + contrat) sans relire la BDD.
-     *
-     * Ordre stable · même tri que `listForYear()` (par suffixe
-     * numérique du rule code).
+     * Subset of rules filtered by codes, used to expose `appliedRules`
+     * on a fiscal breakdown without re-reading the DB.
      *
      * @param  list<string>  $codes
      * @return list<FiscalRuleListItemData>
@@ -82,8 +67,7 @@ final class FiscalRuleQueryService
     }
 
     /**
-     * Liste affichable des règles fiscales pour une année donnée,
-     * triées par `displayOrder` croissant.
+     * All rules for the given year ordered by display order.
      *
      * @return DataCollection<int, FiscalRuleListItemData>
      */
@@ -106,12 +90,9 @@ final class FiscalRuleQueryService
             static fn (FiscalRuleListItemData $a, FiscalRuleListItemData $b): int => $a->ruleCode <=> $b->ruleCode,
         );
 
-        // Tri stable par displayOrder + suffixe `-bis` (la version la
-        // plus ancienne avant la plus récente).
-        // Convention Floty · `R-YYYY-NNN` ou `R-YYYY-NNN-bis` (suffix
-        // optionnel pour une seconde version créée en cours d'année
-        // par scission ADR-0022). Tri primaire sur le NNN, secondaire
-        // sur `-bis` (0 = pas de suffixe = ancienne, 1 = -bis = récente).
+        // Stable ordering · primary by `NNN`, secondary by `-bis` suffix
+        // (0 = no suffix = older, 1 = -bis = newer). Convention is
+        // `R-YYYY-NNN` or `R-YYYY-NNN-bis` for second-version splits.
         $parseOrder = static function (string $ruleCode): array {
             if (preg_match('/^R-\d{4}-(\d{3})(-bis)?$/', $ruleCode, $matches)) {
                 return [(int) $matches[1], isset($matches[2]) ? 1 : 0];
@@ -131,10 +112,9 @@ final class FiscalRuleQueryService
     }
 
     /**
-     * Agrège les règles pipeline (depuis le registry) et les règles
-     * documentaires-only (depuis le boot configuré pour l'année). Les
-     * deux types sont des `FiscalRuleContract`, l'appelant ne les
-     * distingue pas.
+     * Aggregates pipeline rules (from the registry) and informative
+     * documentation-only rules (from the year boot). Both implement
+     * `FiscalRuleContract`, so the caller does not distinguish them.
      *
      * @return list<FiscalRuleContract>
      */
@@ -156,11 +136,9 @@ final class FiscalRuleQueryService
     }
 
     /**
-     * Récupère l'instance `FiscalYearBoot` pour l'année donnée parmi
-     * les boots déclarés dans la config `floty.fiscal.year_boots`.
-     * Retourne null si l'année n'a pas de boot enregistré (cas du
-     * test E2E qui injecte des stubs runtime via le registry sans
-     * boot associé · cf. `PartialRuleEndToEndTest`).
+     * Returns the `FiscalYearBoot` registered for the year, or null if
+     * none (E2E tests that inject runtime stubs into the registry skip
+     * the boot wiring entirely).
      */
     private function bootForYear(int $year): ?FiscalYearBoot
     {

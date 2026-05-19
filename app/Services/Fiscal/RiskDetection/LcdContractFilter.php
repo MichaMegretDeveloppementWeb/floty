@@ -8,19 +8,13 @@ use App\Fiscal\Contracts\LcdQualifier;
 use App\Models\Contract;
 
 /**
- * Filtre la qualification LCD (Location de Courte Durée) sur une
- * collection de contrats (Phase 11 D2).
+ * Thin filter delegating LCD qualification to the registered
+ * {@see LcdQualifier} rule (default · `R2024_021_ShortTermRental`).
  *
- * Délègue strictement au {@see LcdQualifier} (résolu par défaut vers
- * `R2024_021_ShortTermRental` via le binding du `FiscalServiceProvider`).
- * La qualification LCD au sens fiscal est portée par la règle (durée
- * ≤ 30 jours OU mois civil entier, ADR-0014 + BOFiP § 180-190),
- * pas par le libellé `contract_type` persisté en BDD qui n'est
- * qu'indicatif (mémoire `feedback_fiscal_rules_authority`).
- *
- * Service séparé du moteur de détection pour permettre le mocking
- * en test isolé du `RiskDetectionService` sans avoir à instancier
- * la règle complète.
+ * Authority lives in the rule (BOFiP § 180-190 · ≤ 30 days or whole
+ * civil month), never in the persisted `contract_type`, which is
+ * indicative only. Kept separate from the risk detection engine to ease
+ * mocking in tests.
  */
 final readonly class LcdContractFilter
 {
@@ -29,7 +23,7 @@ final readonly class LcdContractFilter
     ) {}
 
     /**
-     * Vraie ssi le contrat est qualifié LCD au sens fiscal.
+     * True iff the contract qualifies as LCD per fiscal rules.
      */
     public function isLcd(Contract $contract): bool
     {

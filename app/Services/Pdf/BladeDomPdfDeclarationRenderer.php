@@ -12,19 +12,13 @@ use App\Services\Fiscal\SnapshotHashCalculator;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
- * Rendu HTML → PDF de l'annexe documentaire d'une déclaration fiscale
- * (Phase 11 D5.4, refondu D5.8.5 avec breakdown par contrat et
- * clusters LCD groupés visuellement).
+ * HTML → PDF renderer for the fiscal declaration appendix.
  *
- * **Format PDF** : A4 portrait, police DejaVu Sans (UTF-8 native
- * DomPDF), CSS basé sur `display: table` (DomPDF ne supporte pas
- * flexbox/grid).
- *
- * **Méthode séparée `renderHtml()`** : expose le HTML intermédiaire
- * (avant DomPDF) pour faciliter les tests de contenu sans avoir à
- * parser le PDF binaire.
- *
- * Pattern aligné sur {@see App\Services\Invoice\InvoicePdfRenderer}.
+ * A4 portrait, DejaVu Sans (UTF-8 native in DomPDF), `display: table`
+ * CSS (DomPDF supports neither flexbox nor grid). The companion
+ * {@see renderHtml()} exposes the intermediate HTML so tests can assert
+ * on content without parsing the PDF binary. Mirrors
+ * {@see App\Services\Invoice\InvoicePdfRenderer}.
  */
 final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRendererInterface
 {
@@ -37,8 +31,8 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
     }
 
     /**
-     * Rend uniquement le HTML intermédiaire (sans passage DomPDF). Utile
-     * pour les tests de contenu et l'éventuel debug visuel.
+     * Renders only the intermediate HTML (no DomPDF pass) · useful for
+     * content tests and visual debugging.
      */
     public function renderHtml(DeclarationRenderContext $context): string
     {
@@ -52,10 +46,10 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
     {
         $snapshot = $context->snapshot;
 
-        // Le hash doit matcher exactement celui calculé côté Show depuis le
-        // payload JSON persisté en BDD · on canonise via la même
-        // sérialisation Spatie Data utilisée par
-        // GenerateDeclarationAction lors de l'enregistrement de
+        // Hash must match exactly the one computed on the Show page
+        // from the persisted JSON payload · canonicalise through the
+        // same Spatie Data serialisation used by
+        // GenerateDeclarationAction when storing
         // `generated_snapshot_payload`.
         $canonicalPayload = FiscalDeclarationSnapshotData::fromValueObject($snapshot)->toArray();
 
@@ -66,12 +60,11 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
             'companyLegalName' => $snapshot->companyLegalName,
             'companyAddressLines' => $this->splitAddressLines($snapshot->companyAddress),
             'fiscalYear' => $snapshot->fiscalYear,
-            // Lot 5 D15 · les composantes CO₂ et polluants sont des
-            // informations détaillées (centime · 2 décimales). Le
-            // `totalDue` est le montant à déclarer officiellement et
-            // est arrondi half-up à l'EURO côté `DeclarationFiscalEngine`
-            // (doctrine CIBS L. 131-1) · on l'affiche donc sans
-            // décimales pour cohérence visuelle.
+            // CO₂ and pollutant components are detail figures (centime,
+            // 2 decimals). `totalDue` is the declaratory amount,
+            // already rounded half-up to the euro by
+            // `DeclarationFiscalEngine` (CIBS L. 131-1), so we render
+            // it without decimals for visual consistency.
             'co2DueTotal' => $this->formatEuros($snapshot->co2DueTotal),
             'pollutantsDueTotal' => $this->formatEuros($snapshot->pollutantsDueTotal),
             'totalDue' => $this->formatEuros($snapshot->totalDue, 0),
@@ -81,8 +74,8 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
     }
 
     /**
-     * Coupe l'adresse multi-lignes du snapshot en `list<string>` pour
-     * que la Blade itère sans avoir à parser le saut de ligne elle-même.
+     * Splits the snapshot's multi-line address into `list<string>` so
+     * the Blade view can iterate without parsing newlines itself.
      *
      * @return list<string>
      */
@@ -99,18 +92,14 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
     }
 
     /**
-     * Itère sur le breakdown trié `(vehicleLabel, startDate)` et produit
-     * une liste plate de rows prête à l'affichage. Phase 13 D5.10.J · le
-     * PDF officiel ne porte plus les annotations de revue interne
-     * (cluster headers, niveaux de risque, décisions, justifications) ·
-     * uniquement le détail par contrat avec son traitement fiscal final
-     * déjà appliqué.
-     *
-     * Phase 13 D5.10.W · la colonne « Type » (LCD/LLD) est retirée :
-     * elle ajoute du bruit sans valeur pour l'administration, qui
-     * lit uniquement le montant taxé et la période. À sa place, les
-     * contrats exonérés affichent une mention compacte sous le
-     * véhicule indiquant le motif et l'article CIBS associé.
+     * Iterates the breakdown sorted by `(vehicleLabel, startDate)` and
+     * produces a flat row list ready for display. The official PDF
+     * carries no internal review annotations (cluster headers, risk
+     * levels, decisions, justifications) · only the per-contract
+     * detail with its final fiscal treatment. The « Type » column
+     * (LCD/LLD) was removed · it adds noise without value for the
+     * administration; exempted contracts get a compact mention with
+     * the CIBS article instead.
      *
      * @param  list<ContractSnapshotEntry>  $contractBreakdown
      * @return list<array{
@@ -159,28 +148,24 @@ final readonly class BladeDomPdfDeclarationRenderer implements DeclarationPdfRen
     }
 
     /**
-     * Formate un montant en euros pour le PDF officiel ·
+     * Formats an amount in euros for the official PDF ·
      *
-     *   - virgule comme séparateur décimal (« 1 234,56 »)
-     *   - **espace fine insécable U+202F** comme séparateur de milliers
-     *     ET avant le symbole `€` (« 1 234,56 € »)
-     *   - 2 décimales fixes
+     *   - comma as decimal separator (« 1 234,56 »)
+     *   - narrow non-breaking space U+202F as thousands separator AND
+     *     before the `€` symbol (« 1 234,56 € »)
+     *   - configurable fraction digits · 2 for line items and
+     *     components, 0 for the declaratory total (CIBS L. 131-1
+     *     half-up rounding to the euro)
      *
-     * Le caractère U+202F (NARROW NO-BREAK SPACE) est conforme à la
-     * typographie française officielle (cf. Lexique des règles
-     * typographiques en usage à l'Imprimerie nationale + Unicode UAX
-     * #14). Il interdit la coupure de ligne entre nombre et symbole et
-     * produit un espacement plus serré que l'espace insécable U+00A0
-     * standard. DomPDF supporte nativement les codepoints Unicode via
-     * la police DejaVu Sans embarquée. Lot 5 D10 (F-19D2-017) · doctrine
-     * documentée pour éviter qu'une refonte ultérieure ne le remplace
-     * par un espace ASCII (cassure ligne possible) ou U+00A0 (rendu
-     * trop large).
-     */
-    /**
-     * Lot 5 D15 · `$fractionDigits` configurable · 2 décimales (défaut)
-     * pour les lignes et composantes, 0 décimales pour le montant à
-     * déclarer (doctrine CIBS L. 131-1 · arrondi half-up à l'euro).
+     * U+202F (NARROW NO-BREAK SPACE) follows the official French
+     * typography (Lexique des règles typographiques en usage à
+     * l'Imprimerie nationale + Unicode UAX #14). It forbids line
+     * breaks between the number and the symbol and provides tighter
+     * spacing than the standard non-breaking space U+00A0. DomPDF
+     * supports Unicode codepoints natively through the embedded
+     * DejaVu Sans font. The codepoint is documented to prevent future
+     * refactors from replacing it with an ASCII space (line-break
+     * risk) or U+00A0 (renders too wide).
      */
     private function formatEuros(float $amount, int $fractionDigits = 2): string
     {

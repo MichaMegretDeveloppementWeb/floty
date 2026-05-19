@@ -9,20 +9,15 @@ use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Support\Facades\Storage;
 
 /**
- * Persistance immuable des PDF de factures (Phase 14.E V1.2).
+ * Immutable storage for invoice PDFs (ADR-0008).
  *
- * **Convention de chemin** : `invoices/{year}/{company_id}/{invoice_number}.pdf`
- *   - racine `private` (disque local, non public)
- *   - le segment `{company_id}` permet un cleanup sélectif si nécessaire
+ * Path layout · `invoices/{year}/{company_id}/{invoice_number}.pdf` on
+ * the private local disk. Returns SHA-256 hex alongside the path for
+ * tamper detection ({@see App\Models\Invoice::pdf_hash}).
  *
- * **Hash SHA-256 hex** retourné en même temps que le path pour stockage
- * en base ({@see App\Models\Invoice::pdf_hash}) · sert d'empreinte
- * d'intégrité (détection de mutation post-émission).
- *
- * **Idempotence applicative** : `store()` refuse d'écraser un fichier
- * existant (cohérent doctrine immuabilité · l'unicité applicative est
- * portée par {@see App\Actions\Invoice\GenerateInvoiceAction}, ce
- * service est une défense en profondeur).
+ * Write-once at the application layer · {@see store()} refuses to
+ * overwrite existing files; uniqueness is also enforced by
+ * {@see App\Actions\Invoice\GenerateInvoiceAction}.
  */
 final readonly class InvoicePdfStorage
 {
@@ -31,7 +26,7 @@ final readonly class InvoicePdfStorage
     ) {}
 
     /**
-     * Persiste le binaire PDF + retourne `path` + `hash`.
+     * Persists the PDF binary and returns its path and hash.
      *
      * @return array{path: string, hash: string}
      */
@@ -56,9 +51,7 @@ final readonly class InvoicePdfStorage
     }
 
     /**
-     * Lit un PDF persisté pour téléchargement. Renvoie `null` si le
-     * fichier a disparu (cas pathologique : intervention manuelle sur
-     * le filesystem). Le caller doit alors présenter un message d'erreur.
+     * Reads a persisted PDF; returns `null` if the file is missing.
      */
     public function read(string $path): ?string
     {
@@ -72,12 +65,9 @@ final readonly class InvoicePdfStorage
     }
 
     /**
-     * Supprime le PDF du disque. Idempotent : aucune exception si le
-     * fichier n'existe déjà plus (cas concurrence ou suppression
-     * manuelle hors-app). Utilisé exclusivement par
-     * {@see App\Actions\Invoice\CancelInvoiceAction} · l'annulation
-     * d'une facture est la seule mutation autorisée par la doctrine
-     * immuabilité (cf. ADR-0008).
+     * Idempotent deletion. Used exclusively by
+     * {@see App\Actions\Invoice\CancelInvoiceAction}, the only mutation
+     * permitted by the immutability doctrine (ADR-0008).
      */
     public function delete(string $path): void
     {
@@ -90,11 +80,11 @@ final readonly class InvoicePdfStorage
     }
 
     /**
-     * Restaure un PDF supprimé temporairement (chantier T4 / Phase 14.P).
-     * Bypass délibéré du check write-once de {@see store()} : utilisé
-     * exclusivement par {@see App\Actions\Invoice\RegenerateInvoiceAction}
-     * pour rétablir l'ancien PDF si la régénération échoue, garantissant
-     * la cohérence DB ↔ filesystem.
+     * Restores a previously deleted PDF from a binary backup. Bypasses
+     * the write-once guard intentionally; used only by
+     * {@see App\Actions\Invoice\RegenerateInvoiceAction} when a
+     * regeneration fails and the old PDF must be reinstated to keep
+     * DB ↔ filesystem consistency.
      */
     public function restoreFromBackup(string $path, string $binary): void
     {

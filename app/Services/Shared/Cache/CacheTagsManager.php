@@ -10,70 +10,35 @@ use Illuminate\Cache\DatabaseStore;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 
 /**
- * Gestion des tags de cache émulée au-dessus du driver `database`.
+ * Emulates cache tags on top of the `database` driver (ADR-0008).
  *
- * Motivation (cf. ADR-0008 + phase 01.10) : Hostinger Business ne fournit
- * ni Redis ni Memcached. Laravel ne supporte nativement les **tags** que
- * sur Redis/Memcached, pas sur le driver `database`. Floty émule donc les
- * tags par une **convention de préfixes hiérarchiques** sur les clés :
+ * Hostinger Business offers neither Redis nor Memcached; Laravel tags
+ * are not supported on the `database` driver natively. Tagging is
+ * emulated through hierarchical colon-separated prefixes ·
  *
  *   vehicle:42:fiscal_characteristics
  *   vehicle:42:current_contracts
  *   vehicle:42:lcd_cumul:acme:2024
  *
- * Invalider « tout ce qui concerne le véhicule 42 » revient alors à
- * supprimer en base tous les enregistrements dont la clé commence par
- * `vehicle:42:`. C'est exactement ce que fait {@see invalidateByPrefix()}.
+ * Invalidating "everything about vehicle 42" deletes every row whose
+ * key starts with `vehicle:42:`. Use {@see key()} to compose keys and
+ * {@see invalidateByPrefix()} to invalidate.
  *
- * ### Convention d'emploi côté appelant
+ * Guarantees ·
+ *   - `invalidateByPrefix('vehicle:42')` deletes the exact key
+ *     `vehicle:42` AND its descendants `vehicle:42:*`, but never a
+ *     sibling such as `vehicle:420:*` (frontier `:` is appended).
+ *   - LIKE metacharacters (`%`, `_`, `\`) in the prefix are escaped.
+ *   - The Laravel cache store prefix is applied at the SQL layer.
  *
- * ```php
- * // Écriture - composer la clé via key() pour garantir la cohérence.
- * Cache::remember(
- *     $this->cacheTags->key('vehicle', $vehicleId, 'fiscal_characteristics'),
- *     ttl: 3600,
- *     callback: fn () => $this->repo->loadFiscal($vehicleId),
- * );
+ * Future Redis migration · downstream services can switch to
+ * `Cache::tags([...])` directly; keys produced by {@see key()} remain
+ * Redis-compatible.
  *
- * // Invalidation - tout ce qui « tague » ce véhicule est balayé.
- * $this->cacheTags->invalidateByPrefix(
- *     $this->cacheTags->key('vehicle', $vehicleId)
- * );
- * ```
- *
- * ### Garanties
- *
- * - `invalidateByPrefix('vehicle:42')` supprime la clé exacte `vehicle:42`
- *   ET tous ses descendants `vehicle:42:*`, mais jamais un voisin comme
- *   `vehicle:420:*` (un `:` final est ajouté à la clause LIKE pour garantir
- *   la frontière).
- * - Les métacaractères LIKE (`%`, `_`, `\`) présents dans un préfixe sont
- *   échappés, bonne pratique même si nos conventions n'en contiennent pas.
- * - Le préfixe global du cache store Laravel (`cache.prefix`) est appliqué
- *   automatiquement au niveau SQL.
- *
- * ### Migration future vers Redis
- *
- * Le jour où Floty migre sur un VPS avec Redis, les services consommateurs
- * peuvent ignorer ce manager et utiliser directement `Cache::tags([...])`.
- * Les clés produites par {@see key()} restent compatibles (Redis-safe).
- *
- * ### Exception doctrinale · R3 (Repositories) non applicable
- *
- * Le manager fait du SQL direct via `$store->getConnection()->table()->delete()`
- * dans {@see invalidateByPrefix()}, ce qui contreviendrait à R3 (ADR-0013)
- * pour un service métier. Exception documentée et validée user ·
- * plan-remediation Vague 1 Lot 4 § 14 (F-34-104) ·
- *
- *   - Le manager est un composant **d'infrastructure** (gestion du
- *     store cache, pas d'une entité métier).
- *   - Aucune logique métier impliquée · pure manipulation des
- *     enregistrements du cache backend.
- *   - L'alternative « un Repository pour le store cache » serait
- *     conceptuellement absurde (un Repository pour une table d'infra
- *     non métier).
- *
- * Cf. ADR-0013 · architecture applicative R3 (exception infra explicite).
+ * R3 exemption (ADR-0013) · this manager performs direct SQL via
+ * `$store->getConnection()->table()->delete()` because it is pure
+ * infrastructure (cache store maintenance, not a business entity),
+ * which the Repository layer is not meant to model.
  */
 final class CacheTagsManager
 {
@@ -85,11 +50,8 @@ final class CacheTagsManager
     ) {}
 
     /**
-     * Compose une clé de cache à partir de segments joints par `:`.
-     * Centralise la convention pour garantir qu'on construit toujours
-     * une hiérarchie compatible avec {@see invalidateByPrefix()}.
-     *
-     * Exemple : `key('vehicle', 42, 'fiscal')` → `"vehicle:42:fiscal"`.
+     * Composes a cache key from colon-joined segments, ensuring the
+     * hierarchy stays compatible with {@see invalidateByPrefix()}.
      */
     public function key(string|int ...$parts): string
     {
@@ -101,11 +63,9 @@ final class CacheTagsManager
     }
 
     /**
-     * Supprime la clé exacte correspondant au préfixe donné ET tous ses
-     * descendants. Un éventuel `:` final sur l'argument est normalisé.
+     * Deletes the exact key matching the prefix plus all descendants.
      *
-     * @return int Nombre de clés supprimées, utile pour les logs et les
-     *             assertions de tests.
+     * @return int Number of deleted rows, useful for logging and tests.
      */
     public function invalidateByPrefix(string $logicalPrefix): int
     {
@@ -127,9 +87,9 @@ final class CacheTagsManager
     }
 
     /**
-     * Renvoie le {@see DatabaseStore} sous-jacent ou lève si la store
-     * « database » n'est pas résoluble - précaution contre une mauvaise
-     * configuration qui sinon invaliderait silencieusement 0 entrée.
+     * Returns the underlying {@see DatabaseStore} or throws if the
+     * `database` store is misconfigured (otherwise we would silently
+     * invalidate nothing).
      */
     private function resolveDatabaseStore(): DatabaseStore
     {
@@ -143,8 +103,8 @@ final class CacheTagsManager
     }
 
     /**
-     * Échappe les métacaractères LIKE MySQL (`%`, `_`, `\`) pour garantir
-     * que le préfixe fourni n'est pas interprété comme un wildcard SQL.
+     * Escapes MySQL LIKE metacharacters (`%`, `_`, `\`) so the prefix is
+     * never interpreted as a wildcard pattern.
      */
     private function escapeLikeLiteral(string $value): string
     {

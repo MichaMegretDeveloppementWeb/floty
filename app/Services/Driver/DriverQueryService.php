@@ -18,11 +18,11 @@ use App\Models\Company;
 use App\Models\Driver;
 use App\Models\Pivot\DriverCompany;
 use Carbon\CarbonInterface;
-use Illuminate\Support\Carbon;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Carbon;
 
 /**
- * Composition des DTOs Driver à partir des Models bruts (ADR-0013 R3).
+ * Query service composing Driver DTOs from raw models (ADR-0013 R3).
  */
 final class DriverQueryService
 {
@@ -31,8 +31,7 @@ final class DriverQueryService
     ) {}
 
     /**
-     * Index drivers paginé server-side (cf. ADR-0020). Délègue au repo
-     * pour la query SQL puis mappe les models en DTO de présentation.
+     * Server-side paginated Driver index (ADR-0020).
      */
     public function listPaginated(DriverIndexQueryData $query): PaginatedDriverListData
     {
@@ -94,11 +93,9 @@ final class DriverQueryService
                 companyColor: $company->color,
                 joinedAt: $pivot->joined_at->toDateString(),
                 leftAt: $pivot->left_at?->toDateString(),
-                // Sémantique alignée sur le repo write `findActiveMembership`
-                // (`left_at IS NULL`). Une membership avec une date de sortie
-                // posée · passée, présente OU future · n'est plus considérée
-                // active. Les sorties planifiées s'affichent comme « Sorti
-                // le {date} » plutôt que « Actif » (cf. chantier B).
+                // Matches the write-side `findActiveMembership` semantic
+                // (`left_at IS NULL`). A membership with any leftAt set
+                // · past, present or future · is no longer active.
                 isCurrentlyActive: $pivot->left_at === null,
                 contractsCount: $contractsByCompany[$company->id] ?? 0,
             );
@@ -116,8 +113,8 @@ final class DriverQueryService
     }
 
     /**
-     * Options pour le picker driver dans le formulaire Contract - filtré
-     * par company + période exacte (Q4).
+     * Driver picker options for the Contract form, filtered by company
+     * and the exact contract period.
      *
      * @return array<int, DriverOptionData>
      */
@@ -137,16 +134,10 @@ final class DriverQueryService
     }
 
     /**
-     * Aperçu des contrats à venir d'un driver dans une company après
-     * une `leftAt` donnée · utilisé par la modal de sortie pour offrir
-     * une UX complète de résolution des contrats à venir (workflow Q6).
-     *
-     * Pour chaque contrat à venir, la liste des `candidates` (drivers
-     * actifs dans la company sur la période exacte du contrat) est
-     * pré-calculée · cohérent avec le check
-     * `LeaveDriverCompanyMembershipAction::validateReplacementMap`. Le
-     * driver sortant lui-même est exclu (interdit comme remplaçant de
-     * lui-même).
+     * Future-contracts preview used by the leave-membership modal to
+     * pre-resolve replacement candidates. The leaving driver is
+     * excluded from the candidates (cannot replace themselves);
+     * already-attached drivers are also excluded (already on contract).
      *
      * @return list<FutureContractRowData>
      */
@@ -161,11 +152,9 @@ final class DriverQueryService
             $leftAt,
         );
 
-        // Lot 3 D03 · 1 query batch au lieu de N appels `listActiveInCompanyDuring` ·
-        // charge tous les drivers de la company (avec leur(s) membership(s)
-        // pré-chargée(s)). Le filtre par période `[start, end]` se fait
-        // ensuite en mémoire pour chaque contrat avec exactement la même
-        // condition que le SQL d'origine ·
+        // 1 batch query rather than N `listActiveInCompanyDuring` calls.
+        // The per-period filter then runs in memory with the same
+        // condition as the SQL ·
         // `joined_at <= start AND (left_at IS NULL OR left_at >= end)`.
         $allDriversInCompany = $this->driverReadRepo->listAllInCompanyWithMemberships($companyId);
 
@@ -174,9 +163,9 @@ final class DriverQueryService
             $start = $contract->start_date;
             $end = $contract->end_date;
 
-            // Conducteurs actuellement attachés au contrat (pivot N:N).
-            // Le driver sortant en fait partie : la modale affiche le
-            // contexte complet à l'utilisateur avant qu'il ne tranche.
+            // Drivers currently attached to the contract (N:N pivot).
+            // The leaving driver is included on purpose · the modal
+            // shows the full context before the user decides.
             $currentDriversList = $contract->drivers
                 ->map(fn (Driver $d): DriverOptionData => new DriverOptionData(
                     id: $d->id,
@@ -187,11 +176,8 @@ final class DriverQueryService
                 ->all();
             $alreadyAttachedIds = $contract->drivers->pluck('id')->all();
 
-            // Candidats remplaçants : actifs sur la période exacte du
-            // contrat, **hors tous les conducteurs déjà attachés** (cf.
-            // chantier #3 multi-conducteurs - on ne propose pas comme
-            // « remplaçant » quelqu'un déjà sur le contrat). Filtrage
-            // in-memory sur la collection batch chargée hors-boucle.
+            // Replacement candidates · active over the contract's exact
+            // period, minus every already-attached driver.
             $candidates = $allDriversInCompany
                 ->filter(fn (Driver $d): bool => $this->isDriverActiveInCompanyDuring($d, $start, $end))
                 ->reject(fn (Driver $d): bool => in_array($d->id, $alreadyAttachedIds, true))
@@ -219,8 +205,8 @@ final class DriverQueryService
     }
 
     /**
-     * Options plates pour le filtre conducteur du Contracts Index (toutes
-     * companies, toutes périodes).
+     * Flat driver options for the Contracts Index driver filter (all
+     * companies, all periods).
      *
      * @return array<int, DriverOptionData>
      */
@@ -237,15 +223,15 @@ final class DriverQueryService
     }
 
     /**
-     * Réplique en mémoire la condition SQL de `listActiveInCompanyDuring` ·
-     * un driver est « actif dans la company sur [start, end] » ssi au moins
-     * une de ses memberships dans la company couvre la période entière.
+     * In-memory mirror of `listActiveInCompanyDuring` · a driver is
+     * "active in the company during [start, end]" iff at least one of
+     * their memberships in the company covers the whole period.
      *
-     * Délègue à {@see DriverCompany::coversPeriod()} qui implémente
-     * `joined_at <= start AND (left_at IS NULL OR left_at >= end)`.
+     * Delegates to {@see DriverCompany::coversPeriod()} which
+     * implements `joined_at <= start AND (left_at IS NULL OR left_at >= end)`.
      *
-     * Le driver doit avoir sa relation `companies` pré-chargée et **filtrée
-     * sur la company concernée** (cf. `listAllInCompanyWithMemberships`).
+     * Caller must pre-load `companies` filtered on the relevant company
+     * (cf. `listAllInCompanyWithMemberships`).
      */
     private function isDriverActiveInCompanyDuring(
         Driver $driver,

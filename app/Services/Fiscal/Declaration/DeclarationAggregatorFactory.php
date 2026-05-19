@@ -23,19 +23,17 @@ use Illuminate\Contracts\Container\Container;
 use RuntimeException;
 
 /**
- * Factory du `FleetFiscalAggregator` ad-hoc utilisé par
- * `DeclarationFiscalEngine` (Lot 4 D11 · F-19-004) pour appliquer les
- * opt-outs LCD runtime sans toucher au singleton aggregator standard.
+ * Factory for the ad-hoc `FleetFiscalAggregator` consumed by
+ * `DeclarationFiscalEngine` to apply runtime LCD opt-outs without
+ * touching the standard singleton aggregator.
  *
- * **Pourquoi un factory dédié** · la chaîne pipeline pour une
- * déclaration substitue R-YYYY-021 par sa version `WithOptOuts` via
- * un {@see OverlayedRuleRegistry}. Toutes les briques pipeline
- * (segmenter, executor, aggregator) doivent être **fraîches** ·
- * caches scopés à la déclaration, pas de partage avec le singleton.
+ * The pipeline chain for a declaration substitutes R-YYYY-021 with its
+ * `WithOptOuts` flavour through an {@see OverlayedRuleRegistry}. Every
+ * pipeline brick (segmenter, executor, aggregator) must be fresh ·
+ * caches scoped to the declaration, no sharing with the singleton.
  *
- * **Multi-année** · la paire (rule canonique, décorateur) est
- * sélectionnée selon `$year` (Bloc 4 Phase J). Ajouter une nouvelle
- * année = ajouter sa branche dans le `match` ci-dessous.
+ * Multi-year · the `(canonical rule, decorator)` pair is picked from
+ * `$year`. Adding a new year means adding its branch in the `match`.
  */
 final readonly class DeclarationAggregatorFactory
 {
@@ -48,10 +46,10 @@ final readonly class DeclarationAggregatorFactory
     ) {}
 
     /**
-     * Construit un `FleetFiscalAggregator` ad-hoc dont la chaîne pipeline
-     * est branchée sur un {@see OverlayedRuleRegistry} qui substitue
-     * R-YYYY-021 par son décorateur runtime (WithOptOuts) pour cette
-     * déclaration.
+     * Builds an ad-hoc `FleetFiscalAggregator` whose pipeline chain
+     * runs through an {@see OverlayedRuleRegistry} substituting
+     * R-YYYY-021 with its runtime decorator (`WithOptOuts`) for this
+     * declaration.
      *
      * @param  list<int>  $optOutContractIds
      */

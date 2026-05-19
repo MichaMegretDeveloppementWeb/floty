@@ -14,15 +14,14 @@ use App\Data\User\Invoice\PaginatedInvoiceListData;
 use App\Models\Invoice;
 
 /**
- * Service Query du domaine Invoice (Phase 14.F V1.2). Compose les
- * Models retournés par le repo en DTOs exposés à Inertia.
+ * Query service for the Invoice domain. Composes the models returned
+ * by the repository into the DTOs exposed to Inertia.
  *
- * Conforme ADR-0013 : zéro SQL ici, uniquement transformation +
- * mapping. Depuis T6 (Phase 14.R), la divergence pour l'Index est lue
- * directement sur la colonne matérialisée `invoices.is_divergent`
- * (flag posé par observers, cf. {@see InvoiceDivergenceFlagger}).
- * La fiche Show conserve `InvoiceDivergenceChecker` pour fournir au
- * banner les valeurs précises (snapshot vs courant).
+ * ADR-0013 compliant · no SQL here, only mapping. Index divergence is
+ * read from the materialised `invoices.is_divergent` column maintained
+ * by observers ({@see InvoiceDivergenceFlagger}). The Show fiche keeps
+ * `InvoiceDivergenceChecker` to feed the banner with precise values
+ * (snapshot vs current).
  */
 final readonly class InvoiceQueryService
 {
@@ -54,32 +53,22 @@ final readonly class InvoiceQueryService
             return null;
         }
 
-        // Predecessor : si cette facture remplace une version antérieure
-        // (chaînage `superseded_by_id` inverse), on l'expose pour le
-        // bandeau « Remplace #YYYY ».
         $predecessor = $this->repository->findPredecessor($id);
 
-        // Chaîne historique complète des versions du même couple
-        // (company × year × month) · alimente la timeline UI.
         $historyChain = $this->repository->findHistoryChainFor($invoice);
 
-        // Divergence servie en `Inertia::defer` cote Show pour ne pas
-        // bloquer le mount sur un BillingCalculator complet (~50 ms
-        // cold). Cf. `divergenceForInvoice()` ci-dessous + audit perf
-        // 2026-05-16 / 06-invoices.md P1 #1.
+        // Divergence is served via `Inertia::defer` from Show so the
+        // mount is not blocked by a full BillingCalculator pass.
 
         return InvoiceData::fromModel($invoice, $predecessor, $historyChain);
     }
 
     /**
-     * Comparaison snapshot facture vs reel contractuel actuel · servie
-     * via `Inertia::defer` cote Show pour ne pas bloquer le mount sur
-     * un BillingCalculator complet. Retourne `null` si la facture est
-     * obsolete (`deleted_at` non-null) ou introuvable · le front masque
-     * alors le bandeau divergence (les versions obsoletes sont figees
-     * a leur etat au moment de la regeneration).
-     *
-     * Audit perf 2026-05-16 / 06-invoices.md P1 #1.
+     * Snapshot vs current contractual reality, served via
+     * `Inertia::defer` from Show. Returns `null` for obsolete invoices
+     * (`deleted_at !== null`) or missing ids · the frontend then hides
+     * the divergence banner (obsolete versions are frozen at
+     * regeneration time).
      */
     public function divergenceForInvoice(int $id): ?InvoiceDivergenceData
     {

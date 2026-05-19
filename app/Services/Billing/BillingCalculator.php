@@ -15,25 +15,24 @@ use App\Models\VehicleYearlyPricing;
 use Carbon\CarbonImmutable;
 
 /**
- * Cœur du module Facturation V1.2 · calcule, pour une triplette
- * (entreprise utilisatrice × année × mois civil), la facture mensuelle
- * détaillée par véhicule.
+ * Core of the V1.2 billing module · computes, for a triplet
+ * `(company × year × civil month)`, the detailed monthly invoice
+ * per vehicle.
  *
- * **Pipeline en 5 étapes** :
- *   1. Bornes du mois civil `[1er, dernier-du-mois]`.
- *   2. Récupération des contrats chevauchant cette fenêtre pour
- *      l'entreprise (eager-load `vehicle`).
- *   3. Pour chaque véhicule unique : énumération des dates utilisées
- *      (dédupliquées si plusieurs contrats successifs sur le mois).
- *   4. Vérification exhaustive de la présence des tarifs annuels :
- *      tout véhicule sans tarif est collecté, et l'exception est levée
- *      **après** le scan complet (UX : voir tous les manquants en une
- *      fois plutôt que les corriger un à un).
- *   5. Application de l'algorithme `OptimalRateBreakdown` puis
- *      composition des `BillingLineData` triées par plaque.
+ * Pipeline ·
+ *   1. Civil month bounds `[1st, last-of-month]`.
+ *   2. Contracts overlapping that window for the company
+ *      (eager-loaded `vehicle`).
+ *   3. For every unique vehicle · expand the used dates (deduped
+ *      across successive contracts within the month).
+ *   4. Exhaustive yearly-pricing check · every vehicle without a
+ *      pricing is collected and the exception is raised AFTER the
+ *      full scan (UX · see every missing pricing at once instead of
+ *      one at a time).
+ *   5. Apply `OptimalRateBreakdown` and compose `BillingLineData`
+ *      ordered by license plate.
  *
- * **Conformité ADR-0013** : service pur applicatif, zéro SQL ici. Les
- * lectures passent par les repositories injectés.
+ * ADR-0013 compliant · pure application service, no SQL here.
  */
 final readonly class BillingCalculator
 {
@@ -43,10 +42,9 @@ final readonly class BillingCalculator
     ) {}
 
     /**
-     * @throws MissingPricingException si au moins un véhicule présent
-     *                                 sur la période n'a pas de tarif
-     *                                 défini pour l'année concernée.
-     * @throws \InvalidArgumentException si le mois est hors [1, 12].
+     * @throws MissingPricingException when at least one vehicle on the
+     *                                 period has no pricing for the year.
+     * @throws \InvalidArgumentException when the month is outside [1, 12].
      */
     public function calculate(int $companyId, int $year, int $month): BillingCalculationData
     {
@@ -73,16 +71,14 @@ final readonly class BillingCalculator
             );
         }
 
-        // Étape 3 : dates utilisées par véhicule (Lot 2 réductions
-        // commerciales) · on conserve la liste pour permettre au
-        // `DiscountApplier` de calculer le prorata jour par jour. Le
-        // daysUsed se déduit par `count($usedDates)`.
+        // Per-vehicle used dates (kept as a list so the
+        // `DiscountApplier` can compute pro-rata day by day). `daysUsed`
+        // is `count($usedDates)`.
         $usedDatesByVehicle = $this->aggregateUsedDatesByVehicle($contracts, $monthStart, $monthEnd);
         $daysByVehicle = array_map(static fn (array $dates): int => count($dates), $usedDatesByVehicle);
 
-        // Étape 4 : vérification exhaustive des tarifs · batch lookup
-        // unique sur tous les véhicules présents ce mois (élimine N+1
-        // sur boucles `byCompanyForYear` × 12 mois).
+        // Single batch lookup for every vehicle of the month · removes
+        // the N+1 when looping `byCompanyForYear` over 12 months.
         $vehicles = $this->indexVehiclesById($contracts);
         $vehicleIds = array_keys($daysByVehicle);
         $pricings = $this->pricingRepository->findForVehiclesAndYear($vehicleIds, $year);
@@ -102,7 +98,6 @@ final readonly class BillingCalculator
             throw MissingPricingException::forMissingItems($missing);
         }
 
-        // Étape 5 : composition des lignes triées par plaque.
         $lines = [];
         foreach ($daysByVehicle as $vehicleId => $daysUsed) {
             $vehicle = $vehicles[$vehicleId];
@@ -115,8 +110,9 @@ final readonly class BillingCalculator
                 monthlyCents: $pricing->monthly_rate_cents,
             );
 
-            // Lot 2 · expose usedDates et grossTotalCents (= net tant
-            // qu'aucune réduction · DiscountApplier surchargera ensuite).
+            // `grossTotalCents` is initialised to the breakdown total
+            // (= net while no discount applies; the `DiscountApplier`
+            // overrides this downstream).
             $lines[] = new BillingLineData(
                 vehicleId: $vehicleId,
                 licensePlate: $vehicle->license_plate,
@@ -160,18 +156,15 @@ final readonly class BillingCalculator
     }
 
     /**
-     * Calcule en batch les 12 factures mensuelles d'une entreprise sur
-     * une année · 1 SQL pour les contrats de l'année + 1 SQL batched
-     * pour les pricings des véhicules impliqués, puis itération
-     * in-memory mois par mois.
-     *
-     * Sémantique strictement identique à 12 appels successifs à
-     * `calculate()` mais sans les 12 round-trips SQL (utile pour
-     * `byCompanyForYear` et les résolveurs « pending »).
+     * Computes the twelve monthly invoices for a company over a year
+     * · 1 SQL for the contracts of the year + 1 SQL batched for the
+     * pricings of the involved vehicles, then in-memory month-by-month
+     * iteration. Strictly equivalent to 12 successive `calculate()`
+     * calls but without the 12 round-trips.
      *
      * @return array<int, BillingCalculationData|MissingPricingException>
-     *                                                                    Clé : mois `[1..12]`. Une `MissingPricingException` à la place
-     *                                                                    de la `BillingCalculationData` quand le mois aurait levé.
+     *                                                                    Key · month [1..12]. A `MissingPricingException` replaces the
+     *                                                                    `BillingCalculationData` for a month that would have thrown.
      */
     public function calculateYear(int $companyId, int $year): array
     {
@@ -184,7 +177,7 @@ final readonly class BillingCalculator
             $yearEnd->toDateString(),
         );
 
-        // Pré-batch les pricings de tous les véhicules de l'année (1 SQL).
+        // Pre-batch the pricings of every vehicle of the year (1 SQL).
         $allVehicleIds = [];
         foreach ($allContracts as $contract) {
             $allVehicleIds[$contract->vehicle_id] = true;
@@ -211,20 +204,19 @@ final readonly class BillingCalculator
     }
 
     /**
-     * Variante full-batch de `calculateYear()` · prend en argument les
-     * contrats déjà filtrés sur la company (vehicle eager-loaded pour
-     * `exit_date`) et les pricings de l'année. Zéro query SQL ·
-     * itération in-memory pure des 12 mois.
+     * Full-batch variant of `calculateYear()` · takes the contracts
+     * already filtered on the company (with `vehicle` eager-loaded for
+     * `exit_date`) and the year pricings. Zero SQL · pure in-memory
+     * iteration over the 12 months. Strictly equivalent to
+     * `calculateYear($companyId, $year)` without the two round-trips ·
+     * powers the Dashboard batch
+     * {@see App\Services\Billing\BillingBreakdownService::totalRecettesForYears}
+     * which loads every contract and pricing upstream (1 + 1 SQL for
+     * N companies × M years).
      *
-     * Sémantique strictement équivalente à `calculateYear($companyId, $year)`
-     * mais sans les 2 round-trips contrats + pricings · sert au batch
-     * Dashboard {@see App\Services\Billing\BillingBreakdownService::totalRecettesForYears}
-     * qui charge tous les contrats + pricings en amont (1+1 SQL pour
-     * N companies × M années).
-     *
-     * @param  iterable<int, Contract>  $companyYearContracts  contrats déjà filtrés sur (company, year), vehicle eager-loaded
-     * @param  array<int, VehicleYearlyPricing>  $pricingsForYear  vehicleId → pricing pour cette année
-     * @return array<int, BillingCalculationData|MissingPricingException> Clé : mois `[1..12]`
+     * @param  iterable<int, Contract>  $companyYearContracts  Contracts already filtered on `(company, year)`, vehicle eager-loaded
+     * @param  array<int, VehicleYearlyPricing>  $pricingsForYear  vehicleId → pricing for this year
+     * @return array<int, BillingCalculationData|MissingPricingException> Key · month [1..12]
      */
     public function calculateYearWithPreloaded(
         int $companyId,
@@ -232,8 +224,6 @@ final readonly class BillingCalculator
         iterable $companyYearContracts,
         array $pricingsForYear,
     ): array {
-        // Index vehicles depuis les contrats (vehicle déjà eager-loadé
-        // par l'appelant). Pas de query SQL.
         $vehiclesAll = $this->indexVehiclesById($companyYearContracts);
 
         $results = [];
@@ -252,10 +242,10 @@ final readonly class BillingCalculator
     }
 
     /**
-     * Variante in-memory de `calculate()` qui prend les contrats/pricings
-     * pré-chargés en amont · sert au mode batched `calculateYear`.
+     * In-memory variant of `calculate()` taking preloaded contracts
+     * and pricings · used by the batched `calculateYear`.
      *
-     * @param  iterable<int, Contract>  $allContracts  contrats year-scoped (déjà filtrés sur company)
+     * @param  iterable<int, Contract>  $allContracts  Year-scoped contracts (already filtered on company)
      * @param  array<int, mixed>  $pricingsAll  vehicleId → VehicleYearlyPricing
      * @param  array<int, Vehicle>  $vehiclesAll  vehicleId → Vehicle
      */
@@ -270,7 +260,6 @@ final readonly class BillingCalculator
         $monthStart = CarbonImmutable::create($year, $month, 1);
         $monthEnd = $monthStart->endOfMonth();
 
-        // Filtre les contrats qui chevauchent le mois.
         $monthContracts = [];
         foreach ($allContracts as $contract) {
             if ($contract->start_date->toDateString() > $monthEnd->toDateString()) {
@@ -292,7 +281,6 @@ final readonly class BillingCalculator
             );
         }
 
-        // Lot 2 · expose usedDates pour le DiscountApplier en aval.
         $usedDatesByVehicle = $this->aggregateUsedDatesByVehicle($monthContracts, $monthStart, $monthEnd);
         $daysByVehicle = array_map(static fn (array $dates): int => count($dates), $usedDatesByVehicle);
         $vehicleIds = array_keys($daysByVehicle);
@@ -324,8 +312,6 @@ final readonly class BillingCalculator
                 monthlyCents: $pricing->monthly_rate_cents,
             );
 
-            // Lot 2 · expose usedDates et grossTotalCents (= net tant
-            // qu'aucune réduction · DiscountApplier surchargera ensuite).
             $lines[] = new BillingLineData(
                 vehicleId: $vehicleId,
                 licensePlate: $vehicle->license_plate,
@@ -369,30 +355,25 @@ final readonly class BillingCalculator
     }
 
     /**
-     * Calcule, pour un véhicule donné sur un mois civil, le **total de
-     * recettes** cross-entreprises (somme des facturations couples
-     * `(vehicle × company × month)`). Sémantique : un véhicule loué à
-     * deux entreprises distinctes le même mois génère deux factures
-     * indépendantes · chacune avec son propre choix de combo
-     * (jour/semaine/mois) optimal · et la recette véhicule du mois est
-     * la somme des deux factures.
+     * Cross-company revenue total for one vehicle in one civil month
+     * · sum of the `(vehicle × company × month)` couple invoices. A
+     * vehicle rented to two distinct companies the same month produces
+     * two independent invoices · each with its own optimal
+     * day/week/month combo · and the vehicle's monthly revenue is the
+     * sum of both. You CANNOT sum the days cross-company and apply
+     * `OptimalRateBreakdown` once · that would be semantically wrong
+     * because each invoice is emitted separately (10 d × 2 =
+     * 154 000 c, ≠ 20 d in one shot = 150 000 c with realistic
+     * 90/500/1800 rates).
      *
-     * **NB important** : on ne peut PAS sommer les jours cross-entreprises
-     * puis appliquer une seule fois `OptimalRateBreakdown` · ce serait
-     * sémantiquement faux car chaque facture est émise séparément
-     * (10 j × 2 = 154 000 cts, ≠ 20 j en une fois = 150 000 cts avec
-     * tarifs réalistes 90/500/1800).
-     *
-     * Retourne également `daysUsed` (somme cross-entreprises, dédup
-     * intra-entreprise) pour alimenter le récap véhicule.
+     * Also returns `daysUsed` (cross-company sum, intra-company
+     * deduped) for the vehicle recap.
      *
      * @return array{daysUsed: int, totalCents: int}
      *
-     * @throws MissingPricingException si le véhicule n'a pas de tarif
-     *                                 défini pour l'année (un seul item
-     *                                 dans la liste : c'est un calcul
-     *                                 ciblé sur 1 véhicule).
-     * @throws \InvalidArgumentException si le mois est hors [1, 12].
+     * @throws MissingPricingException when the vehicle has no pricing
+     *                                 for the year.
+     * @throws \InvalidArgumentException when the month is outside [1, 12].
      */
     public function calculateForVehicleAndMonth(int $vehicleId, int $year, int $month): array
     {
@@ -416,10 +397,10 @@ final readonly class BillingCalculator
         $pricing = $this->pricingRepository->findForVehicleAndYear($vehicleId, $year);
 
         if ($pricing === null) {
-            // On a besoin d'une plaque pour le message UX : toutes les
-            // contrats portent le même véhicule donc n'importe lequel
-            // suffit (eager-load `vehicle` n'est pas garanti par
-            // `findWindowContractsForVehicle` ; on requête explicitement).
+            // Need a plate for the UX message. Every contract here
+            // carries the same vehicle, so any of them works
+            // (`findWindowContractsForVehicle` does not guarantee the
+            // eager-load).
             $first = $contracts->first();
             $licensePlate = $first?->vehicle->license_plate ?? "#{$vehicleId}";
 
@@ -457,19 +438,15 @@ final readonly class BillingCalculator
     }
 
     /**
-     * Agrège les dates utilisées par véhicule sur la fenêtre `[start, end]`,
-     * en dédoublonnant les dates communes à plusieurs contrats. Préserve
-     * l'ordre d'apparition des véhicules (pas de tri ici · le tri par
-     * plaque est appliqué en aval).
-     *
-     * **Lot 2 réductions commerciales** · retourne désormais la liste
-     * complète des dates ISO Y-m-d (et non plus le count) pour permettre
-     * au `DiscountApplier` aval de calculer le prorata partiel jour par
-     * jour. Le count `daysUsed` se déduit par `count($dates)` sans coût
-     * supplémentaire.
+     * Aggregates per-vehicle used dates over the `[start, end]`
+     * window, deduping dates shared by multiple contracts. Vehicle
+     * appearance order is preserved (sorting by plate happens
+     * downstream). Returns the full list of ISO Y-m-d dates so the
+     * `DiscountApplier` downstream can compute partial pro-ratas day
+     * by day.
      *
      * @param  iterable<int, Contract>  $contracts
-     * @return array<int, list<string>> vehicleId → list<dateStr ISO Y-m-d> triée
+     * @return array<int, list<string>> vehicleId → sorted list of ISO Y-m-d dates
      */
     private function aggregateUsedDatesByVehicle(
         iterable $contracts,
@@ -483,9 +460,9 @@ final readonly class BillingCalculator
             static fn (Contract $contract): int => $contract->vehicle_id,
         );
 
-        // Convertit array<dateStr, true> en list<dateStr> triée
-        // (clés du set en valeurs). L'ordre chronologique est garanti
-        // par l'insertion ordonnée dans `expandContractsByKey`.
+        // Convert `array<dateStr, true>` to `list<dateStr>` · the
+        // chronological order is preserved by the ordered insertion in
+        // `expandContractsByKey`.
         return array_map(
             static fn (array $set): array => array_keys($set),
             $datesByVehicle,
@@ -493,20 +470,19 @@ final readonly class BillingCalculator
     }
 
     /**
-     * Expansion d'une collection de contrats en `array<key, set-of-dates>`
-     * sur la fenêtre `[monthStart, monthEnd]`, en appliquant le clipping
-     * `exit_date` (cohérence ADR-0018) et la déduplication intra-clé.
+     * Expansion of a contracts collection into
+     * `array<key, set-of-dates>` over `[monthStart, monthEnd]`, with
+     * `exit_date` clipping (ADR-0018) and intra-key dedup.
      *
-     * Helper partagé entre {@see aggregateDaysByVehicle} (clé
-     * `vehicle_id`, alimente le pipeline `calculate()` côté entreprise)
-     * et {@see calculateForVehicleAndMonth} (clé `company_id`, alimente
-     * le récap véhicule cross-entreprises).
+     * Shared helper between {@see aggregateUsedDatesByVehicle} (key
+     * `vehicle_id`, feeds the company-side `calculate()`) and
+     * {@see calculateForVehicleAndMonth} (key `company_id`, feeds the
+     * cross-company vehicle recap).
      *
-     * **Clip à `exit_date`** (defense in depth) : la Validation Rule
-     * `AvailableForPeriod` bloque normalement la création d'un contrat
-     * débordant `exit_date`, mais on protège contre toute incohérence
-     * résiduelle (modification post-création de `exit_date`, données
-     * héritées, etc.).
+     * `exit_date` clipping (defense in depth) · the `AvailableForPeriod`
+     * validation rule should already block any contract overflowing
+     * `exit_date`, but we still guard against residual inconsistencies
+     * (post-creation `exit_date` change, inherited data, …).
      *
      * @template TKey of int|string
      *
@@ -558,9 +534,8 @@ final readonly class BillingCalculator
     }
 
     /**
-     * Indexe les véhicules par id à partir des contrats eager-loadés.
-     * Suppose que `vehicle` est chargé sur chaque contrat (cf. repo
-     * `findForCompanyInPeriod`).
+     * Indexes vehicles by id from eager-loaded contracts · assumes
+     * `vehicle` is loaded on each contract.
      *
      * @param  iterable<int, Contract>  $contracts
      * @return array<int, Vehicle>

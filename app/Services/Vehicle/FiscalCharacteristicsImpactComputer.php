@@ -10,41 +10,32 @@ use App\Models\VehicleFiscalCharacteristics;
 use Carbon\CarbonImmutable;
 
 /**
- * Calcule la liste des effets de bord d'une édition de VFC sur ses
- * voisines de l'historique d'un véhicule.
+ * Pure-function computer of side effects induced by editing one VFC on
+ * its neighbours in the vehicle history.
  *
- * Pure fonction (pas d'I/O, pas d'état) - l'Action passe l'historique
- * complet du véhicule (sauf la VFC en cours d'édition) et les
- * nouvelles bornes proposées, et reçoit la liste des `Delete` /
- * `AdjustEffectiveFrom` / `AdjustEffectiveTo` à appliquer après le
- * `UPDATE` de la VFC.
+ * No IO, no state. The Action passes the rest of the history (without
+ * the edited VFC) and the proposed new bounds; the returned list of
+ * `Delete` / `AdjustEffectiveFrom` / `AdjustEffectiveTo` impacts is
+ * applied after the VFC `UPDATE`.
  *
- * Algorithme :
+ * Algorithm ·
+ *   1. Classify each other VFC against `[newFrom, newTo]` ·
+ *      - fully contained → `Delete`
+ *      - left overlap (starts before newFrom, ends within) →
+ *        `AdjustEffectiveTo` to `newFrom − 1`
+ *      - right overlap (starts within, ends after newTo) →
+ *        `AdjustEffectiveFrom` to `newTo + 1`
+ *      - entirely before or after → candidate predecessor / successor
+ *   2. Fill the immediate adjacency gap with the retained predecessor
+ *      and successor unless an overlap adjustment already took that slot.
  *
- *  1. Pour chaque autre VFC `v` du véhicule, classer la position de
- *     ses bornes par rapport à `[newFrom, newTo]` :
- *     - si `v.range` est entièrement engloutie → `Delete`
- *     - si `v` chevauche par la **gauche** (commence avant `newFrom`,
- *       finit dedans) → `AdjustEffectiveTo` à `newFrom − 1`
- *     - si `v` chevauche par la **droite** (commence dedans, finit
- *       après `newTo`) → `AdjustEffectiveFrom` à `newTo + 1`
- *     - si `v` est entièrement avant ou entièrement après → candidate
- *       prédécesseur ou successeur immédiat
- *
- *  2. Une fois les chevauchements résolus, comblement automatique des
- *     trous immédiats avec le prédécesseur / successeur retenu :
- *     - si l'écart entre `predecessor.effective_to` et `newFrom − 1`
- *       est non nul → `AdjustEffectiveTo`
- *     - si l'écart entre `newTo + 1` et `successor.effective_from`
- *       est non nul → `AdjustEffectiveFrom`
- *
- * Les bornes ouvertes côté droit (`effective_to === null`, version
- * courante) sont normalisées à `+∞` pour les comparaisons.
+ * Open right bounds (`effective_to === null`, current version) are
+ * normalised to `+∞` for comparisons.
  */
 final readonly class FiscalCharacteristicsImpactComputer
 {
     /**
-     * @param  iterable<VehicleFiscalCharacteristics>  $others  Toutes les VFC du véhicule sauf l'éditée
+     * @param  iterable<VehicleFiscalCharacteristics>  $others  All VFCs of the vehicle except the edited one
      * @return list<FiscalCharacteristicsImpact>
      */
     public function compute(
@@ -66,22 +57,18 @@ final readonly class FiscalCharacteristicsImpactComputer
                 ? null
                 : $v->effective_to->toImmutable();
 
-            // Engulfment : v est strictement contenu (au sens large) dans [newFrom, newTo]
             if ($this->isEngulfedBy($vFrom, $vTo, $newFrom, $newTo)) {
                 $impacts[] = FiscalCharacteristicsImpact::delete($v);
 
                 continue;
             }
 
-            // Chevauchement par la gauche : v commence avant newFrom et son
-            // effective_to tombe dans [newFrom, newTo].
-            //
-            // Cas spécial inclus : v est la VFC courante (vTo=null) et la
-            // nouvelle plage devient la nouvelle courante (newTo=null).
-            // L'ancienne courante doit alors être raccourcie au jour
-            // précédant newFrom pour libérer la place · sans cette
-            // branche, le trigger DB rejette l'INSERT (chantier création
-            // VFC depuis la modale Historique).
+            // Left overlap · v starts before newFrom and its
+            // effective_to falls within [newFrom, newTo]. Special case
+            // included · v is the current open VFC and the new range
+            // also opens (vTo=null AND newTo=null); the previous
+            // current must be shortened to the day before newFrom so
+            // the DB trigger accepts the INSERT.
             if (
                 $vFrom->lessThan($newFrom)
                 && (
@@ -99,8 +86,8 @@ final readonly class FiscalCharacteristicsImpactComputer
                 continue;
             }
 
-            // Chevauchement par la droite : v commence dans [newFrom, newTo]
-            // et finit après newTo (ou est ouvert vers le futur)
+            // Right overlap · v starts within [newFrom, newTo] and
+            // ends after newTo (or is open-ended).
             if (
                 $newTo !== null
                 && $vFrom->greaterThanOrEqualTo($newFrom)
@@ -115,7 +102,7 @@ final readonly class FiscalCharacteristicsImpactComputer
                 continue;
             }
 
-            // Pas de chevauchement → entièrement avant ou entièrement après
+            // No overlap → entirely before or entirely after.
             if ($vTo !== null && $vTo->lessThan($newFrom)) {
                 if (
                     $candidatePredecessorFrom === null
@@ -140,21 +127,16 @@ final readonly class FiscalCharacteristicsImpactComputer
                 continue;
             }
 
-            // Cas pathologique : v contient strictement [newFrom, newTo]
-            // (vFrom < newFrom AND (vTo == null OR vTo > newTo)).
-            // L'invariant "deux VFC qui se chevauchent" ne devrait jamais
-            // permettre cette configuration en production, mais on
-            // l'ignore défensivement plutôt que de produire un impact
-            // incorrect. Le `guardNoOverlapResidual` côté Action ré-attrape
-            // ces cas exotiques.
+            // Pathological · v strictly contains [newFrom, newTo].
+            // Production invariants forbid this, but we ignore it
+            // defensively. Action-side `guardNoOverlapResidual` catches
+            // any leftover.
         }
 
-        // Comblement immédiat du trou avec le prédécesseur retenu, sauf
-        // si une autre VFC a déjà été raccourcie par chevauchement gauche
-        // jusqu'à la borne attendue (newFrom-1) · auquel cas elle occupe
-        // déjà le slot prédécesseur immédiat. Sans ce garde-fou, on
-        // produit deux adjusts vers la même borne et le trigger DB
-        // rejette pour chevauchement.
+        // Fill the predecessor gap unless another VFC was already
+        // shortened to newFrom-1 by left-overlap handling (otherwise
+        // two adjusts target the same border and the DB trigger
+        // rejects the overlap).
         if ($candidatePredecessor !== null) {
             $expectedTo = $newFrom->subDay();
             $currentTo = $candidatePredecessor->effective_to !== null
@@ -171,11 +153,9 @@ final readonly class FiscalCharacteristicsImpactComputer
             }
         }
 
-        // Comblement immédiat du trou avec le successeur retenu
-        // (uniquement si la nouvelle plage a une borne droite définie ;
-        // sinon il n'y a pas de "successeur" possible). Même garde-fou
-        // qu'au-dessus contre une éventuelle collision avec un
-        // chevauchement droit déjà absorbé.
+        // Fill the successor gap. Skipped when the new range has no
+        // right bound (no successor possible). Same anti-collision
+        // guard as above.
         if ($candidateSuccessor !== null && $newTo !== null) {
             $expectedFrom = $newTo->addDay();
             $currentFrom = $candidateSuccessor->effective_from->toImmutable();
@@ -239,14 +219,12 @@ final readonly class FiscalCharacteristicsImpactComputer
             return false;
         }
 
-        // newTo == null → newRange = [newFrom, +∞), tout vTo (même null)
-        // est ≤ +∞ → engulfed dès que vFrom ≥ newFrom.
+        // newTo == null → newRange = [newFrom, +∞). Any vTo (including
+        // null) is ≤ +∞, so v is engulfed as soon as vFrom ≥ newFrom.
         if ($newTo === null) {
             return true;
         }
 
-        // newTo défini : v doit avoir une borne droite et celle-ci doit
-        // être ≤ newTo.
         return $vTo !== null && $vTo->lessThanOrEqualTo($newTo);
     }
 }

@@ -11,26 +11,21 @@ use App\Models\VehicleYearlyPricing;
 use Carbon\CarbonImmutable;
 
 /**
- * Wrapper applicatif autour de `BillingCalculator` pour exposer 3 calculs
- * de « prix location » aux écrans Index/Show qui consomment des DTOs (Phase
- * 13 D5.10.L) ·
- *   - `forContract(contractId)` · prix d'un contrat individuel, split par
- *     mois civils, OptimalRateBreakdown par mois, somme.
- *   - `forVehicleAndYear(vehicleId, year)` · prix d'un véhicule sur l'année
- *     (somme cross-entreprises des 12 mois).
- *   - `forCompanyAndYear(companyId, year)` · prix d'une entreprise sur
- *     l'année (somme des 12 factures mensuelles).
+ * Façade exposing rental-price calculations to Index and Show screens.
  *
- * Toutes les méthodes retournent `int|null` (cents). `null` signifie qu'au
- * moins un pricing manquant a empêché le calcul · l'UI affiche « · ».
+ *   - `forContract(contractId)` · single contract split by civil month,
+ *     OptimalRateBreakdown per month, then summed.
+ *   - `forVehicleAndYear(vehicleId, year)` · vehicle over a year
+ *     (cross-companies sum of monthly figures).
+ *   - `forCompanyAndYear(companyId, year)` · company over a year (sum
+ *     of the 12 monthly invoices).
  *
- * **Performance** · le mode batched `forVehiclesAndYear(array, year)` est
- * exposé pour les Index/Listings et factorise les requêtes en 2 SQL totales
- * (1 pour les pricings de tous les véhicules, 1 pour leurs contrats de
- * l'année), puis applique `OptimalRateBreakdown` en mémoire par
- * `(vehicle × month × company)`. Évite les N+1 sur les pages paginées.
- * Le mode single `forVehicleAndYear` délègue au batched pour rester
- * efficace même sur des appels isolés.
+ * All methods return `int|null` cents; `null` signals a missing yearly
+ * pricing for at least one needed (vehicle × year) pair (UI renders « · »).
+ *
+ * Batch endpoints (`forContracts`, `forVehiclesAndYear`) collapse the
+ * N+1 pattern down to 2 SQL queries (pricings + contracts) and apply
+ * `OptimalRateBreakdown` in memory.
  */
 final readonly class RentalPriceCalculator
 {
@@ -40,12 +35,8 @@ final readonly class RentalPriceCalculator
     ) {}
 
     /**
-     * Montant loyer pour un contrat individuel · split par mois civils
-     * (clipping `exit_date` cohérent ADR-0018), OptimalRateBreakdown par
-     * mois, somme finale. Le tarif annuel utilisé est celui de l'année
-     * de `start_date` (les contrats qui croisent une année civile sont
-     * rares en pratique ; pour la robustesse on prend le pricing du
-     * mois courant si disponible, sinon null).
+     * Rent for a single contract · split by civil month (with `exit_date`
+     * clipping per ADR-0018), OptimalRateBreakdown per month, summed.
      */
     public function forContract(int $contractId): ?int
     {
@@ -59,14 +50,13 @@ final readonly class RentalPriceCalculator
     }
 
     /**
-     * Variante de `forContract` qui prend un model déjà chargé en
-     * mémoire · évite le re-fetch côté repository quand l'appelant
-     * dispose déjà du model (typiquement les Index paginés). Pricings
-     * récupérés par batch sur tous les contrats du même appelant via
-     * `forContracts`.
+     * Variant that takes an already-loaded contract model, avoiding a
+     * repository round-trip when the caller already has it (typically
+     * paginated indexes). Pricings can be passed in to skip per-call
+     * SQL when prefetched in batch.
      *
      * @param  array<string, VehicleYearlyPricing>|null  $pricingsByVehicleYearKey
-     *                                                                              Clé : `vehicleId.year` (string). Si fourni, pas de SQL.
+     *                                                                              Key · `"{vehicleId}.{year}"`. When provided, no SQL is issued.
      */
     public function forContractModel(Contract $contract, ?array $pricingsByVehicleYearKey = null): ?int
     {
@@ -126,16 +116,12 @@ final readonly class RentalPriceCalculator
     }
 
     /**
-     * Calcule en batch les loyers d'une liste de contrats déjà chargés
-     * en mémoire · 1 SQL pour tous les pricings (vehicle × year)
-     * impliqués, puis agrégation in-memory contrat par contrat.
-     *
-     * Cas d'usage : Index Contrats paginé (cf. `ContractQueryService::
-     * listPaginated`) qui enrichit 25 contrats par page · sans batch
-     * c'est ~25 × N mois requêtes pricings, avec batch c'est 1.
+     * Batch rent for a list of preloaded contracts · 1 SQL for all
+     * pricings (vehicle × year) then in-memory aggregation. Avoids N+1
+     * on paginated indexes (typically 25 contracts per page).
      *
      * @param  iterable<Contract>  $contracts
-     * @return array<int, ?int> contractId → cents (null si tarif manquant)
+     * @return array<int, ?int> contractId → cents (null when pricing missing)
      */
     public function forContracts(iterable $contracts): array
     {
@@ -158,9 +144,8 @@ final readonly class RentalPriceCalculator
             return [];
         }
 
-        // Batch lookup groupé par année (1 SQL par année traversée par
-        // au moins un contrat · en pratique 1, parfois 2 sur des
-        // contrats cross-year).
+        // Group lookups by year (1 SQL per traversed year; typically 1,
+        // occasionally 2 for cross-year contracts).
         $pricingsByKey = [];
         $yearToVehicleIds = [];
         foreach ($vehicleYearKeys as $vehicleId => $yearsSet) {
@@ -184,11 +169,10 @@ final readonly class RentalPriceCalculator
     }
 
     /**
-     * Montant loyer pour 1 véhicule sur 1 année (somme cross-entreprises
-     * des 12 facturations mensuelles). Null si tarif annuel manquant.
-     *
-     * Délègue à `forVehiclesAndYear` (2 SQL au total) plutôt que de
-     * boucler 12 fois `calculateForVehicleAndMonth` (12 SQL).
+     * Yearly rent for a single vehicle (cross-companies sum of the 12
+     * monthly billings). Null if the yearly pricing is missing.
+     * Delegates to {@see forVehiclesAndYear()} so single calls stay
+     * efficient (2 SQL instead of 12).
      */
     public function forVehicleAndYear(int $vehicleId, int $year): ?int
     {
@@ -198,15 +182,13 @@ final readonly class RentalPriceCalculator
     }
 
     /**
-     * Montant loyer pour 1 entreprise sur 1 année (somme des 12 factures
-     * mensuelles). Null si au moins 1 véhicule de la company a un pricing
-     * manquant pour l'année · l'utilisateur doit corriger avant de
-     * pouvoir lire le total.
+     * Yearly rent for a company (sum of its 12 monthly invoices). Null
+     * if any vehicle lacks a pricing for the year · the user must fix
+     * the data before the total can be read.
      *
-     * **Performance** · 2 SQL totales (1 contrats année + 1 pricings batch)
-     * puis agrégation in-memory par (vehicle × month). Évite le N+1 sur
-     * les pages qui appellent cette méthode par année historique
-     * (`computeYearStats` × N années sur la fiche entreprise).
+     * 2 SQL total (1 contracts-in-year + 1 batch pricings) followed by
+     * in-memory aggregation per `(vehicle × month)`. Avoids N+1 on
+     * pages that call this per historical year.
      */
     public function forCompanyAndYear(int $companyId, int $year): ?int
     {
@@ -223,7 +205,7 @@ final readonly class RentalPriceCalculator
             return 0;
         }
 
-        // Expansion par (mois × véhicule), déduplication des jours.
+        // Expand by `(month × vehicle)`, dedupe days.
         $datesByMonthAndVehicle = [];
         $vehicleIds = [];
 
@@ -235,7 +217,7 @@ final readonly class RentalPriceCalculator
                 ? $contract->end_date->toImmutable()
                 : $yearEnd;
 
-            // Clipping `exit_date` (cohérence ADR-0018, defense in depth).
+            // exit_date clipping (defense in depth, ADR-0018).
             $exitDate = $contract->vehicle?->exit_date;
             if ($exitDate !== null) {
                 $exitImmutable = $exitDate->toImmutable();
@@ -288,15 +270,12 @@ final readonly class RentalPriceCalculator
     }
 
     /**
-     * Variante batched de `forVehicleAndYear` pour les Index/Listings ·
-     * une seule SQL pour tous les pricings + une seule SQL pour tous les
-     * contrats de l'année, puis agrégation en mémoire (Phase 13 D5.10.L).
-     *
-     * Évite les N+1 (12 calls × N véhicules = 12N SQL) au profit de 2 SQL
-     * + travail in-memory.
+     * Batched variant of {@see forVehicleAndYear()} for indexes · 2 SQL
+     * total then in-memory aggregation. Sequence semantics align with
+     * {@see BillingCalculator::calculateForVehicleAndMonth()}.
      *
      * @param  list<int>  $vehicleIds
-     * @return array<int, ?int> vehicleId → cents (null si tarif manquant)
+     * @return array<int, ?int> vehicleId → cents (null when pricing missing)
      */
     public function forVehiclesAndYear(array $vehicleIds, int $year): array
     {
@@ -307,7 +286,6 @@ final readonly class RentalPriceCalculator
         $pricings = $this->pricingRepo->findForVehiclesAndYear($vehicleIds, $year);
         $contracts = $this->contractRepo->findForVehiclesInYear($vehicleIds, $year);
 
-        // Grouper les contrats par véhicule.
         $contractsByVehicle = [];
         foreach ($contracts as $contract) {
             $contractsByVehicle[$contract->vehicle_id][] = $contract;
@@ -327,9 +305,6 @@ final readonly class RentalPriceCalculator
             $pricing = $pricings[$vehicleId];
             $vehicleContracts = $contractsByVehicle[$vehicleId] ?? [];
 
-            // Pour chaque (vehicle × month × company), on déduplique les
-            // dates et applique OptimalRateBreakdown.
-            // Sémantique cohérente avec BillingCalculator::calculateForVehicleAndMonth.
             $datesByMonthAndCompany = [];
 
             foreach ($vehicleContracts as $contract) {

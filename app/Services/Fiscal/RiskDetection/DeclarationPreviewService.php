@@ -15,18 +15,12 @@ use Carbon\CarbonImmutable;
 use RuntimeException;
 
 /**
- * Orchestrateur de la preview d'une déclaration fiscale (Phase 11 D3,
- * ADR-0015 § 6.1).
+ * Orchestrates the declaration preview (ADR-0015 § 6.1).
  *
- * Pipeline :
- *   1. Détection des clusters (D2 · `RiskDetectionService`)
- *   2. Pré-application des décisions persistées par fingerprint
- *      (cf. ADR § D5 + § 6.5 reprise auto à la régénération)
- *   3. Lookup de la déclaration active courante (D1)
- *   4. Comptage des clusters pending = bloqueurs de génération
- *
- * Service stateless, pure lecture. Aucune persistance ; les
- * mutations vivent dans les Actions D3.B.
+ * Pipeline · detect risk clusters, apply persisted decisions keyed by
+ * fingerprint, look up the current active declaration, count pending
+ * clusters (generation blockers). Stateless and read-only; mutations
+ * live in the dedicated Actions.
  */
 final readonly class DeclarationPreviewService
 {
@@ -73,9 +67,8 @@ final readonly class DeclarationPreviewService
     }
 
     /**
-     * Pour chaque cluster, lookup la décision persistée par fingerprint
-     * (ADR-0015 § D5). Si match : injecte `decision` + `justification`
-     * dans un nouveau `ReviewClusterData` immutable.
+     * Injects persisted decisions onto matching clusters by fingerprint
+     * (ADR-0015 § D5).
      *
      * @param  list<ReviewClusterData>  $clusters
      * @param  iterable<FiscalReviewDecision>  $persistedDecisions
@@ -121,10 +114,9 @@ final readonly class DeclarationPreviewService
                 continue;
             }
 
-            // Phase 13 D5.10.S · recalcul des stats effectives en
-            // filtrant les contrats exclus · la liste `contracts`
-            // reste brute (= tous les contrats du cluster détecté)
-            // pour permettre à la modale de toggler chacun.
+            // Recompute effective stats with the excluded contracts
+            // removed; the raw `contracts` list is preserved so the
+            // modal can toggle each one individually.
             $stats = $this->computeEffectiveStats($cluster, $excluded);
 
             $enriched[] = new ReviewClusterData(
@@ -147,13 +139,9 @@ final readonly class DeclarationPreviewService
     }
 
     /**
-     * Recalcule les stats effectives d'un cluster après exclusion de
-     * certains contrats (Phase 13 D5.10.S). Reflète ce que le cluster
-     * « effectif » est aux yeux du calcul fiscal · les exclus sont
-     * traités comme LCD individuels hors chaîne.
-     *
-     * Si tous les contrats sont exclus, les stats retombent à 0/dates
-     * brutes · cas dégénéré peu probable, géré sans crash.
+     * Recomputes cluster stats after excluding contracts (those are
+     * treated as standalone LCD outside the chain). Degenerate case of
+     * everything excluded falls back to zeros with raw cluster dates.
      *
      * @param  list<int>  $excludedContractIds
      * @return array{count: int, days: int, start: string, end: string, vehicles: int}

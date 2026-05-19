@@ -9,21 +9,20 @@ use App\Exceptions\RentalDiscount\RentalDiscountOverlapException;
 use App\Models\RentalDiscount;
 
 /**
- * Garde-fou applicatif du non-chevauchement entre réductions commerciales
- * d'une même entreprise. Appelé par `CreateRentalDiscountAction` et
- * `UpdateRentalDiscountAction` (lot 4), et exposé via endpoint AJAX
- * `/rental-discounts/check-conflicts` pour feedback live UI.
+ * Application-level guard against overlap between commercial
+ * discounts of a single company. Called by the
+ * `CreateRentalDiscountAction` and `UpdateRentalDiscountAction`, and
+ * exposed via the AJAX endpoint `/rental-discounts/check-conflicts`
+ * for live UI feedback.
  *
- * **Règle métier** · 2 réductions sont en conflit ssi ·
- *   1. leurs périodes `[start, end]` se chevauchent (inclusif)
- *   2. ET l'intersection de leurs ensembles de véhicules est non vide
- *      (avec la sémantique « pivot vide = tous les véhicules »)
- *
- * **Pourquoi pas un trigger MySQL** · la règle 2 implique l'intersection
- * de tables pivot avec une sémantique « vide = tous » qu'un CHECK ne
- * peut pas exprimer. Validation applicative + test feature couvre les
- * 5 cas (disjoints, chevauchement véhicules disjoints, intersection
- * non vide, tous + subset, tous + tous).
+ * Business rule · two discounts conflict iff their `[start, end]`
+ * periods overlap (inclusive) AND the intersection of their vehicle
+ * sets is non-empty (with the « empty pivot = every vehicle »
+ * semantics). Not enforced through a MySQL trigger because rule 2
+ * involves pivot-table intersection with the « empty = all » semantic
+ * that a CHECK cannot express. Application validation + feature tests
+ * cover the five cases (disjoint, period overlap with disjoint
+ * vehicles, non-empty intersection, all + subset, all + all).
  */
 final readonly class RentalDiscountConflictService
 {
@@ -32,16 +31,17 @@ final readonly class RentalDiscountConflictService
     ) {}
 
     /**
-     * Retourne la liste des réductions de la même company qui chevauchent
-     * la candidate (période × véhicules). Liste vide = pas de conflit.
+     * Returns the discounts of the same company conflicting with the
+     * candidate (period × vehicles). Empty list = no conflict.
      *
      * `$vehicleIds` ·
-     *   - liste vide = « la candidate cible tous les véhicules » → conflit
-     *     avec n'importe quelle réduction chevauchant en période
-     *   - liste non vide = candidate sur subset → conflit ssi l'existante
-     *     est elle aussi « tous » OU intersection de subsets non vide
+     *   - empty list = « the candidate targets every vehicle » →
+     *     conflicts with any discount overlapping in period.
+     *   - non-empty = candidate on a subset → conflict iff the
+     *     existing discount also targets every vehicle OR the
+     *     subset intersection is non-empty.
      *
-     * `$excludeId` permet d'exclure une réduction en cours d'édition.
+     * `$excludeId` removes a discount currently being edited.
      *
      * @param  list<int>  $vehicleIds
      * @return list<RentalDiscount>
@@ -68,18 +68,17 @@ final readonly class RentalDiscountConflictService
             $existingVehicleIds = $existing->vehicles->pluck('id')->all();
             $existingAppliesToAll = $existingVehicleIds === [];
 
-            // Si l'un des deux cible « tous », l'intersection est
-            // forcément non vide tant qu'au moins un véhicule existe
-            // sur la company (cas pratique : on considère qu'il y en a
-            // toujours au moins un sur la période, sinon l'utilisateur
-            // n'aurait aucune raison de créer la réduction).
+            // When either side targets « all », the intersection is
+            // necessarily non-empty as long as at least one vehicle
+            // exists on the company (in practice there always is one
+            // over the period · otherwise the user would have no
+            // reason to create the discount).
             if ($candidateAppliesToAll || $existingAppliesToAll) {
                 $conflicts[] = $existing;
 
                 continue;
             }
 
-            // Intersection explicite des deux subsets.
             foreach ($existingVehicleIds as $vehicleId) {
                 if (isset($candidateVehicleSet[$vehicleId])) {
                     $conflicts[] = $existing;
@@ -92,7 +91,7 @@ final readonly class RentalDiscountConflictService
     }
 
     /**
-     * Variante throw · usage Action backend (Create/Update).
+     * Throwing variant for backend Actions (Create/Update).
      *
      * @param  list<int>  $vehicleIds
      *

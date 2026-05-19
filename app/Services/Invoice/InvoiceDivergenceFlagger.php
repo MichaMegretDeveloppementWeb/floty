@@ -9,30 +9,26 @@ use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
 use Carbon\CarbonImmutable;
 
 /**
- * Service applicatif chargé de marquer les factures impactées par une
- * mutation comme `is_divergent = true` (T6 / Phase 14.R V1.2).
+ * Application service that flags invoices impacted by a mutation as
+ * `is_divergent = true`.
  *
- * **Pourquoi un service dédié** · centraliser la logique d'énumération
- * `(year, month)` et de bulk UPDATE pour qu'elle soit réutilisable par
- * les 3 observers (Contract, VehicleYearlyPricing, Vehicle.exit_date)
- * sans duplication.
+ * Centralises the `(year, month)` enumeration and bulk UPDATE so the
+ * three observers (Contract, VehicleYearlyPricing, Vehicle.exit_date)
+ * reuse the same logic.
  *
- * **Conformité ADR-0013 R3** (Lot 4 D01 · F-34-001 + F-34-202 · plan-remediation
- * Vague 1) · le service ne fait plus aucun SQL direct. Toutes les
- * lectures sont déléguées à {@see ContractReadRepositoryInterface}, et
- * tous les bulk UPDATE à {@see InvoiceWriteRepositoryInterface}. Les
- * 3 méthodes du service ne portent plus que la logique d'orchestration
- * (énumération de tuples `(year, month)`, déduplication, pivots).
+ * ADR-0013 R3 compliant · no direct SQL, every read delegates to
+ * {@see ContractReadRepositoryInterface}, every bulk UPDATE to
+ * {@see InvoiceWriteRepositoryInterface}. The methods only orchestrate
+ * (tuple enumeration, dedup, pivots).
  *
- * **Doctrine immuabilité** (ADR-0008) · `is_divergent` est une
- * métadonnée d'observabilité, pas un champ du snapshot. Les colonnes
- * figées (`total_ht_cents`, `pdf_path`, `pdf_hash`, `invoice_number`,
- * `invoice_lines`) ne sont jamais mutées par ce service.
+ * Immutability doctrine (ADR-0008) · `is_divergent` is observational
+ * metadata, never part of the snapshot. The frozen columns
+ * (`total_ht_cents`, `pdf_path`, `pdf_hash`, `invoice_number`,
+ * `invoice_lines`) are never mutated here.
  *
- * **Coût** · un appel = un (rarement deux ou trois) bulk UPDATE
- * conditionnel sur `(company_id, year, month)`. Aucun appel à
- * `BillingCalculator`. L'intérêt principal · faire payer la divergence
- * à l'écriture (rare) plutôt qu'à la lecture (à chaque Index).
+ * Cost · one call = one (rarely two or three) conditional bulk UPDATE
+ * on `(company_id, year, month)`. No `BillingCalculator` invocation.
+ * Pays divergence on write (rare), not on read (every Index).
  */
 final readonly class InvoiceDivergenceFlagger
 {
@@ -42,12 +38,11 @@ final readonly class InvoiceDivergenceFlagger
     ) {}
 
     /**
-     * Marque divergentes les factures de l'entreprise dont (year, month)
-     * tombe dans le range courant ou l'éventuel range précédent (cas
-     * Update Contract avec dates modifiées).
+     * Flags as divergent the company's invoices whose `(year, month)`
+     * falls in the current range or the optional previous range
+     * (Update Contract with modified dates).
      *
-     * Retourne le nombre de lignes flippées (utile pour les tests · en
-     * pratique on n'agit pas sur le retour).
+     * Returns the number of flipped rows.
      */
     public function flagForContractRange(
         int $companyId,
@@ -68,13 +63,12 @@ final readonly class InvoiceDivergenceFlagger
     }
 
     /**
-     * Marque divergentes les factures de l'année du tarif modifié, pour
-     * toutes les entreprises ayant eu un contrat sur ce véhicule
-     * chevauchant l'année.
-     *
-     * Le pivot vehicle → companies + l'UPDATE bulk sont entièrement
-     * portés par {@see InvoiceWriteRepositoryInterface::flagDivergentForVehiclePricingYear}
-     * (1 round-trip BDD avec subquery embedded).
+     * Flags as divergent the invoices of the modified pricing's year
+     * for every company that had a contract on this vehicle crossing
+     * the year. The vehicle → companies pivot and the bulk UPDATE are
+     * carried entirely by
+     * {@see InvoiceWriteRepositoryInterface::flagDivergentForVehiclePricingYear()}
+     * (single round-trip with an embedded subquery).
      */
     public function flagForVehiclePricingYear(int $vehicleId, int $year): int
     {
@@ -82,15 +76,14 @@ final readonly class InvoiceDivergenceFlagger
     }
 
     /**
-     * Marque divergentes les factures de l'entreprise dont (year, month)
-     * tombe dans la période d'une réduction commerciale (Lot 3 ·
-     * propagation UI). Couvre la création / mutation / suppression d'une
-     * `RentalDiscount` · les factures émises avant la mutation ne reflètent
-     * plus la réalité commerciale en vigueur.
+     * Flags as divergent the invoices of the company whose
+     * `(year, month)` falls within a commercial discount period.
+     * Covers creation / mutation / deletion of a `RentalDiscount` ·
+     * invoices emitted before the mutation no longer mirror the
+     * applicable commercial reality.
      *
-     * Le snapshot facture reste figé (doctrine ADR-0008) · seule la flag
-     * `is_divergent` est mise à `true` pour permettre à l'utilisateur de
-     * décider d'une régénération.
+     * The invoice snapshot stays frozen (ADR-0008) · only
+     * `is_divergent` flips so the user can decide to regenerate.
      */
     public function flagForDiscountPeriod(
         int $companyId,
@@ -111,12 +104,10 @@ final readonly class InvoiceDivergenceFlagger
     }
 
     /**
-     * Marque divergentes toutes les factures correspondant à un contrat
-     * existant du véhicule (cas Vehicle.exit_date qui clip la facturation,
-     * cf. T5 / ADR-0018).
-     *
-     * Pivot effectué via `findContractDateRangesForVehicle` puis bulk
-     * UPDATE par company sur les tuples `(year, month)` énumérés.
+     * Flags as divergent every invoice matching an existing contract
+     * of the vehicle (Vehicle.exit_date clipping per ADR-0018). Pivot
+     * resolved via `findContractDateRangesForVehicle` then bulk UPDATE
+     * per company on enumerated `(year, month)` tuples.
      */
     public function flagForVehicle(int $vehicleId): int
     {
@@ -140,9 +131,8 @@ final readonly class InvoiceDivergenceFlagger
     }
 
     /**
-     * Énumère tous les couples (year, month) couverts par le range
-     * inclusif `[start, end]`. Retourne au moins une entrée si
-     * `start <= end`.
+     * Enumerates every `(year, month)` covered by the inclusive range
+     * `[start, end]`. Returns at least one entry when `start <= end`.
      *
      * @return list<array{year:int,month:int}>
      */
@@ -165,7 +155,7 @@ final readonly class InvoiceDivergenceFlagger
     }
 
     /**
-     * Déduplique une liste de tuples sur la clé `"{year}-{month}"`.
+     * Dedupes a tuple list by `"{year}-{month}"`.
      *
      * @param  list<array{year:int,month:int}>  $tuples
      * @return list<array{year:int,month:int}>

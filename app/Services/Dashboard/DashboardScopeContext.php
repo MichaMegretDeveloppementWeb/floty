@@ -10,26 +10,25 @@ use App\Models\Vehicle;
 use Illuminate\Support\Collection;
 
 /**
- * Cache mémoire intra-requête pour un calcul Dashboard sur une plage
- * d'années (F-21-001/002 · optimisation perf).
+ * Per-request memory cache for a Dashboard computation over a year
+ * range.
  *
- * Pré-charge en bulk · les contrats groupés par couple (véhicule,
- * entreprise) pour chaque année du scope, les véhicules concernés
- * (1 query unique), les indispos par véhicule (1 query unique).
+ * Pre-loads in bulk · contracts grouped by `(vehicle, company)` for
+ * every year in scope, the relevant vehicles (single query), the
+ * unavailabilities per vehicle (single query).
  *
- * Les recettes locatives ne sont plus pré-calculées ici (chantier perf
- * Dashboard 2026-05-17 · split en `Inertia::defer` distinct via
- * {@see DashboardStatsService::computeKpisRecettes()}). Le batch est
- * désormais assuré par
+ * Rental revenues are not precomputed here; they live in a dedicated
+ * `Inertia::defer` group via
+ * {@see DashboardStatsService::computeKpisRecettes()}, batched by
  * {@see App\Services\Billing\BillingBreakdownService::totalRecettesForYears}
- * (3 queries SQL totales pour N companies × M années).
+ * (3 total SQL queries for N companies × M years).
  */
 final readonly class DashboardScopeContext
 {
     /**
-     * @param  array<int, ContractsByPair>  $contractsByYear  Pivot contrats par année du scope
-     * @param  Collection<int, Vehicle>  $vehiclesById  Véhicules indexés (superset des années du scope)
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId  Indispos par véhicule (superset)
+     * @param  array<int, ContractsByPair>  $contractsByYear  Contracts pivot per scope year
+     * @param  Collection<int, Vehicle>  $vehiclesById  Indexed vehicles (superset over the scope)
+     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId  Unavailabilities per vehicle (superset)
      */
     public function __construct(
         public array $contractsByYear,
@@ -38,9 +37,9 @@ final readonly class DashboardScopeContext
     ) {}
 
     /**
-     * Pivot pour une année du scope · retourne un pivot vide si l'année
-     * n'est pas dans le scope (cohérent avec le comportement standalone
-     * de `loadContractsByPair` qui ne crash pas sur année sans contrat).
+     * Pivot for a scope year. Returns an empty pivot when the year is
+     * not in scope (mirrors the standalone `loadContractsByPair`
+     * behaviour, which does not crash on a year without contracts).
      */
     public function contractsForYear(int $year): ContractsByPair
     {

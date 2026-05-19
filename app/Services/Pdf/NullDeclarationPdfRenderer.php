@@ -9,17 +9,9 @@ use App\Fiscal\ValueObjects\DeclarationRenderContext;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 /**
- * Renderer PDF stub minimal pour les tests qui veulent éviter le coût
- * complet du Blade renderer + tout le DOM CSS associé (Phase 11 D5.5
- * post-swap).
- *
- * En production le binding par défaut est désormais
- * {@see BladeDomPdfDeclarationRenderer} (cf. {@see App\Providers\AppServiceProvider}).
- * Ce stub reste disponible pour les tests qui le bindent explicitement.
- *
- * Le PDF stub produit une page minimale avec la référence et les
- * totaux fiscaux du context, suffisant pour valider que le binary
- * sortant commence par `%PDF-` sans payer le rendu complet.
+ * Minimal stub renderer used by tests that need a real PDF binary
+ * without the cost of the full Blade renderer. Production binds the
+ * {@see BladeDomPdfDeclarationRenderer} by default.
  */
 final readonly class NullDeclarationPdfRenderer implements DeclarationPdfRendererInterface
 {

@@ -12,27 +12,16 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /**
- * Encapsule l'accès au filesystem pour les documents contrat. Toute la
- * logique d'I/O fichier passe par ici - les Actions ne touchent jamais
- * directement {@see Storage}.
+ * Storage gateway for contract document files.
  *
- * Le disque utilisé est celui configuré par défaut (`config('filesystems.default')`).
- * V1 = `local` (private, sous `storage/app/private/`). Bascule vers S3 =
- * juste changer `FILESYSTEM_DISK` dans `.env`, aucun code à modifier.
- *
- * Path layout : `contract-documents/{contract_id}/{uuid}.pdf`
- *   - `contract_id` segment → cleanup facile par contrat si besoin
- *   - UUID dans le filename → évite collisions, ne fuite pas le nom
- *     original (qui peut contenir des infos sensibles)
- *
- * Le nom original (`UploadedFile::getClientOriginalName()`) est
- * persisté en DB (`contract_documents.filename`) pour ré-affichage.
+ * Uses the default filesystem disk (local in V1, swappable to S3 via
+ * `FILESYSTEM_DISK`). Path layout · `contract-documents/{contract_id}/{uuid}.pdf`.
+ * The original client filename is persisted separately in DB.
  */
 final readonly class ContractDocumentStorage
 {
     /**
-     * Stocke physiquement un fichier uploadé et retourne les méta-données
-     * à persister en DB par l'Action appelante.
+     * Persists an uploaded file and returns metadata for DB storage.
      *
      * @return array{storage_path: string, sha256: string, size_bytes: int, mime_type: string, filename: string}
      */
@@ -57,9 +46,7 @@ final readonly class ContractDocumentStorage
     }
 
     /**
-     * Supprime un fichier physique. Idempotent : si le fichier n'existe
-     * plus (déjà supprimé ou jamais écrit), pas d'erreur - on assume
-     * que l'invariant DB↔disque peut être réparé.
+     * Idempotent file removal; missing files are accepted silently.
      */
     public function delete(string $storagePath): void
     {
@@ -67,13 +54,9 @@ final readonly class ContractDocumentStorage
     }
 
     /**
-     * Variante best-effort de {@see delete()} : avale toute exception
-     * driver (S3 down, permission, I/O) et logge un warning. Utilisée
-     * dans deux scénarios de compensation (chantier γ.2) :
-     *   1. Rollback fichier après échec persistance DB lors d'un upload
-     *      → on ne veut pas masquer l'exception DB d'origine.
-     *   2. Cleanup physique après suppression DB d'un document
-     *      → un orphelin disque est préférable à un orphelin record.
+     * Best-effort variant of {@see delete()} that swallows driver
+     * exceptions and logs a warning. Used in compensation flows where
+     * an orphan file is preferable to losing the originating exception.
      */
     public function safeDelete(string $storagePath): void
     {
@@ -89,8 +72,7 @@ final readonly class ContractDocumentStorage
     }
 
     /**
-     * Réponse streaming pour download : envoie le fichier au navigateur
-     * avec le filename original (Content-Disposition attachment).
+     * Streamed download response carrying the original client filename.
      */
     public function streamResponse(string $storagePath, string $originalFilename): StreamedResponse
     {

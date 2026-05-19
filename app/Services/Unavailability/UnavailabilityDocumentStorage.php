@@ -12,31 +12,19 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 /**
- * Encapsule l'accès au filesystem pour les documents indisponibilité.
- * Toute la logique d'I/O fichier passe par ici · les Actions ne
- * touchent jamais directement {@see Storage}.
+ * Storage gateway for unavailability documents (image or PDF proof).
  *
- * Le disque utilisé est celui configuré par défaut
- * (`config('filesystems.default')`). V1 = `local` (private). Bascule
- * vers S3 = juste changer `FILESYSTEM_DISK` dans `.env`, aucun code
- * à modifier.
- *
- * Path layout · `unavailability-documents/{unavailability_id}/{uuid}.{ext}`
- *   - `unavailability_id` segment → cleanup facile par indispo
- *   - UUID dans le filename → évite collisions, ne fuite pas le nom
- *     original (qui peut contenir des infos sensibles)
- *   - extension préservée depuis le fichier source · permet au browser
- *     de proposer le bon viewer à l'aperçu (jpg vs pdf vs png)
- *
- * Le nom original (`UploadedFile::getClientOriginalName()`) est
- * persisté en DB (`unavailability_documents.filename`) pour
- * ré-affichage.
+ * Uses the default filesystem disk (local in V1, swappable to S3 via
+ * `FILESYSTEM_DISK`). Path layout ·
+ * `unavailability-documents/{unavailability_id}/{uuid}.{ext}`. The
+ * original extension is preserved so the browser can pick the right
+ * viewer (jpg vs pdf vs png). Original filename is persisted separately
+ * in DB.
  */
 final readonly class UnavailabilityDocumentStorage
 {
     /**
-     * Stocke physiquement un fichier uploadé et retourne les méta-données
-     * à persister en DB par l'Action appelante.
+     * Persists an uploaded file and returns metadata for DB storage.
      *
      * @return array{storage_path: string, sha256: string, size_bytes: int, mime_type: string, filename: string}
      */
@@ -62,9 +50,7 @@ final readonly class UnavailabilityDocumentStorage
     }
 
     /**
-     * Supprime un fichier physique. Idempotent · si le fichier n'existe
-     * plus (déjà supprimé ou jamais écrit), pas d'erreur · on assume
-     * que l'invariant DB↔disque peut être réparé.
+     * Idempotent file removal; missing files are accepted silently.
      */
     public function delete(string $storagePath): void
     {
@@ -72,13 +58,9 @@ final readonly class UnavailabilityDocumentStorage
     }
 
     /**
-     * Variante best-effort de {@see delete()} · avale toute exception
-     * driver (S3 down, permission, I/O) et logge un warning. Utilisée
-     * dans deux scénarios de compensation ·
-     *   1. Rollback fichier après échec persistance DB lors d'un upload
-     *      → on ne veut pas masquer l'exception DB d'origine.
-     *   2. Cleanup physique après suppression DB d'un document
-     *      → un orphelin disque est préférable à un orphelin record.
+     * Best-effort variant of {@see delete()} that swallows driver
+     * exceptions and logs a warning. Used in compensation flows where
+     * an orphan file is preferable to losing the originating exception.
      */
     public function safeDelete(string $storagePath): void
     {
@@ -94,8 +76,7 @@ final readonly class UnavailabilityDocumentStorage
     }
 
     /**
-     * Réponse streaming pour download · envoie le fichier au navigateur
-     * avec le filename original (Content-Disposition attachment).
+     * Streamed download response carrying the original client filename.
      */
     public function streamResponse(string $storagePath, string $originalFilename): StreamedResponse
     {
@@ -103,9 +84,11 @@ final readonly class UnavailabilityDocumentStorage
     }
 
     /**
-     * Extension sûre dérivée du fichier · `getClientOriginalExtension`
-     * vient de l'upload, peut être falsifiée · on whitelist sur les
-     * mimes autorisés et on fallback sur l'extension réelle.
+     * Safe extension derived from the uploaded file. `getClientOriginalExtension()`
+     * is user-supplied and falsifiable; we whitelist on allowed mimes
+     * and fall back to the actual mime → extension mapping. MIME
+     * validation is enforced upstream by the FormRequest; this is
+     * defense-in-depth.
      */
     private function safeExtension(UploadedFile $file): string
     {
@@ -116,9 +99,6 @@ final readonly class UnavailabilityDocumentStorage
             return $ext;
         }
 
-        // Fallback sur le mime → extension. Validation MIME assurée
-        // par le FormRequest en amont, on n'arrive ici qu'avec un
-        // fichier déjà validé · le fallback est défensif.
         return match ($file->getMimeType()) {
             'image/jpeg' => 'jpg',
             'image/png' => 'png',

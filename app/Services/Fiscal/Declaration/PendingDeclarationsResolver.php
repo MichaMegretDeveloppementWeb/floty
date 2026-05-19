@@ -11,30 +11,23 @@ use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
 use Carbon\CarbonImmutable;
 
 /**
- * Résout la liste des `(company, year)` qui méritent l'attention de
- * l'utilisateur sur l'onglet Vue d'ensemble d'une fiche entreprise
- * (Phase 11 D4, refondu Phase 12 D5.9.D).
+ * Resolves the `(company, year)` pairs needing user attention on the
+ * Company overview tab.
  *
- * **Sémantique « pending » élargie (D5.9.D)** : la liste contient toute
- * année qui n'est pas en `GeneratedActive` (= finalisée et à jour).
- * Sont donc inclus :
- *   - Untouched (jamais préparée), sauf l'année en cours qui n'est pas
- *     encore due.
- *   - DraftPending / DraftReadyToGenerate (préparation en cours).
- *   - Deferred (mise de côté volontaire).
- *   - GeneratedObsoleteOrphan (déclaration périmée sans régénération).
- *   - RegenerationInProgress (Draft chaîné en cours).
+ * "Pending" is anything not in `GeneratedActive` (finalised and
+ * up-to-date). Includes ·
+ *   - Untouched (never prepared), except the current year (not yet due).
+ *   - DraftPending / DraftReadyToGenerate (in progress).
+ *   - Deferred (intentionally set aside).
+ *   - GeneratedObsoleteOrphan (obsolete declaration without regen).
+ *   - RegenerationInProgress (chained Draft in progress).
  *
- * Chaque entry porte le `state` de cycle de vie résolu par
- * {@see DeclarationLifecycleResolver}, permettant au composant
- * frontend de proposer le bon CTA adaptatif (Préparer / Reprendre /
- * Régénérer / Reprendre la régénération).
+ * Each entry carries the lifecycle state resolved by
+ * {@see DeclarationLifecycleResolver}, so the frontend can surface the
+ * matching adaptive CTA (Préparer / Reprendre / Régénérer / …).
  *
- * **Deadline** : 30 avril N+1 (CIBS officiel France). `isOverdue` est
- * dérivé via comparaison avec `now()`.
- *
- * Sortie triée plus ancienne année en premier (les retards les plus
- * critiques en haut de la card UI).
+ * Deadline · April 30 of N+1 (French CIBS). `isOverdue` is derived
+ * against `now()`. Output sorted oldest year first.
  */
 final readonly class PendingDeclarationsResolver
 {
@@ -64,10 +57,10 @@ final readonly class PendingDeclarationsResolver
             if ($lifecycle->state === DeclarationLifecycleState::GeneratedActive) {
                 continue;
             }
-            // Untouched sur l'année en cours · pas encore due tant que
-            // l'exercice n'est pas clos. Les autres états (Draft,
-            // Deferred, ObsoleteOrphan, Regen) méritent toujours
-            // l'attention, même sur l'année courante.
+            // Untouched on the current year is not yet due (the fiscal
+            // exercise is still open). Other states (Draft, Deferred,
+            // ObsoleteOrphan, Regen) still need attention even on the
+            // current year.
             if (
                 $lifecycle->state === DeclarationLifecycleState::Untouched
                 && $year >= $currentYear
@@ -106,11 +99,10 @@ final readonly class PendingDeclarationsResolver
     }
 
     /**
-     * Résout `(obsoleteSinceDate, obsoleteReasonsCount)` pour les
-     * états S6 et S7 (Phase 13 D5.10.A). Pour S6, la déclaration
-     * courante elle-même porte l'obsolescence. Pour S7, c'est son
-     * prédécesseur (la version Generated obsolète remplacée par le
-     * Draft chaîné).
+     * Resolves `(obsoleteSinceDate, obsoleteReasonsCount)` for S6 and
+     * S7. S6 reads the current declaration itself; S7 reads its
+     * predecessor (the obsolete Generated version superseded by the
+     * chained Draft).
      *
      * @return array{0: ?string, 1: int}
      */
@@ -128,19 +120,17 @@ final readonly class PendingDeclarationsResolver
 
             return [
                 $current->obsolete_at?->toDateString(),
-                // Garde-fou défensif · `count($x ?? [])` est unsafe si
-                // `$x` est string (cast Eloquent qui a renvoyé un scalaire
-                // suite à JSON corrompu) · PHP 8 throw TypeError sur
-                // `count(string)`. Aligné avec le helper
-                // `InvalidationReasonData::listFromRaw` (pattern jumeau).
+                // Defensive · `count($x ?? [])` is unsafe when `$x` is a
+                // string (Eloquent cast that returned a scalar from
+                // corrupted JSON); `count(string)` throws TypeError in
+                // PHP 8. Mirrors `InvalidationReasonData::listFromRaw`.
                 is_array($current->obsolete_reasons) ? count($current->obsolete_reasons) : 0,
             ];
         }
 
-        // Phase 13 D5.10.H · DeferredRegeneration partage la sémantique
-        // de RegenerationInProgress · les motifs sont sur le predecessor
-        // (la version Generated obsolète remplacée par ce Draft mis de
-        // côté).
+        // DeferredRegeneration shares the same semantics as
+        // RegenerationInProgress · reasons live on the predecessor (the
+        // obsolete Generated version superseded by this deferred Draft).
         if (
             in_array($state, [
                 DeclarationLifecycleState::RegenerationInProgress,
@@ -163,11 +153,6 @@ final readonly class PendingDeclarationsResolver
     }
 
     /**
-     * Lot 4 D02 (F-34-003) · délègue au `ContractReadRepository` qui
-     * porte cette query (conformité ADR-0013 R3 · pas de SQL direct
-     * dans les Services). Pattern jumeau de
-     * {@see App\Services\Billing\PendingInvoicesResolver}.
-     *
      * @return list<int>
      */
     private function yearsCoveredByContractsForCompany(int $companyId): array
