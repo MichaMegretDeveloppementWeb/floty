@@ -12,22 +12,15 @@ use App\Models\Contract;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Création atomique de N contrats partageant une plage commune,
- * un type, et la même entreprise affectataire - typiquement
- * l'attribution rapide multi-véhicules depuis le planning
- * (chantier 04.G).
+ * Atomically creates N contracts sharing a common range, type and
+ * tenant company; typically the quick multi-vehicle assignment from
+ * the planning view (ADR-0013 R3).
  *
- * Cf. ADR-0013 R3 (orchestration multi-écritures coordonnées).
+ * Transactional behavior: the transaction starts before the first
+ * overlap check. If any vehicle conflicts, the exception aborts the
+ * batch and the transaction is rolled back (no contract created).
  *
- * **Comportement transactionnel** : la transaction démarre avant
- * la première vérification d'overlap. Si l'un des véhicules
- * présente un conflit, l'exception bloque immédiatement et la
- * transaction est rollback (aucun contrat créé). C'est le
- * comportement attendu : l'utilisateur soumet un lot global ou
- * rien.
- *
- * @return list<int> IDs des contrats créés (ordre identique à
- *                   `vehicleIds` du payload).
+ * @return list<int> created contract IDs, in the same order as `vehicleIds`
  */
 final readonly class BulkCreateContractsAction
 {
@@ -41,27 +34,24 @@ final readonly class BulkCreateContractsAction
      */
     public function execute(BulkStoreContractsData $data): array
     {
-        // La plage est commune à tous les vehicleIds par construction
-        // du DTO, donc 1 seul calcul de type pour le batch entier.
+        // Range shared by all vehicleIds by DTO construction, so the
+        // contract type is computed once for the entire batch.
         $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
 
         return DB::transaction(function () use ($data, $contractType): array {
-            // Lot 3 D01 · 1 query batch au lieu de N appels findOverlapping ·
-            // charge tous les contrats existants des véhicules listés qui
-            // chevauchent la plage commune `[startDate, endDate]`. La
-            // boucle ci-dessous fait du fail-fast en mémoire pour
-            // préserver la sémantique historique (1er overlap rencontré
-            // → exception, rollback transaction, lot entier rejeté).
+            // One batch query instead of N findOverlapping calls.
+            // Fails fast in memory on the first conflict to keep the
+            // historic semantics (whole batch rejected).
             $existingOverlaps = $this->reader->findAllOverlappingForVehicles(
                 vehicleIds: $data->vehicleIds,
                 startDate: $data->startDate,
                 endDate: $data->endDate,
             );
 
-            // Index par vehicle_id pour lookup O(1) dans la boucle ·
-            // chaque entrée contient le **premier** contrat conflictuel
-            // (les contrats sont triés par `vehicle_id, start_date` côté
-            // SQL, donc la 1ère occurrence par véhicule est déterministe).
+            // Index by vehicle_id for O(1) lookup. Each entry holds the
+            // first conflicting contract (rows are sorted by
+            // `vehicle_id, start_date` SQL-side, so the first occurrence
+            // per vehicle is deterministic).
             $overlapByVehicleId = [];
             foreach ($existingOverlaps as $contract) {
                 $overlapByVehicleId[$contract->vehicle_id] ??= $contract;
@@ -95,11 +85,7 @@ final readonly class BulkCreateContractsAction
 
             $ids = $this->writer->insertManyRows($rows);
 
-            // Attache la même liste de conducteurs à chaque contrat créé
-            // (cf. chantier #3 multi-conducteurs). `syncDrivers` est appelé
-            // pour chaque contrat - inserts simples sur le pivot, pas de
-            // diff puisque nouvelle création. Optimisation pivot batch
-            // séparable (Lot 3 dette résiduelle, hors-D01).
+            // Attach the same driver list to each created contract.
             foreach ($ids as $contractId) {
                 $this->writer->syncDrivers($contractId, $data->driverIds);
             }

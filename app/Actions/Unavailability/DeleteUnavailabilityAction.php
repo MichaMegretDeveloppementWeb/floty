@@ -7,11 +7,7 @@ namespace App\Actions\Unavailability;
 use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
 
 /**
- * Soft-delete d'une indisponibilité véhicule.
- *
- * Action triviale aujourd'hui (passe-plat) - formalisée pour
- * cohérence du pattern et pour permettre l'ajout d'événements /
- * audit / notifications dans le futur sans modifier le controller.
+ * Soft-deletes a vehicle unavailability.
  */
 final readonly class DeleteUnavailabilityAction
 {

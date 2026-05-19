@@ -12,16 +12,15 @@ use App\Models\Contract;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Création d'un contrat avec validation applicative anti-overlap
- * (défense en profondeur avant le trigger DB, cf. ADR-0014 D5).
+ * Creates a contract with applicative anti-overlap validation, defence
+ * in depth before the DB trigger (ADR-0014 D5).
  *
- * Le trigger MySQL `contracts_no_overlap_*` reste la **source de vérité**
- * de l'invariant · il garantit la cohérence même en cas de race
- * inter-requêtes que la transaction Laravel ne couvre pas (READ
- * COMMITTED par défaut). La pré-vérification applicative ici sert à
- * produire un message FR explicite quand le check passe en amont, et la
- * transaction garantit qu'aucun side-effect (events Eloquent, etc.) ne
- * laisse un état partiel si l'écriture plante après la pré-vérification.
+ * The MySQL `contracts_no_overlap_*` trigger remains the source of
+ * truth: it guarantees the invariant against inter-request races that
+ * the default READ COMMITTED transaction does not cover. The applicative
+ * pre-check produces an explicit FR message when the conflict is
+ * detectable upstream, and the transaction prevents Eloquent side
+ * effects from leaving partial state on later failure.
  */
 final readonly class StoreContractAction
 {
@@ -54,7 +53,6 @@ final readonly class StoreContractAction
 
             $contract = $this->writer->create($data, $contractType);
 
-            // Sync pivot N:N drivers (cf. chantier #3 multi-conducteurs).
             $this->writer->syncDrivers($contract->id, $data->driverIds);
 
             return $contract->refresh();

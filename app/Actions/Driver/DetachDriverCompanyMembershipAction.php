@@ -11,8 +11,10 @@ use App\Exceptions\Driver\DriverCompanyMembershipBlockedException;
 use App\Exceptions\Driver\DriverMembershipNotFoundException;
 
 /**
- * Supprime une membership Driver↔Company. Refusé si elle a au moins
- * un contrat associé (utiliser LeaveDriverCompanyMembershipAction à la place).
+ * Detaches a Driver↔Company membership. Refused if at least one contract
+ * exists in that company for that driver (use
+ * {@see LeaveDriverCompanyMembershipAction} for the soft path with
+ * `left_at` and future-contract resolution).
  */
 final class DetachDriverCompanyMembershipAction
 {

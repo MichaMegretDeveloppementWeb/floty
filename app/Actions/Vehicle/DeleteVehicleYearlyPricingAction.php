@@ -9,11 +9,8 @@ use App\Exceptions\Vehicle\VehicleYearlyPricingNotFoundException;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Supprime le tarif d'un véhicule pour une année donnée. Lance
- * {@see VehicleYearlyPricingNotFoundException} si rien à supprimer.
- *
- * Wrappé dans `DB::transaction` pour cohérence avec le reste des Actions
- * du domaine Vehicle.
+ * Deletes the pricing of a vehicle for a given year. Raises
+ * {@see VehicleYearlyPricingNotFoundException} when nothing exists.
  */
 final readonly class DeleteVehicleYearlyPricingAction
 {

@@ -11,22 +11,15 @@ use App\Services\RentalDiscount\RentalDiscountConflictService;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Crée une réduction commerciale après validation chevauchement
- * (Lot 4 du chantier RentalDiscount).
+ * Creates a rental discount after overlap validation.
  *
- * **Pipeline (transaction)** ·
- *   1. Garde-fou non-chevauchement via
- *      {@see RentalDiscountConflictService::assertNoConflict} ·
- *      throw `RentalDiscountOverlapException` si conflit.
- *   2. Persiste la `RentalDiscount` parent + `created_by_user_id`.
- *   3. Synchronise les véhicules ciblés (peut être vide = sémantique
- *      « tous les véhicules », pivot vide).
+ * Pipeline (transaction):
+ *   1. Guard against overlapping discounts via
+ *      {@see RentalDiscountConflictService::assertNoConflict}.
+ *   2. Persist the parent discount with `created_by_user_id`.
+ *   3. Sync targeted vehicles (empty list = "all vehicles" semantics).
  *
- * Le wrapping en `DB::transaction` garantit que la création parent +
- * sync pivot sont atomiques · pas d'orphan en cas d'échec d'une étape.
- * L'observer `RentalDiscountObserver` (Lot 3) est déclenché par
- * `create()` ; il marque divergentes les factures de la company sur
- * la période de la nouvelle réduction.
+ * The `RentalDiscountObserver` flags impacted invoices as divergent.
  */
 final readonly class CreateRentalDiscountAction
 {

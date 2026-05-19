@@ -14,18 +14,14 @@ use Illuminate\Http\UploadedFile;
 use Throwable;
 
 /**
- * Upload d'un justificatif (image ou PDF) sur une indisponibilité (P1).
+ * Uploads a justification (image or PDF) for an unavailability.
+ * Enforces the V1 limit (5 documents max per unavailability), stores
+ * the file then persists the DB row.
  *
- * Vérifie la limite V1 (5 documents max par indispo) avant de stocker
- * physiquement et de persister.
- *
- * Le filesystem n'est pas transactionnel · on stocke d'abord le fichier
- * puis on persiste la ligne DB. Si la persistance DB échoue, on
- * compense en supprimant le fichier physique pour éviter de laisser un
- * orphelin disque · c'est un best-effort, si la compensation échoue à
- * son tour on relance quand même l'exception d'origine (l'utilisateur
- * voit l'erreur, un orphelin disque reste récupérable par un job de
- * cleanup, contrairement à un orphelin DB qui serait visible dans l'UI).
+ * The filesystem is not transactional; on DB persist failure the file
+ * is removed as best-effort compensation. A disk orphan stays
+ * recoverable by a cleanup job, while a DB orphan would surface in
+ * the UI.
  */
 final readonly class UploadUnavailabilityDocumentAction
 {

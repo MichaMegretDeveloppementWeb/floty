@@ -11,20 +11,20 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Marque une déclaration comme obsolète et empile un motif typé dans
- * `obsolete_reasons` (Phase 11 D3, ADR-0015 § D8/D9).
+ * Marks a declaration as obsolete and pushes a typed reason onto
+ * `obsolete_reasons` (ADR-0015 § D8/D9).
  *
- * Idempotent : appelable plusieurs fois pour empiler des motifs
- * successifs (multi-invalidations). Le `obsolete_at` n'est posé qu'au
- * premier appel ; les motifs ultérieurs s'ajoutent au tableau JSON.
+ * Idempotent: callable repeatedly to stack successive reasons.
+ * `obsolete_at` is only set on the first call; later reasons append
+ * to the JSON array.
  *
- * Conformément à la doctrine immuabilité (ADR-0015 § D4 rev. 1.1) : le
- * statut reste `generated` (ou `draft`/`deferred` si l'invalidation
- * intervient avant génération), seul le flag `is_obsolete` change. Le
- * PDF historique reste intact sur disque.
+ * Per the immutability doctrine (ADR-0015 § D4 rev. 1.1), the status
+ * stays as-is (`generated`, `draft` or `deferred`); only the
+ * `is_obsolete` flag flips. The historical PDF stays on disk.
  *
- * Appelée par `DeclarationInvalidationDetector` (D3.D) qui résout les
- * déclarations impactées par une mutation Contract / VFC / Unavailability.
+ * Called by `DeclarationInvalidationDetector`, which resolves which
+ * declarations are impacted by a Contract / VFC / Unavailability
+ * mutation.
  */
 final readonly class MarkDeclarationAsObsoleteAction
 {
@@ -34,11 +34,9 @@ final readonly class MarkDeclarationAsObsoleteAction
 
     public function execute(int $declarationId, InvalidationReasonData $reason): FiscalDeclaration
     {
-        // Lot 5 D7 (F-19-024) · retourne l'entité mutée pour aligner la
-        // signature avec les autres Actions du domaine FiscalDeclaration
-        // (Create/Generate/MarkAsDeferred/Regenerate/ModifyGenerated
-        // retournent toutes `FiscalDeclaration`). Pattern uniforme · permet
-        // à l'appelant de chaîner sans relecture supplémentaire.
+        // Returns the mutated entity so the signature stays aligned
+        // with the other declaration Actions; lets the caller chain
+        // without an extra read.
         $declaration = DB::transaction(
             fn (): FiscalDeclaration => $this->writer->markAsObsolete($declarationId, $reason),
         );

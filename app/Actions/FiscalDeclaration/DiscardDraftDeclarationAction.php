@@ -15,47 +15,37 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Supprime un brouillon de déclaration fiscale et gère intelligemment
- * la chaîne `superseded_by_id` côté predecessor (Phase 13 D5.10.E,
- * durci Lot 5 D2 · locks pessimistes).
+ * Deletes a draft (or deferred) declaration and reconciles the
+ * predecessor's `superseded_by_id` chain.
  *
- * Pipeline atomique :
- *   1. Lock pessimiste + soft delete sur la déclaration cible avec
- *      double-check du statut autorisé (Draft OU Deferred). Refuse
- *      toute suppression d'une Generated (active ou obsolète) · les
- *      déclarations émises sont immuables conformément à ADR-0008.
- *   2. Recherche un éventuel predecessor et le verrouille pessimiste
- *      pour la même transaction.
- *   3. Si predecessor existe :
- *      - Si **tous** ses `obsolete_reasons` sont du type
- *        `VoluntaryModification` (cf. {@see ModifyGeneratedDeclarationAction}) ·
- *        ré-active complètement le predecessor (S5 retrouvé). C'est le
- *        retour arrière propre d'une modification volontaire abandonnée.
- *        Lot 5 D9 (F-19D-005) · `obsolete_reasons` est **préservé** par
- *        le repo · trace audit factuelle de la tentative de modification
- *        volontaire annulée. Seuls le flag, la date et le pointeur de
- *        chaîne sont nettoyés.
- *      - Sinon (motifs réels présents · perimeter change) · délie
- *        seulement `superseded_by_id` pour que le predecessor reste
- *        obsolète (S6) et puisse être régénéré à nouveau plus tard.
+ * Atomic pipeline with pessimistic locks (close the TOCTOU window
+ * for concurrent access):
+ *   1. Lock + soft-delete the target with a double status check
+ *      (Draft or Deferred). Refuses any deletion of a Generated row
+ *      (immutability, ADR-0008).
+ *   2. Search for a predecessor and lock it pessimistically for the
+ *      same transaction.
+ *   3. If a predecessor exists:
+ *      - All its `obsolete_reasons` are `VoluntaryModification` (see
+ *        {@see ModifyGeneratedDeclarationAction}): fully reactivate
+ *        the predecessor (the active S5 is recovered). The
+ *        `obsolete_reasons` array is preserved as audit trail; only
+ *        the flag, the date and the chain pointer are cleaned.
+ *      - Otherwise (real perimeter-change reasons present): unlink
+ *        `superseded_by_id` only so the predecessor stays obsolete
+ *        and can be regenerated again later.
  *
- * Note · les `fiscal_review_decisions` (choix utilisateur tactiques · clusters
- * tranchés, exclusions, justifications) du couple `(company, fiscal_year)`
- * sont purgées en début de transaction (cf. step §3 ci-dessous) ·
- * responsabilité de l'Action, pas du repo `reactivate`. Les décisions du
- * cycle remplacé n'ont plus de sens sur un nouveau brouillon à venir.
+ * The `fiscal_review_decisions` of the `(company, fiscal_year)`
+ * couple are purged at the start of the transaction: the decisions
+ * of the replaced cycle have no meaning on a future new draft. A
+ * coexisting generated declaration is safe (its decisions are frozen
+ * in its `generated_snapshot_payload`).
  *
- * Note · soft delete via `Model::delete()` (le modèle FiscalDeclaration
- * utilise le trait `SoftDeletes`). Le record reste interrogeable via
- * `withTrashed()` pour l'audit forensic mais sort des requêtes par
- * défaut, ce qui libère le slot « active » du couple `(company, year)`
- * et permet à `CreateDraftDeclarationAction::findActiveForCompanyYear`
- * de retourner null à la prochaine tentative de préparation.
- *
- * Lot 5 D2 · les locks pessimistes (Draft + Predecessor) ferment la
- * fenêtre TOCTOU entre le `findById` (qui n'apparait plus) et les
- * mutations. Indispensable en production où plusieurs utilisateurs
- * peuvent agir en concurrence sur la même entreprise.
+ * Soft-delete via `Model::delete()`; the trashed record remains
+ * queryable through `withTrashed()` for forensic audit but vacates
+ * the active slot of the `(company, year)` couple so the next
+ * `CreateDraftDeclarationAction::findActiveForCompanyYear` returns
+ * null.
  */
 final readonly class DiscardDraftDeclarationAction
 {
@@ -68,9 +58,9 @@ final readonly class DiscardDraftDeclarationAction
     public function execute(int $draftDeclarationId): FiscalDeclarationStatus
     {
         return DB::transaction(function () use ($draftDeclarationId): FiscalDeclarationStatus {
-            // Lot 5 D2 · lock + double-check status atomique. Throws
-            // DomainException si la déclaration n'existe plus ou si son
-            // statut n'est plus supprimable (mutation concurrente).
+            // Lock + atomic status double-check. Throws DomainException
+            // if the declaration is gone or no longer deletable
+            // (concurrent mutation).
             $draft = $this->writer->softDeleteWithLock($draftDeclarationId, [
                 FiscalDeclarationStatus::Draft,
                 FiscalDeclarationStatus::Deferred,
@@ -78,31 +68,22 @@ final readonly class DiscardDraftDeclarationAction
 
             $originalStatus = $draft->status;
 
-            // Lot 5 D2 · lock pessimiste sur le predecessor pour
-            // prévenir une mutation concurrente entre la lecture du lien
-            // et la décision reactivate vs unlink. Le predecessor est la
-            // déclaration qui pointe vers ce draft via `superseded_by_id`
-            // (rev. ADR-0015 § D8 chaîne d'obsolescence).
+            // Pessimistic lock on the predecessor to prevent a
+            // concurrent mutation between read and reactivate-vs-unlink
+            // decision. The predecessor is the declaration whose
+            // `superseded_by_id` points to this draft.
             $predecessor = null;
             $found = $this->reader->findPredecessorOf($draft->id);
             if ($found !== null) {
                 $predecessor = $this->writer->lockPredecessor($found->id);
             }
 
-            // D5.10.R · Efface les décisions de revue (clusters tranchés,
-            // exclusions de contrats, justifications) du couple
-            // `(company, fiscal_year)`. Sans ça, `DeclarationPreviewService`
-            // les rechargerait automatiquement au prochain brouillon créé
-            // (la clé d'unicité est `(company, year, fingerprint)`, pas
-            // l'id de déclaration · cf. ADR-0015 § 6.5 « reprise auto à
-            // la régénération »).
-            //
-            // OK même si une déclaration générée co-existe pour le même
-            // couple · ses décisions sont déjà figées dans son
-            // `generated_snapshot_payload`. Les rows
-            // `fiscal_review_decisions` servent uniquement à reprendre
-            // un brouillon en cours (cf. décision Lot 5 D2 sur F-19D2-003 ·
-            // la purge globale est intentionnelle, pas un bug).
+            // Wipe the review decisions for `(company, fiscal_year)`.
+            // Otherwise `DeclarationPreviewService` would reload them
+            // on the next draft (its uniqueness key is
+            // `(company, year, fingerprint)`, not declaration_id).
+            // Safe even if a generated declaration coexists: its
+            // decisions are frozen in its snapshot payload.
             $deletedDecisions = $this->decisionsWriter->deleteByCompanyYear(
                 $draft->company_id,
                 $draft->fiscal_year,

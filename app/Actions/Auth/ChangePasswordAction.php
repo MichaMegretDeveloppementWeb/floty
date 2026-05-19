@@ -13,22 +13,11 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 /**
- * Change le mot de passe d'un utilisateur **déjà authentifié**.
+ * Changes the password of an already-authenticated user. Verifies the
+ * current password via Hash::check, updates the password and rotates
+ * `remember_token`, then invalidates all other active sessions.
  *
- * Vérifie le `currentPassword` via Hash::check (et NON via la couche
- * validation, pour ne pas exposer la mécanique de hash). Update ensuite
- * le password + reset du `remember_token` (invalide les cookies « se
- * souvenir de moi »).
- *
- * Sécurité supplémentaire · `Auth::logoutOtherDevices($newPassword)`
- * invalide toutes les **autres** sessions actives sur d'autres
- * navigateurs/appareils (utile si l'utilisateur change le password
- * suite à une suspicion de compromission). La session courante reste
- * active.
- *
- * Cf. plan-remédiation Vague 1 Lot 2 D4.4 (F-10-006) + ADR-0012 rev. 1.1.
- *
- * @throws CurrentPasswordMismatchException si le current password est faux
+ * @throws CurrentPasswordMismatchException when the current password is wrong
  */
 final readonly class ChangePasswordAction
 {
@@ -50,9 +39,8 @@ final readonly class ChangePasswordAction
             'remember_token' => Str::random(60),
         ])->save();
 
-        // Invalide toutes les autres sessions actives (autres navigateurs).
-        // Doit être appelé après l'update du password sinon Laravel ne
-        // peut plus valider le hash courant.
+        // Must be called after the password update; Laravel needs the
+        // current hash to invalidate the other sessions.
         Auth::logoutOtherDevices($data->password);
 
         Log::channel('auth')->notice('password.changed', [

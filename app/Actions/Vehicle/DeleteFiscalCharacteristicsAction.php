@@ -12,32 +12,19 @@ use App\Exceptions\Vehicle\InvalidFiscalCharacteristicsBoundsException;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Supprime une VFC depuis la modale Historique avec comblement
- * automatique du trou laissé.
+ * Deletes a VFC from the Historique modal with automatic gap filling.
  *
- * Sous transaction :
- *
- *  1. **Garde-fou « unique version »** : un véhicule doit toujours
- *     avoir au moins une VFC. Si on tente de supprimer la seule,
- *     {@see CannotDeleteOnlyVersionException} est levée.
- *
- *  2. **Comblement selon la stratégie choisie par l'utilisateur** :
- *
- *     - `ExtendPrevious` : la VFC précédente voit son `effective_to`
- *       repoussé jusqu'à `effective_to` de la supprimée (ou à `null`
- *       si la supprimée était courante - la précédente reprend alors
- *       le rôle de courante).
- *
- *     - `ExtendNext` : la VFC suivante voit son `effective_from`
- *       ramené à `effective_from` de la supprimée (la suivante
- *       absorbe la période de la supprimée par l'amont).
- *
- *  3. **Garde-fou « stratégie compatible »** : si la stratégie
- *     choisie n'est pas applicable (pas de précédente quand on
- *     demande `ExtendPrevious`, ou pas de suivante quand on demande
- *     `ExtendNext`), une exception explicite est levée.
- *
- *  4. **DELETE** de la VFC ciblée.
+ * Pipeline (transaction):
+ *   1. Refuse to delete the only remaining version
+ *      ({@see CannotDeleteOnlyVersionException}).
+ *   2. Apply the user-chosen extension strategy:
+ *      - `ExtendPrevious`: previous VFC absorbs the gap (its
+ *        `effective_to` is pushed up to the deleted row's
+ *        `effective_to`, or to null if the deleted row was current).
+ *      - `ExtendNext`: next VFC absorbs the gap (its `effective_from`
+ *        is moved back to the deleted row's `effective_from`).
+ *   3. Refuse the strategy when no compatible neighbour exists.
+ *   4. DELETE the target.
  */
 final readonly class DeleteFiscalCharacteristicsAction
 {
@@ -58,8 +45,8 @@ final readonly class DeleteFiscalCharacteristicsAction
                 throw CannotDeleteOnlyVersionException::make();
             }
 
-            // Capture le voisin AVANT suppression : findAdjacent ne
-            // peut plus le résoudre si on supprime d'abord le pivot.
+            // Capture the neighbour BEFORE delete; findAdjacent can no
+            // longer resolve it once the pivot is gone.
             $neighbor = $strategy === FiscalCharacteristicsExtensionStrategy::ExtendPrevious
                 ? $this->reader->findAdjacent($vfc, -1)
                 : $this->reader->findAdjacent($vfc, 1);
@@ -70,9 +57,9 @@ final readonly class DeleteFiscalCharacteristicsAction
                     : InvalidFiscalCharacteristicsBoundsException::noNextVersionToExtend();
             }
 
-            // DELETE d'abord, puis extension du voisin : sinon le
-            // trigger MySQL d'unicité de période détecte un overlap
-            // transitoire alors que la cible existe encore.
+            // DELETE first then extend the neighbour, otherwise the
+            // MySQL uniqueness trigger detects a transient overlap
+            // while the target still exists.
             $this->writer->deleteOne($fiscalId);
 
             if ($strategy === FiscalCharacteristicsExtensionStrategy::ExtendPrevious) {

@@ -18,41 +18,28 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Insère une nouvelle VFC dans l'historique d'un véhicule depuis la
- * modale Historique (bouton « + Ajouter une entrée »), avec cascade
- * d'ajustements automatiques sur les voisines (parallèle de
- * {@see UpdateFiscalCharacteristicsAction}).
+ * Inserts a new VFC in the history of a vehicle from the Historique
+ * modal, with automatic cascade adjustments on neighbouring rows
+ * (counterpart of {@see UpdateFiscalCharacteristicsAction}).
  *
- * Sous transaction :
+ * Pipeline (transaction):
+ *   1. Bounds validation: `effective_from` <= `effective_to`, no exact
+ *      collision with an existing `effective_from`, no strictly inside
+ *      an existing range.
+ *   2. Impacts on neighbours computed via
+ *      {@see FiscalCharacteristicsImpactComputer} (Delete /
+ *      AdjustEffectiveTo / AdjustEffectiveFrom).
+ *   3. User confirmation: a destructive impact (Delete) with
+ *      `data.confirmed === false` raises
+ *      {@see FiscalCharacteristicsRequiresConfirmationException}.
+ *   4. Apply: DELETE/Adjust before INSERT to free the slot, then
+ *      INSERT, then AdjustFrom after INSERT to close the following
+ *      gap.
+ *   5. Return the inserted VFC. The applied impacts are exposed via
+ *      {@see self::$lastImpacts} so the controller can push an info
+ *      toast.
  *
- *  1. **Validation des bornes seules** :
- *     - `effective_from` ≤ `effective_to` (si non null)
- *     - `effective_from` ne doit pas matcher exactement le
- *       `effective_from` d'une VFC existante (refus blocant : à
- *       distinguer d'une simple modification de la VFC existante).
- *
- *  2. **Calcul des impacts** sur les VFC existantes du véhicule via
- *     {@see FiscalCharacteristicsImpactComputer} (mêmes règles que
- *     l'Action Update : Delete / AdjustEffectiveTo / AdjustEffectiveFrom
- *     + comblement des trous voisins).
- *
- *  3. **Confirmation utilisateur** : si au moins un impact est
- *     destructif (`Delete`) et que `data.confirmed === false`, on
- *     lève {@see FiscalCharacteristicsRequiresConfirmationException}
- *     pour que la modale de confirmation s'ouvre.
- *
- *  4. **Application** : DELETE/Adjust pré-insertion (libère la place)
- *     → INSERT de la nouvelle VFC → AdjustFrom post-insertion (comble
- *     le trou suivant si nécessaire).
- *
- *  5. **Retour** : la VFC nouvellement créée. Les impacts sont en
- *     sortie via {@see self::$lastImpacts} pour que le Controller
- *     puisse pousser un toast info récapitulatif.
- *
- * Préserve l'invariant « 0 ou 1 version courante par véhicule » : si
- * la nouvelle VFC est posée avec `effective_to = null`, l'orchestration
- * englobera la version courante existante (Delete) ou la raccourcira
- * (AdjustEffectiveTo), selon les bornes.
+ * Preserves the invariant "0 or 1 current version per vehicle".
  */
 final class CreateFiscalCharacteristicsAction
 {
@@ -77,7 +64,7 @@ final class CreateFiscalCharacteristicsAction
 
             $this->guardBoundsConsistency($newFrom, $newTo);
 
-            // Toutes les VFC du véhicule (aucune à exclure puisqu'on crée).
+            // All VFCs of the vehicle (none to exclude since we create).
             $others = $this->reader->findOthersForVehicle($vehicle->id, 0);
 
             $this->guardEffectiveFromUnique($others, $newFrom);
@@ -90,10 +77,10 @@ final class CreateFiscalCharacteristicsAction
                 throw FiscalCharacteristicsRequiresConfirmationException::withImpacts($impacts);
             }
 
-            // Ordre obligatoire pour ne pas violer le trigger DB
-            // « no overlapping effective period » : DELETE + adjusts
-            // qui libèrent la place AVANT l'insertion, puis INSERT,
-            // puis adjusts post-insertion qui comblent le trou suivant.
+            // Strict ordering against the DB trigger "no overlapping
+            // effective period": DELETE + neighbour shrinks free the
+            // slot BEFORE the INSERT, then INSERT, then post-insert
+            // AdjustFrom closes the next gap.
             $this->applyImpacts(array_values(array_filter(
                 $impacts,
                 static fn (FiscalCharacteristicsImpact $i): bool => $i->mustApplyBeforeUpdate(),
@@ -130,10 +117,9 @@ final class CreateFiscalCharacteristicsAction
     }
 
     /**
-     * Refuse une création dont `effective_from` matche exactement celui
-     * d'une autre VFC existante : ambiguïté entre « ajouter » et
-     * « modifier ». L'utilisateur doit corriger la date OU passer par
-     * la modale d'édition de la VFC existante.
+     * Refuses a create whose `effective_from` exactly matches another
+     * VFC. Ambiguity between "add" and "edit": the user must change
+     * the date or use the edit modal of the existing VFC.
      *
      * @param  iterable<VehicleFiscalCharacteristics>  $others
      */
@@ -152,11 +138,10 @@ final class CreateFiscalCharacteristicsAction
     }
 
     /**
-     * Refuse une création dont la plage [newFrom, newTo] est strictement
-     * contenue dans la plage d'une VFC existante. Sans ce garde-fou, le
-     * trigger DB rejette l'INSERT (« overlapping effective period ») avec
-     * un message technique opaque. La résolution propre côté UX est de
-     * d'abord modifier la VFC concernée.
+     * Refuses a create whose range [newFrom, newTo] is strictly contained
+     * inside an existing VFC range. Without this guard the DB trigger
+     * rejects the INSERT with an opaque technical message; UX-wise the
+     * user must first edit the surrounding VFC.
      *
      * @param  iterable<VehicleFiscalCharacteristics>  $others
      */
@@ -165,11 +150,10 @@ final class CreateFiscalCharacteristicsAction
         CarbonImmutable $newFrom,
         ?CarbonImmutable $newTo,
     ): void {
-        // Si la nouvelle plage est ouverte à droite (newTo === null),
-        // elle s'étend jusqu'à +∞ et ne peut donc pas être strictement
-        // contenue dans une plage existante (elle déborde toujours par
-        // la droite). Le chevauchement gauche est géré normalement par
-        // l'ImpactComputer (raccourcit la voisine à newFrom-1).
+        // An open-ended new range (newTo === null) extends to +∞ and
+        // cannot be strictly contained in any existing range; the left
+        // overlap is handled by the ImpactComputer (shrinks the
+        // neighbour to newFrom-1).
         if ($newTo === null) {
             return;
         }

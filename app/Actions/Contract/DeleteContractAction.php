@@ -7,11 +7,9 @@ namespace App\Actions\Contract;
 use App\Contracts\Repositories\User\Contract\ContractWriteRepositoryInterface;
 
 /**
- * Suppression d'un contrat (soft delete).
- *
- * Le trigger MySQL anti-overlap exclut les contrats `deleted_at IS NOT NULL`,
- * donc une suppression libère immédiatement la plage pour la création
- * d'un nouveau contrat sur le même véhicule.
+ * Soft-deletes a contract. The MySQL anti-overlap trigger ignores
+ * rows with `deleted_at IS NOT NULL`, so deletion immediately frees
+ * the range for a new contract on the same vehicle.
  */
 final readonly class DeleteContractAction
 {

@@ -8,6 +8,9 @@ use App\Contracts\Repositories\User\Driver\DriverWriteRepositoryInterface;
 use App\Data\User\Driver\UpdateDriverData;
 use App\Models\Driver;
 
+/**
+ * Updates the identity fields of a driver.
+ */
 final class UpdateDriverAction
 {
     public function __construct(

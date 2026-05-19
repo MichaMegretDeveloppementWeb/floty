@@ -8,16 +8,13 @@ use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Models\Vehicle;
 
 /**
- * Réactive un véhicule précédemment sorti de flotte : reset
- * `exit_date` et `exit_reason` à NULL, et passe `current_status` à
- * `Active`.
+ * Reactivates a vehicle previously marked as exited: clears
+ * `exit_date` and `exit_reason`, and sets `current_status` to `Active`
+ * (ADR-0018 § 8.2).
  *
- * Action volontairement minimale : pas de transaction (un seul UPDATE),
- * pas de validation cross-table (la réactivation n'a pas de
- * pré-condition métier ; un véhicule réactivé pourra recevoir de
- * nouveaux contrats / indispos sans contrainte).
- *
- * Cf. ADR-0018 § 8.2 (UX modale Réactivation).
+ * Single UPDATE, no transaction, no cross-table pre-condition: a
+ * reactivated vehicle is free to receive new contracts and
+ * unavailabilities without constraint.
  */
 final readonly class ReactivateVehicleAction
 {

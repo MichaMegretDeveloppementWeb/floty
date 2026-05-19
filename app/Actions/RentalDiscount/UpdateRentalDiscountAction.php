@@ -11,23 +11,18 @@ use App\Services\RentalDiscount\RentalDiscountConflictService;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Met à jour une réduction commerciale existante après validation
- * chevauchement (Lot 4 du chantier RentalDiscount).
+ * Updates an existing rental discount after overlap validation.
  *
- * **Pipeline (transaction)** ·
- *   1. Garde-fou non-chevauchement (exclut la réduction en cours
- *      d'édition via `$excludeId`).
- *   2. Update les champs scalaires.
- *   3. Sync pivot véhicules (sync = idempotent, supprime + insère).
+ * Pipeline (transaction):
+ *   1. Guard against overlap (the current row is excluded via
+ *      `excludeId`).
+ *   2. Update scalar fields.
+ *   3. Sync vehicles pivot (idempotent, replaces the whole list).
  *
- * **Pas de changement de `company_id`** · cf. doc de
- * {@see UpdateRentalDiscountData}. La doctrine projet veut qu'on crée
- * une nouvelle réduction plutôt que de muter le rattachement (audit
- * immuable factures).
- *
- * L'observer `RentalDiscountObserver` (Lot 3) flippe `is_divergent`
- * sur les factures de l'ancien ET nouveau range si les dates ou le
- * taux changent.
+ * `company_id` is not mutable; see {@see UpdateRentalDiscountData} for
+ * the rationale (immutable invoice audit). The
+ * `RentalDiscountObserver` flips `is_divergent` on the impacted
+ * invoices when dates or rate change.
  */
 final readonly class UpdateRentalDiscountAction
 {
@@ -57,9 +52,9 @@ final readonly class UpdateRentalDiscountAction
                 'notes' => $data->notes,
             ]);
 
-            // sync(): remplace intégralement le pivot · idempotent ·
-            // supprime les véhicules absents de la liste, insère les
-            // nouveaux. Liste vide = pivot purgé (= sémantique « tous »).
+            // sync() replaces the entire pivot: drops missing vehicles,
+            // inserts new ones. Empty list = pivot purged ("all"
+            // semantics).
             $this->writer->syncVehicles($updated, $vehicleIds);
 
             return $updated->fresh(['vehicles', 'company:id,short_code,legal_name,color'])

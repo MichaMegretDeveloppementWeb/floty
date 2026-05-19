@@ -14,19 +14,14 @@ use Illuminate\Http\UploadedFile;
 use Throwable;
 
 /**
- * Upload d'un PDF sur un contrat (chantier 04.N).
+ * Uploads a PDF for a contract. Enforces the V1 limit (5 documents
+ * max per contract), stores the file then persists the DB row.
  *
- * Vérifie la limite V1 (5 documents max par contrat) avant de stocker
- * physiquement et de persister.
- *
- * Le filesystem n'est pas transactionnel : on stocke d'abord le fichier
- * puis on persiste la ligne DB. Si la persistance DB échoue, on
- * compense en supprimant le fichier physique pour éviter de laisser un
- * orphelin disque (chantier γ.2). C'est un best-effort : si la
- * compensation échoue à son tour, on relance quand même l'exception
- * d'origine · l'utilisateur voit l'erreur, et un orphelin disque reste
- * récupérable par un job de cleanup, contrairement à un orphelin DB
- * qui serait visible dans l'UI.
+ * The filesystem is not transactional: the file is stored first, then
+ * the DB row. If the DB persist fails, the physical file is removed as
+ * compensation to avoid disk orphans; a failing compensation does not
+ * suppress the original exception, since a disk orphan is recoverable
+ * by a cleanup job while a DB orphan would be visible in the UI.
  */
 final readonly class UploadContractDocumentAction
 {

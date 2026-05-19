@@ -8,20 +8,14 @@ use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountWriteRepository
 use App\Models\RentalDiscount;
 
 /**
- * Soft-delete une réduction commerciale (Lot 4 du chantier
- * RentalDiscount).
+ * Soft-deletes a rental discount.
  *
- * **Doctrine** ·
- *   - Les factures déjà émises restent intactes (`applied_discount_id`
- *     FK nullOnDelete · le soft-delete préserve la FK car ne supprime
- *     pas la row).
- *   - Les snapshots `applied_discount_label_snapshot` /
- *     `applied_discount_basis_points_snapshot` (Lot 3) garantissent
- *     l'affichage historique même si la FK bascule un jour à null
- *     (cas exceptionnel hard-delete admin).
- *   - L'observer `RentalDiscountObserver` (Lot 3) flippe `is_divergent`
- *     sur les factures de la période · l'utilisateur saura quoi
- *     régénérer.
+ * Already-issued invoices stay intact (`applied_discount_id` FK
+ * nullOnDelete; soft-delete preserves the FK). The
+ * `applied_discount_*_snapshot` columns guarantee accurate historical
+ * display even if the FK is later nulled by a hard delete. The
+ * `RentalDiscountObserver` flips `is_divergent` on the impacted
+ * invoices so the user knows what to regenerate.
  */
 final readonly class DeleteRentalDiscountAction
 {

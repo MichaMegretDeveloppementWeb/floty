@@ -15,17 +15,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Crée le record initial d'une déclaration fiscale en statut `draft`
- * pour un couple `(company, year)` (Phase 11 D4).
+ * Creates the initial `draft` declaration record for a
+ * `(company, year)` couple.
  *
- * **Refus** si une déclaration active existe déjà pour ce couple.
- * Une déclaration active est définie comme `is_obsolete = false`,
- * indépendamment de son statut `draft` / `deferred` / `generated`.
- * Si une obsolète existe, l'utilisateur doit passer par
- * {@see RegenerateDeclarationAction} (workflow régénération distinct).
+ * Refuses if an active declaration already exists for that couple
+ * (active = `is_obsolete = false`, regardless of `draft` / `deferred`
+ * / `generated`). If an obsolete declaration exists, the user must
+ * go through {@see RegenerateDeclarationAction} instead.
  *
- * Action appelée par le bouton « Préparer la déclaration » de la
- * fiche entreprise (CompanyShow onglet Fiscalité).
+ * Invoked from the "Préparer la déclaration" button on the
+ * Company > Fiscalité tab.
  */
 final readonly class CreateDraftDeclarationAction
 {
@@ -37,13 +36,11 @@ final readonly class CreateDraftDeclarationAction
     public function execute(int $companyId, int $year): FiscalDeclaration
     {
         return DB::transaction(function () use ($companyId, $year): FiscalDeclaration {
-            // P5 · garde-fou défense en profondeur · une déclaration ne
-            // se prépare que pour une année fiscale **terminée**. Doctrine
-            // CIBS · la déclaration N est due au 30/04/N+1 · on ne peut
-            // pas la préparer tant que les périmètres (contrats, VFC,
-            // exonérations) ne sont pas figés. Le `PendingDeclarationsResolver`
-            // filtre déjà côté UI (Untouched && year >= currentYear) ·
-            // ce guard ferme le trou pour les POST directs / scripts.
+            // Defence-in-depth guard: a declaration can only be
+            // prepared after the fiscal year is closed (declaration N
+            // is due on 30/04/N+1; scopes must be frozen).
+            // `PendingDeclarationsResolver` already filters UI-side;
+            // this catches direct POSTs and scripts.
             $currentYear = CarbonImmutable::now()->year;
             if ($year >= $currentYear) {
                 throw new DomainException(sprintf(
@@ -54,8 +51,8 @@ final readonly class CreateDraftDeclarationAction
 
             $existing = $this->reader->findActiveForCompanyYear($companyId, $year);
             if ($existing !== null) {
-                // Détails techniques loggués pour le debug (audit B4),
-                // pas exposés à l'utilisateur (audit B9).
+                // Technical details logged for debug, not exposed to
+                // the user.
                 Log::channel('declarations')->notice('FiscalDeclaration.draft_create_refused', [
                     'company_id' => $companyId,
                     'fiscal_year' => $year,

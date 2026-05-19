@@ -10,20 +10,16 @@ use App\Enums\Unavailability\UnavailabilityType;
 use App\Models\Unavailability;
 
 /**
- * Création d'une indisponibilité véhicule.
+ * Creates a vehicle unavailability.
  *
- * **Décision métier portée ici** : `has_fiscal_impact` est dérivé de
- * `type` via {@see UnavailabilityType::isFiscallyReductive()}
- * - le payload utilisateur ne le porte jamais (cf. CHECK SQL en base
- * qui garantit la cohérence).
+ * `has_fiscal_impact` is derived from the type via
+ * {@see UnavailabilityType::isFiscallyReductive()}; never carried by the
+ * user payload. A SQL CHECK enforces the same coherence in DB.
  *
- * **Cohabitation indispo↔contrat (ADR-0019)** : aucune contrainte
- * d'overlap avec les contrats actifs du véhicule. Une indispo peut
- * être saisie sur la plage d'un contrat existant ; R-2024-008 traite
- * l'intersection au moment du calcul fiscal (jours réducteurs retirés
- * du numérateur du prorata pour les types `pound_public`,
- * `accident_no_circulation`, `ci_suspension` ; sans effet pour les 6
- * autres types). Voir ADR-0019 § 2 D1-D2.
+ * No overlap constraint with active contracts (ADR-0019): an unavailability
+ * may be recorded over an existing contract range; the intersection is
+ * handled at calculation time by R-2024-008 for the fiscally-reductive
+ * types.
  */
 final readonly class CreateUnavailabilityAction
 {

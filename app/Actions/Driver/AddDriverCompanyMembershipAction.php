@@ -9,6 +9,9 @@ use App\Data\User\Driver\AddDriverCompanyMembershipData;
 use App\Models\Driver;
 use Illuminate\Support\Carbon;
 
+/**
+ * Attaches a driver to an additional company.
+ */
 final class AddDriverCompanyMembershipAction
 {
     public function __construct(

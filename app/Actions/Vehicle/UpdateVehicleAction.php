@@ -16,42 +16,30 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Met à jour un véhicule depuis la page Edit.
+ * Updates a vehicle from the Edit page. All writes happen inside a
+ * single `DB::transaction`.
  *
- * Toutes les écritures se font dans une `DB::transaction` :
+ * Pipeline:
+ *  1. Identity fields (plate, brand, model, vin, color, dates, mileage,
+ *     notes) are always UPDATED in place on `vehicles`; no versioning.
+ *  2. Fiscal characteristics are INSERTED as a new VFC only when at
+ *     least one fiscal field differs from the current VFC. Otherwise
+ *     identity is updated alone without touching the history.
  *
- *  1. **Identité** (license_plate, brand, model, vin, color, dates,
- *     kilométrage, notes) → toujours UPDATE en place sur la table
- *     `vehicles`. Pas de versioning.
- *
- *  2. **Caractéristiques fiscales** → INSERT d'une nouvelle VFC
- *     **uniquement si au moins un champ fiscal a changé** par rapport
- *     à la VFC courante. Si aucun changement fiscal détecté, l'identité
- *     est mise à jour seule sans toucher à l'historique.
- *
- *     Logique conditionnelle quand fiscal a changé :
- *
- *       a. **Validation des métadonnées** : `effectiveFrom` et
- *          `changeReason` deviennent indispensables pour matérialiser
- *          la nouvelle version. Si elles manquent, on lève
+ *     When fiscal fields changed:
+ *       a. `effectiveFrom` and `changeReason` become mandatory to
+ *          materialize the new version; absent ones raise
  *          {@see MissingNewVersionMetadataException}.
+ *       b. Retroactive cascade: any version whose `effective_from` is
+ *          >= `effectiveFrom` is HARD-deleted; the user explicitly
+ *          chose to rewrite history from that date (a ConfirmModal
+ *          lists impacted versions UI-side).
+ *       c. The previous version (if any) has its `effective_to` set to
+ *          the day before the new version to avoid overlap.
+ *       d. INSERT of the new VFC with `effective_to = null`.
  *
- *       b. **Cascade rétroactive** : si `effectiveFrom` est antérieure
- *          à des versions existantes, ces versions sont supprimées
- *          (HARD DELETE) - l'utilisateur a explicitement choisi de
- *          réécrire l'historique à partir de cette date. Une
- *          ConfirmModal côté UI liste les versions concernées.
- *
- *       c. **Clôture de la version précédente** : si une VFC existe
- *          avec `effective_from < effectiveFrom`, sa borne
- *          `effective_to` est fixée au jour précédant la nouvelle
- *          version pour éviter le chevauchement.
- *
- *       d. **INSERT** de la nouvelle VFC avec `effective_to = null`
- *          et le motif/note saisis.
- *
- * Les corrections de saisie sur une VFC existante passent exclusivement
- * par la modale Historique (cf. {@see UpdateFiscalCharacteristicsAction}).
+ * Corrections on an existing VFC go through the Historique modal
+ * exclusively (see {@see UpdateFiscalCharacteristicsAction}).
  */
 final readonly class UpdateVehicleAction
 {
@@ -80,11 +68,8 @@ final readonly class UpdateVehicleAction
     }
 
     /**
-     * Cascade rétroactive éventuelle + fermeture de la version
-     * précédente + INSERT de la nouvelle VFC.
-     *
-     * Pré-condition : un champ fiscal a effectivement changé (vérifié
-     * par {@see hasFiscalChanges()} dans `execute()`).
+     * Retroactive cascade, previous version closure, new VFC INSERT.
+     * Pre-condition: a fiscal field actually changed.
      */
     private function applyNewVersion(int $vehicleId, UpdateVehicleData $data): void
     {
@@ -118,9 +103,9 @@ final readonly class UpdateVehicleAction
     }
 
     /**
-     * Charge la VFC courante du véhicule. Lève si introuvable -
-     * un véhicule en BDD doit toujours avoir au moins la version
-     * `InitialCreation` (cf. CreateVehicleAction).
+     * Loads the current VFC of the vehicle. Raises a LogicException if
+     * none is found; a vehicle should always have at least its
+     * `InitialCreation` row (see CreateVehicleAction).
      */
     private function loadCurrentVfc(int $vehicleId): VehicleFiscalCharacteristics
     {
@@ -137,12 +122,10 @@ final readonly class UpdateVehicleAction
     }
 
     /**
-     * Compare champ par champ la VFC courante avec le payload : retourne
-     * `true` si au moins une valeur fiscale a changé. La catégorie
-     * polluants n'est pas comparée - elle est dérivée des autres champs
-     * (cf. {@see PollutantCategory::derive()}), donc tout changement de
-     * polluant_category implique forcément un changement sur l'un de
-     * ses inputs (énergie / norme / sous-jacent), déjà comparés.
+     * Returns true when at least one fiscal field differs from the
+     * current VFC. The pollutant category is not compared because it
+     * is derived from the other fiscal inputs; any change in it
+     * implies a change on one of those inputs already covered here.
      */
     private function hasFiscalChanges(
         VehicleFiscalCharacteristics $current,

@@ -10,13 +10,10 @@ use App\Models\VehicleYearlyPricing;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Crée ou met à jour le tarif d'un véhicule pour une année donnée.
- *
- * Idempotent par construction (contrainte UNIQUE(vehicle_id, year) en base
- * + `updateOrCreate` côté repository). Wrappé dans `DB::transaction` pour
- * cohérence avec le reste des Actions du domaine Vehicle, et préparation
- * aux futures Actions composées de Phase 14.E qui devront wrapper plusieurs
- * writes (cf. `GenerateInvoiceAction`).
+ * Creates or updates the pricing of a vehicle for a given year.
+ * Idempotent (UNIQUE(vehicle_id, year) + `updateOrCreate`). Wrapped
+ * in a transaction for consistency with the rest of the Vehicle
+ * domain.
  */
 final readonly class UpsertVehicleYearlyPricingAction
 {

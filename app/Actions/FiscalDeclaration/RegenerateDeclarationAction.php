@@ -14,20 +14,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Régénère une déclaration obsolète : crée un nouveau record `draft`
- * pour le couple `(company, year)` et chaîne l'ancien via
- * `superseded_by_id` (Phase 11 D3, ADR-0015 § 6.5).
+ * Regenerates an obsolete declaration: creates a new `draft` row for
+ * the `(company, year)` couple and chains the obsolete one via
+ * `superseded_by_id` (ADR-0015 § 6.5).
  *
- * **Aucune duplication des `fiscal_review_decisions`** : elles sont
- * rattachées au couple `(company, year)`, donc le nouveau record les
- * voit automatiquement via fingerprint matching au prochain
- * `DeclarationPreviewService::preview()`. Comportement § 6.5 :
- *   - clusters au fingerprint inchangé : décision auto-reprise
- *   - clusters nouveaux/modifiés : repassent en `pending`
+ * The `fiscal_review_decisions` are not duplicated: keyed by
+ * `(company, year)`, they are automatically picked up by the new row
+ * through fingerprint matching at the next preview:
+ *   - unchanged fingerprint clusters: decision auto-reapplied
+ *   - new or mutated clusters: back to `pending`
  *
- * **Aucune suppression du PDF historique** : le fichier reste sur
- * disque indéfiniment, accessible via `superseded_by_id` (D8 +
- * doctrine immuabilité fiscale, ADR-0008).
+ * The historical PDF is preserved on disk indefinitely, reachable
+ * through `superseded_by_id` (immutability doctrine, ADR-0008).
  */
 final readonly class RegenerateDeclarationAction
 {

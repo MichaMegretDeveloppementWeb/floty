@@ -12,19 +12,16 @@ use App\Services\Vehicle\VehicleExitImpactComputer;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Sortie de flotte d'un véhicule (vente, destruction VHU, vol non
- * résolu, transfert, autre raison définitive).
+ * Records the exit of a vehicle from the fleet (sale, destruction,
+ * unresolved theft, transfer, other definitive reason).
  *
- * Sous transaction :
- *   1. Calcul des conflits via {@see VehicleExitImpactComputer}.
- *   2. Si au moins un contrat ou indispo déborde la date proposée →
- *      lève {@see VehicleExitBlockedByConflictsException} (l'utilisateur
- *      doit résoudre manuellement avant de retirer ; principe
- *      « pas de magie silencieuse » ADR-0018 D7).
- *   3. Sinon : pose `exit_date`, `exit_reason`, et adapte
- *      `current_status` cohérent.
- *
- * Cf. ADR-0018 § 8.1 (UX modale Sortie) et R-2024-009 amendée.
+ * Pipeline (transaction):
+ *   1. Compute conflicts via {@see VehicleExitImpactComputer}.
+ *   2. If any contract or unavailability spills past the exit date,
+ *      raise {@see VehicleExitBlockedByConflictsException} (no silent
+ *      magic, ADR-0018 D7).
+ *   3. Otherwise persist `exit_date`, `exit_reason` and update
+ *      `current_status`.
  */
 final readonly class ExitVehicleAction
 {

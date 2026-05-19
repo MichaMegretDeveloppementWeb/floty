@@ -9,29 +9,23 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Régénère une facture émise (Phase 14.I+ V1.2 · refonte historique
- * D5.10.P · option C).
+ * Regenerates an emitted invoice.
  *
- * Sémantique « régénération » : l'ancienne facture n'est PAS supprimée
- * mais soft-deletée et marquée obsolète, sa colonne `superseded_by_id`
- * pointant vers la nouvelle facture. Son PDF reste sur disque pour
- * préserver l'audit trail (cf. art. 286 quater CGI · obligation de
- * conservation des pièces facturées).
+ * Semantics: the previous invoice is NOT deleted; it is soft-deleted,
+ * marked obsolete and its `superseded_by_id` points to the new
+ * invoice. Its PDF stays on disk for the audit trail (art. 286 quater
+ * CGI). The historical chain is fully reconstructible:
+ * `v1.superseded_by → v2.superseded_by → v3 (current)`.
  *
- * Chaîne historique reconstituable à tout moment :
- * `v1.superseded_by → v2.superseded_by → v3 (courante)`.
+ * Numbering: the new invoice gets a brand new sequential number in the
+ * chronological sequence (no "bis" suffix), as required by art. 242
+ * nonies A annexe II CGI (unbroken numbering) and the BOFiP doctrine
+ * BOI-TVA-DECLA-30-20-20-10 (a rectifying invoice keeps a new number
+ * and mentions the replacement).
  *
- * **Numérotation** : la nouvelle facture obtient un **nouveau numéro
- * séquentiel** dans la suite chronologique (pas de suffixe « bis »),
- * conforme à l'art. 242 nonies A annexe II CGI (numérotation continue
- * sans rupture) et à la doctrine BOFiP BOI-TVA-DECLA-30-20-20-10
- * (facture rectificative = nouveau numéro + mention de remplacement).
- *
- * **Doctrine T4 (Phase 14.P) · cohérence DB ↔ filesystem** : la
- * suppression hard du PDF n'a plus lieu (préservation systématique).
- * Si `Generate` throw, la transaction rollback restaure l'ancienne
- * facture (le softDelete et l'`obsolete_at` sont annulés). Aucun
- * filesystem cleanup nécessaire.
+ * Filesystem coherence: the historical PDF is preserved. If `Generate`
+ * throws, the transaction rolls back and the previous invoice is
+ * restored; no filesystem cleanup needed.
  */
 final readonly class RegenerateInvoiceAction
 {
@@ -49,17 +43,17 @@ final readonly class RegenerateInvoiceAction
         $month = (int) $invoice->month;
 
         return DB::transaction(function () use ($invoice, $generatedByUserId, $issuer, $companyId, $year, $month): Invoice {
-            // 1. Soft-delete l'ancienne facture + marque l'instant d'obsolescence.
-            //    Note : `is_divergent` reste à sa valeur · c'était un flag
-            //    instantané de divergence, distinct du marqueur définitif
-            //    de remplacement (`superseded_by_id`).
+            // 1. Soft-delete the previous invoice and mark the
+            //    obsolescence instant. `is_divergent` is left as-is;
+            //    it was an instantaneous divergence flag, distinct
+            //    from the definitive replacement marker.
             $invoice->obsolete_at = Carbon::now();
             $invoice->save();
-            $invoice->delete(); // softDelete grâce au trait SoftDeletes.
+            $invoice->delete();
 
-            // 2. Génère la nouvelle facture (numéro séquentiel suivant
-            //    dans la suite chronologique, conforme aux exigences
-            //    légales françaises de numérotation continue).
+            // 2. Generate the new invoice (next sequential number in
+            //    the chronological sequence, complying with French
+            //    legal numbering requirements).
             $newInvoice = $this->generate->execute(
                 companyId: $companyId,
                 year: $year,
@@ -68,10 +62,10 @@ final readonly class RegenerateInvoiceAction
                 issuer: $issuer,
             );
 
-            // 3. Chaîne historique : l'ancienne pointe vers la nouvelle.
-            //    Mise à jour via QueryBuilder pour bypass le scope
-            //    SoftDeletes (l'instance Eloquent est soft-deletée et
-            //    ne se laisserait pas re-save sans `restore()`).
+            // 3. Historical chain: link the old row to the new one.
+            //    Done via QueryBuilder to bypass the SoftDeletes scope
+            //    (the model is soft-deleted and would not re-save
+            //    without `restore()`).
             DB::table('invoices')
                 ->where('id', $invoice->id)
                 ->update(['superseded_by_id' => $newInvoice->id]);

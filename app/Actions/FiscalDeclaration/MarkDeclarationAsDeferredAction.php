@@ -13,39 +13,17 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Passe une déclaration `draft` en statut `deferred` (Phase 11 D3,
- * ADR-0015 § D4 + § 6.2). Indicateur visuel volontaire posé par
- * l'utilisateur : il met la déclaration de côté pour la trancher
- * plus tard (typiquement après consultation EC).
+ * Transitions a `draft` declaration to `deferred` (ADR-0015 § D4,
+ * § 6.2). Voluntary visual marker: the user sets the declaration
+ * aside to decide later (typically after consulting the accountant).
  *
- * Refus si la déclaration n'est pas `draft` (déjà generated, deferred,
- * obsolete...). Aucun bypass de la génération : `deferred` interdit
- * la génération comme `pending` (cf. `GenerateDeclarationAction`).
+ * Refuses any non-`draft` source status. `deferred` continues to
+ * forbid generation just like `pending`.
  *
- * ### Pattern toléré · mutation Eloquent directe sans WriteRepository
- *
- * Cette Action fait `$declaration->fill([...])->save()` au lieu de
- * passer par un `FiscalDeclarationWriteRepository::markAsDeferred()`.
- * Tolérance doctrinale validée user · plan-remediation Vague 1 Lot 4
- * § 14 (F-34-103) ·
- *
- *   « Mutation extrêmement légère (1 UPDATE sur la colonne `status`
- *     + métadonnées DB) ; le coût d'écriture d'un WriteRepository
- *     dédié serait disproportionné vs gain qualité. »
- *
- * Critères de l'exception ·
- *   - Action très simple · 1 mutation atomique, pas de logique métier
- *     complexe (les invariants `status === Draft` et `!is_obsolete`
- *     restent dans l'Action, pas dans une Rule métier dédiée).
- *   - Pas de validation cross-table.
- *   - Le pattern ne migre PAS dans un Controller (R1 strict respecté).
- *   - Tests Feature couvrent le comportement (statut, transitions
- *     refusées, observabilité Log).
- *
- * À reconsidérer si la logique de transition draft → deferred se
- * complexifie (ex. effets de bord, multi-mutations).
- *
- * Cf. ADR-0013 · architecture applicative R3 (Repositories).
+ * Note: direct Eloquent mutation rather than a dedicated write
+ * repository method. Tolerated exception (very light mutation, no
+ * complex business logic, no cross-table validation, ADR-0013 R3).
+ * To revisit if the transition logic grows.
  */
 final readonly class MarkDeclarationAsDeferredAction
 {
@@ -55,10 +33,9 @@ final readonly class MarkDeclarationAsDeferredAction
 
     public function execute(int $declarationId, ?string $reason = null): FiscalDeclaration
     {
-        // Lot 5 D13 · normalisation `reason` · trim + null si chaîne vide
-        // (l'utilisateur a pu envoyer une chaîne d'espaces depuis le
-        // textarea sans intention de saisir). Pas de validation longueur
-        // ici · le FormRequest côté Controller en est responsable.
+        // Trim and null empty: the textarea may have produced an
+        // all-whitespace string. Length validation lives in the
+        // FormRequest.
         $normalizedReason = $reason !== null ? trim($reason) : null;
         if ($normalizedReason === '') {
             $normalizedReason = null;

@@ -12,14 +12,11 @@ use App\Models\Contract;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Mise à jour d'un contrat avec re-validation applicative anti-overlap
- * (défense en profondeur, cf. ADR-0014 D5). La ligne courante est
- * exclue de la recherche de conflit via `excludeId`.
- *
- * Cf. note transactionnelle dans {@see StoreContractAction} : la
- * transaction Laravel garantit l'atomicité des side-effects côté app,
- * le trigger MySQL `contracts_no_overlap_*` reste la source de vérité
- * de l'invariant face aux races inter-requêtes.
+ * Updates a contract with anti-overlap re-validation, defence in depth
+ * (ADR-0014 D5). The current row is excluded from the conflict lookup
+ * via `excludeId`. The MySQL `contracts_no_overlap_*` trigger remains
+ * the source of truth against inter-request races; see
+ * {@see StoreContractAction}.
  */
 final readonly class UpdateContractAction
 {
@@ -49,16 +46,13 @@ final readonly class UpdateContractAction
                 );
             }
 
-            // Recalcul inconditionnel : opération idempotente, peu coûteuse,
-            // pas de diff à gérer. Si les dates n'ont pas changé, on
-            // re-pose le même type.
+            // Unconditional recompute: idempotent, cheap, no diff to track.
             $contractType = Contract::deriveTypeFromDates($data->startDate, $data->endDate);
 
             $contract = $this->writer->update($contractId, $data, $contractType);
 
-            // Sync pivot N:N drivers (cf. chantier #3 multi-conducteurs).
-            // `sync()` remplace toute la liste : ajoute/retire/conserve
-            // selon le delta avec l'état courant.
+            // `sync()` replaces the whole list (add/remove/keep against
+            // the current delta).
             $this->writer->syncDrivers($contractId, $data->driverIds);
 
             return $contract->refresh();

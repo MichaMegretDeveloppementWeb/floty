@@ -13,26 +13,16 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Annule la mise en attente d'une déclaration · transition
- * `deferred → draft`. Réciproque exacte de
+ * Reverts a deferred declaration to `draft`. Reciprocal of
  * {@see MarkDeclarationAsDeferredAction}.
  *
- * **Contrat sémantique** · l'utilisateur reprend l'édition d'un
- * brouillon qu'il avait mis de côté · ses décisions de revue
- * (`fiscal_review_decisions`), son `superseded_by_id` éventuel, son
- * `obsolete_*` (cas DeferredRegeneration) sont **intégralement
- * préservés**. Seul le statut change.
+ * Semantic contract: the user resumes editing a draft they had set
+ * aside. Review decisions, any `superseded_by_id`, and
+ * `obsolete_*` data are fully preserved; only the status changes.
  *
- * **Refus** si la déclaration n'est pas `deferred` (déjà draft, ou
- * generated, ou obsolete). Pas de bypass de la doctrine de génération.
- *
- * ### Pattern toléré · mutation Eloquent directe sans WriteRepository
- *
- * Même justification que {@see MarkDeclarationAsDeferredAction} ·
- * mutation extrêmement légère (1 UPDATE sur la colonne `status`),
- * pas de logique métier complexe, validation des invariants gardée
- * dans l'Action. Pattern documenté plan-remediation Vague 1 Lot 4
- * § 14 (F-34-103). Cf. ADR-0013 R3 (Repositories).
+ * Refuses any non-`deferred` source status. Same tolerated direct
+ * Eloquent mutation as {@see MarkDeclarationAsDeferredAction}
+ * (light mutation, ADR-0013 R3).
  */
 final readonly class RevertDeferredToDraftAction
 {
@@ -55,10 +45,9 @@ final readonly class RevertDeferredToDraftAction
                 ));
             }
 
-            // Lot 5 D13 · clear `defer_reason` au revert · état transitoire
-            // cohérent avec le statut · si l'utilisateur re-reporte plus
-            // tard, il saisira une nouvelle raison fraîche. Pas
-            // d'historique persistant.
+            // Clear `defer_reason` on revert: transient state kept
+            // coherent with the status. A later deferral will record
+            // a fresh reason.
             $declaration->fill([
                 'status' => FiscalDeclarationStatus::Draft,
                 'defer_reason' => null,

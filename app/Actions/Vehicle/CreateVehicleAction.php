@@ -11,18 +11,14 @@ use App\Models\Vehicle;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Création d'un véhicule + sa première période de caractéristiques
- * fiscales (`change_reason = InitialCreation`, `effective_to = null`).
+ * Creates a vehicle alongside its first fiscal characteristics period
+ * (`change_reason = InitialCreation`, `effective_to = null`).
  *
- * **Décision métier** : tout véhicule nouvellement créé doit être
- * accompagné d'une période fiscale initiale dont le `effective_from`
- * coïncide avec sa date d'acquisition. C'est cette règle qui justifie
- * d'orchestrer deux écritures atomiquement dans une Action plutôt que
- * de la cacher dans le repository (ADR-0013 R3 : multi-entités → Action).
- *
- * Les invariants de cohérence (homologation ↔ CO₂, énergie ↔ moteur,
- * etc.) sont validés en amont par le FormRequest et - à terme - par
- * un `VehicleFiscalCharacteristicsService` (phase 04 complète).
+ * Business rule: every newly created vehicle is paired with an initial
+ * fiscal period whose `effective_from` matches the acquisition date.
+ * The two writes are coordinated atomically here rather than hidden in
+ * the repository (ADR-0013 R3: multi-entity write goes through an
+ * Action).
  */
 final readonly class CreateVehicleAction
 {

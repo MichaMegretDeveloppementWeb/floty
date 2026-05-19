@@ -9,13 +9,9 @@ use App\Data\User\Company\UpdateCompanyData;
 use App\Models\Company;
 
 /**
- * Mise à jour d'une entreprise existante. Les champs identité (sauf
- * `short_code`), adresse et contact sont modifiables. Le `short_code`
- * reste immuable une fois généré (cf. note dans
- * {@see UpdateCompanyData}).
- *
- * Slim conforme ADR-0013 : pas de logique métier ici, délégation au
- * repository d'écriture.
+ * Updates an existing company. Identity (except `short_code`), address
+ * and contact fields are editable; `short_code` stays immutable once
+ * generated (see {@see UpdateCompanyData}).
  */
 final class UpdateCompanyAction
 {

@@ -11,8 +11,9 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Crée un driver avec sa membership initiale dans une entreprise.
- * Cf. Q-NEW2 : au moins 1 entreprise obligatoire à la création.
+ * Creates a driver alongside their initial company membership.
+ * Business rule: a driver always belongs to at least one company on
+ * creation.
  */
 final class CreateDriverAction
 {

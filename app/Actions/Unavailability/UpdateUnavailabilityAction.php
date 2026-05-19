@@ -9,15 +9,9 @@ use App\Data\User\Unavailability\UpdateUnavailabilityData;
 use App\Models\Unavailability;
 
 /**
- * Mise à jour d'une indisponibilité véhicule.
- *
- * Recalcule `has_fiscal_impact` depuis le nouveau type (qui peut
- * avoir changé entre une indispo non-impactante → fourrière ou
- * inverse).
- *
- * **Cohabitation indispo↔contrat (ADR-0019)** : aucune contrainte
- * d'overlap avec les contrats actifs du véhicule lors d'une édition
- * de plage. Symétrique de {@see CreateUnavailabilityAction}.
+ * Updates a vehicle unavailability. Recomputes `has_fiscal_impact`
+ * from the (possibly new) type. Symmetric to
+ * {@see CreateUnavailabilityAction} regarding ADR-0019.
  */
 final readonly class UpdateUnavailabilityAction
 {

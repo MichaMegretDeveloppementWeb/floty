@@ -15,28 +15,23 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Déclenche une régénération volontaire depuis une déclaration générée
- * et active (S5 → S7) sans attendre une mutation de périmètre (Phase 13
- * D5.10.E).
+ * Triggers a voluntary regeneration from a generated, active
+ * declaration, without waiting for a scope mutation.
  *
- * Pipeline atomique :
- *   1. Vérifie que la déclaration cible est bien S5 (status=Generated
- *      ET is_obsolete=false). Refuse toute autre transition.
- *   2. Marque la déclaration obsolète avec le motif typé
- *      `VoluntaryModification` (ADR-0015 § 5.1 + D9 rev. 1.1). Le
- *      `obsolete_at` est posé, le `obsolete_reasons` JSON empile une
- *      entrée référençant l'utilisateur initiateur.
- *   3. Délègue à `RegenerateDeclarationAction` la création du nouveau
- *      brouillon et le chaînage `superseded_by_id`. Pas de duplication
- *      de logique.
+ * Atomic pipeline:
+ *   1. Verify the target is Generated + not obsolete; refuse any
+ *      other transition.
+ *   2. Mark the declaration obsolete with a typed
+ *      `VoluntaryModification` reason (ADR-0015 § 5.1, § D9 rev. 1.1).
+ *      Sets `obsolete_at` and appends an entry to `obsolete_reasons`
+ *      referencing the initiating user.
+ *   3. Delegate to {@see RegenerateDeclarationAction} for the new
+ *      draft creation and `superseded_by_id` chaining.
  *
- * Réutilisable côté UI via le bouton « Modifier la déclaration »
- * exposé sur `<PdfCard>` page Show pour les S5 active.
- *
- * **Réversibilité** · si l'utilisateur supprime le brouillon créé sans
- * passer par génération, `DiscardDraftDeclarationAction` détecte que
- * `obsolete_reasons` ne contient que des entrées VoluntaryModification
- * et ré-active automatiquement la déclaration précédente (S5 retrouvé).
+ * Reversibility: if the user discards the produced draft without
+ * generating it, {@see DiscardDraftDeclarationAction} detects that
+ * `obsolete_reasons` only contains `VoluntaryModification` entries
+ * and reactivates the previous declaration.
  */
 final readonly class ModifyGeneratedDeclarationAction
 {

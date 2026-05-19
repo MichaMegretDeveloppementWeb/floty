@@ -14,17 +14,16 @@ use Illuminate\Support\Facades\Log;
 use InvalidArgumentException;
 
 /**
- * Crée ou remplace la décision humaine pour un cluster de risque
- * (Phase 11 D3, ADR-0015 § 6.2). Identité fonctionnelle :
+ * Creates or replaces the user decision for a risk cluster
+ * (ADR-0015 § 6.2). Functional identity:
  * `(company_id, fiscal_year, cluster_fingerprint)`.
  *
- * **Doctrine validée user (Lot 5 D14)** · l'arbitrage final
- * appartient à l'utilisateur · ni l'UI (`ClusterDecisionModal`) ni
- * le backend ne bloquent une décision « Conserver » sur un cluster
- * de niveau élevé même sans justification. La justification reste
- * recommandée (label « recommandée pour risque élevé » côté modal),
- * mais le backend se contente de valider la longueur (max 2000 car)
- * pour éviter le DOS du champ TEXT MySQL.
+ * Doctrine: final arbitration belongs to the user; neither the UI
+ * (`ClusterDecisionModal`) nor the backend block a "Conserver"
+ * decision on a high-severity cluster without justification. The
+ * justification stays recommended (label "recommandée pour risque
+ * élevé" on the modal), the backend only enforces the length cap
+ * (max 2000 chars) to protect the TEXT column.
  */
 final readonly class StoreReviewDecisionAction
 {
@@ -71,22 +70,15 @@ final readonly class StoreReviewDecisionAction
         return $decision;
     }
 
-    /**
-     * Limite la longueur d'une justification pour éviter le débordement
-     * du champ TEXT BDD et limiter la surface de stockage. 2000
-     * caractères suffit pour une justification fiscale détaillée
-     * (équivalent ~300 mots, audit B17 pré-livraison).
-     */
     private const int JUSTIFICATION_MAX_LENGTH = 2000;
 
+    /**
+     * Caps the justification length to protect the TEXT column and
+     * limit the storage surface. 2000 characters is enough for a
+     * detailed fiscal justification (~300 words).
+     */
     private function guardJustificationLength(StoreReviewDecisionData $data): void
     {
-        // Validation longueur : applicable à toutes les décisions (audit
-        // B17). On veille à ne jamais accepter une justification de
-        // plusieurs MB (DOS du champ TEXT MySQL ou stockage
-        // disproportionné). Pas de guard sur l'obligation de
-        // justification · l'arbitrage final est laissé à l'utilisateur
-        // même sur risque élevé (Lot 5 D14, doctrine validée user).
         if ($data->justification !== null && mb_strlen($data->justification) > self::JUSTIFICATION_MAX_LENGTH) {
             throw new InvalidArgumentException(sprintf(
                 'La justification ne peut pas dépasser %d caractères (longueur reçue : %d).',
@@ -97,15 +89,13 @@ final readonly class StoreReviewDecisionAction
     }
 
     /**
-     * Lot 5 D4 (F-19D2-001) · garantit que tous les `excludedContractIds`
-     * appartiennent bien au couple `(company_id, fiscal_year)` de la
-     * décision. Ferme le risque IDOR latent V2 multi-tenant · sans
-     * cette garde, un payload pourrait passer des `contract_id` d'une
-     * autre entreprise et corrompre silencieusement l'audit (les IDs
-     * inconnus sont actuellement filtrés par `DeclarationFiscalEngine`
-     * via `in_array`, donc sans effet calculatoire, mais ils restent
-     * stockés dans `fiscal_review_decisions.excluded_contract_ids` et
-     * trahissent une intention frauduleuse).
+     * Verifies every `excludedContractIds` entry belongs to the
+     * `(company_id, fiscal_year)` couple of the decision. Closes a
+     * latent IDOR in a multi-tenant V2: without this guard, a payload
+     * could forge `contract_id` from another company and pollute the
+     * audit trail even though `DeclarationFiscalEngine` filters
+     * unknown IDs via `in_array` (no computational effect, but still
+     * persisted in `fiscal_review_decisions.excluded_contract_ids`).
      *
      * @param  list<int>  $excludedIds
      */

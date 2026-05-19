@@ -19,25 +19,26 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Workflow Q6 (sortie d'un driver d'une entreprise) :
+ * Marks the end of a driver's membership in a company and resolves
+ * their future contracts in that company.
  *
- * 1. Trouver la membership active driver↔company (left_at NULL).
- *    Si introuvable → DriverMembershipNotFoundException.
- * 2. Lister les contrats à venir (start_date > leftAt) du driver dans cette company.
- * 3. Selon `futureContractsResolution` :
- *    - None    : aucun contrat à résoudre, pose simple de left_at.
- *    - Replace : valider d'abord TOUT le replacementMap (remplaçant actif sur la
- *      période exacte de chaque contrat), puis muter. Pour chaque contrat :
- *      retire le driver sortant du pivot, et si un remplaçant est précisé
- *      (non `null`), l'attache ; les autres conducteurs déjà présents sur
- *      le contrat sont conservés. `null` = juste retirer, sans remplaçant.
- *    - Detach  : retire le driver sortant de tous les contrats à venir
- *      en 1 query batch ; les autres conducteurs sur ces contrats sont
- *      conservés (cf. chantier #3 multi-conducteurs).
- * 4. Pose `left_at` sur la pivot.
+ * Pipeline:
+ *   1. Locate the active membership (left_at NULL).
+ *   2. List future contracts (start_date > leftAt) of the driver in
+ *      this company.
+ *   3. Apply the resolution mode:
+ *      - None    : nothing to resolve, just set `left_at`.
+ *      - Replace : validate the whole `replacementMap` first, then
+ *        for each contract detach the leaving driver and attach the
+ *        designated replacement (or null = detach only). Other drivers
+ *        on the contract are preserved.
+ *      - Detach  : remove the leaving driver from every future
+ *        contract in one batch query.
+ *   4. Set `left_at` on the pivot.
  *
- * Validation et écritures sont scindées en 2 passes pour éviter un rollback
- * partiel : on valide TOUT le replacementMap avant d'ouvrir la transaction.
+ * Validation and writes are split in two passes to avoid a partial
+ * rollback: the full `replacementMap` is validated before the
+ * transaction opens.
  */
 final class LeaveDriverCompanyMembershipAction
 {
@@ -52,20 +53,17 @@ final class LeaveDriverCompanyMembershipAction
     {
         $leftAt = Carbon::parse($data->leftAt);
 
-        // 1. Trouver la membership active - throw avant la transaction
         $pivot = $this->driverReadRepo->findActiveMembership($driver->id, $companyId);
         if ($pivot === null) {
             throw DriverMembershipNotFoundException::forActiveMembership($driver->id, $companyId);
         }
 
-        // 2. Lister les contrats à venir
         $futureContracts = $this->driverReadRepo->listFutureContractsInCompany(
             $driver->id,
             $companyId,
             $leftAt,
         );
 
-        // 3. Validation préalable du replacementMap (mode Replace uniquement)
         if (
             $data->futureContractsResolution === FutureContractsResolutionMode::Replace
             && $futureContracts->isNotEmpty()
@@ -73,7 +71,6 @@ final class LeaveDriverCompanyMembershipAction
             $this->validateReplacementMap($driver, $companyId, $futureContracts, $data->replacementMap);
         }
 
-        // 4. Mutations en transaction
         $sortantDriverId = $driver->id;
         DB::transaction(function () use ($pivot, $leftAt, $futureContracts, $data, $sortantDriverId): void {
             if ($futureContracts->isNotEmpty()) {
@@ -89,9 +86,9 @@ final class LeaveDriverCompanyMembershipAction
     }
 
     /**
-     * Première passe : pure validation. Lève si le replacementMap est
-     * incohérent (entrée manquante, driver invalide, driver pas actif sur
-     * la période, ou driver pointant vers lui-même).
+     * Pure validation: throws if the replacement map is inconsistent
+     * (missing entry, invalid driver, replacement inactive on the
+     * period, or self-replacement).
      *
      * @param  Collection<int, Contract>  $contracts
      * @param  array<int, ?int>  $replacementMap
@@ -104,8 +101,9 @@ final class LeaveDriverCompanyMembershipAction
     ): void {
         $company = $this->companyReadRepo->findById($companyId);
         if ($company === null) {
-            // Cas dégénéré : pivot existait mais la company a disparu - ne devrait
-            // jamais arriver vu le restrictOnDelete sur la pivot. Défense en profondeur.
+            // Degenerate case: the pivot existed but the company is gone.
+            // Should never happen given the restrictOnDelete on the
+            // pivot; defence in depth.
             throw DriverMembershipNotFoundException::forActiveMembership($driver->id, $companyId);
         }
 
@@ -116,17 +114,15 @@ final class LeaveDriverCompanyMembershipAction
 
             $replacementId = $replacementMap[$contract->id];
             if ($replacementId === null) {
-                continue; // null = détacher ce contrat individuellement, pas de validation requise
+                continue;
             }
 
-            // Interdire le driver sortant comme remplaçant de lui-même
             if ($replacementId === $driver->id) {
                 throw LeaveResolutionInvalidException::replacementDriverInvalid($contract->id, $replacementId);
             }
 
-            // Interdire un remplaçant déjà attaché au contrat (cf. chantier
-            // #3 multi-conducteurs - le « remplaçant » est nécessairement
-            // un nouveau driver à ajouter).
+            // The replacement must be a new driver to add; reject when
+            // they are already attached to the contract.
             $alreadyAttachedIds = $contract->drivers->pluck('id')->all();
             if (in_array($replacementId, $alreadyAttachedIds, true)) {
                 throw LeaveResolutionInvalidException::replacementDriverInvalid($contract->id, $replacementId);
@@ -150,11 +146,10 @@ final class LeaveDriverCompanyMembershipAction
     }
 
     /**
-     * Deuxième passe : pure mutation, validation déjà faite en amont.
-     *
-     * Pour chaque contrat : détache le driver sortant du pivot ; si un
-     * remplaçant est désigné (non `null`), l'attache. Les autres conducteurs
-     * déjà présents sur le contrat sont conservés.
+     * Pure mutation pass; validation already done upstream. Detaches
+     * the leaving driver from each pivot and attaches the designated
+     * replacement when provided. Other drivers on each contract are
+     * preserved.
      *
      * @param  Collection<int, Contract>  $contracts
      * @param  array<int, ?int>  $replacementMap
@@ -173,9 +168,8 @@ final class LeaveDriverCompanyMembershipAction
     }
 
     /**
-     * Retire le driver sortant de tous les contrats à venir en 1 query
-     * batch sur le pivot. Les autres conducteurs présents sur ces contrats
-     * sont conservés.
+     * Removes the leaving driver from every future contract in one
+     * batch pivot query; other drivers are preserved.
      *
      * @param  Collection<int, Contract>  $contracts
      */

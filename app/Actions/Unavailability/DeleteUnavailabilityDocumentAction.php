@@ -9,16 +9,11 @@ use App\Models\UnavailabilityDocument;
 use App\Services\Unavailability\UnavailabilityDocumentStorage;
 
 /**
- * Suppression d'un document indisponibilité · hard-delete (DB row +
- * fichier physique).
+ * Hard-deletes an unavailability document (DB row + physical file).
  *
- * Ordre · DB d'abord, fichier physique ensuite via `safeDelete`. Si la
- * suppression DB échoue, on remonte l'erreur sans toucher au disque
- * (le record reste, le fichier aussi → état cohérent). Si le delete DB
- * réussit mais que le delete physique échoue (panne disk, permission),
- * on logge un warning et on poursuit · l'orphelin fichier est silencieux
- * et purgeable par un job de cleanup, alors qu'un orphelin record
- * (visible dans l'UI sans fichier derrière) serait une régression UX.
+ * Order: DB first, then physical file via `safeDelete`. A disk orphan
+ * is acceptable (purgeable by a cleanup job); a DB orphan would surface
+ * in the UI.
  */
 final readonly class DeleteUnavailabilityDocumentAction
 {

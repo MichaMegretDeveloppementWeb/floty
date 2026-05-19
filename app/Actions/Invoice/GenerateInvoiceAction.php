@@ -23,27 +23,23 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Génère une facture mensuelle complète pour `(company × year × month)`
- * (Phase 14.E V1.2).
+ * Generates the full monthly invoice for a `(company × year × month)`
+ * triple.
  *
- * Pipeline en transaction (atomicité · si l'une des étapes échoue,
- * rollback complet, aucune corruption d'état) :
+ * Pipeline in transaction (atomic; any step failure rolls back the
+ * whole invoice, preventing state corruption):
+ *   1. Uniqueness guard (raises `InvoiceAlreadyExistsException`).
+ *   2. Calculation via {@see BillingCalculator::calculate()} (may
+ *      raise `MissingPricingException`, propagated to the caller).
+ *   3. Pre-allocate a sequential `invoice_number`.
+ *   4. Render the PDF via {@see InvoicePdfRenderer}.
+ *   5. Persist the PDF + compute the SHA-256 hash via
+ *      {@see InvoicePdfStorage}.
+ *   6. Persist the invoice + its lines.
+ *   7. Return the created `Invoice` with `lines` eager-loaded.
  *
- *   1. Vérifie l'unicité applicative (`InvoiceAlreadyExistsException`
- *      si une facture existe déjà pour ce couple)
- *   2. Calcule la facture via {@see BillingCalculator::calculate()}
- *      (peut lever `MissingPricingException` qui remonte non-attrapée
- *      à l'appelant : l'utilisateur verra la liste des tarifs manquants
- *      à renseigner)
- *   3. Pré-attribue le `invoice_number` séquentiel
- *   4. Rend le PDF via {@see InvoicePdfRenderer}
- *   5. Persiste le PDF + calcule le hash via {@see InvoicePdfStorage}
- *   6. Persiste la facture + ses lignes (Models)
- *   7. Retourne l'`Invoice` créée (avec `lines` chargées)
- *
- * **Émetteur (Phase 14.G)** : pour V1.2 minimum, les métadonnées
- * émetteur sont passées en paramètre. Le contrôleur appelant est
- * responsable de les fournir (sera lu depuis `BillingSettings` en 14.G).
+ * Issuer metadata is passed as a parameter; the caller is responsible
+ * for sourcing it (typically from `BillingSettings`).
  *
  * @phpstan-type IssuerPayload array{name: string, addressLine1?: string|null, addressLine2?: string|null, postalCode?: string|null, city?: string|null, siren?: string|null, contactEmail?: string|null}
  */
@@ -70,12 +66,9 @@ final readonly class GenerateInvoiceAction
         int $generatedByUserId,
         array $issuer,
     ): Invoice {
-        // P4 · garde-fou défense en profondeur · une facture ne se
-        // génère qu'à mois écoulé. La doctrine veut qu'un mois en cours
-        // ou futur ne soit pas facturable (jours pas encore consommés
-        // ou contrats susceptibles d'évoluer). Le `PendingInvoicesResolver`
-        // filtre déjà ce cas côté UI · ce guard ferme le trou pour les
-        // appels directs (POST forgé, scripts, bugs futurs).
+        // Defence-in-depth guard: an invoice may only be generated for
+        // a fully elapsed month. The `PendingInvoicesResolver` already
+        // filters the UI; this closes the door on direct POST/scripts.
         $now = CarbonImmutable::now();
         if ($year > $now->year || ($year === $now->year && $month >= $now->month)) {
             throw new DomainException(sprintf(
@@ -91,23 +84,21 @@ final readonly class GenerateInvoiceAction
                 ->setModel(Company::class, [$companyId]);
         }
 
-        // Étape 1 : unicité applicative (avant le calcul coûteux).
+        // Applicative uniqueness check, before the costly calculation.
         if ($this->invoiceReader->findForCompanyYearMonth($companyId, $year, $month) !== null) {
             throw InvoiceAlreadyExistsException::forCompanyYearMonth($companyId, $year, $month);
         }
 
-        // Étape 2 : calcul (laisse remonter MissingPricingException).
+        // Calculation (lets `MissingPricingException` bubble up).
         $calculation = $this->calculator->calculate($companyId, $year, $month);
 
-        // Étape 2.5 (Lot 2 réductions commerciales) · applique les
-        // réductions actives sur la période. Snapshot figé via les
-        // colonnes `gross_total_cents` / `discount_cents` /
-        // `applied_discount_id` ci-dessous. Branche d'équivalence
-        // stricte si aucune réduction active.
+        // Apply rental discounts active over the period. The snapshot
+        // is frozen in `gross_total_cents` / `discount_cents` /
+        // `applied_discount_id` below. Strict equivalence branch when
+        // no discount applies.
         $discountIndex = $this->discountResolver->preloadForCompanyYear($companyId, $year);
         $calculation = $this->discountApplier->applyWithIndex($calculation, $discountIndex);
 
-        // Étape 3-7 en transaction.
         return DB::transaction(function () use (
             $companyId,
             $year,
@@ -117,13 +108,12 @@ final readonly class GenerateInvoiceAction
             $company,
             $calculation,
         ): Invoice {
-            // Étape 3 : `invoice_number` séquentiel = `YYYY-MM-NNNN`.
+            // Sequential `invoice_number` formatted `YYYY-MM-NNNN`.
             $sequence = $this->invoiceReader->maxSequenceForYearMonth($year, $month) + 1;
             $invoiceNumber = sprintf('%04d-%02d-%04d', $year, $month, $sequence);
 
             $generatedAt = Carbon::now();
 
-            // Étape 4 : rendu PDF.
             $companyMeta = [
                 'legalName' => $company->legal_name,
                 'siren' => $company->siren,
@@ -137,7 +127,6 @@ final readonly class GenerateInvoiceAction
                 $generatedAt,
             );
 
-            // Étape 5 : persiste le PDF + calcule le hash.
             $storage = $this->pdfStorage->store(
                 $year,
                 $companyId,
@@ -146,14 +135,12 @@ final readonly class GenerateInvoiceAction
             );
 
             try {
-                // Étape 6 : persiste la facture.
                 $invoice = $this->invoiceWriter->persist([
                     'company_id' => $companyId,
                     'year' => $year,
                     'month' => $month,
                     'invoice_number' => $invoiceNumber,
                     'total_ht_cents' => $calculation->totalCents,
-                    // Lot 2 · snapshot brut + total réductions figés.
                     'total_gross_cents' => $calculation->grossTotalCents,
                     'total_discount_cents' => $calculation->totalDiscountCents,
                     'pdf_path' => $storage['path'],
@@ -162,7 +149,6 @@ final readonly class GenerateInvoiceAction
                     'generated_by_user_id' => $generatedByUserId,
                 ]);
 
-                // Étape 7 : persiste les lignes.
                 $linesAttributes = array_map(
                     static fn (BillingLineData $line): array => [
                         'vehicle_id' => $line->vehicleId,
@@ -180,14 +166,12 @@ final readonly class GenerateInvoiceAction
                         'weekly_rate_cents' => $line->weeklyRateCents,
                         'monthly_rate_cents' => $line->monthlyRateCents,
                         'total_ht_cents' => $line->totalCents,
-                        // Lot 2 · snapshot brut + réduction + FK réduction.
                         'gross_total_cents' => $line->grossTotalCents,
                         'discount_cents' => $line->discountCents,
                         'applied_discount_id' => $line->appliedDiscountId,
-                        // Lot 3 · snapshot label + pourcentage figés
-                        // pour préserver l'affichage historique exact
-                        // même si la réduction est ensuite renommée
-                        // (doctrine immuabilité ADR-0008, cf. migration).
+                        // Snapshot label and basis points so historical
+                        // display stays exact even if the discount is
+                        // later renamed (immutability, ADR-0008).
                         'applied_discount_label_snapshot' => $line->appliedDiscountLabel,
                         'applied_discount_basis_points_snapshot' => $line->appliedDiscountBasisPoints,
                     ],
@@ -198,11 +182,11 @@ final readonly class GenerateInvoiceAction
                 return $invoice->fresh(['lines'])
                     ?? throw new \RuntimeException('Failed to reload invoice after persist.');
             } catch (\Throwable $e) {
-                // Cleanup orphan PDF (chantier T4 / Phase 14.P) : si l'INSERT
-                // DB échoue après le `Storage::put`, la transaction rollback
-                // mais le fichier reste sur disque. On le supprime avant
-                // re-throw pour ne pas bloquer un éventuel retry (le storage
-                // refuserait l'écrasement) ni laisser d'orphan file.
+                // Orphan PDF cleanup: if the DB INSERT fails after the
+                // `Storage::put`, the transaction rolls back but the
+                // file stays on disk. Delete it before re-throw to
+                // unblock retries (storage would refuse to overwrite)
+                // and avoid an orphan file.
                 $this->pdfStorage->delete($storage['path']);
                 throw $e;
             }

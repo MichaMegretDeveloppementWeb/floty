@@ -9,16 +9,13 @@ use App\Models\ContractDocument;
 use App\Services\Contract\ContractDocumentStorage;
 
 /**
- * Suppression d'un document - hard-delete (DB row + fichier physique).
+ * Hard-deletes a contract document (DB row + physical file).
  *
- * Ordre (chantier γ.2) : DB d'abord, fichier physique ensuite via
- * `safeDelete`. Si la suppression DB échoue, on remonte l'erreur sans
- * toucher au disque (le record reste, le fichier aussi → état cohérent).
- * Si le delete DB réussit mais que le delete physique échoue (panne
- * disk, permission), on logge un warning et on poursuit : l'orphelin
- * fichier est silencieux et purgeable par un job de cleanup, alors
- * qu'un orphelin record (visible dans l'UI sans fichier derrière) serait
- * une régression UX.
+ * Order: DB first, then physical file via `safeDelete`. If the DB
+ * delete fails the call aborts without touching disk; if the physical
+ * delete fails after a successful DB delete a warning is logged and
+ * execution continues, since a silent file orphan is purgeable by a
+ * cleanup job whereas an orphan row would regress the UX.
  */
 final readonly class DeleteContractDocumentAction
 {

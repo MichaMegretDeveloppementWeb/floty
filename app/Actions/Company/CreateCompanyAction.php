@@ -11,14 +11,9 @@ use App\Exceptions\Company\CompanyShortCodeCollisionException;
 use App\Models\Company;
 
 /**
- * Création d'une entreprise avec génération automatique du code court à
- * partir du nom légal (cf. chantier A V1.2).
- *
- * Le code court n'étant plus saisi par l'utilisateur, on le calcule via
- * Company::generateShortCode() et on vérifie l'unicité avant de déléguer
- * au repository d'écriture. En cas de collision (UNIQUE constraint), on
- * lève une exception qui sera convertie en ValidationException sur le
- * champ legal_name côté Controller.
+ * Creates a company and auto-generates its short code from the legal name.
+ * Verifies uniqueness against the UNIQUE constraint; raises a typed
+ * exception converted into a `legal_name` field error by the controller.
  */
 final class CreateCompanyAction
 {

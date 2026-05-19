@@ -10,8 +10,8 @@ use App\Exceptions\Driver\DriverDeletionBlockedException;
 use App\Models\Driver;
 
 /**
- * Suppression soft d'un driver. Refusée si au moins 1 contrat le référence
- * (préservation cohérence historique).
+ * Soft-deletes a driver. Refused if at least one contract references
+ * them (historical integrity).
  */
 final class SoftDeleteDriverAction
 {

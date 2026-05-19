@@ -12,23 +12,21 @@ use App\Exceptions\Driver\MembershipChronologyException;
 use Carbon\CarbonImmutable;
 
 /**
- * Édite les attributs d'une membership Driver↔Company existante.
+ * Edits the attributes of an existing Driver↔Company membership.
  *
- * Scope (chantier B + B-bis) :
- *  - `joined_at` requis : nouvelle date d'entrée.
- *  - `leftAt` optionnel :
- *      - `null` (clé absente OU `null` explicite) → réactive la
- *        membership (efface `left_at` en base, ré-bascule en « Actif »).
- *      - non null → met à jour la date de sortie.
+ * Scope:
+ *  - `joined_at` (required): new join date.
+ *  - `leftAt` (optional):
+ *      - `null` (absent OR explicit) reactivates the membership
+ *        (clears `left_at`).
+ *      - non-null updates the leave date.
  *
- * Vérifie la cohérence chronologique : si `leftAt` est posé, alors
- * `joined_at <= left_at`. Sinon, throw {@see MembershipChronologyException}.
+ * Enforces chronology: if `leftAt` is set, `joined_at <= left_at`.
  *
- * **Distinction avec `LeaveDriverCompanyMembershipAction`** : cet Action
- * gère les *corrections post-facto* + la réactivation. Le workflow
- * Sortir dédié (`Leave...Action`) reste responsable de la *première*
- * pose de `left_at`, car il orchestre la résolution des contrats à
- * venir (Q6).
+ * Distinct from {@see LeaveDriverCompanyMembershipAction}: this Action
+ * handles post-facto corrections and reactivation only. The first
+ * setting of `left_at` goes through the dedicated leave workflow
+ * because it must resolve future contracts.
  */
 final readonly class UpdateDriverCompanyMembershipAction
 {
@@ -47,9 +45,6 @@ final readonly class UpdateDriverCompanyMembershipAction
         $newJoinedAt = CarbonImmutable::parse($data->joinedAt);
         $newLeftAt = $data->leftAt !== null ? CarbonImmutable::parse($data->leftAt) : null;
 
-        // Cohérence chronologique : si on pose un `left_at`, il doit
-        // être >= au nouveau `joined_at`. Si on réactive (`null`), pas
-        // de check à faire.
         if ($newLeftAt !== null && $newJoinedAt->greaterThan($newLeftAt)) {
             throw MembershipChronologyException::joinedAtAfterLeftAt(
                 $newJoinedAt->toDateString(),
