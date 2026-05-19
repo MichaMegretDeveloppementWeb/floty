@@ -14,20 +14,20 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de l'endpoint `POST /app/planning/preview-rentals` ·
- * pattern identique à {@see PreviewTaxesInputData} (mêmes champs,
- * mêmes validations) pour permettre la composition côté frontend.
+ * Payload of `POST /app/planning/preview-rentals`. Mirrors
+ * {@see PreviewTaxesInputData} field-for-field so the frontend can
+ * compose them.
  *
- * Sémantique · le service derrière construit un contrat synthétique
- * (non persisté) sur la plage min/max des dates fournies et calcule le
- * loyer cohérent avec la facture finale (`OptimalRateBreakdown` mois par
- * mois + application des réductions actives via `DiscountApplier`).
+ * The underlying service builds a synthetic, non-persisted contract over
+ * the min/max of the provided dates and computes a rent consistent with
+ * the final monthly invoice (`OptimalRateBreakdown` per month +
+ * `DiscountApplier` for active discounts).
  */
 #[TypeScript]
 final class PreviewRentalsInputData extends Data
 {
     /**
-     * @param  list<string>  $dates  dates ISO (YYYY-MM-DD) · le service prend min/max pour reconstruire la plage
+     * @param  list<string>  $dates  ISO (YYYY-MM-DD); the service uses min/max to rebuild the range.
      */
     public function __construct(
         #[Required, IntegerType, Exists('vehicles', 'id')]

@@ -13,18 +13,14 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Seuils paramétrables de la grille de détection des zones de risque
- * fiscal (Phase 11 D1, ADR-0015 § D7 rev. 1.1). Sert à la fois :
- *   - en sortie pour la page Paramètres (lecture)
- *   - en entrée HTTP (validation Spatie via `rules`)
+ * Configurable thresholds for the fiscal risk detection grid
+ * (ADR-0015 § D7 rev. 1.1). Serves both the read settings page and
+ * the HTTP write endpoint.
  *
- * Tous les champs sont obligatoires : la règle métier impose une grille
- * complète. Les bornes minimales (`Min`) garantissent que les seuils
- * restent positifs et exploitables par le moteur de détection (D2).
- *
- * Contrainte d'ordre `threshold_high > threshold_low` garantie par
- * l'attribut `GreaterThan` ; le moteur de détection D2 s'appuie sur
- * cette invariance pour son arbre de classification.
+ * All fields are required: the business rule expects a complete grid.
+ * Minimums (`Min`) keep thresholds positive and usable by the detection
+ * engine. The `GreaterThan` invariant `threshold_high > threshold_low`
+ * is relied upon by the classification tree.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

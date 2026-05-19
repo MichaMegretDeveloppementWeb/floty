@@ -8,11 +8,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Item véhicule retourné par la recherche globale ⌘K (V1.1).
+ * Vehicle item returned by the global search palette.
  *
- *  - `label` · « Renault Clio · AB-123-CD » (marque + modèle + plaque)
- *  - `sublabel` · état du véhicule (« Actif » / « Sorti le 12/03/2025 »)
- *  - `href` · URL absolue vers la fiche véhicule
+ *  - `label`: "Renault Clio · AB-123-CD" (brand + model + plate).
+ *  - `sublabel`: vehicle state ("Actif" / "Sorti le 12/03/2025").
+ *  - `href`: absolute URL to the vehicle page.
  */
 #[TypeScript]
 final class GlobalSearchVehicleItemData extends Data

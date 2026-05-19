@@ -9,11 +9,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représentation minimale de l'utilisateur connecté, exposée aux pages
- * Inertia via les shared props `auth.user`.
- *
- * `null` quand aucun utilisateur n'est authentifié - exprimé côté
- * shared props via `?CurrentUserData`.
+ * Minimal authenticated user payload exposed to Inertia pages through the
+ * shared `auth.user` prop. Null when nobody is authenticated.
  */
 #[TypeScript]
 final class CurrentUserData extends Data

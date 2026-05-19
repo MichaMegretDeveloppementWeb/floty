@@ -10,20 +10,12 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représentation frontend du snapshot fiscal d'une déclaration
- * (Phase 11 D5.6, refondu D5.8 avec breakdown par contrat). Miroir
- * DTO du VO domaine {@see FiscalDeclarationSnapshot}.
+ * Frontend mirror of a declaration's fiscal snapshot, computed on demand
+ * by the controller via `DeclarationFiscalEngine`. Powers the Show and
+ * Review pages (summary card + contract list with cluster grouping).
  *
- * Calculé à la volée par
- * {@see App\Http\Controllers\User\FiscalDeclaration\DeclarationController}
- * via {@see App\Services\Fiscal\Declaration\DeclarationFiscalEngine},
- * passé aux pages Inertia Show et Review pour alimenter
- * {@see resources/js/Components/Domain/Declaration/FiscalSummaryCard.vue}
- * (synthèse) et {@see resources/js/Components/Domain/Declaration/DeclarationContractList.vue}
- * (liste contrats avec groupage cluster automatique).
- *
- * Les montants `co2DueTotal, pollutantsDueTotal, totalDue` sont déjà
- * arrondis au centime (R-2024-003 invariant).
+ * The totals `co2DueTotal`, `pollutantsDueTotal`, `totalDue` are already
+ * rounded to the cent (R-2024-003 invariant).
  */
 #[TypeScript]
 final class FiscalDeclarationSnapshotData extends Data

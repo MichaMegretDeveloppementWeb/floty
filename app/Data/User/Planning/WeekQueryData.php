@@ -13,13 +13,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Validation des query params de
- * `GET /app/planning/week?vehicleId=X&week=N&companyId=Z`.
+ * Validation of `GET /app/planning/week?vehicleId=X&week=N&companyId=Z`.
  *
- * Le `companyId` est optionnel : présent quand le drawer est ouvert
- * depuis la Vue Entreprise (chantier P3) pour activer le mode
- * company-locked (anonymisation des contrats des autres entreprises +
- * verrouillage du sélecteur entreprise dans le formulaire de création).
+ * `companyId` is optional: present when the drawer is opened from the
+ * company view, enabling company-locked mode (other companies are
+ * anonymised and the company picker is locked in the create form).
  */
 #[TypeScript]
 final class WeekQueryData extends Data

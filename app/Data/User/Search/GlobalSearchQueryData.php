@@ -7,16 +7,12 @@ namespace App\Data\User\Search;
 use Spatie\LaravelData\Data;
 
 /**
- * DTO d'entrée pour l'endpoint AJAX de la barre de recherche globale
- * (palette ⌘K, V1.1). Auto-bindée depuis les query params HTTP par
- * Spatie Data (`GET /app/search?q=<query>`).
+ * Input DTO for the global-search AJAX endpoint. Bound from HTTP query
+ * params by Spatie Data (`GET /app/search?q=<query>`).
  *
- * Validation · `q` requis, longueur 2 à 100 caractères (le `trim`
- * normalise les espaces autour avant comptage).
- *
- * Borne supérieure 100 · garde-fou contre les abus (l'utilisateur n'a
- * pas de raison de saisir plus, et le service tronquerait de toute
- * façon les résultats au-delà du seuil utile).
+ * `q` is required and trimmed to 2..100 characters. The upper bound is a
+ * guard against abuse since results would be truncated past the useful
+ * threshold anyway.
  */
 final class GlobalSearchQueryData extends Data
 {

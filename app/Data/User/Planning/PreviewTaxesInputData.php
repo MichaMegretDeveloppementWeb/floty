@@ -14,17 +14,14 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de l'endpoint `POST /app/planning/preview-taxes`.
- *
- * Validation Spatie Data - utilisée via `Data::from($request)` ou
- * `Data::validateAndCreate()` selon le besoin. Marqueur `#[TypeScript]`
- * pour exposer le type côté front (typage de `useApi.post<TInput, …>`).
+ * Payload of `POST /app/planning/preview-taxes`. Validation by Spatie
+ * Data via `Data::from($request)` or `Data::validateAndCreate()`.
  */
 #[TypeScript]
 final class PreviewTaxesInputData extends Data
 {
     /**
-     * @param  list<string>  $dates  Dates ISO (YYYY-MM-DD)
+     * @param  list<string>  $dates  ISO (YYYY-MM-DD).
      */
     public function __construct(
         #[Required, IntegerType, Exists('vehicles', 'id')]

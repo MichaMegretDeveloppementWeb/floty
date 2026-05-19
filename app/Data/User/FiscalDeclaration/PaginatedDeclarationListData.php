@@ -9,8 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Wrapper de retour pour l'Index Déclarations server-side (Phase 11
- * D4, cf. ADR-0020).
+ * Return wrapper for the server-side declarations index (ADR-0020).
  */
 #[TypeScript]
 final class PaginatedDeclarationListData extends Data

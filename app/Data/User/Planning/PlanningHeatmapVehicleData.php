@@ -11,36 +11,23 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Une ligne de la heatmap Planning - un véhicule sur 52 semaines avec
- * sa densité d'utilisation et le total de jours utilisés.
+ * One row of the planning heatmap: a vehicle across 52 weeks with its
+ * usage density and total days used.
  *
- * Les 3 champs fiscaux (`annualTaxDue`, `fullYearTax`, `dailyTaxRate`)
- * ont été extraits dans {@see PlanningHeatmapVehicleCostsData}, servi
- * en `Inertia::defer` car leur calcul coûte ~630 ms cold sur 64
- * véhicules. Le DTO heatmap reste eager pour rendre la grille immédiate
- * au mount.
+ * The fiscal fields live on the deferred companion DTOs
+ * ({@see PlanningHeatmapVehicleFullYearCostsData} and
+ * {@see PlanningHeatmapVehicleRealCostsData}) so the grid renders
+ * immediately on mount.
  */
 #[TypeScript]
 final class PlanningHeatmapVehicleData extends Data
 {
     /**
-     * @param  list<int>  $weeks  52 entiers (0-7) - densité jours utilisés / semaine
-     * @param  list<int>  $weeksWithUnavailability  numéros ISO (1-52) des
-     *                                              semaines portant au moins
-     *                                              un jour d'indispo (tous
-     *                                              types confondus, peu
-     *                                              importe que la semaine
-     *                                              porte aussi un contrat).
-     *                                              Alimente la bordure
-     *                                              rouge des cellules
-     *                                              heatmap (ADR-0019 § 2 D5).
-     * @param  ?int  $dailyRateCents  tarif jour pour l'année courante
-     *                                (`vehicle_yearly_pricings`) · `null`
-     *                                si aucun tarif saisi. Eager (3 ints
-     *                                en batch SQL plat, coût négligeable
-     *                                · doctrine chargement-strict-par-ecran).
-     * @param  ?int  $weeklyRateCents  tarif semaine, `null` si absent.
-     * @param  ?int  $monthlyRateCents  tarif mois, `null` si absent.
+     * @param  list<int>  $weeks  52 ints (0-7); used days per week.
+     * @param  list<int>  $weeksWithUnavailability  ISO week numbers (1-52) carrying at least one unavailability day; feeds the red border (ADR-0019 § 2 D5).
+     * @param  ?int  $dailyRateCents  Daily rate for the current year (`vehicle_yearly_pricings`); null when no rate is set.
+     * @param  ?int  $weeklyRateCents  Weekly rate; null when absent.
+     * @param  ?int  $monthlyRateCents  Monthly rate; null when absent.
      */
     public function __construct(
         public int $id,

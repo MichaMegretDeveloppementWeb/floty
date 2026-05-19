@@ -13,16 +13,12 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représentation frontend d'une ligne « contrat » d'un snapshot fiscal
- * (Phase 11 D5.8). Miroir DTO du VO domaine
- * {@see ContractSnapshotEntry}.
+ * Frontend representation of a contract row in a fiscal snapshot. Mirror
+ * of the domain VO {@see ContractSnapshotEntry}.
  *
- * Affiché par le composant
- * {@see resources/js/Components/Domain/Declaration/DeclarationContractList.vue}
- * qui groupe les rows consécutives partageant le même
- * `clusterFingerprint` dans des « boîtes » visuelles permettant à
- * l'utilisateur de comprendre la chaîne LCD à risque dans la liste
- * elle-même, sans renvoi vers une section dédiée.
+ * Consumed by the declaration contract list, which groups consecutive
+ * rows sharing the same `clusterFingerprint` so the user can read the
+ * at-risk LCD chain directly in the list.
  */
 #[TypeScript]
 final class ContractSnapshotEntryData extends Data

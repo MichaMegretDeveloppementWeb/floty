@@ -8,11 +8,9 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Résultat de la recherche globale ⌘K (V1.1) · 5 groupes en parallèle
- * dont 2 conditionnels (`contractShortcuts`, `declarations`).
- *
- * Cf. {@see GlobalSearchService::searchAll} pour la logique d'activation
- * des groupes conditionnels.
+ * Global search result: 5 parallel groups, 2 of which are conditional
+ * (`contractShortcuts`, `declarations`). See `GlobalSearchService::searchAll`
+ * for the activation logic.
  */
 #[TypeScript]
 final class GlobalSearchResultData extends Data
@@ -34,10 +32,9 @@ final class GlobalSearchResultData extends Data
     ) {}
 
     /**
-     * Helper pour créer un résultat vide (5 groupes vides). Nommé
-     * `emptyResult` et pas `empty` pour ne pas surcharger la méthode
-     * statique homonyme exposée par {@see Data} (qui a une signature
-     * différente · `empty(array, ...)` côté Spatie).
+     * Build an empty result (all five groups empty). Named `emptyResult`
+     * rather than `empty` to avoid colliding with Spatie's static
+     * `empty(array, ...)`.
      */
     public static function emptyResult(string $query): self
     {

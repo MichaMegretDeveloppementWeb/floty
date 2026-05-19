@@ -15,14 +15,11 @@ use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 
 /**
- * DTO du formulaire « Changer mon mot de passe » (utilisateur connecté).
+ * Authenticated user "change my password" form payload.
  *
- * `currentPassword` est vérifié par {@see ChangePasswordAction}
- * via Hash::check (pas dans la couche validation pour ne pas exposer la
- * mécanique de hash). `Different` empêche de réutiliser le même password
- * (UX · prévient une soumission accidentelle sans changement réel).
- *
- * Cf. plan-remédiation Vague 1 Lot 2 D4.4 (F-10-006) + ADR-0012 rev. 1.1.
+ * `currentPassword` is verified by {@see ChangePasswordAction} via
+ * Hash::check rather than at the validation layer to avoid exposing the
+ * hash mechanism. `Different` forbids reusing the same password.
  */
 #[MapInputName(SnakeCaseMapper::class)]
 final class ChangePasswordData extends Data

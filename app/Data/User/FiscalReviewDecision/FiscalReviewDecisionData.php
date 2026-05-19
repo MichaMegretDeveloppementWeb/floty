@@ -11,10 +11,9 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Décision humaine de revue fiscale pour un cluster de risque
- * (Phase 11 D1, ADR-0015 § 5.2). Identifiée fonctionnellement par
- * `(companyId, fiscalYear, clusterFingerprint)` côté BDD ; en lecture
- * on expose aussi le nom de l'auteur pour l'historique UI (D4).
+ * Human review decision for a risk cluster (ADR-0015 § 5.2). Identified
+ * by `(companyId, fiscalYear, clusterFingerprint)`. On read we also
+ * expose the author's name for the UI history.
  */
 #[TypeScript]
 final class FiscalReviewDecisionData extends Data
@@ -30,7 +29,7 @@ final class FiscalReviewDecisionData extends Data
         public string $clusterFingerprint,
         public ReviewDecisionType $decision,
         public ?string $justification,
-        /** Phase 13 D5.10.S · contractIds explicitement exclus du cluster par l'utilisateur. */
+        /** Contract ids explicitly opted out of the cluster by the user. */
         public array $excludedContractIds,
         /** ISO 8601 (Y-m-d\TH:i:sP). */
         public string $decidedAt,

@@ -9,20 +9,14 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue d'un justificatif joint à une indisponibilité (P1) · utilisée
- * par la section « Documents » du modal indisponibilité côté fiche
- * véhicule.
+ * Attached document of an unavailability, used by the documents section
+ * of the unavailability modal on the vehicle page.
  *
- * `downloadUrl` est calculé côté serveur via `route()` pour que le
- * front puisse l'utiliser directement sans dépendre de Wayfinder
- * pour cette URL spécifique (et permet à un futur endpoint signé
- * d'évoluer transparemment).
- *
- * `sizeFormatted` est pré-calculé serveur (« 2,3 Mo », « 540 Ko »)
- * pour ne pas dupliquer la logique de formatage côté front.
- *
- * `isImage` permet à l'UI de proposer un aperçu thumbnail vs une
- * icône PDF générique.
+ * `downloadUrl` is built server-side via `route()` so the frontend can
+ * use it directly (and a future signed endpoint can change transparently).
+ * `sizeFormatted` is pre-rendered to avoid duplicating the formatting on
+ * the frontend, and `isImage` lets the UI pick between a thumbnail
+ * preview and a generic PDF icon.
  */
 #[TypeScript]
 final class UnavailabilityDocumentData extends Data
@@ -58,9 +52,9 @@ final class UnavailabilityDocumentData extends Data
     }
 
     /**
-     * Conversion bytes → format humain FR · « 540 Ko », « 2,3 Mo ».
-     * Seuils décimaux (Ko = 1000 octets, pas 1024) pour cohérence
-     * avec l'affichage navigateur quand on télécharge.
+     * Bytes -> human-readable French format ("540 Ko", "2,3 Mo"). Uses
+     * decimal thresholds (Ko = 1000 bytes) for consistency with browser
+     * download UIs.
      */
     private static function formatSize(int $bytes): string
     {

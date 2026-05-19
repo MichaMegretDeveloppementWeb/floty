@@ -9,14 +9,12 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * DTO de présentation d'une exonération appliquée - couple `(reason,
- * ruleCode)` exposé dans les panneaux "Exonérations applicables" du
- * frontend (Show véhicule + Show contrat).
+ * Presentation DTO for an applied exemption: the `(reason, ruleCode)`
+ * pair exposed in the "Exonérations applicables" panels of the
+ * Vehicle Show and Contract Show pages.
  *
- * Permet à l'UI d'afficher à la fois la raison textuelle (ex.
- * « Exonération hybride conditionnelle 2024 (CIBS L. 421-125) ») et le
- * code de la règle métier (R-2024-XXX) qui ouvre la fiche détaillée
- * de la règle dans la modale RuleCard.
+ * `reason` is the human-readable label; `ruleCode` (R-YYYY-XXX) lets
+ * the UI open the rule's detail card.
  */
 #[TypeScript]
 final class AppliedExemptionData extends Data

@@ -13,9 +13,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Contenu pédagogique d'une règle fiscale projeté vers le front
- * (Phase 13 D5.12 · ADR-0022 finalisée v1.2). Miroir du VO PHP
- * {@see App\Fiscal\ValueObjects\RulePedagogicalContent}.
+ * Frontend projection of a fiscal rule's pedagogical content (ADR-0022).
+ * Mirror of the domain VO {@see RulePedagogicalContent}.
  */
 #[TypeScript]
 final class RulePedagogicalContentData extends Data
@@ -34,10 +33,8 @@ final class RulePedagogicalContentData extends Data
     ) {}
 
     /**
-     * Mapping VO domaine → DTO de présentation (Phase 13 D5.13).
-     * Spatie Data ne sait pas convertir automatiquement entre VOs et
-     * DTOs lorsque les structures imbriquées ont des classes
-     * différentes · le mapping est donc explicite.
+     * Domain VO -> presentation DTO mapping. Explicit because Spatie Data
+     * cannot auto-convert when nested structures use different classes.
      */
     public static function fromVo(RulePedagogicalContent $vo): self
     {

@@ -20,10 +20,10 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création d'une indisponibilité.
+ * Create-unavailability payload.
  *
- * `has_fiscal_impact` n'est PAS dans le payload - il est calculé
- * côté Action depuis l'enum (`UnavailabilityType::isFiscallyReductive()`).
+ * `has_fiscal_impact` is not part of the payload; the Action derives it
+ * from the enum via `UnavailabilityType::isFiscallyReductive()`.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -47,9 +47,9 @@ final class StoreUnavailabilityData extends Data
     ) {}
 
     /**
-     * Règle dynamique : si le véhicule est sorti de flotte (`exit_date`
-     * renseigné), bloquer toute indisponibilité dont la période chevauche
-     * ou dépasse cette date (cf. ADR-0018 § 5).
+     * Dynamic rule: when the vehicle has left the fleet (`exit_date` is
+     * set) any unavailability that overlaps or extends past that date is
+     * blocked (ADR-0018 § 5).
      *
      * @return array<string, array<int, mixed>>
      */
@@ -71,10 +71,9 @@ final class StoreUnavailabilityData extends Data
             return [];
         }
 
-        // end_date est nullable + after_or_equal start_date dans les
-        // attributs ; on ré-énumère pour préserver ces rules tout en
-        // ajoutant AvailableForPeriod (cf. Spatie Data : `rules()`
-        // remplace les rules attribut).
+        // Restating the nullable + after_or_equal rules because Spatie's
+        // `rules()` replaces attribute rules; AvailableForPeriod is added
+        // alongside.
         return [
             'end_date' => [
                 'nullable',

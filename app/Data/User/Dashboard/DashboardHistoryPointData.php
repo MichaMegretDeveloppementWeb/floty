@@ -8,31 +8,21 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Un point de l'historique annuel · une dimension à la fois (chantier
- * perf Dashboard 2026-05-17 v4 · refonte lazy par onglet).
- *
- * Chacune des 4 dimensions du graphique Évolution (Jours-véhicule,
- * Locations, Taxes dues, Recettes locatives) est servie par une prop
- * Inertia distincte (`historyJoursVehicule`, `historyContracts`,
- * `historyTaxes`, `historyRecettes`). Chaque prop est un
- * `list<DashboardHistoryPointData>`.
- *
- * Seul le 1er onglet (Jours-véhicule, peu coûteux) est servi en
- * `Inertia::defer` au mount. Les 3 autres en `Inertia::optional` sont
- * hydratés à la demande sur clic d'onglet via
- * `router.reload({only: ['historyXxx']})`.
+ * One annual data point of the Dashboard "Évolution" chart, scoped to a
+ * single dimension. Each of the 4 dimensions (jours-véhicule, contracts,
+ * taxes, recettes) is served as its own Inertia prop and may be hydrated
+ * lazily on tab click.
  */
 #[TypeScript]
 final class DashboardHistoryPointData extends Data
 {
     public function __construct(
         public int $year,
-        /** Vrai si l'année est l'année calendaire courante (donc partielle). */
+        /** True when this year is the current calendar year (partial). */
         public bool $isCurrentYear,
         /**
-         * Valeur de la dimension pour cette année · int pour
-         * jours-véhicule / locations / recettes (cents), float pour
-         * taxes dues (€). Côté TS, mapped en `number`.
+         * Int for jours-véhicule / contracts / recettes (cents); float for
+         * taxes due (€). Mapped as `number` on the TypeScript side.
          */
         public int|float $value,
     ) {}

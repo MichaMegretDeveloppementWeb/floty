@@ -8,20 +8,16 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * **Raccourci** vers la table Contrats filtrée par triplet
- * (véhicule × entreprise × année), proposé par la recherche globale ⌘K
- * UNIQUEMENT quand la query croise au moins un véhicule et au moins
- * une entreprise (≥ 2 tokens). Pas un item contrat individuel · l'idée
- * est d'amener l'utilisateur vers la liste filtrée plutôt que de lui
- * proposer N contrats à plat.
+ * Shortcut to the Contracts table filtered by `(vehicle, company, year)`,
+ * returned by the global search palette only when the query matches at
+ * least one vehicle and one company (>= 2 tokens).
  *
- * **Granularité par année** · 1 raccourci distinct par année de début
- * (`YEAR(start_date)`) pour éviter d'atterrir sur l'année courante
- * vide alors que les contrats du couple sont sur une autre année.
+ * One shortcut per starting year (`YEAR(start_date)`) to avoid landing
+ * on an empty current year when the couple's contracts live elsewhere.
  *
- *  - `label` · « Renault Clio AB-123-CD · chez ACME »
- *  - `sublabel` · « 5 contrats en 2024 »
- *  - `href` · `/app/contracts?vehicleId=X&companyId=Y&year=2024`
+ *  - `label`: "Renault Clio AB-123-CD · chez ACME".
+ *  - `sublabel`: "5 contrats en 2024".
+ *  - `href`: `/app/contracts?vehicleId=X&companyId=Y&year=2024`.
  */
 #[TypeScript]
 final class GlobalSearchContractShortcutData extends Data

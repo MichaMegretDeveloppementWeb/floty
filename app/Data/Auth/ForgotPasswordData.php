@@ -12,12 +12,9 @@ use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 
 /**
- * DTO entrée du formulaire « Mot de passe oublié ».
- *
- * Borne `max:255` symétrique au LoginRequest pour éviter le soft-DoS via
- * input gigantesque sur la clé RateLimiter ou la table
- * `password_reset_tokens` (cf. plan-remédiation Vague 1 Lot 2 D4 +
- * F-10-009).
+ * "Forgot password" form payload. The 255-char bound is symmetric with
+ * LoginRequest to prevent soft-DoS via huge input on the rate-limiter
+ * key or the `password_reset_tokens` table.
  */
 #[MapInputName(SnakeCaseMapper::class)]
 final class ForgotPasswordData extends Data

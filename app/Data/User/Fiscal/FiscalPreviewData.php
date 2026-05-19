@@ -8,23 +8,21 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Réponse de l'endpoint `POST /app/planning/preview-taxes` :
- * **coût fiscal standalone** d'une attribution (location/contrat).
+ * Response of `POST /app/planning/preview-taxes`: standalone fiscal cost
+ * of a single contract.
  *
- * La LCD/LLD se calcule **contrat par contrat individuellement** ·
- * la durée du contrat seul détermine la qualification (≤ 30 j → LCD,
- * sinon LLD). Aucune notion de cumul annuel d'un couple véhicule ×
- * entreprise. Le preview répond donc strictement à la question :
- * « combien coûte fiscalement ce contrat précis ? ».
+ * LCD vs LLD is qualified per contract using its own duration only
+ * (<= 30 days -> LCD, otherwise LLD). There is no annual cumulation
+ * across a `(vehicle, company)` couple at this stage.
  */
 #[TypeScript]
 final class FiscalPreviewData extends Data
 {
     public function __construct(
         public int $fiscalYear,
-        /** Nombre de jours retenus par l'attribution (dans l'année). */
+        /** Days kept in the year for this contract. */
         public int $daysCount,
-        /** Décomposition CO₂ + polluants + total + exonérations. */
+        /** CO₂ + pollutants + total + applied exemptions. */
         public FiscalBreakdownData $breakdown,
     ) {}
 }

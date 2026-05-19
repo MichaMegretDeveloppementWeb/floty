@@ -4,32 +4,22 @@ declare(strict_types=1);
 
 namespace App\Data\Shared;
 
+use App\Support\Toasts\ToastDispatcher;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Flash messages exposés en shared prop Inertia.
+ * Flash messages exposed as an Inertia shared prop.
  *
- * **Lot 5 D6 (F-19-007 + bug back-button)** · refonte vers une **liste
- * accumulée** (`toasts: ToastEntryData[]`) qui supporte ·
+ * `toasts` accumulates multiple entries per request (a single response
+ * may stack several through {@see ToastDispatcher}).
+ * Each entry carries a unique id so the frontend can deduplicate when
+ * Inertia restores `flash.toasts` from history.state on back-button.
  *
- *   - **Accumulation N messages par requête** · plusieurs Actions
- *     peuvent empiler via {@see App\Support\Toasts\ToastDispatcher}
- *     dans la même réponse (ex. bulk import partiel · 3 success + 2
- *     warnings).
- *   - **Dédup back-button** · chaque toast porte un `id` unique · le
- *     composable front {@see useFlashToasts} maintient un Set des IDs
- *     déjà vus pour ne pas re-pousser au retour navigateur (Inertia
- *     cache la page client-side et restaure `flash.toasts` depuis
- *     history.state).
- *
- * **Rétrocompatibilité** · les 4 anciens canaux scalaires (success,
- * error, warning, info) sont conservés pour ne pas casser les ~30
- * controllers qui utilisent encore `back()->with('toast-success', '…')`.
- * Le middleware `HandleInertiaRequests` les convertit en entries de
- * `toasts` au moment du share, en générant un ID virtuel basé sur le
- * contenu + timestamp.
+ * The legacy scalar channels (success / error / warning / info) remain
+ * for back-compat with controllers calling `back()->with('toast-...')`;
+ * the Inertia middleware converts them into `toasts` entries on share.
  *
  * @property array<int, ToastEntryData> $toasts
  */

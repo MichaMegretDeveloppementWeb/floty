@@ -8,19 +8,16 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Slot d'un jour dans la grille semaine du drawer planning.
+ * Day slot in the planning drawer's week grid.
  *
- * - `contract` est `null` quand le jour est libre OU quand le jour est
- *   occupé par une autre entreprise et que le drawer est en mode
- *   company-locked (chantier P3) ; dans ce dernier cas
- *   `isOccupiedByOther` est `true`.
- * - `hasUnavailability` est `true` ssi au moins une indispo (tous types
- *   confondus) couvre ce jour précisément. Alimente la bordure rouge
- *   du slot dans la grille « État de la semaine » (ADR-0019 § 2 D5).
- * - `isOccupiedByOther` est `true` ssi le drawer est ouvert sur une
- *   Vue Entreprise et que le contrat occupant ce jour appartient à une
- *   autre entreprise (anonymisation : ni l'identité, ni la couleur de
- *   l'entreprise occupante ne fuitent côté frontend).
+ *   - `contract` is `null` when the day is free OR the day belongs to
+ *     another company in company-locked mode (in which case
+ *     `isOccupiedByOther` is `true`).
+ *   - `hasUnavailability` is `true` when at least one unavailability
+ *     covers this day; feeds the red border of the slot.
+ *   - `isOccupiedByOther` is `true` when the drawer is open on a
+ *     company view and the covering contract belongs to another company;
+ *     identity and colour of the other company are not leaked.
  */
 #[TypeScript]
 final class WeekDaySlotData extends Data

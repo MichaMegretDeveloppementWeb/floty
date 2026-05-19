@@ -12,19 +12,16 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Une règle fiscale telle que présentée dans la page « Règles de
- * calcul » et dans les breakdowns véhicule/contrat (Phase 13 D5.14 ·
- * ADR-0022 finalisée v1.4).
+ * A fiscal rule as presented on the "Règles de calcul" page and inside
+ * vehicle/contract breakdowns (ADR-0022).
  *
- * **Source** · construit exclusivement depuis la classe PHP de la
- * règle via {@see self::fromRule()}. La BDD `fiscal_rules` ne sert
- * plus que d'index pour récupérer l'`$id` stable, à des fins de FK
- * potentielles (non consommé côté front actuellement).
+ * Built exclusively from the PHP rule class via {@see self::fromRule()}.
+ * The `fiscal_rules` table only provides the stable `$id` for potential
+ * FK references.
  *
- * **Granularité temporelle** · les dates `applicabilityStart` /
- * `applicabilityEnd` exposées sont **clippées à l'année consultée**.
- * `isFullYear` permet à l'UI d'afficher silencieusement le cas
- * standard et de mettre en évidence les règles partielles.
+ * `applicabilityStart` / `applicabilityEnd` are clipped to the consulted
+ * year; `isFullYear` lets the UI quietly render the standard case and
+ * highlight partial-year rules.
  */
 #[TypeScript]
 final class FiscalRuleListItemData extends Data
@@ -49,9 +46,8 @@ final class FiscalRuleListItemData extends Data
     ) {}
 
     /**
-     * Construit le DTO depuis la classe PHP de la règle (la source
-     * de vérité unique depuis D5.13). Le paramètre `$id` provient de
-     * l'index BDD `fiscal_rules`, récupéré par batch via
+     * Build from the PHP rule class, the single source of truth. `$id`
+     * comes from the DB index `fiscal_rules`, fetched in batch via
      * `FiscalRuleReadRepository::findIdsByCodeForYear()`.
      */
     public static function fromRule(FiscalRuleContract $rule, int $year, int $id): self
@@ -62,8 +58,7 @@ final class FiscalRuleListItemData extends Data
         $ruleStart = $rule->applicabilityStart()->toDateString();
         $ruleEnd = $rule->applicabilityEnd()?->toDateString() ?? $yearEnd;
 
-        // Comparaisons string sur dates ISO `YYYY-MM-DD` ·
-        // l'ordre lexicographique = ordre chronologique pour ce format.
+        // ISO `YYYY-MM-DD` strings: lexicographic order == chronological order.
         $startInYear = $ruleStart > $yearStart ? $ruleStart : $yearStart;
         $endInYear = $ruleEnd < $yearEnd ? $ruleEnd : $yearEnd;
 

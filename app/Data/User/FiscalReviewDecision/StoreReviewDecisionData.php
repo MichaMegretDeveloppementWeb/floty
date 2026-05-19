@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\FiscalReviewDecision;
 
+use App\Actions\FiscalDeclaration\StoreReviewDecisionAction;
 use App\Enums\FiscalReviewDecision\ReviewDecisionType;
 use App\Enums\FiscalReviewDecision\RiskCode;
 use Spatie\LaravelData\Attributes\MapInputName;
@@ -19,14 +20,12 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de la décision humaine sur un cluster de risque (Phase 11
- * D3, ADR-0015 § 6.2). Reçu par `StoreReviewDecisionAction` pour
- * upsert dans `fiscal_review_decisions`.
+ * Human decision payload for a risk cluster (ADR-0015 § 6.2). Consumed
+ * by `StoreReviewDecisionAction` for upsert in `fiscal_review_decisions`.
  *
- * Validation Spatie côté DTO. Validation conditionnelle de la
- * justification obligatoire si `decision = Conserved` ET niveau élevé
- * → portée par l'Action (l'enum `RiskCode::level()` n'est pas évaluable
- * dans une règle Spatie statique).
+ * The "justification required when `Conserved` + high level" rule is
+ * enforced by the Action since `RiskCode::level()` is not evaluable in
+ * a static Spatie validation rule.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -47,18 +46,12 @@ final class StoreReviewDecisionData extends Data
         #[Nullable, Max(2000)]
         public ?string $justification = null,
         /**
-         * Phase 13 D5.10.S · contractIds explicitement exclus du
-         * cluster · ils sont traités comme LCD individuels exemptés
-         * R-2024-021 et ne participent pas à l'opt-out si la décision
-         * globale est Requalified.
-         *
-         * Lot 5 D4 · validation typage `ArrayType + Distinct` aligné
-         * sur le pattern `StoreContractData::driverIds`. La garantie
-         * sémantique d'appartenance des IDs au couple `(company_id,
-         * fiscal_year)` est portée par
-         * {@see App\Actions\FiscalDeclaration\StoreReviewDecisionAction::guardExcludedContractsBelongToScope()}
-         * (validation métier dans l'Action) · ferme le risque IDOR
-         * latent V2 multi-tenant.
+         * Contract ids explicitly opted out of the cluster; treated as
+         * individual LCD exempted under R-2024-021 and excluded from any
+         * Requalified opt-out. Belonging to `(company_id, fiscal_year)`
+         * is enforced by
+         * {@see StoreReviewDecisionAction::guardExcludedContractsBelongToScope()}
+         * to close a latent multi-tenant IDOR.
          */
         #[Sometimes, Nullable, ArrayType, Distinct]
         public ?array $excludedContractIds = null,

@@ -12,32 +12,23 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représentation d'une déclaration fiscale annuelle pour un couple
- * `(company, fiscal_year)` (Phase 11 D1, ADR-0015 § 5.1 rev. 1.1).
+ * Annual fiscal declaration for a `(company, fiscal_year)` couple
+ * (ADR-0015 § 5.1 rev. 1.1).
  *
- * DTO de base utilisé en liste (Index) et en détail (Show) ; sera
- * enrichi en D4 par les `clusters` de revue. La chaîne d'obsolescence
- * est exposée via `isObsolete` + `supersededById` + métadonnées de
- * remplacement.
+ * Used both in list (Index) and detail (Show); enriched with review
+ * `clusters` further on. The obsolescence chain is exposed via
+ * `isObsolete` + `supersededById` + replacement metadata.
  *
- * **Coexistence des 2 hashes** (Lot 5 D8 · F-19D2-007) ·
+ * Two coexisting hashes:
+ *   - `generatedPdfHash`: frozen at PDF generation, immutable fingerprint
+ *     of the payload as it was produced. Audit anchor. Null until generated.
+ *   - `snapshotHash`: live SHA-256 of the persisted snapshot, computed
+ *     through {@see SnapshotHashCalculator::compute()} on each hydration
+ *     (memoized within the request). Detects tampering of the stored
+ *     snapshot.
  *
- *   - `generatedPdfHash` (figé en BDD au moment de la génération PDF) ·
- *     empreinte immuable du payload tel qu'il existait à la génération.
- *     Sert d'ancre pour l'audit régulatoire (« cette déclaration émise
- *     contenait exactement ce payload »). Persisté dans
- *     `fiscal_declarations.generated_pdf_hash`. Null tant que pas générée.
- *
- *   - `snapshotHash` (recalculé live à chaque hydratation via
- *     {@see SnapshotHashCalculator::compute()}) · empreinte de l'état
- *     courant du `generated_snapshot_payload` JSON tel qu'il vit en
- *     BDD aujourd'hui. Sert à détecter une éventuelle altération du
- *     snapshot persisté (intégrité documentaire). Mémoïsé intra-requête
- *     par cache statique du calculator · pas de re-calcul à chaque
- *     accès dans la même requête HTTP.
- *
- *   Si `generatedPdfHash !== snapshotHash` · le snapshot persisté a
- *   divergé du PDF émis (situation anormale · à investiguer).
+ * When `generatedPdfHash !== snapshotHash` the persisted snapshot has
+ * diverged from the emitted PDF (anomaly to investigate).
  */
 #[TypeScript]
 final class FiscalDeclarationData extends Data
@@ -52,55 +43,45 @@ final class FiscalDeclarationData extends Data
         public string $companyLegalName,
         public int $fiscalYear,
         public FiscalDeclarationStatus $status,
-        /** Numéro lisible `DECL-{shortCode}-{year}-{NNNN}`. Null si pas encore générée (Phase 11 D5.3). */
+        /** `DECL-{shortCode}-{year}-{NNNN}`. Null until generated. */
         public ?string $reference,
         /**
-         * Phase 13 D5.10.P · libellé d'affichage interne · « DECL-XXX »
-         * si générée, sinon « Brouillon #N ». Centralise la logique
-         * `?? Brouillon #N` pour éviter sa duplication côté frontend.
-         * Aligné sur `DeclarationListItemData::internalLabel`.
+         * Internal display label: `DECL-XXX` when generated, otherwise
+         * `Brouillon #N`. Centralises the fallback for the frontend and
+         * mirrors `DeclarationListItemData::internalLabel`.
          */
         public string $internalLabel,
-        /** ISO 8601 (Y-m-d). Null si pas encore générée. */
+        /** ISO 8601 (Y-m-d). Null until generated. */
         public ?string $generatedAt,
         public ?string $generatedPdfHash,
         public bool $isObsolete,
-        /** ISO 8601 (Y-m-d\TH:i:sP). Null si non obsolète. */
+        /** ISO 8601 (Y-m-d\TH:i:sP). Null when not obsolete. */
         public ?string $obsoleteAt,
         public ?int $supersededById,
         #[DataCollectionOf(InvalidationReasonData::class)]
         public ?array $obsoleteReasons,
         /**
-         * Phase 13 D5.10.J · SHA-256 du snapshot canonique = empreinte
-         * fiscale du document. Affichée à l'identique sur le PDF (bloc
-         * sceau) et sur la page Show de la déclaration · permet à toute
-         * partie qui dispose du snapshot de vérifier l'intégrité du
-         * document fiscal. Null pour les déclarations non encore
-         * générées (pas de snapshot persisté).
+         * SHA-256 of the canonical snapshot = fiscal fingerprint of the
+         * document. Printed on the PDF seal block and on the Show page so
+         * any party with the snapshot can verify integrity. Null when no
+         * snapshot is persisted yet.
          */
         public ?string $snapshotHash = null,
         /**
-         * Lot 5 D13 · raison de mise en pause saisie par l'utilisateur
-         * lors du report d'un brouillon (modal textarea max 500 car).
-         * Affichée sur le brouillon tant qu'il est reporté · effacée
-         * automatiquement au revert (deferred → draft) ou à la
-         * génération · état transitoire cohérent avec le statut, pas
-         * un historique persistant. Null si jamais saisie ou status
-         * ≠ deferred.
+         * Pause reason captured by the user when deferring a draft (max
+         * 500 char). Displayed while the draft is deferred, cleared on
+         * revert (deferred -> draft) or on generation. Null otherwise.
          */
         public ?string $deferReason = null,
     ) {}
 
     public static function fromModel(FiscalDeclaration $declaration): self
     {
-        // Garde-fou résilient · payload `obsolete_reasons` éventuellement
-        // mal formé en BDD (cast Eloquent retourne un scalaire suite à
-        // JSON corrompu, items sans le schéma attendu, etc.) ne doit pas
-        // casser les pages qui sérialisent ce DTO. Délégué à
-        // `InvalidationReasonData::listFromRaw` qui centralise les checks
-        // is_array + try/catch + log canal `declarations`.
-        // Hotfix complémentaire au précédent qui n'avait traité que
-        // `DeclarationController::review` sans couvrir ce site jumeau.
+        // Resilience: a malformed `obsolete_reasons` payload (corrupt
+        // JSON, items with the wrong shape) must not break pages that
+        // serialise this DTO. `InvalidationReasonData::listFromRaw`
+        // centralises the array/try-catch guards and the warning log
+        // on the `declarations` channel.
         $reasonsList = InvalidationReasonData::listFromRaw($declaration->obsolete_reasons, $declaration->id);
         $reasons = $reasonsList !== [] ? $reasonsList : null;
 

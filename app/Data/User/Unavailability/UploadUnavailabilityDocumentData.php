@@ -13,17 +13,14 @@ use Spatie\LaravelData\Attributes\Validation\Required;
 use Spatie\LaravelData\Data;
 
 /**
- * Payload d'upload d'un justificatif d'indisponibilité (P1).
+ * Unavailability document upload payload.
  *
- * Validation V1 ·
- *   - Required + File · un fichier doit être présent
- *   - Mimes · jpg/jpeg/png/webp ou pdf (validation MIME serveur, plus
- *     stricte que l'extension côté client)
- *   - Max 5120 KB (= 5 Mo)
+ * Validation: file required, MIME restricted to jpg/jpeg/png/webp/pdf
+ * (stricter than the client extension check), max 5 MB.
  *
- * La limite des 5 documents par indispo est vérifiée dans
- * {@see UploadUnavailabilityDocumentAction} (lève
- * `TooManyUnavailabilityDocumentsException` avec message FR).
+ * The 5-documents-per-unavailability limit is enforced by
+ * {@see UploadUnavailabilityDocumentAction} which raises
+ * `TooManyUnavailabilityDocumentsException`.
  */
 final class UploadUnavailabilityDocumentData extends Data
 {

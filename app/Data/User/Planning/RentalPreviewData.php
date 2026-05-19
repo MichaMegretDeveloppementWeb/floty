@@ -9,35 +9,27 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Réponse de l'endpoint `POST /app/planning/preview-rentals` ·
- * **loyer standalone** d'une attribution (location/contrat) cohérent
- * avec la facture finale.
+ * Response of `POST /app/planning/preview-rentals`: standalone rent of a
+ * single contract, consistent with the final monthly invoice.
  *
- * Sémantique · le service applique strictement la même logique que la
- * facture mensuelle : split par mois civil → `OptimalRateBreakdown` par
- * mois → application des réductions actives via `DiscountApplier`. Les
- * 3 champs `grossTotalCents`, `discountCents`, `netTotalCents` sont
- * cohérents (`net = gross - discount`).
+ * The service applies the same logic as monthly invoicing: per-month
+ * split, `OptimalRateBreakdown` per month, then active discounts via
+ * `DiscountApplier`. `grossTotalCents`, `discountCents` and `netTotalCents`
+ * are consistent (`net = gross - discount`).
  *
- * `hasMissingPricing = true` quand au moins un mois couvert par le
- * contrat synthétique n'a pas de tarif annuel saisi pour le véhicule.
- * Dans ce cas, les totaux sont `null` (preview impossible) · l'UI
- * affiche un message incitant à compléter les tarifs.
+ * `hasMissingPricing = true` when at least one covered month has no
+ * annual rate for the vehicle. Totals are then `null` (preview impossible)
+ * and the UI prompts the user to complete pricing.
  *
- * `appliedDiscountLabel` / `appliedDiscountBasisPoints` exposent la
- * réduction DOMINANTE appliquée sur la période (cas dominant unique
- * garanti par `RentalDiscountConflictService`) · `null` si aucune
- * réduction active n'a matché les dates du contrat.
+ * `appliedDiscountLabel` / `appliedDiscountBasisPoints` expose the
+ * DOMINANT discount applied over the range (uniqueness guaranteed by
+ * `RentalDiscountConflictService`); null when none matched the dates.
  */
 #[TypeScript]
 final class RentalPreviewData extends Data
 {
     /**
-     * @param  list<RentalMonthlyImpactData>  $monthlyImpact  SC8 · pour chaque mois
-     *                                                        civil touché par le contrat
-     *                                                        synthétique · existant +
-     *                                                        nouveau total. Vide si
-     *                                                        hasMissingPricing.
+     * @param  list<RentalMonthlyImpactData>  $monthlyImpact  Per calendar month touched by the synthetic contract; empty when `hasMissingPricing`.
      */
     public function __construct(
         public int $daysCount,

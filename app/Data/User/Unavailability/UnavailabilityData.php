@@ -11,15 +11,14 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représentation d'une indisponibilité pour affichage (page Show
- * véhicule, listes etc.).
+ * Read-side representation of an unavailability (vehicle Show page,
+ * lists, etc.).
  *
- *   - daysCount : nombre de jours couverts (inclusif), ou 0 si
- *                 l'indispo est encore en cours (end_date null) - le
- *                 front affiche alors « depuis le {start_date} ».
- *   - documents : justificatifs joints (P1 · 0..5 fichiers, image ou
- *                 PDF), uniquement renseignés quand la relation est
- *                 eager-loaded · l'index liste ne les charge pas.
+ *   - `daysCount`: inclusive day count, or 0 when the unavailability is
+ *     still ongoing (end_date null); the frontend then renders "depuis
+ *     le {start_date}".
+ *   - `documents`: attached evidence (0..5 image or PDF files); populated
+ *     only when the relation is eager-loaded.
  */
 #[TypeScript]
 final class UnavailabilityData extends Data
@@ -46,8 +45,8 @@ final class UnavailabilityData extends Data
             ? 0
             : ((int) $u->start_date->diffInDays($u->end_date)) + 1;
 
-        // Eager-load documents uniquement si déjà chargés · évite un
-        // N+1 silencieux quand le caller a oublié le `->with('documents')`.
+        // Only attach documents when the relation is already loaded;
+        // avoids a silent N+1 when the caller forgot `->with('documents')`.
         $documents = $u->relationLoaded('documents')
             ? $u->documents
                 ->map(static fn ($d): UnavailabilityDocumentData => UnavailabilityDocumentData::fromModel($d))

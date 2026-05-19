@@ -8,8 +8,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Réponse de l'endpoint `GET /app/planning/week` - détail d'une
- * semaine pour un véhicule donné, consommée par le drawer planning.
+ * Response of `GET /app/planning/week`: detail of one week for a given
+ * vehicle, consumed by the planning drawer.
  */
 #[TypeScript]
 final class PlanningWeekData extends Data
@@ -17,15 +17,7 @@ final class PlanningWeekData extends Data
     /**
      * @param  list<WeekDaySlotData>  $days
      * @param  list<WeekCompanyPresenceData>  $companiesOnWeek
-     * @param  list<string>  $vehicleBusyDates  Toutes les dates ISO Y-m-d
-     *                                          de l'année fiscale où le
-     *                                          véhicule porte déjà un
-     *                                          contrat actif. Alimente le
-     *                                          `disabled-dates` du
-     *                                          DateRangePicker pour
-     *                                          empêcher la sélection
-     *                                          conflictuelle hors fenêtre
-     *                                          de la semaine affichée.
+     * @param  list<string>  $vehicleBusyDates  ISO Y-m-d dates in the fiscal year where the vehicle already holds an active contract; feeds the `disabled-dates` of the DateRangePicker to block conflicting selections outside the displayed week.
      */
     public function __construct(
         public int $weekNumber,

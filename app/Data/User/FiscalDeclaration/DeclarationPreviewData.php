@@ -9,12 +9,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Sortie agrégée du `DeclarationPreviewService` (Phase 11 D3) :
- * calcul brut + clusters de risque détectés (avec décisions
- * pré-appliquées par fingerprint si trouvées en BDD) + déclaration
- * active courante (si elle existe).
+ * Aggregated output of `DeclarationPreviewService`: raw computation +
+ * detected risk clusters (with already-applied decisions when found by
+ * fingerprint) + current active declaration when one exists.
  *
- * Sert d'entrée au rendu PDF (D5) et à la page de revue (D4).
+ * Feeds both PDF rendering and the review page.
  */
 #[TypeScript]
 final class DeclarationPreviewData extends Data

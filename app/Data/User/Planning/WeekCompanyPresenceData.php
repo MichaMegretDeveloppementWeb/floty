@@ -9,8 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Présence d'une entreprise sur la semaine du drawer (entreprise +
- * nombre de jours sur cette semaine).
+ * Presence of a company on the drawer's week (company + day count).
  */
 #[TypeScript]
 final class WeekCompanyPresenceData extends Data

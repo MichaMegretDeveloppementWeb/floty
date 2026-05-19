@@ -12,11 +12,9 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Pendant Spatie Data, exposé front, du DTO interne
- * {@see FiscalBreakdown}.
- *
- * Conversion explicite via {@see self::fromBreakdown()} - pas de
- * conversion magique par réflexion.
+ * Frontend-facing Spatie Data counterpart of the internal
+ * {@see FiscalBreakdown} DTO. Conversion is explicit through
+ * {@see self::fromBreakdown()}; no reflection magic.
  */
 #[TypeScript]
 final class FiscalBreakdownData extends Data
@@ -43,8 +41,7 @@ final class FiscalBreakdownData extends Data
     ) {}
 
     /**
-     * Construit le DTO exposé à partir du DTO interne. Garantit le
-     * mapping 1:1 typé entre les deux représentations.
+     * Build from the internal breakdown, guaranteeing a 1:1 typed mapping.
      */
     public static function fromBreakdown(FiscalBreakdown $breakdown): self
     {

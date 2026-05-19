@@ -9,10 +9,9 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Métadonnée d'une section de la page « Règles de calcul » (Phase 13
- * D5.12 · ADR-0022 finalisée v1.2). Sert au front à rendre les titres
- * de groupe + sous-titres sans rien hardcoder en TS · tout vient des
- * enums PHP {@see RuleSection}.
+ * Section metadata for the "Règles de calcul" page (ADR-0022). Lets the
+ * frontend render group titles and subtitles without hardcoding strings;
+ * everything comes from the {@see RuleSection} enum.
  */
 #[TypeScript]
 final class FiscalRuleSectionData extends Data

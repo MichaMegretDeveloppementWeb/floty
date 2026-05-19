@@ -14,14 +14,10 @@ use Spatie\LaravelData\Data;
 use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 
 /**
- * DTO entrée du formulaire de réinitialisation de mot de passe.
+ * Password reset form payload.
  *
- * `password` doit faire >= 8 caractères (minimum raisonnable V1
- * conforme NIST SP 800-63B + audit B17 préliminaire). `Confirmed`
- * exige un champ `password_confirmation` identique (convention
- * Laravel · MapInputName SnakeCaseMapper transforme côté input).
- *
- * Cf. plan-remédiation Vague 1 Lot 2 D4.3 (F-10-006) + ADR-0012 rev. 1.1.
+ * Enforces a >= 8 character password (NIST SP 800-63B minimum) and
+ * `Confirmed` requires a matching `password_confirmation` field.
  */
 #[MapInputName(SnakeCaseMapper::class)]
 final class ResetPasswordData extends Data

@@ -9,12 +9,10 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Méta-données de pagination renvoyées par les Index server-side
- * (cf. ADR-0020). Reflète la shape `LengthAwarePaginator::toArray()['meta']`
- * de Laravel, exposée en TypeScript pour le composant `Paginator.vue`.
+ * Pagination metadata returned by server-side Index pages (ADR-0020).
  *
- * `from` et `to` sont nullables : ils valent `null` quand la page est vide
- * (ex: page 1 sur dataset 0).
+ * Mirrors Laravel's `LengthAwarePaginator::toArray()['meta']` shape.
+ * `from` and `to` are nullable when the page is empty.
  */
 #[TypeScript]
 final class PaginationMetaData extends Data

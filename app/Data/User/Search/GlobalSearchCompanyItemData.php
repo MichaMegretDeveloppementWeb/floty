@@ -8,12 +8,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Item entreprise retourné par la recherche globale ⌘K (V1.1).
+ * Company item returned by the global search palette.
  *
- *  - `label` · nom légal (« ACME SARL »)
- *  - `sublabel` · SIREN si renseigné (« SIREN 123 456 789 »), sinon
- *    ville ou null
- *  - `href` · URL absolue vers la fiche entreprise
+ *  - `label`: legal name.
+ *  - `sublabel`: SIREN when set, otherwise city or null.
+ *  - `href`: absolute URL to the company page.
  */
 #[TypeScript]
 final class GlobalSearchCompanyItemData extends Data

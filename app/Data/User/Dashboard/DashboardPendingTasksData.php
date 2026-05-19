@@ -9,22 +9,16 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Tâches opérationnelles en attente affichées sur le Dashboard (Phase
- * 13 D5.15 · refonte chantier η Phase 4 qui posait les placeholders).
+ * Operational pending tasks shown on the Dashboard.
  *
- * Pour les déclarations, expose ·
- *   - `pendingDeclarationsCount` · nombre total de couples (entreprise, année)
- *     en attente · 1 déclaration par couple donc compteur = nombre de
- *     déclarations à traiter
- *   - `pendingDeclarations` · top 5 items triés par urgence (overdue d'abord)
+ * For declarations, `pendingDeclarationsCount` counts every
+ * `(company, year)` couple awaiting action; `pendingDeclarations`
+ * carries the top 5 ranked by urgency (overdue first).
  *
- * Pour les factures, expose ·
- *   - `pendingInvoicesMonthlyTotal` · **somme des factures mensuelles à
- *     générer** toutes lignes confondues. C'est ce que l'utilisateur
- *     voit comme « N factures en attente » dans le header · une ligne
- *     peut représenter plusieurs factures mensuelles (jusqu'à 12 par
- *     couple entreprise-année), donc le compteur de lignes ne suffit pas.
- *   - `pendingInvoices` · top 5 lignes triées par année croissante
+ * For invoices, `pendingInvoicesMonthlyTotal` sums all monthly invoices
+ * left to generate (a single line can stand for up to 12 monthly
+ * invoices per `(company, year)`); `pendingInvoices` carries the top 5
+ * lines ordered by year ascending.
  */
 #[TypeScript]
 final class DashboardPendingTasksData extends Data

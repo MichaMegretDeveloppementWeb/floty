@@ -8,13 +8,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Item « facture en attente de génération » affiché sur le dashboard
- * (Phase 13 D5.15). Une entrée par couple `(company, year)` qui a au
- * moins une facture mensuelle restant à générer.
- *
- * `missingInvoicesCount` est le nombre de mois éligibles à génération
- * (mois passés avec utilisation effective + tarif présent + pas
- * encore facturé). Affiché côté front comme « 3 factures à générer ».
+ * Dashboard "invoice pending generation" item: one row per
+ * `(company, year)` couple that still has at least one monthly invoice
+ * left to generate. `missingInvoicesCount` is the number of months
+ * eligible for generation (past months with usage + a rate + not yet
+ * invoiced).
  */
 #[TypeScript]
 final class DashboardPendingInvoiceItemData extends Data

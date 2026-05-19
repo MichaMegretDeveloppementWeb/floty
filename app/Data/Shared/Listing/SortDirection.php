@@ -7,9 +7,7 @@ namespace App\Data\Shared\Listing;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Direction de tri d'une table d'index server-side (cf. ADR-0020).
- *
- * Exposée en TypeScript via `App.Enums.SortDirection`.
+ * Sort direction for a server-side index table (ADR-0020).
  */
 #[TypeScript]
 enum SortDirection: string

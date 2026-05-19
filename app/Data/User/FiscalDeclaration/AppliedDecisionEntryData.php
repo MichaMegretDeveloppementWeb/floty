@@ -11,18 +11,15 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représentation frontend d'une décision de revue appliquée au calcul
- * (Phase 11 D5.6). Miroir DTO du VO domaine
- * {@see AppliedDecisionEntry}.
- *
- * Consommé par {@see resources/js/Components/Domain/Declaration/ClustersHistoryList.vue}.
+ * Frontend representation of a review decision applied to a fiscal
+ * computation. Mirror of the domain VO {@see AppliedDecisionEntry}.
  */
 #[TypeScript]
 final class AppliedDecisionEntryData extends Data
 {
     /**
      * @param  list<int>  $contractIds
-     * @param  list<int>  $excludedContractIds  Phase 13 D5.10.S · contrats exclus du cluster par l'utilisateur
+     * @param  list<int>  $excludedContractIds  Contracts the user opted out of the cluster.
      */
     public function __construct(
         public string $clusterFingerprint,

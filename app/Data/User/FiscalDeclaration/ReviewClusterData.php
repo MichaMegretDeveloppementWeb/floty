@@ -12,23 +12,18 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Cluster de risque détecté par le moteur (Phase 11 D2, ADR-0015 § 4,
- * refondu D5.10.N · critère plage couverte au lieu du cumul somme).
+ * Risk cluster detected by the engine (ADR-0015 § 4).
  *
- * Identifié fonctionnellement par son `fingerprint` déterministe : à
- * la régénération d'une déclaration, les clusters dont le fingerprint
- * est inchangé conservent leur décision (D3). En D2, `decision` et
- * `justification` sont toujours `null` ; le matching avec les
- * décisions persistées arrive en D3.
+ * Identified functionally by `fingerprint`: on regeneration, clusters
+ * whose fingerprint is unchanged keep their decision. `decision` and
+ * `justification` start as `null`; matching against persisted decisions
+ * happens later in the pipeline.
  *
- * **Sémantique D5.10.N · plage couverte** · le critère qui qualifie une
- * chaîne LCD à risque n'est plus la somme des `expandToDaysInYear` (qui
- * surcompte en cas de chevauchements et de chaînes multi-véhicules),
- * mais la **plage temporelle continue** allant de la date de début la
- * plus précoce à la date de fin la plus tardive du cluster, bornée à
- * l'année fiscale stricte. Cela reflète la doctrine R-LCD-CHAIN
- * (CIBS L. 421-141) · l'élément à risque est la continuité temporelle
- * d'usage, pas la somme des durées contractuelles individuelles.
+ * The qualifying criterion for an at-risk LCD chain is the continuous
+ * coverage range (earliest start -> latest end, clipped to the fiscal
+ * year), not the sum of individual `expandToDaysInYear`. This reflects
+ * the R-LCD-CHAIN doctrine (CIBS L. 421-141): the risk lies in temporal
+ * usage continuity, not in cumulative individual durations.
  */
 #[TypeScript]
 final class ReviewClusterData extends Data
@@ -43,27 +38,24 @@ final class ReviewClusterData extends Data
         #[DataCollectionOf(ClusterContractData::class)]
         public array $contracts,
         public int $contractsCount,
-        /** Phase 13 D5.10.N · plage couverte en jours = `(coverageEndDate - coverageStartDate) + 1`, bornée à l'année fiscale. */
+        /** Coverage in days = `(coverageEndDate - coverageStartDate) + 1`, clipped to the fiscal year. */
         public int $coveragePeriodDays,
-        /** Phase 13 D5.10.N · ISO Y-m-d, date de début effective bornée à l'année. */
+        /** ISO Y-m-d, effective start clipped to the year. */
         public string $coverageStartDate,
-        /** Phase 13 D5.10.N · ISO Y-m-d, date de fin effective bornée à l'année. */
+        /** ISO Y-m-d, effective end clipped to the year. */
         public string $coverageEndDate,
-        /** Phase 13 D5.10.N · nombre de véhicules distincts touchés par la chaîne. */
+        /** Number of distinct vehicles touched by the chain. */
         public int $distinctVehiclesCount,
         public ?ReviewDecisionType $decision = null,
         public ?string $justification = null,
         /**
-         * Phase 13 D5.10.S · contractIds explicitement exclus de la
-         * chaîne par l'utilisateur. Vide par défaut · ces contrats
-         * sont traités comme LCD individuels exemptés R-2024-021 et
-         * ne participent pas à l'opt-out en cas de décision
-         * Requalified. Les stats `contractsCount`, `coveragePeriodDays`,
-         * `coverageStartDate`/`coverageEndDate`, `distinctVehiclesCount`
-         * reflètent les contrats **inclus** (= contracts - exclusions).
-         * La liste `contracts` reste brute (= tous les contrats
-         * détectés du cluster) pour permettre à la modale d'afficher
-         * et toggler chaque contrat.
+         * Contract ids explicitly opted out of the chain by the user.
+         * These contracts are treated as individual LCD exempted under
+         * R-2024-021 and do not participate in any Requalified opt-out.
+         * `contractsCount`, `coveragePeriodDays`, coverage dates and
+         * `distinctVehiclesCount` reflect the included contracts only
+         * (contracts - exclusions). The `contracts` list stays raw so
+         * the modal can toggle each contract individually.
          *
          * @var list<int>
          */

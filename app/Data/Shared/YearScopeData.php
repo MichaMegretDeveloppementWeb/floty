@@ -11,28 +11,17 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Scope d'années sélectionnables exposé en **prop par page** Inertia
- * (pas en shared props) · fondation de la doctrine temporelle
- * (chantier η Phase 0.3).
+ * Selectable years scope exposed as a per-page Inertia prop (not shared)
+ * so each section keeps its own year default with no implicit coupling
+ * across pages.
  *
- * **Pourquoi un DTO par page plutôt qu'un shared global** : décision HD3
- * du chantier η · pas de carry-over d'année entre pages, chaque section
- * choisit son défaut. Centraliser en shared encouragerait un couplage
- * implicite (« la page A modifie l'année, la page B en hérite ») qu'on
- * veut éviter.
+ * Fields:
+ *   - `currentYear`: real calendar year used as default in pickers.
+ *   - `minYear`: lowest available year inferred from active contracts.
+ *   - `availableYears`: contiguous `[minYear, ..., max]` range.
  *
- * **Champs** :
- *   - `currentYear` : année calendaire réelle (2026 aujourd'hui). Sert
- *     de référence pour les KPIs « Présent » et le défaut des sélecteurs.
- *   - `minYear` : année min globale calculée depuis les contrats actifs.
- *   - `availableYears` : range continu `[minYear, …, max]`. Le `max`
- *     est implicite (= `last(availableYears)`), pas dupliqué pour rester
- *     DRY côté payload.
- *
- * **Source unique** : {@see AvailableYearsResolver}. La factory
- * {@see fromResolver()} est le seul chemin de construction recommandé en
- * production (le constructor reste public pour les tests et les cas
- * exceptionnels d'injection de valeurs custom).
+ * Build through {@see fromResolver()} in production. The constructor
+ * stays public for tests and custom-value injection.
  */
 #[TypeScript]
 final class YearScopeData extends Data
@@ -47,9 +36,8 @@ final class YearScopeData extends Data
     ) {}
 
     /**
-     * Construit le DTO depuis le service singleton fiscal · chemin
-     * recommandé en production. Les 3 méthodes du resolver sont appelées
-     * exactement une fois (cache process-level via le singleton).
+     * Build from the singleton fiscal resolver. Each of the three resolver
+     * calls is memoized for the request via the singleton.
      */
     public static function fromResolver(AvailableYearsResolver $resolver): self
     {
@@ -61,14 +49,12 @@ final class YearScopeData extends Data
     }
 
     /**
-     * Construit le DTO depuis le scope **moteur fiscal** (années pour
-     * lesquelles des règles sont enregistrées dans le registry). Variant
-     * utilisée par la page « Règles de calcul » : elle consulte des
-     * barèmes versionnés, pas un scope de données métier.
+     * Build from the fiscal engine scope (years for which rule sets are
+     * registered). Used by the "Règles de calcul" page since it consults
+     * versioned scales rather than business-data periods.
      *
-     * `currentYear` = dernière année enregistrée (les barèmes sont
-     * versionnés ; le défaut UX est le plus récent disponible). Si aucun
-     * boot n'est enregistré, fallback sur l'année calendaire courante.
+     * `currentYear` defaults to the latest registered year; if nothing is
+     * registered, falls back to the current calendar year.
      */
     public static function fromRegistry(FiscalRuleRegistry $registry): self
     {

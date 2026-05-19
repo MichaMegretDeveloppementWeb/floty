@@ -10,9 +10,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne de l'Index Déclarations (Phase 11 D4). Identité minimale +
- * statut + flags d'obsolescence + métadonnées de génération si
- * applicable.
+ * Declarations index row: minimal identity + status + obsolescence flags
+ * + generation metadata.
  */
 #[TypeScript]
 final class DeclarationListItemData extends Data
@@ -24,51 +23,40 @@ final class DeclarationListItemData extends Data
         public string $companyLegalName,
         public int $fiscalYear,
         public FiscalDeclarationStatus $status,
-        /** Numéro lisible `DECL-{shortCode}-{year}-{NNNN}` (Phase 11 D5.3). Null si pas encore générée. */
+        /** Human-readable `DECL-{shortCode}-{year}-{NNNN}`. Null until generated. */
         public ?string $reference,
         /**
-         * Phase 13 D5.10.H · label interne unifié · `reference` si
-         * générée, sinon `Brouillon #{id}`. Source unique pour
-         * l'affichage côté frontend (sub-mentions, références dans
-         * timeline, banners, etc.) · évite la duplication de la
-         * logique `?? Brouillon #N` éparpillée.
+         * Unified internal label used across the frontend (timeline,
+         * sub-mentions, banners): `reference` when generated, otherwise
+         * `Brouillon #{id}`. Centralises the `?? Brouillon #N` fallback.
          */
         public string $internalLabel,
         public bool $isObsolete,
-        /** ISO 8601 (Y-m-d). Null si pas encore générée. */
+        /** ISO 8601 (Y-m-d). Null until generated. */
         public ?string $generatedAt,
         public ?string $generatedPdfHash,
         public ?int $supersededById,
         /**
-         * Vrai ssi un Draft chaîné existe et pointe vers cette déclaration
-         * via `superseded_by_id`. Sert au pill « Régénération en cours »
-         * de l'Index Déclarations (amélioration F, populé en D5.8.5).
-         * `null` par défaut : non calculé par `fromModel()`.
+         * True when a Draft chained through `superseded_by_id` exists and
+         * points at this declaration. Drives the "Régénération en cours"
+         * pill on the index. `null` when not computed by `fromModel()`.
          */
         public ?bool $hasRegenerationInProgress = null,
         /**
-         * Phase 13 D5.10.F · référence du predecessor (déclaration que
-         * celle-ci remplace). Populée depuis la relation `supersedes`
-         * quand chargée. Sert à la sous-mention « Remplace DECL-XXX »
-         * sur l'Index Déclarations.
+         * Predecessor reference (the declaration this one replaces).
+         * Populated when the `supersedes` relation is loaded.
          */
         public ?string $predecessorReference = null,
-        /**
-         * Phase 13 D5.10.F · id du predecessor pour rendre la sous-mention
-         * cliquable (navigation Show).
-         */
+        /** Predecessor id; lets the sub-mention link to the Show page. */
         public ?int $predecessorId = null,
         /**
-         * Phase 13 D5.10.F · référence du successor (déclaration qui
-         * remplace celle-ci). Populée depuis la relation `supersededBy`
-         * quand chargée. Sert aux sous-mentions « Régénération en cours
-         * · DECL-XXX » et « Remplacée par DECL-XXX » sur l'Index.
+         * Successor reference (the declaration that replaces this one).
+         * Populated when the `supersededBy` relation is loaded.
          */
         public ?string $successorReference = null,
         /**
-         * Phase 13 D5.10.F · statut du successor. Permet de distinguer
-         * « Régénération en cours » (Draft) de « Remplacée par »
-         * (Generated) côté UI.
+         * Successor status; lets the UI distinguish "Régénération en
+         * cours" (Draft) from "Remplacée par" (Generated).
          */
         public ?FiscalDeclarationStatus $successorStatus = null,
     ) {}
@@ -100,10 +88,8 @@ final class DeclarationListItemData extends Data
     }
 
     /**
-     * `true` ssi la relation `supersededBy` est chargée et pointe vers
-     * un Draft (Phase 11 D5.8.5). `null` quand la relation n'est pas
-     * eager-loadée (économise une requête SQL N+1 quand l'info n'est
-     * pas pertinente, par exemple sur la page Show).
+     * True when the loaded `supersededBy` relation points to a Draft.
+     * Null when the relation is not eager-loaded (avoids silent N+1).
      */
     private static function computeRegenerationFlag(FiscalDeclaration $declaration): ?bool
     {

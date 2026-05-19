@@ -11,15 +11,13 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 use Throwable;
 
 /**
- * Reflet d'une entrée du JSON `fiscal_declarations.obsolete_reasons`
- * (Phase 11 D1, ADR-0015 § 5.1 + D9 rev. 1.1). Schéma typé strict :
- * pas de texte libre, chaque entrée décrit une cause atomique
- * d'obsolescence.
+ * Strict-typed reflection of one entry of the
+ * `fiscal_declarations.obsolete_reasons` JSON column (ADR-0015 § 5.1).
  *
- * Le tableau d'entités touchées est délibérément un sub-DTO simplifié
- * (`type` + `id` + label snapshoté) plutôt qu'une référence Eloquent :
- * l'entité peut avoir été supprimée, et le label affiché doit refléter
- * son état au moment de l'invalidation, pas son état actuel.
+ * The touched-entity payload is deliberately a sub-DTO (`type` + `id` +
+ * snapshot label) rather than an Eloquent reference: the entity may have
+ * been deleted, and the displayed label must reflect its state at the
+ * moment of invalidation.
  */
 #[TypeScript]
 final class InvalidationReasonData extends Data
@@ -38,19 +36,11 @@ final class InvalidationReasonData extends Data
     ) {}
 
     /**
-     * Hydrate une liste depuis le payload brut du cast Eloquent
-     * `fiscal_declarations.obsolete_reasons`. Garde-fou résilient ·
-     * retourne `[]` si le payload est mal formé (cast Eloquent qui a
-     * renvoyé un scalaire suite à JSON corrompu, ou items qui ne sont
-     * pas des `array<string, mixed>` valides). Log warning canal
-     * `declarations` pour audit forensic.
-     *
-     * Centralise la logique précédemment dupliquée dans
-     * `DeclarationLifecycleResolver::resolveObsoleteReasons` et
-     * `DeclarationController::review` (le second n'avait PAS les guards,
-     * d'où un 500 sur la page Review d'une déclaration dont le
-     * prédécesseur avait `obsolete_reasons` corrompu · plan-remediation
-     * Vague 1, hotfix issu du retour Chrome live D12).
+     * Hydrate a list from the raw Eloquent payload of
+     * `fiscal_declarations.obsolete_reasons`. Returns `[]` when the
+     * payload is malformed (scalar from corrupt JSON, items that are not
+     * valid `array<string, mixed>`). Logs a warning on the `declarations`
+     * channel for forensic audit.
      *
      * @return list<self>
      */
@@ -86,8 +76,8 @@ final class InvalidationReasonData extends Data
     }
 
     /**
-     * Hydrate depuis un tableau brut tel que stocké dans la colonne
-     * JSON `obsolete_reasons`.
+     * Hydrate from a raw array as stored in the `obsolete_reasons` JSON
+     * column.
      *
      * @param  array<string, mixed>  $raw
      */

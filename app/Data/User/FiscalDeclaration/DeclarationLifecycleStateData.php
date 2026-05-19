@@ -5,36 +5,28 @@ declare(strict_types=1);
 namespace App\Data\User\FiscalDeclaration;
 
 use App\Enums\FiscalDeclaration\DeclarationLifecycleState;
+use App\Services\Fiscal\Declaration\DeclarationLifecycleResolver;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * État complet du cycle de vie d'une déclaration fiscale pour un
- * couple `(company, year)` (Phase 11 D5.8, audit pré-livraison
- * Proposition IV).
+ * Full lifecycle state for a declaration of a `(company, year)` couple.
  *
- * Composé par
- * {@see App\Services\Fiscal\Declaration\DeclarationLifecycleResolver}
- * à partir de la chaîne `superseded_by_id` + statut + flag
- * `is_obsolete` de la déclaration courante.
+ * Composed by {@see DeclarationLifecycleResolver}
+ * from the `superseded_by_id` chain, status and `is_obsolete` flag.
+ * Consumed by the adaptive `DeclarationStateCard.vue` which renders a
+ * different card per `state` (S1 untouched ... S7 regeneration ongoing).
  *
- * Consommé par le composant Vue adaptatif
- * {@see resources/js/Components/Domain/Declaration/DeclarationStateCard.vue}
- * qui rend une carte différente selon le `state` (S1 vierge ... S7
- * régénération en cours), permettant à l'utilisateur de comprendre
- * immédiatement où il en est dans le workflow déclaratif.
- *
- * **Source unique de vérité** : remplace le legacy
- * `fiscalActiveDeclaration` (qui filtrait `is_obsolete = false` et
- * masquait les déclarations obsolètes orphelines).
+ * Replaces the legacy `fiscalActiveDeclaration` (which filtered out
+ * obsolete-orphan declarations and hid them from the UI).
  */
 #[TypeScript]
 final class DeclarationLifecycleStateData extends Data
 {
     /**
-     * @param  list<InvalidationReasonData>  $obsoleteReasons  Vide si state n'est pas obsolète
-     * @param  list<DeclarationListItemData>  $historyChain  Versions antérieures de la chaîne, plus récent → ancien (exclut `currentDeclaration`)
+     * @param  list<InvalidationReasonData>  $obsoleteReasons  Empty when state is not obsolete.
+     * @param  list<DeclarationListItemData>  $historyChain  Earlier versions, newest to oldest, excluding `currentDeclaration`.
      */
     public function __construct(
         public DeclarationLifecycleState $state,

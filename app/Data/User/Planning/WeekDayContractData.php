@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail d'un contrat couvrant un jour donné dans la grille semaine.
+ * Contract covering one day in the week grid.
  */
 #[TypeScript]
 final class WeekDayContractData extends Data
