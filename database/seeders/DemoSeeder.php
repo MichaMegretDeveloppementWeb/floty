@@ -36,29 +36,18 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Seeder de démo pour peupler l'année fiscale 2024.
- *
- * À lancer ponctuellement pour une démo client :
- *     php artisan db:seed --class=DemoSeeder
- *
- * Produit :
- *   - 5 entreprises avec 5 couleurs distinctes du design system
- *   - 10 véhicules (mix VP/VU, WLTP/NEDC/PA, Euro 5+/autres, CO₂ variés)
- *   - Une vraie diversité de situations fiscales pour démontrer le moteur :
- *     électrique exonéré, Diesel Euro 6 « plus polluants », essence
- *     Euro 6 WLTP taxable, ancien véhicule PA, hybride essence, handicap,
- *     etc.
- *   - ~200 attributions sur 2024 étalées de façon à produire plusieurs
- *     couples (véhicule, entreprise) sous ET au-dessus du seuil LCD 30 j.
+ * Demo dataset for fiscal year 2024.
+ * Produces 5 companies, 10 vehicles spanning the full fiscal matrix
+ * (electric exempt, Diesel Euro 6 "most polluting", WLTP/NEDC/PA, handicap, etc.)
+ * and ~200 contracts covering both below and above the 30-day LCD threshold.
  */
 final class DemoSeeder extends Seeder
 {
     public function run(): void
     {
-        // Pas de DB::transaction globale · le seedContracts tolère les
-        // overlaps individuellement (try-catch par contrat). Une
-        // exception au milieu d'une transaction MySQL annulerait toutes
-        // les insertions précédentes en silence.
+        // No global DB::transaction: seedContracts tolerates per-row overlap
+        // failures via try-catch; a transaction would silently roll back the
+        // whole insert batch.
         $this->seedBillingSettings();
         $companies = $this->seedCompanies();
         $vehicles = $this->seedVehicles();
@@ -72,16 +61,7 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * 4 réductions commerciales de démonstration · couvrent les cas
-     * d'usage typiques pour la démo client ·
-     *   - réduction "tous véhicules" sur une période passée terminée
-     *     (visible dans les factures déjà émises)
-     *   - réduction "tous véhicules" sur la période courante (active)
-     *   - réduction "véhicules ciblés" sur la période courante
-     *   - réduction "planifiée" pour le trimestre suivant (à venir)
-     *
-     * Affecte 2 entreprises (parmi les 5 du seeder) pour démontrer la
-     * coexistence sans casser la majorité du seed.
+     * Seed 4 demo rental discounts covering past, active, targeted and upcoming periods.
      *
      * @param  array<string, Company>  $companies
      * @param  array<int, Vehicle>  $vehicles
@@ -90,8 +70,6 @@ final class DemoSeeder extends Seeder
     {
         RentalDiscount::query()->forceDelete();
 
-        // Pas d'entreprise du seed = no-op (ne casse pas les tests qui
-        // n'utilisent pas le seeder complet).
         if ($companies === [] || $vehicles === []) {
             return;
         }
@@ -100,8 +78,7 @@ final class DemoSeeder extends Seeder
         $vehicleList = array_values($vehicles);
         $today = Carbon::today();
 
-        // Réduction 1 · cie #1, tous véhicules, T1 2024 (passé, terminé,
-        // peut figurer sur factures déjà émises).
+        // 1. Past, finished period (visible on already-issued invoices).
         RentalDiscount::factory()
             ->forCompany($companyList[0])
             ->withPeriod(Carbon::create(2024, 1, 1), Carbon::create(2024, 3, 31))
@@ -111,8 +88,7 @@ final class DemoSeeder extends Seeder
                 'notes' => 'Démo · réduction "tous véhicules" sur trimestre passé.',
             ]);
 
-        // Réduction 2 · cie #1, sous-ensemble véhicules, période active
-        // courante (jusqu'à fin année).
+        // 2. Active period, subset of vehicles.
         if (count($vehicleList) >= 2) {
             RentalDiscount::factory()
                 ->forCompany($companyList[0])
@@ -125,8 +101,7 @@ final class DemoSeeder extends Seeder
                 ]);
         }
 
-        // Réduction 3 · cie #2 (si présente), tous véhicules, période
-        // active courante.
+        // 3. Active period, all vehicles, second company.
         if (count($companyList) >= 2) {
             RentalDiscount::factory()
                 ->forCompany($companyList[1])
@@ -138,9 +113,7 @@ final class DemoSeeder extends Seeder
                 ]);
         }
 
-        // Réduction 4 · cie #1, planifiée pour le trimestre suivant
-        // (statut "à venir"). Non-chevauchement garanti par le décalage
-        // temporel avec la réduction 2 (qui finit avant).
+        // 4. Upcoming period.
         RentalDiscount::factory()
             ->forCompany($companyList[0])
             ->withPeriod($today->copy()->addMonths(10), $today->copy()->addMonths(12))
@@ -152,20 +125,10 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Crée des déclarations fiscales historiques couvrant la chaîne
-     * complète Draft → Generated → Superseded (régénération).
-     *
-     * **Cohérence stricte DB ↔ disque** · les déclarations Generated
-     * passent par la **vraie** `GenerateDeclarationAction` (snapshot
-     * persisté + PDF réel via DomPDF + référence séquentielle + hash
-     * SHA-256). Aucun placeholder. Si la génération échoue (ex. clusters
-     * pending), fallback Deferred avec warning console.
-     *
-     * - Generated · ~12 (chiffres figés, vrai PDF DomPDF sur disque)
-     * - Deferred · ~3 mises de côté
-     * - Draft · ~5 en cours
-     * - Superseded chains · ACM 2024 régénérée (ancienne obsolete +
-     *   nouvelle Generated pointant vers l'ancienne via superseded_by_id)
+     * Seed historical fiscal declarations spanning the full lifecycle
+     * (Draft → Generated → Superseded). Generated rows go through the real
+     * GenerateDeclarationAction (real PDF + SHA-256 + sequential reference);
+     * generation failures fall back to Deferred with a console warning.
      */
     private function seedFiscalDeclarations(array $companies): void
     {
@@ -173,10 +136,6 @@ final class DemoSeeder extends Seeder
 
         $generateAction = app(GenerateDeclarationAction::class);
 
-        // Helper · crée une déclaration Draft, puis passe par
-        // `GenerateDeclarationAction` pour atteindre Generated (vrai PDF).
-        // Fallback Deferred si la génération échoue (clusters pending,
-        // erreur engine, etc.).
         $create = function (
             Company $company,
             int $year,
@@ -229,7 +188,7 @@ final class DemoSeeder extends Seeder
             return $result;
         };
 
-        // === 2024 · 8 déclarations Generated (closes) + 1 Deferred ===
+        // 2024: 8 Generated + 1 Deferred.
         $generated2024Codes = ['ACM', 'BTP', 'COR', 'DRS', 'ECO', 'HEX', 'IDF', 'LOG'];
         foreach ($generated2024Codes as $code) {
             if (! isset($companies[$code])) {
@@ -241,10 +200,9 @@ final class DemoSeeder extends Seeder
             $create($companies['BAT'], 2024, FiscalDeclarationStatus::Deferred);
         }
 
-        // === Chaîne Superseded · ACM 2024 régénérée ===
-        // L'ancienne version est marquée obsolete AVANT la création de
-        // la nouvelle (contrainte unique decl_active_uniqueness ·
-        // (company, year) unique quand is_obsolete=false).
+        // Superseded chain: ACM 2024 regenerated.
+        // The old row must be marked obsolete before the new one is created:
+        // decl_active_uniqueness enforces (company, year) UNIQUE while is_obsolete=false.
         if (isset($companies['ACM'])) {
             $oldAcm2024 = FiscalDeclaration::where('company_id', $companies['ACM']->id)
                 ->where('fiscal_year', 2024)
@@ -264,7 +222,7 @@ final class DemoSeeder extends Seeder
             }
         }
 
-        // === 2025 · mix Generated (3) + Deferred (2) + Draft (3) ===
+        // 2025: 3 Generated + 2 Deferred + 3 Draft.
         $generated2025Codes = ['ACM', 'BTP', 'IDF'];
         foreach ($generated2025Codes as $code) {
             if (! isset($companies[$code])) {
@@ -287,7 +245,7 @@ final class DemoSeeder extends Seeder
             $create($companies[$code], 2025, FiscalDeclarationStatus::Draft);
         }
 
-        // === 2026 · 2 Draft en cours (préparation année courante) ===
+        // 2026: 2 Draft (current-year prep).
         $draft2026Codes = ['DRS', 'EOL'];
         foreach ($draft2026Codes as $code) {
             if (! isset($companies[$code])) {
@@ -298,10 +256,8 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Attribue 1-3 drivers à chaque contrat selon une distribution
-     * pondérée (~1.5 driver/contrat en moyenne) tout en respectant
-     * l'invariant **non-overlap par driver** · un driver ne peut être
-     * affecté à 2 contrats dont les périodes se chevauchent.
+     * Assign 1-3 drivers to each contract using a weighted distribution while
+     * enforcing the per-driver non-overlap invariant.
      */
     private function seedContractDrivers(): void
     {
@@ -389,11 +345,8 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Émetteur de facture par défaut (Phase 14 facturation).
-     * `Sogema Rent` est l'entité juridique qui édite les factures :
-     * Floty n'est que l'outil. Singleton applicatif pré-rempli pour
-     * que la première facture émise soit déjà cohérente sans passage
-     * obligé par la page Paramètres.
+     * Default invoice issuer (singleton). Pre-fills the legal entity so the
+     * first generated invoice is coherent without visiting the settings page.
      */
     private function seedBillingSettings(): void
     {
@@ -411,18 +364,10 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Tarifs jour/semaine/mois par véhicule × année (Phase 14 facturation).
-     * Calibrés par catégorie pour produire une démo crédible :
-     *   - Citadine standard : 70 €/j
-     *   - Premium : 140-150 €/j
-     *   - Utilitaire : 80-100 €/j
-     *   - Économique/vintage : 45-50 €/j
-     * Triplet cohérent : S ≈ 5.7 × J et M ≈ 20 × J (encourage le moteur
-     * `OptimalRateBreakdown` à mixer mois + semaines + jours).
-     *
-     * Couvre 2024 → année courante avec +5 %/an arrondi à l'euro.
-     * Les véhicules sortis ne reçoivent pas de tarif pour les années
-     * postérieures à la sortie.
+     * Daily/weekly/monthly pricing per vehicle × year (2024 → current, +5 %/year).
+     * Triplet kept consistent (W ≈ 5.7 × D, M ≈ 20 × D) so OptimalRateBreakdown
+     * actually mixes months + weeks + days. Exited vehicles stop receiving rates
+     * after their exit year.
      *
      * @param  array<string, Vehicle>  $vehicles
      */
@@ -447,8 +392,7 @@ final class DemoSeeder extends Seeder
         $years = range(2024, max($currentYear, 2026));
 
         foreach ($vehicles as $plate => $vehicle) {
-            // Tarifs explicites pour les 12 premiers · fallback générique
-            // pour les ~52 nouveaux (calculés depuis l'énergie et la kerb_mass).
+            // Explicit rates for the first 12; generic fallback otherwise.
             [$daily2024, $weekly2024, $monthly2024] = $baseRates2024[$plate] ?? $this->estimateFallbackRates($vehicle);
 
             foreach ($years as $year) {
@@ -499,21 +443,15 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * 32 conducteurs démo couvrant tous les cas Driver↔Company N:N ·
-     *  - 15 actifs · 1 par entreprise, lien actif depuis 2024 (cas standard)
-     *  - 5 historiques · lien fermé entre 2024-2025 ou 2025-2026
-     *  - 3 multi-companies · plusieurs liens successifs ou parallèles
-     *  - 5 récents · création + lien 2025-2026
-     *  - 2 sans lien actif · drivers orphelins (cas d'audit RH)
-     *  - 2 multi-liens parallèles · 2 entreprises simultanément (cas
-     *    mandataire social ou prestataire partagé)
+     * Seed 32 demo drivers covering the full Driver ↔ Company N:N matrix:
+     * active, historical, multi-company, recent, orphan, and parallel-membership cases.
      *
      * @param  array<string, Company>  $companies
      */
     private function seedDrivers(array $companies): void
     {
         $specs = [
-            // === 15 actifs · 1 par entreprise ===
+            // 15 active drivers, one per company.
             ['first' => 'Marc', 'last' => 'Dubois', 'memberships' => [['code' => 'ACM', 'joined' => '2024-01-01', 'left' => null]]],
             ['first' => 'Thomas', 'last' => 'Petit', 'memberships' => [['code' => 'BTP', 'joined' => '2024-01-10', 'left' => null]]],
             ['first' => 'Julien', 'last' => 'Garnier', 'memberships' => [['code' => 'BAT', 'joined' => '2024-02-01', 'left' => null]]],
@@ -530,14 +468,14 @@ final class DemoSeeder extends Seeder
             ['first' => 'Stéphanie', 'last' => 'Robin', 'memberships' => [['code' => 'PRO', 'joined' => '2024-03-20', 'left' => null]]],
             ['first' => 'Patrick', 'last' => 'Caron', 'memberships' => [['code' => 'TUR', 'joined' => '2024-01-15', 'left' => null]]],
 
-            // === 5 historiques · lien fermé (effective_to non null) ===
+            // 5 historical (membership closed with left_at).
             ['first' => 'Pierre', 'last' => 'Lefebvre', 'memberships' => [['code' => 'ACM', 'joined' => '2024-01-15', 'left' => '2025-08-31']]],
             ['first' => 'Laetitia', 'last' => 'Blanc', 'memberships' => [['code' => 'BTP', 'joined' => '2024-02-01', 'left' => '2025-12-31']]],
             ['first' => 'Sébastien', 'last' => 'Fontaine', 'memberships' => [['code' => 'ECO', 'joined' => '2024-03-01', 'left' => '2024-12-31']]],
             ['first' => 'Carine', 'last' => 'Leclerc', 'memberships' => [['code' => 'COR', 'joined' => '2024-04-01', 'left' => '2026-02-28']]],
             ['first' => 'Frédéric', 'last' => 'Lambert', 'memberships' => [['code' => 'DRS', 'joined' => '2024-06-15', 'left' => '2025-09-30']]],
 
-            // === 3 multi-companies · liens successifs ou parallèles ===
+            // 3 multi-company (successive or parallel memberships).
             ['first' => 'Sophie', 'last' => 'Martin', 'memberships' => [
                 ['code' => 'ACM', 'joined' => '2024-03-15', 'left' => '2025-06-30'],
                 ['code' => 'BTP', 'joined' => '2025-07-01', 'left' => null],
@@ -552,18 +490,18 @@ final class DemoSeeder extends Seeder
                 ['code' => 'NOV', 'joined' => '2026-01-01', 'left' => null],
             ]],
 
-            // === 5 récents · création 2025-2026 ===
+            // 5 recent (joined 2025-2026).
             ['first' => 'Manon', 'last' => 'Renaud', 'memberships' => [['code' => 'IDF', 'joined' => '2025-09-01', 'left' => null]]],
             ['first' => 'Hugo', 'last' => 'Charpentier', 'memberships' => [['code' => 'HEX', 'joined' => '2025-11-15', 'left' => null]]],
             ['first' => 'Sarah', 'last' => 'Joly', 'memberships' => [['code' => 'EOL', 'joined' => '2026-01-15', 'left' => null]]],
             ['first' => 'Lucas', 'last' => 'Carpentier', 'memberships' => [['code' => 'PRO', 'joined' => '2026-02-01', 'left' => null]]],
             ['first' => 'Inès', 'last' => 'Schmitt', 'memberships' => [['code' => 'NOV', 'joined' => '2026-03-15', 'left' => null]]],
 
-            // === 2 sans lien actif · orphelins ===
+            // 2 orphans (no active membership).
             ['first' => 'Bernard', 'last' => 'Delacroix', 'memberships' => [['code' => 'BAT', 'joined' => '2024-01-01', 'left' => '2024-06-30']]],
             ['first' => 'Yvonne', 'last' => 'Lefèvre', 'memberships' => [['code' => 'COB', 'joined' => '2024-05-01', 'left' => '2024-11-30']]],
 
-            // === 2 multi-liens parallèles · 2 entreprises simultanément ===
+            // 2 parallel memberships (two companies at the same time).
             ['first' => 'Christophe', 'last' => 'Dumas', 'memberships' => [
                 ['code' => 'ACM', 'joined' => '2024-01-01', 'left' => null],
                 ['code' => 'HEX', 'joined' => '2025-01-01', 'left' => null],
@@ -606,13 +544,8 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * 15 entreprises sectorielles cohérentes · BTP (4), Services/Conseil (4),
-     * Distribution/Logistique (4), Événementiel/Tourisme (3) ·
-     *   - IDF Consulting Paris pour tester la majoration carte grise IDF
-     *     +13 € de LF 2026 art. 60 (création L. 421-54-1)
-     *   - 8 couleurs CompanyColor réutilisées (7 fois indigo + 8 autres = OK,
-     *     la couleur n'a pas d'unicité métier)
-     *   - SIREN fictifs 9 chiffres séquentiels (validation format uniquement)
+     * Seed 15 sectoral companies plus one inactive ("ZZZ") edge case.
+     * IDF Consulting is in Paris on purpose so the IDF carte grise surcharge can be exercised.
      *
      * @return array<string, Company>
      */
@@ -638,7 +571,7 @@ final class DemoSeeder extends Seeder
             ['code' => 'COR', 'name' => 'Corsica Events', 'siren' => '814567890', 'color' => CompanyColor::Emerald, 'city' => 'Ajaccio'],
             ['code' => 'PRO', 'name' => 'ProSpektacle', 'siren' => '825678901', 'color' => CompanyColor::Teal, 'city' => 'Reims'],
             ['code' => 'TUR', 'name' => 'Tourisme Atlantique', 'siren' => '826789012', 'color' => CompanyColor::Orange, 'city' => 'La Rochelle'],
-            // Edge case Σ'.5 · 16e entreprise INACTIVE (cessation d'activité)
+            // Inactive 16th company (legacy cessation).
             ['code' => 'ZZZ', 'name' => 'Ex-Logistique SARL (cessée)', 'siren' => '827890123', 'color' => CompanyColor::Cyan, 'city' => 'Lyon', 'is_active' => false],
         ];
 
@@ -726,11 +659,8 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::MostPolluting, // essence pré-Euro 5 → most_polluting
                 'method' => HomologationMethod::Nedc, 'co2Nedc' => 130, 'pa' => 5, 'kerb' => 1150,
             ],
-            // Renault 21 essence 7 CV - PA (trop vieux pour NEDC).
-            // Cas multi-VFC riche (chantier E) : 4 VFC au total dont 2 en
-            // 2024 · exerce le segmenteur fiscal sur le calcul PA.
-            // Bascules : 8 PA (2020-01-01) → 7 PA (2024-03-15) → 8 PA
-            // (2024-09-10) · la 1ʳᵉ courante reste à 7 PA (initiale 2002).
+            // Renault 21 gasoline 7 PA (too old for NEDC). Multi-VFC case stressing
+            // the PA branch of the fiscal segmentation engine.
             [
                 'plate' => 'EE-005-EE', 'brand' => 'Renault', 'model' => '21 Nevada',
                 'regFrench' => '2002-05-15', 'regOrigin' => '2002-05-15', 'econ' => '2002-05-15',
@@ -763,11 +693,8 @@ final class DemoSeeder extends Seeder
                 'pollutant' => PollutantCategory::MostPolluting,
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 155, 'pa' => 9, 'kerb' => 1700,
             ],
-            // Peugeot Partner camionnette Diesel Euro 6 - N1 transport personnes.
-            // Cas multi-VFC sur la même année (chantier E) : 3 VFC dont
-            // 2 en 2024 · re-homologation CO₂ rétroactive en cours d'année.
-            // Bascules : 130 g/km (2024-04-01) → 150 g/km (2024-09-01).
-            // La 1ʳᵉ initiale reste à 145 g/km (saisie d'origine 2023).
+            // Peugeot Partner Diesel Euro 6 N1 passenger transport.
+            // Multi-VFC same-year case: in-year CO2 re-homologation transitions.
             [
                 'plate' => 'EH-008-HH', 'brand' => 'Peugeot', 'model' => 'Partner 2 rangs',
                 'regFrench' => '2023-03-05', 'regOrigin' => '2023-03-05', 'econ' => '2023-03-05',
@@ -801,9 +728,8 @@ final class DemoSeeder extends Seeder
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 130, 'pa' => 6, 'kerb' => 1450,
                 'handicapAccess' => true,
             ],
-            // Citroën C3 vendue mi-2025 - exerce la matrice de visibilité
-            // (cf. ADR-0018 + chantier E.7) : présente dans la heatmap 2025
-            // avec cells après 30/04 grisées, masquée dans la heatmap 2026+.
+            // Citroën C3 sold mid-2025. Exercises the visibility matrix (ADR-0018):
+            // visible in the 2025 heatmap with post-30/04 cells greyed, hidden from 2026+.
             [
                 'plate' => 'EK-011-KK', 'brand' => 'Citroën', 'model' => 'C3',
                 'regFrench' => '2019-09-01', 'regOrigin' => '2019-09-01', 'econ' => '2019-09-01',
@@ -815,12 +741,8 @@ final class DemoSeeder extends Seeder
                 'exitReason' => VehicleExitReason::Sold,
                 'currentStatus' => VehicleStatus::Sold,
             ],
-            // Renault Mégane VP essence Euro 6 · exerce le calcul fiscal
-            // segmenté par VFC (chantier dette VFC). 1ʳᵉ VFC à 102 g/km
-            // (saisie initiale), corrigée le 2024-06-16 à 145 g/km après
-            // re-homologation. Le moteur fiscal doit appliquer la bonne
-            // version à chaque période, pas l'actuelle (145) à toute
-            // l'année 2024.
+            // Renault Mégane gasoline Euro 6: exercises the per-VFC segmented engine
+            // (initial 102 g/km, corrected to 145 g/km on 2024-06-16).
             [
                 'plate' => 'EL-012-LL', 'brand' => 'Renault', 'model' => 'Mégane E-Tech',
                 'regFrench' => '2023-08-20', 'regOrigin' => '2023-08-20', 'econ' => '2023-08-20',
@@ -828,16 +750,12 @@ final class DemoSeeder extends Seeder
                 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d,
                 'pollutant' => PollutantCategory::Category1,
                 'method' => HomologationMethod::Wltp, 'co2Wltp' => 102, 'pa' => 6, 'kerb' => 1380,
-                // 2 VFC : 1ʳᵉ à 102 g/km (initiale 2023-08-20 → 2024-06-15),
-                // 2ᵉ à 145 g/km (à partir du 2024-06-16, courante).
                 'extraVfcs' => [
                     ['from' => '2024-06-16', 'co2Wltp' => 145],
                 ],
             ],
 
-            // ====================================================================
-            // G1 · WLTP Cat1 Essence (10 véhicules · variété d'émissions 50-150 g)
-            // ====================================================================
+            // G1: WLTP Cat1 gasoline (10 vehicles, emissions 50-150 g).
             ['plate' => 'EM-013-MM', 'brand' => 'Citroën', 'model' => 'C3', 'regFrench' => '2023-04-12', 'regOrigin' => '2023-04-12', 'econ' => '2023-04-12', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 99, 'pa' => 5, 'kerb' => 1085],
             ['plate' => 'EN-014-NN', 'brand' => 'Fiat', 'model' => '500', 'regFrench' => '2022-07-10', 'regOrigin' => '2022-07-10', 'econ' => '2022-07-10', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 4, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 90, 'pa' => 4, 'kerb' => 950],
             ['plate' => 'EO-015-OO', 'brand' => 'Volkswagen', 'model' => 'Polo', 'regFrench' => '2022-10-18', 'regOrigin' => '2022-10-18', 'econ' => '2022-10-18', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 105, 'pa' => 5, 'kerb' => 1180],
@@ -849,9 +767,7 @@ final class DemoSeeder extends Seeder
             ['plate' => 'EU-021-UU', 'brand' => 'Honda', 'model' => 'Civic', 'regFrench' => '2022-08-22', 'regOrigin' => '2022-08-22', 'econ' => '2022-08-22', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 115, 'pa' => 6, 'kerb' => 1320],
             ['plate' => 'EV-022-VV', 'brand' => 'Renault', 'model' => 'Captur', 'regFrench' => '2023-05-17', 'regOrigin' => '2023-05-17', 'econ' => '2023-05-17', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 110, 'pa' => 5, 'kerb' => 1235],
 
-            // ====================================================================
-            // G2 · WLTP MostPolluting Diesel (7 véhicules)
-            // ====================================================================
+            // G2: WLTP MostPolluting Diesel (7 vehicles).
             ['plate' => 'EW-023-WW', 'brand' => 'Ford', 'model' => 'Transit', 'regFrench' => '2021-11-05', 'regOrigin' => '2021-11-05', 'econ' => '2021-11-05', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::LightTruck, 'cat' => ReceptionCategory::N1, 'seats' => 3, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 175, 'pa' => 9, 'kerb' => 2100, 'n1PassengerTransport' => true],
             ['plate' => 'EX-024-XX', 'brand' => 'Mercedes', 'model' => 'Vito', 'regFrench' => '2022-02-18', 'regOrigin' => '2022-02-18', 'econ' => '2022-02-18', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::LightTruck, 'cat' => ReceptionCategory::N1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 170, 'pa' => 9, 'kerb' => 2050, 'n1PassengerTransport' => true],
             ['plate' => 'EY-025-YY', 'brand' => 'Peugeot', 'model' => '5008 BlueHDi', 'regFrench' => '2022-09-12', 'regOrigin' => '2022-09-12', 'econ' => '2022-09-12', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 7, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 150, 'pa' => 8, 'kerb' => 1650],
@@ -860,92 +776,76 @@ final class DemoSeeder extends Seeder
             ['plate' => 'FB-028-BB', 'brand' => 'Renault', 'model' => 'Master', 'regFrench' => '2021-06-30', 'regOrigin' => '2021-06-30', 'econ' => '2021-06-30', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::LightTruck, 'cat' => ReceptionCategory::N1, 'seats' => 3, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 195, 'pa' => 10, 'kerb' => 2400, 'n1PassengerTransport' => true],
             ['plate' => 'FC-029-CC', 'brand' => 'Audi', 'model' => 'Q5 TDI', 'regFrench' => '2023-07-18', 'regOrigin' => '2023-07-18', 'econ' => '2023-07-18', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 165, 'pa' => 9, 'kerb' => 1850],
 
-            // ====================================================================
-            // G3 · WLTP Cat E (élec/H₂) - 4 véhicules · exonération CO₂ + Cat E
-            // ====================================================================
+            // G3: WLTP Cat E (electric/H2), 4 vehicles, CO2 exempt.
             ['plate' => 'FD-030-DD', 'brand' => 'Renault', 'model' => 'Zoé', 'regFrench' => '2023-02-08', 'regOrigin' => '2023-02-08', 'econ' => '2023-02-08', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Electric, 'euro' => null, 'pollutant' => PollutantCategory::E, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 0, 'pa' => 7, 'kerb' => 1502],
             ['plate' => 'FE-031-EE', 'brand' => 'Nissan', 'model' => 'Leaf', 'regFrench' => '2022-11-22', 'regOrigin' => '2022-11-22', 'econ' => '2022-11-22', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Electric, 'euro' => null, 'pollutant' => PollutantCategory::E, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 0, 'pa' => 6, 'kerb' => 1580],
             ['plate' => 'FF-032-FF', 'brand' => 'Hyundai', 'model' => 'Nexo', 'regFrench' => '2023-08-15', 'regOrigin' => '2023-08-15', 'econ' => '2023-08-15', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Hydrogen, 'euro' => null, 'pollutant' => PollutantCategory::E, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 0, 'pa' => 8, 'kerb' => 1814],
             ['plate' => 'FG-033-GG', 'brand' => 'Renault', 'model' => 'Master ZE', 'regFrench' => '2023-05-04', 'regOrigin' => '2023-05-04', 'econ' => '2023-05-04', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::LightTruck, 'cat' => ReceptionCategory::N1, 'seats' => 3, 'energy' => EnergySource::Electric, 'euro' => null, 'pollutant' => PollutantCategory::E, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 0, 'pa' => 8, 'kerb' => 2380, 'n1PassengerTransport' => true],
 
-            // ====================================================================
-            // G4 · NEDC Cat1 (essence ancien 2004-2020) - 4 véhicules
-            // ====================================================================
+            // G4: NEDC Cat1 legacy gasoline (4 vehicles).
             ['plate' => 'FH-034-HH', 'brand' => 'Citroën', 'model' => 'C4', 'regFrench' => '2014-03-15', 'regOrigin' => '2014-03-15', 'econ' => '2014-03-15', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro5, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Nedc, 'co2Nedc' => 145, 'pa' => 6, 'kerb' => 1250],
             ['plate' => 'FI-035-II', 'brand' => 'Ford', 'model' => 'Fiesta', 'regFrench' => '2016-06-20', 'regOrigin' => '2016-06-20', 'econ' => '2016-06-20', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Nedc, 'co2Nedc' => 125, 'pa' => 5, 'kerb' => 1135],
             ['plate' => 'FJ-036-JJ', 'brand' => 'Renault', 'model' => 'Mégane III', 'regFrench' => '2015-10-12', 'regOrigin' => '2015-10-12', 'econ' => '2015-10-12', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Nedc, 'co2Nedc' => 140, 'pa' => 6, 'kerb' => 1290],
             ['plate' => 'FK-037-KK', 'brand' => 'Volkswagen', 'model' => 'Golf VII', 'regFrench' => '2014-08-08', 'regOrigin' => '2014-08-08', 'econ' => '2014-08-08', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro5, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Nedc, 'co2Nedc' => 138, 'pa' => 6, 'kerb' => 1280],
 
-            // ====================================================================
-            // G5 · NEDC MostPolluting Diesel (ancien) - 4 véhicules
-            // ====================================================================
+            // G5: NEDC MostPolluting Diesel legacy (4 vehicles).
             ['plate' => 'FL-038-LL', 'brand' => 'Peugeot', 'model' => '308 HDi', 'regFrench' => '2013-09-05', 'regOrigin' => '2013-09-05', 'econ' => '2013-09-05', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro5, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Nedc, 'co2Nedc' => 150, 'pa' => 7, 'kerb' => 1450],
             ['plate' => 'FM-039-MM', 'brand' => 'Citroën', 'model' => 'Berlingo HDi', 'regFrench' => '2015-04-22', 'regOrigin' => '2015-04-22', 'econ' => '2015-04-22', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::LightTruck, 'cat' => ReceptionCategory::N1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro5, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Nedc, 'co2Nedc' => 160, 'pa' => 7, 'kerb' => 1620, 'n1PassengerTransport' => true],
             ['plate' => 'FN-040-NN', 'brand' => 'Renault', 'model' => 'Kangoo dCi', 'regFrench' => '2014-11-18', 'regOrigin' => '2014-11-18', 'econ' => '2014-11-18', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::LightTruck, 'cat' => ReceptionCategory::N1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro5, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Nedc, 'co2Nedc' => 155, 'pa' => 6, 'kerb' => 1500, 'n1PassengerTransport' => true, 'n1RemovableSecondRowSeat' => true],
             ['plate' => 'FO-041-OO', 'brand' => 'Ford', 'model' => 'Focus TDCi', 'regFrench' => '2016-02-29', 'regOrigin' => '2016-02-29', 'econ' => '2016-02-29', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Nedc, 'co2Nedc' => 145, 'pa' => 7, 'kerb' => 1380],
 
-            // ====================================================================
-            // G6 · PA vintage (avant 2006) - 5 véhicules · stress barème PA
-            // ====================================================================
+            // G6: PA vintage (pre-2006), 5 vehicles to stress the PA schedule.
             ['plate' => 'FP-042-PP', 'brand' => 'Peugeot', 'model' => '405', 'regFrench' => '1998-06-15', 'regOrigin' => '1998-06-15', 'econ' => '1998-06-15', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro2, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Pa, 'pa' => 6, 'kerb' => 1100],
             ['plate' => 'FQ-043-QQ', 'brand' => 'Citroën', 'model' => 'AX', 'regFrench' => '1995-03-10', 'regOrigin' => '1995-03-10', 'econ' => '1995-03-10', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 4, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro1, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Pa, 'pa' => 4, 'kerb' => 700],
             ['plate' => 'FR-044-RR', 'brand' => 'Renault', 'model' => '19 Chamade', 'regFrench' => '1993-09-22', 'regOrigin' => '1993-09-22', 'econ' => '1993-09-22', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => null, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Pa, 'pa' => 5, 'kerb' => 880],
             ['plate' => 'FS-045-SS', 'brand' => 'Mercedes', 'model' => '190E', 'regFrench' => '1991-08-04', 'regOrigin' => '1991-08-04', 'econ' => '1991-08-04', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => null, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Pa, 'pa' => 8, 'kerb' => 1180],
             ['plate' => 'FT-046-TT', 'brand' => 'BMW', 'model' => 'E30 320i', 'regFrench' => '1989-05-18', 'regOrigin' => '1989-05-18', 'econ' => '1989-05-18', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => null, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Pa, 'pa' => 9, 'kerb' => 1170],
 
-            // ====================================================================
-            // G7 · E85 cas spéciaux (abattement 40 % WLTP / 2 CV PA) - 5 véhicules
-            // ====================================================================
-            // E85 WLTP 130 → 78 g/km après abatement (test 2025/2026)
+            // G7: E85 edge cases (40 % WLTP abatement / 2 PA bonus), 5 vehicles.
+            // E85 WLTP 130 → 78 g/km post-abatement.
             ['plate' => 'FU-047-UU', 'brand' => 'Renault', 'model' => 'Captur E85', 'regFrench' => '2023-04-12', 'regOrigin' => '2023-04-12', 'econ' => '2023-04-12', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 130, 'pa' => 6, 'kerb' => 1340, 'acceptsE85' => true],
-            // E85 WLTP 100 → 60 g/km (cas BOFiP § 240)
+            // E85 WLTP 100 → 60 g/km (BOFiP § 240).
             ['plate' => 'FV-048-VV', 'brand' => 'Ford', 'model' => 'Focus E85', 'regFrench' => '2022-09-10', 'regOrigin' => '2022-09-10', 'econ' => '2022-09-10', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 100, 'pa' => 6, 'kerb' => 1380, 'acceptsE85' => true],
-            // E85 WLTP 251 g/km → HORS PLAFOND (perte abatement, taxe pleine)
+            // E85 WLTP 251 g/km: above cap, abatement lost.
             ['plate' => 'FW-049-WW', 'brand' => 'Dacia', 'model' => 'Duster Bi-Fuel E85', 'regFrench' => '2023-07-08', 'regOrigin' => '2023-07-08', 'econ' => '2023-07-08', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 251, 'pa' => 8, 'kerb' => 1480, 'acceptsE85' => true],
-            // E85 PA 12 CV → BORNE INCLUSIVE (garde abatement → 10 CV)
+            // E85 PA 12: inclusive boundary, abatement applies (→ 10 PA).
             ['plate' => 'FX-050-XX', 'brand' => 'Renault', 'model' => 'Safrane V6 E85', 'regFrench' => '1997-04-22', 'regOrigin' => '1997-04-22', 'econ' => '1997-04-22', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro1, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Pa, 'pa' => 12, 'kerb' => 1620, 'acceptsE85' => true],
-            // E85 PA 13 CV → BORNE EXCLUSIVE (perte abatement)
+            // E85 PA 13: exclusive boundary, abatement lost.
             ['plate' => 'FY-051-YY', 'brand' => 'Citroën', 'model' => 'XM Pallas E85', 'regFrench' => '1996-11-15', 'regOrigin' => '1996-11-15', 'econ' => '1996-11-15', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro2, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Pa, 'pa' => 13, 'kerb' => 1580, 'acceptsE85' => true],
 
-            // ====================================================================
-            // G8 · Handicap + Hybride conditionnel R-2024-017 - 2 véhicules
-            // ====================================================================
-            // Handicap_access supplémentaire (zeroing total)
+            // G8: handicap_access + conditional hybrid (R-2024-017).
+            // Handicap access (full zeroing).
             ['plate' => 'FZ-052-ZZ', 'brand' => 'Volkswagen', 'model' => 'Caddy TPMR', 'regFrench' => '2022-08-30', 'regOrigin' => '2022-08-30', 'econ' => '2022-08-30', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::Handicap, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 155, 'pa' => 7, 'kerb' => 1620, 'handicapAccess' => true],
-            // Hybride non-rechargeable essence faible CO₂ · éligible R-2024-017 régime général (WLTP ≤ 60)
+            // Non-plug-in gasoline hybrid eligible to R-2024-017 (WLTP ≤ 60).
             ['plate' => 'GA-053-AA', 'brand' => 'Toyota', 'model' => 'Prius Hybrid', 'regFrench' => '2020-05-04', 'regOrigin' => '2020-05-04', 'econ' => '2020-05-04', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::NonPluginHybrid, 'underlying' => UnderlyingCombustionEngineType::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 45, 'pa' => 5, 'kerb' => 1390],
 
-            // ====================================================================
-            // G9 · Hors champ M1/N1 (R-XXXX-004) - 5 véhicules
-            // ====================================================================
-            // M1 ambulance (m1_special_use)
+            // G9: out-of-scope M1/N1 (R-XXXX-004), 5 vehicles.
+            // M1 ambulance (m1_special_use).
             ['plate' => 'GB-054-BB', 'brand' => 'Mercedes', 'model' => 'Sprinter Ambulance', 'regFrench' => '2022-12-01', 'regOrigin' => '2022-12-01', 'econ' => '2022-12-01', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 180, 'pa' => 9, 'kerb' => 2400, 'm1SpecialUse' => true],
-            // M1 corbillard
+            // M1 hearse.
             ['plate' => 'GC-055-CC', 'brand' => 'Renault', 'model' => 'Master Funéraire', 'regFrench' => '2021-04-20', 'regOrigin' => '2021-04-20', 'econ' => '2021-04-20', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 3, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 195, 'pa' => 10, 'kerb' => 2350, 'm1SpecialUse' => true],
-            // N1 fourgon sans 2ème rangée + sans passenger_transport (HORS CHAMP)
+            // N1 van without second row and no passenger transport: out of scope.
             ['plate' => 'GD-056-DD', 'brand' => 'Iveco', 'model' => 'Daily Fourgon', 'regFrench' => '2022-06-15', 'regOrigin' => '2022-06-15', 'econ' => '2022-06-15', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::LightTruck, 'cat' => ReceptionCategory::N1, 'seats' => 3, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 200, 'pa' => 10, 'kerb' => 2700],
-            // N1 pickup 5 places skiable (HORS CHAMP par remontées mécaniques)
+            // N1 pickup 5 seats for ski-lift use: out of scope.
             ['plate' => 'GE-057-EE', 'brand' => 'Toyota', 'model' => 'Hilux Pickup', 'regFrench' => '2023-01-12', 'regOrigin' => '2023-01-12', 'econ' => '2023-01-12', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::Pickup, 'cat' => ReceptionCategory::N1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 220, 'pa' => 11, 'kerb' => 2100, 'n1SkiLiftUse' => true],
-            // N1 station wagon générique (HORS CHAMP)
+            // N1 station wagon (out of scope).
             ['plate' => 'GF-058-FF', 'brand' => 'Land Rover', 'model' => 'Discovery N1', 'regFrench' => '2022-03-30', 'regOrigin' => '2022-03-30', 'econ' => '2022-03-30', 'user' => VehicleUserType::CommercialVehicle, 'body' => BodyType::StationWagon, 'cat' => ReceptionCategory::N1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 205, 'pa' => 11, 'kerb' => 2350],
 
-            // ====================================================================
-            // G10 · Cycle de vie · sorties de flotte (5 véhicules supplémentaires)
-            // ====================================================================
-            // Sorti mid-2024 · Sold (en plus de EK-011-KK déjà existant)
+            // G10: lifecycle exits (5 vehicles).
+            // Sold mid-2024 (in addition to EK-011-KK above).
             ['plate' => 'GG-059-GG', 'brand' => 'Peugeot', 'model' => '208', 'regFrench' => '2019-07-22', 'regOrigin' => '2019-07-22', 'econ' => '2019-07-22', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 110, 'pa' => 5, 'kerb' => 1090, 'exitDate' => '2024-08-15', 'exitReason' => VehicleExitReason::Sold, 'currentStatus' => VehicleStatus::Sold],
-            // Sorti mid-2025 · Destroyed
+            // Destroyed mid-2025.
             ['plate' => 'GH-060-HH', 'brand' => 'Renault', 'model' => 'Twingo', 'regFrench' => '2020-04-08', 'regOrigin' => '2020-04-08', 'econ' => '2020-04-08', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 4, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 100, 'pa' => 4, 'kerb' => 980, 'exitDate' => '2025-07-20', 'exitReason' => VehicleExitReason::Destroyed, 'currentStatus' => VehicleStatus::Destroyed],
-            // Sorti mid-2026 · StolenUnrecovered
+            // Stolen unrecovered mid-2026.
             ['plate' => 'GI-061-II', 'brand' => 'Citroën', 'model' => 'C1', 'regFrench' => '2018-11-12', 'regOrigin' => '2018-11-12', 'econ' => '2018-11-12', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 4, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 95, 'pa' => 4, 'kerb' => 850, 'exitDate' => '2026-04-30', 'exitReason' => VehicleExitReason::StolenUnrecovered, 'currentStatus' => VehicleStatus::Other],
-            // Sorti mid-2025 · Sold (autre)
+            // Sold mid-2025 (additional case).
             ['plate' => 'GJ-062-JJ', 'brand' => 'Volkswagen', 'model' => 'Up!', 'regFrench' => '2019-02-14', 'regOrigin' => '2019-02-14', 'econ' => '2019-02-14', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 4, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 105, 'pa' => 5, 'kerb' => 990, 'exitDate' => '2025-10-31', 'exitReason' => VehicleExitReason::Sold, 'currentStatus' => VehicleStatus::Sold],
-            // Multi-VFC riche · activation E85 mid-2025
+            // Multi-VFC: E85 enabled mid-2025.
             ['plate' => 'GK-063-KK', 'brand' => 'Dacia', 'model' => 'Sandero', 'regFrench' => '2024-01-15', 'regOrigin' => '2024-01-15', 'econ' => '2024-01-15', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 120, 'pa' => 5, 'kerb' => 1150, 'extraVfcs' => [['from' => '2025-07-01', 'acceptsE85' => true]]],
-            // Multi-VFC riche · changement PollutantCategory mid-2025 (Cat1 → MostPolluting via dégradation Euro)
+            // Multi-VFC: PollutantCategory shifts Cat1 → MostPolluting via Euro downgrade.
             ['plate' => 'GL-064-LL', 'brand' => 'Suzuki', 'model' => 'Swift', 'regFrench' => '2024-02-20', 'regOrigin' => '2024-02-20', 'econ' => '2024-02-20', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Gasoline, 'euro' => EuroStandard::Euro6, 'pollutant' => PollutantCategory::Category1, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 125, 'pa' => 5, 'kerb' => 1080, 'extraVfcs' => [['from' => '2025-09-01', 'pollutant' => PollutantCategory::MostPolluting, 'euro' => EuroStandard::Euro4]]],
 
-            // Edge case Σ'.5 · véhicule en maintenance prolongée (currentStatus=Maintenance · pas de contrat actif)
+            // Extended-maintenance edge case (no active contract).
             ['plate' => 'GM-065-MM', 'brand' => 'Skoda', 'model' => 'Octavia', 'regFrench' => '2022-05-12', 'regOrigin' => '2022-05-12', 'econ' => '2022-05-12', 'user' => VehicleUserType::PassengerCar, 'body' => BodyType::InteriorDriving, 'cat' => ReceptionCategory::M1, 'seats' => 5, 'energy' => EnergySource::Diesel, 'euro' => EuroStandard::Euro6d, 'pollutant' => PollutantCategory::MostPolluting, 'method' => HomologationMethod::Wltp, 'co2Wltp' => 145, 'pa' => 7, 'kerb' => 1480, 'currentStatus' => VehicleStatus::Maintenance],
         ];
 
@@ -966,7 +866,7 @@ final class DemoSeeder extends Seeder
                 ],
             );
 
-            // Caractéristiques fiscales initiales - une seule version courante.
+            // Initial VFC: single current version.
             $vehicle->fiscalCharacteristics()->delete();
             VehicleFiscalCharacteristics::create([
                 'vehicle_id' => $vehicle->id,
@@ -997,22 +897,16 @@ final class DemoSeeder extends Seeder
             $created[$spec['plate']] = $vehicle;
         }
 
-        // Cas multi-VFC (chantier E) : pour les véhicules marqués
-        // `extraVfcs`, on ajoute N transitions VFC supplémentaires.
-        // Pour chaque entrée, on ferme la précédente courante au jour
-        // précédent et on crée une nouvelle VFC en reprenant les champs
-        // hérités de la spec puis en surchargeant les champs présents
-        // dans l'entrée (`co2Wltp`, `co2Nedc`, `pa`, `energy`, etc.).
-        // Permet d'exercer visuellement le segmenteur fiscal sur la
-        // fiche véhicule (1, 2, 3, N versions par véhicule).
+        // Multi-VFC: for vehicles flagged with extraVfcs, close the previous current
+        // version one day before the new effective_from and create a new VFC inheriting
+        // the spec fields, then overriding the entries present in extraVfcs.
         foreach ($specs as $spec) {
             if (! isset($spec['extraVfcs']) || $spec['extraVfcs'] === []) {
                 continue;
             }
             $vehicle = $created[$spec['plate']];
 
-            // Hérite des champs immuables du spec ; chaque extraVfc peut
-            // surcharger un sous-ensemble (CO₂, PA, énergie, etc.).
+            // Inherit immutable spec fields; each extraVfc may override a subset.
             $inheritedFields = [
                 'reception_category' => $spec['cat'],
                 'vehicle_user_type' => $spec['user'],
@@ -1038,8 +932,7 @@ final class DemoSeeder extends Seeder
 
             foreach ($spec['extraVfcs'] as $entry) {
                 $effectiveFrom = Carbon::parse($entry['from']);
-                // Ferme la VFC actuellement courante (effective_to=null)
-                // au jour précédent.
+                // Close the previous current VFC one day before.
                 $current = $vehicle->fiscalCharacteristics()
                     ->whereNull('effective_to')
                     ->latest('effective_from')
@@ -1049,7 +942,6 @@ final class DemoSeeder extends Seeder
                 ]);
 
                 $fields = $inheritedFields;
-                // Surcharges optionnelles côté entry.
                 if (array_key_exists('co2Wltp', $entry)) {
                     $fields['co2_wltp'] = $entry['co2Wltp'];
                 }
@@ -1137,10 +1029,8 @@ final class DemoSeeder extends Seeder
                 $ref = sprintf('CTR-%d-%s-%03d', $year, $company->short_code, $refSeqByCompany[$company->id]);
             }
 
-            // Tolérance overlap · le trigger MySQL `contracts: overlapping
-            // period` peut rejeter un contrat si une plage chevauche un
-            // autre contrat du même véhicule. Pour un seeder de démo
-            // évolutif, on log et on continue plutôt que de bloquer tout.
+            // Overlap-tolerant: the anti-overlap trigger may reject a row;
+            // log and continue instead of aborting the whole seed.
             try {
                 Contract::create([
                     'vehicle_id' => $vehicle->id,
@@ -1169,35 +1059,19 @@ final class DemoSeeder extends Seeder
     }
 
     /**
-     * Indispos seedées pour exercer la grille ADR-0016 rev. 1.1 en démo.
-     * Couvre 2 axes :
-     *  - **Hors contrats** (4 entrées historiques) : indispos isolées ·
-     *    exerce le calcul autonome.
-     *  - **Cohabitant avec contrats** (4 entrées chantier E) : indispo
-     *    sur une plage qui chevauche un contrat actif. Cas autorisé par
-     *    ADR-0019 · le moteur fiscal retire les jours d'indispo
-     *    réductrice du prorata du contrat (et ignore les non-réductrices).
-     *  - **Cas mixte** : 1 entrée chevauche À LA FOIS un contrat ET une
-     *    bascule VFC · exerce conjointement le segmenteur VFC + la
-     *    réduction prorata.
-     *
-     * Le trigger MySQL anti-overlap n'agit qu'entre contrats (pas entre
-     * indispos et contrats), donc la cohabitation ne pose aucun problème
-     * d'insertion. Les plages cohabitantes sont volontairement situées
-     * dans des contrats long-terme (LLD) où l'effet du retrait de jours
-     * est mesurable.
+     * Seed unavailabilities exercising ADR-0016 rev. 1.1 (R-2024-008):
+     * standalone, contract-overlapping, mixed (contract + VFC switch) and
+     * non-reducing entries used as anti-regression guards.
      *
      * @param  array<string, Vehicle>  $vehicles
      */
     private function seedUnavailabilities(array $vehicles): void
     {
-        // Nettoyage global · on repart à blanc sur les 3 années.
         Unavailability::query()->forceDelete();
 
-        // === Indispos HORS contrats (cas standalone) ============================
+        // Standalone (out of any contract).
 
-        // EJ-010-JJ Kangoo TPMR - créneau libre avant le 1er contrat COR
-        // du 03-04. Fourrière publique 8 j, réductrice.
+        // EJ-010-JJ Kangoo TPMR: 8-day reducing pound period before the first COR contract.
         $this->createUnavailability(
             vehicle: $vehicles['EJ-010-JJ'],
             type: UnavailabilityType::PoundPublic,
@@ -1236,11 +1110,9 @@ final class DemoSeeder extends Seeder
             description: 'Révision constructeur + remplacement pneus AV.',
         );
 
-        // === Indispos COHABITANT avec contrats (chantier E) =====================
+        // Contract-overlapping unavailabilities.
 
-        // EA-001-AA Peugeot 308 - chevauche le contrat ACM 01-08 → 02-29.
-        // Suspension CI 11 j → réductrice : la taxe ACM doit être réduite
-        // au prorata sur les 53 j du contrat.
+        // EA-001-AA: 11-day CI suspension overlapping the ACM contract: reducing.
         $this->createUnavailability(
             vehicle: $vehicles['EA-001-AA'],
             type: UnavailabilityType::CiSuspension,
@@ -1249,10 +1121,7 @@ final class DemoSeeder extends Seeder
             description: 'Cohabitation contrat ACM : suspension administrative pour défaut d\'assurance.',
         );
 
-        // EB-002-BB Renault Trafic - chevauche le contrat BTP 01-15 → 04-30.
-        // Accident sans circulation 10 j → réductrice : la taxe BTP doit
-        // être réduite (utile car BTP est long, le delta est visible sur
-        // le breakdown fiscal).
+        // EB-002-BB: 10-day no-circulation overlap on the long BTP contract.
         $this->createUnavailability(
             vehicle: $vehicles['EB-002-BB'],
             type: UnavailabilityType::AccidentNoCirculation,
@@ -1261,9 +1130,7 @@ final class DemoSeeder extends Seeder
             description: 'Cohabitation contrat BTP : choc à l\'arrière, attente expertise.',
         );
 
-        // EE-005-EE Renault 21 - **cas mixte** : chevauche le contrat COR
-        // 03-04 → 03-28 ET la bascule VFC 03-15 (PA 8→7). Exerce
-        // simultanément le segmenteur VFC + la réduction prorata.
+        // EE-005-EE: mixed case overlapping COR contract AND a VFC switch (PA 8→7).
         $this->createUnavailability(
             vehicle: $vehicles['EE-005-EE'],
             type: UnavailabilityType::CiSuspension,
@@ -1272,9 +1139,7 @@ final class DemoSeeder extends Seeder
             description: 'Cohabitation contrat COR + bascule VFC : suspension CI 13 j à cheval sur 2 versions PA.',
         );
 
-        // EH-008-HH Partner - chevauche le contrat BTP 01-08 → 03-15.
-        // Maintenance 4 j NON réductrice → le moteur doit l\'IGNORER :
-        // la taxe BTP ne doit PAS être réduite. Garde-fou anti-régression.
+        // EH-008-HH: maintenance overlapping BTP, NON-reducing (regression guard).
         $this->createUnavailability(
             vehicle: $vehicles['EH-008-HH'],
             type: UnavailabilityType::Maintenance,
@@ -1283,11 +1148,9 @@ final class DemoSeeder extends Seeder
             description: 'Cohabitation contrat BTP : entretien courant (NE doit PAS réduire la taxe).',
         );
 
-        // ====================================================================
-        // === Indispos 2025 (~15) · diversifiées + cross-année 2024/2025
-        // ====================================================================
+        // 2025 unavailabilities (~15), including cross-year 2024/2025.
 
-        // Indispo chevauchant 2024 et 2025 (test décompte par année)
+        // Cross-year overlap (per-year count check).
         $this->createUnavailability(
             vehicle: $vehicles['EI-009-II'],
             type: UnavailabilityType::PoundPublic,
@@ -1296,7 +1159,7 @@ final class DemoSeeder extends Seeder
             description: 'Cross-année · 12j en 2024 + 10j en 2025.',
         );
 
-        // Fourrière publique 15 jours sur véhicule contractuel
+        // 15-day public pound on a contracted vehicle.
         $this->createUnavailability(
             vehicle: $vehicles['EA-001-AA'],
             type: UnavailabilityType::PoundPublic,
@@ -1305,7 +1168,7 @@ final class DemoSeeder extends Seeder
             description: 'Fourrière publique 15j 2025 · réductrice.',
         );
 
-        // Suspension CI 59 jours (cas BOFiP)
+        // 59-day CI suspension (BOFiP case).
         $this->createUnavailability(
             vehicle: $vehicles['EB-002-BB'],
             type: UnavailabilityType::CiSuspension,
@@ -1314,7 +1177,7 @@ final class DemoSeeder extends Seeder
             description: 'Suspension CI 59j non bissextile · cas BOFiP.',
         );
 
-        // Interdiction circulation 30 jours sur véhicule LCD (test anti double-décompte)
+        // 30-day no-circulation on an active LCD vehicle (double-count guard).
         $this->createUnavailability(
             vehicle: $vehicles['EM-013-MM'],
             type: UnavailabilityType::AccidentNoCirculation,
@@ -1323,7 +1186,7 @@ final class DemoSeeder extends Seeder
             description: 'Interdiction circulation 30j 2025 sur véhicule actif LLD.',
         );
 
-        // Maintenance hors fiscal sur véhicule contractuel (garde-fou)
+        // Non-fiscal maintenance on contracted vehicle (regression guard).
         $this->createUnavailability(
             vehicle: $vehicles['EF-006-FF'],
             type: UnavailabilityType::Maintenance,

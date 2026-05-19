@@ -8,19 +8,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `vehicles` - Registre des véhicules.
- *
- * Cf. 01-schema-metier.md § 2.
- *
- * Particularités :
- *   - UNIQUE (license_plate) filtré par soft delete via triggers
- *     `vehicles_license_plate_active_*` - permet la re-saisie après soft
- *     delete (MySQL refuse les expressions conditionnelles dans GENERATED
- *     ALWAYS AS, donc on émule via SIGNAL).
- *   - UNIQUE (vin) filtré idem si VIN renseigné.
- *   - Caractéristiques **fiscales** (co2, norme Euro, source énergie, etc.)
- *     dans `vehicle_fiscal_characteristics` - cette table-ci ne porte que
- *     les attributs **non fiscaux** (identité, cycle de vie).
+ * Vehicles table (non-fiscal attributes; fiscal data lives in vehicle_fiscal_characteristics).
+ * Soft-deleted UNIQUE on license_plate and vin emulated via SIGNAL triggers (MySQL).
  */
 return new class extends Migration
 {
@@ -56,7 +45,7 @@ return new class extends Migration
             $table->index('vin');
         });
 
-        // CHECK constraints + triggers - MySQL uniquement.
+        // CHECK constraints + triggers: MySQL only.
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
         }
@@ -101,7 +90,6 @@ return new class extends Migration
 
     private function createSoftDeleteTriggers(): void
     {
-        // vehicles.license_plate (NOT NULL)
         $licensePlateBody = <<<'SQL'
             DECLARE clash_count INT;
             IF NEW.deleted_at IS NULL THEN
@@ -119,7 +107,6 @@ return new class extends Migration
         DB::unprepared('CREATE TRIGGER vehicles_license_plate_active_insert BEFORE INSERT ON vehicles FOR EACH ROW BEGIN '.$licensePlateBody.' END');
         DB::unprepared('CREATE TRIGGER vehicles_license_plate_active_update BEFORE UPDATE ON vehicles FOR EACH ROW BEGIN '.$licensePlateBody.' END');
 
-        // vehicles.vin (NULL toléré)
         $vinBody = <<<'SQL'
             DECLARE clash_count INT;
             IF NEW.deleted_at IS NULL AND NEW.vin IS NOT NULL THEN

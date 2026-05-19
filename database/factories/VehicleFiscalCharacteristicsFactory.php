@@ -18,8 +18,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Caractéristiques fiscales d'un véhicule. Par défaut : VP WLTP
- * essence Euro 6 cat 1 (cas standard du seeder démo).
+ * Defaults to a passenger car, gasoline, Euro 6d, WLTP, category 1.
  *
  * @extends Factory<VehicleFiscalCharacteristics>
  */
@@ -32,14 +31,8 @@ final class VehicleFiscalCharacteristicsFactory extends Factory
     {
         return [
             'vehicle_id' => Vehicle::factory(),
-            // Plage historique large (depuis 2020) pour que les tests
-            // qui créent des contrats sur n'importe quelle année post-2020
-            // disposent d'une VFC effective. Avant le chantier dette VFC
-            // (orchestrateur segmenté), `findCurrentForVehicle` masquait
-            // le décalage en renvoyant la VFC actuelle peu importe l'année,
-            // ce qui produisait des calculs faux silencieux. L'orchestrateur
-            // est désormais strict : il throw si aucun segment n'est actif
-            // sur l'année calculée · la factory doit donc couvrir large.
+            // Wide effective window so the segmented fiscal orchestrator finds a
+            // matching VFC for any post-2020 contract created by tests.
             'effective_from' => Carbon::create(2020, 1, 1),
             'effective_to' => null,
             'reception_category' => ReceptionCategory::M1,
@@ -94,10 +87,7 @@ final class VehicleFiscalCharacteristicsFactory extends Factory
         ]);
     }
 
-    /**
-     * Active le flag E85 (rubrique P.3 du CI ∈ {FE, FG, FN, FL, FH, FR,
-     * FQ, FM, FP}). Utilisé par les tests de R-2025-023 abattement E85.
-     */
+    /** Enables the E85 flag (R-2025-023 abatement). */
     public function acceptsE85(): static
     {
         return $this->state(fn (): array => [

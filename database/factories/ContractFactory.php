@@ -36,10 +36,7 @@ final class ContractFactory extends Factory
         ];
     }
 
-    /**
-     * Contrat LCD : durée ≤ 30 jours consécutifs (cas-test fiscal usuel
-     * pour R-2024-021).
-     */
+    /** Short-term contract (LCD): up to 30 days. */
     public function lcd(): static
     {
         return $this->state(function (array $attributes): array {
@@ -55,10 +52,7 @@ final class ContractFactory extends Factory
         });
     }
 
-    /**
-     * Contrat LLD : durée > 31 jours, sortant nécessairement du périmètre
-     * LCD quelle que soit l'organisation des mois civils.
-     */
+    /** Long-term contract (LLD): always above 31 days. */
     public function lld(): static
     {
         return $this->state(function (array $attributes): array {
@@ -85,10 +79,7 @@ final class ContractFactory extends Factory
     }
 
     /**
-     * Attache N conducteurs au contrat via le pivot `contract_drivers`
-     * après création. Pattern N:N (chantier #3 multi-conducteurs).
-     *
-     * Usage : `Contract::factory()->withDrivers([$d1, $d2])->create()`
+     * Attach N drivers to the contract via the contract_drivers pivot.
      *
      * @param  list<Driver>  $drivers
      */
@@ -101,9 +92,7 @@ final class ContractFactory extends Factory
         });
     }
 
-    /**
-     * Force le contrat dans une année donnée (start et end dans l'année).
-     */
+    /** Force both start and end dates inside the given year. */
     public function inYear(int $year): static
     {
         return $this->state(function (array $attributes) use ($year): array {
@@ -114,7 +103,7 @@ final class ContractFactory extends Factory
             $duration = fake()->numberBetween(5, 30);
             $end = (new \DateTimeImmutable($start))->modify("+{$duration} days");
 
-            // S'assurer que end_date reste dans la même année.
+            // Clamp end_date to the same year.
             if ((int) $end->format('Y') !== $year) {
                 $end = new \DateTimeImmutable(sprintf('%04d-12-31', $year));
             }

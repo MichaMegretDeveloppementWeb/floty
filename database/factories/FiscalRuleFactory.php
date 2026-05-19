@@ -8,12 +8,10 @@ use App\Models\FiscalRule;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<FiscalRule>
+ * Index factory for fiscal_rules. Only the index columns are populated; rule
+ * metadata lives in the PHP rule classes.
  *
- * Factory de l'index `fiscal_rules` (Phase 13 D5.14 · ADR-0022 v1.4).
- * Seules les colonnes d'index sont peuplées · les anciennes colonnes
- * miroir (name, description, legal_basis, etc.) ont été droppées et
- * vivent désormais dans les classes PHP des règles.
+ * @extends Factory<FiscalRule>
  */
 final class FiscalRuleFactory extends Factory
 {

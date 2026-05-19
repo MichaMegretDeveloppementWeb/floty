@@ -8,35 +8,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `fiscal_declarations` · entité racine du workflow déclaratif
- * (Phase 11 D1, ADR-0015 § 5.1 rev. 1.1).
- *
- * Une déclaration est rattachée à un couple `(company_id, fiscal_year)`,
- * mais plusieurs déclarations historiques peuvent coexister pour ce
- * couple grâce à la chaîne d'obsolescence (`is_obsolete` +
- * `superseded_by_id`). À tout instant, **au plus une** déclaration est
- * active (`is_obsolete = false`) pour un couple donné ; cette unicité
- * fonctionnelle est garantie par le repository, pas par contrainte SQL.
- *
- * Statut applicatif :
- *   - `draft` : en cours de revue, peut être modifiée.
- *   - `deferred` : indicateur visuel volontaire (utilisateur veut
- *     consulter son EC), n'autorise pas la génération.
- *   - `generated` : PDF annexe produit, snapshot immuable. Peut être
- *     marquée obsolète mais ne revient jamais en `draft`.
- *
- * Obsolescence (rev. 1.1) :
- *   - `is_obsolete` : flag posé par les Observers quand une action
- *     fiscalement impactante est détectée sur un contrat / VFC /
- *     indispo de l'année.
- *   - `obsolete_at` : horodatage du premier marquage.
- *   - `obsolete_reasons` : JSON typé (cf. ADR-0015 § D9), tableau
- *     d'événements empilés à chaque action invalidante.
- *   - `superseded_by_id` : référence vers la déclaration qui remplace
- *     celle-ci après régénération (FK self).
- *
- * Soft-delete activé : une déclaration `generated` ne peut être
- * supprimée définitivement (cf. ADR-0015 § D8 point 7).
+ * Fiscal declarations root entity (ADR-0015 § 5.1 rev. 1.1).
+ * Status: draft, deferred, generated. Obsolescence via is_obsolete + superseded_by_id.
+ * At most one active (is_obsolete=false) per (company, fiscal_year) — enforced applicatively
+ * and by a later partial-unique migration.
  */
 return new class extends Migration
 {

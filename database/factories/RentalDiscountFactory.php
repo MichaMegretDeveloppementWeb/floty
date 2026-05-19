@@ -28,7 +28,7 @@ final class RentalDiscountFactory extends Factory
             'company_id' => Company::factory(),
             'start_date' => sprintf('%04d-%02d-01', $year, $startMonth),
             'end_date' => sprintf('%04d-%02d-28', $year, $endMonth),
-            // 1..2500 bp = 0,01..25,00 % · plage réaliste B2B
+            // 100..2000 bp = 1..20 % (realistic B2B range).
             'discount_basis_points' => fake()->numberBetween(100, 2000),
             'label' => fake()->optional(0.6)->randomElement([
                 'Pack fidélité',
@@ -42,18 +42,13 @@ final class RentalDiscountFactory extends Factory
         ];
     }
 
-    /**
-     * Attache la réduction à une company existante (évite la création
-     * d'une nouvelle Company par la définition par défaut).
-     */
+    /** Attach the discount to an existing company (skip the default factory creation). */
     public function forCompany(Company $company): static
     {
         return $this->state(fn (): array => ['company_id' => $company->id]);
     }
 
-    /**
-     * Fixe la période exacte de la réduction.
-     */
+    /** Set the exact discount period. */
     public function withPeriod(CarbonInterface $start, CarbonInterface $end): static
     {
         return $this->state(fn (): array => [
@@ -62,10 +57,7 @@ final class RentalDiscountFactory extends Factory
         ]);
     }
 
-    /**
-     * Fixe le pourcentage (entrée en `%` UI, conversion bp interne).
-     * `withDiscountPercent(10.5)` -> 1050 bp.
-     */
+    /** Set the percentage (UI input as %, stored as basis points: 10.5 -> 1050 bp). */
     public function withDiscountPercent(float $percent): static
     {
         return $this->state(fn (): array => [
@@ -73,9 +65,7 @@ final class RentalDiscountFactory extends Factory
         ]);
     }
 
-    /**
-     * Fixe le pourcentage en basis points (pour tests précis).
-     */
+    /** Set the percentage as raw basis points (for precise test values). */
     public function withDiscountBasisPoints(int $basisPoints): static
     {
         return $this->state(fn (): array => [
@@ -84,10 +74,9 @@ final class RentalDiscountFactory extends Factory
     }
 
     /**
-     * Attache la réduction à une liste de véhicules après création.
-     * **Liste vide volontairement non gérée ici** · pour signifier
-     * « applique à tous », ne pas appeler ce state · le pivot reste vide
-     * et la sémantique applicative s'en charge.
+     * Attach the discount to a list of vehicles after creation. To target every
+     * vehicle of the company, do not call this state: an empty pivot has the
+     * "applies to all" semantics handled in the application.
      *
      * @param  list<Vehicle>  $vehicles
      */

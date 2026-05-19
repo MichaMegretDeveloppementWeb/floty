@@ -26,9 +26,8 @@ final class ContractDocumentFactory extends Factory
         return [
             'contract_id' => Contract::factory(),
             'filename' => $filename,
-            // Le contract_id est résolu plus tard par le factory engine ; on
-            // utilise le UUID seul comme suffixe (le chemin reste unique
-            // grâce au UUID, ce qui suffit pour les tests).
+            // contract_id is resolved later by the factory engine; the UUID alone
+            // keeps the path unique, which is enough for tests.
             'storage_path' => "contract-documents/{$uuid}.pdf",
             'size_bytes' => fake()->numberBetween(50_000, 5_000_000),
             'sha256' => str_repeat('a', 64),

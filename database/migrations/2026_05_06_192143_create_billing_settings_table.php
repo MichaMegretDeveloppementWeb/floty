@@ -7,14 +7,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `billing_settings` · Émetteur de facture (Phase 14.G V1.2).
- *
- * Singleton applicatif : une seule ligne en base, identifiée par `id=1`.
- * Pas de FK ni de tenant · l'application est mono-société pour V1.2.
- *
- * Tous les champs sont nullable au démarrage : la première installation
- * crée la ligne via `firstOrCreate` avec des valeurs vides ; l'utilisateur
- * complète depuis la page Paramètres > Facturation.
+ * Invoice issuer (billing settings). Application-level singleton: a single row at id=1.
+ * All fields are nullable; the user fills them in via the settings page.
  */
 return new class extends Migration
 {

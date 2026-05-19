@@ -13,22 +13,8 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Seeder de l'index `fiscal_rules` en mode miroir minimal (Phase 13
- * D5.14 · ADR-0022 finalisée v1.4).
- *
- * **Doctrine** · la table `fiscal_rules` est un INDEX strictement
- * minimal qui relie l'id BDD à la classe PHP via `code_reference`.
- * Toute la métadonnée fiscale (name, description, legal_basis,
- * pedagogical_content, etc.) vit exclusivement dans les classes PHP
- * et est lue via le registry au runtime. Plus aucun miroir BDD.
- *
- * **Algorithme** · pour chaque année déclarée dans `floty.fiscal.year_boots`,
- * lire pipeline rules + informative rules, et upsert l'index `(rule_code,
- * fiscal_year, code_reference)`. Mode miroir conservé · les entrées
- * orphelines de l'année sont supprimées.
- *
- * **Effet net** · `seed → seed → seed` produit toujours le même état
- * BDD. Retirer une classe PHP + `seed` = entrée index disparaît.
+ * Mirrors the fiscal_rules index from the PHP rule classes registered in floty.fiscal.year_boots.
+ * Rows for a year not produced by the current registry are deleted (idempotent mirror).
  */
 final class FiscalRulesSeeder extends Seeder
 {
@@ -84,13 +70,8 @@ final class FiscalRulesSeeder extends Seeder
     }
 
     /**
-     * Construit la ligne BDD à partir d'une instance PHP · index
-     * minimal (rule_code · fiscal_year · code_reference).
-     *
-     * Le `code_reference` est dérivé automatiquement du FQCN. Une
-     * règle peut **override** en exposant `codeReference(): string`
-     * (utile pour les règles dont l'implémentation effective vit
-     * hors PHP, ex. R-2024-024 Crit'Air dans `useCritAirCheck.ts`).
+     * Build the index row from a rule instance. A rule may override codeReference()
+     * when its effective implementation lives outside PHP.
      *
      * @return array<string, mixed>
      */

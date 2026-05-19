@@ -34,10 +34,7 @@ final class UnavailabilityFactory extends Factory
         ];
     }
 
-    /**
-     * State « fourrière publique » - réducteur fiscal, choix par défaut
-     * pour les ex-`pound` historiques (cf. ADR-0016 rev. 1.1).
-     */
+    /** Public pound: fiscally reducing. */
     public function poundPublic(): static
     {
         return $this->state(fn (array $attributes): array => [
@@ -46,9 +43,7 @@ final class UnavailabilityFactory extends Factory
         ]);
     }
 
-    /**
-     * State « interdiction de circuler post-sinistre » - réducteur.
-     */
+    /** No-circulation order after an accident: fiscally reducing. */
     public function accidentNoCirculation(): static
     {
         return $this->state(fn (array $attributes): array => [
@@ -57,9 +52,7 @@ final class UnavailabilityFactory extends Factory
         ]);
     }
 
-    /**
-     * State « suspension du certificat d'immatriculation » - réducteur.
-     */
+    /** Registration certificate suspension: fiscally reducing. */
     public function ciSuspension(): static
     {
         return $this->state(fn (array $attributes): array => [
@@ -68,10 +61,7 @@ final class UnavailabilityFactory extends Factory
         ]);
     }
 
-    /**
-     * State « maintenance courante » - non réducteur, cas par défaut le
-     * plus fréquent dans les tests.
-     */
+    /** Routine maintenance: non-reducing (most common test default). */
     public function maintenance(): static
     {
         return $this->state(fn (array $attributes): array => [

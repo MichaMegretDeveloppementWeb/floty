@@ -8,49 +8,18 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Migration additive sur `invoice_lines` · ajoute le snapshot ligne par
- * ligne de la réduction commerciale appliquée (lot 1 du chantier
- * RentalDiscount).
- *
- * **Doctrine immuabilité préservée** · `total_ht_cents` reste le NET
- * (= gross - discount), 100 % rétro-compat. Les nouveaux champs sont
- * additifs.
- *
- * **`applied_discount_id` est `nullOnDelete`** · si la réduction parent
- * est soft-deletée (cas normal) la FK reste valide car soft-delete ne
- * supprime pas la row. Si jamais une hard suppression a lieu (cas
- * exceptionnel de cleanup admin), on bascule à null plutôt que de
- * casser la facture émise.
- *
- * **Backfill** · pour les lignes existantes (pré-feature) ·
- *   - `gross_total_cents = total_ht_cents` (= net = pas de réduction)
- *   - `discount_cents = 0`
- *   - `applied_discount_id = NULL`
- *
- * Vérifié par un test feature dédié au lot 2.
+ * Adds gross + discount + applied_discount_id columns on invoice_lines (snapshot).
+ * applied_discount_id is nullOnDelete so a hard discount deletion does not break
+ * issued invoices. Backfill: gross = net, discount = 0 for pre-feature rows.
  */
 return new class extends Migration
 {
     public function up(): void
     {
         Schema::table('invoice_lines', function (Blueprint $table): void {
-            // Total ligne BRUT avant application de la réduction.
-            // Snapshot figé.
-            //
-            // Default 0 · rétro-compat pour le code de génération (Lot 1)
-            // qui sera mis à jour au Lot 2 pour fournir explicitement
-            // `gross_total_cents = total_ht_cents` (sans réduction) ou la
-            // valeur brute calculée (avec réduction). Le backfill SQL en
-            // up() met la vraie valeur pour les lignes existantes.
             $table->unsignedInteger('gross_total_cents')->default(0)->after('total_ht_cents');
-
-            // Montant de la réduction appliquée sur cette ligne (cents).
-            // Snapshot figé.
             $table->unsignedInteger('discount_cents')->default(0)->after('gross_total_cents');
 
-            // Référence vers la réduction commerciale appliquée
-            // (preserved via nullOnDelete · soft-delete normal n'impacte
-            // pas la FK).
             $table->foreignId('applied_discount_id')
                 ->nullable()
                 ->after('discount_cents')
@@ -58,8 +27,7 @@ return new class extends Migration
                 ->nullOnDelete();
         });
 
-        // Backfill explicite pour les lignes existantes · gross = net,
-        // discount = 0, applied_discount_id = null par défaut.
+        // Backfill: gross = net for pre-feature lines.
         DB::statement('UPDATE invoice_lines SET gross_total_cents = total_ht_cents');
     }
 

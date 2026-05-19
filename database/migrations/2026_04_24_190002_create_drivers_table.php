@@ -7,12 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `drivers` - Conducteurs, rattachés à une company unique.
- *
- * Cf. 01-schema-metier.md § 5.
- *
- * Fonctionnalité « Remplacer par… » (phase 06) : bulk UPDATE
- * `contracts.driver_id` côté applicatif, pas de structure dédiée en base.
+ * Drivers table. Bulk reassign is handled at the application layer (no DB structure).
  */
 return new class extends Migration
 {

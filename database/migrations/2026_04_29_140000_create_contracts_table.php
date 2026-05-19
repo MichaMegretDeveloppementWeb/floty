@@ -8,26 +8,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `contracts` - Entité pivot du domaine fiscal après refonte
- * 2026-04-29 (cf. ADR-0014 « Modèle Contract et règle LCD par contrat
- * individuel »).
- *
- * **Une ligne = un contrat de location** (vehicle × company × plage
- * temporelle inclusive `[start_date, end_date]`). Remplace l'ancienne
- * table `assignments` (1 ligne par jour) supprimée en chantier 04.H.
- *
- * **Invariants critiques** :
- *   - `end_date` NOT NULL (cohérent ADR-0014 D4 : tout contrat a une
- *     fin connue à la signature)
- *   - `CHECK end_date >= start_date` (refus DB d'un contrat « inversé »)
- *   - Triggers MySQL `contracts_no_overlap_*` : un véhicule ne peut avoir
- *     deux contrats actifs (non soft-deleted) qui se chevauchent. Les
- *     triggers filtrent `deleted_at IS NULL` et excluent l'auto-référence
- *     via `id <> COALESCE(NEW.id, 0)`. Logique d'overlap : deux plages
- *     `[a, b]` et `[c, d]` se chevauchent ssi `a <= d AND b >= c`.
- *
- * **Driver SQLite** (tests legacy) : triggers et CHECK non créés. La
- * validation applicative dans les Actions Contract couvre ces cas.
+ * Contracts table (ADR-0014). One row per rental (vehicle × company × inclusive period).
+ * Invariants: end_date NOT NULL, CHECK end_date >= start_date,
+ * anti-overlap triggers per vehicle (active rows only).
  */
 return new class extends Migration
 {
@@ -59,16 +42,12 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
 
-            // Indexes pour les requêtes de chevauchement et de lecture
-            // par véhicule × année (ADR-0014 § 3 schéma).
             $table->index(['vehicle_id', 'start_date', 'end_date']);
             $table->index(['company_id', 'start_date']);
             $table->index(['start_date', 'end_date']);
         });
 
-        // CHECK constraint + triggers - MySQL uniquement (Schema Builder
-        // Laravel ne supporte pas les CHECK natifs ; SQLite ne supporte
-        // ni `ALTER TABLE ADD CONSTRAINT` ni SIGNAL/SQLSTATE).
+        // CHECK constraint + triggers: MySQL only.
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
         }

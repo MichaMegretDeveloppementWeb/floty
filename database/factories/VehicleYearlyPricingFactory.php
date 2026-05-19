@@ -10,15 +10,8 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * Tarifs jour/semaine/mois d'un véhicule pour une année donnée.
- *
- * Defaults raisonnables pour le seeder démo (citadine 5-portes essence
- * standard) :
- *   - 90 € / jour
- *   - 500 € / semaine
- *   - 1 800 € / mois
- *
- * State chaînable {@see self::forYear()} pour fixer une année spécifique.
+ * Daily/weekly/monthly pricing per vehicle for a given year.
+ * Defaults: 90 EUR / 500 EUR / 1800 EUR (standard 5-door gasoline city car).
  *
  * @extends Factory<VehicleYearlyPricing>
  */
@@ -43,9 +36,7 @@ final class VehicleYearlyPricingFactory extends Factory
         return $this->state(fn (): array => ['year' => $year]);
     }
 
-    /**
-     * Tarifs explicites en cents (helper de lisibilité dans les tests).
-     */
+    /** Explicit cents rates (readability helper for tests). */
     public function withRates(int $dailyCents, int $weeklyCents, int $monthlyCents): self
     {
         return $this->state(fn (): array => [

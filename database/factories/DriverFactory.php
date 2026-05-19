@@ -25,10 +25,7 @@ final class DriverFactory extends Factory
         ];
     }
 
-    /**
-     * Crée le driver puis l'attache à une company donnée avec joined_at.
-     * Pratique pour les tests qui veulent un driver actif dans une company.
-     */
+    /** Creates the driver then attaches it to the given company with joined_at. */
     public function activeIn(Company $company, ?CarbonInterface $joinedAt = null): static
     {
         return $this->afterCreating(function (Driver $driver) use ($company, $joinedAt): void {
@@ -39,9 +36,7 @@ final class DriverFactory extends Factory
         });
     }
 
-    /**
-     * Driver sorti d'une company à la date donnée.
-     */
+    /** Driver who left the company on the given date. */
     public function leftCompanyOn(
         Company $company,
         CarbonInterface $joinedAt,

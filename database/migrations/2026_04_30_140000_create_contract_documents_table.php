@@ -7,24 +7,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `contract_documents` - PDF joints à un contrat (chantier 04.N).
- *
- * **Limites métier V1** (matérialisées dans l'Action, pas en DB) :
- *   - 5 documents maximum par contrat
- *   - 10 Mo maximum par fichier
- *   - PDF uniquement (validation MIME)
- *
- * **Stockage physique** : sur le disk Laravel par défaut
- * (`config('filesystems.default')`). En V1 = `local` private. Bascule
- * S3 = juste changer `FILESYSTEM_DISK` dans .env, pas de migration.
- *
- * Path de stockage : `contract-documents/{contract_id}/{uuid}.pdf`
- * - UUID pour éviter collisions, contract_id pour cleanup facile.
- *
- * Pas de soft-delete : la suppression côté UI est immédiate (DB +
- * fichier physique). Choix V1 pour simplifier ; si l'on veut garder
- * un audit trail en V2, on ajoutera un soft-delete + un job de
- * purge planifié.
+ * PDF attachments for contracts. Limits (5 files, 10 Mo each, PDF only) enforced in the Action.
+ * Storage path: contract-documents/{contract_id}/{uuid}.pdf on the default Laravel disk.
  */
 return new class extends Migration
 {

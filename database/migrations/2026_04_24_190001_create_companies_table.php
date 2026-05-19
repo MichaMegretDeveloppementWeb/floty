@@ -8,26 +8,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `companies` - Entreprises utilisatrices de la flotte.
- *
- * Cf. 01-schema-metier.md § 4.
- *
- * Particularités :
- *   - UNIQUE (short_code) filtré par soft delete via triggers
- *     `companies_short_code_active_*` (MySQL refuse les expressions
- *     conditionnelles dans GENERATED ALWAYS AS, cf. 01-schema-metier.md § 0.2).
- *   - UNIQUE (siren) filtré idem, appliqué uniquement si le SIREN est
- *     renseigné et l'entreprise non soft-deletée.
- *   - Drapeaux d'exonération pour le moteur fiscal (R-2024-018, R-2024-019) :
- *     `is_oig`, `is_individual_business`. La mécanique « exonération à
- *     activité » (R-2024-022) avait été prototypée puis retirée du V1
- *     (architecturalement mal placée). Si V2 la réintroduit, ce sera
- *     proprement côté `contracts`.
- *   - Deux drapeaux orthogonaux :
- *       * `is_active` = désactivation métier (plus d'attributions futures
- *         mais historique conservé, visible en lecture),
- *       * `deleted_at` = soft delete fonctionnel (invisible dans les listes
- *         standard mais lignes conservées pour l'intégrité des snapshots).
+ * Companies table. Soft-deleted UNIQUE on short_code and siren emulated via triggers
+ * (MySQL does not allow conditional expressions in GENERATED ALWAYS AS).
+ * Fiscal exemption flags wired to R-2024-018 (OIG) and R-2024-019 (individual business).
  */
 return new class extends Migration
 {
@@ -66,9 +49,7 @@ return new class extends Migration
             $table->index('siren');
         });
 
-        // CHECK constraints + triggers - MySQL uniquement (SQLite tests
-        // legacy n'a pas SIGNAL/SQLSTATE, la validation applicative reste
-        // la première ligne de défense).
+        // CHECK constraints + triggers: MySQL only (SQLite has no SIGNAL/SQLSTATE).
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
         }
@@ -79,9 +60,6 @@ return new class extends Migration
                 CHECK (color IN ('indigo', 'emerald', 'amber', 'rose', 'violet', 'teal', 'orange', 'cyan'))
         SQL);
 
-        // Triggers UNIQUE filtré par soft-delete (cf. note ci-dessus -
-        // MySQL refuse les expressions conditionnelles dans GENERATED
-        // ALWAYS AS, donc on émule via SIGNAL).
         $this->createSoftDeleteTriggers();
     }
 
@@ -96,7 +74,6 @@ return new class extends Migration
 
     private function createSoftDeleteTriggers(): void
     {
-        // companies.short_code (NOT NULL)
         $shortCodeBody = <<<'SQL'
             DECLARE clash_count INT;
             IF NEW.deleted_at IS NULL THEN
@@ -114,7 +91,6 @@ return new class extends Migration
         DB::unprepared('CREATE TRIGGER companies_short_code_active_insert BEFORE INSERT ON companies FOR EACH ROW BEGIN '.$shortCodeBody.' END');
         DB::unprepared('CREATE TRIGGER companies_short_code_active_update BEFORE UPDATE ON companies FOR EACH ROW BEGIN '.$shortCodeBody.' END');
 
-        // companies.siren (NULL toléré)
         $sirenBody = <<<'SQL'
             DECLARE clash_count INT;
             IF NEW.deleted_at IS NULL AND NEW.siren IS NOT NULL THEN

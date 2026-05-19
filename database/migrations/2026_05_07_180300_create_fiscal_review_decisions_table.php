@@ -8,26 +8,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `fiscal_review_decisions` · décisions humaines de revue
- * fiscale par cluster (Phase 11 D1, ADR-0015 § 5.2).
- *
- * Une décision est identifiée par le triplet `(company_id, fiscal_year,
- * cluster_fingerprint)`. Le `cluster_fingerprint` est un sha256 stable
- * calculé sur les contrats du cluster (ADR-0015 § 4) qui permet de
- * persister la décision indépendamment des déclarations elles-mêmes :
- *   - À la régénération d'une déclaration obsolète, les décisions dont
- *     le fingerprint est inchangé sont auto-reprises (l'utilisateur ne
- *     ré-évalue que les clusters nouveaux ou modifiés).
- *   - Pas de FK directe vers `fiscal_declarations` car le couple
- *     fingerprint+(company,year) suffit à identifier la décision.
- *
- * `decision` :
- *   - `conserved` : l'utilisateur conserve l'exonération LCD.
- *   - `requalified` : l'utilisateur requalifie les contrats du cluster
- *     comme LLD (ils perdent l'exonération individuellement).
- *
- * `justification` est optionnelle pour le niveau moyen, requise pour
- * le niveau élevé (validation côté Action D3).
+ * Per-cluster fiscal review decisions (ADR-0015 § 5.2).
+ * Keyed by (company_id, fiscal_year, cluster_fingerprint) so decisions outlive
+ * a specific declaration and can be auto-reused on regeneration when the cluster
+ * fingerprint is unchanged. decision: conserved | requalified.
  */
 return new class extends Migration
 {
@@ -56,10 +40,6 @@ return new class extends Migration
 
             $table->timestamps();
 
-            // L'UNIQUE `review_company_year_fp_uk` couvre déjà le préfixe
-            // `(company_id, fiscal_year)` · MySQL utilise les préfixes
-            // d'index UNIQUE pour les filtres partiels, donc pas d'index
-            // dédié supplémentaire (Lot 6 D4 · F-31-007).
             $table->unique(['company_id', 'fiscal_year', 'cluster_fingerprint'], 'review_company_year_fp_uk');
         });
 

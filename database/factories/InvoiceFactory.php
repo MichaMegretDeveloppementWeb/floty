@@ -35,9 +35,7 @@ final class InvoiceFactory extends Factory
                 fake()->unique()->numberBetween(1, 9999),
             ),
             'total_ht_cents' => $totalHtCents,
-            // Sémantique « pas de réduction par défaut » · gross = net
-            // (= total_ht_cents). Les tests RentalDiscount surchargent
-            // ces champs via state() quand ils ont besoin d'une réduction.
+            // No discount by default: gross = net (= total_ht_cents).
             'total_gross_cents' => $totalHtCents,
             'total_discount_cents' => 0,
             'pdf_path' => sprintf('invoices/%d/test/%s.pdf', $year, fake()->uuid()),

@@ -8,21 +8,9 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `unavailabilities` · plages continues durant lesquelles un véhicule
- * n'est pas attribuable.
- *
- * Cf. 01-schema-metier.md § 7 + ADR-0016 rev. 1.1 (9 cases UnavailabilityType).
- *
- * Modélisation en **plages** (`start_date` / `end_date`) plutôt qu'une
- * ligne par jour, justifiée par ·
- *   - une indispo = un événement (passage en maintenance) pas 10 jours distincts
- *   - plus compact en base
- *   - projection plage → jours triviale côté code fiscal
- *
- * Trois types ont un **impact fiscal réducteur** (R-2024-008) ·
- * `accident_no_circulation`, `pound_public`, `ci_suspension`. La
- * dénormalisation `has_fiscal_impact` accélère les requêtes fiscales ;
- * un CHECK garantit la cohérence.
+ * Unavailability ranges (ADR-0016 rev. 1.1, R-2024-008).
+ * Three types trigger a fiscal reduction: accident_no_circulation, pound_public, ci_suspension.
+ * has_fiscal_impact is denormalised and kept consistent via CHECK constraint.
  */
 return new class extends Migration
 {
@@ -59,15 +47,11 @@ return new class extends Migration
             $table->index(['vehicle_id', 'start_date']);
             $table->index(['vehicle_id', 'has_fiscal_impact', 'start_date']);
             $table->index(['type', 'start_date']);
-            // Index `deleted_at` · les scopes Eloquent `withTrashed`,
-            // `onlyTrashed` et le filtre implicite `deleted_at IS NULL`
-            // de SoftDeletes scanneraient sinon la table entière
-            // (Lot 6 D4 · F-31-008).
+            // Index on deleted_at: SoftDeletes scopes would otherwise scan the full table.
             $table->index('deleted_at', 'unavailabilities_deleted_at_idx');
         });
 
-        // CHECK constraints · filet SQL défensif, MySQL uniquement
-        // (SQLite ne supporte pas `ALTER TABLE ... ADD CONSTRAINT`).
+        // CHECK constraints: MySQL only.
         if (DB::connection()->getDriverName() !== 'mysql') {
             return;
         }

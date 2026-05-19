@@ -7,14 +7,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Lot 5 D13 · ajoute `defer_reason` (TEXT NULL) sur `fiscal_declarations`.
- *
- * Quand l'utilisateur reporte la préparation d'un brouillon (statut
- * `deferred`), il saisit une raison optionnelle (modal textarea max
- * 500 caractères) · cette raison est affichée sur le brouillon tant
- * qu'il reste reporté. Au revert (deferred → draft) ou à la génération
- * (deferred → generated), la raison est effacée · état transitoire
- * cohérent avec le statut, pas un historique persistant.
+ * Adds defer_reason on fiscal_declarations: optional free text shown while the
+ * declaration is in the deferred status. Cleared on revert or on generation.
  */
 return new class extends Migration
 {

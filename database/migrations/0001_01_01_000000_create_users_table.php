@@ -7,21 +7,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `users` Floty (cf. 01-schema-metier.md § 1 + ADR-0012 rev. 1.1).
- *
- * Écart avec le scaffold Laravel par défaut ·
- *   - `name` → split en `first_name` + `last_name` (affichage structuré)
- *   - Ajout de `last_login_at` (audit + UX « dernière activité »)
- *   - Ajout de `deleted_at` soft delete (départ d'un gestionnaire préserve
- *     l'historique · cf. ADR-0012 révision 2026-04-24)
- *
- * La colonne `must_change_password` initialement prévue a été retirée
- * en V1 (ADR-0012 rev. 1.1 · plan-remédiation Vague 1 Lot 2 D4) ·
- * pas de `floty:user:create` Artisan ni de middleware ForceChangePassword
- * pour le périmètre simplifié V1 (un seul compte créé directement BDD).
- *
- * Les tables associées `password_reset_tokens` et `sessions` restent
- * au format Laravel standard.
+ * Users table (ADR-0012 rev. 1.1): split name, last_login_at, soft deletes.
  */
 return new class extends Migration
 {

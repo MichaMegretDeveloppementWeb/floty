@@ -7,25 +7,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `unavailability_documents` · justificatifs joints à une
- * indisponibilité véhicule (P1).
- *
- * **Limites métier V1** (matérialisées dans l'Action, pas en DB) ·
- *   - 5 documents maximum par indisponibilité
- *   - 5 Mo maximum par fichier
- *   - Images (jpg, jpeg, png, webp) ou PDF (validation MIME)
- *
- * **Stockage physique** · sur le disk Laravel par défaut. V1 = `local`
- * private (`storage/app/private/`). Bascule S3 = juste changer
- * `FILESYSTEM_DISK` dans `.env`, pas de migration.
- *
- * Path de stockage · `unavailability-documents/{unavailability_id}/{uuid}.{ext}`
- * - UUID pour éviter collisions, unavailability_id pour cleanup facile,
- *   extension préservée pour distinguer img/PDF côté téléchargement.
- *
- * Pas de soft-delete · cohérent avec ContractDocument. La suppression
- * UI est immédiate (DB + fichier physique). V2 ajoutera un soft-delete
- * + job de purge si besoin d'audit.
+ * Supporting documents for an unavailability. Limits (5 files, 5 Mo each, jpg/png/webp/pdf)
+ * enforced in the Action. Storage path: unavailability-documents/{id}/{uuid}.{ext}.
  */
 return new class extends Migration
 {

@@ -7,30 +7,10 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `fiscal_risk_settings` · seuils paramétrables de la grille de
- * détection des zones de risque fiscal (Phase 11 D1, ADR-0015 § D7
- * rev. 1.1).
- *
- * Singleton applicatif : une seule ligne identifiée par `id=1`. Mono
- * société pour V1.2. Les valeurs par défaut sont conservatoires (cf.
- * ADR-0015 § 9.4) : Renaud et son expert-comptable peuvent les ajuster
- * depuis la page « Paramètres · Détection de risque » sans déploiement.
- *
- * Sémantique des champs :
- *   - `max_interval` : nb max de jours pleins entre 2 contrats LCD pour
- *     les considérer comme chaînés (rattachés au même cluster).
- *   - `threshold_low` : cumul de jours au-delà duquel la chaîne est
- *     classée R-LCD-CHAIN (niveau moyen).
- *   - `threshold_high` : cumul de jours au-delà duquel la chaîne est
- *     classée R-LCD-CHAIN-FORT (niveau élevé).
- *   - `count_high` : nombre de contrats à partir duquel la chaîne est
- *     classée R-LCD-CHAIN-FORT (alternative au cumul).
- *
- * Doctrine D5.10.N (Phase 13) · les LLD sont ignorés lors de la
- * construction des chaînes LCD (la chaîne vise la continuité d'usage,
- * pas le véhicule). Le paramètre `lld_breaks_chain` qui contrôlait ce
- * comportement a été supprimé · `RiskDetectionService::buildChains()`
- * ignore désormais silencieusement tous les LLD.
+ * Fiscal risk detection thresholds (ADR-0015 § D7 rev. 1.1).
+ * Application-level singleton at id=1, with conservative defaults editable from settings.
+ * Fields: max_interval (LCD chain gap), threshold_low / threshold_high (cumulative days),
+ * count_high (contract count alternative).
  */
 return new class extends Migration
 {

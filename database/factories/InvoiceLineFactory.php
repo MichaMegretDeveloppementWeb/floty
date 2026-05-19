@@ -40,8 +40,7 @@ final class InvoiceLineFactory extends Factory
             'weekly_rate_cents' => $weekly,
             'monthly_rate_cents' => $monthly,
             'total_ht_cents' => $total,
-            // Sémantique « pas de réduction par défaut » · gross = net.
-            // Les tests RentalDiscount surchargent via state() au besoin.
+            // No discount by default: gross = net.
             'gross_total_cents' => $total,
             'discount_cents' => 0,
             'applied_discount_id' => null,

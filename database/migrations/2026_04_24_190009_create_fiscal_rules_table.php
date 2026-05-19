@@ -7,25 +7,9 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Table `fiscal_rules` · index strictement minimal des règles fiscales
- * (ADR-0022 v1.4, Phase 13 D5.14).
- *
- * Cf. 02-schema-fiscal.md § 1 + ADR-0002 + ADR-0006 + ADR-0009 + ADR-0022.
- *
- * **Doctrine** · les classes PHP des règles sont la source de vérité
- * unique · cette table ne porte plus que l'index nécessaire pour relier
- * l'id BDD à la classe PHP. Toutes les autres données vivent dans les
- * classes (nom, description, base légale, contenu pédagogique, etc.)
- * et sont projetées à la volée par le registry. Alimentée exclusivement
- * par seeders (ADR-0002).
- *
- * **Pas de versioning** (ADR-0009) · si une règle est erronée, on corrige
- * directement sa classe PHP, le `rule_code` en base reste stable. Aucune
- * colonne `version_internal`. L'historique des corrections vit dans
- * `git log` et les sections « Révisions » de `taxes-rules/{year}.md`.
- *
- * Jamais de suppression · les ids restent référencés par les snapshots
- * historiques de déclarations.
+ * Fiscal rules index (ADR-0002, ADR-0006, ADR-0009, ADR-0022).
+ * Minimal table: PHP rule classes are the source of truth; this only links id to rule_code.
+ * Seeder-fed, no versioning, no deletion (ids referenced by declaration snapshots).
  */
 return new class extends Migration
 {
