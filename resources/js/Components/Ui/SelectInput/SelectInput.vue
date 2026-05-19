@@ -19,9 +19,9 @@ const props = withDefaults(
         disabled?: boolean;
         required?: boolean;
         /**
-         * Si true, l'option placeholder reste sélectionnable après un
-         * choix initial · utile pour les filtres où "Tous" est une
-         * valeur valide (revient à value=''). Défaut false (cas form).
+         * When true, the placeholder option remains selectable after the
+         * initial choice. Useful for filters where "All" is a valid value
+         * (resets to null). Defaults to false (form behaviour).
          */
         nullable?: boolean;
         id?: string;

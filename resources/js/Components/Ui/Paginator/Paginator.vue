@@ -1,18 +1,9 @@
 <script setup lang="ts">
 /**
- * Composant pagination numéroté avec ellipsis pour les Index server-side
- * (cf. ADR-0020). Présentationnel : émet `page-change` et `per-page-change`,
- * ne contient aucune logique de reload (orchestrée par `useServerTableState`).
- *
- * Algorithme de pagination :
- *  - lastPage ≤ 7 : tous les numéros affichés (`1 2 3 4 5 6 7`)
- *  - sinon : `1` + (ellipsis si gap) + `current-1, current, current+1`
- *    + (ellipsis si gap) + `lastPage`
- *
- * UI : « Affichage X–Y sur Z » à gauche, boutons pages au centre,
- * sélecteur perPage à droite. Strings FR hardcodées.
+ * Numbered paginator with ellipsis for server-side index pages (ADR-0020).
+ * Emits `page-change` and `per-page-change`; reload orchestration lives in
+ * `useServerTableState`.
  */
-
 import { ChevronLeft, ChevronRight } from 'lucide-vue-next';
 import { computed } from 'vue';
 

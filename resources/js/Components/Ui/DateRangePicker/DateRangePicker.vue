@@ -1,25 +1,13 @@
 <script setup lang="ts">
 /**
- * Calendrier custom de sélection d'une plage continue de dates.
+ * Custom date-range calendar. Selection clicks auto-normalize into
+ * `start = min(clicks)` / `end = max(clicks)`. Header offers month and
+ * year selects (sliding window) plus prev/next chevrons. Text inputs are
+ * synced bidirectionally with the calendar. Toggle `ongoing` keeps only
+ * the start date (open-ended period). `disabledDates` are unselectable
+ * (a range overlapping any of them is refused with `errorMessage`).
  *
- * **v2 (04.I.2)** - 3 améliorations UX, API publique conservée :
- *   1. Header avec selects mois + année (±5 ans glissants) + chevrons,
- *      navigation rapide
- *   2. Auto-normalize de l'ordre des clics : peu importe lequel des deux
- *      clics est premier, `start = min(clics)`, `end = max(clics)`
- *   3. Inputs date textuels synchronisés bidirectionnellement avec le
- *      calendrier (input Fin disabled en mode `ongoing`)
- *
- * Toggle « en cours » (`v-model:ongoing`) : désactive la borne de fin
- * et garde uniquement `startDate` (cas d'une indispo dont on ne connaît
- * pas encore la date de retour).
- *
- * `disabledDates` : ISO Y-m-d non sélectionnables (jours déjà attribués).
- * Si une nouvelle plage chevauche un disabledDate → range refusée et
- * `errorMessage` exposé sous le calendrier.
- *
- * Toute la logique vit dans `useDateRangePicker` ; ce .vue est purement
- * présentationnel.
+ * All logic lives in `useDateRangePicker`; this file stays presentational.
  */
 import { ChevronLeft, ChevronRight, Infinity as InfinityIcon, X } from 'lucide-vue-next';
 import { toRef } from 'vue';
@@ -31,14 +19,14 @@ import type { DateRange } from '@/Composables/Ui/DateRangePicker/useDateRangePic
 
 const props = withDefaults(
     defineProps<{
-        /** Année initiale d'ouverture du calendrier (centre du select année). */
+        /** Initial year shown on open (center of the year select). */
         year: number;
-        /** Mois initial 1..12 (défaut = 1). */
+        /** Initial month 1..12 (defaults to 1). */
         startMonth?: number;
-        /** ISO Y-m-d non sélectionnables. */
+        /** ISO Y-m-d that cannot be selected. */
         disabledDates?: string[];
-        /** ISO Y-m-d à mettre en évidence (anneau bleu) - utilisé pour
-         *  marquer la semaine de contexte dans le drawer Planning. */
+        /** ISO Y-m-d highlighted with a blue ring (e.g. context week
+         *  marker in the Planning drawer). */
         highlightDates?: string[];
     }>(),
     {
@@ -218,8 +206,6 @@ const {
         </div>
 
         <div class="flex flex-wrap items-center justify-between gap-2 text-xs">
-
-            <!-- Bouton secondary visible si sélection active -->
             <Button
                 v-if="range.startDate !== null"
                 type="button"

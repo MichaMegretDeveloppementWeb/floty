@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 
 const props = defineProps<{
-    /** Borne minimale disponible (année la plus ancienne en BDD). */
+    /** Lower bound (oldest year available in the database). */
     min: number;
-    /** Borne maximale disponible (année la plus récente en BDD). */
+    /** Upper bound (most recent year available in the database). */
     max: number;
 }>();
 
@@ -14,8 +14,6 @@ const yearMax = defineModel<number | null>('yearMax', { required: true });
 const years = computed<number[]>(() => {
     const list: number[] = [];
 
-    // Ordre ascendant : année la plus ancienne en haut, la plus récente
-    // en bas. Cohérent avec la lecture occidentale (passé → présent).
     for (let y = props.min; y <= props.max; y++) {
         list.push(y);
     }
@@ -44,20 +42,16 @@ function isInRange(year: number): boolean {
 }
 
 function onYearClick(year: number): void {
-    // Cas 1 : aucune borne définie → set Min
     if (yearMin.value === null && yearMax.value === null) {
         yearMin.value = year;
 
         return;
     }
 
-    // Cas 2 : Min seul défini → définir Max (ou re-set Min si année < Min)
     if (yearMin.value !== null && yearMax.value === null) {
         if (year >= yearMin.value) {
             yearMax.value = year;
         } else {
-            // Année cliquée < Min → la nouvelle valeur devient Min,
-            // l'ancien Min devient Max (range cohérent par construction).
             yearMax.value = yearMin.value;
             yearMin.value = year;
         }
@@ -65,7 +59,6 @@ function onYearClick(year: number): void {
         return;
     }
 
-    // Cas 3 : Max seul défini → définir Min (ou re-set Max si année > Max)
     if (yearMin.value === null && yearMax.value !== null) {
         if (year <= yearMax.value) {
             yearMin.value = year;
@@ -77,7 +70,6 @@ function onYearClick(year: number): void {
         return;
     }
 
-    // Cas 4 : range complet → recommence (reset Max, set Min)
     yearMin.value = year;
     yearMax.value = null;
 }

@@ -58,8 +58,6 @@ watch(
 
 const slots = useSlots();
 
-// F-41-008 (Lot 7 D11) · const map au lieu d'un `ref` réactif inutile
-// (la map ne change jamais). Aligné avec `Drawer.vue` (cf. `widthClass`).
 const sizeClass = {
     sm: 'max-w-md',
     md: 'max-w-lg',

@@ -3,9 +3,9 @@ import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = withDefaults(
     defineProps<{
-        /** Largeur max du tooltip (par défaut auto). */
+        /** Max width of the tooltip (defaults to auto). */
         maxWidth?: string;
-        /** Décalage vertical en pixels au-dessus du trigger. */
+        /** Vertical offset in pixels above the trigger. */
         offset?: number;
     }>(),
     {
@@ -36,7 +36,7 @@ const updatePosition = (): void => {
 
 const show = async (): Promise<void> => {
     visible.value = true;
-    // Attendre le rendu du tooltip pour mesurer sa taille
+    // Wait for the tooltip to render before measuring its size.
     await new Promise((resolve) => requestAnimationFrame(resolve));
     updatePosition();
 };
@@ -51,10 +51,8 @@ const handleScroll = (): void => {
     }
 };
 
-// F-41-003 (Lot 7 D11) · listeners enregistrés dans `onMounted`
-// pour symétrie avec `onBeforeUnmount` + safe SSR (window n'existe
-// pas côté serveur Inertia · l'enregistrement à l'instanciation
-// crashait le rendu serveur).
+// Listeners registered in `onMounted` for symmetry with `onBeforeUnmount`
+// and SSR safety (window does not exist server-side).
 onMounted(() => {
     window.addEventListener('scroll', handleScroll, true);
     window.addEventListener('resize', handleScroll);

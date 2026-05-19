@@ -5,10 +5,9 @@ import { useToasts } from '@/Composables/Shared/useToasts';
 
 const { toasts, dismiss } = useToasts();
 
-// Le `<Teleport to="body">` cause un Hydration mismatch en SSR
-// (le serveur rend un placeholder `<script>` que le client remplace
-// par un `<div>`). On gate le Teleport derrière un flag `mounted` pour
-// ne le faire qu'au démarrage côté client, après l'hydration.
+// `<Teleport to="body">` triggers an SSR hydration mismatch (server renders
+// a placeholder, client swaps in a `<div>`). Gate it behind `mounted` so it
+// only activates client-side after hydration.
 const mounted = ref<boolean>(false);
 
 onMounted(() => {

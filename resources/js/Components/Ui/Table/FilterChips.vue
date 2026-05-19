@@ -2,7 +2,7 @@
 import { X } from 'lucide-vue-next';
 
 defineProps<{
-    /** Liste des filtres actifs : `key` = identifiant pour le retrait, `label` = texte affiché. */
+    /** Active filter chips. `key` identifies the chip for removal, `label` is displayed. */
     chips: Array<{ key: string; label: string }>;
 }>();
 

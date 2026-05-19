@@ -19,11 +19,10 @@ const props = withDefaults(
         searchPlaceholder?: string;
         noResultsLabel?: string;
         /**
-         * Ouvre automatiquement la dropdown au mount. Patient : si le
-         * composant est `disabled` au mount, attend jusqu'à ce que ça
-         * passe à `false` puis ouvre (max 1 fois · watcher auto-détruit).
-         * UX : utilisé par `DriversMultiPicker` pour éviter le double
-         * clic après « + Ajouter un conducteur ».
+         * Auto-open the dropdown on mount. If the component is `disabled`
+         * at mount time, waits for it to flip to `false` and then opens
+         * once (watcher self-disposes). Used by DriversMultiPicker to
+         * avoid a double-click after "Add a driver".
          */
         autoOpenOnMount?: boolean;
     }>(),
@@ -79,8 +78,8 @@ const {
     modelValue.value = value;
 });
 
-// Focus search à l'ouverture, retour focus sur le trigger à la
-// fermeture (clavier UX : Escape doit ramener le focus au déclencheur).
+// Focus the search input on open, return focus to the trigger on close
+// (keyboard UX: Escape must bring focus back to the trigger).
 watch(isOpen, async (open) => {
     if (open) {
         await nextTick();
@@ -110,8 +109,7 @@ function onTriggerClick(): void {
     toggle();
 }
 
-// Auto-open au mount (UX D5.10.Q · pas de double-clic après ajout
-// d'une ligne conducteur). Patient sur le `disabled` initial.
+// Auto-open on mount, waiting for an initial `disabled` to flip to false.
 onMounted(() => {
     if (!props.autoOpenOnMount) {
         return;
@@ -123,9 +121,8 @@ onMounted(() => {
         return;
     }
 
-    // Attend la fin du chargement initial (typiquement DriverSelector
-    // qui fetche async). Watcher s'autodétruit après la 1ère ouverture
-    // pour ne pas réouvrir sur chaque toggle ultérieur de `disabled`.
+    // Wait for async-loaded options. The watcher self-disposes after the
+    // first open to avoid re-opening on later `disabled` toggles.
     const stop = watch(
         () => props.disabled,
         (isDisabled) => {
@@ -142,7 +139,6 @@ function onTriggerKeyDown(event: KeyboardEvent): void {
         return;
     }
 
-    // Trigger fermé : ouverture sur Enter / Space / ArrowDown
     if (!isOpen.value) {
         if (event.key === 'Enter' || event.key === ' ' || event.key === 'ArrowDown') {
             event.preventDefault();
@@ -152,7 +148,6 @@ function onTriggerKeyDown(event: KeyboardEvent): void {
         return;
     }
 
-    // Trigger ouvert : navigation déléguée au composable
     onKeyDown(event);
 }
 </script>

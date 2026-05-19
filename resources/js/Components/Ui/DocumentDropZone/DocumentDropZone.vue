@@ -4,14 +4,14 @@ import { computed, ref } from 'vue';
 
 const props = withDefaults(
     defineProps<{
-        /** MIME types acceptés (ex. 'application/pdf'). */
+        /** Accepted MIME types (e.g. 'application/pdf'). */
         accept: string;
-        /** Taille max en bytes par fichier. */
+        /** Maximum size per file in bytes. */
         maxSizeBytes: number;
-        /** Nombre max de fichiers acceptés en une fois. Par défaut illimité. */
+        /** Maximum number of files per drop. Unlimited by default. */
         maxFiles?: number;
         disabled?: boolean;
-        /** Permettre la sélection multiple via input (default: true). */
+        /** Allow multi-file selection via the input (defaults to true). */
         multiple?: boolean;
     }>(),
     {
@@ -24,10 +24,9 @@ const props = withDefaults(
 const emit = defineEmits<{
     'files-added': [files: File[]];
     /**
-     * F-41-011 (Lot 7 D12) · le composant Ui n'importe plus
-     * `useToasts` directement (couche UI ne doit pas connaître les
-     * concerns globaux). Le parent décide quoi faire des erreurs
-     * (toast, inline message, log, etc.).
+     * Rejected file message. The UI layer stays decoupled from global
+     * concerns: the parent decides how to surface the error (toast,
+     * inline message, log, etc.).
      */
     'rejected': [message: string];
 }>();
@@ -78,7 +77,7 @@ function onFileInputChange(event: Event): void {
     }
 
     handleFiles(Array.from(input.files));
-    input.value = ''; // permet de re-sélectionner les mêmes fichiers
+    input.value = ''; // allow re-selecting the same files
 }
 
 function onDragOver(event: DragEvent): void {
@@ -105,10 +104,9 @@ function onDrop(event: DragEvent): void {
     handleFiles(Array.from(event.dataTransfer.files));
 }
 
-// La validation MIME ci-dessous est une UX guard, pas une garantie
-// sécurité · `file.type` peut être arbitraire (DataTransfer arbitraire,
-// extension renommée). La vraie validation se fait côté backend via
-// `#[Mimes]` Spatie qui sniffe la signature du fichier.
+// MIME validation here is a UX guard, not a security boundary: `file.type`
+// can be spoofed. Real validation happens server-side via Spatie `#[Mimes]`
+// which sniffs the actual file signature.
 function handleFiles(files: File[]): void {
     const valid: File[] = [];
     const errors: string[] = [];

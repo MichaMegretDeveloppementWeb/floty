@@ -1,33 +1,20 @@
 <script setup lang="ts">
+/**
+ * Presentational wrapper around `SelectInput` for picking a year from a
+ * given range. Auto-disables when only one year is available. Selection
+ * logic lives in the consuming composable (URL sync, reload, validation).
+ */
 import { computed } from 'vue';
 import SelectInput from '@/Components/Ui/SelectInput/SelectInput.vue';
 
-/**
- * Composant présentationnel pur pour sélectionner une année dans un
- * range donné. Wrapper léger autour de {@link SelectInput} avec
- * conversion type-safe des années en options.
- *
- * **Usage typique** : couplé au composable
- * {@link useYearScope} qui pilote la logique de sélection (URL sync,
- * reload Inertia, validation). Ce composant n'a aucune logique métier
- * · il se contente de rendre les années en select.
- *
- * **Mono-année** : si `availableYears` ne contient qu'une seule entrée,
- * le sélecteur est automatiquement désactivé (rien à choisir).
- *
- * **Type modelValue** : `number` strict (l'année ne peut pas être null
- * dans le scope). La conversion vers `string | number | null` attendu
- * par SelectInput est gérée localement.
- */
-
 const props = defineProps<{
-    /** Liste des années sélectionnables (range continu typiquement). */
+    /** Selectable years (typically a continuous range). */
     availableYears: readonly number[];
-    /** Libellé optionnel au-dessus du select. */
+    /** Optional label above the select. */
     label?: string;
-    /** Désactive explicitement (en plus du mono-année auto). */
+    /** Explicit disable, on top of the auto mono-year disable. */
     disabled?: boolean;
-    /** ID HTML · auto-généré si omis. */
+    /** HTML id, auto-generated when omitted. */
     id?: string;
 }>();
 
@@ -42,9 +29,8 @@ const options = computed(() =>
 
 const isMonoYear = computed<boolean>(() => props.availableYears.length <= 1);
 
-// Proxy pour adapter le type strict `number` au type `string | number | null`
-// attendu par SelectInput. La validation upstream garantit qu'on ne
-// reçoit jamais autre chose qu'un number.
+// Adapter the strict `number` model to the `string | number | null`
+// signature expected by SelectInput.
 const proxiedValue = computed<string | number | null>({
     get: () => modelValue.value,
     set: (value) => {

@@ -1,15 +1,8 @@
 <script setup lang="ts">
 /**
- * Sélecteur d'année compact en pill avec icône + label inline
- * (chantier UX-Loc suite). Remplace l'ancien pattern « FieldLabel
- * au-dessus + SelectInput » qui prenait 2 lignes et était trop discret.
- *
- * Toute la pill est cliquable (icône + label + select) · un clic
- * n'importe où ouvre le picker via `HTMLSelectElement.showPicker()`,
- * pour étendre la zone d'interaction au-delà du seul `<select>`.
- *
- * Utilisé sur Planning Index, Contracts Index, Vehicles Index,
- * Companies Index pour rester cohérent visuellement.
+ * Compact inline year selector rendered as a clickable pill (icon + label +
+ * select). The whole pill opens the native picker via `showPicker()` so the
+ * interaction zone extends beyond the bare `<select>`.
  */
 import { CalendarDays } from 'lucide-vue-next';
 import { ref, useId } from 'vue';
@@ -35,9 +28,8 @@ const inputId = (): string => autoId;
 const selectRef = ref<HTMLSelectElement | null>(null);
 
 function onContainerClick(event: MouseEvent): void {
-    // Si le clic vient du `<select>` lui-même, le browser ouvre déjà le
-    // picker nativement. Sinon (label, icône, conteneur), on déclenche
-    // showPicker() pour étendre la zone de clic à toute la pill.
+    // Clicks on the `<select>` itself open the picker natively. For clicks
+    // on the surrounding label/icon/container, force-open via showPicker().
     if (event.target === selectRef.value) {
         return;
     }
@@ -47,9 +39,8 @@ function onContainerClick(event: MouseEvent): void {
     try {
         selectRef.value?.showPicker();
     } catch {
-        // showPicker peut throw si non supporté ou hors user-activation ·
-        // dans ce cas on tombe simplement sur le focus, l'utilisateur
-        // peut ouvrir avec Espace/Alt+Bas.
+        // showPicker may throw if unsupported or called outside a user
+        // activation. Focus is enough; the user can still open via keyboard.
     }
 }
 </script>

@@ -3,7 +3,7 @@ import { Filter } from 'lucide-vue-next';
 import { onBeforeUnmount, onMounted, ref } from 'vue';
 
 defineProps<{
-    /** Nombre de filtres actifs (badge sur le bouton trigger). */
+    /** Number of active filters, displayed as a badge on the trigger button. */
     activeCount: number;
 }>();
 
@@ -82,13 +82,6 @@ onBeforeUnmount(() => {
             </span>
         </button>
 
-        <!--
-            Mobile (< sm) : bottom sheet centrée + backdrop léger pour
-            focus visuel, hauteur bornée à 80vh + scroll interne.
-            Desktop (≥ sm) : popover ancré sous le bouton, max 400px de
-            large, hauteur bornée à viewport-8rem + scroll interne pour
-            les longs contenus (filtres avec grille année, par ex.).
-        -->
         <div
             v-if="open"
             class="fixed inset-0 z-40 bg-slate-900/20 sm:hidden"

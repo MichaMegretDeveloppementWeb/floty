@@ -9,10 +9,9 @@ const props = withDefaults(
         initials: string;
         color?: CompanyColor;
         /**
-         * Variant cercle seul (sans pill ni nom à côté). Le nom complet
-         * reste exposé via aria-label + title pour l'accessibilité et le
-         * hover. À utiliser dans les contextes denses (cellules de table
-         * étroite, cartes compactes).
+         * Circle-only variant (no pill, no inline name). Full name remains
+         * exposed via aria-label + title for accessibility and hover. Use
+         * in dense contexts (narrow table cells, compact cards).
          */
         compact?: boolean;
     }>(),

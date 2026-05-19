@@ -1,29 +1,24 @@
 <script setup lang="ts">
 /**
- * Pills d'années cliquables pour sélecteur rapide d'exercice. Conçu pour
- * les onglets fiscaux (entreprise, véhicule) où un utilisateur navigue
- * entre exercices avec un partial reload Inertia.
- *
- * Plus récent à gauche (consultation la plus probable). Scrollable
- * horizontalement pour les entités avec 20+ exercices d'historique.
+ * Clickable year pills for quick fiscal-year switching on entity tabs.
+ * Most recent year leftmost. Scrollable horizontally for entities with
+ * many years of history.
  */
 import { computed } from 'vue';
 
 const props = withDefaults(
     defineProps<{
-        /** Plage continue [firstYear..currentYear]. */
+        /** Continuous range [firstYear..currentYear]. */
         years: readonly number[];
-        /** Année active (ou null si filtre custom / pas de filtre). */
+        /** Active year, or null when no year filter applies. */
         activeYear: number | null;
-        /** Désactive l'interaction pendant le partial reload Inertia. */
+        /** Disables interaction during an Inertia partial reload. */
         loading?: boolean;
-        /** Libellé optionnel à gauche des pills. Défaut « Année ». */
+        /** Optional leading label, defaults to "Année". */
         label?: string;
         /**
-         * D5.10.U · liste des années qui ont au moins une action en
-         * attente sur le contexte courant. Affiche un dot ambre en
-         * exposant de la pill · guide l'utilisateur jusqu'à l'année
-         * concernée sans l'obliger à les tester toutes.
+         * Years with at least one pending action in the current context.
+         * Renders an amber dot on top of the pill to guide the user.
          */
         yearsWithTodo?: readonly number[];
     }>(),

@@ -1,26 +1,8 @@
 <script setup lang="ts">
 /**
- * Dropdown générique « Actions » pour cellules de tableau ou cartes
- * (chantier B-bis). Affiche un trigger compact et révèle les actions
- * via un menu **téléporté vers `body`** + position fixed · évite tout
- * clipping par les `overflow-auto` parents (tables, cards). Pattern
- * inspiré de `Tooltip.vue:22-60`.
- *
- * Usage :
- *   <ActionsMenu>
- *       <button @click="...">Éditer</button>
- *       <button @click="..." class="text-rose-600">Détacher</button>
- *   </ActionsMenu>
- *
- * Slots :
- *   - `trigger` (optionnel) : remplace le bouton par défaut (icône `MoreVertical`)
- *   - default : les `<button>` du menu (chacun ferme le menu en cliquant)
- *
- * Props :
- *   - `align` (`'left' | 'right'`, défaut `right`) : alignement du menu
- *     par rapport au trigger.
- *   - `width` (px ou string CSS, défaut `192px`) : largeur du menu.
- *   - `triggerLabel` (string, défaut `Actions`) : aria-label du bouton.
+ * Generic dropdown menu for table cells and cards. Trigger toggles a menu
+ * teleported to `body` with fixed positioning, so it never gets clipped by
+ * parent `overflow-auto` containers.
  */
 import { MoreVertical } from 'lucide-vue-next';
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -56,8 +38,7 @@ function updatePosition(): void {
     const menuRect = menu.getBoundingClientRect();
     const margin = 4;
 
-    // Ouvre par défaut sous le trigger. Si pas la place en bas (proche du
-    // viewport bottom), bascule au-dessus.
+    // Open below by default, flip above when there is not enough room.
     const fitsBelow = triggerRect.bottom + menuRect.height + margin <= window.innerHeight;
     top.value = fitsBelow
         ? triggerRect.bottom + margin
@@ -69,7 +50,6 @@ function updatePosition(): void {
         left.value = triggerRect.left;
     }
 
-    // Clamp horizontal pour éviter de sortir du viewport.
     if (left.value < margin) {
         left.value = margin;
     } else if (left.value + menuRect.width > window.innerWidth - margin) {
@@ -82,7 +62,6 @@ async function toggle(event: MouseEvent): Promise<void> {
     open.value = !open.value;
 
     if (open.value) {
-        // Attendre le rendu avant de mesurer la taille du menu.
         await new Promise((resolve) => requestAnimationFrame(resolve));
         updatePosition();
     }
@@ -125,8 +104,7 @@ function handleScroll(): void {
     }
 }
 
-// Ferme le menu après un clic interne (les `<button>` du slot émettent
-// `click` qui bubble jusqu'à la racine du menu).
+// Close on internal click: slotted buttons bubble up to the menu root.
 function handleMenuClick(): void {
     close();
 }
@@ -147,8 +125,7 @@ onBeforeUnmount(() => {
 
 watch(open, (isOpen) => {
     if (isOpen) {
-        // Re-mesure quand le contenu du slot change après ouverture
-        // (cas rare mais protège contre les rehydration).
+        // Re-measure when slot content changes after opening (rehydration safety).
         updatePosition();
     }
 });

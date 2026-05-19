@@ -17,9 +17,9 @@ const props = withDefaults(
         description?: string;
         dismissible?: boolean;
         /**
-         * Durée d'affichage en ms (= TTL côté `useToasts`). Pilote la
-         * barre de progression bottom qui décroît de 100 % → 0 % pendant
-         * la durée d'affichage. 0 = persistant (pas de barre).
+         * Display duration in ms (matches the TTL on `useToasts`). Drives
+         * the bottom progress bar shrinking from 100% to 0%. 0 = persistent
+         * (no bar).
          */
         duration?: number;
     }>(),
@@ -34,9 +34,8 @@ const emit = defineEmits<{
     dismiss: [];
 }>();
 
-// F-41-006 (Lot 7 D11) · 3 switchs convergents (chip, progress, icon)
-// → 1 lookup objet typé. Exhaustivité garantie par le typage `Record<ToastTone, ...>`
-// (TS rejette tout ajout d'un nouveau tone sans config correspondante).
+// Single typed lookup for chip/progress/icon. `Record<ToastTone, ...>`
+// guarantees exhaustiveness: TS rejects any new tone without config.
 const TONE_CONFIG: Record<ToastTone, { chip: string; progress: string; icon: typeof CheckCircle2 }> = {
     success: { chip: 'bg-emerald-50 text-emerald-700', progress: 'bg-emerald-500', icon: CheckCircle2 },
     error: { chip: 'bg-rose-50 text-rose-700', progress: 'bg-rose-500', icon: XCircle },
@@ -52,10 +51,9 @@ const ariaRole = computed<'status' | 'alert'>(() =>
     props.tone === 'error' || props.tone === 'warning' ? 'alert' : 'status',
 );
 
-// Barre de progression : keyframe `floty-toast-progress` qui anime
-// transform: scaleX(1) → scaleX(0) sur la durée du toast. On utilise
-// une animation CSS (vs une transition sur width) pour éviter le
-// timing dance inhérent aux transitions sur first-paint.
+// Progress bar driven by the `floty-toast-progress` keyframe (scaleX 1→0).
+// Animation over duration rather than a width transition to avoid the
+// first-paint timing dance.
 const showProgress = computed<boolean>(() => props.duration > 0);
 </script>
 
