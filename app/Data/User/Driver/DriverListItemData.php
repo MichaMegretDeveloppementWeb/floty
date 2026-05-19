@@ -8,10 +8,10 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne du tableau Index drivers (Phase 06 V1.2).
+ * Row of the Drivers Index table.
  *
- * `activeCompanies` ne contient que les memberships actives (left_at NULL).
- * `totalActiveCompaniesCount` permet l'affichage condensé "+N" si plus de 2.
+ * `activeCompanies` lists only memberships with `left_at IS NULL`;
+ * `totalActiveCompaniesCount` enables a condensed "+N" overflow display.
  */
 #[TypeScript]
 final class DriverListItemData extends Data

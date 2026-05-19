@@ -12,8 +12,8 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload d'édition d'un conducteur - uniquement firstName/lastName.
- * Les memberships company sont gérées via des endpoints dédiés.
+ * Payload for editing a driver's identity. Company memberships are managed
+ * through dedicated endpoints.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

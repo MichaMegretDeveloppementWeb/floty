@@ -9,11 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Wrapper de retour pour l'Index Vehicles server-side (cf. ADR-0020).
- *
- * `data` contient les VehicleListItemData de la page courante (avec
- * `fullYearTax` + `dailyTaxRate` calculés uniquement pour les véhicules
- * affichés, pas tout le dataset).
+ * Server-side paginated wrapper for the Vehicles Index (ADR-0020).
  */
 #[TypeScript]
 final class PaginatedVehicleListData extends Data

@@ -16,17 +16,8 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de modification d'une entreprise. Mirroir de
- * {@see StoreCompanyData} avec deux différences sémantiques :
- *
- * - Le `short_code` n'est pas exposé · il est verrouillé à la création
- *   (généré depuis `legal_name` via `Company::generateShortCode()`).
- *   Le modifier impliquerait de propager le changement sur tous les
- *   composants qui l'affichent comme identifiant stable (badges,
- *   numéros de facture émise, libellés contrats) · hors scope V1.2.
- * - Pas de défaut `is_active` : l'état d'activation est piloté par
- *   d'autres flux (suppression / désactivation explicite). Le formulaire
- *   d'édition ne gère que les champs identité / adresse / contact.
+ * Payload for editing a company. `short_code` is locked at creation and the
+ * activation flag is owned by other flows, so neither is exposed here.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -87,7 +78,7 @@ final class UpdateCompanyData extends Data
     }
 
     /**
-     * Défauts métier : pays par défaut FR si vide.
+     * Apply defaults before validation: country FR when empty.
      *
      * @param  array<string, mixed>  $properties
      * @return array<string, mixed>

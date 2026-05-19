@@ -10,22 +10,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne de la table « Flotte » (page User/Vehicles/Index).
+ * Row of the fleet table (User/Vehicles/Index).
  *
- * Le coût présenté est **théorique** (`fullYearTax`) - ce que coûterait
- * le véhicule s'il était attribué 100 % du temps à une seule entreprise.
- * Permet de comparer les véhicules de la flotte indépendamment de leur
- * taux d'utilisation. La taxe réelle (compte tenu des attributions
- * existantes) est disponible sur la fiche détail Show.
- *
- * **Coûts en defer** (chantier perf Flotte 2026-05-17) ·
- * `fullYearTax`, `dailyTaxRate`, `rentalPriceFullYear` sont nullable ·
- * la liste SLIM ({@see VehicleListingService::listPaginatedSlim}) sert
- * le payload initial avec `null` sur ces 3 champs · les valeurs réelles
- * arrivent dans une 2e requête `Inertia::defer` côté
- * {@see VehicleController::index} qui appelle
- * {@see VehicleListingService::costsForVehicleIds}. Skeleton sur les
- * 2 colonnes le temps du fetch différé.
+ * `fullYearTax`, `dailyTaxRate` and `rentalPriceFullYear` are nullable
+ * because the SLIM listing serves them as null and the actual values
+ * arrive via a deferred `Inertia::defer` fetch.
  */
 #[TypeScript]
 final class VehicleListItemData extends Data
@@ -41,13 +30,13 @@ final class VehicleListItemData extends Data
         public ?string $exitDate,
         public ?VehicleExitReason $exitReason,
         public bool $isExited,
-        /** Null tant que la prop `vehiclesCosts` n'est pas hydratée (defer). */
+        /** Null until the deferred `vehiclesCosts` prop is hydrated. */
         public ?float $fullYearTax,
-        /** Null tant que la prop `vehiclesCosts` n'est pas hydratée (defer). */
+        /** Null until the deferred `vehiclesCosts` prop is hydrated. */
         public ?float $dailyTaxRate,
         /**
-         * Null tant que la prop `vehiclesCosts` n'est pas hydratée (defer),
-         * OU si tarif annuel manquant pour ce véhicule.
+         * Null until deferred `vehiclesCosts` is hydrated OR when the vehicle
+         * is missing an annual pricing.
          */
         public ?float $rentalPriceFullYear,
     ) {}

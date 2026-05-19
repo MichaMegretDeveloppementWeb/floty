@@ -9,7 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Mini-tag entreprise dans la colonne "Entreprises" de l'Index drivers.
+ * Mini company tag rendered in the Companies column of the Drivers Index.
  */
 #[TypeScript]
 final class DriverListItemCompanyTagData extends Data

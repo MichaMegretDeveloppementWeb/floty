@@ -8,14 +8,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Une ligne du top des véhicules les plus attribués à une entreprise
- * sur un exercice · alimente la liste « Top véhicules » de la section
- * Activité de la fiche entreprise (chantier K L2).
- *
- * Le `percentage` est calculé sur la **somme des jours-véhicules** de
- * l'entreprise pour l'année (pas sur les jours calendaires) · ce qui
- * permet la lecture comparative « ce véhicule représente X % de
- * l'activité de l'entreprise ».
+ * One row of the top vehicles assigned to a company on a fiscal year.
+ * `percentage` is computed against the company's total vehicle-days for the year.
  */
 #[TypeScript]
 final class CompanyTopVehicleData extends Data
@@ -26,7 +20,7 @@ final class CompanyTopVehicleData extends Data
         public string $brand,
         public string $model,
         public int $daysUsed,
-        /** Pourcentage [0..100] arrondi à 1 décimale du total annuel jours-véhicules de l'entreprise. */
+        /** Percentage [0..100] rounded to 1 decimal of the company's annual vehicle-days. */
         public float $percentage,
     ) {}
 }

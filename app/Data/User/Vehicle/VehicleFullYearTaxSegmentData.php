@@ -12,31 +12,9 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Détail tarifaire d'un segment VFC dans le calcul de la Taxe pleine
- * d'un véhicule sur une année (chantier dette VFC).
- *
- * Quand un véhicule a une seule VFC sur l'année → un unique segment
- * couvrant `2024-01-01 → 2024-12-31`, `co2Due = co2FullYearTariff`
- * (prorata 1.0). Quand la VFC change en cours d'année → un segment
- * par période, `co2Due = co2FullYearTariff × jours_segment / jours_année`.
- * La somme des `co2Due + pollutantsDue` de chaque segment donne le
- * total annuel cohérent.
- *
- *   - effectiveFromInYear / effectiveToInYear : bornes inclusives du
- *     segment, déjà clippées à l'année calculée.
- *   - daysInSegment : nombre de jours du segment (utile pour expliquer
- *     le prorata appliqué).
- *   - vfc : la version VFC active sur ce segment.
- *   - co2FullYearTariff / pollutantsFullYearTariff : tarif annuel
- *     théorique de la règle pricing pour cette VFC (avant prorata).
- *   - co2Due / pollutantsDue : montant effectivement dû pour le segment
- *     (= tarif × prorata segment).
- *   - co2Explanation / pollutantsExplanation : phrase explicative de
- *     l'aiguillage pricing (ex. « 145 g/km (WLTP) × barème CO₂ 2024
- *     → tarif annuel 181,00 € »).
- *   - appliedExemptions / appliedRuleCodes : exonérations et règles
- *     appliquées spécifiquement à ce segment (peuvent différer entre
- *     segments si la VFC change de catégorie polluants ou d'énergie).
+ * Tariff breakdown of one VFC segment inside the full-year tax calculation of a vehicle.
+ * One segment when the vehicle has a single VFC across the year, N segments when the VFC
+ * changes mid-year (each segment prorated on its day count).
  */
 #[TypeScript]
 final class VehicleFullYearTaxSegmentData extends Data

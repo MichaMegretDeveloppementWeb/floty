@@ -13,19 +13,16 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de pose de `left_at` sur une membership + résolution des
- * contrats à venir du driver dans cette company (workflow Q6).
+ * Payload for setting `left_at` on a membership and resolving the driver's
+ * future contracts within the company.
  *
- * - `futureContractsResolution` :
- *   - 'replace' : `replacementMap` doit contenir un `replacementDriverId`
- *     pour chaque contrat futur du driver dans cette company
- *   - 'detach' : tous les contrats futurs passent à `driver_id = NULL`
- *   - 'none' : il n'y a pas de contrat futur à résoudre (utilisé quand
- *     la modale a détecté qu'aucun contrat n'est concerné - sortie
- *     directe sans résolution)
+ * `futureContractsResolution` ·
+ *  - 'replace' · `replacementMap` carries a substitute driverId per contract
+ *  - 'detach' · all future contracts switch to `driver_id = NULL`
+ *  - 'none' · no future contracts to resolve (direct leave)
  *
- * - `replacementMap` : clé = contractId, valeur = driverId de remplacement
- *   (ou null pour détacher individuellement). Ignoré si resolution !== 'replace'.
+ * `replacementMap` keys by contractId; values are the replacement driverId
+ * (or null to detach individually). Ignored unless resolution is 'replace'.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

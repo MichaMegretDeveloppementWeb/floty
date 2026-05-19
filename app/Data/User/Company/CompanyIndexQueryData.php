@@ -9,16 +9,10 @@ use App\Data\Shared\Listing\SortDirection;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * DTO d'entrée pour l'Index Companies server-side (cf. ADR-0020).
+ * Input DTO for the server-side Companies Index (ADR-0020).
  *
- * Filtres (tous SQL purs) :
- *  - `isActive` : statut activité (true/false/null)
- *  - `contractsScope` : 'with' = au moins un contrat ; 'without' = aucun
- *  - `city` : LIKE sur `city`
- *
- * Whitelist sortKey : `shortCode | legalName | siren | city`. Les valeurs
- * calculées `daysUsed` et `annualTaxDue` sont volontairement exclues
- * (cf. ADR-0020 D6 · à matérialiser pour réactiver le tri).
+ * Sort whitelist excludes the computed `daysUsed` and `annualTaxDue`
+ * (ADR-0020 D6: re-enable once materialised).
  */
 #[TypeScript]
 final class CompanyIndexQueryData extends IndexQueryData
@@ -28,10 +22,8 @@ final class CompanyIndexQueryData extends IndexQueryData
         public ?string $contractsScope = null,
         public ?string $city = null,
         /**
-         * Année qui pilote les colonnes financières (`daysUsed`,
-         * `annualTaxDue`) calculées par le service. Sélecteur **local**
-         * à la page (chantier J, ADR-0020). Si `null` côté DTO, le
-         * controller résout via fallback année calendaire courante.
+         * Year driving the financial columns (daysUsed, annualTaxDue).
+         * Resolved by the controller from current calendar year when null.
          */
         public ?int $year = null,
         int $page = 1,
@@ -43,18 +35,21 @@ final class CompanyIndexQueryData extends IndexQueryData
         parent::__construct($page, $perPage, $search, $sortKey, $sortDirection);
     }
 
+    /**
+     * @return list<string>
+     */
     public static function allowedSortKeys(): array
     {
         return ['shortCode', 'legalName', 'siren', 'city'];
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public static function rules(): array
     {
-        // Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 3) :
-        // l'année saisie est libre (range calendaire raisonnable). Cf. note
-        // dans VehicleIndexQueryData. Filtrer ici sur la config statique
-        // morte rejetait silencieusement les années hors `[2024]` et
-        // empêchait le sélecteur de basculer.
+        // Free calendar range; year resolution is performed downstream and
+        // the fiscal aggregator tolerates years without rules (returns 0 €).
         $yearRule = ['nullable', 'integer', 'min:1900', 'max:2100'];
 
         return array_merge(parent::rules(), [

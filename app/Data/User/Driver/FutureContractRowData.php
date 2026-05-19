@@ -10,18 +10,11 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne du tableau « Contrats à venir à résoudre » de la modal de
- * sortie d'un driver d'une entreprise (workflow Q6, chantier Leave-fix).
+ * Row of the "Future contracts to resolve" table on the driver leave modal.
  *
- * `currentDrivers` = liste actuelle des conducteurs du contrat (pivot
- * N:N), incluant le driver sortant. Affichée dans la modale pour que
- * l'utilisateur voie le contexte (« le contrat conserve X et Y, on
- * retire Z »).
- *
- * `candidates` = drivers actifs dans la company sur la **période exacte
- * du contrat**, **hors tous les conducteurs déjà sur le contrat** (le
- * sortant compris). Validation backend en miroir de
- * `LeaveDriverCompanyMembershipAction::validateReplacementMap`.
+ * `currentDrivers` lists every driver currently on the contract (including
+ * the leaving driver). `candidates` lists active company drivers on the
+ * exact contract period, excluding every driver already on the contract.
  */
 #[TypeScript]
 final class FutureContractRowData extends Data

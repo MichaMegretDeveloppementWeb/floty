@@ -12,12 +12,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de suppression d'une VFC depuis la modale Historique.
- *
- * Le seul champ porté est la stratégie de comblement du trou laissé
- * par la suppression - l'utilisateur a explicitement choisi entre
- * étendre la version précédente ou la suivante (cf.
- * {@see FiscalCharacteristicsExtensionStrategy}).
+ * Payload for deleting a VFC, carrying the gap-filling strategy chosen by the user.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

@@ -25,13 +25,11 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création d'un véhicule + ses caractéristiques fiscales
- * initiales (1ʳᵉ ligne de `vehicle_fiscal_characteristics`).
+ * Payload for creating a vehicle and its initial VFC row.
  *
- * Validation conditionnelle : selon `homologationMethod`, l'un des
- * trois champs `co2Wltp` / `co2Nedc` / `taxableHorsepower` devient
- * requis (pattern R-2024-005). Géré dans `rules()` car les attributs
- * Spatie ne supportent pas le `requiredIf` croisé.
+ * Cross-field validation in `rules()`: depending on `homologationMethod`,
+ * one of `co2Wltp` / `co2Nedc` / `taxableHorsepower` becomes required
+ * (R-2024-005); for hybrids `underlyingCombustionEngineType` is required.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -102,18 +100,14 @@ final class StoreVehicleData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
-        // Flag E85 · abattement L. 421-125 réformé (2025+) · valeur dérivée
-        // des 9 codes P.3 du CI {FE, FG, FN, FL, FH, FR, FQ, FM, FP}
-        // (BOFiP `BOI-AIS-MOB-10-20-40-20250604` § 160).
+        // E85 flag · L. 421-125 superfuel rebate (BOFiP BOI-AIS-MOB-10-20-40-20250604 § 160).
         public bool $acceptsE85 = false,
 
-        // ---------- Spécificités fiscales (toujours visibles) ----------
         #[IntegerType, Min(0), Max(10000)]
         public ?int $kerbMass = null,
 
         public bool $handicapAccess = false,
 
-        // ---------- Usage spécifique (conditionnels selon catégorie/carrosserie) ----------
         public bool $m1SpecialUse = false,
 
         public bool $n1PassengerTransport = false,
@@ -124,10 +118,6 @@ final class StoreVehicleData extends Data
     ) {}
 
     /**
-     * Règles dynamiques cumulées :
-     *  - unique license_plate filtré par soft-delete
-     *  - mesures CO₂ / PA conditionnelles à la méthode d'homologation
-     *
      * @return array<string, array<int, mixed>>
      */
     public static function rules(ValidationContext $context): array
@@ -162,12 +152,7 @@ final class StoreVehicleData extends Data
     }
 
     /**
-     * Normalisation appliquée AVANT validation : la plaque est toujours
-     * stockée en majuscules. Effectuer la transformation ici (et pas
-     * dans le repository) garantit que la règle d'unicité
-     * (`Rule::unique('vehicles', 'license_plate')`) est testée sur la
-     * valeur normalisée - un user ne peut donc pas contourner l'unique
-     * en envoyant une casse différente.
+     * Normalise the license plate to uppercase before unique-validation runs.
      *
      * @param  array<string, mixed>  $properties
      * @return array<string, mixed>

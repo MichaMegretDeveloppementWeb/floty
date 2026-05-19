@@ -9,9 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Description minimale d'une indisponibilité active qui déborde une
- * date de sortie de flotte proposée - affichée dans la modale Sortie
- * pour permettre à l'utilisateur d'aller la résoudre.
+ * Active unavailability overlapping a proposed vehicle exit date.
  */
 #[TypeScript]
 final class ConflictingUnavailabilityData extends Data

@@ -9,15 +9,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Résultat du calcul d'impact d'une sortie de flotte proposée :
- * énumère les contrats et indisponibilités actifs qui débordent la
- * date de sortie.
- *
- * Si `hasConflicts === true`, l'Action {@see App\Actions\Vehicle\ExitVehicleAction}
- * lèvera {@see App\Exceptions\Vehicle\VehicleExitBlockedByConflictsException}
- * et la modale Sortie affichera la liste à l'utilisateur.
- *
- * Cf. ADR-0018 § 8.1 - section "Conflits détectés".
+ * Impact summary of a proposed vehicle exit: active contracts and unavailabilities
+ * that overlap the exit date (ADR-0018).
  */
 #[TypeScript]
 final class VehicleExitImpactData extends Data

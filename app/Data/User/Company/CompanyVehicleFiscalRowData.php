@@ -8,14 +8,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne de la table « Répartition fiscale par véhicule » de l'onglet
- * Fiscalité d'une entreprise (chantier N.2).
- *
- * Le couple unique est (vehicle × company × year) : 1 ligne par
- * véhicule utilisé par l'entreprise sur l'année sélectionnée. Les
- * montants sont calculés via le pipeline fiscal standard
- * (`FleetFiscalAggregator::vehicleAnnualTaxBreakdownByCompany` côté
- * Vehicle Show, mais ici on inverse l'angle : 1 entreprise × N véhicules).
+ * Row of the per-vehicle fiscal breakdown table on the Company Fiscality tab.
+ * One row per (vehicle × company × year) triple.
  */
 #[TypeScript]
 final class CompanyVehicleFiscalRowData extends Data

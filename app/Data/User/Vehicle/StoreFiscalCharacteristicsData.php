@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\Vehicle;
 
+use App\Actions\Vehicle\CreateFiscalCharacteristicsAction;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -25,35 +26,21 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création d'une nouvelle VFC depuis la modale Historique
- * (bouton « + Ajouter une entrée »).
- *
- * Mêmes champs que {@see UpdateFiscalCharacteristicsData} : valeurs
- * fiscales + bornes `effectiveFrom`/`effectiveTo` + motif/note. Les
- * invariants inter-versions (anti-chevauchement, comblement
- * automatique des trous adjacents, suppression de versions englobées)
- * sont délégués à
- * {@see App\Actions\Vehicle\CreateFiscalCharacteristicsAction} qui
- * réutilise {@see App\Services\Vehicle\FiscalCharacteristicsImpactComputer}.
- *
- * Différence sémantique avec Update : pas de garde
- * « courante↔historique » à enforce ici, c'est l'orchestration
- * d'insertion qui détermine si la nouvelle VFC devient courante (E=null)
- * en englobant les versions postérieures.
+ * Payload for inserting a new VFC from the History modal. Cross-version
+ * invariants (overlap prevention, gap filling, cascade deletion) are handled
+ * by {@see CreateFiscalCharacteristicsAction}.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
 final class StoreFiscalCharacteristicsData extends Data
 {
     public function __construct(
-        // Bornes (E null = nouvelle version courante).
         #[Required, Date]
         public string $effectiveFrom,
 
         #[Date]
         public ?string $effectiveTo,
 
-        // Champs fiscaux
         #[Required]
         public ReceptionCategory $receptionCategory,
 
@@ -85,7 +72,6 @@ final class StoreFiscalCharacteristicsData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
-        // Flag E85 · abattement L. 421-125 réformé (2025+).
         public bool $acceptsE85 = false,
 
         #[IntegerType, Min(0), Max(10000)]
@@ -101,21 +87,16 @@ final class StoreFiscalCharacteristicsData extends Data
 
         public bool $n1SkiLiftUse = false,
 
-        // Motif obligatoire ; `InitialCreation` reste réservé à la
-        // création système d'un véhicule (CreateVehicleAction). Toute
-        // entrée ajoutée a posteriori par cette voie est, par définition,
-        // un changement (recharacterization / regulation / other / input).
+        // InitialCreation is reserved for the system path (CreateVehicleAction);
+        // user-driven insertions default to Recharacterization.
         #[Required]
         public FiscalCharacteristicsChangeReason $changeReason = FiscalCharacteristicsChangeReason::Recharacterization,
 
         #[Max(2000)]
         public ?string $changeNote = null,
 
-        // Confirmation explicite de la cascade destructive (si l'insertion
-        // engloutit une ou plusieurs versions existantes). Posé à `true`
-        // côté front après que l'utilisateur a validé la modale de
-        // confirmation. Si la cascade n'est pas destructive, ce champ
-        // est ignoré.
+        // Explicit confirmation of a destructive cascade (swallowing existing
+        // versions). Ignored when the cascade is non-destructive.
         public bool $confirmed = false,
     ) {}
 
@@ -153,7 +134,6 @@ final class StoreFiscalCharacteristicsData extends Data
                 Rule::requiredIf(fn (): bool => $isOther),
             ],
             'change_reason' => [
-                // InitialCreation interdit en création utilisateur (réservé système).
                 Rule::notIn([FiscalCharacteristicsChangeReason::InitialCreation->value]),
             ],
         ];

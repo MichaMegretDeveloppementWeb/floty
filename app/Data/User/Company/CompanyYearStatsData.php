@@ -8,32 +8,25 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Statistiques annuelles d'une entreprise · exercice par exercice.
- *
- * Utilisé deux fois côté `CompanyDetailData` :
- *   - `byYear` : exercice unique sélectionné par le sélecteur local
- *     (4 KPIs annuels affichés dans la section « Aperçu par année »)
- *   - `history[]` : un objet par exercice avec ≥ 1 contrat (tableau
- *     récap dans la section « Historique par année »)
- *
- * Cf. chantier K, ADR-0020 § 2 D3.
+ * Per-year statistics for a company. Used both as `byYear` (single selected year)
+ * and `history[]` (one entry per year with ≥ 1 contract).
  */
 #[TypeScript]
 final class CompanyYearStatsData extends Data
 {
     public function __construct(
         public int $year,
-        /** Jours-contrats utilisés sur l'année (somme des couples). */
+        /** Contract days used on the year (sum across vehicle-company pairs). */
         public int $daysUsed,
-        /** Nombre de contrats actifs sur l'année. */
+        /** Active contracts count on the year. */
         public int $contractsCount,
-        /** Sous-décompte LCD (contrat ≤ 30 j ou mois civil entier). */
+        /** Sub-count of LCD contracts (≤ 30 days or full calendar month). */
         public int $lcdCount,
-        /** Sous-décompte LLD (contrat > 30 j hors mois civil entier). */
+        /** Sub-count of LLD contracts (> 30 days outside a full calendar month). */
         public int $lldCount,
-        /** Taxe annuelle due par l'entreprise pour cet exercice (€, arrondi 2 décimales). */
+        /** Annual tax due for this company on the year (€, rounded to 2 decimals). */
         public float $annualTaxDue,
-        /** Loyer annuel facturé · null tant que la facturation V1.2 n'est pas livrée. */
+        /** Annual billed rent; null until billing V1.2 ships. */
         public ?float $rent,
     ) {}
 }

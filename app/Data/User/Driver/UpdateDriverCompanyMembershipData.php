@@ -13,24 +13,16 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload d'édition d'une membership Driver↔Company existante.
+ * Payload for editing an existing Driver↔Company membership.
  *
- * Scope (chantier B + B-bis) : `joined_at` requis + `left_at` optionnel
- * (nullable). Permet 3 cas d'usage avec un seul endpoint :
- *   1. Correction `joined_at` seule (membership active ou sortie).
- *   2. Édition simultanée des deux dates (correction d'une membership
- *      sortie avec date erronée).
- *   3. Réactivation d'une membership sortie : envoyer `left_at: null`.
+ * Three use cases share this endpoint: correcting `joined_at` only,
+ * editing both dates simultaneously, or reactivating a closed membership
+ * by sending `left_at: null`. The chronological invariant
+ * (`joined_at <= left_at`) is enforced at runtime by the update action,
+ * since the conditional rule is not expressible as a Spatie attribute.
  *
- * La gestion de `left_at` qui *crée* une sortie reste pilotée par
- * `LeaveDriverCompanyMembershipData` (workflow Q6 avec résolution des
- * contrats à venir). Cette modale-ci ne gère que les corrections post-
- * facto · pas d'orchestration contrats.
- *
- * La cohérence chronologique (`joined_at <= left_at`) est vérifiée par
- * {@see UpdateDriverCompanyMembershipAction} au moment de l'exécution,
- * car la rule conditionnelle « après if not null » n'est pas exprimable
- * comme attribute Spatie.
+ * Creating an exit (with future-contracts resolution) remains driven by
+ * {@see LeaveDriverCompanyMembershipData}.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

@@ -9,11 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Wrapper de retour pour l'Index Companies server-side (cf. ADR-0020).
- *
- * `data` contient les CompanyListItemData de la page courante (avec
- * leurs aggregates fiscaux `daysUsed` + `annualTaxDue` calculés
- * uniquement pour les entreprises affichées, pas tout le dataset).
+ * Server-side paginated wrapper for the Companies Index (ADR-0020).
  */
 #[TypeScript]
 final class PaginatedCompanyListData extends Data

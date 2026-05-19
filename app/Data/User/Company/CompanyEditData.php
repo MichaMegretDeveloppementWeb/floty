@@ -9,18 +9,10 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue slim d'une entreprise · alimente UNIQUEMENT la page Edit
- * (formulaire d'identité / adresse / contact).
+ * Slim company view feeding ONLY the Edit page (identity / address / contact).
  *
- * **Pourquoi ce DTO existe** · la page Edit consomme seulement 14
- * champs scalaires, mais le DTO `CompanyDetailData` (utilisé par Show)
- * embarque drivers + lifetime + history + activityByYear qui
- * déclenchent le pipeline fiscal complet (~280 ms cold). `CompanyEditData`
- * permet à `CompanyController::edit()` d'éviter tout ce calcul inutile
- * en utilisant `CompanyDetailService::detailForEdit()`.
- *
- * Doctrine `implementation-rules/chargement-strict-par-ecran.md` § 2
- * (un DTO par usage, jamais de DTO "complet" imposé à tous).
+ * Avoids the heavy `CompanyDetailData` which embeds drivers + lifetime +
+ * history + activityByYear and triggers the full fiscal pipeline.
  */
 #[TypeScript]
 final class CompanyEditData extends Data

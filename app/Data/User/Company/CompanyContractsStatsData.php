@@ -8,14 +8,9 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Stats contextuelles affichées sous le titre de l'onglet Contrats
- * de la fiche Company Show (chantier N.1.fixes). Reflètent le filtre
- * période actif · bougent avec le filtre, aident l'utilisateur à se
- * situer dans l'historique de l'entreprise.
- *
- * `totalDays` est calculé en intersection avec la fenêtre filtrée :
- * un contrat 01/01–31/12 affiché dans un filtre Q3 ne compte que les
- * 92 jours de juillet–septembre, pas 365.
+ * Contract stats for the Contracts tab on Company Show. `totalDays` is
+ * intersected with the active period filter, so a Q3 filter on a full-year
+ * contract counts only the 92 days of July–September.
  */
 #[TypeScript]
 final class CompanyContractsStatsData extends Data

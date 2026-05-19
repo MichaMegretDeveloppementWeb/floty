@@ -9,10 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Un segment empilé de la cellule semaine de la timeline d'utilisation
- * d'un véhicule (1 segment = 1 entreprise présente sur cette semaine).
- *
- * Hauteur du segment côté front = `days / 7 × hauteurCellule`.
+ * One company segment stacked inside a weekly cell of the vehicle usage timeline.
  */
 #[TypeScript]
 final class VehicleWeekSegmentData extends Data

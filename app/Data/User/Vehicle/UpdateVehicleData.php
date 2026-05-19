@@ -27,36 +27,18 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload d'édition d'un véhicule depuis la page Edit.
+ * Payload for editing a vehicle from the Edit page.
  *
- * Le DTO porte :
- *   - les champs **identité** (table `vehicles`, toujours updatables
- *     en place sans historisation),
- *   - les champs **fiscaux** courants (utilisés pour détecter une
- *     modification fiscale et, le cas échéant, créer une nouvelle VFC),
- *   - les **métadonnées** d'une éventuelle nouvelle version
- *     (`effectiveFrom`, `changeReason`, `changeNote`) - toutes optionnelles.
- *
- * Logique d'application (cf. {@see UpdateVehicleAction}) :
- *   - L'identité est toujours mise à jour en place.
- *   - Si au moins un champ fiscal a changé par rapport à la VFC
- *     courante : une nouvelle ligne d'historique est créée. Dans ce
- *     cas `effectiveFrom` et `changeReason` deviennent indispensables
- *     (et la validation runtime côté Action lève
- *     {@see App\Exceptions\Vehicle\MissingNewVersionMetadataException}
- *     si elles manquent).
- *   - Si aucun champ fiscal n'a changé : les métadonnées sont
- *     ignorées, aucune nouvelle VFC n'est créée.
- *
- * Les corrections de saisie sur une VFC existante passent exclusivement
- * par la modale Historique (cf. {@see UpdateFiscalCharacteristicsData}).
+ * Identity fields update in place. Fiscal fields trigger a new VFC row when
+ * any value changes (detected by the Action against the current VFC); in that
+ * case `effectiveFrom` + `changeReason` become mandatory. Otherwise the
+ * version metadata is ignored.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
 final class UpdateVehicleData extends Data
 {
     public function __construct(
-        // ---------- Identité ----------
         #[Required, Max(20)]
         public string $licensePlate,
 
@@ -90,7 +72,6 @@ final class UpdateVehicleData extends Data
         #[Max(5000)]
         public ?string $notes,
 
-        // ---------- Fiscal ----------
         #[Required]
         public ReceptionCategory $receptionCategory,
 
@@ -122,17 +103,13 @@ final class UpdateVehicleData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
-        // Flag E85 · abattement L. 421-125 réformé (2025+) · valeur dérivée
-        // des 9 codes P.3 du CI {FE, FG, FN, FL, FH, FR, FQ, FM, FP}.
         public bool $acceptsE85 = false,
 
-        // ---------- Spécificités fiscales (toujours visibles) ----------
         #[IntegerType, Min(0), Max(10000)]
         public ?int $kerbMass = null,
 
         public bool $handicapAccess = false,
 
-        // ---------- Usage spécifique (conditionnels selon catégorie/carrosserie) ----------
         public bool $m1SpecialUse = false,
 
         public bool $n1PassengerTransport = false,
@@ -141,10 +118,6 @@ final class UpdateVehicleData extends Data
 
         public bool $n1SkiLiftUse = false,
 
-        // ---------- Métadonnées de la nouvelle version (optionnelles) ----------
-        // Requises uniquement si un champ fiscal a changé - détecté par
-        // l'Action qui compare le payload à la VFC courante. Si aucun
-        // changement fiscal, ces champs sont ignorés.
         #[Date]
         public ?string $effectiveFrom = null,
 
@@ -153,34 +126,17 @@ final class UpdateVehicleData extends Data
         #[Max(2000)]
         public ?string $changeNote = null,
 
-        // ---------- Identifiant interne (route binding) ----------
-        // Identifiant du véhicule injecté automatiquement depuis le
-        // paramètre de route `{vehicle}` quand le DTO est construit
-        // depuis une Request HTTP. Permet aux règles de validation
-        // (notamment `Rule::unique` sur `license_plate`) de s'exclure
-        // elles-mêmes sans dépendre du global `request()`.
-        // Préfixé `_` pour signaler "interne, jamais saisi par
-        // l'utilisateur, jamais utilisé par le frontend".
-        // Conforme ADR-0013 : substitue l'appel à `request()->route()`
-        // qui couplait directement le DTO à la couche HTTP.
+        // Vehicle id is injected from the `{vehicle}` route parameter so that
+        // `Rule::unique` can exclude it without coupling to `request()`
+        // (ADR-0013).
         #[FromRouteParameter('vehicle')]
         public ?int $_vehicleId = null,
     ) {}
 
     /**
-     * Règles dynamiques :
-     *  - `license_plate` unique sauf pour le véhicule lui-même.
-     *  - Mesure CO₂ / PA conditionnelle à la méthode d'homologation.
-     *  - Si véhicule hybride : `underlying_combustion_engine_type` requis.
-     *  - `change_reason` (si fourni) doit être un motif user-sélectionnable.
-     *  - `change_note` requise uniquement si `change_reason = other_change`.
-     *
-     * Note : `effective_from` et `change_reason` ne sont pas
-     * `requiredIf` ici parce que la condition (« un champ fiscal a-t-il
-     * changé ? ») dépend de la VFC courante, inaccessible au DTO. Le
-     * filet de sécurité est posé dans {@see UpdateVehicleAction} qui
-     * lève {@see MissingNewVersionMetadataException} si fiscal modifié
-     * sans métadonnées.
+     * The "fiscal field changed?" check requires the current VFC and is not
+     * expressible here; {@see UpdateVehicleAction} guards it at runtime and
+     * raises MissingNewVersionMetadataException when needed.
      *
      * @return array<string, array<int, mixed>>
      */
@@ -190,11 +146,6 @@ final class UpdateVehicleData extends Data
         $method = $payload['homologation_method'] ?? null;
         $energy = $payload['energy_source'] ?? null;
         $reason = $payload['change_reason'] ?? null;
-        // L'id du véhicule est injecté par `#[FromRouteParameter('vehicle')]`
-        // sur la propriété `_vehicleId`. Spatie Data le pose dans le
-        // payload (clé snake_case `_vehicle_id`) avant l'évaluation des
-        // règles, ce qui permet à `Rule::unique` de l'exclure de la
-        // recherche d'unicité sur `license_plate`.
         $vehicleId = (int) ($payload['_vehicle_id'] ?? 0);
 
         $isOther = $reason === FiscalCharacteristicsChangeReason::OtherChange->value;
@@ -238,8 +189,7 @@ final class UpdateVehicleData extends Data
     }
 
     /**
-     * Normalisation pré-validation : license_plate en majuscules
-     * (cohérent avec `StoreVehicleData::prepareForPipeline`).
+     * Normalise the license plate to uppercase before validation.
      *
      * @param  array<string, mixed>  $properties
      * @return array<string, mixed>

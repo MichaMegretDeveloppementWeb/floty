@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\Vehicle;
 
+use App\Actions\Vehicle\UpdateFiscalCharacteristicsAction;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -25,33 +26,20 @@ use Spatie\LaravelData\Support\Validation\ValidationContext;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload d'édition d'une VFC isolée depuis la modale Historique.
- *
- * Contrairement à `UpdateVehicleData` qui orchestre identité +
- * mode (correction/nouvelle version), ce DTO porte uniquement
- * les champs d'une VFC : valeurs fiscales + bornes
- * `effectiveFrom`/`effectiveTo` + motif/note.
- *
- * Les invariants inter-versions (anti-chevauchement, comblement
- * automatique des trous adjacents, restrictions courante↔historique)
- * sont validés par {@see UpdateFiscalCharacteristicsAction} qui
- * connaît l'historique complet du véhicule.
+ * Payload for editing a single VFC from the History modal. Cross-version
+ * invariants are validated by {@see UpdateFiscalCharacteristicsAction}.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
 final class UpdateFiscalCharacteristicsData extends Data
 {
     public function __construct(
-        // Bornes (peut transformer un historique → courante uniquement
-        // si le véhicule n'a pas déjà une courante - vérification à
-        // l'Action).
         #[Required, Date]
         public string $effectiveFrom,
 
         #[Date]
         public ?string $effectiveTo,
 
-        // Champs fiscaux
         #[Required]
         public ReceptionCategory $receptionCategory,
 
@@ -83,16 +71,13 @@ final class UpdateFiscalCharacteristicsData extends Data
         #[IntegerType, Min(1), Max(99)]
         public ?int $taxableHorsepower,
 
-        // Flag E85 · abattement L. 421-125 réformé (2025+).
         public bool $acceptsE85 = false,
 
-        // Spécificités fiscales (toujours visibles)
         #[IntegerType, Min(0), Max(10000)]
         public ?int $kerbMass = null,
 
         public bool $handicapAccess = false,
 
-        // Usage spécifique (conditionnels selon catégorie/carrosserie)
         public bool $m1SpecialUse = false,
 
         public bool $n1PassengerTransport = false,
@@ -101,18 +86,14 @@ final class UpdateFiscalCharacteristicsData extends Data
 
         public bool $n1SkiLiftUse = false,
 
-        // Motif (peut être modifié pour corriger la classification
-        // historique). `InitialCreation` reste réservé au système.
         #[Required]
         public FiscalCharacteristicsChangeReason $changeReason = FiscalCharacteristicsChangeReason::Recharacterization,
 
         #[Max(2000)]
         public ?string $changeNote = null,
 
-        // Confirmation explicite de la cascade destructive (suppression
-        // d'au moins une autre VFC voisine). Posé à `true` côté front
-        // après que l'utilisateur a validé la modale de confirmation.
-        // Si la cascade n'est pas destructive, ce champ est ignoré.
+        // Explicit confirmation of a destructive cascade (deleting at least one
+        // neighbouring VFC). Ignored when the cascade is non-destructive.
         public bool $confirmed = false,
     ) {}
 

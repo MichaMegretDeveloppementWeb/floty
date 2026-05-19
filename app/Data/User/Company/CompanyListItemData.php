@@ -9,9 +9,10 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Ligne de la table « Entreprises utilisatrices » (page
- * User/Companies/Index). Inclut les agrégats annuels pour la flotte
- * (jours utilisés + taxe due).
+ * Row of the Companies Index table, with annual aggregates for the fleet.
+ *
+ * `annualTaxDue` and `rentalPriceTotal` are deferred-hydrated and rendered
+ * with a skeleton until the `costs` Inertia::defer prop resolves.
  */
 #[TypeScript]
 final class CompanyListItemData extends Data
@@ -25,19 +26,9 @@ final class CompanyListItemData extends Data
         public ?string $city,
         public bool $isActive,
         public int $daysUsed,
-        /**
-         * P0.1 (audit perf 2026-05-16) · null pendant l'hydratation
-         * deferred · cellule en skeleton frontend tant que la prop
-         * racine `costs` (Inertia::defer) n'a pas hydrate.
-         */
+        /** Null during deferred hydration. */
         public ?float $annualTaxDue = null,
-        /**
-         * Phase 13 D5.10.L · prix location total annuel (somme des 12
-         * facturations mensuelles). Null si au moins 1 véhicule de la
-         * company a un tarif annuel manquant pour l'année.
-         *
-         * P0.1 · egalement deferred · meme skeleton que annualTaxDue.
-         */
+        /** Null during deferred hydration OR when at least one vehicle has no yearly pricing. */
         public ?float $rentalPriceTotal = null,
     ) {}
 }

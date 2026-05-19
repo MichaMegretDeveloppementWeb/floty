@@ -8,10 +8,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Option minimale pour le sélecteur driver dans le formulaire Contract
- * (Phase 06 V1.2 - consommé par `DriverSelector.vue`).
- *
- * Filtré par company + période exacte (cf. `DriverQueryService::optionsForContract`).
+ * Minimal driver option for the Contract form selector. Filtered by company
+ * and contract period via `DriverQueryService::optionsForContract`.
  */
 #[TypeScript]
 final class DriverOptionData extends Data

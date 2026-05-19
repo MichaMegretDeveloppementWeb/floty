@@ -9,17 +9,10 @@ use App\Data\Shared\Listing\SortDirection;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * DTO d'entrée pour l'Index Drivers server-side (cf. ADR-0020).
+ * Input DTO for the server-side Drivers Index (ADR-0020).
  *
- * Filtres :
- *  - `companyId` : drivers ACTIVEMENT rattachés à cette entreprise
- *    (membership ouvert, `driver_company.left_at IS NULL`). Les
- *    rattachements clos sont exclus.
- *  - `activityStatus` : 'active' = au moins un membership ouvert ;
- *    'inactive' = aucun membership ouvert
- *  - `contractsScope` : 'with' = au moins un contrat ; 'without' = aucun
- *
- * Whitelist sortKey : `fullName | contractsCount | activeCompaniesCount`.
+ * `companyId` filters on currently-open memberships (`left_at IS NULL`);
+ * closed memberships are excluded.
  */
 #[TypeScript]
 final class DriverIndexQueryData extends IndexQueryData
@@ -37,11 +30,17 @@ final class DriverIndexQueryData extends IndexQueryData
         parent::__construct($page, $perPage, $search, $sortKey, $sortDirection);
     }
 
+    /**
+     * @return list<string>
+     */
     public static function allowedSortKeys(): array
     {
         return ['fullName', 'contractsCount', 'activeCompaniesCount'];
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public static function rules(): array
     {
         return array_merge(parent::rules(), [

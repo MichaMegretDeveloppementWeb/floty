@@ -8,9 +8,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Option couleur entreprise pour le `<SelectInput>` du formulaire de
- * création / édition. La valeur correspond à un slug de l'enum
- * `CompanyColor`, le label est la traduction française.
+ * Company color option for the Create/Edit form selector.
  */
 #[TypeScript]
 final class CompanyColorOptionData extends Data

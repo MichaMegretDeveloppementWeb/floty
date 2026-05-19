@@ -16,12 +16,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création d'une entreprise. Reçu en snake_case depuis le
- * formulaire HTML, mappé en camelCase côté PHP.
- *
- * Validation Spatie Data : règles déclarées via attributs, cumulées
- * avec des règles dynamiques dans `rules()` quand un contexte est
- * nécessaire (ex. unique filtré par soft-delete).
+ * Payload for creating a company.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -84,8 +79,7 @@ final class StoreCompanyData extends Data
     }
 
     /**
-     * Défauts métier appliqués avant validation : pays par défaut FR,
-     * is_active par défaut true.
+     * Apply defaults before validation: country FR, isActive true.
      *
      * @param  array<string, mixed>  $properties
      * @return array<string, mixed>

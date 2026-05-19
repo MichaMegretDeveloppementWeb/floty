@@ -9,8 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Option entreprise pour les `<SelectInput>` (Attribution rapide,
- * Drawer planning) et la consommation par les composants `CompanyTag`.
+ * Company option for selectors and `CompanyTag` consumers.
  */
 #[TypeScript]
 final class CompanyOptionData extends Data

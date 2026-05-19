@@ -16,11 +16,8 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload de création d'un conducteur (Phase 06 V1.2).
- *
- * À la création, le driver est obligatoirement rattaché à au moins
- * une entreprise - la membership initiale est créée par
- * {@see CreateDriverAction}.
+ * Payload for creating a driver. The initial company membership is created
+ * by {@see CreateDriverAction}.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

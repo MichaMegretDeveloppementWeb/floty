@@ -9,10 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représente une membership Driver↔Company (1 ligne pivot `driver_company`).
- *
- * Cf. Phase 06 V1.2 - un driver peut appartenir à plusieurs entreprises au
- * cours du temps, chaque membership porte ses propres dates d'entrée/sortie.
+ * One Driver↔Company membership row from the `driver_company` pivot.
  */
 #[TypeScript]
 final class DriverCompanyMembershipData extends Data

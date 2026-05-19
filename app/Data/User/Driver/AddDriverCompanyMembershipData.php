@@ -14,7 +14,7 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload d'ajout d'une nouvelle membership Driver↔Company.
+ * Payload for adding a new Driver↔Company membership.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]

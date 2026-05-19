@@ -12,34 +12,12 @@ use App\Enums\Vehicle\VehicleStatus;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * DTO d'entrée pour l'Index Vehicles server-side (cf. ADR-0020).
+ * Input DTO for the server-side Vehicles Index (ADR-0020).
  *
- * Filtres :
- *  - `includeExited: bool` (défaut **true**) · inclut les véhicules dont
- *     `exit_date` est passée. Décision UX : par défaut on affiche tous
- *     les véhicules historiques pour permettre la consultation et
- *     l'édition rétroactive (cf. ADR-0018 § 4). L'utilisateur peut
- *     décocher pour ne voir que les véhicules actifs aujourd'hui.
- *  - `status: VehicleStatus|null` · filtre par statut courant
- *  - `energySource: EnergySource|null` · sur la VFC active
- *  - `pollutantCategory: PollutantCategory|null` · sur la VFC active
- *  - `handicapAccess: bool|null` · sur la VFC active (true = uniquement
- *     les véhicules accessibles handicapés)
- *  - `firstRegistrationYearMin/Max: int|null` ·
- *     `YEAR(first_french_registration_date)` dans la fourchette
- *     (date de 1ʳᵉ immatriculation, plus pertinente que la date
- *     d'acquisition pour borner l'âge fiscal du véhicule)
- *
- * Dimension annuelle :
- *  - `year: int|null` · année qui pilote les colonnes financières de la
- *     table (Taxe pleine, Montant loyer). Préfigure le pattern « année
- *     par page » de l'ADR-0020 (chantier η à venir). Null → fallback
- *     fallback année calendaire courante côté controller. Borné par `available_years`.
- *
- * Whitelist sortKey : `licensePlate | model | firstFrenchRegistrationDate
- * | acquisitionDate | currentStatus`. La colonne `fullYearTax` est
- * volontairement exclue : valeur calculée par l'aggregator fiscal
- * multi-règles, non triable en SQL pure (cf. ADR-0020 D6).
+ * `includeExited` defaults to true so historical vehicles remain consultable
+ * and editable (ADR-0018 § 4). Sort whitelist excludes `fullYearTax` because
+ * it is computed by the fiscal aggregator and not orderable in pure SQL
+ * (ADR-0020 D6).
  */
 #[TypeScript]
 final class VehicleIndexQueryData extends IndexQueryData
@@ -62,6 +40,9 @@ final class VehicleIndexQueryData extends IndexQueryData
         parent::__construct($page, $perPage, $search, $sortKey, $sortDirection);
     }
 
+    /**
+     * @return list<string>
+     */
     public static function allowedSortKeys(): array
     {
         return [
@@ -73,17 +54,16 @@ final class VehicleIndexQueryData extends IndexQueryData
         ];
     }
 
+    /**
+     * @return array<string, array<int, mixed>>
+     */
     public static function rules(): array
     {
         $energyValues = array_map(static fn (EnergySource $e): string => $e->value, EnergySource::cases());
         $pollutantValues = array_map(static fn (PollutantCategory $p): string => $p->value, PollutantCategory::cases());
-        // Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 3) :
-        // l'année saisie est libre (range calendaire raisonnable). La
-        // résolution contre le scope dynamique des contrats est faite par
-        // le controller via `AvailableYearsResolver`, et l'aggrégateur
-        // fiscal tolère les années sans règles (renvoie 0 €). Filtrer ici
-        // sur la config statique morte rejetait silencieusement les années
-        // hors `[2024]` et empêchait le sélecteur de basculer.
+        // Free calendar range; year resolution against the dynamic contract scope
+        // is handled by the controller via `AvailableYearsResolver`. The fiscal
+        // aggregator tolerates years without rules (returns 0 €).
         $yearRule = ['nullable', 'integer', 'min:1900', 'max:2100'];
 
         return array_merge(parent::rules(), [

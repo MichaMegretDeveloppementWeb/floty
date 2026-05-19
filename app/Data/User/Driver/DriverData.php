@@ -9,8 +9,7 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue détaillée d'un conducteur - utilisée par la page de détail
- * (Phase 06 V1.2 : `User/Drivers/Show/Index.vue`).
+ * Detailed view of a driver for the Show page.
  */
 #[TypeScript]
 final class DriverData extends Data

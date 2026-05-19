@@ -15,23 +15,8 @@ use Spatie\LaravelData\Mappers\SnakeCaseMapper;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Payload entrée HTTP / sortie JSON pour les tarifs jour/semaine/mois
- * d'un véhicule sur une année donnée.
- *
- * **Convention monétaire** : tarifs en cents (1 € = 100), évite les
- * imprécisions float (cf. mémoire projet sur les calculs fiscaux exacts).
- * La conversion en euros pour affichage se fait côté frontend.
- *
- * **Validation** :
- *   - Année dans [2020, 2099] (cohérence avec CHECK SQL côté table)
- *   - Tarifs ≥ 0 (zéro autorisé pour les véhicules en usage gratuit
- *     internes, ex. véhicule de courtoisie)
- *   - Tarifs ≤ 99_999_999 cents (~999 999 €/jour, largement au-dessus
- *     du réel mais évite l'overflow de unsignedInteger en base)
- *
- * Le DTO sert pour :
- *   - L'entrée HTTP via `VehicleYearlyPricingController::store`
- *   - La sortie JSON exposée à `VehicleData` (chantier 14.B)
+ * HTTP payload and JSON output for daily/weekly/monthly rental rates of a vehicle
+ * on one year. Amounts are stored in cents to avoid float imprecision.
  */
 #[TypeScript]
 #[MapInputName(SnakeCaseMapper::class)]
@@ -52,8 +37,7 @@ final class VehicleYearlyPricingData extends Data
     ) {}
 
     /**
-     * Hydrate un DTO depuis un model Eloquent. Utilisé par les couches
-     * de présentation qui exposent les pricings à un parent (ex. `VehicleData`).
+     * Hydrate from the Eloquent model.
      */
     public static function fromModel(VehicleYearlyPricing $pricing): self
     {

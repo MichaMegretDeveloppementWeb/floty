@@ -11,45 +11,21 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Vue détaillée d'une entreprise · alimente la page Show Company.
+ * Detailed view of a company. Feeds the Company Show page with three temporal
+ * lenses: current-year KPIs (`kpiStats`), historical evolution (`history`)
+ * and per-year exploration (`activityByYear`). Identity fields are intemporal.
  *
- * **Doctrine temporelle (chantier η Phase 1, 2026-05-05)** : 3 lentilles
- * temporelles distinctes pour la fiche :
- *
- *   1. **Présent** (KPIs en haut) : champs `kpiYear` / `kpiStats` /
- *      `kpiFiscalAvailable`. Reflètent **uniquement l'année calendaire
- *      courante** (ex. 2026 aujourd'hui), pas pilotables. Si pas de
- *      données → 0/·. Si pas de règles fiscales codées → message
- *      explicite (`kpiFiscalAvailable = false`).
- *   2. **Évolution** (section Historique) : `history[]` filtré sur
- *      `year < kpiYear` (toutes années passées avec contrats, sans
- *      l'année courante qui est déjà dans les KPIs). Pas de doublon.
- *   3. **Exploration** (section Activité) : `activityByYear[]` détail
- *      visuel par exercice (heatmap + top véhicules). Sélecteur local
- *      piloté par `yearScope` qui expose les bornes globales (calculées
- *      par `AvailableYearsResolver` · ADR-0020).
- *
- * **Identité** (intemporelle) : nom, SIREN, adresse, contact, statuts ·
- * pas concernée par la doctrine temporelle.
- *
- * **`yearScope`** porte les bornes globales `[minYear, …, max]` calculées
- * dynamiquement depuis les contrats actifs (Phase 0.1). Remplace l'ancien
- * `availableYears` par-entreprise (qui restait limité aux années où
- * **cette** entreprise avait un contrat · décision HD4 : on uniformise
- * à l'échelle globale pour cohérence UX entre fiches).
- *
- * **`lifetime`** est conservé pour ne pas casser les consommateurs
- * potentiels résiduels · sera retiré en Phase 5 cleanup si effectivement
- * inutilisé après refonte de tous les onglets.
+ * `yearScope` carries the global available years (ADR-0020). `lifetime` is
+ * retained for backwards compatibility with potential consumers.
  */
 #[TypeScript]
 final class CompanyDetailData extends Data
 {
     /**
      * @param  list<CompanyDriverRowData>  $drivers
-     * @param  list<CompanyYearStatsData>  $history  Un objet par exercice **passé** avec ≥ 1 contrat (exclut l'année courante qui est dans `kpiStats`)
-     * @param  list<CompanyActivityYearData>  $activityByYear  Détail visuel par exercice (1 entrée par année dans `availableYears` historiques)
-     * @param  list<int>  $availableYears  Années avec ≥ 1 contrat sur cette entreprise spécifique · alimente la section Activité
+     * @param  list<CompanyYearStatsData>  $history  One entry per past year with ≥ 1 contract (excludes current year).
+     * @param  list<CompanyActivityYearData>  $activityByYear  Visual detail per historical year.
+     * @param  list<int>  $availableYears  Years with ≥ 1 contract for this company specifically.
      */
     public function __construct(
         public int $id,

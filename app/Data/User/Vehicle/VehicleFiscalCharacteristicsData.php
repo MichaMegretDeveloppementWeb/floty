@@ -18,15 +18,8 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Représentation d'une période fiscale d'un véhicule (1 ligne de
- * `vehicle_fiscal_characteristics`).
- *
- * Utilisé dans la page Show pour afficher la version courante et
- * l'historique. Les champs étendus (n1_*, m1_*, exempted activity,
- * underlying engine type, kerb mass) sont exposés en lecture seule -
- * non éditables via le formulaire Create/Edit (cf. mémoire architecture
- * - décision client : restent à null/false par défaut, prévus pour
- * usage futur).
+ * One fiscal period of a vehicle (a row of `vehicle_fiscal_characteristics`).
+ * Extended fields (n1_*, m1_*, kerb mass) are exposed read-only.
  */
 #[TypeScript]
 final class VehicleFiscalCharacteristicsData extends Data
@@ -59,6 +52,9 @@ final class VehicleFiscalCharacteristicsData extends Data
         public ?string $changeNote,
     ) {}
 
+    /**
+     * Hydrate from the Eloquent model.
+     */
     public static function fromModel(VehicleFiscalCharacteristics $vfc): self
     {
         return new self(
