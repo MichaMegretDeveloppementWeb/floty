@@ -5,7 +5,12 @@ defineProps<{
 </script>
 
 <template>
-    <div class="relative">
+    <div
+        :class="[
+            'relative rounded-lg',
+            active && 'outline outline-1 outline-amber-300 outline-offset-4',
+        ]"
+    >
         <slot />
         <span
             v-if="active"
