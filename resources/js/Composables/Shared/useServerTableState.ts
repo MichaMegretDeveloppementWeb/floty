@@ -1,33 +1,16 @@
 /**
- * Composable générique : orchestre l'état `{filters, sort, page, perPage,
- * search}` d'une table Index server-side et déclenche un partial reload
- * Inertia v3 à chaque interaction (cf. ADR-0020).
+ * Generic composable: orchestrates `{filters, sort, page, perPage, search}` state for a
+ * server-side Index table and triggers an Inertia v3 partial reload on each interaction (ADR-0020).
  *
- * **Décisions** :
- * - Filtre + tri + pagination 100 % côté serveur (pas de filtrage JS).
- * - Debounce 300ms uniquement sur `search`. Toutes les autres interactions
- *   (sort, page, perPage, filtres) déclenchent un reload immédiat.
- * - Anti-race : tout changement non-debouncé annule le pending timer
- *   `search` et reload avec l'état complet (incluant la dernière valeur
- *   tapée).
- * - URL synchronisée automatiquement par Inertia v3 via le `data` passé
- *   à `router.reload`.
- * - Initial state lu depuis les props (échoées par le backend), jamais
- *   depuis `window.location` au mount, pour éviter l'hydration mismatch.
- * - Reset automatique de la page à 1 quand search / filtres / perPage
- *   changent (mais pas quand sort change).
- *
- * Usage type :
- *   const tableState = useServerTableState<DriverFilters>({
- *     only: ['drivers', 'query'],
- *     initialPage: props.query.page,
- *     initialPerPage: props.query.perPage,
- *     initialSearch: props.query.search ?? '',
- *     initialSortKey: props.query.sortKey,
- *     initialSortDirection: props.query.sortDirection,
- *     initialFilters: { ... },
- *     serializeFilters: (f) => ({ ... }),
- *   });
+ * Decisions:
+ * - Filter + sort + pagination 100% server-side (no JS filtering).
+ * - 300 ms debounce on `search` only. All other interactions (sort, page, perPage, filters) reload immediately.
+ * - Anti-race: any non-debounced change cancels the pending `search` timer and reloads with the full state
+ *   (including the last typed value).
+ * - URL synced automatically by Inertia v3 via the `data` passed to `router.reload`.
+ * - Initial state read from props (echoed by the backend), never from `window.location` at mount, to avoid
+ *   hydration mismatch.
+ * - Page auto-resets to 1 when search / filters / perPage change (not on sort).
  */
 
 import { router } from '@inertiajs/vue3';
@@ -42,36 +25,33 @@ export type SortState = {
 };
 
 export type ServerTableStateOptions<F extends Record<string, unknown>> = {
-    /** Clés de props Inertia à recharger lors du partial reload. */
+    /** Inertia prop keys to reload during the partial reload. */
     only: readonly string[];
-    /** Page initiale (depuis props.query.page côté backend). */
+    /** Initial page (from props.query.page on the backend). */
     initialPage: number;
-    /** Items par page initial. */
+    /** Initial items-per-page. */
     initialPerPage: number;
-    /** Search initial (string vide si backend a renvoyé null). */
+    /** Initial search (empty string if backend returned null). */
     initialSearch: string;
-    /** Sort initial. */
+    /** Initial sort. */
     initialSortKey: string | null;
     initialSortDirection: SortDirection;
     /**
-     * Filtres "tout neutre" · état cible de `clearFilters`. Doit
-     * représenter l'absence totale de filtre (typiquement `null` pour
-     * chaque clé).
+     * "All neutral" filters: target state of `clearFilters`. Must represent total absence of filtering
+     * (typically `null` for each key).
      */
     defaultFilters: F;
     /**
-     * Filtres au mount (depuis props.query). Si omis, vaut
-     * `defaultFilters`. Permet l'arrivée via deep-link avec filtres
-     * pré-appliqués.
+     * Mount-time filters (from props.query). Defaults to `defaultFilters`. Allows arriving via deep-link
+     * with filters pre-applied.
      */
     initialFilters?: F;
     /**
-     * Sérialise les filtres spécifiques en paires clé/valeur pour le
-     * `data` de `router.reload`. Retourner `null` pour omettre la clé
-     * de l'URL.
+     * Serialises domain filters to key/value pairs for `router.reload`'s `data`.
+     * Return `null` to omit a key from the URL.
      */
     serializeFilters: (filters: F) => Record<string, string | number | null>;
-    /** Délai du debounce sur search en ms (défaut 300). */
+    /** Search debounce in ms (default 300). */
     debounceMs?: number;
 };
 
@@ -86,11 +66,9 @@ export type ServerTableState<F extends Record<string, unknown>> = {
     activeSortDirection: ComputedRef<SortDirection>;
     setFilter: <K extends keyof F>(key: K, value: F[K]) => void;
     /**
-     * Met à jour plusieurs filtres en un seul reload. À utiliser quand
-     * un widget UI modifie 2+ filtres logiquement liés (ex. DateRangePicker
-     * → periodStart + periodEnd) : `setFilter` consécutifs déclenchent 2
-     * requests dont la 1ère est partielle (race) et peut renvoyer un état
-     * incohérent (cf. bug filtre période Contracts, 2026-05).
+     * Updates several filters in a single reload. Use when a widget mutates 2+ logically linked
+     * filters (e.g. DateRangePicker → periodStart + periodEnd): consecutive `setFilter` would fire
+     * 2 requests, the first one partial (race) returning an inconsistent state.
      */
     patchFilters: (patch: Partial<F>) => void;
     setSort: (key: string) => void;
@@ -148,34 +126,28 @@ export function useServerTableState<F extends Record<string, unknown>>(
             searchTimer = null;
         }
 
-        // Annule la requête précédente si elle est encore en vol.
-        // Anti-race : garantit que la DERNIÈRE requête gagne, peu importe
-        // l'ordre d'arrivée des réponses. Sans ça, si 2 reloads sont
-        // déclenchés coup sur coup (ex. DateRangePicker qui émet une
-        // update par input modifié), la 1ère réponse peut écraser la 2ème
-        // et afficher un état incohérent (cf. bug filtre période 2026-05).
+        // Cancels the previous request if still in flight.
+        // Anti-race: guarantees the LAST request wins regardless of response order.
+        // Without this, two reloads fired back-to-back (e.g. DateRangePicker emitting on each input change)
+        // could see the first response overwrite the second and display an inconsistent state.
         if (pendingCancel !== null) {
             pendingCancel();
             pendingCancel = null;
         }
 
-        // Cf. inertia-navigation.md § 10 : `router.get(url, data, options)`
-        // est le pattern documenté pour partial reload AVEC URL update.
-        // `router.reload({ data })` ne met pas à jour l'URL côté navigateur
-        // → la page ne s'actualise pas correctement (tri/filtre invisibles).
-        // `replace: true` évite de polluer l'historique sur chaque keystroke.
+        // `router.get(url, data, options)` is the documented pattern for partial reload WITH URL update.
+        // `router.reload({ data })` does not update the browser URL, so the page does not refresh
+        // correctly (sort/filter become invisible). `replace: true` avoids polluting history on each keystroke.
         const params = buildQueryData();
 
-        // Stratégie URL : on FUSIONNE avec les query params existants au lieu
-        // de tout remplacer. Ainsi un param hors-table (ex. `?tab=contracts`
-        // posé par useCompanyTabs, ou un futur sélecteur global) survit à
-        // chaque interaction de table. Sans ça, chaque page consommatrice
-        // doit injecter ses params dans `serializeFilters` en workaround.
+        // URL strategy: MERGE with existing query params instead of replacing everything.
+        // A param outside the table (e.g. `?tab=contracts` set by useCompanyTabs, or any future global
+        // selector) survives each table interaction. Without this, every consuming page would have to
+        // inject its params into `serializeFilters` as a workaround.
         const url = new URL(window.location.href);
 
-        // 1. Retirer de l'URL les keys gérées par le composable (paramètres
-        //    « table standards » + clés de filtres custom). Ainsi un filtre
-        //    qui passe à null disparaît bien de l'URL au lieu de persister.
+        // 1. Strip URL keys managed by the composable (standard table params + custom filter keys),
+        //    so a filter that becomes null actually disappears from the URL instead of persisting.
         const managedKeys = new Set<string>([
             'page',
             'perPage',
@@ -194,8 +166,7 @@ export function useServerTableState<F extends Record<string, unknown>>(
             url.searchParams.delete(key);
         }
 
-        // 2. Réinjecter les valeurs courantes (en filtrant les null pour
-        //    garder l'URL propre).
+        // 2. Re-inject current values (filtering out null to keep the URL clean).
         for (const [key, value] of Object.entries(params)) {
             if (value !== null) {
                 url.searchParams.set(key, String(value));
@@ -259,7 +230,7 @@ export function useServerTableState<F extends Record<string, unknown>>(
             return;
         }
 
-        // 3ᵉ clic : off (revient à l'ordre par défaut backend)
+        // 3rd click: off (back to backend default order)
         sort.value = { key: null, direction: FACTORY_DEFAULT_SORT_DIRECTION };
         reloadNow();
     }
@@ -295,9 +266,8 @@ export function useServerTableState<F extends Record<string, unknown>>(
         reloadNow();
     }
 
-    // Watch search : déclenche un reload debouncé à chaque mutation.
-    // Les autres refs sont mutées par les setters qui appellent
-    // `reloadNow()` directement (donc pas de double-reload).
+    // Watch search: triggers a debounced reload on each mutation.
+    // The other refs are mutated by setters calling `reloadNow()` directly (no double-reload).
     watch(search, () => {
         reloadDebounced();
     });

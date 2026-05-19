@@ -1,13 +1,11 @@
 /**
- * Dérive les métriques de période d'une réduction commerciale pour le
- * tile « Avancement » de la page Show (refonte Mercury).
+ * Derives period metrics for the "Progress" tile of the discount Show page.
  *
- * Renvoie un breakdown stable et purement dérivable de start/end + today ·
- * `bigValue` est le chiffre affiché en grand (% si active, jours sinon),
- * `progressPercent` alimente la barre, `timelineLeft/Center/Right` sont
- * les 3 légendes sous la barre.
+ * Returns a stable breakdown purely derived from start/end + today:
+ * `bigValue` is the large figure (% if active, days otherwise),
+ * `progressPercent` drives the bar, `timelineLeft/Center/Right` are the 3 legends below it.
  *
- * Pas d'IO, pas de réactivité externe · helper pur testable.
+ * No IO, no external reactivity: pure testable helper.
  */
 import { computed } from 'vue';
 import type { ComputedRef } from 'vue';
@@ -15,15 +13,15 @@ import type { ComputedRef } from 'vue';
 type Status = 'planned' | 'active' | 'expired';
 
 type PeriodMetrics = {
-    /** Label métier au-dessus du gros chiffre. */
+    /** Business label above the big number. */
     label: string;
-    /** Chiffre principal · "52 %" si active, "12 j" si planned/expired. */
+    /** Main figure: "52 %" if active, "12 j" if planned/expired. */
     bigValue: string;
-    /** Petite phrase descriptive sous le big number. */
+    /** Short descriptive phrase below the big number. */
     meta: string;
-    /** 0..100 pour la barre de progression. */
+    /** 0..100 for the progress bar. */
     progressPercent: number;
-    /** 3 légendes sous la barre (gauche · centre · droite). */
+    /** 3 legends below the bar (left / center / right). */
     timelineLeft: string;
     timelineCenter: string;
     timelineRight: string;

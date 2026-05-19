@@ -24,28 +24,24 @@ type SectionGroup = {
 type RelatedRule = { code: string; title: string };
 
 /**
- * Cross-références pédagogiques entre règles (« Voir aussi · X »).
+ * Pedagogical cross-references between rules ("See also: X").
  *
- * Source · uniquement la **catégorie 1** (barèmes → aiguillage), la
- * plus essentielle · les barèmes (R-XXX-010/011/012/014) sont abstraits
- * sans la règle d'aiguillage qui explique **quand** ils s'appliquent
- * (R-XXX-005 sélection méthode CO₂, R-XXX-013 catégorisation polluants).
+ * Scope: only the most essential category (tariff → routing). Tariff rules
+ * (R-XXX-010/011/012/014) are abstract without the routing rule that explains
+ * WHEN they apply (R-XXX-005 CO₂ method selection, R-XXX-013 pollutants categorisation).
  *
- * R-XXX-006 (fallback PA quand NEDC manquant) est uniquement référencé
- * depuis le barème PA · il y explique pourquoi un véhicule peut y
- * atterrir alors qu'il aurait dû être en NEDC. Référencé depuis NEDC
- * il serait hors-sujet (le fallback ne décrit pas le barème NEDC).
+ * R-XXX-006 (PA fallback when NEDC is missing) is only referenced from the PA tariff,
+ * where it explains why a vehicle might land there even though it should have been NEDC.
+ * Referencing it from NEDC would be off-topic.
  *
- * Cette map est volontairement hardcodée TS et **pas** dans les classes
- * PHP · c'est une aide à la navigation UI, pas du domaine fiscal. Le
- * mapping est stable entre années (mêmes pairs en 2024/2025/2026).
+ * This map is intentionally hardcoded in TS, not in the PHP classes: it is a UI navigation aid,
+ * not part of the fiscal domain. The mapping is stable across years (same pairs in 2024/2025/2026).
  *
- * Les cibles absentes du registry (cas où une règle référencée n'aurait
- * pas été registered pour l'année) sont filtrées silencieusement par
- * `relatedRulesFor()`.
+ * Targets absent from the registry (e.g. a referenced rule not registered for the year) are
+ * silently filtered by `relatedRulesFor()`.
  */
 const RELATED_RULES: Record<string, readonly string[]> = {
-    // Barèmes CO₂ → Aiguillage
+    // CO₂ tariffs → routing
     'R-2024-010': ['R-2024-005'],
     'R-2024-011': ['R-2024-005'],
     'R-2024-012': ['R-2024-005', 'R-2024-006'],
@@ -55,12 +51,10 @@ const RELATED_RULES: Record<string, readonly string[]> = {
     'R-2026-010': ['R-2026-005'],
     'R-2026-011': ['R-2026-005'],
     'R-2026-012': ['R-2026-005', 'R-2026-006'],
-    // Barèmes polluants → Aiguillage (catégorisation polluants).
-    // Pairing version-à-version pour 2026 · chaque tarif référence la
-    // catégorisation du même rang (v1↔v1, bis↔bis), même si les
-    // scissions ne tombent pas le même jour (01/03 vs 01/09). Le titre
-    // de la catégorisation cible cohère ainsi avec la période du tarif
-    // source côté pédagogie.
+    // Pollutant tariffs → routing (pollutant categorisation).
+    // Version-to-version pairing for 2026: each tariff references the categorisation of the same rank
+    // (v1↔v1, bis↔bis), even when the splits do not occur on the same day (01/03 vs 01/09).
+    // The pedagogical title of the target categorisation stays consistent with the source tariff period.
     'R-2024-014': ['R-2024-013'],
     'R-2025-014': ['R-2025-013'],
     'R-2026-014': ['R-2026-013'],
@@ -68,10 +62,8 @@ const RELATED_RULES: Record<string, readonly string[]> = {
 };
 
 /**
- * État persisté dans `history.state` de chaque entrée d'historique pour
- * la page Règles de calcul. Permet au bouton Back du navigateur de
- * restaurer fidèlement l'onglet ET la position de scroll de la règle
- * visitée précédemment.
+ * State persisted into each history entry's `history.state` for the Fiscal Rules page.
+ * Lets the browser Back button restore the previously visited tab AND scroll position.
  */
 type HistoryStatePayload = {
     tab?: RuleTabValue;
@@ -80,21 +72,17 @@ type HistoryStatePayload = {
 };
 
 /**
- * Logique de la page « Règles de calcul » (Phase 13 D5.12 · ADR-0022
- * finalisée v1.2). L'organisation tabs / sections vient désormais
- * intégralement des props Inertia (DTO `FiscalRuleTabData[]` projeté
- * depuis les enums PHP RuleTab + RuleSection) · plus rien de
- * hardcoded côté TS, plus de `fiscalRulesContent.ts`.
+ * Logic for the Fiscal Rules page (ADR-0022 v1.2).
  *
- * Le filtrage des codes par section utilise `rule.pedagogicalContent.section`
- * (issu du DTO de chaque règle). Une règle sans contenu pédagogique
- * (cas tolérable seulement avant le 1er seed) est ignorée silencieusement.
+ * Tab/section organisation comes entirely from Inertia props (`FiscalRuleTabData[]` projected
+ * from PHP enums RuleTab + RuleSection). Nothing is hardcoded TS-side anymore.
  *
- * Expose aussi `relatedRulesFor()` et `navigateToRule()` pour les
- * cross-références pédagogiques (cf. constante `RELATED_RULES` plus
- * haut), avec persistance dans `?tab=&rule=` et entrée d'historique
- * navigateur à chaque changement d'onglet ou de règle cible (le bouton
- * Back ramène à la position précédente).
+ * Codes are filtered by section using `rule.pedagogicalContent.section` from each rule's DTO.
+ * A rule without pedagogical content (tolerable only before the first seed) is silently ignored.
+ *
+ * Also exposes `relatedRulesFor()` and `navigateToRule()` for pedagogical cross-references
+ * (see `RELATED_RULES` above), with persistence in `?tab=&rule=` and a new browser history entry
+ * on each tab or target-rule change so Back restores the previous position.
  */
 export function useFiscalRulesIndex(props: {
     rules: Rule[];
@@ -154,9 +142,8 @@ export function useFiscalRulesIndex(props: {
     });
 
     const flashedRuleCode = ref<string | null>(null);
-    // Garde anti-boucle · empêche le watcher `activeTab` de re-pousser
-    // dans l'historique quand on a déjà géré le pushState manuellement
-    // (navigateToRule, popstate).
+    // Re-entry guard: prevents the `activeTab` watcher from pushing into history again
+    // when we already handled pushState manually (navigateToRule, popstate).
     let suppressTabWatcher = false;
 
     function relatedRulesFor(code: string): RelatedRule[] {
@@ -224,9 +211,8 @@ export function useFiscalRulesIndex(props: {
     }
 
     /**
-     * Sauve la position de scroll courante sur l'entrée d'historique
-     * actuelle, **avant** de pousser une nouvelle entrée. Garantit que
-     * le bouton Back restaure exactement où l'utilisateur était.
+     * Snapshots the current scroll position onto the current history entry BEFORE pushing a new one.
+     * Ensures Back restores the exact previous position.
      */
     function snapshotCurrentScroll(): void {
         const currentState =
@@ -293,9 +279,8 @@ export function useFiscalRulesIndex(props: {
         });
     }
 
-    // Watch des clics manuels sur les onglets · pushState pour ajouter
-    // une entrée d'historique. Sauf si le changement vient de
-    // navigateToRule ou popstate (qui s'en chargent eux-mêmes).
+    // Watches manual tab clicks: pushState to add a history entry, unless the change comes from
+    // navigateToRule or popstate (which handle it themselves).
     watch(activeTab, (newTab) => {
         if (suppressTabWatcher) {
             suppressTabWatcher = false;
@@ -312,8 +297,7 @@ export function useFiscalRulesIndex(props: {
     });
 
     onMounted(() => {
-        // Restauration depuis l'URL initiale (rechargement F5, lien
-        // partagé, retour navigateur depuis une autre page).
+        // Restore from the initial URL (F5 reload, shared link, back from another page).
         const url = new URL(window.location.href);
         const initialTab = url.searchParams.get('tab');
 
@@ -327,9 +311,8 @@ export function useFiscalRulesIndex(props: {
             }
         }
 
-        // Pose un état initial sur l'entrée courante pour que le back
-        // futur puisse en restaurer le contexte (sinon `history.state`
-        // serait null sur cette entrée).
+        // Seeds an initial state on the current entry so future Back can restore the context
+        // (otherwise `history.state` would be null on this entry).
         const currentState =
             (history.state as HistoryStatePayload | null) ?? {};
         history.replaceState(

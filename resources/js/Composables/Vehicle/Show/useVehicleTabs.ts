@@ -1,10 +1,8 @@
 /**
- * Onglets de la fiche Show Véhicule · sync `?tab=` URL + chargement
- * lazy + cumulatif des props par-onglet (D5.10.V).
+ * Tabs for the Vehicle Show page: syncs `?tab=` to the URL and loads tab props lazily and cumulatively.
  *
- * Pattern symétrique à `useCompanyTabs` · cf. cette doctrine pour le
- * détail (Inertia::optional côté backend, visitedTabs Set côté front,
- * markStale par les sélecteurs d'année).
+ * Symmetric to `useCompanyTabs`: see that composable's doctrine for the detail
+ * (Inertia::optional backend-side, visitedTabs Set front-side, markStale via year selectors).
  */
 
 import { router } from '@inertiajs/vue3';
@@ -18,9 +16,8 @@ const VALID_TABS: readonly VehicleTabKey[] = ['overview', 'fiscal', 'billing'];
 const DEFAULT_TAB: VehicleTabKey = 'overview';
 
 /**
- * `billingYear` / `fiscalYear` (eager) servent au highlight pill ·
- * doivent être inclus dans le partial reload sinon mismatch entre
- * titre rendu et pill active après tab switch (cf. `useCompanyTabs`).
+ * `billingYear` / `fiscalYear` (eager) drive the active pill highlight.
+ * Must be included in the partial reload, otherwise the rendered title and the active pill mismatch after a tab switch.
  */
 const TAB_PROPS: Readonly<Record<VehicleTabKey, readonly string[]>> = {
     overview: [],

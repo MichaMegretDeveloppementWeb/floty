@@ -10,28 +10,20 @@ type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 type ExtensionStrategy = App.Enums.Vehicle.FiscalCharacteristicsExtensionStrategy;
 
 /**
- * Form Inertia + UI state du modal de suppression d'une VFC.
+ * Inertia form + UI state for the VFC delete modal.
  *
- * L'utilisateur doit choisir explicitement la stratégie de
- * comblement du trou laissé par la suppression ·
- *   - `extend_previous` · la version précédente est étendue jusqu'à
- *     la fin de la période supprimée,
- *   - `extend_next` · la version suivante est reculée pour démarrer
- *     au début de la période supprimée.
+ * The user must explicitly choose the gap-fill strategy left by the deletion:
+ *   - `extend_previous`: the previous version is extended to the end of the deleted period,
+ *   - `extend_next`: the next version moves earlier to start at the beginning of the deleted period.
  *
- * P8 · le filtrage des stratégies se fait côté frontend selon la
- * présence d'un voisin compatible dans l'historique ·
- *   - VFC seule de l'historique · aucune stratégie possible (le
- *     backend lèverait `CannotDeleteOnlyVersionException`), le modal
- *     affiche un message bloquant et désactive le submit.
- *   - Plus ancienne VFC (pas de précédente) · seul `extend_next` est
- *     proposé.
- *   - Plus récente VFC (pas de suivante) · seul `extend_previous`
- *     est proposé.
- *   - VFC encadrée · les deux stratégies sont proposées.
+ * Strategy filtering happens client-side based on neighbour presence in the history:
+ *   - Only VFC of the history: no strategy available (backend would raise `CannotDeleteOnlyVersionException`);
+ *     the modal shows a blocking message and disables submit.
+ *   - Oldest VFC (no predecessor): only `extend_next` is offered.
+ *   - Newest VFC (no successor): only `extend_previous` is offered.
+ *   - Bracketed VFC: both strategies are offered.
  *
- * Sans ce filtrage, l'utilisateur pouvait choisir une stratégie
- * inapplicable et obtenir une exception backend après soumission.
+ * Without this filtering, the user could pick an inapplicable strategy and hit a backend exception.
  */
 export function useVfcDeleteForm(
     props: { deleting: Vfc | null; history: ReadonlyArray<Vfc> },
@@ -48,10 +40,8 @@ export function useVfcDeleteForm(
     });
 
     /**
-     * Détermine si la VFC en cours de suppression a un voisin temporel
-     * (précédent ou suivant) dans l'historique. L'historique est trié
-     * par `effective_from` ASC côté backend (`findByVehicle`), on
-     * s'appuie sur cette invariante.
+     * Determines whether the deleted VFC has a temporal neighbour (predecessor or successor) in the history.
+     * The history is sorted by `effective_from` ASC by the backend (`findByVehicle`); we rely on that invariant.
      */
     const hasPrevious = computed<boolean>(() => {
         if (props.deleting === null) {
@@ -101,9 +91,7 @@ export function useVfcDeleteForm(
         return options;
     });
 
-    // Pré-sélection automatique de la seule option disponible · UX
-    // pragmatique quand un seul choix est applicable, l'utilisateur
-    // n'a plus qu'à confirmer.
+    // Auto-select the only available option: pragmatic UX when a single choice applies; the user just confirms.
     watch(
         () => props.deleting,
         () => {
@@ -144,8 +132,7 @@ export function useVfcDeleteForm(
 }
 
 /**
- * Helper utilisé par le partial pour ouvrir/fermer la modale et
- * traquer la VFC en cours de suppression.
+ * Helper used by the partial to open/close the modal and track the VFC being deleted.
  */
 export function useVfcDeleteModalState(): {
     open: Ref<boolean>;

@@ -1,15 +1,12 @@
 /**
- * Configuration de la table Index Contracts (server-side, cf. ADR-0020).
+ * Server-side Index table for Contracts (ADR-0020).
  *
- * Particularités :
- *  - 5 filtres : vehicleId, companyId, driverId, type (lcd/lld),
- *    periodStart/periodEnd (chevauchement)
- *  - Search combo SQL : LIKE sur vehicle.license_plate/brand/model,
- *    company.short_code/legal_name, driver.first_name/last_name
- *  - Toutes les 6 colonnes triables (vehicle, company, startDate,
- *    endDate, duration via DATEDIFF, type)
+ * - 5 filters: vehicleId, companyId, driverId, type (lcd/lld), periodStart/periodEnd (overlap)
+ * - Combined SQL search: LIKE on vehicle.license_plate/brand/model, company.short_code/legal_name,
+ *   driver.first_name/last_name
+ * - All 6 columns sortable (vehicle, company, startDate, endDate, duration via DATEDIFF, type)
  *
- * Le rendu (badges, plates, dates) reste dans `ContractsTable.vue`.
+ * Rendering (badges, plates, dates) stays in `ContractsTable.vue`.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -34,8 +31,7 @@ export type ContractSortKey =
     | 'duration'
     | 'type';
 
-// Mapping clé colonne UI → sortKey backend (whitelist
-// ContractIndexQueryData::allowedSortKeys).
+// UI column key → backend sortKey (ContractIndexQueryData::allowedSortKeys whitelist).
 const COLUMN_TO_SORT_KEY: Partial<Record<string, ContractSortKey>> = {
     vehicleLicensePlate: 'vehicle',
     companyShortCode: 'company',
@@ -50,7 +46,7 @@ export type ContractFilters = {
     companyId: number | null;
     driverId: number | null;
     type: 'lcd' | 'lld' | null;
-    /** Mode « Année » du toggle scope (chantier J). Mutuellement exclusif avec periodStart/End. */
+    /** Year-mode of the scope toggle. Mutually exclusive with periodStart/End. */
     year: number | null;
     periodStart: string | null;
     periodEnd: string | null;
@@ -64,9 +60,8 @@ export type ContractFilterChip = {
 export function useContractsTable(opts: {
     query: App.Data.User.Contract.ContractIndexQueryData;
     /**
-     * Options SLIM pour les chips de filtre actif (S2.4) · zéro
-     * dépendance au calcul fiscal. Les chips n'utilisent que `label`
-     * (cf. lignes 144-164 ci-dessous).
+     * Slim options for active-filter chips: zero dependency on fiscal calculation.
+     * Chips only read `label`.
      */
     vehicleOptions: readonly App.Data.User.Vehicle.VehicleFilterOptionData[];
     companyOptions: readonly App.Data.User.Company.CompanyOptionData[];
@@ -176,10 +171,8 @@ export function useContractsTable(opts: {
             });
         }
 
-        // Chantier J : `year` / `periodStart-End` ne sont plus des filtres
-        // du panneau (devenus sélecteur scope au-dessus de la table). Ils
-        // n'apparaissent donc plus comme chips dans le décompte des filtres
-        // actifs du `FilterPopover`.
+        // `year` / `periodStart-End` are no longer panel filters (they live as a scope selector
+        // above the table). They no longer appear as chips in the `FilterPopover` active count.
 
         return chips;
     });

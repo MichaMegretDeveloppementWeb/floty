@@ -3,13 +3,10 @@ import { computed } from 'vue';
 import type { ComputedRef } from 'vue';
 
 /**
- * Données dérivées du `usePage()` (utilisateur authentifié) pour la
- * barre de navigation · nom complet et initiales (avatar).
+ * Data derived from `usePage()` (authenticated user) for the top navigation: full name and initials.
  *
- * Le champ de recherche n'est plus exposé ici · depuis V1.1 il est
- * porté par la palette globale `<CommandPalette>` (cf.
- * {@see useCommandPalette}). Le `TopBar` ne contient qu'un trigger
- * (button) qui appelle `palette.open()`.
+ * The search field is no longer exposed here: it is carried by the global `<CommandPalette>`
+ * (see {@see useCommandPalette}). The `TopBar` only renders a trigger button calling `palette.open()`.
  */
 export function useTopBar(): {
     fullName: ComputedRef<string>;

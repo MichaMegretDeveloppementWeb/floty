@@ -17,15 +17,12 @@ export type UseUnavailabilityDocumentsReturn = {
 };
 
 /**
- * État + opérations sur les justificatifs joints à une indispo (P1).
+ * State and operations for an unavailability's supporting documents.
  *
- * Les uploads multi-fichiers sont **séquentiels** (pas parallèles) ·
- *   - feedback de progression compréhensible côté UI
- *   - évite de saturer le rate-limit serveur (30 uploads/min)
- *   - gestion d'erreur simple · un échec n'annule pas les uploads
- *     précédents, l'utilisateur sait ce qui est passé
+ * Multi-file uploads are sequential (not parallel) to keep UI feedback clear, respect the server
+ * rate-limit (30 uploads/min) and simplify error handling: one failure does not cancel previous successes.
  *
- * Aligné sur {@see useContractDocuments}.
+ * Aligned with {@see useContractDocuments}.
  */
 export function useUnavailabilityDocuments(): UseUnavailabilityDocumentsReturn {
     const api = useApi();
@@ -64,8 +61,7 @@ export function useUnavailabilityDocuments(): UseUnavailabilityDocumentsReturn {
                     const doc = await uploadOne(unavailabilityId, file);
                     uploaded.push(doc);
                 } catch {
-                    // Toast erreur déjà affiché par useApi. On continue
-                    // les autres fichiers · pattern « best effort ».
+                    // Error toast already shown by useApi; continue with the next files (best-effort).
                 }
             }
         } finally {

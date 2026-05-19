@@ -3,19 +3,17 @@ import type { Ref } from 'vue';
 import { useRentalPreview } from '@/Composables/Billing/useRentalPreview';
 
 /**
- * Aperçu loyer pour le formulaire Contract (page Create/Edit + drawer
- * planning, SC4 · 2026-05-18). Wrapper autour de `useRentalPreview` qui
- * accepte les refs natives du formulaire (vehicleId / companyId /
- * startDate / endDate) et dérive automatiquement la liste de dates
- * attendue par l'endpoint `POST /app/planning/preview-rentals`.
+ * Rental preview for the Contract form (Create/Edit page + planning drawer).
  *
- * Le composable surveille les 4 refs · à chaque changement, déclenche
- * un fetch debouncé (200 ms hérités de `useRentalPreview`). Si un des
- * 4 champs manque, le preview est mis à `null`.
+ * Thin wrapper around `useRentalPreview` accepting the form's native refs
+ * (vehicleId / companyId / startDate / endDate) and deriving the date list
+ * expected by `POST /app/planning/preview-rentals`.
  *
- * Sémantique strictement équivalente à la facture finale (split par
- * mois civil + `OptimalRateBreakdown` + réductions appliquées) ·
- * pendant non-fiscal de `useContractFiscalPreview`.
+ * Watches the 4 refs and fires a debounced fetch (200 ms, inherited from `useRentalPreview`).
+ * If any of the 4 fields is missing the preview is set to `null`.
+ *
+ * Semantics strictly equivalent to the final invoice (civil-month split + `OptimalRateBreakdown`
+ * + applied discounts); non-fiscal counterpart of `useContractFiscalPreview`.
  */
 export type UseContractRentalPreviewReturn = {
     preview: Ref<App.Data.User.Planning.RentalPreviewData | null>;
@@ -31,9 +29,8 @@ export function useContractRentalPreview(opts: {
 }): UseContractRentalPreviewReturn {
     const { preview, loading, fetch, reset } = useRentalPreview();
 
-    // Le backend prend min/max des dates pour reconstruire la plage du
-    // contrat synthétique · pas besoin d'expandre tous les jours côté
-    // front (et ça évite les bugs de timezone sur les transitions DST).
+    // Backend takes min/max of dates to rebuild the synthetic contract range.
+    // No need to expand every day client-side (avoids timezone bugs around DST).
     const dates = computed<string[]>(() => {
         const start = opts.startDate.value;
         const end = opts.endDate.value;

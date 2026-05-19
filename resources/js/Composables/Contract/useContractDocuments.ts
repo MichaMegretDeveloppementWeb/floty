@@ -17,13 +17,11 @@ export type UseContractDocumentsReturn = {
 };
 
 /**
- * État + opérations sur les documents PDF d'un contrat (chantier 04.N).
+ * State and operations for a contract's PDF documents.
  *
- * Les uploads multi-fichiers sont **séquentiels** (pas parallèles) pour :
- *   - garder un feedback de progression compréhensible côté UI
- *   - éviter de saturer le rate-limit serveur (30 uploads/min)
- *   - simplifier la gestion d'erreur (un échec n'annule pas les
- *     uploads précédents - l'utilisateur sait ce qui est passé)
+ * Multi-file uploads are sequential (not parallel) to keep UI progress feedback clear,
+ * respect the server rate-limit (30 uploads/min) and simplify error handling: one failure
+ * does not cancel previous successful uploads.
  */
 export function useContractDocuments(): UseContractDocumentsReturn {
     const api = useApi();
@@ -62,8 +60,7 @@ export function useContractDocuments(): UseContractDocumentsReturn {
                     const doc = await uploadOne(contractId, file);
                     uploaded.push(doc);
                 } catch {
-                    // Toast erreur déjà affiché par useApi. On continue
-                    // les autres fichiers - pattern « best effort ».
+                    // Error toast already shown by useApi. Continue with remaining files (best-effort).
                 }
             }
         } finally {

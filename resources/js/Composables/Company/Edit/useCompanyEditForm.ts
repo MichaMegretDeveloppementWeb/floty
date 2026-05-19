@@ -6,11 +6,11 @@ import { update as companiesUpdateRoute } from '@/routes/user/companies';
 type CompanyEdit = App.Data.User.Company.CompanyEditData;
 
 /**
- * Form Inertia + valeurs initiales (pré-remplies depuis le DTO Company)
- * + soumission `PATCH` de la page « Modifier l'entreprise ». La shape
- * du form reprend `CompanyFormShape` (snake_case pour l'auto-mapping
- * Spatie Data côté backend) en ignorant `is_active` qui n'est pas
- * piloté par le formulaire d'édition.
+ * Inertia form for the company edit page (PATCH).
+ *
+ * Initial values are pre-filled from the Company DTO. Shape reuses
+ * `CompanyFormShape` (snake_case for Spatie Data auto-mapping on the backend),
+ * minus `is_active` which is not driven by this form.
  */
 export function useCompanyEditForm(company: CompanyEdit): {
     form: InertiaForm<CompanyFormShape>;

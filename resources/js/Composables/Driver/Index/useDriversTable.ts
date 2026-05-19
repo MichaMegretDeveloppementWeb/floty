@@ -1,15 +1,13 @@
 /**
- * Configuration de la table Index Drivers (server-side, cf. ADR-0020).
+ * Server-side Index table for Drivers (ADR-0020).
  *
- * Le composable assemble :
- *  - les colonnes (config visuelle + mapping vers sortKey backend)
- *  - le composable générique `useServerTableState` (orchestration reload)
- *  - le handler de clic sur ligne
+ * Assembles columns (visual config + backend sortKey mapping), the generic `useServerTableState`
+ * (reload orchestration), and the row click handler.
  *
- * Filtres exposés (cf. DriverIndexQueryData) :
- *  - companyId : drivers d'une entreprise (tous memberships, actifs ou passés)
- *  - activityStatus : 'active' = au moins 1 membership ouvert ; 'inactive' = aucun
- *  - contractsScope : 'with' / 'without' contrat
+ * Filters (see DriverIndexQueryData):
+ *  - companyId: drivers of a company (all memberships, active or past)
+ *  - activityStatus: 'active' = at least one open membership; 'inactive' = none
+ *  - contractsScope: 'with' / 'without' contracts
  */
 
 import { router } from '@inertiajs/vue3';
@@ -27,7 +25,7 @@ export type DriverSortKey =
     | 'contractsCount'
     | 'activeCompaniesCount';
 
-// Mapping colonne UI → sortKey backend (whitelist DriverIndexQueryData).
+// UI column → backend sortKey (DriverIndexQueryData whitelist).
 const COLUMN_TO_SORT_KEY: Partial<Record<string, DriverSortKey>> = {
     driver: 'fullName',
     companies: 'activeCompaniesCount',
@@ -83,8 +81,7 @@ export function useDriversTable(
         }),
     });
 
-    // Reverse map sortKey backend → key colonne UI (pour mettre en avant
-    // le bon header quand on hydrate depuis l'URL).
+    // Reverse map backend sortKey → UI column key (highlights the right header when hydrating from URL).
     const activeSortColumnKey = computed<string | null>(() => {
         if (state.sort.value.key === null) {
             return null;

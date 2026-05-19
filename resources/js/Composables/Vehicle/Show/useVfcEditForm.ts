@@ -16,19 +16,14 @@ type ChangeReason = App.Enums.Vehicle.FiscalCharacteristicsChangeReason;
 type SelectOption = { value: string; label: string };
 
 /**
- * Form Inertia + UI state du modal d'édition d'une VFC isolée.
+ * Inertia form + UI state for the edit modal of an isolated VFC.
  *
- * Le composable :
- *   - synchronise le `useForm` quand `props.editing` change (la
- *     modale est partagée entre toutes les lignes de l'historique),
- *   - expose les motifs sélectionnables (tous sauf `initial_creation`
- *     qui est réservé au système) - l'historique permet plus de
- *     motifs que le flux Edit véhicule,
- *   - **calcule en live l'impact** sur les voisines via
- *     `computeVfcUpdateImpact()` pour que la modale puisse afficher
- *     une preview des ajustements et déclencher une confirmation
- *     destructive avant submit (mirroir de la cascade backend),
- *   - dispatche le submit PATCH puis ferme la modale au success.
+ *   - Synchronises `useForm` when `props.editing` changes (the modal is shared across all history rows).
+ *   - Exposes selectable reasons (all except `initial_creation`, reserved for the system).
+ *     History allows more reasons than the vehicle Edit flow.
+ *   - Live-computes the impact on neighbours via `computeVfcUpdateImpact()` so the modal can preview
+ *     adjustments and trigger a destructive confirmation before submit (mirror of the backend cascade).
+ *   - Dispatches PATCH submit and closes the modal on success.
  */
 export function useVfcEditForm(
     props: { editing: Vfc | null; history: ReadonlyArray<Vfc> },
@@ -105,10 +100,9 @@ export function useVfcEditForm(
                 form.n1_ski_lift_use = value.n1SkiLiftUse;
                 form.effective_from = value.effectiveFrom;
                 form.effective_to = value.effectiveTo ?? '';
-                // Pour une « Création initiale », on conserve la valeur
-                // d'origine telle quelle. Le champ Motif est masqué côté
-                // UI et la valeur n'est pas modifiable - sémantiquement
-                // ce n'est pas un changement, c'est l'origine.
+                // For an "Initial creation" we keep the original value as-is.
+                // The Reason field is hidden in the UI and not editable: semantically it is not
+                // a change, it is the origin.
                 form.change_reason = value.changeReason;
                 form.change_note = value.changeNote ?? '';
                 form.confirmed = false;
@@ -118,10 +112,8 @@ export function useVfcEditForm(
         },
     );
 
-    // Watchers anti-données fantômes : quand l'utilisateur bascule la
-    // catégorie ou la carrosserie, les flags M1/N1 propres à l'ancienne
-    // combinaison sont remis à false pour éviter de persister un état
-    // incohérent (ex. M1 + n1_ski_lift_use=true).
+    // Anti-ghost-data watchers: switching category or body resets M1/N1 flags tied to the previous
+    // combination to avoid persisting an inconsistent state (e.g. M1 + n1_ski_lift_use=true).
     watch(
         () => form.reception_category,
         (cat) => {
@@ -168,9 +160,8 @@ export function useVfcEditForm(
             return false;
         }
 
-        // Une initial_creation n'a pas de motif éditable côté UI ; la
-        // valeur est conservée telle quelle, donc canSubmit ne dépend
-        // pas de change_note pour ce cas.
+        // initial_creation has no UI-editable reason; the value is preserved as-is, so canSubmit
+        // does not depend on change_note in this case.
         if (
             !isInitialCreation.value
             && isOtherChange.value
@@ -266,9 +257,8 @@ export function useVfcEditForm(
 }
 
 /**
- * Helper utilisé par le partial pour ouvrir/fermer la modale et
- * traquer la VFC en cours d'édition. Permet de garder la logique
- * d'ouverture hors du `<script setup>` du modal lui-même.
+ * Helper used by the partial to open/close the modal and track the VFC being edited.
+ * Keeps the open logic out of the modal's own `<script setup>`.
  */
 export function useVfcEditModalState(): {
     open: Ref<boolean>;

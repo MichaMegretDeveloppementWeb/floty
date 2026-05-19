@@ -4,9 +4,8 @@ import type { StatusTone } from '@/types/ui';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 /**
- * Logique d'affichage du header véhicule (page Show) : badge de
- * statut + ligne d'infos secondaires (acquisition, immat., VIN,
- * couleur, kilométrage).
+ * Vehicle Show header display logic: status badge + secondary info line
+ * (acquisition, plate, VIN, color, mileage).
  */
 export function useVehicleHeader(props: {
     vehicle: App.Data.User.Vehicle.VehicleData;

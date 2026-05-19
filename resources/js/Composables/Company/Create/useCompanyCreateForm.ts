@@ -4,8 +4,7 @@ import type { CompanyFormShape } from '@/pages/User/Companies/Create/forms';
 import { store as companiesStoreRoute } from '@/routes/user/companies';
 
 /**
- * Form Inertia + valeurs initiales + soumission de la page
- * « Nouvelle entreprise ».
+ * Inertia form, initial values and submit handler for the company create page.
  */
 export function useCompanyCreateForm(): {
     form: InertiaForm<CompanyFormShape>;

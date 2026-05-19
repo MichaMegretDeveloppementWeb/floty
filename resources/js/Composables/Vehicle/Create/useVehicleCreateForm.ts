@@ -5,10 +5,10 @@ import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 import { store as vehiclesStoreRoute } from '@/routes/user/vehicles';
 
 /**
- * Form Inertia + valeurs initiales + soumission de la page
- * « Nouveau véhicule ». La catégorie polluants n'est pas saisie -
- * elle est dérivée côté backend par le Repository à partir de
- * `energy_source`, `euro_standard` et `underlying_combustion_engine_type`.
+ * Inertia form, initial values and submit handler for the vehicle create page.
+ *
+ * The pollutant category is not entered: it is derived backend-side by the Repository from
+ * `energy_source`, `euro_standard` and `underlying_combustion_engine_type`.
  */
 export function useVehicleCreateForm(): {
     form: InertiaForm<VehicleFormShape>;
@@ -46,9 +46,8 @@ export function useVehicleCreateForm(): {
         n1_ski_lift_use: false,
     });
 
-    // Watchers anti-données fantômes : les flags M1/N1 propres à une
-    // catégorie/carrosserie sont remis à false dès que l'utilisateur
-    // bascule vers une combinaison où ils ne s'appliquent plus.
+    // Anti-ghost-data watchers: M1/N1 flags tied to a category/body are reset to false as soon
+    // as the user moves to a combination where they no longer apply.
     watch(
         () => form.reception_category,
         (cat) => {

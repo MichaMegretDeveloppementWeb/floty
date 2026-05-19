@@ -4,17 +4,14 @@ import { useApi } from '@/Composables/Shared/useApi';
 import { previewRentals as previewRentalsRoute } from '@/routes/user/planning';
 
 /**
- * Aperçu **loyer standalone** d'une attribution (location/contrat) ·
- * pendant non-fiscal de {@link useFiscalPreview} (SC4 · 2026-05-18).
+ * Standalone rental preview for a contract assignment (non-fiscal counterpart of {@link useFiscalPreview}).
  *
- * État debounced (200 ms) consommant `POST /app/planning/preview-rentals`.
- * Le composable gère son propre timer avec cleanup via `onScopeDispose` ·
- * pas de fuite si le composant parent est détruit pendant un debounce.
+ * Debounced (200 ms) state backed by `POST /app/planning/preview-rentals`.
+ * Timer is cleaned up via `onScopeDispose` to avoid leaks when the parent unmounts mid-debounce.
  *
- * Sémantique : strictement équivalent à la facture finale · split par
- * mois civil, `OptimalRateBreakdown` par mois, réductions appliquées
- * via `DiscountApplier`. Le total net retourné est celui qui apparaîtra
- * sur la facture mensuelle effective si ce contrat est créé.
+ * Semantics strictly mirror the final invoice: civil-month split,
+ * `OptimalRateBreakdown` per month, discounts applied via `DiscountApplier`.
+ * The returned net total matches what would appear on the actual monthly invoice.
  */
 export type RentalPreviewInput = {
     vehicleId: number | null;

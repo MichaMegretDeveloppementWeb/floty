@@ -2,10 +2,9 @@ import { ref } from 'vue';
 import type { Ref } from 'vue';
 
 /**
- * État ouvert/fermé d'un drawer ou d'une modale.
+ * Open/closed state for a drawer or modal.
  *
- * API minimaliste pour le moment - pas de body-scroll-lock ni
- * focus-trap (à ajouter en V1.5+ avec @headlessui/vue).
+ * Minimal API: no body-scroll-lock and no focus-trap (deferred to a future version with @headlessui/vue).
  */
 export type UseDrawerReturn = {
     isOpen: Ref<boolean>;

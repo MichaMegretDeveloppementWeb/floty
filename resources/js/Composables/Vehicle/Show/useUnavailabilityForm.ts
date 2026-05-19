@@ -33,22 +33,20 @@ type SelectOptionGroup = {
 };
 
 /**
- * Compte le nombre de dates ISO de `busyDates` (jours déjà attribués
- * à un contrat actif) qui tombent dans la plage saisie par l'utilisateur.
+ * Counts ISO dates in `busyDates` (days already assigned to an active contract) that fall
+ * within the user's range.
  *
- * Cohabitation indispo↔contrat (ADR-0019) : la plage **peut** chevaucher
- * un contrat - cette fonction sert à alimenter l'encart info pédagogique
- * du modal, pas à bloquer la saisie.
+ * Unavailability ↔ contract cohabitation (ADR-0019): the range MAY overlap a contract;
+ * this function feeds the modal's pedagogical info banner, it does not block input.
  *
- * Sémantique :
- *   - `startDate === null` → 0 (plage incomplète, on n'a rien à compter)
- *   - `ongoing === false` et `endDate === null` → 0 (idem)
- *   - `ongoing === true` → on compte tous les `busyDates >= startDate`
- *     (la plage est considérée ouverte sur le futur, comme côté backend
- *     où `end_date IS NULL` désigne une indispo encore en cours)
- *   - sinon → on compte les `busyDates ∈ [startDate, endDate]` inclusif
+ * Semantics:
+ *   - `startDate === null` → 0 (incomplete range)
+ *   - `!ongoing && endDate === null` → 0 (idem)
+ *   - `ongoing === true` → count all `busyDates >= startDate` (open-ended range, matching
+ *     backend `end_date IS NULL` for an ongoing unavailability)
+ *   - otherwise → count `busyDates ∈ [startDate, endDate]` inclusive
  *
- * Pure pour faciliter le test unitaire - pas d'accès au composable.
+ * Pure to ease unit testing (no composable access).
  */
 export function countConflictDaysInRange(
     busyDates: ReadonlyArray<string>,
@@ -78,20 +76,14 @@ export function countConflictDaysInRange(
 }
 
 /**
- * Form Inertia + UI state du modal de création/édition d'une
- * indisponibilité (ADR-0016 rev. 1.1, refonte chantier F).
+ * Inertia form + UI state for the unavailability create/edit modal (ADR-0016 rev. 1.1).
  *
- *   - construit la grille `optionGroups` à 2 groupes (Réducteurs /
- *     Non réducteurs) consommée par le `<select>` de la modale ;
- *   - synchronise `range` et `ongoing` quand `props.editing` change
- *     (mode création vs édition) ;
- *   - calcule `canSubmit` (bouton désactivé tant que les bornes
- *     attendues ne sont pas posées) ;
- *   - calcule `selectedIsReductive` pour piloter le bandeau d'effet
- *     fiscal annoncé avant validation ;
- *   - applique `payloadTransform` (range+ongoing → snake_case backend) ;
- *   - dispatche le submit (POST store ou PATCH update selon le mode)
- *     puis ferme le modal et reset le state au success.
+ *   - builds the 2-group `optionGroups` grid (Reducing / Non-reducing) consumed by the modal `<select>`,
+ *   - synchronises `range` and `ongoing` when `props.editing` changes (create vs edit mode),
+ *   - computes `canSubmit` (button disabled until the expected bounds are set),
+ *   - computes `selectedIsReductive` to drive the fiscal-effect banner before submit,
+ *   - applies `payloadTransform` (range+ongoing → snake_case backend),
+ *   - dispatches submit (POST store or PATCH update depending on mode) and closes/resets on success.
  */
 export function useUnavailabilityForm(
     props: {
@@ -103,10 +95,9 @@ export function useUnavailabilityForm(
 ): {
     optionGroups: SelectOptionGroup[];
     /**
-     * Année à afficher dans le calendrier à l'ouverture. En création ·
-     * année calendaire courante. En édition · l'année du `start_date`
-     * de l'indispo éditée (P3 · sinon le calendrier reste sur 2026
-     * alors qu'on édite une indispo de 2024).
+     * Year to display in the calendar on opening. Create mode: current calendar year.
+     * Edit mode: the year of the edited unavailability's `start_date`
+     * (otherwise the calendar stays on the current year while editing an older unavailability).
      */
     viewYear: Ref<number>;
     form: InertiaForm<FormShape>;
@@ -159,11 +150,8 @@ export function useUnavailabilityForm(
     const range = ref<DateRange>({ startDate: null, endDate: null });
     const ongoing = ref<boolean>(false);
 
-    // P3 · vue initiale du DateRangePicker (mois + année) · dérivée du
-    // startDate de l'indispo en cours d'édition pour que le calendrier
-    // s'ouvre exactement sur la période sélectionnée. En création ·
-    // mois et année calendaires courants (chantier η Phase 3 doctrine ·
-    // l'utilisateur saisit dans son présent).
+    // Initial DateRangePicker view (month + year): derived from the edited unavailability's startDate
+    // so the calendar opens on the selected period. Create mode: current calendar month + year.
     const now = new Date();
     const initialMonth = ref<number>(now.getMonth() + 1);
     const viewYear = ref<number>(now.getFullYear());
@@ -179,10 +167,9 @@ export function useUnavailabilityForm(
                     endDate: value.endDate,
                 };
                 ongoing.value = value.endDate === null;
-                // P3 · ouvrir le calendrier sur l'année ET le mois du
-                // startDate de l'indispo éditée. Sans ça, une indispo
-                // 2024 s'affichait avec un calendrier 2026 vide ·
-                // l'utilisateur ne voyait pas la période sélectionnée.
+                // Open the calendar on the year AND month of the edited unavailability's startDate.
+                // Without this, editing a 2024 unavailability showed an empty 2026 calendar and the
+                // user could not see the selected period.
                 viewYear.value = Number(value.startDate.slice(0, 4));
                 initialMonth.value = Number(value.startDate.slice(5, 7));
             } else {
@@ -190,7 +177,7 @@ export function useUnavailabilityForm(
                 form.type = 'maintenance';
                 range.value = { startDate: null, endDate: null };
                 ongoing.value = false;
-                // Reset sur le présent calendaire (création).
+                // Reset to the calendar present (create mode).
                 const today = new Date();
                 viewYear.value = today.getFullYear();
                 initialMonth.value = today.getMonth() + 1;

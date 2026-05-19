@@ -15,10 +15,9 @@ type Fiscal = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 type StatItem = { value: string; label: string };
 
 /**
- * Item de la section « Exonérations, abattements et usages spéciaux »
- * sur la card · exhaustif (toutes les options **applicables** au
- * véhicule sont rendues, actives ou non) pour que l'utilisateur voie
- * la couverture complète sans avoir à ouvrir le formulaire.
+ * Item for the "Exonérations, abattements et usages spéciaux" section on the card.
+ * Exhaustive: every option applicable to the vehicle is rendered (active or not) so the user
+ * sees full coverage without opening the form.
  */
 export type FiscalOptionItem = {
     label: string;
@@ -27,22 +26,15 @@ export type FiscalOptionItem = {
 };
 
 /**
- * Données dérivées de la card « Caractéristiques fiscales actives ».
+ * Derived data for the "Caractéristiques fiscales actives" card.
  *
- *   - `co2Display`         · choix d'affichage parmi WLTP / NEDC / PA
- *   - `stats`              · tableau dynamique des items grille
- *                            (entrées conditionnelles selon les champs
- *                            renseignés)
- *   - `applicableOptions`  · toutes les options « Exonérations,
- *                            abattements et usages spéciaux »
- *                            applicables au véhicule (filtrage M1/N1
- *                            + carrosserie · même logique que le
- *                            formulaire `FiscalCharacteristicsSection`),
- *                            avec leur état actif/inactif. P7 ·
- *                            permet de voir la couverture complète des
- *                            options, pas seulement les cochées.
- *   - `historyOpen`        · ouverture du modal d'historique
- *   - `historyCount`       · compteur affiché dans le label du bouton
+ *   - `co2Display`         display choice among WLTP / NEDC / PA
+ *   - `stats`              dynamic grid items (conditional entries depending on populated fields)
+ *   - `applicableOptions`  all "Exonérations, abattements et usages spéciaux" options applicable
+ *                          to the vehicle (M1/N1 + body filtering, same logic as the form
+ *                          `FiscalCharacteristicsSection`) with their active/inactive state
+ *   - `historyOpen`        history modal open state
+ *   - `historyCount`       counter shown in the button label
  */
 export function useCurrentFiscalCharacteristicsCard(props: {
     fiscal: Fiscal | null;
@@ -133,9 +125,8 @@ export function useCurrentFiscalCharacteristicsCard(props: {
         const isLightTruck = f.bodyType === 'CTTE';
         const isPickup = f.bodyType === 'BE';
 
-        // Même filtrage que `FiscalCharacteristicsSection.vue` ·
-        // garde-fou cohérence UI/Form (si on ajoute un flag au form,
-        // le miroir s'aligne ici).
+        // Same filtering as `FiscalCharacteristicsSection.vue`: UI/Form coherence guardrail
+        // (adding a form flag requires aligning the mirror here).
         const items: FiscalOptionItem[] = [
             {
                 label: 'Aménagement handicap',

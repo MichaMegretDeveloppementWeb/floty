@@ -1,20 +1,16 @@
 /**
- * Handover sessionStorage entre la page Create contrat et la page Show
- * post-redirect, pour les documents PDF en attente d'upload (chantier 04.N).
+ * sessionStorage handover between the contract Create page and the post-redirect Show page
+ * for PDF documents pending upload.
  *
- * **Pourquoi** : Inertia useForm submit fait un POST + redirect 302 vers
- * Show. Les `File[]` accumulés dans le state local de Create sont perdus
- * à la redirection (pas de mécanisme natif Inertia pour transporter des
- * binaires). On les sérialise temporairement dans `sessionStorage` (par
- * essence non persistant entre onglets ou sessions, parfait pour ce
- * handover one-shot).
+ * Inertia useForm submit issues a POST + 302 redirect to Show. Local `File[]` accumulated
+ * on Create are lost on the redirect (Inertia has no native binary transport). We serialise
+ * them temporarily in `sessionStorage`, which is naturally tab-scoped (one-shot handover).
  *
- * **Limitation** : sessionStorage stocke des strings, pas des File.
- * On encode chaque File en base64 + métadonnées (name, type) dans une
- * structure JSON, on récupère côté Show et on reconstruit les File.
+ * sessionStorage stores strings only, so each File is encoded base64 + metadata (name, type)
+ * in a JSON structure, then reconstructed on Show.
  *
- * Le coût (encoding base64 de 5 × 10 Mo) est acceptable pour V1. En V2,
- * on pourra remplacer par IndexedDB qui supporte les Blobs natifs.
+ * The base64 encoding cost (e.g. 5 × 10 MB) is acceptable for V1. Future work could swap
+ * to IndexedDB which supports native Blobs.
  */
 
 export const PENDING_DOCUMENTS_STORAGE_KEY = 'floty:pending-contract-documents';
@@ -54,20 +50,15 @@ function base64ToFile(name: string, type: string, base64: string): File {
 }
 
 /**
- * Stocke les fichiers à uploader après création du contrat. Le
- * `contractId` est posé après la création (typiquement dans le callback
- * `onSuccess` d'Inertia useForm - on lit l'URL de redirection ou la
- * shared prop pour le récupérer).
+ * Stores the files to upload after contract creation. The `contractId` is set after creation
+ * (typically in Inertia useForm `onSuccess` from the redirect URL or shared prop).
  *
- * **Note** : à l'appel, on ne connaît pas encore le contractId (la
- * création n'est pas faite). On stocke les documents avec un placeholder
- * `contractId: 0` ; le post-redirect Show vérifie que le contract.id de
- * la page courante == contractId du payload OU contractId = 0 (pending
- * legacy non assigné).
+ * At call time the contractId is unknown (creation hasn't happened yet). Documents are stored
+ * with a placeholder `contractId: 0`; the post-redirect Show page either matches the current
+ * page's contract.id OR accepts contractId = 0 (legacy unassigned pending).
  *
- * Pour simplifier V1 : on accepte tout payload sessionStorage présent
- * sur la page Show, peu importe le contractId. Pas de risque de fuite
- * car les sessionStorage sont par onglet/contexte.
+ * V1 simplification: any payload found on Show is accepted regardless of contractId.
+ * No leakage risk since sessionStorage is tab/context-scoped.
  */
 export async function storePendingDocuments(files: File[]): Promise<void> {
     if (files.length === 0) {
@@ -87,7 +78,7 @@ export async function storePendingDocuments(files: File[]): Promise<void> {
     );
 
     const payload: PendingPayload = {
-        contractId: 0, // placeholder, consommé sur la page Show
+        contractId: 0, // placeholder, consumed on the Show page
         documents,
     };
 
@@ -95,9 +86,8 @@ export async function storePendingDocuments(files: File[]): Promise<void> {
 }
 
 /**
- * Lit + supprime les documents en attente. Pas d'argument en V1
- * (handover one-shot par onglet, le sessionStorage est isolé par
- * onglet donc pas de risque de fuite cross-contrat).
+ * Reads and removes pending documents. No argument in V1 (one-shot per tab,
+ * sessionStorage is tab-isolated so there is no cross-contract leak risk).
  */
 export function consumePendingDocuments(): File[] {
     const raw = sessionStorage.getItem(PENDING_DOCUMENTS_STORAGE_KEY);

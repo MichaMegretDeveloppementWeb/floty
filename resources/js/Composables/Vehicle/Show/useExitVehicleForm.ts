@@ -17,18 +17,18 @@ type FormShape = {
 type SelectOption = { value: VehicleExitReason; label: string };
 
 /**
- * Form Inertia + UI state du modal de sortie de flotte. Le composable :
+ * Inertia form + UI state for the fleet-exit modal.
  *
- *   - construit la liste d'options du motif de sortie
- *   - calcule `today` (max sur le DateInput)
- *   - calcule `canSubmit` (date + motif obligatoires)
- *   - applique `payloadTransform` qui mappe la note vide vers null
- *   - submit POST /vehicles/{id}/exit puis ferme la modale
+ *   - builds the exit-reason options list
+ *   - computes `today` (max on the DateInput)
+ *   - computes `canSubmit` (date + reason required)
+ *   - applies `payloadTransform` mapping empty note → null
+ *   - submits POST /vehicles/{id}/exit then closes the modal
  *
- * En cas de conflits (contrats/indispos qui débordent la date proposée),
- * le backend lève {@link App\Exceptions\Vehicle\VehicleExitBlockedByConflictsException}
- * convertie en flash `toast-error` par le handler global. La modale reste
- * ouverte avec les inputs préservés (pattern back()->withInput()).
+ * On conflicts (contracts/unavailabilities that overflow the proposed date), the backend raises
+ * {@link App\Exceptions\Vehicle\VehicleExitBlockedByConflictsException}, converted to a flash
+ * `toast-error` by the global handler. The modal stays open with preserved inputs
+ * (back()->withInput() pattern).
  */
 export function useExitVehicleForm(
     props: { vehicleId: number },

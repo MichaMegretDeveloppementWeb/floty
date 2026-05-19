@@ -8,19 +8,11 @@ type DriverRow = App.Data.User.Company.CompanyDriverRowData;
 type DriverOption = { id: number; fullName: string; initials: string };
 
 /**
- * Logique métier de l'onglet « Conducteurs » de la page Show Company
- * (Lot 7 D01 · F-40-004 · extraction depuis `CompanyDriversTab.vue`
- * qui violait R9 + mémoire `feedback_vue_composables_extraction`).
+ * Business logic for the Drivers tab of the Company Show page.
  *
- * Concentre · état modaux (Add, Leave, Edit) · actions HTTP
- * (detach/reactivate avec confirmation via ConfirmModal Vue · plus de
- * `window.confirm()` natif F-40-018) · helpers de présentation
- * (formatDate, onRowClick) · stats dérivées (activeCount, visibleDrivers).
- *
- * **F-40-018 fix collateral** · les 2 `confirm()` natifs (detach +
- * reactivate) sont remplacés par un état `confirmAction` que le partial
- * branche sur un `ConfirmModal` unique (cohérent avec doctrine UX
- * Floty + accessibilité focus trap + cohérence design system).
+ * Covers: modal state (Add, Leave, Edit), HTTP actions (detach/reactivate confirmed
+ * via the Vue ConfirmModal instead of native `window.confirm()`), presentation helpers
+ * (formatDate, onRowClick) and derived stats (activeCount, visibleDrivers).
  */
 export type ConfirmActionKind = 'detach' | 'reactivate';
 
@@ -115,13 +107,10 @@ export function useCompanyDriversTab(opts: UseCompanyDriversTabOptions): UseComp
     }
 
     /**
-     * F-40-018 (Lot 7 D01) · `window.confirm()` remplacé par un état
-     * de confirmation que le partial branche sur `ConfirmModal`.
+     * Requests a detach confirmation surfaced via ConfirmModal.
      *
-     * Refus métier · si le driver a des contrats actifs (`contractsCount > 0`),
-     * la suppression est interdite côté UI (le bouton est masqué/disable
-     * avant même cet appel · garde-fou défensif ici si l'invocation
-     * passe).
+     * Defensive guard: detach is forbidden when the driver still has active contracts;
+     * the action button is hidden upstream but we bail here as a safety net.
      */
     function requestDetach(row: DriverRow): void {
         if (row.contractsCount > 0) {

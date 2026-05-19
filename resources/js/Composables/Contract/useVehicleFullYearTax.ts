@@ -4,29 +4,21 @@ import { useApi } from '@/Composables/Shared/useApi';
 import { fullYearTax as fullYearTaxRoute } from '@/routes/user/vehicles';
 
 /**
- * Calcul A · taxe pleine année d'un véhicule pour l'année dérivée de
- * `startDate` (fallback année courante). Déclenché à la volée par le
- * form Create/Edit Contract quand l'utilisateur sélectionne un
- * véhicule ou change la date de début. Affiché en indication discrète
- * sous le sélecteur véhicule.
+ * Full-year tax for a vehicle on the year derived from `startDate` (fallback to current year).
  *
- * Backend · `GET /app/vehicles/{vehicle}/full-year-tax?year=YYYY`
- * Service · {@see VehicleListingService::fullYearTaxForVehicle}
+ * Triggered on demand by the Create/Edit Contract form when the user picks a vehicle or
+ * changes the start date. Displayed as a discreet hint under the vehicle selector.
  *
- * Watch reactif debouncé (200 ms) sur `vehicleId` + `startDate` ·
- * un seul appel par vraie sélection utilisateur, pas un appel par
- * frappe. Cleanup `onScopeDispose` · pas de fuite si le composant
- * parent est détruit pendant un debounce.
+ * Backend: `GET /app/vehicles/{vehicle}/full-year-tax?year=YYYY`
+ * Service: {@see VehicleListingService::fullYearTaxForVehicle}
  *
- * Sémantique du résultat ·
- *   - `cents` · taxe pleine année en centimes (entier)
- *   - `year` · année effectivement calculée (peut différer de la
- *     demandée si fallback sur année connue voisine)
- *   - `fallback` · true ssi `year` ≠ `requestedYear`
+ * Debounced reactive watch (200 ms) on `vehicleId` + `startDate`: one call per real user choice,
+ * not one per keystroke. Cleanup via `onScopeDispose` so no leak if the parent unmounts mid-debounce.
  *
- * Audit perf 2026-05-16 S2.5 · remplace le pré-calcul lourd de
- * `VehicleOptionData::fullYearTaxByYear` (192 pipeline runs gaspillés
- * au mount Create/Edit) par un seul calcul à la sélection véhicule.
+ * Result semantics:
+ *   - `cents`: full-year tax in cents (integer)
+ *   - `year`: year actually computed (may differ from requested if fallback to a known neighbour)
+ *   - `fallback`: true iff `year` differs from `requestedYear`
  */
 export type VehicleFullYearTaxResult = {
     cents: number | null;
@@ -44,7 +36,7 @@ const DEBOUNCE_MS = 200;
 
 export function useVehicleFullYearTax(opts: {
     vehicleId: Ref<number | null>;
-    /** Date ISO `YYYY-MM-DD` (de `form.start_date`). Vide = année courante. */
+    /** ISO `YYYY-MM-DD` date (from `form.start_date`). Empty = current year. */
     startDate: Ref<string>;
 }): UseVehicleFullYearTaxReturn {
     const api = useApi();

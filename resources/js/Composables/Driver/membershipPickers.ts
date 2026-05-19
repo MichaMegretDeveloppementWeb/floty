@@ -1,17 +1,13 @@
 /**
- * Helpers purs pour les pickers des modaux de membership Driver↔Company.
+ * Pure helpers for the Driver↔Company membership picker modals.
  *
- * Symétriques :
- *   - `filterAvailableCompanies` alimente `AddDriverCompanyModal` côté
- *     fiche Driver (l'utilisateur a un driver fixe, choisit une company).
- *   - `filterAvailableDrivers` alimente `AddCompanyDriverModal` côté
- *     fiche Company (l'utilisateur a une company fixe, choisit un driver).
+ * Symmetric:
+ *   - `filterAvailableCompanies` feeds `AddDriverCompanyModal` on the Driver page.
+ *   - `filterAvailableDrivers` feeds `AddCompanyDriverModal` on the Company page.
  *
- * Le filtrage exclut les memberships **actuellement actives** (un même
- * driver peut être ré-attaché à une company qu'il a quittée, cf. option A
- * du compte rendu d'audit chantier M : une membership est temporelle,
- * `joined_at` / `left_at` peuvent générer plusieurs lignes pivot pour
- * le même couple).
+ * Filtering excludes currently active memberships. A driver may be re-attached to a company
+ * they previously left: memberships are temporal, `joined_at` / `left_at` can produce several
+ * pivot rows for the same couple.
  */
 
 type CompanyOption = { id: number; shortCode: string; legalName: string };

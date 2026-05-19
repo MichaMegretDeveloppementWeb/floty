@@ -1,11 +1,11 @@
 /**
- * Configuration de la table Index Invoices (server-side, cf. ADR-0020).
+ * Server-side Index table for Invoices (ADR-0020).
  *
- * Filtres : `companyId`, `year`, `month`. Search SQL : LIKE sur
+ * Filters: `companyId`, `year`, `month`. SQL search: LIKE on
  * `invoice_number`, `company.short_code`, `company.legal_name`.
  *
- * Whitelist sortKey backend : `invoiceNumber`, `company`, `period`,
- * `totalHt`, `generatedAt`. Toutes traduisibles en SQL pure.
+ * Backend sortKey whitelist: `invoiceNumber`, `company`, `period`, `totalHt`, `generatedAt`.
+ * All translatable to pure SQL.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -56,7 +56,7 @@ export function useInvoicesTable(opts: {
     activeSortColumnKey: ComputedRef<string | null>;
     activeFilterChips: ComputedRef<InvoiceFilterChip[]>;
     activeFiltersCount: ComputedRef<number>;
-    // V-models filtres (T11 / E.6 · push depuis Index.vue).
+    // Filter v-models (pushed from Index.vue).
     searchModel: WritableComputedRef<string>;
     companyIdModel: WritableComputedRef<number | null>;
     yearModel: WritableComputedRef<number | null>;
@@ -99,10 +99,8 @@ export function useInvoicesTable(opts: {
             companyId: f.companyId,
             year: f.year,
             month: f.month,
-            // `divergentOnly = false` est l'état par défaut · on le retire
-            // de l'URL pour rester propre. Seul `true` est sérialisé,
-            // sous forme de chaîne `'1'` (Laravel rule `boolean` accepte
-            // `'1'`, `1`, `true` indifféremment).
+            // `divergentOnly = false` is the default state; drop it from the URL to stay clean.
+            // Only `true` is serialised, as `'1'` (Laravel `boolean` rule accepts `'1'`, `1`, `true`).
             divergentOnly: f.divergentOnly ? '1' : null,
             includeObsolete: f.includeObsolete ? '1' : null,
         }),
@@ -167,8 +165,7 @@ export function useInvoicesTable(opts: {
         router.visit(invoicesShowRoute.url({ invoice: row.id }));
     }
 
-    // V-models filtres : exposés depuis le composable pour libérer la
-    // page Index.vue de toute logique de plumbing (T11 / E.6).
+    // Filter v-models: exposed from the composable to keep Index.vue free of plumbing.
     const searchModel = computed<string>({
         get: () => state.search.value,
         set: (value: string) => {

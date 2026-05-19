@@ -41,10 +41,9 @@ export type NavSection = {
 };
 
 /**
- * Sections statiques de la navigation latérale + helpers d'état :
- * détection de l'item actif (préfixe URL), fermeture du drawer
- * mobile, et la classe utilitaire de transition opacité/largeur
- * partagée par les labels et les titres de section.
+ * Static sidebar nav sections plus state helpers: active item detection (URL prefix),
+ * mobile drawer close, and the shared opacity/width transition utility class for
+ * labels and section titles.
  */
 export function useSidebarNav(open: Ref<boolean>): {
     sections: NavSection[];
@@ -155,11 +154,10 @@ export function useSidebarNav(open: Ref<boolean>): {
     });
 
     /**
-     * Item actif = celui dont le `href` est le préfixe le plus long du
-     * path courant. Évite la double-surbrillance quand deux items
-     * partagent un préfixe (ex. `/app/planning` et
-     * `/app/planning/companies` : sur `/app/planning/companies/1`,
-     * seule la 2ᵉ entrée est marquée active).
+     * Active item = the one whose `href` is the longest prefix of the current path.
+     * Avoids double-highlight when two items share a prefix
+     * (e.g. `/app/planning` and `/app/planning/companies`: on `/app/planning/companies/1`
+     * only the 2nd entry is marked active).
      */
     const activeHref = computed<string | null>(() => {
         const path = currentPath.value.split('?')[0] ?? '';

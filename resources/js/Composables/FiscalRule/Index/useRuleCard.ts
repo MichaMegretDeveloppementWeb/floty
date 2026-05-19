@@ -4,14 +4,13 @@ type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
 type Content = NonNullable<Rule['pedagogicalContent']>;
 
 /**
- * Helpers d'affichage d'une règle fiscale (Phase 13 D5.12 · ADR-0022
- * finalisée v1.2). Le contenu pédagogique vient désormais du DTO
- * `FiscalRuleListItemData.pedagogicalContent` projeté depuis la classe
- * PHP de la règle · plus de `fiscalRulesContent.ts`.
+ * Display helpers for a fiscal rule (ADR-0022 v1.2).
  *
- * Si `rule` est undefined (race transitoire) ou si la règle n'a pas
- * de contenu pédagogique (cas tolérable seulement avant le 1er seed),
- * `content` vaut undefined · le composant doit gérer ce fallback.
+ * Pedagogical content comes from `FiscalRuleListItemData.pedagogicalContent`,
+ * projected from the rule's PHP class.
+ *
+ * If `rule` is undefined (transient race) or has no pedagogical content (tolerable
+ * only before the first seed), `content` is undefined and the component must handle the fallback.
  */
 export function useRuleCard(props: { rule: Rule | undefined }): {
     taxLabel: Record<string, string>;

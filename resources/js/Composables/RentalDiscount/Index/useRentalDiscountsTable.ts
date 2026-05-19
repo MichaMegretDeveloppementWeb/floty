@@ -1,10 +1,9 @@
 /**
- * Configuration de la table Index Rental Discounts (server-side · cf.
- * ADR-0020) · Lot 4 du chantier RentalDiscount.
+ * Server-side Index table for Rental Discounts (ADR-0020).
  *
- * Filtres exposés (cf. RentalDiscountIndexQueryData) ·
- *  - companyId : réductions d'une entreprise précise
- *  - status : 'active' | 'planned' | 'expired' (calcul SQL vs. today)
+ * Filters (see RentalDiscountIndexQueryData):
+ *  - companyId: discounts for a given company
+ *  - status: 'active' | 'planned' | 'expired' (SQL comparison vs. today)
  */
 
 import { router } from '@inertiajs/vue3';

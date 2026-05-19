@@ -1,17 +1,10 @@
 /**
- * Wrappers `v-model` autour des filtres `useFleetTable` pour les
- * SelectInput / CheckboxInput / YearRangeGridPicker du popover Filtres
- * Index Vehicles, plus arrays d'options et compteur de filtres actifs.
+ * `v-model` wrappers around `useFleetTable` filters for the Vehicles Index Filters popover
+ * (SelectInput / CheckboxInput / YearRangeGridPicker), plus option arrays and active filter counter.
  *
- * Extrait de `pages/User/Vehicles/Index/Index.vue` dans le cadre du
- * plan-remediation Vague 1 Lot 4 D12 (F-34-008 · pages Index trop
- * grosses) pour respecter R7 ADR-0013 + mémoire
- * `feedback_vue_composables_extraction`.
- *
- * Le composable n'embarque AUCUN `ref()` propre · il agit uniquement
- * comme façade typée sur `tableState.filters`. Le test couvre le compteur
- * et les conversions String <-> Enum (le reste est trivialement testé via
- * les Feature `VehicleControllerTest` côté backend).
+ * Carries no `ref()` of its own: acts purely as a typed façade over `tableState.filters`.
+ * Tests cover the counter and String ↔ Enum conversions; the rest is covered by backend
+ * `VehicleControllerTest` Feature tests.
  */
 
 import { computed } from 'vue';
@@ -29,12 +22,12 @@ export type YearOption = { value: number; label: string };
 
 export type UseVehiclesIndexFiltersOptions = {
     tableState: ServerTableState<FleetFilters>;
-    /** Liste des années disponibles pour le sélecteur année financière. */
+    /** Available years for the financial year selector. */
     availableYears: ComputedRef<readonly number[]>;
 };
 
 export type UseVehiclesIndexFiltersReturn = {
-    // Filtres v-model
+    // v-model filters
     searchModel: ComputedRef<string>;
     selectedYearModel: ComputedRef<number>;
     statusModel: ComputedRef<string | number>;
@@ -45,13 +38,13 @@ export type UseVehiclesIndexFiltersReturn = {
     firstRegistrationYearMaxModel: ComputedRef<number | null>;
     includeExitedModel: ComputedRef<boolean>;
 
-    // Options arrays statiques (computed pour cohérence avec yearOptions)
+    // Static option arrays (computed for symmetry with yearOptions)
     statusOptions: SelectOption[];
     energySourceOptions: SelectOption[];
     pollutantCategoryOptions: SelectOption[];
     yearOptions: ComputedRef<YearOption[]>;
 
-    // Compteur de filtres actifs (popover badge)
+    // Active filters counter (popover badge)
     activeFiltersCount: ComputedRef<number>;
 };
 
@@ -60,9 +53,7 @@ export function useVehiclesIndexFilters(
 ): UseVehiclesIndexFiltersReturn {
     const { tableState, availableYears } = options;
 
-    // ---------------------------------------------------------------
-    // Options arrays statiques (Enum → label).
-    // ---------------------------------------------------------------
+    // Static option arrays (Enum → label).
 
     const statusOptions: SelectOption[] = [
         { value: '', label: 'Tous les statuts' },
@@ -91,9 +82,7 @@ export function useVehiclesIndexFilters(
         availableYears.value.map((year) => ({ value: year, label: String(year) })),
     );
 
-    // ---------------------------------------------------------------
-    // v-model wrappers (façade typée sur tableState.filters).
-    // ---------------------------------------------------------------
+    // v-model wrappers (typed façade over tableState.filters).
 
     const searchModel = computed<string>({
         get: () => tableState.search.value,
@@ -182,9 +171,7 @@ export function useVehiclesIndexFilters(
         },
     });
 
-    // ---------------------------------------------------------------
-    // Compteur filtres actifs (badge popover).
-    // ---------------------------------------------------------------
+    // Active filters counter (popover badge).
 
     const activeFiltersCount = computed<number>(() => {
         let n = 0;
@@ -194,8 +181,7 @@ export function useVehiclesIndexFilters(
             n += 1;
         }
 
-        // includeExited défaut true · compté comme filtre actif uniquement
-        // si l'utilisateur a explicitement décoché (override = exclure).
+        // includeExited default true: counted as active only when the user explicitly unchecked.
         if (!f.includeExited) {
             n += 1;
         }

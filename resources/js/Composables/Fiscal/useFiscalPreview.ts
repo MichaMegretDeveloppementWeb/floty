@@ -4,19 +4,15 @@ import { useApi } from '@/Composables/Shared/useApi';
 import { previewTaxes as previewTaxesRoute } from '@/routes/user/planning';
 
 /**
- * Aperçu fiscal **standalone** d'une attribution (location/contrat).
+ * Standalone fiscal preview for a contract assignment.
  *
- * État debounced (200 ms) consommant
- * `POST /app/planning/preview-taxes`. Le composable gère son propre
- * timer avec cleanup via `onScopeDispose` - pas de fuite si le
- * composant parent est détruit pendant un debounce.
+ * Debounced (200 ms) state backed by `POST /app/planning/preview-taxes`.
+ * Timer is cleaned up via `onScopeDispose` so no leak occurs when the parent unmounts mid-debounce.
  *
- * Pas de retour `error` séparé : `useApi` push automatiquement un
- * toast erreur ; côté composable on remet juste `preview = null`.
+ * No separate `error` output: `useApi` pushes an error toast automatically; we just set `preview = null`.
  *
- * Sémantique : LCD/LLD se calcule par contrat individuellement
- * (pas de cumul annuel). Le preview répond donc strictement au coût
- * fiscal du contrat seul.
+ * LCD/LLD is computed per individual contract (no annual cumulation),
+ * so the preview answers strictly to the standalone fiscal cost.
  */
 export type FiscalPreviewInput = {
     vehicleId: number | null;
@@ -28,8 +24,7 @@ export type UseFiscalPreviewReturn = {
     preview: Ref<App.Data.User.Fiscal.FiscalPreviewData | null>;
     loading: Ref<boolean>;
     /**
-     * Déclenche un fetch debouncé. À appeler depuis un `watch` sur
-     * les refs (vehicleId / companyId / dates) côté consommateur.
+     * Triggers a debounced fetch. Call from a `watch` on the (vehicleId / companyId / dates) refs.
      */
     fetch: (input: FiscalPreviewInput) => void;
     reset: () => void;

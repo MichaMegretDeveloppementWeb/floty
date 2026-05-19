@@ -1,16 +1,10 @@
 /**
- * Composable de régénération de facture (T11 / E.2). Mutualise la
- * logique partagée entre `GenerateInvoiceButton.vue` (depuis l'onglet
- * Facturation d'une entreprise · target `'company-tab'`) et
- * `InvoiceDivergenceBanner.vue` (depuis la fiche Show facture · target
- * `'show'`).
+ * Invoice regeneration helper shared by company-tab button and show-page banner.
  *
- * Le `redirectTarget` détermine la cible côté serveur après la
- * régénération (cf. backend `RegenerateRedirectTarget` enum) :
- * - `'show'` : redirige vers la nouvelle facture (id changé après
- *   régénération · usage typique fiche Show).
- * - `'company-tab'` : reste sur l'onglet Facturation entreprise.
- * - `'index'` : retombe sur la liste Factures.
+ * `redirectTarget` maps to backend `RegenerateRedirectTarget` enum:
+ * - `'show'` redirects to the regenerated invoice (id changes after regeneration).
+ * - `'company-tab'` keeps the user on the company billing tab.
+ * - `'index'` falls back to the invoices list.
  */
 
 import { router } from '@inertiajs/vue3';

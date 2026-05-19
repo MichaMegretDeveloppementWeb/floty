@@ -1,16 +1,12 @@
 /**
- * Sélecteur d'année local à une page (chantier J, ADR-0020).
+ * Page-local year selector (ADR-0020).
  *
- * Pattern : chaque page consommatrice (Dashboard, Planning, FiscalRules,
- * Vehicles Index, Companies Index, Contracts Index) gère sa propre
- * année via `?year=YYYY` URL. Le composable encapsule la mécanique
- * de partial reload Inertia avec **préservation des autres query params**
- * (filtres, tri, pagination, etc.).
+ * Each consuming page (Dashboard, Planning, FiscalRules, Vehicles/Companies/Contracts Index)
+ * manages its own year via `?year=YYYY`. This composable wraps the Inertia partial reload
+ * while preserving other query params (filters, sort, pagination, etc.).
  *
- * Pour les Index qui utilisent `useServerTableState`, passer `year` au
- * `serializeFilters` plutôt que ce composable (cohérence avec le reste
- * des filtres). Pour les pages standalone (Dashboard, FiscalRules), ce
- * composable est l'API directe.
+ * For Index pages using `useServerTableState`, pass `year` via `serializeFilters` for consistency.
+ * For standalone pages (Dashboard, FiscalRules), this composable is the direct API.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -34,9 +30,8 @@ export function useLocalYearSelector(
 
         selectedYear.value = year;
 
-        // Préserve les autres query params en construisant l'URL depuis
-        // l'URL courante (ne pas utiliser router.get(pathname, params)
-        // qui écrase tout).
+        // Preserves other query params by building the URL from the current one
+        // (do not use router.get(pathname, params) which clears everything).
         const url = new URL(window.location.href);
         url.searchParams.set('year', String(year));
 
@@ -48,12 +43,9 @@ export function useLocalYearSelector(
                 preserveState: true,
                 preserveScroll: true,
                 replace: true,
-                // Callback exécutée après la mise à jour de l'URL + des
-                // props par Inertia. Utilisée par les pages combinant
-                // un `useLocalYearSelector` avec un `Inertia::defer`
-                // séparé (ex. Planning) pour enchaîner un partial
-                // reload de la prop deferred SUR LA NOUVELLE URL · cf.
-                // mémoire `feedback_inertia_defer_with_partial_reload`.
+                // Runs after Inertia updates the URL + props. Used by pages combining a
+                // `useLocalYearSelector` with a separate `Inertia::defer` (e.g. Planning) to chain
+                // a partial reload of the deferred prop ON THE NEW URL.
                 onSuccess: options.onSuccess,
             },
         );

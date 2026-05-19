@@ -1,12 +1,12 @@
 /**
- * Configuration de la table Index Companies (server-side, cf. ADR-0020).
+ * Server-side Index table for Companies (ADR-0020).
  *
- * Particularités vs Drivers :
- *  - Filtre `isActive` (boolean tri-state : true / false / null)
- *  - Colonnes `daysUsed` et `annualTaxDue` affichées mais NON triables
- *    (valeurs calculées par l'aggregator fiscal · règle ADR-0020 D6)
+ * Specifics vs Drivers:
+ *  - `isActive` tri-state filter (true / false / null)
+ *  - `daysUsed` and `annualTaxDue` columns are rendered but NOT sortable
+ *    (computed values from the fiscal aggregator)
  *
- * Le rendu reste dans `CompaniesTable.vue` (slots cell-*).
+ * Rendering stays in `CompaniesTable.vue` (cell-* slots).
  */
 
 import { router } from '@inertiajs/vue3';
@@ -21,8 +21,8 @@ type CompanyRow = App.Data.User.Company.CompanyListItemData;
 
 export type CompanySortKey = 'shortCode' | 'legalName' | 'siren' | 'city';
 
-// Mapping clé colonne UI → sortKey backend (CompanyIndexQueryData whitelist).
-// Les colonnes daysUsed et annualTaxDue n'ont PAS d'entrée car non triables.
+// Maps UI column key to backend sortKey (CompanyIndexQueryData whitelist).
+// daysUsed and annualTaxDue have no entry because they are not sortable.
 const COLUMN_TO_SORT_KEY: Partial<Record<string, CompanySortKey>> = {
     company: 'legalName',
     siren: 'siren',
@@ -33,7 +33,7 @@ export type CompanyFilters = {
     isActive: boolean | null;
     contractsScope: 'with' | 'without' | null;
     city: string | null;
-    /** Année qui pilote les colonnes financières (chantier J). */
+    /** Year driving the financial columns. */
     year: number;
 };
 
@@ -70,8 +70,7 @@ export function useCompaniesTable(opts: {
             year: opts.query.year ?? opts.selectedYear,
         },
         serializeFilters: (f) => ({
-            // Sérialisation booléenne : 1/0/null pour cohérence avec
-            // Spatie Data ?isActive=1 / ?isActive=0 / absent.
+            // Boolean serialisation 1/0/null to match Spatie Data ?isActive=1 / ?isActive=0 / absent.
             isActive: f.isActive === null ? null : f.isActive ? 1 : 0,
             contractsScope: f.contractsScope,
             city: f.city,
@@ -79,9 +78,8 @@ export function useCompaniesTable(opts: {
         }),
     });
 
-    // Labels dépendant de l'année du sélecteur · recalculés automatiquement
-    // quand `state.filters.value.year` change (chantier η Phase 3 fix). Sans
-    // ça, les colonnes restaient figées sur l'année initiale.
+    // Year-dependent labels recompute automatically when `state.filters.value.year` changes.
+    // Without this, columns would stay frozen on the initial year.
     const columns = computed<readonly DataTableColumn<CompanyRow>[]>(() => {
         const year = state.filters.value.year;
 
@@ -113,9 +111,8 @@ export function useCompaniesTable(opts: {
         if (sortKey !== undefined) {
             state.setSort(sortKey);
         }
-        // Les colonnes sans entrée dans COLUMN_TO_SORT_KEY (daysUsed,
-        // annualTaxDue) sont volontairement no-op au clic · pas de tri
-        // possible côté serveur sur ces valeurs calculées.
+        // Columns without an entry in COLUMN_TO_SORT_KEY (daysUsed, annualTaxDue)
+        // are intentional no-ops on click: no server-side sort on these computed values.
     }
 
     function onRowClick(row: CompanyRow): void {

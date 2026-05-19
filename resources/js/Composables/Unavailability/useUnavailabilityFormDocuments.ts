@@ -7,10 +7,9 @@ type Unavailability = App.Data.User.Unavailability.UnavailabilityData;
 type Document = App.Data.User.Unavailability.UnavailabilityDocumentData;
 
 /**
- * Limites alignées avec le backend (`UploadUnavailabilityDocumentData`
- * FormRequest + `UploadUnavailabilityDocumentAction`). Exposées pour
- * que la modale puisse les afficher (compteur « N / 5 », label « 5 Mo
- * max », `accept` attribut sur l'input).
+ * Limits aligned with the backend (`UploadUnavailabilityDocumentData` FormRequest +
+ * `UploadUnavailabilityDocumentAction`). Exposed so the modal can render them (N / 5 counter,
+ * 5 Mo max label, `accept` attribute on the input).
  */
 export const MAX_DOCUMENTS = 5;
 export const MAX_DOCUMENT_SIZE_BYTES = 5 * 1024 * 1024;
@@ -30,24 +29,17 @@ export type UseUnavailabilityFormDocumentsReturn = {
 };
 
 /**
- * Gestion des justificatifs joints à une indisponibilité côté formulaire
- * (P1). Sort toute la logique de la modale Vue conformément à la règle
- * « strict minimum dans les .vue · tout (logique, données, init,
- * constantes, helpers) sort en composable ».
+ * Form-side handling of an unavailability's supporting documents.
  *
- * **Contrat de fonctionnement** ·
- *   - Initialise `documents` depuis `editing.documents` à chaque
- *     changement (création → liste vide, édition → docs serveur).
- *   - Upload séquentiel des fichiers ajoutés (cf. `uploadMany`).
- *   - Refresh partiel Inertia (`unavailabilities`) après mutation
- *     pour garder le payload server cohérent · permet à l'utilisateur
- *     de fermer/rouvrir la modale sans perdre les justificatifs.
- *   - Suppression à 2 étapes (confirmation modale avant DELETE) pour
- *     éviter une perte accidentelle.
+ * Contract:
+ *   - Initialises `documents` from `editing.documents` on each change (create → empty, edit → server docs).
+ *   - Sequential upload of added files (via `uploadMany`).
+ *   - Partial Inertia reload (`unavailabilities`) after mutation to keep the server payload coherent,
+ *     so closing/reopening the modal preserves the documents.
+ *   - Two-step delete (modal confirmation before DELETE) to avoid accidental loss.
  *
- * **Précondition** · `editing` doit être non-null avant tout upload/
- * delete · une indispo doit exister en BDD pour qu'on puisse y joindre
- * un document. La modale gère ce gating côté template (`v-if="isEditing"`).
+ * Precondition: `editing` must be non-null before upload/delete. An unavailability must exist in DB
+ * to attach documents to. The modal gates this via `v-if="isEditing"`.
  */
 export function useUnavailabilityFormDocuments(props: {
     editing: Unavailability | null;

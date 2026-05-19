@@ -29,15 +29,15 @@ export type UseLeaveDriverCompanyFormReturn = {
 };
 
 /**
- * Workflow Q6 - modale de sortie d'un driver d'une entreprise.
+ * Modal workflow for removing a driver from a company.
  *
- * État géré :
- * - `leftAt` (date de sortie)
- * - mode résolution (`replace` / `detach` / `none` calculé selon contrats)
- * - `replacementMap` (clé contractId → driverId de remplacement, ou null)
+ * State:
+ * - `leftAt` (exit date)
+ * - resolution mode (`replace` / `detach` / `none`, derived from contracts)
+ * - `replacementMap` (contractId → replacement driverId, or null)
  *
- * Le composant parent (LeaveDriverCompanyModal) précharge les contrats à
- * venir détectés et les passe via `futureContracts`.
+ * The parent component (LeaveDriverCompanyModal) preloads detected upcoming contracts and
+ * passes them via `futureContracts`.
  */
 export function useLeaveDriverCompanyForm(opts: {
     driverId: number;

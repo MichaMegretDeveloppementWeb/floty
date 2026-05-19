@@ -4,25 +4,16 @@ import type { ComputedRef, Ref } from 'vue';
 type ActivityYear = App.Data.User.Company.CompanyActivityYearData;
 
 /**
- * Sélecteur d'année **local** de la section Activité de la fiche
- * entreprise (chantier K L2, ADR-0020 D3).
+ * Local year selector for the Activity section of the company page (ADR-0020 D3).
  *
- * Pattern :
- *   - Au mount, lit `?year=YYYY` du query param ; fallback à
- *     `currentRealYear` (passé par le backend).
- *   - Toute mutation de `selectedYear` est sérialisée dans l'URL via
- *     `window.history.replaceState` (cohérent avec
- *     `useCompanyTabs`).
- *   - `byYear` est dérivé localement de `activityByYear` côté client
- *     (le backend pré-calcule pour toutes les `availableYears`, pas
- *     de reload Inertia). Si l'année sélectionnée n'est pas dans
- *     `availableYears` (ex. `?year=2030`), on retourne une activité
- *     vide (12 cases à 0 + topVehicles vide) pour permettre à l'UI
- *     d'afficher un état vide cohérent.
+ * - On mount reads `?year=YYYY` from the query string, falling back to `currentRealYear`.
+ * - Every mutation of `selectedYear` is mirrored to the URL via `window.history.replaceState`.
+ * - `byYear` is derived locally from `activityByYear` (backend pre-computes all `availableYears`,
+ *   no Inertia reload). If the selected year is not in `availableYears` (e.g. `?year=2030`),
+ *   an empty activity (12 zeros + empty topVehicles) is returned for a coherent empty state.
  *
- * Pas de dépendance au sélecteur d'année global (cf. ADR-0020 D3 ·
- * la fiche entreprise est par essence intemporelle ; seule la section
- * Activité est filtrable localement par année).
+ * No dependency on any global year selector: the company page is timeless by nature;
+ * only the Activity section is locally year-filterable.
  */
 export function useCompanySelectedYear(opts: {
     activityByYear: Readonly<Ref<readonly ActivityYear[]>>;
@@ -64,8 +55,7 @@ export function useCompanySelectedYear(opts: {
         const url = new URL(window.location.href);
 
         if (year === opts.currentRealYear.value) {
-            // L'URL « propre » de la fiche est l'année réelle ; on omet
-            // le query param dans ce cas pour rester économe.
+            // Clean URL omits the query param when on the real year.
             url.searchParams.delete('year');
         } else {
             url.searchParams.set('year', String(year));

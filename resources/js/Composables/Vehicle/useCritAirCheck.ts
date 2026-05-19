@@ -8,10 +8,9 @@ type UnderlyingCombustionEngineType = App.Enums.Vehicle.UnderlyingCombustionEngi
 type PollutantCategory = App.Enums.Vehicle.PollutantCategory;
 
 /**
- * Vignette Crit'Air - saisie optionnelle sur le formulaire véhicule
- * (rubrique non encore en BDD à date 2026-04-27 ; le composable est
- * prêt à être branché quand la colonne sera ajoutée à
- * `vehicle_fiscal_characteristics`).
+ * Crit'Air vignette: optional input on the vehicle form.
+ * Not yet persisted: the composable is ready when the column is added to
+ * `vehicle_fiscal_characteristics`.
  */
 export type CritAirVignette = 'E' | '1' | '2' | '3' | '4' | '5' | 'unclassified';
 
@@ -23,33 +22,28 @@ export type CritAirCheckInput = {
 };
 
 export type CritAirCheckResult = {
-    /** Catégorie polluants déduite par R-2024-013 (peut être null si données insuffisantes). */
+    /** Pollutant category inferred by R-2024-013 (may be null if data is insufficient). */
     inferredPollutantCategory: PollutantCategory | null;
-    /** Catégorie polluants attendue selon la vignette Crit'Air saisie. */
+    /** Pollutant category expected from the Crit'Air vignette. */
     expectedFromCritAir: PollutantCategory | null;
-    /** Vrai si une divergence est détectée - alerte UI non bloquante. */
+    /** True when a mismatch is detected; non-blocking UI alert. */
     hasMismatch: boolean;
-    /** Message FR à afficher en banner. `null` si aucune alerte. */
+    /** French banner message, or `null` when no alert. */
     message: string | null;
 };
 
 /**
- * R-2024-024 - Garde-fou Crit'Air (CIBS BOFiP § 270).
+ * R-2024-024 Crit'Air sanity check (CIBS BOFiP § 270).
  *
- * Compare la **catégorie polluants déduite** par R-2024-013
- * (motorisation + Euro) à la **catégorie attendue** par la vignette
- * Crit'Air saisie. En cas de divergence, retourne un message
- * d'alerte à afficher comme banner non bloquant sous la section
- * « Caractéristiques fiscales » du formulaire véhicule.
+ * Compares the pollutant category inferred from R-2024-013 (engine + Euro) with the category
+ * expected from the Crit'Air vignette entered. On mismatch, returns a banner message under
+ * the vehicle form's "Caractéristiques fiscales" section.
  *
- * **Non bloquant** : ne désactive jamais la soumission du formulaire.
- * L'utilisateur peut sauvegarder malgré l'alerte (la donnée saisie
- * fait foi). C'est un diagnostic de cohérence.
+ * Non-blocking: never disables form submission. User can save despite the alert
+ * (the entered data is authoritative). Coherence diagnostic.
  *
- * Implémentation TS qui **réplique** la cascade R-2024-013 du backend
- * pour permettre la validation temps réel sans aller-retour HTTP.
- * Les deux implémentations doivent rester synchronisées - toute
- * modification de R-013 côté PHP impose un audit ici.
+ * Replicates the backend R-2024-013 cascade in TS for real-time validation without HTTP round-trip.
+ * Keep both implementations in sync: any R-013 PHP change requires a manual audit here.
  */
 export function useCritAirCheck(
     input: MaybeRefOrGetter<CritAirCheckInput>,
@@ -78,8 +72,7 @@ export function useCritAirCheck(
 }
 
 /**
- * Cascade R-2024-013 (cf. App\Fiscal\Year2024\Classification\
- * R2024_013_PollutantCategoryAssignment).
+ * R-2024-013 cascade (see App\Fiscal\Year2024\Classification\R2024_013_PollutantCategoryAssignment).
  */
 function inferPollutantCategory(input: CritAirCheckInput): PollutantCategory | null {
     if (input.energySource === null) {

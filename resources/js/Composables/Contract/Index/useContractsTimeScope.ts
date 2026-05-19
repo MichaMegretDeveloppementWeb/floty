@@ -1,21 +1,16 @@
 /**
- * Sélecteur scope hybride année/période pour l'Index Contracts
- * (chantier J ADR-0020 + remediation Vague 1 Lot 4 D12 · F-34-008).
+ * Hybrid year/period scope selector for the Contracts Index.
  *
- * 2 modes mutuellement exclusifs côté URL ·
- *  - mode 'year'   · `?year=YYYY` → SelectInput compact
- *  - mode 'period' · `?periodStart=&periodEnd=` → DateRangePicker en popover
+ * Two URL-side mutually exclusive modes:
+ *  - `'year'`   → `?year=YYYY` (compact SelectInput)
+ *  - `'period'` → `?periodStart=&periodEnd=` (DateRangePicker popover)
  *
- * Le mode initial est dérivé des params URL (`year` présent → year ;
- * `periodStart/End` présents → period ; sinon défaut `year`).
+ * Initial mode derived from URL params (`year` → year; `periodStart/End` → period; else `year`).
  *
- * Gère également :
- *  - l'état d'ouverture du popover période + click-outside + Escape
- *  - le label affiché sur le bouton-pill période
- *  - la `pickerYear` (année à laquelle ancrer le DateRangePicker)
+ * Also manages: period popover open state + click-outside + Escape,
+ * the pill button label, and `pickerYear` (year used to anchor the DateRangePicker).
  *
- * Sortie utilisée tel-quel par `pages/User/Contracts/Index/Index.vue`
- * comme orchestrateur pur.
+ * The return value is consumed as-is by `pages/User/Contracts/Index/Index.vue`.
  */
 
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
@@ -31,11 +26,11 @@ export type YearOption = { value: number; label: string };
 export type PeriodRange = { startDate: string | null; endDate: string | null };
 
 export type UseContractsTimeScopeOptions = {
-    /** Filters initiaux issus du DTO query backend (pour résoudre le mode initial). */
+    /** Initial filters from the backend query DTO, used to resolve the initial mode. */
     initialQuery: Pick<ContractFilters, 'year' | 'periodStart' | 'periodEnd'>;
-    /** Liste des années disponibles, source du `defaultYear` et de `yearOptions`. */
+    /** Available years driving `defaultYear` and `yearOptions`. */
     availableYears: ComputedRef<readonly number[]>;
-    /** Accès aux filtres temporels dans le `useServerTableState`. */
+    /** Access to time filters within `useServerTableState`. */
     tableState: ServerTableState<ContractFilters>;
 };
 
@@ -54,7 +49,7 @@ export type UseContractsTimeScopeReturn = {
 };
 
 /**
- * Résout le mode initial à partir des params URL hydratés sur le DTO query.
+ * Resolves the initial mode from URL params hydrated on the backend query DTO.
  */
 export function resolveInitialScopeMode(
     initialQuery: Pick<ContractFilters, 'year' | 'periodStart' | 'periodEnd'>,
@@ -99,8 +94,7 @@ export function useContractsTimeScope(
     const yearModel = computed<number>({
         get: () => tableState.filters.value.year ?? defaultYear.value,
         set: (v: number) => {
-            // En mode year · on set year, on efface periodStart/End. patchFilters
-            // pour update atomique en 1 seul reload.
+            // In year mode, set year and clear periodStart/End. patchFilters does it atomically in 1 reload.
             tableState.patchFilters({
                 year: v,
                 periodStart: null,
@@ -151,8 +145,7 @@ export function useContractsTimeScope(
         scopeMode.value = mode;
 
         if (mode === 'year') {
-            // Bascule en année · applique l'année par défaut, efface period
-            // et referme le popover si ouvert.
+            // Switch to year: apply the default year, clear period, close the popover.
             periodPopoverOpen.value = false;
 
             if (tableState.filters.value.year === null) {
@@ -163,7 +156,7 @@ export function useContractsTimeScope(
                 });
             }
         } else {
-            // Bascule en période · garde period si déjà saisi, sinon clear year
+            // Switch to period: keep period if already entered, otherwise just clear year.
             if (
                 tableState.filters.value.periodStart === null
                 && tableState.filters.value.periodEnd === null
@@ -177,9 +170,8 @@ export function useContractsTimeScope(
                 tableState.setFilter('year', null);
             }
 
-            // Auto-ouvre le date picker au passage en mode période · c'est
-            // le geste suivant logique (l'utilisateur veut saisir une plage)
-            // et le popover se ferme facilement (clic dehors / Escape).
+            // Auto-open the date picker when switching to period mode: it's the next logical gesture
+            // and the popover closes easily (click outside / Escape).
             periodPopoverOpen.value = true;
         }
     }

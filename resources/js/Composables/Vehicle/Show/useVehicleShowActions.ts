@@ -2,13 +2,10 @@ import { ref } from 'vue';
 import type { Ref } from 'vue';
 
 /**
- * État UI des modales d'actions disponibles sur la page Show d'un
- * véhicule (Sortie de flotte / Réactivation). Pas de logique métier
- * (chaque modale embarque son propre composable de form Inertia) -
- * ici on ne gère que l'open/close.
+ * UI state for the action modals on the Vehicle Show page (Exit fleet / Reactivate).
  *
- * Découpage dans un composable séparé pour garder VehicleHeader.vue
- * minimal (cf. règle « strict minimum dans les .vue »).
+ * No business logic: each modal ships its own Inertia form composable. This composable
+ * only manages open/close to keep VehicleHeader.vue minimal.
  */
 export function useVehicleShowActions(): {
     exitModalOpen: Ref<boolean>;

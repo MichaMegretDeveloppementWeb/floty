@@ -2,11 +2,10 @@ import { router } from '@inertiajs/vue3';
 import { useWeekDetail } from '@/Composables/Planning/useWeekDetail';
 
 /**
- * Logique de la page « Vue d'ensemble » (heatmap planning) :
- * - délègue à `useWeekDetail` la gestion du drawer hebdo
- * - encapsule le handler post-création de contrats (ferme le drawer
- *   + reload partiel des vehicles pour recalculer densités et taxes
- *   annuelles).
+ * Logic for the planning heatmap page:
+ *  - delegates the weekly drawer to `useWeekDetail`
+ *  - wraps the post-contract-creation handler (closes the drawer + partially reloads `vehicles`
+ *    to recompute densities and annual taxes).
  */
 export function useUserPlanningIndex(): {
     week: ReturnType<typeof useWeekDetail>;

@@ -2,19 +2,16 @@ import { computed, onMounted, onUnmounted, reactive, readonly } from 'vue';
 import type { ComputedRef, DeepReadonly } from 'vue';
 
 /**
- * État global (singleton module-level) de la palette de recherche
- * ⌘K (V1.1). Un seul `<CommandPalette />` est monté dans `UserLayout`
- * et toute partie de l'app peut l'ouvrir via {@see open()} (ex · clic
- * sur la barre du TopBar).
+ * Module-level singleton state for the ⌘K search palette.
  *
- * Persistance des **recents** dans `localStorage` (clé
- * `floty.search.recents`) · 5 max. Format ·
- * `{ label, sublabel, href, type, addedAt }[]`. Lecture défensive
- * (catch JSON parse, fallback []).
+ * A single `<CommandPalette />` is mounted in `UserLayout`; anywhere in the app can open
+ * it via {@see open()} (e.g. clicking the TopBar bar).
  *
- * Le composable expose aussi {@see useGlobalShortcut()} à appeler une
- * seule fois côté composant racine (ex · `<CommandPalette />`) pour
- * brancher le listener clavier ⌘K / Ctrl+K (mount/unmount).
+ * Recents persist in `localStorage` under `floty.search.recents` (max 5).
+ * Format: `{ label, sublabel, href, type, addedAt }[]`. Read defensively (JSON parse catch, fallback []).
+ *
+ * Also exposes {@see useCommandPaletteShortcut()} to call once on the root component
+ * to wire the global ⌘K / Ctrl+K keyboard listener.
  */
 
 const RECENTS_STORAGE_KEY = 'floty.search.recents';
@@ -97,9 +94,8 @@ function persistRecents(): void {
             JSON.stringify(state.recents),
         );
     } catch {
-        // localStorage indisponible (mode privé Safari, quota dépassé)
-        // · on dégrade silencieusement, les recents resteront en
-        // mémoire le temps de la session.
+        // localStorage unavailable (Safari private mode, quota exceeded);
+        // degrade silently, recents stay in memory for the session.
     }
 }
 
@@ -129,8 +125,7 @@ export function useCommandPalette(): UseCommandPaletteReturn {
             state.isOpen = !state.isOpen;
         },
         addRecent(item): void {
-            // Déduplication par href · le même résultat sélectionné
-            // plusieurs fois remonte en tête au lieu de doublonner.
+            // Dedup by href: the same result selected several times moves to the top instead of duplicating.
             const filtered = state.recents.filter(
                 (r) => r.href !== item.href,
             );
@@ -154,16 +149,14 @@ export function useCommandPalette(): UseCommandPaletteReturn {
 }
 
 /**
- * À monter une seule fois côté `<CommandPalette />`. Branche le
- * listener clavier global ⌘K (Mac) / Ctrl+K (Windows/Linux) qui
- * toggle l'ouverture de la palette, et Escape qui ferme.
+ * Mount once on `<CommandPalette />`. Wires the global ⌘K (Mac) / Ctrl+K (Win/Linux) listener
+ * that toggles the palette, plus Escape to close it.
  *
- * `preventDefault` sur ⌘K pour éviter que Chrome ouvre sa propre
- * barre d'adresse.
+ * `preventDefault` on ⌘K to avoid Chrome opening its own address bar.
  */
 export function useCommandPaletteShortcut(): void {
     const handler = (event: KeyboardEvent): void => {
-        // ⌘K (Mac) ou Ctrl+K (Windows/Linux) · toggle
+        // ⌘K (Mac) or Ctrl+K (Win/Linux): toggle
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
             event.preventDefault();
             state.isOpen = !state.isOpen;
@@ -171,8 +164,7 @@ export function useCommandPaletteShortcut(): void {
             return;
         }
 
-        // Escape · ferme uniquement si ouverte (sinon laisse passer
-        // pour ne pas interférer avec d'autres composants)
+        // Escape: close only if open (otherwise let it through to avoid interfering with other components)
         if (event.key === 'Escape' && state.isOpen) {
             event.preventDefault();
             state.isOpen = false;

@@ -1,49 +1,41 @@
 /**
- * Composable générique de chargement année par année avec cache client
- * (chantier η Phase 2 · refonte onglets fiche véhicule).
+ * Generic year-by-year loader with client cache.
  *
- * **Pattern** : une carte/section porte des données paramétrées par une
- * année (Timeline + Breakdown sur véhicule par exemple). L'année initiale
- * est passée dans le payload Inertia normal de la page. Quand l'utilisateur
- * change l'année dans le sélecteur de la carte :
+ * Pattern: a card/section carries year-parameterised data (e.g. Timeline + Breakdown for a vehicle).
+ * The initial year ships in the page's standard Inertia payload. When the user changes the year:
  *
- *   1. On regarde si l'année est déjà en cache local (`Map<year, T>`).
- *   2. Si oui → affichage immédiat, zéro round-trip.
- *   3. Sinon → fetch JSON ciblé vers `fetchFn(year)`, stockage cache,
- *      affichage. État `isLoading: true` pendant l'attente.
+ *   1. Check the local `Map<year, T>` cache.
+ *   2. Cache hit → immediate render, zero round-trip.
+ *   3. Cache miss → targeted JSON fetch via `fetchFn(year)`, store in cache, render.
+ *      `isLoading: true` while waiting.
  *
- * Évite le pré-calcul backend de toutes les années (économie ressources)
- * tout en gardant l'UX d'un sélecteur local instantané pour les années
- * déjà visitées.
+ * Avoids the backend pre-computing every year while keeping an instant selector UX for visited years.
  *
- * **Pas de sync URL** : F5 retombe sur l'année initiale. Pour un onglet
- * dont l'année doit survivre au F5 ou au partage de lien, utiliser plutôt
- * le pattern `YearPills` + partial reload Inertia (cf.
- * `useVehicleFiscalSelectedYear` / `useCompanyFiscalSelectedYear`).
+ * No URL sync: F5 falls back on the initial year. For a tab whose year must survive F5 or link sharing,
+ * use the `YearPills` + Inertia partial reload pattern instead
+ * (`useVehicleFiscalSelectedYear` / `useCompanyFiscalSelectedYear`).
  */
 
 import { computed, ref } from 'vue';
 import type { Ref, WritableComputedRef } from 'vue';
 
 export type UseYearLazyReturn<T> = {
-    /** Année actuellement affichée. */
+    /** Currently displayed year. */
     year: Ref<number>;
-    /** Wrapper `v-model` qui passe par `selectYear()` côté setter. */
+    /** `v-model` wrapper that routes the setter through `selectYear()`. */
     yearModel: WritableComputedRef<number>;
-    /** Données pour `year.value` (ou `null` durant un fetch initial). */
+    /** Data for `year.value` (or `null` during the initial fetch). */
     data: Ref<T | null>;
-    /** `true` pendant un fetch en cours. */
+    /** `true` while a fetch is in progress. */
     isLoading: Ref<boolean>;
-    /** Erreur du dernier fetch (si applicable). */
+    /** Last fetch error if any. */
     error: Ref<string | null>;
-    /** Demande explicite de bascule sur une année. */
+    /** Explicit year switch. */
     selectYear: (year: number) => Promise<void>;
     /**
-     * Vide le cache et refetch l'année actuelle. Pour `initialYear`,
-     * on peut passer `freshInitial` qui remplace directement les données
-     * sans round-trip serveur (typique : un parent vient de recevoir un
-     * nouveau payload Inertia post-CRUD et veut propager les nouvelles
-     * stats à la carte sans bloquer l'UI).
+     * Clears the cache and refetches the current year. For `initialYear`, pass `freshInitial`
+     * to replace the data directly without a round-trip (typically when the parent has a new Inertia
+     * payload post-CRUD and wants to propagate fresh stats without blocking the UI).
      */
     invalidate: (freshInitial?: T) => Promise<void>;
 };
@@ -89,6 +81,7 @@ export function useYearLazy<T>(
     }
 
     const yearModel = computed<number>({
+
         get: () => year.value,
         set: (value: number) => {
             void selectYear(value);
@@ -108,8 +101,7 @@ export function useYearLazy<T>(
             }
         }
 
-        // Refetch l'année actuelle (peut être ≠ initialYear si l'utilisateur
-        // a bascule sur une autre année avant le CRUD parent).
+        // Refetch the current year (may differ from initialYear if the user switched before the parent CRUD).
         const target = year.value;
 
         isLoading.value = true;

@@ -4,29 +4,19 @@ import { useToasts } from '@/Composables/Shared/useToasts';
 import type { ToastTone } from '@/Composables/Shared/useToasts';
 
 /**
- * Pont entre les flash messages Inertia (`flash.toasts: ToastEntryData[]`
- * exposé par `HandleInertiaRequests`) et la pile `useToasts()` consommée
- * par `ToastContainer`.
+ * Bridges Inertia flash messages (`flash.toasts: ToastEntryData[]` exposed by `HandleInertiaRequests`)
+ * to the `useToasts()` stack consumed by `ToastContainer`.
  *
- * **Lot 5 D6 (F-19-007 + bug back-button)** · refonte ·
+ * - Accumulates N toasts per request: the watcher iterates `flash.toasts` and supports several messages
+ *   of the same tone stacked through `ToastDispatcher`.
+ * - Back-button dedup: a module-level `Set` keeps already-pushed IDs. When the user navigates back,
+ *   Inertia restores `flash.toasts` from its history.state cache; the watcher re-fires but the ID is
+ *   already known and is skipped. Without this, the toast would reappear on each cached visit.
  *
- *   - **Accumulation N toasts par requête** · le watcher itère sur la
- *     liste `flash.toasts` (au lieu des 4 canaux scalaires) · supporte
- *     plusieurs messages du même tone empilés via `ToastDispatcher`.
+ * Backward-compatible: existing `back()->with('toast-success', '…')` keeps working as the Inertia
+ * middleware converts them into `flash.toasts` entries on share.
  *
- *   - **Dédup back-button** · un `Set` module-level garde les IDs déjà
- *     poussés vers `useToasts`. Quand l'utilisateur revient sur une
- *     page via le bouton retour navigateur, Inertia restaure
- *     `flash.toasts` depuis son cache history.state · le watcher
- *     redéclenche mais l'ID est déjà connu → skip. Sans ce filet, le
- *     toast réapparaît à chaque visite cached.
- *
- * **Rétrocompatibilité** · les `back()->with('toast-success', '…')`
- * existants continuent de fonctionner · le middleware Inertia les
- * convertit en entries de `flash.toasts` au moment du share.
- *
- * À installer une seule fois dans un layout englobant (`UserLayout`)
- * pour que toute visite Inertia propage automatiquement ses toasts.
+ * Install once in an enclosing layout (`UserLayout`) so every Inertia visit propagates its toasts automatically.
  */
 const TONE_TITLES: Record<ToastTone, string> = {
     success: 'Succès',

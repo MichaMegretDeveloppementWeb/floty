@@ -17,16 +17,15 @@ type ContractFormShape = {
 };
 
 /**
- * État + soumission du formulaire Create/Edit Contract.
+ * State and submission for the Contract Create/Edit form.
  *
- * Mode `create` : POST `/app/contracts` (vide par défaut).
- * Mode `edit`   : PATCH `/app/contracts/{id}` (pré-rempli depuis le DTO).
+ * `create` mode: POST `/app/contracts` (empty defaults).
+ * `edit`   mode: PATCH `/app/contracts/{id}` (pre-filled from DTO).
  *
- * Le state est un Inertia `useForm()` - gestion automatique des erreurs
- * de validation (422) côté serveur via `form.errors.<field>`.
+ * State is an Inertia `useForm()` with automatic server-side validation error handling (422)
+ * via `form.errors.<field>`.
  *
- * **Refonte 04.K** : `contract_type` n'est plus dans le formulaire - il
- * est dérivé automatiquement côté backend depuis [start_date, end_date]
+ * `contract_type` is not part of the form: it is derived backend-side from [start_date, end_date]
  * via {@see Contract::deriveTypeFromDates()}.
  */
 export function useContractForm(

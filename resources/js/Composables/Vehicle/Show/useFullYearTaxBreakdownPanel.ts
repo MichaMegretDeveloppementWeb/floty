@@ -5,10 +5,9 @@ type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
 type Breakdown = App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
 
 /**
- * Vue + interactions de la sidebar « Détail Taxe pleine » : raccourci
- * `breakdown` vers `stats.fullYearTaxBreakdown`, indexation des
- * règles par code pour résolution O(1) au clic, et état du modal
- * d'inspection d'une règle (ouverture pilotée par `selectedCode`).
+ * View + interactions for the "Détail Taxe pleine" sidebar: shortcut `breakdown` over
+ * `stats.fullYearTaxBreakdown`, rule indexation by code for O(1) lookup on click,
+ * and rule-inspection modal state (driven by `selectedCode`).
  */
 export function useFullYearTaxBreakdownPanel(props: {
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;

@@ -1,18 +1,13 @@
 /**
- * État de la table Contrats de la fiche Company Show (chantier N.1).
+ * Server-side Contracts table for the Company Show page (ADR-0020).
  *
- * Pattern server-side strict (cf. ADR-0020) : pagination + tri + filtre
- * période géré par `useServerTableState`, partial reload Inertia v3
- * sur les seules clés `contracts` + `contractsQuery`.
+ * Pagination, sort and period filter handled by `useServerTableState`,
+ * Inertia v3 partial reload on `contracts` + `contractsQuery` only.
  *
- * **Périmètre filtres (V1)** : période uniquement. Pas de search, pas
- * de filtre type/véhicule/conducteur · la fiche Company est déjà
- * scope-restreinte à une entreprise, on garde dense et focal. Si le
- * besoin émerge, ajouter ici.
+ * Filters scope: period only. No search, no type/vehicle/driver filter:
+ * the Company page is already scoped to one entreprise, kept dense and focal.
  *
- * **Pas de sélecteur d'année global** : le filtre période vit
- * localement dans cet onglet. Aucune dépendance au sélecteur
- * d'année (qui sera retiré par chantier J).
+ * The period filter lives locally in this tab, with no dependency on any global year selector.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -46,11 +41,9 @@ const COLUMN_TO_SORT_KEY: Partial<Record<string, CompanyContractSortKey>> = {
 
 export type CompanyContractFilters = {
     /**
-     * D5.10.U · sélecteur « année pleine » via les pills · partagé
-     * avec les onglets Fiscalité/Facturation pour préserver l'exercice
-     * en switchant d'onglet. Mutuellement exclusif avec
-     * `periodStart`/`periodEnd` côté UI (toggle YearPills vs picker
-     * personnalisé).
+     * Full-year pill selector, shared with Fiscalité/Facturation tabs to preserve
+     * the exercise when switching tabs. Mutually exclusive with `periodStart`/`periodEnd`
+     * on the UI (YearPills vs custom picker toggle).
      */
     year: number | null;
     periodStart: string | null;

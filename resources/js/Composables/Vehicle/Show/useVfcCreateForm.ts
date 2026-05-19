@@ -17,25 +17,18 @@ type ChangeReason = App.Enums.Vehicle.FiscalCharacteristicsChangeReason;
 type SelectOption = { value: string; label: string };
 
 /**
- * Form Inertia + UI state du modal de **création** d'une nouvelle VFC
- * depuis la modale Historique (parallèle de
- * {@link useVfcEditForm} pour l'édition).
+ * Inertia form + UI state for the VFC create modal opened from the History modal
+ * (counterpart of {@link useVfcEditForm} for edit).
  *
- * Le composable :
- *   - **P2 · préremplit** le formulaire avec la VFC actuelle quand
- *     `props.current` est fourni (cohérent · 95% du temps un seul
- *     champ change, ex. CO₂ recalculé). Les champs de plage
- *     (`effective_from`, `effective_to`) restent vides pour forcer le
- *     choix de date explicite. Si `props.current` est null (véhicule
- *     sans VFC active), on retombe sur les valeurs par défaut.
- *   - expose les motifs sélectionnables (tous sauf `initial_creation`
- *     qui est réservé au système · création réelle au moment de la
- *     première VFC du véhicule, faite par CreateVehicleAction),
- *   - calcule en live l'impact sur les voisines via
- *     `computeVfcUpdateImpact()` en passant `editingId = null` (pas
- *     d'exclusion : on simule l'insertion d'une nouvelle plage
- *     dans l'historique complet),
- *   - dispatche le submit POST puis ferme la modale au success.
+ *   - Pre-fills the form with the current VFC when `props.current` is provided (typical case:
+ *     only one field changes, e.g. recomputed CO₂). Range fields (`effective_from`, `effective_to`)
+ *     stay empty to force an explicit date choice. If `props.current` is null
+ *     (vehicle without an active VFC), falls back to default values.
+ *   - Exposes selectable reasons (all except `initial_creation`, which is reserved for the system
+ *     and applied by CreateVehicleAction at first VFC creation).
+ *   - Live-computes the impact on neighbours via `computeVfcUpdateImpact()` with `editingId = null`
+ *     (no exclusion: simulating a new range inserted into the full history).
+ *   - Dispatches POST submit and closes the modal on success.
  */
 export function useVfcCreateForm(
     props: { history: ReadonlyArray<Vfc>; vehicleId: number; current: Vfc | null },
@@ -54,12 +47,9 @@ export function useVfcCreateForm(
     requestSubmit: () => void;
     confirmSubmit: () => void;
 } {
-    // P2 · construit l'état initial du formulaire à partir de la VFC
-    // actuelle si fournie · l'utilisateur n'a qu'à ajuster les champs
-    // qui changent et choisir la date d'effet. Les champs de plage
-    // (`effective_from`, `effective_to`) restent vides pour forcer un
-    // choix de date explicite (sinon on créerait une plage identique
-    // qui serait refusée par le backend).
+    // Build the initial state from the current VFC if provided: the user only adjusts the changing
+    // fields and picks the effective date. Range fields stay empty to force an explicit date choice
+    // (otherwise we would create an identical range, refused by the backend).
     const buildInitialState = (): VfcEditFormShape & { confirmed: boolean } => {
         const current = props.current;
 
@@ -127,11 +117,9 @@ export function useVfcCreateForm(
         { value: 'input_correction', label: 'Correction de saisie' },
     ];
 
-    // À chaque ouverture, on réinitialise le formulaire en repartant
-    // de la VFC actuelle (si fournie). Bénéfice UX · si l'utilisateur
-    // ferme la modale après avoir modifié des champs, la réouverture
-    // repart sur un état frais préfilled, pas sur les valeurs orphelines
-    // de la session précédente.
+    // On each opening, reset the form starting from the current VFC (if provided).
+    // UX benefit: closing the modal after edits and reopening shows a fresh pre-filled state, not
+    // orphaned values from the previous session.
     watch(open, (isOpen) => {
         if (isOpen) {
             Object.assign(form, buildInitialState());
@@ -139,7 +127,7 @@ export function useVfcCreateForm(
         }
     });
 
-    // Watchers anti-données fantômes (mêmes règles qu'en édition).
+    // Anti-ghost-data watchers (same rules as in edit mode).
     watch(
         () => form.reception_category,
         (cat) => {
@@ -195,10 +183,9 @@ export function useVfcCreateForm(
             return false;
         }
 
-        // R4 (parité backend) : on refuse une plage strictement contenue
-        // dans une VFC existante. Le backend ré-attrape ce cas, mais le
-        // bloquer côté UI évite un aller-retour serveur fastidieux et
-        // affiche le message contextuel directement dans la modale.
+        // Backend parity guard: refuse a range strictly contained in an existing VFC. The backend
+        // re-catches this, but blocking UI-side avoids a tedious round-trip and shows the contextual
+        // message directly in the modal.
         if (blockingContainerVfc.value !== null) {
             return false;
         }
@@ -290,9 +277,8 @@ export function useVfcCreateForm(
 }
 
 /**
- * Helper utilisé par le partial parent pour ouvrir/fermer la modale
- * de création. Pas de référence à une VFC en cours puisque c'est une
- * création.
+ * Helper used by the parent partial to open/close the create modal.
+ * No reference to a current VFC since this is a creation.
  */
 export function useVfcCreateModalState(): {
     open: Ref<boolean>;

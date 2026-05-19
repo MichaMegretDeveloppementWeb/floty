@@ -3,22 +3,18 @@ import type { Ref } from 'vue';
 import { search as searchRoute } from '@/routes/user';
 
 /**
- * Couche HTTP de la palette de recherche globale ⌘K (V1.1).
+ * HTTP layer for the ⌘K global search palette.
  *
- * Watcher debouncé (200 ms) sur le `query` saisi dans la palette. À
- * chaque changement, annule la requête précédente (AbortController)
- * puis lance une nouvelle requête `GET /app/search?q=<query>`.
+ * Debounced watcher (200 ms) on the palette `query`. Each change aborts the previous request
+ * via AbortController then issues a new `GET /app/search?q=<query>`.
  *
- * Comportements ·
- *  - Query < 2 caractères → réinitialise les résultats à `null` (état
- *    « vide », la palette affichera les recents localStorage)
- *  - Requête annulée (typing rapide) → silencieuse, pas de toast
- *  - Erreur HTTP / réseau → `result` reste à sa valeur précédente,
- *    `loading` repasse à false (échec silencieux · le user voit juste
- *    les résultats anciens, pas de spam de toasts)
+ * Behaviours:
+ *  - Query < 2 chars: results reset to `null` (empty state; palette shows recents from localStorage)
+ *  - Cancelled request (fast typing): silent, no toast
+ *  - HTTP/network error: `result` keeps its previous value, `loading` flips back to false
+ *    (silent failure: user keeps the old results, no toast spam)
  *
- * Backend · {@see GlobalSearchService::searchAll}
- * Route · `user.search` (Wayfinder)
+ * Backend: {@see GlobalSearchService::searchAll}. Route: `user.search` (Wayfinder).
  */
 const DEBOUNCE_MS = 200;
 const MIN_LENGTH = 2;

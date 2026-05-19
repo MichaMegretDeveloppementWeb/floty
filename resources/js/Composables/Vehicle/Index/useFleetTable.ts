@@ -1,18 +1,14 @@
 /**
- * Configuration de la table Index Vehicles (server-side, cf. ADR-0020).
+ * Server-side Index table for Vehicles (ADR-0020).
  *
- * Particularités :
- *  - Filtres `includeExited` (boolean) + `status` (VehicleStatus | null)
- *  - Colonnes `fullYearTax` et `rentalPriceFullYear` affichées mais NON
- *    triables (valeurs calculées par l'aggregator fiscal et le module
- *    facturation V1.2 · règle ADR-0020 D6)
- *  - Sélecteur d'année **local à la page** (chantier η anticipé) :
- *    pilote uniquement les colonnes financières. Géré comme un filtre
- *    `year` dans `useServerTableState` pour bénéficier de la sérialisation
- *    URL + partial reload Inertia natifs (chaque changement d'année
- *    déclenche un recalcul backend des `fullYearTax`).
+ * - `includeExited` (boolean) + `status` (VehicleStatus | null) filters
+ * - `fullYearTax` and `rentalPriceFullYear` columns rendered but NOT sortable
+ *   (computed by the fiscal aggregator and billing module)
+ * - Page-local year selector driving only the financial columns. Managed as a `year` filter in
+ *   `useServerTableState` for free URL serialisation + Inertia partial reload (each year change
+ *   triggers a backend recompute of `fullYearTax`).
  *
- * Le rendu reste dans `FleetTable.vue` (slots cell-*).
+ * Rendering stays in `FleetTable.vue` (cell-* slots).
  */
 
 import { router } from '@inertiajs/vue3';
@@ -32,9 +28,8 @@ export type FleetSortKey =
     | 'acquisitionDate'
     | 'currentStatus';
 
-// Mapping clé colonne UI → sortKey backend (whitelist VehicleIndexQueryData).
-// Les colonnes `fullYearTax` et `rentalPriceFullYear` n'ont pas d'entrée
-// car non triables (D6).
+// UI column key → backend sortKey (VehicleIndexQueryData whitelist).
+// `fullYearTax` and `rentalPriceFullYear` have no entry because they are not sortable.
 const COLUMN_TO_SORT_KEY: Partial<Record<string, FleetSortKey>> = {
     licensePlate: 'licensePlate',
     model: 'model',
@@ -49,15 +44,15 @@ export type FleetFilters = {
     handicapAccess: boolean | null;
     firstRegistrationYearMin: number | null;
     firstRegistrationYearMax: number | null;
-    /** Année des colonnes financières (Taxe pleine, Montant loyer). */
+    /** Year for the financial columns (Taxe pleine, Montant loyer). */
     year: number;
 };
 
 export function useFleetTable(opts: {
     query: App.Data.User.Vehicle.VehicleIndexQueryData;
-    /** Année résolue par le backend (selectedYear), sert de fallback. */
+    /** Backend-resolved year (selectedYear), used as fallback. */
     selectedYear: number;
-    /** Année réelle (= année du resolver), URL omise si on y revient. */
+    /** Real year (resolver year): URL is omitted when on it. */
     currentRealYear: number;
 }): {
     columns: ComputedRef<readonly DataTableColumn<VehicleRow>[]>;
@@ -75,8 +70,7 @@ export function useFleetTable(opts: {
         initialSortDirection: opts.query.sortDirection,
         defaultFilters: {
             status: null,
-            // Défaut true : on affiche les véhicules retirés par défaut
-            // (consultation/édition rétroactive). Décocher pour les masquer.
+            // Default true: exited vehicles are visible (retroactive read/edit). Uncheck to hide.
             includeExited: true,
             energySource: null,
             pollutantCategory: null,
@@ -97,22 +91,19 @@ export function useFleetTable(opts: {
         },
         serializeFilters: (f) => ({
             status: f.status,
-            // includeExited a comme défaut backend `true` : on ne l'envoie
-            // dans l'URL que si l'utilisateur a décoché (override = 0).
+            // includeExited backend default is `true`: only send to URL when user unchecked (override = 0).
             includeExited: f.includeExited ? null : 0,
             energySource: f.energySource,
             pollutantCategory: f.pollutantCategory,
             handicapAccess: f.handicapAccess === true ? 1 : null,
             firstRegistrationYearMin: f.firstRegistrationYearMin,
             firstRegistrationYearMax: f.firstRegistrationYearMax,
-            // L'année réelle reste implicite (URL propre) ; on ne sérialise
-            // que les valeurs « non triviales » à la R-C des autres filtres.
+            // Real year stays implicit (clean URL); serialise only non-trivial values.
             year: f.year === opts.currentRealYear ? null : f.year,
         }),
     });
 
-    // Labels dépendant de l'année courante du sélecteur · recalculés
-    // automatiquement quand `state.filters.value.year` change.
+    // Year-dependent labels recompute automatically when `state.filters.value.year` changes.
     const columns = computed<readonly DataTableColumn<VehicleRow>[]>(() => {
         const year = state.filters.value.year;
 
@@ -151,7 +142,7 @@ export function useFleetTable(opts: {
         if (sortKey !== undefined) {
             state.setSort(sortKey);
         }
-        // fullYearTax n'a pas de mapping → no-op (header non interactif).
+        // fullYearTax has no mapping → no-op (non-interactive header).
     }
 
     function onRowClick(row: VehicleRow): void {

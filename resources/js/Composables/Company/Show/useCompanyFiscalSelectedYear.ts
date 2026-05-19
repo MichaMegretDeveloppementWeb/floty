@@ -1,16 +1,11 @@
 /**
- * Sync de l'année sélectionnée sur l'onglet Fiscalité de la fiche
- * Company Show.
+ * Sync of the selected year on the Fiscal tab of the Company Show page.
  *
- * **D5.10.U** · param URL unifié `?year=` partagé entre les onglets.
- * **D5.10.V** · le partial reload ne tire QUE les props de l'onglet
- * Fiscal courant. Les autres onglets year-dépendants (`billing`,
- * `contracts`) sont marqués stale via `markStale(...)` · ils seront
- * re-fetchés au prochain clic. Cohérent avec le chargement lazy +
- * cumulatif (cf. `useCompanyTabs`).
+ * Unified URL param `?year=` shared across tabs. The partial reload pulls ONLY
+ * the current Fiscal tab props; other year-dependent tabs (`billing`, `contracts`)
+ * are marked stale via `markStale(...)` so they refetch on the next click.
  *
- * `pendingDeclarations` / `pendingInvoices` ne dépendent pas de
- * `?year=` (cross-year) · ils ne sont pas rechargés.
+ * `pendingDeclarations` / `pendingInvoices` are cross-year and are not reloaded.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -39,9 +34,8 @@ export function useCompanyFiscalSelectedYear(
 
         const url = new URL(window.location.href);
         url.searchParams.set('year', String(year));
-        // D5.10.U · efface tout filtre custom Contracts d'un précédent
-        // état · sinon l'utilisateur retomberait sur une plage de
-        // l'ancien exercice en switchant sur l'onglet Contracts.
+        // Clear any leftover custom Contracts filter so switching to Contracts
+        // does not fall back on a range from the previous exercise.
         url.searchParams.delete('periodStart');
         url.searchParams.delete('periodEnd');
 
@@ -58,8 +52,7 @@ export function useCompanyFiscalSelectedYear(
                 preserveScroll: true,
                 replace: true,
                 onSuccess: () => {
-                    // Onglets year-dépendants invalidés · ils
-                    // tireront leurs props au prochain `setTab(...)`.
+                    // Year-dependent tabs invalidated: they will refetch on the next `setTab(...)`.
                     tabsState?.markStale(['billing', 'contracts']);
                 },
                 onFinish: () => {

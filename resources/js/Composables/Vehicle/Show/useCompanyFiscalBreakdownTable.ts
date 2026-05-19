@@ -5,9 +5,8 @@ import type { DataTableColumn } from '@/types/ui';
 type Row = App.Data.User.Vehicle.VehicleCompanyUsageData;
 
 /**
- * Configuration colonnes + agrégats footer pour le tableau
- * « Répartition fiscale par entreprise utilisatrice ». Les
- * helpers visuels (initiales pour CompanyTag) sont aussi exposés.
+ * Column config + footer aggregates for the "Répartition fiscale par entreprise utilisatrice" table.
+ * Also exposes visual helpers (initials for CompanyTag).
  */
 export function useCompanyFiscalBreakdownTable(props: {
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;

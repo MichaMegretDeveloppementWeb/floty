@@ -7,11 +7,11 @@ import {
 } from '@/routes/user/contracts';
 
 /**
- * Actions Edit / Delete pour la page Show d'un contrat.
+ * Edit / Delete actions for the Contract Show page.
  *
- * Le delete utilise une confirmation modale via une ref `confirmOpen`.
- * L'appelant doit afficher la modale et appeler `confirmDelete()` pour
- * déclencher la requête. `submitting` reste `true` durant l'appel.
+ * Delete is gated by a modal confirmation via `confirmOpen`. The caller
+ * displays the modal and invokes `confirmDelete()` to fire the request.
+ * `submitting` stays `true` for the duration of the call.
  */
 export function useContractActions(contractId: number): {
     confirmOpen: Ref<boolean>;

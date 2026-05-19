@@ -1,20 +1,16 @@
 import { useToasts } from '@/Composables/Shared/useToasts';
 
 /**
- * Wrapper sur `fetch` typé pour les endpoints JSON hors visites
- * Inertia (drawer planning, preview taxes, calendrier dispo, etc.).
+ * Typed `fetch` wrapper for JSON endpoints outside Inertia visits
+ * (planning drawer, tax preview, availability calendar, etc.).
  *
- * Différences avec l'ancien `lib/http.ts` :
- *   - toast erreur automatique sur 4xx/5xx (`useToasts.push({ tone: 'error' })`)
- *   - extrait `{ message }` JSON du backend si présent (cas des
- *     `BaseAppException` traitées par le handler `bootstrap/app.php`)
- *   - throw conservé : l'appelant peut try/catch pour gérer un état
- *     local (`previewLoading = false`, reset UI, etc.)
- *   - URLs typées : on appelle systématiquement `route.url()` depuis
- *     `@/routes/user/...` (jamais de chaîne hardcodée).
+ * - automatic error toast on 4xx/5xx (`useToasts.push({ tone: 'error' })`)
+ * - extracts backend `{ message }` JSON when present (typically `BaseAppException`
+ *   handled by `bootstrap/app.php`)
+ * - rethrows so the caller can try/catch and manage local state (loading flags, UI reset, etc.)
+ * - typed URLs: always call `route.url()` from `@/routes/user/...`, never hardcoded strings.
  *
- * Inertia v3 a retiré Axios. Pour les visites SSR utiliser `router.*`,
- * pour les fetches JSON ponctuels c'est ici.
+ * Inertia v3 removed Axios. Use `router.*` for SSR visits; this helper is for one-off JSON fetches.
  */
 
 export type UseApiReturn = {
@@ -24,13 +20,12 @@ export type UseApiReturn = {
     ) => Promise<T>;
     post: <T>(url: string, body?: Record<string, unknown>) => Promise<T>;
     /**
-     * POST avec `FormData` (multipart) pour les uploads de fichiers.
-     * N'envoie pas de Content-Type (le navigateur ajoute le boundary
-     * multipart automatiquement).
+     * POST with `FormData` (multipart) for file uploads.
+     * Does not send Content-Type (the browser sets the multipart boundary automatically).
      */
     postFormData: <T>(url: string, formData: FormData) => Promise<T>;
     /**
-     * DELETE - pas de body, retourne `void` (typiquement 204).
+     * DELETE: no body, returns `void` (typically 204).
      */
     delete: (url: string) => Promise<void>;
 };
@@ -71,9 +66,8 @@ function defaultMessageFor(status?: number): string {
 }
 
 /**
- * Tente d'extraire le `message` français d'une réponse JSON serveur
- * (renvoyée par le handler `bootstrap/app.php` pour `BaseAppException`).
- * En l'absence, fallback sur le message générique pour le statut.
+ * Tries to extract the server `message` (French) from a JSON response (typically `BaseAppException`
+ * handled by `bootstrap/app.php`). Falls back to the generic message for the status when absent.
  */
 async function extractServerMessage(
     response: Response,

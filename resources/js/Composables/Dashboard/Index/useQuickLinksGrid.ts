@@ -22,8 +22,7 @@ export type QuickLink = {
 };
 
 /**
- * Liste statique des accès rapides du dashboard. Cartes uniformes en
- * grille 3 colonnes (5 items → ligne 1 pleine, ligne 2 partielle).
+ * Static list of dashboard quick links. Uniform cards in a 3-column grid.
  */
 export function useQuickLinksGrid(): { quickLinks: QuickLink[] } {
     const quickLinks: QuickLink[] = [

@@ -8,10 +8,9 @@ type CompanyEntry = App.Data.User.Vehicle.VehicleCompanyUsageData;
 type MonthLabel = { name: string; weeks: number };
 
 /**
- * Données et helpers pour la timeline annuelle 52 semaines
- * (segments d'attribution + indispo empilées). Le tableau
- * `monthLabels` suit la convention du design system
- * (4-4-5-4-4-5-4-4-5-4-4-5 = 52) cohérente avec la heatmap planning.
+ * Data and helpers for the 52-week yearly timeline (stacked assignment + unavailability segments).
+ * `monthLabels` follows the design system convention (4-4-5-4-4-5-4-4-5-4-4-5 = 52) consistent
+ * with the planning heatmap.
  */
 export function useVehicleYearlyUsageTimeline(props: { stats: Stats }): {
     monthLabels: readonly MonthLabel[];

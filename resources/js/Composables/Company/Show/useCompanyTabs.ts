@@ -1,19 +1,15 @@
 /**
- * Onglets de la fiche Show Company · sync `?tab=` URL + chargement
- * lazy + cumulatif des props par-onglet (D5.10.V).
+ * Tabs for the Company Show page: syncs `?tab=` to the URL and loads tab props
+ * lazily and cumulatively.
  *
- * **Doctrine** · au mount initial, seul l'onglet actif a ses props
- * eager (cf. `CompanyController::show`). Les autres onglets sont en
- * `Inertia::optional()` côté backend · leur SQL ne s'exécute QUE
- * lors d'un partial reload déclenché par `setTab(...)` la première
- * fois que l'utilisateur clique l'onglet. Un `Set<TabKey>` tracke
- * les onglets déjà visités · ils sont instant au retour (preserveState
- * conserve les props en mémoire client).
+ * On the initial mount only the active tab has eager props (`CompanyController::show`).
+ * Other tabs use `Inertia::optional()` backend-side: their SQL runs ONLY on the partial
+ * reload triggered by `setTab(...)` the first time the user clicks the tab. A
+ * `Set<TabKey>` tracks visited tabs so subsequent visits are instant
+ * (preserveState keeps props in client memory).
  *
- * Les sélecteurs d'année (cf. `useCompanyFiscalSelectedYear` et
- * `CompanyBillingTab::selectYear`) appellent `markStale(...)` sur les
- * autres onglets year-dépendants après changement d'année · ces
- * onglets se rechargeront automatiquement au prochain clic.
+ * Year selectors call `markStale(...)` on other year-dependent tabs after a year change;
+ * those tabs auto-reload on the next click.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -38,26 +34,20 @@ const VALID_TABS: readonly CompanyTabKey[] = [
 const DEFAULT_TAB: CompanyTabKey = 'overview';
 
 /**
- * Compatibilité bookmarks : l'ancien tab key `infos` (avant chantier K,
- * cf. ADR-0020 D3) est silencieusement remappé vers `overview` à
- * l'arrivée pour ne pas casser les liens partagés.
+ * Bookmark compatibility: legacy `infos` tab key is silently remapped to `overview`
+ * to keep shared links working.
  */
 const LEGACY_TAB_ALIASES: Readonly<Record<string, CompanyTabKey>> = {
     infos: 'overview',
 };
 
 /**
- * Props Inertia à charger pour chaque onglet · keys de `Inertia::
- * optional()` côté `CompanyController::show`. Si la liste est vide
- * (`overview`), l'onglet n'a pas de prop spécifique · ses données
- * sont dans les props eager partagées.
- */
-/**
- * `billingYear` (eager) sert à highlighter la pill active sur les
- * onglets Fiscalité et Facturation · doit être inclus dans le partial
- * reload sinon le client garde la valeur du mount initial alors que les
- * props year-dép sont à jour (mismatch entre titre « Facturation 2024 »
- * et pill highlightée 2026).
+ * Inertia props to load per tab: keys from `Inertia::optional()` in `CompanyController::show`.
+ * An empty list (`overview`) means the tab has no specific prop; its data lives in shared eager props.
+ *
+ * `billingYear` (eager) is needed in the Fiscal and Facturation reloads to highlight the active pill;
+ * without it the client keeps the mount-time value while year-dependent props are fresh,
+ * causing a mismatch (e.g. title "Facturation 2024" with pill 2026 highlighted).
  */
 const TAB_PROPS: Readonly<Record<CompanyTabKey, readonly string[]>> = {
     overview: [],
@@ -71,13 +61,11 @@ export interface CompanyTabsState {
     activeTab: Ref<CompanyTabKey>;
     setTab: (tab: CompanyTabKey) => void;
     isActive: (tab: CompanyTabKey) => boolean;
-    /** Tab actuellement en cours de partial reload (null si aucun). */
+    /** Tab currently being partially reloaded (null if none). */
     loadingTab: Ref<CompanyTabKey | null>;
     /**
-     * Invalide les onglets passés · ils repasseront par un partial
-     * reload au prochain `setTab(...)` qui les ciblera. Appelé par les
-     * sélecteurs d'année quand la donnée d'un onglet non-actif devient
-     * obsolète (ex. changement de year sur Fiscal invalide Billing).
+     * Invalidates the given tabs so they redo a partial reload on the next `setTab(...)`.
+     * Called by year selectors when an inactive tab's data becomes stale.
      */
     markStale: (tabs: readonly CompanyTabKey[]) => void;
 }
@@ -179,8 +167,7 @@ export function useCompanyTabs(): CompanyTabsState {
     onMounted(() => {
         const initialTab = readFromUrl();
         activeTab.value = initialTab;
-        // L'onglet initial est rendu eager côté backend · pas besoin
-        // de partial reload pour lui.
+        // Initial tab is eager on the backend, no partial reload needed.
         visitedTabs.value.add(initialTab);
     });
 
@@ -203,12 +190,10 @@ export function useCompanyTabs(): CompanyTabsState {
 }
 
 /**
- * Injecte l'état partagé depuis n'importe quel descendant de la page
- * Show Company · utilisé par les sélecteurs d'année pour appeler
- * `markStale(...)` sur les onglets year-dépendants après changement.
+ * Injects the shared state from any descendant of the Company Show page.
+ * Used by year selectors to call `markStale(...)` on year-dependent tabs after a change.
  *
- * Retourne `null` si appelé hors arbre Show Company (ex. tests
- * unitaires) · le caller doit gérer ce cas gracieusement.
+ * Returns `null` when called outside the Company Show tree (e.g. unit tests); the caller must handle gracefully.
  */
 export function injectCompanyTabsState(): CompanyTabsState | null {
     return inject(COMPANY_TABS_KEY, null);

@@ -4,19 +4,17 @@ import { useApi } from '@/Composables/Shared/useApi';
 import { monthlyRentals as monthlyRentalsRoute } from '@/routes/user/companies';
 
 /**
- * 12 montants mensuels NET (post-réductions) pour une entreprise ×
- * année · consommé par le form Create/Edit Contract pour afficher une
- * mini-timeline 12 mois dans le récap (SC9 · 2026-05-18).
+ * 12 monthly NET amounts (post-discount) for one company × year.
  *
- * Backend · `GET /app/companies/{company}/monthly-rentals?year=YYYY`
+ * Consumed by the Create/Edit Contract form to render a 12-month mini-timeline in the recap.
  *
- * Watch reactif debouncé (200 ms) sur `companyId` + année dérivée de
- * `startDate`. Cleanup `onScopeDispose`. Pattern strictement identique
- * à `useVehicleFullYearTax` / `useVehicleYearlyRates`.
+ * Backend: `GET /app/companies/{company}/monthly-rentals?year=YYYY`
  *
- * Sémantique · `rentals[month]` = totalCents net post-discount, `null`
- * si au moins un véhicule présent sur ce mois n'a pas de tarif annuel
- * saisi (signal UX explicite côté mini-timeline · tiret discret).
+ * Debounced reactive watch (200 ms) on `companyId` + year derived from `startDate`.
+ * Cleanup via `onScopeDispose`. Same pattern as `useVehicleFullYearTax` / `useVehicleYearlyRates`.
+ *
+ * `rentals[month]` = net totalCents post-discount, `null` if at least one vehicle present that
+ * month has no annual rate set (explicit UX signal on the mini-timeline).
  */
 export type CompanyMonthlyRentalsResult = {
     year: number;
@@ -33,7 +31,7 @@ const DEBOUNCE_MS = 200;
 
 export function useCompanyMonthlyRentals(opts: {
     companyId: Ref<number | null>;
-    /** Date ISO `YYYY-MM-DD` (de `form.start_date`). Vide = année courante. */
+    /** ISO `YYYY-MM-DD` date (from `form.start_date`). Empty = current year. */
     startDate: Ref<string>;
 }): UseCompanyMonthlyRentalsReturn {
     const api = useApi();

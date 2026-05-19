@@ -1,18 +1,15 @@
 /**
- * Form composable pour Create/Edit RentalDiscount (Lot 4 du chantier).
+ * Form composable for Create/Edit RentalDiscount.
  *
- * Encapsule ·
- *  - `useForm` Inertia (state + submit + errors)
- *  - conversion pourcentage UI ↔ basis points DB (1 050 bp = 10,50 %)
- *  - check chevauchement live debounced via POST /check-conflicts
+ * Wraps:
+ *  - Inertia `useForm` (state + submit + errors)
+ *  - UI percent ↔ DB basis points conversion (1 050 bp = 10.50 %)
+ *  - Live debounced overlap check via POST /check-conflicts
  *
- * **Convention snake_case** · les clés du `useForm` sont en snake_case
- * pour matcher l'attente backend (Spatie Data + `SnakeCaseMapper`).
- * Sans cette convention, le serveur ne trouve pas les champs en entrée
- * (validation `required` échoue) ET les `form.errors` retournés sont
- * en snake_case donc les `<InputError :message="form.errors.start_date" />`
- * ne se résolvent pas si on bind en camelCase. Convention héritée du
- * pattern `useDriverForm`, `useContractForm`, etc.
+ * `useForm` keys are snake_case to match backend (Spatie Data + `SnakeCaseMapper`).
+ * Without this, the server can't find input fields (required validation fails) AND
+ * returned `form.errors` use snake_case, so `<InputError :message="form.errors.start_date" />`
+ * would not resolve if bound in camelCase.
  */
 
 import { useForm } from '@inertiajs/vue3';
@@ -47,13 +44,13 @@ export type RentalDiscountFormPayload = {
 };
 
 export type RentalDiscountFormInitial = {
-    /** Pré-rempli en Edit · null en Create. */
+    /** Pre-filled in Edit; null in Create. */
     id: number | null;
-    /** Pré-rempli en Edit · companyId du parent. Null en Create. */
+    /** Pre-filled in Edit (parent companyId); null in Create. */
     companyId: number | null;
     startDate: string;
     endDate: string;
-    /** Pourcentage UI (0..100). Converti en bp à submit. */
+    /** UI percent (0..100). Converted to bp on submit. */
     discountPercent: number;
     label: string | null;
     notes: string | null;
@@ -68,11 +65,11 @@ export function useRentalDiscountForm(
     discountPercent: Ref<number>;
     appliesToAllVehicles: Ref<boolean>;
     range: Ref<DateRange>;
-    /** Toggle « date de fin indéfinie » exigé par le DateRangePicker · toujours `false` ici (une réduction commerciale a forcément une date de fin). */
+    /** "Open-ended" toggle required by the DateRangePicker; always `false` here (a discount always has an end date). */
     ongoing: Ref<boolean>;
-    /** Année initiale d'ouverture du DateRangePicker (centre sur start_date existante ou année courante). */
+    /** Initial DateRangePicker year (centred on existing start_date or current year). */
     pickerInitialYear: number;
-    /** Mois initial d'ouverture du DateRangePicker (1..12, centre sur start_date existante ou mois courant). */
+    /** Initial DateRangePicker month (1..12, centred on existing start_date or current month). */
     pickerInitialMonth: number;
     conflicts: Ref<ConflictItem[]>;
     isCheckingConflicts: Ref<boolean>;
@@ -80,32 +77,29 @@ export function useRentalDiscountForm(
     canSubmit: ComputedRef<boolean>;
     submit: () => void;
 } {
-    // L'utilisateur saisit en %, on convertit en bp à la soumission.
+    // User enters %, we convert to bp on submit.
     const discountPercent = ref<number>(initial.discountPercent);
 
-    // Toggle "S'applique à tous les véhicules de l'entreprise".
-    // `true` = liste vide (sémantique « tous »). Initialisé selon
-    // l'état d'origine (vehicleIds vide).
+    // "Applies to all company vehicles" toggle: `true` = empty list (means "all").
+    // Initialised from the original state (empty vehicleIds).
     const appliesToAllVehicles = ref<boolean>(initial.vehicleIds.length === 0);
 
-    // `DateRangePicker` consomme `range` (v-model) et `ongoing` (v-model).
-    // `ongoing` reste `false` constant · une réduction commerciale a
-    // toujours une date de fin (contrairement aux indispos).
+    // DateRangePicker consumes `range` (v-model) and `ongoing` (v-model).
+    // `ongoing` stays constant `false`: a discount always has an end date (unlike unavailabilities).
     const range = ref<DateRange>({
         startDate: initial.startDate !== '' ? initial.startDate : null,
         endDate: initial.endDate !== '' ? initial.endDate : null,
     });
     const ongoing = ref<boolean>(false);
 
-    // Année/mois d'ouverture du calendrier · centre sur la date existante
-    // (Edit) ou la date courante (Create). Stable après init · le
-    // DateRangePicker maintient son propre state interne ensuite.
+    // Initial calendar year/month: centred on existing date (Edit) or current date (Create).
+    // Stable after init: the DateRangePicker keeps its own internal state from there.
     const today = new Date();
     const startSource = initial.startDate !== '' ? new Date(initial.startDate) : today;
     const pickerInitialYear = startSource.getFullYear();
     const pickerInitialMonth = startSource.getMonth() + 1;
 
-    // Form Inertia · clés snake_case (cf. doc en tête).
+    // Inertia form with snake_case keys (see top doc).
     const form = useForm<RentalDiscountFormPayload>({
         company_id: initial.companyId,
         start_date: initial.startDate,
@@ -116,26 +110,25 @@ export function useRentalDiscountForm(
         vehicle_ids: initial.vehicleIds,
     });
 
-    // Watcher de synchro pourcentage UI → bp form payload.
+    // Sync UI percent → bp form payload.
     watch(discountPercent, (next) => {
         form.discount_basis_points = Math.round(next * 100);
     });
 
-    // Sync `range` (sélection calendrier) → form payload (snake_case).
+    // Sync `range` (calendar selection) → form payload (snake_case).
     watch(range, (next) => {
         form.start_date = next.startDate ?? '';
         form.end_date = next.endDate ?? '';
     }, { deep: true });
 
-    // Watcher du toggle « tous les véhicules ». Quand on coche, on vide
-    // la liste. Quand on décoche, on laisse l'utilisateur sélectionner.
+    // "All vehicles" toggle: checking clears the list; unchecking leaves it for the user to fill.
     watch(appliesToAllVehicles, (next) => {
         if (next) {
             form.vehicle_ids = [];
         }
     });
 
-    // Check chevauchement debounced 400 ms.
+    // Debounced overlap check (400 ms).
     const conflicts = ref<ConflictItem[]>([]);
     const isCheckingConflicts = ref<boolean>(false);
     let debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -162,9 +155,8 @@ export function useRentalDiscountForm(
 
         isCheckingConflicts.value = true;
         try {
-            // Fetch direct pour bypasser le toast erreur auto de useApi ·
-            // un échec silencieux est acceptable ici, le submit backend
-            // re-check de toute façon (defense in depth).
+            // Direct fetch to bypass useApi's automatic error toast: silent failure is acceptable here,
+            // the backend submit re-checks anyway (defense in depth).
             const response = await fetch(checkConflictsRoute.url(), {
                 method: 'POST',
                 credentials: 'include',
@@ -191,13 +183,13 @@ export function useRentalDiscountForm(
             };
             conflicts.value = body.conflicts;
         } catch {
-            // Erreur réseau · on n'écrase pas la liste précédente.
+            // Network error: keep the previous list.
         } finally {
             isCheckingConflicts.value = false;
         }
     }
 
-    // Trigger le check à chaque modif des champs pertinents.
+    // Trigger the check on each mutation of relevant fields.
     watch(
         [
             () => form.company_id,

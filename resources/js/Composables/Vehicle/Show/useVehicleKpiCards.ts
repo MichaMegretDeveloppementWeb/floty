@@ -2,9 +2,8 @@ import { computed } from 'vue';
 import type { ComputedRef } from 'vue';
 
 /**
- * Caption dynamique de la carte KPI « Taxe réelle » : pourcentage
- * d'utilisation de l'année en cours, ou message vide si aucune
- * attribution n'a encore été enregistrée.
+ * Dynamic caption for the "Taxe réelle" KPI card: current-year usage percentage,
+ * or an empty-state message when no assignment has been recorded yet.
  */
 export function useVehicleKpiCards(props: {
     stats: App.Data.User.Vehicle.VehicleUsageStatsData;

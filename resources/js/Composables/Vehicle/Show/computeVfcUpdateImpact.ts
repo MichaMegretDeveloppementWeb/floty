@@ -23,16 +23,13 @@ export type VfcImpact =
       };
 
 /**
- * Mirroir TS de {@see App\Services\Vehicle\FiscalCharacteristicsImpactComputer}.
+ * TS mirror of {@see App\Services\Vehicle\FiscalCharacteristicsImpactComputer}.
  *
- * Sert exclusivement à la **prévisualisation côté UI** (modale de
- * confirmation, summary inline). Le backend re-calcule la même cascade
- * en production et fait autorité (le front ne peut pas court-circuiter
- * la confirmation : si un `Delete` est calculé sans `confirmed=true`,
- * le serveur lève une exception et la cascade n'est pas appliquée).
+ * UI preview only (confirmation modal, inline summary). The backend recomputes the same cascade
+ * and is authoritative: the front-end cannot bypass confirmation, since a `Delete` computed
+ * without `confirmed=true` triggers a server exception and the cascade is not applied.
  *
- * Les deux implémentations DOIVENT rester strictement équivalentes.
- * Toute modification de l'algorithme PHP doit être répliquée ici.
+ * Both implementations MUST stay strictly equivalent. Any PHP algorithm change must be mirrored here.
  */
 export function computeVfcUpdateImpact(
     history: ReadonlyArray<Vfc>,
@@ -46,9 +43,8 @@ export function computeVfcUpdateImpact(
         return impacts;
     }
 
-    // editingId === null → mode création : aucune VFC à exclure de
-    // l'historique (on simule une nouvelle plage à insérer parmi les
-    // existantes). En édition, on exclut la VFC en cours d'édition.
+    // editingId === null → create mode: no VFC to exclude from history (simulating a new range
+    // inserted among existing ones). Edit mode excludes the VFC being edited.
     const others = editingId === null
         ? history
         : history.filter((v) => v.id !== editingId);
@@ -70,9 +66,9 @@ export function computeVfcUpdateImpact(
             continue;
         }
 
-        // Chevauchement par la gauche : v commence avant newFrom et finit dans [newFrom, newTo].
-        // Cas spécial inclus : v est la courante (vTo=null) et la nouvelle plage devient la nouvelle
-        // courante (newTo=null) → raccourcir l'ancienne courante à newFrom-1.
+        // Left overlap: v starts before newFrom and ends in [newFrom, newTo].
+        // Special case: v is the current (vTo=null) and the new range becomes the new current
+        // (newTo=null) → shorten the old current to newFrom-1.
         if (
             vFrom < newFrom
             && (
@@ -90,7 +86,7 @@ export function computeVfcUpdateImpact(
             continue;
         }
 
-        // Chevauchement par la droite : v commence dans [newFrom, newTo] et finit après newTo
+        // Right overlap: v starts in [newFrom, newTo] and ends after newTo.
         if (
             newTo !== null
             && vFrom >= newFrom
@@ -107,7 +103,7 @@ export function computeVfcUpdateImpact(
             continue;
         }
 
-        // Pas de chevauchement → entièrement avant ou entièrement après
+        // No overlap → entirely before or entirely after.
         if (vTo !== null && vTo < newFrom) {
             if (
                 candidatePredecessor === null
@@ -129,7 +125,7 @@ export function computeVfcUpdateImpact(
         }
     }
 
-    // Comblement immédiat du trou avec le prédécesseur retenu
+    // Fill the gap with the chosen predecessor.
     if (candidatePredecessor !== null) {
         const expectedTo = subDay(newFrom);
         const currentTo = candidatePredecessor.effectiveTo;
@@ -214,12 +210,12 @@ export function hasDestructiveImpact(impacts: ReadonlyArray<VfcImpact>): boolean
 }
 
 /**
- * Mirroir TS du garde-fou backend `guardNotStrictlyInsideExisting` (cf.
- * `Create/UpdateFiscalCharacteristicsAction`). Retourne la VFC qui
- * englobe strictement la nouvelle plage si une telle VFC existe, sinon
- * `null`. Utilisé côté UI pour désactiver le submit et afficher un
- * message explicite avant que l'utilisateur n'envoie le formulaire (le
- * backend ré-attrape ce cas par défense en profondeur).
+ * TS mirror of the backend `guardNotStrictlyInsideExisting` guard
+ * (see `Create/UpdateFiscalCharacteristicsAction`).
+ *
+ * Returns the VFC that strictly engulfs the new range, otherwise `null`.
+ * Used UI-side to disable submit and show an explicit message before the user submits.
+ * The backend re-catches this case as defense in depth.
  */
 export function findStrictlyContainingVfc(
     history: ReadonlyArray<Vfc>,
@@ -231,9 +227,8 @@ export function findStrictlyContainingVfc(
         return null;
     }
 
-    // newTo === null → la nouvelle plage est ouverte à droite et déborde
-    // toujours toute existante par la droite. Le cas est géré par
-    // l'ImpactComputer (chevauchement gauche), pas par R4.
+    // newTo === null → the new range is open-ended and always extends past any existing on the right.
+    // This case is handled by the ImpactComputer (left overlap), not by R4.
     if (newTo === null) {
         return null;
     }

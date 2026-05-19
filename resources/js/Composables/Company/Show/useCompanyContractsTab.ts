@@ -4,17 +4,13 @@ import { useCompanyContractsTable } from '@/Composables/Company/Show/useCompanyC
 import { injectCompanyTabsState } from '@/Composables/Company/Show/useCompanyTabs';
 
 /**
- * Logique métier de l'onglet « Contrats » de la page Show Company
- * (Lot 7 D01 · F-40-003 · extraction depuis `CompanyContractsTab.vue`
- * qui violait R9 + mémoire `feedback_vue_composables_extraction`).
+ * Business logic for the Contracts tab of the Company Show page.
  *
- * Concentre · état popover période custom · listeners global
- * (mousedown outside + Escape) · état dérivé période/année active ·
- * actions select/clear année · invalidation cache onglets
- * year-dépendants (Fiscal + Billing) · stats labels.
+ * Covers: custom-period popover state, global listeners (mousedown outside + Escape),
+ * derived active period/year, select/clear year actions, invalidation of year-dependent
+ * tabs (Fiscal + Billing), and stats labels.
  *
- * Le partial reste pure présentation après extraction · destructure
- * le retour, branche v-model et @event sur le template.
+ * The partial stays presentational, destructuring the return and wiring v-model / @event in the template.
  */
 export type UseCompanyContractsTabOptions = {
     company: App.Data.User.Company.CompanyDetailData;
@@ -46,17 +42,14 @@ export function useCompanyContractsTab(opts: UseCompanyContractsTabOptions): Use
     const tabsState = injectCompanyTabsState();
 
     /**
-     * D5.10.U/V · marque Fiscalité et Facturation comme stales · ils
-     * tireront leurs props au prochain `setTab(...)` au lieu de servir
-     * des données pour l'ancienne année. Appelé après tout changement
-     * de période sur Contrats (pill année ou plage custom).
+     * Marks Fiscalité and Facturation as stale so they refetch on the next `setTab(...)`
+     * instead of serving data for the previous year. Called after any period change on Contrats.
      */
     function invalidateYearDependentTabs(): void {
         tabsState?.markStale(['fiscal', 'billing']);
     }
 
-    // État popover "Période personnalisée" + listeners globaux pour
-    // fermer au clic extérieur ou Escape.
+    // Custom-period popover state + global listeners (outside click / Escape) to close it.
     const periodPopoverOpen = ref<boolean>(false);
     const popoverRoot = ref<HTMLElement | null>(null);
 
@@ -100,10 +93,9 @@ export function useCompanyContractsTab(opts: UseCompanyContractsTabOptions): Use
             endDate: tableState.state.filters.value.periodEnd,
         }),
         set: (range: { startDate: string | null; endDate: string | null }) => {
-            // D5.10.U · plage custom · ne touche PAS `?year=` qui reste
-            // l'exercice partagé entre onglets. Backend priorise
-            // `periodStart`/`periodEnd` quand présentes (cf.
-            // `ContractIndexQueryData::effectivePeriod()`).
+            // Custom range does NOT touch `?year=`, which stays the cross-tab shared exercise.
+            // Backend prioritises `periodStart`/`periodEnd` when present
+            // (see `ContractIndexQueryData::effectivePeriod()`).
             tableState.state.patchFilters({
                 periodStart: range.startDate,
                 periodEnd: range.endDate,
@@ -112,14 +104,14 @@ export function useCompanyContractsTab(opts: UseCompanyContractsTabOptions): Use
     });
     const periodOngoing = ref<boolean>(false);
 
-    // Année active (highlight pill correspondante) ·
-    //   - Si plage custom active → null (chip custom à la place).
-    //   - Sinon prioritairement le filtre `year` partagé (D5.10.U).
+    // Active year (highlighted pill):
+    //   - custom range active → null (custom chip takes over)
+    //   - otherwise the shared `year` filter takes priority
     const activeYear = computed<number | null>(() => {
         const start = tableState.state.filters.value.periodStart;
         const end = tableState.state.filters.value.periodEnd;
 
-        // Plage custom active · pas de pill highlightée.
+        // Custom range active: no pill is highlighted.
         if (start !== null || end !== null) {
             return null;
         }
@@ -177,10 +169,8 @@ export function useCompanyContractsTab(opts: UseCompanyContractsTabOptions): Use
     });
 
     function selectYear(year: number): void {
-        // D5.10.U · pousse `?year=` (unifié avec Fiscalité/Facturation) ·
-        // efface toute plage custom active. Le backend dérive
-        // `periodStart`/`periodEnd` via `ContractIndexQueryData::
-        // effectivePeriod()` quand `year` est présent.
+        // Pushes `?year=` (unified with Fiscalité/Facturation) and clears any active custom range.
+        // Backend derives `periodStart`/`periodEnd` via `ContractIndexQueryData::effectivePeriod()` when `year` is present.
         tableState.state.patchFilters({
             year,
             periodStart: null,
@@ -189,11 +179,9 @@ export function useCompanyContractsTab(opts: UseCompanyContractsTabOptions): Use
         invalidateYearDependentTabs();
     }
 
-    // Mémorise la dernière année sélectionnée pour la restaurer quand
-    // l'utilisateur efface une période custom via le X du chip. Évite
-    // que le clear ne fasse retomber sur l'année courante (default
-    // backend) en perdant le contexte si l'utilisateur était sur une
-    // autre année.
+    // Remembers the last selected year so we can restore it when the user clears
+    // a custom period via the chip X. Prevents the clear from falling back to the
+    // backend default current year and losing context.
     const lastSelectedYear = ref<number | null>(activeYear.value);
 
     watch(activeYear, (newVal) => {
@@ -203,9 +191,8 @@ export function useCompanyContractsTab(opts: UseCompanyContractsTabOptions): Use
     });
 
     function clearPeriod(): void {
-        // D5.10.U · garde l'exercice partagé `?year=` actif (ou retombe
-        // sur le fallback) et efface uniquement la plage custom. Évite
-        // que le X du chip ne touche au year partagé entre les onglets.
+        // Keeps the shared `?year=` exercise active (or falls back) and only clears the custom range.
+        // Prevents the chip X from touching the year shared across tabs.
         const fallbackYear = tableState.state.filters.value.year
             ?? lastSelectedYear.value
             ?? opts.company.currentRealYear;

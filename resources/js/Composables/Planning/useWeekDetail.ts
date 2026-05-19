@@ -4,36 +4,29 @@ import { useApi } from '@/Composables/Shared/useApi';
 import { week as planningWeekRoute } from '@/routes/user/planning';
 
 /**
- * Charge le détail d'une semaine (drawer planning) à la demande.
+ * Loads a week's detail (planning drawer) on demand.
  *
- * Encapsule l'appel `GET /app/planning/week` + l'état d'ouverture du
- * drawer. Le drawer s'ouvre automatiquement à la fin du fetch réussi
- * (loadingWeek passe à false avant l'ouverture pour éviter le flash).
+ * Wraps the `GET /app/planning/week` call and the drawer open state. The drawer opens automatically
+ * on successful fetch (`loadingWeek` flips to false before opening to avoid a flash).
  *
- * Conforme R7 : aucune logique réactive ne reste dans la page -
- * Planning/Index.vue ne fait qu'instancier ce composable et brancher
- * les events Heatmap/WeekDrawer dessus.
+ * Planning/Index.vue only instantiates this composable and wires Heatmap/WeekDrawer events onto it.
  */
 export type UseWeekDetailReturn = {
     drawerOpen: Ref<boolean>;
     weekData: Ref<App.Data.User.Planning.PlanningWeekData | null>;
     loading: Ref<boolean>;
     /**
-     * Charge la semaine et ouvre le drawer en cas de succès.
+     * Loads the week and opens the drawer on success.
      *
-     * `year` est requis depuis chantier η Phase 5 · sans lui le
-     * controller fallback sur `currentYear()` et le drawer ouvre
-     * toujours sur l'année calendaire courante au lieu de l'année
-     * sélectionnée par l'utilisateur dans le sélecteur top-right.
+     * `year` is required; without it the controller falls back to `currentYear()` and the drawer
+     * always opens on the current calendar year instead of the user's selected year.
      *
-     * `companyId` (chantier P3) : quand fourni, active le mode
-     * company-locked côté backend (anonymisation des contrats des
-     * autres entreprises + filtrage `companiesOnWeek`). Utilisé par la
-     * Vue Entreprise pour ne pas révéler quelles autres entreprises
-     * occupent les véhicules.
+     * `companyId`: when provided, enables backend company-locked mode (anonymisation of other
+     * companies' contracts + filtering `companiesOnWeek`). Used by the Company view to avoid
+     * revealing which other companies occupy the vehicles.
      */
     open: (vehicleId: number, week: number, year: number, companyId?: number) => Promise<void>;
-    /** Ferme le drawer (sans réinitialiser weekData pour éviter le flash). */
+    /** Closes the drawer (keeps weekData to avoid a flash). */
     close: () => void;
 };
 
@@ -64,7 +57,7 @@ export function useWeekDetail(): UseWeekDetailReturn {
             );
             drawerOpen.value = true;
         } catch {
-            // Toast erreur déjà affiché par useApi
+            // Error toast already shown by useApi.
         } finally {
             loading.value = false;
         }

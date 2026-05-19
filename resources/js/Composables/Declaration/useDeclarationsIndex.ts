@@ -1,13 +1,10 @@
 /**
- * Configuration de la table Index Déclarations (server-side, cf.
- * ADR-0020). Phase 11 D4, refondu Phase 13 D5.10.F.
+ * Server-side Index table for Declarations (ADR-0020).
  *
- * Filtres : `companyId`, `fiscalYear`, `status`, `obsoleteOnly`.
- * Recherche par référence avec expansion chaîne backend depuis
- * D5.10.F (1 référence trouvée → toute la chaîne historique).
+ * Filters: `companyId`, `fiscalYear`, `status`, `obsoleteOnly`.
+ * Reference search supports backend chain expansion (one reference found pulls in the full history chain).
  *
- * Whitelist sortKey backend : `company`, `fiscalYear`, `reference`,
- * `status`, `generatedAt`.
+ * Backend sortKey whitelist: `company`, `fiscalYear`, `reference`, `status`, `generatedAt`.
  */
 
 import { router } from '@inertiajs/vue3';
@@ -70,9 +67,8 @@ export function useDeclarationsIndex(opts: {
     onHeaderClick: (columnKey: string) => void;
     onRowClick: (row: DeclarationRow) => void;
 } {
-    // Phase 13 D5.10.F · colonne `isObsolete` reordonnée AVANT `status`
-    // pour que l'œil croise l'obsolescence avant le statut (signal
-    // primaire « faut-il agir ? » avant le secondaire « quel état »).
+    // `isObsolete` column placed BEFORE `status` so the eye catches obsolescence first
+    // (primary "do I need to act?" signal before the secondary "which state").
     const columns: readonly DataTableColumn<DeclarationRow>[] = [
         { key: 'companyShortCode', label: 'Entreprise' },
         { key: 'fiscalYear', label: 'Année', mono: true, align: 'center' },
@@ -154,9 +150,8 @@ export function useDeclarationsIndex(opts: {
     });
 
     /**
-     * Phase 13 D5.10.F · `searchModel` v-model pour le `<SearchInput>`
-     * de l'Index. La mutation passe par `state.search.value` qui est
-     * watch-debouncé (300ms) côté `useServerTableState`.
+     * v-model for the Index `<SearchInput>`. Writes go through `state.search.value`
+     * which is watched and debounced (300ms) inside `useServerTableState`.
      */
     const searchModel = computed<string>({
         get: () => state.search.value,

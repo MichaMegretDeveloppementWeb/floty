@@ -3,18 +3,17 @@ import type { Ref } from 'vue';
 import { useFiscalPreview } from '@/Composables/Fiscal/useFiscalPreview';
 
 /**
- * Aperçu fiscal pour le formulaire Contract (page Create/Edit + drawer
- * planning, chantier UX-Loc). Wrapper autour de `useFiscalPreview` qui
- * accepte les refs natives du formulaire (vehicleId / companyId /
- * startDate / endDate) et dérive automatiquement la liste de dates
- * attendue par l'endpoint `POST /app/planning/preview-taxes`.
+ * Fiscal preview for the Contract form (Create/Edit page + planning drawer).
  *
- * Le composable surveille les 4 refs : à chaque changement, déclenche
- * un fetch debouncé (200 ms hérités de `useFiscalPreview`). Si un des
- * 4 champs manque, le preview est mis à `null`.
+ * Thin wrapper around `useFiscalPreview` accepting the form's native refs
+ * (vehicleId / companyId / startDate / endDate) and deriving the date list
+ * expected by `POST /app/planning/preview-taxes`.
  *
- * Sémantique : calcul standalone du contrat, pas de cumul annuel ·
- * la durée du contrat seul détermine LCD vs LLD.
+ * Watches the 4 refs and fires a debounced fetch (200 ms, inherited from `useFiscalPreview`)
+ * on each change. If any of the 4 fields is missing the preview is set to `null`.
+ *
+ * Semantics: standalone contract computation, no annual cumulation; the contract duration alone
+ * determines LCD vs LLD.
  */
 export type UseContractFiscalPreviewReturn = {
     preview: Ref<App.Data.User.Fiscal.FiscalPreviewData | null>;
@@ -30,9 +29,8 @@ export function useContractFiscalPreview(opts: {
 }): UseContractFiscalPreviewReturn {
     const { preview, loading, fetch, reset } = useFiscalPreview();
 
-    // Le backend prend min/max des dates pour reconstruire la plage du
-    // contrat synthétique · pas besoin d'expandre tous les jours côté
-    // front (et ça évite les bugs de timezone sur les transitions DST).
+    // Backend takes min/max of dates to rebuild the synthetic contract range.
+    // No need to expand every day client-side (avoids timezone bugs around DST).
     const dates = computed<string[]>(() => {
         const start = opts.startDate.value;
         const end = opts.endDate.value;

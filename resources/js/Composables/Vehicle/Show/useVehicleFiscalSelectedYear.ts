@@ -1,11 +1,8 @@
 /**
- * Sync de l'année sélectionnée sur l'onglet Fiscalité de la fiche
- * Vehicle Show.
+ * Sync of the selected year on the Fiscal tab of the Vehicle Show page.
  *
- * **D5.10.U** · param URL unifié `?year=` partagé entre Fiscalité et
- * Facturation.
- * **D5.10.V** · le partial reload ne tire QUE les props de Fiscal ·
- * Billing est marqué stale (re-fetch au prochain clic).
+ * Unified URL param `?year=` shared between Fiscalité and Facturation.
+ * The partial reload pulls ONLY the Fiscal props; Billing is marked stale and refetches on next click.
  */
 
 import { router } from '@inertiajs/vue3';

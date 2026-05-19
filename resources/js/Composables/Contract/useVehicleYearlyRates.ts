@@ -4,20 +4,19 @@ import { useApi } from '@/Composables/Shared/useApi';
 import { yearlyRates as yearlyRatesRoute } from '@/routes/user/vehicles';
 
 /**
- * Tarifs annuels jour/semaine/mois d'un véhicule pour l'année dérivée de
- * `startDate` (fallback année courante). Déclenché à la volée par le
- * form Create/Edit Contract quand l'utilisateur sélectionne un véhicule
- * ou change la date de début (SC9 · 2026-05-18).
+ * Daily/weekly/monthly yearly rates for a vehicle, on the year derived from `startDate`
+ * (fallback to current year).
  *
- * Backend · `GET /app/vehicles/{vehicle}/yearly-rates?year=YYYY`
+ * Triggered on demand by the Create/Edit Contract form when the user picks a vehicle
+ * or changes the start date.
  *
- * Watch reactif debouncé (200 ms) sur `vehicleId` + `startDate` ·
- * pattern strictement identique à `useVehicleFullYearTax`. Cleanup
- * `onScopeDispose` · pas de fuite si parent détruit pendant debounce.
+ * Backend: `GET /app/vehicles/{vehicle}/yearly-rates?year=YYYY`
  *
- * Sémantique · les 3 champs `dailyCents`/`weeklyCents`/`monthlyCents`
- * peuvent être `null` si aucun tarif n'a été saisi pour cette année
- * (UI affiche un tiret muet `-`).
+ * Debounced reactive watch (200 ms) on `vehicleId` + `startDate`; pattern identical
+ * to `useVehicleFullYearTax`. Cleanup via `onScopeDispose`.
+ *
+ * `dailyCents`/`weeklyCents`/`monthlyCents` may be `null` when no rate was entered
+ * for that year (UI shows a muted dash).
  */
 export type VehicleYearlyRatesResult = {
     year: number;
@@ -36,7 +35,7 @@ const DEBOUNCE_MS = 200;
 
 export function useVehicleYearlyRates(opts: {
     vehicleId: Ref<number | null>;
-    /** Date ISO `YYYY-MM-DD` (de `form.start_date`). Vide = année courante. */
+    /** ISO `YYYY-MM-DD` date (from `form.start_date`). Empty = current year. */
     startDate: Ref<string>;
 }): UseVehicleYearlyRatesReturn {
     const api = useApi();

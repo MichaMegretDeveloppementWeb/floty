@@ -5,11 +5,10 @@ import type { Ref } from 'vue';
 import { logout as logoutRoute } from '@/routes';
 
 /**
- * État + handlers du menu utilisateur (avatar dans le top-bar) :
- * ouverture/fermeture, déconnexion. Le composable accepte le
- * template ref racine pour câbler le `onClickOutside` (le ref doit
- * être déclaré dans le composant car il pointe vers un élément du
- * template), et installe le listener Escape pour fermer.
+ * State and handlers for the user menu (avatar in the top bar): open/close, logout.
+ *
+ * Accepts the root template ref to wire `onClickOutside` (the ref must be declared
+ * in the component because it points to a template element) and installs the Escape listener.
  */
 export function useUserMenu(rootRef: Readonly<Ref<HTMLElement | null>>): {
     open: Ref<boolean>;
@@ -29,12 +28,10 @@ export function useUserMenu(rootRef: Readonly<Ref<HTMLElement | null>>): {
 
     const logout = (): void => {
         close();
-        // `preserveScroll: true` · évite le saut visuel pendant la
-        // transition vers la page de login (le scroll du dashboard
-        // était reset à 0 au moment du POST).
-        // `preserveState: false` · le logout doit reset l'état Inertia
-        // côté client (tabs visités, formulaires en cours, etc.) ·
-        // session utilisateur close = état frais obligatoire.
+        // `preserveScroll: true` avoids the visual jump during the transition to the login page
+        // (the dashboard scroll was resetting to 0 on POST).
+        // `preserveState: false` resets the client Inertia state (visited tabs, in-flight forms, etc.)
+        // on logout: closed user session = mandatory fresh state.
         router.post(logoutRoute.url(), {}, {
             preserveScroll: true,
             preserveState: false,

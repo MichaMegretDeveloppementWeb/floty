@@ -7,9 +7,8 @@ import { formatDateFr } from '@/Utils/format/formatDateFr';
 type Unavailability = App.Data.User.Unavailability.UnavailabilityData;
 
 /**
- * État + handlers de la card Indisponibilités : pilote l'ouverture
- * du modal de form (création/édition), du modal de confirmation de
- * suppression, et la requête DELETE Inertia.
+ * State and handlers for the Unavailabilities card: drives the create/edit form modal,
+ * the delete confirmation modal, and the Inertia DELETE request.
  */
 export function useUnavailabilitiesCard(): {
     formOpen: Ref<boolean>;

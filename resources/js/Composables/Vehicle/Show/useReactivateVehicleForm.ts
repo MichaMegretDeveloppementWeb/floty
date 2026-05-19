@@ -5,13 +5,13 @@ import { closeOnSuccess } from '@/Composables/Shared/inertiaModalCallbacks';
 import { reactivate as vehiclesReactivateRoute } from '@/routes/user/vehicles';
 
 /**
- * Form Inertia + UI state du modal de réactivation. Aucun champ
- * utilisateur : la confirmation suffit, le backend remet
- * `exit_date = NULL`, `exit_reason = NULL`, `current_status = active`.
+ * Inertia form + UI state for the reactivation modal.
  *
- * Pas de cas d'erreur métier (réactiver un véhicule actif est idempotent
- * côté Action). Le composable expose juste le submit pour un bouton de
- * confirmation à un seul clic.
+ * No user field: a confirmation suffices and the backend resets `exit_date = NULL`,
+ * `exit_reason = NULL`, `current_status = active`.
+ *
+ * No business error case (reactivating an active vehicle is idempotent in the Action).
+ * The composable just exposes submit for a single-click confirmation button.
  */
 export function useReactivateVehicleForm(
     props: { vehicleId: number },

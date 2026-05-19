@@ -15,16 +15,12 @@ export type PricingFormShape = {
 };
 
 /**
- * Construit l'état initial du formulaire selon le mode :
- *   - édition (`editing` non-null) : on convertit cents → € pour les
- *     trois tarifs, et l'année provient du DTO existant (verrouillée
- *     côté UI),
- *   - création : on précharge `currentYear` si elle est dans la liste
- *     des années disponibles, sinon on prend la première année dispo,
- *     en dernier recours `currentYear` (cas dégénéré où la liste est
- *     vide · le bouton sera désactivé en amont).
+ * Builds the form's initial state depending on mode:
+ *   - edit (`editing` non-null): cents → € conversion for the 3 rates; year comes from the existing DTO (UI-locked).
+ *   - create: preload `currentYear` if present in available years, otherwise the first available,
+ *     finally falling back to `currentYear` (degenerate empty list, button disabled upstream).
  *
- * Fonction pure (testable sans mocker Inertia).
+ * Pure (testable without mocking Inertia).
  */
 export function buildPricingFormInitialState(
     editing: Pricing | null,
@@ -53,14 +49,11 @@ export function buildPricingFormInitialState(
 }
 
 /**
- * Règle de validation côté UI · exécutée à chaque frappe pour activer /
- * désactiver le bouton « Enregistrer ». Le backend ré-attrape ces cas
- * via Spatie Data, mais bloquer en amont évite l'aller-retour serveur
- * sur les saisies évidentes (champs vides, négatifs).
+ * UI-side validation rule, executed on each keystroke to enable/disable the Save button.
+ * Backend re-catches these via Spatie Data; blocking upstream avoids a server round-trip on
+ * obvious invalid inputs (empty, negative).
  *
- * Note : un tarif à 0 est *valide* (cas véhicule de courtoisie / usage
- * interne gratuit, cf. `permet_un_tarif_zero_pour_les_vehicules_en_usage_gratuit`
- * dans `UpsertVehicleYearlyPricingActionTest`).
+ * Note: a rate of 0 is valid (courtesy car / internal free use).
  */
 export function isPricingFormValid(form: PricingFormShape, processing: boolean): boolean {
     if (processing) {
@@ -91,12 +84,11 @@ export function isPricingFormValid(form: PricingFormShape, processing: boolean):
 }
 
 /**
- * Convertit le formulaire affiché en € vers le payload backend en cents
- * (snake_case, attendu par Spatie Data via `MapInputName(SnakeCaseMapper)`).
+ * Converts the €-displayed form to the cents backend payload
+ * (snake_case, expected by Spatie Data via `MapInputName(SnakeCaseMapper)`).
  *
- * `Math.round()` est crucial : `1.10 * 100 === 110.00000000000001` en
- * IEEE 754 et `Math.trunc()` retournerait 109 · on perd un centime sur
- * tous les tarifs « ronds » saisis avec décimales.
+ * `Math.round()` is critical: `1.10 * 100 === 110.00000000000001` in IEEE 754 and
+ * `Math.trunc()` would return 109, losing one cent on every "round" rate entered with decimals.
  */
 export function transformPricingFormToPayload(form: PricingFormShape): {
     year: number;
@@ -113,17 +105,13 @@ export function transformPricingFormToPayload(form: PricingFormShape): {
 }
 
 /**
- * Form Inertia + UI state du modal de **création / édition** d'un tarif
- * jour/semaine/mois pour une année donnée (Phase 14 V1.2).
+ * Inertia form + UI state for the create/edit modal of a daily/weekly/monthly rate for a given year.
  *
- * Convention : les valeurs sont **affichées en €** côté UI mais
- * **transmises en cents** au backend (`unsignedInteger` en base). La
- * conversion bidirectionnelle est centralisée dans ce composable :
- * cents → € à l'init quand on édite un pricing existant, et
- * € → cents au submit (`Math.round(€ * 100)`).
+ * Values are displayed in € on the UI but transmitted in cents to the backend
+ * (`unsignedInteger` in DB). The bidirectional conversion is centralised here:
+ * cents → € at init when editing an existing pricing, and € → cents at submit (`Math.round(€ * 100)`).
  *
- * Le backend route store sur `(vehicle_id, year)` est idempotent
- * (`updateOrCreate`), donc le même endpoint sert les deux modes.
+ * The store route on `(vehicle_id, year)` is idempotent (`updateOrCreate`), so the same endpoint serves both modes.
  */
 export function useVehicleYearlyPricingForm(
     props: {
@@ -149,9 +137,8 @@ export function useVehicleYearlyPricingForm(
     const isEditing = computed<boolean>(() => props.editing !== null);
 
     const yearOptions = computed<ReadonlyArray<{ value: number; label: string }>>(() => {
-        // En édition, l'année est verrouillée mais on l'expose tout de
-        // même comme seule option pour que le SelectInput puisse afficher
-        // le label correspondant.
+        // In edit mode the year is locked but still exposed as the sole option so the SelectInput
+        // can render its label.
         if (isEditing.value && props.editing) {
             return [{ value: props.editing.year, label: String(props.editing.year) }];
         }
@@ -162,8 +149,7 @@ export function useVehicleYearlyPricingForm(
         }));
     });
 
-    // À chaque ouverture, on réinitialise le formulaire avec les valeurs
-    // adaptées au mode (création vs édition).
+    // Reset the form to mode-appropriate values on each opening (create vs edit).
     watch(open, (isOpen) => {
         if (isOpen) {
             Object.assign(form, buildInitialState());
@@ -204,10 +190,9 @@ export function useVehicleYearlyPricingForm(
 }
 
 /**
- * Helper utilisé par le partial parent pour piloter la modale de
- * création / édition. L'état `editing` est `null` en mode création et
- * pointe sur le DTO existant en mode édition. La modale enfant appelle
- * `useVehicleYearlyPricingForm()` qui s'adapte au mode automatiquement.
+ * Helper used by the parent partial to drive the create/edit modal.
+ * `editing` is `null` in create mode and points to the existing DTO in edit mode.
+ * The child modal calls `useVehicleYearlyPricingForm()` which adapts to the mode automatically.
  */
 export function useVehiclePricingFormModalState(): {
     open: Ref<boolean>;
@@ -232,9 +217,8 @@ export function useVehiclePricingFormModalState(): {
 }
 
 /**
- * Helper pilotant la modale de confirmation de suppression. Stocke le
- * pricing à supprimer et expose la méthode `confirmDelete()` qui
- * dispatche le DELETE Wayfinder vers le backend.
+ * Helper driving the delete confirmation modal. Stores the pricing to delete and exposes
+ * `confirmDelete()` which dispatches the Wayfinder DELETE to the backend.
  */
 export function useVehiclePricingDeleteState(vehicleId: number): {
     open: Ref<boolean>;

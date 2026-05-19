@@ -1,6 +1,5 @@
 /**
- * Composable Show RentalDiscount (Lot 4 du chantier).
- * Centralise l'état des modales (delete) et les actions.
+ * RentalDiscount Show composable: modal state (delete) and actions.
  */
 
 import { router } from '@inertiajs/vue3';

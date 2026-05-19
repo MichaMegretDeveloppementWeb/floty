@@ -1,37 +1,23 @@
 /**
- * Façade haut-niveau pour piloter un sélecteur d'année local à une page,
- * fondation de la doctrine temporelle (chantier η Phase 0.4).
+ * High-level façade for a page-local year selector, foundation of the temporal doctrine.
  *
- * **Responsabilités** :
- *   - Expose le scope d'années (`currentYear`, `minYear`, `availableYears`)
- *     depuis le DTO {@link App.Data.Shared.YearScopeData} reçu en prop.
- *   - Détient l'état mutable `selectedYear` initialisé sur `currentYear`
- *     (ou override via `opts.initialYear`).
- *   - Mute via `selectYear()` avec validation contre `availableYears`.
+ * Responsibilities:
+ *   - Exposes the year scope (`currentYear`, `minYear`, `availableYears`) from the
+ *     {@link App.Data.Shared.YearScopeData} prop DTO.
+ *   - Owns mutable `selectedYear`, initialised to `currentYear` (or `opts.initialYear` override).
+ *   - Mutates via `selectYear()` with validation against `availableYears`.
  *
- * **Deux modes d'usage** suivant la structure de la page consommatrice :
+ * Two modes depending on the consuming page:
  *
- *   1. **Mode reload** (`opts.reloadKeys` défini) · typique pour pages
- *      Index / Show qui doivent recharger les données depuis le backend
- *      (Vehicles Index, Vehicle Show, Planning, FiscalRules…). Délègue
- *      à `useLocalYearSelector` qui appelle `router.get()` avec partial
- *      reload.
+ *   1. Reload mode (`opts.reloadKeys` set): for Index/Show pages that must reload data from the backend
+ *      (Vehicles Index, Vehicle Show, Planning, FiscalRules...). Delegates to `useLocalYearSelector`,
+ *      which calls `router.get()` with a partial reload.
  *
- *   2. **Mode local** (`opts` omis ou `reloadKeys` vide) · typique pour
- *      sections où toutes les années sont déjà pré-calculées côté front
- *      (ex. section Activité fiche Entreprise · l'array `activityByYear`
- *      contient déjà toutes les années). Sync URL via
- *      `window.history.replaceState`, pas de reload Inertia.
+ *   2. Local mode (`opts` omitted or `reloadKeys` empty): for sections where all years are pre-computed
+ *      front-side (e.g. Activity section of the Company page where `activityByYear` already contains all years).
+ *      URL is synced via `window.history.replaceState`, no Inertia reload.
  *
- * **Composant compagnon** : {@link YearSelector} (présentationnel pur).
- *
- * **Exemple · mode reload** :
- *   const scope = useYearScope(props.yearScope, {
- *     reloadKeys: ['vehicles', 'query'],
- *   });
- *
- * **Exemple · mode local** :
- *   const scope = useYearScope(props.yearScope);
+ * Companion component: {@link YearSelector} (presentational).
  */
 
 import { computed, ref } from 'vue';
@@ -41,50 +27,43 @@ import { useLocalYearSelector } from './useLocalYearSelector';
 type YearScope = App.Data.Shared.YearScopeData;
 
 export type UseYearScopeReturn = {
-    /** Année calendaire courante (Présent). Non mutable depuis le UI. */
+    /** Current calendar year (Present). Not mutable from the UI. */
     currentYear: ComputedRef<number>;
-    /** Borne min globale du sélecteur. */
+    /** Global lower bound of the selector. */
     minYear: ComputedRef<number>;
-    /** Range continu `[minYear, …, max]`. */
+    /** Continuous range `[minYear, ..., max]`. */
     availableYears: ComputedRef<readonly number[]>;
     /**
-     * Année actuellement sélectionnée. Lecture seule conseillée · pour
-     * un binding `v-model` côté composant, utiliser plutôt
-     * {@see selectedYearModel} qui passe systématiquement par
-     * {@see selectYear} (validation + sync URL/reload).
+     * Currently selected year. Prefer reading via {@see selectedYearModel} which always goes
+     * through {@see selectYear} (validation + URL/reload sync) when used as a `v-model`.
      */
     selectedYear: Ref<number>;
     /**
-     * Wrapper `v-model` autour de `selectedYear`. Le setter appelle
-     * `selectYear()` plutôt que de muter `selectedYear.value`
-     * directement · garantit que la sync URL (mode local) ou le partial
-     * reload (mode reload) est toujours déclenché, même quand la
-     * mutation vient d'un binding `v-model`.
+     * `v-model` wrapper around `selectedYear`. Setter goes through `selectYear()` rather than mutating
+     * `selectedYear.value` directly, so URL sync (local mode) or partial reload (reload mode) always fire,
+     * even when the mutation comes from a `v-model` binding.
      */
     selectedYearModel: WritableComputedRef<number>;
-    /** `true` ssi `availableYears.length > 1` (sinon sélecteur figé). */
+    /** `true` iff `availableYears.length > 1` (otherwise the selector is frozen). */
     canSelect: ComputedRef<boolean>;
-    /** Vrai ssi `year` ∈ `availableYears`. */
+    /** `true` iff `year` ∈ `availableYears`. */
     isInScope: (year: number) => boolean;
     /**
-     * Mutate `selectedYear`. No-op si l'année est hors scope ou
-     * identique à la valeur courante. Selon le mode, déclenche un
-     * partial reload Inertia (mode reload) ou un replace URL silencieux
-     * (mode local).
+     * Mutates `selectedYear`. No-op when the year is out of scope or unchanged.
+     * Triggers either an Inertia partial reload (reload mode) or a silent URL replace (local mode).
      */
     selectYear: (year: number) => void;
 };
 
 export type UseYearScopeOptions = {
     /**
-     * Clés Inertia à recharger au changement d'année (passées à
-     * `router.get(..., { only: [...] })`). Si omis ou vide, le mode
-     * local est utilisé : URL replace silencieux sans reload.
+     * Inertia keys to reload on year change (passed to `router.get(..., { only: [...] })`).
+     * Omitted/empty → local mode (silent URL replace, no reload).
      */
     reloadKeys?: readonly string[];
     /**
-     * Année initiale à utiliser au montage. Défaut : `scope.currentYear`.
-     * Doit être dans `scope.availableYears` (sinon fallback `currentYear`).
+     * Initial mount year. Defaults to `scope.currentYear`.
+     * Must be in `scope.availableYears` (otherwise fallback to `currentYear`).
      */
     initialYear?: number;
 };
@@ -100,11 +79,9 @@ export function useYearScope(
     const isInScope = (year: number): boolean =>
         scope.availableYears.includes(year);
 
-    // Préserve le deep-link / refresh F5 : si la page est ouverte avec
-    // `?year=YYYY` dans l'URL (cas d'un partage de lien ou d'un F5 après
-    // bascule), on initialise sur cette valeur. La priorité explicite
-    // `opts.initialYear` reste prioritaire (cas usage avancé), et on
-    // retombe sur `scope.currentYear` si rien n'est exploitable.
+    // Preserves deep-link / F5 refresh: if the page is opened with `?year=YYYY` in the URL
+    // (shared link or F5 after switching), initialise on that value. Explicit `opts.initialYear`
+    // remains the priority (advanced use), falling back to `scope.currentYear` otherwise.
     function readYearFromUrl(): number | undefined {
         if (typeof window === 'undefined') {
             return undefined;
@@ -130,8 +107,8 @@ export function useYearScope(
 
     const useReload = (opts.reloadKeys?.length ?? 0) > 0;
 
-    // Mode reload : on délègue à useLocalYearSelector (partial reload + URL).
-    // Mode local : on gère soi-même le replace URL silencieux.
+    // Reload mode: delegate to useLocalYearSelector (partial reload + URL).
+    // Local mode: handle the silent URL replace here.
     const reloadDelegate = useReload
         ? useLocalYearSelector(initial, opts.reloadKeys ?? [])
         : null;
@@ -156,8 +133,7 @@ export function useYearScope(
             return;
         }
 
-        // Mode local : mutation + replace URL silencieux (cohérent
-        // avec le pattern useCompanySelectedYear, sans reload Inertia).
+        // Local mode: mutate + silent URL replace (same pattern as useCompanySelectedYear, no Inertia reload).
         selectedYear.value = year;
 
         if (typeof window !== 'undefined') {
@@ -167,10 +143,9 @@ export function useYearScope(
         }
     }
 
-    // v-model wrapper : passe systématiquement par selectYear() pour
-    // garantir validation + sync URL/reload, même quand la mutation
-    // vient d'un binding `v-model` côté composant Vue (le set direct
-    // de selectedYear.value bypasserait selectYear sinon).
+    // v-model wrapper: always goes through selectYear() so validation + URL/reload sync fire
+    // even when the mutation comes from a Vue `v-model` binding (a direct set to selectedYear.value
+    // would bypass selectYear).
     const selectedYearModel = computed<number>({
         get: () => selectedYear.value,
         set: (value: number) => selectYear(value),

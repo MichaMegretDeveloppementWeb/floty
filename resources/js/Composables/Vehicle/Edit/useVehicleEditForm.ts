@@ -11,31 +11,23 @@ type ChangeReason = App.Enums.Vehicle.FiscalCharacteristicsChangeReason;
 type SelectOption = { value: string; label: string };
 
 /**
- * Form Inertia + UI state de la page Edit véhicule.
+ * Inertia form + UI state for the vehicle Edit page.
  *
- * L'identité (immatriculation, marque, dates, kilométrage, notes) est
- * librement modifiable. Une nouvelle VFC n'est créée que si **au moins
- * un champ fiscal a réellement changé** par rapport à la version
- * courante (cf. `hasFiscalChanges`). Dans ce cas, la section
- * « Métadonnées de la nouvelle version » apparaît en bas du formulaire
- * et `effective_from` + `change_reason` deviennent obligatoires.
+ * Identity fields (plate, brand, dates, mileage, notes) are freely editable. A new VFC is created
+ * only if at least one fiscal field actually changed vs. the current version (see `hasFiscalChanges`).
+ * In that case the "Métadonnées de la nouvelle version" section appears at the form's bottom and
+ * `effective_from` + `change_reason` become mandatory.
  *
- * Les corrections de saisie sur une VFC existante (sans création de
- * nouvelle version) passent exclusivement par la modale Historique de
- * la page véhicule.
+ * Corrections on an existing VFC (without creating a new version) only go through the History modal
+ * on the vehicle page.
  *
- * Le composable :
- *   - pré-remplit le `useForm` à partir de `props.vehicle` + sa VFC
- *     courante,
- *   - expose la liste des motifs sélectionnables (`changeReasonOptions`,
- *     les 3 motifs `userSelectableForNewVersion` côté backend),
- *   - calcule `hasFiscalChanges` (au moins un champ fiscal modifié),
- *     `isOtherChange` (motif Autre → note requise),
- *   - calcule la liste des versions historiques qui seront supprimées
- *     (`versionsToBeDeleted`) si la date d'effet remonte avant elles -
- *     pertinent uniquement si `hasFiscalChanges`,
- *   - expose `requestSubmit()` qui ouvre la ConfirmModal si la cascade
- *     s'applique, sinon soumet directement.
+ * Composable behaviour:
+ *   - pre-fills `useForm` from `props.vehicle` + its current VFC,
+ *   - exposes selectable reasons (`changeReasonOptions`, the 3 `userSelectableForNewVersion` reasons),
+ *   - computes `hasFiscalChanges` (any fiscal field modified) and `isOtherChange` (Other → note required),
+ *   - computes the list of historical versions that will be deleted (`versionsToBeDeleted`) when the
+ *     effective date falls before them (only relevant when `hasFiscalChanges`),
+ *   - exposes `requestSubmit()` which opens the ConfirmModal if the cascade applies, else submits directly.
  */
 export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     form: InertiaForm<VehicleEditFormShape>;
@@ -125,14 +117,12 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     });
 
     const canSubmit = computed<boolean>(() => {
-        // Modification d'identité seule (sans changement fiscal) : pas
-        // de métadonnées requises, le bouton est toujours actif.
+        // Identity-only change (no fiscal change): no metadata required, button always active.
         if (!hasFiscalChanges.value) {
             return true;
         }
 
-        // Changement fiscal détecté → métadonnées de la nouvelle version
-        // requises (date d'effet + motif, et note si motif Autre).
+        // Fiscal change detected → new-version metadata required (effective date + reason, plus note if Other).
         if (form.effective_from === '') {
             return false;
         }
@@ -149,10 +139,9 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     });
 
     /**
-     * Versions historiques qui seront supprimées par la cascade
-     * rétroactive : toutes celles dont `effectiveFrom >= effective_from
-     * choisi`. Pertinent uniquement quand un champ fiscal a changé
-     * (sinon aucune nouvelle VFC n'est créée donc aucune cascade).
+     * Historical versions that will be deleted by the retroactive cascade: all whose
+     * `effectiveFrom >= chosen effective_from`. Only relevant when a fiscal field changed
+     * (otherwise no new VFC is created and there is no cascade).
      */
     const versionsToBeDeleted = computed<Fiscal[]>(() => {
         if (!hasFiscalChanges.value) {
@@ -172,9 +161,8 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
 
     const cascadeConfirmOpen = ref<boolean>(false);
 
-    // Reset du change_note quand on change de motif vers autre chose
-    // que `other_change` (sinon, si l'utilisateur avait saisi une note
-    // pour le motif Autre puis change, la note traîne).
+    // Reset `change_note` when the reason switches away from `other_change` so a stale note
+    // does not linger after the user changes their mind.
     watch(
         () => form.change_reason,
         (reason) => {
@@ -184,9 +172,8 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         },
     );
 
-    // Watchers anti-données fantômes : les flags M1/N1 propres à une
-    // catégorie/carrosserie sont remis à false dès que l'utilisateur
-    // bascule vers une combinaison où ils ne s'appliquent plus.
+    // Anti-ghost-data watchers: M1/N1 flags tied to a category/body are reset to false as soon
+    // as the user moves to a combination where they no longer apply.
     watch(
         () => form.reception_category,
         (cat) => {
@@ -221,9 +208,8 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
 
         form.transform((data) => ({
             ...data,
-            // Métadonnées de nouvelle version : envoyées seulement si
-            // au moins un champ fiscal a changé. Sinon le backend les
-            // ignore et n'insère pas de nouvelle VFC.
+            // New-version metadata: sent only if at least one fiscal field changed.
+            // Otherwise the backend ignores them and inserts no new VFC.
             effective_from: fiscalChanged && data.effective_from !== ''
                 ? data.effective_from
                 : null,

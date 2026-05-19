@@ -2,17 +2,14 @@ import { reactive, readonly } from 'vue';
 import type { DeepReadonly } from 'vue';
 
 /**
- * Pile globale de toasts éphémères affichée par `ToastContainer`.
+ * Global ephemeral toast stack rendered by `ToastContainer`.
  *
- * Le store est mutualisé au module (instance unique pour toute
- * l'application). Toute page ou composable peut empiler / vider sans
- * coordination - l'auto-dismiss programmé via `setTimeout` est pris
- * en charge par le composable lui-même.
+ * Module-level singleton store: any page or composable can push/clear without coordination.
+ * Auto-dismiss is scheduled via `setTimeout` by the composable itself.
  *
- * Conforme à `composables-services-utils.md` :
- *   - emplacement `Composables/Shared/`
- *   - signature explicite `useToasts(): UseToastsReturn`
- *   - aucune dépendance Inertia, état module-level (Pinia non utilisé en V1).
+ * - location: `Composables/Shared/`
+ * - explicit signature: `useToasts(): UseToastsReturn`
+ * - no Inertia dependency, module-level state (no Pinia in V1).
  */
 
 export type ToastTone = 'success' | 'error' | 'warning' | 'info';
@@ -22,7 +19,7 @@ export type ToastItem = {
     tone: ToastTone;
     title: string;
     description?: string;
-    /** Durée en ms avant auto-dismiss. `0` = persistant (manuel uniquement). */
+    /** Duration in ms before auto-dismiss. `0` = persistent (manual dismissal only). */
     duration: number;
 };
 
@@ -34,13 +31,13 @@ export type ToastInput = {
 };
 
 export type UseToastsReturn = {
-    /** Pile en lecture seule, observable depuis les composants. */
+    /** Read-only stack, observable from components. */
     toasts: DeepReadonly<ToastItem[]>;
-    /** Empile un toast et renvoie son identifiant unique. */
+    /** Pushes a toast and returns its unique id. */
     push: (input: ToastInput) => string;
-    /** Retire un toast par son identifiant. */
+    /** Removes a toast by id. */
     dismiss: (id: string) => void;
-    /** Vide la pile et annule tous les timers en cours. */
+    /** Empties the stack and cancels all pending timers. */
     clear: () => void;
 };
 
