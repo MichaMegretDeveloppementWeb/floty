@@ -36,6 +36,12 @@ final class VehicleRegistryLookupResultData extends Data
         public ?int $co2Nedc,
         public ?int $taxableHorsepower,
         public ?int $kerbMass,
+        public ?bool $acceptsE85,
+        public ?bool $handicapAccess,
+        public ?bool $m1SpecialUse,
+        public ?bool $n1PassengerTransport,
+        public ?bool $n1RemovableSecondRowSeat,
+        public ?bool $n1SkiLiftUse,
         public RegistryLookupDriver $sourceDriver,
         public string $fetchedAt,
     ) {}

@@ -67,6 +67,12 @@ final readonly class FakeVehicleRegistryLookupDriver implements VehicleRegistryL
             co2Nedc: $data['co2Nedc'] ?? null,
             taxableHorsepower: $data['taxableHorsepower'] ?? null,
             kerbMass: $data['kerbMass'] ?? null,
+            acceptsE85: $data['acceptsE85'] ?? null,
+            handicapAccess: $data['handicapAccess'] ?? null,
+            m1SpecialUse: $data['m1SpecialUse'] ?? null,
+            n1PassengerTransport: $data['n1PassengerTransport'] ?? null,
+            n1RemovableSecondRowSeat: $data['n1RemovableSecondRowSeat'] ?? null,
+            n1SkiLiftUse: $data['n1SkiLiftUse'] ?? null,
             sourceDriver: RegistryLookupDriver::Fake,
             fetchedAt: CarbonImmutable::now()->toIso8601String(),
         );

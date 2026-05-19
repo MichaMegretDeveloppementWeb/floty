@@ -1,28 +1,25 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
-import { usePage } from '@inertiajs/vue3';
 import { IdCard, ScanLine } from 'lucide-vue-next';
 import { computed } from 'vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
-import { useVehicleRegistryLookup } from '@/Composables/Vehicle/Create/useVehicleRegistryLookup';
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 
 const props = defineProps<{
     form: InertiaForm<VehicleFormShape>;
+    registryLookupEnabled: boolean;
+    registryLookupLoading: boolean;
+    registryLookupError: string | null;
 }>();
 
-const page = usePage();
-const registryLookupEnabled = computed(
-    () => (page.props as Record<string, unknown>).registryLookupEnabled === true,
-);
-
-const { loading: registryLookupLoading, lookup: registryLookup } =
-    useVehicleRegistryLookup(props.form);
+const emit = defineEmits<{
+    'trigger-registry-lookup': [licensePlate: string];
+}>();
 
 const canTriggerLookup = computed(() => {
-    if (!registryLookupEnabled.value) {
+    if (!props.registryLookupEnabled) {
         return false;
     }
 
@@ -37,7 +34,7 @@ function triggerLookup(): void {
         return;
     }
 
-    void registryLookup(props.form.license_plate);
+    emit('trigger-registry-lookup', props.form.license_plate);
 }
 </script>
 
@@ -78,6 +75,12 @@ function triggerLookup(): void {
                 <ScanLine :size="16" :stroke-width="1.75" />
                 Pré-remplir depuis la carte grise
             </Button>
+            <p
+                v-if="registryLookupError !== null"
+                class="text-sm text-amber-700"
+            >
+                {{ registryLookupError }}
+            </p>
         </div>
 
         <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">

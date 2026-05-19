@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
+import { ClipboardCheck } from 'lucide-vue-next';
+import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import { useVehicleCreateForm } from '@/Composables/Vehicle/Create/useVehicleCreateForm';
+import { useVehicleRegistryLookup } from '@/Composables/Vehicle/Create/useVehicleRegistryLookup';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 import FiscalCharacteristicsSection from './partials/FiscalCharacteristicsSection.vue';
 import IdentitySection from './partials/IdentitySection.vue';
@@ -13,6 +16,14 @@ const props = defineProps<{
 }>();
 
 const { form, submit } = useVehicleCreateForm();
+
+const page = usePage();
+const registryLookupEnabled = computed(
+    () => (page.props as Record<string, unknown>).registryLookupEnabled === true,
+);
+
+const { loading: registryLookupLoading, errorMessage: registryLookupError, missingFields, lookup: registryLookup } =
+    useVehicleRegistryLookup(form);
 </script>
 
 <template>
@@ -35,9 +46,40 @@ const { form, submit } = useVehicleCreateForm();
                 class="flex flex-col gap-8"
                 @submit.prevent="submit"
             >
-                <IdentitySection :form="form" />
+                <IdentitySection
+                    :form="form"
+                    :registry-lookup-enabled="registryLookupEnabled"
+                    :registry-lookup-loading="registryLookupLoading"
+                    :registry-lookup-error="registryLookupError"
+                    @trigger-registry-lookup="registryLookup"
+                />
                 <RegistrationSection :form="form" />
                 <FiscalCharacteristicsSection :form="form" :options="props.options" />
+
+                <section
+                    v-if="missingFields.length > 0"
+                    class="flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-6 md:p-8"
+                >
+                    <header class="flex items-start gap-3">
+                        <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+                            <ClipboardCheck :size="18" :stroke-width="1.75" />
+                        </span>
+                        <div class="flex flex-col">
+                            <h2 class="text-base font-semibold text-slate-900">
+                                À compléter manuellement
+                            </h2>
+                            <p class="text-sm text-slate-600">
+                                Ces informations n'ont pas été fournies par le service de récupération. Vérifiez-les avant d'enregistrer le véhicule.
+                            </p>
+                        </div>
+                    </header>
+
+                    <ul class="ml-12 list-disc text-sm text-slate-700">
+                        <li v-for="field in missingFields" :key="field.key">
+                            {{ field.label }}
+                        </li>
+                    </ul>
+                </section>
 
                 <div class="flex justify-end gap-3 pt-2">
                     <Link :href="vehiclesIndexRoute.url()">
