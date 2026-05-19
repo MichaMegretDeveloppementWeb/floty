@@ -7,6 +7,7 @@ namespace App\Managers\VehicleRegistryLookup;
 use App\Contracts\VehicleRegistryLookup\VehicleRegistryLookupInterface;
 use App\Enums\VehicleRegistryLookup\RegistryLookupDriver;
 use App\Exceptions\VehicleRegistryLookup\RegistryLookupUnavailableException;
+use App\Managers\VehicleRegistryLookup\Drivers\ApiPlaqueVehicleRegistryLookupDriver;
 use App\Managers\VehicleRegistryLookup\Drivers\FakeVehicleRegistryLookupDriver;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
@@ -99,6 +100,7 @@ final readonly class VehicleRegistryLookupManager
     {
         return match ($driver) {
             RegistryLookupDriver::Fake => true,
+            RegistryLookupDriver::ApiPlaque => true,
             RegistryLookupDriver::AaaData => false,
         };
     }
@@ -112,6 +114,7 @@ final readonly class VehicleRegistryLookupManager
     {
         return match ($driver) {
             RegistryLookupDriver::Fake => ! $this->app->isProduction(),
+            RegistryLookupDriver::ApiPlaque => true,
             RegistryLookupDriver::AaaData => true,
         };
     }
@@ -144,6 +147,7 @@ final readonly class VehicleRegistryLookupManager
     {
         return match ($driver) {
             RegistryLookupDriver::Fake => $this->container->make(FakeVehicleRegistryLookupDriver::class),
+            RegistryLookupDriver::ApiPlaque => $this->container->make(ApiPlaqueVehicleRegistryLookupDriver::class),
             RegistryLookupDriver::AaaData => throw RegistryLookupUnavailableException::driverNotImplemented($driver),
         };
     }

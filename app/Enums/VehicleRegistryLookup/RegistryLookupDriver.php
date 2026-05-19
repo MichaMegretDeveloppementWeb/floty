@@ -7,6 +7,7 @@ namespace App\Enums\VehicleRegistryLookup;
 enum RegistryLookupDriver: string
 {
     case Fake = 'fake';
+    case ApiPlaque = 'api_plaque';
     case AaaData = 'aaa_data';
 
     /**
@@ -16,6 +17,7 @@ enum RegistryLookupDriver: string
     {
         return match ($this) {
             self::Fake => 'Fake (tests / dev)',
+            self::ApiPlaque => 'API Plaque (auto-ways.net via RapidAPI)',
             self::AaaData => 'AAA Data',
         };
     }

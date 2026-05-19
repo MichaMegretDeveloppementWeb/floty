@@ -19,8 +19,8 @@ return [
     | Default driver
     |--------------------------------------------------------------------------
     |
-    | Must match a case of App\Enums\VehicleRegistryLookup\RegistryLookupProvider.
-    | Allowed values: "fake" (non-production only) or "aaa_data".
+    | Must match a case of App\Enums\VehicleRegistryLookup\RegistryLookupDriver.
+    | Allowed values: "fake" (non-production only), "api_plaque" or "aaa_data".
     |
     */
     'default' => env('VEHICLE_REGISTRY_DRIVER'),
@@ -35,6 +35,19 @@ return [
             'base_url' => env('AAA_DATA_BASE_URL'),
             'api_key' => env('AAA_DATA_API_KEY'),
             'timeout_seconds' => (int) env('AAA_DATA_TIMEOUT_SECONDS', 10),
+        ],
+
+        'api_plaque' => [
+            'base_url' => env(
+                'API_PLAQUE_BASE_URL',
+                'https://api-de-plaque-d-immatriculation-france.p.rapidapi.com',
+            ),
+            'host' => env(
+                'API_PLAQUE_HOST',
+                'api-de-plaque-d-immatriculation-france.p.rapidapi.com',
+            ),
+            'api_key' => env('API_PLAQUE_KEY'),
+            'timeout_seconds' => (int) env('API_PLAQUE_TIMEOUT_SECONDS', 10),
         ],
 
         'fake' => [
