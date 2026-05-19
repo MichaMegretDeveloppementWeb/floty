@@ -30,8 +30,8 @@ const CALENDAR_ROWS = 6;
 const YEAR_RANGE_HALF = 5;
 
 /**
- * Convertit une `Date` JS en ISO `YYYY-MM-DD` local (pas UTC, pour éviter
- * les décalages timezone qui décaleraient le jour affiché).
+ * Format a JS `Date` as local ISO `YYYY-MM-DD` (not UTC, to avoid
+ * timezone-induced day shifts).
  */
 export function formatIso(d: Date): string {
     const y = d.getFullYear();
@@ -42,7 +42,7 @@ export function formatIso(d: Date): string {
 }
 
 /**
- * `2024-05-15` → `15/05/2024` pour affichage utilisateur français.
+ * `2024-05-15` -> `15/05/2024` for French user display.
  */
 export function formatFr(iso: string): string {
     const [y, m, d] = iso.split('-');
@@ -51,8 +51,8 @@ export function formatFr(iso: string): string {
 }
 
 /**
- * Validation stricte d'une chaîne ISO `YYYY-MM-DD` : format exact, date
- * réelle, round-trip identique (rejette `2024-02-30`).
+ * Strict ISO `YYYY-MM-DD` validation: exact format, real date,
+ * identical round-trip (rejects `2024-02-30`).
  */
 export function isValidIsoDate(s: string): boolean {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) {
@@ -69,17 +69,16 @@ export function isValidIsoDate(s: string): boolean {
 }
 
 /**
- * Trie deux dates ISO et retourne `[min, max]`. Auto-normalize utilisé
- * partout où l'ordre des bornes peut être inversé (2ᵉ clic antérieur,
- * saisie input end < start).
+ * Sort two ISO dates and return `[min, max]`. Used wherever bound
+ * order may be inverted (second click earlier, end input < start).
  */
 export function normalizeRange(a: string, b: string): [string, string] {
     return a <= b ? [a, b] : [b, a];
 }
 
 /**
- * Liste les dates de `[start, end]` (bornes incluses) présentes dans
- * `disabledSet`. Vide = aucun conflit, plage acceptable.
+ * ISO dates within `[start, end]` (inclusive) that intersect
+ * `disabledSet`. Empty result means no conflict.
  */
 export function rangeConflicts(
     start: string,
@@ -105,23 +104,11 @@ export function rangeConflicts(
 }
 
 /**
- * Retourne la **plus longue sous-plage libre** (consécutive) à
- * l'intérieur de `[start, end]` qui ne contient aucune date de
- * `disabledSet`. Retourne `null` si aucune date n'est libre dans la
- * plage demandée.
+ * Longest consecutive sub-range inside `[start, end]` containing no
+ * date from `disabledSet`. Returns `null` if every date is disabled.
  *
- * Cas de figure couverts (cf. ContractFormFields, watcher au changement
- * de véhicule) :
- *   - aucune intersection → la plage entière `[start, end]` est rendue
- *   - intersection au milieu (`12-20` libre, sauf `17-19` pris) →
- *     `12-16` (5 j) > `20-20` (1 j) → on garde `12-16`
- *   - plusieurs trous de longueurs égales → on garde le premier
- *     rencontré (déterministe)
- *   - aucune date libre → `null`
- *
- * En cas d'égalité de longueur, on conserve la première sous-plage
- * rencontrée chronologiquement (sémantique « commencer le plus tôt
- * possible » par défaut).
+ * On equal-length ties, returns the earliest sub-range (deterministic,
+ * "start as soon as possible" default).
  */
 export function findLongestFreeSubrange(
     start: string,
@@ -176,9 +163,7 @@ export function findLongestFreeSubrange(
 }
 
 /**
- * État + handlers du `DateRangePicker`. Toute la logique vit ici pour
- * respecter la convention « strict minimum dans les .vue ». Le template
- * du composant délègue intégralement.
+ * State + handlers for `DateRangePicker`. The template delegates entirely.
  */
 export function useDateRangePicker(
     yearProp: Readonly<Ref<number>>,
@@ -218,7 +203,7 @@ export function useDateRangePicker(
         () => new Set(highlightDatesProp.value),
     );
 
-    // Ongoing activé → on retire la date de fin si présente.
+    // Ongoing toggled on -> drop the end date if present.
     watch(ongoing, (value) => {
         if (value) {
             range.value = { startDate: range.value.startDate, endDate: null };
@@ -226,11 +211,10 @@ export function useDateRangePicker(
         }
     });
 
-    // Le parent peut piloter dynamiquement la fenêtre du calendrier
-    // (ex. : ouverture de la modale d'édition d'une indispo en mai →
-    // le picker doit s'ouvrir en mai et non en janvier). Sans ce
-    // watcher, `currentYear` / `currentMonth` étaient figés à la
-    // valeur du premier mount et ignoraient les changements ultérieurs.
+    // Parent may dynamically drive the calendar window (e.g. opening an
+    // edit modal on a May entry should land in May, not January). Without
+    // these watchers `currentYear`/`currentMonth` would stick to the
+    // first-mount value.
     watch(yearProp, (value) => {
         currentYear.value = value;
     });
@@ -238,20 +222,18 @@ export function useDateRangePicker(
         currentMonth.value = value;
     });
 
-    // Failsafe · garantit que le calendrier suit toujours la borne
-    // qui vient d'être modifiée, peu importe l'origine (input natif,
-    // clic calendrier, set programmatique par le parent, preset…).
-    // Sans ce watcher, modifier la date de fin via l'input pour
-    // atterrir dans un autre mois laissait le calendrier figé sur
-    // l'ancien mois (les appels manuels à `jumpToIsoMonth` dans les
-    // handlers d'input étaient parfois shuntés par le cycle de
-    // réactivité Vue lors d'un re-render du parent).
+    // Failsafe: keep the calendar pinned to whichever bound just changed,
+    // regardless of origin (native input, calendar click, programmatic
+    // set by parent, preset, etc.). Without this watcher, editing the
+    // end date via input to a different month sometimes left the
+    // calendar stuck on the previous month: manual `jumpToIsoMonth`
+    // calls in input handlers were occasionally shunted by Vue's
+    // reactivity cycle when the parent re-rendered.
     //
-    // La borne suivie est celle qui a effectivement changé entre prev
-    // et next · l'utilisateur s'attend à voir le résultat de SA dernière
-    // édition (modifier le début → on saute au début ; modifier la fin
-    // → on saute à la fin). Si les deux changent en même temps (reset
-    // ou pose initiale), on privilégie endDate.
+    // Bound being followed is the one that actually changed between
+    // prev and next: the user expects their latest edit to be reflected
+    // (edit start -> jump to start, edit end -> jump to end). If both
+    // change at once (reset or initial set), endDate wins.
     watch(
         () => [range.value.startDate, range.value.endDate] as const,
         ([nextStart, nextEnd], prev) => {
@@ -306,7 +288,7 @@ export function useDateRangePicker(
         return opts;
     });
 
-    // ±5 ans glissants autour de la prop year (10 années pour V2).
+    // Rolling +/-5 years around the year prop.
     const yearOptions = computed<SelectOption<number>[]>(() => {
         const center = yearProp.value;
         const opts: SelectOption<number>[] = [];
@@ -323,8 +305,8 @@ export function useDateRangePicker(
         const monthIdx = currentMonth.value - 1;
 
         const firstOfMonth = new Date(year, monthIdx, 1);
-        const jsDayOfWeek = firstOfMonth.getDay(); // 0=Dim
-        const leading = (jsDayOfWeek + 6) % 7; // Lundi = 0
+        const jsDayOfWeek = firstOfMonth.getDay(); // 0 = Sunday
+        const leading = (jsDayOfWeek + 6) % 7; // Monday = 0
 
         const gridStart = new Date(year, monthIdx, 1 - leading);
         const rows: DayCell[][] = [];
@@ -440,8 +422,8 @@ export function useDateRangePicker(
     }
 
     /**
-     * Tente d'appliquer la plage `[start, end]` au modèle ; si conflit
-     * `disabledDates`, pose `errorMessage` et laisse la plage inchangée.
+     * Try to apply `[start, end]` to the model. On conflict with
+     * `disabledDates`, set `errorMessage` and keep the range unchanged.
      */
     function tryApplyRange(start: string, end: string): boolean {
         const conflicts = rangeConflicts(start, end, disabledSet.value);
@@ -465,7 +447,7 @@ export function useDateRangePicker(
 
         const iso = cell.iso;
 
-        // Pas de startDate ou range complète → 1er clic = nouveau start.
+        // No startDate or complete range -> first click becomes new start.
         if (
             range.value.startDate === null
             || (range.value.startDate !== null && range.value.endDate !== null)
@@ -476,7 +458,7 @@ export function useDateRangePicker(
             return;
         }
 
-        // Mode ongoing : tout clic ré-ancre juste le start.
+        // Ongoing mode: every click just re-anchors start.
         if (ongoing.value) {
             range.value = { startDate: iso, endDate: null };
             errorMessage.value = null;
@@ -484,7 +466,7 @@ export function useDateRangePicker(
             return;
         }
 
-        // 2ᵉ clic en mode plage : auto-normalize.
+        // Second click in range mode: auto-normalize.
         const start = range.value.startDate;
 
         if (iso === start) {
@@ -505,8 +487,7 @@ export function useDateRangePicker(
 
         const currentEnd = range.value.endDate;
 
-        // Pas d'endDate : on pose juste startDate (vérifie qu'iso n'est
-        // pas dans `disabledDates` car aucune plage à valider).
+        // No endDate: just set startDate (verify iso is not in disabled).
         if (currentEnd === null) {
             if (disabledSet.value.has(iso)) {
                 errorMessage.value = `Date refusée : ${formatFr(iso)} est déjà attribuée.`;
@@ -521,7 +502,7 @@ export function useDateRangePicker(
             return;
         }
 
-        // endDate présent : on auto-normalize si iso > endDate.
+        // endDate present: auto-normalize if iso > endDate.
         const [normStart, normEnd] = normalizeRange(iso, currentEnd);
         const ok = tryApplyRange(normStart, normEnd);
 
@@ -537,7 +518,7 @@ export function useDateRangePicker(
 
         const currentStart = range.value.startDate;
 
-        // Pas de startDate : input Fin agit comme Début (UX permissive).
+        // No startDate: end input acts as start (permissive UX).
         if (currentStart === null) {
             if (disabledSet.value.has(iso)) {
                 errorMessage.value = `Date refusée : ${formatFr(iso)} est déjà attribuée.`;
@@ -552,7 +533,7 @@ export function useDateRangePicker(
             return;
         }
 
-        // Auto-normalize (swap si iso < currentStart).
+        // Auto-normalize (swap if iso < currentStart).
         const [normStart, normEnd] = normalizeRange(currentStart, iso);
         const ok = tryApplyRange(normStart, normEnd);
 

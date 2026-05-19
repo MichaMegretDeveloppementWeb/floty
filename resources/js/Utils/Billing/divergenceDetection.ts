@@ -1,13 +1,9 @@
 /**
- * Helpers purs pour la détection de divergence sur une entrée de récap
- * mensuel facturation (T11 / E.3). Extraits de
- * `MonthlyBillingBreakdownCard.vue` pour testabilité Vitest et
- * réutilisabilité éventuelle.
- *
- * Une entrée est divergente si la facture émise (snapshot) diffère
- * du recalcul actuel sur :
- *   - les jours utilisés, ou
- *   - le total HT en cents.
+ * Pure helpers for detecting divergence on a monthly billing breakdown
+ * entry. An entry is divergent when the snapshot of the emitted invoice
+ * differs from the current recompute on either:
+ *   - days used, or
+ *   - HT total in cents.
  */
 
 import { formatEur } from '@/Utils/format/formatEur';
@@ -15,9 +11,9 @@ import { formatEur } from '@/Utils/format/formatEur';
 type Entry = App.Data.User.Billing.MonthlyBillingBreakdownData['entries'][number];
 
 /**
- * `true` si `entry` correspond à une facture émise dont le snapshot
- * (jours / total) diffère du recalcul actuel. Retourne `false` si
- * aucune facture n'est émise ou si le snapshot est complet et égal.
+ * True if `entry` corresponds to an emitted invoice whose snapshot
+ * (days / total) differs from the current recompute. Returns false if
+ * no invoice is emitted or if the snapshot is complete and equal.
  */
 export function entryHasDivergence(entry: Entry): boolean {
     if (entry.existingInvoiceId === null || entry.invoicedDaysUsed === null) {
@@ -36,8 +32,8 @@ export function entryHasDivergence(entry: Entry): boolean {
 }
 
 /**
- * Tooltip explicatif côté UI quand `entryHasDivergence(entry) === true`.
- * Compose un message FR fixe avec snapshot vs recalcul.
+ * Tooltip explanation shown when `entryHasDivergence(entry) === true`.
+ * Builds a fixed FR message contrasting snapshot vs recompute.
  */
 export function divergenceTooltip(entry: Entry): string {
     const invoicedDays = entry.invoicedDaysUsed ?? 0;

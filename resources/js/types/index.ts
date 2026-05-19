@@ -1,7 +1,7 @@
 /**
- * Barrel global des types maison.
+ * Barrel for in-house types.
  *
- * Pour les types générés (Spatie Data + Enums), utiliser directement
- * le namespace global `App.Data.*` / `App.Enums.*`.
+ * For generated types (Spatie Data + Enums) use the global namespace
+ * `App.Data.*` / `App.Enums.*` directly.
  */
 export * from './ui';

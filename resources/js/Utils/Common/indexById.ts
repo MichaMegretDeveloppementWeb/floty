@@ -1,14 +1,8 @@
 /**
- * Indexe une liste d'objets par leur `id` numérique pour des lookups
- * O(1) (plus efficace qu'`Object.fromEntries(...)` ou un `array.find`
- * répété).
+ * Index a list of objects by their numeric `id` for O(1) lookups (more
+ * efficient than `Object.fromEntries(...)` or repeated `array.find`).
  *
- * Mutualisé Lot 7 D07 (F-40-011) · ~5 sites consommateurs avant
- * extraction · pattern dupliqué `new Map(items.map(v => [v.id, v]))`
- * dans `Contracts/Create/Index.vue`, `ContractFormFields.vue`,
- * `Contracts/Edit/Index.vue`, `WeekDrawer/ContractForm.vue`.
- *
- * Usage typique avec un `computed` Vue ·
+ * Typical usage with a Vue `computed`:
  *   const vehicleMap = computed(() => indexById(props.vehicles));
  *   const v = vehicleMap.value.get(vehicleId);
  */

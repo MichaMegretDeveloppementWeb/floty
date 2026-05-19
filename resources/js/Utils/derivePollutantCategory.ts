@@ -29,19 +29,11 @@ const PRE_EURO_5: ReadonlyArray<EuroStandard> = [
 ];
 
 /**
- * Mirroir TS de {@see App\Enums\Vehicle\PollutantCategory::derive()}.
+ * TS mirror of {@see App\Enums\Vehicle\PollutantCategory::derive()}.
  *
- * Sert exclusivement à l'affichage live de la catégorie résolue dans
- * le formulaire - la valeur réellement persistée est calculée côté
- * backend par le Repository, à partir des mêmes inputs. Les deux
- * implémentations doivent rester strictement équivalentes.
- *
- * Cas couverts :
- *  - source d'énergie strictement non-thermique → `e`
- *  - allumage commandé (essence/GPL/GNV/E85) Euro 5+ → `category_1`
- *  - hybride à sous-jacent essence Euro 5+ → `category_1`
- *  - tout le reste (Diesel, hybride à sous-jacent Diesel, sans norme,
- *    pré-Euro 5, hybride sans sous-jacent renseigné) → `most_polluting`
+ * Used only to display the resolved category live in the form. The
+ * persisted value is computed on the backend from the same inputs. Both
+ * implementations must stay strictly equivalent.
  */
 export function derivePollutantCategory(
     energy: EnergySource,
@@ -82,9 +74,9 @@ function isPositiveIgnitionOrPositiveHybrid(
 }
 
 /**
- * Indique si l'énergie sélectionnée nécessite que l'utilisateur
- * renseigne le moteur thermique sous-jacent. Aligné sur
- * {@see EnergySource::requiresUnderlyingCombustionEngine()} côté PHP.
+ * Whether the selected energy source requires the user to provide the
+ * underlying combustion engine. Aligned with
+ * {@see EnergySource::requiresUnderlyingCombustionEngine()} on the PHP side.
  */
 export function requiresUnderlyingCombustionEngine(energy: EnergySource): boolean {
     return energy === 'plugin_hybrid'

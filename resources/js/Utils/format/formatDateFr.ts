@@ -1,8 +1,8 @@
 /**
- * Convertit une date ISO `YYYY-MM-DD` en format affichable FR `DD/MM/YYYY`.
+ * Convert an ISO `YYYY-MM-DD` date string to the French format `DD/MM/YYYY`.
  *
- * Pas de parsing Date object - on évite les surprises de timezone
- * sur des dates pures (pas d'heure).
+ * No `Date` parsing on purpose: avoids timezone surprises on date-only
+ * values.
  */
 export function formatDateFr(iso: string): string {
     const [y, m, d] = iso.split('-');

@@ -1,14 +1,9 @@
 /**
- * Maps de traduction FR pour les enums du domaine Vehicle.
+ * French label maps for the Vehicle domain enums.
  *
- * Synchronisés à la main avec les méthodes `label()` côté PHP - le
- * typage `Record<EnumValue, string>` force l'exhaustivité TS, donc
- * vue-tsc échouera si on ajoute un case enum côté PHP sans mettre
- * à jour ce fichier.
- *
- * Pourquoi pas un système auto-généré : pour la phase V1, la
- * duplication contrôlée est plus pragmatique qu'un générateur
- * custom. À reconsidérer en V2 si le nombre d'enums explose.
+ * Kept in sync by hand with the PHP `label()` methods. The
+ * `Record<EnumValue, string>` typing forces exhaustiveness, so vue-tsc
+ * fails if a new PHP enum case is added without updating this file.
  */
 
 export const energySourceLabel: Record<App.Enums.Vehicle.EnergySource, string> = {

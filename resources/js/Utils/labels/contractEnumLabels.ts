@@ -1,8 +1,7 @@
 /**
- * Maps de traduction FR pour les enums du domaine Contract.
+ * French label maps for the Contract domain enums.
  *
- * Cf. `Utils/labels/vehicleEnumLabels.ts` pour la convention :
- * `Record<EnumValue, string>` force l'exhaustivité TS.
+ * `Record<EnumValue, string>` forces exhaustiveness at the TS level.
  */
 
 import type { BadgeTone } from '@/types/ui';
@@ -14,8 +13,8 @@ export const contractTypeLabel: Record<App.Enums.Contract.ContractType, string> 
 };
 
 /**
- * Libellés courts pour badges compacts dans les tableaux. Le libellé
- * long {@see contractTypeLabel} reste utilisé en page Show et formulaires.
+ * Short label for compact badges in tables. The long label
+ * {@see contractTypeLabel} stays in Show pages and forms.
  */
 export const contractTypeShortLabel: Record<App.Enums.Contract.ContractType, string> = {
     lcd: 'LCD',
@@ -24,8 +23,8 @@ export const contractTypeShortLabel: Record<App.Enums.Contract.ContractType, str
 };
 
 /**
- * Tone Badge associé à chaque type de contrat. LCD ambre (court terme,
- * dynamique), LLD bleu (long terme, stable), MAD slate (neutre).
+ * Badge tone per contract type. LCD amber (short term, dynamic), LLD
+ * blue (long term, stable), MAD slate (neutral).
  */
 export const contractTypeBadgeTone: Record<App.Enums.Contract.ContractType, BadgeTone> = {
     lcd: 'amber',

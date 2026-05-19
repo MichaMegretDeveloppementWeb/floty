@@ -1,5 +1,5 @@
 /**
- * Variantes visuelles du composant Button (DS).
+ * Design-system visual variants of the Button component.
  */
 export type ButtonVariant =
     | 'primary'

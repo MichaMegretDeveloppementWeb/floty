@@ -1,10 +1,6 @@
 /**
- * Mapping `CompanyColor` → classe Tailwind `bg-company-{color}` -
- * util partagé pour éviter la duplication entre les composants
- * d'affichage du domaine Entreprise (CompanyTag, timeline, breakdown).
- *
- * Les classes `bg-company-*` sont définies dans le design system
- * Tailwind (cf. design-system/tokens.css).
+ * Maps `CompanyColor` to the Tailwind `bg-company-{color}` utility.
+ * The classes are declared in the design-system Tailwind config.
  */
 
 type CompanyColor = App.Enums.Company.CompanyColor;

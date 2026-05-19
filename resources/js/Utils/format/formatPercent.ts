@@ -1,18 +1,18 @@
 /**
- * Formate un pourcentage en convention FR (`,` décimal, espace insécable
- * fin avant le `%`).
+ * Format a percentage with French convention (`,` decimal, narrow
+ * no-break space before `%`).
  *
- * Spécifique réductions commerciales (Lot 2/3) · le pourcentage est
- * stocké en basis points (1 050 bp = 10,50 %). Helper applicatif unique
- * pour rester cohérent partout (badges, tooltips, lignes facture).
+ * Specific to rental discounts: the percentage is stored as basis
+ * points (1 050 bp = 10.50%). Single app-level helper for consistency
+ * across badges, tooltips and invoice lines.
  *
- * - `basisPoints = 1050, fractionDigits = 2` → `"10,50 %"`
- * - `basisPoints = 1000, fractionDigits = 0` → `"10 %"`
- * - `basisPoints = 1050, fractionDigits = 'auto'` → `"10,5 %"` (élide les
- *    zéros terminaux)
+ * - `basisPoints = 1050, fractionDigits = 2`    -> `"10,50 %"`
+ * - `basisPoints = 1000, fractionDigits = 0`    -> `"10 %"`
+ * - `basisPoints = 1050, fractionDigits = 'auto'` -> `"10,5 %"` (drops
+ *    trailing zeros)
  *
- * Aucune dépendance externe · `Intl.NumberFormat` couvre la convention
- * FR proprement.
+ * Zero external dependency: `Intl.NumberFormat` covers the FR
+ * convention cleanly.
  */
 export function formatPercentFromBasisPoints(
     basisPoints: number,

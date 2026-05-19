@@ -1,11 +1,11 @@
 /**
- * Libellés des mois civils français en format long, indexés 0-11
- * (Janvier = index 0). Centralise les 4 duplications historiques
- * (T11 / E.17) issues des composants Billing/Invoice.
+ * Long French civil month labels, indexed 0-11 (January = index 0).
+ * Centralizes the 4 historical duplications from the Billing/Invoice
+ * components.
  *
- * Pour des libellés courts (initiale ou 3-lettres), voir les
- * variantes dédiées dans `CompanyActivityCard.vue` et `Heatmap.vue`
- * (formats spécifiques visualisations · hors scope mutualisation).
+ * For short labels (initial or 3-letter), see the dedicated variants in
+ * `CompanyActivityCard.vue` and `Heatmap.vue` (visualization-specific
+ * formats, out of scope here).
  */
 export const MONTH_LABELS = [
     'Janvier',
@@ -25,14 +25,14 @@ export const MONTH_LABELS = [
 export type MonthLabel = (typeof MONTH_LABELS)[number];
 
 /**
- * Helper : retourne le libellé du mois civil (1-12) au format long FR.
- * Lance une `RangeError` si `month` est hors `[1, 12]`.
+ * Returns the long French label for a civil month (1-12). Throws
+ * `RangeError` if `month` is outside `[1, 12]`.
  */
 export function monthLabel(month: number): MonthLabel {
     if (month < 1 || month > 12) {
         throw new RangeError(`Month must be in [1, 12], got ${month}.`);
     }
 
-    // Borné par la garde [1, 12] · index forcément valide.
+    // Bounded by the [1, 12] guard above, index is always valid.
     return MONTH_LABELS[month - 1]!;
 }

@@ -1,16 +1,14 @@
 /**
- * Durée d'un contrat en jours, bornes incluses (start + end).
+ * Contract duration in days, inclusive on both bounds (start + end).
  *
- * Utilisé par les pages Create/Edit Contracts pour le recap live ·
- * mutualisé Lot 7 D07 (F-40-010, ex-duplication identique entre les
- * 2 pages).
+ * Used by the Contracts Create/Edit live recap.
  *
- * Retourne `null` si l'une des dates est vide ou si end < start ·
- * permet aux composants consommateurs d'afficher l'état "à compléter"
- * sans branche conditionnelle complexe côté `<template>`.
+ * Returns `null` if either date is empty or end < start, so consuming
+ * components can display the "to complete" state without a conditional
+ * branch in the template.
  *
- * Cohérent avec `Contract::countDaysInYear` côté backend qui
- * compte aussi inclusivement (start..end inclus).
+ * Mirrors `Contract::countDaysInYear` on the backend, which also counts
+ * inclusively (start..end included).
  */
 export function computeContractDurationDays(
     startDate: string,

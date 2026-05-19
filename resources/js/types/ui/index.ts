@@ -1,8 +1,8 @@
 /**
- * Barrel des types UI maison (composants du design system).
+ * Barrel for in-house UI types (design-system components).
  *
- * Note : `CompanyColor` n'est PAS redéfini ici - utiliser le type
- * généré `App.Enums.Company.CompanyColor`.
+ * Note: `CompanyColor` is intentionally not re-exported here; use the
+ * generated `App.Enums.Company.CompanyColor` instead.
  */
 export * from './badge';
 export * from './button';

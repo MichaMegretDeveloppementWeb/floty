@@ -1,11 +1,11 @@
 import '@/types/generated/generated';
 
 /**
- * PageProps Floty - shared props exposées par `HandleInertiaRequests`
- * à chaque page Inertia, typées strictement via les DTOs Spatie Data
- * générés automatiquement (cf. `@/types/generated/generated.d.ts`).
+ * Floty PageProps: shared props exposed by `HandleInertiaRequests` on
+ * every Inertia page, strictly typed against the auto-generated Spatie
+ * Data DTOs (cf. `@/types/generated/generated.d.ts`).
  *
- * Côté Vue on consomme via `usePage().props.xxx` avec autocomplétion.
+ * Consumed from Vue via `usePage().props.xxx` with autocompletion.
  */
 declare module '@inertiajs/core' {
     interface PageProps {

@@ -1,10 +1,10 @@
 /**
- * Formatage des motifs typés d'obsolescence d'une déclaration fiscale
- * (Phase 11 D4, ADR-0015 § D9).
+ * Formatting helpers for typed obsolescence reasons of a fiscal
+ * declaration (ADR-0015 § D9).
  *
- * Source : `App.Data.User.FiscalDeclaration.InvalidationReasonData`.
- * Le format inclut le verbe d'action + le label de l'entité touchée
- * pour produire une phrase auto-contenue dans l'UI.
+ * Source: `App.Data.User.FiscalDeclaration.InvalidationReasonData`.
+ * The output composes an action verb + the touched entity label to
+ * produce a self-contained sentence for the UI.
  */
 type Reason = App.Data.User.FiscalDeclaration.InvalidationReasonData;
 type Type = App.Enums.FiscalDeclaration.InvalidationReasonType;
@@ -31,10 +31,9 @@ export function formatInvalidationReason(reason: Reason): string {
 }
 
 /**
- * Reformate les dates ISO `YYYY-MM-DD` éventuellement présentes dans
- * une chaîne en format français `DD/MM/YYYY`. Sert à rattraper les
- * anciens labels d'invalidation persistés en base avant la bascule
- * du formatage côté `DeclarationInvalidationDetector`.
+ * Rewrite ISO `YYYY-MM-DD` dates embedded in a string as FR
+ * `DD/MM/YYYY`. Used to fix legacy invalidation labels persisted before
+ * formatting was moved into `DeclarationInvalidationDetector`.
  */
 function frenchifyIsoDates(label: string): string {
     return label.replace(/\b(\d{4})-(\d{2})-(\d{2})\b/g, '$3/$2/$1');

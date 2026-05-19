@@ -1,15 +1,15 @@
 /**
- * Formate un montant en euros avec le séparateur français et un
- * espace insécable fin (NNBSP, U+202F) entre les milliers et le
- * symbole - comme l'attendent les conventions typographiques FR.
+ * Format a euro amount with French separators and a narrow no-break
+ * space (NNBSP, U+202F) before the currency symbol, matching FR
+ * typographic conventions.
  *
- * Le `Intl.NumberFormat` de Node insère parfois un espace fine
- * normale (U+2009) ou un espace insécable (U+00A0). On normalise
- * en NNBSP par cohérence visuelle.
+ * Node's `Intl.NumberFormat` may insert a regular thin space (U+2009)
+ * or a non-breaking space (U+00A0); we normalize to NNBSP for visual
+ * consistency.
  *
- * @param value          Montant numérique (€)
- * @param fractionDigits Décimales fixes (par défaut 0 pour les
- *                       agrégats, 2 pour les montants détaillés)
+ * @param value          Euro amount.
+ * @param fractionDigits Fixed decimals (default 0 for aggregates, 2 for
+ *                       detailed amounts).
  */
 export function formatEur(value: number, fractionDigits = 0): string {
     return new Intl.NumberFormat('fr-FR', {
@@ -19,6 +19,6 @@ export function formatEur(value: number, fractionDigits = 0): string {
         maximumFractionDigits: fractionDigits,
     })
         .format(value)
-        // Normalise NBSP (U+00A0) et THIN SPACE (U+2009) en NNBSP (U+202F).
-        .replace(/[  ]/g, ' ');
+        // Normalize NBSP (U+00A0) and THIN SPACE (U+2009) to NNBSP (U+202F).
+        .replace(/[  ]/g, ' ');
 }

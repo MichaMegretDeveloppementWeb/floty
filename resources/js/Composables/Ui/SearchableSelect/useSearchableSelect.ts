@@ -8,8 +8,8 @@ export type SelectOption = {
 };
 
 /**
- * Filtre `includes()` insensible à la casse sur le `label` des options.
- * Pure pour faciliter les tests Vitest isolés.
+ * Case-insensitive `includes()` filter over option labels. Pure for
+ * isolated Vitest coverage.
  */
 export function filterOptions(
     options: readonly SelectOption[],
@@ -25,19 +25,15 @@ export function filterOptions(
 }
 
 /**
- * État + handlers du composant `SearchableSelect`. La logique est ici
- * pour respecter la convention « strict minimum dans les .vue ».
+ * State + handlers for `SearchableSelect`. Filter is debounced 300 ms via
+ * `refDebounced` so typing stays fluid while `filteredOptions` only
+ * updates after the delay.
  *
- * Le composant fournit :
- * - `rootRef` : la racine, pour câbler le `onClickOutside`
- * - `options` / `modelValue` : reactive sources, lues mais jamais mutées
- * - `onSelect` : callback déclenché à la sélection (le composant met à
- *   jour `modelValue` via `defineModel`, ce composable n'a pas à le
- *   savoir)
- *
- * Le filtre est debouncé 300 ms (cf. plan 04.I.1) via `refDebounced` de
- * `@vueuse/core` : la frappe utilisateur reste fluide, le `computed`
- * `filteredOptions` ne se met à jour qu'après le délai.
+ * @param rootRef     Root element ref (wired to `onClickOutside`).
+ * @param options     Reactive options source (read, never mutated).
+ * @param modelValue  Reactive selected value (read, never mutated).
+ * @param onSelect    Callback fired on selection. The host component
+ *                    updates `modelValue` via `defineModel`.
  */
 export function useSearchableSelect(
     rootRef: Readonly<Ref<HTMLElement | null>>,
@@ -77,9 +73,7 @@ export function useSearchableSelect(
         isOpen.value = true;
         query.value = '';
 
-        // Initialise `highlightedIndex` sur l'option sélectionnée si
-        // elle existe (UX : la sélection courante est mise en évidence
-        // dès l'ouverture). Sinon on part de 0.
+        // Highlight the current selection on open, fall back to 0.
         const selectedIdx = options.value.findIndex(
             (o) => o.value === modelValue.value,
         );
@@ -111,8 +105,7 @@ export function useSearchableSelect(
         close();
     };
 
-    // Quand le filtre change, ramène `highlightedIndex` dans les bornes
-    // pour éviter qu'il pointe au-delà de la liste filtrée.
+    // Clamp `highlightedIndex` when the filtered list shrinks.
     watch(filteredOptions, (next) => {
         if (highlightedIndex.value >= next.length) {
             highlightedIndex.value = Math.max(0, next.length - 1);
