@@ -14,20 +14,19 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-001 · Redevable et fait générateur · version unique pleine année
- * 2026.
+ * R-2026-001 - Taxpayer and triggering event, single full-year 2026
+ * version.
  *
- * **Règle documentaire-only** · pas de scission ADR-0022 en 2026 ·
- * L. 421-94, L. 421-95, L. 421-98 et L. 421-99 sont stables depuis le
- * 01/03/2025 (rédaction issue de LF 2025 art. 28 · LOI n°2025-127 du
- * 14/02/2025). Audit Chrome live 15/05/2026 confirme · aucune
- * modification par LF 2026 ni par Ordo 2025-1247 du 17/12/2025.
+ * Documentation-only rule. No ADR-0022 split in 2026: L. 421-94,
+ * L. 421-95, L. 421-98 and L. 421-99 are stable since 01/03/2025
+ * (wording from LF 2025 art. 28, LOI n°2025-127 du 14/02/2025). No
+ * modification by LF 2026 or Ordo 2025-1247 du 17/12/2025.
  *
- * **Reconduction stricte 2025 → 2026** · doctrine identique à
- * R-2025-001-bis · trois conditions cumulatives explicites de
- * l'affectation à des fins économiques (détention par entreprise
- * immat. France · prise en charge de frais d'utilisation par entreprise ·
- * circulation pour activité économique ≥ 1 mois/an).
+ * Strict reproduction 2025 → 2026: doctrine identical to
+ * R-2025-001-bis. Three explicit cumulative conditions for assignment
+ * for economic purposes (holding by France-registered company,
+ * coverage of usage costs by a company, circulation for economic
+ * activity ≥ 1 month/year).
  */
 final readonly class R2026_001_TaxpayerAndTriggeringEvent implements InformativeRule
 {

@@ -14,17 +14,18 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-028-bis · Modalités de déclaration et de paiement · **version
- * 01/03 → 31/12/2025** (après LF 2025 art. 28).
+ * R-2025-028-bis - Declaration and payment modalities, version 01/03
+ * → 31/12/2025 (after LF 2025 art. 28).
  *
- * **Règle documentaire-only** · pendant de {@see R2025_028_DeclarationModalities}
- * qui couvre 01/01-28/02. ADR-0022 · une période légale distincte = une
- * règle fiscale Floty distincte.
+ * Documentation-only rule, counterpart to
+ * {@see R2025_028_DeclarationModalities} which covers 01/01-28/02.
+ * ADR-0022: one distinct legal period = one distinct Floty fiscal
+ * rule.
  *
- * **Modifications LF 2025 art. 28** · L. 421-159 et L. 421-164 ont été
- * réécrits par la LOI n°2025-127 du 14/02/2025 à effet du 01/03/2025.
- * Modifications rédactionnelles · pas d'impact pratique sur le redevable,
- * l'exigibilité, le formulaire ou l'état récapitulatif.
+ * LF 2025 art. 28 modifications: L. 421-159 and L. 421-164 were
+ * rewritten by LOI n°2025-127 du 14/02/2025 effective 01/03/2025.
+ * Editorial modifications, no practical impact on the taxpayer,
+ * chargeability, form, or recap statement.
  */
 final readonly class R2025_028bis_DeclarationModalities implements InformativeRule
 {
@@ -67,7 +68,7 @@ final readonly class R2025_028bis_DeclarationModalities implements InformativeRu
 
     public function displayOrder(): int
     {
-        // Doit suivre R-2025-028 dans l'ordre d'affichage.
+        // Must follow R-2025-028 in display order.
         return 28;
     }
 

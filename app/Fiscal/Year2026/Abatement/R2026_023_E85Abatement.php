@@ -17,43 +17,35 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * R-2026-023 · Abattement E85 (CIBS art. L. 421-125 version 01/01/2026,
- * texte stable depuis 01/01/2025).
+ * R-2026-023 - E85 abatement (CIBS art. L. 421-125 version 01/01/2026,
+ * text stable since 01/01/2025).
  *
- * **Reconduction 2025 → 2026 sans modification matérielle** · l'article
- * L. 421-125 n'a pas été modifié par la LF 2026 (LOI n° 2026-103 du
- * 19/02/2026) ni par l'Ordo 2025-1247 du 17/12/2025. Mécanique et seuils
- * identiques · seuls les barèmes CO₂ amont (R-2026-010/011/012) ont
- * changé · l'impact économique de l'abattement croît mécaniquement.
+ * Reproduced 2025 → 2026 without material change: L. 421-125 was not
+ * modified by LF 2026 (LOI n° 2026-103 du 19/02/2026) nor by
+ * Ordo 2025-1247 du 17/12/2025. Mechanism and thresholds identical;
+ * only the upstream CO₂ scales (R-2026-010/011/012) changed, so the
+ * economic impact of the abatement mechanically grows.
  *
- * **Mécanique** · pour les véhicules dont la rubrique P.3 du certificat
- * d'immatriculation appartient à la liste opposable BOFiP des 9 codes
- * {FE, FG, FN, FL, FH, FR, FQ, FM, FP} (flag `accepts_e85` côté VFC) :
- * - **WLTP / NEDC** · abattement de **40 %** sur la valeur CO₂ en entrée
- *   du barème, **sauf si CO₂ > 250 g/km**.
- * - **PA** · abattement de **2 CV** sur la puissance, **sauf si PA > 12 CV**.
+ * Mechanics: for vehicles whose registration certificate P.3 entry
+ * belongs to the BOFiP-mandated list of 9 codes
+ * {FE, FG, FN, FL, FH, FR, FQ, FM, FP} (`accepts_e85` flag on VFC):
+ * - WLTP / NEDC: 40% abatement on the CO₂ value at scale entry,
+ *   unless CO₂ > 250 g/km.
+ * - PA: 2 CV abatement on horsepower, unless PA > 12 CV.
  *
- * **Pipeline · étape 5** · s'exécute APRÈS les exonérations (étape 4) et
- * AVANT la tarification (étape 6). Si une exonération `fullZeroingTariffs`
- * ou `onlyCo2` est déjà rendue, l'abattement n'a aucun effet pratique
- * (le pricing sera neutralisé / le tarif CO₂ zéroïsé).
+ * Pipeline step 5: runs AFTER exemptions (step 4) and BEFORE pricing
+ * (step 6). If a `fullZeroingTariffs` or `onlyCo2` exemption has
+ * already been issued, the abatement has no practical effect.
  *
- * **Implémentation** · on clone la VFC (Eloquent `replicate()`) avec les
- * valeurs réduites, puis on la réinjecte dans le contexte. Les classes
- * PricingRule (R-2026-010/011/012) liront ces valeurs réduites.
+ * Implementation: the VFC is cloned (Eloquent `replicate()`) with
+ * reduced values and re-injected into the context. PricingRule classes
+ * (R-2026-010/011/012) will read those reduced values.
  *
- * **Sources légales auditées Chrome live le 15/05/2026** :
- * - CIBS art. L. 421-125 (Légifrance LEGIARTI000048844564 v 2026-01-01).
- * - BOFiP `BOI-AIS-MOB-10-30-20-20250528` § 240 (doctrine opposable
- *   reconduite 2026 sans révision).
- * - BOFiP `BOI-AIS-MOB-10-20-40-20250604` § 160 (liste opposable des 9
- *   codes P.3 du CI · renvoi cross-prélèvement vers malus CO₂).
- *
- * **Lecture stricte des plafonds** · « sauf lorsque ces émissions ou
- * cette puissance dépassent respectivement 250 g/km ou douze chevaux
- * administratifs ». « Dépassent » = strictement supérieur. Donc 250 g/km
- * exactement → abattement applicable ; 251 g/km → non applicable. Idem
- * 12 CV exact = applicable ; 13 CV = non applicable.
+ * Strict reading of the caps: "sauf lorsque ces émissions ou cette
+ * puissance dépassent respectivement 250 g/km ou douze chevaux
+ * administratifs". "Dépassent" = strictly greater than. So 250 g/km
+ * exactly → abatement applicable; 251 g/km → not applicable. Same
+ * applies for 12 CV exact = applicable; 13 CV = not applicable.
  */
 final readonly class R2026_023_E85Abatement implements AbatementRule
 {

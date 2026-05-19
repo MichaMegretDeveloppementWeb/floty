@@ -14,19 +14,18 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-001 · Redevable et fait générateur · **version 01/01 →
- * 28/02/2025** (avant LF 2025 art. 28).
+ * R-2025-001 - Taxpayer and triggering event, version 01/01 → 28/02/2025
+ * (before LF 2025 art. 28).
  *
- * **Règle documentaire-only** · ADR-0022 · une période légale distincte =
- * une règle fiscale Floty distincte. L. 421-95 et L. 421-98 ont été
- * réécrits par la LOI n°2025-127 du 14/02/2025 (LF 2025) à effet du
- * 01/03/2025. La règle R-2025-001 couvre la période **avant** cette
- * modification. La période **après** est portée par
- * {@see R2025_001bis_TaxpayerAndTriggeringEvent}.
+ * Documentation-only rule (ADR-0022: one distinct legal period = one
+ * distinct Floty fiscal rule). L. 421-95 and L. 421-98 were rewritten
+ * by LOI n°2025-127 du 14/02/2025 (LF 2025) effective 01/03/2025.
+ * R-2025-001 covers the period BEFORE that modification. The period
+ * AFTER is carried by {@see R2025_001bis_TaxpayerAndTriggeringEvent}.
  *
- * Cadre architectural · l'entreprise utilisatrice est redevable au titre
- * de l'affectation à des fins économiques (L. 421-95) dans sa version
- * issue de l'ordonnance n°2021-1843 + LF 2022/2023.
+ * The user company is taxpayer through assignment for economic
+ * purposes (L. 421-95) in its version from ordonnance n°2021-1843 +
+ * LF 2022/2023.
  */
 final readonly class R2025_001_TaxpayerAndTriggeringEvent implements InformativeRule
 {

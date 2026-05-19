@@ -17,12 +17,12 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-016 · Exonération CO₂ électrique / hydrogène (CIBS L. 421-124) ·
- * reconduction stricte R-2024-016 (texte inchangé depuis 01/01/2022).
+ * R-2025-016 - Electric / hydrogen CO₂ exemption (CIBS L. 421-124),
+ * strict reproduction of R-2024-016 (text unchanged since 01/01/2022).
  *
- * Véhicules à motorisation strictement électrique, hydrogène ou
- * combinaison électrique + hydrogène : exonération **CO₂ uniquement**
- * (la taxe polluants tombe à 0 € par effet du barème catégorie E).
+ * Vehicles powered strictly by electricity, hydrogen or a combination
+ * of both: CO₂ exemption only (pollutants tax falls to 0 € via the
+ * category E scale).
  */
 final readonly class R2025_016_ElectricHydrogen implements ExemptionRule
 {

@@ -19,34 +19,33 @@ use App\Fiscal\Year2026\Pricing\Concerns\PollutantsFlatLogicTrait;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-014-bis · Tarif annuel forfaitaire polluants (CIBS L. 421-135) ·
- * **version 01/03 → 31/12/2026** (après LF 2026 art. 58 V, IV).
+ * R-2026-014-bis - Pollutants flat annual tariff (CIBS L. 421-135),
+ * version 01/03 → 31/12/2026 (after LF 2026 art. 58 V, IV).
  *
- * **Règle pipeline (Pricing)** · pendant de
- * {@see R2026_014_PollutantsFlat} qui couvre 01/01-28/02. Texte
- * L. 421-135 revalorisé par la LOI n° 2026-103 du 19/02/2026 art. 58
- * (V), IV à effet du 01/03/2026.
+ * Pipeline rule (Pricing). Counterpart to
+ * {@see R2026_014_PollutantsFlat} which covers 01/01-28/02.
+ * L. 421-135 revalued by LOI n° 2026-103 du 19/02/2026 art. 58 (V),
+ * IV effective 01/03/2026.
  *
- * **🔥 Revalorisation matérielle +30 % vs R-2026-014** ·
- *   - E (électrique / hydrogène)        →   0 € (inchangé)
- *   - Catégorie 1 (essence/gaz Euro 5/6)→ **130 €** (vs 100 € avant, +30 %)
- *   - Plus polluants                    → **650 €** (vs 500 € avant, +30 %)
+ * Material +30% revaluation vs R-2026-014:
+ *   - E (electric / hydrogen)            →   0 € (unchanged)
+ *   - Category 1 (petrol/gas Euro 5/6)   → 130 € (vs 100 € before, +30%)
+ *   - Most polluting                     → 650 € (vs 500 € before, +30%)
  *
- * **Première revalorisation des tarifs polluants depuis 2022** · cette
- * modification a un impact réel sur le calcul (contrairement aux
- * scissions rédactionnelles R-2026-013-bis et R-2026-018-bis).
+ * First revaluation of pollutant tariffs since 2022. This modification
+ * has a real impact on the calculation (unlike the editorial splits
+ * R-2026-013-bis and R-2026-018-bis).
  *
- * Mécanique de tarification partagée via
- * {@see PollutantsFlatLogicTrait}.
+ * Pricing logic shared through {@see PollutantsFlatLogicTrait}.
  *
- * **Pondération cross-période pour contrat LLD full-year 2026** · le
- * `FiscalSegmentedExecutor` segmente automatiquement le calcul par
- * période d'applicabilité. Pour un véhicule Cat1 LLD full-year 2026 ·
- *   `(100 × 59 + 130 × 306) / 365 = 125,15 €/an`
+ * Cross-period weighting for a full-year 2026 LLD contract: the
+ * `FiscalSegmentedExecutor` automatically segments the calculation by
+ * applicability period. For a Cat1 LLD vehicle full-year 2026:
+ *   (100 × 59 + 130 × 306) / 365 = 125.15 €/year
  *
- * **Source légale** · audit Chrome live 15/05/2026 ·
+ * Legal basis:
  * - CIBS L. 421-135 v 01/03/2026 → 01/01/2027.
- * - LOI n° 2026-103 du 19/02/2026 art. 58 (V), IV (entrée en vigueur 01/03/2026).
+ * - LOI n° 2026-103 du 19/02/2026 art. 58 (V), IV (effective 01/03/2026).
  */
 final readonly class R2026_014bis_PollutantsFlat implements PricingRule
 {
@@ -57,7 +56,7 @@ final readonly class R2026_014bis_PollutantsFlat implements PricingRule
 
     public function __construct()
     {
-        // Tarifs revalorisés +30 % par LF 2026 art. 58 (V), IV.
+        // Tariffs revalued +30% by LF 2026 art. 58 (V), IV.
         $this->tariff = new PollutantTariff([
             PollutantCategory::E->value => 0.0,
             PollutantCategory::Category1->value => 130.0,
@@ -107,7 +106,7 @@ final readonly class R2026_014bis_PollutantsFlat implements PricingRule
 
     public function displayOrder(): int
     {
-        // Doit suivre R-2026-014 dans l'ordre d'affichage.
+        // Must follow R-2026-014 in display order.
         return 14;
     }
 

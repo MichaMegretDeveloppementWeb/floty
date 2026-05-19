@@ -20,25 +20,25 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-011 · Barème CO₂ NEDC 2026 · ⚠️ DURCISSEMENT MAJEUR vs 2025
- * (CIBS art. L. 421-121 version 01/01/2026 → 01/01/2027, modifiée par
+ * R-2026-011 - 2026 CO₂ NEDC scale, MAJOR HARDENING vs 2025 (CIBS
+ * art. L. 421-121 version 01/01/2026 → 01/01/2027, modified by
  * LF 2024 art. 97-20°).
  *
- * Concerne les véhicules immatriculés en France entre le 01/06/2004 et
- * le 29/02/2020 et homologués en cycle NEDC. **9 tranches**, dernière
- * ouverte (≥ 137 g/km).
+ * Applies to vehicles registered in France between 01/06/2004 and
+ * 29/02/2020 and homologated under the NEDC cycle. 9 brackets, last
+ * one open (≥ 137 g/km).
  *
- * **Différences clés vs R-2025-011** ·
- * - 1re tranche couvre jusqu'à 3 g/km (vs 7 en 2025).
- * - Bornes intermédiaires durcies (37/44/70/87/103/120/136 vs 41/48/74/91/107/124/140).
- * - Dernière tranche commence à 137 g/km (vs 141 en 2025).
- * - NEDC 100 g/km = **324 € en 2026** (vs 284 € en 2025, +14,1 %).
+ * Key differences vs R-2025-011:
+ * - 1st bracket covers up to 3 g/km (vs 7 in 2025).
+ * - Intermediate bounds hardened (37/44/70/87/103/120/136 vs
+ *   41/48/74/91/107/124/140).
+ * - Last bracket starts at 137 g/km (vs 141 in 2025).
+ * - NEDC 100 g/km = 324 € in 2026 (vs 284 € in 2025, +14.1%).
  *
- * S'exécute uniquement si la méthode CO₂ résolue par
- * {@see R2026_005_Co2MethodSelection} est NEDC. Sinon no-op.
+ * Only runs if the CO₂ method resolved by
+ * {@see R2026_005_Co2MethodSelection} is NEDC. No-op otherwise.
  *
- * **Source légale primaire** · Légifrance LEGIARTI000048886368 v 2026-01-01
- * (audité Chrome live 15/05/2026).
+ * Source: Légifrance LEGIARTI000048886368 v 2026-01-01.
  */
 final readonly class R2026_011_NedcProgressive implements PricingRule
 {
@@ -49,7 +49,7 @@ final readonly class R2026_011_NedcProgressive implements PricingRule
 
     public function __construct()
     {
-        // Barème NEDC 2026 durci (LF 2024 art. 97-20°).
+        // Hardened 2026 NEDC scale (LF 2024 art. 97-20°).
         $this->scale = new ProgressiveScale([
             new BracketRange(0, 3, 0.0),
             new BracketRange(3, 37, 1.0),

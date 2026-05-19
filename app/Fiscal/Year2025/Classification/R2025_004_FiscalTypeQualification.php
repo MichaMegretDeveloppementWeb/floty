@@ -15,28 +15,27 @@ use App\Fiscal\Year2025\Classification\Concerns\FiscalTypeQualificationLogicTrai
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-004 · Qualification du type fiscal (M1 / N1) · **version
- * 01/01 → 28/02/2025** (avant LF 2025 art. 28).
+ * R-2025-004 - Fiscal type qualification (M1 / N1), version 01/01 →
+ * 28/02/2025 (before LF 2025 art. 28).
  *
- * **Règle pipeline (Classification)** · ADR-0022 · une période légale
- * distincte = une règle fiscale Floty distincte. L. 421-2 a été réécrit
- * par LF 2025 art. 28 à effet du 01/03/2025. R-2025-004 couvre la
- * période **avant**. La période **après** est portée par
- * {@see R2025_004bis_FiscalTypeQualification}.
+ * Pipeline rule (Classification). ADR-0022: one distinct legal period
+ * = one distinct Floty fiscal rule. L. 421-2 was rewritten by LF 2025
+ * art. 28 effective 01/03/2025. R-2025-004 covers the period BEFORE.
+ * The period AFTER is carried by {@see R2025_004bis_FiscalTypeQualification}.
  *
- * Logique de classify partagée via {@see FiscalTypeQualificationLogicTrait}
- * (modifications LF 2025 purement rédactionnelles · cascade M1/N1
- * identique sur les 2 versions).
+ * Classify logic shared through {@see FiscalTypeQualificationLogicTrait}
+ * (LF 2025 modifications are purely editorial, M1/N1 cascade identical
+ * on both versions).
  *
- * Cascade · M1 sans usage spécial → taxable ; N1 pick-up ≥ 5 places non
- * skiable → taxable ; N1 camionnette ≥ 2 rangs affectée transport de
- * personnes → taxable ; sinon non taxable (court-circuit).
+ * Cascade: M1 without special use → taxable; N1 pick-up ≥ 5 seats not
+ * skiable → taxable; N1 van ≥ 2 rows assigned to passenger transport
+ * → taxable; otherwise not taxable (short-circuit).
  *
- * **Complément CIBS L. 421-97 · véhicules réputés non affectés** · par
- * dérogation à L. 421-95, un véhicule autorisé à circuler pour les seuls
- * besoins de sa construction, commercialisation, réparation ou contrôle
- * technique (régime W garage) est réputé ne pas être affecté à des fins
- * économiques. Inchangé en 2025. Hors flotte Floty par construction.
+ * CIBS L. 421-97 complement (vehicles deemed not assigned): by
+ * derogation from L. 421-95, a vehicle authorised to circulate solely
+ * for its construction, commercialisation, repair or technical
+ * inspection (W garage regime) is deemed not assigned to economic
+ * purposes. Unchanged in 2025. Out of Floty fleet scope by design.
  */
 final readonly class R2025_004_FiscalTypeQualification implements ClassificationRule
 {

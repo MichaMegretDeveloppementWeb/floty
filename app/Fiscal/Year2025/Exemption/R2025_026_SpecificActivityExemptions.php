@@ -15,19 +15,19 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-026 · Exonérations propres à certaines activités économiques ·
- * reconduction stricte R-2024-026 INACTIVE par défaut.
+ * R-2025-026 - Exemptions specific to certain economic activities,
+ * strict reproduction of R-2024-026 INACTIVE by default.
  *
- * Regroupe trois exonérations CIBS (et leurs miroirs polluants à texte
- * identique) :
- *   - Transport public de personnes · L. 421-130 (CO₂) / L. 421-142 (polluants)
- *   - Activités agricoles ou forestières · L. 421-131 / L. 421-143
- *     (soumise au plafond de minimis européen)
- *   - Enseignement de la conduite ou du pilotage + compétitions sportives ·
+ * Groups three CIBS exemptions (and their pollutant mirrors with
+ * identical text):
+ *   - Public passenger transport: L. 421-130 (CO₂) / L. 421-142 (pollutants)
+ *   - Agricultural or forestry activities: L. 421-131 / L. 421-143
+ *     (subject to the European de minimis ceiling)
+ *   - Driving / piloting instruction + sports competitions:
  *     L. 421-132 / L. 421-144
  *
- * **INACTIVE par défaut V1** · aucune entreprise utilisatrice Floty
- * actuelle n'exerce ces activités.
+ * Inactive by default in V1: no current Floty user company performs
+ * these activities.
  */
 final readonly class R2025_026_SpecificActivityExemptions implements ExemptionRule
 {

@@ -20,29 +20,28 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-012 · Barème CO₂ Puissance Administrative 2026 · ⚠️ DURCISSEMENT
- * MAJEUR vs 2025 (CIBS art. L. 421-122 version 01/01/2026 → 01/01/2027,
- * modifiée par LF 2024 art. 97-20°).
+ * R-2026-012 - 2026 CO₂ Puissance Administrative scale, MAJOR
+ * HARDENING vs 2025 (CIBS art. L. 421-122 version 01/01/2026 →
+ * 01/01/2027, modified by LF 2024 art. 97-20°).
  *
- * Appliqué aux véhicules anciens ou sans données CO₂ (cf. cascade
- * {@see R2026_005_Co2MethodSelection}). **5 tranches**, dernière ouverte
+ * Applied to older vehicles or vehicles without CO₂ data (cascade
+ * {@see R2026_005_Co2MethodSelection}). 5 brackets, last one open
  * (≥ 16 CV).
  *
- * **Différences clés vs R-2025-012** · tous les tarifs marginaux relevés
- * de 250 à 500 €/CV ·
- * - 1-3 CV · 2 000 €/CV (vs 1 750 en 2025, +250)
- * - 4-6 CV · 3 000 €/CV (vs 2 500 en 2025, +500)
- * - 7-10 CV · 4 500 €/CV (vs 4 250 en 2025, +250)
- * - 11-15 CV · 5 250 €/CV (vs 5 000 en 2025, +250)
- * - 16+ CV · 6 500 €/CV (vs 6 250 en 2025, +250)
+ * Key differences vs R-2025-012: all marginal rates raised by 250 to
+ * 500 €/CV:
+ * - 1-3 CV: 2 000 €/CV (vs 1 750 in 2025, +250)
+ * - 4-6 CV: 3 000 €/CV (vs 2 500 in 2025, +500)
+ * - 7-10 CV: 4 500 €/CV (vs 4 250 in 2025, +250)
+ * - 11-15 CV: 5 250 €/CV (vs 5 000 in 2025, +250)
+ * - 16+ CV: 6 500 €/CV (vs 6 250 in 2025, +250)
  *
- * **10 CV = 33 000 € en 2026** (vs 29 750 € en 2025, +10,9 %).
+ * 10 CV = 33 000 € in 2026 (vs 29 750 € in 2025, +10.9%).
  *
- * S'exécute uniquement si la méthode CO₂ résolue par
- * {@see R2026_005_Co2MethodSelection} est PA. Sinon no-op.
+ * Only runs if the CO₂ method resolved by
+ * {@see R2026_005_Co2MethodSelection} is PA. No-op otherwise.
  *
- * **Source légale primaire** · Légifrance LEGIARTI000048886433 v 2026-01-01
- * (audité Chrome live 15/05/2026).
+ * Source: Légifrance LEGIARTI000048886433 v 2026-01-01.
  */
 final readonly class R2026_012_PaProgressive implements PricingRule
 {
@@ -53,7 +52,7 @@ final readonly class R2026_012_PaProgressive implements PricingRule
 
     public function __construct()
     {
-        // Barème PA 2026 durci (LF 2024 art. 97-20°).
+        // Hardened 2026 PA scale (LF 2024 art. 97-20°).
         $this->scale = new ProgressiveScale([
             new BracketRange(0, 3, 2000.0),
             new BracketRange(3, 6, 3000.0),

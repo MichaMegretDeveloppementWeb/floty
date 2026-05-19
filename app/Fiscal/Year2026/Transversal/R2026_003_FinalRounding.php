@@ -16,24 +16,23 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
- * R-2026-003 · Arrondi half-up commercial · reconduction stricte de
- * la mécanique 2024-2025, textes CIBS L. 131-1 et CGI 1649 undecies
- * stables (aucune modification ni LF 2026 ni Ordo 2025-1247).
+ * R-2026-003 - Commercial half-up rounding, strict reproduction of
+ * 2024-2025 mechanism. CIBS L. 131-1 and CGI 1649 undecies texts
+ * stable (no modification by LF 2026 nor Ordo 2025-1247).
  *
- * **Sémantique BOFiP** · « le montant total à payer par chaque
- * redevable est arrondi à l'euro le plus proche, sans arrondi
- * intermédiaire ». L'arrondi par redevable s'opère dans
+ * BOFiP semantics: "the total amount payable by each taxpayer is
+ * rounded to the nearest euro, without intermediate rounding". The
+ * per-taxpayer rounding happens in
  * {@see FleetFiscalAggregator::companyAnnualTax()}.
  *
- * Cette classe règle est conservée comme **marqueur** dans le pipeline
- * (apparaît dans `appliedRuleCodes` du snapshot). Elle ne modifie pas
- * les montants · l'arrondi par couple (utile pour l'affichage par
- * ligne du PDF / drawer planning) est appliqué par le pipeline
- * lui-même dans `buildResult()`.
+ * This rule class is kept as a MARKER in the pipeline (appears in the
+ * snapshot's `appliedRuleCodes`). It does not modify amounts: the
+ * per-pair rounding (useful for per-line PDF / planning drawer
+ * display) is applied by the pipeline itself in `buildResult()`.
  *
- * **Base légale** · audit Chrome live 15/05/2026 ·
- * - CIBS art. L. 131-1 · stable depuis 01/01/2022.
- * - CGI art. 1649 undecies · stable.
+ * Legal basis:
+ * - CIBS art. L. 131-1: stable since 01/01/2022.
+ * - CGI art. 1649 undecies: stable.
  */
 final readonly class R2026_003_FinalRounding implements TransversalRule
 {

@@ -16,19 +16,18 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Services\Fiscal\FleetFiscalAggregator;
 
 /**
- * R-2025-003 · Arrondi half-up commercial (CIBS L. 131-1) · reconduction
- * stricte de R-2024-003.
+ * R-2025-003 - Commercial half-up rounding (CIBS L. 131-1), strict
+ * reproduction of R-2024-003.
  *
- * **Sémantique BOFiP** : « le montant total à payer par chaque
- * redevable est arrondi à l'euro le plus proche, sans arrondi
- * intermédiaire ». L'arrondi par redevable s'opère donc dans
+ * BOFiP semantics: "the total amount payable by each taxpayer is
+ * rounded to the nearest euro, without intermediate rounding". The
+ * per-taxpayer rounding therefore happens in
  * {@see FleetFiscalAggregator::companyAnnualTax()}.
  *
- * Cette classe règle est conservée comme **marqueur** dans le pipeline
- * (apparaît dans `appliedRuleCodes` du snapshot). Elle ne modifie pas
- * les montants · l'arrondi par couple (utile pour l'affichage par ligne
- * du PDF / drawer planning) est appliqué par le pipeline lui-même dans
- * `buildResult()`.
+ * This rule class is kept as a MARKER in the pipeline (appears in the
+ * snapshot's `appliedRuleCodes`). It does not modify amounts: the
+ * per-pair rounding (useful for per-line PDF / planning drawer
+ * display) is applied by the pipeline itself in `buildResult()`.
  */
 final readonly class R2025_003_FinalRounding implements TransversalRule
 {

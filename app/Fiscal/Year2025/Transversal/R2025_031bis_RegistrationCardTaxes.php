@@ -13,21 +13,19 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-031-bis · Taxes liées au certificat d'immatriculation ·
- * **version 01/05 → 31/12/2025** (exonération Y1 électrique/hydrogène
- * facultative par région).
+ * R-2025-031-bis - Registration certificate taxes, version 01/05 →
+ * 31/12/2025 (optional regional Y1 exemption for EV/H₂).
  *
- * **Règle fiscale hors périmètre de l'application** · pendant de
- * {@see R2025_031_RegistrationCardTaxes} qui couvre 01/01-30/04.
+ * Out-of-scope fiscal rule, counterpart to
+ * {@see R2025_031_RegistrationCardTaxes} which covers 01/01-30/04.
  *
- * **Évolution matérielle 01/05/2025** · l'exonération régionale Y1 pour
- * véhicules électriques/hydrogène devient **facultative par région**
- * (chaque conseil régional décide de l'application ou non). Les régions
- * qui décident de ne plus exonérer voient leurs tarifs Y1 s'appliquer
- * aussi aux VE/H₂.
+ * Material evolution at 01/05/2025: regional Y1 exemption for
+ * electric/hydrogen vehicles becomes optional per region (each
+ * regional council decides whether or not to apply it). Regions that
+ * decide to drop the exemption see their Y1 rates apply to EV/H₂.
  *
- * **Marquée inactive** · règle fiscale réelle mais hors périmètre de
- * calcul de l'application.
+ * Marked inactive: real fiscal rule but out of Floty calculation
+ * scope.
  */
 final readonly class R2025_031bis_RegistrationCardTaxes implements InformativeRule
 {

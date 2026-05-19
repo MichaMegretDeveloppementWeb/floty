@@ -14,20 +14,20 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-028 · Modalités de déclaration et de paiement · version unique
- * pleine année 2026.
+ * R-2026-028 - Declaration and payment modalities, single full-year
+ * 2026 version.
  *
- * **Règle documentaire-only** · pas de scission ADR-0022 en 2026 ·
- * L. 421-159, L. 421-162, L. 421-163, L. 421-164 et L. 421-165 sont
- * stables depuis le 01/03/2025 (rédaction issue de LF 2025 art. 28 · LOI
- * n°2025-127 du 14/02/2025). Audit Chrome live 15/05/2026 confirme ·
- * aucune modification par LF 2026 ni par Ordo 2025-1247 du 17/12/2025.
+ * Documentation-only rule. No ADR-0022 split in 2026: L. 421-159,
+ * L. 421-162, L. 421-163, L. 421-164 and L. 421-165 are stable since
+ * 01/03/2025 (wording from LF 2025 art. 28, LOI n°2025-127 du
+ * 14/02/2025). No modification by LF 2026 nor Ordo 2025-1247 du
+ * 17/12/2025.
  *
- * **Reconduction stricte 2025 → 2026** · doctrine identique à
- * R-2025-028-bis · déclaration en janvier 2027 des taxes au titre de
- * 2026, annexe n° 3310-A (régime réel normal) ou formulaire n° 3517
- * (régime simplifié), pas de déclaration si montant cumulé nul, état
- * récapitulatif annuel tenu à jour.
+ * Strict reproduction 2025 → 2026: doctrine identical to
+ * R-2025-028-bis. Declaration in January 2027 of taxes for 2026,
+ * annexe n° 3310-A (régime réel normal) or formulaire n° 3517
+ * (régime simplifié), no declaration if cumulated amount is zero,
+ * annual recap statement kept up to date.
  */
 final readonly class R2026_028_DeclarationModalities implements InformativeRule
 {

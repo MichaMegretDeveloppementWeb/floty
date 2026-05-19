@@ -10,20 +10,20 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * Logique partagée de qualification fiscale M1/N1 (R-2025-004 et
- * R-2025-004-bis).
+ * Shared M1/N1 fiscal qualification logic for R-2025-004 and
+ * R-2025-004-bis.
  *
- * **Pourquoi un trait** · le texte CIBS L. 421-2 a deux versions en 2025
- * (modifié au 01/03/2025 par LF 2025 art. 28), ce qui impose ADR-0022 ·
- * deux règles fiscales Floty distinctes (R-2025-004 pour 01/01-28/02 et
- * R-2025-004-bis pour 01/03-31/12). Or les modifications LF 2025 sur
- * L. 421-2 sont purement rédactionnelles · la cascade M1/N1 reste
- * identique. On factorize la logique ici pour éviter la duplication et
- * garantir la synchronisation des deux versions.
+ * CIBS L. 421-2 has two versions in 2025 (modified on 01/03/2025 by
+ * LF 2025 art. 28), which mandates ADR-0022 (two distinct Floty
+ * fiscal rules: R-2025-004 for 01/01-28/02 and R-2025-004-bis for
+ * 01/03-31/12). The LF 2025 modifications to L. 421-2 are purely
+ * editorial: the M1/N1 cascade is identical. The logic is factored
+ * here to avoid duplication and guarantee synchronisation between
+ * the two versions.
  *
- * Si une version future de L. 421-2 introduit un changement matériel
- * du périmètre M1/N1, ce trait sera scindé en deux variantes (chaque
- * classe consomma sa version propre).
+ * If a future version of L. 421-2 introduces a material change to
+ * the M1/N1 scope, this trait will be split into two variants
+ * (each class consuming its own version).
  */
 trait FiscalTypeQualificationLogicTrait
 {

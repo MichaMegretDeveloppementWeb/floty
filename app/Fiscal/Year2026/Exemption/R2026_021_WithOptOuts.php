@@ -15,27 +15,27 @@ use App\Models\Contract;
 use Carbon\CarbonImmutable;
 
 /**
- * Decorator de {@see R2026_021_ShortTermRental} · reconduction stricte
- * R-2025-021_WithOptOuts.
+ * Decorator of {@see R2026_021_ShortTermRental}, strict reproduction
+ * of R-2025-021_WithOptOuts.
  *
- * **Pourquoi ce decorator** · les décisions humaines de revue
- * (« Requalified » sur un cluster LCD) doivent retirer l'exonération
- * LCD à un sous-ensemble de contrats sans toucher à leur durée et sans
- * modifier la règle canonique R-2026-021.
+ * Human review decisions ("Requalified" on an LCD cluster) must remove
+ * the LCD exemption from a subset of contracts without touching their
+ * duration and without modifying the canonical rule R-2026-021.
  *
- * **Sémantique** identique à R-2025-021_WithOptOuts · `isShortTermRental`
- * retourne `false` si le contrat est dans la liste opt-out, sinon
- * délègue à la règle wrappée. `evaluate()` utilise la version filtrée.
- * Le `ruleCode` reste `R-2026-021` (même règle légale, opt-out runtime).
+ * Semantics identical to R-2025-021_WithOptOuts: `isShortTermRental`
+ * returns `false` if the contract is in the opt-out list, otherwise
+ * delegates to the wrapped rule. `evaluate()` uses the filtered
+ * version. The `ruleCode` remains `R-2026-021` (same legal rule,
+ * runtime opt-out).
  *
- * **Architecture** · utilisé exclusivement par OverlayedRuleRegistry
- * pour substituer R-2026-021 dans le calcul d'une déclaration spécifique.
- * **N'est pas inscrit dans `Year2026Boot::rules()`**.
+ * Used exclusively by OverlayedRuleRegistry to substitute R-2026-021
+ * in the calculation of a specific declaration. NOT listed in
+ * `Year2026Boot::rules()`.
  */
 final readonly class R2026_021_WithOptOuts implements ExemptionRule, LcdQualifier
 {
     /**
-     * @param  list<int>  $optOutContractIds  IDs des contrats requalifiés (= NON-LCD)
+     * @param  list<int>  $optOutContractIds  IDs of requalified contracts (= NON-LCD)
      */
     public function __construct(
         private R2026_021_ShortTermRental $wrapped,

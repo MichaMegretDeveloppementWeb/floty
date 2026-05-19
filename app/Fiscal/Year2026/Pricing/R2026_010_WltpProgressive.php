@@ -20,29 +20,28 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-010 · Barème CO₂ WLTP 2026 · ⚠️ DURCISSEMENT MAJEUR vs 2025
- * (CIBS art. L. 421-120 version 01/01/2026 → 01/01/2027, modifiée par
- * LF 2024 art. 97-20° · LOI n° 2023-1322 du 29/12/2023).
+ * R-2026-010 - 2026 CO₂ WLTP scale, MAJOR HARDENING vs 2025 (CIBS
+ * art. L. 421-120 version 01/01/2026 → 01/01/2027, modified by
+ * LF 2024 art. 97-20°, LOI n° 2023-1322 du 29/12/2023).
  *
- * Tarif progressif par tranches à tarif marginal sur les émissions CO₂
- * WLTP (g/km). **9 tranches**, dernière ouverte (≥ 166 g/km). Tous les
- * seuils ont été abaissés de 5 g/km vs 2025.
+ * Progressive bracket-based tariff with marginal rate on WLTP CO₂
+ * emissions (g/km). 9 brackets, last one open (≥ 166 g/km). All
+ * thresholds lowered by 5 g/km vs 2025.
  *
- * **Différences clés vs R-2025-010** ·
- * - 1re tranche couvre jusqu'à 4 g/km (vs 9 en 2025).
- * - Bornes intermédiaires durcies (45/53/85/105/125/145/165 vs 50/58/90/110/130/150/170).
- * - Dernière tranche commence à 166 g/km (vs 171 en 2025).
- * - WLTP 100 g/km = **213 € en 2026** (vs 193 € en 2025, +10,4 %).
+ * Key differences vs R-2025-010:
+ * - 1st bracket covers up to 4 g/km (vs 9 in 2025).
+ * - Intermediate bounds hardened (45/53/85/105/125/145/165 vs
+ *   50/58/90/110/130/150/170).
+ * - Last bracket starts at 166 g/km (vs 171 in 2025).
+ * - WLTP 100 g/km = 213 € in 2026 (vs 193 € in 2025, +10.4%).
  *
- * S'exécute uniquement si la méthode CO₂ résolue par
- * {@see R2026_005_Co2MethodSelection} est WLTP. Sinon no-op.
+ * Only runs if the CO₂ method resolved by
+ * {@see R2026_005_Co2MethodSelection} is WLTP. No-op otherwise.
  *
- * **Source légale primaire** · Légifrance LEGIARTI000048886183 v 2026-01-01
- * (audité Chrome live 15/05/2026).
+ * Source: Légifrance LEGIARTI000048886183 v 2026-01-01.
  *
- * **Exemple BOFiP officiel § 230 ex1 2026 (anticipé par BOFiP 2025-05-28)** ·
- * « en 2026, le tarif annuel est égal à 4 × 0 + (45-4) × 1 + (53-45) × 2
- *   + (85-53) × 3 + (100-85) × 4 = 213 € »
+ * BOFiP example § 230 ex1 2026: "en 2026, le tarif annuel est égal à
+ * 4 × 0 + (45-4) × 1 + (53-45) × 2 + (85-53) × 3 + (100-85) × 4 = 213 €".
  */
 final readonly class R2026_010_WltpProgressive implements PricingRule
 {
@@ -53,9 +52,9 @@ final readonly class R2026_010_WltpProgressive implements PricingRule
 
     public function __construct()
     {
-        // Barème WLTP 2026 durci (LF 2024 art. 97-20°). Sémantique
-        // BracketRange · (lowerExclusive, upperInclusive], cohérente
-        // avec R-2024-010 et R-2025-010.
+        // Hardened 2026 WLTP scale (LF 2024 art. 97-20°). BracketRange
+        // semantics: (lowerExclusive, upperInclusive], consistent with
+        // R-2024-010 and R-2025-010.
         $this->scale = new ProgressiveScale([
             new BracketRange(0, 4, 0.0),
             new BracketRange(4, 45, 1.0),

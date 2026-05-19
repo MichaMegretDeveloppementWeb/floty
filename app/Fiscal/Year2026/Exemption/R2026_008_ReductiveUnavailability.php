@@ -19,24 +19,24 @@ use App\Models\Unavailability;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-008 · Indisponibilités fiscalement réductrices · reconduction
- * stricte 2025 · L. 421-96 stable depuis 01/01/2022, audit Chrome live
- * 15/05/2026 confirme stabilité 2026 (non touché par Ordo 2025-1247).
+ * R-2026-008 - Fiscally reductive unavailabilities, strict reproduction
+ * of R-2025-008. L. 421-96 stable since 01/01/2022 and not modified by
+ * Ordo 2025-1247.
  *
- * Grille ADR-0016 inchangée · 4 cas réducteurs ·
- * - Fourrière publique (C. route L. 325-1 à L. 325-1-2)
- * - Suspension immatriculation (C. route R. 322-6)
- * - Interdiction post-sinistre (C. route L. 327-4 / L. 327-5)
- * - Certificat VHU (C. route R. 322-9)
+ * Unchanged ADR-0016 grid: 4 reductive cases:
+ * - Public impound (C. route L. 325-1 to L. 325-1-2)
+ * - Registration suspension (C. route R. 322-6)
+ * - Post-incident circulation ban (C. route L. 327-4 / L. 327-5)
+ * - End-of-life certificate (C. route R. 322-9)
  *
- * **Sémantique** · un jour d'indispo est réducteur s'il tombe dans un
- * contrat taxable du couple (non LCD au sens de R-2026-021) ET porte
- * un type d'indispo `has_fiscal_impact = true`. Garde-fou ADR-0016
- * anti-double-comptage · les jours d'indispo qui tombent dans un
- * contrat LCD ne sont pas comptés (déjà retirés par R-2026-021).
+ * Semantics: a day is reductive if it falls inside a taxable contract
+ * of the pair (not LCD per R-2026-021) AND carries an unavailability
+ * type with `has_fiscal_impact = true`. ADR-0016 double-counting
+ * guard: days falling inside an LCD contract are not counted (already
+ * removed by R-2026-021).
  *
- * **Dépendance** · R-2026-008 reçoit un `LcdQualifier` par injection
- * (binding contextuel dans `FiscalServiceProvider` → R-2026-021).
+ * Dependency: R-2026-008 receives an `LcdQualifier` via injection
+ * (contextual binding in `FiscalServiceProvider` → R-2026-021).
  */
 final readonly class R2026_008_ReductiveUnavailability implements ExemptionRule
 {

@@ -14,19 +14,19 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-001-bis · Redevable et fait générateur · **version 01/03 →
- * 31/12/2025** (après LF 2025 art. 28).
+ * R-2025-001-bis - Taxpayer and triggering event, version 01/03 →
+ * 31/12/2025 (after LF 2025 art. 28).
  *
- * **Règle documentaire-only** · pendant de {@see R2025_001_TaxpayerAndTriggeringEvent}
- * qui couvre 01/01-28/02. ADR-0022 · une période légale distincte = une
- * règle fiscale Floty distincte.
+ * Documentation-only counterpart to {@see R2025_001_TaxpayerAndTriggeringEvent}
+ * which covers 01/01-28/02. ADR-0022: one distinct legal period = one
+ * distinct Floty fiscal rule.
  *
- * **Modifications LF 2025 art. 28** · L. 421-95 et L. 421-98 ont été
- * réécrits par la LOI n°2025-127 du 14/02/2025 à effet du 01/03/2025.
- * Modifications de structure rédactionnelle (trois conditions explicites
- * de l'affectation à des fins économiques, clarification cost-sharing,
- * minimum 1 mois annuel) · pas d'impact pratique sur la doctrine du
- * redevable. L. 421-99 inchangé depuis 01/01/2022.
+ * LF 2025 art. 28 modifications: L. 421-95 and L. 421-98 were rewritten
+ * by LOI n°2025-127 du 14/02/2025 effective 01/03/2025. Editorial
+ * restructuring (three explicit conditions for assignment for economic
+ * purposes, cost-sharing clarification, minimum 1 month per year) with
+ * no practical impact on the taxpayer doctrine. L. 421-99 unchanged
+ * since 01/01/2022.
  */
 final readonly class R2025_001bis_TaxpayerAndTriggeringEvent implements InformativeRule
 {
@@ -69,7 +69,7 @@ final readonly class R2025_001bis_TaxpayerAndTriggeringEvent implements Informat
 
     public function displayOrder(): int
     {
-        // Doit suivre R-2025-001 dans l'ordre d'affichage.
+        // Must follow R-2025-001 in display order.
         return 1;
     }
 

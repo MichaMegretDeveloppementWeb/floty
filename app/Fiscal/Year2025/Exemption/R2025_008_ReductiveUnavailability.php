@@ -19,17 +19,18 @@ use App\Models\Unavailability;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-008 · Indisponibilités fiscalement réductrices · reconduction
- * stricte R-2024-008 (ADR-0016 confirmée pour 2025 par audit Chrome live
- * BOFiP `BOI-AIS-MOB-10-30-10-20250528` §§ 50, 60, 190 le 14/05/2026).
+ * R-2025-008 - Fiscally reductive unavailabilities, strict reproduction
+ * of R-2024-008 (ADR-0016 confirmed for 2025 by BOFiP
+ * `BOI-AIS-MOB-10-30-10-20250528` §§ 50, 60, 190).
  *
- * Grille ADR-0016 inchangée · 4 cas réducteurs (fourrière publique
- * L. 325-1 à L. 325-1-2, suspension immatriculation R. 322-6, interdiction
- * post-sinistre L. 327-4 / L. 327-5, certificat VHU R. 322-9).
+ * Unchanged ADR-0016 grid: 4 reductive cases (public impound L. 325-1
+ * to L. 325-1-2, registration suspension R. 322-6, post-incident
+ * circulation ban L. 327-4 / L. 327-5, end-of-life certificate
+ * R. 322-9).
  *
- * Sémantique de calcul identique à 2024 · un jour d'indispo est réducteur
- * s'il tombe dans un contrat taxable du couple (non LCD au sens de
- * R-2025-021) ET porte un type d'indispo `has_fiscal_impact = true`.
+ * Calculation semantics identical to 2024: a day is reductive if it
+ * falls inside a taxable contract of the pair (not LCD per R-2025-021)
+ * AND carries an unavailability type with `has_fiscal_impact = true`.
  */
 final readonly class R2025_008_ReductiveUnavailability implements ExemptionRule
 {

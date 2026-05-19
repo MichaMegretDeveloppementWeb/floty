@@ -13,34 +13,23 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-031-bis · Taxes liées au certificat d'immatriculation ·
- * **version 01/03 → 31/12/2026** (création L. 421-54-1 par LF 2026
- * art. 60 · majoration IDF jusqu'à +13 €).
+ * R-2026-031-bis - Registration certificate taxes, version 01/03 →
+ * 31/12/2026 (creation of L. 421-54-1 by LF 2026 art. 60, IDF
+ * surcharge up to +13 €).
  *
- * **Règle fiscale hors périmètre de l'application** · pendant de
- * {@see R2026_031_RegistrationCardTaxes} qui couvre 01/01-28/02/2026.
+ * Out-of-scope fiscal rule, counterpart to
+ * {@see R2026_031_RegistrationCardTaxes} which covers 01/01-28/02/2026.
  *
- * **Évolution matérielle 01/03/2026** · création de l'article CIBS
- * **L. 421-54-1** par la LOI n° 2026-103 du 19 février 2026 art. 60
- * (effet 01/03/2026 par IV) · le tarif régional Y1 est, **sur
- * délibération du STIF (Île-de-France Mobilités, L. 1241-1 du code des
- * transports)**, majoré dans la limite de **13 €** pour les certificats
- * d'immatriculation délivrés en Île-de-France. La majoration n'entre
- * pas dans le plafonnement L. 421-42. Les exonérations et tarifs
- * réduits L. 421-45 à L. 421-54 s'appliquent à la majoration.
+ * Material evolution 01/03/2026: creation of CIBS article L. 421-54-1
+ * by LOI n° 2026-103 du 19 février 2026 art. 60 (effective 01/03/2026
+ * by IV). The regional Y1 tariff is, on STIF deliberation
+ * (Île-de-France Mobilités, L. 1241-1 of the transport code), raised
+ * up to 13 € for registration certificates issued in Île-de-France.
+ * The surcharge does not enter the L. 421-42 cap. The L. 421-45 to
+ * L. 421-54 exemptions and reduced tariffs apply to the surcharge.
  *
- * **Audit Chrome live 15/05/2026** · L. 421-54-1 v 01/03/2026
- * (URL section LEGISCTA000044599003/2026-03-01) confirmé · « Version
- * en vigueur depuis le 01/03/2026 · Création LOI n°2026-103 du 19
- * février 2026 - art. 60 (V) ». IV de l'art. 60 fixe l'entrée en
- * vigueur au 01/03/2026.
- *
- * **Note bilan Z0** · le bilan législatif annonçait « +14 € IDF mars
- * 2026 » · l'audit Chrome live confirme **+13 € maximum** (correction
- * mineure · pas d'impact sur la doctrine).
- *
- * **Marquée inactive** · règle fiscale réelle mais hors périmètre de
- * calcul de l'application.
+ * Marked inactive: real fiscal rule but out of Floty calculation
+ * scope.
  */
 final readonly class R2026_031bis_RegistrationCardTaxes implements InformativeRule
 {

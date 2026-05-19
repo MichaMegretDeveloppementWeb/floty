@@ -20,21 +20,21 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-012 · Barème Puissance Administrative 2025 · ⚠️ DURCISSEMENT
- * MAJEUR vs 2024 (CIBS art. L. 421-122 version 01/01/2025, modifiée par
+ * R-2025-012 - 2025 Puissance Administrative scale, MAJOR HARDENING
+ * vs 2024 (CIBS art. L. 421-122 version 01/01/2025, modified by
  * LF 2024 art. 97, 19°).
  *
- * Tarif progressif par tranches à tarif marginal en €/CV. **5 tranches**,
- * dernière ouverte (≥ 16 CV).
+ * Progressive bracket-based tariff with marginal rate in €/CV.
+ * 5 brackets, last one open (≥ 16 CV).
  *
- * **Différences clés vs R-2024-012** :
- * - 1re tranche · 1 750 €/CV (vs 1 500 € en 2024).
- * - 10 CV = 29 750 € en 2025 (vs 26 250 € en 2024).
+ * Key differences vs R-2024-012:
+ * - 1st bracket: 1 750 €/CV (vs 1 500 € in 2024).
+ * - 10 CV = 29 750 € in 2025 (vs 26 250 € in 2024).
  *
- * S'exécute uniquement si la méthode CO₂ résolue est PA (cf.
- * R-2025-005 et R-2025-006).
+ * Only runs if the resolved CO₂ method is PA (see R-2025-005 and
+ * R-2025-006).
  *
- * Audit Chrome live · Légifrance LEGIARTI000048886433.
+ * Source: Légifrance LEGIARTI000048886433.
  */
 final readonly class R2025_012_PaProgressive implements PricingRule
 {
@@ -45,7 +45,7 @@ final readonly class R2025_012_PaProgressive implements PricingRule
 
     public function __construct()
     {
-        // Barème PA 2025 durci (LF 2024 art. 97, 19°).
+        // Hardened 2025 PA scale (LF 2024 art. 97, 19°).
         $this->scale = new ProgressiveScale([
             new BracketRange(0, 3, 1750.0),
             new BracketRange(3, 6, 2500.0),
@@ -128,7 +128,7 @@ final readonly class R2025_012_PaProgressive implements PricingRule
             section: RuleSection::Bareme,
             title: 'Barème Puissance Administrative 2025 (durcissement majeur vs 2024)',
             pitch: 'Tarif progressif par tranches sur la puissance administrative (CV). Appliqué aux véhicules anciens ou sans données CO₂. Barème durci au 01/01/2025.',
-            body: "Pour chaque tranche traversée par la puissance administrative du véhicule, on multiplie la fraction de CV tombant dans la tranche par le tarif marginal. La somme donne le tarif annuel plein. Puis : taxe due = tarif annuel plein × (jours utilisés / 365). Le barème a été durci au 01/01/2025 par la LF 2024 art. 97, 19°.",
+            body: 'Pour chaque tranche traversée par la puissance administrative du véhicule, on multiplie la fraction de CV tombant dans la tranche par le tarif marginal. La somme donne le tarif annuel plein. Puis : taxe due = tarif annuel plein × (jours utilisés / 365). Le barème a été durci au 01/01/2025 par la LF 2024 art. 97, 19°.',
             progressiveBrackets: new ProgressiveBracketsTable(
                 unit: 'CV',
                 header: ['Tranche', 'Tarif marginal'],

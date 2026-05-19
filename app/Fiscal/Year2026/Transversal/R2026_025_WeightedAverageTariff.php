@@ -14,27 +14,25 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-025 · Moyenne pondérée des tarifs en cas de bascule en cours
- * d'année.
+ * R-2026-025 - Weighted average tariff on mid-year switch.
  *
- * **Règle documentaire-only** · reconduction stricte de R-2025-025
- * avec dénominateur **365** (2026 non bissextile). CIBS L. 421-108
- * inchangé depuis 01/01/2022 (audit Chrome live 15/05/2026 confirme
- * aucune modification par LF 2026 ni par Ordo 2025-1247).
+ * Documentation-only rule, strict reproduction of R-2025-025 with
+ * denominator 365 (2026 non-leap year). CIBS L. 421-108 unchanged
+ * since 01/01/2022 (no modification by LF 2026 nor Ordo 2025-1247).
  *
- * **Implémentation effective** · la mécanique est déjà appliquée
- * mathématiquement par {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor}
- * via la segmentation par VFC effective (ADR-0021). Pour chaque segment,
- * le tarif annuel est calculé sur la VFC du segment puis proratisé sur
- * ses jours, et tous les segments sont sommés. Mathématiquement
- * équivalent à la moyenne pondérée de L. 421-108.
+ * The mechanism is already applied mathematically by
+ * {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} via VFC-effective
+ * segmentation (ADR-0021). For each segment, the annual tariff is
+ * computed on the segment's VFC then prorated over its days, and all
+ * segments are summed. Mathematically equivalent to the L. 421-108
+ * weighted average.
  *
- * **Cas particulier 2026** · la scission matérielle R-2026-014 /
- * R-2026-014-bis (revalorisation polluants +30 % au 01/03/2026) déclenche
- * **systématiquement** la segmentation pour tout contrat LLD à cheval
- * sur le 01/03/2026 · exemple Cat1 LLD full-year 2026 ·
- * `(100 × 59 + 130 × 306) / 365 = 125,15 €`. Le `FiscalSegmentedExecutor`
- * gère ceci sans intervention applicative.
+ * 2026 specifics: the material split R-2026-014 / R-2026-014-bis
+ * (pollutants revaluation +30% at 01/03/2026) systematically triggers
+ * segmentation for any LLD contract overlapping 01/03/2026: e.g.
+ * Cat1 LLD full-year 2026: `(100 × 59 + 130 × 306) / 365 = 125.15 €`.
+ * The `FiscalSegmentedExecutor` handles this without applicative
+ * intervention.
  */
 final readonly class R2026_025_WeightedAverageTariff implements InformativeRule
 {

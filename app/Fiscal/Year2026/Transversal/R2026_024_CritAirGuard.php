@@ -14,28 +14,27 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-024 · Garde-fou Crit'Air.
+ * R-2026-024 - Crit'Air consistency guard.
  *
- * **Règle documentaire-only** · reconduction stricte de R-2025-024.
- * Contrôle de cohérence non bloquant entre la catégorie polluants
- * CIBS calculée (E / 1 / les plus polluants, L. 421-134) et la
- * vignette Crit'Air attendue. La vignette Crit'Air relève du Code de
- * la route (R. 318-2) et de l'arrêté du 21 juin 2016, indépendamment
- * de la fiscalité.
+ * Documentation-only rule, strict reproduction of R-2025-024.
+ * Non-blocking consistency check between the computed CIBS pollutant
+ * category (E / 1 / most polluting, L. 421-134) and the expected
+ * Crit'Air sticker. The Crit'Air sticker falls under the Code de la
+ * route (R. 318-2) and the arrêté du 21 juin 2016, independent of
+ * taxation.
  *
- * **Toilettage Ordo 2025-1247 art. 7** · L. 421-134 a été toiletté
- * rédactionnellement au 01/09/2026 (suppression « dans sa rédaction
- * en vigueur »). La **doctrine du garde-fou ne change pas** · les
- * 3 catégories CIBS (E / 1 / les plus polluants) restent inchangées
- * et la cohérence avec les 6 niveaux Crit'Air reste opérante toute
- * l'année. Une version unique annuelle suffit pour cette règle
- * informative. Les deux versions de L. 421-134 sont citées en
- * legalBasis pour transparence.
+ * Ordo 2025-1247 art. 7 cleanup: L. 421-134 was editorially cleaned
+ * up at 01/09/2026 (removal of "dans sa rédaction en vigueur"). The
+ * guard doctrine does not change: the 3 CIBS categories (E / 1 / most
+ * polluting) remain unchanged and consistency with the 6 Crit'Air
+ * levels stays operational all year. A single annual version is
+ * enough for this informative rule. Both versions of L. 421-134 are
+ * cited in legalBasis for transparency.
  *
- * **Implémentation effective** · le garde-fou est codé côté frontend
- * dans `resources/js/Composables/Vehicle/useCritAirCheck.ts`. Cette
- * classe porte uniquement les métadonnées pour la page « Règles de
- * calcul » et le seeder de l'index `fiscal_rules`.
+ * The actual guard is implemented on the frontend in
+ * `resources/js/Composables/Vehicle/useCritAirCheck.ts`. This class
+ * only carries metadata for the "Règles de calcul" page and the
+ * `fiscal_rules` index seeder.
  */
 final readonly class R2026_024_CritAirGuard implements InformativeRule
 {
@@ -102,10 +101,8 @@ final readonly class R2026_024_CritAirGuard implements InformativeRule
     }
 
     /**
-     * Override · l'implémentation effective du garde-fou Crit'Air vit
-     * dans le composable Vue `useCritAirCheck.ts`, pas dans cette classe
-     * PHP. Cette méthode informe le seeder pour que la page « Règles de
-     * calcul » expose le bon chemin à l'utilisateur curieux.
+     * The Crit'Air guard implementation lives in the
+     * `useCritAirCheck.ts` Vue composable, not in this PHP class.
      */
     public function codeReference(): string
     {

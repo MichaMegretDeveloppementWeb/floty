@@ -13,36 +13,32 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-033 · Taxe annuelle incitative relative à l'acquisition de
- * véhicules légers à faibles émissions (« TAI ») · **version 01/01 →
- * 28/02/2026** (régime transitoire LF 2025 art. 28).
+ * R-2026-033 - Annual incentive tax (TAI) for the acquisition of
+ * low-emission light vehicles, version 01/01 → 28/02/2026 (LF 2025
+ * art. 28 transitional regime).
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY V1.**
+ * Documentation-only rule, OUT OF FLOTY V1 SCOPE.
  *
- * **Période 01/01-28/02/2026** · les articles L. 421-132-1 à
- * L. 421-132-6 sont dans leur version « En vigueur du 01/03/2025 au
- * 01/03/2026 » (créée par LF 2025 art. 28). La note d'application V
- * de l'art. 28 (prorata 1/306e en 2025) est caduque mais reste
- * formellement portée par les textes jusqu'à leur réécriture au
- * 01/03/2026.
+ * 01/01-28/02/2026: articles L. 421-132-1 to L. 421-132-6 are in
+ * their "01/03/2025 → 01/03/2026" version (created by LF 2025
+ * art. 28). The application note V of art. 28 (1/306th prorata in
+ * 2025) is moot but formally carried by the texts until they are
+ * rewritten at 01/03/2026.
  *
- * **Régime plein 2026 effectif toute l'année (par L. 421-132-1)** ·
- *   - **Tarif annuel** · 4 000 €/véhicule manquant (vs 2 000 € en 2025).
- *   - **Quota cible VFE** · 18 % (vs 15 % en 2025).
- *   - **Année civile complète** · plus de prorata 1/306e applicable.
+ * Full 2026 regime effective all year (by L. 421-132-1):
+ *   - Annual rate: 4 000 €/missing vehicle (vs 2 000 € in 2025).
+ *   - VFE target quota: 18% (vs 15% in 2025).
+ *   - Full civil year: no more 1/306th prorata.
  *
- * **Formule légale L. 421-132-2 (stable)** · Montant = Tarif annuel ×
- * Écart à l'objectif cible × Taux annuel de renouvellement. Montant nul
- * si l'écart est négatif (quota atteint).
+ * Stable L. 421-132-2 legal formula: Amount = Annual rate × Gap to
+ * target × Annual renewal rate. Amount is zero if the gap is negative
+ * (quota reached).
  *
- * **Audit Chrome live 15/05/2026** · L. 421-132-5 « Version en vigueur
- * du 01/03/2025 au 01/03/2026 » confirme la cessation au 01/03/2026.
- * La période 01/03-31/12/2026 est portée par
+ * The period 01/03-31/12/2026 is carried by
  * {@see R2026_033bis_FleetGreeningIncentiveTax}.
  *
- * **Marquée inactive** · règle fiscale réelle mais hors périmètre V1
- * de l'application (frappe l'entreprise utilisatrice au global, dépend
- * de données flotte hors champ Floty).
+ * Marked inactive: real fiscal rule but out of Floty V1 scope (hits
+ * the user company globally, depends on out-of-scope fleet data).
  */
 final readonly class R2026_033_FleetGreeningIncentiveTax implements InformativeRule
 {
@@ -117,10 +113,10 @@ final readonly class R2026_033_FleetGreeningIncentiveTax implements InformativeR
      */
     public function taxesConcerned(): array
     {
-        // Taxe distincte des deux taxes annuelles Floty (CO₂ d'affectation
-        // et polluants). Déclarée pour exhaustivité, non rattachée à
-        // TaxType::Co2 ni TaxType::Pollutants. On utilise TaxType::Co2
-        // pour satisfaire le contrat (`taxesConcerned()` non vide).
+        // Tax distinct from the two annual Floty taxes (assignment CO₂
+        // and pollutants). Declared for exhaustiveness, not actually
+        // tied to TaxType::Co2 or TaxType::Pollutants. TaxType::Co2 is
+        // used to satisfy the non-empty `taxesConcerned()` contract.
         return [TaxType::Co2];
     }
 

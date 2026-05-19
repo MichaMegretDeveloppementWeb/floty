@@ -18,19 +18,20 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\Contract;
 
 /**
- * R-2025-021 · Exonération Location de Courte Durée (LCD) · reconduction
- * stricte R-2024-021 (textes CIBS L. 421-129 / L. 421-141 inchangés
- * depuis 01/01/2022, conformes BOFiP § 180-190).
+ * R-2025-021 - Short-Term Rental (LCD) exemption, strict reproduction
+ * of R-2024-021 (CIBS L. 421-129 / L. 421-141 texts unchanged since
+ * 01/01/2022, compliant with BOFiP § 180-190).
  *
- * Un contrat de location est qualifié de courte durée si **l'une** des
- * conditions suivantes est vérifiée :
- *   - durée du contrat ≤ 30 jours consécutifs (`end - start + 1`)
- *   - OU le contrat couvre exactement un mois civil entier (premier au
- *     dernier jour d'un même mois calendaire)
+ * A rental contract qualifies as short-term if EITHER of the following
+ * conditions is met:
+ *   - contract duration ≤ 30 consecutive days (`end - start + 1`)
+ *   - OR the contract covers exactly one full civil month (first to
+ *     last day of the same calendar month)
  *
- * Tous les jours d'un contrat LCD sont exonérés des deux taxes (CO₂ +
- * polluants) · retirés du numérateur du prorata appliqué par R-2025-002.
- * La qualification s'apprécie **par contrat individuel** (ADR-0014).
+ * All days of an LCD contract are exempt from both taxes (CO₂ +
+ * pollutants); subtracted from the prorata numerator applied by
+ * R-2025-002. Qualification is assessed per individual contract
+ * (ADR-0014).
  */
 final readonly class R2025_021_ShortTermRental implements ExemptionRule, LcdQualifier
 {
@@ -130,7 +131,7 @@ final readonly class R2025_021_ShortTermRental implements ExemptionRule, LcdQual
     }
 
     /**
-     * Qualification LCD d'un contrat individuel (ADR-0014, BOFiP § 180-190).
+     * LCD qualification of an individual contract (ADR-0014, BOFiP § 180-190).
      */
     public function isShortTermRental(Contract $contract): bool
     {

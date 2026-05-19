@@ -17,20 +17,20 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * R-2025-005 · Sélection du barème CO₂ + R-2025-006 bascule PA si donnée
- * CO₂ manquante. Reconduction stricte R-2024-005 (conditions d'éligibilité
- * inchangées en 2025 ; modifications LF 2025 art. 28 portent sur d'autres
- * articles).
+ * R-2025-005 - CO₂ scale selection, plus R-2025-006 PA fallback when
+ * CO₂ data is missing. Strict reproduction of R-2024-005 (eligibility
+ * conditions unchanged in 2025; LF 2025 art. 28 modifications target
+ * other articles).
  *
- * Cascade · WLTP si homologation WLTP + `co2_wltp` renseigné → NEDC si
- * homologation NEDC + `co2_nedc` renseigné → PA sinon (fallback
- * R-2025-006). Le résultat (`HomologationMethod`) est attaché au contexte
- * pour les `PricingRule` CO₂ qui ne s'exécutent que si elles correspondent
- * à la méthode résolue.
+ * Cascade: WLTP if WLTP homologation + `co2_wltp` set → NEDC if NEDC
+ * homologation + `co2_nedc` set → PA otherwise (R-2025-006 fallback).
+ * The result (`HomologationMethod`) is attached to the context for CO₂
+ * `PricingRule`s, which only execute if they match the resolved
+ * method.
  *
- * Base légale enrichie · L. 421-119 (chapeau), L. 421-119-1 (date de
- * référence), L. 421-120 (barème WLTP), L. 421-121 (barème NEDC),
- * L. 421-122 (barème PA), L. 421-6 (définition WLTP).
+ * Legal basis: L. 421-119 (chapeau), L. 421-119-1 (reference date),
+ * L. 421-120 (WLTP scale), L. 421-121 (NEDC scale), L. 421-122 (PA
+ * scale), L. 421-6 (WLTP definition).
  */
 final readonly class R2025_005_Co2MethodSelection implements ClassificationRule
 {
@@ -73,11 +73,11 @@ final readonly class R2025_005_Co2MethodSelection implements ClassificationRule
     public function legalBasis(): array
     {
         return [
-            // Cascade de sélection du barème CO₂ · seuls les articles
-            // chapeau (L. 421-119) et de date de référence (L. 421-119-1)
-            // sont cités ici. Les barèmes eux-mêmes (L. 421-120 WLTP,
-            // L. 421-121 NEDC, L. 421-122 PA) sont cités sur leurs
-            // règles dédiées (R-2025-010/011/012).
+            // CO₂ scale selection cascade: only the chapeau article
+            // (L. 421-119) and the reference date article (L. 421-119-1)
+            // are cited here. The scales themselves (L. 421-120 WLTP,
+            // L. 421-121 NEDC, L. 421-122 PA) are cited on their
+            // dedicated rules (R-2025-010/011/012).
             [
                 'type' => 'CIBS',
                 'article' => 'L. 421-119',

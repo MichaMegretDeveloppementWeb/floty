@@ -13,22 +13,21 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-031 · Taxes liées au certificat d'immatriculation · **version
- * 01/01 → 30/04/2025** (exonération Y1 électrique/hydrogène nationale
- * obligatoire).
+ * R-2025-031 - Registration certificate taxes, version 01/01 →
+ * 30/04/2025 (nationally mandatory Y1 exemption for EV/H₂).
  *
- * Règle fiscale hors périmètre de l'application · trois taxes ponctuelles
- * acquittées à l'établissement d'une carte grise · taxe régionale Y1
- * (CIBS L. 421-41 à L. 421-54-1), taxe Y2 (L. 421-55 à L. 421-57,
- * formation transport), taxe fixe Y4 (L. 421-49, 11 €).
+ * Out-of-scope fiscal rule: three one-shot taxes paid when a
+ * registration certificate is issued: regional tax Y1 (CIBS L. 421-41
+ * to L. 421-54-1), tax Y2 (L. 421-55 to L. 421-57, transport
+ * training), fixed tax Y4 (L. 421-49, 11 €).
  *
- * Période 01/01-30/04/2025 · l'exonération régionale Y1 pour véhicules
- * électriques/hydrogène est nationale obligatoire. La période
- * 01/05-31/12/2025 (exonération facultative par région) est portée par
+ * On 01/01-30/04/2025: regional Y1 exemption for electric/hydrogen
+ * vehicles is nationally mandatory. The period 01/05-31/12/2025
+ * (optional exemption per region) is carried by
  * {@see R2025_031bis_RegistrationCardTaxes}.
  *
- * Marquée inactive · règle fiscale réelle mais hors périmètre de calcul
- * de l'application (le bailleur paie, pas l'entreprise utilisatrice).
+ * Marked inactive: real fiscal rule but out of Floty calculation
+ * scope (renter pays, not the user company).
  */
 final readonly class R2025_031_RegistrationCardTaxes implements InformativeRule
 {

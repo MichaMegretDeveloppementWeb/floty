@@ -19,27 +19,26 @@ use App\Fiscal\Year2026\Pricing\Concerns\PollutantsFlatLogicTrait;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-014 · Tarif annuel forfaitaire polluants (CIBS L. 421-135) ·
- * **version 01/01 → 28/02/2026** (avant LF 2026 art. 58 V, IV).
+ * R-2026-014 - Pollutants flat annual tariff (CIBS L. 421-135),
+ * version 01/01 → 28/02/2026 (before LF 2026 art. 58 V, IV).
  *
- * **Règle pipeline (Pricing)** · ADR-0022 · première scission **matérielle**
- * 2026 (les 2 autres · R-2026-013/013-bis catégorisation et
- * R-2026-018/018-bis OIG · sont rédactionnelles). L'article L. 421-135
- * a été revalorisé par la LOI n° 2026-103 du 19/02/2026 art. 58 (V),
- * IV à effet du 01/03/2026. R-2026-014 couvre la période **avant**.
- * La période **après** est portée par {@see R2026_014bis_PollutantsFlat}.
+ * Pipeline rule (Pricing). ADR-0022: first MATERIAL split in 2026
+ * (the other two, R-2026-013/013-bis categorisation and
+ * R-2026-018/018-bis OIG, are editorial). L. 421-135 was revalued by
+ * LOI n° 2026-103 du 19/02/2026 art. 58 (V), IV effective 01/03/2026.
+ * R-2026-014 covers the period BEFORE. The period AFTER is carried
+ * by {@see R2026_014bis_PollutantsFlat}.
  *
- * **Tarifs identiques à 2024-2025** ·
- *   - E (électrique / hydrogène)        →   0 €
- *   - Catégorie 1 (essence/gaz Euro 5/6)→ 100 €
- *   - Plus polluants                    → 500 €
+ * Tariffs identical to 2024-2025:
+ *   - E (electric / hydrogen)            →   0 €
+ *   - Category 1 (petrol/gas Euro 5/6)   → 100 €
+ *   - Most polluting                     → 500 €
  *
- * Mécanique de tarification partagée via
- * {@see PollutantsFlatLogicTrait} avec
+ * Pricing logic shared through {@see PollutantsFlatLogicTrait} with
  * {@see R2026_014bis_PollutantsFlat}.
  *
- * **Source légale** · audit Chrome live 15/05/2026 ·
- * - CIBS L. 421-135 v 31/12/2023 → 01/03/2026 (texte stable depuis 2022).
+ * Legal basis: CIBS L. 421-135 v 31/12/2023 → 01/03/2026 (text stable
+ * since 2022).
  */
 final readonly class R2026_014_PollutantsFlat implements PricingRule
 {

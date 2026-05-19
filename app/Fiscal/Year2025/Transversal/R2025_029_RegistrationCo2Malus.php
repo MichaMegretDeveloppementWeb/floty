@@ -13,25 +13,24 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-029 · Malus CO₂ à l'immatriculation · **version 01/01 →
- * 28/02/2025** (paramètres pré-durcissement, identiques à 2024).
+ * R-2025-029 - Registration CO₂ malus, version 01/01 → 28/02/2025
+ * (pre-hardening parameters, identical to 2024).
  *
- * Règle fiscale hors périmètre de l'application · taxe ponctuelle payée
- * à l'immatriculation par le titulaire du certificat d'immatriculation
- * (= bailleur dans le modèle de flotte partagée). L'application ne
- * calcule pas cette taxe (documentée pour exhaustivité du panorama
- * fiscal véhicules).
+ * Fiscal rule out of Floty scope: one-shot tax paid at registration
+ * by the holder of the registration certificate (= renter in the
+ * shared-fleet model). Floty does not compute this tax (documented
+ * for exhaustiveness of the vehicle tax landscape).
  *
- * Paramètres 01/01-28/02/2025 (= reconduction stricte 2024) ·
- * - Seuil 118 g CO₂/km
- * - Plafond 60 000 €
- * - Plafonnement à 50 % du prix d'acquisition
+ * Parameters 01/01-28/02/2025 (= strict 2024 reproduction):
+ * - Threshold 118 g CO₂/km
+ * - Cap 60 000 €
+ * - Capped at 50% of acquisition price
  *
- * La période 01/03-31/12/2025 (paramètres durcis par LF 2025 art. 28)
- * est portée par {@see R2025_029bis_RegistrationCo2Malus}.
+ * The period 01/03-31/12/2025 (hardened by LF 2025 art. 28) is
+ * carried by {@see R2025_029bis_RegistrationCo2Malus}.
  *
- * Marquée inactive · règle fiscale réelle mais hors périmètre de calcul
- * de l'application (grisée dans la page Règles de calcul).
+ * Marked inactive: real fiscal rule but out of Floty calculation
+ * scope (greyed out in the rules page).
  */
 final readonly class R2025_029_RegistrationCo2Malus implements InformativeRule
 {

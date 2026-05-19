@@ -17,29 +17,29 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * R-2026-005 · Sélection du barème CO₂ (cascade WLTP → NEDC → PA).
+ * R-2026-005 - CO₂ scale selection (WLTP → NEDC → PA cascade).
  *
- * **Reconduction stricte de la mécanique 2025** · les articles CIBS
- * L. 421-119 (chapeau) et L. 421-119-1 (cascade méthode) sont stables ·
- * version 01/01/2022 pour L. 421-119, version 31/12/2023 pour
- * L. 421-119-1 (LF 2024 art. 97). Aucune modification 2026.
+ * Strict reproduction of 2025 mechanism: CIBS L. 421-119 (chapeau) and
+ * L. 421-119-1 (method cascade) are stable; version 01/01/2022 for
+ * L. 421-119, version 31/12/2023 for L. 421-119-1 (LF 2024 art. 97).
+ * No 2026 modification.
  *
- * **Cascade** ·
- * - WLTP si homologation WLTP + `co2_wltp` renseigné
- * - sinon NEDC si homologation NEDC + `co2_nedc` renseigné
- * - sinon PA (fallback R-2026-006)
+ * Cascade:
+ * - WLTP if WLTP homologation + `co2_wltp` set
+ * - else NEDC if NEDC homologation + `co2_nedc` set
+ * - else PA (R-2026-006 fallback)
  *
- * Le résultat (`HomologationMethod`) est attaché au contexte pour les
- * `PricingRule` CO₂ (R-2026-010 WLTP, R-2026-011 NEDC, R-2026-012 PA)
- * qui ne s'exécutent que si elles correspondent à la méthode résolue.
+ * The result (`HomologationMethod`) is attached to the context for CO₂
+ * `PricingRule`s (R-2026-010 WLTP, R-2026-011 NEDC, R-2026-012 PA)
+ * which only execute if they match the resolved method.
  *
- * **Base légale** · audit Chrome live 15/05/2026 ·
- * - CIBS L. 421-119 · stable depuis 01/01/2022.
- * - CIBS L. 421-119-1 · stable depuis 31/12/2023 (LF 2024 art. 97).
+ * Legal basis:
+ * - CIBS L. 421-119: stable since 01/01/2022.
+ * - CIBS L. 421-119-1: stable since 31/12/2023 (LF 2024 art. 97).
  *
- * Les barèmes eux-mêmes (L. 421-120 WLTP, L. 421-121 NEDC, L. 421-122
- * PA) sont cités sur leurs règles dédiées · R-2026-010/011/012 et
- * comportent des paramètres durcis au 01/01/2026 par LF 2024 art. 97-20°.
+ * The scales themselves (L. 421-120 WLTP, L. 421-121 NEDC, L. 421-122
+ * PA) are cited on their dedicated rules R-2026-010/011/012 and bear
+ * parameters hardened at 01/01/2026 by LF 2024 art. 97-20°.
  */
 final readonly class R2026_005_Co2MethodSelection implements ClassificationRule
 {

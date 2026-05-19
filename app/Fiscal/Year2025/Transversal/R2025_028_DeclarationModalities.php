@@ -14,14 +14,14 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-028 · Modalités de déclaration et de paiement · **version
- * 01/01 → 28/02/2025** (avant LF 2025 art. 28).
+ * R-2025-028 - Declaration and payment modalities, version 01/01 →
+ * 28/02/2025 (before LF 2025 art. 28).
  *
- * **Règle documentaire-only** · ADR-0022 · une période légale distincte =
- * une règle fiscale Floty distincte. L. 421-159 et L. 421-164 ont été
- * réécrits par LF 2025 art. 28 à effet du 01/03/2025. R-2025-028 couvre
- * la période **avant** cette modification. La période **après** est
- * portée par {@see R2025_028bis_DeclarationModalities}.
+ * Documentation-only rule. ADR-0022: one distinct legal period = one
+ * distinct Floty fiscal rule. L. 421-159 and L. 421-164 were rewritten
+ * by LF 2025 art. 28 effective 01/03/2025. R-2025-028 covers the
+ * period BEFORE that modification. The period AFTER is carried by
+ * {@see R2025_028bis_DeclarationModalities}.
  */
 final readonly class R2025_028_DeclarationModalities implements InformativeRule
 {

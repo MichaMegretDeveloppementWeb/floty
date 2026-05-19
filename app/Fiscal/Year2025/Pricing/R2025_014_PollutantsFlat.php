@@ -19,14 +19,14 @@ use App\Fiscal\ValueObjects\PollutantTariff;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-014 · Tarif annuel forfaitaire polluants (CIBS L. 421-135) ·
- * **identique à 2024**. L'article L. 421-135 est dans une version
- * stable 31/12/2023 - 01/03/2026 (la revalorisation programmée par LF
- * 2026 art. 58 entrera en vigueur en mars 2026).
+ * R-2025-014 - Pollutants flat annual tariff (CIBS L. 421-135),
+ * identical to 2024. Article L. 421-135 is in a stable version from
+ * 31/12/2023 to 01/03/2026 (the revaluation scheduled by LF 2026
+ * art. 58 takes effect in March 2026).
  *
- *   - E (électrique / hydrogène)        →   0 €
- *   - Catégorie 1 (essence/gaz Euro 5/6)→ 100 €
- *   - Plus polluants                    → 500 €
+ *   - E (electric / hydrogen)            →   0 €
+ *   - Category 1 (petrol/gas Euro 5/6)   → 100 €
+ *   - Most polluting                     → 500 €
  */
 final readonly class R2025_014_PollutantsFlat implements PricingRule
 {

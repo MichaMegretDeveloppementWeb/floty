@@ -13,32 +13,25 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-033-bis · Taxe annuelle incitative TAI · **version 01/03 →
- * 31/12/2026** (toilettage rédactionnel L. 421-132-5).
+ * R-2026-033-bis - Annual incentive tax (TAI), version 01/03 →
+ * 31/12/2026 (editorial cleanup of L. 421-132-5).
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY V1.**
+ * Documentation-only rule, OUT OF FLOTY V1 SCOPE.
  *
- * **Scission ADR-0022 strict · toilettage RÉDACTIONNEL** ·
- * - L'article L. 421-132-5 a une « Version en vigueur du 01/03/2025 au
- *   01/03/2026 » selon audit Chrome live 15/05/2026 · une nouvelle
- *   version le remplace au 01/03/2026.
- * - La modification est probablement rédactionnelle (suppression de la
- *   note transitoire V de LF 2025 art. 28 sur le prorata 1/306e en
- *   2025, devenue caduque).
- * - **Paramètres effectifs 2026 inchangés** entre v 01/01-28/02 et
- *   v 01/03-31/12 · tarif annuel 4 000 €, quota cible VFE 18 %, année
- *   civile complète.
+ * Strict ADR-0022 split, editorial cleanup:
+ * - L. 421-132-5 has a "01/03/2025 → 01/03/2026" version; a new
+ *   version replaces it at 01/03/2026.
+ * - The modification is editorial (removal of the transitional
+ *   application note V of LF 2025 art. 28 on the 1/306th prorata in
+ *   2025, now moot).
+ * - Effective 2026 parameters unchanged between v 01/01-28/02 and
+ *   v 01/03-31/12: annual rate 4 000 €, VFE target quota 18%, full
+ *   civil year.
  *
- * **Pendant de** · {@see R2026_033_FleetGreeningIncentiveTax} qui couvre
- * 01/01-28/02/2026.
+ * Counterpart to {@see R2026_033_FleetGreeningIncentiveTax} which
+ * covers 01/01-28/02/2026.
  *
- * **Audit Chrome live 15/05/2026** · L. 421-132-5 v expirée
- * « 01/03/2025 → 01/03/2026 » confirmée sur URL section
- * LEGISCTA000051187919/2026-01-01. Section LEGISCTA000051187919
- * /2026-03-01 confirme la mise à jour des textes au 01/03/2026.
- *
- * **Marquée inactive** · règle fiscale réelle mais hors périmètre V1
- * de l'application.
+ * Marked inactive: real fiscal rule but out of Floty V1 scope.
  */
 final readonly class R2026_033bis_FleetGreeningIncentiveTax implements InformativeRule
 {

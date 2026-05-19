@@ -15,18 +15,17 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-019 · Exonération entreprise individuelle (CIBS L. 421-127
- * / L. 421-139) · reconduction stricte 2025 · INACTIVE par défaut.
+ * R-2026-019 - Individual business exemption (CIBS L. 421-127 /
+ * L. 421-139), strict reproduction of R-2025-019, INACTIVE by default.
  *
- * Articles stables depuis 01/01/2022 · non touchés par Ordo 2025-1247
- * (audit Chrome live 15/05/2026 sur L. 421-127).
+ * Articles stable since 01/01/2022 and not touched by Ordo 2025-1247.
  *
- * Si l'entreprise utilisatrice est une personne physique exerçant en
- * son nom propre (entrepreneur individuel BIC/BNC), l'exonération
- * s'applique sur les deux taxes (sous conditions de minimis européen).
+ * If the user company is a natural person operating in their own name
+ * (sole trader BIC/BNC), the exemption applies to both taxes (subject
+ * to European de minimis conditions).
  *
- * **Inactif par défaut V1** · aucune entreprise utilisatrice Floty
- * actuelle n'est en nom propre.
+ * Inactive by default in V1: no current Floty user company is a sole
+ * trader.
  */
 final readonly class R2026_019_IndividualBusinessExemption implements ExemptionRule
 {

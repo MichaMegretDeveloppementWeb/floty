@@ -15,26 +15,26 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-018-bis · Exonération « certaines formes d'exploitation » OIG ·
- * **version 01/09 → 31/12/2026** (après Ordo 2025-1247 art. 4).
+ * R-2026-018-bis - "Certain forms of operation" OIG exemption, version
+ * 01/09 → 31/12/2026 (after Ordo 2025-1247 art. 4).
  *
- * **Règle pipeline (Exemption) INACTIVE par défaut** · ADR-0022 ·
- * pendant de {@see R2026_018_OigExemption} qui couvre 01/01-31/08.
+ * Pipeline rule (Exemption) INACTIVE by default. ADR-0022:
+ * counterpart to {@see R2026_018_OigExemption} which covers
+ * 01/01-31/08.
  *
- * **Modification rédactionnelle pure** par Ordo 2025-1247 art. 4 ·
- * la référence aux articles 261 et 261-7 du CGI est remplacée par une
- * référence aux articles **L. 213-104 à L. 213-110, L. 213-113, L. 213-115,
- * L. 213-116 et L. 213-120 du CIBS** (recodification de la TVA dans le
- * nouveau Livre II du CIBS créé par cette même ordonnance). Aucun impact
- * matériel sur le périmètre des OIG exonérés.
+ * Pure editorial modification by Ordo 2025-1247 art. 4: the reference
+ * to articles 261 and 261-7 CGI is replaced by a reference to
+ * articles L. 213-104 to L. 213-110, L. 213-113, L. 213-115,
+ * L. 213-116 and L. 213-120 CIBS (VAT recodification into the new
+ * Book II of CIBS created by the same ordinance). No material impact
+ * on the scope of exempt OIGs.
  *
- * **Mécanique** strictement identique à R-2026-018 · la logique vit
- * dans `evaluate()` qui retourne `notExempt()` (règle inactive). Si
- * l'OIG devient actif un jour, la même logique applicative s'appliquera
- * sur les 2 versions (seules les références codifiées diffèrent).
+ * Mechanics strictly identical to R-2026-018: logic lives in
+ * `evaluate()` which returns `notExempt()` (inactive rule). If OIG
+ * becomes active one day, the same applicative logic will apply on
+ * both versions (only the codified references differ).
  *
- * **Inactif par défaut V1** · aucune entreprise utilisatrice Floty
- * actuelle n'est OIG.
+ * Inactive by default in V1: no current Floty user company is OIG.
  */
 final readonly class R2026_018bis_OigExemption implements ExemptionRule
 {
@@ -75,7 +75,7 @@ final readonly class R2026_018bis_OigExemption implements ExemptionRule
 
     public function displayOrder(): int
     {
-        // Doit suivre R-2026-018 dans l'ordre d'affichage.
+        // Must follow R-2026-018 in display order.
         return 18;
     }
 

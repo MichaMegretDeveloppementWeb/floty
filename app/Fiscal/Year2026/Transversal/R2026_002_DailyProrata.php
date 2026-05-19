@@ -16,35 +16,31 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-002 · Prorata journalier · dénominateur **365** en 2026 (année
- * non bissextile, `2026 % 4 = 2`).
+ * R-2026-002 - Daily prorata, denominator 365 in 2026 (non-leap year,
+ * `2026 % 4 = 2`).
  *
- * Mécanique reconduite de R-2025-002 sans modification doctrinale ·
- * texte CIBS L. 421-107 stable depuis 01/01/2022, applicable 2026
- * inchangé. Le dénominateur 365 résulte de l'application du calendrier
- * civil 2026 (non bissextile, identique 2025, vs 366 en 2024).
+ * Mechanism reproduced from R-2025-002 without doctrinal change.
+ * CIBS L. 421-107 stable since 01/01/2022, applicable to 2026
+ * unchanged. The denominator 365 results from applying the 2026 civil
+ * calendar (non-leap, identical to 2025, vs 366 in 2024).
  *
- * Sémantique ADR-0014 ·
- *   numérateur = totalDays(contractsForPair ∩ year) − Σ exemptDaysCount
+ * ADR-0014 semantics:
+ *   numerator = totalDays(contractsForPair ∩ year) - Σ exemptDaysCount
  *
- * Les jours exonérés viennent de R-2026-021 (LCD per-contract) et
- * R-2026-008 (indispos réductrices, garde-fou ADR-0016 anti-double-count).
+ * Exempt days come from R-2026-021 (per-contract LCD) and R-2026-008
+ * (reductive unavailabilities, ADR-0016 double-counting guard).
  *
- * **Spécificités 2026** ·
- * - Le `FiscalSegmentedExecutor` segmente automatiquement par VFC
- *   effective (ADR-0021) ET par bornes des règles `applicabilityStart/End`
- *   (notamment les 3 scissions 2026 · R-2026-013/013-bis catégorisation
- *   au 01/09, R-2026-014/014-bis tarif polluants au 01/03,
- *   R-2026-018/018-bis OIG au 01/09). Le résultat du prorata est donc
- *   une somme pondérée par segment-jour, mathématiquement équivalente
- *   à la moyenne pondérée prescrite par CIBS L. 421-108 (cf. R-2026-025).
+ * 2026 specifics: the `FiscalSegmentedExecutor` automatically segments
+ * by VFC-effective (ADR-0021) AND by rule `applicabilityStart/End`
+ * bounds (notably the 3 2026 splits: R-2026-013/013-bis
+ * categorisation at 01/09, R-2026-014/014-bis pollutants tariff at
+ * 01/03, R-2026-018/018-bis OIG at 01/09). The prorata result is
+ * therefore a per-segment-day weighted sum, mathematically equivalent
+ * to the weighted average prescribed by CIBS L. 421-108 (R-2026-025).
  *
- * **Base légale** ·
- * - CIBS art. L. 421-107 · version 01/01/2022 → en vigueur (audité
- *   Chrome live 15/05/2026).
- * - URL · https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044603019/2026-01-01
+ * Legal basis: CIBS art. L. 421-107, version 01/01/2022 in force.
  *
- * Arrondi délégué à {@see R2026_003_FinalRounding}.
+ * Rounding delegated to {@see R2026_003_FinalRounding}.
  */
 final readonly class R2026_002_DailyProrata implements TransversalRule
 {

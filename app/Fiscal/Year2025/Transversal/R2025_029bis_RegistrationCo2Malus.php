@@ -13,20 +13,20 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-029-bis · Malus CO₂ à l'immatriculation · **version 01/03 →
- * 31/12/2025** (DURCISSEMENT par LF 2025 art. 28).
+ * R-2025-029-bis - Registration CO₂ malus, version 01/03 → 31/12/2025
+ * (HARDENED by LF 2025 art. 28).
  *
- * **Règle fiscale hors périmètre de l'application** · pendant de
- * {@see R2025_029_RegistrationCo2Malus} qui couvre 01/01-28/02.
+ * Out-of-scope fiscal rule, counterpart to
+ * {@see R2025_029_RegistrationCo2Malus} which covers 01/01-28/02.
  *
- * **Durcissement matériel à effet du 01/03/2025** (LOI n°2025-127 du
- * 14/02/2025 art. 28) ·
- * - Seuil de déclenchement · 118 → **113 g CO₂/km** (durcissement)
- * - Plafond · 60 000 → **70 000 €** (rehaussement)
- * - **Suppression du plafonnement à 50 % du prix d'acquisition**
+ * Material hardening effective 01/03/2025 (LOI n°2025-127 du
+ * 14/02/2025 art. 28):
+ * - Trigger threshold: 118 → 113 g CO₂/km (hardened)
+ * - Cap: 60 000 → 70 000 € (raised)
+ * - Removal of the 50% acquisition-price cap
  *
- * **Marquée inactive** · règle fiscale réelle mais hors périmètre de
- * calcul de l'application (grisée dans la page Règles de calcul).
+ * Marked inactive: real fiscal rule but out of Floty calculation
+ * scope (greyed out in the rules page).
  */
 final readonly class R2025_029bis_RegistrationCo2Malus implements InformativeRule
 {

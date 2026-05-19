@@ -20,21 +20,21 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-011 · Barème CO₂ NEDC 2025 · ⚠️ DURCISSEMENT MAJEUR vs 2024
- * (CIBS art. L. 421-121 version 01/01/2025, modifiée par LF 2024 art. 97, 19°).
+ * R-2025-011 - 2025 CO₂ NEDC scale, MAJOR HARDENING vs 2024 (CIBS
+ * art. L. 421-121 version 01/01/2025, modified by LF 2024 art. 97, 19°).
  *
- * Tarif progressif par tranches à tarif marginal sur les émissions CO₂
- * NEDC (g/km). **9 tranches**, dernière ouverte (≥ 141 g/km).
+ * Progressive bracket-based tariff with marginal rate on NEDC CO₂
+ * emissions (g/km). 9 brackets, last one open (≥ 141 g/km).
  *
- * **Différences clés vs R-2024-011** :
- * - 1re tranche jusqu'à 7 g/km (vs 12 en 2024).
- * - Bornes durcies.
- * - NEDC 100 g/km = 284 € en 2025.
+ * Key differences vs R-2024-011:
+ * - 1st bracket up to 7 g/km (vs 12 in 2024).
+ * - Hardened bounds.
+ * - NEDC 100 g/km = 284 € in 2025.
  *
- * S'exécute uniquement si la méthode CO₂ résolue par
- * {@see R2025_005_Co2MethodSelection} est NEDC. Sinon no-op.
+ * Only runs if the CO₂ method resolved by
+ * {@see R2025_005_Co2MethodSelection} is NEDC. No-op otherwise.
  *
- * Audit Chrome live · Légifrance LEGIARTI000048886368.
+ * Source: Légifrance LEGIARTI000048886368.
  */
 final readonly class R2025_011_NedcProgressive implements PricingRule
 {
@@ -45,7 +45,7 @@ final readonly class R2025_011_NedcProgressive implements PricingRule
 
     public function __construct()
     {
-        // Barème NEDC 2025 durci (LF 2024 art. 97, 19°).
+        // Hardened 2025 NEDC scale (LF 2024 art. 97, 19°).
         $this->scale = new ProgressiveScale([
             new BracketRange(0, 7, 0.0),
             new BracketRange(7, 41, 1.0),

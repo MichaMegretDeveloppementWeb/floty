@@ -15,24 +15,23 @@ use App\Fiscal\Year2026\Classification\Concerns\PollutantCategoryAssignmentLogic
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-013-bis · Catégorisation polluants algorithmique (CIBS
- * L. 421-134) · **version 01/09 → 31/12/2026** (après Ordo 2025-1247
+ * R-2026-013-bis - Algorithmic pollutant categorisation (CIBS
+ * L. 421-134), version 01/09 → 31/12/2026 (after Ordo 2025-1247
  * art. 7).
  *
- * **Règle pipeline (Classification)** · pendant de
- * {@see R2026_013_PollutantCategoryAssignment} qui couvre 01/01-31/08.
- * Texte L. 421-134 réécrit par l'Ordonnance n° 2025-1247 du 17/12/2025
- * (art. 7 + art. 49 entrée en vigueur) à effet du 01/09/2026 ·
- * modifications **rédactionnelles pures** (suppression de l'incise
- * « dans sa rédaction en vigueur ») sans changement matériel du
- * périmètre E / Cat1 / MostPolluting. Logique partagée via
+ * Pipeline rule (Classification). Counterpart to
+ * {@see R2026_013_PollutantCategoryAssignment} which covers
+ * 01/01-31/08. L. 421-134 rewritten by Ordonnance n° 2025-1247
+ * du 17/12/2025 (art. 7 + art. 49 entry into force) effective
+ * 01/09/2026: purely editorial modifications (removal of the
+ * "dans sa rédaction en vigueur" insert) without material change
+ * to the E / Cat1 / MostPolluting scope. Logic shared through
  * {@see PollutantCategoryAssignmentLogicTrait}.
  *
- * **Base légale** ·
- * - CIBS L. 421-134 · version 01/09/2026 → en vigueur (audité Chrome
- *   live 15/05/2026).
- * - Ordo 2025-1247 du 17/12/2025 art. 7 (réécriture rédactionnelle) +
- *   art. 49 (entrée en vigueur 01/09/2026).
+ * Legal basis:
+ * - CIBS L. 421-134, version 01/09/2026 in force.
+ * - Ordo 2025-1247 du 17/12/2025 art. 7 (editorial rewrite) +
+ *   art. 49 (entry into force 01/09/2026).
  */
 final readonly class R2026_013bis_PollutantCategoryAssignment implements ClassificationRule
 {
@@ -76,7 +75,7 @@ final readonly class R2026_013bis_PollutantCategoryAssignment implements Classif
 
     public function displayOrder(): int
     {
-        // Doit suivre R-2026-013 dans l'ordre d'affichage.
+        // Must follow R-2026-013 in display order.
         return 13;
     }
 

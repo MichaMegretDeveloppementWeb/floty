@@ -16,13 +16,13 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-013 · Catégorisation polluants algorithmique (CIBS art.
- * L. 421-134) · reconduction stricte R-2024-013. L'article L. 421-134
- * est dans une version stable inchangée 2024 → 2025.
+ * R-2025-013 - Algorithmic pollutant categorisation (CIBS art.
+ * L. 421-134), strict reproduction of R-2024-013. Article L. 421-134
+ * is in a stable version unchanged 2024 → 2025.
  *
- * La cascade complète vit dans {@see PollutantCategory::derive()} pour
- * que la même logique s'applique au Repository (écriture) et au front
- * (mirror TS).
+ * The full cascade lives in {@see PollutantCategory::derive()} so the
+ * same logic applies to the Repository (write) and the frontend
+ * (TS mirror).
  */
 final readonly class R2025_013_PollutantCategoryAssignment implements ClassificationRule
 {

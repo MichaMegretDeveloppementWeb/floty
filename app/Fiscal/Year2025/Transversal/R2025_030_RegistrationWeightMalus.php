@@ -13,18 +13,17 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-030 · Malus au poids à l'immatriculation.
+ * R-2025-030 - Registration weight malus.
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY.**
+ * Documentation-only rule, OUT OF FLOTY SCOPE.
  *
- * Taxe ponctuelle à l'immatriculation d'un véhicule de tourisme dont
- * la masse en ordre de marche dépasse un seuil. Reconduction stricte
- * R-2024-030 (seuil maintenu 1 600 kg, barème inchangé). Extension
- * progressive du champ aux hybrides rechargeables en 2025.
+ * One-shot tax on registration of a passenger vehicle whose mass in
+ * running order exceeds a threshold. Strict reproduction of
+ * R-2024-030 (threshold maintained at 1 600 kg, scale unchanged).
+ * Progressive scope extension to plug-in hybrids in 2025.
  *
- * **Redevable** · titulaire du certificat d'immatriculation (= le
- * bailleur dans le modèle Floty · entreprises utilisatrices jamais
- * redevables).
+ * Taxpayer: holder of the registration certificate (= renter in the
+ * Floty model; user companies never the taxpayer).
  */
 final readonly class R2025_030_RegistrationWeightMalus implements InformativeRule
 {

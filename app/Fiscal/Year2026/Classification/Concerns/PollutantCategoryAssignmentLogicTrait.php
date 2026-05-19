@@ -8,28 +8,27 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Pipeline\PipelineContext;
 
 /**
- * Logique partagée de catégorisation polluants 2026 (R-2026-013 et
- * R-2026-013-bis).
+ * Shared 2026 pollutant categorisation logic for R-2026-013 and
+ * R-2026-013-bis.
  *
- * **Pourquoi un trait** · l'article CIBS L. 421-134 a deux versions en
- * 2026 (modifié au 01/09/2026 par Ordonnance n° 2025-1247 art. 7 et
- * art. 49), ce qui impose ADR-0022 strict · deux règles fiscales Floty
- * distinctes (R-2026-013 pour 01/01-31/08 et R-2026-013-bis pour
- * 01/09-31/12). Or les modifications Ordo 2025-1247 sur L. 421-134 sont
- * **purement rédactionnelles** (suppression de l'incise « dans sa
- * rédaction en vigueur »). La cascade de catégorisation E / Cat1 /
- * MostPolluting reste **strictement identique** entre les deux versions.
- * On factorise la logique ici pour éviter la duplication et garantir
- * la synchronisation des deux versions.
+ * CIBS L. 421-134 has two versions in 2026 (modified on 01/09/2026 by
+ * Ordonnance n° 2025-1247 art. 7 and art. 49), which mandates strict
+ * ADR-0022 (two distinct Floty fiscal rules: R-2026-013 for
+ * 01/01-31/08 and R-2026-013-bis for 01/09-31/12). The Ordo 2025-1247
+ * modifications to L. 421-134 are purely editorial (removal of the
+ * "dans sa rédaction en vigueur" insert). The E / Cat1 / MostPolluting
+ * categorisation cascade is strictly identical between the two
+ * versions. The logic is factored here to avoid duplication and
+ * guarantee synchronisation between the two versions.
  *
- * **Délégation à PollutantCategory::derive()** · la cascade complète
- * vit dans l'enum {@see PollutantCategory::derive()} pour que la même
- * logique s'applique au Repository (écriture VFC), au pipeline fiscal
- * (cette règle) et au front (mirror TypeScript).
+ * Delegation to PollutantCategory::derive(): the full cascade lives in
+ * the {@see PollutantCategory::derive()} enum so the same logic
+ * applies to the Repository (VFC write), the fiscal pipeline (this
+ * rule), and the frontend (TypeScript mirror).
  *
- * **Si une version future de L. 421-134 introduit un changement matériel
- * du périmètre E / Cat1 / MostPolluting**, ce trait sera scindé en deux
- * variantes (chaque classe consommera sa version propre).
+ * If a future version of L. 421-134 introduces a material change to
+ * the E / Cat1 / MostPolluting scope, this trait will be split into
+ * two variants (each class consuming its own version).
  */
 trait PollutantCategoryAssignmentLogicTrait
 {

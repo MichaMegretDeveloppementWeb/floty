@@ -14,24 +14,23 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-027 · Coefficient pondérateur et minoration des frais
- * kilométriques · reconduction stricte 2025 (inactive Floty V1).
+ * R-2026-027 - Mileage reimbursement weighting coefficient and
+ * reduction, strict reproduction of R-2025-027 (inactive Floty V1).
  *
- * Sous-paragraphe CIBS dédié aux véhicules affectés à des fins
- * économiques via prise en charge des frais kilométriques par
- * l'entreprise (au sens du 2° de L. 421-95) ·
- *   - L. 421-109 · chapeau du sous-paragraphe.
- *   - L. 421-110 · coefficient pondérateur (0 / 25 / 50 / 75 / 100 %).
- *   - L. 421-111 · minoration de 15 000 € sur le cumul des taxes par
- *     entreprise (sous plafond de minimis européen).
+ * CIBS sub-paragraph dedicated to vehicles assigned to economic
+ * purposes via the company covering mileage costs (sense of 2° of
+ * L. 421-95):
+ *   - L. 421-109: sub-paragraph chapeau.
+ *   - L. 421-110: weighting coefficient (0 / 25 / 50 / 75 / 100 %).
+ *   - L. 421-111: 15 000 € reduction on the cumulated tax per
+ *     company (subject to European de minimis ceiling).
  *
- * **Stabilité 2026** · les 3 articles sont stables depuis 01/01/2022.
- * Aucune modification par LF 2026 art. 58 ni par Ordo 2025-1247
- * (vérifié Chrome live indirectement via le bilan législatif Z0.1).
+ * 2026 stability: the 3 articles are stable since 01/01/2022. No
+ * modification by LF 2026 art. 58 nor Ordo 2025-1247.
  *
- * **INACTIVE par défaut V1** · Floty couvre des véhicules de flotte
- * détenus par la société de location, pas des véhicules personnels de
- * salariés/dirigeants. Hors usage Floty par construction architecturale.
+ * Inactive by default in V1: Floty covers fleet vehicles held by the
+ * rental company, not personal vehicles of employees/managers. Out of
+ * Floty scope by architectural design.
  */
 final readonly class R2026_027_MileageReimbursementCoefficient implements TransversalRule
 {

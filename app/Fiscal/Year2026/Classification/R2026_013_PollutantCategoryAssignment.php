@@ -15,25 +15,23 @@ use App\Fiscal\Year2026\Classification\Concerns\PollutantCategoryAssignmentLogic
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-013 · Catégorisation polluants algorithmique (CIBS L. 421-134) ·
- * **version 01/01 → 31/08/2026** (avant Ordo 2025-1247 art. 7).
+ * R-2026-013 - Algorithmic pollutant categorisation (CIBS L. 421-134),
+ * version 01/01 → 31/08/2026 (before Ordo 2025-1247 art. 7).
  *
- * **Règle pipeline (Classification)** · ADR-0022 · une période légale
- * distincte = une règle fiscale Floty distincte. L. 421-134 a été
- * réécrit par l'Ordonnance n° 2025-1247 du 17/12/2025 art. 7 à effet du
- * 01/09/2026 (modification rédactionnelle pure · suppression de
- * l'incise « dans sa rédaction en vigueur »). R-2026-013 couvre la
- * période **avant**. La période **après** est portée par
- * {@see R2026_013bis_PollutantCategoryAssignment}.
+ * Pipeline rule (Classification). ADR-0022: one distinct legal period
+ * = one distinct Floty fiscal rule. L. 421-134 was rewritten by
+ * Ordonnance n° 2025-1247 du 17/12/2025 art. 7 effective 01/09/2026
+ * (pure editorial modification: removal of the "dans sa rédaction en
+ * vigueur" insert). R-2026-013 covers the period BEFORE. The period
+ * AFTER is carried by {@see R2026_013bis_PollutantCategoryAssignment}.
  *
- * Logique de classify partagée via
- * {@see PollutantCategoryAssignmentLogicTrait} · les modifications Ordo
- * 2025-1247 sont purement rédactionnelles · la cascade
- * E / Cat1 / MostPolluting reste identique sur les 2 versions.
+ * Classify logic shared through
+ * {@see PollutantCategoryAssignmentLogicTrait}: Ordo 2025-1247
+ * modifications are purely editorial, the E / Cat1 / MostPolluting
+ * cascade is identical on both versions.
  *
- * **Base légale** ·
- * - CIBS L. 421-134 · version 31/12/2023 → 01/09/2026 (audité Chrome
- *   live 15/05/2026).
+ * Legal basis:
+ * - CIBS L. 421-134, version 31/12/2023 → 01/09/2026.
  */
 final readonly class R2026_013_PollutantCategoryAssignment implements ClassificationRule
 {

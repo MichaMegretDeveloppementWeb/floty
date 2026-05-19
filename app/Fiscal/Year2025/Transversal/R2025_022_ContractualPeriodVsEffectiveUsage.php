@@ -14,13 +14,13 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-022 · Période contractuelle vs usage effectif.
+ * R-2025-022 - Contractual period vs effective usage.
  *
- * **Règle documentaire-only** · reconduction stricte de R-2024-022.
- * Le numérateur du prorata journalier compte les jours de la période
- * d'affectation contractuelle, pas les jours d'usage effectif du
- * véhicule. La règle pipeline R-2025-002 en découle. Seules les
- * indispos réductrices R-2025-008 viennent diminuer ce numérateur.
+ * Documentation-only rule, strict reproduction of R-2024-022. The
+ * daily prorata numerator counts days of the contractual assignment
+ * period, not days of effective vehicle usage. Pipeline rule
+ * R-2025-002 follows from this. Only R-2025-008 reductive
+ * unavailabilities decrease that numerator.
  */
 final readonly class R2025_022_ContractualPeriodVsEffectiveUsage implements InformativeRule
 {

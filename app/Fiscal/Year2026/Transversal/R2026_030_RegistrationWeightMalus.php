@@ -13,29 +13,18 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-030 · Malus au poids à l'immatriculation.
+ * R-2026-030 - Registration weight malus.
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY.**
+ * Documentation-only rule, OUT OF FLOTY SCOPE.
  *
- * Taxe ponctuelle à l'immatriculation d'un véhicule de tourisme dont
- * la masse en ordre de marche dépasse un seuil. Reconduction
- * R-2025-030 avec mention de l'éventuel abaissement de seuil 2026
- * acté par LF 2026 (à 1 500 kg pour les véhicules thermiques) ·
- * **non auditable précisément en Chrome live au 15/05/2026 sans
- * impact métier Floty** (règle inactive · le bailleur acquitte la
- * taxe, jamais les entreprises utilisatrices).
+ * One-shot tax on registration of a passenger vehicle whose mass in
+ * running order exceeds a threshold. Reproduction of R-2025-030 with
+ * mention of the possible 2026 threshold drop enacted by LF 2026
+ * (to 1 500 kg for thermal vehicles): inactive rule, the renter pays
+ * the tax, never the user companies.
  *
- * **Redevable** · titulaire du certificat d'immatriculation (= le
- * bailleur dans le modèle Floty · entreprises utilisatrices jamais
- * redevables).
- *
- * **Audit Chrome live 15/05/2026** · section LEGISCTA000044598969
- * (Taxes sur l'immatriculation, L. 421-29 à L. 421-92) confirme
- * version 2026-01-01 active. Article-tête L. 421-71 « En vigueur
- * depuis le 01/01/2022 ». Barème détaillé porté par L. 421-72 à
- * L. 421-81-1 (paragraphe 5 « Taxe sur la masse en ordre de marche
- * des véhicules de tourisme ») · seuil et tarifs précis non
- * load-bearing pour Floty.
+ * Taxpayer: holder of the registration certificate (= renter in the
+ * Floty model; user companies never the taxpayer).
  */
 final readonly class R2026_030_RegistrationWeightMalus implements InformativeRule
 {

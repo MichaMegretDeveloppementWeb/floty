@@ -13,24 +13,22 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-032 · Taxe annuelle sur les véhicules lourds de transport de
- * marchandises (ex-taxe à l'essieu).
+ * R-2026-032 - Annual tax on heavy freight transport vehicles
+ * (formerly "taxe à l'essieu").
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY.**
+ * Documentation-only rule, OUT OF FLOTY SCOPE.
  *
- * Reconduction stricte R-2025-032. Taxe annuelle distincte des deux
- * taxes Floty (CO₂ et polluants tourisme), applicable aux véhicules
- * **lourds** de transport de marchandises (catégories N2, N3 et
- * certaines remorques O4) ≥ 12 tonnes. Paramètres 2026 inchangés.
+ * Strict reproduction of R-2025-032. Annual tax distinct from the
+ * two Floty taxes (passenger CO₂ and pollutants), applicable to heavy
+ * freight transport vehicles (categories N2, N3 and certain O4
+ * trailers) ≥ 12 tonnes. 2026 parameters unchanged.
  *
- * **Pourquoi hors périmètre Floty** · le périmètre véhicule Floty est
- * strictement limité aux catégories **M1 (voitures de tourisme) et
- * N1 (utilitaires légers ≤ 3,5 t)**. Les véhicules ≥ 12 t sont
- * structurellement hors champ.
+ * Out of Floty scope: the Floty vehicle scope is strictly limited to
+ * M1 (passenger cars) and N1 (light vans ≤ 3.5 t). Vehicles ≥ 12 t
+ * are structurally out of scope.
  *
- * **Audit Chrome live 15/05/2026** · CIBS L. 421-145 « En vigueur
- * depuis le 01/01/2022 » · stable, non modifié par LF 2026 ni Ordo
- * 2025-1247.
+ * CIBS L. 421-145 stable since 01/01/2022, not modified by LF 2026
+ * nor Ordo 2025-1247.
  */
 final readonly class R2026_032_HeavyVehiclesTax implements InformativeRule
 {

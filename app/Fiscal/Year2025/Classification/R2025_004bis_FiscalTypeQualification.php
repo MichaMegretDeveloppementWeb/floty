@@ -15,14 +15,14 @@ use App\Fiscal\Year2025\Classification\Concerns\FiscalTypeQualificationLogicTrai
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-004-bis · Qualification du type fiscal (M1 / N1) · **version
- * 01/03 → 31/12/2025** (après LF 2025 art. 28).
+ * R-2025-004-bis - Fiscal type qualification (M1 / N1), version 01/03
+ * → 31/12/2025 (after LF 2025 art. 28).
  *
- * **Règle pipeline (Classification)** · pendant de
- * {@see R2025_004_FiscalTypeQualification} qui couvre 01/01-28/02. Texte
- * L. 421-2 réécrit par la LOI n°2025-127 du 14/02/2025 à effet du
- * 01/03/2025 · modifications rédactionnelles sans changement matériel
- * du périmètre M1/N1. Logique partagée via
+ * Pipeline rule (Classification). Counterpart to
+ * {@see R2025_004_FiscalTypeQualification} which covers 01/01-28/02.
+ * L. 421-2 rewritten by LOI n°2025-127 du 14/02/2025 effective
+ * 01/03/2025: editorial modifications without material change to the
+ * M1/N1 scope. Logic shared through
  * {@see FiscalTypeQualificationLogicTrait}.
  */
 final readonly class R2025_004bis_FiscalTypeQualification implements ClassificationRule
@@ -67,7 +67,7 @@ final readonly class R2025_004bis_FiscalTypeQualification implements Classificat
 
     public function displayOrder(): int
     {
-        // Doit suivre R-2025-004 dans l'ordre d'affichage.
+        // Must follow R-2025-004 in display order.
         return 4;
     }
 

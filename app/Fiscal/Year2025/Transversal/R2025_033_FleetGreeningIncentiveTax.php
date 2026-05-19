@@ -13,49 +13,45 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-033 · ⚠️ NOUVEAUTÉ 2025 · Taxe annuelle incitative relative à
- * l'acquisition de véhicules légers à faibles émissions (« TAI »).
+ * R-2025-033 - 2025 new feature: annual incentive tax for the
+ * acquisition of low-emission light vehicles ("TAI").
  *
- * **Règle documentaire-only · HORS PÉRIMÈTRE FLOTY V1 · n'existe pas
- * en 2024 (création LF 2025 art. 95, paragraphe 3 bis du CIBS).**
+ * Documentation-only rule, OUT OF FLOTY V1 SCOPE. Does not exist in
+ * 2024 (created by LF 2025 art. 95, CIBS paragraph 3 bis).
  *
- * **Titre légal officiel** · « Tarif de la taxe annuelle incitative
- * relative à l'acquisition de véhicules légers à faibles émissions »
- * (Légifrance, paragraphe 3 bis, articles L. 421-132-1 à L. 421-132-6,
- * code des impositions sur les biens et services, en vigueur depuis le
- * 01/03/2025 par la LOI n°2025-127 du 14 février 2025).
+ * Official legal title: "Tarif de la taxe annuelle incitative relative
+ * à l'acquisition de véhicules légers à faibles émissions" (Légifrance,
+ * paragraph 3 bis, articles L. 421-132-1 to L. 421-132-6, CIBS, in
+ * force since 01/03/2025 via LOI n°2025-127 du 14 février 2025).
  *
- * **Formule légale L. 421-132-2** · le montant dû par chaque entreprise
- * affectataire et chaque année civile est le produit de trois facteurs :
- *   1° **Tarif annuel** · 2 000 € en 2025, 4 000 € en 2026, 5 000 € à
- *      partir de 2027.
- *   2° **Écart à l'objectif cible d'intégration** de véhicules à
- *      faibles émissions (VFE), exprimé en nombre de véhicules manquants
- *      pour atteindre le quota cible.
- *   3° **Taux annuel de renouvellement** = nombre de véhicules entrés
- *      dans la flotte / taille totale de la flotte taxable (cf. L.
- *      421-132-6).
+ * L. 421-132-2 legal formula: the amount due by each user company per
+ * civil year is the product of three factors:
+ *   1° Annual rate: 2 000 € in 2025, 4 000 € in 2026, 5 000 € from 2027.
+ *   2° Gap to the target VFE integration objective, expressed as the
+ *      number of vehicles missing to reach the target quota.
+ *   3° Annual renewal rate = number of vehicles entering the fleet /
+ *      total taxable fleet size (cf. L. 421-132-6).
  *
- * **Quotas cibles d'intégration VFE** · 15 % (2025), 18 % (2026), 25 %
- * (2027), 48 % (2030).
+ * VFE integration target quotas: 15% (2025), 18% (2026), 25% (2027),
+ * 48% (2030).
  *
- * **Période 2025 (première année d'application)** · 01/03/2025 →
- * 31/12/2025 (306 jours, facteur de prorata 1/306e par dérogation
- * au b du 1° de L. 421-132-6 selon note d'application V de LF 2025 art.
- * 28). Déclaration en janvier 2026.
+ * 2025 (first year of application): 01/03/2025 → 31/12/2025 (306 days,
+ * 1/306th prorata factor by derogation from b of 1° of L. 421-132-6
+ * per application note V of LF 2025 art. 28). Declaration in January
+ * 2026.
  *
- * **Redevable** · chaque entreprise affectataire (au sens CIBS L. 421-98),
- * **SANS seuil minimum de flotte** dans le texte législatif actuel.
+ * Taxpayer: each user company (within the meaning of CIBS L. 421-98),
+ * WITHOUT minimum fleet threshold in the current legislative text.
  *
- * **Pourquoi hors périmètre Floty V1** · cette taxe :
- *   - dépend de données hors périmètre Floty (flotte totale détenue par
- *     l'entreprise au sens fiscal, nombre de VFE intégrés, taux de
- *     renouvellement annuel) que Floty ne mesure pas en propre.
- *   - frappe l'entreprise utilisatrice au global, alors que Floty
- *     calcule par couple (véhicule, entreprise utilisatrice) sur les
- *     véhicules de la flotte partagée de location (modèle Renaud).
- *   - documentée ici pour exhaustivité fiscale · le comptable de chaque
- *     entreprise utilisatrice évaluera lui-même son éventuelle exigibilité.
+ * Out of Floty V1 scope:
+ *   - depends on data outside Floty (total fleet held by the company
+ *     within the meaning of tax law, number of integrated VFEs, annual
+ *     renewal rate) which Floty does not measure on its own.
+ *   - hits the user company globally, whereas Floty computes per pair
+ *     (vehicle, user company) on the vehicles of the shared rental
+ *     fleet.
+ *   - documented here for fiscal exhaustiveness; each user company's
+ *     accountant evaluates exigibility.
  */
 final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeRule
 {
@@ -122,10 +118,10 @@ final readonly class R2025_033_FleetGreeningIncentiveTax implements InformativeR
      */
     public function taxesConcerned(): array
     {
-        // Taxe distincte des deux taxes annuelles Floty (CO₂ d'affectation
-        // et polluants). Déclarée pour exhaustivité, non rattachée à
-        // TaxType::Co2 ni TaxType::Pollutants. On utilise TaxType::Co2
-        // pour satisfaire le contrat (`taxesConcerned()` non vide).
+        // Tax distinct from the two annual Floty taxes (assignment CO₂
+        // and pollutants). Declared for exhaustiveness, not actually
+        // tied to TaxType::Co2 or TaxType::Pollutants. TaxType::Co2 is
+        // used to satisfy the non-empty `taxesConcerned()` contract.
         return [TaxType::Co2];
     }
 

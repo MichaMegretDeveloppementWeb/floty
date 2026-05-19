@@ -16,24 +16,24 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2025-002 · Prorata journalier (jours d'utilisation effective /
- * dénominateur dynamique selon l'année, **365 en 2025** non bissextile).
+ * R-2025-002 - Daily prorata (effective days of use / dynamic
+ * denominator per year, 365 in 2025 non-leap year).
  *
- * Reconduction stricte de R-2024-002 avec dénominateur 365 au lieu de
- * 366. La sémantique ADR-0014 (numérateur = jours contractuels du couple
- * moins jours signalés exonérés par R-2025-021 LCD et R-2025-008 indispos
- * réductrices) est identique.
+ * Strict reproduction of R-2024-002 with denominator 365 instead of
+ * 366. The ADR-0014 semantics (numerator = contractual days of the
+ * pair minus days reported exempt by R-2025-021 LCD and R-2025-008
+ * reductive unavailabilities) are identical.
  *
- *   numérateur = totalDays(contractsForPair, year)
- *              − Σ verdicts.exemptDaysCount  (R-2025-021 + R-2025-008)
+ *   numerator = totalDays(contractsForPair, year)
+ *             - Σ verdicts.exemptDaysCount  (R-2025-021 + R-2025-008)
  *
- * Comme en 2024, cette règle pose `daysAssignedToCompany` et
- * `cumulativeDaysForPair` dans le contexte. L'arrondi est délégué à
+ * As in 2024, this rule sets `daysAssignedToCompany` and
+ * `cumulativeDaysForPair` in the context. Rounding is delegated to
  * {@see R2025_003_FinalRounding}.
  *
- * Base légale : CIBS art. L. 421-107, version en vigueur depuis le
- * 01/01/2022, inchangée en 2025. Le dénominateur 365 résulte de
- * l'application de l'article au calendrier civil 2025.
+ * Legal basis: CIBS art. L. 421-107, in force since 01/01/2022,
+ * unchanged in 2025. The denominator 365 results from applying the
+ * article to the 2025 civil calendar.
  */
 final readonly class R2025_002_DailyProrata implements TransversalRule
 {

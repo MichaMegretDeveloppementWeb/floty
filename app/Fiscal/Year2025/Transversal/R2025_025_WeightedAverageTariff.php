@@ -14,18 +14,18 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-025 · Moyenne pondérée des tarifs en cas de bascule en cours d'année.
+ * R-2025-025 - Weighted average tariff on mid-year switch.
  *
- * **Règle documentaire-only** · reconduction stricte de R-2024-025
- * avec dénominateur **365** (2025 non bissextile). CIBS L. 421-108
- * inchangé depuis 01/01/2022.
+ * Documentation-only rule, strict reproduction of R-2024-025 with
+ * denominator 365 (2025 non-leap year). CIBS L. 421-108 unchanged
+ * since 01/01/2022.
  *
- * **Implémentation effective** · la mécanique est déjà appliquée
- * mathématiquement par {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor}
- * via la segmentation par VFC effective (ADR-0021). Pour chaque segment,
- * le tarif annuel est calculé sur la VFC du segment puis proratisé sur
- * ses jours, et tous les segments sont sommés. Mathématiquement
- * équivalent à la moyenne pondérée de L. 421-108.
+ * The mechanism is already applied mathematically by
+ * {@see App\Fiscal\Pipeline\FiscalSegmentedExecutor} via VFC-effective
+ * segmentation (ADR-0021). For each segment, the annual tariff is
+ * computed on the segment's VFC then prorated over its days, and all
+ * segments are summed. Mathematically equivalent to the L. 421-108
+ * weighted average.
  */
 final readonly class R2025_025_WeightedAverageTariff implements InformativeRule
 {

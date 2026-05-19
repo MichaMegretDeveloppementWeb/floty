@@ -18,30 +18,30 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
- * R-2026-004 · Qualification du type fiscal (M1 / N1).
+ * R-2026-004 - Fiscal type qualification (M1 / N1).
  *
- * **Règle pipeline (Classification)** · l'article CIBS L. 421-2 est
- * stable sur toute l'année 2026 (version en vigueur depuis le 01/03/2025
- * par LF 2025 art. 28 et art. 75, sans modification par LF 2026 ni par
- * Ordo 2025-1247). **Une seule version 2026** · contrairement à 2025 qui
- * avait R-2025-004 (01/01-28/02) et R-2025-004-bis (01/03-31/12), 2026
- * n'a qu'une règle annuelle (pas de scission ADR-0022).
+ * Pipeline rule (Classification). CIBS L. 421-2 is stable over all of
+ * 2026 (in force since 01/03/2025 by LF 2025 art. 28 and art. 75,
+ * unmodified by LF 2026 or Ordo 2025-1247). Single 2026 version:
+ * unlike 2025 which had R-2025-004 (01/01-28/02) and
+ * R-2025-004-bis (01/03-31/12), 2026 has a single annual rule (no
+ * ADR-0022 split).
  *
- * **Cascade applicative inchangée vs R-2025-004-bis** ·
- * - M1 sans usage spécial · taxable
- * - N1 pick-up ≥ 5 places sans usage skiable · taxable
- * - N1 camionnette à 2 rangs amovible affectée transport de personnes · taxable
- * - Sinon · non taxable (court-circuit)
+ * Applicative cascade unchanged vs R-2025-004-bis:
+ * - M1 without special use: taxable
+ * - N1 pick-up ≥ 5 seats without ski-lift use: taxable
+ * - N1 van with removable 2nd-row seat assigned to passenger
+ *   transport: taxable
+ * - Otherwise: not taxable (short-circuit)
  *
- * **Complément CIBS L. 421-97** · véhicules en circulation pour les seuls
- * besoins de leur construction/commercialisation/réparation/contrôle
- * technique (régime W garage) sont réputés non affectés à des fins
- * économiques. Hors flotte Floty par construction. Article stable depuis
- * 01/01/2025.
+ * CIBS L. 421-97 complement: vehicles authorised to circulate solely
+ * for their construction/commercialisation/repair/technical inspection
+ * (W garage regime) are deemed not assigned to economic purposes.
+ * Out of Floty fleet scope by design. Article stable since 01/01/2025.
  *
- * **Base légale** · audit Chrome live 15/05/2026 ·
- * - CIBS L. 421-2 · version 01/03/2025 → en vigueur (LF 2025 art. 28).
- * - CIBS L. 421-97 · version 01/01/2025 → en vigueur.
+ * Legal basis:
+ * - CIBS L. 421-2: version 01/03/2025 in force (LF 2025 art. 28).
+ * - CIBS L. 421-97: version 01/01/2025 in force.
  */
 final readonly class R2026_004_FiscalTypeQualification implements ClassificationRule
 {

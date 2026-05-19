@@ -14,18 +14,16 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-007 · Historisation des caractéristiques véhicule.
+ * R-2026-007 - Vehicle characteristics historisation.
  *
- * **Règle documentaire-only** · reconduction stricte de R-2025-007.
- * À chaque jour d'affectation, la version effective des caractéristiques
- * fiscales du véhicule à cette date est utilisée pour le calcul.
- * C'est l'exécuteur segmenté (`FiscalSegmentedExecutor`) qui matérialise
- * cette doctrine en découpant le pipeline par sous-période de VFC effective
- * (ADR-0021).
+ * Documentation-only rule, strict reproduction of R-2025-007. For each
+ * assignment day, the version of vehicle fiscal characteristics
+ * effective at that date is used for the calculation. The segmented
+ * executor (`FiscalSegmentedExecutor`) materialises this doctrine by
+ * splitting the pipeline by VFC-effective sub-period (ADR-0021).
  *
- * **Audit Chrome live 15/05/2026** · CIBS L. 421-164 stable depuis
- * LF 2025 art. 28 (effet 01/03/2025) · non modifié par LF 2026 ni
- * Ordo 2025-1247.
+ * CIBS L. 421-164 stable since LF 2025 art. 28 (effective 01/03/2025),
+ * not modified by LF 2026 nor Ordo 2025-1247.
  */
 final readonly class R2026_007_VehicleCharacteristicsHistorization implements InformativeRule
 {

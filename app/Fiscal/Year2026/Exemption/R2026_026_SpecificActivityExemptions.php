@@ -15,27 +15,23 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-026 · Exonérations propres à certaines activités économiques ·
- * reconduction stricte 2025 · INACTIVE par défaut.
+ * R-2026-026 - Exemptions specific to certain economic activities,
+ * strict reproduction of R-2025-026, INACTIVE by default.
  *
- * Regroupe trois exonérations CIBS (et leurs miroirs polluants à texte
- * identique) ·
- *   - Transport public de personnes · L. 421-130 (CO₂) / L. 421-142 (polluants)
- *   - Activités agricoles ou forestières · L. 421-131 / L. 421-143
- *     (soumise au plafond de minimis européen)
- *   - Enseignement de la conduite ou du pilotage + compétitions sportives ·
+ * Groups three CIBS exemptions (and their pollutant mirrors with
+ * identical text):
+ *   - Public passenger transport: L. 421-130 (CO₂) / L. 421-142 (pollutants)
+ *   - Agricultural or forestry activities: L. 421-131 / L. 421-143
+ *     (subject to the European de minimis ceiling)
+ *   - Driving / piloting instruction + sports competitions:
  *     L. 421-132 / L. 421-144
  *
- * **Stabilité 2026** · les 6 articles (L. 421-130/131/132 CO₂ et leurs
- * miroirs polluants L. 421-142/143/144) sont stables depuis 01/01/2022.
- * Audit Chrome live 15/05/2026 confirme · non touchés par Ordo 2025-1247
- * (vérifié explicitement pour L. 421-130, 131, 132, 142). Les 3 articles
- * miroirs polluants restants (L. 421-136, 139, 143, 144 non encore
- * audités spécifiquement au 01/09/2026) sont supposés stables · règles
- * inactives Floty V1, audit complémentaire prévu en Z3 audit URLs.
+ * 2026 stability: the 6 articles (L. 421-130/131/132 CO₂ and their
+ * pollutant mirrors L. 421-142/143/144) are stable since 01/01/2022
+ * and not touched by Ordo 2025-1247.
  *
- * **INACTIVE par défaut V1** · aucune entreprise utilisatrice Floty
- * actuelle n'exerce ces activités.
+ * Inactive by default in V1: no current Floty user company performs
+ * these activities.
  */
 final readonly class R2026_026_SpecificActivityExemptions implements ExemptionRule
 {

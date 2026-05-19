@@ -14,16 +14,16 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-006 · Bascule sur barème PA (CO₂ manquant).
+ * R-2026-006 - PA scale fallback (CO₂ missing).
  *
- * **Règle documentaire-only** · reconduction stricte de R-2025-006.
- * Doctrine de fallback fiscale · si la donnée d'émissions CO₂ est
- * manquante sur la VFC, le barème Puissance Administrative (PA) est
- * appliqué à la place du barème WLTP/NEDC. La sélection effective de
- * méthode est faite par {@see App\Fiscal\Year2026\Classification\R2026_005_Co2MethodSelection}.
+ * Documentation-only rule, strict reproduction of R-2025-006. Fiscal
+ * fallback doctrine: when CO₂ emissions data is missing on the VFC,
+ * the Puissance Administrative (PA) scale is applied instead of the
+ * WLTP/NEDC scale. Effective method selection is performed by
+ * {@see App\Fiscal\Year2026\Classification\R2026_005_Co2MethodSelection}.
  *
- * **Audit Chrome live 15/05/2026** · CIBS L. 421-119-1 inchangé
- * (ni LF 2026 ni Ordo 2025-1247 ne touchent cet article).
+ * CIBS L. 421-119-1 unchanged (neither LF 2026 nor Ordo 2025-1247
+ * touch this article).
  */
 final readonly class R2026_006_PaFallback implements InformativeRule
 {

@@ -13,34 +13,26 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-029 · Malus CO₂ à l'immatriculation · **version 01/01 →
- * 31/08/2026** (paramètres LF 2024 art. 97-20°).
+ * R-2026-029 - Registration CO₂ malus, version 01/01 → 31/08/2026
+ * (LF 2024 art. 97-20° parameters).
  *
- * **Règle fiscale hors périmètre de l'application** · taxe ponctuelle
- * payée à l'immatriculation par le titulaire du certificat
- * d'immatriculation (= bailleur dans le modèle de flotte partagée).
- * L'application ne calcule pas cette taxe (documentée pour exhaustivité
- * du panorama fiscal véhicules).
+ * Out-of-scope fiscal rule: one-shot tax paid at registration by the
+ * holder of the registration certificate (= renter in the shared-fleet
+ * model). Floty does not compute this tax.
  *
- * **Paramètres 2026 (durcissement programmé LF 2024 art. 97-20°)** ·
- * - Seuil de déclenchement · **108 g CO₂/km** (vs 113 en 2025, -5 g)
- * - Plafond · **80 000 €** (vs 70 000 en 2025, +10K€)
- * - Suppression plafonnement 50 % maintenue depuis LF 2025
+ * 2026 parameters (programmed hardening, LF 2024 art. 97-20°):
+ * - Trigger threshold: 108 g CO₂/km (vs 113 in 2025, -5 g)
+ * - Cap: 80 000 € (vs 70 000 in 2025, +10K€)
+ * - Removal of 50% cap maintained since LF 2025
  *
- * **Scission ADR-0022 vs R-2026-029-bis** · L'article L. 421-62 est
- * modifié par l'Ordonnance n° 2025-1247 du 17/12/2025 art. 4 (effet
- * 01/09/2026 par art. 49). Le toilettage est **purement rédactionnel** ·
- * les barèmes 2026 sont **identiques** entre v 01/01-31/08 et v 01/09 ·
- * la scission est imposée par ADR-0022 strict (une version légale =
- * une classe PHP), pas par un changement matériel.
+ * ADR-0022 split vs R-2026-029-bis: L. 421-62 modified by Ordonnance
+ * n° 2025-1247 du 17/12/2025 art. 4 (effective 01/09/2026 by art. 49).
+ * The cleanup is purely editorial: 2026 scales are identical between
+ * v 01/01-31/08 and v 01/09. The split is mandated by strict ADR-0022
+ * (one legal version = one PHP class), not by a material change.
  *
- * **Audit Chrome live 15/05/2026** · L. 421-62 v 01/03/2025-01/09/2026
- * (URL section LEGISCTA000044598969/2026-01-01) confirmé · expose
- * barèmes 2026 (seuil 108, plafond 80K€) et 2027 (seuil 103, plafond
- * 90K€). « Modifié par LOI n°2025-127 du 14 février 2025 - art. 27 ».
- *
- * Marquée inactive · règle fiscale réelle mais hors périmètre de calcul
- * de l'application (grisée dans la page Règles de calcul).
+ * Marked inactive: real fiscal rule but out of Floty calculation
+ * scope (greyed out in the rules page).
  */
 final readonly class R2026_029_RegistrationCo2Malus implements InformativeRule
 {

@@ -13,36 +13,27 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-029-bis · Malus CO₂ à l'immatriculation · **version 01/09 →
- * 31/12/2026** (toilettage rédactionnel Ordo 2025-1247 art. 4).
+ * R-2026-029-bis - Registration CO₂ malus, version 01/09 → 31/12/2026
+ * (editorial cleanup, Ordo 2025-1247 art. 4).
  *
- * **Règle fiscale hors périmètre de l'application** · pendant de
- * {@see R2026_029_RegistrationCo2Malus} qui couvre 01/01-31/08/2026.
+ * Out-of-scope fiscal rule, counterpart to
+ * {@see R2026_029_RegistrationCo2Malus} which covers 01/01-31/08/2026.
  *
- * **Scission ADR-0022 strict · toilettage RÉDACTIONNEL** ·
- * - L'article L. 421-62 a été modifié par l'Ordonnance n° 2025-1247 du
- *   17/12/2025 art. 4 (effet 01/09/2026 par art. 49).
- * - Les **barèmes 2026 et 2027 sont identiques** entre v 01/01-31/08
- *   et v 01/09 (seuil 108 g, plafond 80 000 € pour 2026 · seuil 103 g,
- *   plafond 90 000 € pour 2027).
- * - La scission est imposée par ADR-0022 strict (une version légale =
- *   une classe PHP), pas par un changement matériel.
+ * Strict ADR-0022 split, editorial cleanup:
+ * - L. 421-62 modified by Ordonnance n° 2025-1247 du 17/12/2025
+ *   art. 4 (effective 01/09/2026 by art. 49).
+ * - 2026 and 2027 scales are identical between v 01/01-31/08 and
+ *   v 01/09 (threshold 108 g, cap 80 000 € for 2026; threshold 103 g,
+ *   cap 90 000 € for 2027).
+ * - The split is mandated by strict ADR-0022 (one legal version =
+ *   one PHP class), not by a material change.
  *
- * **Cohérence vs autres scissions Ordo 2025-1247** · le toilettage du
- * 01/09/2026 touche aussi L. 421-126 (R-2026-018/018-bis OIG CO₂),
- * L. 421-134 (R-2026-013/013-bis catégorisation polluants) et
- * L. 421-138 (R-2026-018/018-bis OIG polluants) selon le bilan Z0.
- * R-2026-029-bis est la 4e scission rédactionnelle Ordo 2025-1247
- * identifiée dans le périmètre fiscalité véhicules.
+ * The 01/09/2026 cleanup also affects L. 421-126 (R-2026-018/018-bis
+ * CO₂ OIG), L. 421-134 (R-2026-013/013-bis pollutants categorisation)
+ * and L. 421-138 (R-2026-018/018-bis pollutants OIG).
  *
- * **Audit Chrome live 15/05/2026** · L. 421-62 v 01/09/2026
- * (URL section LEGISCTA000044598969/2026-09-01) confirmé · « Version
- * en vigueur à partir du 01/09/2026 » « Modifié par Ordonnance
- * n°2025-1247 du 17 décembre 2025 - art. 4 ». Barèmes 2026 et 2027
- * strictement identiques à v 01/01-31/08/2026.
- *
- * **Marquée inactive** · règle fiscale réelle mais hors périmètre de
- * calcul de l'application (grisée dans la page Règles de calcul).
+ * Marked inactive: real fiscal rule but out of Floty calculation
+ * scope (greyed out in the rules page).
  */
 final readonly class R2026_029bis_RegistrationCo2Malus implements InformativeRule
 {

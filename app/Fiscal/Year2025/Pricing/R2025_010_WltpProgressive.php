@@ -20,24 +20,25 @@ use App\Fiscal\ValueObjects\ProgressiveScale;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-010 · Barème CO₂ WLTP 2025 · ⚠️ DURCISSEMENT MAJEUR vs 2024
- * (CIBS art. L. 421-120 version 01/01/2025, modifiée par LF 2024 art. 97, 19°).
+ * R-2025-010 - 2025 CO₂ WLTP scale, MAJOR HARDENING vs 2024 (CIBS
+ * art. L. 421-120 version 01/01/2025, modified by LF 2024 art. 97, 19°).
  *
- * Tarif progressif par tranches à tarif marginal sur les émissions CO₂
- * WLTP (g/km). **9 tranches**, dernière ouverte (≥ 171 g/km). Tous les
- * seuils ont été abaissés et certains tarifs marginaux relevés vs 2024.
+ * Progressive bracket-based tariff with marginal rate on WLTP CO₂
+ * emissions (g/km). 9 brackets, last one open (≥ 171 g/km). All
+ * thresholds lowered and some marginal rates raised vs 2024.
  *
- * **Différences clés vs R-2024-010** :
- * - 1re tranche couvre jusqu'à 9 g/km (vs 14 en 2024).
- * - Bornes intermédiaires durcies (50/58/90/110/130/150/170 vs 55/63/95/115/135/155/175).
- * - Dernière tranche commence à 171 g/km (vs 176 en 2024).
- * - WLTP 100 g/km = 193 € en 2025 (vs 173 € en 2024, +11,6 %).
+ * Key differences vs R-2024-010:
+ * - 1st bracket covers up to 9 g/km (vs 14 in 2024).
+ * - Intermediate bounds hardened (50/58/90/110/130/150/170 vs
+ *   55/63/95/115/135/155/175).
+ * - Last bracket starts at 171 g/km (vs 176 in 2024).
+ * - WLTP 100 g/km = 193 € in 2025 (vs 173 € in 2024, +11.6%).
  *
- * S'exécute uniquement si la méthode CO₂ résolue par
- * {@see R2025_005_Co2MethodSelection} est WLTP. Sinon no-op.
+ * Only runs if the CO₂ method resolved by
+ * {@see R2025_005_Co2MethodSelection} is WLTP. No-op otherwise.
  *
- * Audit Chrome live · Légifrance LEGIARTI000048886183 + BOFiP
- * BOI-AIS-MOB-10-30-20-20250528 (exemple chiffré 100 g/km = 193 €).
+ * Sources: Légifrance LEGIARTI000048886183 + BOFiP
+ * BOI-AIS-MOB-10-30-20-20250528 (numerical example 100 g/km = 193 €).
  */
 final readonly class R2025_010_WltpProgressive implements PricingRule
 {
@@ -48,9 +49,9 @@ final readonly class R2025_010_WltpProgressive implements PricingRule
 
     public function __construct()
     {
-        // Barème WLTP 2025 durci (LF 2024 art. 97, 19°). Sémantique
-        // BracketRange : (lowerExclusive, upperInclusive], cohérente
-        // avec R-2024-010.
+        // Hardened 2025 WLTP scale (LF 2024 art. 97, 19°). BracketRange
+        // semantics: (lowerExclusive, upperInclusive], consistent with
+        // R-2024-010.
         $this->scale = new ProgressiveScale([
             new BracketRange(0, 9, 0.0),
             new BracketRange(9, 50, 1.0),

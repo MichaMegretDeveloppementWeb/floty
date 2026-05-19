@@ -16,12 +16,13 @@ use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-015 · Exonération handicap (CIBS L. 421-123 / L. 421-136) ·
- * reconduction stricte R-2024-015 (texte inchangé en 2025).
+ * R-2025-015 - Disability access exemption (CIBS L. 421-123 /
+ * L. 421-136), strict reproduction of R-2024-015 (text unchanged in
+ * 2025).
  *
- * Véhicules accessibles en fauteuil roulant : exonération **totale**
- * des deux taxes ET les tarifs annuels pleins sont zéroïsés dans le
- * breakdown (sémantique `fullZeroingTariffs` préservée).
+ * Wheelchair-accessible vehicles: TOTAL exemption from both taxes AND
+ * the full annual tariffs are zeroed in the breakdown
+ * (`fullZeroingTariffs` semantics preserved).
  */
 final readonly class R2025_015_HandicapAccess implements ExemptionRule
 {

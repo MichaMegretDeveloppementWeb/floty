@@ -14,25 +14,22 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2026-020 · Exonération loueur · redevable = entreprise utilisatrice.
+ * R-2026-020 - Renter exemption: taxpayer = user company.
  *
- * **Règle documentaire-only** · reconduction stricte de R-2025-020.
- * Le loueur (entreprise qui détient des véhicules pour les louer ou
- * les mettre à disposition de ses clients) n'est pas redevable de la
- * taxe · ce sont les entreprises utilisatrices qui le sont.
+ * Documentation-only rule, strict reproduction of R-2025-020. The
+ * renter (company that holds vehicles to rent them out or make them
+ * available to its clients) is not the taxpayer; the user companies
+ * are.
  *
- * **Couple d'articles miroirs** (texte identique mot pour mot) ·
- * - **L. 421-128** (taxe CO₂) · LEGIARTI000044602959
- * - **L. 421-140** (taxe polluants) · LEGIARTI000044602921
+ * Mirror article pair (identical text word for word):
+ * - L. 421-128 (CO₂ tax): LEGIARTI000044602959
+ * - L. 421-140 (pollutants tax): LEGIARTI000044602921
  *
- * **Bug fix verrouillé** · l'URL L. 421-140 doit pointer
- * `LEGIARTI000044602921` (et non `LEGIARTI000044602919` qui désigne
- * L. 421-141 sur le LCD). L'inversion historique a été corrigée en
- * pré-2026 par audit Chrome live et le bon mapping est verrouillé pour
- * les années suivantes.
+ * Locked URL: L. 421-140 must point to LEGIARTI000044602921 (not
+ * LEGIARTI000044602919, which designates L. 421-141 on LCD).
  *
- * **Audit Chrome live 15/05/2026** · L. 421-128 et L. 421-140 inchangés
- * depuis 01/01/2022 · non modifiés par LF 2026 ni Ordo 2025-1247.
+ * L. 421-128 and L. 421-140 unchanged since 01/01/2022, not modified
+ * by LF 2026 or Ordo 2025-1247.
  */
 final readonly class R2026_020_RenterExemption implements InformativeRule
 {

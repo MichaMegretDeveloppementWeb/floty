@@ -13,27 +13,22 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-031 · Taxes liées au certificat d'immatriculation · **version
- * 01/01 → 28/02/2026** (régime stabilisé LF 2025).
+ * R-2026-031 - Registration certificate taxes, version 01/01 →
+ * 28/02/2026 (LF 2025 stabilised regime).
  *
- * **Règle fiscale hors périmètre de l'application** · trois taxes
- * ponctuelles acquittées à l'établissement d'une carte grise · taxe
- * régionale Y1 (CIBS L. 421-41 à L. 421-54), taxe Y2 (L. 421-55 à
- * L. 421-57, formation transport), taxe fixe Y4 (L. 421-49, 11 €).
+ * Out-of-scope fiscal rule: three one-shot taxes paid when a
+ * registration certificate is issued: regional tax Y1 (CIBS L. 421-41
+ * to L. 421-54), tax Y2 (L. 421-55 to L. 421-57, transport training),
+ * fixed tax Y4 (L. 421-49, 11 €).
  *
- * **Période 01/01-28/02/2026** · régime hérité de R-2025-031-bis
- * (exonération régionale Y1 facultative pour VE/H₂, paramètres LF 2025
- * art. 30). La période 01/03-31/12/2026 (création de L. 421-54-1 par
- * LF 2026 art. 60 · majoration IDF jusqu'à +13 €) est portée par
+ * 01/01-28/02/2026: regime inherited from R-2025-031-bis (optional
+ * regional Y1 exemption for EV/H₂, LF 2025 art. 30 parameters). The
+ * period 01/03-31/12/2026 (creation of L. 421-54-1 by LF 2026 art. 60,
+ * IDF surcharge up to +13 €) is carried by
  * {@see R2026_031bis_RegistrationCardTaxes}.
  *
- * **Audit Chrome live 15/05/2026** · section LEGISCTA000044599003
- * v 2026-01-01 confirmée stable. L. 421-43 « En vigueur depuis le
- * 01/01/2022 ». Aucun article L. 421-54-1 visible dans cette version.
- *
- * **Marquée inactive** · règle fiscale réelle mais hors périmètre de
- * calcul de l'application (le bailleur paie, pas l'entreprise
- * utilisatrice).
+ * Marked inactive: real fiscal rule but out of Floty calculation
+ * scope (renter pays, not the user company).
  */
 final readonly class R2026_031_RegistrationCardTaxes implements InformativeRule
 {

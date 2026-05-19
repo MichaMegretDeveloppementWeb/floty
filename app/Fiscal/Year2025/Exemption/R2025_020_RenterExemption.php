@@ -14,14 +14,13 @@ use App\Fiscal\Contracts\InformativeRule;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 
 /**
- * R-2025-020 · Exonération loueur · redevable = entreprise utilisatrice.
+ * R-2025-020 - Renter exemption: taxpayer = user company.
  *
- * **Règle documentaire-only** · reconduction stricte de R-2024-020.
- * Le loueur (entreprise qui détient des véhicules pour les louer ou
- * les mettre à disposition de ses clients) n'est pas redevable de la
- * taxe · ce sont les entreprises utilisatrices qui le sont. Texte
- * CIBS L. 421-128 inchangé depuis 01/01/2022 (miroir L. 421-140
- * identique).
+ * Documentation-only rule, strict reproduction of R-2024-020. The
+ * renter (company that holds vehicles to rent them out or make them
+ * available to its clients) is not the taxpayer; the user companies
+ * are. CIBS L. 421-128 text unchanged since 01/01/2022 (mirror
+ * L. 421-140 identical).
  */
 final readonly class R2025_020_RenterExemption implements InformativeRule
 {

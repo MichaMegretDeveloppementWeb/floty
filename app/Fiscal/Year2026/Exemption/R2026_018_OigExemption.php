@@ -15,24 +15,23 @@ use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use Carbon\CarbonImmutable;
 
 /**
- * R-2026-018 · Exonération « certaines formes d'exploitation » OIG ·
- * **version 01/01 → 31/08/2026** (avant Ordo 2025-1247 art. 4).
+ * R-2026-018 - "Certain forms of operation" OIG exemption, version
+ * 01/01 → 31/08/2026 (before Ordo 2025-1247 art. 4).
  *
- * **Règle pipeline (Exemption) INACTIVE par défaut** · ADR-0022 ·
- * pendant de {@see R2026_018bis_OigExemption} qui couvre 01/09-31/12.
- * Texte L. 421-126 réécrit par Ordonnance n° 2025-1247 du 17/12/2025
- * art. 4 à effet du 01/09/2026 · la référence à l'art. 261 du CGI est
- * remplacée par une référence aux articles L. 213-104 à L. 213-120 du
- * CIBS (refonte du droit codifié · recodification TVA).
+ * Pipeline rule (Exemption) INACTIVE by default. ADR-0022:
+ * counterpart to {@see R2026_018bis_OigExemption} which covers
+ * 01/09-31/12. L. 421-126 rewritten by Ordonnance n° 2025-1247 du
+ * 17/12/2025 art. 4 effective 01/09/2026: the reference to CGI
+ * art. 261 is replaced by a reference to articles L. 213-104 to
+ * L. 213-120 CIBS (codified law overhaul, VAT recodification).
  *
- * **Mécanique** · si l'entreprise utilisatrice est un OIG au sens
- * CGI art. 261, 7° (association loi 1901, fondation, etc.) ET que le
- * véhicule est exclusivement affecté à son activité non lucrative,
- * l'exonération s'applique sur les deux taxes (CO₂ via L. 421-126 et
- * polluants via L. 421-138 miroir).
+ * Mechanics: if the user company is an OIG within the meaning of CGI
+ * art. 261, 7° (association loi 1901, foundation, etc.) AND the
+ * vehicle is exclusively assigned to its non-profit activity, the
+ * exemption applies to both taxes (CO₂ via L. 421-126 and pollutants
+ * via the L. 421-138 mirror).
  *
- * **Inactif par défaut V1** · aucune entreprise utilisatrice Floty
- * actuelle n'est OIG.
+ * Inactive by default in V1: no current Floty user company is OIG.
  */
 final readonly class R2026_018_OigExemption implements ExemptionRule
 {

@@ -47,28 +47,23 @@ use App\Fiscal\Year2025\Transversal\R2025_033_FleetGreeningIncentiveTax;
 use App\Providers\FiscalServiceProvider;
 
 /**
- * Catalogue des règles fiscales 2025 (cf. `taxes-rules/2025.md`).
+ * 2025 fiscal rules catalogue (see `taxes-rules/2025.md`).
  *
- * Référencée par `config('floty.fiscal.year_boots')` et instanciée par
- * {@see FiscalServiceProvider} au boot.
+ * Referenced by `config('floty.fiscal.year_boots')` and instantiated by
+ * {@see FiscalServiceProvider} at boot time.
  *
- * **Changements majeurs vs 2024** :
- * - Dénominateur prorata = 365 (2025 non bissextile, vs 366 en 2024).
- * - Barèmes WLTP/NEDC/PA durcis par LF 2024 art. 97, 19° au 01/01/2025.
- * - Exonération hybride conditionnelle R-2024-017 supprimée au 01/01/2025.
- * - Nouveauté · abattement E85 R-2025-023 (CIBS L. 421-125 réformé).
- * - **Scission ADR-0022 strict** · 3 règles ont 2 versions en 2025 suite
- *   à LF 2025 art. 28 (effet 01/03/2025) · R-2025-001/001-bis (redevable),
- *   R-2025-004/004-bis (M1/N1), R-2025-028/028-bis (déclaration). Chaque
- *   période légale = sa propre classe PHP avec applicabilityStart/End.
+ * Major changes vs 2024:
+ * - Daily prorata denominator = 365 (non-leap year, vs 366 in 2024).
+ * - WLTP/NEDC/PA scales hardened by LF 2024 art. 97, 19° at 01/01/2025.
+ * - Conditional hybrid exemption R-2024-017 removed at 01/01/2025.
+ * - New: E85 abatement R-2025-023 (CIBS L. 421-125 reformed).
+ * - ADR-0022 strict split: 3 rules have 2 versions in 2025 following
+ *   LF 2025 art. 28 (effective 01/03/2025): R-2025-001/001-bis (taxpayer),
+ *   R-2025-004/004-bis (M1/N1), R-2025-028/028-bis (declaration). Each
+ *   legal period = its own PHP class with applicabilityStart/End.
  *
- * **Isolation stricte** · aucune classe `App\Fiscal\Year2024\*` n'est
- * référencée ni utilisée dans le pipeline 2025 (cf. ADR-0022 et la
- * section « Garantie de conformité fiscale 2025 » de
- * `taxes-rules/2025.md`).
- *
- * Pour modifier le périmètre des règles 2025 (ajout, retrait, réordonnance),
- * éditer la liste {@see rules()} ci-dessous · sans toucher au provider.
+ * Strict isolation: no `App\Fiscal\Year2024\*` class is referenced nor
+ * used in the 2025 pipeline (ADR-0022 and the 2025 conformity report).
  */
 final class Year2025Boot implements FiscalYearBoot
 {
@@ -82,16 +77,15 @@ final class Year2025Boot implements FiscalYearBoot
      */
     public function rules(): array
     {
-        // 4 Classification (incl. R-2025-004-bis suite scission ADR-0022) +
-        // 7 Exemption + 4 Pricing + 1 Abatement + 3 Transversal = 19 classes.
+        // 4 Classification + 7 Exemption + 4 Pricing + 1 Abatement + 3 Transversal = 19 classes.
         return [
-            // Classification (4 · R-2025-004 scindée en 2 versions
-            // ADR-0022 · L. 421-2 modifié 01/03/2025 par LF 2025 art. 28).
+            // Classification (R-2025-004 split into 2 versions, ADR-0022,
+            // L. 421-2 modified 01/03/2025 by LF 2025 art. 28).
             R2025_004_FiscalTypeQualification::class, // 01/01-28/02
             R2025_004bis_FiscalTypeQualification::class, // 01/03-31/12
             R2025_005_Co2MethodSelection::class,
             R2025_013_PollutantCategoryAssignment::class,
-            // Exemption (7 · R-2025-017 hybride supprimée vs 2024)
+            // Exemption (R-2025-017 hybrid removed vs 2024).
             R2025_008_ReductiveUnavailability::class,
             R2025_015_HandicapAccess::class,
             R2025_016_ElectricHydrogen::class,
@@ -99,15 +93,15 @@ final class Year2025Boot implements FiscalYearBoot
             R2025_019_IndividualBusinessExemption::class,
             R2025_021_ShortTermRental::class,
             R2025_026_SpecificActivityExemptions::class,
-            // Pricing CO₂ (durcissement majeur 2025)
+            // Pricing CO₂ (major hardening 2025).
             R2025_010_WltpProgressive::class,
             R2025_011_NedcProgressive::class,
             R2025_012_PaProgressive::class,
-            // Pricing polluants (identique 2024)
+            // Pricing pollutants (identical to 2024).
             R2025_014_PollutantsFlat::class,
-            // Abatement (nouveauté 2025 · E85)
+            // Abatement (new in 2025: E85).
             R2025_023_E85Abatement::class,
-            // Transversal (3)
+            // Transversal.
             R2025_002_DailyProrata::class,
             R2025_003_FinalRounding::class,
             R2025_027_MileageReimbursementCoefficient::class,
@@ -115,33 +109,17 @@ final class Year2025Boot implements FiscalYearBoot
     }
 
     /**
-     * Règles documentaires-only seedées dans `fiscal_rules` pour
-     * alimenter la page « Règles de calcul » mais qui ne participent
-     * **pas** au pipeline de calcul (cf. {@see InformativeRule}).
-     *
-     * **Composition 16 classes 2025** · 7 reconduites de 2024 (cadre
-     * architectural et garde-fous) + 7 ajouts du chantier 14/05/2026
-     * (moyenne pondérée + modalités déclaratives + 5 taxes connexes
-     * hors périmètre Floty, dont la **TAI nouveauté 2025**) + 2 bis
-     * issues de la scission ADR-0022 (R-2025-001-bis et R-2025-028-bis,
-     * versions modifiées par LF 2025 art. 28 à effet 01/03/2025).
-     *
-     * **Spécificités 2025 vs 2024** :
-     * - R-2024-023 (abattement vide) disparaît · slot remplacé en
-     *   pipeline par R-2025-023 (E85 actif).
-     * - R-2025-029 (malus CO₂) durci au 01/03/2025.
-     * - R-2025-031 (taxes carte grise) · évolution 01/05/2025.
-     * - R-2025-033 (TAI verdissement flottes) · nouveauté 2025 sans
-     *   équivalent 2024.
-     * - Scission ADR-0022 · R-2025-001/001-bis, R-2025-028/028-bis.
+     * Documentation-only rules seeded into `fiscal_rules` to feed the
+     * "Règles de calcul" page but which do NOT participate in the
+     * calculation pipeline (see {@see InformativeRule}).
      *
      * @return list<class-string<InformativeRule>>
      */
     public function informativeRules(): array
     {
         return [
-            // R-2025-001 scindée par ADR-0022 (L. 421-95 + L. 421-98
-            // modifiés au 01/03/2025).
+            // R-2025-001 split by ADR-0022 (L. 421-95 + L. 421-98
+            // modified on 01/03/2025).
             R2025_001_TaxpayerAndTriggeringEvent::class, // 01/01-28/02
             R2025_001bis_TaxpayerAndTriggeringEvent::class, // 01/03-31/12
             R2025_006_PaFallback::class,
@@ -150,23 +128,22 @@ final class Year2025Boot implements FiscalYearBoot
             R2025_020_RenterExemption::class,
             R2025_022_ContractualPeriodVsEffectiveUsage::class,
             R2025_024_CritAirGuard::class,
-            // Ajouts audit exhaustif 14/05/2026
             R2025_025_WeightedAverageTariff::class,
-            // R-2025-028 scindée par ADR-0022 (L. 421-159 + L. 421-164
-            // modifiés au 01/03/2025).
+            // R-2025-028 split by ADR-0022 (L. 421-159 + L. 421-164
+            // modified on 01/03/2025).
             R2025_028_DeclarationModalities::class, // 01/01-28/02
             R2025_028bis_DeclarationModalities::class, // 01/03-31/12
-            // R-2025-029 scindée par ADR-0022 (durcissement 01/03/2025 ·
-            // seuil 118→113 g, plafond 60K→70K€, suppression plafonnement 50%).
+            // R-2025-029 split by ADR-0022 (hardening 01/03/2025:
+            // threshold 118→113 g, cap 60K→70K€, removal of 50% ceiling).
             R2025_029_RegistrationCo2Malus::class, // 01/01-28/02
             R2025_029bis_RegistrationCo2Malus::class, // 01/03-31/12
             R2025_030_RegistrationWeightMalus::class,
-            // R-2025-031 scindée par ADR-0022 (évolution 01/05/2025 ·
-            // exonération Y1 régionale facultative pour VE/H₂).
+            // R-2025-031 split by ADR-0022 (evolution 01/05/2025:
+            // optional regional Y1 exemption for EV/H₂).
             R2025_031_RegistrationCardTaxes::class, // 01/01-30/04
             R2025_031bis_RegistrationCardTaxes::class, // 01/05-31/12
             R2025_032_HeavyVehiclesTax::class,
-            // Nouveauté 2025 · pas d'équivalent 2024
+            // New in 2025: no 2024 equivalent.
             R2025_033_FleetGreeningIncentiveTax::class,
         ];
     }
