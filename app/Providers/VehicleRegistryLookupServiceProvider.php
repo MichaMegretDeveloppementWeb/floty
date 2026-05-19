@@ -5,18 +5,18 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\VehicleRegistryLookup\VehicleRegistryLookupInterface;
-use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupStrategyFactory;
+use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupManager;
 use Illuminate\Support\ServiceProvider;
 
 final class VehicleRegistryLookupServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(VehicleRegistryLookupStrategyFactory::class);
+        $this->app->singleton(VehicleRegistryLookupManager::class);
 
         $this->app->bind(
             VehicleRegistryLookupInterface::class,
-            fn ($app) => $app->make(VehicleRegistryLookupStrategyFactory::class)->make(),
+            fn ($app) => $app->make(VehicleRegistryLookupManager::class)->driver(),
         );
     }
 }

@@ -8,7 +8,6 @@ use App\Data\Auth\CurrentUserData;
 use App\Data\Shared\FlashData;
 use App\Data\Shared\ToastEntryData;
 use App\Data\User\Invoice\BulkInvoiceGenerationReportData;
-use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupStrategyFactory;
 use App\Support\Toasts\ToastDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -60,17 +59,7 @@ final class HandleInertiaRequests extends Middleware
             'flash' => fn (): FlashData => $this->buildFlashData($request),
 
             'bulkInvoiceReport' => fn (): ?BulkInvoiceGenerationReportData => $this->resolveBulkInvoiceReport($request),
-
-            'vehicleRegistryLookupEnabled' => fn (): bool => $this->resolveVehicleRegistryLookupEnabled(),
         ];
-    }
-
-    /**
-     * Resolve whether the vehicle registry lookup feature is currently usable.
-     */
-    private function resolveVehicleRegistryLookupEnabled(): bool
-    {
-        return app(VehicleRegistryLookupStrategyFactory::class)->isAvailable();
     }
 
     /**

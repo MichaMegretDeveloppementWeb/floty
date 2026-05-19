@@ -11,7 +11,12 @@ use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Foundation\Application;
 
-final readonly class VehicleRegistryLookupStrategyFactory
+/**
+ * Driver-Manager for the vehicle registry lookup feature, mirroring
+ * Laravel's MailManager / CacheManager / FilesystemManager pattern.
+ * A single driver is active per installation, selected via config.
+ */
+final readonly class VehicleRegistryLookupManager
 {
     public function __construct(
         private Container $container,
@@ -20,11 +25,11 @@ final readonly class VehicleRegistryLookupStrategyFactory
     ) {}
 
     /**
-     * Resolve the active strategy, or throw if none can be served.
+     * Resolve the active driver, or throw if none can be served.
      *
      * @throws RegistryLookupUnavailableException
      */
-    public function make(?RegistryLookupProvider $provider = null): VehicleRegistryLookupInterface
+    public function driver(?RegistryLookupProvider $provider = null): VehicleRegistryLookupInterface
     {
         if ($provider === null) {
             if (! $this->isEnabled()) {

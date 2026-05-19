@@ -30,6 +30,7 @@ use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Vehicle\VehicleAggregatesService;
 use App\Services\Vehicle\VehicleDetailService;
 use App\Services\Vehicle\VehicleListingService;
+use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupManager;
 use App\Support\EnumOptions;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
@@ -56,6 +57,7 @@ final class VehicleController extends Controller
         private readonly ExitVehicleAction $exitVehicle,
         private readonly ReactivateVehicleAction $reactivateVehicle,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly VehicleRegistryLookupManager $registryLookup,
     ) {}
 
     public function index(VehicleIndexQueryData $query): Response
@@ -259,6 +261,7 @@ final class VehicleController extends Controller
 
         return Inertia::render('User/Vehicles/Create/Index', [
             'options' => $this->buildFormOptions(),
+            'registryLookupEnabled' => $this->registryLookup->isAvailable(),
         ]);
     }
 

@@ -15,7 +15,7 @@ const props = defineProps<{
 
 const page = usePage();
 const registryLookupEnabled = computed(
-    () => (page.props as Record<string, unknown>).vehicleRegistryLookupEnabled === true,
+    () => (page.props as Record<string, unknown>).registryLookupEnabled === true,
 );
 
 const { loading: registryLookupLoading, lookup: registryLookup } =

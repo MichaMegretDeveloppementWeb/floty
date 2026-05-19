@@ -10,7 +10,7 @@ use App\Exceptions\VehicleRegistryLookup\RegistryLookupUnavailableException;
 use App\Exceptions\VehicleRegistryLookup\VehicleNotFoundException;
 use App\Http\Controllers\Controller;
 use App\Models\Vehicle;
-use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupStrategyFactory;
+use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -19,7 +19,7 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 final class VehicleRegistryLookupController extends Controller
 {
     public function __construct(
-        private readonly VehicleRegistryLookupStrategyFactory $factory,
+        private readonly VehicleRegistryLookupManager $registry,
     ) {}
 
     /**
@@ -29,7 +29,7 @@ final class VehicleRegistryLookupController extends Controller
     {
         Gate::authorize('create', Vehicle::class);
 
-        if (! $this->factory->isAvailable()) {
+        if (! $this->registry->isAvailable()) {
             return $this->jsonError(
                 RegistryLookupUnavailableException::featureDisabled(),
                 HttpResponse::HTTP_SERVICE_UNAVAILABLE,
@@ -42,8 +42,7 @@ final class VehicleRegistryLookupController extends Controller
         ]);
 
         try {
-            $strategy = $this->factory->make();
-            $result = $strategy->lookup($validated['license_plate']);
+            $result = $this->registry->driver()->lookup($validated['license_plate']);
         } catch (VehicleNotFoundException $e) {
             return $this->jsonError($e, HttpResponse::HTTP_NOT_FOUND, 'not_found');
         } catch (RegistryLookupTimeoutException $e) {
