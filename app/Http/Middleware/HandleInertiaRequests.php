@@ -8,6 +8,7 @@ use App\Data\Auth\CurrentUserData;
 use App\Data\Shared\FlashData;
 use App\Data\Shared\ToastEntryData;
 use App\Data\User\Invoice\BulkInvoiceGenerationReportData;
+use App\Strategies\VehicleRegistryLookup\VehicleRegistryLookupStrategyFactory;
 use App\Support\Toasts\ToastDispatcher;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -59,7 +60,23 @@ final class HandleInertiaRequests extends Middleware
             'flash' => fn (): FlashData => $this->buildFlashData($request),
 
             'bulkInvoiceReport' => fn (): ?BulkInvoiceGenerationReportData => $this->resolveBulkInvoiceReport($request),
+
+            // Pilote l'affichage du bouton « Pré-remplir depuis la
+            // carte grise » dans le formulaire véhicule. `false` tant
+            // qu'aucune strategy n'est implémentée (cas AAA Data avant
+            // signature contrat) · garantit qu'aucune entrée UI n'est
+            // exposée sans backend opérationnel.
+            'vehicleRegistryLookupEnabled' => fn (): bool => $this->resolveVehicleRegistryLookupEnabled(),
         ];
+    }
+
+    /**
+     * Disponibilité de la feature lookup véhicule par plaque. Délègue
+     * au triple verrou de {@see VehicleRegistryLookupStrategyFactory::isAvailable()}.
+     */
+    private function resolveVehicleRegistryLookupEnabled(): bool
+    {
+        return app(VehicleRegistryLookupStrategyFactory::class)->isAvailable();
     }
 
     /**

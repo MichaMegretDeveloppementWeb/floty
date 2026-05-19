@@ -8,6 +8,7 @@ use App\Providers\EventServiceProvider;
 use App\Providers\FiscalServiceProvider;
 use App\Providers\RepositoryServiceProvider;
 use App\Providers\TypeScriptTransformerServiceProvider;
+use App\Providers\VehicleRegistryLookupServiceProvider;
 
 return [
     AppServiceProvider::class,
@@ -16,4 +17,5 @@ return [
     RepositoryServiceProvider::class,
     FiscalServiceProvider::class,
     TypeScriptTransformerServiceProvider::class,
+    VehicleRegistryLookupServiceProvider::class,
 ];

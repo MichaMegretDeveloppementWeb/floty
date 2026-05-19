@@ -22,6 +22,7 @@ use App\Http\Controllers\User\Unavailability\UnavailabilityController;
 use App\Http\Controllers\User\Unavailability\UnavailabilityDocumentController;
 use App\Http\Controllers\User\Vehicle\VehicleController;
 use App\Http\Controllers\User\Vehicle\VehicleFiscalCharacteristicsController;
+use App\Http\Controllers\User\Vehicle\VehicleRegistryLookupController;
 use App\Http\Controllers\User\Vehicle\VehicleYearlyPricingController;
 use Illuminate\Support\Facades\Route;
 
@@ -78,6 +79,16 @@ Route::middleware('auth')
         Route::post('/vehicles', [VehicleController::class, 'store'])
             ->middleware('throttle:60,1')
             ->name('vehicles.store');
+        // Pré-remplissage du formulaire véhicule depuis la plaque ·
+        // appelle un provider tiers (cf. Strategy pattern dans
+        // app/Strategies/VehicleRegistryLookup). Le bouton est caché
+        // côté Vue tant qu'aucun provider implémenté n'est configuré
+        // (Inertia shared prop `vehicleRegistryLookupEnabled`) · le
+        // controller refuse explicitement le bypass via la même
+        // factory.
+        Route::post('/vehicles/registry-lookup', VehicleRegistryLookupController::class)
+            ->middleware('throttle:'.config('vehicle-registry.throttle', '20,1'))
+            ->name('vehicles.registry-lookup');
         Route::get('/vehicles/{vehicle}', [VehicleController::class, 'show'])
             ->whereNumber('vehicle')
             ->name('vehicles.show');

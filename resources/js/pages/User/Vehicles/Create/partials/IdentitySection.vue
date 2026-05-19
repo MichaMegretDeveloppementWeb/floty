@@ -1,13 +1,51 @@
 <script setup lang="ts">
 import type { InertiaForm } from '@inertiajs/vue3';
-import { IdCard } from 'lucide-vue-next';
+import { usePage } from '@inertiajs/vue3';
+import { IdCard, ScanLine } from 'lucide-vue-next';
+import { computed } from 'vue';
+import Button from '@/Components/Ui/Button/Button.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
+import { useVehicleRegistryLookup } from '@/Composables/Vehicle/Create/useVehicleRegistryLookup';
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 
-defineProps<{
+const props = defineProps<{
     form: InertiaForm<VehicleFormShape>;
 }>();
+
+/**
+ * Bouton « Pré-remplir depuis la carte grise » · n'apparaît que si
+ * le backend a déclaré une strategy active (cf. shared prop
+ * `vehicleRegistryLookupEnabled` exposée par `HandleInertiaRequests`).
+ * Garantit qu'aucune entrée UI n'est exposée tant qu'aucun provider
+ * réel n'est implémenté.
+ *
+ * Cast `Record<string, unknown>` aligné sur la convention projet pour
+ * les shared props non typées globalement (cf. `BulkInvoiceGenerationReportAlert.vue`).
+ */
+const page = usePage();
+const registryLookupEnabled = computed(
+    () => (page.props as Record<string, unknown>).vehicleRegistryLookupEnabled === true,
+);
+
+const { loading: registryLookupLoading, lookup: registryLookup } =
+    useVehicleRegistryLookup(props.form);
+
+const canTriggerLookup = computed(() => {
+    if (!registryLookupEnabled.value) {
+        return false;
+    }
+
+    return props.form.license_plate.replace(/\s+/g, '').length >= 4;
+});
+
+function triggerLookup(): void {
+    if (!canTriggerLookup.value) {
+        return;
+    }
+
+    void registryLookup(props.form.license_plate);
+}
 </script>
 
 <template>
@@ -25,6 +63,26 @@ defineProps<{
                 </p>
             </div>
         </header>
+
+        <div
+            v-if="registryLookupEnabled"
+            class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4"
+        >
+            <p class="text-sm text-slate-600">
+                Saisissez la plaque puis cliquez sur le bouton ci-dessous pour pré-remplir le formulaire.
+            </p>
+            <Button
+                type="button"
+                variant="secondary"
+                :disabled="!canTriggerLookup"
+                :loading="registryLookupLoading"
+                class="self-start"
+                @click="triggerLookup"
+            >
+                <ScanLine :size="16" :stroke-width="1.75" />
+                Pré-remplir depuis la carte grise
+            </Button>
+        </div>
 
         <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
             <TextInput
