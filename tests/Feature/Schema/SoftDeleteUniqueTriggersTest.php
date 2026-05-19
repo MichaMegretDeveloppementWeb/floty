@@ -14,18 +14,12 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Vérifie que les triggers soft-delete autorisent la réutilisation d'une
- * valeur après soft-delete et rejettent les doublons actifs avec
- * `SQLSTATE 45000`.
- *
- * Couvre les 2 tables : companies, vehicles. (Le domaine Contract a
- * son propre test d'overlap dans SchemaSmokeTest.)
+ * Vérifie que les triggers soft-delete autorisent la réutilisation d'une valeur
+ * après soft-delete et rejettent les doublons actifs avec SQLSTATE 45000.
  */
 final class SoftDeleteUniqueTriggersTest extends TestCase
 {
     use RefreshDatabase;
-
-    // ─── companies ───────────────────────────────────────────────────
 
     #[Test]
     public function un_short_code_actif_ne_peut_pas_etre_duplique(): void
@@ -71,8 +65,6 @@ final class SoftDeleteUniqueTriggersTest extends TestCase
         $this->makeCompany(short: 'BBB', siren: '123456789');
     }
 
-    // ─── vehicles ────────────────────────────────────────────────────
-
     #[Test]
     public function une_plaque_active_ne_peut_pas_etre_dupliquee(): void
     {
@@ -103,8 +95,6 @@ final class SoftDeleteUniqueTriggersTest extends TestCase
 
         $this->assertSame(2, Vehicle::count());
     }
-
-    // ─── helpers ─────────────────────────────────────────────────────
 
     private function makeCompany(string $short, ?string $siren = null): Company
     {

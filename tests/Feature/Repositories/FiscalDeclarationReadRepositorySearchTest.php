@@ -16,8 +16,7 @@ use Tests\TestCase;
 
 /**
  * Couvre l'algorithme search 2-queries avec expansion de chaîne
- * implémenté dans `FiscalDeclarationReadRepository::buildIndexQuery`
- * (Phase 13 D5.10.F).
+ * implémenté dans `FiscalDeclarationReadRepository::buildIndexQuery`.
  */
 final class FiscalDeclarationReadRepositorySearchTest extends TestCase
 {

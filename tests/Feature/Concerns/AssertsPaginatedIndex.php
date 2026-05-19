@@ -51,10 +51,9 @@ trait AssertsPaginatedIndex
                         $meta->where($metaKey, $value);
                     }
 
-                    // Garde-fou Lot 6 D9 (F-32-013) · si l'appelant fournit
-                    // total + perPage, on vérifie la cohérence arithmétique
-                    // `lastPage = ceil(total / perPage)` (max(1, ...) pour
-                    // gérer le cas total=0 où Laravel renvoie lastPage=1).
+                    // Si l'appelant fournit total + perPage, on vérifie la cohérence
+                    // arithmétique `lastPage = ceil(total / perPage)` (max(1, ...)
+                    // pour gérer le cas total=0 où Laravel renvoie lastPage=1).
                     if (isset($expectedMeta['total'], $expectedMeta['perPage'])) {
                         $total = (int) $expectedMeta['total'];
                         $perPage = (int) $expectedMeta['perPage'];

@@ -9,15 +9,8 @@ use Tests\TestCase;
 
 /**
  * Anti-régression sur les canaux thématiques de logging.
- *
- * Couvre · plan-remédiation Vague 1 Lot 2 D2 (F-33-002 + F-30-004 +
- * F-19-009) · garantit que la liste des 10 canaux thématiques Floty
- * (auth, fiscal, declarations, companies, vehicles, drivers, contracts,
- * unavailabilities, invoices, pdf) reste configurée avec les rétentions
- * et levels attendus.
- *
- * Cf. également `project-management/implementation-rules/gestion-erreurs.md`
- * § « Canaux thématiques Floty ».
+ * Garantit que les 10 canaux thématiques Floty restent configurés avec les
+ * rétentions et levels attendus (cf. implementation-rules/gestion-erreurs.md).
  */
 final class ChannelsConfigurationTest extends TestCase
 {
@@ -75,12 +68,11 @@ final class ChannelsConfigurationTest extends TestCase
     #[Test]
     public function le_canal_assignments_est_supprime_apres_drop_table_assignments(): void
     {
-        // La table `assignments` a été supprimée chantier 04.H · le canal
-        // dédié n'a plus d'utilité et doit être retiré pour éviter qu'un
-        // futur dev croie qu'il est branché à quelque chose.
+        // La table `assignments` a été supprimée · le canal dédié n'a plus d'utilité
+        // et doit être retiré pour éviter qu'un futur dev croie qu'il est branché.
         $this->assertNull(
             config('logging.channels.assignments'),
-            'Le canal orphelin `assignments` doit être supprimé (cf. drop table chantier 04.H).',
+            'Le canal orphelin `assignments` doit être supprimé.',
         );
     }
 }

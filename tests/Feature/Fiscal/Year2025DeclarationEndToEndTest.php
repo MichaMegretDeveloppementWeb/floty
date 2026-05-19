@@ -118,10 +118,8 @@ final class Year2025DeclarationEndToEndTest extends TestCase
 
         $snapshot = $this->engine->compute($this->company->id, 2025);
 
-        // Somme des parts contractuelles ≈ total snapshot. Lot 5 D15 ·
-        // `snapshot->totalDue` arrondi half-up à l'EURO (doctrine
-        // CIBS L. 131-1), lignes contrat au centime · écart théorique
-        // ≤ 0,50 € · delta 1.0 sécurise.
+        // Somme des parts contractuelles ≈ total snapshot · `snapshot->totalDue`
+        // arrondi half-up à l'EURO, lignes contrat au centime, delta 1.0 sécurise.
         $sumParts = 0.0;
         foreach ($snapshot->contractBreakdown as $entry) {
             $sumParts += $entry->totalDue;
@@ -159,16 +157,15 @@ final class Year2025DeclarationEndToEndTest extends TestCase
             $byContractId[$entry->contractId] = $entry;
         }
 
-        // LCD exempté → 0 € + mention exemption (cf. D5.10.W).
+        // LCD exempté → 0 € + mention exemption.
         self::assertSame(0.0, $byContractId[$lcd->id]->totalDue);
         self::assertSame(
             'Exonéré R-2025-021 · LCD courte durée (CIBS L. 421-129)',
             $byContractId[$lcd->id]->exemptionReason,
         );
 
-        // LLD ramasse l'intégralité de la taxe couple, ≠ 0. Delta 1.0
-        // pour `snapshot->totalDue` arrondi à l'EURO vs ligne LLD au
-        // centime (Lot 5 D15, doctrine CIBS L. 131-1).
+        // LLD ramasse l'intégralité de la taxe couple, ≠ 0 · delta 1.0 pour
+        // `snapshot->totalDue` arrondi à l'EURO vs ligne LLD au centime.
         self::assertGreaterThan(0.0, $byContractId[$lld->id]->totalDue);
         self::assertEqualsWithDelta(
             $snapshot->totalDue,
@@ -233,8 +230,7 @@ final class Year2025DeclarationEndToEndTest extends TestCase
         $snapshot = $this->engine->compute($this->company->id, 2025);
 
         $expected = 293.0 * 15 / 365;
-        // Lot 5 D15 · delta 1.0 pour `snapshot->totalDue` arrondi
-        // half-up à l'EURO (doctrine CIBS L. 131-1).
+        // Delta 1.0 pour `snapshot->totalDue` arrondi half-up à l'EURO.
         self::assertEqualsWithDelta($expected, $snapshot->totalDue, 1.0);
     }
 

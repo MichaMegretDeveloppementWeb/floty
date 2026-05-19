@@ -12,21 +12,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Garantit qu'aucune règle Year2024 ne se retrouve sans contenu
- * pédagogique (Phase 13 D5.14 · ADR-0022 finalisée v1.4).
- *
- * **Historique** ·
- * - D5.11 · le test vérifiait la cohérence BDD ↔ `fiscalRulesContent.ts`
- * - D5.12 · contenu pédagogique migré dans les classes PHP, test
- *   vérifiait la colonne `fiscal_rules.pedagogical_content`
- * - **D5.14** · colonnes miroir droppées, le test vérifie maintenant
- *   directement les classes PHP (qui sont la seule source de vérité)
- *
- * Le test reste bidirectionnel · pour chaque règle seedée (24 codes
- * 2024 en BDD), l'instance PHP correspondante doit exposer un
- * `pedagogicalContent()` non-null avec ses champs structurels.
- * Inversement, l'index BDD doit contenir exactement les 24 codes
- * des classes (garanti par le mirror delete du seeder).
+ * Garantit qu'aucune règle Year2024 ne se retrouve sans contenu pédagogique
+ * et que l'index BDD contient exactement les codes des classes PHP.
  */
 final class FiscalRulesContentCoverageTest extends TestCase
 {

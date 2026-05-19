@@ -51,10 +51,9 @@ final class VehicleControllerTest extends TestCase
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
-        // Chantier perf Flotte 2026-05-17 · le payload initial sert la
-        // liste SLIM (fullYearTax/dailyTaxRate/rentalPriceFullYear à `null`)
-        // · les coûts arrivent en `Inertia::defer` via la prop
-        // `vehiclesCosts` qui est `missing` dans le payload initial.
+        // Le payload initial sert la liste SLIM (fullYearTax/dailyTaxRate/
+        // rentalPriceFullYear à `null`), les coûts arrivent en `Inertia::defer`
+        // via la prop `vehiclesCosts` qui est `missing` dans le payload initial.
         $this->actingAs($user)
             ->get('/app/vehicles')
             ->assertOk()
@@ -506,9 +505,9 @@ final class VehicleControllerTest extends TestCase
             'end_date' => sprintf('%04d-06-13', $year),
         ]);
 
-        // L'endpoint show() ne lit plus `?year=` depuis Phase 2 onglets
-        // (lazy fetch via `/usage-stats`). On test directement l'endpoint
-        // JSON lazy pour un breakdown sur l'année voulue.
+        // L'endpoint show() ne lit plus `?year=` · les onglets font un lazy
+        // fetch via `/usage-stats`. On teste directement l'endpoint JSON
+        // pour un breakdown sur l'année voulue.
         $response = $this->actingAs($user)
             ->getJson("/app/vehicles/{$vehicle->id}/usage-stats?year={$year}")
             ->assertOk();
@@ -576,10 +575,6 @@ final class VehicleControllerTest extends TestCase
             ->assertRedirect('/app/vehicles')
             ->assertSessionHas('toast-error');
     }
-
-    // ----------------------------------------------------------------
-    // Show · chantier η Phase 2 (doctrine temporelle 3 lentilles)
-    // ----------------------------------------------------------------
 
     #[Test]
     public function show_kpi_year_est_l_annee_calendaire_courante(): void

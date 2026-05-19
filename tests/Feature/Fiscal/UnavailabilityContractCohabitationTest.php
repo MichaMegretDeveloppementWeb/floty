@@ -156,9 +156,8 @@ final class UnavailabilityContractCohabitationTest extends TestCase
             'end_date' => '2024-06-10',
         ]);
 
-        // Action - création d'un contrat de 60 j qui englobe la
-        // période de l'indispo. ADR-0019 D2 : la symétrie applicative
-        // exige que cette saisie passe sans erreur.
+        // Création d'un contrat de 60 j qui englobe la période de l'indispo ·
+        // ADR-0019 exige que cette saisie passe sans erreur.
         $contract = $this->storeContract->execute(new StoreContractData(
             vehicleId: $vehicle->id,
             companyId: $company->id,

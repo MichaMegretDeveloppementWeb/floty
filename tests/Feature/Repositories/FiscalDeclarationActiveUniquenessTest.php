@@ -12,26 +12,10 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Lot 5 D3 (F-19-006) · garanties autour de l'invariant
- * « au plus 1 déclaration active par couple `(company_id, fiscal_year)` ».
- *
- * Couvre ·
- *   - L'index unique partial (colonne virtuelle MySQL 8
- *     `active_uniqueness_key`) qui empêche la création d'une 2ᵉ
- *     déclaration active pour le même couple.
- *   - La tolérance soft-delete · supprimer (soft) une déclaration
- *     active doit autoriser la création d'une nouvelle pour le même
- *     couple (la colonne virtuelle vaut NULL pour les soft-deleted).
- *   - La tolérance obsolescence · marquer une déclaration obsolète
- *     doit autoriser la création d'une nouvelle (la colonne virtuelle
- *     vaut NULL pour les obsoletes).
- *   - Le combiné soft-delete + obsolète.
- *
- * Note · l'ordre déterministe `orderByDesc('id')` ajouté à
- * `findActiveForCompanyYear` reste testé indirectement par les autres
- * tests de la suite qui consomment cette méthode · l'invariant garanti
- * par l'index unique rend impossible de tester l'ordre sur un état à
- * 2 actives concurrentes (la contrainte rejetterait l'insert).
+ * Garanties autour de l'invariant « au plus 1 déclaration active par couple
+ * `(company_id, fiscal_year)` » via l'index unique partial sur la colonne
+ * virtuelle MySQL 8 `active_uniqueness_key`. Couvre l'index, la tolérance
+ * soft-delete, la tolérance obsolescence et le combiné.
  */
 final class FiscalDeclarationActiveUniquenessTest extends TestCase
 {

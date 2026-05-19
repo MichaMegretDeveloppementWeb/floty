@@ -14,11 +14,9 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre le flow reset-password bout en bout · affichage formulaire,
- * réinitialisation réussie, token expiré, token forgé, validation
- * password (min:8 + confirmation), audit log canal `auth`.
- *
- * Cf. plan-remédiation Vague 1 Lot 2 D4.3 (F-10-006) + ADR-0012 rev. 1.1.
+ * Couvre le flow reset-password bout en bout · affichage formulaire, réinitialisation
+ * réussie, token expiré/forgé, validation password, audit log canal `auth`
+ * (cf. ADR-0012 rev. 1.1).
  */
 final class ResetPasswordFlowTest extends TestCase
 {

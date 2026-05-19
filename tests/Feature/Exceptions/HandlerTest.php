@@ -10,14 +10,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Vérifie le comportement du handler `bootstrap/app.php` :
- * - `BaseAppException` sur requête JSON → 422 avec body `{message, code}`
- * - `BaseAppException` sur visite HTML/Inertia → 302 redirect + flash
- *   `toast-error`
- * - 419 (CSRF) sur visite Inertia → 302 + flash `toast-warning`
- *
- * Routes inline dans `setUp()` pour isoler le test du reste de
- * l'application (pas besoin de toucher aux routes de production).
+ * Vérifie le comportement du handler `bootstrap/app.php` pour les exceptions métier
+ * sur requêtes JSON et visites HTML/Inertia.
  */
 final class HandlerTest extends TestCase
 {
@@ -48,7 +42,6 @@ final class HandlerTest extends TestCase
         $message = $response->json('message');
         self::assertIsString($message);
         self::assertStringContainsString("n'est pas supportée", $message);
-        // Pas de message technique anglais dans la réponse user-facing.
         self::assertStringNotContainsString('not supported by', $message);
     }
 

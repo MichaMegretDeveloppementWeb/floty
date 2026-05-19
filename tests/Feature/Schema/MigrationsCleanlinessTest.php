@@ -42,9 +42,8 @@ final class MigrationsCleanlinessTest extends TestCase
             'contracts',
             'driver_company',
             'drivers',
-            // Tables `failed_jobs`, `job_batches`, `jobs` retirées Lot 6 D6 ·
-            // doctrine `project_infra_no_queue_no_cron` · pas de queue async
-            // en V1, `QUEUE_CONNECTION=sync` partout. Si V2 introduit la
+            // Tables `failed_jobs`, `job_batches`, `jobs` retirées · pas de queue
+            // async en V1, `QUEUE_CONNECTION=sync` partout. Si V2 introduit la
             // queue, `php artisan queue:table` régénère la migration.
             'fiscal_declarations',
             'fiscal_review_decisions',

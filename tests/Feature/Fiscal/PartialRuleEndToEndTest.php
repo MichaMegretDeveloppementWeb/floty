@@ -17,17 +17,10 @@ use Tests\Feature\Fiscal\PartialRuleEndToEndStubs\PartialMidYearStub2090;
 use Tests\TestCase;
 
 /**
- * Validation end-to-end de la chaîne de granularité temporelle κ
- * (chantier κ.8).
- *
- * Couvre l'**artefact permanent** du chantier κ.8 : la propagation
- * d'une règle partielle (mid-year) du registry → seeder mirror → DTO
- * → page Inertia. Sans toucher à `app/Fiscal/Year2026/` (le setup de
- * validation visuelle est temporaire et a été nettoyé après la phase).
- *
- * Stratégie : enregistrer **à la volée** dans le registry singleton
- * une année stub (2090) avec 2 règles (full-year + partielle), seeder
- * mirror, GET la page « Règles de calcul » avec `?year=2090` et
+ * Validation end-to-end de la propagation d'une règle partielle (mid-year)
+ * du registry → seeder mirror → DTO → page Inertia. Stratégie · enregistrer
+ * à la volée une année stub (2090) avec 2 règles (full-year + partielle),
+ * seeder mirror, GET la page « Règles de calcul » avec `?year=2090` et
  * vérifier les props Inertia.
  */
 final class PartialRuleEndToEndTest extends TestCase

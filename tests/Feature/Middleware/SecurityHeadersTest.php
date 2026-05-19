@@ -9,11 +9,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Anti-régression sur les en-têtes posés par {@see SecurityHeaders}.
- *
- * Couvre · plan-remédiation Vague 1 Lot 1 D3 (F-30-001) · CSP V1 stricte
- * + headers défense en profondeur déjà en place (HSTS, X-Frame-Options,
- * etc.) sans régression silencieuse.
+ * Anti-régression sur les en-têtes posés par {@see SecurityHeaders}
+ * (CSP V1 stricte + headers défense en profondeur · HSTS, X-Frame-Options, etc.).
  */
 final class SecurityHeadersTest extends TestCase
 {
@@ -56,9 +53,9 @@ final class SecurityHeadersTest extends TestCase
     #[Test]
     public function permissions_policy_desactive_toutes_les_apis_browser_non_utilisees(): void
     {
-        // F-30-011 · défense en profondeur étendue · toutes les APIs
-        // browser non utilisées par Floty doivent être explicitement
-        // désactivées pour qu'un XSS résiduel ne puisse pas les exploiter.
+        // Défense en profondeur · toutes les APIs browser non utilisées par
+        // Floty doivent être explicitement désactivées pour qu'un XSS résiduel
+        // ne puisse pas les exploiter.
         $response = $this->get('/login');
         $policy = (string) $response->headers->get('Permissions-Policy');
 

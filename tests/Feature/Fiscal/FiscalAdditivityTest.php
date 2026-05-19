@@ -114,11 +114,9 @@ final class FiscalAdditivityTest extends TestCase
         }
         $sumIndividual = round($sumIndividual, 2);
 
-        // Lot 5 D15 · `companyAnnualTax` arrondit half-up à l'EURO
-        // (doctrine CIBS L. 131-1) · `sumIndividual` est la somme des
-        // taxes couple arrondies au centime · l'écart théorique
-        // maximum est ≤ 0,50 € (arrondi unique en sortie). Delta 1.0
-        // sécurise.
+        // `companyAnnualTax` arrondit half-up à l'EURO, `sumIndividual` est la
+        // somme des taxes couple au centime · écart théorique ≤ 0,50 €,
+        // delta 1.0 sécurise.
         $this->assertEqualsWithDelta(
             $totalEntreprise,
             $sumIndividual,

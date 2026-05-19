@@ -13,11 +13,9 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Couvre le flow change-password (utilisateur connecté) bout en bout.
- * Vérifie l'auth obligatoire, la validation current password,
- * l'invalidation des autres sessions, l'audit log canal `auth`.
- *
- * Cf. plan-remédiation Vague 1 Lot 2 D4.4 (F-10-006) + ADR-0012 rev. 1.1.
+ * Couvre le flow change-password (utilisateur connecté) bout en bout :
+ * auth obligatoire, validation current password, invalidation des autres
+ * sessions, audit log canal `auth` (cf. ADR-0012 rev. 1.1).
  */
 final class ChangePasswordFlowTest extends TestCase
 {

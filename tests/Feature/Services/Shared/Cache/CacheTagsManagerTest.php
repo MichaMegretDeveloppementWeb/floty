@@ -91,9 +91,6 @@ final class CacheTagsManagerTest extends TestCase
     #[Test]
     public function invalidate_by_prefix_does_not_touch_sibling_prefixes(): void
     {
-        // Le bug historique qu'on veut éviter : `vehicle:42` et `vehicle:420`
-        // partagent le préfixe `vehicle:42`. Sans la frontière `:`, un LIKE
-        // naïf invaliderait les deux.
         Cache::put('vehicle:42:fiscal', 'A', 3600);
         Cache::put('vehicle:420:fiscal', 'keep', 3600);
         Cache::put('vehicle:421:fiscal', 'keep', 3600);
@@ -110,7 +107,6 @@ final class CacheTagsManagerTest extends TestCase
     {
         Cache::put('vehicle:42:fiscal', 'A', 3600);
 
-        // Argument avec `:` final - doit être toléré et normalisé.
         $removed = $this->manager->invalidateByPrefix('vehicle:42:');
 
         $this->assertSame(1, $removed);

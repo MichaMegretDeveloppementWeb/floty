@@ -12,11 +12,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Vérifie la shape des shared props Inertia exposées par
- * {@see HandleInertiaRequests}.
- *
- * Le typage front (TypeScript) repose sur ces props ; tout
- * changement de structure côté backend doit casser ce test.
+ * Vérifie la shape des shared props Inertia exposées par {@see HandleInertiaRequests}.
  */
 final class SharedPropsTest extends TestCase
 {
@@ -44,8 +40,6 @@ final class SharedPropsTest extends TestCase
                     ->where('error', null)
                     ->where('warning', null)
                     ->where('info', null)
-                    // Lot 5 D6 · pile typée pour accumulation N toasts +
-                    // dédup back-button (cf. ToastDispatcher).
                     ->where('toasts', []))
                 ->etc(),
             );
@@ -54,10 +48,6 @@ final class SharedPropsTest extends TestCase
     #[Test]
     public function shared_props_pour_guest_exposent_auth_user_null(): void
     {
-        // Garde-fou Lot 6 D9 (F-32-010) · vérifier que la branche guest
-        // de `HandleInertiaRequests::resolveAuthenticatedUser()` ne fuit
-        // pas un objet CurrentUserData non-nul (ce qui pourrait casser
-        // le typage TS `auth.user: User | null` côté front).
         $this->get('/login')
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
@@ -68,8 +58,6 @@ final class SharedPropsTest extends TestCase
                     ->where('error', null)
                     ->where('warning', null)
                     ->where('info', null)
-                    // Lot 5 D6 · pile typée pour accumulation N toasts +
-                    // dédup back-button (cf. ToastDispatcher).
                     ->where('toasts', []))
                 ->etc(),
             );

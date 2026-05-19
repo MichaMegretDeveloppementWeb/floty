@@ -116,12 +116,9 @@ final class Year2024VsYear2025HardeningTest extends TestCase
         $taxe31j2024 = $this->totalForProfile31Days(co2: 100, year: 2024);
         $taxe31j2025 = $this->totalForProfile31Days(co2: 100, year: 2025);
 
-        // 2024 · 273 × 31/366 = 23,1229… (avec WLTP 100g = 173 €
-        // + polluants Cat1 = 100 €)
+        // 2024 · 273 × 31/366 = 23,1229… (WLTP 100g = 173 € + polluants Cat1 = 100 €)
         // 2025 · 293 × 31/365 = 24,8849…
-        // Lot 5 D15 · `companyAnnualTax` arrondit half-up à l'EURO
-        // (doctrine CIBS L. 131-1) · delta 1.0 sécurise vs valeur
-        // théorique en haute précision.
+        // `companyAnnualTax` arrondit half-up à l'EURO, delta 1.0 sécurise.
         self::assertEqualsWithDelta(273.0 * 31 / 366, $taxe31j2024, 1.0);
         self::assertEqualsWithDelta(293.0 * 31 / 365, $taxe31j2025, 1.0);
 

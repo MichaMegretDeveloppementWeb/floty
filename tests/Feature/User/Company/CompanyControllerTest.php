@@ -335,10 +335,6 @@ final class CompanyControllerTest extends TestCase
         $this->assertDatabaseMissing('companies', ['legal_name' => 'Acme SAS']);
     }
 
-    // ----------------------------------------------------------------
-    // Show · chantier K (refonte fiche entreprise, ADR-0020 D3)
-    // ----------------------------------------------------------------
-
     #[Test]
     public function show_renvoie_la_structure_complete_avec_les_nouveaux_champs(): void
     {
@@ -448,10 +444,6 @@ final class CompanyControllerTest extends TestCase
                 ->where('company.activityByYear.0.topVehicles.2.daysUsed', 10),
             );
     }
-
-    // ----------------------------------------------------------------
-    // Show · chantier η Phase 1 (doctrine temporelle KPIs/Historique/Activité)
-    // ----------------------------------------------------------------
 
     #[Test]
     public function show_expose_kpi_year_egal_a_l_annee_calendaire_courante(): void
@@ -563,10 +555,6 @@ final class CompanyControllerTest extends TestCase
             );
     }
 
-    // ----------------------------------------------------------------
-    // Show · chantier N.1 (onglet Contrats avec table paginée server-side)
-    // ----------------------------------------------------------------
-
     #[Test]
     public function show_expose_contracts_pagines_pour_l_onglet_contrats(): void
     {
@@ -575,8 +563,7 @@ final class CompanyControllerTest extends TestCase
 
         // 25 contrats sur 25 véhicules distincts pour éviter le trigger
         // SQL `contracts_no_overlap_*` (invariant ADR-0019 D3). Forcés
-        // dans l'année courante pour rester visibles avec le default
-        // période = année courante (chantier #5).
+        // dans l'année courante pour rester visibles avec le default.
         $currentYear = (int) Carbon::now()->year;
         for ($i = 0; $i < 25; $i++) {
             $vehicle = Vehicle::factory()->create();
@@ -618,8 +605,7 @@ final class CompanyControllerTest extends TestCase
         $vB3 = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vB3->id]);
 
-        // Force l'année pour rester déterministe avec le default
-        // période = année courante (chantier #5).
+        // Force l'année pour rester déterministe avec le default = année courante.
         $currentYear = (int) Carbon::now()->year;
         Contract::factory()->forVehicle($vA)->forCompany($companyA)->inYear($currentYear)->create();
         Contract::factory()->forVehicle($vB1)->forCompany($companyB)->inYear($currentYear)->create();
@@ -771,16 +757,11 @@ final class CompanyControllerTest extends TestCase
             );
     }
 
-    // ----------------------------------------------------------------
-    // Show · chantier #5 (default période = année courante au mount)
-    // ----------------------------------------------------------------
-
     #[Test]
     public function show_default_contracts_period_a_l_annee_courante_quand_aucun_param(): void
     {
-        // Sans paramètre période (`year`, `periodStart`, `periodEnd`),
-        // l'onglet Contrats ouvre sur l'année réelle courante. Cohérence
-        // avec onglet Fiscalité (chantier N.2 + ADR-0020 D3).
+        // Sans paramètre période, l'onglet Contrats ouvre sur l'année réelle
+        // courante, cohérent avec l'onglet Fiscalité (ADR-0020 D3).
         $user = User::factory()->create();
         $company = Company::factory()->create();
         $vehicleA = Vehicle::factory()->create();
@@ -800,10 +781,9 @@ final class CompanyControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('contracts.meta.total', 1)
-                // D5.10.U · default sans param URL ne pose QUE `year` ·
-                // periodStart/End restent null · backend dérive l'exercice
-                // complet via `effectivePeriod()`. Permet à l'UI de
-                // distinguer « mode année » vs « plage custom ».
+                // Default sans param URL ne pose QUE `year`, periodStart/End
+                // restent null · backend dérive l'exercice complet via
+                // `effectivePeriod()` · l'UI distingue « mode année » vs custom.
                 ->where('contractsQuery.year', $currentYear)
                 ->where('contractsQuery.periodStart', null)
                 ->where('contractsQuery.periodEnd', null),
@@ -902,10 +882,6 @@ final class CompanyControllerTest extends TestCase
                 ),
             );
     }
-
-    // ----------------------------------------------------------------
-    // Show · chantier N.2 (onglet Fiscalité)
-    // ----------------------------------------------------------------
 
     #[Test]
     public function show_expose_company_fiscal_avec_default_year_a_current_real_year(): void
@@ -1061,10 +1037,6 @@ final class CompanyControllerTest extends TestCase
                 ->where('company.lifetime.contractsCount', 1),
             );
     }
-
-    // ----------------------------------------------------------------
-    // Show · Phase 11 D5.8 (declarationLifecycle prop)
-    // ----------------------------------------------------------------
 
     #[Test]
     public function show_expose_declaration_lifecycle_untouched_si_aucune_declaration(): void

@@ -9,20 +9,10 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Filet de sécurité · vérifie qu'AUCUNE route du group `user.*`
- * (préfixe `/app`, middleware `auth`) n'est accessible sans
- * authentification.
- *
- * Pour les routes paramétrées (`/companies/{company}`, etc.), on
- * substitue `1` comme placeholder · le middleware `auth` intercepte
- * AVANT le route binding model, donc la réponse attendue (302/401/419)
- * ne dépend pas de l'existence de l'entité. Toutes les routes user
- * Floty utilisent des IDs numériques (pas d'UUID, slug ou signed) ·
- * `1` matche systématiquement les contraintes implicites.
- *
- * Un commit futur qui retirerait par mégarde le middleware `auth` sur
- * une route paramétrée serait immédiatement attrapé · cf. plan-remédiation
- * Vague 1 Lot 2 D3 (F-10-007).
+ * Filet de sécurité · vérifie qu'AUCUNE route du group `user.*` (préfixe `/app`,
+ * middleware `auth`) n'est accessible sans authentification. Pour les routes
+ * paramétrées, on substitue `1` comme placeholder car le middleware `auth`
+ * intercepte AVANT le route binding model.
  */
 final class UserRoutesAuthTest extends TestCase
 {

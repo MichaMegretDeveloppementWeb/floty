@@ -28,15 +28,8 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\TestCase;
 
 /**
- * Vérifie le comportement des render handlers UX (chantier T2 / Phase 14.N) :
- * - `ModelNotFoundException` → redirect vers l'index du domaine + toast-error
- * - `AuthorizationException` → redirect dashboard + toast-error
- * - `NotFoundHttpException` → redirect dashboard + toast-error
- * - Garde-fou XHR : `expectsJson()` laisse Laravel rendre le 404/403 standard
- *
- * Le mapping détaillé Model → route est testé via le renderer en isolation
- * (assertions sur `RedirectResponse`), tandis que le wiring HTTP global est
- * couvert par 4 tests d'intégration sur des routes réelles.
+ * Vérifie le comportement des render handlers UX pour ModelNotFoundException,
+ * AuthorizationException et NotFoundHttpException (mapping + wiring HTTP).
  */
 final class UxRedirectHandlersTest extends TestCase
 {
@@ -51,10 +44,6 @@ final class UxRedirectHandlersTest extends TestCase
             static fn () => throw new AuthorizationException('Forbidden test'),
         );
     }
-
-    // ============================================================
-    // Mapping ModelNotFoundException via renderer (Unit-style)
-    // ============================================================
 
     #[Test]
     public function model_not_found_company_redirige_vers_index_companies(): void
@@ -159,10 +148,6 @@ final class UxRedirectHandlersTest extends TestCase
         self::assertStringContainsString('élément', (string) session('toast-error'));
     }
 
-    // ============================================================
-    // AuthorizationException + NotFoundHttpException (renderer direct)
-    // ============================================================
-
     #[Test]
     public function authorization_exception_redirige_vers_dashboard(): void
     {
@@ -192,10 +177,6 @@ final class UxRedirectHandlersTest extends TestCase
             $response->getSession()?->get('toast-error'),
         );
     }
-
-    // ============================================================
-    // Wiring HTTP de bout en bout sur des routes réelles
-    // ============================================================
 
     #[Test]
     public function get_company_inexistante_redirige_vers_index_avec_toast(): void
@@ -251,14 +232,7 @@ final class UxRedirectHandlersTest extends TestCase
             ->assertSessionHas('toast-error');
     }
 
-    // ============================================================
-    // Helpers privés
-    // ============================================================
-
     /**
-     * Compose un `TestResponse` à partir d'une `RedirectResponse` brute pour
-     * réutiliser les assertions Laravel/PHPUnit sans passer par une route HTTP.
-     *
      * @param  class-string<Model>  $modelClass
      * @return TestResponse<RedirectResponse>
      */
@@ -272,10 +246,6 @@ final class UxRedirectHandlersTest extends TestCase
     }
 }
 
-/**
- * Modèle factice pour tester le fallback du mapping (pas dans la map
- * `UserFacingExceptionRenderer::MAPPING`).
- */
 final class UnmappedTestModel extends Model
 {
     protected $table = '_test_unmapped';

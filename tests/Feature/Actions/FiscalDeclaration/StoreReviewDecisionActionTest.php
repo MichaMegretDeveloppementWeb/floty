@@ -171,8 +171,6 @@ final class StoreReviewDecisionActionTest extends TestCase
         self::assertSame($exactlyAtLimit, $decision->justification);
     }
 
-    // ---------- Lot 5 D4 (F-19D2-001) · validation excludedContractIds ----------
-
     #[Test]
     public function lot5_d4_accepte_excluded_contract_ids_appartenant_au_couple_company_year(): void
     {

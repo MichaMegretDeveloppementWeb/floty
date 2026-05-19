@@ -17,10 +17,8 @@ use Tests\TestCase;
 
 /**
  * Couvre le flow forgot-password bout en bout · affichage formulaire,
- * envoi de l'email custom, anti email enumeration, throttle 3/15 min,
- * audit log canal `auth`.
- *
- * Cf. plan-remédiation Vague 1 Lot 2 D4.2 (F-10-006) + ADR-0012 rev. 1.1.
+ * envoi de l'email custom, anti email enumeration, throttle 3/5 min,
+ * audit log canal `auth` (cf. ADR-0012 rev. 1.1).
  */
 final class ForgotPasswordFlowTest extends TestCase
 {
@@ -83,12 +81,9 @@ final class ForgotPasswordFlowTest extends TestCase
     #[Test]
     public function le_throttle_3_par_5min_redirige_back_avec_toast_au_dela_du_seuil(): void
     {
-        // F-10-006 D4.2 · throttle 3/5min sur POST /forgot-password ·
-        // anti-spam mail (un envoi = coût SMTP réel) tout en restant
-        // raisonnable pour un user honnête. Sur Inertia (X-Inertia
-        // header), le 429 est intercepté dans bootstrap/app.php et
-        // transformé en back() + toast-warning (au lieu d'une page
-        // d'erreur HTML brute affichée dans une modale Inertia).
+        // Throttle 3/5min sur POST /forgot-password · anti-spam mail.
+        // Sur Inertia (X-Inertia header), le 429 est intercepté dans
+        // bootstrap/app.php et transformé en back() + toast-warning.
         for ($i = 0; $i < 3; $i++) {
             $this->post('/forgot-password', ['email' => 'test@floty.test'])
                 ->assertRedirect();
@@ -117,8 +112,7 @@ final class ForgotPasswordFlowTest extends TestCase
     #[Test]
     public function le_canal_auth_logge_password_reset_requested_avec_email_hashe(): void
     {
-        // Cohérent avec D2 · le flow d'audit utilise canal `auth` notice.
-        // Pattern file-based · vérification que l'event atterrit dans
+        // Pattern file-based · l'event doit atterrir dans
         // storage/logs/auth-YYYY-MM-DD.log.
         $logFile = storage_path('logs/auth-'.now()->format('Y-m-d').'.log');
         @unlink($logFile);

@@ -30,22 +30,10 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Smoke test du schéma global Floty V1 (phase 01.bis).
- *
- * Crée une chaîne complète d'entités · Company · Driver · Vehicle
- * · VehicleFiscalCharacteristics · Contract · Unavailability · FiscalRule.
- *
- * Vérifie que ·
- *   - chaque modèle se persiste avec son `$fillable`
- *   - les enums sont castés dans les deux sens
- *   - les relations remontent correctement (type + valeurs)
- *   - SoftDeletes fonctionne sur les entités concernées
- *   - le trigger anti-chevauchement de `vehicle_fiscal_characteristics`
- *     rejette bien une période qui chevauche l'existante
- *
- * Note · les tables legacy `declarations` / `declaration_pdfs`
- * (phase 01.bis) ont été supprimées dans le cleanup F-19-001 au profit
- * de `fiscal_declarations` (phase 11, ADR-0015).
+ * Smoke test du schéma global Floty V1. Crée une chaîne complète d'entités
+ * (Company, Driver, Vehicle, VFC, Contract, Unavailability, FiscalRule) et
+ * vérifie persistance, casts enum, relations, SoftDeletes et le trigger
+ * anti-chevauchement de `vehicle_fiscal_characteristics`.
  */
 final class SchemaSmokeTest extends TestCase
 {
@@ -119,10 +107,9 @@ final class SchemaSmokeTest extends TestCase
             'end_date' => '2024-06-10',
         ]);
 
-        // Phase 13 D5.14 · `fiscal_rules` est un index minimal · ne
-        // porte plus que rule_code, fiscal_year et code_reference. Les
-        // métadonnées (name, description, etc.) vivent dans les classes
-        // PHP, lues via le registry au runtime.
+        // `fiscal_rules` est un index minimal · ne porte que rule_code,
+        // fiscal_year et code_reference. Les métadonnées vivent dans les
+        // classes PHP, lues via le registry au runtime.
         $rule = FiscalRule::create([
             'rule_code' => 'R-2024-010',
             'fiscal_year' => 2024,
@@ -167,8 +154,6 @@ final class SchemaSmokeTest extends TestCase
         $this->assertCount(1, $vehicle->fresh()->contracts);
         $this->assertCount(1, $vehicle->fresh()->unavailabilities);
 
-        // User persiste indépendamment via factory · seule la chaîne
-        // déclarations le rattachait au graphe (supprimée F-19-001).
         $this->assertNotNull($user->fresh());
     }
 

@@ -130,17 +130,10 @@ final class LoginFlowTest extends TestCase
     #[Test]
     public function rate_limit_ip_apres_10_tentatives_bloque_avec_message_attente(): void
     {
-        // Chaque tentative utilise un email différent → seul le compteur
-        // IP s'incrémente, le compteur email+IP reste sous 5.
-        //
-        // Depuis ADR-0011 § 3 rev. 1.1 (C1.a), la couche applicative IP
-        // est capée à 10/2min · alignée sur le throttle middleware
-        // `throttle:10,2` (Lot 1 D4). On désactive le middleware ici
-        // pour exercer la couche applicative en isolation · sinon le
-        // throttle externe couperait au 10e en renvoyant un 429 brut,
-        // sans déclencher le message FR de `LoginAttemptService`.
-        // Le throttle middleware reste vérifié séparément par
-        // `la_route_login_store_porte_le_middleware_throttle`.
+        // Chaque tentative utilise un email différent → seul le compteur IP
+        // s'incrémente. On désactive le middleware throttle pour exercer la
+        // couche applicative en isolation et déclencher le message FR de
+        // `LoginAttemptService` au lieu d'un 429 brut.
         $this->withoutMiddleware(ThrottleRequests::class);
 
         Event::fake([Lockout::class]);
@@ -195,11 +188,6 @@ final class LoginFlowTest extends TestCase
         // Test combiné · vérifie qu'au canal `auth` on logge bien les 3
         // types d'événements (success/failed/lockout) avec email haché,
         // et que ni l'email en clair ni le password ne fuient dans le log.
-        // Approche file-based plutôt que Mockery · plus robuste, valide
-        // toute la chaîne (Action + Service + Listener auto-discovered +
-        // canal `auth` daily driver).
-        // Cf. plan-remédiation Vague 1 Lot 1 D2 (F-10-002).
-
         $logFile = storage_path('logs/auth-'.Carbon::now()->format('Y-m-d').'.log');
         @unlink($logFile);
 
@@ -271,9 +259,8 @@ final class LoginFlowTest extends TestCase
     #[Test]
     public function login_rejette_email_de_plus_de_255_caracteres(): void
     {
-        // F-10-009 · borne `max:255` empêche un soft-DoS via input gigantesque
-        // sur la clé RateLimiter (cf. LoginAttemptService::emailKey).
-        // RFC 5321 limite l'email à 254 chars · 255 est le standard défensif.
+        // Borne `max:255` empêche un soft-DoS via input gigantesque sur la clé
+        // RateLimiter (cf. LoginAttemptService::emailKey). RFC 5321 limite à 254.
         $tooLong = str_repeat('a', 250).'@x.com'; // 256 chars > 255
 
         $this->post('/login', [
@@ -285,9 +272,8 @@ final class LoginFlowTest extends TestCase
     #[Test]
     public function login_rejette_password_de_plus_de_255_caracteres(): void
     {
-        // F-10-009 · borne `max:255` empêche un soft-DoS via input gigantesque
-        // sur le hash bcrypt (qui tronque silencieusement à 72 bytes après
-        // avoir consommé l'overhead).
+        // Borne `max:255` empêche un soft-DoS via input gigantesque sur le hash
+        // bcrypt (qui tronque silencieusement à 72 bytes après l'overhead).
         $this->post('/login', [
             'email' => 'test@example.com',
             'password' => str_repeat('x', 256),

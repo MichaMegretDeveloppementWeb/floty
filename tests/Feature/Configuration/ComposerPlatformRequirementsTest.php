@@ -8,17 +8,8 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Vérifie que `composer.json` déclare les extensions PHP runtime requises.
- *
- * Doctrine · plan-remédiation Vague 1 Lot 6 D13 (F-33-007) · `composer.json`
- * doit déclarer `ext-pdo` + `ext-pdo_mysql` pour que `composer install` /
- * `composer check-platform-reqs` plantent immédiatement sur un serveur où
- * ces extensions manquent · au lieu d'un crash mystérieux à la première
- * requête DB en runtime.
- *
- * Test inspection statique · on lit `composer.json` directement plutôt que
- * d'introspecter Composer runtime (les require platform sont consommés
- * à l'install/update, pas à l'exécution).
+ * Vérifie que `composer.json` déclare `ext-pdo` + `ext-pdo_mysql` et impose
+ * PHP 8.5+ (extensions runtime requises pour MySQL).
  */
 final class ComposerPlatformRequirementsTest extends TestCase
 {
@@ -42,17 +33,13 @@ final class ComposerPlatformRequirementsTest extends TestCase
         self::assertArrayHasKey(
             'ext-pdo_mysql',
             $require,
-            "composer.json doit déclarer 'ext-pdo_mysql' dans require · le driver MySQL est consommé par config/database.php (cf. F-33-007).",
+            "composer.json doit déclarer 'ext-pdo_mysql' dans require · le driver MySQL est consommé par config/database.php.",
         );
     }
 
     #[Test]
     public function composer_json_pins_php_85_minimum(): void
     {
-        // Garde-fou couplé · `config/database.php` utilise `\Pdo\Mysql`
-        // (PHP 8.5+). Si quelqu'un descend la contrainte à PHP 8.4,
-        // l'import déclenchera une erreur d'analyse statique.
-
         $composer = json_decode(
             (string) file_get_contents(base_path('composer.json')),
             associative: true,

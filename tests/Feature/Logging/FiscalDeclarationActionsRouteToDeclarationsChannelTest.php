@@ -14,17 +14,9 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Anti-régression sur le routing des Actions FiscalDeclaration vers le
- * canal de log thématique `declarations` (pattern file-based).
- *
- * Couvre · plan-remédiation Vague 1 Lot 2 D2 (F-19-009) · garantit que
- * les events significatifs (création refusée, génération, marked
- * obsolete, etc.) atterrissent bien dans `storage/logs/declarations-*.log`
- * et non dans `laravel.log` (canal par défaut).
- *
- * Approche file-based (cf. mémoire C1 + `LoginFlowTest`) plutôt que
- * `Log::shouldReceive` qui casse la chaîne Monolog réelle. On teste
- * la chaîne complète config + facade + routing fichier.
+ * Anti-régression sur le routing des Actions FiscalDeclaration vers le canal
+ * de log thématique `declarations` (pattern file-based · vérification que les
+ * events atterrissent dans storage/logs/declarations-*.log).
  */
 final class FiscalDeclarationActionsRouteToDeclarationsChannelTest extends TestCase
 {

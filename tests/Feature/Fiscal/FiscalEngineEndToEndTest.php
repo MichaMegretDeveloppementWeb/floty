@@ -179,11 +179,8 @@ final class FiscalEngineEndToEndTest extends TestCase
             2024,
         );
 
-        // Total brut = 144,6393 + 83,6066 + 47,2677 + 27,3224 = 302,8361
-        // Lot 5 D15 · arrondi half-up à l'EURO conforme doctrine
-        // CIBS L. 131-1 (auparavant arrondi au centime à 302,84 €).
-        // L'exemple catalogue § R-2024-003 cite déjà « 303 € » comme
-        // résultat attendu officiel.
+        // Total brut = 302,8361 € → arrondi half-up à l'EURO = 303 €
+        // (résultat attendu officiel selon l'exemple catalogue R-2024-003).
         $this->assertSame(303.0, $totalArrondi);
     }
 

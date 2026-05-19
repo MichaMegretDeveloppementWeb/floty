@@ -15,12 +15,7 @@ use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 /**
- * Tests d'intégration de la commande `fiscal:benchmark` (chantier κ.1).
- *
- * On vérifie le contrat technique uniquement : la commande s'exécute
- * sans erreur, archive un fichier JSON, et chaque scénario produit une
- * mesure non nulle. Les valeurs de perf elles-mêmes ne sont pas
- * assertées (machine-dependent).
+ * Tests d'intégration de la commande `fiscal:benchmark`.
  */
 final class BenchmarkCommandTest extends TestCase
 {
@@ -31,7 +26,6 @@ final class BenchmarkCommandTest extends TestCase
         parent::setUp();
         Storage::fake('local');
 
-        // Dataset minimal pour que les 4 scénarios aient quelque chose à mesurer.
         $company = Company::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create([
