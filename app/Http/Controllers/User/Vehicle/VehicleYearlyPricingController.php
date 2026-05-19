@@ -14,16 +14,13 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * CRUD léger sur les tarifs jour/semaine/mois d'un véhicule par année.
- * Endpoints opérés depuis la page Show véhicule (chantier 14.B intégrera
- * un `PricingEditor` inline qui pilote ces routes).
- *
- * Pas d'Index / Show dédié : le tarif vit dans le contexte de son véhicule
- * parent et son cycle de vie est géré directement depuis la fiche
- * véhicule.
+ * Per-year pricing CRUD scoped to a parent vehicle.
  */
 final class VehicleYearlyPricingController extends Controller
 {
+    /**
+     * Upsert the daily/weekly/monthly rates for the given vehicle × year.
+     */
     public function store(
         Vehicle $vehicle,
         VehicleYearlyPricingData $data,
@@ -36,15 +33,18 @@ final class VehicleYearlyPricingController extends Controller
         return back()->with('toast-success', 'Tarif enregistré.');
     }
 
+    /**
+     * Delete a vehicle pricing for the given year.
+     *
+     * Loads the row first to authorise against the instance policy, with
+     * a viewAny fallback when the row does not exist (the action then
+     * raises VehicleYearlyPricingNotFoundException).
+     */
     public function destroy(
         Vehicle $vehicle,
         int $year,
         DeleteVehicleYearlyPricingAction $action,
     ): RedirectResponse {
-        // Charge l'instance pour passer à la Policy (signature `delete(User,
-        // VehicleYearlyPricing)`). Si le couple n'existe pas, l'Action lève
-        // `VehicleYearlyPricingNotFoundException` ; ici on charge le pricing
-        // d'abord pour un check d'autorisation précis avant l'effet.
         $pricing = VehicleYearlyPricing::query()
             ->where('vehicle_id', $vehicle->id)
             ->where('year', $year)

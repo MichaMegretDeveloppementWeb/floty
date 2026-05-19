@@ -32,12 +32,7 @@ use Spatie\LaravelData\DataCollection;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Endpoints HTTP du domaine Contract - slim conforme ADR-0013.
- *
- * Les pages Vue cibles `User/Contracts/*` sont créées au chantier 04.G ;
- * en attendant, les méthodes `index`, `create`, `show`, `edit` rendent
- * des composants Inertia placeholder qui seront remplacés par les
- * vraies pages.
+ * Contract HTTP endpoints (slim, per ADR-0013).
  */
 final class ContractController extends Controller
 {
@@ -54,66 +49,38 @@ final class ContractController extends Controller
         private readonly AvailableYearsResolver $availableYears,
     ) {}
 
+    /**
+     * List contracts. The fiscal pipeline is deferred so the initial
+     * payload renders quickly; the costs prop arrives on the auto-fetch
+     * follow-up.
+     */
     public function index(ContractIndexQueryData $query): Response
     {
         Gate::authorize('viewAny', Contract::class);
 
-        // Sync pill UI ↔ filtre serveur (chantier C) : si l'utilisateur
-        // arrive sans `year` ni `periodStart/End`, on impose `year =
-        // currentYear` côté DTO. Cohérent avec CompanyController et
-        // VehicleController (doctrine temporelle chantier η Phase 3).
         $this->applyDefaultYearIfMissing($query);
 
-        // Option 1 (plan perf 2026-05-16) · liste SLIM en payload initial
-        // (sans `totalTax` ni `rentalPrice` qui demandent le pipeline
-        // fiscal) · les coûts arrivent dans une 2e requête `Inertia::defer`
-        // après le mount, le frontend rend un skeleton sur 2 cellules
-        // entre-temps. Gain mesuré · ~210 ms cold sur 25 contrats /
-        // 21 véhicules distincts.
         $contracts = $this->contracts->listPaginatedSlim($query);
         $contractIds = array_map(static fn ($c): int => $c->id, $contracts->data);
 
         return Inertia::render('User/Contracts/Index/Index', [
             'contracts' => $contracts,
-            // Inertia::defer · cette closure ne s'exécute qu'à la 2e
-            // requête déclenchée automatiquement par Inertia après le
-            // mount. Le pipeline fiscal + le batch rental tournent ici,
-            // hors du chemin critique 1ère peinture.
             'contractsCosts' => Inertia::defer(
                 fn () => $this->contracts->costsForContractIds($contractIds),
             ),
-            // S2.4 (plan optim perf 2026-05-16) · options SLIM pour les
-            // sélecteurs UI (filter dropdown + filter chips) · zéro
-            // pipeline fiscal. Les calculs fiscaux ad-hoc (taxe pleine
-            // d'un véhicule sélectionné, taxe prorata d'un contrat
-            // synthétique) passent par des endpoints AJAX dédiés
-            // déclenchés à l'interaction utilisateur.
             'options' => $this->buildSlimOptions(),
             'query' => $query,
-            // Cf. note d'archi sur le bug placeholder : `hasAnyContract`
-            // distingue « table intrinsèquement vide » du « filtre actif
-            // retournant 0 » sans dériver depuis 3 sources désynchronisées.
             'hasAnyContract' => $this->contractRead->existsAny(),
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
         ]);
     }
 
     /**
-     * Options SLIM pour les `<SearchableSelect>` consommés par la page
-     * Index (filter dropdown + chips) ET les pages Create/Edit
-     * (sélecteurs du formulaire). Aucune méthode dédiée ne diverge
-     * aujourd'hui · 3 listings light SQL, zéro pipeline fiscal.
+     * Slim options for the index dropdowns and the create/edit selectors.
      *
-     * Les calculs fiscaux contextuels (taxe pleine du véhicule
-     * sélectionné, taxe prorata du contrat saisi) sont déclenchés
-     * à la volée par le frontend via des endpoints AJAX dédiés ·
-     *   - Calcul A · `GET /app/vehicles/{vehicle}/full-year-tax`
-     *     (composable `useVehicleFullYearTax`)
-     *   - Calcul B · `POST /app/planning/preview-taxes` (composable
-     *     `useContractFiscalPreview`)
-     *
-     * Audit perf 2026-05-16 S2.4 + S2.5 · éliminé 192 pipeline runs
-     * par chargement sur les 3 pages Contracts (Index, Create, Edit).
+     * No fiscal pipeline runs here; ad-hoc calculations (full-year tax,
+     * contract preview) are exposed through dedicated AJAX endpoints
+     * triggered from the frontend on user interaction.
      *
      * @return array{
      *     vehicles: DataCollection<int, VehicleFilterOptionData>,
@@ -131,13 +98,10 @@ final class ContractController extends Controller
     }
 
     /**
-     * Mute `$query->year` vers `currentYear` quand l'utilisateur arrive
-     * sans aucun filtre temporel (`year` + `periodStart` + `periodEnd`
-     * tous null). Préserve le mode « Période personnalisée » (si
-     * `periodStart` ou `periodEnd` est posé, on ne touche pas à `year`).
+     * Default `year` to current when no temporal filter is set.
      *
-     * Spatie Data DTOs sont mutables (props publiques) · c'est le
-     * mécanisme prévu pour ce genre de post-traitement avant rendu.
+     * Preserves "custom period" mode: if periodStart or periodEnd is set,
+     * `year` is left untouched.
      */
     private function applyDefaultYearIfMissing(ContractIndexQueryData $query): void
     {
@@ -150,6 +114,9 @@ final class ContractController extends Controller
         }
     }
 
+    /**
+     * Render the contract detail page with tax + billing breakdowns.
+     */
     public function show(int $contract): Response
     {
         $contractModel = Contract::query()->findOrFail($contract);
@@ -165,11 +132,13 @@ final class ContractController extends Controller
             'contract' => $contractData,
             'taxBreakdown' => $this->contracts->findContractTaxBreakdown($contract),
             'documents' => $this->contracts->listDocumentsForContract($contract),
-            // Phase 14.D V1.2 · récap facturation contrat-isolé.
             'billingBreakdown' => $this->contracts->findContractBillingBreakdown($contract),
         ]);
     }
 
+    /**
+     * Render the contract creation form.
+     */
     public function create(): Response
     {
         Gate::authorize('create', Contract::class);
@@ -180,6 +149,9 @@ final class ContractController extends Controller
         ]);
     }
 
+    /**
+     * Persist a new contract.
+     */
     public function store(StoreContractData $data): RedirectResponse
     {
         Gate::authorize('create', Contract::class);
@@ -191,6 +163,9 @@ final class ContractController extends Controller
             ->with('toast-success', 'Location enregistrée.');
     }
 
+    /**
+     * Render the contract edit form.
+     */
     public function edit(int $contract): Response
     {
         $contractModel = Contract::query()->findOrFail($contract);
@@ -211,6 +186,9 @@ final class ContractController extends Controller
         ]);
     }
 
+    /**
+     * Update an existing contract.
+     */
     public function update(int $contract, UpdateContractData $data): RedirectResponse
     {
         $contractModel = Contract::query()->findOrFail($contract);
@@ -223,6 +201,9 @@ final class ContractController extends Controller
             ->with('toast-success', 'Location mise à jour.');
     }
 
+    /**
+     * Delete a contract.
+     */
     public function destroy(int $contract): RedirectResponse
     {
         $contractModel = Contract::query()->findOrFail($contract);
@@ -235,6 +216,9 @@ final class ContractController extends Controller
             ->with('toast-success', 'Location supprimée.');
     }
 
+    /**
+     * Create multiple contracts sharing the same period in a single call.
+     */
     public function bulkStore(BulkStoreContractsData $data): RedirectResponse
     {
         Gate::authorize('create', Contract::class);

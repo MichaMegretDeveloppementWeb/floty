@@ -26,15 +26,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Planning - vue d'ensemble heatmap annuelle (CDC § 3.3) +
- * détail semaine (drawer) + preview taxes + création de contrats.
- *
- * **Refonte 04.F (ADR-0014)** : `storeBulk` crée désormais des contrats
- * (plage `[start_date, end_date]`) au lieu de jours individuels.
- *
- * **Chantier J (ADR-0023)** : sélecteur d'année **local** à la page ·
- * `?year=YYYY` URL avec fallback année calendaire courante. Plus de
- * dépendance à `FiscalYearResolver` (supprimé).
+ * Planning endpoints: annual heatmap, weekly drawer, contract previews
+ * and bulk contract creation from the planning wizard.
  */
 final class PlanningController extends Controller
 {
@@ -46,6 +39,13 @@ final class PlanningController extends Controller
         private readonly CompanyReadRepositoryInterface $companies,
     ) {}
 
+    /**
+     * Render the fleet-wide annual heatmap.
+     *
+     * Cost props are deferred in separate Inertia groups so the user sees
+     * the cheap cells first (theoretical full-year tax) while the heavier
+     * real-cost pipeline runs in parallel.
+     */
     public function index(Request $request): Response
     {
         Gate::authorize('view-planning');
@@ -56,20 +56,8 @@ final class PlanningController extends Controller
             'User/Planning/Index/Index',
             [
                 ...$this->heatmap->buildHeatmap($year),
-                // Chantier perf Étape 3 (2026-05-17) · split en 2 defer
-                // dans 2 groups différents · Inertia v3 fetch les 2 en
-                // parallèle au lieu de séquentiel ·
-                //   - `fullYearCosts` (group "fast") · cellules « Taxe
-                //     pleine » à GAUCHE, cachées (warm ~50 ms)
-                //   - `realCosts` (group "slow") · cellules « €XXXX ·
-                //     N j » à DROITE, non cachées (~250 ms)
-                // L'utilisateur voit 2 vagues d'apparition au lieu d'1
-                // longue attente.
                 'fullYearCosts' => Inertia::defer(fn () => $this->heatmap->fullYearCostsForVehicles($year), 'fast'),
                 'realCosts' => Inertia::defer(fn () => $this->heatmap->realCostsForVehicles($year), 'slow'),
-                // SC1 (2026-05-18) · loyer mensuel cumulé fleet sous chaque
-                // entête de mois · group « rentals » indépendant pour
-                // hydratation parallèle aux 2 autres vagues.
                 'monthlyRentals' => Inertia::defer(fn () => $this->heatmap->monthlyRentalTotalsForFleet($year), 'rentals'),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
@@ -78,12 +66,10 @@ final class PlanningController extends Controller
     }
 
     /**
-     * Point d'entrée racine de la Vue Entreprise (chantier P2). Sans
-     * param d'entreprise dans l'URL, on redirige vers la 1ʳᵉ entreprise
-     * existante (1er ID croissant) ; si aucune entreprise n'existe, on
-     * affiche une page Empty avec lien vers la création d'entreprise.
+     * Entry point for the per-company view.
      *
-     * Le `?year=` éventuel est préservé dans la redirection.
+     * Without a company in the URL, redirect to the first company; if no
+     * company exists at all, render the empty state.
      */
     public function companyIndexRoot(Request $request): RedirectResponse|Response
     {
@@ -105,14 +91,10 @@ final class PlanningController extends Controller
     }
 
     /**
-     * Vue Entreprise (chantier P1) : variante de la heatmap focalisée
-     * sur une entreprise donnée. Cellule chiffre = jours utilisés par
-     * l'entreprise ; cellule couleur = taux d'occupation global du
-     * véhicule (signal de disponibilité, inchangé par rapport à
-     * `index`).
+     * Render the heatmap scoped to a single company.
      *
-     * Route Model Binding : 404 automatique si l'entreprise est
-     * introuvable.
+     * Numeric cells reflect days used by the company; the colour scale
+     * keeps tracking the global vehicle occupancy as a disponibility cue.
      */
     public function companyIndex(Request $request, Company $company): Response
     {
@@ -124,13 +106,8 @@ final class PlanningController extends Controller
             'User/Planning/Company/Index',
             [
                 ...$this->heatmap->buildHeatmapForCompany($year, $company),
-                // Cf. doc `index()` · split en 2 defer parallèles ·
-                // `fullYearCosts` est indépendant du scope (théorique
-                // 100 % usage), `realCosts` est scopé à l'entreprise.
                 'fullYearCosts' => Inertia::defer(fn () => $this->heatmap->fullYearCostsForVehicles($year), 'fast'),
                 'realCosts' => Inertia::defer(fn () => $this->heatmap->realCostsForVehicles($year, $company->id), 'slow'),
-                // SC1 (2026-05-18) · loyer mensuel cumulé pour cette
-                // entreprise uniquement · `null` par mois si tarif manquant.
                 'monthlyRentals' => Inertia::defer(fn () => $this->heatmap->monthlyRentalTotalsForCompany($year, $company->id), 'rentals'),
                 'selectedYear' => $year,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
@@ -139,11 +116,7 @@ final class PlanningController extends Controller
     }
 
     /**
-     * GET /app/planning/week?vehicleId=X&week=N&year=Y[&companyId=Z]
-     *
-     * Quand `companyId` est fourni : mode company-locked (chantier P3).
-     * Anonymise les contrats des autres entreprises et filtre
-     * `companiesOnWeek` pour ne garder que l'entreprise demandée.
+     * Return the week detail payload (anonymised when `companyId` is set).
      */
     public function week(WeekQueryData $query, Request $request): JsonResponse
     {
@@ -159,11 +132,7 @@ final class PlanningController extends Controller
     }
 
     /**
-     * POST /app/planning/preview-taxes
-     *
-     * L'année est dérivée du query param `?year=` ou de la première
-     * date du payload (les dates partagent toujours la même année dans
-     * le wizard d'attribution).
+     * Compute a tax preview for the dates currently selected in the wizard.
      */
     public function previewTaxes(PreviewTaxesInputData $input, Request $request): JsonResponse
     {
@@ -179,9 +148,7 @@ final class PlanningController extends Controller
     }
 
     /**
-     * POST /app/planning/preview-rentals · SC4 (2026-05-18) · loyer
-     * induit standalone pour le drawer + formulaire location, cohérent
-     * avec la facture finale (réductions incluses).
+     * Compute a standalone rental preview consistent with the final invoice.
      */
     public function previewRentals(PreviewRentalsInputData $input): JsonResponse
     {
@@ -193,9 +160,7 @@ final class PlanningController extends Controller
     }
 
     /**
-     * POST /app/planning/contracts - création d'un (ou plusieurs)
-     * contrat(s) sur une plage commune `[start_date, end_date]` à
-     * partir du wizard d'attribution rapide du planning.
+     * Create contracts in bulk on a shared period from the planning wizard.
      *
      * @return JsonResponse `{ createdIds: list<int> }`
      */
@@ -209,11 +174,9 @@ final class PlanningController extends Controller
     }
 
     /**
-     * Doctrine "données métier ⊥ règles fiscales" (chantier η Phase 5) ·
-     * l'utilisateur pilote n'importe quelle année calendaire raisonnable
-     * (range 1900-2100). Le sélecteur UI affiche `yearScope` (scope
-     * contrats), mais un deep-link `?year=` libre reste honoré. Fallback
-     * année calendaire courante.
+     * Resolve `?year=` against a reasonable calendar range, falling back to
+     * the current year. The selector UI exposes `yearScope`, but deep links
+     * to any year in [1900, 2100] are honoured.
      */
     private function resolveYear(Request $request): int
     {

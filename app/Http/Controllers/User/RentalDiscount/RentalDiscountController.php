@@ -29,19 +29,7 @@ use Inertia\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * CRUD Rental Discount + endpoint AJAX `checkConflicts` consommé par
- * le form Create/Edit pour feedback live · Lot 4 du chantier
- * RentalDiscount.
- *
- * Endpoints ·
- *   - GET    /rental-discounts                       index
- *   - GET    /rental-discounts/create                create
- *   - POST   /rental-discounts                       store
- *   - POST   /rental-discounts/check-conflicts       checkConflicts (JSON)
- *   - GET    /rental-discounts/{rentalDiscount}      show
- *   - GET    /rental-discounts/{rentalDiscount}/edit edit
- *   - PATCH  /rental-discounts/{rentalDiscount}      update
- *   - DELETE /rental-discounts/{rentalDiscount}      destroy
+ * Rental discount CRUD plus a live conflict-check JSON endpoint.
  */
 final class RentalDiscountController extends Controller
 {
@@ -53,6 +41,9 @@ final class RentalDiscountController extends Controller
         private readonly RentalDiscountConflictService $conflicts,
     ) {}
 
+    /**
+     * List rental discounts with filters and aggregate stats.
+     */
     public function index(RentalDiscountIndexQueryData $query): Response
     {
         Gate::authorize('viewAny', RentalDiscount::class);
@@ -64,12 +55,13 @@ final class RentalDiscountController extends Controller
             ],
             'stats' => $this->query->statsForIndex(),
             'query' => $query,
-            // Distingue « table intrinsèquement vide » du « filtre actif
-            // retournant 0 » (mémoire `feedback_index_has_any_required`).
             'hasAnyRentalDiscount' => $this->reader->existsAny(),
         ]);
     }
 
+    /**
+     * Render the rental discount detail page.
+     */
     public function show(RentalDiscount $rentalDiscount): Response
     {
         Gate::authorize('view', $rentalDiscount);
@@ -85,6 +77,9 @@ final class RentalDiscountController extends Controller
         ]);
     }
 
+    /**
+     * Render the rental discount creation form.
+     */
     public function create(): Response
     {
         Gate::authorize('create', RentalDiscount::class);
@@ -95,6 +90,9 @@ final class RentalDiscountController extends Controller
         ]);
     }
 
+    /**
+     * Persist a new rental discount.
+     */
     public function store(StoreRentalDiscountData $data, CreateRentalDiscountAction $action): RedirectResponse
     {
         Gate::authorize('create', RentalDiscount::class);
@@ -112,6 +110,9 @@ final class RentalDiscountController extends Controller
             ->with('toast-success', 'Réduction commerciale créée.');
     }
 
+    /**
+     * Render the rental discount edit form.
+     */
     public function edit(RentalDiscount $rentalDiscount): Response
     {
         Gate::authorize('update', $rentalDiscount);
@@ -128,6 +129,9 @@ final class RentalDiscountController extends Controller
         ]);
     }
 
+    /**
+     * Update an existing rental discount.
+     */
     public function update(
         RentalDiscount $rentalDiscount,
         UpdateRentalDiscountData $data,
@@ -148,6 +152,9 @@ final class RentalDiscountController extends Controller
             ->with('toast-success', 'Réduction commerciale mise à jour.');
     }
 
+    /**
+     * Archive a rental discount.
+     */
     public function destroy(RentalDiscount $rentalDiscount, DeleteRentalDiscountAction $action): RedirectResponse
     {
         Gate::authorize('delete', $rentalDiscount);
@@ -160,16 +167,14 @@ final class RentalDiscountController extends Controller
     }
 
     /**
-     * Endpoint AJAX consommé par le form Create/Edit · retourne la liste
-     * des réductions de la company qui chevauchent la période + véhicules
-     * candidats. Le front affiche une carte d'erreur si conflit.
+     * JSON endpoint listing rental discounts that overlap the requested period.
      *
-     * Payload entrée (JSON ou query) :
-     *   - `company_id` (int, requis)
-     *   - `start_date` (Y-m-d, requis)
-     *   - `end_date` (Y-m-d, requis, >= start_date)
-     *   - `vehicle_ids` (array<int>, optionnel · vide = sémantique « tous »)
-     *   - `exclude_id` (int, optionnel · id de la réduction en édition)
+     * Payload:
+     *   - `company_id` (int, required)
+     *   - `start_date` (Y-m-d, required)
+     *   - `end_date` (Y-m-d, required, >= start_date)
+     *   - `vehicle_ids` (array<int>, optional; empty = "all vehicles")
+     *   - `exclude_id` (int, optional; id of the discount being edited)
      */
     public function checkConflicts(Request $request): JsonResponse
     {

@@ -16,13 +16,11 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Page consultation « Règles de calcul » - lecture seule.
+ * Read-only fiscal rules viewer.
  *
- * Sélecteur d'année **local** à la page (chantier η Phase 5) : `?year=`
- * URL avec fallback **dernière année enregistrée dans le registry des
- * règles** (les barèmes sont versionnés ; un utilisateur qui ouvre la
- * page sans paramètre veut consulter le barème le plus récent
- * disponible). Le scope provient du moteur fiscal, pas du scope contrats.
+ * Year selector is local to the page (`?year=`) with a fallback to the
+ * latest year registered in the rule registry: the rules are versioned
+ * and a user landing without a query param wants the most recent ruleset.
  */
 final class FiscalRuleController extends Controller
 {
@@ -31,6 +29,9 @@ final class FiscalRuleController extends Controller
         private readonly FiscalRuleRegistry $registry,
     ) {}
 
+    /**
+     * Render the rules page for the resolved year.
+     */
     public function index(Request $request): Response
     {
         Gate::authorize('view-fiscal-rules');
@@ -41,10 +42,6 @@ final class FiscalRuleController extends Controller
             'rules' => $this->rules->listForYear($year),
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromRegistry($this->registry),
-            // Phase 13 D5.12 · ADR-0022 v1.2 · l'organisation des tabs
-            // et sections (titres, sous-titres, ordre) vient des enums
-            // PHP, plus de `fiscalRulesContent.ts` ni de
-            // `useFiscalRulesIndex` hardcoded côté front.
             'tabs' => array_map(
                 static fn (RuleTab $t): FiscalRuleTabData => FiscalRuleTabData::fromEnum($t),
                 RuleTab::cases(),
@@ -53,9 +50,7 @@ final class FiscalRuleController extends Controller
     }
 
     /**
-     * Pour FiscalRules : fallback **dernière année enregistrée** (pas
-     * l'année calendaire courante), car l'utilisateur consulte des
-     * barèmes versionnés. Cette page n'a pas de notion de « présent ».
+     * Resolve the active year, falling back to the latest registered ruleset.
      */
     private function resolveYear(Request $request): int
     {

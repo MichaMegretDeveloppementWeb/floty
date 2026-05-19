@@ -12,7 +12,6 @@ use App\Data\User\Contract\ContractDocumentData;
 use App\Data\User\Contract\UploadContractDocumentData;
 use App\Http\Controllers\Controller;
 use App\Models\ContractDocument;
-use App\Policies\ContractDocumentPolicy;
 use App\Services\Contract\ContractDocumentStorage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
@@ -21,18 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Endpoints HTTP des documents PDF joints aux contrats (chantier 04.N).
- *
- *   - POST   /app/contracts/{contract}/documents              → upload
- *   - GET    /app/contracts/{contract}/documents/{document}   → download
- *   - DELETE /app/contracts/{contract}/documents/{document}   → delete
- *
- * Authorization via {@see ContractDocumentPolicy} stub V1
- * retournant `true` partout (ADR-0011 § 7). Multi-tenant V2 ajoutera le
- * scope par société propriétaire du contrat parent · les controllers ne
- * changeront pas.
- *
- * Cf. plan-remédiation Vague 1 Lot 1 D6 (F-12-001).
+ * HTTP endpoints for PDF documents attached to contracts.
  */
 final class ContractDocumentController extends Controller
 {
@@ -44,6 +32,9 @@ final class ContractDocumentController extends Controller
         private readonly ContractDocumentStorage $storage,
     ) {}
 
+    /**
+     * Upload a new document to the given contract.
+     */
     public function store(int $contract, UploadContractDocumentData $data): JsonResponse
     {
         $contractModel = $this->contracts->findByIdWithRelations($contract);
@@ -66,6 +57,9 @@ final class ContractDocumentController extends Controller
         );
     }
 
+    /**
+     * Stream a document binary for download.
+     */
     public function show(int $contract, int $document): StreamedResponse
     {
         $doc = $this->documents->findById($document);
@@ -79,6 +73,9 @@ final class ContractDocumentController extends Controller
         return $this->storage->streamResponse($doc->storage_path, $doc->filename);
     }
 
+    /**
+     * Delete a document and its stored file.
+     */
     public function destroy(int $contract, int $document): Response
     {
         $doc = $this->documents->findById($document);

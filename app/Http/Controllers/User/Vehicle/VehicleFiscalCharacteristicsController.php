@@ -18,18 +18,18 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * CRUD complet sur l'historique fiscal d'un véhicule (modale
- * Historique de la page Show). `store()` permet d'ajouter une nouvelle
- * version VFC à n'importe quelle position de l'historique (avant la 1ʳᵉ,
- * entre 2 existantes, comme nouvelle courante…) ; les versions adjacentes
- * sont ajustées ou supprimées en cascade par
- * {@see CreateFiscalCharacteristicsAction}. Cohabite avec le « mode
- * Nouvelle version » du formulaire d'édition véhicule (qui crée
- * également une VFC mais via `UpdateVehicleAction`, pour cohérence
- * avec une mise à jour combinée identité + fiscalité).
+ * Full CRUD over the fiscal history of a vehicle.
+ *
+ * Coexists with the "new version" mode of the vehicle edit form which
+ * also creates a VFC but through UpdateVehicleAction for combined
+ * identity + fiscal updates. Adjacent versions are auto-adjusted by
+ * {@see CreateFiscalCharacteristicsAction}.
  */
 final class VehicleFiscalCharacteristicsController extends Controller
 {
+    /**
+     * Insert a new VFC version at any position in the history.
+     */
     public function store(
         Vehicle $vehicle,
         StoreFiscalCharacteristicsData $data,
@@ -50,6 +50,9 @@ final class VehicleFiscalCharacteristicsController extends Controller
         return $response;
     }
 
+    /**
+     * Update an existing VFC version.
+     */
     public function update(
         int $vehicleFiscalCharacteristic,
         UpdateFiscalCharacteristicsData $data,
@@ -71,6 +74,9 @@ final class VehicleFiscalCharacteristicsController extends Controller
         return $response;
     }
 
+    /**
+     * Delete a VFC version, extending neighbours per the chosen strategy.
+     */
     public function destroy(
         int $vehicleFiscalCharacteristic,
         DeleteFiscalCharacteristicsData $data,
@@ -88,6 +94,8 @@ final class VehicleFiscalCharacteristicsController extends Controller
     }
 
     /**
+     * Format an info toast describing cascade adjustments on adjacent versions.
+     *
      * @param  list<FiscalCharacteristicsImpact>  $impacts
      */
     private function summarizeImpacts(array $impacts): ?string

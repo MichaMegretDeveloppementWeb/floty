@@ -43,10 +43,6 @@ use Inertia\Response;
 final class VehicleController extends Controller
 {
     public function __construct(
-        // Lot 4 D09 (F-14-003) · `VehicleQueryService` éclaté en 3
-        // sous-services thématiques par concern (Detail / Aggregates /
-        // Listing). Chaque méthode du controller pointe désormais sur
-        // le service avec la bonne responsabilité.
         private readonly VehicleDetailService $vehicleDetail,
         private readonly VehicleAggregatesService $vehicleAggregates,
         private readonly VehicleListingService $vehicleListing,
@@ -60,32 +56,20 @@ final class VehicleController extends Controller
         private readonly VehicleRegistryLookupManager $registryLookup,
     ) {}
 
+    /**
+     * List vehicles. Heavy cost columns are deferred to a follow-up request.
+     */
     public function index(VehicleIndexQueryData $query): Response
     {
         Gate::authorize('viewAny', Vehicle::class);
 
-        // Sélecteur année **local** à la page (chantier η Phase 3) ·
-        // bornes alimentées par `AvailableYearsResolver` (scope global
-        // dynamique calculé depuis les contrats, pas la config statique
-        // morte). `?year=` URL validé contre ce scope, fallback
-        // `currentYear` si invalide.
         $year = $this->resolveSelectedYear($query->year);
 
-        // Chantier perf Flotte 2026-05-17 · liste SLIM en payload initial
-        // (sans `fullYearTax` / `dailyTaxRate` / `rentalPriceFullYear` qui
-        // demandent le pipeline fiscal + le batch rental) · les 3 colonnes
-        // calculées arrivent dans une 2e requête `Inertia::defer` après le
-        // mount, le frontend rend un skeleton sur les 2 cellules entre-temps.
-        // Pattern cohérent avec Contracts Index et Companies Index.
         $vehicles = $this->vehicleListing->listPaginatedSlim($query);
         $vehicleIds = array_map(static fn ($v): int => $v->id, $vehicles->data);
 
         return Inertia::render('User/Vehicles/Index/Index', [
             'vehicles' => $vehicles,
-            // Inertia::defer · cette closure ne s'exécute qu'à la 2e
-            // requête déclenchée automatiquement par Inertia après le
-            // mount. Le prewarm VFC batch + le pipeline fiscal tournent
-            // ici, hors du chemin critique 1ère peinture.
             'vehiclesCosts' => Inertia::defer(
                 fn () => $this->vehicleListing->costsForVehicleIds($vehicleIds, $year),
             ),
@@ -95,17 +79,12 @@ final class VehicleController extends Controller
             'query' => $query,
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
-            // Cf. note d'archi sur le bug placeholder : `hasAnyVehicle`
-            // distingue « table intrinsèquement vide » du « filtre actif
-            // retournant 0 » sans dériver depuis 3 sources désynchronisées.
             'hasAnyVehicle' => $this->vehicleRead->existsAny(),
         ]);
     }
 
     /**
-     * Doctrine temporelle (chantier η Phase 3) · résolution `?year=`
-     * URL contre le scope global dynamique, fallback `currentYear` si
-     * invalide ou absent.
+     * Resolve `?year=` against the dynamic global scope, falling back to current year.
      */
     private function resolveSelectedYear(?int $requested): int
     {
@@ -116,46 +95,35 @@ final class VehicleController extends Controller
         return $this->availableYears->currentYear();
     }
 
+    /**
+     * Render the vehicle detail page with tab-aware lazy props.
+     */
     public function show(int $vehicle, Request $request): Response
     {
         $vehicleModel = Vehicle::query()->findOrFail($vehicle);
         Gate::authorize('view', $vehicleModel);
 
-        // Doctrine temporelle (chantier η Phase 2 · refonte onglets) :
-        // `usageStats` est initialisé sur `currentYear`. Le sélecteur
-        // de la carte Utilisation (Vue d'ensemble) reste en lazy fetch
-        // JSON via `usageStatsForYear` (cache client `useYearLazy`).
         $vehicleData = $this->vehicleDetail->findVehicleData($vehicle);
 
-        // D5.10.U · param URL **unifié** `?year=` partagé entre les
-        // onglets Fiscalité et Facturation de la fiche véhicule.
+        // Unified `?year=` shared between the Fiscal and Billing tabs.
         $selectedYear = (int) $request->query('year', (string) $vehicleData->kpiYear);
 
-        // D5.10.V · onglets à chargement lazy + cumulatif. Lit `?tab=`
-        // pour décider quelles props sont eager au mount initial. Les
-        // autres tirent leur SQL QUE sur partial reload côté front.
         $activeTab = (string) $request->query('tab', 'overview');
 
         return Inertia::render('User/Vehicles/Show/Index', [
-            // Eager · props partagées (Vue d'ensemble + header + sync URL year).
             'vehicle' => $vehicleData,
             'options' => $this->buildFormOptions(),
             'billingYear' => $selectedYear,
             'fiscalYear' => $selectedYear,
 
-            // Inertia::defer · historique annuel calcule N pipelines
-            // fiscaux (audit perf 2026-05-16 / 02-vehicle.md P0 #1,
-            // ~100-150 ms cold). Mount immediat + 2e round-trip
-            // transparent + <Deferred data="history"> cote front.
+            // Annual history runs N fiscal pipelines; defer to keep mount fast.
             'history' => Inertia::defer(fn () => $this->vehicleDetail->historyForVehicle($vehicle)),
 
-            // Onglet "fiscal" · breakdown taxe pleine.
             'fiscalYearBreakdown' => $this->eagerForTab(
                 $activeTab === 'fiscal',
                 fn () => $this->vehicleAggregates->fullYearBreakdownForYear($vehicle, $selectedYear),
             ),
 
-            // Onglet "billing" · récap mensuel.
             'vehicleBilling' => $this->eagerForTab(
                 $activeTab === 'billing',
                 fn () => $this->vehicleAggregates->billingForYear($vehicle, $selectedYear),
@@ -164,7 +132,7 @@ final class VehicleController extends Controller
     }
 
     /**
-     * D5.10.V · Helper pour le chargement lazy + cumulatif des onglets.
+     * Lazy+cumulative tab loading helper: eager when active, optional otherwise.
      */
     private function eagerForTab(bool $isActive, callable $resolver): mixed
     {
@@ -172,17 +140,13 @@ final class VehicleController extends Controller
     }
 
     /**
-     * Endpoint lazy JSON appelé par `useYearLazy` côté front quand
-     * l'utilisateur change l'année dans la carte Utilisation & Répartition
-     * de la fiche véhicule. Retourne `VehicleUsageStatsData` pour
-     * l'année demandée · Timeline + Breakdown par entreprise + breakdown
-     * Taxe pleine imbriqué.
+     * Lazy JSON endpoint for the Usage & Repartition card.
+     *
+     * Returns a neutral DTO when the vehicle no longer exists rather than
+     * 404-ing the year-change interaction.
      */
     public function usageStats(int $vehicle, Request $request): JsonResponse
     {
-        // Endpoint lazy JSON · Gate::authorize sur la collection plutôt
-        // que sur l'instance. Si le véhicule n'existe pas, le service
-        // retourne un DTO neutre (pas de 404 sur ces endpoints lazy).
         Gate::authorize('viewAny', Vehicle::class);
 
         $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
@@ -191,13 +155,10 @@ final class VehicleController extends Controller
     }
 
     /**
-     * Endpoint lazy JSON pour le panel Taxe pleine de l'onglet Fiscalité.
-     * Retourne uniquement `VehicleFullYearTaxBreakdownData` (panel détaillé
-     * du calcul théorique 100 % d'utilisation).
+     * Lazy JSON endpoint for the Full-year tax panel in the Fiscal tab.
      */
     public function fullYearBreakdown(int $vehicle, Request $request): JsonResponse
     {
-        // Endpoint lazy JSON · Gate::authorize sur la collection (cf. usageStats).
         Gate::authorize('viewAny', Vehicle::class);
 
         $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
@@ -206,19 +167,11 @@ final class VehicleController extends Controller
     }
 
     /**
-     * Endpoint AJAX léger pour le formulaire Create/Edit Contract ·
-     * Calcul A · taxe pleine année d'un véhicule sélectionné, déclenché
-     * à la volée par le composable frontend `useVehicleFullYearTax`
-     * quand l'utilisateur change le véhicule ou la date de début.
+     * AJAX endpoint returning `{ cents, year, fallback }` for the contract form.
      *
-     * Retourne `{ cents, year, fallback }` ou `404` si le véhicule
-     * n'existe pas (différent de `usageStats`/`fullYearBreakdown` qui
-     * dégradent silencieusement · ici on veut un signal clair pour
-     * le composable, qui affiche un état neutre si null).
-     *
-     * Audit perf 2026-05-16 S2.5 · remplace le pré-calcul lourd de
-     * `VehicleOptionData::fullYearTaxByYear` (192 pipeline runs par
-     * mount Create/Edit) par un seul appel à la sélection véhicule.
+     * Unlike usageStats/fullYearBreakdown which degrade silently, this one
+     * signals a missing vehicle with a 404 so the composable can render a
+     * neutral state.
      */
     public function fullYearTax(Vehicle $vehicle, Request $request): JsonResponse
     {
@@ -235,10 +188,9 @@ final class VehicleController extends Controller
     }
 
     /**
-     * SC9 (2026-05-18) · tarifs annuels (jour/semaine/mois) du véhicule
-     * pour une année donnée · consommé en AJAX par le form Create/Edit
-     * Contract (composable `useVehicleYearlyRates`). Retourne `null` sur
-     * chaque champ si aucun tarif saisi pour cette année.
+     * AJAX endpoint returning daily/weekly/monthly rates for vehicle × year.
+     *
+     * Each rate is `null` when no pricing row exists for the requested year.
      */
     public function yearlyRates(Vehicle $vehicle, Request $request): JsonResponse
     {
@@ -255,6 +207,9 @@ final class VehicleController extends Controller
         ]);
     }
 
+    /**
+     * Render the vehicle creation form.
+     */
     public function create(): Response
     {
         Gate::authorize('create', Vehicle::class);
@@ -265,6 +220,9 @@ final class VehicleController extends Controller
         ]);
     }
 
+    /**
+     * Persist a new vehicle.
+     */
     public function store(StoreVehicleData $data): RedirectResponse
     {
         Gate::authorize('create', Vehicle::class);
@@ -276,6 +234,9 @@ final class VehicleController extends Controller
             ->with('toast-success', 'Véhicule enregistré.');
     }
 
+    /**
+     * Render the vehicle edit form.
+     */
     public function edit(int $vehicle): Response
     {
         $vehicleModel = Vehicle::query()->findOrFail($vehicle);
@@ -287,6 +248,9 @@ final class VehicleController extends Controller
         ]);
     }
 
+    /**
+     * Update an existing vehicle.
+     */
     public function update(int $vehicle, UpdateVehicleData $data): RedirectResponse
     {
         $vehicleModel = Vehicle::query()->findOrFail($vehicle);
@@ -299,6 +263,9 @@ final class VehicleController extends Controller
             ->with('toast-success', 'Véhicule mis à jour.');
     }
 
+    /**
+     * Mark the vehicle as exited from the fleet.
+     */
     public function exit(int $vehicle, ExitVehicleData $data): RedirectResponse
     {
         $vehicleModel = Vehicle::query()->findOrFail($vehicle);
@@ -311,6 +278,9 @@ final class VehicleController extends Controller
             ->with('toast-success', 'Véhicule retiré de la flotte.');
     }
 
+    /**
+     * Reactivate an exited vehicle.
+     */
     public function reactivate(int $vehicle): RedirectResponse
     {
         $vehicleModel = Vehicle::query()->findOrFail($vehicle);
@@ -323,6 +293,9 @@ final class VehicleController extends Controller
             ->with('toast-success', 'Véhicule réactivé.');
     }
 
+    /**
+     * Build the enum option payload shared between the create and edit forms.
+     */
     private function buildFormOptions(): VehicleFormOptionsData
     {
         return new VehicleFormOptionsData(

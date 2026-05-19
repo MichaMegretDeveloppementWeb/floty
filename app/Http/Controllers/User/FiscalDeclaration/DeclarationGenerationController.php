@@ -21,19 +21,13 @@ use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Cycle de génération d'une déclaration fiscale (Phase 11 D4 ·
- * extrait de `DeclarationController` pour respecter R7/R10 ADR-0013 ·
- * Lot 4 D13 / F-34-105).
- *
- * Regroupe les transitions du brouillon vers la version finalisée ·
- *   - `prepare`        crée un Draft pour `(company, year)`
- *   - `storeDecision`  persiste une décision cluster pendant le review
- *   - `generate`       verrouille en `generated` + PDF
- *   - `regenerate`     crée un nouveau Draft chaîné (régénération)
- *   - `modify`         S5 → S7 volontaire (D5.10.E)
+ * Transitions that drive a declaration from draft to a generated version.
  */
 final class DeclarationGenerationController extends Controller
 {
+    /**
+     * Create a new draft for the (company, year) pair.
+     */
     public function prepare(
         PrepareDeclarationData $data,
         CreateDraftDeclarationAction $action,
@@ -54,6 +48,9 @@ final class DeclarationGenerationController extends Controller
             ));
     }
 
+    /**
+     * Persist a cluster decision recorded during the interactive review.
+     */
     public function storeDecision(
         StoreReviewDecisionData $data,
         Request $request,
@@ -67,8 +64,8 @@ final class DeclarationGenerationController extends Controller
             abort(Response::HTTP_UNAUTHORIZED);
         }
 
-        // Sécurité applicative : la décision doit concerner la même
-        // (company, year) que la déclaration ciblée par la route.
+        // Defense in depth: the decision must target the same (company, year)
+        // as the declaration referenced by the route.
         if (
             $data->companyId !== $declaration->company_id
             || $data->fiscalYear !== $declaration->fiscal_year
@@ -88,6 +85,9 @@ final class DeclarationGenerationController extends Controller
         return back()->with('toast-success', 'Décision enregistrée.');
     }
 
+    /**
+     * Lock the declaration as `generated` and render the PDF.
+     */
     public function generate(
         FiscalDeclaration $declaration,
         GenerateDeclarationAction $action,
@@ -109,6 +109,9 @@ final class DeclarationGenerationController extends Controller
             ));
     }
 
+    /**
+     * Spawn a new draft chained to the current generated declaration.
+     */
     public function regenerate(
         FiscalDeclaration $declaration,
         RegenerateDeclarationAction $action,
@@ -127,12 +130,9 @@ final class DeclarationGenerationController extends Controller
     }
 
     /**
-     * Phase 13 D5.10.E · transition volontaire S5 → S7. Permet à
-     * l'utilisateur de modifier une déclaration générée et active sans
-     * attendre une mutation involontaire de périmètre. La déclaration
-     * courante devient obsolète avec le motif `VoluntaryModification`,
-     * un nouveau brouillon est créé et chaîné. Si l'utilisateur change
-     * d'avis, `destroy` saura ré-activer la déclaration précédente.
+     * Voluntary S5 → S7 transition: mark the generated declaration obsolete
+     * and chain a fresh draft. `destroy` can later re-activate the previous
+     * version if the user changes their mind.
      */
     public function modify(
         Request $request,

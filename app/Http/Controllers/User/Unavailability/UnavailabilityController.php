@@ -16,6 +16,9 @@ use Illuminate\Support\Facades\Gate;
 
 final class UnavailabilityController extends Controller
 {
+    /**
+     * Create a new unavailability.
+     */
     public function store(
         StoreUnavailabilityData $data,
         CreateUnavailabilityAction $action,
@@ -27,6 +30,9 @@ final class UnavailabilityController extends Controller
         return back()->with('toast-success', 'Indisponibilité ajoutée.');
     }
 
+    /**
+     * Update an existing unavailability.
+     */
     public function update(
         int $unavailability,
         UpdateUnavailabilityData $data,
@@ -40,6 +46,9 @@ final class UnavailabilityController extends Controller
         return back()->with('toast-success', 'Indisponibilité modifiée.');
     }
 
+    /**
+     * Delete an unavailability.
+     */
     public function destroy(
         int $unavailability,
         DeleteUnavailabilityAction $action,

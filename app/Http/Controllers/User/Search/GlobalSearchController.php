@@ -10,17 +10,9 @@ use App\Services\Search\GlobalSearchService;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Endpoint AJAX JSON de la barre de recherche globale (palette ⌘K, V1.1).
+ * AJAX JSON endpoint backing the global ⌘K search palette.
  *
- * Invocable controller `GET /app/search?q=<query>`. Auth middleware au
- * niveau du groupe (cf. {@see routes/user.php}), throttle 60/min pour
- * limiter les abus (largement suffisant avec debounce 200 ms côté
- * client).
- *
- * Pas de policy custom · Floty est mono-locataire interne, tous les
- * utilisateurs authentifiés voient toutes les entités. Si on ajoute
- * un jour du cloisonnement multi-tenant, la restriction se fera dans
- * {@see GlobalSearchService}.
+ * Auth is enforced at the route group level; the route is throttled.
  */
 final class GlobalSearchController extends Controller
 {
@@ -28,6 +20,9 @@ final class GlobalSearchController extends Controller
         private readonly GlobalSearchService $search,
     ) {}
 
+    /**
+     * Run a global search and return grouped results.
+     */
     public function __invoke(GlobalSearchQueryData $query): JsonResponse
     {
         return response()->json($this->search->searchAll($query->q));

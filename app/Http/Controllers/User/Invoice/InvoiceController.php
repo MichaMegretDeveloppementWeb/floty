@@ -33,17 +33,7 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Contrôleur des factures mensuelles (Phase 14.E V1.2). Slim conforme
- * ADR-0013 · pas de logique métier, délégation à `GenerateInvoiceAction`
- * pour la génération et `InvoicePdfStorage` pour le téléchargement.
- *
- * Les pages Index + Show (Inertia) sont livrées en chantier 14.F. Pour
- * V1.2 on expose minimum :
- *   - POST `generate` (déclenche la création + persistance + PDF)
- *   - GET `download` (sert le PDF binaire en attachement)
- *
- * **Émetteur** : passé en placeholder constant pour V1.2 · sera lu
- * depuis la table `billing_settings` en chantier 14.G.
+ * Monthly invoice HTTP endpoints (slim, per ADR-0013).
  */
 final class InvoiceController extends Controller
 {
@@ -54,6 +44,9 @@ final class InvoiceController extends Controller
         private readonly CompanyListingService $companyQuery,
     ) {}
 
+    /**
+     * List invoices with filters and pagination.
+     */
     public function index(InvoiceIndexQueryData $query): InertiaResponse
     {
         Gate::authorize('viewAny', Invoice::class);
@@ -63,40 +56,42 @@ final class InvoiceController extends Controller
             'query' => $query,
             'options' => [
                 'companies' => $this->companyQuery->listForOptions(),
-                // Bornes des années couvertes par les factures émises.
-                // Le frontend les utilise pour générer la liste complète
-                // [min..max(currentYear, max)]. Null si aucune facture.
+                // Year bounds covered by emitted invoices; the front-end
+                // expands them to a contiguous list up to the current year.
                 'yearBounds' => $this->invoiceRead->findYearBounds(),
             ],
-            // Cf. doctrine `hasAny` (ADR-0020 D9) : distingue table vide
-            // de filtre actif retournant 0.
             'hasAnyInvoice' => $this->invoiceRead->existsAny(),
         ]);
     }
 
+    /**
+     * Render the invoice detail page with deferred divergence check.
+     */
     public function show(Invoice $invoice): InertiaResponse
     {
         Gate::authorize('view', $invoice);
 
         $data = $this->invoiceQuery->findInvoiceData($invoice->id);
 
-        // Le route model binding garantit qu'on n'arrive ici qu'avec une
-        // facture existante : `findInvoiceData` ne peut donc pas être
-        // null. Guard défensif pour PHPStan + cohérence si la doctrine
-        // évolue (e.g. soft-delete futur).
+        // Route model binding already guarantees the invoice exists; the
+        // null guard keeps PHPStan happy and stays defensive if soft-delete
+        // is later introduced.
         if ($data === null) {
             throw new NotFoundHttpException;
         }
 
         return Inertia::render('User/Invoices/Show/Index', [
             'invoice' => $data,
-            // Inertia::defer · BillingCalculator complet (~30-100 ms cold)
-            // pour le bandeau « Donnees obsoletes ». Mount immediat +
-            // <Deferred data="divergence"> + skeleton cote front.
             'divergence' => Inertia::defer(fn () => $this->invoiceQuery->divergenceForInvoice($invoice->id)),
         ]);
     }
 
+    /**
+     * Generate a single invoice for the given (company, year, month).
+     *
+     * Recoverable domain failures (already-exists, missing pricing, period
+     * not yet elapsed) are mapped to toast-error responses instead of 500s.
+     */
     public function generate(
         GenerateInvoiceRequestData $data,
         Request $request,
@@ -118,30 +113,18 @@ final class InvoiceController extends Controller
                 issuer: BillingSettingsData::fromModel($this->billingSettings->get())->toIssuerPayload(),
             );
         } catch (InvoiceAlreadyExistsException) {
-            // Cas concurrence : un autre clic / un autre onglet a déjà
-            // émis la facture. Rebascule sur un toast-error explicite
-            // plutôt que sur un 500 : l'utilisateur peut ouvrir la
-            // facture existante depuis la même page.
             return back()->with(
                 'toast-error',
                 "Une facture est déjà émise pour cette entreprise sur {$data->year}-".
                 str_pad((string) $data->month, 2, '0', STR_PAD_LEFT).'.',
             );
         } catch (MissingPricingException) {
-            // Tarif manquant : on affiche un toast clair invitant à
-            // renseigner les tarifs sur la fiche véhicule.
             return back()->with(
                 'toast-error',
                 'Tarif annuel manquant pour au moins un véhicule du mois. '.
                 'Renseignez les tarifs depuis la fiche véhicule avant de générer la facture.',
             );
         } catch (DomainException $e) {
-            // Garde-fou défense en profondeur · l'action refuse la
-            // génération pour un mois non écoulé (`GenerateInvoiceAction:73-80`).
-            // Le bouton « Générer » est déjà masqué côté UI pour ces
-            // cas (`GenerateInvoiceButton.vue`), ce catch couvre les
-            // POST forgés / scripts / régressions UI futures · on
-            // remonte un toast plutôt qu'un 500 brut.
             return back()->with('toast-error', $e->getMessage());
         }
 
@@ -149,13 +132,11 @@ final class InvoiceController extends Controller
     }
 
     /**
-     * Génère en masse toutes les annexes en attente pour le couple
-     * (entreprise × année). Délègue intégralement la doctrine d'exécution
-     * (séquence, best-effort, rapport) au {@see BulkGenerateInvoicesAction}.
+     * Generate every pending invoice for a (company, year) in one shot.
      *
-     * Le rapport de fin est flashé sous la clé `bulkInvoiceReport` côté
-     * Inertia · le partial reload sur l'onglet Facturation le récupère
-     * via `usePage().props.flash` et affiche un récap inline 7s + toast.
+     * The bulk action keeps full control of the execution doctrine (order,
+     * best-effort, report). The report is flashed under `bulkInvoiceReport`
+     * for inline display on the billing tab.
      */
     public function bulkGenerate(
         BulkGenerateInvoicesRequestData $data,
@@ -197,10 +178,7 @@ final class InvoiceController extends Controller
     }
 
     /**
-     * Annule une facture émise (Phase 14.I V1.2). Supprime la facture +
-     * son PDF + ses lignes (cascade DB). Permet de regénérer après une
-     * modification du périmètre (ajout/modif/suppression d'un contrat
-     * sur un mois déjà facturé).
+     * Cancel an emitted invoice (removes PDF + lines via DB cascade).
      */
     public function destroy(Invoice $invoice, CancelInvoiceAction $action): RedirectResponse
     {
@@ -217,14 +195,11 @@ final class InvoiceController extends Controller
     }
 
     /**
-     * Régénère une facture émise (Phase 14.I+ V1.2). Annule l'ancienne
-     * facture + son PDF puis génère une nouvelle facture pour le même
-     * couple (entreprise × année × mois) avec les données actuelles,
-     * le tout dans une transaction.
+     * Cancel and regenerate an invoice for the same (company, year, month).
      *
-     * La cible de redirection est passée explicitement par le client via
-     * {@see RegenerateInvoiceRequestData::$redirectTarget} ; le defaut
-     * (`Show`) correspond au cas usuel d'un appel depuis la fiche détail.
+     * The redirect target is provided explicitly by the client via
+     * {@see RegenerateInvoiceRequestData::$redirectTarget}; the default
+     * (`Show`) covers the usual call from the invoice detail page.
      */
     public function regenerate(
         RegenerateInvoiceRequestData $data,
@@ -268,6 +243,9 @@ final class InvoiceController extends Controller
         };
     }
 
+    /**
+     * Stream the invoice PDF as an attachment.
+     */
     public function download(Invoice $invoice, InvoicePdfStorage $storage): Response
     {
         Gate::authorize('view', $invoice);

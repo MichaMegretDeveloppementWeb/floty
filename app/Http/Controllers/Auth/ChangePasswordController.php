@@ -17,20 +17,24 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Workflow « Changer mon mot de passe » côté utilisateur connecté
- * (ADR-0012 rev. 1.1 · plan-remédiation Vague 1 Lot 2 D4 · F-10-006).
+ * Authenticated change-password flow.
  *
- * Routes protégées par le middleware `auth` (group dans routes/auth.php).
- * Le `store()` capture l'exception `CurrentPasswordMismatchException` et
- * la mappe vers une `ValidationException` sur la clé `current_password`.
+ * A {@see CurrentPasswordMismatchException} from the action is mapped to
+ * a validation error on the `current_password` key.
  */
 final class ChangePasswordController extends Controller
 {
+    /**
+     * Render the change-password form.
+     */
     public function show(): Response
     {
         return Inertia::render('User/Profile/ChangePassword/Index');
     }
 
+    /**
+     * Update the authenticated user's password.
+     */
     public function store(
         ChangePasswordData $data,
         Request $request,

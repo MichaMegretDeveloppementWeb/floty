@@ -26,20 +26,7 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * CRUD Driver + endpoint JSON `contractOptions` pour le sélecteur du
- * formulaire Contract (slim conforme R7/R10 ADR-0013 après extraction
- * du membership Driver × Company vers
- * {@see DriverMembershipController} en Lot 4 D13 (F-34-105)).
- *
- * Endpoints ·
- *   - GET    /drivers                index
- *   - GET    /drivers/options        contractOptions (JSON)
- *   - GET    /drivers/create         create
- *   - POST   /drivers                store
- *   - GET    /drivers/{driver}       show
- *   - GET    /drivers/{driver}/edit  edit
- *   - PATCH  /drivers/{driver}       update
- *   - DELETE /drivers/{driver}       destroy
+ * Driver CRUD plus JSON option lookups consumed by the contract form.
  */
 final class DriverController extends Controller
 {
@@ -49,6 +36,9 @@ final class DriverController extends Controller
         private readonly DriverReadRepositoryInterface $driverRead,
     ) {}
 
+    /**
+     * List drivers with filters and pagination.
+     */
     public function index(DriverIndexQueryData $query): Response
     {
         Gate::authorize('viewAny', Driver::class);
@@ -59,14 +49,15 @@ final class DriverController extends Controller
                 'companies' => $this->companyOptions(),
             ],
             'query' => $query,
-            // `hasAnyDriver` = vraie réponse à « la table est-elle
-            // intrinsèquement vide ? », indépendante du filtre actif.
-            // Évite le flash placeholder pendant les transitions de
-            // filtre (cf. note d'archi sur le bug placeholder).
+            // Distinguishes "table intrinsically empty" from "filter returns 0"
+            // to keep the placeholder stable while filters change.
             'hasAnyDriver' => $this->driverRead->existsAny(),
         ]);
     }
 
+    /**
+     * Render the driver detail page.
+     */
     public function show(Driver $driver): Response
     {
         Gate::authorize('view', $driver);
@@ -80,14 +71,14 @@ final class DriverController extends Controller
         return Inertia::render('User/Drivers/Show/Index', [
             'driver' => $detail,
             'options' => [
-                // Liste plate des companies pour peupler le picker du modal
-                // d'ajout de membership (`AddDriverCompanyModal`). La modale
-                // filtre côté front les companies déjà rattachées au driver.
                 'companies' => $this->companyOptions(),
             ],
         ]);
     }
 
+    /**
+     * Render the driver creation form.
+     */
     public function create(): Response
     {
         Gate::authorize('create', Driver::class);
@@ -97,6 +88,9 @@ final class DriverController extends Controller
         ]);
     }
 
+    /**
+     * Persist a new driver.
+     */
     public function store(StoreDriverData $data, CreateDriverAction $action): RedirectResponse
     {
         Gate::authorize('create', Driver::class);
@@ -108,6 +102,9 @@ final class DriverController extends Controller
             ->with('toast-success', 'Conducteur créé.');
     }
 
+    /**
+     * Render the driver edit form.
+     */
     public function edit(Driver $driver): Response
     {
         Gate::authorize('update', $driver);
@@ -121,6 +118,9 @@ final class DriverController extends Controller
         ]);
     }
 
+    /**
+     * Update an existing driver.
+     */
     public function update(Driver $driver, UpdateDriverData $data, UpdateDriverAction $action): RedirectResponse
     {
         Gate::authorize('update', $driver);
@@ -132,6 +132,9 @@ final class DriverController extends Controller
             ->with('toast-success', 'Conducteur mis à jour.');
     }
 
+    /**
+     * Soft-delete a driver.
+     */
     public function destroy(Driver $driver, SoftDeleteDriverAction $action): RedirectResponse
     {
         Gate::authorize('delete', $driver);
@@ -148,8 +151,7 @@ final class DriverController extends Controller
     }
 
     /**
-     * Endpoint JSON consommé par le sélecteur driver du formulaire Contract.
-     * Renvoie les drivers actifs dans la company sur la période demandée.
+     * JSON list of drivers active in a company on the requested period.
      */
     public function contractOptions(Request $request): JsonResponse
     {

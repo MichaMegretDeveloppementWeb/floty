@@ -16,22 +16,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * Transitions terminales du cycle de vie d'une déclaration fiscale
- * (extrait de `DeclarationController` pour respecter R7/R10 ADR-0013 ·
- * Lot 4 D13 / F-34-105).
- *
- * Regroupe les actions qui sortent un brouillon de l'édition active
- * sans le finaliser ·
- *   - `markDeferred`  brouillon → `deferred` (mis en attente)
- *   - `revertDefer`   `deferred` → brouillon (reprise de l'édition,
- *                     réciproque de `markDeferred`, préserve toutes
- *                     les données associées)
- *   - `destroy`       suppression d'un brouillon (Draft ou Deferred) ·
- *                     ré-active intelligemment le predecessor si
- *                     l'obsolescence était purement volontaire
+ * Terminal lifecycle transitions for a declaration draft (defer / revert / discard).
  */
 final class DeclarationLifecycleController extends Controller
 {
+    /**
+     * Move a draft to the `deferred` state with an optional reason.
+     */
     public function markDeferred(
         FiscalDeclaration $declaration,
         Request $request,
@@ -39,9 +30,6 @@ final class DeclarationLifecycleController extends Controller
     ): RedirectResponse {
         Gate::authorize('update', $declaration);
 
-        // Lot 5 D13 · raison de mise en pause optionnelle (modal textarea
-        // côté front · max 500 caractères). Persistée sur la déclaration
-        // tant qu'elle reste reportée, effacée au revert / generate.
         $validated = $request->validate([
             'reason' => ['nullable', 'string', 'max:500'],
         ]);
@@ -56,10 +44,7 @@ final class DeclarationLifecycleController extends Controller
     }
 
     /**
-     * Annule la mise en attente d'une déclaration (`deferred → draft`)
-     * sans toucher aux données associées (décisions de revue, chaîne
-     * d'obsolescence éventuelle). Réciproque sémantique de
-     * `markDeferred`.
+     * Revert a deferred declaration back to `draft` without altering its data.
      */
     public function revertDefer(
         FiscalDeclaration $declaration,
@@ -77,15 +62,10 @@ final class DeclarationLifecycleController extends Controller
     }
 
     /**
-     * Phase 13 D5.10.E · suppression d'un brouillon. Soft delete +
-     * gestion intelligente du predecessor : ré-activation si l'obsolescence
-     * était purement volontaire, simple unlink sinon.
+     * Discard a draft, re-activating the predecessor when the obsolescence was voluntary.
      *
-     * Lot 5 D2 · l'Action retourne le statut original du brouillon
-     * (Draft ou Deferred) pour permettre un toast contextualisé · un
-     * Deferred est sémantiquement « mis de côté », pas un brouillon
-     * en cours d'édition, donc le message reflète l'annulation de la
-     * mise en attente plutôt qu'une suppression sèche.
+     * The toast message reflects whether the draft was a true draft or
+     * a deferred declaration being cleared.
      */
     public function destroy(
         FiscalDeclaration $declaration,

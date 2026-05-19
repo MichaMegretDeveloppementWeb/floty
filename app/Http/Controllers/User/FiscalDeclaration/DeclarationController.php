@@ -26,23 +26,11 @@ use Inertia\Response as InertiaResponse;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Consultation des déclarations fiscales (Phase 11 D4 · slim conforme
- * R7/R10 ADR-0013 après extraction du cycle de génération vers
- * {@see DeclarationGenerationController} et des transitions terminales
- * vers {@see DeclarationLifecycleController} en Lot 4 D13 (F-34-105)).
+ * Read-only declaration endpoints (index / show / PDF download).
  *
- * Endpoints read-only ·
- *   - GET /declarations                           index
- *   - GET /declarations/{declaration}             show (lecture pour Generated,
- *                                                 revue interactive pour
- *                                                 Draft/Deferred head canonique,
- *                                                 message intermédiaire pour
- *                                                 brouillon orphelin)
- *   - GET /declarations/{declaration}/download    sert le PDF binaire
- *
- * Lot 5 D12 · fusion Show + Review en un seul écran adaptatif. La route
- * `/review` historique est supprimée · les redirects venant du
- * {@see DeclarationGenerationController} pointent désormais vers `show`.
+ * The Show endpoint unifies the read view and the interactive review:
+ * when the declaration is a Draft/Deferred head, the review-only props
+ * (`preview`, `obsoleteReasons`, `riskSettings`) are added.
  */
 final class DeclarationController extends Controller
 {
@@ -52,6 +40,9 @@ final class DeclarationController extends Controller
         private readonly DeclarationFiscalEngine $engine,
     ) {}
 
+    /**
+     * List declarations with filters and pagination.
+     */
     public function index(DeclarationIndexQueryData $query): InertiaResponse
     {
         Gate::authorize('viewAny', FiscalDeclaration::class);
@@ -83,6 +74,11 @@ final class DeclarationController extends Controller
         ]);
     }
 
+    /**
+     * Render a declaration. Behaviour depends on the lifecycle status:
+     * lecture pure for Generated and intermediate drafts, interactive
+     * review for the canonical Draft/Deferred head.
+     */
     public function show(FiscalDeclaration $declaration): InertiaResponse
     {
         Gate::authorize('view', $declaration);
@@ -91,35 +87,23 @@ final class DeclarationController extends Controller
         $predecessor = $this->reader->findPredecessorOf($declaration->id);
         $successor = $declaration->supersededBy;
 
-        // Phase 13 D5.10.H · head canonique du couple (= la déclaration
-        // « current » au sens de `findCurrentForCompanyYear`). Permet à
-        // l'UI Show de distinguer le head (édition autorisée) des
-        // brouillons intermédiaires/orphelins (suppression uniquement).
+        // Canonical head of the (company, year) pair: the one returned by
+        // `findCurrentForCompanyYear`. Lets the UI distinguish the head
+        // (editable) from intermediate or orphan drafts (deletion only).
         $canonicalHead = $this->reader->findCurrentForCompanyYear(
             $declaration->company_id,
             $declaration->fiscal_year,
         );
 
-        // Lot 5 D12 · fusion Show + Review · mode B = brouillon head
-        // canonique. C'est le seul cas où la revue interactive
-        // s'affiche · on sert alors `preview` (RiskDetection),
-        // `obsoleteReasons` (chaîne régénération) et `riskSettings`
-        // en plus du payload Show standard. Pour Generated, brouillon
-        // orphelin ou ancien snapshot persisté, ces props ne sont
-        // pas servies (UI lecture pure).
         $isEditableDraft = (
             $declaration->status === FiscalDeclarationStatus::Draft
             || $declaration->status === FiscalDeclarationStatus::Deferred
         ) && $canonicalHead !== null && $canonicalHead->id === $declaration->id;
 
-        // P0.5 (audit perf 2026-05-16 / 08-misc.md P0 #2) · snapshot
-        // conditionnel · payload persiste → rendu eager (lecture array
-        // quasi-instantanee). Sinon (Draft sans payload) → Inertia::defer
-        // pour ne pas bloquer le mount sur engine->compute() complet
-        // (~100-500 ms cold). Mode B (Draft head éditable) · on
-        // recalcule systématiquement même si un payload résiduel existe
-        // côté brouillon · la revue interactive doit refléter le
-        // périmètre live (décisions cluster en cours).
+        // Persisted snapshot path is eager; recompute-on-the-fly path is
+        // deferred so the mount is not blocked by engine->compute(). The
+        // editable-draft branch always recomputes to reflect live cluster
+        // decisions, even when a residual payload exists on the draft.
         $hasPersistedSnapshot = is_array($declaration->generated_snapshot_payload)
             && ! $isEditableDraft;
 
@@ -135,31 +119,18 @@ final class DeclarationController extends Controller
                 ->map(static fn (FiscalDeclaration $d): DeclarationListItemData => DeclarationListItemData::fromModel($d))
                 ->values()
                 ->all(),
-            // Phase 11 D5.8.3 · si cette déclaration remplace une version
-            // obsolète (chaîne `superseded_by_id`), expose-la pour que la
-            // page rende un mini banner narratif rappelant la traçabilité.
             'predecessorDeclaration' => $predecessor !== null
                 ? DeclarationListItemData::fromModel($predecessor->load('company'))
                 : null,
-            // Phase 12 D5.9.D · si cette déclaration est elle-même
-            // remplacée (un Draft chaîné en cours de régénération
-            // pointe vers une autre déclaration), expose-le pour que
-            // `<PdfCard>` propose « Reprendre la régénération en cours »
-            // au lieu d'un nouveau « Régénérer » qui créerait un
-            // brouillon orphelin.
             'successorDeclaration' => $successor !== null
                 ? DeclarationListItemData::fromModel($successor)
                 : null,
             'canonicalHeadDeclarationId' => $canonicalHead?->id,
         ];
 
-        // Lot 5 D12 · props spécifiques mode B (revue interactive).
-        // P0.4 · `preview` (RiskDetection ~150-400 ms) en defer ·
-        // skeleton fallback côté front via
-        // `<Deferred :data="['preview', 'snapshot']">`. Garde-fou
-        // résilient sur `obsolete_reasons` éventuellement mal formé en
-        // BDD · délégué à `InvalidationReasonData::listFromRaw` qui
-        // centralise checks + try/catch + log canal `declarations`.
+        // Editable-draft extras. `obsolete_reasons` parsing is delegated to
+        // InvalidationReasonData::listFromRaw which centralises validation,
+        // try/catch and logging on the `declarations` channel.
         if ($isEditableDraft) {
             $payload['preview'] = Inertia::defer(
                 fn () => $this->previewService->preview($declaration->company_id, $declaration->fiscal_year),
@@ -173,6 +144,9 @@ final class DeclarationController extends Controller
         return Inertia::render('User/Declarations/Show/Index', $payload);
     }
 
+    /**
+     * Stream the generated PDF binary as an attachment.
+     */
     public function download(FiscalDeclaration $declaration, DeclarationPdfStorage $storage): Response
     {
         Gate::authorize('view', $declaration);

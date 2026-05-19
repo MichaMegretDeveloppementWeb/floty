@@ -14,10 +14,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Page Paramètres > Facturation (Phase 14.G V1.2). Singleton · un seul
- * émetteur de facture pour toute l'application. Update direct via le
- * Write repo (pas d'Action : pas de transaction multi-lignes, pas de
- * side-effects, conforme R1 d'ADR-0013).
+ * Invoice issuer settings (singleton row, no Action wrapper because the
+ * update is single-row with no side effects, per ADR-0013 R1).
  */
 final class BillingSettingsController extends Controller
 {
@@ -26,6 +24,9 @@ final class BillingSettingsController extends Controller
         private readonly BillingSettingsWriteRepositoryInterface $writer,
     ) {}
 
+    /**
+     * Render the billing settings form.
+     */
     public function edit(): Response
     {
         $settings = $this->reader->get();
@@ -36,6 +37,9 @@ final class BillingSettingsController extends Controller
         ]);
     }
 
+    /**
+     * Persist the new issuer information.
+     */
     public function update(BillingSettingsData $data): RedirectResponse
     {
         Gate::authorize('update', $this->reader->get());

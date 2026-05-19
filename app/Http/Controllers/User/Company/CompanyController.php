@@ -54,12 +54,7 @@ final class CompanyController extends Controller
     ) {}
 
     /**
-     * SC9 (2026-05-18) · 12 montants mensuels NET (post-réductions) pour
-     * cette entreprise × année · consommé en AJAX par le form Create/Edit
-     * Contract (composable `useCompanyMonthlyRentals`, mini-timeline 12
-     * mois dans le récap). Délègue à
-     * {@see PlanningHeatmapService::monthlyRentalTotalsForCompany} (méthode
-     * dédiée slim · doctrine chargement-strict-par-ecran).
+     * JSON endpoint returning 12 monthly NET rental totals for the company × year.
      */
     public function monthlyRentals(Company $company, Request $request): JsonResponse
     {
@@ -73,50 +68,32 @@ final class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * List companies with filters; the costs prop is deferred.
+     */
     public function index(CompanyIndexQueryData $query): Response
     {
         Gate::authorize('viewAny', Company::class);
 
-        // Sélecteur année **local** à la page (chantier η Phase 3) ·
-        // bornes alimentées par `AvailableYearsResolver` (scope global
-        // dynamique calculé depuis les contrats, pas la config statique
-        // morte). `?year=` URL validé contre ce scope, fallback
-        // `currentYear` si invalide.
         $year = $this->resolveSelectedYear($query->year);
 
-        // P0.1 (audit perf 2026-05-16) · liste SLIM en payload initial
-        // (sans `annualTaxDue` ni `rentalPriceTotal` qui demandent le
-        // pipeline fiscal × N items) · les couts arrivent dans une 2e
-        // requete `Inertia::defer` apres le mount, le frontend rend un
-        // skeleton sur 2 cellules entre-temps. Gain mesure ~250-375 ms
-        // cold sur 25 items.
         $companies = $this->companyListing->listPaginatedSlim($query, $year);
         $companyIds = array_map(static fn ($c): int => $c->id, $companies->data);
 
         return Inertia::render('User/Companies/Index/Index', [
             'companies' => $companies,
-            // P0.1 (audit perf 2026-05-16) · pipeline fiscal +
-            // rental calculator (~250-375 ms cold sur 25 items) servis
-            // en `Inertia::defer`. Mount immediat + watcher
-            // `router.reload` cote front pour re-fetch sur change
-            // filtre/tri/page (cf. feedback_inertia_defer_with_partial_reload).
             'costs' => Inertia::defer(
                 fn () => $this->companyListing->costsForCompanyIds($companyIds, $year),
             ),
             'query' => $query,
             'selectedYear' => $year,
             'yearScope' => YearScopeData::fromResolver($this->availableYears),
-            // Cf. note d'archi sur le bug placeholder : `hasAnyCompany`
-            // distingue « table intrinsèquement vide » du « filtre actif
-            // retournant 0 » sans dériver depuis 3 sources désynchronisées.
             'hasAnyCompany' => $this->companyRead->existsAny(),
         ]);
     }
 
     /**
-     * Doctrine temporelle (chantier η Phase 3) · résolution `?year=`
-     * URL contre le scope global dynamique, fallback `currentYear` si
-     * invalide ou absent.
+     * Resolve `?year=` against the dynamic global scope, falling back to current year.
      */
     private function resolveSelectedYear(?int $requested): int
     {
@@ -127,6 +104,14 @@ final class CompanyController extends Controller
         return $this->availableYears->currentYear();
     }
 
+    /**
+     * Render the company detail page with tab-aware lazy props.
+     *
+     * The `?tab=` query string drives which props are loaded eagerly at
+     * mount. Inactive tabs are exposed via `Inertia::optional()` and only
+     * pull their SQL on the partial reload triggered by the front-end
+     * when the user opens the tab for the first time.
+     */
     public function show(Company $company, ContractIndexQueryData $contractsQuery, Request $request): Response
     {
         Gate::authorize('view', $company);
@@ -137,20 +122,12 @@ final class CompanyController extends Controller
             throw new NotFoundHttpException('Entreprise introuvable.');
         }
 
-        // D5.10.V · onglets à chargement lazy + cumulatif. Lit `?tab=`
-        // pour décider quelles props sont eager au mount initial · les
-        // autres onglets passent par `Inertia::optional()` et ne tirent
-        // leur SQL QUE lors d'un partial reload déclenché côté front
-        // par `useCompanyTabs` au moment où l'utilisateur clique
-        // l'onglet pour la première fois de la session.
         $activeTab = (string) $request->query('tab', 'overview');
 
-        // Onglet Contrats · default année réelle courante au mount quand
-        // aucun paramètre période explicite (cohérence avec onglet
-        // Fiscalité, ADR-0020 D3). D5.10.U · ne pose QUE `year` ·
-        // backend dérive periodStart/End via `effectivePeriod()` ·
-        // l'UI distingue ainsi « mode année » vs « plage custom » sans
-        // ambiguité.
+        // Contracts tab: default to the current real year when no explicit
+        // period query param is set. Only `year` is forced so the backend
+        // can derive periodStart/End via `effectivePeriod()` and the UI
+        // distinguishes "year mode" from a custom range.
         $hasExplicitPeriod = $request->exists('year')
             || $request->exists('periodStart')
             || $request->exists('periodEnd');
@@ -159,29 +136,23 @@ final class CompanyController extends Controller
             $contractsQuery->year = $detail->currentRealYear;
         }
 
-        // D5.10.U · param URL **unifié** `?year=` partagé entre les
-        // onglets Fiscalité et Facturation.
+        // Unified `?year=` shared between the Fiscal and Billing tabs.
         $selectedYear = (int) $request->query('year', (string) $detail->currentRealYear);
         $companyId = $company->id;
 
         return Inertia::render('User/Companies/Show/Index', [
-            // Eager · props partagées (Vue d'ensemble + dots TabsNav +
-            // alertes « À faire » + état URL contrats + pills années
-            // partagées Billing/Contracts).
             'company' => $detail,
             'contractsQuery' => $contractsQuery,
             'billingYear' => $selectedYear,
             'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($companyId),
             'pendingInvoices' => $this->pendingInvoices->pendingForCompany($companyId),
-            // Plage continue d'années · partagée entre les pills Billing
-            // (CompanyBillingTab) et Contracts (CompanyContractsTab) ·
-            // 1 SQL très léger (min year), garder en eager.
+            // Continuous year range shared between billing and contracts pills
+            // (one cheap SQL query, kept eager).
             'contractsAvailableYears' => $this->contracts->availableYearsRangeForCompany(
                 $companyId,
                 $detail->currentRealYear,
             ),
 
-            // Onglet "contracts" · table paginée + stats.
             'contracts' => $this->eagerForTab(
                 $activeTab === 'contracts',
                 fn () => $this->contracts->listPaginatedForCompany($companyId, $contractsQuery),
@@ -190,15 +161,11 @@ final class CompanyController extends Controller
                 $activeTab === 'contracts',
                 fn () => $this->contracts->statsForCompany(
                     $companyId,
-                    // D5.10.U · `effectivePeriod()` retombe sur l'exercice
-                    // dérivé de `year` quand pas de plage custom · cohérent
-                    // avec le filtrage SQL du listing contrats.
                     $contractsQuery->effectivePeriod()['periodStart'],
                     $contractsQuery->effectivePeriod()['periodEnd'],
                 ),
             ),
 
-            // Onglet "drivers" · liste plate pour picker AddCompanyDriverModal.
             'options' => [
                 'drivers' => $this->eagerForTab(
                     $activeTab === 'drivers',
@@ -206,7 +173,6 @@ final class CompanyController extends Controller
                 ),
             ],
 
-            // Onglet "fiscal" · breakdown par véhicule + cycle de vie déclaration.
             'companyFiscal' => $this->eagerForTab(
                 $activeTab === 'fiscal',
                 fn () => $this->companyAggregates->fiscalBreakdownForYear($companyId, $selectedYear),
@@ -216,9 +182,6 @@ final class CompanyController extends Controller
                 fn () => $this->declarationLifecycle->resolveForCompanyYear($companyId, $selectedYear),
             ),
 
-            // Onglet "billing" · récap mensuel + réductions commerciales
-            // (Lot 3 chantier RentalDiscount · section dédiée listant les
-            // réductions de l'entreprise dans l'onglet Facturation).
             'companyBilling' => $this->eagerForTab(
                 $activeTab === 'billing',
                 fn () => $this->companyAggregates->billingForYear($companyId, $selectedYear),
@@ -231,16 +194,16 @@ final class CompanyController extends Controller
     }
 
     /**
-     * D5.10.V · Helper pour le chargement lazy + cumulatif des onglets.
-     * Retourne la valeur immédiatement quand l'onglet ciblé est l'onglet
-     * actif au mount (props eager), sinon retourne un `OptionalProp` qui
-     * ne s'exécute QUE sur partial reload `only: [...]`.
+     * Lazy+cumulative tab loading helper: eager when active, optional otherwise.
      */
     private function eagerForTab(bool $isActive, callable $resolver): mixed
     {
         return $isActive ? $resolver() : Inertia::optional($resolver);
     }
 
+    /**
+     * Render the company creation form.
+     */
     public function create(): Response
     {
         Gate::authorize('create', Company::class);
@@ -250,6 +213,9 @@ final class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Persist a new company.
+     */
     public function store(StoreCompanyData $data): RedirectResponse
     {
         Gate::authorize('create', Company::class);
@@ -267,13 +233,13 @@ final class CompanyController extends Controller
             ->with('toast-success', 'Entreprise créée.');
     }
 
+    /**
+     * Render the company edit form with a slim detail payload.
+     */
     public function edit(Company $company): Response
     {
         Gate::authorize('update', $company);
 
-        // Slim DTO sans pipeline fiscal · le formulaire Edit n'affiche
-        // que 14 champs scalaires d'identité, pas besoin de drivers /
-        // lifetime / history / activityByYear (gain ~280 ms cold).
         $detail = $this->companyDetail->detailForEdit($company->id);
 
         if ($detail === null) {
@@ -286,6 +252,9 @@ final class CompanyController extends Controller
         ]);
     }
 
+    /**
+     * Update an existing company.
+     */
     public function update(Company $company, UpdateCompanyData $data): RedirectResponse
     {
         Gate::authorize('update', $company);

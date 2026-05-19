@@ -13,21 +13,25 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Workflow « Mot de passe oublié » · point d'entrée du flow reset
- * (ADR-0012 rev. 1.1 · plan-remédiation Vague 1 Lot 2 D4 · F-10-006).
+ * Forgot-password flow entry point.
  *
- * Le `store()` retourne TOUJOURS un toast générique succès quel que soit
- * le résultat de `Password::sendResetLink()` (anti email enumeration).
- * La logique d'envoi vit dans {@see SendPasswordResetLinkAction} qui
- * filtre le statut avant le retour.
+ * The store action always returns a generic success toast regardless of
+ * the Password::sendResetLink() outcome (anti email enumeration). The
+ * dispatching logic lives in {@see SendPasswordResetLinkAction}.
  */
 final class ForgotPasswordController extends Controller
 {
+    /**
+     * Render the forgot-password form.
+     */
     public function show(): Response
     {
         return Inertia::render('Auth/ForgotPassword/Index');
     }
 
+    /**
+     * Dispatch a password reset link if the email matches an account.
+     */
     public function store(
         ForgotPasswordData $data,
         Request $request,

@@ -14,11 +14,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Page Paramètres > Détection de risque fiscal (Phase 11 D1, ADR-0015
- * § D7 rev. 1.1). Singleton : un seul jeu de seuils pour toute
- * l'application. Update direct via le Write repo (pas d'Action : pas
- * de transaction multi-lignes, pas de side-effects, conforme R1
- * d'ADR-0013).
+ * Fiscal risk detection settings (singleton row, no Action wrapper because
+ * the update is single-row with no side effects, per ADR-0013 R1).
  */
 final class FiscalRiskSettingsController extends Controller
 {
@@ -27,6 +24,9 @@ final class FiscalRiskSettingsController extends Controller
         private readonly FiscalRiskSettingsWriteRepositoryInterface $writer,
     ) {}
 
+    /**
+     * Render the risk detection settings form.
+     */
     public function edit(): Response
     {
         $settings = $this->reader->get();
@@ -37,6 +37,9 @@ final class FiscalRiskSettingsController extends Controller
         ]);
     }
 
+    /**
+     * Persist the new risk thresholds.
+     */
     public function update(FiscalRiskSettingsData $data): RedirectResponse
     {
         Gate::authorize('update', $this->reader->get());

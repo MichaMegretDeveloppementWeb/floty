@@ -18,11 +18,17 @@ use Inertia\Response;
 
 final class LoginController extends Controller
 {
+    /**
+     * Render the login form.
+     */
     public function show(): Response
     {
         return Inertia::render('Auth/Login/Index');
     }
 
+    /**
+     * Authenticate the user and start a new session.
+     */
     public function store(LoginRequest $request, LoginAction $login): RedirectResponse
     {
         try {
@@ -42,6 +48,9 @@ final class LoginController extends Controller
         return redirect()->intended(route('user.dashboard'));
     }
 
+    /**
+     * Log the user out and invalidate the session.
+     */
     public function destroy(Request $request): RedirectResponse
     {
         Auth::guard('web')->logout();

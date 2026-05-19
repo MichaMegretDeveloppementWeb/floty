@@ -26,20 +26,7 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 
 /**
- * Endpoints membership Driver × Company (extrait de `DriverController`
- * pour respecter R7/R10 ADR-0013 · Lot 4 D13 / F-34-105).
- *
- * Regroupe le workflow d'attachement/sortie/édition d'un conducteur
- * dans une entreprise + l'endpoint JSON consommé par la modal de
- * sortie pour pré-calculer les contrats à venir + les remplaçants
- * éligibles ·
- *   - `attachCompany`           POST   ajoute un rattachement
- *   - `leaveCompany`            PATCH  sortie (avec résolution des
- *                                       contrats à venir · workflow Q6)
- *   - `detachCompany`           DELETE supprime un rattachement
- *   - `updateMembership`        PATCH  édite `joined_at` (chantier B)
- *   - `futureContractsForLeave` GET    JSON · contrats + remplaçants
- *                                       pour la modal de sortie
+ * Driver × Company membership endpoints.
  */
 final class DriverMembershipController extends Controller
 {
@@ -47,6 +34,9 @@ final class DriverMembershipController extends Controller
         private readonly DriverQueryService $drivers,
     ) {}
 
+    /**
+     * Attach a driver to a company.
+     */
     public function attachCompany(
         Driver $driver,
         AddDriverCompanyMembershipData $data,
@@ -59,6 +49,9 @@ final class DriverMembershipController extends Controller
         return back()->with('toast-success', 'Conducteur ajouté à l\'entreprise.');
     }
 
+    /**
+     * Record a driver leaving a company, resolving any upcoming contracts.
+     */
     public function leaveCompany(
         Driver $driver,
         int $companyId,
@@ -78,6 +71,9 @@ final class DriverMembershipController extends Controller
         return back()->with('toast-success', 'Sortie enregistrée.');
     }
 
+    /**
+     * Detach a driver membership by pivot id.
+     */
     public function detachCompany(
         Driver $driver,
         int $pivotId,
@@ -97,9 +93,7 @@ final class DriverMembershipController extends Controller
     }
 
     /**
-     * PATCH /drivers/{driver}/memberships/{pivotId} · édite une membership
-     * existante (chantier B). Scope V1 · `joined_at` uniquement (la
-     * gestion de `left_at` reste pilotée par le workflow Sortir).
+     * Update a membership's joined_at date.
      */
     public function updateMembership(
         Driver $driver,
@@ -121,12 +115,11 @@ final class DriverMembershipController extends Controller
     }
 
     /**
-     * Endpoint JSON consommé par la modal de sortie d'un driver d'une
-     * entreprise (workflow Q6). Pour la `leftAt` choisie par l'utilisateur,
-     * retourne la liste des contrats à venir du driver dans cette company
-     * + pour chaque contrat la liste des drivers de remplacement
-     * éligibles (actifs sur la période exacte). Le driver sortant est
-     * exclu des candidats (interdit comme remplaçant de lui-même).
+     * JSON preview for the leave modal: upcoming contracts and eligible replacements.
+     *
+     * For the chosen leftAt date, returns the driver's future contracts in
+     * the company together with eligible replacement drivers (active on the
+     * exact period). The leaving driver is excluded from candidates.
      */
     public function futureContractsForLeave(
         Driver $driver,
