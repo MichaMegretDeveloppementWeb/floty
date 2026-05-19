@@ -78,6 +78,15 @@ export function useVehicleCreateForm(): {
         },
     );
 
+    // One-way propagation: acquisition_date overwrites first_economic_use_date.
+    // The reverse is not propagated.
+    watch(
+        () => form.acquisition_date,
+        (date) => {
+            form.first_economic_use_date = date;
+        },
+    );
+
     const submit = (): void => {
         form
             .transform((data) => ({

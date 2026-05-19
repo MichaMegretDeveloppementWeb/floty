@@ -39,15 +39,15 @@ defineProps<{
                 required
             />
             <DateInput
-                v-model="form.first_economic_use_date"
-                label="1ère affectation économique"
-                :error="form.errors.first_economic_use_date"
-                required
-            />
-            <DateInput
                 v-model="form.acquisition_date"
                 label="Date d'acquisition"
                 :error="form.errors.acquisition_date"
+                required
+            />
+            <DateInput
+                v-model="form.first_economic_use_date"
+                label="1ère affectation économique"
+                :error="form.errors.first_economic_use_date"
                 required
             />
         </div>

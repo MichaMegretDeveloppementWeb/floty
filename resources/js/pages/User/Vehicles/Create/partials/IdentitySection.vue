@@ -57,14 +57,17 @@ function triggerLookup(): void {
             </div>
         </header>
 
-        <div
-            v-if="registryLookupEnabled"
-            class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4"
-        >
-            <p class="text-sm text-slate-600">
-                Saisissez la plaque puis cliquez sur le bouton ci-dessous pour pré-remplir le formulaire.
-            </p>
+        <div class="flex flex-col gap-3">
+            <TextInput
+                v-model="form.license_plate"
+                label="Immatriculation"
+                mono
+                hint="Ex. EH-142-AZ"
+                :error="form.errors.license_plate"
+                required
+            />
             <Button
+                v-if="registryLookupEnabled"
                 type="button"
                 variant="secondary"
                 :disabled="!canTriggerLookup"
@@ -78,14 +81,6 @@ function triggerLookup(): void {
         </div>
 
         <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
-            <TextInput
-                v-model="form.license_plate"
-                label="Immatriculation"
-                mono
-                hint="Ex. EH-142-AZ"
-                :error="form.errors.license_plate"
-                required
-            />
             <TextInput
                 v-model="form.vin"
                 label="VIN"
