@@ -508,8 +508,91 @@ final class FleetFiscalAggregator
             appliedExemptions: array_values($exemptionsByCode),
             appliedRuleCodes: $appliedRuleCodes,
             appliedRules: $appliedRules,
-            taxSegments: $taxSegments,
+            taxSegments: $this->mergeEquivalentSegments($taxSegments),
         );
+    }
+
+    /**
+     * Merges consecutive segments that produce identical observable
+     * outputs (same VFC, method, category, full-year tariffs and
+     * exemption set). Such cuts come from purely editorial rule splits
+     * (typically `R-YYYY-NNN` vs `R-YYYY-NNN-bis` reframings whose tab
+     * is `RuleTab::Cadre`) and would mislead the user with a "Nouveau
+     * barème fiscal" label when no tariff actually changed. Sum is
+     * preserved by construction: `tariff × (d1+d2) / Y == tariff × d1 / Y
+     * + tariff × d2 / Y` modulo the centime rounding, which we re-apply.
+     *
+     * @param  list<VehicleFullYearTaxSegmentData>  $segments
+     * @return list<VehicleFullYearTaxSegmentData>
+     */
+    private function mergeEquivalentSegments(array $segments): array
+    {
+        $merged = [];
+        foreach ($segments as $segment) {
+            $lastIndex = count($merged) - 1;
+            $last = $lastIndex >= 0 ? $merged[$lastIndex] : null;
+
+            if ($last !== null && $this->areSegmentsEquivalent($last, $segment)) {
+                $merged[$lastIndex] = new VehicleFullYearTaxSegmentData(
+                    effectiveFromInYear: $last->effectiveFromInYear,
+                    effectiveToInYear: $segment->effectiveToInYear,
+                    daysInSegment: $last->daysInSegment + $segment->daysInSegment,
+                    boundaryCause: $last->boundaryCause,
+                    vfc: $last->vfc,
+                    co2Method: $last->co2Method,
+                    co2FullYearTariff: $last->co2FullYearTariff,
+                    co2Explanation: $last->co2Explanation,
+                    co2Due: round($last->co2Due + $segment->co2Due, 2, PHP_ROUND_HALF_UP),
+                    pollutantCategory: $last->pollutantCategory,
+                    pollutantsFullYearTariff: $last->pollutantsFullYearTariff,
+                    pollutantsExplanation: $last->pollutantsExplanation,
+                    pollutantsDue: round($last->pollutantsDue + $segment->pollutantsDue, 2, PHP_ROUND_HALF_UP),
+                    appliedExemptions: $last->appliedExemptions,
+                    appliedRuleCodes: array_values(array_unique(array_merge(
+                        $last->appliedRuleCodes,
+                        $segment->appliedRuleCodes,
+                    ))),
+                );
+            } else {
+                $merged[] = $segment;
+            }
+        }
+
+        return $merged;
+    }
+
+    /**
+     * Two segments are equivalent when their observable tariffs and
+     * exemptions match. Observable equality is the safest predicate:
+     * any rule whose change does not impact the result is, by
+     * definition, editorial.
+     */
+    private function areSegmentsEquivalent(
+        VehicleFullYearTaxSegmentData $a,
+        VehicleFullYearTaxSegmentData $b,
+    ): bool {
+        if ($a->vfc->id !== $b->vfc->id) {
+            return false;
+        }
+        if ($a->co2Method !== $b->co2Method) {
+            return false;
+        }
+        if ($a->pollutantCategory !== $b->pollutantCategory) {
+            return false;
+        }
+        if (abs($a->co2FullYearTariff - $b->co2FullYearTariff) > 0.005) {
+            return false;
+        }
+        if (abs($a->pollutantsFullYearTariff - $b->pollutantsFullYearTariff) > 0.005) {
+            return false;
+        }
+
+        $codesA = array_map(static fn (AppliedExemptionData $e): string => $e->ruleCode, $a->appliedExemptions);
+        $codesB = array_map(static fn (AppliedExemptionData $e): string => $e->ruleCode, $b->appliedExemptions);
+        sort($codesA);
+        sort($codesB);
+
+        return $codesA === $codesB;
     }
 
     /**
