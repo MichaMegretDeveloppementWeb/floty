@@ -1,17 +1,15 @@
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 
 /**
- * Shape du formulaire d'édition véhicule.
+ * Shape of the vehicle edit form. The Edit flow handles real-world
+ * changes only and always creates a new fiscal-history row; typos on
+ * an existing VFC are corrected from the history modal
+ * (`VfcEditModal.vue`).
  *
- * Edit ne sert qu'aux **changements réels** du véhicule dans le temps :
- * il crée systématiquement une nouvelle ligne d'historique fiscal. Les
- * corrections de saisie sur une VFC existante passent exclusivement
- * par la modale Historique de la page véhicule (cf. `VfcEditModal.vue`).
- *
- * Étend le shape de création avec 3 champs spécifiques au flux Edit :
- *   - `effective_from`      : date d'effet de la nouvelle version
- *   - `change_reason`       : motif du changement
- *   - `change_note`         : note libre (requis si motif = other_change)
+ * Extends the create shape with three Edit-specific fields:
+ *   - `effective_from` : effective date of the new version
+ *   - `change_reason`  : reason for the change
+ *   - `change_note`    : free text (required when reason = other_change)
  */
 export type VehicleEditFormShape = VehicleFormShape & {
     effective_from: string;

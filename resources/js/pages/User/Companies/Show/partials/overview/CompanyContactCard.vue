@@ -1,9 +1,7 @@
 <script setup lang="ts">
 /**
- * Carte Contact · toujours visible (même si aucun champ renseigné),
- * avec un message explicite en état vide. La majorité des entreprises
- * n'ont pas de contact dédié, mais le DTO et la DB conservent les
- * colonnes comme champs optionnels (cf. Q2 utilisateur, chantier K).
+ * Contact card on the Company overview. Always rendered (with an empty
+ * state message) because the DTO keeps contact fields optional.
  */
 import { Mail, Phone, User } from 'lucide-vue-next';
 import { computed } from 'vue';

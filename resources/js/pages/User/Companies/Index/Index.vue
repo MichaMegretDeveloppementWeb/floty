@@ -17,25 +17,11 @@ import PageHeader from './partials/PageHeader.vue';
 const props = defineProps<{
     companies: App.Data.User.Company.PaginatedCompanyListData;
     query: App.Data.User.Company.CompanyIndexQueryData;
-    /**
-     * `true` ssi au moins une entreprise existe en base. Source de vérité
-     * unique pour décider du placeholder. Évite le flash lors du reset de
-     * filtre · cf. note backend sur le bug placeholder.
-     */
     hasAnyCompany: boolean;
     selectedYear: number;
-    /**
-     * Scope d'années dynamique calculé depuis les contrats actifs
-     * (chantier η Phase 3). Remplace l'ancienne config statique
-     * `floty.fiscal.available_years` qui était lue via `useFiscalYear`.
-     */
     yearScope: App.Data.Shared.YearScopeData;
-    /**
-     * P0.1 (audit perf 2026-05-16) · Inertia::defer · arrive en 2e
-     * round-trip apres mount initial. Map indexee par companyId.
-     * Non typee par TS Transformer (Spatie Data ne reconnait pas les
-     * array indexees) · type manuel ici.
-     */
+    // Map keyed by companyId. Not picked up by the TS Transformer (Spatie
+    // Data does not emit indexed arrays), so the type stays manual.
     costs?: Record<
         number,
         { annualTaxDue: number; rentalPriceTotal: number | null }
@@ -50,19 +36,12 @@ const tableState = useCompaniesTable({
     selectedYear: props.selectedYear,
 });
 
-// P0.1 (audit perf 2026-05-16) · Ref local miroir de la prop `costs` ·
-// reset à `undefined` immédiatement à chaque changement de page/année
-// AVANT le reload pour forcer les skeletons sur les 2 cellules. Sans
-// ce miroir, Inertia préserve la prop deferred lors des partial reloads
-// (visit year-change déclenché par useServerTableState ne re-touche pas
-// `costs`) · les valeurs périmées resteraient affichées ~200-500 ms le
-// temps de la RTT du reload manuel, sans skeleton visible. Pattern
-// identique à Planning et Flotte (cf. mémoire
-// `feedback_inertia_defer_with_partial_reload`).
+// Local mirror of `costs` reset to undefined before each reload so the
+// skeleton fallback is visible. Inertia preserves deferred props across
+// partial reloads, so without this mirror stale values would flash for
+// the duration of the manual reload RTT.
 const localCosts = ref<typeof props.costs>(props.costs);
 
-// Sync depuis la prop · capte l'auto-fetch initial du defer ET le
-// retour du reload manuel après year/filter change.
 watch(
     () => props.costs,
     (next) => {
@@ -70,15 +49,10 @@ watch(
     },
 );
 
-// Reset + re-fetch sur changement de page de la table (filtre, tri,
-// pagination) **OU d'année** · les coûts dépendent de l'année
-// sélectionnée (`annualTaxDue` change selon les barèmes annuels). Le
-// `router.get` interne de `useServerTableState` ne demande que
-// `['companies', 'query', 'selectedYear']` · sans ce watcher, les
-// cellules resteraient gelées au coût de l'année initiale après
-// year-change (les entreprises ne changent pas → IDs identiques).
-// Clé composite `{year}|{ids}` · re-fetch si l'un OU l'autre change.
-// Vue 3 `watch` sans `immediate: true` ne fire pas au mount.
+// Re-fetch costs whenever the selected year OR the visible company IDs
+// change. The internal `router.get` from `useServerTableState` only
+// reloads `['companies', 'query', 'selectedYear']`, so cells would
+// otherwise stay frozen on year change.
 watch(
     () => `${props.selectedYear}|${props.companies.data.map((c) => c.id).join(',')}`,
     () => {

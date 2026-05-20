@@ -1,14 +1,8 @@
 <script setup lang="ts">
 /**
- * Onglet « Contrats » de la page Show Company (chantier N.1 + N.1.fixes).
- *
- * UX · stats contextuelles + pills années + popover période custom +
- * chip filtre actif dismissible. Server-side strict (ADR-0020) via
- * `useCompanyContractsTable`. Filtre période local à cet onglet
- * (ADR-0020 D3 « sélecteurs indépendants par section »).
- *
- * Pure présentation depuis Lot 7 D01 · toute la logique est extraite
- * dans `useCompanyContractsTab` (R9 + mémoire `feedback_vue_composables_extraction`).
+ * Contracts tab on the Company detail page: contextual stats, year
+ * pills, custom period popover and dismissible active filter chip.
+ * Pure presentation; logic lives in `useCompanyContractsTab`.
  */
 import { CalendarDays } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -27,10 +21,6 @@ const props = defineProps<{
     contractsAvailableYears: number[];
 }>();
 
-/**
- * Refonte D5.10.W · tri DESC pour rendu underline tabs (plus récent
- * à gauche, convention dashboard).
- */
 const yearsDescending = computed<readonly number[]>(
     () => [...props.contractsAvailableYears].sort((a, b) => b - a),
 );
@@ -55,12 +45,6 @@ const {
 
 <template>
     <div class="flex flex-col gap-6">
-        <!--
-            Header éditorial · eyebrow + h2 + meta inline + ligne actions
-            (year pills + popover période personnalisée). Plus de Card
-            wrapping · alignement sur le pattern Linear-éditorial des
-            autres tabs (refonte D5.10.W).
-        -->
         <header class="flex flex-col gap-3">
             <h2 class="text-[28px] font-semibold leading-none tracking-tight text-slate-900">
                 Locations
@@ -89,12 +73,9 @@ const {
                 class="flex flex-col gap-3 border-b border-slate-100 lg:flex-row lg:items-end lg:justify-between"
             >
                 <!--
-                    Year tabs underline · pattern miroir des onglets
-                    Fiscalité/Facturation refondus. Au clic, switch
-                    le filtre exercice en cours. `activeYear === null`
-                    quand une période personnalisée est active · aucun
-                    tab n'est highlightée dans ce cas (la chip de filtre
-                    custom indique l'état).
+                    `activeYear === null` when a custom period is active,
+                    in which case no year tab is highlighted (the chip
+                    indicates the active filter instead).
                 -->
                 <nav
                     class="flex gap-6"
@@ -131,11 +112,7 @@ const {
                         Période personnalisée
                     </Button>
 
-                    <!--
-                        Mobile (< sm) · bottom sheet centré.
-                        Desktop (≥ sm) · popover ancré sous le bouton.
-                        Aligné sur le pattern FilterPopover du projet.
-                    -->
+                    <!-- Below sm: centered bottom sheet. From sm: anchored popover. -->
                     <div
                         v-if="periodPopoverOpen"
                         class="fixed inset-0 z-40 bg-slate-900/20 sm:hidden"
@@ -161,9 +138,8 @@ const {
             </div>
 
             <!--
-                Chip de filtre actif (smart label) · masqué quand une
-                année pleine est sélectionnée (la pill correspondante
-                est déjà highlightée, le chip serait redondant).
+                Smart-label active filter chip, hidden when a full year is
+                selected (the matching tab is already highlighted).
             -->
             <div v-if="hasActivePeriodFilter && activeYear === null">
                 <CompanyContractsActiveFilterChip

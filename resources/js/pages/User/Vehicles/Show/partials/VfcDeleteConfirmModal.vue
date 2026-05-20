@@ -10,12 +10,8 @@ type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 
 const props = defineProps<{
     deleting: Vfc | null;
-    /**
-     * P8 · liste complète des VFC du véhicule, sert à filtrer les
-     * stratégies d'extension proposées selon la présence de voisins
-     * temporels. Évite que l'utilisateur choisisse une stratégie
-     * inapplicable et obtienne une exception backend.
-     */
+    // Full VFC history, used to filter the extension strategies offered
+    // based on the presence of temporal neighbours.
     history: ReadonlyArray<Vfc>;
 }>();
 
@@ -52,10 +48,9 @@ const {
             </p>
 
             <!--
-                P8 · cas « VFC seule de l'historique » · le backend
-                lèverait `CannotDeleteOnlyVersionException`. On bloque
-                en amont avec un message explicite pour éviter une
-                soumission qui serait rejetée.
+                Block the only-VFC case upfront: the backend would raise
+                CannotDeleteOnlyVersionException, so we surface a clear
+                message instead of letting the submit be rejected.
             -->
             <div
                 v-if="isOnlyVersion"

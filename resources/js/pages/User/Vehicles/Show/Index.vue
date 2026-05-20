@@ -1,16 +1,8 @@
 <script setup lang="ts">
 /**
- * Page Show Véhicule · composition en **3 onglets** (chantier η
- * Phase 2 refonte) :
- *
- *   - **Vue d'ensemble** : KPIs + Caractéristiques + Historique +
- *     Utilisation & Répartition + Indispos
- *   - **Fiscalité** : détail de la Taxe pleine · sélecteur d'année dédié
- *   - **Facturation** : tarifs annuels + recettes mensuelles
- *
- * D5.10.V · chargement lazy + cumulatif des onglets. Seules les props
- * de l'onglet actif au mount sont eager (cf. `VehicleController::show`).
- * Cf. doctrine `useCompanyTabs` pour le détail.
+ * Vehicle detail page split into 3 tabs (Overview, Fiscal, Billing).
+ * Tabs are lazy + cumulative: only the active tab's props are eager,
+ * the others arrive via partial reload on first visit.
  */
 import { Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
@@ -23,17 +15,15 @@ import VehicleOverviewTab from './partials/VehicleOverviewTab.vue';
 import VehicleTabsNav from './partials/VehicleTabsNav.vue';
 
 const props = defineProps<{
-    // Eager · toujours présentes.
     vehicle: App.Data.User.Vehicle.VehicleData;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
     billingYear: number;
     fiscalYear: number;
 
-    // Inertia::defer · arrive en 2e round-trip apres mount initial,
-    // visible via <Deferred data="history"> dans VehicleOverviewTab.
+    // Deferred: arrives on second round-trip, consumed via <Deferred data="history">.
     history?: App.Data.User.Vehicle.VehicleYearStatsData[];
 
-    // Lazy · présentes uniquement après visite de leur onglet.
+    // Lazy: populated after the matching tab is first visited.
     vehicleBilling?: App.Data.User.Billing.MonthlyBillingBreakdownData;
     fiscalYearBreakdown?: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
 }>();
@@ -59,11 +49,9 @@ const { activeTab, setTab, loadingTab } = useVehicleTabs();
 
 
             <!--
-                D5.10.V · `loadingTab !== '<key>'` force le skeleton
-                pendant un partial reload (onglet stale) · remount frais
-                après reload, sinon les sélecteurs d'année initialisés
-                sur les vieux props ne se resyncent pas avec les
-                nouveaux. Cf. doctrine `useCompanyTabs`.
+                `loadingTab !== '<key>'` forces a fresh remount during a
+                partial reload, otherwise inner year selectors stay bound
+                to the previous props.
             -->
             <template v-else-if="activeTab === 'fiscal'">
                 <VehicleFiscalTab

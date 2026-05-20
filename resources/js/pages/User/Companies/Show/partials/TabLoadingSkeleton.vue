@@ -1,12 +1,8 @@
 <script setup lang="ts">
 /**
- * Skeleton affiché pendant le partial reload Inertia qui charge les
- * props d'un onglet pour la première fois de la session (D5.10.V) ·
- * remplace le tab actif tant que ses props ne sont pas arrivées.
- *
- * 3 cards skeleton + barre d'en-tête · suffisamment proche du layout
- * réel des onglets (Fiscal/Billing/Contracts) pour éviter le saut
- * visuel quand les vraies données arrivent.
+ * Skeleton shown while a Company detail tab's props are loaded for the
+ * first time. Three card skeletons + a header bar match the layout of
+ * Fiscal/Billing/Contracts closely enough to avoid layout shift on swap.
  */
 </script>
 

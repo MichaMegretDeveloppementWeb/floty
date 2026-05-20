@@ -1,15 +1,8 @@
 <script setup lang="ts">
 /**
- * Chip dismissible affichant l'état du filtre période actif sur
- * l'onglet Contrats Company Show (chantier N.1.fixes).
- *
- * Smart label :
- * - Année pleine (YYYY-01-01 → YYYY-12-31)  → « Année 2024 »
- * - Période custom complète                → « 01/07/2024 → 31/12/2024 »
- * - Demi-bornée bas                        → « Depuis 01/07/2024 »
- * - Demi-bornée haut                       → « Jusqu'au 31/12/2024 »
- *
- * Affiche rien si `periodStart` ET `periodEnd` sont null.
+ * Dismissible chip describing the active period filter on the Company
+ * Contracts tab. Smart label: full year, bounded range, or half-bounded.
+ * Renders nothing when both `periodStart` and `periodEnd` are null.
  */
 import { X } from 'lucide-vue-next';
 import { computed } from 'vue';

@@ -178,10 +178,10 @@ const {
             />
 
             <!--
-                P1 · justificatifs joints (5 max, 5 Mo, image ou PDF).
-                Disponibles **uniquement en mode édition** · en création
-                l'indispo n'existe pas encore, on indique au user qu'il
-                pourra joindre les justificatifs après création.
+                Up to 5 attached documents (images or PDF, 5 MB each).
+                Edit mode only: in create mode the unavailability does
+                not exist yet, so the user is told they will be able to
+                attach proofs after creation.
             -->
             <section class="flex flex-col gap-2 border-t border-slate-100 pt-4">
                 <div class="flex items-baseline justify-between gap-2">

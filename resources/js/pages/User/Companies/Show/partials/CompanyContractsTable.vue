@@ -1,11 +1,8 @@
 <script setup lang="ts">
 /**
- * Table Contrats de la fiche Company Show (chantier N.1).
- *
- * Variante focalisée de `Contracts/Index/partials/ContractsTable` :
- * - colonne Entreprise retirée (scope implicite à la fiche)
- * - colonne Conducteur intégrée sous la plate du véhicule
- * - desktop ≥ md : table classique ; mobile : cards verticales tactiles
+ * Contracts table on the Company detail page. Focused variant of the
+ * full ContractsTable: Company column dropped, Driver folded under the
+ * plate, and a touch-friendly card view on mobile.
  */
 import { ChevronRight } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';

@@ -1,31 +1,9 @@
 <script setup lang="ts">
 /**
- * Onglet Facturation de la fiche véhicule.
- *
- * Refonte design D5.10.W (direction « Linear-éditorial ») · structure
- * miroir des onglets Fiscalité / Facturation entreprise · header
- * éditorial sans Card wrapping, year tabs underline, hero recettes,
- * stats row, sections flush via `<MonthlyBillingBreakdownCard unwrapped>`
- * et `<VehiclePricingsCard unwrapped>`.
- *
- * Sections (de haut en bas) ·
- *   1. Header · eyebrow `FACTURATION · EXERCICE {Y}` + h2 `Recettes
- *      {Y}` + status dot inline + meta « N mois actifs · X jours
- *      utilisés ».
- *   2. Year tabs underline.
- *   3. Hero · total HT recettes en mono large, caption contextuelle.
- *   4. Stats row · 4 KPIs · Jours utilisés, Mois actifs (+ barre),
- *      Tarif jour actif, Tarifs manquants.
- *   5. Section `RECETTES MENSUELLES` · eyebrow + table mensuelle flush.
- *   6. Section `TARIFS ANNUELS` · eyebrow + table pricings flush
- *      (multi-années · indépendant du year tab).
- *
- * La génération de facture se fait depuis la fiche entreprise (cumul
- * cross-véhicules par mois) ou depuis la liste Factures · pas
- * d'action de génération sur cette page.
- *
- * D5.10.U · sélecteur d'année piloté par le param URL unifié `?year=`
- * partagé avec l'onglet Fiscalité.
+ * Billing tab on the vehicle detail page: editorial header, year tabs,
+ * monthly revenue hero, stats row and the monthly + yearly pricing
+ * sections. Invoice generation lives on the company page, not here.
+ * Year selection is driven by the shared `?year=` URL param.
  */
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -38,11 +16,6 @@ const props = defineProps<{
     vehicleId: number;
     pricings: ReadonlyArray<App.Data.User.Vehicle.VehicleYearlyPricingData>;
     monthlyBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
-    /**
-     * Scope global d'années (cf. `YearScopeData`). On utilise
-     * `availableYears` pour les tabs underline et `currentYear` pour
-     * le status dot inline.
-     */
     yearScope: App.Data.Shared.YearScopeData;
     activeYear: number;
 }>();
@@ -99,11 +72,6 @@ const blockedMonthsCount = computed<number>(
     () => props.monthlyBilling.entries.filter((e) => e.hasMissingPricing).length,
 );
 
-/**
- * Tarif jour applicable à l'année active · si un pricing existe pour
- * cette année, on l'expose en KPI. Sinon `null` et le KPI affiche
- * « Non renseigné ».
- */
 const activePricing = computed<App.Data.User.Vehicle.VehicleYearlyPricingData | null>(
     () => props.pricings.find((p) => p.year === props.activeYear) ?? null,
 );
@@ -170,7 +138,6 @@ function selectYear(year: number): void {
 
 <template>
     <div class="flex flex-col">
-        <!-- Header éditorial · status dot stack sous le titre sur mobile -->
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             Facturation · Exercice {{ activeYear }}
         </p>
@@ -190,7 +157,6 @@ function selectYear(year: number): void {
             {{ metaLine }}
         </p>
 
-        <!-- Year tabs underline -->
         <nav
             v-if="yearScope.availableYears.length > 0"
             class="mb-10 flex gap-6 border-b border-slate-100"
@@ -212,7 +178,6 @@ function selectYear(year: number): void {
             </button>
         </nav>
 
-        <!-- Hero · total recettes -->
         <div class="mb-10 flex flex-col gap-1.5">
             <p
                 class="font-mono text-[28px] sm:text-[36px] font-medium tracking-[-0.02em] tabular-nums leading-none"
@@ -225,10 +190,6 @@ function selectYear(year: number): void {
             </p>
         </div>
 
-        <!--
-            Stats row · 4 colonnes sur ≥ sm, 2×2 sur mobile · gap
-            horizontal entre cards mobile, bordures verticales sur sm+.
-        -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-5 sm:gap-x-0 gap-y-6 sm:gap-y-0 border-y border-slate-100 py-6">
             <div class="sm:px-6 sm:first:pl-0 sm:last:pr-0 sm:not-last:border-r sm:border-slate-100">
                 <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -306,7 +267,6 @@ function selectYear(year: number): void {
             </div>
         </div>
 
-        <!-- Section · Recettes mensuelles -->
         <section class="mt-12 flex flex-col gap-4">
             <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 Recettes mensuelles
@@ -318,12 +278,6 @@ function selectYear(year: number): void {
             />
         </section>
 
-        <!--
-            Section · Tarifs annuels (multi-années).
-            Indépendant du year tab · liste toutes les années de
-            référence de tarification du véhicule, avec actions
-            d'édition / suppression et bouton Ajouter.
-        -->
         <section class="mt-12 flex flex-col gap-4">
             <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 Tarifs annuels

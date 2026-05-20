@@ -17,10 +17,9 @@ import FleetTable from './partials/FleetTable.vue';
 import PageHeader from './partials/PageHeader.vue';
 
 /**
- * Coûts d'un véhicule servis en différé (chantier perf Flotte 2026-05-17).
- * Le DTO `VehicleListItemData` est servi avec les 3 champs financiers
- * à `null` au premier render · cette map remplit les 2 cellules après
- * un partial reload Inertia. Skeleton entre-temps.
+ * Per-vehicle financial figures served via Inertia::defer.
+ * `VehicleListItemData` is rendered with the 3 financial fields nulled on
+ * first paint, this map fills the cells on the second round-trip.
  */
 type VehicleCosts = Record<
     number,
@@ -29,43 +28,18 @@ type VehicleCosts = Record<
 
 const props = defineProps<{
     vehicles: App.Data.User.Vehicle.PaginatedVehicleListData;
-    /**
-     * Inertia::defer · `undefined` au premier render, rempli après la
-     * 2e requête asynchrone déclenchée automatiquement par Inertia.
-     */
     vehiclesCosts?: VehicleCosts;
     options: {
         firstRegistrationYearBounds: { min: number; max: number } | null;
     };
     query: App.Data.User.Vehicle.VehicleIndexQueryData;
-    /**
-     * Année résolue par le backend pour les colonnes financières
-     * (cf. `VehicleController::index`). Sert à initialiser le sélecteur
-     * d'année local au premier rendu, puis pilote le label des colonnes
-     * « Taxe pleine » / « Montant loyer ».
-     */
     selectedYear: number;
-    /**
-     * Scope d'années dynamique calculé depuis les contrats actifs
-     * (chantier η Phase 3). Remplace l'ancienne config statique
-     * `floty.fiscal.available_years` qui était lue via `useFiscalYear`.
-     * Bornes : `[minYear..max(currentYear, maxContractYear)]`.
-     */
     yearScope: App.Data.Shared.YearScopeData;
-    /**
-     * `true` ssi au moins un véhicule existe en base. Source de vérité
-     * unique pour décider du placeholder « Aucun véhicule ». Évite le
-     * flash placeholder lors du reset de filtre, et le faux-positif
-     * quand toute la flotte est retirée et `showExited=false`.
-     */
     hasAnyVehicle: boolean;
 }>();
 
 const filtersOpen = ref<boolean>(false);
 
-// Année calendaire courante (front) · distincte de `selectedYear` qui
-// est pilotée par l'utilisateur. Sert de borne de référence dans
-// `useFleetTable` (ex. pour afficher des badges « En cours »).
 const currentRealYear = new Date().getFullYear();
 
 const tableState = useFleetTable({
@@ -74,18 +48,12 @@ const tableState = useFleetTable({
     currentRealYear,
 });
 
-// Ref local miroir de la prop `vehiclesCosts` · reset à `undefined`
-// immédiatement à chaque changement de page/année AVANT le reload pour
-// forcer les skeletons sur les 2 cellules. Sans ce miroir, Inertia
-// préserve la prop deferred lors des partial reloads (visit year-change
-// déclenché par useServerTableState ne re-touche pas vehiclesCosts) ·
-// les valeurs périmées resteraient affichées ~200-500 ms le temps de
-// la RTT du reload manuel, sans skeleton visible. Pattern identique à
-// Planning (cf. mémoire `feedback_inertia_defer_with_partial_reload`).
+// Local mirror of `vehiclesCosts` reset to undefined before each reload
+// so cells fall back to a skeleton. Inertia preserves deferred props on
+// partial reloads, so without this mirror stale values would flash for
+// the duration of the manual reload RTT.
 const localVehiclesCosts = ref<VehicleCosts | undefined>(props.vehiclesCosts);
 
-// Sync depuis la prop · capte l'auto-fetch initial du defer ET le
-// retour du reload manuel après year/filter change.
 watch(
     () => props.vehiclesCosts,
     (next) => {
@@ -93,15 +61,10 @@ watch(
     },
 );
 
-// Reset + re-fetch sur changement de page de la table (filtre, tri,
-// pagination) **OU d'année** · les coûts dépendent de l'année
-// sélectionnée (`fullYearTax` change selon les barèmes annuels). Le
-// `router.get` interne de `useServerTableState` ne demande que
-// `['vehicles', 'query', 'selectedYear']` · sans ce watcher, les
-// cellules resteraient gelées au coût de l'année initiale après
-// year-change. Clé composite `{year}|{ids}` · re-fetch si l'un OU
-// l'autre change. Vue 3 `watch` sans `immediate: true` ne fire pas
-// au mount (l'auto-fetch Inertia du defer s'en charge).
+// Re-fetch costs whenever the selected year OR the visible vehicle IDs
+// change. The internal `router.get` from `useServerTableState` only
+// reloads `['vehicles', 'query', 'selectedYear']`, so cells would
+// otherwise stay frozen on year change.
 watch(
     () => `${props.selectedYear}|${props.vehicles.data.map((v) => v.id).join(',')}`,
     () => {

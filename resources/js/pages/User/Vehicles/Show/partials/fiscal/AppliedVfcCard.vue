@@ -1,15 +1,8 @@
 <script setup lang="ts">
 /**
- * Encart « Caractéristiques fiscales appliquées au calcul » de l'onglet
- * Fiscalité : matérialise la (les) VFC effective(s) sur l'année
- * calculée · un bloc par période effective (un seul en mono-VFC, N en
- * multi-VFC).
- *
- * Complémentaire de
- * {@link FullYearTaxBreakdownPanel.vue} qui détaille les tarifs et dûs
- * par segment ; ici on se concentre sur les **caractéristiques** de la
- * VFC (énergie, norme Euro, catégorie polluants, méthode CO₂, valeur
- * CO₂).
+ * Lists the VFCs that apply to the computed year, one block per
+ * effective period. Companion to FullYearTaxBreakdownPanel, focused on
+ * the VFC characteristics rather than the tariff figures.
  */
 import { Info } from 'lucide-vue-next';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -27,12 +20,6 @@ type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 withDefaults(
     defineProps<{
         segments: Segment[];
-        /**
-         * Refonte D5.10.W · mode flush sans Card wrapping ni header
-         * interne. Utilisé par `<VehicleFiscalTab>` éditorial où le
-         * header est porté par le tab parent (eyebrow `CARACTÉRISTIQUES
-         * VFC`).
-         */
         unwrapped?: boolean;
     }>(),
     { unwrapped: false },

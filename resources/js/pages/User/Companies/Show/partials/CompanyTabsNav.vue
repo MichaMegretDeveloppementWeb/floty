@@ -4,18 +4,9 @@ import type { CompanyTabKey } from '@/Composables/Company/Show/useCompanyTabs';
 withDefaults(
     defineProps<{
         activeTab: CompanyTabKey;
-        /**
-         * Phase 12 D5.9.D · affiche un petit dot ambre à droite du
-         * libellé « Fiscalité » quand au moins une déclaration de
-         * l'entreprise est en attente d'action (lifecycle ≠ Generated
-         * Active). Signale subtilement « quelque chose à faire » sans
-         * crier comme une alerte rouge.
-         */
+        /** Shows an amber dot on the Fiscal tab when a declaration is pending. */
         fiscalHasTodo?: boolean;
-        /**
-         * D5.10.U · même pattern pour l'onglet « Facturation » quand au
-         * moins une facture est à générer.
-         */
+        /** Same dot on the Billing tab when at least one invoice must be generated. */
         billingHasTodo?: boolean;
     }>(),
     {
@@ -38,11 +29,6 @@ const tabs: readonly { key: CompanyTabKey; label: string }[] = [
 </script>
 
 <template>
-    <!-- Scroll horizontal natif sur mobile (touch drag fonctionne en
-         standard) ; sur desktop la barre fait sa largeur naturelle si
-         tout rentre, sinon scroll molette/touchpad. Scrollbar masquée
-         visuellement pour rester propre - le visuel border-b reste
-         continu sous la nav. -->
     <div
         class="flex gap-1 overflow-x-auto border-b border-slate-200 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         role="tablist"

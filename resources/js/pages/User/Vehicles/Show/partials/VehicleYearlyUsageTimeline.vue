@@ -34,7 +34,6 @@ const {
         <div class="flex flex-col gap-3">
             <div class="overflow-x-auto">
                 <div class="inline-flex min-w-full flex-col">
-                    <!-- Labels mensuels alignés sur les groupes de semaines -->
                     <div class="mb-2 flex h-4">
                         <div
                             v-for="month in monthLabels"
@@ -46,7 +45,6 @@ const {
                         </div>
                     </div>
 
-                    <!-- Timeline 52 cellules avec tooltip custom -->
                     <div class="flex h-10">
                         <Tooltip
                             v-for="week in props.stats.weeklyBreakdown"
@@ -68,12 +66,6 @@ const {
                                     :class="companyColorBgClass(segment.color)"
                                     :style="{ height: heightFor(segment) }"
                                 />
-                                <!-- Overlay indispo réductrice (rose) en
-                                     position absolue par-dessus la barre
-                                     d'attribution. ADR-0019 autorise la
-                                     cohabitation indispo↔contrat ; la
-                                     transparence laisse lire la couleur
-                                     entreprise en filigrane. -->
                                 <div
                                     v-if="week.reductiveUnavailabilityDays > 0"
                                     class="pointer-events-none absolute inset-x-0 top-0 bg-rose-50/70"
@@ -93,9 +85,6 @@ const {
                                         <line x1="14" y1="2" x2="2" y2="14" />
                                     </svg>
                                 </div>
-                                <!-- Overlay indispo non-réductrice (slate)
-                                     positionné juste sous la réductrice
-                                     pour autoriser les semaines mixtes. -->
                                 <div
                                     v-if="week.nonReductiveUnavailabilityDays > 0"
                                     class="pointer-events-none absolute inset-x-0 bg-slate-200/70"
@@ -185,7 +174,6 @@ const {
                 </div>
             </div>
 
-            <!-- Légende : pastilles couleur + nom + jours, tri par jours desc -->
             <ul
                 v-if="legendEntries.length > 0"
                 class="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3"

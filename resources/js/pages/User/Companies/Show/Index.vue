@@ -14,13 +14,12 @@ import TabLoadingSkeleton from './partials/TabLoadingSkeleton.vue';
 
 type DriverOption = { id: number; fullName: string; initials: string };
 
-// D5.10.V · chargement lazy + cumulatif des onglets. Seules les props
-// de l'onglet actif au mount sont eager (cf. `CompanyController::show`)
-// · les autres sont `undefined` jusqu'au premier partial reload
-// déclenché par `useCompanyTabs.setTab(...)`. Les guards `v-if` ci-bas
-// affichent `<TabLoadingSkeleton/>` pendant le partial reload.
+/**
+ * Company detail page split into 5 tabs. Tabs are lazy + cumulative:
+ * only the active tab's props are eager, the others land via partial
+ * reload on first visit.
+ */
 const props = defineProps<{
-    // Eager · toujours présentes.
     company: App.Data.User.Company.CompanyDetailData;
     contractsQuery: App.Data.User.Contract.ContractIndexQueryData;
     contractsAvailableYears: number[];
@@ -28,7 +27,7 @@ const props = defineProps<{
     pendingDeclarations: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
     pendingInvoices: App.Data.User.Billing.PendingInvoiceYearData[];
 
-    // Lazy · présentes uniquement après visite de leur onglet respectif.
+    // Lazy: populated after the matching tab is first visited.
     options?: { drivers: DriverOption[] };
     contracts?: App.Data.User.Contract.PaginatedContractListData;
     contractsStats?: App.Data.User.Company.CompanyContractsStatsData;
@@ -40,28 +39,17 @@ const props = defineProps<{
 
 const { activeTab, setTab, loadingTab } = useCompanyTabs();
 
-/**
- * Phase 12 D5.9.D · `true` quand au moins une déclaration de
- * l'entreprise est en attente d'action (lifecycle ≠ GeneratedActive).
- * Sert au dot discret de l'onglet « Fiscalité » dans `CompanyTabsNav`.
- */
 const fiscalHasTodo = computed<boolean>(
     () => props.pendingDeclarations.length > 0,
 );
 
-/**
- * D5.10.U · idem pour l'onglet « Facturation » quand au moins une
- * facture est à générer pour cette entreprise.
- */
 const billingHasTodo = computed<boolean>(
     () => props.pendingInvoices.length > 0,
 );
 
 /**
- * D5.10.U · Navigation depuis l'alerte « À faire » vers l'onglet
- * Fiscalité de l'année concernée. URL `?tab=fiscal&year=Y` pilote
- * `useCompanyTabs` (lit `?tab=`) + `useCompanyFiscalSelectedYear`
- * (lit `?year=` unifié).
+ * Navigate to the Fiscal tab focused on a given year through the unified
+ * `?tab=fiscal&year=Y` query string.
  */
 function handleGotoFiscalYear(year: number): void {
     const url = new URL(window.location.href);
@@ -73,9 +61,7 @@ function handleGotoFiscalYear(year: number): void {
 }
 
 /**
- * D5.10.U · Navigation depuis l'alerte « N factures à générer pour YYYY »
- * vers l'onglet Facturation de l'année concernée · même param `?year=`
- * unifié.
+ * Navigate to the Billing tab focused on a given year.
  */
 function handleGotoBillingYear(year: number): void {
     const url = new URL(window.location.href);
@@ -111,14 +97,9 @@ function handleGotoBillingYear(year: number): void {
             />
 
             <!--
-                D5.10.V · `loadingTab !== '<key>'` force le skeleton
-                pendant un partial reload même si les props précédentes
-                sont déjà chargées (onglet stale). Sans cela, le tab
-                rendrait avec les ANCIENS props pendant la latence du
-                reload · les composables internes (sélecteurs d'année)
-                initialisés sur les vieux props ne re-synchroniseraient
-                pas après l'arrivée des nouveaux (cf. bug pills désync).
-                Le skeleton garantit un remount frais avec les bons props.
+                `loadingTab !== '<key>'` forces a fresh remount during a
+                partial reload, otherwise inner year selectors keep their
+                stale initial bindings after new props land.
             -->
             <template v-else-if="activeTab === 'contracts'">
                 <CompanyContractsTab

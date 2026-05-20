@@ -13,9 +13,9 @@ type VehicleCosts = Record<
     { fullYearTax: number; dailyTaxRate: number; rentalPriceFullYear: number | null }
 >;
 
-// Colonnes triables côté serveur (cf. VehicleIndexQueryData::allowedSortKeys()).
-// `fullYearTax` et `rentalPriceFullYear` sont volontairement absents
-// (valeurs calculées non SQL, règle ADR-0020 D6).
+// Server-side sortable columns (mirror of VehicleIndexQueryData::allowedSortKeys()).
+// `fullYearTax` and `rentalPriceFullYear` are intentionally excluded
+// because they are non-SQL computed values (ADR-0020 D6).
 const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
     'licensePlate',
     'model',
@@ -24,11 +24,6 @@ const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
 
 const props = defineProps<{
     vehicles: VehicleRow[];
-    /**
-     * Map des coûts par vehicleId · `undefined` tant que le defer
-     * `vehiclesCosts` n'est pas hydraté · `null`/`undefined` côté entry
-     * → skeleton sur les cellules `fullYearTax` + `rentalPriceFullYear`.
-     */
     costs?: VehicleCosts;
     columns: readonly DataTableColumn<VehicleRow>[];
     activeSortColumnKey: string | null;
@@ -40,10 +35,6 @@ const emit = defineEmits<{
     'row-click': [row: VehicleRow];
 }>();
 
-// Pastille de statut affichée avant l'immatriculation. Code couleur métier :
-//   - vert  : véhicule en service
-//   - orange : véhicule indisponible temporairement (maintenance)
-//   - rouge : sorti définitivement (vendu, détruit ou autre)
 function statusPalette(
     status: App.Enums.Vehicle.VehicleStatus,
 ): { dot: string; label: string } {
@@ -124,8 +115,6 @@ function statusPalette(
             <span class="whitespace-nowrap">{{ formatDateFr(String(value)) }}</span>
         </template>
         <template #cell-fullYearTax="{ row }">
-            <!-- Skeleton tant que le defer `vehiclesCosts` n'a pas hydraté
-                 la map · row.fullYearTax reste null dans le payload initial. -->
             <div
                 v-if="props.costs && props.costs[row.id]"
                 class="flex flex-col items-end leading-tight"

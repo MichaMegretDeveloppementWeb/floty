@@ -20,8 +20,7 @@ const props = defineProps<{
     isMissing: (key: keyof VehicleFormShape) => boolean;
 }>();
 
-// Affichage conditionnel des champs CO₂/CV selon la méthode d'homologation
-// retenue (R-2024-005/006). On ne rend qu'un seul des trois inputs.
+// Only one of WLTP/NEDC/PA inputs is rendered, picked by the homologation method.
 const showWltp = computed((): boolean => props.form.homologation_method === 'WLTP');
 const showNedc = computed((): boolean => props.form.homologation_method === 'NEDC');
 const showPa = computed((): boolean => props.form.homologation_method === 'PA');

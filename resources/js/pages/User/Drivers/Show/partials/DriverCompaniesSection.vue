@@ -58,8 +58,8 @@ function reactivate(membership: Membership): void {
         return;
     }
 
-    // Réutilise l'endpoint update : `left_at: null` réactive la membership
-    // (cf. UpdateDriverCompanyMembershipAction). On préserve `joined_at`.
+    // Reuses the update endpoint: `left_at: null` reactivates the membership
+    // while preserving `joined_at` (UpdateDriverCompanyMembershipAction).
     router.patch(
         updateRoute.url([props.driverId, membership.pivotId]),
         { joined_at: membership.joinedAt, left_at: null },

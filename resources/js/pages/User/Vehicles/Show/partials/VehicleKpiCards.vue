@@ -1,22 +1,8 @@
 <script setup lang="ts">
 /**
- * Rangée de 3 KPIs **Présent** · reflète l'année calendaire courante
- * uniquement (chantier η Phase 2, doctrine temporelle).
- *
- * Refonte : avant le bouton « Voir le détail » du KPI Taxe pleine
- * pointait vers le `FullYearTaxBreakdownPanel`, lui-même calé sur
- * l'année active de la page (= une seule année). Désormais, le panel
- * vit dans la section Exploration et est piloté par le sélecteur
- * partagé. Les KPIs Présent ne portent plus que des valeurs scalaires
- * sur l'année courante (sans drill-down).
- *
- * Spécificités :
- *   - Si `kpiFiscalAvailable === false` (règles fiscales pas codées
- *     pour l'année courante), les KPIs « Taxe réelle » et « Taxe pleine »
- *     affichent un `·` neutre + caption « Règles {YYYY} non implémentées »
- *     (cohérent CompanyKpiCards, doctrine HD6).
- *   - La KPI « Jours d'utilisation » reste toujours significative
- *     (donnée brute, indépendante des règles fiscales).
+ * Row of 4 "Present" KPI cards for the current calendar year. When the
+ * fiscal engine has no rules for that year (`kpiFiscalAvailable=false`),
+ * the tax-related cards show a neutral `·` and an explanatory caption.
  */
 import { Calendar, Coins, Receipt, Wallet } from 'lucide-vue-next';
 import { computed } from 'vue';

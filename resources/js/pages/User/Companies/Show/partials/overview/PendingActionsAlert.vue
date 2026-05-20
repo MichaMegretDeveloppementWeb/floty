@@ -1,20 +1,9 @@
 <script setup lang="ts">
 /**
- * Card adaptative « À traiter » sur l'onglet Vue d'ensemble de la fiche
- * entreprise (Phase D5.10.S · refonte multi-actions).
- *
- * Affiche les actions en attente (déclarations + factures) intercalées
- * par année, de la plus ancienne à la plus récente. Pour chaque année :
- *   - 0 ou 1 ligne « Déclaration YYYY · état » (selon le cycle de vie)
- *   - 0 ou 1 ligne « N facture(s) à générer pour YYYY »
- *
- * Les CTAs naviguent vers l'onglet Fiscalité ou Facturation de l'année
- * concernée (URL `?tab=fiscal&year=Y` ou `?tab=billing&year=Y` ·
- * D5.10.U param unifié).
- *
- * **Pourquoi pas de POST inline** · garder la pleine pédagogie côté
- * onglet cible évite les clics destructeurs sans confirmation depuis
- * le Vue d'ensemble.
+ * Adaptive "to-do" card on the Company overview tab. Lists pending
+ * declarations + invoices interleaved by year, oldest first. Each item
+ * routes to the relevant tab/year rather than POST-ing inline to keep
+ * destructive clicks confirmed in their natural place.
  */
 import {
     AlertTriangle,
@@ -104,7 +93,7 @@ function declarationConfig(entry: PendingDeclaration): EntryConfig {
                 iconTone: 'text-amber-500',
             };
         case 'generated_active':
-            // Théoriquement jamais dans la liste (filtré côté backend)
+            // Should never appear in this list (filtered backend-side).
             return {
                 icon: FileText,
                 title: 'Générée',

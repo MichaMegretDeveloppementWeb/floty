@@ -1,15 +1,8 @@
 <script setup lang="ts">
 /**
- * Onglet « Conducteurs » de la page Show Company (chantier M.3).
- *
- * Symétrique de `DriverCompaniesSection` côté Driver Show · permet
- * d'ajouter, sortir et détacher un driver depuis la fiche Company.
- *
- * Pure présentation depuis Lot 7 D01 · toute la logique est extraite
- * dans `useCompanyDriversTab` (R9 + mémoire `feedback_vue_composables_extraction`).
- * F-40-018 fix collateral · les 2 `confirm()` natifs (detach +
- * reactivate) sont remplacés par un `ConfirmModal` Vue cohérent avec
- * le design system Floty (focus trap, esc/click outside, accessibilité).
+ * Drivers tab on the Company detail page. Symmetric of
+ * `DriverCompaniesSection` on the Driver page: add, leave and detach a
+ * driver. Pure presentation; logic lives in `useCompanyDriversTab`.
  */
 import { Plus, Users } from 'lucide-vue-next';
 import AddCompanyDriverModal from '@/Components/Domain/Driver/AddCompanyDriverModal.vue';
@@ -58,11 +51,6 @@ const {
 
 <template>
     <div class="flex flex-col gap-6">
-        <!--
-            Header éditorial · h2 + meta + actions. Plus de Card
-            wrapping · alignement sur le pattern Linear-éditorial
-            (refonte D5.10.W étape 6).
-        -->
         <header class="flex flex-col gap-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-6">
             <div class="flex flex-col gap-1">
                 <h2 class="text-[28px] font-semibold leading-none tracking-tight text-slate-900">
@@ -231,9 +219,6 @@ const {
             @close="closeEdit"
         />
 
-        <!-- F-40-018 (Lot 7 D01) · ConfirmModal Vue remplace les 2
-             window.confirm() natifs (detach + reactivate). État unifié
-             via `confirmAction` du composable. -->
         <ConfirmModal
             v-if="confirmAction !== null"
             :open="true"

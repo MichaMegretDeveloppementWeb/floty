@@ -1,12 +1,10 @@
 import type { FiscalCharacteristicsFieldsShape } from '@/pages/User/Vehicles/Create/forms';
 
 /**
- * Shape du formulaire d'édition d'une VFC isolée depuis la modale
- * Historique. Étend les champs purement fiscaux avec les bornes
- * `effective_from`/`effective_to` et le motif/note de changement.
- *
- * `effective_to` à `null` = version courante. La transformation
- * pre-submit gère la conversion `''` → `null`.
+ * Shape of the standalone VFC edit form from the history modal.
+ * Extends the fiscal fields with the `effective_from`/`effective_to`
+ * bounds and the change reason/note. `effective_to = null` marks the
+ * current version; the pre-submit transform converts `''` → `null`.
  */
 export type VfcEditFormShape = FiscalCharacteristicsFieldsShape & {
     effective_from: string;
@@ -16,8 +14,8 @@ export type VfcEditFormShape = FiscalCharacteristicsFieldsShape & {
 };
 
 /**
- * Shape du formulaire de suppression d'une VFC. Le seul champ porté
- * est la stratégie de comblement du trou laissé par la suppression.
+ * Shape of the VFC deletion form. The only field carried is the
+ * strategy used to fill the gap left by the deletion.
  */
 export type VfcDeleteFormShape = {
     extension_strategy: App.Enums.Vehicle.FiscalCharacteristicsExtensionStrategy | '';

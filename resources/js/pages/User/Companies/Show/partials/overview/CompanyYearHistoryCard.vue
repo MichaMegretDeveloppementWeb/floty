@@ -1,21 +1,8 @@
 <script setup lang="ts">
 /**
- * Tableau récapitulatif des **exercices passés** de l'entreprise · un
- * objet par année avec ≥ 1 contrat (chantier η Phase 1, doctrine
- * temporelle « Évolution »).
- *
- * **L'année calendaire courante n'apparaît pas ici** · elle vit dans
- * les KPIs en haut de page (`CompanyKpiCards`). Cette section est
- * exclusivement dédiée à l'évolution dans le temps : on regarde le
- * passé, pas le présent.
- *
- * Tri DESC (le plus récent en haut · convention dashboard rétrospectif).
- *
- * État vide : si l'entreprise n'a aucun contrat sur les exercices
- * passés (typiquement : entreprise créée cette année, ou jamais utilisée
- * historiquement), la carte affiche un message neutre plutôt que d'être
- * masquée · l'utilisateur sait que la section existe et pourquoi elle
- * est vide.
+ * Recap table of past fiscal years for the company (current year is
+ * shown in the KPIs above). Sorted DESC, with a neutral message when
+ * the company has no past year on record.
  */
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -26,11 +13,6 @@ type YearStats = App.Data.User.Company.CompanyYearStatsData;
 const props = withDefaults(
     defineProps<{
         history: readonly YearStats[];
-        /**
-         * Refonte D5.10.W · mode flush sans Card wrapping ni header
-         * interne (`Historique par année`). Le tab parent fournit
-         * l'eyebrow `HISTORIQUE`.
-         */
         unwrapped?: boolean;
     }>(),
     { unwrapped: false },

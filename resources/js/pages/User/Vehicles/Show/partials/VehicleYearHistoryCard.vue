@@ -1,18 +1,8 @@
 <script setup lang="ts">
 /**
- * Tableau récapitulatif des **exercices passés** du véhicule · un objet
- * par année dans `[minYear..currentYear-1]` du scope global, lignes
- * neutres comprises pour les années sans contrat sur ce véhicule.
- *
- * Doctrine temporelle (chantier η Phase 2, lentille « Évolution ») :
- * l'année calendaire courante n'apparaît pas ici (déjà dans les KPIs en
- * haut). On regarde le passé, pas le présent.
- *
- * Tri DESC (le plus récent en haut · convention dashboard rétrospectif).
- *
- * État vide (pas d'exercice passé, typiquement véhicule créé cette
- * année) : message neutre plutôt que masquage de la carte · l'utilisateur
- * sait que la section existe et pourquoi elle est vide.
+ * Recap table of past fiscal years for the vehicle (current year is
+ * shown in the KPIs above). Sorted DESC, with neutral rows for years
+ * without contracts so the section never disappears.
  */
 import { computed } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';

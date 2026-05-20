@@ -1,13 +1,9 @@
 /**
- * Shape des champs purement fiscaux (VFC) - partagé entre le form
- * véhicule complet (Create/Edit) et le form d'édition d'une VFC
- * isolée depuis la modale Historique. Permet de typer
- * `FiscalCharacteristicsSection` de façon générique sur tout
- * formulaire qui contient ces champs.
- *
- * `pollutant_category` n'est PAS un input - il est dérivé côté front
- * par `derivePollutantCategory()` et persisté côté backend par le
- * Repository. Ne pas le rajouter dans le shape.
+ * Shape of the fiscal (VFC) fields, shared between the full vehicle
+ * form (Create/Edit) and the standalone VFC edit modal from the
+ * vehicle history. `pollutant_category` is not an input · it is
+ * derived on the frontend by `derivePollutantCategory()` and persisted
+ * on the backend by the repository.
  */
 export type FiscalCharacteristicsFieldsShape = {
     reception_category: string;
@@ -21,14 +17,14 @@ export type FiscalCharacteristicsFieldsShape = {
     co2_wltp: number | null;
     co2_nedc: number | null;
     taxable_horsepower: number | null;
-    // Flag E85 · abattement L. 421-125 réformé (2025+) · valeur dérivée
-    // des 9 codes P.3 du CI {FE, FG, FN, FL, FH, FR, FQ, FM, FP}
-    // (BOFiP BOI-AIS-MOB-10-20-40-20250604 § 160).
+    // E85 flag (L. 421-125 abatement, 2025+) · derived from the 9 P.3
+    // codes of the registration certificate {FE, FG, FN, FL, FH, FR,
+    // FQ, FM, FP} (BOFiP BOI-AIS-MOB-10-20-40-20250604 § 160).
     accepts_e85: boolean;
-    // Spécificités fiscales (toujours visibles)
+    // Fiscal specifics (always visible).
     kerb_mass: number | null;
     handicap_access: boolean;
-    // Usage spécifique (conditionnels selon catégorie/carrosserie)
+    // Specific use (conditional on category/body).
     m1_special_use: boolean;
     n1_passenger_transport: boolean;
     n1_removable_second_row_seat: boolean;
@@ -36,11 +32,9 @@ export type FiscalCharacteristicsFieldsShape = {
 };
 
 /**
- * Shape du formulaire de création/édition d'un véhicule (snake_case
- * pour matcher la validation backend Spatie Data après auto-mapping).
- *
- * Réutilisé par les partials sectionnés du formulaire pour typer
- * l'objet `useForm()` reçu en prop.
+ * Shape of the vehicle create/edit form (snake_case to match the
+ * backend Spatie Data validation after auto-mapping). Re-used by the
+ * sectioned partials of the form to type the injected `useForm()` prop.
  */
 export type VehicleFormShape = FiscalCharacteristicsFieldsShape & {
     license_plate: string;

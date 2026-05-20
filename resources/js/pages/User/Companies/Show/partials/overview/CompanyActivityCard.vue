@@ -1,28 +1,9 @@
 <script setup lang="ts">
 /**
- * Section « Activité » de la fiche entreprise · lentille **Exploration**
- * de la doctrine temporelle (chantier η Phase 1, 2026-05-05).
- *
- * Une carte unique, deux visualisations empilées pilotées par un
- * sélecteur d'année **local** (mode local · pas de reload Inertia, les
- * données de toutes années sont déjà pré-calculées dans
- * `company.activityByYear`) :
- *
- *   1. Heatmap mensuelle : 12 cases (J → D), saturation calée sur le
- *      mois le plus chargé de l'année (échelle 0..7 réutilisant la
- *      `densityClass` du design system Heatmap planning).
- *   2. Top 3 véhicules : licence plate + marque/modèle + jours +
- *      pourcentage du total annuel jours-véhicules de l'entreprise.
- *
- * **Migration chantier η** : remplace l'ancien `useCompanySelectedYear`
- * par `useYearScope` (générique, partagé avec toutes les pages). Le
- * composant `YearSelector` remplace le `<select>` natif inline. Les
- * bornes du sélecteur viennent désormais de `company.yearScope`
- * (calculées globalement par `AvailableYearsResolver`).
- *
- * État vide (année hors `availableYears` propres à la company, ou aucune
- * activité) : heatmap blanche + message « Aucune activité enregistrée
- * pour cet exercice ».
+ * Activity exploration card on the Company overview. Local year
+ * selector (no Inertia reload, all years are pre-computed in
+ * `company.activityByYear`), with a monthly heatmap and a top-3
+ * vehicles list.
  */
 import { computed } from 'vue';
 import { densityClass, textContrastClass } from '@/Components/Features/Planning/Heatmap/utils/density';
@@ -38,21 +19,14 @@ const props = defineProps<{
     company: Company;
 }>();
 
-// Mode local : pas de `reloadKeys` · toutes les années sont déjà
-// pré-calculées côté backend dans `activityByYear`. Le changement
-// d'année met juste à jour l'URL (deep-link / refresh F5 préservé).
-//
-// `selectedYearModel` est utilisé pour le `v-model` du YearSelector
-// (passe par `selectYear()` qui sync l'URL). `selectedYear` est
-// utilisé en lecture seule pour le lookup `byYear`.
+// Local mode: every year is pre-computed in `activityByYear`, so the
+// year change only updates the URL (deep-link / F5 preserved).
 const { selectedYear, selectedYearModel, availableYears } = useYearScope(
     props.company.yearScope,
 );
 
-// Le scope front (`company.yearScope.availableYears`) est global ·
-// toutes les années où le système a au moins un contrat. C'est ce que
-// le sélecteur expose. Si la company spécifique n'a pas de contrat sur
-// une année donnée, on rendra l'état vide ci-dessous.
+// The picker exposes the global year scope. Years where this company
+// has no contract render the empty state below.
 const sortedYears = computed<readonly number[]>(() =>
     [...availableYears.value].sort((a, b) => b - a),
 );
@@ -74,15 +48,11 @@ const byYear = computed<ActivityYear>(
         ?? emptyActivity(selectedYear.value),
 );
 
-// Échelle de densité : on normalise à 0..7 par division par le max
-// du mois le plus chargé de l'année. Permet de réutiliser la palette
-// `densityClass` (0 = blanc bordé, 7 = bleu foncé) du design system.
-// Format spécifique visualisation (initiales 1 char) · le doc-block
-// `MONTH_LABELS` documente explicitement ce cas comme hors scope
-// mutualisation (cf. Utils/format/monthLabels.ts).
+// Density palette is normalised to 0..7 so it can reuse the shared
+// `densityClass` scale (0 = white, 7 = dark blue).
+// Single-letter month labels are intentionally not shared with
+// `MONTH_LABELS` (see its doc-block).
 const monthLabels = ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'] as const;
-// Tooltip (lowercase) dérivé du label canonique pour éviter la
-// duplication des 12 noms de mois.
 const fullMonthNames = MONTH_LABELS.map((m) => m.toLowerCase()) as readonly string[];
 
 const maxMonth = computed<number>(() => Math.max(0, ...byYear.value.daysByMonth));
@@ -100,7 +70,6 @@ const isEmpty = computed<boolean>(
 );
 
 function formatPercentage(value: number): string {
-    // Locale FR · virgule décimale, 1 chiffre après
     return value.toLocaleString('fr-FR', {
         minimumFractionDigits: 1,
         maximumFractionDigits: 1,
@@ -127,7 +96,6 @@ function formatPercentage(value: number): string {
         </div>
 
         <div v-else class="flex flex-col gap-6">
-            <!-- Heatmap mensuelle -->
             <section>
                 <p class="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
                     Occupation mensuelle
@@ -155,7 +123,6 @@ function formatPercentage(value: number): string {
                 </div>
             </section>
 
-            <!-- Top véhicules -->
             <section>
                 <p class="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">
                     Top véhicules

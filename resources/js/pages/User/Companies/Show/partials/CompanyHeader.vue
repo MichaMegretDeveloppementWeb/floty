@@ -1,11 +1,8 @@
 <script setup lang="ts">
 /**
- * Hero d'identité de la fiche entreprise (chantier K, ADR-0020 D3).
- *
- * Avatar coloré (CompanyTag style) + raison sociale en titre fort +
- * shortCode mono + statuts inline (Active / OIG / Indiv.) + actions
- * rapides à droite. Pas de KPIs ici : ils vivent dans la section
- * « Aperçu par année » du corps de la fiche.
+ * Identity hero of the company detail page: coloured avatar, legal
+ * name, short code, status flags (Active / OIG / Individual) and a
+ * pair of quick actions on the right.
  */
 import { Link } from '@inertiajs/vue3';
 import { CalendarDays, ChevronLeft, Pencil } from 'lucide-vue-next';

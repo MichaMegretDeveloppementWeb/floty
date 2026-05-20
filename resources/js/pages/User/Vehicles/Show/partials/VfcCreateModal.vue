@@ -13,11 +13,8 @@ type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 
 const props = defineProps<{
     history: ReadonlyArray<Vfc>;
-    /**
-     * P2 · VFC actuelle du véhicule (head de l'historique fiscal). Si
-     * fournie, le formulaire est prérempli avec ces valeurs · l'utilisateur
-     * n'a qu'à ajuster ce qui change et choisir la date d'effet.
-     */
+    // Current head of the fiscal history. When provided, the form is
+    // prefilled with these values.
     current: Vfc | null;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
     vehicleId: number;

@@ -1,27 +1,8 @@
 <script setup lang="ts">
 /**
- * Onglet Fiscalité de la fiche véhicule.
- *
- * Refonte design D5.10.W (direction « Linear-éditorial ») · structure
- * miroir des onglets Fiscalité / Facturation entreprise · header
- * éditorial sans Card wrapping, year tabs underline, hero KPI mono,
- * stats row, sections flush via `<AppliedVfcCard unwrapped>` et
- * `<FullYearTaxBreakdownPanel unwrapped>`.
- *
- * Sections (de haut en bas) ·
- *   1. Header · eyebrow `FISCALITÉ · EXERCICE {Y}` + h2 `Taxe pleine
- *      {Y}` + status dot inline + meta (nombre de versions VFC sur
- *      l'année).
- *   2. Year tabs underline.
- *   3. Hero · total Taxe pleine en mono large, caption « Théorique
- *      pour 100 % d'utilisation ».
- *   4. Stats row · 4 KPIs · Taxe CO₂ (+ barre), Taxe polluants (+
- *      barre), Jours d'année, Segments VFC.
- *   5. Section `CARACTÉRISTIQUES VFC` · eyebrow + segments flush.
- *   6. Section `DÉTAIL DU CALCUL` · eyebrow + breakdown flush.
- *
- * D5.10.U · sélecteur d'année piloté par le param URL unifié `?year=`
- * partagé avec l'onglet Facturation.
+ * Fiscal tab on the vehicle detail page: editorial header, year tabs,
+ * hero KPI, stats row and VFC + calculation breakdown sections.
+ * Year selection is driven by the shared `?year=` URL param.
  */
 import { computed } from 'vue';
 import { useVehicleFiscalSelectedYear } from '@/Composables/Vehicle/Show/useVehicleFiscalSelectedYear';
@@ -97,12 +78,10 @@ const yearsDescending = computed<readonly number[]>(
 );
 
 /**
- * Totaux par taxe agrégés sur tous les segments VFC. Le DTO expose
- * seulement le `total` au niveau année · les sommes par taxe se
- * calculent client-side à partir des `co2Due` / `pollutantsDue` de
- * chaque segment. Sligh divergence possible vs `breakdown.total` à
- * cause de l'arrondi R-2024-003 appliqué au niveau année · acceptable
- * pour un affichage % indicatif.
+ * Per-tax totals aggregated client-side across all VFC segments. The
+ * year-level total may differ slightly because rounding (R-2024-003) is
+ * applied once at year level, but the divergence is acceptable for the
+ * indicative percentage split shown here.
  */
 const totalCo2 = computed<number>(
     () => props.fiscalYearBreakdown.taxSegments.reduce((acc, s) => acc + s.co2Due, 0),
@@ -128,8 +107,8 @@ const pollutantsPercent = computed<number>(() => 100 - co2Percent.value);
 
 const hasTax = computed<boolean>(() => props.fiscalYearBreakdown.total > 0);
 
-// Reconstruction stats-like pour le panel · il ne lit que `fiscalYear`
-// et `fullYearTaxBreakdown`. Les autres champs ne sont pas accédés.
+// The breakdown panel only reads `fiscalYear` and `fullYearTaxBreakdown`,
+// so we synthesise a minimal stats-like object for it.
 const statsLike = computed<UsageStats>(() => ({
     ...props.vehicle.usageStats,
     fiscalYear: props.fiscalYear,
@@ -139,7 +118,6 @@ const statsLike = computed<UsageStats>(() => ({
 
 <template>
     <div class="flex flex-col">
-        <!-- Header éditorial · status dot stack sous le titre sur mobile -->
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             Fiscalité · Exercice {{ selectedYear }}
         </p>
@@ -159,7 +137,6 @@ const statsLike = computed<UsageStats>(() => ({
             {{ metaLine }}
         </p>
 
-        <!-- Year tabs underline -->
         <nav
             v-if="props.vehicle.yearScope.availableYears.length > 0"
             class="mb-10 flex gap-6 border-b border-slate-100"
@@ -184,7 +161,6 @@ const statsLike = computed<UsageStats>(() => ({
         </nav>
 
         <div :class="{ 'opacity-60 transition-opacity duration-150': loading }">
-            <!-- Hero · total Taxe pleine -->
             <div class="mb-10 flex flex-col gap-1.5">
                 <p class="font-mono text-[28px] sm:text-[36px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
                     {{ formatEur(fiscalYearBreakdown.total) }}
@@ -194,11 +170,6 @@ const statsLike = computed<UsageStats>(() => ({
                 </p>
             </div>
 
-            <!--
-                Stats row · 4 colonnes sur ≥ sm, 2×2 sur mobile · gap
-                horizontal entre cards mobile, bordures verticales sur
-                sm+ uniquement.
-            -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-5 sm:gap-x-0 gap-y-6 sm:gap-y-0 border-y border-slate-100 py-6">
                 <div class="sm:px-6 sm:first:pl-0 sm:last:pr-0 sm:not-last:border-r sm:border-slate-100">
                     <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -275,7 +246,6 @@ const statsLike = computed<UsageStats>(() => ({
                 </div>
             </div>
 
-            <!-- Section · Caractéristiques VFC -->
             <section class="mt-12 flex flex-col gap-4">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Caractéristiques VFC
@@ -283,7 +253,6 @@ const statsLike = computed<UsageStats>(() => ({
                 <AppliedVfcCard :segments="props.fiscalYearBreakdown.taxSegments" unwrapped />
             </section>
 
-            <!-- Section · Détail du calcul -->
             <section class="mt-12 flex flex-col gap-4">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Détail du calcul

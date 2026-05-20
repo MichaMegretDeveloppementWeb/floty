@@ -1,19 +1,8 @@
 <script setup lang="ts">
 /**
- * Carte unifiée **Utilisation annuelle + Répartition fiscale par
- * entreprise** pour la fiche véhicule (chantier η Phase 2 · onglet
- * Vue d'ensemble).
- *
- * Avant : 2 cards distinctes (`VehicleYearlyUsageTimeline` +
- * `CompanyFiscalBreakdownTable`) chacune sur son année. Désormais : 1
- * seule card avec sélecteur d'année intégré dans le header, Timeline
- * en haut, tableau Répartition en bas. Les 2 sont pilotées par la même
- * année.
- *
- * **Lazy loading + cache** (composable `useYearLazy`) : l'année initiale
- * (= currentYear) vient du payload Inertia. Quand l'utilisateur change
- * l'année, on fetch JSON ciblé via `usageStats.url(...)` (Wayfinder),
- * on cache, on affiche. Une année déjà visitée → affichage instantané.
+ * Single card that combines the 52-week usage timeline and the per-company
+ * fiscal breakdown table. Both panels share a single year selector and
+ * lazy-load yearly data via `useYearLazy` + a JSON fetch (Wayfinder URL).
  */
 import { computed, watch } from 'vue';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -54,12 +43,9 @@ const { yearModel, data, isLoading, invalidate } = useYearLazy<UsageStats>(
     },
 );
 
-// Auto-update timeline + breakdown après CRUD indispo : le parent
-// `VehicleOverviewTab` reçoit un nouveau `vehicle.usageStats` après
-// `router.delete/post/patch` (Inertia full reload sans `only:`).
-// Le watch détecte la nouvelle référence d'`initialStats` et invalide
-// le cache. Si l'utilisateur est sur l'année initiale, propagation
-// instantanée ; sinon refetch de l'année actuelle.
+// After an unavailability CRUD, the parent receives a fresh
+// `initialStats` via a full Inertia reload. This watcher invalidates
+// the year cache so the timeline and breakdown reflect the new data.
 watch(
     () => props.initialStats,
     (fresh, previous) => {
@@ -71,9 +57,8 @@ watch(
     },
 );
 
-// Wrapper proxy : les composables accèdent à `props.stats.xxx` dans
-// leurs computed internes. Avec un getter, chaque accès relit la valeur
-// courante de `data` → réactivité préservée à travers les fetch lazy.
+// Proxy with a getter so the sibling composables see the latest stats
+// returned by the lazy loader on every access.
 const stats = computed<UsageStats>(() => data.value ?? props.initialStats);
 const composableArg = {
     get stats() {
@@ -101,12 +86,9 @@ const {
 </script>
 
 <style scoped>
-/**
- * Indispo réductrice (R-2024-008) : hachures rose, alerte fiscale.
- * Indispo non-réductrice : hachures slate, info opérationnelle neutre.
- * Les deux overlays sont positionnés en absolute pour autoriser la
- * cohabitation indispo↔contrat (ADR-0019).
- */
+/* Reductive unavailability (R-2024-008): rose hatch, fiscal alert.
+   Non-reductive: slate hatch, neutral operational info.
+   Both overlays are absolute so they can coexist with the contract bar (ADR-0019). */
 .unavailability-segment-reductive {
     background-color: rgb(254 205 211 / 0.7); /* rose-200 transparent */
     background-image: repeating-linear-gradient(
@@ -153,11 +135,9 @@ const {
         </template>
 
         <div class="flex flex-col gap-6" :class="{ 'opacity-60': isLoading }">
-            <!-- ============== Timeline 52 semaines ============== -->
             <section>
                 <div class="overflow-x-auto">
                     <div class="inline-flex min-w-full flex-col">
-                        <!-- Labels mensuels alignés sur les groupes de semaines -->
                         <div class="mb-2 flex h-4">
                             <div
                                 v-for="month in monthLabels"
@@ -169,7 +149,6 @@ const {
                             </div>
                         </div>
 
-                        <!-- Timeline 52 cellules avec tooltip custom -->
                         <div class="flex h-10">
                             <Tooltip
                                 v-for="week in stats.weeklyBreakdown"
@@ -191,10 +170,6 @@ const {
                                         :class="companyColorBgClass(segment.color)"
                                         :style="{ height: heightFor(segment) }"
                                     />
-                                    <!-- Overlays absolus pour cohabiter avec
-                                         la barre d'attribution. Réductrice
-                                         (rose) en haut, non-réductrice
-                                         (slate) juste en dessous. -->
                                     <div
                                         v-if="week.reductiveUnavailabilityDays > 0"
                                         class="unavailability-segment-reductive pointer-events-none absolute inset-x-0 top-0"
@@ -267,7 +242,6 @@ const {
                     </div>
                 </div>
 
-                <!-- Légende -->
                 <ul
                     v-if="legendEntries.length > 0"
                     class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-slate-100 pt-3"
@@ -292,7 +266,6 @@ const {
                 </ul>
             </section>
 
-            <!-- ============== Tableau Répartition fiscale ============== -->
             <section>
                 <h3 class="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
                     Répartition fiscale par entreprise utilisatrice

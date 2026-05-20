@@ -7,9 +7,9 @@ import { formatEur } from '@/Utils/format/formatEur';
 
 type CompanyRow = App.Data.User.Company.CompanyListItemData;
 
-// Colonnes triables côté serveur (cf. CompanyIndexQueryData::allowedSortKeys()).
-// daysUsed et annualTaxDue sont volontairement absents (valeurs calculées
-// non triables en SQL · règle ADR-0020 D6).
+// Server-side sortable columns (mirror of CompanyIndexQueryData::allowedSortKeys()).
+// `daysUsed` and `annualTaxDue` are intentionally excluded because they
+// are non-SQL computed values (ADR-0020 D6).
 const SORTABLE_COLUMNS: ReadonlySet<string> = new Set([
     'company',
     'siren',
@@ -21,9 +21,8 @@ const props = defineProps<{
     columns: readonly DataTableColumn<CompanyRow>[];
     activeSortColumnKey: string | null;
     sortDirection: 'asc' | 'desc';
-    // P0.1 (audit perf 2026-05-16) · Inertia::defer · undefined pendant
-    // l'hydratation deferred (skeleton 2 cellules). Map indexee par
-    // companyId, partiellement peuplee une fois la 2e requete arrivee.
+    // Deferred map keyed by companyId, undefined while the second-roundtrip
+    // is still in flight (cells fall back to a skeleton).
     costs?: Record<
         number,
         { annualTaxDue: number; rentalPriceTotal: number | null }
@@ -93,9 +92,6 @@ const emit = defineEmits<{
             <span class="whitespace-nowrap text-slate-700">{{ value }} j</span>
         </template>
         <template #cell-annualTaxDue="{ row }">
-            <!-- Skeleton inline-block (memes contraintes flex/text-align
-                 que le span hydrate ci-dessous) · evite tout layout shift
-                 ou mismatch d'alignement quand la prop costs arrive. -->
             <span
                 v-if="!isCostsLoadedFor(row)"
                 class="skeleton-shimmer inline-block h-3 w-14 rounded"

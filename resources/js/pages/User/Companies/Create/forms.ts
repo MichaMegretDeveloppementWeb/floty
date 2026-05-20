@@ -1,10 +1,8 @@
 /**
- * Shape du formulaire de création/édition d'entreprise (snake_case
- * pour matcher la validation backend Spatie Data après auto-mapping
- * via SnakeCaseMapper).
- *
- * Réutilisé par les partials sectionnés du formulaire pour typer
- * l'objet `useForm()` reçu en prop.
+ * Shape of the company create/edit form (snake_case to match the
+ * backend Spatie Data validation after auto-mapping via the
+ * SnakeCaseMapper). Re-used by the sectioned partials of the form to
+ * type the injected `useForm()` prop.
  */
 export type CompanyFormShape = {
     legal_name: string;

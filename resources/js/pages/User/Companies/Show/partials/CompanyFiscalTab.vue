@@ -1,27 +1,8 @@
 <script setup lang="ts">
 /**
- * Onglet « Fiscalité » de la page Show Company.
- *
- * Refonte design D5.10.W (direction « Linear-éditorial ») · hiérarchie
- * purement typographique, zéro card sur le tab principal (les cards
- * subsistent uniquement pour les états déclaration S2-S7 qui ont des
- * contenus structurés · timeline, alerte). Eyebrow + titre + statut
- * inline + meta · pattern des dashboards Linear / Vercel.
- *
- * Sections (de haut en bas) ·
- *   1. Header éditorial · eyebrow `FISCALITÉ · EXERCICE {Y}` + h1
- *      `Taxes {Y}` + status dot inline + meta deadline déclaration.
- *   2. Year tabs underline (style onglets natifs · pas de pills).
- *   3. Hero · total provisoire en mono large (28px font-medium).
- *   4. Stats row · 4 colonnes (CO₂, Polluants, Jours, Locations)
- *      séparées par hairlines verticaux. Empty state remplace la
- *      row si aucune activité.
- *   5. Section « Déclaration » · prose éditoriale pour S1 (untouched),
- *      ou `<DeclarationStateCard>` pour les autres états.
- *
- * Le sélecteur d'année utilise le param URL **unifié** `?year=`
- * (D5.10.U) partagé entre les onglets Fiscalité / Facturation /
- * Activité.
+ * Fiscal tab on the Company detail page: editorial header, year tabs,
+ * total hero, KPI stats row and the declaration section (prose for the
+ * untouched state, DeclarationStateCard for the others).
  */
 import { Link, router } from '@inertiajs/vue3';
 import { ArrowRight, FileText, LoaderCircle } from 'lucide-vue-next';
@@ -37,10 +18,7 @@ const props = defineProps<{
     fiscal: App.Data.User.Company.CompanyFiscalYearData;
     companyId: number;
     declarationLifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
-    /**
-     * D5.10.U · années avec déclarations en attente · alimente le dot
-     * ambre sur les tabs d'année.
-     */
+    /** Years with pending declarations, feeds the amber dot on year tabs. */
     pendingDeclarations?: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
 }>();
 
@@ -48,11 +26,7 @@ const { selectedYear, selectYear, loading: yearLoading } = useCompanyFiscalSelec
     props.fiscal.year,
 );
 
-/**
- * Une année est « déclarable » dès qu'elle est terminée · l'exercice
- * en cours et les exercices futurs ne le sont pas (CIBS · déclaration
- * en janvier N+1).
- */
+// A year is declarable once it is over (CIBS, declared in January N+1).
 const isDeclarable = computed<boolean>(
     () => selectedYear.value < props.fiscal.currentRealYear,
 );
@@ -65,10 +39,6 @@ const isFutureYear = computed<boolean>(
     () => selectedYear.value > props.fiscal.currentRealYear,
 );
 
-/**
- * Status compact affiché en ligne avec le titre · point coloré + texte.
- * Plus discret qu'un pill, plus lisible qu'une icône seule.
- */
 const statusLabel = computed<string>(() => {
     if (isFutureYear.value) {
         return 'Exercice à venir';
@@ -111,10 +81,6 @@ const yearsWithTodoSet = computed<Set<number>>(
     () => new Set(props.pendingDeclarations?.map((d) => d.fiscalYear) ?? []),
 );
 
-/**
- * Années triées du plus récent au plus ancien (consultation
- * la plus probable à gauche).
- */
 const yearsDescending = computed<readonly number[]>(
     () => [...props.fiscal.availableYears].sort((a, b) => b - a),
 );
@@ -149,21 +115,10 @@ const locationsHref = computed<string>(() => {
     }).url;
 });
 
-/**
- * S1 (untouched) est rendu en prose éditoriale sous le `section-h`
- * "Déclaration". Les autres états (S2 à S7) déléguent à
- * `<DeclarationStateCard>` qui gère leur card structurée.
- */
 const isUntouched = computed<boolean>(
     () => props.declarationLifecycle.state === 'untouched',
 );
 
-/**
- * Préparation du brouillon depuis l'état S1 (untouched + déclarable) ·
- * POST `/declarations/prepare` avec `(company_id, fiscal_year)` · le
- * controller `DeclarationGenerationController::prepare` crée un Draft
- * et redirige vers `show()` qui rend la revue interactive (mode B).
- */
 const preparing = ref<boolean>(false);
 
 function prepareDeclaration(): void {
@@ -190,13 +145,6 @@ function prepareDeclaration(): void {
 
 <template>
     <div class="flex flex-col">
-        <!--
-            Header éditorial · pattern eyebrow + title + meta.
-            Sur mobile, le status dot passe sous le titre (stack
-            vertical) plutôt que d'occuper la même ligne · à 320-375px
-            le titre seul vaut la priorité visuelle, le statut devient
-            une caption sous le titre.
-        -->
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             Fiscalité · Exercice {{ selectedYear }}
         </p>
@@ -216,7 +164,6 @@ function prepareDeclaration(): void {
             {{ metaLine }}
         </p>
 
-        <!-- Year tabs · underline style (pas de pills) -->
         <nav
             v-if="props.fiscal.availableYears.length > 0"
             class="mb-10 flex gap-6 border-b border-slate-100"
@@ -246,7 +193,6 @@ function prepareDeclaration(): void {
             </button>
         </nav>
 
-        <!-- Hero · total provisoire -->
         <div class="mb-10 flex flex-col gap-1.5">
             <p class="font-mono text-[28px] sm:text-[36px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
                 {{ formatEur(fiscal.totalTaxAll) }}
@@ -258,14 +204,6 @@ function prepareDeclaration(): void {
             </p>
         </div>
 
-        <!--
-            Stats row · 4 colonnes sur ≥ sm, 2×2 sur mobile. Sur
-            mobile · `gap-x-5 gap-y-6` pour aérer entre cards et entre
-            rangs, pas de bordures (les hairlines en 2×2 chargeraient
-            visuellement). Sur sm+ · gap réinitialisé à 0, l'espacement
-            interne est porté par `sm:px-6` sur chaque item et les
-            séparateurs verticaux `sm:not-last:border-r`.
-        -->
         <div
             v-if="hasActivity"
             class="grid grid-cols-2 sm:grid-cols-4 gap-x-5 sm:gap-x-0 gap-y-6 sm:gap-y-0 border-y border-slate-100 py-6"
@@ -339,7 +277,6 @@ function prepareDeclaration(): void {
             Aucune activité fiscale sur l'exercice {{ fiscal.year }}.
         </p>
 
-        <!-- Lien locations -->
         <Link
             v-if="hasActivity"
             :href="locationsHref"
@@ -349,18 +286,11 @@ function prepareDeclaration(): void {
             <ArrowRight :size="14" :stroke-width="1.75" />
         </Link>
 
-        <!-- Section Déclaration -->
         <div class="mt-12">
             <p class="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                 Déclaration
             </p>
 
-            <!--
-                S1 (untouched) · rendu en prose éditoriale dans le flux
-                du tab. Les autres états (S2 à S7) déléguent à
-                <DeclarationStateCard> qui gère leur propre layout
-                éditorial (status dot + prose + actions).
-            -->
             <div v-if="isUntouched" class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
                 <template v-if="isDeclarable">
                     <p>

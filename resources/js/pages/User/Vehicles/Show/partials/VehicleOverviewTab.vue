@@ -1,21 +1,8 @@
 <script setup lang="ts">
 /**
- * Onglet Vue d'ensemble de la fiche véhicule (chantier η Phase 2 onglets) :
- * tout ce qui concerne identité + activité globale, en flux vertical
- * pleine largeur.
- *
- *   - KPIs Présent (année courante figée)
- *   - Caractéristiques fiscales (current + history modale, atemporel)
- *   - Historique annuel (mini-tableau Évolution)
- *   - Carte unifiée Utilisation & Répartition (sélecteur d'année local
- *     + lazy loading via fetch JSON, cache client)
- *   - Indispos
- *
- * Pas de sidebar : la fiche véhicule a peu de contenu vraiment candidat
- * « aside » (Indispos seules sont souvent vides ou très courtes →
- * déséquilibre visuel). On préfère la lecture descendante naturelle.
- *
- * Le panel détaillé de la Taxe pleine vit dans l'onglet Fiscalité.
+ * Overview tab on the vehicle detail page: KPIs, fiscal characteristics
+ * card, yearly history, usage + breakdown card and unavailabilities.
+ * The detailed full-year tax breakdown lives in the Fiscal tab.
  */
 import { Deferred } from '@inertiajs/vue3';
 import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
@@ -28,8 +15,8 @@ import VehicleYearHistoryCard from './VehicleYearHistoryCard.vue';
 defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
-    // Inertia::defer · arrive en 2e round-trip apres mount initial,
-    // <Deferred data="history"> ci-dessous affiche un skeleton entretemps.
+    // Deferred: arrives on second round-trip, <Deferred data="history">
+    // shows a skeleton in the meantime.
     history?: App.Data.User.Vehicle.VehicleYearStatsData[];
 }>();
 </script>

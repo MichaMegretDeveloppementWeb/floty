@@ -1,22 +1,7 @@
 <script setup lang="ts">
 /**
- * Onglet « Facturation » de la page Show Company.
- *
- * Refonte design D5.10.W · alignement sur l'onglet Fiscalité refondu
- * (direction « Linear-éditorial ») · header purement typographique,
- * year tabs underline, hero KPI mono, stats row, table flush sans
- * Card wrapping (cf. prop `unwrapped` sur `MonthlyBillingBreakdownCard`).
- *
- * Sections ·
- *   1. Header éditorial · eyebrow `FACTURATION · EXERCICE {Y}` + h2
- *      `Facturation {Y}` + status dot inline (clos / en cours / à
- *      venir) + meta (« 5 / 12 mois facturables » etc.).
- *   2. Year tabs underline.
- *   3. Hero · total HT facturable en mono `text-[44px]`.
- *   4. Stats row · 4 KPIs (jours utilisés, mois actifs avec mini-bar,
- *      factures émises avec mini-bar, mois bloqués si tarif manquant).
- *   5. Section `MENSUALITÉS` · eyebrow + table mensuelle flush
- *      (`MonthlyBillingBreakdownCard` en mode `unwrapped`).
+ * Billing tab on the Company detail page: editorial header, year tabs,
+ * revenue hero, KPI stats row and a flush monthly breakdown table.
  */
 import { router } from '@inertiajs/vue3';
 import { BadgePercent } from 'lucide-vue-next';
@@ -33,22 +18,10 @@ import { formatEur } from '@/Utils/format/formatEur';
 const props = defineProps<{
     companyId: number;
     monthlyBilling: App.Data.User.Billing.MonthlyBillingBreakdownData;
-    /**
-     * Plage continue [firstYear..currentYear] partagée avec l'onglet
-     * Contrats · cohérence UX · on ne propose que les années où
-     * l'entreprise a un contrat plausible.
-     */
     availableYears: readonly number[];
     activeYear: number;
-    /** Années avec factures à générer · alimente le dot des tabs. */
+    /** Years with invoices still to generate, feeds the tab dot. */
     pendingInvoices?: App.Data.User.Billing.PendingInvoiceYearData[];
-    /**
-     * Réductions commerciales de l'entreprise (Lot 3 chantier
-     * RentalDiscount) · alimente la section dédiée affichée sous le
-     * récap mensuel. Liste vide = pas de réduction enregistrée. Servie
-     * en eager par {@see CompanyController::show()} quand l'onglet
-     * Facturation est actif.
-     */
     companyRentalDiscounts?: App.Data.User.RentalDiscount.RentalDiscountListItemData[];
 }>();
 
@@ -60,16 +33,9 @@ const yearsDescending = computed<readonly number[]>(
     () => [...props.availableYears].sort((a, b) => b - a),
 );
 
-/**
- * Année et mois courants calculés côté client (le DTO n'expose pas de
- * `currentRealYear` / `currentRealMonth` pour Billing, donc on s'appuie
- * sur la date du client · acceptable car la sémantique est juste
- * visuelle, le guard de génération facture reste backend).
- *
- * `currentRealMonth` est utilisé par `GenerateInvoiceButton` pour
- * masquer la branche « Générer » sur le mois en cours et les mois
- * futurs (une facture ne se génère qu'à mois écoulé).
- */
+// Current year/month derived client-side, used only to hide the
+// "Generate" branch on the running month and futures. The actual guard
+// against generation lives backend-side.
 const currentRealYear = computed<number>(() => new Date().getFullYear());
 const currentRealMonth = computed<number>(() => new Date().getMonth() + 1);
 
@@ -105,38 +71,21 @@ const statusDotClass = computed<string>(() => {
     return 'bg-emerald-500';
 });
 
-/**
- * Décompte des mois avec activité (jours utilisés > 0) · sert au KPI
- * « Mois actifs » et à la barre de progression d'avancement.
- */
 const activeMonthsCount = computed<number>(
     () => props.monthlyBilling.entries.filter((e) => e.daysUsed > 0).length,
 );
 
-/**
- * Décompte des mois déjà couverts par une facture · sert au KPI
- * « Factures émises » et à la barre de progression de facturation.
- */
 const invoicedMonthsCount = computed<number>(
     () => props.monthlyBilling.entries.filter((e) => e.existingInvoiceNumber !== null).length,
 );
 
-/**
- * Décompte des mois bloqués par un tarif annuel manquant · KPI
- * exposé uniquement si > 0, sinon la colonne disparaît.
- */
 const blockedMonthsCount = computed<number>(
     () => props.monthlyBilling.entries.filter((e) => e.hasMissingPricing).length,
 );
 
-/**
- * Mois civils (1-12) éligibles à la génération d'annexe pour l'année
- * active · alimente le bouton « Générer tout » et la modale de
- * confirmation. Mêmes critères que `PendingInvoicesResolver` côté
- * backend · daysUsed > 0 ET pas de tarif manquant ET pas de facture
- * existante ET mois écoulé. Le backend reste autoritaire · cette
- * dérivation client est purement UI.
- */
+// Months (1-12) eligible for invoice generation on the active year.
+// Mirrors the backend `PendingInvoicesResolver`; the backend remains
+// authoritative, this derivation is UI-only.
 const pendingMonthsForActiveYear = computed<number[]>(() =>
     props.monthlyBilling.entries
         .filter(
@@ -192,12 +141,6 @@ const totalLabel = computed<string>(() => {
     return formatEur(props.monthlyBilling.yearTotalCents / 100, 2);
 });
 
-/**
- * Lot 3 réductions commerciales · expose le total des réductions
- * appliquées sur l'exercice. Mise en avant comme stat sous le hero
- * uniquement si > 0 (sinon la cellule reste sobre, pas de bruit
- * visuel sur les exercices sans réduction).
- */
 const totalDiscountLabel = computed<string>(() =>
     formatEur(props.monthlyBilling.yearTotalDiscountCentsPartial / 100, 2),
 );
@@ -210,12 +153,6 @@ const hasAnyDiscount = computed<boolean>(
     () => props.monthlyBilling.yearTotalDiscountCentsPartial > 0,
 );
 
-/**
- * Toutes les réductions enregistrées sur l'entreprise (active /
- * planifiée / expirée), tri pre-trié backend par `start_date` DESC.
- * Vide tant que le onglet Facturation n'a jamais été visité (prop
- * `Inertia::optional`).
- */
 const rentalDiscounts = computed<App.Data.User.RentalDiscount.RentalDiscountListItemData[]>(
     () => props.companyRentalDiscounts ?? [],
 );
@@ -275,7 +212,6 @@ function selectYear(year: number): void {
 
 <template>
     <div class="flex flex-col">
-        <!-- Header éditorial · status dot stack sous le titre sur mobile -->
         <p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
             Facturation · Exercice {{ activeYear }}
         </p>
@@ -295,7 +231,6 @@ function selectYear(year: number): void {
             {{ metaLine }}
         </p>
 
-        <!-- Year tabs underline -->
         <nav
             v-if="availableYears.length > 0"
             class="mb-10 flex gap-6 border-b border-slate-100"
@@ -323,7 +258,6 @@ function selectYear(year: number): void {
             </button>
         </nav>
 
-        <!-- Hero · total HT -->
         <div class="mb-10 flex flex-col gap-1.5">
             <p
                 class="font-mono text-[28px] sm:text-[36px] font-medium tracking-[-0.02em] tabular-nums leading-none"
@@ -334,9 +268,6 @@ function selectYear(year: number): void {
             <p class="text-sm text-slate-500">
                 {{ totalCaption }}
             </p>
-            <!-- Détail brut / réduction visible uniquement si au moins
-                 une réduction a été appliquée sur l'exercice ·
-                 transparent pour les entreprises sans réduction. -->
             <p
                 v-if="hasAnyDiscount"
                 class="mt-1 inline-flex items-center gap-2 text-xs text-slate-500"
@@ -350,13 +281,6 @@ function selectYear(year: number): void {
             </p>
         </div>
 
-        <!--
-            Stats row · 4 colonnes sur ≥ sm, 2×2 sur mobile. Sur
-            mobile · `gap-x-5 gap-y-6` pour aérer entre cards et
-            entre rangs, pas de bordures. Sur sm+ · gap réinitialisé,
-            espacement porté par `sm:px-6` + séparateurs verticaux
-            `sm:not-last:border-r`.
-        -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-5 sm:gap-x-0 gap-y-6 sm:gap-y-0 border-y border-slate-100 py-6">
             <div class="sm:px-6 sm:first:pl-0 sm:last:pr-0 sm:not-last:border-r sm:border-slate-100">
                 <p class="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -432,7 +356,6 @@ function selectYear(year: number): void {
             </div>
         </div>
 
-        <!-- Section · table mensuelle flush -->
         <section class="mt-12 flex flex-col gap-4">
             <div class="flex items-baseline justify-between gap-3">
                 <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
@@ -470,9 +393,6 @@ function selectYear(year: number): void {
             </MonthlyBillingBreakdownCard>
         </section>
 
-        <!-- Section · réductions commerciales de l'entreprise (Lot 3).
-             Affichée uniquement si la liste n'est pas vide · sinon
-             aucun bruit visuel pour les entreprises sans réduction. -->
         <section
             v-if="rentalDiscounts.length > 0"
             class="mt-12 flex flex-col gap-4"

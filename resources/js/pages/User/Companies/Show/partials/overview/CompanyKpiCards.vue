@@ -1,20 +1,9 @@
 <script setup lang="ts">
 /**
- * Rangée de 4 KPIs **Présent** · reflète l'année calendaire courante
- * uniquement (chantier η Phase 1, doctrine temporelle).
- *
- * Refonte design D5.10.W · stats row éditorial flush (4 colonnes
- * séparées par hairlines verticaux sur ≥ sm, 2×2 sur mobile · pattern
- * miroir des onglets Fiscalité / Facturation). Plus de StatCard avec
- * icônes · on harmonise sur le pattern unique des autres tabs.
- *
- * Spécificités ·
- *   - Si `kpiFiscalAvailable === false` (règles fiscales pas codées
- *     pour l'année courante), la KPI Taxes affiche un `·` neutre avec
- *     caption « Règles {YYYY} non implémentées » (cf. doctrine HD6
- *     « pas de règles ≠ pas de données »).
- *   - Montant loyer · somme des 12 facturations mensuelles de l'année,
- *     `null` si au moins un véhicule de la flotte a un pricing manquant.
+ * Row of 4 "Present" KPI cards on the Company overview, scoped to the
+ * current calendar year. The Tax KPI shows a neutral `·` when the
+ * fiscal engine has no rules for that year; Rent is null when any
+ * vehicle has a missing yearly pricing.
  */
 import { computed } from 'vue';
 import { formatEur } from '@/Utils/format/formatEur';

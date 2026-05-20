@@ -24,10 +24,8 @@ const {
     submit,
 } = useVehicleYearlyPricingForm(props, open);
 
-// Les erreurs Spatie Data renvoient les clés snake_case du payload
-// transformé (cf. `transformPricingFormToPayload`), pas les clés
-// camelCase du form initial. Cast explicite pour exposer ces clés à
-// l'IDE / TS.
+// Spatie Data emits errors keyed by the snake_case payload (see
+// `transformPricingFormToPayload`), not the camelCase form keys.
 type RateErrors = {
     year?: string;
     daily_rate_cents?: string;

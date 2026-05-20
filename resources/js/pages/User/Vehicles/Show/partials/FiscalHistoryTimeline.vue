@@ -54,7 +54,6 @@ const co2OrPa = (item: Vfc): string => {
                     : 'border-slate-200 bg-white',
             ]"
         >
-            <!-- En-tête : période à gauche, actions toujours à droite -->
             <div class="flex items-start justify-between gap-3">
                 <div class="flex min-w-0 flex-col gap-1">
                     <div class="flex flex-wrap items-center gap-2">
@@ -91,7 +90,6 @@ const co2OrPa = (item: Vfc): string => {
                 </div>
             </div>
 
-            <!-- Note explicative (motif « Autre changement ») -->
             <p
                 v-if="item.changeNote"
                 class="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs whitespace-pre-line text-slate-600"
@@ -99,7 +97,6 @@ const co2OrPa = (item: Vfc): string => {
                 {{ item.changeNote }}
             </p>
 
-            <!-- Caractéristiques fiscales clés - toujours 4 colonnes -->
             <dl
                 class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs sm:grid-cols-4"
             >

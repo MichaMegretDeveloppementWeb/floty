@@ -1,13 +1,9 @@
 <script setup lang="ts">
 /**
- * Détail du « Taxe pleine {année} » par segment VFC.
- *
- * Quand le véhicule a une seule VFC sur l'année → un seul bloc de
- * détails (CO₂ + polluants + total). Quand la VFC change en cours
- * d'année → un bloc par segment, chacun avec ses propres tarifs et
- * dûs (cohérence affichage/total : la somme des dûs des segments donne
- * exactement le `total` global, conformément à la doctrine ADR-0005
- * calcul jour par jour).
+ * Per-VFC-segment breakdown of the full-year tax. With a single VFC on
+ * the year there is one block (CO2 + pollutants + total); when the VFC
+ * changes, one block per segment is rendered and their sum matches the
+ * year total (ADR-0005 day-by-day computation).
  */
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -26,12 +22,6 @@ type Segment = App.Data.User.Vehicle.VehicleFullYearTaxSegmentData;
 const props = withDefaults(
     defineProps<{
         stats: App.Data.User.Vehicle.VehicleUsageStatsData;
-        /**
-         * Refonte D5.10.W · mode flush sans Card wrapping ni header
-         * interne. Utilisé par `<VehicleFiscalTab>` éditorial où le
-         * header est porté par le tab parent (eyebrow `DÉTAIL DU
-         * CALCUL`).
-         */
         unwrapped?: boolean;
     }>(),
     { unwrapped: false },
@@ -77,7 +67,6 @@ function segmentPeriodLabel(seg: Segment): string {
                     {{ segmentPeriodLabel(segment) }}
                 </p>
 
-                <!-- Section CO₂ -->
                 <section class="flex flex-col gap-2">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <span
@@ -105,7 +94,6 @@ function segmentPeriodLabel(seg: Segment): string {
                     </p>
                 </section>
 
-                <!-- Section Polluants -->
                 <section class="mt-4 flex flex-col gap-2 border-t border-slate-200 pt-4">
                     <div class="flex items-center justify-between gap-2 flex-wrap">
                         <span
@@ -134,7 +122,6 @@ function segmentPeriodLabel(seg: Segment): string {
                 </section>
             </div>
 
-            <!-- Exonérations / abattements (agrégés) -->
             <section
                 v-if="breakdown.appliedExemptions.length > 0"
                 class="flex flex-col gap-2 border-t border-slate-100 pt-4"
@@ -164,11 +151,6 @@ function segmentPeriodLabel(seg: Segment): string {
                 </ul>
             </section>
 
-            <!--
-                Total final · affiché uniquement en mode wrapped. En mode
-                unwrapped (tab éditorial), le hero du parent porte déjà
-                le total · pas de doublon.
-            -->
             <section
                 v-if="!unwrapped"
                 class="flex items-center justify-between gap-2 rounded-lg bg-transparent px-4 py-3 shadow-[0_0_3px_silver]"
@@ -184,11 +166,6 @@ function segmentPeriodLabel(seg: Segment): string {
             </section>
         </div>
 
-        <!--
-            Footer · règles appliquées · rendu via slot Card #footer en
-            mode wrapped, ou en bloc inline `border-t` en mode unwrapped
-            (le tab parent ne fournit pas de slot footer).
-        -->
         <template
             v-if="!unwrapped && breakdown.appliedRuleCodes.length > 0"
             #footer

@@ -36,9 +36,8 @@ const isN1 = computed((): boolean => props.form.reception_category === 'N1');
 const isLightTruck = computed((): boolean => props.form.body_type === 'CTTE');
 const isPickup = computed((): boolean => props.form.body_type === 'BE');
 
-// Catégorie polluants dérivée live des champs canoniques. Garde-fou
-// côté UI : la valeur réellement persistée est recalculée par le
-// Repository avec la même cascade (cf. PollutantCategory::derive()).
+// UI-side derived pollutant category. The persisted value is recomputed
+// by the Repository using the same cascade (PollutantCategory::derive()).
 const derivedPollutantCategoryValue = computed<App.Enums.Vehicle.PollutantCategory>(
     () => derivePollutantCategory(
         props.form.energy_source,

@@ -35,9 +35,8 @@ const canDelete = computed<boolean>(() => props.driver.contractsCount === 0);
             <DriverKpiCards :driver="props.driver" />
 
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <!-- Colonne principale -->
                 <div class="flex flex-col gap-6 xl:col-span-2">
-                    <!-- < xl : Actions juste après header. ≥ xl : c'est l'aside qui les porte. -->
+                    <!-- Below xl, the actions bar sits right after the header. From xl on, the aside owns it. -->
                     <DriverActionsBar
                         class="xl:hidden"
                         :driver-id="props.driver.id"
@@ -55,7 +54,6 @@ const canDelete = computed<boolean>(() => props.driver.contractsCount === 0);
                     />
                 </div>
 
-                <!-- Aside ≥ xl uniquement -->
                 <aside class="hidden xl:col-span-1 xl:block">
                     <DriverActionsBar
                         :driver-id="props.driver.id"

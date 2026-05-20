@@ -18,21 +18,15 @@ const props = withDefaults(
     defineProps<{
         vehicleId: number;
         pricings: ReadonlyArray<Pricing>;
-        /**
-         * Refonte D5.10.W · mode flush sans Card wrapping ni header
-         * interne (titre + description). Le bouton « Ajouter un tarif »
-         * est conservé en haut à droite de la zone, aligné avec
-         * l'eyebrow du tab parent.
-         */
         unwrapped?: boolean;
     }>(),
     { unwrapped: false },
 );
 
 /**
- * Plage d'années proposée à la création : `[currentYear-3, currentYear+2]`.
- * On exclut les années déjà couvertes (la modale est purement créative ;
- * un pricing existant se modifie par le bouton crayon).
+ * Year range offered when creating a pricing: `[currentYear-3, currentYear+2]`,
+ * excluding years already covered (the modal only creates; existing
+ * pricings are edited via the pencil button).
  */
 const availableYears = computed<number[]>(() => {
     const currentYear = new Date().getFullYear();
@@ -81,11 +75,6 @@ const sortedPricings = computed<Pricing[]>(() =>
             </div>
         </template>
 
-        <!--
-            Action « Ajouter un tarif » en mode unwrapped · le tab parent
-            fournit l'eyebrow `TARIFS ANNUELS` au-dessus, on positionne
-            le bouton à droite, en-dessous, juste avant la table.
-        -->
         <div v-if="unwrapped" class="mb-3 flex justify-end">
             <Button
                 size="sm"
