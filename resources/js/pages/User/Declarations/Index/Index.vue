@@ -79,15 +79,18 @@ const statusOptions: { value: string | null; label: string }[] = [
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <header class="flex flex-col gap-1">
-                <h1 class="text-2xl font-semibold text-slate-900">
-                    Déclarations fiscales
-                </h1>
-                <p class="text-sm text-slate-500">
-                    Historique des déclarations annuelles. Document figé à
-                    la génération, régénération possible si le périmètre
-                    contractuel évolue.
-                </p>
+            <header class="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <p class="eyebrow mb-1">Fiscalité</p>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
+                        Déclarations fiscales
+                    </h1>
+                    <p class="mt-1 text-base text-slate-600">
+                        Historique des déclarations annuelles. Document figé
+                        à la génération, régénération possible si le périmètre
+                        contractuel évolue.
+                    </p>
+                </div>
             </header>
 
             <EmptyState v-if="!props.hasAnyDeclaration" />

@@ -90,14 +90,17 @@ const monthOptions: { value: number | null; label: string }[] = [
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <header class="flex flex-col gap-1">
-                <h1 class="text-2xl font-semibold text-slate-900">
-                    Annexes de facture
-                </h1>
-                <p class="text-sm text-slate-500">
-                    Historique des annexes mensuelles émises. Document
-                    figé à l'émission, non modifiable.
-                </p>
+            <header class="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <p class="eyebrow mb-1">Facturation</p>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
+                        Annexes de facture
+                    </h1>
+                    <p class="mt-1 text-base text-slate-600">
+                        Historique des annexes mensuelles émises. Document
+                        figé à l'émission, non modifiable.
+                    </p>
+                </div>
             </header>
 
             <div

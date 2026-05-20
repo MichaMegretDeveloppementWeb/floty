@@ -96,23 +96,14 @@ const contractsScopeModel = computed<string | number>({
 
     <UserLayout>
         <div class="flex flex-col gap-6">
-            <div
-                class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
-            >
-                <div class="flex flex-col gap-1">
-                    <p
-                        class="text-xs font-medium tracking-wider text-slate-500 uppercase"
-                    >
-                        Données
-                    </p>
-                    <h1 class="text-2xl font-bold text-slate-900">
+            <header class="flex flex-wrap items-end justify-between gap-4">
+                <div>
+                    <p class="eyebrow mb-1">Données</p>
+                    <h1 class="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
                         Conducteurs
                     </h1>
-                    <p class="text-sm text-slate-500">
-                        {{ drivers.meta.total }} conducteur{{
-                            drivers.meta.total > 1 ? 's' : ''
-                        }}
-                        au total
+                    <p class="mt-1 text-base text-slate-600">
+                        Personnes physiques rattachées aux entreprises utilisatrices.
                     </p>
                 </div>
                 <Link :href="createRoute.url()">
@@ -123,7 +114,7 @@ const contractsScopeModel = computed<string | number>({
                         Ajouter un conducteur
                     </Button>
                 </Link>
-            </div>
+            </header>
 
             <div
                 v-if="!props.hasAnyDriver"
