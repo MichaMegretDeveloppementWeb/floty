@@ -110,11 +110,13 @@ final class VehicleDetailService
     }
 
     /**
-     * Vehicle history · `[minYear..kpiYear-1]` ordered DESC (newest
-     * first), neutral rows included for years with no contract.
-     * Served via `Inertia::defer` from Show so the mount is not
-     * blocked on N fiscal pipelines (~100-150 ms cold saved depending
-     * on scope depth).
+     * Vehicle history · past fiscal years derived from the rule
+     * registry (not from contracts), ordered DESC (newest first).
+     * Neutral rows included for years with no contract so the user
+     * still sees the theoretical full-year tax. Served via
+     * `Inertia::defer` from Show so the mount is not blocked on N
+     * fiscal pipelines (~100-150 ms cold saved depending on scope
+     * depth).
      *
      * @return list<VehicleYearStatsData>
      */
@@ -124,10 +126,15 @@ final class VehicleDetailService
         $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
 
         $kpiYear = $this->availableYears->currentYear();
-        $minYear = $this->availableYears->minYear();
+        $registeredYears = $this->fiscalRules->registeredYears();
+        $pastYears = array_values(array_filter(
+            $registeredYears,
+            static fn (int $y): bool => $y < $kpiYear,
+        ));
+        rsort($pastYears);
 
         $history = [];
-        for ($year = $kpiYear - 1; $year >= $minYear; $year--) {
+        foreach ($pastYears as $year) {
             $history[] = $this->computeVehicleYearStats($vehicle, $year, $unavailabilityModels);
         }
 
