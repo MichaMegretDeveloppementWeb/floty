@@ -12,18 +12,13 @@ import PageHeader from './partials/PageHeader.vue';
 import QuickLinksGrid from './partials/QuickLinksGrid.vue';
 
 const props = defineProps<{
-    /** 4 KPIs fiscaux YTD · deferred · pipeline fiscal 1 année. */
+    /** YTD fiscal KPIs (Inertia::defer). */
     kpis?: App.Data.User.Dashboard.DashboardKpiData;
-    /** Carte recettes · deferred avec les autres KPIs. */
+    /** Revenue KPI (Inertia::defer). */
     kpisRecettes?: App.Data.User.Dashboard.DashboardKpiRecettesData;
-    /** Tâches en attente · deferred. */
+    /** Pending tasks (Inertia::defer). */
     pendingTasks?: App.Data.User.Dashboard.DashboardPendingTasksData;
-    /**
-     * Onglet par défaut du graphique Évolution (Jours-véhicule) ·
-     * deferred avec la vague KPIs. Les 3 autres onglets sont
-     * `Inertia::optional` et chargés au clic d'onglet (doctrine
-     * `feedback_lazy_tab_loading`).
-     */
+    /** Default chart tab (Inertia::defer); siblings load lazily per-tab. */
     historyJoursVehicule?: App.Data.User.Dashboard.DashboardHistoryPointData[];
     historyContracts?: App.Data.User.Dashboard.DashboardHistoryPointData[];
     historyTaxes?: App.Data.User.Dashboard.DashboardHistoryPointData[];
@@ -59,12 +54,6 @@ void props;
                 </Deferred>
             </div>
 
-            <!--
-                Évolution · toujours visible. Le 1er onglet (Jours-véhicule)
-                est `Inertia::defer` · skeleton chart pendant le 1er fetch.
-                Les 3 autres onglets sont `Inertia::optional` et déclenchent
-                un `router.reload({only: [...]})` au clic depuis le chart.
-            -->
             <Deferred data="historyJoursVehicule">
                 <template #fallback>
                     <DashboardEvolutionChartSkeleton />
@@ -80,7 +69,6 @@ void props;
             <Deferred data="pendingTasks">
                 <template #fallback>
                     <div class="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
-                        <!-- 2 panels (Déclarations + Factures) · header icon + titre + 5 rows -->
                         <article
                             v-for="panelIdx in 2"
                             :key="panelIdx"

@@ -1,18 +1,5 @@
 <script setup lang="ts">
-/**
- * Panel « Déclarations en attente » du Dashboard (Phase 13 D5.15).
- *
- * Affiche jusqu'à 5 items triés par urgence (overdue puis année
- * croissante). Le compteur du header reflète le nombre total de
- * déclarations à soumettre · les items au-delà du top 5 sont à
- * préparer depuis l'onglet Fiscalité de chaque fiche entreprise
- * (les déclarations `Untouched` n'existent pas dans l'Index
- * Déclarations).
- *
- * État vide · message explicite et apaisant (« Rien à générer pour
- * l'instant · les déclarations de l'année N seront à préparer à
- * partir du 01/01/N+1 ») plutôt qu'un « 0 » anxiogène.
- */
+/** Dashboard panel listing up to 5 pending declarations sorted by urgency. */
 import { FileClock } from 'lucide-vue-next';
 import PendingDeclarationRow from './PendingDeclarationRow.vue';
 

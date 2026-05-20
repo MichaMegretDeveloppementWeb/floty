@@ -1,13 +1,5 @@
 <script setup lang="ts">
-/**
- * Mini banner narratif sur la page Show, signalant qu'une déclaration
- * remplace une version précédente obsolète (Phase 11 D5.8.3).
- *
- * Distinct du `<ObsolescenceBanner>` qui s'affiche quand la
- * déclaration courante elle-même est devenue obsolète. Ce composant
- * ci s'affiche au contraire sur la NOUVELLE génération (chaîne
- * aval) pour assurer la traçabilité historique.
- */
+/** Banner on the replacing declaration pointing back to the predecessor. */
 import { Link } from '@inertiajs/vue3';
 import { ArrowUpRight, Recycle } from 'lucide-vue-next';
 import { show as showDeclarationRoute } from '@/routes/user/declarations';

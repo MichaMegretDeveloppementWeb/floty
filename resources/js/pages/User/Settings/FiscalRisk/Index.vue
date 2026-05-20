@@ -1,13 +1,8 @@
 <script setup lang="ts">
 /**
- * Page Paramètres > Détection de risque fiscal (Phase 11 D1, ADR-0015
- * § D7 rev. 1.1). Singleton : un seul jeu de seuils pour toute
- * l'application, qui pilote la grille de classification des risques
- * (R-LCD-CHAIN moyen / R-LCD-CHAIN-FORT élevé) lors du recalcul
- * d'une déclaration annuelle.
- *
- * Ces seuils n'altèrent PAS les déclarations déjà émises ; à la
- * prochaine régénération, la nouvelle grille s'applique.
+ * Singleton fiscal risk thresholds driving the LCD-chain risk
+ * classification grid. Previously emitted declarations stay untouched;
+ * the new grid applies on the next regeneration only.
  */
 import { Head, useForm } from '@inertiajs/vue3';
 import { ShieldAlert } from 'lucide-vue-next';
@@ -29,10 +24,8 @@ const form = useForm({
     countHigh: props.settings.countHigh,
 });
 
-// Le projet n'embarque pas de fichier de traduction Laravel : les
-// erreurs de validation reviennent en clés brutes (« validation.gt.numeric »).
-// On double les règles backend critiques côté Vue pour afficher un
-// message clair en français.
+// Mirror critical backend rules client-side: Laravel translation files
+// are not loaded, so raw validation keys would surface otherwise.
 const localErrors = computed<Record<string, string>>(() => {
     const errors: Record<string, string> = {};
 

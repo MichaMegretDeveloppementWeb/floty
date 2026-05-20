@@ -1,13 +1,8 @@
 <script setup lang="ts">
 /**
- * Vue Entreprise (chantier P2). Variante de la Vue d'ensemble focalisée
- * sur une entreprise donnée. Couleur cellule = densité globale (signal
- * de disponibilité du véhicule). Chiffre cellule = jours utilisés par
- * cette entreprise. Total annuel ligne = jours et taxe dus par cette
- * entreprise pour ce véhicule.
- *
- * Le drawer reste en comportement Vue d'ensemble pour P2 ; P3 le rendra
- * company-locked et anonymisera les contrats des autres entreprises.
+ * Company-focused planning view. Cell color = global density, cell
+ * number = days used by the selected company, yearly total =
+ * tax due by that company on the vehicle.
  */
 import { Head, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
@@ -30,16 +25,11 @@ const props = defineProps<{
     vehicles: App.Data.User.Planning.PlanningHeatmapCompanyVehicleData[];
     company: App.Data.User.Company.CompanyOptionData;
     companies: App.Data.User.Company.CompanyOptionData[];
-    /**
-     * Cf. Index.vue Vue d'ensemble pour le pattern · 2 props defer
-     * séparées (cache fiscal isolé sur full-year, real non caché).
-     */
+    /** Inertia::defer "fast" (cached fiscal full-year). */
     fullYearCosts?: HeatmapFullYearCosts;
+    /** Inertia::defer "slow" (real billed tax, uncached). */
     realCosts?: HeatmapRealCosts;
-    /**
-     * Loyer mensuel cumulé pour CETTE entreprise · `Inertia::defer` group
-     * "rentals" (SC1 · 2026-05-18). `null` par mois si tarif manquant.
-     */
+    /** Monthly rentals for this company; null per month when pricing missing. */
     monthlyRentals?: HeatmapMonthlyRentals;
     selectedYear: number;
     yearScope: App.Data.Shared.YearScopeData;
@@ -92,7 +82,6 @@ const yearModel = computed<number>({
     set: (v) => selectYear(v),
 });
 
-// ── Sélecteur entreprise ─────────────────────────────────────────────
 const companyOptions = computed(() =>
     props.companies.map((c) => ({
         value: c.id,
@@ -117,10 +106,7 @@ const companyIdModel = computed<number | null>({
 return;
 }
 
-        // Navigation full page : la heatmap et les data se recalculent
-        // côté backend (pas de partial reload car le scope change).
-        // Préserve le `?year=` actuel pour ne pas reset la sélection
-        // d'année au changement d'entreprise.
+        // Full-page visit (scope changes) preserving current ?year=.
         const target = new URL(
             planningCompaniesIndexRoute.url({ company: v }),
             window.location.origin,

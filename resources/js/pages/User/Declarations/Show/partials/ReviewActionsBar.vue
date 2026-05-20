@@ -1,15 +1,8 @@
 <script setup lang="ts">
 /**
- * Barre d'actions sticky en bas de l'écran Show en mode B (revue
- * brouillon head canonique) · 2 actions terminales · Reporter
- * (`deferred`) + Générer (`generated`).
- *
- * Lot 5 D13 · le bouton Reporter ouvre désormais un modal avec
- * textarea pour saisir une raison optionnelle (max 500 caractères).
- * La raison est persistée sur le brouillon tant qu'il reste reporté
- * et affichée en banner sur la page Show · effacée automatiquement
- * au revert ou à la génération (état transitoire cohérent avec le
- * statut, pas un historique persistant).
+ * Sticky bottom actions bar (mode B): Reporter opens a modal with an
+ * optional reason (max 500 chars, cleared on revert/generation),
+ * Générer triggers the final generation.
  */
 import { router } from '@inertiajs/vue3';
 import { Clock, FileCheck2, LoaderCircle } from 'lucide-vue-next';
@@ -33,11 +26,6 @@ const generating = ref<boolean>(false);
 const deferring = ref<boolean>(false);
 const isProcessing = computed<boolean>(() => generating.value || deferring.value);
 
-/**
- * Modal Reporter · confirmation Mettre de côté (audit B21 pré-livraison
- * · évite la perte accidentelle de contexte après plusieurs arbitrages)
- * enrichi Lot 5 D13 avec une raison optionnelle saisie par l'utilisateur.
- */
 const deferModalOpen = ref<boolean>(false);
 const deferReason = ref<string>('');
 const DEFER_REASON_MAX = 500;

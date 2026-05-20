@@ -1,13 +1,5 @@
 <script setup lang="ts">
-/**
- * Ligne « factures en attente » sur le Dashboard (Phase 13 D5.15).
- *
- * Affiche · contexte entreprise + année + nombre de factures
- * mensuelles à générer. Toute la ligne est cliquable vers la fiche
- * entreprise sur l'onglet Facturation de l'année concernée · c'est
- * là que l'utilisateur lance la génération mensuelle · les factures
- * en attente n'existent pas encore dans la liste Index Factures.
- */
+/** Pending-invoice row pointing to the company billing tab for that year. */
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { show as companyShow } from '@/routes/user/companies';

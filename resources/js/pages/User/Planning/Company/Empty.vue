@@ -1,8 +1,5 @@
 <script setup lang="ts">
-/**
- * Empty state de la Vue par entreprise (chantier P2). Affichée quand
- * aucune entreprise n'a encore été enregistrée. Invite à en créer une.
- */
+/** Empty state when no company exists yet for the per-company planning view. */
 import { Head, Link } from '@inertiajs/vue3';
 import { Building2, Plus } from 'lucide-vue-next';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';

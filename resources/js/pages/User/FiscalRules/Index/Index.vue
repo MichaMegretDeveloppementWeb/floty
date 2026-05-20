@@ -15,17 +15,9 @@ type Rule = App.Data.User.Fiscal.FiscalRuleListItemData;
 const props = defineProps<{
     rules: Rule[];
     selectedYear: number;
-    /**
-     * Scope d'années alimenté par le **registry des règles fiscales**
-     * (chantier η Phase 5). Sémantique : « années pour lesquelles
-     * l'application sait calculer des règles » (≠ scope contrats).
-     */
+    /** Years the fiscal rules registry can compute (not the contracts scope). */
     yearScope: App.Data.Shared.YearScopeData;
-    /**
-     * Phase 13 D5.12 · ADR-0022 v1.2 · organisation des tabs / sections
-     * projetée depuis les enums PHP `RuleTab` + `RuleSection`. Plus
-     * rien de hardcoded côté TS.
-     */
+    /** Tab/section organisation projected from the PHP `RuleTab` + `RuleSection` enums. */
     tabs: App.Data.User.Fiscal.FiscalRuleTabData[];
 }>();
 
@@ -74,7 +66,6 @@ const tabIntro = computed<string>(() => {
 
     <UserLayout>
         <div class="flex flex-col gap-12">
-            <!-- Header éditorial -->
             <header class="flex flex-wrap items-end justify-between gap-6">
                 <div class="flex flex-col gap-2 max-w-3xl">
                     <p class="eyebrow">Fiscalité</p>
@@ -101,7 +92,6 @@ const tabIntro = computed<string>(() => {
 
             <FormulaCard :days-in-fiscal-year="daysInFiscalYear" />
 
-            <!-- Sous-onglets style underline border-bottom (mockup A) -->
             <nav
                 class="flex gap-8 border-b border-slate-200"
                 role="tablist"
@@ -125,7 +115,6 @@ const tabIntro = computed<string>(() => {
                 </button>
             </nav>
 
-            <!-- Intro par onglet -->
             <p
                 v-if="tabIntro"
                 class="-mt-8 max-w-3xl text-sm leading-relaxed text-slate-500"
@@ -133,7 +122,6 @@ const tabIntro = computed<string>(() => {
                 {{ tabIntro }}
             </p>
 
-            <!-- Sections de l'onglet actif -->
             <div class="flex flex-col gap-16">
                 <RuleSection
                     v-for="group in currentGroups"

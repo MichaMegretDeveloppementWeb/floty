@@ -54,11 +54,8 @@ const confirmOpen = ref<boolean>(false);
 const confirmLoading = ref<boolean>(false);
 
 /**
- * Refonte fiscalité D5.10.W · 4 directions de design proposées et
- * mockuppées en HTML standalone. La direction A (Linear-éditorial)
- * a été retenue pour l'implémentation Vue (cf. onglets Fiscalité et
- * Facturation sur les fiches Entreprise + Véhicule). Les 4 mockups
- * sont conservés ici comme référence visuelle et trace de décision.
+ * 4 design directions mockuped as standalone HTML before choosing
+ * direction A (Linear-éditorial). Kept here as visual reference.
  */
 type MockupKey = 'A' | 'B' | 'C' | 'D';
 
@@ -157,8 +154,6 @@ const companyOptions = [
     { value: 'helios', label: 'Helios Flotte' },
 ];
 
-// Démo DateRangePicker v2 (04.I.2) · instance basique + instance avec
-// disabledDates factices pour montrer la gestion d'erreur.
 const demoRangeBasic = ref<{ startDate: string | null; endDate: string | null }>({
     startDate: null,
     endDate: null,
@@ -177,8 +172,6 @@ const demoBlockedDates = [
     '2026-04-25',
 ];
 
-// Démo SearchableSelect · 30 véhicules factices pour tester filtre,
-// scroll et navigation clavier sur une liste réaliste.
 const demoSearchableVehicle = ref<number | null>(7);
 const demoSearchableEmpty = ref<number | null>(null);
 const demoSearchableError = ref<number | null>(null);
@@ -287,13 +280,6 @@ const companyChips: Swatch[] = [
                 </p>
             </header>
 
-            <!--
-                Refonte fiscalité D5.10.W · 4 directions HTML mockuppées
-                avant choix · iframe au fichier statique dans
-                `public/mockups-fiscal/`. La direction A a été retenue
-                et implémentée en Vue sur la fiche Entreprise et
-                Véhicule.
-            -->
             <section class="mb-12">
                 <p class="eyebrow mb-3">Refonte fiscalité · 4 directions explorées</p>
                 <p class="mb-5 max-w-3xl text-sm text-slate-600">
@@ -307,7 +293,6 @@ const companyChips: Swatch[] = [
                 </p>
 
                 <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
-                    <!-- Toggle tabs · style identique aux year tabs des fiches -->
                     <nav
                         class="flex flex-wrap gap-6 border-b border-slate-100 px-5"
                         aria-label="Choix du mockup"
@@ -331,15 +316,6 @@ const companyChips: Swatch[] = [
                         </button>
                     </nav>
 
-                    <!--
-                        Iframe sur le mockup statique servi par Herd
-                        depuis `public/mockups-fiscal/{key}.html`.
-                        Hauteur fixe assez grande pour montrer le hero
-                        + stats sans scroll · l'iframe gère son propre
-                        scroll interne pour le reste. Le param
-                        `?embedded=1` masque le toggle interne du
-                        mockup (redondant avec le toggle UI Kit).
-                    -->
                     <iframe
                         :src="`/mockups-fiscal/${selectedMockup}.html?embedded=1`"
                         :title="`Mockup ${selectedMockup}`"

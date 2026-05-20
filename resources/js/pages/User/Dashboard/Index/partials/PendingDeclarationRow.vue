@@ -1,15 +1,5 @@
 <script setup lang="ts">
-/**
- * Ligne « déclaration en attente » sur le Dashboard (Phase 13 D5.15).
- *
- * Affiche · contexte entreprise + année + badge échéance (overdue
- * rose, soon amber, later slate) + CTA contextuelle pilotée par le
- * lifecycle state du DTO. Toute la ligne est cliquable vers la fiche
- * entreprise sur l'onglet Fiscalité de l'année concernée · c'est de
- * là que l'utilisateur lance la préparation, la reprise, ou la
- * régénération · les déclarations en `Untouched` n'existent même
- * pas encore dans la liste Index.
- */
+/** Pending-declaration row with deadline badge + lifecycle-driven CTA. */
 import { router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { show as companyShow } from '@/routes/user/companies';
@@ -20,10 +10,7 @@ type LifecycleState = App.Enums.FiscalDeclaration.DeclarationLifecycleState;
 
 const props = defineProps<{ item: Item }>();
 
-// Lot 5 D11 (F-19D-010) · pattern exhaustif avec garde `assertNever` ·
-// si un nouveau case est ajouté à `LifecycleState` côté backend, le
-// switch refuse de compiler en TypeScript strict (au lieu d'afficher
-// silencieusement « Ouvrir » qui masquerait un état non-géré).
+// Exhaustive switch guard: a new LifecycleState case fails type-check.
 function assertNever(value: never, context: string): never {
     throw new Error(`${context} · état non-géré : ${String(value)}`);
 }
@@ -47,9 +34,7 @@ const ctaLabel = computed<string>(() => {
         case 'deferred_regeneration':
             return 'Poursuivre la régénération';
         case 'generated_active':
-            // Cas safety net · une `generated_active` ne devrait jamais
-            // apparaître dans la liste des `pending` (terminée pour
-            // l'année). Si elle remonte, libellé neutre.
+            // Safety net: a generated_active should never appear here.
             return 'Ouvrir';
         default:
             return assertNever(state, 'PendingDeclarationRow.ctaLabel');

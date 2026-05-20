@@ -17,35 +17,19 @@ import PageHeader from './partials/PageHeader.vue';
 const props = defineProps<{
     vehicles: App.Data.User.Planning.PlanningHeatmapVehicleData[];
     companies: App.Data.User.Company.CompanyOptionData[];
-    /**
-     * Coûts pleine année théoriques · `Inertia::defer` group "fast"
-     * (chantier perf Étape 3 · 2026-05-17). Cachés · hydratation
-     * rapide (~50 ms warm). Cellule « Taxe pleine » à gauche.
-     */
+    /** Theoretical full-year tax (Inertia::defer "fast", cached). */
     fullYearCosts?: HeatmapFullYearCosts;
-    /**
-     * Coût annuel dû réel · `Inertia::defer` group "slow" (non caché,
-     * ~250 ms). Cellule « €XXXX · N j » à droite.
-     */
+    /** Actual yearly tax due (Inertia::defer "slow", uncached). */
     realCosts?: HeatmapRealCosts;
-    /**
-     * Loyer mensuel cumulé cross-cies · `Inertia::defer` group "rentals"
-     * (SC1 · 2026-05-18) · affiché sous chaque entête de mois.
-     */
+    /** Cross-company cumulative monthly rentals (Inertia::defer "rentals"). */
     monthlyRentals?: HeatmapMonthlyRentals;
     selectedYear: number;
-    /**
-     * Scope d'années dynamique calculé depuis les contrats actifs
-     * (chantier η Phase 5).
-     */
+    /** Dynamic year scope computed from active contracts. */
     yearScope: App.Data.Shared.YearScopeData;
 }>();
 
-// Refs locales miroirs des 2 props defer · reset à `undefined` au
-// changement d'année AVANT le reload pour forcer les skeletons
-// immédiatement (sinon valeurs année précédente affichées ~700 ms le
-// temps de la RTT · UX trompeuse). Cf. mémoire
-// `feedback_inertia_defer_with_partial_reload`.
+// Local mirrors reset to undefined before reload so skeletons appear
+// instantly on year change (avoids showing stale year values during RTT).
 const localFullYearCosts = ref<HeatmapFullYearCosts | undefined>(props.fullYearCosts);
 const localRealCosts = ref<HeatmapRealCosts | undefined>(props.realCosts);
 const localMonthlyRentals = ref<HeatmapMonthlyRentals | undefined>(props.monthlyRentals);
@@ -73,10 +57,6 @@ const { selectedYear, selectYear } = useLocalYearSelector(
     props.selectedYear,
     ['vehicles', 'companies', 'selectedYear'],
     {
-        // Enchaîné après le visit year-change · l'URL pointe désormais
-        // sur la nouvelle année, les 3 reload recalculent sur la bonne
-        // année · fetchs parallèles via les groups defer "fast" + "slow"
-        // + "rentals" (SC1).
         onSuccess: () => {
             localFullYearCosts.value = undefined;
             localRealCosts.value = undefined;

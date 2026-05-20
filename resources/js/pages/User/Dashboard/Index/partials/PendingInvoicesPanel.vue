@@ -1,25 +1,12 @@
 <script setup lang="ts">
-/**
- * Panel « Factures en attente » du Dashboard (Phase 13 D5.15).
- *
- * Affiche jusqu'à 5 items triés par année croissante puis code court
- * entreprise. Le compteur du header reflète le **nombre total de
- * factures mensuelles à générer** toutes lignes confondues · les
- * factures mensuelles en attente n'existent pas dans l'Index Factures
- * (elles n'ont pas encore été générées), il faut passer par l'onglet
- * Facturation de chaque fiche entreprise pour les produire.
- *
- * État vide · message explicite (« Aucune facture mensuelle en
- * attente · les recettes locatives sont à jour ») plutôt qu'un
- * « 0 » anxiogène.
- */
+/** Dashboard panel listing up to 5 pending monthly invoice annexes. */
 import { Receipt } from 'lucide-vue-next';
 import PendingInvoiceRow from './PendingInvoiceRow.vue';
 
 type Tasks = App.Data.User.Dashboard.DashboardPendingTasksData;
 
 defineProps<{
-    /** Somme des factures mensuelles à générer toutes lignes confondues. Pilote le compteur du header. */
+    /** Total monthly invoices to generate; powers the header counter. */
     monthlyTotal: Tasks['pendingInvoicesMonthlyTotal'];
     items: Tasks['pendingInvoices'];
 }>();

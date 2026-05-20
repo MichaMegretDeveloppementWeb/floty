@@ -1,27 +1,8 @@
 <script setup lang="ts">
 /**
- * Carte « PDF annexe documentaire » sur la page Show déclaration
- * (Phase 11 D5.4, enrichi D5.9.D avec CTA régénérer adaptatif,
- * simplifié Lot 5 D12 fusion Show + Review).
- *
- * Actions :
- *   - **Télécharger le PDF** · toujours visible si le document a été
- *     généré.
- *   - **Reprendre la régénération en cours** · si la déclaration est
- *     déjà remplacée par un Draft chaîné (`successorDeclaration` avec
- *     statut `draft`). Lien direct vers le Show du Draft (= la revue
- *     en mode B depuis Lot 5 D12). Évite de créer un brouillon
- *     orphelin supplémentaire.
- *   - **Régénérer la déclaration** · si la déclaration est obsolète
- *     mais qu'aucun Draft chaîné n'existe encore (S6 GeneratedObsolete
- *     Orphan). POST `/declarations/{id}/regenerate`.
- *   - **Modifier la déclaration** · si la déclaration est active non
- *     obsolète (S5) sans régénération en cours · POST `/declarations/{id}/modify`.
- *
- * Lot 5 D12 · ce composant ne s'affiche plus sur les brouillons head
- * canoniques (mode B) · la revue interactive de la page Show prend
- * directement la main. Il ne reste donc que les cas Generated (active
- * ou obsolète) et brouillon non-head (intermediate orphelin).
+ * PDF + adaptive CTA card on the declaration Show page. Renders only
+ * for Generated states or non-head intermediate drafts (mode B uses
+ * the interactive review directly).
  */
 import { Link, router } from '@inertiajs/vue3';
 import {
@@ -49,19 +30,9 @@ import { formatDateFr } from '@/Utils/format/formatDateFr';
 const props = withDefaults(
     defineProps<{
         declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
-        /**
-         * Déclaration qui remplace la courante (chaîne aval). Si présent
-         * et de statut `draft`, on est en cours de régénération · on
-         * propose « Reprendre la régénération » au lieu de « Régénérer ».
-         */
+        /** Downstream draft replacement; triggers "Reprendre la régénération". */
         successorDeclaration?: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
-        /**
-         * Phase 13 D5.10.H · vrai si la déclaration consultée est le head
-         * canonique du couple `(company, year)`. Faux si c'est un brouillon
-         * intermédiaire orphelin · dans ce cas, on n'expose pas les CTA
-         * d'édition (Reprendre, Régénérer, Modifier), seulement la
-         * suppression (gérée par le header).
-         */
+        /** Whether this declaration is the canonical head of (company, year). */
         isCanonicalHead?: boolean;
     }>(),
     {
@@ -86,13 +57,6 @@ const canRegenerate = computed<boolean>(
         && props.isCanonicalHead,
 );
 
-/**
- * Phase 13 D5.10.E · le bouton « Modifier la déclaration » apparaît
- * uniquement quand la déclaration est S5 GeneratedActive (générée et
- * non obsolète) sans régénération en cours, ET qu'elle est le head
- * canonique du couple (D5.10.H · pas de modification possible sur
- * une déclaration déjà supersédée).
- */
 const canModify = computed<boolean>(
     () => props.declaration.status === 'generated'
         && !props.declaration.isObsolete
@@ -100,20 +64,11 @@ const canModify = computed<boolean>(
         && props.isCanonicalHead,
 );
 
-/**
- * Phase 13 D5.10.H · brouillon intermédiaire (orphelin) · pas le head
- * canonique alors que c'est un brouillon. UI restreinte à la
- * suppression (gérée par le header). On affiche un message
- * d'avertissement explicite à la place du CTA « Reprendre la revue ».
- */
 const isIntermediateDraft = computed<boolean>(
     () => !props.isCanonicalHead
         && (props.declaration.status === 'draft' || props.declaration.status === 'deferred'),
 );
 
-// Phase 13 D5.10.J · empreinte SHA-256 du snapshot (cohérent avec le
-// hash imprimé dans le sceau du PDF). Bouton copy avec feedback visuel
-// éphémère de 2s.
 const copied = ref<boolean>(false);
 
 function copyHash(): void {

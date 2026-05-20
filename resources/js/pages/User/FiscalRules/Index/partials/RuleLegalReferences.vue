@@ -1,15 +1,7 @@
 <script setup lang="ts">
 /**
- * Rend la liste des références légales d'une règle fiscale (Phase 13
- * D5.11 · ADR-0022 finalisée).
- *
- * **Source de vérité** · les URLs viennent directement du backend, qui
- * les lit depuis les classes PHP de chaque règle. Plus aucune
- * construction d'URL côté front · ce composant lit simplement
- * `entry.url` et fabrique un label cosmétique pour l'affichage.
- *
- * Les entrées sans `url` (cas rare où une référence légale n'aurait pas
- * encore été auditée) sont rendues en texte non-cliquable.
+ * Renders legal references for a fiscal rule. URLs come from the backend
+ * registry; entries without a url fall back to plain text.
  */
 import { computed } from 'vue';
 

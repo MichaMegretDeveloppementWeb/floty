@@ -1,12 +1,7 @@
 <script setup lang="ts">
 /**
- * Page Index Déclarations fiscales (Phase 11 D4). Liste paginée
- * server-side (cf. ADR-0020) avec filtres `companyId`, `fiscalYear`,
- * `status`, `obsoleteOnly`. Pas de search texte.
- *
- * Empty state intelligent : `hasAnyDeclaration` distingue table
- * intrinsèquement vide (CTA fiche entreprise) du « filtre actif
- * retournant 0 » (suggestion d'élargir).
+ * Server-side paginated fiscal declarations index. `hasAnyDeclaration`
+ * separates the intrinsically empty case from the filtered-out case.
  */
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';

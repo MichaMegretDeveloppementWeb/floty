@@ -114,7 +114,6 @@ const emit = defineEmits<{
         </template>
     </DataTable>
 
-    <!-- Mobile < md -->
     <ul v-if="declarations.length > 0" class="flex flex-col gap-2 md:hidden">
         <li v-for="row in declarations" :key="row.id">
             <button

@@ -18,9 +18,8 @@ import DashboardEvolutionChartSkeleton from './DashboardEvolutionChartSkeleton.v
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const props = defineProps<{
-    /** Onglet par défaut · auto-loadé en `Inertia::defer` avec la vague KPIs. */
+    /** Default tab (Inertia::defer); siblings hydrate lazily on click. */
     historyJoursVehicule?: App.Data.User.Dashboard.DashboardHistoryPointData[];
-    /** 3 autres onglets · `Inertia::optional` · hydratés au clic via `router.reload`. */
     historyContracts?: App.Data.User.Dashboard.DashboardHistoryPointData[];
     historyTaxes?: App.Data.User.Dashboard.DashboardHistoryPointData[];
     historyRecettes?: App.Data.User.Dashboard.DashboardHistoryPointData[];
@@ -30,12 +29,12 @@ type Dimension = 'joursVehicule' | 'contracts' | 'taxes' | 'recettes';
 
 type DimensionMeta = {
     key: Dimension;
-    /** Nom de la prop Inertia correspondante (sert au `router.reload({only: [...]})`). */
+    /** Inertia prop name driving router.reload({ only: [...] }). */
     propKey: 'historyJoursVehicule' | 'historyContracts' | 'historyTaxes' | 'historyRecettes';
     label: string;
     color: string;
     format: (v: number) => string;
-    /** Transformation appliquée avant injection dans Chart.js (ex. cents → €). */
+    /** Optional pre-injection transform (e.g. cents to euros). */
     transform?: (v: number) => number;
 };
 
@@ -78,7 +77,7 @@ const activeMeta = computed<DimensionMeta>(
     () => DIMENSIONS.find((d) => d.key === activeDimension.value)!,
 );
 
-/** Données de l'onglet actif · `undefined` tant que la prop n'est pas hydratée. */
+/** Active tab data; undefined until the prop is hydrated. */
 const activeData = computed<App.Data.User.Dashboard.DashboardHistoryPointData[] | undefined>(
     () => props[activeMeta.value.propKey],
 );
@@ -91,12 +90,10 @@ function setDimension(d: Dimension): void {
     activeDimension.value = d;
     const meta = DIMENSIONS.find((m) => m.key === d)!;
 
-    // Déjà hydraté (Inertia conserve la prop après 1er reload) · rien à faire.
     if (props[meta.propKey] !== undefined) {
         return;
     }
 
-    // Déjà en cours pour cet onglet · skip pour éviter double-fetch.
     if (loadingDimension.value === d) {
         return;
     }

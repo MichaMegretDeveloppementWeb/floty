@@ -34,7 +34,6 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
             isFlashed ? 'shadow-[0_0_0_3px_rgb(252_211_77_/_0.5)]' : '',
         ]"
     >
-        <!-- Strip header · pill code + période + taxes + status -->
         <div
             class="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-slate-100 bg-slate-50/60 px-6 py-3"
         >
@@ -52,7 +51,6 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
                 {{ formatDateFr(rule.applicabilityEndInYear) }}
             </span>
 
-            <!-- Spacer pour pousser taxes + status à droite sur grand écran -->
             <div class="ml-auto flex flex-wrap items-center gap-2">
                 <Badge
                     v-if="rule?.taxesConcerned.length"
@@ -77,9 +75,7 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
             </div>
         </div>
 
-        <!-- Corps de la carte -->
         <div class="p-6">
-            <!-- Titre + pitch -->
             <h3 class="text-base font-semibold tracking-tight text-slate-900">
                 {{ content?.title }}
             </h3>
@@ -87,7 +83,6 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
                 {{ content?.pitch }}
             </p>
 
-            <!-- Condition / Effet -->
             <div
                 v-if="content?.appliesWhen || content?.effect"
                 class="mt-6 flex flex-col gap-2.5 rounded-lg border border-slate-100 bg-slate-50/60 p-4 text-sm"
@@ -106,7 +101,6 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
                 </div>
             </div>
 
-            <!-- Body -->
             <p
                 v-if="content?.body"
                 class="mt-6 text-sm leading-relaxed text-slate-600"
@@ -127,7 +121,6 @@ const { taxLabel, taxBadgeTone, content } = useRuleCard({ rule: props.rule });
                 :example="content.example"
             />
 
-            <!-- Cross-références pédagogiques · bien distinct des refs légales -->
             <div
                 v-if="relatedRules && relatedRules.length > 0"
                 class="mt-6 flex flex-wrap items-center gap-2"

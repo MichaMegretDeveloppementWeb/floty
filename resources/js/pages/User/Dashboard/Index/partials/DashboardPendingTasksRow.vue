@@ -1,11 +1,5 @@
 <script setup lang="ts">
-/**
- * Ligne « tâches en attente » du Dashboard (Phase 13 D5.15).
- *
- * Container 2 colonnes orchestrant les panels Déclarations et
- * Factures · chaque panel est autonome (header, liste top 5, état
- * vide, lien « voir les autres »).
- */
+/** Dashboard 2-column row orchestrating the Declarations + Invoices panels. */
 import PendingDeclarationsPanel from './PendingDeclarationsPanel.vue';
 import PendingInvoicesPanel from './PendingInvoicesPanel.vue';
 

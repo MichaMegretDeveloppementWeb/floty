@@ -4,15 +4,6 @@
     <meta charset="utf-8">
     <title>Déclaration fiscale {{ $reference }}</title>
     <style>
-        /*
-         * Police DejaVu Sans embarquée par dompdf, UTF-8 native (rend
-         * correctement é/è/à/É/€/etc. là où Helvetica les transforme en `?`).
-         * CSS basé sur display: table car DomPDF ne supporte ni flexbox ni grid.
-         *
-         * Phase 13 D5.10.J · refonte officielle · suppression des mentions
-         * internes (annexe, audit, clusters, mentions légales pédagogiques)
-         * + allègement des titres + sceau enrichi d'une empreinte SHA-256.
-         */
         @page { margin: 22mm 18mm; }
         * { box-sizing: border-box; }
         body {
@@ -95,14 +86,6 @@
         section {
             margin-bottom: 8mm;
         }
-        /*
-         * Phase 13 D5.10.X · seule la synthèse (compacte) reste
-         * insécable pour éviter de couper le total. Le détail
-         * chronologique laisse ses rows flotter naturellement entre
-         * les pages, sinon DomPDF pousse toute la table à la page
-         * suivante dès qu'elle ne tient pas après la synthèse,
-         * laissant le bas de la page 1 vide.
-         */
         section.summary-section {
             page-break-inside: avoid;
         }
@@ -154,11 +137,6 @@
             text-align: left;
             border-bottom: 1px solid #cbd5e1;
         }
-        /*
-         * Phase 13 D5.10.X · largeurs explicites pour que « Période »
-         * tienne sur 1 ligne (mono `JJ/MM/AAAA → JJ/MM/AAAA` = ~22ch)
-         * et que le véhicule récupère le reste de l'espace.
-         */
         table.lines col.col-period { width: 36mm; }
         table.lines col.col-days { width: 14mm; }
         table.lines col.col-tax { width: 22mm; }

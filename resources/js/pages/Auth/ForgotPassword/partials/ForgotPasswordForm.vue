@@ -10,13 +10,9 @@ const form = useForm({
     email: '',
 });
 
-// Bannière inline persistante affichée après une soumission réussie.
-// Pas un toast · ce flow ne rend pas le ToastContainer (page guest)
-// + sur un flow « mot de passe oublié » l'utilisateur a besoin que le
-// message reste visible le temps qu'il aille consulter sa boîte mail.
-// Anti email enumeration · le message est volontairement neutre (« si
-// l'adresse correspond à un compte ») et identique pour email connu
-// ou inconnu (cf. SendPasswordResetLinkAction + ADR-0011).
+// Inline persistent banner: guest layout has no ToastContainer, and the
+// user must keep the message visible while checking their mailbox.
+// Wording stays neutral to prevent email enumeration (cf. ADR-0011).
 const submitted = ref<boolean>(false);
 
 const submit = (): void => {

@@ -1,23 +1,9 @@
 <script setup lang="ts">
-/**
- * Skeleton du graphique Évolution · 3 barres rectangulaires avec
- * hauteurs en pixels explicites (les % posaient problème car le parent
- * flex n'avait pas de hauteur calculable). Layout mimétique de
- * Chart.js · Y-axis labels à gauche (50px), zone bars 240px, X-axis
- * labels 30px = 280px total.
- *
- * Barres : 210/150/100px (hauteurs variées · plafond 210 sur 240 ·
- * laisse espace top pour mimer l'axe Y > max data value). Largeur 80%
- * de chaque cellule (= `categoryPercentage × barPercentage` Chart.js).
- *
- * Sert au fallback initial du mount (`<Deferred data="historyJoursVehicule">`)
- * ET au shimmer interne du graphique lors du clic sur un onglet
- * `Inertia::optional` non-encore-chargé.
- */
+/** Evolution chart skeleton mimicking the Chart.js layout exactly. */
 import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 
 defineProps<{
-    /** Si true · n'affiche que la zone chart (le header reste celui du composant parent). */
+    /** Render only the chart area; the header stays on the parent component. */
     chartOnly?: boolean;
 }>();
 
@@ -30,11 +16,9 @@ const BARS: readonly { heightPx: number }[] = [
 
 <template>
     <div v-if="chartOnly" class="flex h-[280px]" aria-busy="true">
-        <!-- Colonne Y-axis labels (6 ticks alignés verticalement) -->
         <div class="flex w-[50px] shrink-0 flex-col justify-between py-1 pr-3">
             <Skeleton v-for="i in 6" :key="i" class="h-2 w-full rounded" />
         </div>
-        <!-- Zone chart · 3 bars (240px) + X-axis labels (30px = pt-2 + h-2.5) -->
         <div class="flex flex-1 flex-col">
             <div class="flex h-[240px] items-end">
                 <div
@@ -65,7 +49,6 @@ const BARS: readonly { heightPx: number }[] = [
         class="rounded-xl border border-slate-200 bg-white p-6"
         aria-busy="true"
     >
-        <!-- Header · titre + sous-titre + 4 onglets pill -->
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div class="space-y-2">
                 <Skeleton class="h-4 w-44 rounded" />
@@ -75,7 +58,6 @@ const BARS: readonly { heightPx: number }[] = [
                 <Skeleton v-for="i in 4" :key="i" class="h-6 w-20 rounded-md" />
             </div>
         </div>
-        <!-- Zone chart 280px · layout identique chart.js -->
         <div class="flex h-[280px]">
             <div class="flex w-[50px] shrink-0 flex-col justify-between py-1 pr-3">
                 <Skeleton v-for="i in 6" :key="i" class="h-2 w-full rounded" />

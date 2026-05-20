@@ -1,18 +1,9 @@
 <script setup lang="ts">
 /**
- * Header page Show déclaration (Phase 11 D5.6, enrichi D5.10.D pour
- * différenciateur Lecture/Revue, D5.10.H pour le bouton Supprimer
- * brouillon en haut à droite, et P6 pour séparer « Annuler la mise en
- * attente » (revert deferred → draft) de « Supprimer » (soft delete).
- *
- * **Logique des boutons** ·
- *   - status `draft`    · 1 bouton « Supprimer le brouillon » (delete)
- *   - status `deferred` · 2 boutons côte à côte ·
- *       a) « Annuler la mise en attente » (revert · status redevient
- *          draft, toutes les données associées préservées)
- *       b) « Supprimer » (delete · soft delete + gestion intelligente
- *          du predecessor comme avant)
- *   - status `generated` ou obsolète · aucun bouton (immuable, ADR-0008)
+ * Header for the declaration Show page. Buttons depend on status:
+ *   draft     · "Supprimer le brouillon"
+ *   deferred  · "Annuler le report" + "Supprimer"
+ *   generated · none (immutable per ADR-0008)
  */
 import { Link, router } from '@inertiajs/vue3';
 import { Building2, LoaderCircle, RotateCcw, Trash2 } from 'lucide-vue-next';
@@ -26,16 +17,9 @@ import { badgeForDeclaration } from '@/Utils/format/declarationStatus';
 
 const props = defineProps<{
     declaration: App.Data.User.FiscalDeclaration.FiscalDeclarationData;
-    /**
-     * Référence du predecessor si ce brouillon le remplace. Permet de
-     * personnaliser le message de confirmation de suppression.
-     */
+    /** Predecessor reference to personalise the delete confirm message. */
     predecessorReference?: string | null;
-    /**
-     * Vrai si la suppression réactivera le predecessor (cas
-     * obsolescence purement volontaire). Faux sinon (predecessor
-     * reste obsolète).
-     */
+    /** True when delete will reactivate the predecessor (purely voluntary obsolescence). */
     predecessorWillReactivate?: boolean;
 }>();
 
@@ -43,7 +27,6 @@ const isDraft = computed<boolean>(() => props.declaration.status === 'draft');
 const isDeferred = computed<boolean>(() => props.declaration.status === 'deferred');
 const canDiscard = computed<boolean>(() => isDraft.value || isDeferred.value);
 
-// État UI · revert (deferred → draft, action non destructive)
 const reverting = ref<boolean>(false);
 
 function requestRevert(): void {
@@ -64,7 +47,6 @@ function requestRevert(): void {
     );
 }
 
-// État UI · delete (soft delete brouillon, Draft ou Deferred)
 const discarding = ref<boolean>(false);
 const discardConfirmOpen = ref<boolean>(false);
 
@@ -124,14 +106,6 @@ function confirmDiscard(): void {
                         {{ badgeForDeclaration(declaration.status, declaration.isObsolete).label }}
                     </StatusPill>
                 </div>
-                <!--
-                    Lot 5 D11 (F-19D-009 + F-19D2-019) · pill « Lecture »
-                    réservée aux états non-éditables. Une déclaration en
-                    `draft` ou `deferred` est éditable depuis cette page
-                    (suppression possible, génération possible) · afficher
-                    « Lecture » serait trompeur. Réservée à `generated`
-                    (immuable par doctrine ADR-0008) ou obsolète.
-                -->
                 <StatusPill v-if="!canDiscard" tone="slate" class="w-fit">Lecture</StatusPill>
                 <Link
                     :href="companyShowRoute.url({ company: declaration.companyId })"

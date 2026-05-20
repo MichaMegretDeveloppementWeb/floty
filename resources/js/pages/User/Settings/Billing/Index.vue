@@ -1,11 +1,7 @@
 <script setup lang="ts">
 /**
- * Page Paramètres > Facturation (Phase 14.G V1.2). Singleton émetteur :
- * un seul formulaire applicatif qui pilote tous les PDFs de facture.
- *
- * Tous les champs sont optionnels : on peut sauvegarder une config
- * partielle au démarrage et compléter plus tard. Les factures déjà
- * émises ne sont **pas** rétroactivement mises à jour (immuabilité).
+ * Singleton issuer settings powering every invoice PDF. All fields are
+ * optional; previously emitted invoices stay immutable.
  */
 import { Head, useForm } from '@inertiajs/vue3';
 import { Receipt } from 'lucide-vue-next';

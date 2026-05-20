@@ -5,8 +5,6 @@ import { formatEur } from '@/Utils/format/formatEur';
 const props = defineProps<{
     kpis: App.Data.User.Dashboard.DashboardKpiData;
 }>();
-// Évite l'erreur "props is declared but never used" même si nous
-// l'utilisons uniquement dans le template via `kpis`.
 void props;
 </script>
 

@@ -4,10 +4,6 @@
     <meta charset="utf-8">
     <title>Annexe de facture {{ $invoiceNumber }}</title>
     <style>
-        /*
-         * Police DejaVu Sans, embarquée par dompdf et UTF-8 native (rend
-         * correctement é/è/à/É/€/etc. là où Helvetica les transforme en `?`).
-         */
         @page { margin: 22mm 18mm; }
         * { box-sizing: border-box; }
         body {
@@ -107,7 +103,7 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 6mm;
-            table-layout: fixed; /* largeurs explicites par <col> ci-dessous */
+            table-layout: fixed;
         }
         .lines col.col-vehicle { width: 28%; }
         .lines col.col-days { width: 12%; }
