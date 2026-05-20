@@ -27,8 +27,8 @@ use Illuminate\Console\Command;
  *     remaining N runs is reported.
  *
  * Output:
- *   - stdout — Markdown table.
- *   - JSON   — saved under `project-management/perf-bench/snapshots/`
+ *   - stdout · Markdown table.
+ *   - JSON   · saved under `project-management/perf-bench/snapshots/`
  *              unless `--no-save` is passed.
  *
  * Prerequisites:

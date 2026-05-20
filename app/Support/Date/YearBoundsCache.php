@@ -13,7 +13,7 @@ use Carbon\CarbonImmutable;
  * The cache spares the cost of re-creating identical instances in hot
  * paths that iterate over a full calendar year (Dashboard stats,
  * billing calculator, fiscal pipeline…). Scope is the current process
- * only — there is no shared cache layer.
+ * only · there is no shared cache layer.
  */
 final class YearBoundsCache
 {

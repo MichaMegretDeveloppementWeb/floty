@@ -16,7 +16,7 @@ use App\Services\Invoice\InvoiceDivergenceFlagger;
  * purely annotative changes (`label`, `notes`) are skipped to avoid
  * false positives.
  *
- * Per ADR-0008, `is_divergent` is an observability flag only — the
+ * Per ADR-0008, `is_divergent` is an observability flag only · the
  * frozen invoice/invoice-line columns (`total_ht_cents`,
  * `gross_total_cents`, `discount_cents`, …) are never mutated here.
  *

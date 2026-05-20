@@ -32,7 +32,7 @@ final class IsoWeeks
     public const CELLS_PER_YEAR = 53;
 
     /**
-     * Monday of cell 1 of the heatmap for the given year — the ISO week
+     * Monday of cell 1 of the heatmap for the given year · the ISO week
      * containing January 1st (may fall in December of Y-1).
      */
     public static function cellOriginForYear(int $year): CarbonImmutable

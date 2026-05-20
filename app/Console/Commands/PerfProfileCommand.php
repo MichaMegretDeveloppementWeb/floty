@@ -40,7 +40,7 @@ final class PerfProfileCommand extends Command
     protected $description = 'Profile in-process des hot paths · breakdown SQL/PHP + top queries';
 
     /**
-     * Scenarios profiled by the command — aligned with
+     * Scenarios profiled by the command · aligned with
      * {@see PerfBenchmarkCommand::SCENARIOS} for direct comparison.
      *
      * @var array<string, string>

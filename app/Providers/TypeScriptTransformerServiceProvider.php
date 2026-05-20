@@ -16,7 +16,7 @@ use Spatie\TypeScriptTransformer\Writers\GlobalNamespaceWriter;
  * Output goes to `resources/js/types/generated/generated.d.ts` (ignored by
  * Git, regenerated on every `npm run build`). Vue components consume the
  * generated types via `import type { ... } from '@/types/generated'`;
- * domain types should never be redeclared inline on the frontend — the
+ * domain types should never be redeclared inline on the frontend · the
  * single source of truth lives in PHP.
  */
 class TypeScriptTransformerServiceProvider extends BaseTypeScriptTransformerServiceProvider

@@ -20,10 +20,10 @@ use Inertia\Middleware;
  * DTOs (auto-generated into `resources/js/types/generated/generated.d.ts`).
  *
  * Invariants:
- *   - `appName` — non-empty string, stable for the deployment lifetime.
- *   - `auth.user` — `null` until a user is authenticated, otherwise a
+ *   - `appName` · non-empty string, stable for the deployment lifetime.
+ *   - `auth.user` · `null` until a user is authenticated, otherwise a
  *     {@see CurrentUserData}.
- *   - `flash` — four independent channels matching the four toast tones
+ *   - `flash` · four independent channels matching the four toast tones
  *     of the design system (success / error / warning / info). The
  *     controller writes via `->with('toast-success', '...')`; the
  *     frontend reads `flash.success`.

@@ -25,7 +25,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
  * the `vehicleId` + `[start, end]` triplet. It is typically attached to
  * the `vehicleId` field or to the end date of the owning DTO.
  *
- * The vehicle is looked up on every evaluation — a single primary-key
+ * The vehicle is looked up on every evaluation · a single primary-key
  * query negligible compared to the rest of the validation chain.
  */
 final class AvailableForPeriod implements ValidationRule
@@ -42,7 +42,7 @@ final class AvailableForPeriod implements ValidationRule
      */
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
-        // ADR-0013 R3 — the lookup goes through the repository (instantiated
+        // ADR-0013 R3 · the lookup goes through the repository (instantiated
         // by `app()` because Spatie Data DTOs build the rule with `new`).
         $vehicle = app(VehicleReadRepositoryInterface::class)->findById($this->vehicleId);
 

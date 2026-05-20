@@ -21,7 +21,7 @@ use Carbon\CarbonImmutable;
  *
  * Bounds are kept as `Y-m-d` strings to ease comparisons and serialisation
  * in user-facing messages (toast info, modal confirmation). Pure data
- * holder — no business logic.
+ * holder · no business logic.
  */
 final readonly class FiscalCharacteristicsImpact
 {

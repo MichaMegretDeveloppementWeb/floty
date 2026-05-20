@@ -13,7 +13,7 @@ use Illuminate\Foundation\Http\FormRequest;
  *
  * Business logic (rate limiting, authentication attempt, `last_login_at`
  * update) lives in {@see LoginAction} and {@see LoginAttemptService};
- * this FormRequest only validates inputs (ADR-0013 R3 — no business
+ * this FormRequest only validates inputs (ADR-0013 R3 · no business
  * logic on the HTTP layer).
  */
 final class LoginRequest extends FormRequest

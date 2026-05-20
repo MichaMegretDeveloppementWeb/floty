@@ -12,7 +12,7 @@ use App\Services\Fiscal\FleetFiscalAggregator;
  *
  * Per ADR-0014 the fiscal engine receives the raw contract list for each
  * pair (rather than a pre-aggregated annual cumul) so each rule decides
- * how to treat it — for instance R-2024-021 qualifies each contract
+ * how to treat it · for instance R-2024-021 qualifies each contract
  * individually as LCD or not.
  *
  * Keys of the underlying map have the shape `"{vehicleId}|{companyId}"`.
@@ -93,7 +93,7 @@ final readonly class ContractsByPair
 
     /**
      * Total contract-days used by a given company across the whole fleet
-     * on the year. Raw KPI — no LCD / reductive unavailability deduction;
+     * on the year. Raw KPI · no LCD / reductive unavailability deduction;
      * use {@see FleetFiscalAggregator} for the taxable amount.
      */
     public function daysByCompany(int $companyId, int $year): int
@@ -115,7 +115,7 @@ final readonly class ContractsByPair
     /**
      * Total contract-days across every pair on the year (Dashboard KPI).
      * A single calendar day counts twice when carried by two distinct
-     * pairs — consistent with the fiscal total that taxes each pair
+     * pairs · consistent with the fiscal total that taxes each pair
      * independently.
      */
     public function totalDays(int $year): int

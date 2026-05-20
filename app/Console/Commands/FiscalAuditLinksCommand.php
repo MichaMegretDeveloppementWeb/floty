@@ -14,11 +14,11 @@ use Illuminate\Support\Facades\Http;
  * `legalBasis()` array.
  *
  * Two invariants are checked:
- *   1. HTTP reachability — the URL must not return 404. Légifrance blocks
+ *   1. HTTP reachability · the URL must not return 404. Légifrance blocks
  *      non-browser requests through a WAF, so a Chrome user-agent is used;
  *      403 responses on legifrance.gouv.fr are tolerated as known WAF
  *      false-positives.
- *   2. Freshness — `consulted_at` must be at most `--max-age` days old;
+ *   2. Freshness · `consulted_at` must be at most `--max-age` days old;
  *      anything older is flagged for manual re-consultation.
  *
  * Modes:
@@ -105,7 +105,7 @@ final class FiscalAuditLinksCommand extends Command
                     } elseif ($status >= 500) {
                         $issues[] = sprintf('serveur KO (%d)', $status);
                     } elseif ($status === 403 && str_contains((string) $entry['url'], 'legifrance.gouv.fr')) {
-                        // Légifrance WAF false positive — ignored.
+                        // Légifrance WAF false positive · ignored.
                     } elseif ($status >= 400) {
                         $issues[] = sprintf('HTTP %d', $status);
                     }

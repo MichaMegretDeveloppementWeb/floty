@@ -13,17 +13,17 @@ use Symfony\Component\HttpFoundation\Response;
  * Adds the standard security headers to every response of the `web`
  * middleware group:
  *
- *   - `X-Frame-Options: DENY` — prevents iframe embedding (clickjacking).
- *   - `X-Content-Type-Options: nosniff` — forces the declared Content-Type.
- *   - `Referrer-Policy: strict-origin-when-cross-origin` — limits URL
+ *   - `X-Frame-Options: DENY` · prevents iframe embedding (clickjacking).
+ *   - `X-Content-Type-Options: nosniff` · forces the declared Content-Type.
+ *   - `Referrer-Policy: strict-origin-when-cross-origin` · limits URL
  *     leakage to third parties.
- *   - `Permissions-Policy` — disables every browser API Floty does not
+ *   - `Permissions-Policy` · disables every browser API Floty does not
  *     use (defence in depth against XSS); `fullscreen=(self)` is kept
  *     for the planned fullscreen PDF modal.
- *   - `Strict-Transport-Security` — forces HTTPS for one year; only
+ *   - `Strict-Transport-Security` · forces HTTPS for one year; only
  *     emitted on secure requests to avoid trapping the local Herd HTTP
  *     setup.
- *   - `Content-Security-Policy` — strict V1 policy (ADR-0011 § 6).
+ *   - `Content-Security-Policy` · strict V1 policy (ADR-0011 § 6).
  *     `'unsafe-inline'` is allowed on styles for Tailwind runtime; to
  *     be tightened later with nonces. The CSP is skipped in the `local`
  *     environment because `script-src 'self'` would block both the
