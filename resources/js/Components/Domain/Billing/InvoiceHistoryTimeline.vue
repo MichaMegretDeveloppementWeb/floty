@@ -1,25 +1,8 @@
 <script setup lang="ts">
 /**
- * Timeline chronologique des versions d'une facture pour un couple
- * (entreprise × année × mois) · refonte D5.10.P (option C historique).
- *
- * Pattern aligné `DeclarationHistoryTimeline` : plus récent en haut,
- * plus ancien en bas (lecture descendante = retour dans le temps).
- *
- * **Tri stable** · le composant trie en interne par `id DESC` peu
- * importe l'ordre d'entrée, pour que l'ordre d'affichage ne dépende
- * JAMAIS de la version actuellement consultée. La version consultée
- * est repérée par `currentInvoiceId` (id à mettre en évidence) plutôt
- * que déplacée en tête de liste.
- *
- * Pour chaque entrée :
- *   - Cercle coloré selon le statut (emerald = active, rose = obsolète).
- *   - Référence en `font-mono` cliquable (Link vers Show) sauf si c'est
- *     la version actuellement consultée · dans ce cas, rendu en `<span>`
- *     non cliquable + badge « Version consultée » + ring plus épais.
- *   - Date de génération.
- *
- * Composant purement présentationnel · aucune logique métier.
+ * Chronological timeline of invoice versions for a (company × year × month).
+ * Sorted by id DESC (newest first); highlights the currently viewed version
+ * via currentInvoiceId without moving it.
  */
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';

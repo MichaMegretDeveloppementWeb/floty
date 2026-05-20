@@ -1,19 +1,8 @@
 <script setup lang="ts">
 /**
- * Aperçu fiscal compact pour le drawer planning (chantier UX-Loc · SC7
- * refonte design 2026-05-18).
- *
- * Design Stripe-like (mockup B) · carte blanche border-slate-200, header
- * avec border-bottom slate-100, eyebrow uppercase 11px slate-500, valeurs
- * mono slate-900 tabular-nums. Sobriété totale · aucune couleur dominante
- * de fond, juste des accents discrets (slate-100 pour les fonds neutres,
- * emerald-600 pour les exonérations qui restent un signal positif fort).
- *
- * Affiche une ligne récap unique repliable · clic sur le header toggle
- * un détail inline (exemptions + breakdown CO₂/polluants + total).
- *
- * Sémantique · calcul standalone du contrat · la durée du contrat seule
- * qualifie LCD vs LLD (pas de cumul annuel).
+ * Compact fiscal preview for the planning drawer.
+ * Collapsible recap; expands to show exemptions and CO2/pollutants breakdown.
+ * Standalone per-contract calculation (no annual cumulation).
  */
 import { ChevronDown } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -22,7 +11,7 @@ import { formatEur } from '@/Utils/format/formatEur';
 defineProps<{
     preview: App.Data.User.Fiscal.FiscalPreviewData | null;
     loading: boolean;
-    /** Année qui pilote l'affichage (réservée pour usage futur). */
+    /** Year driving the display (reserved for future use). */
     year: number;
 }>();
 

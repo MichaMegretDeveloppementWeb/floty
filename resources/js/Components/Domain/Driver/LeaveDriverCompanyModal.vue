@@ -1,27 +1,8 @@
 <script setup lang="ts">
 /**
- * Modal de sortie d'un driver d'une entreprise (workflow Q6).
- *
- * Workflow (chantier #3 multi-conducteurs) :
- * 1. L'utilisateur saisit la date de sortie.
- * 2. Le composable charge automatiquement les contrats à venir (start_date
- *    > leftAt) du driver dans cette company. Chaque ligne expose :
- *    - `currentDrivers` : conducteurs actuellement attachés au contrat
- *      (le sortant compris) · pour donner le contexte.
- *    - `candidates` : drivers actifs sur la période, hors tous les
- *      drivers déjà attachés.
- * 3a. Si 0 contrats → sortie directe (mode 'none').
- * 3b. Si ≥1 contrats → l'utilisateur choisit :
- *     - Mode 'detach'  : retire le sortant de tous les contrats à venir
- *       (les autres conducteurs présents sur ces contrats restent).
- *     - Mode 'replace' : pour chaque contrat, soit on retire juste le
- *       sortant (= `null`), soit on retire le sortant ET on attache un
- *       remplaçant en plus.
- * 4. Submit : construit `replacement_map = {contractId: driverId|null}`
- *    en mode replace ; sinon omet (Spatie Data refuse `[]` explicite).
- *
- * Symétrique : utilisé depuis la fiche Driver Show ET la fiche Company
- * Show · props neutres (driverId, companyId, fullName, companyName).
+ * Modal for removing a driver from a company.
+ * Captures the leaving date, auto-fetches upcoming contracts, and lets the
+ * user choose detach-all, per-contract replacement, or direct exit when none.
  */
 import { useForm } from '@inertiajs/vue3';
 import { Loader2 } from 'lucide-vue-next';
@@ -66,16 +47,11 @@ const form = useForm<FormShape>({
     replacement_map: {},
 });
 
-// Liste auto-chargée des contrats à venir + replacement choisi par contrat.
-// `loadingContracts` part à `true` : le watch debounce le 1er fetch de
-// 250ms après l'ouverture, et on ne veut pas montrer un message
-// transitoire « Aucune location à venir » avant que la requête réponde
-// (sursaut UX visible côté utilisateur).
+// Starts true so the empty-state message does not flash before the first fetch.
 const futureContracts = ref<FutureContract[]>([]);
 const loadingContracts = ref<boolean>(true);
 const fetchError = ref<string | null>(null);
-// Map locale contractId -> driverId | null. `null` = détacher ce contrat.
-// `undefined` = pas encore choisi (= disabled submit en mode 'replace').
+// contractId -> driverId | null (detach) | undefined (not chosen yet, disables submit).
 const replacementMap = ref<Record<number, number | null | undefined>>({});
 
 let fetchTimer: ReturnType<typeof setTimeout> | null = null;
@@ -95,11 +71,9 @@ async function fetchFutureContracts(): Promise<void> {
             { leftAt: form.left_at },
         );
         futureContracts.value = response.contracts;
-        // Reset des sélections · l'utilisateur doit re-choisir si la
-        // date change (les candidats peuvent varier selon la période).
+        // Reset selections; candidates may change with the new date.
         replacementMap.value = {};
 
-        // Si plus aucun contrat à résoudre, force le mode none.
         if (response.contracts.length === 0) {
             form.future_contracts_resolution = 'none';
         } else if (form.future_contracts_resolution === 'none') {
@@ -113,7 +87,7 @@ async function fetchFutureContracts(): Promise<void> {
     }
 }
 
-// Debounce 250ms sur changement de date · évite un fetch par caractère
+// Debounce date changes by 250 ms to avoid one fetch per keystroke.
 watch(
     () => form.left_at,
     () => {
@@ -200,14 +174,11 @@ function submit(): void {
         };
 
         if (data.future_contracts_resolution !== 'replace') {
-            // Spatie Data + Laravel rejettent `replacement_map: {}` explicite
-            // en JSON (validation.required) · on omet la clé sauf en mode
-            // 'replace' où elle porte le mapping.
+            // Omit replacement_map entirely; Spatie Data rejects {} as required.
             return base;
         }
 
-        // Convertit la map locale (avec undefined possible) en plain object
-        // {contractId: driverId|null} attendu par le DTO.
+        // Build a plain {contractId: driverId|null} map for the DTO.
         const map: Record<number, number | null> = {};
 
         for (const [contractId, driverId] of Object.entries(
@@ -248,7 +219,6 @@ function submit(): void {
                 <InputError :message="form.errors.left_at" />
             </div>
 
-            <!-- Loader pendant le fetch des contrats à venir -->
             <div
                 v-if="loadingContracts"
                 class="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500"
@@ -268,7 +238,6 @@ function submit(): void {
                 {{ fetchError }}
             </p>
 
-            <!-- Aucun contrat à venir -->
             <div
                 v-else-if="!hasFutureContracts"
                 class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800"
@@ -277,7 +246,6 @@ function submit(): void {
                 résolution nécessaire.
             </div>
 
-            <!-- ≥1 contrat à résoudre : sélecteur mode + table -->
             <template v-else>
                 <div>
                     <FieldLabel for="leave-resolution">
@@ -297,7 +265,6 @@ function submit(): void {
                     />
                 </div>
 
-                <!-- Mode replace : table de contrats avec sélecteur par ligne -->
                 <div
                     v-if="form.future_contracts_resolution === 'replace'"
                     class="flex flex-col gap-2 rounded-lg border border-slate-200 bg-white p-3"

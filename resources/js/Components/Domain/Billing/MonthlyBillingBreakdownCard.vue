@@ -1,25 +1,9 @@
 <script setup lang="ts">
 /**
- * Récap 12 mois × {jours utilisés, montant HT} pour la facturation
- * d'une entité (véhicule ou entreprise) · Phase 14.D V1.2.
- *
- * Composant **stateless / présentationnel** : aucune logique de
- * récupération, on consomme simplement le DTO `MonthlyBillingBreakdownData`
- * fourni par le parent. Les conversions cents → € et la mise en forme
- * FR sont faites localement.
- *
- * Les mois bloqués (`hasMissingPricing = true`) affichent une ligne
- * grisée avec un libellé explicite invitant à renseigner les tarifs
- * sur la fiche véhicule. Les autres lignes affichent le total formaté
- * en euros, clavier-friendly et en tabular-nums (lecture verticale).
- *
- * **Lot 3 réductions commerciales** · si au moins un mois est concerné
- * par une réduction (`yearTotalDiscountCentsPartial > 0`), la table
- * bascule sur une présentation à 3 colonnes monétaires
- * (Brut / Réduction / Net) pour exposer le détail de l'économie.
- * Sinon, présentation simple inchangée (1 colonne Montant HT). Le
- * comportement est auto-détecté · aucun flag manuel à propager depuis
- * le parent.
+ * Monthly billing recap (12 rows: days used + HT amount) for a vehicle or company.
+ * Stateless presentational; consumes a MonthlyBillingBreakdownData DTO.
+ * Auto-switches to 3-column layout (Gross / Discount / Net) when any
+ * month carries a commercial discount.
  */
 import { AlertTriangle } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -36,29 +20,18 @@ type MonthlyBilling = App.Data.User.Billing.MonthlyBillingBreakdownData;
 
 const props = withDefaults(
     defineProps<{
-        /** Récap pré-calculé par le backend pour l'année concernée. */
+        /** Pre-calculated recap for the relevant year. */
         monthlyBilling: MonthlyBilling;
-        /**
-         * Légende dans le header. Permet d'adapter le wording au contexte
-         * (ex. « Recettes mensuelles » sur véhicule vs « Facturation
-         * mensuelle » sur entreprise). Ignoré si `unwrapped = true`.
-         */
+        /** Header title; ignored when `unwrapped`. */
         title?: string;
-        /** Sous-titre court sous le titre (optionnel). Ignoré si `unwrapped`. */
+        /** Optional short subtitle; ignored when `unwrapped`. */
         description?: string;
         /**
-         * Affiche la colonne « N° facture » (desktop) ou la pastille de
-         * numéro (mobile). Sur la table véhicule, une ligne = un mois
-         * cross-entreprises et peut donc référencer N factures différentes :
-         * la colonne perd son sens · on la désactive depuis le parent.
+         * Show "invoice number" column. Disabled from parent for the
+         * vehicle table where one row spans multiple companies.
          */
         showInvoiceNumberColumn?: boolean;
-        /**
-         * Refonte D5.10.W · mode « flush » sans Card wrapping ni header
-         * interne (titre + total annuel). Utilisé par les nouveaux
-         * tabs éditoriaux où le header est porté par le tab parent
-         * pour rester aligné sur la hiérarchie typographique globale.
-         */
+        /** Flush mode without Card wrapping or internal header. */
         unwrapped?: boolean;
     }>(),
     { showInvoiceNumberColumn: true, unwrapped: false, title: '' },
@@ -72,9 +45,7 @@ const totalLabel = computed<string>(() => {
     return formatEur(props.monthlyBilling.yearTotalCents / 100, 2);
 });
 
-// T11 / E.17 : total partiel rendu en complément quand au moins un mois
-// est bloqué par un tarif manquant. Donne une vue honnête du chiffré
-// même si le total exact reste indisponible.
+// Partial total shown when at least one month is blocked by missing pricing.
 const partialTotalLabel = computed<string | null>(() => {
     if (!props.monthlyBilling.hasAnyMissingPricing) {
         return null;
@@ -83,10 +54,7 @@ const partialTotalLabel = computed<string | null>(() => {
     return formatEur(props.monthlyBilling.yearTotalCentsPartial / 100, 2);
 });
 
-/**
- * Vrai dès qu'au moins un mois a appliqué une réduction commerciale ·
- * détermine la présentation 3 colonnes (brut/réduction/net) vs simple.
- */
+/** True when at least one month has a commercial discount applied. */
 const hasAnyDiscount = computed<boolean>(
     () => props.monthlyBilling.yearTotalDiscountCentsPartial > 0,
 );
@@ -130,7 +98,6 @@ const hasAnyDiscount = computed<boolean>(
             </div>
         </template>
 
-        <!-- Desktop ≥ md : table classique -->
         <div class="hidden overflow-x-auto md:block">
             <table class="w-full text-sm">
                 <caption class="sr-only">
@@ -171,7 +138,6 @@ const hasAnyDiscount = computed<boolean>(
                             {{ entry.daysUsed }}
                         </td>
                         <template v-if="hasAnyDiscount">
-                            <!-- Colonne Brut -->
                             <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap text-slate-500">
                                 <template v-if="entry.hasMissingPricing">
                                     <span class="text-xs italic">·</span>
@@ -183,7 +149,6 @@ const hasAnyDiscount = computed<boolean>(
                                     {{ formatEur((entry.grossTotalCents ?? 0) / 100, 2) }}
                                 </template>
                             </td>
-                            <!-- Colonne Réduction -->
                             <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap">
                                 <template v-if="entry.hasMissingPricing || entry.daysUsed === 0 || (entry.totalDiscountCents ?? 0) === 0">
                                     <span class="text-slate-300">·</span>
@@ -194,7 +159,6 @@ const hasAnyDiscount = computed<boolean>(
                                     </span>
                                 </template>
                             </td>
-                            <!-- Colonne Net (final à payer) -->
                             <td class="py-2 px-3 text-right font-mono tabular-nums whitespace-nowrap font-medium">
                                 <template v-if="entry.hasMissingPricing">
                                     <span class="text-xs italic">Tarif manquant</span>
@@ -251,7 +215,6 @@ const hasAnyDiscount = computed<boolean>(
             </table>
         </div>
 
-        <!-- Mobile < md : cards verticales par mois -->
         <ul class="flex flex-col gap-2 md:hidden">
             <li
                 v-for="(entry, idx) in monthlyBilling.entries"
@@ -279,10 +242,6 @@ const hasAnyDiscount = computed<boolean>(
                         </template>
                     </span>
                 </div>
-                <!-- Sur mobile, le détail brut/réduction passe sous le total
-                     net en métadonnée discrète (pas de réorganisation full
-                     pour préserver la densité). Affiché uniquement si une
-                     réduction a été appliquée au mois. -->
                 <div
                     v-if="hasAnyDiscount && (entry.totalDiscountCents ?? 0) > 0"
                     class="mt-1.5 flex items-baseline justify-between gap-2 text-xs text-emerald-700"

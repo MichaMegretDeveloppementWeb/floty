@@ -1,14 +1,7 @@
 <script setup lang="ts">
 /**
- * Sélecteur de couleur entreprise (Phase 13 D5.10.M).
- *
- * Affiche les 8 couleurs CompanyColor sous forme de pastilles cliquables
- * (les mêmes classes `bg-company-{color}` que `<CompanyTag>`). L'utilisateur
- * voit immédiatement la teinte qu'il sélectionne · plus pédagogique qu'un
- * SelectInput texte.
- *
- * Pattern accessibility · `role="radiogroup"` + `role="radio"` sur chaque
- * pastille, navigation Tab + Space/Enter pour sélectionner.
+ * Company color picker rendered as a radiogroup of color dots.
+ * Mirrors the bg-company-{color} classes used by CompanyTag.
  */
 import { Check } from 'lucide-vue-next';
 import { computed, useId } from 'vue';
@@ -17,11 +10,7 @@ type ColorOption = App.Data.User.Company.CompanyColorOptionData;
 
 const props = withDefaults(
     defineProps<{
-        /**
-         * Valeur de l'enum CompanyColor (string slug `indigo`, `emerald`,
-         * etc.). Typé `string` pour compat avec les form shapes
-         * `useForm()` qui stockent les valeurs en `string`.
-         */
+        /** CompanyColor enum slug; typed `string` for useForm() compatibility. */
         modelValue: string;
         options: readonly ColorOption[];
         label?: string;

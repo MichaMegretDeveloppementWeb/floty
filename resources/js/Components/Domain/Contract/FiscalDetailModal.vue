@@ -1,12 +1,8 @@
 <script setup lang="ts">
 /**
- * Modale de détail du calcul fiscal **standalone** d'une attribution
- * (chantier UX-Loc). Ouverte depuis `ContractRecapCard` · affiche le
- * breakdown CO₂ + polluants, les exonérations appliquées et le total.
- *
- * Sémantique : LCD/LLD se calcule contrat par contrat individuellement
- * (pas de cumul annuel) · ce qui compte est ce que **ce contrat
- * précisément** coûte fiscalement.
+ * Standalone fiscal-calculation detail modal for a contract.
+ * Shows CO2 + pollutants breakdown, applied exemptions and total.
+ * Each contract is calculated individually (no annual cumulation).
  */
 import Modal from '@/Components/Ui/Modal/Modal.vue';
 import { formatEur } from '@/Utils/format/formatEur';
@@ -33,7 +29,6 @@ const emit = defineEmits<{ close: [] }>();
         </div>
 
         <div v-else class="flex flex-col gap-5">
-            <!-- Récap de l'attribution -->
             <section class="flex flex-col gap-2">
                 <p class="eyebrow">
                     Attribution {{ companyShortCode }} · {{ preview.fiscalYear }}
@@ -44,7 +39,6 @@ const emit = defineEmits<{ close: [] }>();
                 </div>
             </section>
 
-            <!-- Exonérations appliquées -->
             <section
                 v-if="preview.breakdown.appliedExemptions.length > 0"
                 class="flex flex-col gap-2"
@@ -64,7 +58,6 @@ const emit = defineEmits<{ close: [] }>();
                 </ul>
             </section>
 
-            <!-- Décomposition CO₂ + polluants + total -->
             <section class="flex flex-col gap-2 rounded-lg border border-blue-200 bg-blue-50/40 p-4">
                 <p class="eyebrow text-blue-700">Décomposition</p>
                 <div class="flex flex-col gap-1.5 text-sm">

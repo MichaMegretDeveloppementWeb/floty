@@ -1,9 +1,8 @@
 <script setup lang="ts">
 /**
- * Grille « État de la semaine » du drawer Planning - purement
- * indicative depuis la refonte attribution → contrat. La saisie de
- * plage se fait au DateRangePicker du formulaire, pas ici. Les slots
- * jour ne portent donc plus de cursor / hover / handler clic.
+ * Read-only "week state" grid in the planning drawer.
+ * Day slots only display contract/availability info; range selection happens
+ * in the form's DateRangePicker.
  */
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 

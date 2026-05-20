@@ -1,20 +1,8 @@
 <script setup lang="ts">
 /**
- * Bouton « Générer tout » de l'onglet Facturation d'une entreprise.
- *
- * Déclenche une génération en masse de toutes les annexes en attente pour
- * le couple (entreprise × année). Délègue intégralement la doctrine
- * d'exécution (séquence, best-effort, transactions) au
- * `BulkGenerateInvoicesAction` côté backend.
- *
- * Comportement ·
- *   1. Bouton visible ssi au moins 1 mois en attente sur l'année active.
- *   2. Modale de confirmation listant les mois qui seront générés.
- *   3. State `processing` pendant le POST · bouton désactivé · l'opération
- *      peut durer ~10-30 s sur année complète (rendu PDF séquentiel).
- *   4. Le rapport de fin (`bulkInvoiceReport`) revient via une shared prop
- *      Inertia. Il est consommé par `BulkInvoiceGenerationReportAlert`
- *      affiché juste en dessous · récap inline 7s avec fade-out.
+ * "Generate all" button for the company billing tab.
+ * Triggers a bulk generation of every pending invoice for (company x year).
+ * Confirmation modal lists the months; the report comes back via shared prop.
  */
 import { router } from '@inertiajs/vue3';
 import { FileStack, Loader2 } from 'lucide-vue-next';
@@ -26,13 +14,7 @@ import { monthLabel } from '@/Utils/format/monthLabels';
 const props = defineProps<{
     companyId: number;
     year: number;
-    /**
-     * Mois civils (1-12) en attente de facturation pour ce couple
-     * (entreprise × année). Liste **dérivée côté parent** depuis
-     * `monthlyBilling.entries` avec les mêmes critères que le
-     * `PendingInvoicesResolver` backend (daysUsed > 0, pas de tarif
-     * manquant, pas de facture existante, mois écoulé).
-     */
+    /** Civil months (1-12) pending billing for this (company x year). */
     pendingMonths: readonly number[];
 }>();
 

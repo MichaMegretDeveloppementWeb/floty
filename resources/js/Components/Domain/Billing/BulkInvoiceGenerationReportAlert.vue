@@ -1,18 +1,8 @@
 <script setup lang="ts">
 /**
- * Récap inline affiché 7s après une génération en masse d'annexes
- * (Bulk Generate Invoices). Auto-fade-out en fin de timer.
- *
- * Le rapport vit comme shared prop Inertia
- * (`usePage().props.bulkInvoiceReport`), alimentée par
- * `HandleInertiaRequests::resolveBulkInvoiceReport()` à partir de la
- * session flash posée par `InvoiceController::bulkGenerate()`. La prop
- * n'est présente que sur le render qui suit immédiatement le POST · null
- * sur les visites suivantes.
- *
- * Le toast (canal flash standard) communique le résumé court ; ce
- * composant communique le détail (mois générés avec numéros d'annexe,
- * mois en échec avec la raison typée).
+ * Inline 7-second recap after a bulk invoice generation, with auto fade-out.
+ * Reads the bulkInvoiceReport shared prop (populated only on the POST response)
+ * and details generated months plus typed failure reasons.
  */
 import { usePage } from '@inertiajs/vue3';
 import { CheckCircle2, XCircle } from 'lucide-vue-next';
@@ -24,10 +14,7 @@ type ReportShape = App.Data.User.Invoice.BulkInvoiceGenerationReportData;
 const page = usePage();
 
 function readReport(): ReportShape | null {
-    // La shared prop est typée dans `Inertia.PageProps` côté global (cf.
-    // `HandleInertiaRequests::share`) · cast local pour éviter une
-    // déclaration de module qui pollue tout le projet pour un seul
-    // canal.
+    // Local cast to avoid polluting Inertia.PageProps for a single channel.
     const value = (page.props as Record<string, unknown>).bulkInvoiceReport;
     if (value === null || value === undefined) {
         return null;

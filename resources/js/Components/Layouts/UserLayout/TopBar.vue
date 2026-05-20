@@ -5,9 +5,6 @@ import Kbd from '@/Components/Ui/Kbd/Kbd.vue';
 import { useCommandPalette } from '@/Composables/GlobalSearch/useCommandPalette';
 import { useTopBar } from '@/Composables/Layout/UserLayout/useTopBar';
 
-// Chantier J (ADR-0023) : le sélecteur d'année global a été retiré.
-// Chaque page consommatrice gère désormais son sélecteur local.
-
 const emit = defineEmits<{
     'toggle-sidebar': [];
 }>();
@@ -30,11 +27,6 @@ const palette = useCommandPalette();
         </button>
 
         <div class="min-w-0 flex-1">
-            <!-- Trigger de la palette de recherche globale ⌘K (V1.1).
-                Faux input stylé (button) · le focus réel est posé sur
-                l'input interne de `<CommandPalette>` à l'ouverture.
-                Garde la même bbox/aspect que `<SearchInput>` pour ne
-                pas casser le rythme visuel du TopBar. -->
             <button
                 type="button"
                 aria-label="Ouvrir la recherche (⌘ K)"

@@ -1,18 +1,8 @@
 <script setup lang="ts">
 /**
- * Modale de gestion des PDF en queue avant création d'une location
- * (chantier UX-Loc · utilisée par le drawer planning).
- *
- * Maintient une queue locale de fichiers File[] qu'on remonte au
- * parent via `update:files`. Le parent (drawer ou page) est
- * responsable de :
- *   - Soit persister via `storePendingDocuments` (page Create) avant
- *     un submit Inertia qui redirige vers Show.
- *   - Soit upload synchroneously après réception de `createdIds`
- *     dans la réponse (drawer planning, qui ne redirige pas).
- *
- * Reuse du `DocumentDropZone` UI primitif et de la même logique de
- * limite (`MAX_DOCUMENTS`, `MAX_SIZE_BYTES`) que la page Create.
+ * Modal managing the queued PDF documents before a contract is created.
+ * Holds a local File[] queue and emits update:files; the parent decides
+ * whether to persist via storePendingDocuments or to upload after creation.
  */
 import { FileText, X } from 'lucide-vue-next';
 import Button from '@/Components/Ui/Button/Button.vue';

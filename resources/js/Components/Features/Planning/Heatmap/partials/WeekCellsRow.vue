@@ -31,20 +31,14 @@ const exitTooltip = computed<string | null>(() =>
         : `Véhicule retiré le ${formatDateFr(props.vehicleView.exitDate)}`,
 );
 
-// ADR-0019 D5 : bordure rouge sur les cellules de semaines portant
-// au moins un jour d'indispo (avec ou sans contrat sur la même
-// semaine), pour rendre visible la cohabitation indispo↔contrat
-// désormais autorisée.
+// Red ring on weeks carrying at least one unavailability day.
 const unavailabilityWeekFlags = computed<boolean[]>(() => {
     const set = new Set(props.vehicleView.weeksWithUnavailability);
 
     return props.vehicleView.weeksForCount.map((_, idx) => set.has(idx + 1));
 });
 
-// SC21 (2026-05-18) · ring inset bleu sur les cellules 1-2 jours pour
-// les démarquer du fond slate-100 du mois impair (cf. `densityRingClass`).
-// Supprimé si l'indispo (`ring-rose-500`) est déjà appliquée · évite
-// le conflit de couleur (un seul ring par cellule).
+// Blue inset ring on 1-2 day cells; suppressed when the unavailability ring is shown.
 const lowDensityRingClasses = computed<string[]>(() =>
     props.vehicleView.weeksForCount.map((_, idx) => {
         if (unavailabilityWeekFlags.value[idx]) {
@@ -57,13 +51,6 @@ const lowDensityRingClasses = computed<string[]>(() =>
 </script>
 
 <template>
-    <!-- SC18 (2026-05-18) · grid 53 colonnes identiques (au lieu de flex
-         grow basis-0 qui produisait des décalages sub-pixel entre rows).
-         SC20 (2026-05-18) · largeur de colonne FIXE `CELL_WIDTH_PX` (21
-         px) au lieu de `minmax(14px, 1fr)` · les cellules ne shrinkent
-         plus avec la taille du viewport · taille stable = même UX entre
-         grand et petit écran (le bloc central scrolle H si plus étroit
-         que la grille). -->
     <div
         class="grid h-[56px] items-center gap-[1px] border-t border-slate-100 first:border-t-0"
         :style="{ gridTemplateColumns: `repeat(${vehicleView.weeksForCount.length}, ${CELL_WIDTH_PX}px)` }"

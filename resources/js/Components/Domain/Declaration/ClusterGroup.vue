@@ -1,32 +1,8 @@
 <script setup lang="ts">
 /**
- * Boîte visuelle entourant les contrats consécutifs d'un même cluster
- * LCD à risque (Phase 11 D5.8, refondu D5.9.B/D5.9.C, sémantique
- * plage couverte D5.10.N).
- *
- * Rôle purement présentationnel · rend le header de cluster (badges
- * niveau + plage couverte + nombre de véhicules + état décision +
- * bouton « Décider » si `interactive`) + les rows enfants via slot
- * par défaut + une row de fermeture pour matérialiser la fin du
- * cluster.
- *
- * Encadrement visuel net (D5.9.C) · le header, les rows enfants et
- * la row de fermeture partagent un `bg-slate-50` continu, des bordures
- * latérales `border-x border-slate-200` et l'accent de niveau
- * (`border-l-2` rose ou amber) sur le bord gauche. L'utilisateur voit
- * d'un coup d'œil où le cluster commence et finit.
- *
- * Le groupement physique des contrats du cluster est garanti par le
- * tri snapshot strictement chronologique côté `DeclarationFiscalEngine`
- * combiné à la définition métier d'une chaîne (LCD consécutifs
- * temporellement proches) · les contrats du cluster sont naturellement
- * contigus, le groupement par contiguïté de fingerprint dans
- * `<DeclarationContractList>` ne casse plus pour les chaînes
- * multi-véhicules.
- *
- * La décision elle-même se prend via la `<ClusterDecisionModal>` ouverte
- * depuis le bouton « Décider » du header · événement `edit-decision`
- * remonté au parent (DeclarationContractList).
+ * Visual wrapper around the consecutive contracts of an at-risk LCD cluster.
+ * Renders the cluster header (level badges + coverage + decision state +
+ * optional "Decide" button) plus child rows via default slot and a closing row.
  */
 import { CheckCircle2, Pencil, ShieldAlert, ShieldCheck } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -40,37 +16,23 @@ const props = withDefaults(
         riskCode: App.Enums.FiscalReviewDecision.RiskCode;
         riskLevel: App.Enums.FiscalReviewDecision.RiskLevel;
         contractsCount: number;
-        /** Phase 13 D5.10.N · plage couverte en jours (= max_end − min_start + 1, bornée année). */
+        /** Coverage in days (= max_end - min_start + 1, clamped to the year). */
         coveragePeriodDays: number;
-        /** Phase 13 D5.10.N · date de début effective bornée à l'année (ISO Y-m-d). */
+        /** Effective start date clamped to the year (ISO Y-m-d). */
         coverageStartDate: string;
-        /** Phase 13 D5.10.N · date de fin effective bornée à l'année (ISO Y-m-d). */
+        /** Effective end date clamped to the year (ISO Y-m-d). */
         coverageEndDate: string;
-        /** Phase 13 D5.10.N · nombre de véhicules distincts touchés par la chaîne. */
+        /** Number of distinct vehicles in the chain. */
         distinctVehiclesCount: number;
-        /** Nombre de colonnes de la table parent (pour le colspan du header + footer). */
+        /** Parent table column count, used for header/footer colspan. */
         colspan: number;
-        /** Décision en cours pour ce cluster (`null` = à trancher). */
+        /** Current decision for this cluster (null = pending). */
         decision: App.Enums.FiscalReviewDecision.ReviewDecisionType | null;
-        /**
-         * Active le bouton « Décider » dans le header (mode Review).
-         * `false` côté page Show · le cluster s'affiche en lecture
-         * seule.
-         */
+        /** Show the "Decide" button (Review mode). */
         interactive?: boolean;
-        /**
-         * Justification persistée à afficher en lecture sous le header
-         * (mode Show, ou mode Review quand la décision est déjà prise
-         * et l'utilisateur veut juste la consulter sans rouvrir la
-         * modale).
-         */
+        /** Persisted justification shown read-only under the header. */
         justification?: string | null;
-        /**
-         * Phase 13 D5.10.P · id HTML à appliquer sur le premier <tr>
-         * (header) pour permettre à `scrollToCluster()` de cibler le
-         * cluster · un composant multi-root Vue 3 ne propage pas les
-         * attributs implicites donc on passe explicitement via prop.
-         */
+        /** HTML id applied to the header tr so scrollToCluster() can target it. */
         clusterId?: string;
     }>(),
     {
@@ -86,9 +48,6 @@ const emit = defineEmits<{
 
 const isHighLevel = computed<boolean>(() => props.riskLevel === 'eleve');
 
-// La distinction R-LCD-CHAIN vs R-LCD-CHAIN-FORT est déjà portée par
-// le pill « Risque élevé » / « Risque moyen » juste à côté · pas besoin
-// de la dédoubler dans le libellé du code.
 const codeLabel = computed<string>(() => 'LCD successifs');
 
 const levelTone = computed<StatusTone>(() => (isHighLevel.value ? 'rose' : 'amber'));
@@ -122,7 +81,6 @@ const vehiclesLabel = computed<string>(() =>
 </script>
 
 <template>
-    <!-- Header de cluster · row dédiée avec bouton Décider à droite -->
     <tr :id="clusterId" class="bg-slate-50">
         <td
             :colspan="props.colspan"
@@ -174,10 +132,8 @@ const vehiclesLabel = computed<string>(() =>
         </td>
     </tr>
 
-    <!-- Rows enfants (ContractRow) injectés par le parent -->
     <slot />
 
-    <!-- Row de fermeture · matérialise la bordure bas + closing pour le HTML strict -->
     <tr class="bg-slate-50">
         <td
             :colspan="props.colspan"

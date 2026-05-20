@@ -1,24 +1,8 @@
 <script setup lang="ts">
 /**
- * Bandeau récapitulatif des clusters de la déclaration en revue
- * (Phase 11 D5.8 · refonte design 2026-05-17).
- *
- * Affiche **tous** les clusters de risque détectés (pas seulement les
- * pending) · permet à l'utilisateur de garder une vue d'ensemble
- * persistante des chaînes LCD, peu importe leur état d'arbitrage. Le
- * titre s'adapte · « N arbitrage(s) requis avant génération » quand
- * il en reste, « N cluster(s) de risque LCD · tous arbitrés » sinon.
- *
- * Pas d'action d'arbitrage directe ici · seul un bouton « Voir le
- * cluster » (style `secondary`) qui scrolle vers le cluster dans le
- * tableau breakdown. L'arbitrage réel se fait via la modale
- * `<ClusterDecisionModal>` ouverte depuis le `<ClusterGroup>` du
- * tableau (cohérence UX · une seule entrée d'action).
- *
- * Layout · items pleine largeur (un par ligne) avec espacement
- * généreux entre les éléments. Ordre cohérent avec l'entête cluster
- * du tableau breakdown · icône + nom + risque + coverage à gauche,
- * pill décision + bouton « Voir le cluster » à droite.
+ * Recap banner listing all risk clusters of a declaration under review.
+ * Adapts its title to pending vs all-arbitrated state. Click "Voir le cluster"
+ * to scroll to the relevant row; arbitration itself happens in ClusterDecisionModal.
  */
 import { CheckCircle2, ShieldAlert, ShieldCheck } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -33,7 +17,7 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-    /** Émis quand l'utilisateur clique « Voir le cluster » pour scroller jusqu'à lui. */
+    /** Emitted when the user clicks "Voir le cluster" to scroll to it. */
     scrollTo: [fingerprint: string];
 }>();
 
@@ -79,12 +63,7 @@ function decisionPill(
     return { tone: 'amber', label: 'À arbitrer', showCheck: false };
 }
 
-/**
- * Phase 13 D5.10.N · libellé plage couverte + nb véhicules · l'ancien
- * `vehicleSummary` ne renvoyait que la 1ère plaque (faux pour un
- * cluster multi-véhicules). On utilise désormais `distinctVehiclesCount`
- * + dates de plage canoniques exposées par le backend.
- */
+/** Coverage label with span dates and distinct vehicles count. */
 function coverageSummary(cluster: App.Data.User.FiscalDeclaration.ReviewClusterData): string {
     const period = `du ${formatDateFr(cluster.coverageStartDate)} au ${formatDateFr(cluster.coverageEndDate)}`;
     const vehicles = cluster.distinctVehiclesCount > 1

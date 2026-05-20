@@ -1,15 +1,8 @@
 <script setup lang="ts">
 /**
- * Bandeau d'alerte « Données obsolètes » pour la page Show facture
- * (Phase 14.I+). Affiche le différentiel snapshot vs réalité actuelle
- * et propose un bouton « Régénérer » qui ouvre une modal de
- * confirmation. Sur confirmation, supprime la facture courante puis
- * génère une nouvelle facture pour le même couple (entreprise × année
- * × mois) avec les données du périmètre actuel, en une transaction
- * backend.
- *
- * Le composant ne s'affiche que si `divergence.hasDivergence === true`.
- * Sur le détail facture, il est placé sous la ligne titre + bouton PDF.
+ * "Obsolete data" alert banner on the invoice Show page.
+ * Shows snapshot vs current diff and offers a regenerate button with
+ * confirmation modal. Only renders when divergence.hasDivergence is true.
  */
 import { AlertTriangle, RefreshCw } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -25,9 +18,7 @@ const props = defineProps<{
 
 const modalOpen = ref<boolean>(false);
 
-// Le composant est rendu sur la page Show facture courante. Après
-// régénération, l'ID a changé : on redirige vers la nouvelle facture
-// (target `'show'`) pour ne pas tomber sur un 404 sur l'ancien ID.
+// After regeneration the invoice id changes; redirect to the new Show.
 const { regenerating, regenerate: triggerRegeneration } = useInvoiceRegeneration({
     redirectTarget: 'show',
     onFinish: () => {

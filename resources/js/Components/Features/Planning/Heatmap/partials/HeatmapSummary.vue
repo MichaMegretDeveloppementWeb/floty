@@ -4,10 +4,7 @@ import { formatEur } from '@/Utils/format/formatEur';
 defineProps<{
     vehiclesCount: number;
     totalDays: number;
-    /**
-     * `null` tant que la map `costs` n'a pas été hydratée (Inertia::defer
-     * 2ᵉ RTT) · skeleton inline affiché à la place du montant.
-     */
+    /** null while the costs map has not been hydrated yet. */
     totalAnnualTax: number | null;
     fiscalYear: number;
 }>();

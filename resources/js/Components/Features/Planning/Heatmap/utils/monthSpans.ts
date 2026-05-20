@@ -1,24 +1,8 @@
 import { CELLS_PER_YEAR, cellOriginForYear } from '@/Utils/Date/isoWeeks';
 
 /**
- * Span d'un mois dans la heatmap year · nombre de cellules dont le
- * mois "majoritaire" est ce mois.
- *
- * SC17 (2026-05-18) · convention « mois du jeudi » (équivalent au mois
- * où ≥ 4 jours sur 7 tombent · norme ISO 8601). Exceptions ·
- *   - cellules dont le jeudi est en Y-1 → forcées à janvier de Y
- *     (cas typique : cell 1 d'années comme 2027 dont sem ISO 1 ne
- *     commence que le 4/1)
- *   - cellules dont le jeudi est en Y+1 → forcées à décembre de Y
- *     (cas typique : cell 53 d'années comme 2024/2025 dont la dernière
- *     semaine contenant 30-31 déc est techniquement sem 1 ISO de Y+1)
- *
- * Cohérent avec la règle d'ouverture du drawer (SC15) · le mois affiché
- * dans le header heatmap est exactement le mois sur lequel le drawer
- * s'ouvre quand on clique sur la cellule.
- *
- * Garantie · Σ spans = CELLS_PER_YEAR (53) · les 12 mois couvrent
- * exactement toutes les cellules sans chevauchement.
+ * Span of each month in the heatmap year using the "Thursday-month" ISO
+ * convention. The 12 spans always sum to CELLS_PER_YEAR.
  */
 export type MonthSpan = {
     monthIdx: number; // 1..12
@@ -38,11 +22,11 @@ export function monthSpansForYear(year: number): MonthSpan[] {
 
         let month: number;
         if (thursdayYear < year) {
-            month = 1; // Cellule limite début · jeudi en Y-1 → janvier de Y
+            month = 1;
         } else if (thursdayYear > year) {
-            month = 12; // Cellule limite fin · jeudi en Y+1 → décembre de Y
+            month = 12;
         } else {
-            month = thursday.getUTCMonth() + 1; // Cas normal · mois du jeudi
+            month = thursday.getUTCMonth() + 1;
         }
 
         spans[month]!++;

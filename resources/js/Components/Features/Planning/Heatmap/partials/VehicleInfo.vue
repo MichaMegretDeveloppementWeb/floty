@@ -9,12 +9,7 @@ const props = defineProps<{
     vehicleView: HeatmapVehicleView;
 }>();
 
-/**
- * Coûts servis en différé (chantier perf 2026-05-16) · `fullYearTax` et
- * `dailyTaxRate` sont `null` tant que la 2ᵉ RTT Inertia::defer n'a pas
- * répondu pour CE véhicule. Tooltip + valeur masqués entre-temps, un
- * skeleton inline tient la place pour éviter le layout shift.
- */
+/** Fiscal costs are deferred; the inline skeleton holds the place until response. */
 const fiscalLoaded = computed<boolean>(
     () => props.vehicleView.fullYearTax !== null && props.vehicleView.dailyTaxRate !== null,
 );
@@ -24,11 +19,7 @@ const tooltipTitle = computed<string>(() =>
         : 'Calcul en cours',
 );
 
-/**
- * Tarifs jour/semaine/mois eager (cf. types.ts). `null` si aucun tarif
- * saisi pour l'année courante · on affiche un tiret muet (sobriété,
- * pas de feedback positif gratuit, mémoire `feedback_no_positive_feedback_noise`).
- */
+/** Daily/weekly/monthly pricings (eager). Display a muted dash when unset. */
 const hasPricing = computed<boolean>(
     () =>
         props.vehicleView.dailyRateCents !== null
@@ -71,12 +62,7 @@ const formatRate = (cents: number | null): string =>
                     {{ vehicleView.brand }} {{ vehicleView.model }}
                 </p>
             </Link>
-            <!-- `w-20` (80 px) réserve une bbox fixe pour le bloc « Taxe pleine »
-                 qui contient soit un skeleton (`w-14`), soit une valeur dont la
-                 largeur varie (« 1 234 € » à « 999 999 € »). Sans width fixe, la
-                 cellule se redimensionne quand les costs deferred arrivent et fait
-                 bouger toute la mini-fiche véhicule + comprime/dilate le bloc
-                 centre (heatmap 52 semaines). -->
+            <!-- Fixed 80px width avoids layout shift when the deferred value arrives. -->
             <div
                 class="flex w-20 shrink-0 flex-col items-end leading-tight"
                 :title="tooltipTitle"
@@ -90,9 +76,6 @@ const formatRate = (cents: number | null): string =>
                 >
                     {{ formatEur(vehicleView.fullYearTax!, 0) }}
                 </span>
-                <!-- Skeleton tant que la 2ᵉ RTT Inertia::defer n'a pas répondu
-                     pour ce véhicule. Même bbox que la valeur finale (h-3, w-14)
-                     pour éviter le layout shift quand la valeur arrive. -->
                 <span
                     v-else
                     class="skeleton-shimmer mt-0.5 inline-block h-3 w-14 rounded"
@@ -100,9 +83,6 @@ const formatRate = (cents: number | null): string =>
                 ></span>
             </div>
         </div>
-        <!-- Ligne tarifs jour/semaine/mois, ajoutée en SC3 (2026-05-18).
-             Toujours visible, format `J 12 € · S 60 € · M 220 €` quand
-             saisi · tiret muet `-` pour chaque tarif manquant. -->
         <div
             class="flex items-center gap-2 pl-[10px] font-mono text-[10px] text-slate-500 tabular-nums"
             title="Tarifs jour · semaine · mois"

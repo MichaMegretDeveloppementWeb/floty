@@ -1,26 +1,8 @@
 <script setup lang="ts">
 /**
- * Récap vivant de la location en cours de saisie/édition (chantier
- * UX-Loc). Deux modes de placement (cf. parents Create/Edit) :
- *
- *  - Mode aside (par défaut, ≥ xl) : carte sticky côté droit, toujours
- *    déployée. Le contenu est visible en permanence pour suivre la
- *    saisie en live.
- *  - Mode collapsible (`collapsible` prop, < xl) : carte placée dans
- *    le flux du form juste avant le bouton de soumission, repliée par
- *    défaut. L'utilisateur déplie pour vérifier le récap avant
- *    « Enregistrer ». Affiche une mini ligne de résumé (jours +
- *    montant) toujours visible.
- *
- * Affiche : véhicule + entreprise + plage + durée + type + conducteurs
- * + taxes induites résumées + lien « Voir le détail » qui ouvre la
- * `FiscalDetailModal` (le parent gère l'ouverture).
- *
- * État empty quand la saisie est encore incomplète : tip explicite.
- *
- * Le composant est purement présentationnel : il consomme les props
- * dérivées du form parent. La récupération du preview se fait via
- * `useContractFiscalPreview` côté parent, pas ici.
+ * Live recap card for a contract being created or edited.
+ * Two placement modes: aside (sticky, expanded) and collapsible (in-flow, toggle).
+ * Pure presentational; the parent owns the preview fetch (useContractFiscalPreview).
  */
 import { ChevronDown } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
@@ -29,11 +11,6 @@ import Plate from '@/Components/Ui/Plate/Plate.vue';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
-/**
- * Libellés courts FR pour les 12 mois (1=jan, 12=déc) · utilisés sur la
- * ligne « Nouveau total · Juin 1 350 € · Juil 980 € » du bloc loyer
- * induit (SC8 · 2026-05-18). Format spécifique à cet affichage compact.
- */
 const MONTH_LABELS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
 
 const props = withDefaults(
@@ -47,21 +24,14 @@ const props = withDefaults(
         driversCount: number;
         preview: App.Data.User.Fiscal.FiscalPreviewData | null;
         previewLoading: boolean;
-        /**
-         * Aperçu loyer induit (SC4 · 2026-05-18) · pendant non-fiscal
-         * du `preview`. Net après réductions appliquées.
-         */
+        /** Net rental preview after applied discounts. */
         rentalPreview?: App.Data.User.Planning.RentalPreviewData | null;
         rentalPreviewLoading?: boolean;
-        /**
-         * SC9 (2026-05-18) · 12 montants mensuels NET de l'entreprise
-         * sélectionnée × année (defer AJAX). Mini-timeline 12 mois
-         * affichée dans le récap, même forme que sur le planning.
-         */
+        /** 12 monthly NET amounts for the selected company × year. */
         companyMonthlyRentals?: Record<number, number | null> | null;
         companyMonthlyRentalsLoading?: boolean;
         companyMonthlyRentalsYear?: number | null;
-        /** Mode replié par défaut avec toggle (placement < xl). */
+        /** Collapsed by default with toggle (placement < xl). */
         collapsible?: boolean;
     }>(),
     {
@@ -118,7 +88,6 @@ return 'LLD';
     return '';
 });
 
-// État replié/déplié (uniquement utilisé en mode collapsible).
 const isOpen = ref<boolean>(false);
 
 function toggle(): void {
@@ -132,7 +101,6 @@ const showBody = computed<boolean>(
 
 <template>
     <div class="flex flex-col rounded-xl border border-slate-200 bg-white">
-        <!-- Header : eyebrow + (mini résumé + chevron en mode collapsible) -->
         <component
             :is="collapsible ? 'button' : 'div'"
             v-bind="collapsible ? { type: 'button', 'aria-expanded': isOpen } : {}"
@@ -187,9 +155,6 @@ const showBody = computed<boolean>(
         </component>
 
         <div v-if="showBody" class="flex flex-col gap-4 px-5 pt-4 pb-5">
-            <!-- SC10 (2026-05-18) · loyer mensuel REMONTÉ · visible dès
-                 que l'entreprise est sélectionnée (sans attendre véhicule
-                 + plage). Donne le contexte facturation amont au plus tôt. -->
             <div
                 v-if="company !== null"
                 class="overflow-hidden rounded-lg border border-slate-200 bg-white"
@@ -240,7 +205,6 @@ const showBody = computed<boolean>(
             </div>
 
             <template v-else>
-                <!-- Bloc identité véhicule + entreprise -->
                 <div class="flex flex-col gap-2">
                     <div class="flex items-center gap-2">
                         <Plate :value="vehicle!.plate" />
@@ -255,7 +219,6 @@ const showBody = computed<boolean>(
                     </div>
                 </div>
 
-                <!-- Bloc plage + durée + type -->
                 <div class="flex flex-col gap-1 border-t border-slate-100 pt-3">
                     <p class="text-sm text-slate-700">
                         Du <span class="font-medium">{{ startFr }}</span>
@@ -270,7 +233,6 @@ const showBody = computed<boolean>(
                     </div>
                 </div>
 
-                <!-- Bloc conducteurs -->
                 <div class="flex items-center justify-between gap-2 border-t border-slate-100 pt-3 text-sm">
                     <span class="text-slate-600">Conducteurs</span>
                     <span class="font-mono text-slate-900">
@@ -278,7 +240,6 @@ const showBody = computed<boolean>(
                     </span>
                 </div>
 
-                <!-- Bloc taxes induites · SC7 refonte design sobre (mockup B) -->
                 <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
                     <div class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-slate-100">
                         <span class="text-[11px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
@@ -321,8 +282,6 @@ const showBody = computed<boolean>(
                     </div>
                 </div>
 
-                <!-- Bloc loyer induit · SC7 refonte design sobre (mockup B).
-                     Pendant non-fiscal · net après réductions appliquées. -->
                 <div class="overflow-hidden rounded-lg border border-slate-200 bg-white">
                     <div class="flex items-center justify-between gap-3 px-3 py-2.5 border-b border-slate-100">
                         <span class="text-[11px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
@@ -387,8 +346,6 @@ const showBody = computed<boolean>(
                                         {{ formatEur((rentalPreview.netTotalCents ?? 0) / 100, 0) }}
                                     </span>
                                 </div>
-                                <!-- SC8 (2026-05-18) · impact mois par mois sur
-                                     la facture entreprise. -->
                                 <div
                                     v-if="rentalPreview.monthlyImpact && rentalPreview.monthlyImpact.length > 0"
                                     class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-slate-500"

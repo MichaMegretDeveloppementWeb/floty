@@ -1,23 +1,8 @@
 <script setup lang="ts">
 /**
- * Modal d'édition d'une membership Driver↔Company existante (chantiers
- * B + B-bis).
- *
- * Champs : `joined_at` (toujours requis) + `left_at` (optionnel).
- *  - Membership active : `currentLeftAt` est `null`, le champ part vide,
- *    l'utilisateur peut laisser vide ou poser une date de sortie (mais
- *    pour la première sortie d'une membership active, le workflow Sortir
- *    dédié · `LeaveDriverCompanyModal` · est préférable car il gère les
- *    contrats à venir).
- *  - Membership sortie : `currentLeftAt` est la date posée. L'utilisateur
- *    peut la corriger ou l'effacer (réactivation).
- *
- * Validation chronologique côté serveur (`UpdateDriverCompanyMembershipAction`) :
- * `joined_at <= left_at` si `left_at` est posé. Une violation est
- * surfacée comme `ValidationException` sur le champ `joined_at`.
- *
- * Le composant est neutre quant au contexte · réutilisé depuis
- * Driver Show ET Company Show.
+ * Edit modal for an existing Driver-Company membership.
+ * Allows correcting joined_at and posting / clearing left_at (reactivation).
+ * For a first exit on an active membership, prefer LeaveDriverCompanyModal.
  */
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -61,8 +46,7 @@ function clearLeftAt(): void {
 function submit(): void {
     form.transform((data) => ({
         joined_at: data.joined_at,
-        // Normalise les chaînes vides en `null` pour être interprété
-        // comme « pas de date de sortie » côté serveur (réactivation).
+        // Empty string -> null so the backend treats it as "no exit date" (reactivation).
         left_at: data.left_at === null || data.left_at === '' ? null : data.left_at,
     })).patch(updateRoute.url([props.driverId, props.pivotId]), {
         preserveScroll: true,

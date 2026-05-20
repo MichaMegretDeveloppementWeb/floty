@@ -1,16 +1,8 @@
 <script setup lang="ts">
 /**
- * Section repliable « + Plus d'options » du drawer planning
- * (chantier UX-Loc).
- *
- * Contient les champs **secondaires** d'une attribution :
- *   - Référence location
- *   - Notes
- *   - Bouton « 📎 Documents » (ouvre `ContractDocumentsModal`)
- *
- * Pliée par défaut : la majorité des attributions rapides depuis le
- * drawer ne renseignent pas ces champs. Permet de garder la surface
- * compacte sans sacrifier la parité fonctionnelle avec la page Create.
+ * Collapsible "more options" section of the planning drawer.
+ * Holds secondary contract fields (reference, notes, documents trigger),
+ * collapsed by default to keep the drawer compact.
  */
 import { ChevronDown, Paperclip } from 'lucide-vue-next';
 import { ref } from 'vue';

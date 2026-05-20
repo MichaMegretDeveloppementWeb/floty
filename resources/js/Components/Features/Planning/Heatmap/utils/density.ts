@@ -1,20 +1,8 @@
-/**
- * Échelle de densité 0 → 7 (jours utilisés / semaine) calée sur la
- * palette `bg-blue-*` du design system.
- *
- * Extrait du composant `Heatmap` pour réutilisation dans la légende
- * et les cellules sans dupliquer la logique.
- */
+/** Density scale 0..7 (days used per week) mapped to the bg-blue-* palette. */
 
 export function densityClass(days: number): string {
     if (days <= 0) {
-        // SC12 (2026-05-18) · cellule vide bg-white OPAQUE · l'overlay
-        // alterné mois pair/impair posé en arrière-plan dans `Heatmap.vue`
-        // passe DERRIÈRE les cellules · effet visible dans les gaps 1px
-        // entre cellules + 14px de blanc au-dessus/en-dessous des boutons
-        // h-7 dans chaque row h-56. L'overlay utilise un flex synchronisé
-        // avec les vraies cellules + gradients pour les cellules qui
-        // chevauchent 2 mois · transition pixel-exacte au bon endroit.
+        // Empty cell: opaque white so the month-parity overlay shows only in the gaps.
         return 'bg-white border border-slate-200';
     }
 
@@ -49,16 +37,7 @@ export function textContrastClass(days: number): string {
     return days >= 3 ? 'text-white' : 'text-slate-500';
 }
 
-/**
- * Ring inset bleu pour les cellules basse densité (1-2 jours).
- *
- * SC21 (2026-05-18) · les cellules `bg-blue-50` (1j) et `bg-blue-100`
- * (2j) ont une luminance trop proche du fond `slate-100` du mois
- * impair · un ring inset `blue-200` matérialise leur contour sans
- * changer la teinte du fond. Conflit potentiel avec
- * `ring-rose-500` (indispo) géré dans `WeekCellsRow` via un computed
- * qui supprime ce ring si l'indispo est présente sur la cellule.
- */
+/** Inset blue ring for low-density cells (1-2 days). */
 export function densityRingClass(days: number): string {
     if (days >= 1 && days <= 2) {
         return 'ring-1 ring-blue-200 ring-inset';
@@ -67,12 +46,7 @@ export function densityRingClass(days: number): string {
     return '';
 }
 
-/** Constantes de layout - partagées entre l'orchestrateur et les partials. */
+/** Layout constants shared with the partials. */
 export const HEATMAP_CELL_WIDTH = 21;
-/**
- * Largeur baseline pour une grille à 52 semaines · conservée pour
- * compatibilité, mais préférer un calcul dynamique via
- * {@link isoWeeksInYear} (cf. SC14 · 2026-05-18 · années à 53 semaines
- * comme 2026).
- */
+/** Baseline grid width for 52 weeks; prefer the dynamic isoWeeksInYear helper. */
 export const HEATMAP_GRID_WIDTH = 52 * HEATMAP_CELL_WIDTH;

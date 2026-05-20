@@ -1,11 +1,7 @@
 <script setup lang="ts">
 /**
- * Rendu d'une option « Entreprise » pour les dropdowns
- * (`SearchableSelect` slots `option` + `selected`).
- *
- * Pastille couleur (shortCode) + legalName en texte. Cohérent visuel
- * avec `<CompanyTag>` partout ailleurs dans l'UI sans dupliquer le
- * nom de l'entreprise (CompanyTag affiche déjà name + initials).
+ * Renders a Company option for SearchableSelect dropdowns.
+ * Colored short-code dot plus the legal name.
  */
 import { computed } from 'vue';
 

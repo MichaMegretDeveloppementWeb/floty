@@ -1,20 +1,9 @@
 <script setup lang="ts">
 /**
- * Carte de synthèse fiscale d'une déclaration (Phase 11 D5.6, refondu
- * D5.8.3 : breakdown chronologique par contrat avec clusters in-line).
- *
- * Affiche :
- *   1. La synthèse 3 lignes (CO2, polluants, total dû) recalculée
- *      à la volée par `DeclarationFiscalEngine` (D5.2) ou figée
- *      depuis le payload persisté en BDD (D5.7.5).
- *   2. Le tableau chronologique des contrats via
- *      `<DeclarationContractList>` (D5.8.3) : tri pré-calculé côté
- *      backend `(vehicleLabel, startDate)`, groupage visuel des
- *      clusters LCD à risque.
- *
- * Mode interactif (Review) : passer `reviewClusters` + écouter
- * `submit` pour appeler `useReviewForm`.
- * Mode passif (Show) : ne pas passer `reviewClusters`.
+ * Fiscal summary card for a declaration.
+ * Renders the 3-row summary (CO2, pollutants, total) plus a chronological
+ * contract breakdown via DeclarationContractList. Interactive mode (Review)
+ * passes reviewClusters and listens to submit; passive mode (Show) omits them.
  */
 import { Calculator } from 'lucide-vue-next';
 import { ref } from 'vue';
@@ -26,10 +15,7 @@ const props = defineProps<{
     snapshot: App.Data.User.FiscalDeclaration.FiscalDeclarationSnapshotData;
     reviewClusters?: App.Data.User.FiscalDeclaration.ReviewClusterData[];
     submitting?: boolean;
-    /**
-     * Lot 5 D1 · seuils paramétrables propagés à `<DeclarationContractList>`
-     * → `<ClusterDecisionModal>`. Requis en mode Review.
-     */
+    /** Configurable risk thresholds. Required in Review mode. */
     riskSettings?: App.Data.User.FiscalRiskSettings.FiscalRiskSettingsData;
 }>();
 

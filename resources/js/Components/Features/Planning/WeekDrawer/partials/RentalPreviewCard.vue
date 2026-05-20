@@ -1,32 +1,12 @@
 <script setup lang="ts">
 /**
- * Aperçu loyer compact pour le drawer planning (SC4 · 2026-05-18,
- * refonte design SC7 · 2026-05-18).
- *
- * Design Stripe-like (mockup B) · pendant non-fiscal de
- * {@link FiscalPreviewCard} · même squelette, mêmes tokens. Aucune
- * couleur dominante de fond (retiré bg-emerald-50/40 + border-emerald-200) ·
- * carte blanche border-slate-200, header avec border-bottom slate-100,
- * eyebrow uppercase 11px slate-500, valeurs mono slate-900.
- *
- * Le wording « Réductions appliquées · -X € (-X,X %, libellé) » conforme
- * à la mémoire `feedback_wording_reductions_appliquees`. La ligne
- * réduction reste teintée emerald-700 (texte uniquement) pour conserver
- * un signal positif fort, mais SANS fond ni encart coloré.
- *
- * Calcul strictement équivalent à la facture finale ·
- * `OptimalRateBreakdown` par mois civil + `DiscountApplier`.
+ * Compact rental preview for the planning drawer; non-fiscal twin of FiscalPreviewCard.
+ * Same shape (collapsible card) and same calculation source as the final invoice.
  */
 import { ChevronDown } from 'lucide-vue-next';
 import { computed, ref } from 'vue';
 import { formatEur } from '@/Utils/format/formatEur';
 
-/**
- * Libellés courts FR pour les 12 mois (1=jan, 12=déc) · utilisés sur la
- * ligne « Nouveau total · Juin 1 350 € · Juil 980 € » (SC8 · 2026-05-18).
- * Format spécifique à cet affichage compact · pas de mutualisation
- * (cf. doctrine `chargement-strict-par-ecran`).
- */
 const MONTH_LABELS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
 
 const props = defineProps<{
@@ -45,10 +25,7 @@ const hasDiscount = computed<boolean>(
         && (props.preview.discountCents ?? 0) > 0,
 );
 
-/**
- * Taux en pourcent (basisPoints → % avec 1 décimale max).
- * 1050 → 10,5 % · 1000 → 10 %
- */
+// basisPoints -> percentage with at most one decimal (1050 -> 10,5 %).
 const discountPercentLabel = computed<string>(() => {
     const bp = props.preview?.appliedDiscountBasisPoints ?? null;
     if (bp === null) {
@@ -153,11 +130,6 @@ const discountPercentLabel = computed<string>(() => {
                         {{ formatEur((preview.netTotalCents ?? 0) / 100, 0) }}
                     </span>
                 </div>
-                <!-- SC8 (2026-05-18) · impact mois par mois sur la facture de
-                     l'entreprise · pour chaque mois civil touché, affiche le
-                     nouveau total mensuel après ajout de cette location.
-                     Format compact `Juin 1 350 € · Juil 980 €` (entier sans
-                     centimes pour cohérence avec le planning). -->
                 <div
                     v-if="preview.monthlyImpact && preview.monthlyImpact.length > 0"
                     class="mt-2 flex flex-wrap items-baseline gap-x-2 gap-y-1 text-xs text-slate-500"

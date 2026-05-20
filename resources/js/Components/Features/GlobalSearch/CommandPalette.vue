@@ -24,22 +24,10 @@ import ResultGroup from './partials/ResultGroup.vue';
 import ResultItem from './partials/ResultItem.vue';
 
 /**
- * Palette de recherche globale ⌘K (V1.1) · monté **une seule fois**
- * dans `UserLayout`. Couvre les 5 entités définies dans
- * {@see GlobalSearchService} ·
- *
- *  - Véhicules, Entreprises, Conducteurs (toujours)
- *  - Raccourcis contrats (≥ 2 tokens croisés)
- *  - Déclarations (année + entreprise dans la query)
- *
- * Comportement clavier ·
- *  - ⌘K / Ctrl+K · toggle ouverture (cf. {@see useCommandPaletteShortcut})
- *  - Escape · ferme
- *  - ↑ / ↓ · navigation flat (tous groupes confondus, ordre d'affichage)
- *  - Enter · visite l'item actif + ajoute aux recents + ferme
- *
- * État vide (query < 2 caractères) · affiche les 5 derniers items
- * cliqués (localStorage `floty.search.recents`).
+ * Global search palette (Cmd/Ctrl+K). Mounted once in UserLayout.
+ * Covers vehicles, companies, drivers plus cross-token contract shortcuts
+ * and declaration shortcuts. Keyboard: arrows navigate, Enter selects,
+ * Tab autocompletes primary entities, Escape closes.
  */
 
 const palette = useCommandPalette();
@@ -179,16 +167,7 @@ function selectItem(item: FlatItem): void {
     router.visit(item.href);
 }
 
-/**
- * Texte d'autocomplétion (Tab) pour un item · uniquement les 3
- * entités primaires (véhicule, entreprise, conducteur). Les
- * raccourcis contrats/déclarations ne sont PAS autocomplétables ·
- * ce sont des destinations finales, pas des points de départ pour
- * affiner la recherche.
- *
- * Le séparateur visuel ` · ` du label est remplacé par un simple
- * espace pour rester matchable côté backend (qui tokenize par espaces).
- */
+// Tab autocomplete is restricted to the three primary entities; shortcuts are terminal destinations.
 function autocompleteTextFor(item: FlatItem): string | null {
     if (
         item.type === 'vehicle'
@@ -202,9 +181,8 @@ function autocompleteTextFor(item: FlatItem): string | null {
 }
 
 /**
- * Reset complet du state local du composant · vidange l'input, l'index
- * actif et le dernier résultat. Idempotent · safe d'appeler plusieurs
- * fois (à la fermeture, à l'ouverture, sur sélection d'item).
+ * Reset the local component state (input, active index, last result).
+ * Idempotent; safe to call on open, close and item selection.
  */
 function resetLocalState(): void {
     query.value = '';
@@ -255,9 +233,8 @@ function handleKeydown(event: KeyboardEvent): void {
             return;
         }
 
-        // preventDefault uniquement quand on autocomplete · sinon
-        // on laisse Tab passer (utile pour quitter la modale au focus
-        // bouton fermer mobile).
+        // preventDefault only when autocompleting; otherwise let Tab
+        // through (needed to escape the modal on mobile close button).
         event.preventDefault();
         query.value = text;
 
@@ -277,11 +254,9 @@ function handleKeydown(event: KeyboardEvent): void {
 watch(palette.isOpen, async (open) => {
     bodyScrollLock.value = open;
 
-    // Reset systématique à chaque changement d'état (defensive) ·
-    // garantit qu'on ne voit JAMAIS l'ancien résultat à la réouverture,
-    // même si l'enchaînement close → open arrive sans que la branche
-    // `false` n'ait eu le temps de tourner (cas observé · ouverture
-    // depuis le trigger TopBar laissait l'ancien résultat visible).
+    // Defensive reset on every state change: ensures stale results are
+    // never visible on reopen, even when close -> open fires fast enough
+    // that the `false` branch never had a chance to run.
     resetLocalState();
 
     if (open) {
@@ -290,18 +265,17 @@ watch(palette.isOpen, async (open) => {
     }
 });
 
-// Reset activeIndex sur changement de résultat (sinon hors-bornes)
+// Reset activeIndex whenever results change to avoid out-of-bounds.
 watch(flatItems, () => {
     activeIndex.value = 0;
 });
 </script>
 
 <template>
-    <!-- Teleport monté en permanence (pas de `v-if` ici) · le `<div>`
-        intérieur est seul conditionné. Sans ça, l'unmount immédiat à
-        la fermeture annulait le watch `palette.isOpen` qui devait
-        reset query/result · l'ancien résultat restait alors visible
-        à la réouverture suivante (bug observé en Chrome live 2026-05-17). -->
+    <!-- Teleport stays mounted (no v-if); only the inner div is gated.
+         Unmounting at close cancelled the `palette.isOpen` watcher
+         responsible for resetting query/result, leaving stale results
+         visible on the next open. -->
     <Teleport to="body">
         <div
             v-if="palette.isOpen.value"
@@ -347,7 +321,6 @@ watch(flatItems, () => {
                 </header>
 
                 <div class="flex-1 overflow-y-auto p-2">
-                    <!-- État loading · skeleton 3 lignes -->
                     <div v-if="loading" class="flex flex-col gap-2 p-2">
                         <Skeleton
                             v-for="i in 3"
@@ -356,7 +329,6 @@ watch(flatItems, () => {
                         />
                     </div>
 
-                    <!-- État vide initial · recents localStorage -->
                     <div v-else-if="showRecents">
                         <div
                             v-if="palette.recents.length === 0"
@@ -398,7 +370,6 @@ watch(flatItems, () => {
                         </ResultGroup>
                     </div>
 
-                    <!-- État no result -->
                     <div
                         v-else-if="showEmptyState"
                         class="flex flex-col items-center gap-2 px-3 py-12 text-center"
@@ -412,7 +383,6 @@ watch(flatItems, () => {
                         </p>
                     </div>
 
-                    <!-- État avec résultats · groupes -->
                     <div
                         v-else-if="result !== null && hasAnyResult"
                         class="flex flex-col gap-1"
@@ -565,7 +535,7 @@ watch(flatItems, () => {
                     </div>
                 </div>
 
-                <!-- Footer raccourcis (desktop uniquement) -->
+                <!-- Shortcut footer (desktop only) -->
                 <footer
                     class="hidden items-center gap-4 border-t border-slate-200 bg-slate-50/60 px-4 py-2.5 text-xs text-slate-500 md:flex"
                 >

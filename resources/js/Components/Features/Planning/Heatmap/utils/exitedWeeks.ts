@@ -1,10 +1,6 @@
 /**
- * Calcule le numéro de semaine ISO (1-52) auquel correspond une date
- * `YYYY-MM-DD`. On approxime avec la convention française ISO 8601 :
- * la semaine 1 contient le 4 janvier.
- *
- * Suffisant pour griser les cellules « après exit_date » dans la
- * heatmap - pas pour de la fiscalité (où le backend reste autorité).
+ * Returns the ISO week number (1-52) for a YYYY-MM-DD date.
+ * Sufficient for greying out heatmap cells after exit_date; not authoritative for fiscal logic.
  */
 export function isoWeekOf(date: string): number {
     const target = new Date(`${date}T00:00:00`);
@@ -23,18 +19,8 @@ export function isoWeekOf(date: string): number {
 }
 
 /**
- * Indique si la cellule de la semaine `weekIndex` (0-based, donc
- * semaine ISO `weekIndex + 1`) est après la sortie de flotte du
- * véhicule pour l'année fiscale considérée.
- *
- * Cas :
- *   - `exitDate === null` → false (jamais grisé)
- *   - `exitDate` antérieure au 1er janvier de `fiscalYear` → toutes
- *     grisées (le véhicule ne devrait pas apparaître dans cette
- *     heatmap, mais filet de sécurité)
- *   - `exitDate` postérieure au 31 décembre de `fiscalYear` → aucune
- *     grisée (le véhicule est encore actif sur toute l'année)
- *   - sinon : grise les semaines strictement après celle de exitDate
+ * True iff the cell at the given 0-based week index falls after the
+ * vehicle's exit date for the given fiscal year.
  */
 export function isCellAfterExit(
     weekIndex: number,

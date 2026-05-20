@@ -1,30 +1,8 @@
 <script setup lang="ts">
 /**
- * Timeline chronologique des versions d'une déclaration fiscale pour
- * un couple `(company, year)` (Phase 13 D5.10.B, refondu D5.10.G).
- *
- * Lecture · plus récent en haut, plus ancien en bas (lecture
- * descendante = retour dans le temps). Cohérent avec un fil
- * d'événements `git log` ou un changelog moderne.
- *
- * **Tri stable** (D5.10.G) · le composant trie en interne par `id
- * DESC` peu importe l'ordre d'entrée, pour que l'ordre d'affichage
- * ne dépende JAMAIS de la version actuellement consultée. La
- * version consultée est repérée par `currentDeclarationId` (id à
- * mettre en évidence) plutôt que de la déplacer en tête de liste.
- *
- * Pour chaque entrée :
- *   - Cercle coloré selon le statut (emerald = générée active, rose
- *     = obsolète, amber = mise de côté, slate = brouillon).
- *   - Référence en `font-mono` cliquable (Link vers Show) sauf si
- *     c'est la version actuellement consultée · dans ce cas, rendu
- *     en `<span>` non cliquable + badge « Version consultée » + ring
- *     plus épais sur le dot.
- *   - Libellé d'état explicite.
- *   - Date de génération si disponible.
- *
- * Pas de logique métier ni d'événement émis · composant purement
- * présentationnel.
+ * Chronological timeline of declaration versions for (company, year).
+ * Sorted internally by id DESC; highlights the currently viewed version
+ * via currentDeclarationId without reordering.
  */
 import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
@@ -59,7 +37,6 @@ function dotClassFor(d: ItemData): string {
         return 'bg-amber-400 ring-amber-100';
     }
 
-    // draft
     return 'bg-slate-400 ring-slate-100';
 }
 

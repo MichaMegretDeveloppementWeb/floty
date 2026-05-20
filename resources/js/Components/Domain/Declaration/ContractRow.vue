@@ -1,27 +1,9 @@
 <script setup lang="ts">
 /**
- * Ligne contrat dans le tableau breakdown d'une déclaration fiscale
- * (Phase 11 D5.8, enrichi D5.9.C avec `decisionIndicator`).
- *
- * Format compact, dense en information · période, type LCD/LLD,
- * label véhicule, résumé fiscal (M1, WLTP, Euro X), jours dans
- * l'année, taxe totale (CO2 + polluants).
- *
- * Indicateurs visuels ·
- *   - **decisionIndicator** · matérialise le sort fiscal final du
- *     contrat dans la cellule TYPE. « LCD → LLD » (rose) quand le
- *     cluster a été requalifié, « LCD conservé » (emerald) quand
- *     conservé. Rien si pas de décision ou si contrat hors cluster.
- *   - **« Décision reprise »** · badge en cellule TAXE quand
- *     `clusterDecisionRetainedFrom` est posé (chaîne déclarative
- *     précédente, amélioration B D5.8).
- *
- * Les props `bgClass` et `accentBorderClass` permettent au parent
- * (`<ClusterGroup>` via `<DeclarationContractList>`) de marquer la
- * row d'un fond slate-50 uniforme et d'une bordure colorée
- * (border-l-2 rose/amber) pour visualiser l'appartenance au cluster
- * sur l'axe vertical, en cohérence avec le header et la row de
- * fermeture rendus par `<ClusterGroup>`.
+ * Contract row in a declaration breakdown table.
+ * Shows period, LCD/LLD, vehicle, fiscal summary, days, CO2/pollutants and total.
+ * decisionIndicator marks the final cluster outcome and "Decision reuse" badge
+ * surfaces clusterDecisionRetainedFrom heritage.
  */
 import { router } from '@inertiajs/vue3';
 import { ArrowUpRight, CheckCircle2, History } from 'lucide-vue-next';
@@ -34,19 +16,9 @@ import { formatEur } from '@/Utils/format/formatEur';
 const props = withDefaults(
     defineProps<{
         contract: App.Data.User.FiscalDeclaration.ContractSnapshotEntryData;
-        /**
-         * Classe de fond à appliquer sur le `<tr>` racine. Utilisée
-         * par `<DeclarationContractList>` pour passer `bg-slate-50`
-         * aux contrats appartenant à un cluster (encadrement continu).
-         */
+        /** Background class for the tr, e.g. bg-slate-50 for clustered contracts. */
         bgClass?: string;
-        /**
-         * Classe d'accent (border-l-2 + couleur) appliquée sur la 1ère
-         * `<td>` quand le contrat appartient à un cluster. Permet la
-         * matérialisation continue du cluster sur l'axe vertical, en
-         * cohérence avec le header et la row de fermeture rendus par
-         * `<ClusterGroup>` (Phase 13 D5.10.C).
-         */
+        /** Accent class (border-l-2 + color) for the first td when clustered. */
         accentBorderClass?: string;
     }>(),
     {

@@ -1,35 +1,9 @@
 <script setup lang="ts">
 /**
- * Table chronologique des contrats d'une déclaration fiscale avec
- * groupage visuel par cluster LCD à risque (Phase 11 D5.8, refondu
- * D5.9.C avec modale de décision, refondu D5.10.N · critère plage
- * couverte + tri snapshot strictement chronologique, refondu
- * D5.10.Q · réorganisation locale pour clusters intercalés).
- *
- * Itère sur `contractBreakdown` (déjà trié backend par
- * `(startDate, vehicleId, contractId)` ASC depuis D5.10.N), regroupe
- * les contrats appartenant à un même `clusterFingerprint` dans une
- * boîte visuelle (composant `<ClusterGroup>`). Les contrats sans
- * cluster sont rendus comme des `<ContractRow>` isolées.
- *
- * **Réorganisation locale (D5.10.Q)** · les contrats d'un même cluster
- * sont rendus physiquement collés (header + N rows + footer en bloc)
- * à la position du premier contrat du cluster dans le tri reçu. Si un
- * contrat hors-cluster (LLD intercalé sur autre véhicule) sépare
- * temporellement deux contrats du cluster, il est déplacé après le
- * bloc cluster · cohérence visuelle prime sur ordre chronologique
- * strict global. Le tri backend reste inchangé · seul le rendu Vue
- * réorganise.
- *
- * **Mode interactif** · quand `reviewClusters` est fourni (page
- * Review), un bouton « Décider » apparaît dans le header de chaque
- * cluster et ouvre `<ClusterDecisionModal>`. À la soumission, l'event
- * `submit(cluster, decision, justification)` est ré-émis au parent.
- *
- * **Mode passif** (page Show) · `reviewClusters` est `undefined`,
- * aucune modale n'est montée. Les ClusterGroup affichent la décision
- * déjà prise (badge dans le header + justification persistée en
- * dessous).
+ * Chronological contract table of a declaration with visual cluster grouping.
+ * Iterates contractBreakdown (sorted backend-side), groups same-fingerprint
+ * contracts together with local reordering for interleaved off-cluster rows.
+ * Interactive mode (reviewClusters provided) exposes a per-cluster Decide button.
  */
 import { computed, ref } from 'vue';
 import ClusterDecisionModal from './ClusterDecisionModal.vue';
@@ -45,14 +19,10 @@ type Group =
 
 const props = defineProps<{
     contractBreakdown: Contract[];
-    /** Clusters fournis en page Review pour activer la modale de décision. Absent en page Show (mode passif). */
+    /** Clusters provided on the Review page to enable the decision modal. Omitted on Show. */
     reviewClusters?: ReviewCluster[];
     submitting?: boolean;
-    /**
-     * Lot 5 D1 · seuils paramétrables exposés au `<ClusterDecisionModal>`.
-     * Requis en mode Review (quand `reviewClusters` est fourni), inutile
-     * en mode Show.
-     */
+    /** Configurable thresholds, required in Review mode. */
     riskSettings?: App.Data.User.FiscalRiskSettings.FiscalRiskSettingsData;
 }>();
 
@@ -65,19 +35,11 @@ const emit = defineEmits<{
     ];
 }>();
 
-// Phase 13 D5.10.H · 7 colonnes (Période, Type, Véhicule, Jours, CO₂,
-// Polluants, Taxe totale). Le colspan est propagé au header/footer de
-// `<ClusterGroup>`.
+// 7 columns: Period, Type, Vehicle, Days, CO2, Pollutants, Tax.
 const COLSPAN = 7;
 const CLUSTER_ROW_BG = 'bg-slate-50';
 
-/**
- * Calcule la classe d'accent (`border-l-2` + couleur) à propager aux
- * `<ContractRow>` enfants d'un cluster (Phase 13 D5.10.C). Cohérent
- * avec la couleur appliquée par `<ClusterGroup>` sur son header et sa
- * row de fermeture · le résultat visuel est une bordure verticale
- * continue du haut au bas du cluster.
- */
+/** Border accent class propagated to ContractRow children of a cluster. */
 function accentBorderClassFor(
     level: App.Enums.FiscalReviewDecision.RiskLevel,
 ): string {
@@ -89,14 +51,8 @@ function accentBorderClassFor(
 const isInteractive = computed<boolean>(() => props.reviewClusters !== undefined);
 
 const groups = computed<Group[]>(() => {
-    // Phase 13 D5.10.Q · réorganisation locale · les contrats d'un
-    // même cluster sont rendus collés en bloc (header + N rows + footer)
-    // à la position du premier contrat du cluster dans le tri reçu.
-    // Les contrats hors-cluster intercalés sont rendus normalement
-    // à leur position (donc APRÈS le bloc cluster s'ils étaient
-    // chronologiquement entre deux contrats du cluster).
-
-    // Index par fingerprint pour résoudre en O(1).
+    // Render same-cluster contracts as one contiguous block at the position
+    // of the first one; interleaved off-cluster rows fall after the block.
     const byFingerprint = new Map<string, Contract[]>();
 
     for (const c of props.contractBreakdown) {
@@ -120,7 +76,6 @@ const groups = computed<Group[]>(() => {
         }
 
         if (rendered.has(fp)) {
-            // Déjà rendu en bloc lors de la 1ère rencontre · skip.
             continue;
         }
 
@@ -132,14 +87,7 @@ const groups = computed<Group[]>(() => {
     return result;
 });
 
-/**
- * Lookup riche du cluster côté Review (contractsCount, plage couverte,
- * nb véhicules distincts, decision pré-appliquée, justification
- * éditable, level). Quand le cluster n'existe pas dans
- * `reviewClusters` (par exemple en page Show), on dérive les
- * méta-données minimales depuis les contrats eux-mêmes (decision
- * persistée portée par `contract.clusterDecision`).
- */
+/** Rich Review-cluster lookup; falls back to data derived from the contracts on Show. */
 const reviewClusterByFingerprint = computed<Map<string, ReviewCluster>>(() => {
     const map = new Map<string, ReviewCluster>();
 
@@ -182,11 +130,7 @@ function metaFromCluster(
         };
     }
 
-    // Fallback Show · pas de cluster Review (snapshot persisté seul).
-    // On déduit les méta-données depuis les contrats eux-mêmes ·
-    // contractsCount = nombre de rows du groupe local · plage couverte
-    // dérivée des dates min/max (déjà tri chronologique strict) ·
-    // distinctVehiclesCount par dédoublonnage.
+    // Show fallback: derive metadata from the contracts (no Review cluster available).
     const firstContract = contracts[0];
 
     if (firstContract === undefined) {
@@ -225,11 +169,7 @@ function metaFromCluster(
     };
 }
 
-/**
- * État de la modale de décision (Phase 12 D5.9.C). La modale est
- * partagée entre tous les clusters interactifs · seul le cluster
- * sélectionné est passé en prop quand ouverte.
- */
+// Shared decision modal state; only the active cluster is passed in when open.
 const modalOpen = ref<boolean>(false);
 const selectedCluster = ref<ReviewCluster | null>(null);
 
@@ -251,12 +191,7 @@ function handleModalSubmit(
 }
 
 defineExpose({
-    /**
-     * Permet à `<DeclarationClustersRecap>` de faire défiler la page
-     * jusqu'au cluster ciblé. Phase 13 D5.10.P · `block: 'center'`
-     * pour éviter que le header de cluster soit masqué par le recap
-     * sticky positionné en haut du viewport.
-     */
+    /** Scrolls the page to the target cluster header. */
     scrollToCluster(fingerprint: string): void {
         const el = document.getElementById(`cluster-${fingerprint}`);
 

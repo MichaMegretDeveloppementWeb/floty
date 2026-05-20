@@ -1,18 +1,8 @@
 <script setup lang="ts">
 /**
- * Sélecteur multi-véhicules pour le form RentalDiscount (Lot 4 chantier
- * RentalDiscount). Présente la flotte sous forme de liste à cocher avec
- * filtre de recherche (plaque + marque + modèle).
- *
- * UX différente de `DriversMultiPicker` (qui est slot-based) ·
- *  - Le périmètre véhicules est borné (< 100 typique), pas besoin d'une
- *    UX « ajouter une ligne ». Liste à cocher = sélection rapide groupée.
- *  - Affichage de chips au-dessus de la liste pour visualiser
- *    la sélection courante en un coup d'œil.
- *  - Compteur de sélection + bouton « Tout désélectionner ».
- *
- * Émet `update:modelValue` avec un `number[]` (ids sélectionnés, ordre
- * d'ajout préservé).
+ * Multi-vehicle picker for the RentalDiscount form.
+ * Searchable checklist (plate + brand + model) with selection counter and
+ * "deselect all" affordance. Emits update:modelValue with number[] of ids.
  */
 import { computed, ref } from 'vue';
 import SearchInput from '@/Components/Ui/SearchInput/SearchInput.vue';
@@ -28,7 +18,7 @@ const props = withDefaults(
     defineProps<{
         modelValue: number[];
         vehicles: readonly VehicleOption[];
-        /** Désactive l'ensemble (ex. toggle « tous » activé). */
+        /** Disables the whole picker (e.g. when the "all vehicles" toggle is on). */
         disabled?: boolean;
     }>(),
     { disabled: false },

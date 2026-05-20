@@ -3,14 +3,9 @@ import type { Component } from 'vue';
 import { computed } from 'vue';
 
 /**
- * Item cliquable de la palette de recherche globale ⌘K (V1.1).
- *
- * Présenté comme un bouton plein-largeur · icône à gauche, label +
- * sublabel optionnel à droite. L'état `active` (navigué via flèches)
- * applique un fond `bg-slate-100`.
- *
- * Émet `select` au clic ou survol (parent CommandPalette gère la
- * navigation + le router visit).
+ * Clickable item in the global search palette (Cmd/Ctrl+K).
+ * Full-width button with leading icon and a label plus optional sublabel.
+ * Emits `select` on click and `hover`; the parent owns navigation + router visit.
  */
 const props = defineProps<{
     icon: Component;

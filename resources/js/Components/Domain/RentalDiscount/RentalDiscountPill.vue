@@ -1,14 +1,7 @@
 <script setup lang="ts">
 /**
- * Badge présentationnel pour un pourcentage de réduction commerciale
- * (Lot 3 chantier RentalDiscount). Affiche `X,XX %` avec un picto
- * `BadgePercent` discret, dans une teinte emerald (cohérent avec la
- * sémantique "économie / gain").
- *
- * Composant slim · pas de logique d'état, pas d'IO. Utilisable partout :
- *   - Inline dans une ligne facture
- *   - Trigger d'un `AppliedDiscountTooltip`
- *   - Listing de la section "Réductions" sur Company Show
+ * Presentational pill for a commercial discount percentage.
+ * Renders "X,XX %" with an optional BadgePercent icon and tone variant.
  */
 import { BadgePercent } from 'lucide-vue-next';
 import { computed } from 'vue';
@@ -19,17 +12,13 @@ type Tone = 'emerald' | 'slate' | 'amber';
 
 const props = withDefaults(
     defineProps<{
-        /** Pourcentage stocké en basis points (1 050 bp = 10,50 %). */
+        /** Percentage stored in basis points (1 050 bp = 10,50 %). */
         basisPoints: number;
-        /** Densité visuelle · `sm` pour inline ligne / `md` pour bandeau. */
+        /** Visual density. */
         size?: Size;
-        /**
-         * Teinte selon le statut de la réduction · `emerald` = active
-         * (défaut), `amber` = planifiée, `slate` = expirée / snapshot
-         * historique sur une facture obsolète.
-         */
+        /** Tone: emerald (active), amber (planned), slate (expired/snapshot). */
         tone?: Tone;
-        /** Affiche l'icône (défaut `true`). Mettre `false` pour gain place. */
+        /** Show the icon (defaults to true). */
         withIcon?: boolean;
     }>(),
     {

@@ -1,22 +1,9 @@
 <script setup lang="ts">
 /**
- * Modale de décision pour un cluster LCD à risque (Phase 12 D5.9.C).
- *
- * Ouvre depuis le bouton « Décider » d'un `<ClusterGroup>` et permet
- * de trancher la chaîne en Conserver / Requalifier en LLD avec
- * justification. Apporte le contexte pédagogique qui ne tenait pas
- * dans le tableau Review :
- *   - Récapitulatif du cluster (badge niveau + contrats count + cumul).
- *   - Calendrier des contrats du cluster (timeline simple avec
- *     intervalles entre contrats consécutifs).
- *   - Rappel réglementaire du seuil R-LCD-CHAIN et de l'effet de
- *     chaque décision sur la taxe finale.
- *   - Champ justification (textarea), obligatoire pour conserver une
- *     chaîne de niveau élevé.
- *
- * Aucune logique métier directe · émet `submit(decision, justification)`
- * que `<DeclarationContractList>` ré-émet au parent (Review/Index)
- * pour invoquer `useReviewForm.submitDecision`.
+ * Decision modal for an at-risk LCD cluster.
+ * Opened from a ClusterGroup; lets the user Conserve / Requalify in LLD
+ * with optional justification and a per-contract inclusion checklist.
+ * Emits submit(decision, justification, excludedContractIds).
  */
 import { ArrowUpRight, CheckCircle2, ShieldAlert, ShieldCheck } from 'lucide-vue-next';
 import { computed, ref, watch } from 'vue';
@@ -28,12 +15,7 @@ import { formatDateFr } from '@/Utils/format/formatDateFr';
 const props = defineProps<{
     cluster: App.Data.User.FiscalDeclaration.ReviewClusterData | null;
     submitting: boolean;
-    /**
-     * Lot 5 D1 · seuils paramétrables de détection injectés depuis
-     * `FiscalRiskSettings` (page Settings). Le texte pédagogique du
-     * modal interpole `thresholdLow` / `thresholdHigh` / `countHigh`
-     * au lieu de hardcoder « 30 / 90 / 5 ».
-     */
+    /** Configurable detection thresholds injected from FiscalRiskSettings. */
     riskSettings: App.Data.User.FiscalRiskSettings.FiscalRiskSettingsData;
 }>();
 
@@ -49,12 +31,7 @@ const emit = defineEmits<{
 
 const justification = ref<string>('');
 
-/**
- * Phase 13 D5.10.S · état local d'inclusion par contrat. Initialisé
- * depuis `cluster.excludedContractIds` à l'ouverture · permet de
- * pré-cocher correctement quand l'utilisateur rouvre une décision déjà
- * persistée.
- */
+/** Local per-contract inclusion state, initialised from cluster.excludedContractIds. */
 const contractIncluded = ref<Record<number, boolean>>({});
 
 watch(
@@ -77,18 +54,9 @@ watch(
 
 const isHighRisk = computed<boolean>(() => props.cluster?.level === 'eleve');
 
-// La distinction R-LCD-CHAIN vs R-LCD-CHAIN-FORT est déjà portée par
-// le pill « Risque élevé » / « Risque moyen » juste à côté · pas besoin
-// de la dédoubler dans le libellé du code.
 const codeLabel = computed<string>(() => 'LCD successifs');
 
-/**
- * La justification reste **recommandée** sur risque élevé (le texte
- * du label le signale) mais n'est plus une condition d'activation
- * du bouton Conserver · doctrine validée user · l'arbitrage final
- * appartient à l'utilisateur, l'UI ne doit pas le bloquer, juste
- * l'inciter à documenter sa décision.
- */
+// Justification stays recommended (not required) for high-risk; user owns the arbitration.
 const justificationRecommended = computed<boolean>(
     () => isHighRisk.value,
 );
@@ -97,10 +65,7 @@ const includedCount = computed<number>(
     () => Object.values(contractIncluded.value).filter((v) => v).length,
 );
 
-/**
- * Phase 13 D5.10.S · une chaîne nécessite ≥ 2 contrats pour exister.
- * Si l'utilisateur en décoche trop, la décision n'est plus applicable.
- */
+/** A chain requires at least 2 contracts to remain valid. */
 const canSubmit = computed<boolean>(() => includedCount.value >= 2);
 
 const canConserve = computed<boolean>(() => canSubmit.value);
@@ -167,7 +132,6 @@ function handleRequalify(): void {
         size="md"
     >
         <div v-if="cluster" class="flex flex-col gap-5">
-            <!-- Récap pédagogique -->
             <div class="flex flex-col gap-1.5">
                 <div class="flex flex-wrap items-center gap-2">
                     <component
@@ -196,13 +160,6 @@ function handleRequalify(): void {
                 </p>
             </div>
 
-            <!--
-                Phase 13 D5.10.S · contrats du cluster avec case à
-                cocher « Inclure dans la chaîne ». Décocher un contrat
-                le sort du cluster · il est traité comme LCD individuel
-                exempté R-2024-021 et ne participe pas à l'opt-out en
-                cas de décision Requalified.
-            -->
             <div class="rounded-lg border border-slate-200 bg-slate-50 p-3">
                 <div class="mb-2 flex items-baseline justify-between gap-2">
                     <p class="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
@@ -256,7 +213,6 @@ function handleRequalify(): void {
                 </p>
             </div>
 
-            <!-- Explication réglementaire -->
             <div class="rounded-lg border border-slate-200 bg-white p-3 text-xs text-slate-600">
                 <p class="mb-1 font-semibold text-slate-900">Motif du signalement</p>
                 <p>
@@ -286,7 +242,6 @@ function handleRequalify(): void {
                 </ul>
             </div>
 
-            <!-- Justification -->
             <div class="flex flex-col gap-1">
                 <label for="cluster-justification" class="text-xs font-medium text-slate-700">
                     Justification

@@ -29,11 +29,7 @@ const props = withDefaults(
         disabledDates: string[];
         selectedCompanyId: number | null;
         selectedRange: DateRange;
-        /**
-         * Mode company-locked (chantier P3) : quand fourni, le sélecteur
-         * entreprise est masqué et l'entreprise est hardcodée. Le payload
-         * submit utilise `lockedCompany.id`.
-         */
+        /** Company-locked mode: hides the selector and uses lockedCompany.id on submit. */
         lockedCompany?: Company | null;
     }>(),
     {
@@ -57,7 +53,6 @@ const {
     reset: resetRentalPreview,
 } = useRentalPreview();
 
-// ── Sélecteur entreprise enrichi ────────────────────────────────────
 const companyOptions = computed(() =>
     props.companies.map((c) => ({
         value: c.id,
@@ -74,14 +69,12 @@ const companyIdModel = computed({
     },
 });
 
-// ── Plage ───────────────────────────────────────────────────────────
 const rangeProxy = computed<DateRange>({
     get: () => props.selectedRange,
     set: (v: DateRange) => emit('update:selectedRange', v),
 });
 const ongoing = ref<boolean>(false);
 
-// ── State local ─────────────────────────────────────────────────────
 const submitting = ref<boolean>(false);
 const selectedDriverIds = ref<number[]>([]);
 const contractReference = ref<string | null>(null);
@@ -112,7 +105,7 @@ const canSubmit = computed(
         !submitting.value,
 );
 
-// Durée live affichée à côté du titre PÉRIODE.
+// Live duration shown next to the PERIOD title.
 const durationDays = computed<number | null>(() => {
     const start = props.selectedRange.startDate;
     const end = props.selectedRange.endDate;
@@ -136,10 +129,7 @@ return null;
     return durationDays.value <= 30 ? 'lcd' : 'lld';
 });
 
-// ── Preview fiscale ─────────────────────────────────────────────────
-// Le backend prend min/max des dates pour reconstruire la plage du
-// contrat synthétique · pas besoin d'expandre tous les jours côté
-// front (et ça évite les bugs de timezone sur les transitions DST).
+// The backend rebuilds the range from min/max dates; passing two endpoints is enough.
 const datesInRange = computed<string[]>(() => {
     const start = props.selectedRange.startDate;
     const end = props.selectedRange.endDate;
@@ -164,7 +154,6 @@ watch(
     { deep: true },
 );
 
-// ── Submit ──────────────────────────────────────────────────────────
 async function submit(): Promise<void> {
     if (!canSubmit.value) {
         return;
@@ -175,8 +164,7 @@ async function submit(): Promise<void> {
     try {
         const payload: Record<string, unknown> = {
             vehicle_ids: [props.vehicleId],
-            // En mode company-locked, l'id vient de lockedCompany
-            // (sélecteur masqué). Sinon, on lit selectedCompanyId.
+            // Locked company takes precedence (selector hidden in that mode).
             company_id: (props.lockedCompany?.id ?? props.selectedCompanyId) as number,
             driver_ids: selectedDriverIds.value,
             start_date: props.selectedRange.startDate as string,
@@ -202,7 +190,7 @@ async function submit(): Promise<void> {
         notes.value = null;
         emit('submitted');
     } catch {
-        // Toast erreur déjà affiché par useApi
+        // Error toast already pushed by useApi.
     } finally {
         submitting.value = false;
     }
@@ -211,11 +199,8 @@ async function submit(): Promise<void> {
 
 <template>
     <section class="flex flex-col gap-5 border-t border-slate-100 pt-5">
-        <!-- ── Entreprise ─────────────────────────────────────────── -->
         <div class="flex flex-col gap-2">
             <p class="eyebrow">Entreprise</p>
-            <!-- Mode company-locked (chantier P3) : entreprise verrouillée
-                 par la Vue Entreprise courante, pas de sélecteur. -->
             <div
                 v-if="lockedCompany"
                 class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
@@ -247,7 +232,6 @@ async function submit(): Promise<void> {
 
         <hr class="border-slate-100" />
 
-        <!-- ── Période ────────────────────────────────────────────── -->
         <div class="flex flex-col gap-2">
             <div class="flex items-center justify-between gap-2">
                 <p class="eyebrow">Période</p>
@@ -276,7 +260,6 @@ async function submit(): Promise<void> {
 
         <hr class="border-slate-100" />
 
-        <!-- ── Conducteurs ────────────────────────────────────────── -->
         <div class="flex flex-col gap-2">
             <p class="eyebrow">
                 Conducteurs
@@ -294,7 +277,6 @@ async function submit(): Promise<void> {
 
         <hr class="border-slate-100" />
 
-        <!-- ── Plus d'options (Référence + Notes + Documents) ─────── -->
         <MoreOptionsSection
             :reference="contractReference"
             :notes="notes"
@@ -304,7 +286,6 @@ async function submit(): Promise<void> {
             @open-documents="documentsModalOpen = true"
         />
 
-        <!-- ── Récap fiscal + CTA ─────────────────────────────────── -->
         <div
             v-if="hasRange && selectedCompanyId !== null"
             class="flex flex-col gap-3 border-t border-slate-100 pt-5"

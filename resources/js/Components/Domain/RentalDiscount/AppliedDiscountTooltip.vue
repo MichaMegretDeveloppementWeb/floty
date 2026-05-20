@@ -1,12 +1,7 @@
 <script setup lang="ts">
 /**
- * Tooltip d'information sur la réduction commerciale appliquée à une
- * ligne facture (Lot 3 chantier RentalDiscount). Encapsule
- * `RentalDiscountPill` (le trigger visuel) dans un `Tooltip` qui
- * révèle au hover · libellé + pourcentage + détail montant éventuel.
- *
- * Utilisé sur la page Show facture (badge ligne) et sur le tableau
- * mensuel CompanyBillingTab (badge mois).
+ * Tooltip wrapping a RentalDiscountPill, revealing label, percentage and
+ * savings on hover. Used on invoice Show and on CompanyBillingTab.
  */
 import { computed } from 'vue';
 import RentalDiscountPill from '@/Components/Domain/RentalDiscount/RentalDiscountPill.vue';
@@ -17,11 +12,11 @@ import { formatPercentFromBasisPoints } from '@/Utils/format/formatPercent';
 const props = withDefaults(
     defineProps<{
         basisPoints: number;
-        /** Libellé snapshot de la réduction (peut être null si non renseigné). */
+        /** Snapshot label of the discount (nullable when unset). */
         label?: string | null;
-        /** Montant économisé en cents (optionnel, affiché dans le tooltip si fourni). */
+        /** Savings amount in cents (optional; revealed in the tooltip when provided). */
         discountCents?: number | null;
-        /** Taille du pill trigger. */
+        /** Trigger pill size. */
         size?: 'sm' | 'md';
     }>(),
     {

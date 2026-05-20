@@ -16,11 +16,6 @@ withDefaults(
     {},
 );
 
-// Chantier J (ADR-0023) : le sélecteur d'année global a été retiré du
-// TopBar. Chaque page consommatrice gère désormais sa propre année
-// via `?year=` URL + sélecteur local. Le layout n'expose plus de slot
-// `year` aux pages.
-
 const isMobile = useMediaQuery('(max-width: 767px)');
 const sidebarOpen = ref<boolean>(false);
 

@@ -1,15 +1,8 @@
 <script setup lang="ts">
 /**
- * Sélecteur multi-conducteurs pour le formulaire Contract (chantier #3
- * multi-conducteurs). Une ligne `<DriverSelector>` par driver sélectionné
- * + un bouton « Ajouter un conducteur » qui pousse une nouvelle ligne.
- *
- * Filtrage : chaque ligne exclut les drivers déjà choisis dans les
- * autres lignes (pas de duplicate). Émet `update:modelValue` avec un
- * `number[]` (l'ordre est l'ordre d'ajout).
- *
- * Disabled tant que `companyId + startDate + endDate` ne sont pas tous
- * renseignés (relayé à `<DriverSelector>`).
+ * Multi-driver picker for the Contract form.
+ * One DriverSelector row per selected driver plus "add" / "remove" controls.
+ * Excludes already-picked drivers across rows. Emits number[] of ids.
  */
 import { computed, ref, watch } from 'vue';
 import DriverSelector from './DriverSelector.vue';
@@ -25,13 +18,10 @@ const emit = defineEmits<{
     'update:modelValue': [value: number[]];
 }>();
 
-// État local : liste de slots (chaque slot = un id sélectionné, ou null
-// si la ligne vient d'être ajoutée et n'a pas encore de choix).
+// Each slot is a selected id or null when the row was just added.
 const slots = ref<(number | null)[]>(props.modelValue.length > 0 ? [...props.modelValue] : []);
 
-// Synchro descendante : si le parent met à jour `modelValue` (ex. reset
-// après submit), on aligne nos slots. On ignore l'effet de bord qui
-// boucle vers le parent : on compare avant d'écraser.
+// Sync slots when the parent resets modelValue, ignoring no-op echo.
 watch(
     () => props.modelValue,
     (next) => {
@@ -44,7 +34,7 @@ watch(
     },
 );
 
-// Émission vers le parent : on filtre les nulls (lignes en cours d'édition).
+// Skip nulls when emitting to the parent (rows still being edited).
 function emitChange(): void {
     const ids = slots.value.filter((v): v is number => v !== null);
     emit('update:modelValue', ids);
@@ -60,9 +50,7 @@ function selectorModel(index: number): { value: number | null; update: (v: numbe
     };
 }
 
-// Marque les slots qui doivent ouvrir leur dropdown automatiquement
-// au mount (UX D5.10.Q : pas de double-clic après « Ajouter un conducteur »).
-// `Set<index>` plutôt qu'array pour gérer proprement le splice de removeSlot.
+// Slots that should auto-open their dropdown on mount.
 const autoOpenIndices = ref<Set<number>>(new Set());
 
 function addSlot(): void {
@@ -76,9 +64,7 @@ function removeSlot(index: number): void {
     emitChange();
 }
 
-// Pour chaque ligne, exclure les ids déjà choisis sur les **autres**
-// lignes - on ne veut pas qu'un même conducteur apparaisse 2× sur le
-// même contrat.
+// Exclude ids picked on other rows to prevent duplicate selection.
 function excludedIdsForRow(index: number): number[] {
     return slots.value
         .map((v, i) => (i !== index && v !== null ? v : null))
@@ -86,10 +72,7 @@ function excludedIdsForRow(index: number): number[] {
 }
 
 const canAddMore = computed<boolean>(() => {
-    // Pas de garde-fou strict : on autorise jusqu'à ce que toutes les
-    // lignes existantes aient une valeur (sinon on créerait des lignes
-    // vides en série). L'utilisateur peut ajouter autant qu'il veut tant
-    // que la dernière est remplie.
+    // Allow adding only when every existing row already has a value.
     if (slots.value.length === 0) {
         return true;
     }

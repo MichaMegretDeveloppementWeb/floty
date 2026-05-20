@@ -1,14 +1,7 @@
 <script setup lang="ts">
 /**
- * Modal d'ajout d'une membership Driver↔Company depuis la fiche
- * Driver Show (chantier M.1, ADR-0023 D3).
- *
- * Le picker de company est peuplé par la prop `availableCompanies`
- * exposée par `DriverController::show` via `options.companies`. Les
- * companies déjà rattachées au driver (peu importe statut) sont
- * filtrées pour éviter de proposer une membership active dupliquée.
- *
- * Pattern symétrique à `AddCompanyDriverModal` (chantier M.2).
+ * Modal to attach a driver to a new company from the Driver Show page.
+ * Filters out companies the driver is already attached to.
  */
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';

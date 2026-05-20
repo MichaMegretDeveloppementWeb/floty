@@ -1,32 +1,9 @@
 <script setup lang="ts">
 /**
- * Bloc « Déclaration » de l'onglet Fiscalité d'une entreprise.
- *
- * Refonte design D5.10.W (direction « Linear-éditorial ») · ce
- * composant ne rend **plus** de Card. Il s'inscrit dans le flux
- * typographique du tab parent · eyebrow `DÉCLARATION` géré côté
- * `<CompanyFiscalTab>`, ce composant rend uniquement le corps de la
- * section.
- *
- * 7 branches (cf. `DeclarationLifecycleState`) ·
- *   - S1 Untouched · géré directement dans `<CompanyFiscalTab>` (prose),
- *     ce composant n'est pas invoqué dans ce cas.
- *   - S2 DraftPending · « Brouillon · X décisions à trancher »
- *   - S3 DraftReadyToGenerate · « Brouillon prêt »
- *   - S4 Deferred · « Mise en pause »
- *   - S4-bis DeferredRegeneration · « Régénération mise en pause »
- *   - S5 GeneratedActive · « Générée · REF · date » + actions PDF
- *   - S6 GeneratedObsoleteOrphan · « Obsolète » + liste motifs
- *   - S7 RegenerationInProgress · « Régénération en cours »
- *
- * Chaque branche partage le même squelette ·
- *   1. Status row · dot coloré + nom de l'état + meta optionnel (REF
- *      mono, date d'obsolescence ou de génération).
- *   2. Prose · 1 paragraphe en `text-[15px] leading-relaxed
- *      text-slate-700` qui raconte l'état actuel et la prochaine étape.
- *   3. Actions · CTA primaire (Button slate-900) + lien secondaire
- *      optionnel inline.
- *   4. Annexe contextuelle (S6 motifs / S5-S7 timeline) en dessous.
+ * Declaration section of the Company Fiscality tab.
+ * Renders one of 7 lifecycle branches (S2 draft pending, S3 ready, S4 deferred,
+ * S4-bis deferred regen, S5 active, S6 obsolete, S7 regen in progress).
+ * Each branch shares the same skeleton: status row, prose, actions, optional history.
  */
 import { Link, router } from '@inertiajs/vue3';
 import {
@@ -55,13 +32,7 @@ const props = withDefaults(
         lifecycle: App.Data.User.FiscalDeclaration.DeclarationLifecycleStateData;
         companyId: number;
         fiscalYear: number;
-        /**
-         * Une déclaration n'est juridiquement préparable qu'à partir de
-         * janvier N+1 (CIBS L. 421-159). Prop conservée pour cohérence
-         * d'API avec `<CompanyFiscalTab>`, mais inutilisée ici · la
-         * branche `untouched + non déclarable` est gérée côté parent en
-         * prose, ce composant n'est invoqué que sur les états S2-S7.
-         */
+        /** Kept for API consistency with CompanyFiscalTab; unused here (S1 handled upstream). */
         isDeclarable?: boolean;
     }>(),
     { isDeclarable: true },
@@ -110,7 +81,6 @@ function handleRegenerate(): void {
 
 <template>
     <div class="flex flex-col gap-4">
-        <!-- S2 · Draft pending -->
         <template v-if="state === 'draft_pending' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-slate-400" aria-hidden="true" />
@@ -137,7 +107,6 @@ function handleRegenerate(): void {
             </div>
         </template>
 
-        <!-- S3 · Draft ready to generate -->
         <template v-else-if="state === 'draft_ready_to_generate' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
@@ -161,7 +130,6 @@ function handleRegenerate(): void {
             </div>
         </template>
 
-        <!-- S4 · Deferred -->
         <template v-else-if="state === 'deferred' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
@@ -185,7 +153,6 @@ function handleRegenerate(): void {
             </div>
         </template>
 
-        <!-- S4-bis · Deferred regeneration -->
         <template v-else-if="state === 'deferred_regeneration' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden="true" />
@@ -222,7 +189,6 @@ function handleRegenerate(): void {
             </div>
         </template>
 
-        <!-- S5 · Generated active -->
         <template v-else-if="state === 'generated_active' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-emerald-500" aria-hidden="true" />
@@ -263,7 +229,6 @@ function handleRegenerate(): void {
             />
         </template>
 
-        <!-- S6 · Generated obsolete orphan -->
         <template v-else-if="state === 'generated_obsolete_orphan' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-rose-500" aria-hidden="true" />
@@ -332,7 +297,6 @@ function handleRegenerate(): void {
             />
         </template>
 
-        <!-- S7 · Regeneration in progress -->
         <template v-else-if="state === 'regeneration_in_progress' && current">
             <div class="flex items-center gap-2">
                 <span class="inline-block size-1.5 rounded-full bg-amber-500" aria-hidden="true" />

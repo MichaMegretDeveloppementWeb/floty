@@ -1,16 +1,7 @@
 <script setup lang="ts">
 /**
- * Actions sur une cellule mensuelle du récap entreprise (Phase 14.I+).
- *
- * Trois états affichés :
- *   1. Pas de facture : bouton « Générer » (désactivé si non facturable)
- *   2. Facture existante sans divergence : lien « Voir »
- *   3. Facture existante avec divergence : lien « Voir » + bouton
- *      « Régénérer » (modal de confirmation, transaction cancel + create)
- *
- * La mention « Données obsolètes » ne vit plus dans ce composant : elle
- * est portée par un indicateur warning à côté du numéro de facture, dans
- * la colonne dédiée du récap (cf. MonthlyBillingBreakdownCard).
+ * Actions for a month cell in the company billing recap.
+ * Renders one of three states: Generate, View, View + Regenerate (with modal).
  */
 import { Link, router } from '@inertiajs/vue3';
 import { Eye, FileText, Loader2, RefreshCw } from 'lucide-vue-next';
@@ -29,35 +20,23 @@ const props = defineProps<{
     month: number;
     daysUsed: number;
     hasMissingPricing: boolean;
-    /**
-     * Année / mois civils courants (passés par le parent depuis l'horloge
-     * client). Permettent de masquer la branche « Générer » sur le mois en
-     * cours et les mois futurs · une facture ne se génère qu'à mois écoulé
-     * (cf. guard `GenerateInvoiceAction:73-80`). Le guard backend reste
-     * autoritaire · ces props ne sont qu'une garde UI pour ne pas
-     * proposer une action qui aboutirait à un toast-error.
-     */
+    /** Current civil year/month used as a UI guard against future/current month invoicing. */
     currentRealYear: number;
     currentRealMonth: number;
-    /** Présent ssi une facture est déjà émise pour ce mois (immuable). */
+    /** Set iff an invoice already exists for this month. */
     existingInvoiceId?: number | null;
     existingInvoiceNumber?: string | null;
-    /**
-     * Snapshot figé à l'émission. Comparé à `currentTotalCents` /
-     * `daysUsed` pour détecter une divergence post-émission.
-     */
+    /** Snapshot frozen at issuance; compared to current values for divergence. */
     existingInvoiceTotalCents?: number | null;
     existingInvoicedDaysUsed?: number | null;
-    /** Total HT recalculé dynamiquement (peut différer du snapshot). */
+    /** Dynamically recomputed HT total. */
     currentTotalCents?: number | null;
 }>();
 
 const processing = ref<boolean>(false);
 const regenerateModalOpen = ref<boolean>(false);
 
-// Le composant est utilisé depuis la fiche entreprise (onglet
-// Facturation) ; on préfère y rester après régénération plutôt que
-// d'aller voir la nouvelle facture (target `'company-tab'`).
+// Stays on the company tab after regeneration rather than redirecting to the new invoice.
 const { regenerating, regenerate: triggerRegeneration } = useInvoiceRegeneration({
     redirectTarget: 'company-tab',
     onFinish: () => {
@@ -95,12 +74,7 @@ const hasDivergence = computed<boolean>(() => {
     return false;
 });
 
-/**
- * `true` ssi le mois est strictement antérieur au mois civil courant.
- * Une facture ne se génère qu'à mois écoulé (cf. doctrine + guard
- * backend) · cette dérivation permet de masquer la branche « Générer »
- * sur le mois en cours et les mois futurs.
- */
+/** True iff the month is strictly before the current civil month. */
 const isPastMonth = computed<boolean>(
     () => props.year < props.currentRealYear
         || (props.year === props.currentRealYear && props.month < props.currentRealMonth),
@@ -163,7 +137,6 @@ function regenerate(): void {
 
 <template>
     <div class="inline-flex items-center gap-1.5">
-        <!-- État : facture existante (avec ou sans divergence) -->
         <Tooltip v-if="hasExisting && existingInvoiceId">
             <Link
                 :href="invoicesShowRoute.url({ invoice: existingInvoiceId })"
@@ -186,13 +159,6 @@ function regenerate(): void {
             <template #content>Régénérer l'annexe avec les données actuelles</template>
         </Tooltip>
 
-        <!--
-            État : pas de facture (générer ou désactivé). Masqué
-            entièrement sur le mois courant et les mois futurs · la
-            facture ne se génère qu'à mois écoulé · on n'expose donc
-            même pas le bouton (le guard backend reste autoritaire en
-            cas d'appel forgé).
-        -->
         <Tooltip v-if="!hasExisting && isPastMonth" max-width="18rem">
             <button
                 type="button"

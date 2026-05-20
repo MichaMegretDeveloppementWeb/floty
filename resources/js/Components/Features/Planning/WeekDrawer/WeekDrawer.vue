@@ -1,13 +1,8 @@
 <script setup lang="ts">
 /**
- * Drawer « détail de semaine » (CDC § 3.7).
- *
- * S'ouvre au clic sur une cellule de la heatmap. Contient :
- *   - L'en-tête véhicule + semaine
- *   - 7 slots (Lun → Dim) montrant le contrat actif du jour (ou « libre »)
- *   - Liste des entreprises présentes sur cette semaine
- *   - Un formulaire de création de contrat (sélection plage début/fin)
- *     + preview des taxes induites (R-2024-021 LCD per-contract).
+ * "Week detail" drawer opened from a heatmap cell.
+ * Renders the vehicle/week header, 7 day slots, current-week companies list
+ * and a contract creation form with live fiscal preview.
  */
 import { computed, ref, watch } from 'vue';
 import { CELLS_PER_YEAR } from '@/Utils/Date/isoWeeks';
@@ -26,14 +21,7 @@ const props = withDefaults(
         week: WeekData | null;
         companies: Company[];
         fiscalYear: number;
-        /**
-         * Mode company-locked (chantier P3) : quand fourni, le drawer
-         * est ouvert depuis la Vue Entreprise. L'entreprise est
-         * verrouillée dans le formulaire de création (sélecteur
-         * masqué, hardcodée sur cette company) et la grille semaine
-         * affiche les contrats des autres entreprises comme
-         * « Indisponible » anonyme (anonymisation backend).
-         */
+        /** Company-locked mode (drawer opened from the per-company view). */
         lockedCompany?: Company | null;
     }>(),
     {
@@ -49,8 +37,7 @@ defineEmits<{
 const selectedCompanyId = ref<number | null>(null);
 const selectedRange = ref<DateRange>({ startDate: null, endDate: null });
 
-// Reset à chaque ouverture. En mode company-locked, on pré-sélectionne
-// l'entreprise verrouillée (le sélecteur est caché côté ContractForm).
+// Reset on each open; pre-select the locked company when applicable.
 watch(
     () => props.week,
     () => {
@@ -59,20 +46,7 @@ watch(
     },
 );
 
-/**
- * SC15 (2026-05-18) · mois sur lequel le calendrier du drawer s'ouvre ·
- * convention ISO standard = mois du JEUDI de la semaine (équivalent au
- * mois majoritaire car ≥ 4 jours sur 7 tombent dans ce mois).
- *
- * Exceptions ·
- *   - Première cellule (sem 1) → on force JANVIER de l'année courante
- *     même si le jeudi serait théoriquement en déc Y-1 (cas rare · ne
- *     se produit pas en pratique car semaine ISO 1 contient toujours
- *     le 4 janvier au minimum, donc jeudi toujours en janvier)
- *   - Dernière cellule (sem 52 ou 53) → on force DÉCEMBRE de l'année
- *     courante même si majorité de jours en jan Y+1 (cas typique sem 53
- *     d'une année à 53 semaines)
- */
+// Starting month of the drawer calendar (Thursday of the week, clamped to Jan/Dec on edges).
 const startMonth = computed((): number => {
     if (!props.week) {
         return 1;
@@ -84,14 +58,11 @@ const startMonth = computed((): number => {
         return 1;
     }
 
-    // SC16 (2026-05-18) · la heatmap a toujours CELLS_PER_YEAR (53)
-    // cellules · la dernière est forcée à décembre de l'année courante
-    // (peut être cell 53 de Y où le jeudi est physiquement en jan Y+1).
     if (weekNumber === CELLS_PER_YEAR) {
         return 12;
     }
 
-    // Mois du jeudi (4ᵉ jour ISO) · 4ᵉ élément de week.days (index 3).
+    // Month of Thursday (4th ISO day).
     const thursday = props.week.days[3]?.date;
     if (thursday === undefined) {
         return Number(props.week.weekStart.slice(5, 7));
@@ -100,23 +71,17 @@ const startMonth = computed((): number => {
     return Number(thursday.slice(5, 7));
 });
 
-// Dates déjà occupées par ce véhicule sur toute l'année - à griser
-// dans le picker. Auparavant le filtre se limitait aux 7 jours de la
-// semaine affichée, ce qui laissait l'utilisateur sélectionner une
-// plage qui chevauchait un contrat hors de cette semaine. Le backend
-// fournit désormais l'index complet via `vehicleBusyDates`.
+// Year-wide busy dates for this vehicle (grey-out in the picker).
 const disabledDates = computed((): string[] =>
     props.week ? props.week.vehicleBusyDates : [],
 );
 
-// Dates de la semaine - repérées visuellement dans le calendrier.
+// Dates of the displayed week (visually highlighted in the calendar).
 const weekDates = computed((): string[] =>
     props.week ? props.week.days.map((d) => d.date) : [],
 );
 
-// Dates de la semaine couvertes par la plage sélectionnée - affichage
-// visuel des cases pré-sélectionnées dans la grille semaine (lecture
-// seule, la sélection se fait via le DateRangePicker du formulaire).
+// Selected days within the displayed week (read-only highlight).
 const selectedDatesInWeek = computed((): string[] => {
     const start = selectedRange.value.startDate;
     const end = selectedRange.value.endDate;
@@ -130,7 +95,6 @@ const selectedDatesInWeek = computed((): string[] => {
 </script>
 
 <template>
-    <!-- Overlay -->
     <transition
         enter-active-class="transition-opacity duration-200 ease-out"
         enter-from-class="opacity-0"
@@ -147,7 +111,6 @@ const selectedDatesInWeek = computed((): string[] => {
         />
     </transition>
 
-    <!-- Drawer latéral -->
     <transition
         enter-active-class="transition-transform duration-200 ease-out"
         enter-from-class="translate-x-full"

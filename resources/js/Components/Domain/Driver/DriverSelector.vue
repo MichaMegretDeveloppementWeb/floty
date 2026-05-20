@@ -1,12 +1,8 @@
 <script setup lang="ts">
 /**
- * Sélecteur conducteur pour le formulaire Contract (Phase 06 V1.2 - Q4).
- *
- * Disabled tant que `companyId + startDate + endDate` ne sont pas tous
- * renseignés. Charge les options actives sur la période exacte via
- * l'endpoint `/app/drivers/options`. Si la sélection courante devient
- * invalide après changement (company/dates), on émet `update:modelValue`
- * avec `null` pour la retirer du formulaire.
+ * Driver selector for the Contract form.
+ * Disabled until companyId + startDate + endDate are all set.
+ * Loads options active on the period and clears the value if it becomes invalid.
  */
 import { computed, ref, watch } from 'vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
@@ -20,18 +16,9 @@ const props = defineProps<{
     companyId: number | null;
     startDate: string | null;
     endDate: string | null;
-    /**
-     * IDs de drivers à exclure des options affichées. Utilisé par le
-     * multi-picker pour empêcher un même driver d'apparaître sur deux
-     * lignes du même contrat (chantier #3 multi-conducteurs).
-     */
+    /** Driver ids to exclude from the displayed options. */
     excludedIds?: number[];
-    /**
-     * Ouvre automatiquement la dropdown au mount (UX D5.10.Q). Utilisé
-     * par `DriversMultiPicker` pour les lignes ajoutées dynamiquement ·
-     * l'utilisateur n'a pas besoin de cliquer une 2e fois pour focuser.
-     * Patient : attend la fin du `reload()` initial si nécessaire.
-     */
+    /** Auto-open the dropdown on mount, after the initial reload. */
     autoOpenOnMount?: boolean;
 }>();
 
@@ -56,9 +43,7 @@ const items = computed(() => {
     const excluded = new Set(props.excludedIds ?? []);
 
     return options.value
-        // On garde toujours la valeur sélectionnée même si elle est dans
-        // `excludedIds` (sinon le label deviendrait vide), pour les
-        // autres on filtre.
+        // Always keep the currently selected value so its label stays visible.
         .filter((d) => d.id === props.modelValue || !excluded.has(d.id))
         .map((d) => ({ value: d.id, label: d.fullName }));
 });
@@ -70,9 +55,6 @@ const valueModel = computed({
     },
 });
 
-// F-42-004 (Lot 7 D13) · `useApi` au lieu de `fetch` brut · headers
-// XSRF + Accept JSON gérés centralement, toast erreur automatique
-// sur 4xx/5xx (cohérence projet, cf. `useApi.ts` doctrine).
 const api = useApi();
 
 async function reload(): Promise<void> {
@@ -95,7 +77,7 @@ async function reload(): Promise<void> {
         );
         options.value = data.drivers;
 
-        // Si le driver actuellement sélectionné n'est plus dans la liste, on le retire.
+        // Clear the value if the previously selected driver is no longer available.
         if (
             props.modelValue !== null &&
             !data.drivers.some((d) => d.id === props.modelValue)
@@ -103,8 +85,7 @@ async function reload(): Promise<void> {
             emit('update:modelValue', null);
         }
     } catch {
-        // useApi a déjà poussé un toast erreur · on tombe sur la liste
-        // vide pour rester cohérent avec le comportement précédent.
+        // useApi already surfaced the error toast; fall back to empty options.
         options.value = [];
     } finally {
         loading.value = false;

@@ -1,18 +1,8 @@
 <script setup lang="ts">
 /**
- * Banner narratif en haut de la page Review d'une déclaration (Phase
- * 11 D5.8, amélioration A).
- *
- * Distingue deux modes :
- *   - **preparation** : première préparation, banner vert d'invitation.
- *     Court rappel du contexte fiscal (CIBS, deadline 30/04 N+1).
- *   - **regeneration** : régénération d'une déclaration obsolète, banner
- *     ambre/rose avec le numéro de la version remplacée, la date
- *     d'obsolescence, les motifs principaux, et un lien vers la
- *     version obsolète pour référence.
- *
- * Le mode est déduit côté caller via présence/absence de la
- * `predecessorDeclaration` dans le lifecycle resolver.
+ * Narrative banner at the top of the Review page for a declaration.
+ * Two modes: preparation (emerald, first-time) and regeneration (amber,
+ * replacing an obsolete version with reasons and predecessor link).
  */
 import { Link } from '@inertiajs/vue3';
 import { ArrowUpRight, FilePlus2, Recycle } from 'lucide-vue-next';
@@ -25,9 +15,9 @@ import {
 
 const props = defineProps<{
     mode: 'preparation' | 'regeneration';
-    /** Version obsolète remplacée (seulement en mode régénération). */
+    /** Obsolete declaration being replaced (regeneration mode only). */
     predecessor?: App.Data.User.FiscalDeclaration.DeclarationListItemData | null;
-    /** Motifs d'obsolescence portés par la version remplacée. */
+    /** Invalidation reasons carried by the replaced version. */
     obsoleteReasons?: App.Data.User.FiscalDeclaration.InvalidationReasonData[];
     fiscalYear: number;
 }>();
