@@ -1,10 +1,12 @@
 <script setup lang="ts">
 /**
- * Per-VFC-segment breakdown of the full-year tax. With a single VFC on
- * the year there is one block (CO2 + pollutants + total); when the VFC
- * changes, one block per segment is rendered and their sum matches the
- * year total (ADR-0005 day-by-day computation).
+ * Per-segment breakdown of the full-year tax. A segment is one slice of
+ * the cartesian product (VFC × rule windows), so cuts come from either
+ * a VFC change, a rule-window change, or both at once. Each segment
+ * carries a `boundaryCause` that drives a clear, contextual label
+ * instead of a generic "VFC change" message.
  */
+import { computed } from 'vue';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
 import Modal from '@/Components/Ui/Modal/Modal.vue';
@@ -30,11 +32,48 @@ const props = withDefaults(
 const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
     useFullYearTaxBreakdownPanel(props);
 
+/**
+ * Sentence that explains what drove the year segmentation, displayed
+ * under the section title only when more than one segment exists.
+ */
+const segmentationHint = computed<string>(() => {
+    const segments = breakdown.value.taxSegments;
+    if (segments.length <= 1) {
+        return '';
+    }
+
+    const distinctVfcs = new Set(segments.map((s) => s.vfc.id)).size;
+    const hasRuleCut = segments.some(
+        (s) => s.boundaryCause === 'rule' || s.boundaryCause === 'both',
+    );
+
+    if (distinctVfcs > 1 && hasRuleCut) {
+        return 'Découpé par les versions VFC successives et les évolutions du barème fiscal.';
+    }
+
+    if (distinctVfcs > 1) {
+        return 'Découpé par les versions VFC successives, le total agrège tous les segments.';
+    }
+
+    return 'Découpé par les évolutions du barème fiscal en cours d\'année.';
+});
+
 function segmentPeriodLabel(seg: Segment): string {
     const from = formatDateFr(seg.effectiveFromInYear);
     const to = formatDateFr(seg.effectiveToInYear);
+    const range = `du ${from} au ${to} · ${seg.daysInSegment} j`;
 
-    return `Du ${from} au ${to} · ${seg.daysInSegment} j`;
+    switch (seg.boundaryCause) {
+        case 'vfc':
+            return `Nouvelle version VFC · ${range}`;
+        case 'rule':
+            return `Nouveau barème fiscal · ${range}`;
+        case 'both':
+            return `Nouvelle VFC et nouveau barème · ${range}`;
+        case 'initial':
+        default:
+            return `Période initiale · ${range}`;
+    }
 }
 </script>
 
@@ -47,8 +86,8 @@ function segmentPeriodLabel(seg: Segment): string {
                 </h2>
                 <p class="mt-0.5 text-xs text-slate-500">
                     Calcul théorique pour 100 % d'utilisation
-                    <template v-if="breakdown.taxSegments.length > 1">
-                        · segmenté par version VFC, le total agrège tous les segments.
+                    <template v-if="segmentationHint">
+                        · {{ segmentationHint }}
                     </template>
                 </p>
             </div>

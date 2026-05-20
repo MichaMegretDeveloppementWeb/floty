@@ -16,6 +16,7 @@ use App\Data\User\Vehicle\VehicleUsageStatsData;
 use App\Data\User\Vehicle\VehicleWeekSegmentData;
 use App\Data\User\Vehicle\VehicleWeekUsageData;
 use App\DTO\Fiscal\ContractsByPair;
+use App\Enums\Fiscal\SegmentBoundaryCause;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
 use App\Models\Unavailability;
@@ -236,6 +237,7 @@ final class VehicleAggregatesService
                 effectiveFromInYear: sprintf('%04d-01-01', $year),
                 effectiveToInYear: sprintf('%04d-12-31', $year),
                 daysInSegment: $this->yearContext->daysInYear($year),
+                boundaryCause: SegmentBoundaryCause::Initial,
                 vfc: VehicleFiscalCharacteristicsData::fromModel($current),
                 co2Method: $current->homologation_method,
                 co2FullYearTariff: 0.0,

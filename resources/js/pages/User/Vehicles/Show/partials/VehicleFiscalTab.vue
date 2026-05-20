@@ -17,6 +17,7 @@ const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
     fiscalYearBreakdown: Breakdown;
     fiscalYear: number;
+    fiscalYearScope: App.Data.Shared.YearScopeData;
 }>();
 
 const { selectedYear, selectYear, loading } = useVehicleFiscalSelectedYear(
@@ -59,22 +60,34 @@ const segmentsCount = computed<number>(
     () => props.fiscalYearBreakdown.taxSegments.length,
 );
 
-const metaLine = computed<string>(() => {
-    const n = segmentsCount.value;
+const distinctVfcCount = computed<number>(
+    () => new Set(props.fiscalYearBreakdown.taxSegments.map((s) => s.vfc.id)).size,
+);
 
-    if (n === 0) {
+const ruleCutsCount = computed<number>(
+    () => props.fiscalYearBreakdown.taxSegments.filter(
+        (s) => s.boundaryCause === 'rule' || s.boundaryCause === 'both',
+    ).length,
+);
+
+const metaLine = computed<string>(() => {
+    if (segmentsCount.value === 0) {
         return 'Aucune VFC effective sur cette année · le calcul utilise des valeurs par défaut.';
     }
 
-    if (n === 1) {
-        return 'Taxe théorique pour 100 % d\'utilisation · 1 version VFC sur l\'année.';
-    }
+    const vfcPart = distinctVfcCount.value > 1
+        ? `${distinctVfcCount.value} versions VFC se succèdent`
+        : '1 version VFC';
 
-    return `Taxe théorique pour 100 % d'utilisation · ${n} versions VFC se succèdent sur l'année.`;
+    const rulePart = ruleCutsCount.value > 0
+        ? ` · le barème fiscal évolue en cours d'année (${ruleCutsCount.value + 1} période${ruleCutsCount.value > 0 ? 's' : ''})`
+        : '';
+
+    return `Taxe théorique pour 100 % d'utilisation · ${vfcPart}${rulePart}.`;
 });
 
 const yearsDescending = computed<readonly number[]>(
-    () => [...props.vehicle.yearScope.availableYears].sort((a, b) => b - a),
+    () => [...props.fiscalYearScope.availableYears].sort((a, b) => b - a),
 );
 
 /**
@@ -138,7 +151,7 @@ const statsLike = computed<UsageStats>(() => ({
         </p>
 
         <nav
-            v-if="props.vehicle.yearScope.availableYears.length > 0"
+            v-if="props.fiscalYearScope.availableYears.length > 0"
             class="mb-10 flex gap-6 border-b border-slate-100"
             aria-label="Sélection de l'exercice"
         >
@@ -230,13 +243,13 @@ const statsLike = computed<UsageStats>(() => ({
                         Versions VFC
                     </p>
                     <p class="font-mono text-[22px] font-medium tracking-tight tabular-nums leading-none text-slate-900">
-                        {{ segmentsCount }}
+                        {{ distinctVfcCount }}
                     </p>
                     <p class="mt-1 text-[11px] text-slate-500">
-                        <template v-if="segmentsCount === 0">
+                        <template v-if="distinctVfcCount === 0">
                             aucune sur l'année
                         </template>
-                        <template v-else-if="segmentsCount === 1">
+                        <template v-else-if="distinctVfcCount === 1">
                             version unique
                         </template>
                         <template v-else>

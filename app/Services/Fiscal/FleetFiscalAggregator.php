@@ -15,12 +15,14 @@ use App\Data\User\Vehicle\VehicleFullYearTaxBreakdownData;
 use App\Data\User\Vehicle\VehicleFullYearTaxSegmentData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
+use App\Enums\Fiscal\SegmentBoundaryCause;
 use App\Enums\Vehicle\HomologationMethod;
 use App\Enums\Vehicle\PollutantCategory;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\PipelineResult;
 use App\Fiscal\ValueObjects\AppliedExemption;
+use App\Fiscal\ValueObjects\FiscalSegmentBreakdown;
 use App\Fiscal\ValueObjects\VfcEffectiveSegment;
 use App\Models\Contract;
 use App\Models\Unavailability;
@@ -450,6 +452,7 @@ final class FleetFiscalAggregator
         $exemptionsByCode = [];
         /** @var array<string, true> $ruleCodesSet */
         $ruleCodesSet = [];
+        $previous = null;
 
         foreach ($breakdowns as $breakdown) {
             $vfc = $breakdown->vfcSegment->vfc;
@@ -464,6 +467,7 @@ final class FleetFiscalAggregator
                 effectiveFromInYear: $breakdown->start->toDateString(),
                 effectiveToInYear: $breakdown->end->toDateString(),
                 daysInSegment: $breakdown->days(),
+                boundaryCause: $this->resolveBoundaryCause($breakdown, $previous),
                 vfc: VehicleFiscalCharacteristicsData::fromModel($vfc),
                 co2Method: $result->co2Method,
                 co2FullYearTariff: $co2Tariff,
@@ -487,6 +491,8 @@ final class FleetFiscalAggregator
             foreach ($result->appliedRuleCodes as $code) {
                 $ruleCodesSet[$code] = true;
             }
+
+            $previous = $breakdown;
         }
 
         $appliedRuleCodes = array_keys($ruleCodesSet);
@@ -504,6 +510,34 @@ final class FleetFiscalAggregator
             appliedRules: $appliedRules,
             taxSegments: $taxSegments,
         );
+    }
+
+    /**
+     * Classify the boundary of a segment relative to its predecessor.
+     *
+     * The first segment of the year is always `Initial`. For subsequent
+     * segments, the cause is derived from which dimension cut at the
+     * segment start: the VFC switched, the rule window switched, or
+     * both happened at the same boundary.
+     */
+    private function resolveBoundaryCause(
+        FiscalSegmentBreakdown $current,
+        ?FiscalSegmentBreakdown $previous,
+    ): SegmentBoundaryCause {
+        if ($previous === null) {
+            return SegmentBoundaryCause::Initial;
+        }
+
+        $vfcChanged = $current->vfcSegment->vfc->id !== $previous->vfcSegment->vfc->id;
+        $ruleChanged = ! $current->ruleSegment->start->equalTo($previous->ruleSegment->start)
+            || ! $current->ruleSegment->end->equalTo($previous->ruleSegment->end);
+
+        return match (true) {
+            $vfcChanged && $ruleChanged => SegmentBoundaryCause::Both,
+            $vfcChanged => SegmentBoundaryCause::Vfc,
+            $ruleChanged => SegmentBoundaryCause::Rule,
+            default => SegmentBoundaryCause::Initial,
+        };
     }
 
     /**

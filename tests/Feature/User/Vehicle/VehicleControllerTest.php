@@ -466,6 +466,7 @@ final class VehicleControllerTest extends TestCase
                                 ->has('effectiveFromInYear')
                                 ->has('effectiveToInYear')
                                 ->has('daysInSegment')
+                                ->has('boundaryCause')
                                 ->has('vfc')
                                 ->has('co2Method')
                                 ->has('co2FullYearTariff')

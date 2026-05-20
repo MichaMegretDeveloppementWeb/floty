@@ -24,6 +24,7 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Managers\VehicleRegistryLookup\VehicleRegistryLookupManager;
 use App\Models\Vehicle;
@@ -53,6 +54,7 @@ final class VehicleController extends Controller
         private readonly ExitVehicleAction $exitVehicle,
         private readonly ReactivateVehicleAction $reactivateVehicle,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly FiscalRuleRegistry $fiscalRegistry,
         private readonly VehicleRegistryLookupManager $registryLookup,
     ) {}
 
@@ -115,6 +117,10 @@ final class VehicleController extends Controller
             'options' => $this->buildFormOptions(),
             'billingYear' => $selectedYear,
             'fiscalYear' => $selectedYear,
+            // Fiscal tab year scope depends on the registry (years with rule
+            // sets) rather than on contract data; a vehicle can be inspected
+            // for any registered year even without contracts.
+            'fiscalYearScope' => YearScopeData::fromRegistry($this->fiscalRegistry),
 
             // Annual history runs N fiscal pipelines; defer to keep mount fast.
             'history' => Inertia::defer(fn () => $this->vehicleDetail->historyForVehicle($vehicle)),

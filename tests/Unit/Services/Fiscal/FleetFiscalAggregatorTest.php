@@ -6,6 +6,7 @@ namespace Tests\Unit\Services\Fiscal;
 
 use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
+use App\Enums\Fiscal\SegmentBoundaryCause;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Vehicle;
@@ -152,6 +153,25 @@ final class FleetFiscalAggregatorTest extends TestCase
         self::assertSame('WLTP', $segment->co2Method->value);
         self::assertSame('category_1', $segment->pollutantCategory->value);
         self::assertSame(366, $segment->daysInSegment);
+        // Single segment: boundary cause is "initial" (no preceding segment).
+        self::assertSame(SegmentBoundaryCause::Initial, $segment->boundaryCause);
+    }
+
+    /**
+     * Multi-VFC year: a VFC switch mid-year produces two segments. The
+     * first segment is `Initial`; the second is `Vfc` (only the VFC
+     * changed at the boundary, the 2024 rule set covers the whole year).
+     */
+    #[Test]
+    public function vehicle_full_year_tax_breakdown_marque_boundary_cause_sur_changement_vfc(): void
+    {
+        $vehicle = $this->makeVehicleTwoVfcsSwitchingMidYear();
+
+        $breakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, self::YEAR);
+
+        self::assertCount(2, $breakdown->taxSegments);
+        self::assertSame(SegmentBoundaryCause::Initial, $breakdown->taxSegments[0]->boundaryCause);
+        self::assertSame(SegmentBoundaryCause::Vfc, $breakdown->taxSegments[1]->boundaryCause);
     }
 
     /**
@@ -482,6 +502,44 @@ final class FleetFiscalAggregatorTest extends TestCase
             'co2_wltp' => 100,
             'co2_nedc' => null,
             'taxable_horsepower' => null,
+        ]);
+
+        return $vehicle->fresh(['fiscalCharacteristics']);
+    }
+
+    /**
+     * Vehicle with two VFC rows on 2024: WLTP 100 g (01/01 → 30/06) then
+     * WLTP 145 g (01/07 → end of year). Used to assert that a mid-year
+     * VFC switch is flagged with `boundaryCause === Vfc` on the second
+     * segment.
+     */
+    private function makeVehicleTwoVfcsSwitchingMidYear(): Vehicle
+    {
+        $vehicle = Vehicle::factory()->create();
+        $common = [
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VP',
+            'energy_source' => 'gasoline',
+            'euro_standard' => 'euro_6',
+            'pollutant_category' => 'category_1',
+            'homologation_method' => 'WLTP',
+            'co2_nedc' => null,
+            'taxable_horsepower' => null,
+        ];
+
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => '2024-06-30',
+            'co2_wltp' => 100,
+            ...$common,
+        ]);
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-07-01',
+            'effective_to' => null,
+            'co2_wltp' => 145,
+            ...$common,
         ]);
 
         return $vehicle->fresh(['fiscalCharacteristics']);

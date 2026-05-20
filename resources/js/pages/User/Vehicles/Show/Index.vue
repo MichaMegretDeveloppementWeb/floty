@@ -19,6 +19,7 @@ const props = defineProps<{
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
     billingYear: number;
     fiscalYear: number;
+    fiscalYearScope: App.Data.Shared.YearScopeData;
 
     // Deferred: arrives on second round-trip, consumed via <Deferred data="history">.
     history?: App.Data.User.Vehicle.VehicleYearStatsData[];
@@ -59,6 +60,7 @@ const { activeTab, setTab, loadingTab } = useVehicleTabs();
                     :vehicle="props.vehicle"
                     :fiscal-year-breakdown="props.fiscalYearBreakdown"
                     :fiscal-year="props.fiscalYear"
+                    :fiscal-year-scope="props.fiscalYearScope"
                 />
                 <TabLoadingSkeleton v-else />
             </template>
