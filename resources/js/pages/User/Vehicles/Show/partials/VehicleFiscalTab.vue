@@ -11,6 +11,7 @@ import AppliedVfcCard from './fiscal/AppliedVfcCard.vue';
 import FullYearTaxBreakdownPanel from './FullYearTaxBreakdownPanel.vue';
 
 type Breakdown = App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
+type Segment = App.Data.User.Vehicle.VehicleFullYearTaxSegmentData;
 type UsageStats = App.Data.User.Vehicle.VehicleUsageStatsData;
 
 const props = defineProps<{
@@ -63,6 +64,28 @@ const segmentsCount = computed<number>(
 const distinctVfcCount = computed<number>(
     () => new Set(props.fiscalYearBreakdown.taxSegments.map((s) => s.vfc.id)).size,
 );
+
+/**
+ * Regroupe les segments consécutifs partageant la même VFC. La section
+ * « Caractéristiques VFC » liste ainsi les vrais changements de version,
+ * pas les sous-coupes liées aux évolutions de barème (déjà visibles
+ * dans « Détail du calcul »).
+ */
+const vfcSegments = computed<Segment[]>(() => {
+    const merged: Segment[] = [];
+    for (const seg of props.fiscalYearBreakdown.taxSegments) {
+        const last = merged[merged.length - 1];
+        if (last && last.vfc.id === seg.vfc.id) {
+            merged[merged.length - 1] = {
+                ...last,
+                effectiveToInYear: seg.effectiveToInYear,
+            };
+        } else {
+            merged.push(seg);
+        }
+    }
+    return merged;
+});
 
 const ruleCutsCount = computed<number>(
     () => props.fiscalYearBreakdown.taxSegments.filter(
@@ -263,7 +286,7 @@ const statsLike = computed<UsageStats>(() => ({
                 <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Caractéristiques VFC
                 </p>
-                <AppliedVfcCard :segments="props.fiscalYearBreakdown.taxSegments" unwrapped />
+                <AppliedVfcCard :segments="vfcSegments" unwrapped />
             </section>
 
             <section class="mt-12 flex flex-col gap-4">
