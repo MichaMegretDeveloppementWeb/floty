@@ -44,7 +44,6 @@ describe('useInvoiceRegeneration', () => {
 
         expect(regenerating.value).toBe(true);
 
-        // Récupère et déclenche le onFinish passé à router.post.
         const [, , options] = vi.mocked(router.post).mock.calls[0]!;
         options?.onFinish?.({} as never);
 

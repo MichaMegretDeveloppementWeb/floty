@@ -28,10 +28,9 @@ function createState(
 }
 
 /**
- * Depuis le refactor « préservation query params » (chantier J.0), les
- * paramètres de la table sont injectés dans l'URL passée en 1er argument
- * de `router.get(url, {}, options)`, plus dans le 2e argument `data`.
- * Helper pour récupérer l'URL en `URL` parsable.
+ * Table params are injected into the URL passed as the 1st argument of
+ * `router.get(url, {}, options)`, not into the 2nd `data` argument.
+ * Helper to grab that URL as a parseable `URL`.
  */
 function urlOfCall(callIndex = 0): URL {
     const [urlString] = vi.mocked(router.get).mock.calls[callIndex]!;
@@ -54,7 +53,6 @@ describe('useServerTableState', () => {
     beforeEach(() => {
         vi.useFakeTimers();
         vi.mocked(router.get).mockClear();
-        // Reset URL pour garantir un état déterministe entre tests
         window.history.replaceState({}, '', '/');
     });
 
@@ -125,7 +123,6 @@ describe('useServerTableState', () => {
         expect(params.search).toBe('foo');
         expect(params.sortKey).toBe('fullName');
 
-        // Le timer search annulé ne doit plus tirer
         vi.advanceTimersByTime(500);
         expect(router.get).toHaveBeenCalledTimes(1);
     });
@@ -147,7 +144,7 @@ describe('useServerTableState', () => {
         const state = createState();
 
         state.setSort('fullName');
-        state.setSort('fullName'); // desc maintenant
+        state.setSort('fullName');
         expect(state.sort.value.direction).toBe('desc');
 
         state.setSort('createdAt');
@@ -229,11 +226,10 @@ describe('useServerTableState', () => {
 
     it('buildQueryData omet les valeurs nulles (URL propre)', () => {
         const state = createState();
-        state.setSort('fullName'); // sortKey set, direction asc (default → omit)
+        state.setSort('fullName');
 
         const params = paramsOfCall();
 
-        // Les valeurs par défaut + null sont absentes de la query string
         expect(params).not.toHaveProperty('page');
         expect(params).not.toHaveProperty('perPage');
         expect(params).not.toHaveProperty('search');
@@ -246,7 +242,7 @@ describe('useServerTableState', () => {
     it('buildQueryData expose sortDirection desc', () => {
         const state = createState();
         state.setSort('fullName');
-        state.setSort('fullName'); // desc
+        state.setSort('fullName');
 
         expect(paramsOfCall(1).sortDirection).toBe('desc');
     });
@@ -269,7 +265,6 @@ describe('useServerTableState', () => {
         const state = createState({ only: ['contracts', 'meta'] });
         state.setPage(2);
 
-        // router.get(url, {}, options) · paramètres dans l'URL, pas dans le 2e arg
         expect(router.get).toHaveBeenCalledWith(
             expect.stringContaining('page=2'),
             {},
@@ -282,14 +277,7 @@ describe('useServerTableState', () => {
         );
     });
 
-    // ----------------------------------------------------------------
-    // Préservation des query params hors-table (chantier J.0)
-    // ----------------------------------------------------------------
-
     it('préserve un query param non géré par le composable (ex. ?tab=contracts)', () => {
-        // Le user a `?tab=contracts` dans l'URL avant l'interaction (posé
-        // par useCompanyTabs sur la fiche entreprise). Une interaction de
-        // table ne doit PAS supprimer ce param.
         window.history.replaceState({}, '', '/?tab=contracts');
 
         const state = createState();
@@ -313,9 +301,6 @@ describe('useServerTableState', () => {
     });
 
     it('retire un filtre quand sa valeur passe à null (URL propre)', () => {
-        // Le user arrive avec ?companyId=42 dans l'URL puis le clear via
-        // setFilter(...null). L'URL doit perdre la clé companyId, mais
-        // garder les autres params (ex. ?tab=foo).
         window.history.replaceState({}, '', '/?tab=foo&companyId=42');
 
         const state = createState({ initialFilters: { companyId: 42, type: null } });

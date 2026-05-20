@@ -3,10 +3,9 @@ import { defineComponent, h, nextTick, reactive } from 'vue';
 import { useToasts } from '@/Composables/Shared/useToasts';
 
 /**
- * Lot 5 D6 (F-19-007 + bug back-button) · `useFlashToasts` lit désormais
- * `page.props.flash.toasts` (liste accumulée `ToastEntryData[]`) au lieu
- * des 4 canaux scalaires (success/error/warning/info). Les tests
- * mockent donc une liste de toasts directement.
+ * `useFlashToasts` reads `page.props.flash.toasts` (a `ToastEntryData[]`),
+ * not the legacy scalar success/error/warning/info channels. The tests
+ * therefore mock a list of toasts directly.
  */
 type FlashToastEntry = { id: string; tone: string; message: string };
 
@@ -20,8 +19,8 @@ vi.mock('@inertiajs/vue3', () => ({
     }),
 }));
 
-// Import après vi.mock - l'ordre est intentionnel pour que le mock
-// d'@inertiajs/vue3 soit installé avant l'évaluation du composable.
+// Imported after vi.mock so the @inertiajs/vue3 stub is installed before
+// the composable is evaluated.
 // eslint-disable-next-line import/order
 import { useFlashToasts } from '@/Composables/Shared/useFlashToasts';
 

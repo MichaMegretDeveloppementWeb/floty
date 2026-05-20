@@ -49,8 +49,6 @@ describe('formatInvalidationReason', () => {
     });
 
     it('reformate les dates ISO YYYY-MM-DD éventuelles du label en DD/MM/YYYY', () => {
-        // Cas des labels persistés en base avant la bascule format
-        // français côté `DeclarationInvalidationDetector`.
         const reason = {
             ...makeReason('contract_created'),
             entity: {
@@ -70,7 +68,6 @@ describe('formatInvalidationOccurredAt', () => {
     it('formate la date ISO en format français lisible', () => {
         const formatted = formatInvalidationOccurredAt('2026-05-08T14:32:11+00:00');
 
-        // Format dépend du fuseau d'exécution mais doit contenir 2026
         expect(formatted).toMatch(/2026/);
     });
 });

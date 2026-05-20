@@ -66,7 +66,7 @@ describe('formatFr', () => {
 describe('isValidIsoDate', () => {
     it('accepts valid ISO dates', () => {
         expect(isValidIsoDate('2024-05-15')).toBe(true);
-        expect(isValidIsoDate('2024-02-29')).toBe(true); // bissextile
+        expect(isValidIsoDate('2024-02-29')).toBe(true);
     });
 
     it('rejects malformed strings', () => {
@@ -79,7 +79,7 @@ describe('isValidIsoDate', () => {
     it('rejects impossible dates (round-trip différent)', () => {
         expect(isValidIsoDate('2024-02-30')).toBe(false);
         expect(isValidIsoDate('2024-13-01')).toBe(false);
-        expect(isValidIsoDate('2023-02-29')).toBe(false); // non bissextile
+        expect(isValidIsoDate('2023-02-29')).toBe(false);
     });
 });
 
@@ -357,16 +357,12 @@ describe('findLongestFreeSubrange', () => {
     });
 
     it('garde la plus longue sous-plage libre quand un trou est en milieu', () => {
-        // Cas user : sélectionné 12-20, pris 17-19 → libre = [12-16] (5j) + [20-20] (1j)
-        // 12-16 est plus long, on le garde.
         const set = new Set(['2024-05-17', '2024-05-18', '2024-05-19']);
         expect(findLongestFreeSubrange('2024-05-12', '2024-05-20', set))
             .toEqual({ start: '2024-05-12', end: '2024-05-16' });
     });
 
     it('garde la première sous-plage en cas d\'égalité de longueur', () => {
-        // Cas user : sélectionné 12-20, pris 13-16 et 18-19 →
-        // libres = [12], [17], [20]. Toutes de longueur 1 → on garde la 1ʳᵉ.
         const set = new Set([
             '2024-05-13', '2024-05-14', '2024-05-15', '2024-05-16',
             '2024-05-18', '2024-05-19',
@@ -398,7 +394,6 @@ describe('findLongestFreeSubrange', () => {
     });
 
     it('compare correctement deux trous séparés et garde le plus grand', () => {
-        // libres : [01-03] (3j), [09-15] (7j). On doit garder [09-15].
         const set = new Set([
             '2024-05-04', '2024-05-05', '2024-05-06', '2024-05-07', '2024-05-08',
         ]);
@@ -407,7 +402,6 @@ describe('findLongestFreeSubrange', () => {
     });
 
     it('passe correctement une frontière de mois', () => {
-        // Pas de disabled, plage chevauchant fin avril / début mai
         const result = findLongestFreeSubrange('2024-04-29', '2024-05-03', new Set());
         expect(result).toEqual({ start: '2024-04-29', end: '2024-05-03' });
     });

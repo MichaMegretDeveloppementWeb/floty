@@ -8,10 +8,9 @@ import {
 import type { ServerTableState } from '@/Composables/Shared/useServerTableState';
 
 /**
- * Crée un mock minimal de `ServerTableState<ContractFilters>` qui n'expose
- * que les méthodes effectivement utilisées par `useContractsTimeScope` ·
- * `filters`, `setFilter`, `patchFilters`. Les autres propriétés sont
- * castées (jamais lues par le composable testé).
+ * Build a minimal `ServerTableState<ContractFilters>` mock exposing only
+ * the methods consumed by `useContractsTimeScope`: `filters`, `setFilter`,
+ * `patchFilters`. Other properties are stubbed/cast (never read).
  */
 function makeTableStateMock(initialFilters: Partial<ContractFilters> = {}) {
     const filters = ref<ContractFilters>({
@@ -40,7 +39,6 @@ function makeTableStateMock(initialFilters: Partial<ContractFilters> = {}) {
         filters,
         setFilter,
         patchFilters,
-        // Stubs cast (jamais lus)
         search: ref(''),
         sort: ref({ key: null, direction: 'asc' as const }),
         setPage: vi.fn(),
@@ -88,8 +86,6 @@ describe('resolveInitialScopeMode', () => {
     });
 
     it('priorité à year sur period si les deux sont présents', () => {
-        // Combinaison anormale (mutuellement exclusifs côté backend) ·
-        // par sécurité on choisit `year` qui est le mode dominant.
         const mode = resolveInitialScopeMode({
             year: 2025,
             periodStart: '2025-06-01',
@@ -175,7 +171,6 @@ describe('useContractsTimeScope', () => {
 
         expect(ctx.scopeMode.value).toBe('period');
         expect(ctx.periodPopoverOpen.value).toBe(true);
-        // patchFilters appelé avec year=null (pas de période préexistante)
         expect(tableState.patchFilters).toHaveBeenCalledWith({
             year: null,
             periodStart: null,
@@ -203,7 +198,6 @@ describe('useContractsTimeScope', () => {
 
         expect(ctx.scopeMode.value).toBe('year');
         expect(ctx.periodPopoverOpen.value).toBe(false);
-        // patchFilters appelé avec year=defaultYear, period clearé
         expect(tableState.patchFilters).toHaveBeenCalledWith({
             year: 2026,
             periodStart: null,
@@ -225,8 +219,6 @@ describe('useContractsTimeScope', () => {
 
         ctx.setScopeMode('period');
 
-        // Pas de patchFilters atomique (period déjà présente) ·
-        // setFilter('year', null) seul.
         expect(tableState.setFilter).toHaveBeenCalledWith('year', null);
     });
 
@@ -276,7 +268,7 @@ describe('useContractsTimeScope', () => {
             availableYears,
             tableState: tableStateB,
         });
-        expect(ctxB.pickerYear.value).toBe(2026); // defaultYear = max(years)
+        expect(ctxB.pickerYear.value).toBe(2026);
     });
 
     it('yearModel.set bascule via patchFilters atomique (year + clear period)', () => {

@@ -15,12 +15,6 @@ async function emitDrop(wrapper: ReturnType<typeof mount>, files: File[]): Promi
         .trigger('drop', { dataTransfer });
 }
 
-/**
- * Lot 7 D12 (F-41-016) · `DocumentDropZone` n'appelle plus `useToasts` directement
- * (couche UI ne doit pas connaître les toasts) · les rejets sont remontés
- * via l'event `'rejected'` que le consommateur transforme en toast.
- */
-
 describe('DocumentDropZone', () => {
     describe('mode single-MIME · application/pdf', () => {
         it('accepte un fichier PDF et émet files-added', async () => {

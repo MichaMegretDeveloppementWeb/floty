@@ -3,9 +3,8 @@ import { useApi } from '@/Composables/Shared/useApi';
 import { useToasts } from '@/Composables/Shared/useToasts';
 
 /**
- * Helper : crée une Response mockée minimaliste compatible avec
- * `useApi` (qui appelle `response.clone().json()` pour extraire le
- * `{ message }` du backend).
+ * Build a minimal mocked Response compatible with `useApi`, which calls
+ * `response.clone().json()` to read the backend `{ message }` payload.
  */
 function makeResponse(opts: {
     ok: boolean;
@@ -32,7 +31,7 @@ describe('useApi', () => {
 
     beforeEach(() => {
         fetchMock = vi.fn();
-        // @ts-expect-error - override global fetch dans l'env test
+        // @ts-expect-error override global fetch in the test env
         globalThis.fetch = fetchMock;
         useToasts().clear();
     });

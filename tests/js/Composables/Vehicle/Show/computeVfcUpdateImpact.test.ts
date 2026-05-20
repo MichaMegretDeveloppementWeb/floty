@@ -8,9 +8,9 @@ import {
 type Vfc = App.Data.User.Vehicle.VehicleFiscalCharacteristicsData;
 
 /**
- * Helper minimal - seules les bornes et l'id sont utilisés par
- * `computeVfcUpdateImpact`, on remplit le reste avec des valeurs
- * neutres pour satisfaire le type complet sans bruit dans les tests.
+ * Minimal VFC builder: only `id`, `effectiveFrom`, `effectiveTo` matter
+ * for the impact computer, the rest is filled with neutral values to
+ * satisfy the full type.
  */
 function makeVfc(
     id: number,
@@ -47,8 +47,8 @@ function makeVfc(
 }
 
 /**
- * Mirroir de `FiscalCharacteristicsImpactComputerTest` côté backend.
- * Les deux suites doivent rester strictement équivalentes.
+ * Mirror of `FiscalCharacteristicsImpactComputerTest` backend suite.
+ * Both must stay strictly equivalent.
  */
 describe('computeVfcUpdateImpact', () => {
     it("ne retourne aucun impact quand les bornes ne changent pas et l'historique est contigu", () => {

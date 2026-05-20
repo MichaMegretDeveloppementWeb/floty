@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { formatEur } from '@/Utils/format/formatEur';
 
-// NNBSP (U+202F) - séparateur de milliers / espace avant le symbole €
-// produit par `Intl.NumberFormat('fr-FR', ...)`.
+// NNBSP (U+202F): thousands separator / space before the € sign
+// produced by `Intl.NumberFormat('fr-FR', ...)`.
 const NNBSP = ' ';
 
 describe('formatEur', () => {

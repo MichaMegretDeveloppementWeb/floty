@@ -164,7 +164,6 @@ describe('useSearchableSelect', () => {
 
     it('keyboard events ignored when closed', () => {
         const { ctx } = setup();
-        // pas de open()
 
         ctx.onKeyDown(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
         expect(ctx.isOpen.value).toBe(false);

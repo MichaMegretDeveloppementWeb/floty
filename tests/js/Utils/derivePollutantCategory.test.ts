@@ -5,11 +5,9 @@ import {
 } from '@/Utils/derivePollutantCategory';
 
 /**
- * Mirroir TS de PollutantCategory::derive() côté backend.
- * Les deux implémentations DOIVENT rester strictement équivalentes -
- * tout changement de cascade côté PHP doit être répliqué ici (et
- * réciproquement). Les cas couverts ici sont alignés sur
- * `PollutantCategoryDeriveTest` côté backend.
+ * TS mirror of PollutantCategory::derive() backend. Both implementations
+ * must stay strictly equivalent: any cascade change on either side must
+ * be replicated. Cases here are aligned with `PollutantCategoryDeriveTest`.
  */
 describe('derivePollutantCategory', () => {
     it('renvoie "e" pour une motorisation strictement non-thermique', () => {

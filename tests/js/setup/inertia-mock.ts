@@ -1,16 +1,9 @@
 import { vi } from 'vitest';
 
 /**
- * Mock global de `@inertiajs/vue3` pour les tests Vitest qui consomment
- * `router` (notamment `useServerTableState` et les composables Index
- * server-side, cf. ADR-0020).
- *
- * Les tests qui n'importent pas `@inertiajs/vue3` ne sont pas affectés.
- *
- * Utilisation dans un test :
- *   import { router } from '@inertiajs/vue3';
- *   import { vi } from 'vitest';
- *   beforeEach(() => { vi.mocked(router.reload).mockClear(); });
+ * Global mock for `@inertiajs/vue3` so tests that consume `router`
+ * (server-side Index composables, useServerTableState, etc.) can spy on
+ * navigation calls without booting a real Inertia app.
  */
 vi.mock('@inertiajs/vue3', () => {
     const router = {

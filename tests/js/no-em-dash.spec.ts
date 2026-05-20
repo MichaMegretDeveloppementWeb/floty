@@ -5,19 +5,9 @@ import { glob } from 'glob';
 import { describe, expect, it } from 'vitest';
 
 /**
- * Garde-fou anti-régression em-dash U+2014 (Lot 7 D10 · F-41-001/002 +
- * F-42-005). Complète la règle ESLint `no-restricted-syntax` du
- * `eslint.config.js` (qui ne couvre que Literal/TemplateElement, pas
- * les commentaires ni les attributs Vue).
- *
- * Cf. mémoire `feedback_no_em_dash` · le caractère `—` (U+2014) est
- * interdit partout dans le code Floty. Le `·` U+00B7 (point central)
- * reste autorisé.
- *
- * Si ce test fail, exécuter ·
- *   `grep -rn $'\xe2\x80\x94' resources/js/`
- * puis remplacer chaque occurrence par `·` / `:` / refonte syntaxique
- * selon contexte.
+ * Anti-regression guard for em-dash U+2014. Complements the ESLint
+ * `no-restricted-syntax` rule which only covers Literal/TemplateElement,
+ * not comments or Vue attributes. The `·` middle dot (U+00B7) is allowed.
  */
 const FRONTEND_ROOT = resolve(process.cwd(), 'resources/js');
 const EM_DASH = '—';
