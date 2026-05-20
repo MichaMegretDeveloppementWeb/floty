@@ -46,7 +46,6 @@ const {
             </div>
         </template>
 
-        <!-- Empty state : VFC manquantes ou contrat sans véhicule fiscal -->
         <p
             v-if="taxBreakdown === null"
             class="text-sm text-slate-500"
@@ -71,12 +70,7 @@ const {
                     Année {{ year.year }}
                 </h3>
 
-                <!-- Cas LCD pur ou autre exonération totale : 0 € -->
                 <div v-if="year.daysAssigned === 0" class="flex flex-col gap-3">
-                    <!-- LCD · message dédié (l'exonération R-YYYY-021
-                         s'applique quel que soit l'état d'exonération
-                         du véhicule). Pour les autres exonérations
-                         totales, message générique en `v-else`. -->
                     <p
                         v-if="isLcd"
                         class="rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-800"
@@ -99,12 +93,6 @@ const {
                         </span>
                     </p>
 
-                    <!-- Montant hypothétique « si requalifié en LLD » ·
-                         affiché systématiquement pour les LCD (peuplé par
-                         `ContractQueryService::enrichWithLcdHypothetical`).
-                         Pour un véhicule hors champ fiscal (ex. camionnette
-                         N1 R-2024-004), la valeur est 0 € · cohérent et
-                         non-trompeur. -->
                     <section
                         v-if="isLcd && year.hypotheticalTotalDueIfNoLcd !== null"
                         class="rounded-md border border-dashed border-slate-200 bg-slate-50/60 px-3 py-2.5"
@@ -139,12 +127,10 @@ const {
                     </section>
                 </div>
 
-                <!-- Cas taxable : formule explicite -->
                 <div
                     v-else
                     class="flex flex-col gap-4"
                 >
-                    <!-- Section CO₂ -->
                     <section class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between gap-2 flex-wrap">
                             <span
@@ -157,7 +143,6 @@ const {
                             </Badge>
                         </div>
 
-                        <!-- Mono-segment · formule directe -->
                         <p
                             v-if="!hasScission(year, 'co2')"
                             class="font-mono text-sm text-slate-600"
@@ -170,7 +155,6 @@ const {
                             </span>
                         </p>
 
-                        <!-- Multi-segment · scission CO₂ (rare, prévu pour V2+) -->
                         <div v-else class="flex flex-col gap-1">
                             <p
                                 v-for="(segment, idx) in year.segments"
@@ -194,7 +178,6 @@ const {
                         </div>
                     </section>
 
-                    <!-- Section Polluants -->
                     <section class="flex flex-col gap-1.5">
                         <div class="flex items-center justify-between gap-2 flex-wrap">
                             <span
@@ -207,7 +190,6 @@ const {
                             </Badge>
                         </div>
 
-                        <!-- Mono-segment · formule directe -->
                         <p
                             v-if="!hasScission(year, 'pollutants')"
                             class="font-mono text-sm text-slate-600"
@@ -220,7 +202,6 @@ const {
                             </span>
                         </p>
 
-                        <!-- Multi-segment · scission polluants (ex. LF 2026 art. 58 V IV au 01/03) -->
                         <div v-else class="flex flex-col gap-1">
                             <p
                                 v-for="(segment, idx) in year.segments"
@@ -244,7 +225,6 @@ const {
                         </div>
                     </section>
 
-                    <!-- Total année -->
                     <div
                         class="flex items-center justify-between gap-2 border-t border-slate-100 pt-2"
                     >
@@ -258,7 +238,6 @@ const {
                     </div>
                 </div>
 
-                <!-- Exonérations appliquées -->
                 <section
                     v-if="year.appliedExemptions.length > 0"
                     class="flex flex-col gap-1.5 border-t border-slate-100 pt-3"
@@ -288,7 +267,6 @@ const {
                     </ul>
                 </section>
 
-                <!-- Règles appliquées (badges cliquables) -->
                 <section
                     v-if="year.appliedRuleCodes.length > 0"
                     class="flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 text-xs"
@@ -307,7 +285,6 @@ const {
                 </section>
             </section>
 
-            <!-- Total agrégé (visible seulement en multi-année) -->
             <section
                 class="flex items-center justify-between gap-2 rounded-lg bg-transparent px-4 py-3 shadow-[0_0_2px_silver]"
             >

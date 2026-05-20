@@ -25,7 +25,6 @@ const emit = defineEmits<{
 </script>
 
 <template>
-    <!-- Desktop ≥ md : DataTable classique -->
     <DataTable
         class="hidden md:block"
         :columns="columns"
@@ -116,7 +115,6 @@ const emit = defineEmits<{
         </template>
     </DataTable>
 
-    <!-- Mobile < md : cards verticales tactiles -->
     <ul v-if="invoices.length > 0" class="flex flex-col gap-2 md:hidden">
         <li v-for="row in invoices" :key="row.id">
             <button

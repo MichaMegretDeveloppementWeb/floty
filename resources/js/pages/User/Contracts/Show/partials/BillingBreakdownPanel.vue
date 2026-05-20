@@ -1,13 +1,11 @@
 <script setup lang="ts">
 /**
- * Section Facturation de la fiche Location (Phase 14.D V1.2 · extension).
+ * Per-contract billing breakdown panel.
  *
- * Affiche le coût de location **isolé** du contrat, mois civil par
- * mois civil. Si plusieurs contrats du même véhicule × entreprise
- * cohabitent sur un même mois, le total contrat-isolé peut différer
- * de la facture réelle (qui consolide les jours via combo optimal) ·
- * c'est documenté côté backend et signalé subtilement à l'utilisateur
- * dans le footer de la card.
+ * Shows the isolated rental cost of the contract month by month.
+ * When multiple contracts share the same vehicle × company on a given
+ * month, the contract-isolated total may differ from the real invoice
+ * (which consolidates days via the optimal-rate combo).
  */
 import { computed } from 'vue';
 import RentalDiscountPill from '@/Components/Domain/RentalDiscount/RentalDiscountPill.vue';
@@ -19,11 +17,6 @@ const props = defineProps<{
     breakdown: App.Data.User.Billing.ContractBillingBreakdownData | null;
 }>();
 
-/**
- * Lot 3 réductions commerciales · vrai si au moins un mois du
- * breakdown contrat-isolé a appliqué une réduction. Pilote
- * l'affichage du total réduction sous le total HT.
- */
 const hasAnyDiscount = computed<boolean>(
     () => (props.breakdown?.totalDiscountCentsPartial ?? 0) > 0,
 );
@@ -61,9 +54,6 @@ const hasAnyDiscount = computed<boolean>(
                     <p class="font-mono text-xs text-slate-500 tabular-nums">
                         {{ breakdown.totalDaysUsed }} jour{{ breakdown.totalDaysUsed > 1 ? 's' : '' }}
                     </p>
-                    <!-- Lot 3 · si une réduction a été appliquée au
-                         contrat sur au moins un mois, l'économie totale
-                         apparaît sous le total HT en complément. -->
                     <p
                         v-if="hasAnyDiscount"
                         class="mt-1 font-mono text-xs text-emerald-700 tabular-nums whitespace-nowrap"
@@ -101,9 +91,6 @@ const hasAnyDiscount = computed<boolean>(
                             <span class="text-xs italic">Tarif {{ row.year }} manquant</span>
                         </template>
                         <template v-else>
-                            <!-- Lot 3 · si une réduction a été appliquée
-                                 sur ce mois, on expose brut barré + net
-                                 + badge `RentalDiscountPill` discret. -->
                             <template v-if="(row.discountCents ?? 0) > 0">
                                 <div class="flex items-center justify-end gap-2">
                                     <RentalDiscountPill

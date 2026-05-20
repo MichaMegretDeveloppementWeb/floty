@@ -61,10 +61,6 @@ defineProps<{
             />
         </Link>
 
-        <!-- Carte Conducteurs : selon nb de drivers attachés (chantier #3
-             multi-conducteurs). Si exactement 1 → carte cliquable vers le
-             driver. Si plusieurs → liste de chips cliquables. Si aucun →
-             placeholder. -->
         <Link
             v-if="contract.drivers.length === 1"
             :href="driversShowRoute.url(contract.drivers[0]!.id)"

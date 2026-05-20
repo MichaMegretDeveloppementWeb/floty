@@ -1,8 +1,7 @@
 <script setup lang="ts">
-/* eslint-disable vue/no-mutating-props -- pattern Inertia useForm
-   reçue en prop : la mutation directe est intentionnelle (le useForm
-   est instancié dans le parent et passé tel quel pour éviter de
-   pousser la logique submit dans ce partial purement présentationnel). */
+/* eslint-disable vue/no-mutating-props -- Inertia useForm received as
+   a prop. Direct mutation is intentional: the useForm lives in the
+   parent and is passed through to keep this partial presentational. */
 import { computed, ref, toRef, watch } from 'vue';
 import CompanyOptionTag from '@/Components/Domain/Company/CompanyOptionTag.vue';
 import DriversMultiPicker from '@/Components/Domain/Driver/DriversMultiPicker.vue';
@@ -41,7 +40,6 @@ const props = defineProps<{
     busyDatesByVehicleId: Record<number, string[]>;
 }>();
 
-// ── Sélecteur véhicule ──────────────────────────────────────────────
 const vehicleOptions = computed(() => {
     const decorate = (v: App.Data.User.Vehicle.VehicleFilterOptionData): { value: number; label: string } => ({
         value: v.id,
@@ -56,7 +54,6 @@ const vehicleOptions = computed(() => {
     return [...active, ...exited];
 });
 
-// ── Sélecteur entreprise (enrichi) ──────────────────────────────────
 const companyOptions = computed(() =>
     props.options.companies.map((c) => ({
         value: c.id,
@@ -73,28 +70,14 @@ const vehicleIdModel = computed({
     },
 });
 
-// Taxe pleine annuelle du véhicule sélectionné, basée sur l'année de
-// `start_date` saisie (fallback année courante quand la date n'est pas
-// encore renseignée). Aide à la décision lors de la sélection · les
-// règles fiscales évoluant d'une année à l'autre, on cale sur l'année
-// de la location pour éviter d'afficher une valeur caduque.
-//
-// S2.5 (plan optim perf 2026-05-16) · calcul **on-demand** via
-// endpoint AJAX `GET /app/vehicles/{vehicle}/full-year-tax`. Évite
-// le pré-calcul lourd au mount (192 pipeline runs pour 64 vehicles
-// × 3 années) · seul le véhicule effectivement sélectionné est
-// calculé, et seulement à sa sélection. Le composable gère debounce
-// 200 ms, fallback année voisine si année demandée pas en registry,
-// et état `loading`.
+// Full-year tax for the selected vehicle, anchored on the start_date
+// year (fallback to the current year). Fetched on-demand via AJAX to
+// keep the mount cheap.
 const { result: vehicleFullYearTax, loading: vehicleFullYearTaxLoading } = useVehicleFullYearTax({
     vehicleId: toRef(props.form, 'vehicle_id'),
     startDate: toRef(props.form, 'start_date'),
 });
 
-// SC9 (2026-05-18) · tarifs annuels J/S/M du véhicule sélectionné ·
-// même pattern que la taxe pleine (defer AJAX à la sélection, debounce
-// 200 ms). Affiché sous la ligne « Taxe pleine » au format
-// `Loyer J 77 € · S 440 € · M 1 540 €`.
 const { result: vehicleYearlyRates, loading: vehicleYearlyRatesLoading } = useVehicleYearlyRates({
     vehicleId: toRef(props.form, 'vehicle_id'),
     startDate: toRef(props.form, 'start_date'),
@@ -132,7 +115,6 @@ const companyIdModel = computed({
     },
 });
 
-// ── Plage de dates ──────────────────────────────────────────────────
 const range = ref<{ startDate: string | null; endDate: string | null }>({
     startDate: props.form.start_date || null,
     endDate: props.form.end_date || null,
@@ -184,8 +166,8 @@ return [];
     return props.busyDatesByVehicleId[props.form.vehicle_id] ?? [];
 });
 
-// Quand on change de véhicule, on ré-ajuste la plage à la plus longue
-// sous-plage libre trouvée. Aucune sous-plage libre → on efface.
+// When the vehicle changes, snap the range to the longest free
+// subrange. If none exists, clear it.
 watch(disabledDates, (newDisabled) => {
     if (range.value.startDate === null || range.value.endDate === null) {
 return;
@@ -204,7 +186,6 @@ return;
         : { startDate: sub.start, endDate: sub.end };
 });
 
-// ── Durée + type LCD/LLD live ───────────────────────────────────────
 const durationDays = computed<number | null>(() => {
     const { startDate, endDate } = range.value;
 
@@ -219,9 +200,8 @@ return null;
     return days > 0 ? days : null;
 });
 
-// Type dérivé localement (purement informatif · le backend recalcule
-// via `Contract::deriveTypeFromDates` qui fait autorité). Règle
-// simplifiée : ≤ 30 jours → LCD, sinon LLD.
+// Local derivation only (informative). The backend recalculates the
+// type via `Contract::deriveTypeFromDates`, which is authoritative.
 const contractType = computed<'lcd' | 'lld' | null>(() => {
     if (durationDays.value === null) {
 return null;
@@ -233,7 +213,6 @@ return null;
 
 <template>
     <div class="flex flex-col gap-8">
-        <!-- ── ATTRIBUTION ──────────────────────────────────────── -->
         <section class="flex flex-col gap-4">
             <div>
                 <p class="eyebrow">Attribution</p>
@@ -268,9 +247,6 @@ return null;
                         </span>
                         <span v-else>({{ selectedVehicleFullYearTax.year }})</span>
                     </p>
-                    <!-- SC9 (2026-05-18) · tarifs annuels jour/semaine/mois du
-                         véhicule sélectionné · même format que la cellule
-                         planning. Tiret muet pour chaque tarif non renseigné. -->
                     <p
                         v-if="form.vehicle_id !== null && vehicleYearlyRatesLoading"
                         class="mt-1 font-mono text-[11px] text-slate-400 tabular-nums"
@@ -323,7 +299,6 @@ return null;
 
         <hr class="border-slate-100" />
 
-        <!-- ── PÉRIODE ──────────────────────────────────────────── -->
         <section class="flex flex-col gap-4">
             <p class="eyebrow">Période</p>
 
@@ -377,7 +352,6 @@ return null;
 
         <hr class="border-slate-100" />
 
-        <!-- ── CONDUCTEURS ──────────────────────────────────────── -->
         <section class="flex flex-col gap-4">
             <p class="eyebrow">Conducteurs</p>
 
@@ -393,7 +367,6 @@ return null;
 
         <hr class="border-slate-100" />
 
-        <!-- ── DÉTAILS ──────────────────────────────────────────── -->
         <section class="flex flex-col gap-4">
             <p class="eyebrow">Détails</p>
 

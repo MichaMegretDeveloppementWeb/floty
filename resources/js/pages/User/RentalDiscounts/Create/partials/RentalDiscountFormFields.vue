@@ -1,16 +1,11 @@
 <script setup lang="ts">
 /**
- * Champs du formulaire RentalDiscount Create/Edit (Lot 4 du chantier).
- * Sections verticales · Entreprise → Période → Pourcentage →
- * Véhicules → Libellé/Notes.
+ * Form fields for RentalDiscount Create/Edit.
  *
- * Pas de logique métier ici · juste les liaisons v-model et le rendu.
- * Le composable parent (`useRentalDiscountForm`) gère le state,
- * conversion pourcentage ↔ bp, check chevauchement, etc.
- *
- * Feedback chevauchement · carte rouge listant les conflits uniquement
- * en cas de conflit (defense in depth back · le submit reste désactivé
- * tant que conflit, doctrine UX « pas de message positif gratuit »).
+ * Presentational only: bindings and render. The parent composable
+ * `useRentalDiscountForm` owns the state, percent <-> basis-points
+ * conversion, and the overlap check. The conflict card only appears
+ * when overlaps are present (the submit stays silently disabled).
  */
 import { computed } from 'vue';
 import type { useForm } from '@inertiajs/vue3';
@@ -47,18 +42,11 @@ type FormPayload = {
 };
 
 const props = defineProps<{
-    /**
-     * `useForm` Inertia partagé avec le parent · contient le state
-     * réactif + errors.
-     */
+    /** Inertia useForm shared with the parent (reactive state + errors). */
     form: ReturnType<typeof useForm<FormPayload>>;
     companies: readonly CompanyOption[];
     vehicles: readonly VehicleOption[];
-    /**
-     * Mode édition · companyId verrouillé en lecture seule (la doctrine
-     * projet interdit le changement de company sur une réduction
-     * existante).
-     */
+    /** Edit mode: companyId becomes read-only (cannot be changed on an existing discount). */
     isEdit: boolean;
     discountPercent: number;
     appliesToAllVehicles: boolean;
@@ -118,7 +106,6 @@ const lockedCompanyLabel = computed<string>(() => {
 
 <template>
     <div class="flex flex-col gap-6">
-        <!-- 1. Entreprise -->
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
@@ -146,7 +133,6 @@ const lockedCompanyLabel = computed<string>(() => {
             </div>
         </Card>
 
-        <!-- 2. Période + pourcentage -->
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
@@ -192,7 +178,6 @@ const lockedCompanyLabel = computed<string>(() => {
             </div>
         </Card>
 
-        <!-- 3. Véhicules ciblés -->
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
@@ -222,7 +207,6 @@ const lockedCompanyLabel = computed<string>(() => {
             </div>
         </Card>
 
-        <!-- 4. Libellé + notes -->
         <Card>
             <template #header>
                 <h2 class="text-base font-semibold text-slate-900">
@@ -265,10 +249,6 @@ const lockedCompanyLabel = computed<string>(() => {
             </div>
         </Card>
 
-        <!-- 5. Feedback chevauchement · uniquement quand conflit réel.
-             Pas de carte « tout va bien » ni d'état « vérification en
-             cours » · l'absence de message = l'absence de conflit, et
-             le bouton Soumettre se désactive silencieusement. -->
         <div
             v-if="conflicts.length > 0"
             class="rounded-xl border border-rose-200 bg-rose-50/50 p-4"

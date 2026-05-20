@@ -16,11 +16,6 @@ import ContractFormFields from '../Create/partials/ContractFormFields.vue';
 
 const props = defineProps<{
     contract: App.Data.User.Contract.ContractData;
-    /**
-     * Options SLIM (S2.5) · zéro pipeline fiscal au mount. La taxe
-     * pleine du véhicule sélectionné est calculée à la volée via
-     * l'endpoint AJAX dans `ContractFormFields`.
-     */
     options: {
         vehicles: App.Data.User.Vehicle.VehicleFilterOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
@@ -30,7 +25,6 @@ const props = defineProps<{
 
 const { form, canSubmit, submit } = useContractForm(props.contract);
 
-// ── Recap card live ──────────────────────────────────────────────────
 const vehicleById = computed(() => {
     const map = new Map<number, App.Data.User.Vehicle.VehicleFilterOptionData>();
 
@@ -85,9 +79,6 @@ return null;
     return recapDuration.value <= 30 ? 'lcd' : 'lld';
 });
 
-// ── Fiscal preview live ─────────────────────────────────────────────
-// Calcul standalone : seule la durée du contrat (start/end) détermine
-// le coût fiscal. Pas de cumul ni d'exclusion à faire.
 const { preview, loading: previewLoading } = useContractFiscalPreview({
     vehicleId: toRef(form, 'vehicle_id'),
     companyId: toRef(form, 'company_id'),
@@ -95,7 +86,6 @@ const { preview, loading: previewLoading } = useContractFiscalPreview({
     endDate: toRef(form, 'end_date'),
 });
 
-// ── Rental preview live (SC4 · loyer induit) ────────────────────────
 const { preview: rentalPreview, loading: rentalPreviewLoading } = useContractRentalPreview({
     vehicleId: toRef(form, 'vehicle_id'),
     companyId: toRef(form, 'company_id'),
@@ -103,7 +93,6 @@ const { preview: rentalPreview, loading: rentalPreviewLoading } = useContractRen
     endDate: toRef(form, 'end_date'),
 });
 
-// ── Company monthly rentals (SC9 · mini-timeline 12 mois) ───────────
 const { result: companyMonthlyRentalsResult, loading: companyMonthlyRentalsLoading } = useCompanyMonthlyRentals({
     companyId: toRef(form, 'company_id'),
     startDate: toRef(form, 'start_date'),
@@ -143,7 +132,6 @@ const fiscalDetailOpen = ref<boolean>(false);
             </header>
 
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <!-- Form (2/3 ≥ lg) -->
                 <form
                     class="flex flex-col gap-6 rounded-xl border border-slate-200 bg-white p-6 xl:col-span-2"
                     @submit.prevent="submit"
@@ -154,8 +142,6 @@ const fiscalDetailOpen = ref<boolean>(false);
                         :busy-dates-by-vehicle-id="props.busyDatesByVehicleId"
                     />
 
-                    <!-- Recap card collapsible : visible < xl uniquement,
-                         juste avant les actions pour relire avant submit. -->
                     <ContractRecapCard
                         class="xl:hidden"
                         collapsible
@@ -194,7 +180,6 @@ const fiscalDetailOpen = ref<boolean>(false);
                     </div>
                 </form>
 
-                <!-- Recap card sticky aside ≥ xl : toujours déployée, à droite. -->
                 <aside class="hidden xl:order-last xl:block">
                     <div class="xl:sticky xl:top-6">
                         <ContractRecapCard

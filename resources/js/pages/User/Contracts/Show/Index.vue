@@ -21,9 +21,8 @@ const props = defineProps<{
 
 const { uploadMany } = useContractDocuments();
 
-// Handover Create → Show : si la création du contrat avait des fichiers
-// en attente (stockés dans sessionStorage par useContractForm), on les
-// upload maintenant en arrière-plan puis on rafraîchit la prop documents.
+// Create → Show handover: upload any documents stashed in sessionStorage
+// during the Create form submit, then refresh the documents prop.
 onMounted(async () => {
     const pending = consumePendingDocuments();
 
@@ -46,9 +45,7 @@ onMounted(async () => {
             <ContractEntityCards :contract="props.contract" />
 
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <!-- Colonne principale -->
                 <div class="flex flex-col gap-6 xl:col-span-2">
-                    <!-- < xl : Actions juste avant Informations. ≥ xl : c'est l'aside qui les porte. -->
                     <ActionsBar
                         class="xl:hidden"
                         :contract-id="props.contract.id"
@@ -59,7 +56,6 @@ onMounted(async () => {
                         :contract="props.contract"
                     />
                     <BillingBreakdownPanel :breakdown="props.billingBreakdown" />
-                    <!-- < xl : Documents en bas du main. ≥ xl : c'est l'aside qui les porte. -->
                     <ContractDocumentsSection
                         class="xl:hidden"
                         :contract-id="props.contract.id"

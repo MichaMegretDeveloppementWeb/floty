@@ -1,8 +1,7 @@
 <script setup lang="ts">
 /**
- * Page Index Factures (Phase 14.F V1.2). Liste paginée server-side
- * (cf. ADR-0020) avec filtres `?companyId`, `?year`, `?month` + search
- * sur le numéro de facture / entreprise.
+ * Invoices index page. Server-side paginated table (ADR-0020) with
+ * companyId / year / month filters and number/company search.
  */
 import { Head } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
@@ -23,7 +22,7 @@ const props = defineProps<{
     hasAnyInvoice: boolean;
     options: {
         companies: App.Data.User.Company.CompanyOptionData[];
-        /** Bornes des années couvertes par les factures émises ; null si aucune. */
+        /** Year bounds covered by issued invoices; null if none. */
         yearBounds: { min: number; max: number } | null;
     };
 }>();
@@ -37,7 +36,6 @@ const tableState = useInvoicesTable({
     companyOptions: companyOptions.value,
 });
 
-// V-models filtres exposés par le composable (T11 / E.6).
 const {
     searchModel,
     companyIdModel,
@@ -54,11 +52,9 @@ const companySelectOptions = computed(() =>
     })),
 );
 
-// Liste des années à proposer dans le filtre :
-// `[min(plus ancienne facture)..max(année courante, max facture)]`,
-// décroissante. Si pas de facture en base, on retombe sur l'année
-// courante seule (cas table vide, mais l'UI cache l'ensemble du
-// listing dans ce cas via `hasAnyInvoice`).
+// Year filter: descending list spanning from the oldest invoice year
+// up to max(current year, latest invoice year). Falls back to the
+// current year alone if no invoices exist.
 const yearOptions = computed<{ value: number | null; label: string }[]>(() => {
     const currentYear = new Date().getFullYear();
     const bounds = props.options.yearBounds;

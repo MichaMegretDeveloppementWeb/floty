@@ -15,12 +15,7 @@ import type {
 
 type ContractRow = App.Data.User.Contract.ContractListItemData;
 
-/**
- * Coûts servis en différé (chantier perf 2026-05-16 Option 1) ·
- * `undefined` tant que le partial reload Inertia n'a pas répondu,
- * puis map indexée par `contractId`. Les 2 cellules `totalTax` et
- * `rentalPrice` affichent un skeleton entre-temps.
- */
+/** Costs map indexed by contractId, served via Inertia::defer. */
 type ContractCosts = Record<number, { totalTax: number; rentalPrice: number | null }>;
 
 const props = defineProps<{
@@ -38,15 +33,6 @@ const emit = defineEmits<{
     'row-click': [row: ContractRow];
 }>();
 
-/**
- * Le costs map est servi en différé · `costs` est `undefined` tant
- * que la 1ère réponse defer n'a pas répondu, et `costs[row.id]` peut
- * être absent si on est entre un filtre/tri/page (qui change les IDs)
- * et la réponse du reload `only: ['contractsCosts']` déclenché par
- * `Index.vue` · dans les 2 cas on doit afficher un skeleton, pas une
- * fausse valeur (ex. `·` pour rentalPrice = "tarif non défini" qui
- * masquerait l'attente).
- */
 function isCostsLoadedFor(row: ContractRow): boolean {
     return props.costs?.[row.id] !== undefined;
 }
@@ -61,7 +47,6 @@ function rentalPriceFor(row: ContractRow): number | null {
 </script>
 
 <template>
-    <!-- Desktop / Tablette ≥ md : table classique -->
     <DataTable
         class="hidden md:block"
         :columns="columns"
@@ -137,9 +122,6 @@ function rentalPriceFor(row: ContractRow): number | null {
             >
                 {{ formatEur(totalTaxFor(row) ?? 0) }}
             </span>
-            <!-- Skeleton tant que `contractsCosts` n'a pas répondu pour CET
-                 id (chargement initial OU filtre/tri/page change). Même
-                 gabarit que la valeur finale pour éviter le layout shift. -->
             <span
                 v-else
                 class="skeleton-shimmer inline-block h-3 w-14 rounded"
@@ -160,9 +142,6 @@ function rentalPriceFor(row: ContractRow): number | null {
             >
                 ·
             </span>
-            <!-- Skeleton symétrique à totalTax · uniquement quand l'entrée
-                 pour CET id n'est pas encore dans le map (pas seulement
-                 quand le map global est undefined). -->
             <span
                 v-else
                 class="skeleton-shimmer inline-block h-3 w-14 rounded"
@@ -171,7 +150,6 @@ function rentalPriceFor(row: ContractRow): number | null {
         </template>
     </DataTable>
 
-    <!-- Mobile < md : cards verticales tactiles -->
     <ul class="flex flex-col gap-2 md:hidden">
         <li v-for="row in contracts" :key="row.id">
             <button

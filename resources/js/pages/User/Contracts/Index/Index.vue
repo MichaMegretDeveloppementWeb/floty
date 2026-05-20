@@ -18,43 +18,22 @@ import EmptyContractsState from './partials/EmptyContractsState.vue';
 import PageHeader from './partials/PageHeader.vue';
 
 /**
- * Coûts d'un contrat servis en différé (chantier perf 2026-05-16 Option 1).
- * Le DTO `ContractListItemData` est servi avec `totalTax = null` et
- * `rentalPrice = null` au premier render · cette map remplit les 2
- * cellules après un partial reload Inertia. Skeleton entre-temps.
+ * Per-contract costs map served via Inertia::defer.
+ * Skeletons display in the totalTax / rentalPrice cells until the
+ * second async request completes.
  */
 type ContractCosts = Record<number, { totalTax: number; rentalPrice: number | null }>;
 
 const props = defineProps<{
     contracts: App.Data.User.Contract.PaginatedContractListData;
-    /**
-     * Inertia::defer · `undefined` au premier render, rempli après la
-     * 2e requête asynchrone déclenchée automatiquement par Inertia.
-     */
     contractsCosts?: ContractCosts;
-    /**
-     * Options SLIM pour les filtres et chips (S2.4). `vehicles` utilise
-     * `VehicleFilterOptionData` (sans `fullYearTaxByYear` · zéro pipeline
-     * fiscal). Distinct des options Create/Edit qui utilisent
-     * `VehicleOptionData` avec taxes pré-calculées.
-     */
     options: {
         vehicles: App.Data.User.Vehicle.VehicleFilterOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
         drivers: App.Data.User.Driver.DriverOptionData[];
     };
     query: App.Data.User.Contract.ContractIndexQueryData;
-    /**
-     * `true` ssi au moins un contrat existe en base. Source de vérité
-     * unique pour décider du placeholder. Évite le flash lors du reset
-     * de filtre · cf. note backend sur le bug placeholder.
-     */
     hasAnyContract: boolean;
-    /**
-     * Scope d'années dynamique calculé depuis les contrats actifs
-     * (chantier η Phase 5). Remplace l'ancienne shared prop
-     * `fiscal.availableYears` lue via `useFiscalYear`.
-     */
     yearScope: App.Data.Shared.YearScopeData;
 }>();
 
@@ -67,18 +46,12 @@ const tableState = useContractsTable({
     driverOptions: props.options.drivers,
 });
 
-// Ref local miroir de la prop `contractsCosts` · reset à `undefined`
-// immédiatement à chaque changement de page AVANT le reload pour forcer
-// les skeletons sur les 2 cellules. Sans ce miroir, Inertia préserve la
-// prop deferred lors des partial reloads (visit filter/sort/page
-// déclenché par useServerTableState ne re-touche pas contractsCosts) ·
-// les valeurs périmées resteraient affichées ~200-500 ms le temps de
-// la RTT du reload manuel. Pattern identique à Flotte, Companies et
-// Planning (cf. mémoire `feedback_inertia_defer_with_partial_reload`).
+// Local mirror of `contractsCosts` so skeletons reappear immediately on
+// every filter/sort/page change. Inertia::defer auto-fetches only on
+// the initial visit; subsequent partial reloads must be triggered
+// manually via `router.reload({ only: ['contractsCosts'] })`.
 const localContractsCosts = ref<ContractCosts | undefined>(props.contractsCosts);
 
-// Sync depuis la prop · capte l'auto-fetch initial du defer ET le
-// retour du reload manuel après page/year/filter change.
 watch(
     () => props.contractsCosts,
     (next) => {
@@ -86,16 +59,6 @@ watch(
     },
 );
 
-// Reset + re-fetch à chaque changement de page de la table (filtre,
-// tri, année, pagination). Le `router.get` interne de
-// `useServerTableState` ne demande que `['contracts', 'query']` · sans
-// ce watcher, les cellules `totalTax` / `rentalPrice` resteraient
-// gelées aux valeurs précédentes. `Inertia::defer` auto-trigger
-// uniquement sur le 1er visit · les visits suivants doivent demander
-// explicitement la prop deferred via un reload `only:`.
-//
-// Vue 3 `watch` sans `immediate: true` ne fire pas au mount · le 1er
-// fire correspond bien au 1er changement de filtre/tri/page.
 watch(
     () => props.contracts.data.map((c) => c.id).join(','),
     () => {
@@ -254,9 +217,6 @@ const typeModel = computed<string | number>({
                         </div>
                     </FilterPopover>
 
-                    <!-- Sélecteur scope hybride année/période (toggle + sélecteur)
-                         poussé à droite via `ml-auto`, comme le sélecteur d'année
-                         des autres listes (Flotte, Entreprises, etc.). -->
                     <div class="ml-auto flex flex-wrap items-center gap-3">
                         <div
                             class="inline-flex items-center gap-1 rounded-lg border border-slate-300 bg-white p-1 shadow-sm"
@@ -323,9 +283,6 @@ const typeModel = computed<string | number>({
                                 aria-hidden="true"
                                 @click="periodPopoverOpen = false"
                             />
-                            <!-- Popover ancré à droite du bouton (sm:right-0)
-                                 car le bouton est désormais sur le bord droit
-                                 de la ligne · sans ça, le popover déborderait. -->
                             <div
                                 v-if="periodPopoverOpen"
                                 class="fixed inset-x-4 bottom-4 z-50 flex max-h-[80vh] flex-col rounded-lg border border-slate-200 bg-white shadow-2xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-auto sm:right-0 sm:top-full sm:mt-2 sm:max-h-[calc(100vh-8rem)] sm:w-[360px] sm:max-w-[calc(100vw-2rem)] sm:shadow-lg"

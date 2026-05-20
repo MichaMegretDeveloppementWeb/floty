@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
- * Page Show Facture (Phase 14.F V1.2). Détail immuable + lien de
- * téléchargement du PDF généré à l'émission.
+ * Invoice show page. Immutable detail view with a download link to
+ * the PDF generated at issuance time.
  */
 import { Deferred, Head, Link } from '@inertiajs/vue3';
 import { Download, FileText } from 'lucide-vue-next';
@@ -21,8 +21,7 @@ import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
 const props = defineProps<{
     invoice: App.Data.User.Invoice.InvoiceData;
-    // Inertia::defer · arrive en 2e round-trip apres mount initial.
-    // null pour les factures obsoletes (figees au moment de la regen).
+    /** Inertia::defer · null for obsolete invoices (frozen at regen). */
     divergence?: App.Data.User.Invoice.InvoiceDivergenceData | null;
 }>();
 
@@ -34,12 +33,6 @@ const downloadUrl = computed<string>(() =>
     downloadRoute.url({ invoice: props.invoice.id }),
 );
 
-/**
- * Lot 3 réductions commerciales · vrai si au moins une réduction a
- * été appliquée à cette facture (somme snapshot > 0). Pilote
- * l'affichage du tryptique Brut / Réduction / Net dans le récap et
- * du badge inline sur les lignes concernées.
- */
 const hasAnyDiscount = computed<boolean>(
     () => props.invoice.totalDiscountCents > 0,
 );
@@ -50,7 +43,6 @@ const hasAnyDiscount = computed<boolean>(
 
     <UserLayout>
         <div class="flex flex-col gap-6 max-w-[60em] m-auto w-full">
-            <!-- Header -->
             <div class="flex items-start justify-between gap-4">
                 <div class="flex items-start gap-3">
                     <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
@@ -83,10 +75,6 @@ const hasAnyDiscount = computed<boolean>(
                 </a>
             </div>
 
-            <!-- Bandeau divergence (sous header + bouton PDF) · uniquement
-                 sur la version active. Servi en `Inertia::defer` apres
-                 mount initial (audit perf 2026-05-16 P1.4) · skeleton
-                 bref puis bandeau si applicable, ou rien si conforme. -->
             <Deferred v-if="!invoice.isObsolete" data="divergence">
                 <template #fallback>
                     <Skeleton class="h-12 rounded-xl" />
@@ -99,7 +87,6 @@ const hasAnyDiscount = computed<boolean>(
                 />
             </Deferred>
 
-            <!-- Méta -->
             <Card>
                 <dl class="grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div>
@@ -134,9 +121,6 @@ const hasAnyDiscount = computed<boolean>(
                         <dd class="mt-1 font-mono text-lg font-semibold text-slate-900 tabular-nums">
                             {{ formatEur(invoice.totalHtCents / 100, 2) }}
                         </dd>
-                        <!-- Lot 3 réductions · si la facture a appliqué
-                             une réduction, on expose l'origine (brut +
-                             économie) directement sous le net. -->
                         <dd
                             v-if="hasAnyDiscount"
                             class="mt-1 flex flex-col gap-0.5 text-[11px] text-slate-500"
@@ -152,7 +136,6 @@ const hasAnyDiscount = computed<boolean>(
                 </dl>
             </Card>
 
-            <!-- Lignes véhicules -->
             <Card>
                 <template #header>
                     <h2 class="text-base font-semibold text-slate-900">
@@ -206,10 +189,6 @@ const hasAnyDiscount = computed<boolean>(
                                     <template v-if="line.daysBilled > 0">
                                         {{ line.daysBilled }} j × {{ formatEur(line.dailyRateCents / 100, 2) }}
                                     </template>
-                                    <!-- Lot 3 · badge réduction tooltip sous
-                                         la décomposition tarifaire, avec
-                                         libellé snapshot + pourcentage +
-                                         économie en cents. -->
                                     <div
                                         v-if="line.discountCents > 0 && line.appliedDiscountBasisPoints !== null"
                                         class="mt-2"
@@ -232,11 +211,6 @@ const hasAnyDiscount = computed<boolean>(
                             </tr>
                         </tbody>
                         <tfoot>
-                            <!-- Lot 3 · si la facture a appliqué une
-                                 réduction, on affiche le trio brut /
-                                 réduction / net plutôt que le simple
-                                 total HT pour rendre l'économie
-                                 explicite dans l'annexe. -->
                             <template v-if="hasAnyDiscount">
                                 <tr class="border-t-1 border-slate-200">
                                     <td class="pt-3 pr-4 text-xs uppercase tracking-wider text-slate-500" colspan="3">
@@ -278,9 +252,6 @@ const hasAnyDiscount = computed<boolean>(
                 </div>
             </Card>
 
-            <!-- Timeline historique (visible dès qu'il existe ≥ 2 versions
-                 pour le couple entreprise × année × mois) · permet de
-                 naviguer entre versions actives et obsolètes. -->
             <Card v-if="invoice.historyChain.length > 1">
                 <InvoiceHistoryTimeline
                     :entries="invoice.historyChain"
@@ -288,7 +259,6 @@ const hasAnyDiscount = computed<boolean>(
                 />
             </Card>
 
-            <!-- Empreinte d'intégrité -->
             <p class="text-xs text-slate-400">
                 Empreinte SHA-256 du PDF :
                 <span class="font-mono">{{ invoice.pdfHash.slice(0, 32) }}…</span>

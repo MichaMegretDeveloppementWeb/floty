@@ -21,7 +21,7 @@ const props = defineProps<{
 }>();
 
 const MAX_DOCUMENTS = 5;
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10 Mo
+const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 
 const { uploading, uploadMany, deleteDocument } = useContractDocuments();
 
@@ -50,7 +50,6 @@ function openUploadModal(): void {
 }
 
 async function onFilesAdded(files: File[]): Promise<void> {
-    // Limite côté client : ne dépasse pas remainingSlots
     const toUpload = files.slice(0, remainingSlots.value);
 
     await uploadMany(props.contractId, toUpload);
@@ -75,7 +74,7 @@ async function confirmDelete(): Promise<void> {
         documentToDelete.value = null;
         router.reload({ only: ['documents'] });
     } catch {
-        // Toast erreur déjà affiché par useApi
+        // Error toast already shown by useApi.
     } finally {
         deleting.value = false;
     }

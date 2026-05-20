@@ -1,8 +1,5 @@
 <script setup lang="ts">
-/**
- * Bandeau stats au-dessus de la table Index Rental Discounts ·
- * compteurs actifs / planifiées / expirées + total.
- */
+/** Stats strip above the Rental Discounts index: active / planned / expired counters + total. */
 import { BadgePercent } from 'lucide-vue-next';
 
 defineProps<{

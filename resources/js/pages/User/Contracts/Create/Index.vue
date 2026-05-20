@@ -21,12 +21,6 @@ import ContractFormFields from './partials/ContractFormFields.vue';
 const toasts = useToasts();
 
 const props = defineProps<{
-    /**
-     * Options SLIM (S2.5) · zéro pipeline fiscal au mount. La taxe
-     * pleine du véhicule sélectionné est calculée à la volée via
-     * l'endpoint AJAX `GET /app/vehicles/{vehicle}/full-year-tax`
-     * dans `ContractFormFields` (composable `useVehicleFullYearTax`).
-     */
     options: {
         vehicles: App.Data.User.Vehicle.VehicleFilterOptionData[];
         companies: App.Data.User.Company.CompanyOptionData[];
@@ -40,7 +34,6 @@ const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const { form, canSubmit, submit } = useContractForm();
 const pendingFiles = ref<File[]>([]);
 
-// ── Recap card live ──────────────────────────────────────────────────
 const vehicleById = computed(() => indexById(props.options.vehicles));
 const companyById = computed(() => indexById(props.options.companies));
 
@@ -78,7 +71,6 @@ return null;
     return recapDuration.value <= 30 ? 'lcd' : 'lld';
 });
 
-// ── Fiscal preview live ─────────────────────────────────────────────
 const { preview, loading: previewLoading } = useContractFiscalPreview({
     vehicleId: toRef(form, 'vehicle_id'),
     companyId: toRef(form, 'company_id'),
@@ -86,7 +78,6 @@ const { preview, loading: previewLoading } = useContractFiscalPreview({
     endDate: toRef(form, 'end_date'),
 });
 
-// ── Rental preview live (SC4 · loyer induit) ────────────────────────
 const { preview: rentalPreview, loading: rentalPreviewLoading } = useContractRentalPreview({
     vehicleId: toRef(form, 'vehicle_id'),
     companyId: toRef(form, 'company_id'),
@@ -94,7 +85,6 @@ const { preview: rentalPreview, loading: rentalPreviewLoading } = useContractRen
     endDate: toRef(form, 'end_date'),
 });
 
-// ── Company monthly rentals (SC9 · mini-timeline 12 mois) ───────────
 const { result: companyMonthlyRentalsResult, loading: companyMonthlyRentalsLoading } = useCompanyMonthlyRentals({
     companyId: toRef(form, 'company_id'),
     startDate: toRef(form, 'start_date'),
@@ -105,7 +95,6 @@ const companyMonthlyRentalsYear = computed(() => companyMonthlyRentalsResult.val
 
 const fiscalDetailOpen = ref<boolean>(false);
 
-// ── Documents pending ───────────────────────────────────────────────
 function onFilesAdded(files: File[]): void {
     const remaining = MAX_DOCUMENTS - pendingFiles.value.length;
     pendingFiles.value = [...pendingFiles.value, ...files.slice(0, remaining)];
@@ -116,8 +105,8 @@ function removePendingFile(index: number): void {
 }
 
 async function submitWithDocuments(): Promise<void> {
-    // Sérialise les fichiers dans sessionStorage avant le submit Inertia.
-    // La page Show post-redirect les uploadera en arrière-plan.
+    // Stash files in sessionStorage before the Inertia submit; the Show
+    // page uploads them in the background once redirected.
     if (pendingFiles.value.length > 0) {
         await storePendingDocuments(pendingFiles.value);
     }
@@ -150,7 +139,6 @@ async function submitWithDocuments(): Promise<void> {
             </header>
 
             <div class="grid grid-cols-1 gap-6 xl:grid-cols-3">
-                <!-- Form (2/3 ≥ lg) -->
                 <form
                     class="flex flex-col gap-6 rounded-xl border border-slate-200 bg-white p-6 xl:col-span-2"
                     @submit.prevent="submitWithDocuments"
@@ -163,7 +151,6 @@ async function submitWithDocuments(): Promise<void> {
 
                     <hr class="border-slate-100" />
 
-                    <!-- Documents (sous-section de DÉTAILS) -->
                     <section class="flex flex-col gap-3">
                         <p class="eyebrow">Documents</p>
                         <p class="text-xs text-slate-500">
@@ -217,8 +204,6 @@ async function submitWithDocuments(): Promise<void> {
                         />
                     </section>
 
-                    <!-- Recap card collapsible : visible < xl uniquement,
-                         juste avant les actions pour relire avant submit. -->
                     <ContractRecapCard
                         class="xl:hidden"
                         collapsible
@@ -255,7 +240,6 @@ async function submitWithDocuments(): Promise<void> {
                     </div>
                 </form>
 
-                <!-- Recap card sticky aside ≥ xl : toujours déployée, à droite. -->
                 <aside class="hidden xl:order-last xl:block">
                     <div class="xl:sticky xl:top-6">
                         <ContractRecapCard

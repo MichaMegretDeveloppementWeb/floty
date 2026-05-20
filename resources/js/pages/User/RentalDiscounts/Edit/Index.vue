@@ -40,8 +40,8 @@ const {
     },
 );
 
-// On synthétise une option company pour le SearchableSelect lockée
-// en lecture seule · la liste complète n'est pas chargée en Edit.
+// Single synthesized option for the locked SearchableSelect; the full
+// company list is not loaded in Edit mode.
 const companyOptionsForLock = [
     {
         id: props.rentalDiscount.companyId,
