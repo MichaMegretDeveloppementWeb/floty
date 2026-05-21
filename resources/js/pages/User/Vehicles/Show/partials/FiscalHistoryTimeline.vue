@@ -3,10 +3,13 @@ import { Pencil, Trash2 } from 'lucide-vue-next';
 import Badge from '@/Components/Ui/Badge/Badge.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import {
+    bodyTypeLabel,
     energySourceLabel,
+    euroStandardLabel,
     fiscalCharacteristicsChangeReasonLabel,
     homologationMethodLabel,
     pollutantCategoryLabel,
+    receptionCategoryLabel,
 } from '@/Utils/labels/vehicleEnumLabels';
 import { formatFiscalHistoryPeriod } from '@/Utils/Vehicle/fiscalHistoryPeriod';
 
@@ -98,12 +101,36 @@ const co2OrPa = (item: Vfc): string => {
             </p>
 
             <dl
-                class="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-slate-100 pt-3 text-xs sm:grid-cols-4"
+                class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-slate-100 pt-3 text-xs sm:grid-cols-4"
             >
+                <div class="flex flex-col gap-0.5">
+                    <dt class="text-slate-400">Catégorie</dt>
+                    <dd class="font-medium text-slate-700">
+                        {{ receptionCategoryLabel[item.receptionCategory] }}
+                    </dd>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    <dt class="text-slate-400">Carrosserie</dt>
+                    <dd class="font-medium text-slate-700">
+                        {{ bodyTypeLabel[item.bodyType] }}
+                    </dd>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    <dt class="text-slate-400">Places</dt>
+                    <dd class="font-medium text-slate-700">
+                        {{ item.seatsCount }}
+                    </dd>
+                </div>
                 <div class="flex flex-col gap-0.5">
                     <dt class="text-slate-400">Énergie</dt>
                     <dd class="font-medium text-slate-700">
                         {{ energySourceLabel[item.energySource] }}
+                    </dd>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                    <dt class="text-slate-400">Norme Euro</dt>
+                    <dd class="font-medium text-slate-700">
+                        {{ item.euroStandard ? euroStandardLabel[item.euroStandard] : '·' }}
                     </dd>
                 </div>
                 <div class="flex flex-col gap-0.5">
