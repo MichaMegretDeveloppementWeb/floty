@@ -69,24 +69,23 @@ const pollutantCategoryLabel = computed((): string => {
         </header>
 
         <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-3">
-            <FieldWithManualHint :active="isMissing('reception_category')">
-                <SelectInput
-                    v-model="form.reception_category"
-                    label="Catégorie réception"
-                    :options="options.receptionCategories"
-                    :error="form.errors.reception_category"
-                    required
-                />
-            </FieldWithManualHint>
-            <SelectInput
-                v-model="form.vehicle_user_type"
-                label="Type utilisateur"
-                :options="options.vehicleUserTypes"
-                :error="form.errors.vehicle_user_type"
-                hint="Dérivé de la catégorie réception (M1 → VP, N1 → VU)."
-                disabled
-                required
-            />
+            <div class="flex flex-col">
+                <FieldWithManualHint :active="isMissing('reception_category')">
+                    <SelectInput
+                        v-model="form.reception_category"
+                        label="Catégorie réception"
+                        :options="options.receptionCategories"
+                        :error="form.errors.reception_category"
+                        required
+                    />
+                </FieldWithManualHint>
+                <p class="mt-1.5 text-xs text-slate-500">
+                    Type utilisateur ·
+                    <span class="font-medium text-slate-700">
+                        {{ form.reception_category === 'N1' ? 'VU · Véhicule utilitaire' : 'VP · Voiture particulière' }}
+                    </span>
+                </p>
+            </div>
             <FieldWithManualHint :active="isMissing('body_type')">
                 <SelectInput
                     v-model="form.body_type"
