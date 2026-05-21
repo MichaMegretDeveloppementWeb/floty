@@ -100,18 +100,17 @@ export function useVehicleRegistryLookup(
             return [];
         }
 
+        // A field is "missing" iff the API did not provide a value for it.
+        // We deliberately ignore the current form value because non-empty
+        // defaults (reception_category='M1', body_type='CI', etc.) would
+        // otherwise create a blind spot where the user thinks the API
+        // returned data when it actually didn't.
         return MANUAL_CHECK_FIELDS.filter((field) => {
             if (field.applicable && !field.applicable(form)) {
                 return false;
             }
-            if (apiProvidedFields.value.has(field.key)) {
-                return false;
-            }
-            const value = form[field.key];
-            if (typeof value === 'boolean') {
-                return true;
-            }
-            return value === '' || value === null || value === undefined;
+
+            return !apiProvidedFields.value.has(field.key);
         });
     });
 
