@@ -10,7 +10,6 @@ use App\Data\Shared\ToastEntryData;
 use App\Data\User\Invoice\BulkInvoiceGenerationReportData;
 use App\Support\Toasts\ToastDispatcher;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Inertia\Middleware;
 
 /**
@@ -88,8 +87,14 @@ final class HandleInertiaRequests extends Middleware
      * Merge the four legacy scalar flash channels (kept for backward
      * compatibility with the existing controllers) and the accumulated
      * stack pushed by {@see ToastDispatcher} into a single typed list
-     * `flash.toasts: ToastEntryData[]`. Every entry carries a unique id
-     * so the frontend can deduplicate on browser back/forward.
+     * `flash.toasts: ToastEntryData[]`. Every entry carries a stable id
+     * so the frontend can deduplicate on browser back/forward (without
+     * stability the same toast would reappear on each cached visit).
+     *
+     * IDs are deterministic across multiple `share()` calls within the
+     * same request lifecycle: legacy scalar toasts use a hash of
+     * `tone|message`, so any rebuild produces the same id. The
+     * `ToastDispatcher` channel already persists its UUIDs in session.
      */
     private function buildFlashData(Request $request): FlashData
     {
@@ -105,7 +110,7 @@ final class HandleInertiaRequests extends Middleware
         foreach (['success' => $success, 'error' => $error, 'warning' => $warning, 'info' => $info] as $tone => $message) {
             if ($message !== null && $message !== '') {
                 $toasts[] = new ToastEntryData(
-                    id: (string) Str::uuid(),
+                    id: 'legacy-'.hash('xxh3', $tone.'|'.$message),
                     tone: $tone,
                     message: $message,
                 );

@@ -9,9 +9,10 @@ import type { ToastTone } from '@/Composables/Shared/useToasts';
  *
  * - Accumulates N toasts per request: the watcher iterates `flash.toasts` and supports several messages
  *   of the same tone stacked through `ToastDispatcher`.
- * - Back-button dedup: a module-level `Set` keeps already-pushed IDs. When the user navigates back,
- *   Inertia restores `flash.toasts` from its history.state cache; the watcher re-fires but the ID is
- *   already known and is skipped. Without this, the toast would reappear on each cached visit.
+ * - Back-button dedup: a module-level `Set` keeps already-pushed IDs, mirrored to `sessionStorage` so
+ *   the dedup survives a hard reload within the same tab. When the user navigates back, Inertia
+ *   restores `flash.toasts` from its history.state cache; the watcher re-fires but the ID is already
+ *   known and is skipped. Without this, the toast would reappear on each cached visit.
  *
  * Backward-compatible: existing `back()->with('toast-success', '…')` keeps working as the Inertia
  * middleware converts them into `flash.toasts` entries on share.
@@ -25,7 +26,46 @@ const TONE_TITLES: Record<ToastTone, string> = {
     info: 'Information',
 };
 
-const seenToastIds = new Set<string>();
+const STORAGE_KEY = 'floty:seen-toast-ids';
+
+const loadSeenToastIds = (): Set<string> => {
+    if (typeof window === 'undefined') {
+        return new Set();
+    }
+
+    try {
+        const raw = window.sessionStorage.getItem(STORAGE_KEY);
+
+        if (raw === null) {
+            return new Set();
+        }
+
+        const parsed = JSON.parse(raw) as unknown;
+
+        if (!Array.isArray(parsed)) {
+            return new Set();
+        }
+
+        return new Set(parsed.filter((id): id is string => typeof id === 'string'));
+    } catch {
+        return new Set();
+    }
+};
+
+const persistSeenToastIds = (ids: Set<string>): void => {
+    if (typeof window === 'undefined') {
+        return;
+    }
+
+    try {
+        window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
+    } catch {
+        // sessionStorage may be unavailable (private mode quota etc.) ·
+        // dedup degrades to module-level only, no user-facing failure.
+    }
+};
+
+const seenToastIds = loadSeenToastIds();
 
 type FlashToastEntry = {
     id: string;
@@ -47,12 +87,15 @@ export function useFlashToasts(): void {
                 return;
             }
 
+            let added = false;
+
             for (const entry of toasts as FlashToastEntry[]) {
                 if (seenToastIds.has(entry.id)) {
                     continue;
                 }
 
                 seenToastIds.add(entry.id);
+                added = true;
 
                 if (!isToastTone(entry.tone)) {
                     continue;
@@ -63,6 +106,10 @@ export function useFlashToasts(): void {
                     title: TONE_TITLES[entry.tone],
                     description: entry.message,
                 });
+            }
+
+            if (added) {
+                persistSeenToastIds(seenToastIds);
             }
         },
         { immediate: true, deep: true },
