@@ -83,7 +83,7 @@ export function useCurrentFiscalCharacteristicsCard(props: {
 
         const items: StatItem[] = [
             { value: receptionCategoryLabel[f.receptionCategory], label: 'Catégorie réception' },
-            { value: vehicleUserTypeLabel[f.vehicleUserType], label: "Type d'usage" },
+            { value: vehicleUserTypeLabel[f.vehicleUserType], label: "Type d'utilisation" },
             { value: bodyTypeLabel[f.bodyType], label: 'Carrosserie' },
             { value: energySourceLabel[f.energySource], label: 'Énergie' },
             { value: homologationMethodLabel[f.homologationMethod], label: 'Méthode homologation' },

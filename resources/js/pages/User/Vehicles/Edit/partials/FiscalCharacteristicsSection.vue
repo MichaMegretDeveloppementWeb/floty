@@ -82,7 +82,7 @@ const pollutantCategoryLabel = computed((): string => {
                     required
                 />
                 <p class="mt-1.5 text-xs text-slate-500">
-                    Type utilisateur ·
+                    Type d'utilisation ·
                     <span class="font-medium text-slate-700">
                         {{ form.reception_category === 'N1' ? 'VU · Véhicule utilitaire' : 'VP · Voiture particulière' }}
                     </span>
@@ -111,14 +111,6 @@ const pollutantCategoryLabel = computed((): string => {
                 required
             />
             <SelectInput
-                v-model="form.euro_standard"
-                label="Norme Euro"
-                :options="options.euroStandards"
-                :error="errors.euro_standard"
-            />
-        </div>
-        <div class="grid grid-cols-1 gap-x-5 gap-y-6 md:grid-cols-2">
-            <SelectInput
                 v-if="isHybrid"
                 v-model="form.underlying_combustion_engine_type"
                 label="Moteur thermique sous-jacent"
@@ -126,6 +118,12 @@ const pollutantCategoryLabel = computed((): string => {
                 :error="errors.underlying_combustion_engine_type"
                 hint="Indispensable pour catégoriser un hybride : essence → Catégorie 1, Diesel → Plus polluants."
                 required
+            />
+            <SelectInput
+                v-model="form.euro_standard"
+                label="Norme Euro"
+                :options="options.euroStandards"
+                :error="errors.euro_standard"
             />
             <SelectInput
                 v-model="form.homologation_method"
