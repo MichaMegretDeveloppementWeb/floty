@@ -92,6 +92,18 @@ interface VehicleFiscalCharacteristicsWriteRepositoryInterface
     ): VehicleFiscalCharacteristics;
 
     /**
+     * Updates the fiscal fields of an existing VFC in place, without
+     * touching `effective_from`, `effective_to`, `change_reason` or
+     * `change_note`. Used by the Vehicle Edit page when the user wants
+     * to correct the current VFC (retroactive on its whole effective
+     * period) instead of creating a new version.
+     */
+    public function updateFieldsOnly(
+        int $fiscalId,
+        UpdateVehicleData $data,
+    ): VehicleFiscalCharacteristics;
+
+    /**
      * Inserts a new VFC added from the History modal ("+ Add entry"
      * button). Adjustments on neighbours (Delete/Adjust) are handled by
      * the calling Action upstream · this writer only performs the raw

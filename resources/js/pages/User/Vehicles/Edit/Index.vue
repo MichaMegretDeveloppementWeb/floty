@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { Info } from 'lucide-vue-next';
 import { computed } from 'vue';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
+import CheckboxInput from '@/Components/Ui/CheckboxInput/CheckboxInput.vue';
 import ConfirmModal from '@/Components/Ui/ConfirmModal/ConfirmModal.vue';
 import { useVehicleEditForm } from '@/Composables/Vehicle/Edit/useVehicleEditForm';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
@@ -22,6 +24,7 @@ const {
     changeReasonOptions,
     isOtherChange,
     hasFiscalChanges,
+    requiresVersionMetadata,
     canSubmit,
     versionsToBeDeleted,
     cascadeConfirmOpen,
@@ -50,9 +53,10 @@ const cascadeMessage = computed<string>(() => {
                     Modifier {{ props.vehicle.brand }} {{ props.vehicle.model }} ({{ props.vehicle.licensePlate }})
                 </h1>
                 <p class="mt-1 text-sm text-slate-500">
-                    Modifiez librement l'identité du véhicule. Une nouvelle
-                    version d'historique fiscal n'est créée que si vous
-                    modifiez au moins un champ des caractéristiques fiscales.
+                    Modifiez librement l'identité du véhicule. Les modifications
+                    des caractéristiques fiscales corrigent la version courante
+                    par défaut ; cochez la case dédiée pour créer à la place une
+                    nouvelle version dans l'historique.
                 </p>
             </header>
 
@@ -63,8 +67,35 @@ const cascadeMessage = computed<string>(() => {
                 <IdentitySection :form="form" />
                 <RegistrationSection :form="form" />
                 <FiscalCharacteristicsSection :form="form" :options="props.options" />
+
+                <div v-if="hasFiscalChanges" class="flex flex-col gap-4">
+                    <div
+                        v-if="!form.create_new_version"
+                        class="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4"
+                        aria-live="polite"
+                    >
+                        <Info
+                            :size="16"
+                            :stroke-width="1.75"
+                            class="mt-0.5 shrink-0 text-slate-500"
+                            aria-hidden="true"
+                        />
+                        <p class="text-sm leading-relaxed text-slate-600">
+                            Cette modification sera rétroactive sur toute la période de la VFC
+                            courante et risque d'invalider certaines déclarations ou annexes
+                            de facture.
+                        </p>
+                    </div>
+
+                    <CheckboxInput
+                        v-model="form.create_new_version"
+                        label="Nouvelle version fiscale (VFC)"
+                        hint="Cochez pour créer une nouvelle entrée dans l'historique fiscal au lieu de modifier la version courante."
+                    />
+                </div>
+
                 <FiscalChangeMetadataSection
-                    v-if="hasFiscalChanges"
+                    v-if="requiresVersionMetadata"
                     :form="form"
                     :change-reason-options="changeReasonOptions"
                     :is-other-change="isOtherChange"

@@ -184,6 +184,41 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             ->delete();
     }
 
+    public function updateFieldsOnly(
+        int $fiscalId,
+        UpdateVehicleData $data,
+    ): VehicleFiscalCharacteristics {
+        $vfc = VehicleFiscalCharacteristics::findOrFail($fiscalId);
+
+        $vfc->update([
+            'reception_category' => $data->receptionCategory,
+            'vehicle_user_type' => VehicleUserType::fromReceptionCategory($data->receptionCategory),
+            'body_type' => $data->bodyType,
+            'seats_count' => $data->seatsCount,
+            'energy_source' => $data->energySource,
+            'underlying_combustion_engine_type' => $data->underlyingCombustionEngineType,
+            'euro_standard' => $data->euroStandard,
+            'pollutant_category' => PollutantCategory::derive(
+                $data->energySource,
+                $data->euroStandard,
+                $data->underlyingCombustionEngineType,
+            ),
+            'homologation_method' => $data->homologationMethod,
+            'co2_wltp' => $data->co2Wltp,
+            'co2_nedc' => $data->co2Nedc,
+            'accepts_e85' => $data->acceptsE85,
+            'taxable_horsepower' => $data->taxableHorsepower,
+            'kerb_mass' => $data->kerbMass,
+            'handicap_access' => $data->handicapAccess,
+            'm1_special_use' => $data->m1SpecialUse,
+            'n1_passenger_transport' => $data->n1PassengerTransport,
+            'n1_removable_second_row_seat' => $data->n1RemovableSecondRowSeat,
+            'n1_ski_lift_use' => $data->n1SkiLiftUse,
+        ]);
+
+        return $vfc->fresh();
+    }
+
     public function createFromBoundsAndFields(
         int $vehicleId,
         StoreFiscalCharacteristicsData $data,

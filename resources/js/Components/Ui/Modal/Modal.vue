@@ -7,7 +7,7 @@ const props = withDefaults(
     defineProps<{
         title: string;
         description?: string;
-        size?: 'sm' | 'md' | 'lg';
+        size?: 'sm' | 'md' | 'lg' | 'xl';
         closeOnBackdrop?: boolean;
     }>(),
     {
@@ -62,6 +62,7 @@ const sizeClass = {
     sm: 'max-w-md',
     md: 'max-w-lg',
     lg: 'max-w-2xl',
+    xl: 'max-w-3xl',
 } as const;
 
 const handleBackdropClick = (): void => {

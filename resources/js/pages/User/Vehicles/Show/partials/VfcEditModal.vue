@@ -37,7 +37,7 @@ const {
         v-model:open="open"
         title="Modifier la version fiscale"
         description="Édition libre des bornes et des champs fiscaux. Le moteur ajuste automatiquement les versions adjacentes en cas de chevauchement ou de trou."
-        size="lg"
+        size="xl"
     >
         <form class="flex flex-col gap-5" @submit.prevent="requestSubmit">
             <section class="grid grid-cols-1 gap-4 md:grid-cols-2">

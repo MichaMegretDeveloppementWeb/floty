@@ -13,20 +13,27 @@ type SelectOption = { value: string; label: string };
 /**
  * Inertia form + UI state for the vehicle Edit page.
  *
- * Identity fields (plate, brand, dates, mileage, notes) are freely editable. A new VFC is created
- * only if at least one fiscal field actually changed vs. the current version (see `hasFiscalChanges`).
- * In that case the "Métadonnées de la nouvelle version" section appears at the form's bottom and
- * `effective_from` + `change_reason` become mandatory.
+ * Identity fields (plate, brand, dates, mileage, notes) are freely editable.
  *
- * Corrections on an existing VFC (without creating a new version) only go through the History modal
- * on the vehicle page.
+ * Fiscal change handling depends on `form.create_new_version`:
+ *   - default `false`: changes update the current VFC in place, retroactive on
+ *     its whole effective period. Suited to typo corrections after vehicle
+ *     creation; no metadata required.
+ *   - `true`: changes insert a new VFC row. `effective_from` + `change_reason`
+ *     become mandatory; the retroactive cascade (Delete future versions when
+ *     `effective_from` falls before them) is confirmed via a modal.
+ *
+ * The opt-in toggle is materialised by a checkbox in the Edit page; the
+ * metadata section only renders when both `hasFiscalChanges` and
+ * `create_new_version` are true.
  *
  * Composable behaviour:
  *   - pre-fills `useForm` from `props.vehicle` + its current VFC,
  *   - exposes selectable reasons (`changeReasonOptions`, the 3 `userSelectableForNewVersion` reasons),
- *   - computes `hasFiscalChanges` (any fiscal field modified) and `isOtherChange` (Other → note required),
- *   - computes the list of historical versions that will be deleted (`versionsToBeDeleted`) when the
- *     effective date falls before them (only relevant when `hasFiscalChanges`),
+ *   - computes `hasFiscalChanges` (any fiscal field modified), `requiresVersionMetadata`
+ *     (true only when fiscal changed and the new-version checkbox is on), and `isOtherChange`,
+ *   - computes the list of historical versions that will be deleted (`versionsToBeDeleted`) when
+ *     the user opted into a new version and chose a date that falls before them,
  *   - exposes `requestSubmit()` which opens the ConfirmModal if the cascade applies, else submits directly.
  */
 export function useVehicleEditForm(props: { vehicle: Vehicle }): {
@@ -34,6 +41,7 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     changeReasonOptions: SelectOption[];
     isOtherChange: ComputedRef<boolean>;
     hasFiscalChanges: ComputedRef<boolean>;
+    requiresVersionMetadata: ComputedRef<boolean>;
     canSubmit: ComputedRef<boolean>;
     versionsToBeDeleted: ComputedRef<Fiscal[]>;
     cascadeConfirmOpen: Ref<boolean>;
@@ -75,6 +83,7 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         n1_passenger_transport: fiscal?.n1PassengerTransport ?? false,
         n1_removable_second_row_seat: fiscal?.n1RemovableSecondRowSeat ?? false,
         n1_ski_lift_use: fiscal?.n1SkiLiftUse ?? false,
+        create_new_version: false,
         effective_from: today,
         change_reason: 'recharacterization',
         change_note: '',
@@ -116,13 +125,23 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
             || form.n1_ski_lift_use !== fiscal.n1SkiLiftUse;
     });
 
+    /**
+     * Only true when the user opted into a new fiscal version (checkbox)
+     * AND at least one fiscal field actually changed. Drives the metadata
+     * section visibility and the validation of `effective_from` /
+     * `change_reason` / `change_note`.
+     */
+    const requiresVersionMetadata = computed<boolean>(
+        () => hasFiscalChanges.value && form.create_new_version,
+    );
+
     const canSubmit = computed<boolean>(() => {
-        // Identity-only change (no fiscal change): no metadata required, button always active.
-        if (!hasFiscalChanges.value) {
+        // Identity-only or in-place fiscal correction: no metadata required.
+        if (!requiresVersionMetadata.value) {
             return true;
         }
 
-        // Fiscal change detected → new-version metadata required (effective date + reason, plus note if Other).
+        // New-version mode → metadata mandatory (effective date + reason, plus note if Other).
         if (form.effective_from === '') {
             return false;
         }
@@ -140,11 +159,11 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
 
     /**
      * Historical versions that will be deleted by the retroactive cascade: all whose
-     * `effectiveFrom >= chosen effective_from`. Only relevant when a fiscal field changed
-     * (otherwise no new VFC is created and there is no cascade).
+     * `effectiveFrom >= chosen effective_from`. Only relevant when the user opted into
+     * a new version (in-place mode does not touch history rows).
      */
     const versionsToBeDeleted = computed<Fiscal[]>(() => {
-        if (!hasFiscalChanges.value) {
+        if (!requiresVersionMetadata.value) {
             return [];
         }
 
@@ -207,19 +226,20 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     );
 
     const submit = (): void => {
-        const fiscalChanged = hasFiscalChanges.value;
+        const sendMetadata = requiresVersionMetadata.value;
 
         form.transform((data) => ({
             ...data,
-            // New-version metadata: sent only if at least one fiscal field changed.
-            // Otherwise the backend ignores them and inserts no new VFC.
-            effective_from: fiscalChanged && data.effective_from !== ''
+            // New-version metadata: sent only when the user opted into a new
+            // version AND a fiscal field changed. Otherwise the backend
+            // ignores them and performs an in-place update.
+            effective_from: sendMetadata && data.effective_from !== ''
                 ? data.effective_from
                 : null,
-            change_reason: fiscalChanged && data.change_reason !== ''
+            change_reason: sendMetadata && data.change_reason !== ''
                 ? (data.change_reason as ChangeReason)
                 : null,
-            change_note: fiscalChanged && data.change_note !== ''
+            change_note: sendMetadata && data.change_note !== ''
                 ? data.change_note
                 : null,
             underlying_combustion_engine_type:
@@ -254,6 +274,7 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
         changeReasonOptions,
         isOtherChange,
         hasFiscalChanges,
+        requiresVersionMetadata,
         canSubmit,
         versionsToBeDeleted,
         cascadeConfirmOpen,

@@ -22,24 +22,30 @@ use Illuminate\Support\Facades\DB;
  * Pipeline:
  *  1. Identity fields (plate, brand, model, vin, color, dates, mileage,
  *     notes) are always UPDATED in place on `vehicles`; no versioning.
- *  2. Fiscal characteristics are INSERTED as a new VFC only when at
- *     least one fiscal field differs from the current VFC. Otherwise
- *     identity is updated alone without touching the history.
+ *  2. Fiscal characteristics: branch on `$data->createNewVersion`.
  *
- *     When fiscal fields changed:
- *       a. `effectiveFrom` and `changeReason` become mandatory to
- *          materialize the new version; absent ones raise
- *          {@see MissingNewVersionMetadataException}.
- *       b. Retroactive cascade: any version whose `effective_from` is
- *          >= `effectiveFrom` is HARD-deleted; the user explicitly
- *          chose to rewrite history from that date (a ConfirmModal
- *          lists impacted versions UI-side).
- *       c. The previous version (if any) has its `effective_to` set to
- *          the day before the new version to avoid overlap.
- *       d. INSERT of the new VFC with `effective_to = null`.
+ *     a. `createNewVersion = false` (default · in-place correction).
+ *        The user corrects the current VFC; effective bounds and
+ *        change reason are preserved. The change is retroactive on
+ *        the whole effective period · suited to fixing a typo on a
+ *        freshly created vehicle.
  *
- * Corrections on an existing VFC go through the Historique modal
- * exclusively (see {@see UpdateFiscalCharacteristicsAction}).
+ *     b. `createNewVersion = true` (explicit versioning).
+ *        `effectiveFrom` and `changeReason` become mandatory; absent
+ *        ones raise {@see MissingNewVersionMetadataException}.
+ *        Retroactive cascade: any version whose `effective_from` is
+ *        >= `effectiveFrom` is HARD-deleted (a ConfirmModal lists
+ *        impacted versions UI-side). The previous version (if any)
+ *        has its `effective_to` set to the day before the new
+ *        version, and a new VFC is INSERTed with `effective_to =
+ *        null`.
+ *
+ * If no fiscal field changed, the fiscal branch is skipped entirely
+ * regardless of `createNewVersion`.
+ *
+ * Edits on a historical (non-current) VFC still go through the
+ * Historique modal exclusively (see {@see
+ * UpdateFiscalCharacteristicsAction}).
  */
 final readonly class UpdateVehicleAction
 {
@@ -61,7 +67,11 @@ final readonly class UpdateVehicleAction
                 return $vehicle;
             }
 
-            $this->applyNewVersion($vehicleId, $data);
+            if ($data->createNewVersion) {
+                $this->applyNewVersion($vehicleId, $data);
+            } else {
+                $this->fiscalWriter->updateFieldsOnly($current->id, $data);
+            }
 
             return $vehicle;
         });

@@ -118,6 +118,12 @@ final class UpdateVehicleData extends Data
 
         public bool $n1SkiLiftUse = false,
 
+        // When true, a fiscal change creates a new VFC version (legacy flow,
+        // requires `effectiveFrom` + `changeReason`). When false (default), a
+        // fiscal change is applied in-place on the current VFC, retroactive
+        // over the whole effective period.
+        public bool $createNewVersion = false,
+
         #[Date]
         public ?string $effectiveFrom = null,
 

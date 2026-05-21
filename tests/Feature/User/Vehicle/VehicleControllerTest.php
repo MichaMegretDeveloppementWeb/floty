@@ -914,6 +914,49 @@ final class VehicleControllerTest extends TestCase
     }
 
     #[Test]
+    public function update_par_defaut_corrige_la_vfc_courante_en_place(): void
+    {
+        // Comportement par défaut (post 2026-05-21) : sans la case « Nouvelle
+        // version fiscale », un changement fiscal corrige la VFC courante en
+        // place plutôt que de créer une nouvelle entrée d'historique. Cible le
+        // cas usuel d'une erreur de saisie corrigée juste après la création.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $current = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'seats_count' => 5,
+        ]);
+
+        $payload = $this->buildVehicleUpdatePayload($vehicle, [
+            'create_new_version' => false,
+            'effective_from' => null,
+            'change_reason' => null,
+            'seats_count' => 9,
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicles/{$vehicle->id}", $payload)
+            ->assertRedirect("/app/vehicles/{$vehicle->id}");
+
+        // La VFC courante est mise à jour en place, ses bornes restent
+        // intactes (effective_from inchangé, effective_to toujours null).
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $current->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'seats_count' => 9,
+        ]);
+
+        // Aucune nouvelle ligne n'a été insérée.
+        self::assertSame(
+            1,
+            VehicleFiscalCharacteristics::where('vehicle_id', $vehicle->id)->count(),
+        );
+    }
+
+    #[Test]
     public function update_cree_une_nouvelle_vfc_et_ferme_la_courante(): void
     {
         $user = User::factory()->create();
@@ -1344,6 +1387,10 @@ final class VehicleControllerTest extends TestCase
             'n1_passenger_transport' => false,
             'n1_removable_second_row_seat' => false,
             'n1_ski_lift_use' => false,
+            // Defaults to the "new version" branch since most existing tests
+            // assert the legacy creation behaviour. In-place tests must pass
+            // `create_new_version => false` explicitly.
+            'create_new_version' => true,
             'effective_from' => '2025-06-01',
             'change_reason' => 'recharacterization',
         ], $overrides);
