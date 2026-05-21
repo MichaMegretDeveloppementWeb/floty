@@ -54,6 +54,10 @@ function defaultMessageFor(status?: number): string {
         return 'Votre session a expiré. Rechargez la page et réessayez.';
     }
 
+    if (status === 429) {
+        return 'Trop de requêtes en peu de temps. Patientez quelques secondes avant de réessayer.';
+    }
+
     if (status === 403) {
         return "Vous n'avez pas l'autorisation d'effectuer cette action.";
     }
@@ -101,10 +105,16 @@ async function pushHttpError(
     toasts: ReturnType<typeof useToasts>,
     response: Response,
 ): Promise<void> {
-    const description = await extractServerMessage(
-        response,
-        defaultMessageFor(response.status),
-    );
+    // For 429 (throttle), Laravel always returns the English "Too Many
+    // Attempts." in the JSON body. Force the localized fallback so the toast
+    // stays in French rather than relaying the framework default.
+    const description =
+        response.status === 429
+            ? defaultMessageFor(429)
+            : await extractServerMessage(
+                  response,
+                  defaultMessageFor(response.status),
+              );
 
     toasts.push({
         tone: 'error',
