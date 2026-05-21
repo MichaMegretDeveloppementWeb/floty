@@ -127,10 +127,13 @@ export function useVfcCreateForm(
         }
     });
 
-    // Anti-ghost-data watchers (same rules as in edit mode).
+    // Anti-ghost-data watchers (same rules as in edit mode). User type tracks the reception
+    // category since the DB enforces this 1:1 mapping (M1→VP, N1→VU).
     watch(
         () => form.reception_category,
         (cat) => {
+            form.vehicle_user_type = cat === 'N1' ? 'VU' : 'VP';
+
             if (cat !== 'M1') {
                 form.m1_special_use = false;
             }

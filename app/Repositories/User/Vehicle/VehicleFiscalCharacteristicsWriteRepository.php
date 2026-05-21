@@ -11,17 +11,23 @@ use App\Data\User\Vehicle\UpdateFiscalCharacteristicsData;
 use App\Data\User\Vehicle\UpdateVehicleData;
 use App\Enums\Vehicle\FiscalCharacteristicsChangeReason;
 use App\Enums\Vehicle\PollutantCategory;
+use App\Enums\Vehicle\VehicleUserType;
 use App\Models\VehicleFiscalCharacteristics;
 use DateTimeInterface;
 
 /**
  * Eloquent implementation of fiscal history writes.
  *
- * `pollutant_category` is never user-input: it is derived on every
- * write by {@see PollutantCategory::derive()} from the canonical
- * fields (energy source, Euro standard, underlying combustion engine
- * type). The DB stays consistent with the same cascade applied by the
- * fiscal computation (R-2024-013).
+ * Two derived fields are recomputed on every write rather than trusted
+ * from the payload, so partial-update edge cases never violate a
+ * cross-column CHECK constraint:
+ *   - `pollutant_category` from energy source + Euro + underlying
+ *     combustion engine type (R-2024-013).
+ *   - `vehicle_user_type` from reception category (M1→VP, N1→VU),
+ *     enforced by `chk_vfc_user_type_consistent_with_reception`.
+ *     Without this derivation, Eloquent diff-based UPDATE could push
+ *     only `vehicle_user_type` and leave `reception_category`
+ *     unchanged, violating the CHECK in MySQL 8+.
  */
 final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscalCharacteristicsWriteRepositoryInterface
 {
@@ -35,7 +41,7 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'effective_from' => $effectiveFrom,
             'effective_to' => null,
             'reception_category' => $data->receptionCategory,
-            'vehicle_user_type' => $data->vehicleUserType,
+            'vehicle_user_type' => VehicleUserType::fromReceptionCategory($data->receptionCategory),
             'body_type' => $data->bodyType,
             'seats_count' => $data->seatsCount,
             'energy_source' => $data->energySource,
@@ -73,7 +79,7 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'effective_from' => $effectiveFrom,
             'effective_to' => null,
             'reception_category' => $data->receptionCategory,
-            'vehicle_user_type' => $data->vehicleUserType,
+            'vehicle_user_type' => VehicleUserType::fromReceptionCategory($data->receptionCategory),
             'body_type' => $data->bodyType,
             'seats_count' => $data->seatsCount,
             'energy_source' => $data->energySource,
@@ -142,7 +148,7 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'effective_from' => $data->effectiveFrom,
             'effective_to' => $data->effectiveTo,
             'reception_category' => $data->receptionCategory,
-            'vehicle_user_type' => $data->vehicleUserType,
+            'vehicle_user_type' => VehicleUserType::fromReceptionCategory($data->receptionCategory),
             'body_type' => $data->bodyType,
             'seats_count' => $data->seatsCount,
             'energy_source' => $data->energySource,
@@ -187,7 +193,7 @@ final class VehicleFiscalCharacteristicsWriteRepository implements VehicleFiscal
             'effective_from' => $data->effectiveFrom,
             'effective_to' => $data->effectiveTo,
             'reception_category' => $data->receptionCategory,
-            'vehicle_user_type' => $data->vehicleUserType,
+            'vehicle_user_type' => VehicleUserType::fromReceptionCategory($data->receptionCategory),
             'body_type' => $data->bodyType,
             'seats_count' => $data->seatsCount,
             'energy_source' => $data->energySource,

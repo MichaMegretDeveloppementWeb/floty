@@ -113,10 +113,13 @@ export function useVfcEditForm(
     );
 
     // Anti-ghost-data watchers: switching category or body resets M1/N1 flags tied to the previous
-    // combination to avoid persisting an inconsistent state (e.g. M1 + n1_ski_lift_use=true).
+    // combination to avoid persisting an inconsistent state (e.g. M1 + n1_ski_lift_use=true). User
+    // type also tracks the reception category (DB enforces M1→VP, N1→VU).
     watch(
         () => form.reception_category,
         (cat) => {
+            form.vehicle_user_type = cat === 'N1' ? 'VU' : 'VP';
+
             if (cat !== 'M1') {
                 form.m1_special_use = false;
             }

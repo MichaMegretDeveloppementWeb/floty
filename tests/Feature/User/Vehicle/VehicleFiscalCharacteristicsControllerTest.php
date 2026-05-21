@@ -578,6 +578,42 @@ final class VehicleFiscalCharacteristicsControllerTest extends TestCase
         ]);
     }
 
+    #[Test]
+    public function update_derive_vehicle_user_type_depuis_reception_category(): void
+    {
+        // Régression prod (MySQL 8+) : le payload force `vehicle_user_type = VU`
+        // tout en laissant `reception_category = M1`. Sans la dérivation côté
+        // repository, l'UPDATE partiel d'Eloquent ne pousse que
+        // `vehicle_user_type`, ce qui viole la contrainte CHECK
+        // `chk_vfc_user_type_consistent_with_reception` et déclenche un
+        // SQLSTATE 23000 / erreur 500. Le repo doit donc ignorer la valeur
+        // d'entrée et la recalculer depuis `reception_category`.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $vfc = VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2024-01-01',
+            'effective_to' => null,
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VP',
+        ]);
+
+        $payload = $this->buildVfcPayload($vfc, [
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VU',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicle-fiscal-characteristics/{$vfc->id}", $payload)
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('vehicle_fiscal_characteristics', [
+            'id' => $vfc->id,
+            'reception_category' => 'M1',
+            'vehicle_user_type' => 'VP',
+        ]);
+    }
+
     /**
      * @param  array<string, mixed>  $overrides
      * @return array<string, mixed>

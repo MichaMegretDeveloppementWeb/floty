@@ -83,6 +83,8 @@ const pollutantCategoryLabel = computed((): string => {
                 label="Type utilisateur"
                 :options="options.vehicleUserTypes"
                 :error="form.errors.vehicle_user_type"
+                hint="Dérivé de la catégorie réception (M1 → VP, N1 → VU)."
+                disabled
                 required
             />
             <FieldWithManualHint :active="isMissing('body_type')">

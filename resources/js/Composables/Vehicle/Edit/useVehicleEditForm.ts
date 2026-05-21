@@ -173,10 +173,13 @@ export function useVehicleEditForm(props: { vehicle: Vehicle }): {
     );
 
     // Anti-ghost-data watchers: M1/N1 flags tied to a category/body are reset to false as soon
-    // as the user moves to a combination where they no longer apply.
+    // as the user moves to a combination where they no longer apply. The user type also tracks
+    // the reception category (M1→VP, N1→VU) since the DB enforces this 1:1 mapping.
     watch(
         () => form.reception_category,
         (cat) => {
+            form.vehicle_user_type = cat === 'N1' ? 'VU' : 'VP';
+
             if (cat !== 'M1') {
                 form.m1_special_use = false;
             }

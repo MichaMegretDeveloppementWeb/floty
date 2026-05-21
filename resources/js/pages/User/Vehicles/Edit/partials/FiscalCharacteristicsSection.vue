@@ -85,6 +85,8 @@ const pollutantCategoryLabel = computed((): string => {
                 label="Type utilisateur"
                 :options="options.vehicleUserTypes"
                 :error="errors.vehicle_user_type"
+                hint="Dérivé de la catégorie réception (M1 → VP, N1 → VU)."
+                disabled
                 required
             />
             <SelectInput
