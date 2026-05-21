@@ -147,14 +147,15 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ->findOrFail($id);
     }
 
-    public function findAllForHeatmap(int $year): Collection
+    public function findAllForHeatmap(int $year, string $direction = 'asc'): Collection
     {
         $startOfYear = CarbonImmutable::create($year, 1, 1);
+        $safeDirection = $direction === 'desc' ? 'desc' : 'asc';
 
         return Vehicle::query()
             ->with(['fiscalCharacteristics' => fn ($q) => $q->whereNull('effective_to')])
             ->activeAt($startOfYear)
-            ->orderBy('license_plate')
+            ->orderBy('license_plate', $safeDirection)
             ->get();
     }
 

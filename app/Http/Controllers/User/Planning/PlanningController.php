@@ -51,15 +51,17 @@ final class PlanningController extends Controller
         Gate::authorize('view-planning');
 
         $year = $this->resolveYear($request);
+        $sortDirection = $this->resolveSortDirection($request);
 
         return Inertia::render(
             'User/Planning/Index/Index',
             [
-                ...$this->heatmap->buildHeatmap($year),
+                ...$this->heatmap->buildHeatmap($year, $sortDirection),
                 'fullYearCosts' => Inertia::defer(fn () => $this->heatmap->fullYearCostsForVehicles($year), 'fast'),
                 'realCosts' => Inertia::defer(fn () => $this->heatmap->realCostsForVehicles($year), 'slow'),
                 'monthlyRentals' => Inertia::defer(fn () => $this->heatmap->monthlyRentalTotalsForFleet($year), 'rentals'),
                 'selectedYear' => $year,
+                'sortDirection' => $sortDirection,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
         );
@@ -101,15 +103,17 @@ final class PlanningController extends Controller
         Gate::authorize('view-planning');
 
         $year = $this->resolveYear($request);
+        $sortDirection = $this->resolveSortDirection($request);
 
         return Inertia::render(
             'User/Planning/Company/Index',
             [
-                ...$this->heatmap->buildHeatmapForCompany($year, $company),
+                ...$this->heatmap->buildHeatmapForCompany($year, $company, $sortDirection),
                 'fullYearCosts' => Inertia::defer(fn () => $this->heatmap->fullYearCostsForVehicles($year), 'fast'),
                 'realCosts' => Inertia::defer(fn () => $this->heatmap->realCostsForVehicles($year, $company->id), 'slow'),
                 'monthlyRentals' => Inertia::defer(fn () => $this->heatmap->monthlyRentalTotalsForCompany($year, $company->id), 'rentals'),
                 'selectedYear' => $year,
+                'sortDirection' => $sortDirection,
                 'yearScope' => YearScopeData::fromResolver($this->availableYears),
             ],
         );
@@ -188,5 +192,14 @@ final class PlanningController extends Controller
         }
 
         return $this->availableYears->currentYear();
+    }
+
+    /**
+     * Resolve `?direction=` strictly to `'asc'` or `'desc'` (default
+     * `'asc'`). Drives the order of the vehicle column on the heatmap.
+     */
+    private function resolveSortDirection(Request $request): string
+    {
+        return $request->query('direction') === 'desc' ? 'desc' : 'asc';
     }
 }

@@ -18,6 +18,8 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import { useUserPlanningIndex } from '@/Composables/Planning/Index/useUserPlanningIndex';
+import { useLocalSortDirection } from '@/Composables/Shared/useLocalSortDirection';
+import type { SortDirection } from '@/Composables/Shared/useLocalSortDirection';
 import { useLocalYearSelector } from '@/Composables/Shared/useLocalYearSelector';
 import { index as planningCompaniesIndexRoute } from '@/routes/user/planning/companies';
 
@@ -32,6 +34,8 @@ const props = defineProps<{
     /** Monthly rentals for this company; null per month when pricing missing. */
     monthlyRentals?: HeatmapMonthlyRentals;
     selectedYear: number;
+    /** Current license-plate sort direction (?direction= URL param). */
+    sortDirection: SortDirection;
     yearScope: App.Data.Shared.YearScopeData;
 }>();
 
@@ -71,6 +75,13 @@ const { selectedYear, selectYear } = useLocalYearSelector(
             router.reload({ only: ['monthlyRentals'] });
         },
     },
+);
+
+// Vehicle column sort · server-side via ?direction= (license-plate is the only sortable key).
+// Costs are id-indexed maps, so they don't need a reload when the order flips.
+const { direction: sortDirection, toggle: toggleSort } = useLocalSortDirection(
+    props.sortDirection,
+    ['vehicles', 'sortDirection'],
 );
 
 const yearOptions = computed<{ value: number; label: string }[]>(() =>
@@ -186,7 +197,9 @@ const { week, onContractsCreated } = useUserPlanningIndex();
                 :real-costs="localRealCosts"
                 :monthly-rentals="localMonthlyRentals"
                 :fiscal-year="selectedYear"
+                :sort-direction="sortDirection"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear, company.id)"
+                @sort-toggle="toggleSort"
             />
         </div>
 

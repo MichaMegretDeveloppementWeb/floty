@@ -13,6 +13,7 @@ import {
     widthCalcBetweenDayOffsets,
 } from '@/Components/Features/Planning/Heatmap/utils/monthLabelPositions';
 import { weekBackgroundsForYear } from '@/Components/Features/Planning/Heatmap/utils/weekBackgrounds';
+import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import { CELLS_PER_YEAR, CELL_WIDTH_PX, GRID_CONTENT_WIDTH_PX } from '@/Utils/Date/isoWeeks';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
 import HeatmapSummary from './partials/HeatmapSummary.vue';
@@ -39,10 +40,13 @@ const props = defineProps<{
     realCosts?: HeatmapRealCosts;
     /** Monthly cumulative rental net, deferred ("rentals" group). */
     monthlyRentals?: HeatmapMonthlyRentals;
+    /** Current direction of the license-plate sort on the vehicle column. */
+    sortDirection: 'asc' | 'desc';
 }>();
 
 defineEmits<{
     'cell-click': [payload: { vehicleId: number; week: number }];
+    'sort-toggle': [];
 }>();
 
 const MONTH_NAMES = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
@@ -205,7 +209,15 @@ function syncFrom(e: Event): void {
                     @scroll="syncFrom"
                 >
                     <div class="sticky top-0 z-10 bg-white pt-4 pb-2 pl-3 pr-2">
-                        <div class="h-8" />
+                        <div class="flex h-8 items-center">
+                            <SortableHeader
+                                label="Véhicule"
+                                sort-key="licensePlate"
+                                active-key="licensePlate"
+                                :direction="sortDirection"
+                                @click="$emit('sort-toggle')"
+                            />
+                        </div>
                     </div>
                     <div
                         v-for="(view, idx) in vehicleViews"

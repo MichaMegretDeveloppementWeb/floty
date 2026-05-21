@@ -102,7 +102,9 @@ interface VehicleReadRepositoryInterface
      * Vehicles for the planning heatmap of a given year: includes all
      * vehicles active for at least part of the year (see
      * {@see Vehicle::scopeActiveAt} with `start_of_year`), eager-loads
-     * active fiscal characteristics, sorted by license plate.
+     * active fiscal characteristics, sorted by license plate. The
+     * `$direction` parameter (`'asc'` or `'desc'`) drives the order
+     * and is validated by the caller.
      *
      * Per ADR-0018 § 4, a vehicle exited mid-year remains visible in the
      * heatmap of the year it was partially active in (cells after
@@ -110,7 +112,7 @@ interface VehicleReadRepositoryInterface
      *
      * @return Collection<int, Vehicle>
      */
-    public function findAllForHeatmap(int $year): Collection;
+    public function findAllForHeatmap(int $year, string $direction = 'asc'): Collection;
 
     /**
      * Counts active vehicles (those with no `exit_date`).

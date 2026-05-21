@@ -59,11 +59,11 @@ final class PlanningHeatmapService
     /**
      * @return array{vehicles: DataCollection<int, PlanningHeatmapVehicleData>, companies: DataCollection<int, CompanyOptionData>}
      */
-    public function buildHeatmap(int $year): array
+    public function buildHeatmap(int $year, string $sortDirection = 'asc'): array
     {
         $weekDensity = $this->contracts->loadWeekDensity($year);
 
-        $vehicles = $this->vehicles->findAllForHeatmap($year);
+        $vehicles = $this->vehicles->findAllForHeatmap($year, $sortDirection);
         $vehicleIds = $vehicles->pluck('id')->all();
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
         $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
@@ -133,12 +133,12 @@ final class PlanningHeatmapService
      *     companies: DataCollection<int, CompanyOptionData>,
      * }
      */
-    public function buildHeatmapForCompany(int $year, Company $company): array
+    public function buildHeatmapForCompany(int $year, Company $company, string $sortDirection = 'asc'): array
     {
         $weekDensityGlobal = $this->contracts->loadWeekDensity($year);
         $weekDensityForCompany = $this->contracts->loadWeekDensityForCompany($year, $company->id);
 
-        $vehicles = $this->vehicles->findAllForHeatmap($year);
+        $vehicles = $this->vehicles->findAllForHeatmap($year, $sortDirection);
         $vehicleIds = $vehicles->pluck('id')->all();
         $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
         $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);

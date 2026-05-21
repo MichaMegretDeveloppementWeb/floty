@@ -11,6 +11,8 @@ import WeekDrawer from '@/Components/Features/Planning/WeekDrawer/WeekDrawer.vue
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import InlineYearSelector from '@/Components/Ui/InlineYearSelector/InlineYearSelector.vue';
 import { useUserPlanningIndex } from '@/Composables/Planning/Index/useUserPlanningIndex';
+import { useLocalSortDirection } from '@/Composables/Shared/useLocalSortDirection';
+import type { SortDirection } from '@/Composables/Shared/useLocalSortDirection';
 import { useLocalYearSelector } from '@/Composables/Shared/useLocalYearSelector';
 import PageHeader from './partials/PageHeader.vue';
 
@@ -24,6 +26,8 @@ const props = defineProps<{
     /** Cross-company cumulative monthly rentals (Inertia::defer "rentals"). */
     monthlyRentals?: HeatmapMonthlyRentals;
     selectedYear: number;
+    /** Current license-plate sort direction (?direction= URL param). */
+    sortDirection: SortDirection;
     /** Dynamic year scope computed from active contracts. */
     yearScope: App.Data.Shared.YearScopeData;
 }>();
@@ -68,6 +72,13 @@ const { selectedYear, selectYear } = useLocalYearSelector(
     },
 );
 
+// Vehicle column sort · server-side via ?direction= (license-plate is the only sortable key).
+// Costs are id-indexed maps, so they don't need a reload when the order flips.
+const { direction: sortDirection, toggle: toggleSort } = useLocalSortDirection(
+    props.sortDirection,
+    ['vehicles', 'sortDirection'],
+);
+
 const yearOptions = computed<{ value: number; label: string }[]>(() =>
     props.yearScope.availableYears.map((year) => ({ value: year, label: String(year) })),
 );
@@ -102,7 +113,9 @@ const { week, onContractsCreated } = useUserPlanningIndex();
                 :real-costs="localRealCosts"
                 :monthly-rentals="localMonthlyRentals"
                 :fiscal-year="selectedYear"
+                :sort-direction="sortDirection"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear)"
+                @sort-toggle="toggleSort"
             />
         </div>
 
