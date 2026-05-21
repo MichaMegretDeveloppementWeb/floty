@@ -215,6 +215,7 @@ function syncFrom(e: Event): void {
                                 sort-key="licensePlate"
                                 active-key="licensePlate"
                                 :direction="sortDirection"
+                                muted-label
                                 @click="$emit('sort-toggle')"
                             />
                         </div>

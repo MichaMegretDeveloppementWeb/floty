@@ -1,13 +1,24 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronsUpDown, ChevronUp } from 'lucide-vue-next';
 
-defineProps<{
-    label: string;
-    sortKey: string;
-    activeKey: string | null;
-    direction: 'asc' | 'desc';
-    align?: 'left' | 'right' | 'center';
-}>();
+withDefaults(
+    defineProps<{
+        label: string;
+        sortKey: string;
+        activeKey: string | null;
+        direction: 'asc' | 'desc';
+        align?: 'left' | 'right' | 'center';
+        /**
+         * When true, the label stays in the neutral slate tone whatever
+         * the active state. Only the chevrons reflect the sort
+         * direction. Used in single-key contexts (e.g. Planning
+         * heatmap) where the active state is permanent and tinting the
+         * label adds no information.
+         */
+        mutedLabel?: boolean;
+    }>(),
+    { mutedLabel: false },
+);
 
 defineEmits<{
     click: [];
@@ -20,7 +31,7 @@ defineEmits<{
         :class="[
             '-mx-[18px] -my-2.5 inline-flex w-full cursor-pointer items-center gap-1.5 px-[18px] py-2.5 text-xs font-semibold tracking-wider uppercase transition-colors duration-[120ms] ease-out hover:bg-slate-100',
             align === 'right' ? 'justify-end' : align === 'center' ? 'justify-center' : 'justify-start',
-            activeKey === sortKey ? 'text-blue-700' : 'text-slate-500',
+            mutedLabel || activeKey !== sortKey ? 'text-slate-500' : 'text-blue-700',
         ]"
         @click="$emit('click')"
     >
