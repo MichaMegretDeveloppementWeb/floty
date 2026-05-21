@@ -40,13 +40,13 @@ defineEmits<{
             v-if="activeKey === sortKey && direction === 'asc'"
             :size="12"
             :stroke-width="2"
-            class="text-blue-600"
+            :class="mutedLabel ? 'text-slate-500' : 'text-blue-600'"
         />
         <ChevronDown
             v-else-if="activeKey === sortKey && direction === 'desc'"
             :size="12"
             :stroke-width="2"
-            class="text-blue-600"
+            :class="mutedLabel ? 'text-slate-500' : 'text-blue-600'"
         />
         <ChevronsUpDown
             v-else
