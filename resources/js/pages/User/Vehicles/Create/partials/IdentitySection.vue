@@ -75,7 +75,7 @@ function triggerLookup(): void {
                 @click="triggerLookup"
             >
                 <ScanLine :size="16" :stroke-width="1.75" />
-                Pré-remplir depuis la carte grise
+                Pré-remplir depuis la plaque d'immatriculation
             </Button>
             <p
                 v-if="registryLookupError !== null"
