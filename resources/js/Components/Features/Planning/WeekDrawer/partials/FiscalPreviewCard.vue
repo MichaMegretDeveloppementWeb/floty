@@ -65,10 +65,18 @@ function toggle(): void {
         </button>
 
         <div
-            v-if="isOpen && preview && preview.breakdown"
+            v-if="isOpen && preview"
             class="border-t border-slate-100 px-4 py-3"
         >
-            <div class="flex flex-col text-sm">
+            <p
+                v-if="!preview.supported"
+                class="rounded-md bg-slate-50 px-2.5 py-2 text-xs text-slate-600"
+            >
+                Aucune règle fiscale n'est codée pour l'exercice {{ preview.fiscalYear }}.
+                La taxe n'est pas calculée ; le détail sera disponible une fois les
+                barèmes de l'exercice intégrés.
+            </p>
+            <div v-else-if="preview.breakdown" class="flex flex-col text-sm">
                 <div
                     v-if="preview.breakdown.appliedExemptions.length > 0"
                     class="mb-2 flex flex-col gap-1"

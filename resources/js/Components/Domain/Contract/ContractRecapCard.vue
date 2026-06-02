@@ -63,11 +63,13 @@ const hasRentalDiscount = computed<boolean>(
 
 const rentalDiscountPercentLabel = computed<string>(() => {
     const bp = props.rentalPreview?.appliedDiscountBasisPoints ?? null;
+
     if (bp === null) {
         return '';
     }
 
     const pct = bp / 100;
+
     return pct % 1 === 0
         ? `${pct} %`
         : `${pct.toString().replace('.', ',')} %`;
@@ -130,7 +132,7 @@ const showBody = computed<boolean>(
                     >
                         Calcul…
                     </span>
-                    <template v-else-if="preview !== null">
+                    <template v-else-if="preview !== null && preview.breakdown">
                         <span class="font-mono text-sm text-slate-700">
                             {{ preview.daysCount }} j
                         </span>
@@ -138,6 +140,9 @@ const showBody = computed<boolean>(
                         <span class="font-mono text-sm font-semibold text-slate-900">
                             {{ formatEur(preview.breakdown.totalDue, 2) }}
                         </span>
+                    </template>
+                    <template v-else-if="preview !== null && !preview.supported">
+                        <span class="text-xs text-slate-400">Pas de règles fiscales</span>
                     </template>
                     <template v-else>
                         <span class="font-mono text-sm text-slate-700">
@@ -245,39 +250,54 @@ const showBody = computed<boolean>(
                         <span class="text-[11px] font-semibold tracking-[0.1em] text-slate-500 uppercase">
                             Taxes induites
                         </span>
-                        <span v-if="!previewLoading && preview !== null" class="inline-flex items-center gap-2 text-xs">
-                            <span class="font-mono text-slate-500 tabular-nums">{{ preview.daysCount }} j</span>
-                            <span class="text-slate-300">·</span>
-                            <span class="font-mono font-semibold text-slate-900 tabular-nums">
-                                {{ formatEur(preview.breakdown.totalDue, 2) }}
+                        <template v-if="!previewLoading && preview !== null">
+                            <span v-if="preview.breakdown" class="inline-flex items-center gap-2 text-xs">
+                                <span class="font-mono text-slate-500 tabular-nums">{{ preview.daysCount }} j</span>
+                                <span class="text-slate-300">·</span>
+                                <span class="font-mono font-semibold text-slate-900 tabular-nums">
+                                    {{ formatEur(preview.breakdown.totalDue, 2) }}
+                                </span>
                             </span>
-                        </span>
+                            <span v-else-if="!preview.supported" class="text-xs text-slate-400">
+                                Pas de règles fiscales
+                            </span>
+                        </template>
                     </div>
                     <div class="px-3 py-3 text-sm">
                         <div v-if="previewLoading" class="text-xs text-slate-500">
                             Calcul en cours…
                         </div>
                         <template v-else-if="preview !== null">
-                            <div
-                                v-if="preview.breakdown.appliedExemptions.length > 0"
-                                class="mb-2 rounded-md bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700"
+                            <p
+                                v-if="!preview.supported"
+                                class="rounded-md bg-slate-50 px-2.5 py-2 text-xs text-slate-600"
                             >
-                                <span class="font-medium text-emerald-700">✓</span>
-                                {{ preview.breakdown.appliedExemptions[0]!.reason }}
-                                <span
-                                    v-if="preview.breakdown.appliedExemptions.length > 1"
-                                    class="ml-1 text-slate-400"
+                                Aucune règle fiscale n'est codée pour l'exercice {{ preview.fiscalYear }}.
+                                La taxe n'est pas calculée ; la déclaration deviendra disponible une
+                                fois les barèmes de l'exercice intégrés.
+                            </p>
+                            <template v-else-if="preview.breakdown">
+                                <div
+                                    v-if="preview.breakdown.appliedExemptions.length > 0"
+                                    class="mb-2 rounded-md bg-slate-50 px-2.5 py-1.5 text-xs text-slate-700"
                                 >
-                                    + {{ preview.breakdown.appliedExemptions.length - 1 }}
-                                </span>
-                            </div>
-                            <button
-                                type="button"
-                                class="text-xs font-medium text-slate-600 underline-offset-2 transition-colors duration-[120ms] hover:text-slate-900 hover:underline"
-                                @click="$emit('open-detail')"
-                            >
-                                Voir le détail →
-                            </button>
+                                    <span class="font-medium text-emerald-700">✓</span>
+                                    {{ preview.breakdown.appliedExemptions[0]!.reason }}
+                                    <span
+                                        v-if="preview.breakdown.appliedExemptions.length > 1"
+                                        class="ml-1 text-slate-400"
+                                    >
+                                        + {{ preview.breakdown.appliedExemptions.length - 1 }}
+                                    </span>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="text-xs font-medium text-slate-600 underline-offset-2 transition-colors duration-[120ms] hover:text-slate-900 hover:underline"
+                                    @click="$emit('open-detail')"
+                                >
+                                    Voir le détail →
+                                </button>
+                            </template>
                         </template>
                     </div>
                 </div>
@@ -309,9 +329,9 @@ const showBody = computed<boolean>(
                                 v-if="rentalPreview.hasMissingPricing"
                                 class="rounded-md bg-slate-50 px-2.5 py-2 text-xs text-amber-700"
                             >
-                                Tarif annuel non renseigné · complète la grille
-                                jour/semaine/mois sur la fiche véhicule pour
-                                calculer le loyer.
+                                Tarif annuel non renseigné. Complétez la grille
+                                jour / semaine / mois sur la fiche du véhicule
+                                pour calculer le loyer.
                             </div>
                             <div v-else class="flex flex-col">
                                 <div class="flex justify-between border-b border-slate-100 py-2">

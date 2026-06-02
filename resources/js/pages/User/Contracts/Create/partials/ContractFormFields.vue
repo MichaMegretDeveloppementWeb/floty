@@ -5,7 +5,6 @@
 import { computed, ref, toRef, watch } from 'vue';
 import CompanyOptionTag from '@/Components/Domain/Company/CompanyOptionTag.vue';
 import DriversMultiPicker from '@/Components/Domain/Driver/DriversMultiPicker.vue';
-import DateInput from '@/Components/Ui/DateInput/DateInput.vue';
 import DateRangePicker from '@/Components/Ui/DateRangePicker/DateRangePicker.vue';
 import FieldLabel from '@/Components/Ui/FieldLabel/FieldLabel.vue';
 import InputError from '@/Components/Ui/InputError/InputError.vue';
@@ -125,22 +124,6 @@ watch(range, (value) => {
     props.form.start_date = value.startDate ?? '';
     props.form.end_date = value.endDate ?? '';
 }, { deep: true });
-
-const startDateModel = computed({
-    get: () => props.form.start_date,
-    set: (v: string) => {
-        props.form.start_date = v;
-        range.value = { ...range.value, startDate: v || null };
-    },
-});
-
-const endDateModel = computed({
-    get: () => props.form.end_date,
-    set: (v: string) => {
-        props.form.end_date = v;
-        range.value = { ...range.value, endDate: v || null };
-    },
-});
 
 const pickerYear = computed<number>(() => {
     if (props.form.start_date) {
@@ -302,29 +285,6 @@ return null;
         <section class="flex flex-col gap-4">
             <p class="eyebrow">Période</p>
 
-            <div class="flex flex-wrap items-end gap-3">
-                <div class="min-w-[140px] flex-1">
-                    <FieldLabel for="start_date">Du</FieldLabel>
-                    <DateInput id="start_date" v-model="startDateModel" />
-                </div>
-                <div class="min-w-[140px] flex-1">
-                    <FieldLabel for="end_date">Au</FieldLabel>
-                    <DateInput id="end_date" v-model="endDateModel" />
-                </div>
-                <div
-                    v-if="durationDays !== null"
-                    class="flex items-center gap-2 pb-2 text-sm"
-                >
-                    <span class="font-mono text-slate-700">{{ durationDays }} j</span>
-                    <span class="text-slate-300">·</span>
-                    <span
-                        class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold tracking-wide text-slate-700 uppercase"
-                    >
-                        {{ contractType === 'lcd' ? 'LCD' : 'LLD' }}
-                    </span>
-                </div>
-            </div>
-
             <DateRangePicker
                 v-model:range="range"
                 v-model:ongoing="ongoing"
@@ -332,6 +292,19 @@ return null;
                 :start-month="pickerStartMonth"
                 :disabled-dates="disabledDates"
             />
+
+            <div
+                v-if="durationDays !== null"
+                class="flex items-center gap-2 text-sm"
+            >
+                <span class="font-mono text-slate-700">{{ durationDays }} j</span>
+                <span class="text-slate-300">·</span>
+                <span
+                    class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold tracking-wide text-slate-700 uppercase"
+                >
+                    {{ contractType === 'lcd' ? 'LCD' : 'LLD' }}
+                </span>
+            </div>
 
             <p
                 v-if="form.vehicle_id === null"

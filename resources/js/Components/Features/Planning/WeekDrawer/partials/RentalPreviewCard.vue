@@ -28,11 +28,13 @@ const hasDiscount = computed<boolean>(
 // basisPoints -> percentage with at most one decimal (1050 -> 10,5 %).
 const discountPercentLabel = computed<string>(() => {
     const bp = props.preview?.appliedDiscountBasisPoints ?? null;
+
     if (bp === null) {
         return '';
     }
 
     const pct = bp / 100;
+
     return pct % 1 === 0
         ? `${pct} %`
         : `${pct.toString().replace('.', ',')} %`;
@@ -91,8 +93,8 @@ const discountPercentLabel = computed<string>(() => {
                 v-if="preview.hasMissingPricing"
                 class="rounded-md bg-slate-50 px-2.5 py-2 text-xs text-amber-700"
             >
-                Tarif annuel non renseigné pour ce véhicule · rends-toi sur
-                la fiche véhicule pour compléter la grille jour/semaine/mois.
+                Tarif annuel non renseigné pour ce véhicule. Complétez la grille
+                jour / semaine / mois sur sa fiche pour calculer le loyer.
             </div>
             <div
                 v-else

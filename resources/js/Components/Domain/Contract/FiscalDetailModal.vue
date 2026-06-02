@@ -28,6 +28,12 @@ const emit = defineEmits<{ close: [] }>();
             Aucun calcul disponible.
         </div>
 
+        <div v-else-if="preview.breakdown === null" class="text-sm text-slate-500">
+            Aucune règle fiscale n'est codée pour l'exercice {{ preview.fiscalYear }}.
+            La taxe n'est pas calculée ; la déclaration deviendra disponible une fois
+            les barèmes de l'exercice intégrés.
+        </div>
+
         <div v-else class="flex flex-col gap-5">
             <section class="flex flex-col gap-2">
                 <p class="eyebrow">
