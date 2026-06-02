@@ -72,7 +72,13 @@ fi
 # Le flag MAINTENANCE_ACTIVATED evite d'appeler `artisan up` si `artisan down`
 # n'a jamais ete lance avec succes (ex: echec au remote fix avant l'etape 2).
 MAINTENANCE_ACTIVATED=0
+# Fichier d'options mysqldump temporaire (contient le mot de passe DB) :
+# nettoyé par le trap pour ne jamais le laisser traîner, même en cas d'echec.
+DB_DEFAULTS_FILE=""
 cleanup() {
+    if [ -n "$DB_DEFAULTS_FILE" ] && [ -f "$DB_DEFAULTS_FILE" ]; then
+        rm -f "$DB_DEFAULTS_FILE"
+    fi
     if [ "$MAINTENANCE_ACTIVATED" -eq 1 ]; then
         echo "→ Désactivation du mode maintenance..."
         "$PHP_BIN" artisan up 2>/dev/null || true
@@ -116,15 +122,90 @@ if [ ! -f "public/build/manifest.json" ]; then
 fi
 echo "→ Assets trouvés (commit $(git rev-parse --short HEAD))."
 
-# 6. Exécuter les migrations
+# 6. Sauvegarder la base AVANT migration (filet de sécurité données)
+# Dump horodaté, conservé (jamais supprimé au déploiement suivant) et
+# stocké hors dépôt Git dans storage/app/backups/ (non versionné, non
+# accessible publiquement, préservé par `git reset --hard`).
+echo "→ Sauvegarde de la base de données avant migration..."
+
+MYSQLDUMP_BIN="${MYSQLDUMP_BIN:-$(command -v mysqldump || true)}"
+if [ -z "$MYSQLDUMP_BIN" ] || [ ! -x "$MYSQLDUMP_BIN" ]; then
+    echo "✗ mysqldump introuvable : sauvegarde impossible, migration NON lancée." >&2
+    echo "  Définir MYSQLDUMP_BIN=/chemin/vers/mysqldump puis relancer." >&2
+    exit 1
+fi
+
+# Identifiants lus via le MÊME parseur que Laravel (phpdotenv) pour gérer
+# correctement guillemets et caractères spéciaux du .env.
+{
+    read -r DB_CONNECTION
+    read -r DB_HOST
+    read -r DB_PORT
+    read -r DB_DATABASE
+    read -r DB_USERNAME
+    read -r DB_PASSWORD
+} < <("$PHP_BIN" -r '
+    require getcwd()."/vendor/autoload.php";
+    $d = Dotenv\Dotenv::createImmutable(getcwd());
+    $d->safeLoad();
+    $g = function (string $k, string $def = ""): string {
+        return isset($_ENV[$k]) && $_ENV[$k] !== "" ? (string) $_ENV[$k] : $def;
+    };
+    echo $g("DB_CONNECTION", "mysql")."\n"
+        .$g("DB_HOST", "127.0.0.1")."\n"
+        .$g("DB_PORT", "3306")."\n"
+        .$g("DB_DATABASE")."\n"
+        .$g("DB_USERNAME")."\n"
+        .$g("DB_PASSWORD")."\n";
+')
+
+if [ "$DB_CONNECTION" != "mysql" ] && [ "$DB_CONNECTION" != "mariadb" ]; then
+    echo "✗ Connexion '$DB_CONNECTION' non supportée par la sauvegarde (mysql/mariadb requis)." >&2
+    exit 1
+fi
+if [ -z "$DB_DATABASE" ]; then
+    echo "✗ DB_DATABASE vide dans .env : sauvegarde impossible, migration NON lancée." >&2
+    exit 1
+fi
+
+BACKUP_DIR="storage/app/backups"
+mkdir -p "$BACKUP_DIR"
+BACKUP_FILE="$BACKUP_DIR/floty-db-$(date '+%Y%m%d-%H%M%S').sql.gz"
+
+# Mot de passe passé par fichier d'options (jamais en argv/ps).
+DB_DEFAULTS_FILE="$(mktemp)"
+chmod 600 "$DB_DEFAULTS_FILE"
+printf '[client]\nhost=%s\nport=%s\nuser=%s\npassword=%s\n' \
+    "$DB_HOST" "$DB_PORT" "$DB_USERNAME" "$DB_PASSWORD" > "$DB_DEFAULTS_FILE"
+
+# pipefail local : un échec de mysqldump ne doit pas être masqué par gzip.
+if ! ( set -o pipefail; "$MYSQLDUMP_BIN" --defaults-extra-file="$DB_DEFAULTS_FILE" \
+        --single-transaction --no-tablespaces "$DB_DATABASE" | gzip > "$BACKUP_FILE" ); then
+    echo "✗ Échec du dump de la base. Déploiement interrompu (aucune migration lancée)." >&2
+    rm -f "$BACKUP_FILE"
+    exit 1
+fi
+
+rm -f "$DB_DEFAULTS_FILE"
+DB_DEFAULTS_FILE=""
+
+# Garde-fou : un dump réel n'est jamais quasi-vide.
+BACKUP_SIZE=$(wc -c < "$BACKUP_FILE")
+if [ "$BACKUP_SIZE" -lt 100 ]; then
+    echo "✗ Sauvegarde suspecte (${BACKUP_SIZE} octets). Déploiement interrompu." >&2
+    exit 1
+fi
+echo "→ Base sauvegardée : $BACKUP_FILE (${BACKUP_SIZE} octets)."
+
+# 7. Exécuter les migrations
 echo "→ Exécution des migrations..."
 "$PHP_BIN" artisan migrate --force
 
-# 7. Lien symbolique storage
+# 8. Lien symbolique storage
 echo "→ Vérification du lien storage..."
 "$PHP_BIN" artisan storage:link 2>/dev/null || true
 
-# 8. Vider tous les caches
+# 9. Vider tous les caches
 echo "→ Nettoyage des caches..."
 "$PHP_BIN" artisan config:clear
 "$PHP_BIN" artisan cache:clear
@@ -132,14 +213,14 @@ echo "→ Nettoyage des caches..."
 "$PHP_BIN" artisan view:clear
 "$PHP_BIN" artisan event:clear
 
-# 9. Optimiser les caches pour la production
+# 10. Optimiser les caches pour la production
 echo "→ Optimisation des caches..."
 "$PHP_BIN" artisan config:cache
 "$PHP_BIN" artisan route:cache
 "$PHP_BIN" artisan view:cache
 "$PHP_BIN" artisan event:cache
 
-# 10. Permissions
+# 11. Permissions
 echo "→ Correction des permissions..."
 chmod -R 755 storage bootstrap/cache
 find storage -type d -exec chmod 755 {} \;
