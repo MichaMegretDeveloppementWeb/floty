@@ -38,6 +38,13 @@ yarn-error.log
 /project-management
 /.claude
 
+# Outillage IA / agents — hors repo : aucun intérêt prod et exposerait
+# des détails de conception qu'on ne veut pas diffuser.
+/.agents
+/.codex
+/.mcp.json
+/boost.json
+
 # Mockups HTML statiques — accessibles uniquement en local via
 # floty.test/mockups-fiscal/*.html, jamais déployés en prod (donc
 # jamais accessibles depuis https://floty.com/mockups-fiscal/...).
