@@ -137,14 +137,12 @@ fi
 
 # Identifiants lus via le MÊME parseur que Laravel (phpdotenv) pour gérer
 # correctement guillemets et caractères spéciaux du .env.
-{
-    read -r DB_CONNECTION
-    read -r DB_HOST
-    read -r DB_PORT
-    read -r DB_DATABASE
-    read -r DB_USERNAME
-    read -r DB_PASSWORD
-} < <("$PHP_BIN" -r '
+#
+# CageFS (Hostinger / CloudLinux) n'expose pas /dev/fd : la substitution de
+# processus « < <(...) » y échoue ("/dev/fd/63: No such file or directory").
+# On capture donc la sortie dans une variable, puis on la lit via here-string,
+# qui redirige directement sur stdin sans dépendre de /dev/fd.
+DB_ENV_DUMP="$("$PHP_BIN" -r '
     require getcwd()."/vendor/autoload.php";
     $d = Dotenv\Dotenv::createImmutable(getcwd());
     $d->safeLoad();
@@ -157,7 +155,16 @@ fi
         .$g("DB_DATABASE")."\n"
         .$g("DB_USERNAME")."\n"
         .$g("DB_PASSWORD")."\n";
-')
+')"
+
+{
+    read -r DB_CONNECTION
+    read -r DB_HOST
+    read -r DB_PORT
+    read -r DB_DATABASE
+    read -r DB_USERNAME
+    read -r DB_PASSWORD
+} <<< "$DB_ENV_DUMP"
 
 if [ "$DB_CONNECTION" != "mysql" ] && [ "$DB_CONNECTION" != "mariadb" ]; then
     echo "✗ Connexion '$DB_CONNECTION' non supportée par la sauvegarde (mysql/mariadb requis)." >&2
