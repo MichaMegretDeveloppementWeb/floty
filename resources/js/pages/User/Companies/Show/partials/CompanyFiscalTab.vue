@@ -195,14 +195,25 @@ function prepareDeclaration(): void {
 
         <div class="mb-10 flex flex-col gap-1.5">
             <p class="font-mono text-[28px] sm:text-[36px] font-medium tracking-[-0.02em] tabular-nums leading-none text-slate-900">
-                {{ formatEur(fiscal.totalTaxAll) }}
+                <template v-if="fiscal.fiscalYearSupported">{{ formatEur(fiscal.totalTaxAll) }}</template>
+                <template v-else>-</template>
             </p>
             <p class="text-sm text-slate-500">
-                <template v-if="isCurrentYear">Total provisoire</template>
+                <template v-if="!fiscal.fiscalYearSupported">Pas de règles fiscales pour {{ fiscal.year }}</template>
+                <template v-else-if="isCurrentYear">Total provisoire</template>
                 <template v-else-if="isFutureYear">Total prévisionnel</template>
                 <template v-else>Total {{ fiscal.year }}</template>
             </p>
         </div>
+
+        <p
+            v-if="!fiscal.fiscalYearSupported"
+            class="mb-10 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600"
+        >
+            Aucune règle fiscale n'est codée pour l'exercice {{ fiscal.year }} ·
+            les taxes ne sont pas calculées. Les locations et loyers de l'exercice
+            restent consultables normalement.
+        </p>
 
         <div
             v-if="hasActivity"
@@ -292,7 +303,16 @@ function prepareDeclaration(): void {
             </p>
 
             <div v-if="isUntouched" class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
-                <template v-if="isDeclarable">
+                <template v-if="isDeclarable && !fiscal.fiscalYearSupported">
+                    <p>
+                        Aucune règle fiscale n'est disponible pour l'exercice
+                        <strong class="font-medium text-slate-900">{{ selectedYear }}</strong>.
+                        La déclaration ne peut pas être préparée tant que les barèmes
+                        de cet exercice ne sont pas codés. Les locations et loyers de
+                        l'exercice restent consultables.
+                    </p>
+                </template>
+                <template v-else-if="isDeclarable">
                     <p>
                         Aucune déclaration n'a encore été préparée pour l'exercice
                         <strong class="font-medium text-slate-900">{{ selectedYear }}</strong>.

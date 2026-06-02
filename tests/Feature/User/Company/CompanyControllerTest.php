@@ -895,9 +895,42 @@ final class CompanyControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('companyFiscal.year', (int) Carbon::now()->year)
                 ->where('companyFiscal.currentRealYear', (int) Carbon::now()->year)
+                // Année courante (2026) couverte par le registre fiscal.
+                ->where('companyFiscal.fiscalYearSupported', true)
                 ->where('companyFiscal.rows', [])
                 ->where('companyFiscal.totalDays', 0)
                 ->where('companyFiscal.totalTaxAll', 0),
+            );
+    }
+
+    #[Test]
+    public function show_company_fiscal_signale_une_annee_sans_regles_fiscales(): void
+    {
+        // Le registre fiscal couvre 2024-2026. Pour 2027 (sans règles
+        // codées) l'onglet reste accessible : days/contrats réels, taxes
+        // à 0, et `fiscalYearSupported=false` pour piloter le message UI
+        // et désactiver la préparation de déclaration.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2020-01-01',
+            'effective_to' => null,
+        ]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2027-02-01', 'end_date' => '2027-03-31',
+        ]);
+
+        $this->actingAs($user)
+            ->get('/app/companies/'.$company->id.'?tab=fiscal&year=2027')
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->where('companyFiscal.year', 2027)
+                ->where('companyFiscal.fiscalYearSupported', false)
+                ->where('companyFiscal.totalTaxAll', 0)
+                ->where('companyFiscal.totalDays', fn (int $v): bool => $v > 0)
+                ->etc(),
             );
     }
 

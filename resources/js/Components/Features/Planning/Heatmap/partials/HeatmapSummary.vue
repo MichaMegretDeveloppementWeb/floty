@@ -7,6 +7,8 @@ defineProps<{
     /** null while the costs map has not been hydrated yet. */
     totalAnnualTax: number | null;
     fiscalYear: number;
+    /** False when the year has no coded fiscal rules (shows a muted dash). */
+    fiscalSupported: boolean;
 }>();
 </script>
 
@@ -27,7 +29,14 @@ defineProps<{
         <div>
             <span class="text-slate-500">Taxes totales {{ fiscalYear }} :</span>
             <span
-                v-if="totalAnnualTax !== null"
+                v-if="!fiscalSupported"
+                class="ml-1 font-medium text-slate-400"
+                title="Aucune règle fiscale codée pour cet exercice"
+            >
+                Pas de règles fiscales
+            </span>
+            <span
+                v-else-if="totalAnnualTax !== null"
                 class="ml-1 font-mono font-medium text-slate-900"
             >
                 {{ formatEur(totalAnnualTax) }}

@@ -15,6 +15,8 @@ import TaxBreakdownPanel from './partials/TaxBreakdownPanel.vue';
 const props = defineProps<{
     contract: App.Data.User.Contract.ContractData;
     taxBreakdown: App.Data.User.Contract.ContractTaxBreakdownData | null;
+    /** False when the contract spans a year without coded fiscal rules. */
+    taxFiscalYearSupported: boolean;
     documents: App.Data.User.Contract.ContractDocumentData[];
     billingBreakdown: App.Data.User.Billing.ContractBillingBreakdownData | null;
 }>();
@@ -54,6 +56,7 @@ onMounted(async () => {
                     <TaxBreakdownPanel
                         :tax-breakdown="props.taxBreakdown"
                         :contract="props.contract"
+                        :fiscal-year-supported="props.taxFiscalYearSupported"
                     />
                     <BillingBreakdownPanel :breakdown="props.billingBreakdown" />
                     <ContractDocumentsSection

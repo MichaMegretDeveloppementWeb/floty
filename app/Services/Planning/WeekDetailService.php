@@ -28,6 +28,7 @@ use App\Services\Billing\Discount\DiscountApplier;
 use App\Services\Billing\Discount\DiscountResolver;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FiscalCalculator;
+use App\Services\Shared\Fiscal\FiscalYearContext;
 use App\Support\Date\IsoWeeks;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
@@ -47,6 +48,7 @@ final class WeekDetailService
         private readonly ContractQueryService $contractQuery,
         private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
         private readonly FiscalCalculator $calculator,
+        private readonly FiscalYearContext $yearContext,
         private readonly BillingBreakdownService $billingBreakdown,
         private readonly DiscountResolver $discountResolver,
         private readonly BillingCalculator $billingCalculator,
@@ -220,36 +222,38 @@ final class WeekDetailService
             $input->dates,
             static fn (string $d): bool => str_starts_with($d, $yearPrefix),
         ));
+        sort($newDates);
+
+        $syntheticContract = $newDates === []
+            ? null
+            : $this->buildSyntheticContract(
+                $input->vehicleId,
+                $input->companyId,
+                $newDates[0],
+                $newDates[count($newDates) - 1],
+            );
+
+        $daysCount = $syntheticContract?->countDaysInYear($year) ?? 0;
+
+        // Year without coded fiscal rules · no tax is computed. Return a
+        // neutral payload (200, `supported: false`) so the wizard shows a
+        // "no fiscal rules" note instead of a recurring error toast. The
+        // rental preview lives on its own endpoint and stays unaffected.
+        if (! $this->yearContext->isSupported($year)) {
+            return new FiscalPreviewData(
+                fiscalYear: $year,
+                daysCount: $daysCount,
+                breakdown: null,
+                supported: false,
+            );
+        }
 
         $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
         $unavailabilities = $this->unavailabilityRepo->findForVehicle($input->vehicleId)->all();
 
-        if ($newDates === []) {
-            $emptyBreakdown = $this->calculator->calculate($vehicle, [], $unavailabilities, $year);
-
-            return new FiscalPreviewData(
-                fiscalYear: $year,
-                daysCount: 0,
-                breakdown: FiscalBreakdownData::fromBreakdown($emptyBreakdown),
-            );
-        }
-
-        sort($newDates);
-        $rangeStart = $newDates[0];
-        $rangeEnd = $newDates[count($newDates) - 1];
-
-        $syntheticContract = $this->buildSyntheticContract(
-            $input->vehicleId,
-            $input->companyId,
-            $rangeStart,
-            $rangeEnd,
-        );
-
-        $daysCount = $syntheticContract->countDaysInYear($year);
-
         $breakdown = $this->calculator->calculate(
             $vehicle,
-            [$syntheticContract],
+            $syntheticContract !== null ? [$syntheticContract] : [],
             $unavailabilities,
             $year,
         );
@@ -258,6 +262,7 @@ final class WeekDetailService
             fiscalYear: $year,
             daysCount: $daysCount,
             breakdown: FiscalBreakdownData::fromBreakdown($breakdown),
+            supported: true,
         );
     }
 

@@ -35,6 +35,22 @@ final class FiscalYearContext
         return in_array($year, $this->registry->registeredYears(), true);
     }
 
+    /**
+     * True when every year in the inclusive `[startYear, endYear]` range
+     * has coded fiscal rules. Used to qualify whether a multi-year
+     * contract is fully tariffable.
+     */
+    public function rangeSupported(int $startYear, int $endYear): bool
+    {
+        for ($year = $startYear; $year <= $endYear; $year++) {
+            if (! $this->isSupported($year)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     private function isLeapYear(int $year): bool
     {
         return ($year % 4 === 0 && $year % 100 !== 0) || $year % 400 === 0;

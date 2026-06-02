@@ -32,6 +32,12 @@ final class DashboardStatsServiceTest extends TestCase
         $this->service = $this->app->make(DashboardStatsService::class);
     }
 
+    protected function tearDown(): void
+    {
+        CarbonImmutable::setTestNow();
+        parent::tearDown();
+    }
+
     #[Test]
     public function compute_kpis_fiscal_renvoie_les_4_kpis_pivots_pour_l_annee_demandee(): void
     {
@@ -129,22 +135,26 @@ final class DashboardStatsServiceTest extends TestCase
     }
 
     #[Test]
-    public function compute_history_jours_vehicule_se_borne_au_scope_dynamique(): void
+    public function compute_history_jours_vehicule_couvre_les_annees_fiscales_meme_sans_contrat(): void
     {
-        // v4 : computeHistory split en 4 méthodes par dimension.
-        // joursVehicule est l'onglet par défaut (cheap, sert au mount).
-        // Sans contrat, scope = [currentYear] → 1 entrée à value=0.
-        $today = CarbonImmutable::today();
+        // Le graphe d'évolution couvre désormais l'union (années à règles
+        // fiscales + contrats + année courante), pas seulement les années
+        // à contrats. Sur une instance vierge en 2026, le scope = les
+        // années fiscales codées [2024, 2025, 2026], chaque point à 0.
+        CarbonImmutable::setTestNow('2026-06-02 12:00:00');
+
         $points = $this->service->computeHistoryJoursVehicule();
 
-        self::assertNotEmpty($points);
-        $last = end($points);
-        self::assertSame($today->year, $last->year);
-        self::assertTrue($last->isCurrentYear);
-        self::assertSame(0, $last->value);
+        self::assertSame(
+            [2024, 2025, 2026],
+            array_map(static fn ($p): int => $p->year, $points),
+        );
         foreach ($points as $point) {
-            self::assertGreaterThanOrEqual($today->year, $point->year);
+            self::assertSame(0, $point->value);
         }
+        $last = end($points);
+        self::assertSame(2026, $last->year);
+        self::assertTrue($last->isCurrentYear);
     }
 
     #[Test]

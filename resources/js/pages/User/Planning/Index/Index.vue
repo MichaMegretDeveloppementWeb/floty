@@ -30,6 +30,8 @@ const props = defineProps<{
     sortDirection: SortDirection;
     /** Dynamic year scope computed from active contracts. */
     yearScope: App.Data.Shared.YearScopeData;
+    /** Years with coded fiscal rules · drives the "no fiscal rules" UI. */
+    fiscalSupportedYears: number[];
 }>();
 
 // Local mirrors reset to undefined before reload so skeletons appear
@@ -88,6 +90,13 @@ const yearModel = computed<number>({
     set: (v) => selectYear(v),
 });
 
+// True when the selected year has coded fiscal rules. `fiscalSupportedYears`
+// is stable (preserved across the year-change partial reload), so support is
+// derived client-side without an extra round-trip.
+const fiscalSupported = computed<boolean>(() =>
+    props.fiscalSupportedYears.includes(selectedYear.value),
+);
+
 const { week, onContractsCreated } = useUserPlanningIndex();
 </script>
 
@@ -113,6 +122,7 @@ const { week, onContractsCreated } = useUserPlanningIndex();
                 :real-costs="localRealCosts"
                 :monthly-rentals="localMonthlyRentals"
                 :fiscal-year="selectedYear"
+                :fiscal-supported="fiscalSupported"
                 :sort-direction="sortDirection"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear)"
                 @sort-toggle="toggleSort"

@@ -141,25 +141,23 @@ final class BulkGenerateInvoicesControllerTest extends TestCase
     }
 
     #[Test]
-    public function est_throttlee_a_deux_appels_par_minute(): void
+    public function est_throttlee_au_onzieme_appel_par_minute(): void
     {
+        // Limite `throttle:10,1` (assouplie pour usage humain intensif) :
+        // 10 appels/minute OK, le 11e renvoie 429. L'entreprise n'a aucun
+        // contrat → chaque bulk-generate est un no-op rapide (0 PDF).
         $user = User::factory()->create();
         $company = Company::factory()->create();
 
-        // 2 appels successifs · OK.
-        $this->actingAs($user)
-            ->post('/app/invoices/bulk-generate', [
-                'company_id' => $company->id, 'year' => 2024,
-            ])
-            ->assertStatus(302);
+        for ($i = 1; $i <= 10; $i++) {
+            $this->actingAs($user)
+                ->post('/app/invoices/bulk-generate', [
+                    'company_id' => $company->id, 'year' => 2024,
+                ])
+                ->assertStatus(302);
+        }
 
-        $this->actingAs($user)
-            ->post('/app/invoices/bulk-generate', [
-                'company_id' => $company->id, 'year' => 2024,
-            ])
-            ->assertStatus(302);
-
-        // 3e appel · throttled (429).
+        // 11e appel · throttled (429).
         $this->actingAs($user)
             ->post('/app/invoices/bulk-generate', [
                 'company_id' => $company->id, 'year' => 2024,

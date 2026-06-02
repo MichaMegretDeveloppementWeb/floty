@@ -8,6 +8,7 @@ use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepos
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationWriteRepositoryInterface;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
 use App\Models\FiscalDeclaration;
+use App\Services\Shared\Fiscal\FiscalYearContext;
 use Carbon\CarbonImmutable;
 use DomainException;
 use Illuminate\Support\Facades\Auth;
@@ -31,6 +32,7 @@ final readonly class CreateDraftDeclarationAction
     public function __construct(
         private FiscalDeclarationReadRepositoryInterface $reader,
         private FiscalDeclarationWriteRepositoryInterface $writer,
+        private FiscalYearContext $yearContext,
     ) {}
 
     public function execute(int $companyId, int $year): FiscalDeclaration
@@ -45,6 +47,17 @@ final readonly class CreateDraftDeclarationAction
             if ($year >= $currentYear) {
                 throw new DomainException(sprintf(
                     'Une déclaration ne peut pas être préparée tant que l\'année fiscale n\'est pas terminée (%d).',
+                    $year,
+                ));
+            }
+
+            // No coded fiscal rules for that year · the declaration could
+            // never be generated (the engine would throw). Block the
+            // preparation upstream with a clear, non-alarming message
+            // rather than letting the user reach an ungeneratable draft.
+            if (! $this->yearContext->isSupported($year)) {
+                throw new DomainException(sprintf(
+                    'Aucune règle fiscale n\'est disponible pour l\'exercice %d. La déclaration ne peut pas être préparée.',
                     $year,
                 ));
             }

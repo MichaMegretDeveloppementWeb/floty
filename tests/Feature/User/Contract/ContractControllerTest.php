@@ -504,6 +504,39 @@ final class ContractControllerTest extends TestCase
     }
 
     #[Test]
+    public function show_reste_accessible_avec_breakdown_null_pour_une_annee_sans_regles_fiscales(): void
+    {
+        // Le registre fiscal couvre 2024-2026. Un contrat entièrement en
+        // 2027 (année sans règles codées) ne doit pas rendre la fiche
+        // inaccessible : `taxBreakdown` dégrade en `null` et la page
+        // répond 200 (les loyers, dates et documents restent affichés).
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2020-01-01',
+            'effective_to' => null,
+        ]);
+        $contract = Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany(Company::factory()->create())
+            ->create([
+                'start_date' => '2027-02-01',
+                'end_date' => '2027-04-01',
+                'contract_type' => ContractType::Lld,
+            ]);
+
+        $this->actingAs($user)
+            ->get("/app/contracts/{$contract->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->component('User/Contracts/Show/Index')
+                ->where('taxBreakdown', null)
+                ->has('billingBreakdown')
+                ->etc());
+    }
+
+    #[Test]
     public function show_redirige_avec_toast_si_contrat_inexistant(): void
     {
         // C2.a (Lot 1 D6 F-12-001) · `ContractController::show(int)`

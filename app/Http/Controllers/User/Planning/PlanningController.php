@@ -11,6 +11,7 @@ use App\Data\User\Contract\BulkStoreContractsData;
 use App\Data\User\Planning\PreviewRentalsInputData;
 use App\Data\User\Planning\PreviewTaxesInputData;
 use App\Data\User\Planning\WeekQueryData;
+use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Contract;
@@ -36,6 +37,7 @@ final class PlanningController extends Controller
         private readonly WeekDetailService $weekDetail,
         private readonly BulkCreateContractsAction $bulkCreateContracts,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly FiscalRuleRegistry $fiscalRules,
         private readonly CompanyReadRepositoryInterface $companies,
     ) {}
 
@@ -62,7 +64,12 @@ final class PlanningController extends Controller
                 'monthlyRentals' => Inertia::defer(fn () => $this->heatmap->monthlyRentalTotalsForFleet($year), 'rentals'),
                 'selectedYear' => $year,
                 'sortDirection' => $sortDirection,
-                'yearScope' => YearScopeData::fromResolver($this->availableYears),
+                'yearScope' => YearScopeData::fromResolverAndRegistry($this->availableYears, $this->fiscalRules),
+                // Years with coded fiscal rules · the frontend derives
+                // whether the selected year shows tax figures or a "no
+                // fiscal rules" placeholder. Stable, preserved across the
+                // year-change partial reload (not in its `only` list).
+                'fiscalSupportedYears' => $this->fiscalRules->registeredYears(),
             ],
         );
     }
@@ -114,7 +121,8 @@ final class PlanningController extends Controller
                 'monthlyRentals' => Inertia::defer(fn () => $this->heatmap->monthlyRentalTotalsForCompany($year, $company->id), 'rentals'),
                 'selectedYear' => $year,
                 'sortDirection' => $sortDirection,
-                'yearScope' => YearScopeData::fromResolver($this->availableYears),
+                'yearScope' => YearScopeData::fromResolverAndRegistry($this->availableYears, $this->fiscalRules),
+                'fiscalSupportedYears' => $this->fiscalRules->registeredYears(),
             ],
         );
     }

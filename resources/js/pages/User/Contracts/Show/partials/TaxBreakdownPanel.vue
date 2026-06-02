@@ -18,6 +18,8 @@ import {
 const props = defineProps<{
     taxBreakdown: App.Data.User.Contract.ContractTaxBreakdownData | null;
     contract: App.Data.User.Contract.ContractData;
+    /** False when the contract spans a year without coded fiscal rules. */
+    fiscalYearSupported: boolean;
 }>();
 
 const isLcd = computed(() => props.contract.contractType === 'lcd');
@@ -47,7 +49,15 @@ const {
         </template>
 
         <p
-            v-if="taxBreakdown === null"
+            v-if="taxBreakdown === null && !fiscalYearSupported"
+            class="text-sm text-slate-500"
+        >
+            Aucune règle fiscale n'est codée pour l'exercice de cette location ·
+            la taxe n'est pas calculée. Les loyers restent affichés ci-dessous.
+        </p>
+
+        <p
+            v-else-if="taxBreakdown === null"
             class="text-sm text-slate-500"
         >
             Calcul fiscal indisponible (caractéristiques fiscales du véhicule manquantes).

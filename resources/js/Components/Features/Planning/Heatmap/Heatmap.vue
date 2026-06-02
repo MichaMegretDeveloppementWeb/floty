@@ -15,12 +15,12 @@ import {
 import { weekBackgroundsForYear } from '@/Components/Features/Planning/Heatmap/utils/weekBackgrounds';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
 import { CELLS_PER_YEAR, CELL_WIDTH_PX, GRID_CONTENT_WIDTH_PX } from '@/Utils/Date/isoWeeks';
+import { formatEur } from '@/Utils/format/formatEur';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
 import HeatmapSummary from './partials/HeatmapSummary.vue';
 import VehicleInfo from './partials/VehicleInfo.vue';
 import VehicleSummary from './partials/VehicleSummary.vue';
 import WeekCellsRow from './partials/WeekCellsRow.vue';
-import { formatEur } from '@/Utils/format/formatEur';
 import type {
     HeatmapFullYearCosts,
     HeatmapMonthlyRentals,
@@ -40,6 +40,12 @@ const props = defineProps<{
     realCosts?: HeatmapRealCosts;
     /** Monthly cumulative rental net, deferred ("rentals" group). */
     monthlyRentals?: HeatmapMonthlyRentals;
+    /**
+     * False when the selected year has no coded fiscal rules · tax columns
+     * render a "Pas de règles fiscales" placeholder instead of misleading
+     * 0 € amounts. Rental figures stay unaffected.
+     */
+    fiscalSupported: boolean;
     /** Current direction of the license-plate sort on the vehicle column. */
     sortDirection: 'asc' | 'desc';
 }>();
@@ -197,9 +203,19 @@ function syncFrom(e: Event): void {
                 :total-days="totalDays"
                 :total-annual-tax="totalAnnualTax"
                 :fiscal-year="fiscalYear"
+                :fiscal-supported="fiscalSupported"
             />
             <HeatmapLegend />
         </div>
+
+        <p
+            v-if="!fiscalSupported"
+            class="rounded-lg border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-600"
+        >
+            Aucune règle fiscale n'est codée pour l'exercice {{ fiscalYear }} ·
+            les taxes ne sont pas affichées. La saisie des locations et les loyers
+            restent disponibles.
+        </p>
 
         <div class="rounded-xl border border-slate-200 bg-white overflow-hidden">
             <div class="flex">
@@ -226,7 +242,7 @@ function syncFrom(e: Event): void {
                         class="pl-3 pr-2"
                         :class="idx > 0 && 'border-t border-slate-100'"
                     >
-                        <VehicleInfo :vehicle-view="view" />
+                        <VehicleInfo :vehicle-view="view" :fiscal-supported="fiscalSupported" />
                     </div>
                 </div>
 
@@ -315,7 +331,7 @@ function syncFrom(e: Event): void {
                         class="pl-2 pr-3"
                         :class="idx > 0 && 'border-t border-slate-100'"
                     >
-                        <VehicleSummary :vehicle-view="view" />
+                        <VehicleSummary :vehicle-view="view" :fiscal-supported="fiscalSupported" />
                     </div>
                 </div>
             </div>

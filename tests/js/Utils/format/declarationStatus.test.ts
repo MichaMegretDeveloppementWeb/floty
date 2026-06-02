@@ -7,7 +7,7 @@ import {
 describe('formatDeclarationStatus', () => {
     it.each([
         ['draft', 'Brouillon', 'slate'],
-        ['deferred', 'Mise de côté', 'amber'],
+        ['deferred', 'Reportée', 'amber'],
         ['generated', 'Générée', 'emerald'],
     ] as const)('mappe "%s" → "%s" / tone %s', (status, label, tone) => {
         const badge = formatDeclarationStatus(status);

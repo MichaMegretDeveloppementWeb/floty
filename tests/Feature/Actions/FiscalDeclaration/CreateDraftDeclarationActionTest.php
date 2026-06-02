@@ -101,6 +101,23 @@ final class CreateDraftDeclarationActionTest extends TestCase
     }
 
     #[Test]
+    public function refuse_la_creation_pour_une_annee_sans_regles_fiscales(): void
+    {
+        // 2023 est une année close (2023 < 2026) mais SANS règles fiscales
+        // codées (le registre couvre 2024-2026). La préparation est bloquée
+        // en amont avec un message dédié, pas un 500 à la génération.
+        CarbonImmutable::setTestNow(CarbonImmutable::create(2026, 5, 15));
+
+        try {
+            $this->expectException(DomainException::class);
+            $this->expectExceptionMessageMatches('/Aucune règle fiscale/');
+            $this->action->execute($this->company->id, 2023);
+        } finally {
+            CarbonImmutable::setTestNow();
+        }
+    }
+
+    #[Test]
     public function autorise_pour_lannee_precedente(): void
     {
         // Cas nominal · année close, préparation autorisée.

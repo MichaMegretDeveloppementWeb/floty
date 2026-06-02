@@ -178,6 +178,33 @@ final class PlanningHeatmapServiceTest extends TestCase
     }
 
     #[Test]
+    public function real_costs_for_vehicles_renvoie_zero_pour_une_annee_sans_regles_fiscales(): void
+    {
+        // Le registre fiscal couvre 2024-2026. Un contrat en 2027 (année
+        // sans règles codées) ne doit pas faire planter la prop déférée
+        // `realCosts` : le service dégrade la taxe à 0 par véhicule au lieu
+        // de propager FiscalCalculationException (skeleton infini sinon).
+        $year = 2027;
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2020-01-01',
+            'effective_to' => null,
+        ]);
+        $company = Company::factory()->create();
+
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => Carbon::create($year, 2, 1)->toDateString(),
+            'end_date' => Carbon::create($year, 4, 1)->toDateString(),
+        ]);
+
+        $costs = $this->service->realCostsForVehicles($year);
+
+        self::assertArrayHasKey($vehicle->id, $costs);
+        self::assertSame(0.0, $costs[$vehicle->id]->annualTaxDue);
+    }
+
+    #[Test]
     public function full_year_costs_for_vehicles_independant_du_scope(): void
     {
         // Chantier perf Étape 3 : `fullYearCostsForVehicles` est

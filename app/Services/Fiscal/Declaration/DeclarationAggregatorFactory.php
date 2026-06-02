@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Fiscal\Declaration;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
+use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\RuleEffectiveSegmenter;
@@ -20,7 +21,6 @@ use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\FiscalRule\FiscalRuleQueryService;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Contracts\Container\Container;
-use RuntimeException;
 
 /**
  * Factory for the ad-hoc `FleetFiscalAggregator` consumed by
@@ -68,10 +68,13 @@ final readonly class DeclarationAggregatorFactory
                 $this->container->make(R2026_021_ShortTermRental::class),
                 $optOutContractIds,
             ),
-            default => throw new RuntimeException(sprintf(
-                'Année fiscale non supportée pour le décorateur LCD · %d. Ajouter la paire (R-YYYY-021_ShortTermRental, R-YYYY-021_WithOptOuts) ici lors du portage de la nouvelle année.',
-                $year,
-            )),
+            // No coded fiscal rules for this year. Surface the standard
+            // fiscal exception (a BaseAppException → graceful 422/toast)
+            // instead of a raw RuntimeException (uncaught → 500). The
+            // declaration flows guard `isSupported` upstream; this is the
+            // defensive backstop. The pair (R-YYYY-021_ShortTermRental,
+            // R-YYYY-021_WithOptOuts) must be added here when porting a year.
+            default => throw FiscalCalculationException::yearNotSupported($year),
         };
 
         $overlayedRegistry = new OverlayedRuleRegistry(

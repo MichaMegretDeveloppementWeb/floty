@@ -49,6 +49,44 @@ final class YearScopeData extends Data
     }
 
     /**
+     * Build the union scope used by the Planning pages and the Dashboard
+     * evolution chart: the years for which fiscal rules are coded
+     * (registry) act as the guaranteed minimum, extended by any year that
+     * already holds contracts and by the current calendar year. This lets
+     * the user reach a year to enter historical contracts (e.g. 2024 on a
+     * fresh instance, before any contract exists) or to anticipate a future
+     * year, even before its fiscal rules are coded.
+     *
+     * `currentYear` stays the real calendar year (default selection), even
+     * when it has no coded fiscal rules.
+     *
+     * Canonical source of the union range: the Dashboard reuses
+     * `->availableYears` here so its chart range matches the Planning
+     * selector exactly.
+     */
+    public static function fromResolverAndRegistry(
+        AvailableYearsResolver $resolver,
+        FiscalRuleRegistry $registry,
+    ): self {
+        $current = $resolver->currentYear();
+
+        // `minYear()`/`maxYear()` already fold in the current year and the
+        // contract bounds; union them with the registered fiscal years.
+        $candidates = [
+            $current,
+            $resolver->minYear(),
+            $resolver->maxYear(),
+            ...$registry->registeredYears(),
+        ];
+
+        return new self(
+            currentYear: $current,
+            minYear: min($candidates),
+            availableYears: range(min($candidates), max($candidates)),
+        );
+    }
+
+    /**
      * Build from the fiscal engine scope (years for which rule sets are
      * registered). Used by the "Règles de calcul" page since it consults
      * versioned scales rather than business-data periods.

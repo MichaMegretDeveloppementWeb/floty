@@ -221,6 +221,33 @@ final class ContractQueryServiceTest extends TestCase
     }
 
     #[Test]
+    public function find_contract_tax_breakdown_renvoie_null_pour_une_annee_sans_regles_fiscales(): void
+    {
+        // Le registre fiscal couvre 2024-2026. Un contrat entièrement en
+        // 2027 (année sans règles codées) dégrade en `null` plutôt que de
+        // propager FiscalCalculationException, ce qui rendrait le Show
+        // inaccessible. La VFC couvre 2027 pour atteindre le garde "année
+        // non supportée" (et non "VFC manquante").
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2020-01-01',
+            'effective_to' => null,
+        ]);
+        $company = Company::factory()->create();
+
+        $contract = Contract::factory()
+            ->forVehicle($vehicle)
+            ->forCompany($company)
+            ->create([
+                'start_date' => '2027-03-01',
+                'end_date' => '2027-05-31',
+            ]);
+
+        self::assertNull($this->service->findContractTaxBreakdown($contract->id));
+    }
+
+    #[Test]
     public function costs_for_contract_ids_retourne_zero_pour_un_contrat_lcd_exonere(): void
     {
         // R-2024-021 : location LCD ≤ 30 j entièrement exonérée

@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Services\Dashboard;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Data\Shared\YearScopeData;
 use App\Data\User\Dashboard\DashboardHistoryPointData;
 use App\Data\User\Dashboard\DashboardKpiData;
 use App\Data\User\Dashboard\DashboardKpiRecettesData;
 use App\Data\User\Dashboard\DashboardPendingTasksData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Fiscal\FiscalCalculationException;
+use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
@@ -51,6 +53,7 @@ final class DashboardStatsService
         private readonly FleetFiscalAggregator $aggregator,
         private readonly FiscalYearContext $yearContext,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly FiscalRuleRegistry $fiscalRules,
         private readonly BillingBreakdownService $billingBreakdown,
         private readonly DashboardPendingTasksAggregator $pendingTasksAggregator,
     ) {}
@@ -130,21 +133,25 @@ final class DashboardStatsService
     }
 
     /**
-     * Year scope for the Evolution chart · years where the company
-     * has at least one active contract, truncated to the N most recent
-     * (see {@see HISTORY_MAX_YEARS}). The current calendar year is
-     * always included, even when no contract crosses it.
+     * Year scope for the Evolution chart, truncated to the N most recent
+     * (see {@see HISTORY_MAX_YEARS}).
+     *
+     * Uses the same union range as the Planning year selector (years with
+     * coded fiscal rules + years holding contracts + the current calendar
+     * year, via {@see YearScopeData::fromResolverAndRegistry()}), so the
+     * chart spans every fiscally-defined year even on a fresh instance
+     * with no contract yet. The current year is always in range by
+     * construction.
      *
      * @return list<int>
      */
     private function historyYearScope(): array
     {
-        $currentYear = $this->availableYears->currentYear();
-        $scope = $this->availableYears->availableYears();
-        if (! in_array($currentYear, $scope, true)) {
-            $scope[] = $currentYear;
-            sort($scope);
-        }
+        $scope = YearScopeData::fromResolverAndRegistry(
+            $this->availableYears,
+            $this->fiscalRules,
+        )->availableYears;
+
         if (count($scope) > self::HISTORY_MAX_YEARS) {
             $scope = array_slice($scope, -self::HISTORY_MAX_YEARS);
         }

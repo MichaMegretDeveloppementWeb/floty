@@ -7,17 +7,23 @@ import { formatEur } from '@/Utils/format/formatEur';
 
 const props = defineProps<{
     vehicleView: HeatmapVehicleView;
+    /** False when the year has no coded fiscal rules (shows a muted dash). */
+    fiscalSupported: boolean;
 }>();
 
 /** Fiscal costs are deferred; the inline skeleton holds the place until response. */
 const fiscalLoaded = computed<boolean>(
     () => props.vehicleView.fullYearTax !== null && props.vehicleView.dailyTaxRate !== null,
 );
-const tooltipTitle = computed<string>(() =>
-    fiscalLoaded.value
+const tooltipTitle = computed<string>(() => {
+    if (!props.fiscalSupported) {
+        return 'Aucune règle fiscale codée pour cet exercice';
+    }
+
+    return fiscalLoaded.value
         ? `Taxe annuelle théorique ${formatEur(props.vehicleView.fullYearTax!, 0)} · prorata ${formatEur(props.vehicleView.dailyTaxRate!, 2)}/jour`
-        : 'Calcul en cours',
-);
+        : 'Calcul en cours';
+});
 
 /** Daily/weekly/monthly pricings (eager). Display a muted dash when unset. */
 const hasPricing = computed<boolean>(
@@ -71,7 +77,13 @@ const formatRate = (cents: number | null): string =>
                     Taxe pleine
                 </span>
                 <span
-                    v-if="fiscalLoaded"
+                    v-if="!fiscalSupported"
+                    class="font-mono text-[11px] text-slate-300 tabular-nums"
+                >
+                    -
+                </span>
+                <span
+                    v-else-if="fiscalLoaded"
                     class="font-mono text-[11px] text-slate-500 tabular-nums"
                 >
                     {{ formatEur(vehicleView.fullYearTax!, 0) }}

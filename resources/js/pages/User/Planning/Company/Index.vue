@@ -37,6 +37,8 @@ const props = defineProps<{
     /** Current license-plate sort direction (?direction= URL param). */
     sortDirection: SortDirection;
     yearScope: App.Data.Shared.YearScopeData;
+    /** Years with coded fiscal rules · drives the "no fiscal rules" UI. */
+    fiscalSupportedYears: number[];
 }>();
 
 const localFullYearCosts = ref<HeatmapFullYearCosts | undefined>(props.fullYearCosts);
@@ -98,6 +100,12 @@ const companyOptions = computed(() =>
         value: c.id,
         label: `${c.shortCode} · ${c.legalName}`,
     })),
+);
+
+// True when the selected year has coded fiscal rules (derived client-side
+// from the stable `fiscalSupportedYears`, preserved across reloads).
+const fiscalSupported = computed<boolean>(() =>
+    props.fiscalSupportedYears.includes(selectedYear.value),
 );
 
 const companyById = computed(() => {
@@ -197,6 +205,7 @@ const { week, onContractsCreated } = useUserPlanningIndex();
                 :real-costs="localRealCosts"
                 :monthly-rentals="localMonthlyRentals"
                 :fiscal-year="selectedYear"
+                :fiscal-supported="fiscalSupported"
                 :sort-direction="sortDirection"
                 @cell-click="(p) => week.open(p.vehicleId, p.week, selectedYear, company.id)"
                 @sort-toggle="toggleSort"

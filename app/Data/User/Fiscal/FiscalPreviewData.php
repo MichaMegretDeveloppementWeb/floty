@@ -22,7 +22,9 @@ final class FiscalPreviewData extends Data
         public int $fiscalYear,
         /** Days kept in the year for this contract. */
         public int $daysCount,
-        /** CO₂ + pollutants + total + applied exemptions. */
-        public FiscalBreakdownData $breakdown,
+        /** CO₂ + pollutants + total + applied exemptions. Null when the year has no coded fiscal rules. */
+        public ?FiscalBreakdownData $breakdown,
+        /** False when the year has no coded fiscal rules · `breakdown` is null and no tax is computed. */
+        public bool $supported = true,
     ) {}
 }

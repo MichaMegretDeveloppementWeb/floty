@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\User\Dashboard;
 
 use App\Data\Shared\YearScopeData;
+use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Services\Dashboard\DashboardStatsService;
 use App\Services\Fiscal\AvailableYearsResolver;
@@ -31,6 +32,7 @@ final class DashboardController extends Controller
     public function __construct(
         private readonly DashboardStatsService $stats,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly FiscalRuleRegistry $fiscalRules,
     ) {}
 
     /**
@@ -52,7 +54,7 @@ final class DashboardController extends Controller
             'historyTaxes' => Inertia::optional(fn () => $this->stats->computeHistoryTaxes()),
             'historyRecettes' => Inertia::optional(fn () => $this->stats->computeHistoryRecettes()),
             'selectedYear' => $year,
-            'yearScope' => YearScopeData::fromResolver($this->availableYears),
+            'yearScope' => YearScopeData::fromResolverAndRegistry($this->availableYears, $this->fiscalRules),
         ]);
     }
 

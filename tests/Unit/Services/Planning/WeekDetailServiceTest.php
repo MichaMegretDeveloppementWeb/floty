@@ -134,6 +134,40 @@ final class WeekDetailServiceTest extends TestCase
     }
 
     #[Test]
+    public function preview_taxes_signale_une_annee_sans_regles_fiscales(): void
+    {
+        // Le registre fiscal couvre 2024-2026. Pour 2027 (sans règles
+        // codées), previewTaxes renvoie un payload neutre (supported=false,
+        // breakdown=null) au lieu de lever FiscalCalculationException · le
+        // wizard affiche "Pas de règles fiscales" sans toast d'erreur.
+        $year = 2027;
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2020-01-01',
+            'effective_to' => null,
+        ]);
+        $company = Company::factory()->create();
+
+        $start = Carbon::create($year, 7, 15);
+        $preview = $this->service->previewTaxes(
+            new PreviewTaxesInputData(
+                vehicleId: $vehicle->id,
+                companyId: $company->id,
+                dates: [
+                    $start->toDateString(),
+                    $start->copy()->addDays(34)->toDateString(),
+                ],
+            ),
+            $year,
+        );
+
+        self::assertFalse($preview->supported);
+        self::assertNull($preview->breakdown);
+        self::assertSame(35, $preview->daysCount);
+    }
+
+    #[Test]
     public function preview_taxes_ignore_les_autres_contrats_du_couple(): void
     {
         // Régression : avant le passage au calcul standalone, le service

@@ -13,6 +13,7 @@ use App\Models\Vehicle;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -35,7 +36,11 @@ final class PlanningControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Planning/Index/Index')
                 ->has('vehicles', 1)
-                ->has('companies', 1),
+                ->has('companies', 1)
+                // Coded fiscal years (registry) drive the "no fiscal rules" UI.
+                ->where('fiscalSupportedYears', fn (Collection $years): bool => $years->contains(2024)
+                    && $years->contains(2025)
+                    && $years->contains(2026)),
             );
     }
 
@@ -352,6 +357,34 @@ final class PlanningControllerTest extends TestCase
                 'fiscalYear',
                 'daysCount',
                 'breakdown' => ['totalDue', 'co2Due', 'pollutantsDue', 'co2Method', 'appliedExemptions'],
+            ]);
+    }
+
+    #[Test]
+    public function preview_taxes_signale_une_annee_sans_regles_fiscales(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create([
+            'vehicle_id' => $vehicle->id,
+            'effective_from' => '2020-01-01',
+            'effective_to' => null,
+        ]);
+        $company = Company::factory()->create();
+
+        // 2027 hors registre fiscal · réponse 200 neutre (supported=false,
+        // breakdown=null), pas de 422 ni de toast d'erreur dans le wizard.
+        $this->actingAs($user)
+            ->postJson('/app/planning/preview-taxes', [
+                'vehicleId' => $vehicle->id,
+                'companyId' => $company->id,
+                'dates' => ['2027-03-12', '2027-03-13'],
+            ])
+            ->assertOk()
+            ->assertJson([
+                'fiscalYear' => 2027,
+                'supported' => false,
+                'breakdown' => null,
             ]);
     }
 

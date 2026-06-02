@@ -55,6 +55,19 @@ final class FiscalYearContextTest extends TestCase
         $this->assertFalse($context->isSupported(2026));
     }
 
+    #[Test]
+    public function range_supported_exige_toutes_les_annees_de_la_plage(): void
+    {
+        $context = $this->makeContext(registeredYears: [2024, 2025, 2026]);
+
+        $this->assertTrue($context->rangeSupported(2024, 2026));
+        $this->assertTrue($context->rangeSupported(2025, 2025));
+        // 2027 et 2023 sont hors registre · une plage qui les touche
+        // n'est pas entièrement supportée.
+        $this->assertFalse($context->rangeSupported(2026, 2027));
+        $this->assertFalse($context->rangeSupported(2023, 2024));
+    }
+
     /**
      * @param  list<int>  $registeredYears
      */

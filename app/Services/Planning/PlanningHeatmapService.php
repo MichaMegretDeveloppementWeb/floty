@@ -303,12 +303,20 @@ final class PlanningHeatmapService
 
             $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
 
-            $annualTaxDue = $this->aggregator->vehicleAnnualTax(
-                $vehicle,
-                $contractsForCalc,
-                $vehicleUnavailabilities,
-                $year,
-            );
+            // Tolerates a year without coded fiscal rules · the deferred
+            // "realCosts" prop would otherwise throw and leave the heatmap
+            // tax column in an infinite skeleton. Mirrors the guard in
+            // {@see fullYearCostsForVehicles()}.
+            try {
+                $annualTaxDue = $this->aggregator->vehicleAnnualTax(
+                    $vehicle,
+                    $contractsForCalc,
+                    $vehicleUnavailabilities,
+                    $year,
+                );
+            } catch (FiscalCalculationException) {
+                $annualTaxDue = 0.0;
+            }
 
             $costs[$vehicle->id] = new PlanningHeatmapVehicleRealCostsData(
                 annualTaxDue: $annualTaxDue,

@@ -106,6 +106,21 @@ final class DeclarationControllerTest extends TestCase
     }
 
     #[Test]
+    public function prepare_refuse_une_annee_sans_regles_fiscales(): void
+    {
+        // 2023 est close (2023 < 2026) mais hors registre fiscal
+        // (2024-2026) · la préparation est refusée avec un toast, aucun
+        // draft créé (pas de 500 différé à la génération).
+        $this->post('/app/declarations/prepare', [
+            'company_id' => $this->company->id,
+            'fiscal_year' => 2023,
+        ])
+            ->assertSessionHas('toast-error');
+
+        self::assertSame(0, FiscalDeclaration::query()->count());
+    }
+
+    #[Test]
     public function show_render_inertia_avec_history_et_snapshot(): void
     {
         // P0.5 (audit perf 2026-05-16) · Generated avec payload

@@ -3,9 +3,10 @@
  * space (NNBSP, U+202F) before the currency symbol, matching FR
  * typographic conventions.
  *
- * Node's `Intl.NumberFormat` may insert a regular thin space (U+2009)
- * or a non-breaking space (U+00A0); we normalize to NNBSP for visual
- * consistency.
+ * The host engine's `Intl.NumberFormat` may insert a regular thin space
+ * (U+2009) or a non-breaking space (U+00A0); we normalize to NNBSP for
+ * visual consistency across engines. Escapes are used in the regex so
+ * the special characters cannot be clobbered by editors/tooling.
  *
  * @param value          Euro amount.
  * @param fractionDigits Fixed decimals (default 0 for aggregates, 2 for
@@ -20,5 +21,5 @@ export function formatEur(value: number, fractionDigits = 0): string {
     })
         .format(value)
         // Normalize NBSP (U+00A0) and THIN SPACE (U+2009) to NNBSP (U+202F).
-        .replace(/[  ]/g, ' ');
+        .replace(/[  ]/g, ' ');
 }

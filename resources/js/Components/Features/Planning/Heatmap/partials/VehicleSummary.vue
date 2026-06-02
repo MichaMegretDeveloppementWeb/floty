@@ -4,6 +4,8 @@ import { formatEur } from '@/Utils/format/formatEur';
 
 defineProps<{
     vehicleView: HeatmapVehicleView;
+    /** False when the year has no coded fiscal rules (shows a muted dash). */
+    fiscalSupported: boolean;
 }>();
 </script>
 
@@ -13,7 +15,14 @@ defineProps<{
     >
         <div>
             <p
-                v-if="vehicleView.summaryTax !== null"
+                v-if="!fiscalSupported"
+                class="font-mono text-[13px] font-medium text-slate-300 tabular-nums"
+                title="Aucune règle fiscale codée pour cet exercice"
+            >
+                -
+            </p>
+            <p
+                v-else-if="vehicleView.summaryTax !== null"
                 class="font-mono text-[13px] font-medium text-slate-900 tabular-nums"
             >
                 {{ formatEur(vehicleView.summaryTax) }}

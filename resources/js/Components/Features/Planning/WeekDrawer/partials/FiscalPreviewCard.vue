@@ -41,7 +41,12 @@ function toggle(): void {
                 >
                     Calcul…
                 </span>
-                <template v-else-if="preview">
+                <template v-else-if="preview && !preview.supported">
+                    <span class="text-xs text-slate-400">
+                        Pas de règles fiscales
+                    </span>
+                </template>
+                <template v-else-if="preview && preview.breakdown">
                     <span class="font-mono text-sm text-slate-500 tabular-nums">
                         {{ preview.daysCount }} j
                     </span>
@@ -60,7 +65,7 @@ function toggle(): void {
         </button>
 
         <div
-            v-if="isOpen && preview"
+            v-if="isOpen && preview && preview.breakdown"
             class="border-t border-slate-100 px-4 py-3"
         >
             <div class="flex flex-col text-sm">

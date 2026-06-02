@@ -15,6 +15,7 @@ use App\Models\RentalDiscount;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
+use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Support\Carbon;
 
 /**
@@ -34,6 +35,7 @@ final class CompanyAggregatesService
         private readonly FleetFiscalAggregator $aggregator,
         private readonly BillingBreakdownService $billingBreakdown,
         private readonly RentalDiscountReadRepositoryInterface $rentalDiscounts,
+        private readonly FiscalYearContext $yearContext,
     ) {}
 
     /**
@@ -76,6 +78,7 @@ final class CompanyAggregatesService
     {
         $contractsByPair = $this->contracts->loadContractsByPair($year);
         $currentRealYear = (int) Carbon::now()->year;
+        $fiscalYearSupported = $this->yearContext->isSupported($year);
         $availableYears = $this->contracts->availableYearsRangeForCompany(
             $companyId,
             $currentRealYear,
@@ -101,6 +104,7 @@ final class CompanyAggregatesService
             return new CompanyFiscalYearData(
                 year: $year,
                 currentRealYear: $currentRealYear,
+                fiscalYearSupported: $fiscalYearSupported,
                 rows: [],
                 availableYears: $availableYears,
                 totalDays: 0,
@@ -181,6 +185,7 @@ final class CompanyAggregatesService
         return new CompanyFiscalYearData(
             year: $year,
             currentRealYear: $currentRealYear,
+            fiscalYearSupported: $fiscalYearSupported,
             rows: $rows,
             availableYears: $availableYears,
             totalDays: $totalDays,

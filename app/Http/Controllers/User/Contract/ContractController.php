@@ -23,6 +23,7 @@ use App\Services\Company\CompanyListingService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Driver\DriverQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
+use App\Services\Shared\Fiscal\FiscalYearContext;
 use App\Services\Vehicle\VehicleListingService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
@@ -47,6 +48,7 @@ final class ContractController extends Controller
         private readonly DeleteContractAction $deleteContract,
         private readonly BulkCreateContractsAction $bulkCreateContracts,
         private readonly AvailableYearsResolver $availableYears,
+        private readonly FiscalYearContext $fiscalYearContext,
     ) {}
 
     /**
@@ -131,6 +133,13 @@ final class ContractController extends Controller
         return Inertia::render('User/Contracts/Show/Index', [
             'contract' => $contractData,
             'taxBreakdown' => $this->contracts->findContractTaxBreakdown($contract),
+            // Distinguishes a `null` taxBreakdown caused by an uncoded
+            // fiscal year (false) from a missing VFC (true), so the panel
+            // shows the right message.
+            'taxFiscalYearSupported' => $this->fiscalYearContext->rangeSupported(
+                (int) $contractModel->start_date->year,
+                (int) $contractModel->end_date->year,
+            ),
             'documents' => $this->contracts->listDocumentsForContract($contract),
             'billingBreakdown' => $this->contracts->findContractBillingBreakdown($contract),
         ]);

@@ -52,6 +52,8 @@ final class MigrationsCleanlinessTest extends TestCase
             'invoice_lines',
             'invoices',
             'password_reset_tokens',
+            'rental_discount_vehicles',
+            'rental_discounts',
             'sessions',
             'unavailabilities',
             'unavailability_documents',

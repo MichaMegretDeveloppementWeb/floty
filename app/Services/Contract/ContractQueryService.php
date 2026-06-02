@@ -19,6 +19,7 @@ use App\Data\User\Contract\ContractTaxYearBreakdownData;
 use App\Data\User\Contract\PaginatedContractListData;
 use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
+use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Contract;
 use App\Models\Unavailability;
 use App\Services\Billing\BillingBreakdownService;
@@ -116,12 +117,24 @@ final readonly class ContractQueryService
             ->findForVehicle($contract->vehicle_id)
             ->all();
 
-        $nominal = $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
+        // A contract spanning a year without coded fiscal rules cannot be
+        // tariffed (the pipeline throws `yearNotSupported`). Degrade to
+        // `null` rather than letting the exception bubble up and make the
+        // whole Show page inaccessible · billing, dates and documents
+        // still render. The frontend distinguishes this from a missing VFC.
+        try {
+            $nominal = $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
+        } catch (FiscalCalculationException) {
+            return null;
+        }
 
         if ($contract->contract_type !== ContractType::Lcd) {
             return $nominal;
         }
 
+        // Reached only when `$nominal` succeeded · every spanned year is
+        // therefore supported, so the LCD opt-out factory never hits its
+        // unsupported-year branch.
         return $this->enrichWithLcdHypothetical($contract, $unavailabilities, $nominal);
     }
 
