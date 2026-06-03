@@ -26,8 +26,9 @@ use Illuminate\Support\Facades\Http;
  *   - `--no-http` skips the HTTP check and only validates freshness
  *     (offline / quick audit).
  *
- * The command is synchronous and must be run manually (Floty has no
- * queue worker and no scheduler).
+ * The command is synchronous and run on demand: Floty has no queue worker,
+ * and although a cron scheduler is available (validated 2026-06-03), this
+ * audit tool is intentionally not scheduled.
  */
 final class FiscalAuditLinksCommand extends Command
 {
