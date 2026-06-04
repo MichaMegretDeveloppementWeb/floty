@@ -67,5 +67,6 @@ export function isoWeekNumberOf(date: Date): number {
     // Shift to the Thursday of that ISO week (Thursday = 4th day).
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+
     return Math.ceil(((d.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
 }

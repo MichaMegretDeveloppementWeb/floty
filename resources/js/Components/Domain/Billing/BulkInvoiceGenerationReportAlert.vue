@@ -16,6 +16,7 @@ const page = usePage();
 function readReport(): ReportShape | null {
     // Local cast to avoid polluting Inertia.PageProps for a single channel.
     const value = (page.props as Record<string, unknown>).bulkInvoiceReport;
+
     if (value === null || value === undefined) {
         return null;
     }
@@ -36,6 +37,7 @@ const failureReasonLabel: Record<App.Enums.Invoice.BulkInvoiceGenerationFailureR
 
 const generatedLine = computed<string | null>(() => {
     const r = cachedReport.value;
+
     if (r === null || r.generated.length === 0) {
         return null;
     }
@@ -68,6 +70,7 @@ function showReport(report: ReportShape): void {
 
 onMounted(() => {
     const initial = readReport();
+
     if (initial !== null) {
         showReport(initial);
     }
@@ -77,6 +80,7 @@ watch(
     () => (page.props as Record<string, unknown>).bulkInvoiceReport,
     () => {
         const next = readReport();
+
         if (next !== null) {
             showReport(next);
         }

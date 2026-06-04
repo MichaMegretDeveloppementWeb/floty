@@ -38,6 +38,7 @@ const { breakdown, selectedCode, selectedRule, modalOpen, openRule } =
  */
 const segmentationHint = computed<string>(() => {
     const segments = breakdown.value.taxSegments;
+
     if (segments.length <= 1) {
         return '';
     }

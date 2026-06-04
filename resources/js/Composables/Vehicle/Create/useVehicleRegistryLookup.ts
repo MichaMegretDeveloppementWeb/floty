@@ -1,5 +1,6 @@
 import type { InertiaForm } from '@inertiajs/vue3';
-import { computed, ref, type ComputedRef, type Ref } from 'vue';
+import { computed, ref   } from 'vue';
+import type {ComputedRef, Ref} from 'vue';
 import type { VehicleFormShape } from '@/pages/User/Vehicles/Create/forms';
 import { registryLookup as registryLookupRoute } from '@/routes/user/vehicles';
 import { requiresUnderlyingCombustionEngine } from '@/Utils/derivePollutantCategory';
@@ -157,6 +158,7 @@ export function useVehicleRegistryLookup(
                           null)
                         : null;
                 errorMessage.value = mapErrorMessage(code);
+
                 return;
             }
 
@@ -207,6 +209,7 @@ function mapErrorMessage(code: string | null): string {
  */
 function formatLicensePlate(normalised: string): string {
     const match = /^([A-Z]{2})(\d{3})([A-Z]{2})$/.exec(normalised);
+
     if (match) {
         return `${match[1]}-${match[2]}-${match[3]}`;
     }
@@ -232,92 +235,114 @@ function applyResultToForm(
         form.brand = result.brand;
         provided.add('brand');
     }
+
     if (result.model !== null) {
         form.model = result.model;
         provided.add('model');
     }
+
     if (result.vin !== null) {
         form.vin = result.vin;
         provided.add('vin');
     }
+
     if (result.color !== null) {
         form.color = result.color;
         provided.add('color');
     }
+
     if (result.firstFrenchRegistrationDate !== null) {
         form.first_french_registration_date = result.firstFrenchRegistrationDate;
         provided.add('first_french_registration_date');
     }
+
     if (result.firstOriginRegistrationDate !== null) {
         form.first_origin_registration_date = result.firstOriginRegistrationDate;
         provided.add('first_origin_registration_date');
     }
+
     if (result.receptionCategory !== null) {
         form.reception_category = result.receptionCategory;
         form.vehicle_user_type = result.receptionCategory === 'M1' ? 'VP' : 'VU';
         provided.add('reception_category');
     }
+
     if (result.bodyType !== null) {
         form.body_type = result.bodyType;
         provided.add('body_type');
     }
+
     if (result.seatsCount !== null) {
         form.seats_count = result.seatsCount;
         provided.add('seats_count');
     }
+
     if (result.energySource !== null) {
         form.energy_source = result.energySource;
         provided.add('energy_source');
     }
+
     if (result.underlyingCombustionEngineType !== null) {
         form.underlying_combustion_engine_type =
             result.underlyingCombustionEngineType;
         provided.add('underlying_combustion_engine_type');
     }
+
     if (result.euroStandard !== null) {
         form.euro_standard = result.euroStandard;
         provided.add('euro_standard');
     }
+
     if (result.homologationMethod !== null) {
         form.homologation_method = result.homologationMethod;
         provided.add('homologation_method');
     }
+
     if (result.co2Wltp !== null) {
         form.co2_wltp = result.co2Wltp;
         provided.add('co2_wltp');
     }
+
     if (result.co2Nedc !== null) {
         form.co2_nedc = result.co2Nedc;
         provided.add('co2_nedc');
     }
+
     if (result.taxableHorsepower !== null) {
         form.taxable_horsepower = result.taxableHorsepower;
         provided.add('taxable_horsepower');
     }
+
     if (result.kerbMass !== null) {
         form.kerb_mass = result.kerbMass;
         provided.add('kerb_mass');
     }
+
     if (result.acceptsE85 !== null) {
         form.accepts_e85 = result.acceptsE85;
         provided.add('accepts_e85');
     }
+
     if (result.handicapAccess !== null) {
         form.handicap_access = result.handicapAccess;
         provided.add('handicap_access');
     }
+
     if (result.m1SpecialUse !== null) {
         form.m1_special_use = result.m1SpecialUse;
         provided.add('m1_special_use');
     }
+
     if (result.n1PassengerTransport !== null) {
         form.n1_passenger_transport = result.n1PassengerTransport;
         provided.add('n1_passenger_transport');
     }
+
     if (result.n1RemovableSecondRowSeat !== null) {
         form.n1_removable_second_row_seat = result.n1RemovableSecondRowSeat;
         provided.add('n1_removable_second_row_seat');
     }
+
     if (result.n1SkiLiftUse !== null) {
         form.n1_ski_lift_use = result.n1SkiLiftUse;
         provided.add('n1_ski_lift_use');

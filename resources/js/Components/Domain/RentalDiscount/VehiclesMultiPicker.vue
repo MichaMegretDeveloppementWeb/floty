@@ -34,11 +34,14 @@ const selectedSet = computed<Set<number>>(() => new Set(props.modelValue));
 
 const filteredVehicles = computed<readonly VehicleOption[]>(() => {
     const term = search.value.trim().toLowerCase();
+
     if (term === '') {
         return props.vehicles;
     }
+
     return props.vehicles.filter((v) => {
         const haystack = `${v.licensePlate} ${v.brand} ${v.model}`.toLowerCase();
+
         return haystack.includes(term);
     });
 });
@@ -53,12 +56,15 @@ function toggle(vehicleId: number): void {
     if (props.disabled) {
         return;
     }
+
     const set = new Set(props.modelValue);
+
     if (set.has(vehicleId)) {
         set.delete(vehicleId);
     } else {
         set.add(vehicleId);
     }
+
     emit('update:modelValue', [...set]);
 }
 
@@ -66,6 +72,7 @@ function clearAll(): void {
     if (props.disabled) {
         return;
     }
+
     emit('update:modelValue', []);
 }
 </script>

@@ -73,8 +73,10 @@ const distinctVfcCount = computed<number>(
  */
 const vfcSegments = computed<Segment[]>(() => {
     const merged: Segment[] = [];
+
     for (const seg of props.fiscalYearBreakdown.taxSegments) {
         const last = merged[merged.length - 1];
+
         if (last && last.vfc.id === seg.vfc.id) {
             merged[merged.length - 1] = {
                 ...last,
@@ -84,6 +86,7 @@ const vfcSegments = computed<Segment[]>(() => {
             merged.push(seg);
         }
     }
+
     return merged;
 });
 

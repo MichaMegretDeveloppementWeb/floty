@@ -72,26 +72,32 @@ export function useRentalDiscountsTable(
         if (state.sort.value.key === null) {
             return null;
         }
+
         const entry = Object.entries(COLUMN_TO_SORT_KEY).find(
             ([, sortKey]) => sortKey === state.sort.value.key,
         );
+
         return entry ? entry[0] : null;
     });
 
     const activeFiltersCount = computed<number>(() => {
         let n = 0;
         const f = state.filters.value;
+
         if (f.companyId !== null) {
             n += 1;
         }
+
         if (f.status !== null) {
             n += 1;
         }
+
         return n;
     });
 
     function onHeaderClick(columnKey: string): void {
         const sortKey = COLUMN_TO_SORT_KEY[columnKey];
+
         if (sortKey !== undefined) {
             state.setSort(sortKey);
         }

@@ -10,8 +10,8 @@ import DocumentDropZone from '@/Components/Ui/DocumentDropZone/DocumentDropZone.
 import { useCompanyMonthlyRentals } from '@/Composables/Contract/useCompanyMonthlyRentals';
 import { useContractFiscalPreview } from '@/Composables/Contract/useContractFiscalPreview';
 import { useContractForm } from '@/Composables/Contract/useContractForm';
-import { useContractRentalPreview } from '@/Composables/Contract/useContractRentalPreview';
 import { storePendingDocuments } from '@/Composables/Contract/useContractFormPendingDocuments';
+import { useContractRentalPreview } from '@/Composables/Contract/useContractRentalPreview';
 import { useToasts } from '@/Composables/Shared/useToasts';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
 import { indexById } from '@/Utils/Common/indexById';

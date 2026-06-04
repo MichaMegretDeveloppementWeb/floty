@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { ChevronLeft } from 'lucide-vue-next';
-import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import type { VehicleOption } from '@/Components/Domain/RentalDiscount/VehiclesMultiPicker.vue';
+import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import Button from '@/Components/Ui/Button/Button.vue';
 import { useRentalDiscountForm } from '@/Composables/RentalDiscount/Form/useRentalDiscountForm';
 import { show as showRoute, update as updateRoute } from '@/routes/user/rental-discounts';

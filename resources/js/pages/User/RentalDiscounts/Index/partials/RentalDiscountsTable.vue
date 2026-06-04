@@ -3,8 +3,8 @@ import RentalDiscountPill from '@/Components/Domain/RentalDiscount/RentalDiscoun
 import CompanyTag from '@/Components/Ui/CompanyTag/CompanyTag.vue';
 import DataTable from '@/Components/Ui/DataTable/DataTable.vue';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
-import { formatDateFr } from '@/Utils/format/formatDateFr';
 import type { DataTableColumn } from '@/types/ui';
+import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 type RentalDiscountRow = App.Data.User.RentalDiscount.RentalDiscountListItemData;
 
