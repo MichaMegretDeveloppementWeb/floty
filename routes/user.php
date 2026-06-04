@@ -6,6 +6,7 @@ use App\Http\Controllers\User\Company\CompanyController;
 use App\Http\Controllers\User\Contract\ContractController;
 use App\Http\Controllers\User\Contract\ContractDocumentController;
 use App\Http\Controllers\User\Control\ControlDefinitionController;
+use App\Http\Controllers\User\Control\VehicleControlController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
 use App\Http\Controllers\User\Driver\DriverController;
 use App\Http\Controllers\User\Driver\DriverMembershipController;
@@ -201,6 +202,42 @@ Route::middleware('auth')
             ->whereNumber('control')
             ->middleware('throttle:120,1')
             ->name('controls.destroy');
+
+        // Per-vehicle controls (Chantier B / B2) · "Contrôles" tab actions.
+        Route::post('/vehicles/{vehicle}/controls/executions', [VehicleControlController::class, 'recordExecution'])
+            ->whereNumber('vehicle')
+            ->middleware('throttle:300,1')
+            ->name('vehicles.controls.executions.store');
+        Route::delete('/vehicles/{vehicle}/controls/executions/{execution}', [VehicleControlController::class, 'deleteExecution'])
+            ->whereNumber('vehicle')
+            ->whereNumber('execution')
+            ->middleware('throttle:300,1')
+            ->name('vehicles.controls.executions.destroy');
+        Route::post('/vehicles/{vehicle}/controls/overrides', [VehicleControlController::class, 'storeOverride'])
+            ->whereNumber('vehicle')
+            ->middleware('throttle:300,1')
+            ->name('vehicles.controls.overrides.store');
+        Route::patch('/vehicles/{vehicle}/controls/overrides/{override}', [VehicleControlController::class, 'updateOverride'])
+            ->whereNumber('vehicle')
+            ->whereNumber('override')
+            ->middleware('throttle:300,1')
+            ->name('vehicles.controls.overrides.update');
+        Route::delete('/vehicles/{vehicle}/controls/overrides/{override}', [VehicleControlController::class, 'resetOverride'])
+            ->whereNumber('vehicle')
+            ->whereNumber('override')
+            ->middleware('throttle:300,1')
+            ->name('vehicles.controls.overrides.destroy');
+        Route::post('/vehicles/{vehicle}/controls/status', [VehicleControlController::class, 'setStatus'])
+            ->whereNumber('vehicle')
+            ->middleware('throttle:300,1')
+            ->name('vehicles.controls.status');
+        Route::get('/vehicles/{vehicle}/controls/history', [VehicleControlController::class, 'history'])
+            ->whereNumber('vehicle')
+            ->name('vehicles.controls.history');
+        Route::get('/vehicles/{vehicle}/controls/documents/{document}/download', [VehicleControlController::class, 'downloadDocument'])
+            ->whereNumber('vehicle')
+            ->whereNumber('document')
+            ->name('vehicles.controls.documents.download');
 
         // Invoices
         //

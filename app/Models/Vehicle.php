@@ -115,6 +115,26 @@ final class Vehicle extends Model
     }
 
     /**
+     * Per-vehicle control overrides and vehicle-specific controls (Chantier B / B2).
+     *
+     * @return HasMany<VehicleControlOverride, $this>
+     */
+    public function controlOverrides(): HasMany
+    {
+        return $this->hasMany(VehicleControlOverride::class);
+    }
+
+    /**
+     * Recorded control executions on this vehicle (Chantier B / B2).
+     *
+     * @return HasMany<ControlExecution, $this>
+     */
+    public function controlExecutions(): HasMany
+    {
+        return $this->hasMany(ControlExecution::class);
+    }
+
+    /**
      * Daily / weekly / monthly rates indexed by year (UNIQUE on `(vehicle_id, year)`).
      *
      * @return HasMany<VehicleYearlyPricing, $this>

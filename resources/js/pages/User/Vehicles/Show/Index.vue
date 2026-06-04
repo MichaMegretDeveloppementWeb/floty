@@ -8,6 +8,7 @@ import { Head } from '@inertiajs/vue3';
 import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import { useVehicleTabs } from '@/Composables/Vehicle/Show/useVehicleTabs';
 import TabLoadingSkeleton from '@/pages/User/Companies/Show/partials/TabLoadingSkeleton.vue';
+import VehicleControlsTab from './partials/Controls/VehicleControlsTab.vue';
 import VehicleBillingTab from './partials/VehicleBillingTab.vue';
 import VehicleEventsTimeline from './partials/VehicleEventsTimeline.vue';
 import VehicleFiscalTab from './partials/VehicleFiscalTab.vue';
@@ -28,6 +29,7 @@ const props = defineProps<{
     // Lazy: populated after the matching tab is first visited.
     vehicleBilling?: App.Data.User.Billing.MonthlyBillingBreakdownData;
     fiscalYearBreakdown?: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
+    vehicleControls?: App.Data.User.Control.Vehicle.VehicleControlsTabData;
 }>();
 
 const { activeTab, setTab, loadingTab } = useVehicleTabs();
@@ -80,6 +82,15 @@ const { activeTab, setTab, loadingTab } = useVehicleTabs();
                     :monthly-billing="props.vehicleBilling"
                     :year-scope="props.vehicle.yearScope"
                     :active-year="props.billingYear"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
+
+            <template v-else-if="activeTab === 'controls'">
+                <VehicleControlsTab
+                    v-if="props.vehicleControls && loadingTab !== 'controls'"
+                    :vehicle-id="props.vehicle.id"
+                    :tab-data="props.vehicleControls"
                 />
                 <TabLoadingSkeleton v-else />
             </template>

@@ -14,8 +14,14 @@ use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadReposit
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Control\ControlDefinitionReadRepositoryInterface;
 use App\Contracts\Repositories\User\Control\ControlDefinitionWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlExecutionDocumentReadRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlExecutionDocumentWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlExecutionReadRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlExecutionWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Control\ControlReminderSettingsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Control\ControlReminderSettingsWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Control\VehicleControlOverrideReadRepositoryInterface;
+use App\Contracts\Repositories\User\Control\VehicleControlOverrideWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
 use App\Contracts\Repositories\User\Driver\DriverWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
@@ -49,8 +55,14 @@ use App\Repositories\User\ContractDocument\ContractDocumentReadRepository;
 use App\Repositories\User\ContractDocument\ContractDocumentWriteRepository;
 use App\Repositories\User\Control\ControlDefinitionReadRepository;
 use App\Repositories\User\Control\ControlDefinitionWriteRepository;
+use App\Repositories\User\Control\ControlExecutionDocumentReadRepository;
+use App\Repositories\User\Control\ControlExecutionDocumentWriteRepository;
+use App\Repositories\User\Control\ControlExecutionReadRepository;
+use App\Repositories\User\Control\ControlExecutionWriteRepository;
 use App\Repositories\User\Control\ControlReminderSettingsReadRepository;
 use App\Repositories\User\Control\ControlReminderSettingsWriteRepository;
+use App\Repositories\User\Control\VehicleControlOverrideReadRepository;
+use App\Repositories\User\Control\VehicleControlOverrideWriteRepository;
 use App\Repositories\User\Driver\DriverReadRepository;
 use App\Repositories\User\Driver\DriverWriteRepository;
 use App\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepository;
@@ -137,6 +149,14 @@ final class RepositoryServiceProvider extends ServiceProvider
         ControlReminderSettingsWriteRepositoryInterface::class => ControlReminderSettingsWriteRepository::class,
         ControlDefinitionReadRepositoryInterface::class => ControlDefinitionReadRepository::class,
         ControlDefinitionWriteRepositoryInterface::class => ControlDefinitionWriteRepository::class,
+
+        // Controls par-véhicule (Chantier B / B2)
+        VehicleControlOverrideReadRepositoryInterface::class => VehicleControlOverrideReadRepository::class,
+        VehicleControlOverrideWriteRepositoryInterface::class => VehicleControlOverrideWriteRepository::class,
+        ControlExecutionReadRepositoryInterface::class => ControlExecutionReadRepository::class,
+        ControlExecutionWriteRepositoryInterface::class => ControlExecutionWriteRepository::class,
+        ControlExecutionDocumentReadRepositoryInterface::class => ControlExecutionDocumentReadRepository::class,
+        ControlExecutionDocumentWriteRepositoryInterface::class => ControlExecutionDocumentWriteRepository::class,
 
         // VehicleEvent
         VehicleEventReadRepositoryInterface::class => VehicleEventReadRepository::class,

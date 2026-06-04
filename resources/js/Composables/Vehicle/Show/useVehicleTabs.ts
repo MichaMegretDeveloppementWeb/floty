@@ -9,9 +9,9 @@ import { router } from '@inertiajs/vue3';
 import type { InjectionKey, Ref } from 'vue';
 import { inject, onMounted, provide, ref, watch } from 'vue';
 
-export type VehicleTabKey = 'overview' | 'events' | 'fiscal' | 'billing';
+export type VehicleTabKey = 'overview' | 'events' | 'fiscal' | 'billing' | 'controls';
 
-const VALID_TABS: readonly VehicleTabKey[] = ['overview', 'events', 'fiscal', 'billing'];
+const VALID_TABS: readonly VehicleTabKey[] = ['overview', 'events', 'fiscal', 'billing', 'controls'];
 
 const DEFAULT_TAB: VehicleTabKey = 'overview';
 
@@ -27,6 +27,7 @@ const TAB_PROPS: Readonly<Record<VehicleTabKey, readonly string[]>> = {
     events: [],
     fiscal: ['fiscalYearBreakdown', 'fiscalYear', 'billingYear'],
     billing: ['vehicleBilling', 'billingYear', 'fiscalYear'],
+    controls: ['vehicleControls'],
 };
 
 export interface VehicleTabsState {

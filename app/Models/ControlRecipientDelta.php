@@ -48,6 +48,14 @@ final class ControlRecipientDelta extends Model
     }
 
     /**
+     * @return BelongsTo<VehicleControlOverride, $this>
+     */
+    public function vehicleControlOverride(): BelongsTo
+    {
+        return $this->belongsTo(VehicleControlOverride::class);
+    }
+
+    /**
      * @return array<string, string>
      */
     protected function casts(): array

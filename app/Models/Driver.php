@@ -21,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property string $first_name
  * @property string $last_name
+ * @property string|null $email
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
@@ -32,6 +33,7 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'first_name',
     'last_name',
+    'email',
 ])]
 final class Driver extends Model
 {

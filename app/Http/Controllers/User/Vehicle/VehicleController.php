@@ -28,6 +28,7 @@ use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Http\Controllers\Controller;
 use App\Managers\VehicleRegistryLookup\VehicleRegistryLookupManager;
 use App\Models\Vehicle;
+use App\Services\Control\VehicleControlsService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Vehicle\VehicleAggregatesService;
 use App\Services\Vehicle\VehicleDetailService;
@@ -56,6 +57,7 @@ final class VehicleController extends Controller
         private readonly AvailableYearsResolver $availableYears,
         private readonly FiscalRuleRegistry $fiscalRegistry,
         private readonly VehicleRegistryLookupManager $registryLookup,
+        private readonly VehicleControlsService $vehicleControls,
     ) {}
 
     /**
@@ -133,6 +135,13 @@ final class VehicleController extends Controller
             'vehicleBilling' => $this->eagerForTab(
                 $activeTab === 'billing',
                 fn () => $this->vehicleAggregates->billingForYear($vehicle, $selectedYear),
+            ),
+
+            // Per-vehicle regulatory controls (Chantier B / B2). Not year-scoped:
+            // échéances are forward-looking dates, computed on the fly.
+            'vehicleControls' => $this->eagerForTab(
+                $activeTab === 'controls',
+                fn () => $this->vehicleControls->buildForVehicle($vehicleModel, CarbonImmutable::today()),
             ),
         ]);
     }

@@ -14,6 +14,7 @@ const tabs: readonly { key: VehicleTabKey; label: string }[] = [
     { key: 'events', label: 'Événements' },
     { key: 'fiscal', label: 'Fiscalité' },
     { key: 'billing', label: 'Facturation' },
+    { key: 'controls', label: 'Contrôles' },
 ] as const;
 </script>
 
