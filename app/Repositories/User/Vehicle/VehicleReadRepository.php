@@ -137,6 +137,11 @@ final class VehicleReadRepository implements VehicleReadRepositoryInterface
             ->findOrFail($id);
     }
 
+    public function findOrFail(int $id): Vehicle
+    {
+        return Vehicle::query()->findOrFail($id);
+    }
+
     public function findByIdWithFiscalHistory(int $id): Vehicle
     {
         return Vehicle::query()

@@ -89,6 +89,10 @@ const companyOptionsForLock = [
                 @update:applies-to-all-vehicles="appliesToAllVehicles = $event"
                 @update:range="range = $event"
                 @update:ongoing="ongoing = $event"
+                @update:company-id="form.company_id = $event"
+                @update:label="form.label = $event"
+                @update:notes="form.notes = $event"
+                @update:vehicle-ids="form.vehicle_ids = $event"
             />
 
             <div class="flex items-center justify-end gap-3">

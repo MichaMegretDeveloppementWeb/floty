@@ -102,7 +102,7 @@ final class VehicleController extends Controller
      */
     public function show(int $vehicle, Request $request): Response
     {
-        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        $vehicleModel = $this->vehicleRead->findOrFail($vehicle);
         Gate::authorize('view', $vehicleModel);
 
         $vehicleData = $this->vehicleDetail->findVehicleData($vehicle);
@@ -245,7 +245,7 @@ final class VehicleController extends Controller
      */
     public function edit(int $vehicle): Response
     {
-        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        $vehicleModel = $this->vehicleRead->findOrFail($vehicle);
         Gate::authorize('update', $vehicleModel);
 
         return Inertia::render('User/Vehicles/Edit/Index', [
@@ -259,7 +259,7 @@ final class VehicleController extends Controller
      */
     public function update(int $vehicle, UpdateVehicleData $data): RedirectResponse
     {
-        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        $vehicleModel = $this->vehicleRead->findOrFail($vehicle);
         Gate::authorize('update', $vehicleModel);
 
         $this->updateVehicle->execute($vehicle, $data);
@@ -274,7 +274,7 @@ final class VehicleController extends Controller
      */
     public function exit(int $vehicle, ExitVehicleData $data): RedirectResponse
     {
-        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        $vehicleModel = $this->vehicleRead->findOrFail($vehicle);
         Gate::authorize('update', $vehicleModel);
 
         $this->exitVehicle->execute($vehicle, $data);
@@ -289,7 +289,7 @@ final class VehicleController extends Controller
      */
     public function reactivate(int $vehicle): RedirectResponse
     {
-        $vehicleModel = Vehicle::query()->findOrFail($vehicle);
+        $vehicleModel = $this->vehicleRead->findOrFail($vehicle);
         Gate::authorize('update', $vehicleModel);
 
         $this->reactivateVehicle->execute($vehicle);

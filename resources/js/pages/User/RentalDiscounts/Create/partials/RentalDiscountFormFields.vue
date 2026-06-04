@@ -55,6 +55,13 @@ const emit = defineEmits<{
     'update:applies-to-all-vehicles': [value: boolean];
     'update:range': [value: DateRange];
     'update:ongoing': [value: boolean];
+    // The Inertia `form` is owned by the parent page; this component never
+    // mutates it directly (props are read-only). Field edits are emitted and
+    // the parent applies them to its own `form`.
+    'update:company-id': [value: number | null];
+    'update:label': [value: string];
+    'update:notes': [value: string];
+    'update:vehicle-ids': [value: number[]];
 }>();
 
 const discountPercentModel = computed<number>({
@@ -77,20 +84,28 @@ const ongoingModel = computed<boolean>({
     set: (value: boolean) => emit('update:ongoing', value),
 });
 
+// Company selector (Create only): read the prop, emit the change to the parent.
+const companyIdModel = computed<number | null>({
+    get: () => props.form.company_id,
+    set: (value: number | null) => emit('update:company-id', value),
+});
+
 // TextInput's v-model is `string`; the form field is `string | null` (optional
 // libellé). Bridge the two without changing the payload semantics (empty stays '').
 const labelModel = computed<string>({
     get: () => props.form.label ?? '',
-    set: (value: string) => {
-        props.form.label = value;
-    },
+    set: (value: string) => emit('update:label', value),
+});
+
+// Notes textarea: read the prop (null → ''), emit edits to the parent.
+const notesModel = computed<string>({
+    get: () => props.form.notes ?? '',
+    set: (value: string) => emit('update:notes', value),
 });
 
 const vehicleIdsModel = computed<number[]>({
     get: () => props.form.vehicle_ids,
-    set: (value: number[]) => {
-        props.form.vehicle_ids = value;
-    },
+    set: (value: number[]) => emit('update:vehicle-ids', value),
 });
 
 const companyOptions = computed(() =>
@@ -122,7 +137,7 @@ const lockedCompanyLabel = computed<string>(() => {
                 <SearchableSelect
                     v-if="!isEdit"
                     id="field-company"
-                    v-model="form.company_id"
+                    v-model="companyIdModel"
                     :options="companyOptions"
                     placeholder="Sélectionner une entreprise"
                 />
@@ -238,7 +253,7 @@ const lockedCompanyLabel = computed<string>(() => {
                     </FieldLabel>
                     <textarea
                         id="field-notes"
-                        v-model="form.notes"
+                        v-model="notesModel"
                         rows="4"
                         maxlength="5000"
                         placeholder="Contexte, conditions négociées, référence contrat externe..."

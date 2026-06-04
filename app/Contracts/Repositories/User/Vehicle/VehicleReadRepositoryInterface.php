@@ -89,6 +89,14 @@ interface VehicleReadRepositoryInterface
     public function findOrFailWithFiscal(int $id): Vehicle;
 
     /**
+     * Unitary lookup without eager-loading, throws 404 if the id does not
+     * exist. Used for authorization lookups (Gate::authorize) where the
+     * fiscal chain is not needed; the page data is loaded separately by a
+     * dedicated method (chargement strict par écran).
+     */
+    public function findOrFail(int $id): Vehicle;
+
+    /**
      * Unitary lookup with eager-loading of all fiscal versions of the
      * vehicle (full history, ordered `effective_from DESC`). Throws 404
      * if the id does not exist.
