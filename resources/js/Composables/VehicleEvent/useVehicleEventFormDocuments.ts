@@ -1,4 +1,3 @@
-import { router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useVehicleEventDocuments } from '@/Composables/VehicleEvent/useVehicleEventDocuments';
@@ -17,6 +16,8 @@ export const ACCEPTED_DOCUMENT_MIMES = 'application/pdf,image/jpeg,image/png,ima
 
 export type UseVehicleEventFormDocumentsReturn = {
     documents: Ref<Document[]>;
+    /** Files queued in create mode, uploaded atomically with the event. */
+    pendingFiles: Ref<File[]>;
     uploading: Ref<boolean>;
     canUploadMore: ComputedRef<boolean>;
     remainingSlots: ComputedRef<number>;
@@ -24,18 +25,22 @@ export type UseVehicleEventFormDocumentsReturn = {
     documentToDelete: Ref<Document | null>;
     deleteConfirmMessage: ComputedRef<string>;
     onFilesAdded: (files: File[]) => Promise<void>;
+    removePending: (index: number) => void;
+    resetPending: () => void;
     requestDelete: (doc: Document) => void;
     confirmDelete: () => Promise<void>;
 };
 
 /**
- * Form-side handling of a vehicle event's supporting documents.
+ * Form-side handling of a vehicle event's supporting documents (used by the
+ * dedicated create/edit pages).
  *
  * Contract:
- *   - Initialises `documents` from `editing.documents` on each change (create → empty, edit → server docs).
- *   - Sequential upload of added files (via `uploadMany`).
- *   - Partial Inertia reload (`vehicleEvents`) after mutation to keep the server payload coherent,
- *     so closing/reopening the modal preserves the documents.
+ *   - Initialises `documents` from `editing.documents` (create → empty, edit → server docs).
+ *   - Create mode: files are QUEUED in `pendingFiles` and uploaded atomically
+ *     with the event (multipart create request).
+ *   - Edit mode: files are uploaded immediately to the existing event; the
+ *     local `documents` ref is updated in place (no reload needed on the page).
  *   - Two-step delete (modal confirmation before DELETE) to avoid accidental loss.
  *
  * Precondition: `editing` must be non-null before upload/delete. A vehicle event must exist in DB
@@ -47,17 +52,23 @@ export function useVehicleEventFormDocuments(props: {
     const { uploading, uploadMany, deleteDocument } = useVehicleEventDocuments();
 
     const documents = ref<Document[]>([]);
+    const pendingFiles = ref<File[]>([]);
 
     watch(
         () => props.editing,
         (value) => {
             documents.value = value !== null ? [...value.documents] : [];
+            pendingFiles.value = [];
         },
         { immediate: true },
     );
 
-    const canUploadMore = computed<boolean>(() => documents.value.length < MAX_DOCUMENTS);
-    const remainingSlots = computed<number>(() => MAX_DOCUMENTS - documents.value.length);
+    // Used slots: persisted documents in edit mode, queued files in create mode.
+    const usedSlots = computed<number>(() =>
+        props.editing !== null ? documents.value.length : pendingFiles.value.length,
+    );
+    const canUploadMore = computed<boolean>(() => usedSlots.value < MAX_DOCUMENTS);
+    const remainingSlots = computed<number>(() => MAX_DOCUMENTS - usedSlots.value);
 
     const confirmDeleteOpen = ref<boolean>(false);
     const documentToDelete = ref<Document | null>(null);
@@ -71,17 +82,26 @@ export function useVehicleEventFormDocuments(props: {
     });
 
     async function onFilesAdded(files: File[]): Promise<void> {
+        const accepted = files.slice(0, remainingSlots.value);
+
+        // Create mode: queue the files; they are uploaded atomically with
+        // the event via the multipart create request (no id exists yet).
         if (props.editing === null) {
+            pendingFiles.value = [...pendingFiles.value, ...accepted];
+
             return;
         }
 
-        const accepted = files.slice(0, remainingSlots.value);
         const uploaded = await uploadMany(props.editing.id, accepted);
         documents.value = [...uploaded, ...documents.value];
+    }
 
-        if (uploaded.length > 0) {
-            router.reload({ only: ['vehicleEvents'] });
-        }
+    function removePending(index: number): void {
+        pendingFiles.value = pendingFiles.value.filter((_, i) => i !== index);
+    }
+
+    function resetPending(): void {
+        pendingFiles.value = [];
     }
 
     function requestDelete(doc: Document): void {
@@ -99,11 +119,11 @@ export function useVehicleEventFormDocuments(props: {
         await deleteDocument(props.editing.id, docId);
         documents.value = documents.value.filter((d) => d.id !== docId);
         documentToDelete.value = null;
-        router.reload({ only: ['vehicleEvents'] });
     }
 
     return {
         documents,
+        pendingFiles,
         uploading,
         canUploadMore,
         remainingSlots,
@@ -111,6 +131,8 @@ export function useVehicleEventFormDocuments(props: {
         documentToDelete,
         deleteConfirmMessage,
         onFilesAdded,
+        removePending,
+        resetPending,
         requestDelete,
         confirmDelete,
     };

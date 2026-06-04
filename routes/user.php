@@ -212,6 +212,18 @@ Route::middleware('auth')
             ->middleware('throttle:30,1')
             ->name('invoices.regenerate');
 
+        // Vehicle events · dedicated detail / create / edit pages, reached from
+        // the "Événements" timeline tab of the vehicle detail page.
+        Route::get('/vehicles/{vehicle}/events/create', [VehicleEventController::class, 'create'])
+            ->whereNumber('vehicle')
+            ->name('vehicles.events.create');
+        Route::get('/vehicles/{vehicle}/events/{vehicleEvent}', [VehicleEventController::class, 'show'])
+            ->whereNumber(['vehicle', 'vehicleEvent'])
+            ->name('vehicles.events.show');
+        Route::get('/vehicles/{vehicle}/events/{vehicleEvent}/edit', [VehicleEventController::class, 'edit'])
+            ->whereNumber(['vehicle', 'vehicleEvent'])
+            ->name('vehicles.events.edit');
+
         // Vehicle events · CRUD operated from the vehicle detail page.
         Route::post('/vehicle-events', [VehicleEventController::class, 'store'])
             ->middleware('throttle:300,1')

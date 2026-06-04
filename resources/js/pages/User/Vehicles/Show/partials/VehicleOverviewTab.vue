@@ -1,14 +1,14 @@
 <script setup lang="ts">
 /**
  * Overview tab on the vehicle detail page: KPIs, fiscal characteristics
- * card, yearly history, usage + breakdown card and vehicle events.
- * The detailed full-year tax breakdown lives in the Fiscal tab.
+ * card, yearly history and usage + breakdown card. Vehicle events live in
+ * their own "Événements" tab; the detailed full-year tax breakdown in the
+ * Fiscal tab.
  */
 import { Deferred } from '@inertiajs/vue3';
 import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import CurrentFiscalCharacteristicsCard from './CurrentFiscalCharacteristicsCard.vue';
 import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
-import VehicleEventsCard from './VehicleEventsCard.vue';
 import VehicleKpiCards from './VehicleKpiCards.vue';
 import VehicleYearHistoryCard from './VehicleYearHistoryCard.vue';
 
@@ -47,12 +47,6 @@ defineProps<{
             :vehicle-id="vehicle.id"
             :initial-stats="vehicle.usageStats"
             :available-years="vehicle.yearScope.availableYears"
-        />
-
-        <VehicleEventsCard
-            :vehicle-id="vehicle.id"
-            :vehicle-events="vehicle.vehicleEvents"
-            :busy-dates="vehicle.busyDates"
         />
     </div>
 </template>

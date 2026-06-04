@@ -45,6 +45,14 @@ final class VehicleEventReadRepository implements VehicleEventReadRepositoryInte
         return VehicleEvent::query()->findOrFail($id);
     }
 
+    public function findForVehicleDetail(int $vehicleId, int $vehicleEventId): VehicleEvent
+    {
+        return VehicleEvent::query()
+            ->with('documents')
+            ->where('vehicle_id', $vehicleId)
+            ->findOrFail($vehicleEventId);
+    }
+
     public function findActiveOverlappingDateForVehicle(int $vehicleId, string $date): Collection
     {
         return VehicleEvent::query()

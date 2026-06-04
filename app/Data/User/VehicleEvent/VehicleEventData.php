@@ -11,12 +11,15 @@ use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Read-side representation of an unavailability (vehicle Show page,
- * lists, etc.).
+ * Read-side representation of a vehicle event (vehicle Show page, lists, etc.).
  *
- *   - `daysCount`: inclusive day count, or 0 when the unavailability is
- *     still ongoing (end_date null); the frontend then renders "depuis
- *     le {start_date}".
+ *   - `title` / `category`: custom identity, present only for the `other`
+ *     type; null for known types (the frontend derives label and category
+ *     from the enum).
+ *   - `impliesUnavailability`: drives the "Indisponibilité" badge.
+ *   - `hasFiscalImpact`: independent fiscal-reducer axis (never true for `other`).
+ *   - `daysCount`: inclusive day count, or 0 when the event is still ongoing
+ *     (end_date null); the frontend then renders "depuis le {start_date}".
  *   - `documents`: attached evidence (0..5 image or PDF files); populated
  *     only when the relation is eager-loaded.
  */
@@ -30,7 +33,10 @@ final class VehicleEventData extends Data
         public int $id,
         public int $vehicleId,
         public VehicleEventType $type,
+        public ?string $title,
+        public ?string $category,
         public bool $hasFiscalImpact,
+        public bool $impliesUnavailability,
         public string $startDate,
         public ?string $endDate,
         public ?string $description,
@@ -57,7 +63,10 @@ final class VehicleEventData extends Data
             id: $u->id,
             vehicleId: $u->vehicle_id,
             type: $u->type,
+            title: $u->title,
+            category: $u->category,
             hasFiscalImpact: $u->has_fiscal_impact,
+            impliesUnavailability: $u->implies_unavailability,
             startDate: $u->start_date->toDateString(),
             endDate: $u->end_date?->toDateString(),
             description: $u->description,

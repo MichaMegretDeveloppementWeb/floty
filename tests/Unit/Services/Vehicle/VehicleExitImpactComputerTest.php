@@ -157,6 +157,40 @@ final class VehicleExitImpactComputerTest extends TestCase
         self::assertFalse($impact->hasConflicts);
     }
 
+    #[Test]
+    public function evenement_autre_sans_indispo_ne_bloque_pas_la_sortie(): void
+    {
+        // Un événement « Autre » qui ne génère pas d'indisponibilité
+        // (implies_unavailability = false) est un simple journal : il ne
+        // doit pas bloquer la sortie même s'il déborde la date.
+        VehicleEvent::factory()->custom(impliesUnavailability: false)->create([
+            'vehicle_id' => $this->vehicleId,
+            'start_date' => '2025-06-10',
+            'end_date' => '2025-07-05',
+        ]);
+
+        $impact = $this->computer->computeImpact($this->vehicleId, '2025-06-15');
+
+        self::assertFalse($impact->hasConflicts);
+        self::assertSame([], $impact->conflictingUnavailabilities);
+    }
+
+    #[Test]
+    public function evenement_autre_avec_indispo_bloque_la_sortie(): void
+    {
+        // Contrôle inverse : le même « Autre » avec la case cochée bloque.
+        VehicleEvent::factory()->custom(impliesUnavailability: true)->create([
+            'vehicle_id' => $this->vehicleId,
+            'start_date' => '2025-06-10',
+            'end_date' => '2025-07-05',
+        ]);
+
+        $impact = $this->computer->computeImpact($this->vehicleId, '2025-06-15');
+
+        self::assertTrue($impact->hasConflicts);
+        self::assertCount(1, $impact->conflictingUnavailabilities);
+    }
+
     private function createContract(string $start, string $end): Contract
     {
         return Contract::factory()->create([

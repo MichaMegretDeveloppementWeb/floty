@@ -443,6 +443,11 @@ final class PlanningHeatmapService
 
         $weeks = [];
         foreach ($vehicleEvents as $vehicleEvent) {
+            // Informative unavailability axis only: a custom "other" event
+            // with the flag off must not light up the red border.
+            if (! $vehicleEvent->implies_unavailability) {
+                continue;
+            }
             if ($vehicleEvent->start_date->greaterThan($yearEnd)) {
                 continue;
             }

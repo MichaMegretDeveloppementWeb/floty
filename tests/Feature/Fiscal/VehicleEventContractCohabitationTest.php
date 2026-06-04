@@ -8,7 +8,6 @@ use App\Actions\Contract\StoreContractAction;
 use App\Actions\VehicleEvent\CreateVehicleEventAction;
 use App\Data\User\Contract\StoreContractData;
 use App\Data\User\VehicleEvent\StoreVehicleEventData;
-use App\Enums\VehicleEvent\VehicleEventType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -18,10 +17,11 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\VehicleEvent;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FiscalCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -91,6 +91,8 @@ final class VehicleEventContractCohabitationTest extends TestCase
             startDate: '2024-01-15',
             endDate: '2024-01-24',
             description: null,
+            title: null,
+            category: null,
         ));
 
         $this->assertTrue($vehicleEvent->has_fiscal_impact);
@@ -131,6 +133,8 @@ final class VehicleEventContractCohabitationTest extends TestCase
             startDate: '2024-04-10',
             endDate: '2024-04-14',
             description: null,
+            title: null,
+            category: null,
         ));
 
         $this->assertFalse($vehicleEvent->has_fiscal_impact);

@@ -44,6 +44,13 @@ interface VehicleEventReadRepositoryInterface
     public function findById(int $id): VehicleEvent;
 
     /**
+     * Single event scoped to its vehicle, with `documents` eager-loaded,
+     * for the dedicated detail / edit pages. Throws 404 when the id does
+     * not exist OR does not belong to `$vehicleId` (URL consistency guard).
+     */
+    public function findForVehicleDetail(int $vehicleId, int $vehicleEventId): VehicleEvent;
+
+    /**
      * Days of unavailability (all types) per ISO week of the year.
      * Used to size a stacked "unavailable" segment above contracts in
      * the 52-week timeline of the vehicle page.

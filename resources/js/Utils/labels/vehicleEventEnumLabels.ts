@@ -15,7 +15,7 @@ export const vehicleEventTypeLabel: Record<App.Enums.VehicleEvent.VehicleEventTy
     accident_repair: 'Sinistre - réparation simple (sans interdiction de circuler)',
     pound_private: 'Fourrière à la demande d\'un privé (réquisition, autre)',
     theft: 'Vol (sans certificat de destruction délivré)',
-    other: 'Autre',
+    other: 'Événement personnalisé',
 };
 
 /**
@@ -31,7 +31,7 @@ export const vehicleEventTypeShortLabel: Record<App.Enums.VehicleEvent.VehicleEv
     accident_repair: 'Sinistre / réparation',
     pound_private: 'Fourrière privée',
     theft: 'Vol',
-    other: 'Autre',
+    other: 'Personnalisé',
 };
 
 /**
@@ -49,4 +49,54 @@ export function isVehicleEventFiscallyReductive(
     type: App.Enums.VehicleEvent.VehicleEventType,
 ): boolean {
     return REDUCTIVE_TYPES.includes(type);
+}
+
+/**
+ * Category shown in the events list / timeline. Auto-derived for known
+ * types; for the custom "other" type the user-supplied category is used
+ * instead (this entry is only a fallback when none was provided).
+ */
+export const vehicleEventTypeCategory: Record<App.Enums.VehicleEvent.VehicleEventType, string> = {
+    accident_no_circulation: 'Accident',
+    accident_repair: 'Accident',
+    pound_public: 'Fourrière',
+    pound_private: 'Fourrière',
+    ci_suspension: 'Administratif',
+    maintenance: 'Entretien',
+    technical_inspection: 'Contrôle réglementaire',
+    theft: 'Vol',
+    other: 'Personnalisé',
+};
+
+/** Distinct known categories, offered as suggestions on the custom-type form. */
+export const vehicleEventCategorySuggestions: ReadonlyArray<string> = [
+    'Accident',
+    'Fourrière',
+    'Administratif',
+    'Entretien',
+    'Contrôle réglementaire',
+    'Vol',
+];
+
+type VehicleEventIdentity = {
+    type: App.Enums.VehicleEvent.VehicleEventType;
+    title: string | null;
+    category: string | null;
+};
+
+/**
+ * Display name for compact contexts (events list, timeline): the free title
+ * for a custom event, the short enum label otherwise.
+ */
+export function vehicleEventDisplayTitle(event: VehicleEventIdentity): string {
+    return event.type === 'other' && event.title !== null && event.title !== ''
+        ? event.title
+        : vehicleEventTypeShortLabel[event.type];
+}
+
+/** Display category: the free category for a custom event, the mapped one otherwise. */
+export function vehicleEventDisplayCategory(event: VehicleEventIdentity): string {
+    return event.type === 'other' && event.category !== null && event.category !== ''
+        ? event.category
+        : vehicleEventTypeCategory[event.type];
 }

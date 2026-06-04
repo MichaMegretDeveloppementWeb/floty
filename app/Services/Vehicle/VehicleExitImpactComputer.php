@@ -37,10 +37,12 @@ final readonly class VehicleExitImpactComputer
         )->filter(static fn (Contract $c): bool => $c->end_date->greaterThan($exitDate))
             ->values();
 
+        // Only events that mark the vehicle unavailable block its exit; a
+        // custom "other" event with the flag off is a pure log entry.
         $vehicleEvents = $this->vehicleEvents->findActiveOverlappingDateForVehicle(
             $vehicleId,
             $exitDate,
-        );
+        )->filter(static fn (VehicleEvent $u): bool => $u->implies_unavailability)->values();
 
         $contractData = $contracts
             ->map(static fn (Contract $c): ConflictingContractData => new ConflictingContractData(

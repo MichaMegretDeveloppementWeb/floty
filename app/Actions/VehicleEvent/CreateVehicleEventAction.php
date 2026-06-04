@@ -29,10 +29,19 @@ final readonly class CreateVehicleEventAction
 
     public function execute(StoreVehicleEventData $data): VehicleEvent
     {
+        // Normalise the invariants server-side rather than trust the client:
+        // known types derive title/category (kept null) and always imply
+        // unavailability; only the `other` type carries custom identity and
+        // an opt-in flag. `has_fiscal_impact` stays enum-driven (Other = false).
+        $isCustom = $data->type === VehicleEventType::Other;
+
         return $this->repository->create([
             'vehicle_id' => $data->vehicleId,
             'type' => $data->type,
+            'title' => $isCustom ? $data->title : null,
+            'category' => $isCustom ? $data->category : null,
             'has_fiscal_impact' => $data->type->isFiscallyReductive(),
+            'implies_unavailability' => $isCustom ? $data->impliesUnavailability : true,
             'start_date' => $data->startDate,
             'end_date' => $data->endDate,
             'description' => $data->description,

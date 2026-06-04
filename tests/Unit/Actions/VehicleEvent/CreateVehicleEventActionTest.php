@@ -37,6 +37,8 @@ final class CreateVehicleEventActionTest extends TestCase
             startDate: '2024-03-01',
             endDate: '2024-03-15',
             description: null,
+            title: null,
+            category: null,
         ));
 
         $this->assertTrue($vehicleEvent->has_fiscal_impact);
@@ -53,6 +55,8 @@ final class CreateVehicleEventActionTest extends TestCase
             startDate: '2024-04-01',
             endDate: '2024-04-03',
             description: null,
+            title: null,
+            category: null,
         ));
 
         $this->assertFalse($vehicleEvent->has_fiscal_impact);
@@ -79,6 +83,8 @@ final class CreateVehicleEventActionTest extends TestCase
             startDate: '2024-05-12',
             endDate: '2024-05-20',
             description: null,
+            title: null,
+            category: null,
         ));
 
         $this->assertDatabaseHas('vehicle_events', [
@@ -88,5 +94,74 @@ final class CreateVehicleEventActionTest extends TestCase
             'end_date' => '2024-05-20',
         ]);
         $this->assertTrue($vehicleEvent->has_fiscal_impact);
+    }
+
+    #[Test]
+    public function evenement_autre_persiste_titre_categorie_et_indispo(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            type: VehicleEventType::Other,
+            startDate: '2024-06-01',
+            endDate: '2024-06-02',
+            description: null,
+            title: 'Pose covering publicitaire',
+            category: 'Marketing',
+            impliesUnavailability: true,
+        ));
+
+        $this->assertDatabaseHas('vehicle_events', [
+            'id' => $vehicleEvent->id,
+            'type' => 'other',
+            'title' => 'Pose covering publicitaire',
+            'category' => 'Marketing',
+            'has_fiscal_impact' => false,
+            'implies_unavailability' => true,
+        ]);
+    }
+
+    #[Test]
+    public function evenement_autre_sans_indispo_persiste_implies_false(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            type: VehicleEventType::Other,
+            startDate: '2024-06-01',
+            endDate: '2024-06-02',
+            description: null,
+            title: 'Changement de coordonnées',
+            category: 'Administratif',
+            impliesUnavailability: false,
+        ));
+
+        $this->assertFalse($vehicleEvent->implies_unavailability);
+        $this->assertFalse($vehicleEvent->has_fiscal_impact);
+    }
+
+    #[Test]
+    public function type_connu_force_implies_true_et_ignore_titre_categorie(): void
+    {
+        // Robustesse : même si le client envoie titre/catégorie/implies pour
+        // un type connu, l'Action normalise (titre/catégorie null, implies true).
+        $vehicle = Vehicle::factory()->create();
+
+        $vehicleEvent = $this->action->execute(new StoreVehicleEventData(
+            vehicleId: $vehicle->id,
+            type: VehicleEventType::Maintenance,
+            startDate: '2024-06-01',
+            endDate: '2024-06-02',
+            description: null,
+            title: 'devrait etre ignore',
+            category: 'devrait etre ignore',
+            impliesUnavailability: false,
+        ));
+
+        $this->assertNull($vehicleEvent->title);
+        $this->assertNull($vehicleEvent->category);
+        $this->assertTrue($vehicleEvent->implies_unavailability);
     }
 }

@@ -9,18 +9,22 @@ import { router } from '@inertiajs/vue3';
 import type { InjectionKey, Ref } from 'vue';
 import { inject, onMounted, provide, ref, watch } from 'vue';
 
-export type VehicleTabKey = 'overview' | 'fiscal' | 'billing';
+export type VehicleTabKey = 'overview' | 'events' | 'fiscal' | 'billing';
 
-const VALID_TABS: readonly VehicleTabKey[] = ['overview', 'fiscal', 'billing'];
+const VALID_TABS: readonly VehicleTabKey[] = ['overview', 'events', 'fiscal', 'billing'];
 
 const DEFAULT_TAB: VehicleTabKey = 'overview';
 
 /**
  * `billingYear` / `fiscalYear` (eager) drive the active pill highlight.
  * Must be included in the partial reload, otherwise the rendered title and the active pill mismatch after a tab switch.
+ *
+ * `events` has no lazy prop: the events list lives in `vehicle.vehicleEvents`,
+ * already eager-loaded by VehicleDetailService.
  */
 const TAB_PROPS: Readonly<Record<VehicleTabKey, readonly string[]>> = {
     overview: [],
+    events: [],
     fiscal: ['fiscalYearBreakdown', 'fiscalYear', 'billingYear'],
     billing: ['vehicleBilling', 'billingYear', 'fiscalYear'],
 };

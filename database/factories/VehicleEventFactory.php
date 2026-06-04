@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Database\Factories;
 
 use App\Enums\VehicleEvent\VehicleEventType;
-use App\Models\VehicleEvent;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -74,6 +74,24 @@ final class VehicleEventFactory extends Factory
     {
         return $this->state(fn (array $attributes): array => [
             'end_date' => null,
+        ]);
+    }
+
+    /**
+     * Custom "Autre" event: free title/category, never fiscally reductive,
+     * with an opt-in unavailability flag (the only case that may be false).
+     */
+    public function custom(
+        string $title = 'Événement personnalisé',
+        string $category = 'Divers',
+        bool $impliesUnavailability = true,
+    ): static {
+        return $this->state(fn (array $attributes): array => [
+            'type' => VehicleEventType::Other,
+            'title' => $title,
+            'category' => $category,
+            'has_fiscal_impact' => false,
+            'implies_unavailability' => $impliesUnavailability,
         ]);
     }
 }

@@ -2,7 +2,6 @@ import type { InertiaForm } from '@inertiajs/vue3';
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
-import { closeOnSuccess } from '@/Composables/Shared/inertiaModalCallbacks';
 import {
     store as vehicleEventsStoreRoute,
     update as vehicleEventsUpdateRoute,
@@ -17,6 +16,11 @@ type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
 type FormShape = {
     type: VehicleEventType;
+    // Custom identity, used only when type === 'other' (sent null otherwise).
+    title: string;
+    category: string;
+    // Informative unavailability flag (user-controlled only for 'other').
+    implies_unavailability: boolean;
     start_date: string;
     end_date: string;
     description: string;
@@ -76,14 +80,16 @@ export function countConflictDaysInRange(
 }
 
 /**
- * Inertia form + UI state for the vehicle event create/edit modal (ADR-0016 rev. 1.1).
+ * Inertia form + UI state for the vehicle event create/edit page (ADR-0016 rev. 1.1).
  *
- *   - builds the 2-group `optionGroups` grid (Reducing / Non-reducing) consumed by the modal `<select>`,
+ *   - builds the 3-group `optionGroups` list (Custom / Reducing / Non-reducing) consumed by the form `<select>`,
  *   - synchronises `range` and `ongoing` when `props.editing` changes (create vs edit mode),
  *   - computes `canSubmit` (button disabled until the expected bounds are set),
  *   - computes `selectedIsReductive` to drive the fiscal-effect banner before submit,
  *   - applies `payloadTransform` (range+ongoing → snake_case backend),
- *   - dispatches submit (POST store or PATCH update depending on mode) and closes/resets on success.
+ *   - dispatches submit (POST store or PATCH update); the controller redirects
+ *     to the vehicle "Événements" tab on success, Inertia keeps the page and
+ *     `form.errors` on validation failure.
  */
 export function useVehicleEventForm(
     props: {
@@ -91,7 +97,15 @@ export function useVehicleEventForm(
         editing: VehicleEvent | null;
         busyDates: string[];
     },
-    open: Ref<boolean>,
+    options: {
+        /** Files queued in create mode, sent with the multipart create request. */
+        pendingDocuments?: Ref<File[]>;
+        /**
+         * ISO `YYYY-MM-DD` pre-selected in create mode (start = end), set when
+         * the user opened the form from a specific timeline day. Ignored in edit.
+         */
+        initialDate?: string;
+    } = {},
 ): {
     optionGroups: SelectOptionGroup[];
     /**
@@ -105,6 +119,8 @@ export function useVehicleEventForm(
     ongoing: Ref<boolean>;
     initialMonth: Ref<number>;
     isEditing: ComputedRef<boolean>;
+    /** True when the custom "other" type is selected (reveals title/category/flag fields). */
+    isCustom: ComputedRef<boolean>;
     canSubmit: ComputedRef<boolean>;
     selectedIsReductive: ComputedRef<boolean>;
     conflictDaysCount: ComputedRef<number>;
@@ -118,7 +134,14 @@ export function useVehicleEventForm(
 
     const optionGroups: SelectOptionGroup[] = [
         {
-            label: 'Réduit la taxe',
+            label: 'Personnalisé',
+            isReductive: false,
+            options: [
+                buildOption('other'),
+            ],
+        },
+        {
+            label: 'Indisponibilité fiscalement réductrice',
             isReductive: true,
             options: [
                 buildOption('accident_no_circulation'),
@@ -127,7 +150,7 @@ export function useVehicleEventForm(
             ],
         },
         {
-            label: 'Sans effet fiscal',
+            label: 'Indisponibilité non réductrice',
             isReductive: false,
             options: [
                 buildOption('maintenance'),
@@ -135,13 +158,15 @@ export function useVehicleEventForm(
                 buildOption('accident_repair'),
                 buildOption('pound_private'),
                 buildOption('theft'),
-                buildOption('other'),
             ],
         },
     ];
 
     const form = useForm<FormShape>({
-        type: 'maintenance',
+        type: 'other',
+        title: '',
+        category: '',
+        implies_unavailability: true,
         start_date: '',
         end_date: '',
         description: '',
@@ -161,6 +186,9 @@ export function useVehicleEventForm(
         (value) => {
             if (value) {
                 form.type = value.type;
+                form.title = value.title ?? '';
+                form.category = value.category ?? '';
+                form.implies_unavailability = value.impliesUnavailability;
                 form.description = value.description ?? '';
                 range.value = {
                     startDate: value.startDate,
@@ -174,20 +202,36 @@ export function useVehicleEventForm(
                 initialMonth.value = Number(value.startDate.slice(5, 7));
             } else {
                 form.reset();
-                form.type = 'maintenance';
-                range.value = { startDate: null, endDate: null };
-                ongoing.value = false;
-                // Reset to the calendar present (create mode).
-                const today = new Date();
-                viewYear.value = today.getFullYear();
-                initialMonth.value = today.getMonth() + 1;
+                form.type = 'other';
+
+                if (options.initialDate) {
+                    // Create from a specific timeline day: pre-select start = end
+                    // and open the calendar on that day.
+                    range.value = { startDate: options.initialDate, endDate: options.initialDate };
+                    ongoing.value = false;
+                    viewYear.value = Number(options.initialDate.slice(0, 4));
+                    initialMonth.value = Number(options.initialDate.slice(5, 7));
+                } else {
+                    range.value = { startDate: null, endDate: null };
+                    ongoing.value = false;
+                    // Reset to the calendar present (create mode).
+                    const today = new Date();
+                    viewYear.value = today.getFullYear();
+                    initialMonth.value = today.getMonth() + 1;
+                }
             }
 
             form.clearErrors();
         },
+        // Immediate: on the dedicated form pages `props.editing` is set once at
+        // mount (it never changes), so the watcher must run on mount to
+        // pre-fill (edit) or reset (create) the form.
+        { immediate: true },
     );
 
     const isEditing = computed<boolean>(() => props.editing !== null);
+
+    const isCustom = computed<boolean>(() => form.type === 'other');
 
     const canSubmit = computed<boolean>(() => {
         if (range.value.startDate === null) {
@@ -195,6 +239,14 @@ export function useVehicleEventForm(
         }
 
         if (!ongoing.value && range.value.endDate === null) {
+            return false;
+        }
+
+        // Custom "other" events require a free name and category.
+        if (
+            isCustom.value
+            && (form.title.trim() === '' || form.category.trim() === '')
+        ) {
             return false;
         }
 
@@ -214,15 +266,21 @@ export function useVehicleEventForm(
         ),
     );
 
-    const payloadTransform = (data: {
-        type: VehicleEventType;
-        description: string;
-    }): Record<string, unknown> => ({
-        type: data.type,
-        start_date: range.value.startDate,
-        end_date: ongoing.value ? null : range.value.endDate,
-        description: data.description === '' ? null : data.description,
-    });
+    const payloadTransform = (data: FormShape): Record<string, unknown> => {
+        const isOther = data.type === 'other';
+
+        return {
+            type: data.type,
+            // Custom identity only for 'other'; known types derive it on display.
+            title: isOther && data.title.trim() !== '' ? data.title.trim() : null,
+            category: isOther && data.category.trim() !== '' ? data.category.trim() : null,
+            // Known types always imply unavailability; only 'other' may opt out.
+            implies_unavailability: isOther ? data.implies_unavailability : true,
+            start_date: range.value.startDate,
+            end_date: ongoing.value ? null : range.value.endDate,
+            description: data.description === '' ? null : data.description,
+        };
+    };
 
     const submit = (): void => {
         if (!canSubmit.value) {
@@ -234,7 +292,6 @@ export function useVehicleEventForm(
                 vehicleEventsUpdateRoute.url({
                     vehicleEvent: props.editing.id,
                 }),
-                closeOnSuccess(open),
             );
 
             return;
@@ -243,16 +300,10 @@ export function useVehicleEventForm(
         form.transform((data) => ({
             ...payloadTransform(data),
             vehicle_id: props.vehicleId,
-        })).post(vehicleEventsStoreRoute.url(), {
-            preserveScroll: true,
-            onSuccess: () => {
-                open.value = false;
-                form.reset();
-                form.type = 'maintenance';
-                range.value = { startDate: null, endDate: null };
-                ongoing.value = false;
-            },
-        });
+            // Files queued during creation travel with the multipart request;
+            // Inertia switches to FormData automatically when files are present.
+            documents: options.pendingDocuments?.value ?? [],
+        })).post(vehicleEventsStoreRoute.url());
     };
 
     return {
@@ -263,6 +314,7 @@ export function useVehicleEventForm(
         ongoing,
         initialMonth,
         isEditing,
+        isCustom,
         canSubmit,
         selectedIsReductive,
         conflictDaysCount,

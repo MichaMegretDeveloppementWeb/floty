@@ -7,11 +7,14 @@ namespace Tests\Feature\User\VehicleEvent;
 use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\VehicleEvent;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Inertia\Testing\AssertableInertia;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -231,5 +234,185 @@ final class VehicleEventControllerTest extends TestCase
             'id' => $vehicleEvent->id,
             'end_date' => '2024-08-20',
         ]);
+    }
+
+    #[Test]
+    public function store_cree_un_evenement_autre_avec_titre_categorie_et_indispo(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [
+                'vehicle_id' => $vehicle->id,
+                'type' => 'other',
+                'title' => 'Pose covering publicitaire',
+                'category' => 'Marketing',
+                'implies_unavailability' => true,
+                'start_date' => '2024-09-01',
+                'end_date' => '2024-09-02',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('vehicle_events', [
+            'vehicle_id' => $vehicle->id,
+            'type' => 'other',
+            'title' => 'Pose covering publicitaire',
+            'category' => 'Marketing',
+            'has_fiscal_impact' => false,
+            'implies_unavailability' => true,
+        ]);
+    }
+
+    #[Test]
+    public function store_evenement_autre_sans_titre_ni_categorie_est_invalide(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [
+                'vehicle_id' => $vehicle->id,
+                'type' => 'other',
+                'start_date' => '2024-09-01',
+                'end_date' => '2024-09-02',
+            ])
+            ->assertSessionHasErrors(['title', 'category']);
+    }
+
+    #[Test]
+    public function store_evenement_autre_sans_indispo_persiste_implies_false(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [
+                'vehicle_id' => $vehicle->id,
+                'type' => 'other',
+                'title' => 'Note interne',
+                'category' => 'Divers',
+                'implies_unavailability' => false,
+                'start_date' => '2024-09-01',
+                'end_date' => '2024-09-02',
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('vehicle_events', [
+            'vehicle_id' => $vehicle->id,
+            'type' => 'other',
+            'implies_unavailability' => false,
+        ]);
+    }
+
+    #[Test]
+    public function store_attache_les_justificatifs_joints_a_la_creation(): void
+    {
+        // Flux atomique A2 : les fichiers en attente voyagent avec la requête
+        // de création (multipart) et sont attachés au nouvel événement.
+        Storage::fake(config('filesystems.default'));
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [
+                'vehicle_id' => $vehicle->id,
+                'type' => 'maintenance',
+                'start_date' => '2024-10-01',
+                'end_date' => '2024-10-03',
+                'documents' => [
+                    UploadedFile::fake()->create('facture.pdf', 100, 'application/pdf'),
+                    UploadedFile::fake()->image('photo.jpg'),
+                ],
+            ])
+            ->assertRedirect();
+
+        $event = VehicleEvent::query()
+            ->where('vehicle_id', $vehicle->id)
+            ->latest('id')
+            ->firstOrFail();
+
+        $this->assertCount(2, $event->documents()->get());
+    }
+
+    #[Test]
+    public function show_rend_la_page_detail_de_l_evenement(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $event = VehicleEvent::factory()->maintenance()->create([
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2024-03-01',
+            'end_date' => '2024-03-05',
+        ]);
+
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}/events/{$event->id}")
+            ->assertOk()
+            ->assertInertia(
+                fn (AssertableInertia $page) => $page
+                    ->component('User/VehicleEvents/Show/Index')
+                    ->where('vehicleEvent.id', $event->id)
+                    ->where('vehicle.id', $vehicle->id),
+            );
+    }
+
+    #[Test]
+    public function show_renvoie_404_si_l_evenement_n_appartient_pas_au_vehicule(): void
+    {
+        $user = User::factory()->create();
+        $vehicleA = Vehicle::factory()->create();
+        $vehicleB = Vehicle::factory()->create();
+        $event = VehicleEvent::factory()->maintenance()->create(['vehicle_id' => $vehicleA->id]);
+
+        // The event exists but belongs to another vehicle: the scoped lookup
+        // throws ModelNotFound; on an HTML GET the app soft-fails to a redirect
+        // (gestion-erreurs: lecture GET → redirect), never rendering the event.
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicleB->id}/events/{$event->id}")
+            ->assertRedirect();
+    }
+
+    #[Test]
+    public function update_redirige_vers_la_page_detail(): void
+    {
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        $event = VehicleEvent::factory()->maintenance()->create([
+            'vehicle_id' => $vehicle->id,
+            'start_date' => '2024-05-01',
+            'end_date' => '2024-05-10',
+        ]);
+
+        $this->actingAs($user)
+            ->patch("/app/vehicle-events/{$event->id}", [
+                'type' => 'maintenance',
+                'start_date' => '2024-05-01',
+                'end_date' => '2024-05-12',
+            ])
+            ->assertRedirect(route('user.vehicles.events.show', [
+                'vehicle' => $vehicle->id,
+                'vehicleEvent' => $event->id,
+            ]));
+    }
+
+    #[Test]
+    public function store_rejette_un_justificatif_au_format_invalide(): void
+    {
+        Storage::fake(config('filesystems.default'));
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+
+        $this->actingAs($user)
+            ->post('/app/vehicle-events', [
+                'vehicle_id' => $vehicle->id,
+                'type' => 'maintenance',
+                'start_date' => '2024-10-01',
+                'end_date' => '2024-10-03',
+                'documents' => [
+                    UploadedFile::fake()->create('virus.exe', 100, 'application/octet-stream'),
+                ],
+            ])
+            ->assertSessionHasErrors(['documents.0']);
     }
 }

@@ -9,6 +9,7 @@ import UserLayout from '@/Components/Layouts/UserLayout.vue';
 import { useVehicleTabs } from '@/Composables/Vehicle/Show/useVehicleTabs';
 import TabLoadingSkeleton from '@/pages/User/Companies/Show/partials/TabLoadingSkeleton.vue';
 import VehicleBillingTab from './partials/VehicleBillingTab.vue';
+import VehicleEventsTimeline from './partials/VehicleEventsTimeline.vue';
 import VehicleFiscalTab from './partials/VehicleFiscalTab.vue';
 import VehicleHeader from './partials/VehicleHeader.vue';
 import VehicleOverviewTab from './partials/VehicleOverviewTab.vue';
@@ -48,6 +49,11 @@ const { activeTab, setTab, loadingTab } = useVehicleTabs();
                 :history="props.history"
             />
 
+            <VehicleEventsTimeline
+                v-else-if="activeTab === 'events'"
+                :vehicle-id="props.vehicle.id"
+                :vehicle-events="props.vehicle.vehicleEvents"
+            />
 
             <!--
                 `loadingTab !== '<key>'` forces a fresh remount during a

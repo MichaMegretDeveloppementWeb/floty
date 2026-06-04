@@ -9,6 +9,7 @@ use App\Observers\VehicleEventObserver;
 use Database\Factories\VehicleEventFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,16 +18,26 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
 
 /**
- * Vehicle unavailability over a continuous day range.
+ * Vehicle event over a continuous day range (formerly "unavailability").
  *
- * Three types reduce the fiscal prorata numerator (ADR-0016 rev. 1.1,
- * see {@see VehicleEventType::isFiscallyReductive()}). The `has_fiscal_impact`
- * column is denormalized for fast querying; a SQL CHECK enforces consistency with `type`.
+ * Two orthogonal axes:
+ *   - `implies_unavailability` : informative "the vehicle is unavailable these
+ *     days" flag (heatmap / usage / timeline / exit). Always true for known
+ *     types; for the `other` (custom) type it follows the user's choice.
+ *   - `has_fiscal_impact` : fiscal prorata reducer (ADR-0016 rev. 1.1, see
+ *     {@see VehicleEventType::isFiscallyReductive()}), denormalized with a SQL
+ *     CHECK enforcing consistency with `type`. Never true for `other`.
+ *
+ * `title` / `category` carry the custom identity of an `other` event; known
+ * types derive both from the enum on the front (columns stay null).
  *
  * @property int $id
  * @property int $vehicle_id
  * @property VehicleEventType $type
+ * @property string|null $title
+ * @property string|null $category
  * @property bool $has_fiscal_impact
+ * @property bool $implies_unavailability
  * @property Carbon $start_date
  * @property Carbon|null $end_date
  * @property string|null $description
@@ -37,7 +48,10 @@ use Illuminate\Support\Carbon;
 #[Fillable([
     'vehicle_id',
     'type',
+    'title',
+    'category',
     'has_fiscal_impact',
+    'implies_unavailability',
     'start_date',
     'end_date',
     'description',
@@ -58,9 +72,23 @@ final class VehicleEvent extends Model
         return [
             'type' => VehicleEventType::class,
             'has_fiscal_impact' => 'boolean',
+            'implies_unavailability' => 'boolean',
             'start_date' => 'date',
             'end_date' => 'date',
         ];
+    }
+
+    /**
+     * Restrict to events that mark the vehicle unavailable (informative axis).
+     * Used by every "unavailability days" read (heatmap, usage, week grid,
+     * exit conflicts); never by the fiscal path, which keys on `has_fiscal_impact`.
+     *
+     * @param  Builder<VehicleEvent>  $query
+     * @return Builder<VehicleEvent>
+     */
+    public function scopeImpliesUnavailability(Builder $query): Builder
+    {
+        return $query->where('implies_unavailability', true);
     }
 
     /**

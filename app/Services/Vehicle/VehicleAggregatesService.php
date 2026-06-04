@@ -366,6 +366,11 @@ final class VehicleAggregatesService
         /** @var array<int, array<string, 'reductive'|'nonReductive'>> $byWeekDays */
         $byWeekDays = [];
         foreach ($vehicleEventModels as $row) {
+            // Informative unavailability axis only: a custom "other" event
+            // with the flag off never counts as an unavailability day.
+            if (! $row->implies_unavailability) {
+                continue;
+            }
             if ($row->start_date->greaterThan($yearEnd)) {
                 continue;
             }

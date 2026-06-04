@@ -83,7 +83,8 @@ final class WeekDetailService
         // per day in PHP (ADR-0019).
         $weekVehicleEvents = $this->vehicleEventRepo
             ->findForVehicle($vehicleId)
-            ->filter(static fn ($u): bool => $u->start_date->lessThanOrEqualTo($end)
+            ->filter(static fn ($u): bool => $u->implies_unavailability
+                && $u->start_date->lessThanOrEqualTo($end)
                 && ($u->end_date === null || $u->end_date->greaterThanOrEqualTo($start)));
 
         $days = [];
