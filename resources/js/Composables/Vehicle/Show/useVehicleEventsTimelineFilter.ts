@@ -58,6 +58,7 @@ export function useVehicleEventsTimelineFilter(
     periodPopoverOpen: Ref<boolean>;
     popoverRoot: Ref<HTMLElement | null>;
     isFiltered: ComputedRef<boolean>;
+    activeWindow: ComputedRef<{ from: string | null; to: string | null } | null>;
     filteredEvents: ComputedRef<VehicleEvent[]>;
 } {
     const scopeMode = ref<TimelineScopeMode>('year');
@@ -149,6 +150,27 @@ export function useVehicleEventsTimelineFilter(
         return selectedYear.value !== ALL_YEARS;
     });
 
+    /**
+     * Effective inclusive window the timeline clamps its days to. `null` when no
+     * filter is active (full history). Year → `[Y-01-01, Y-12-31]`; period → the
+     * entered bounds (an open side stays null).
+     */
+    const activeWindow = computed<{ from: string | null; to: string | null } | null>(() => {
+        if (scopeMode.value === 'period') {
+            if (!periodStart.value && !periodEnd.value) {
+                return null;
+            }
+
+            return { from: periodStart.value || null, to: periodEnd.value || null };
+        }
+
+        if (selectedYear.value === ALL_YEARS) {
+            return null;
+        }
+
+        return { from: `${selectedYear.value}-01-01`, to: `${selectedYear.value}-12-31` };
+    });
+
     const filteredEvents = computed<VehicleEvent[]>(() => {
         const all = toValue(events);
 
@@ -230,6 +252,7 @@ export function useVehicleEventsTimelineFilter(
         periodPopoverOpen,
         popoverRoot,
         isFiltered,
+        activeWindow,
         filteredEvents,
     };
 }

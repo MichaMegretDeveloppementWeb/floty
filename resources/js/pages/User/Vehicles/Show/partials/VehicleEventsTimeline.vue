@@ -50,10 +50,11 @@ const {
     periodPopoverOpen,
     popoverRoot,
     isFiltered,
+    activeWindow,
     filteredEvents,
 } = useVehicleEventsTimelineFilter(() => props.vehicleEvents, props.currentYear);
 
-const days = useVehicleEventsTimeline(filteredEvents);
+const days = useVehicleEventsTimeline(filteredEvents, activeWindow);
 
 const hasAnyEvent = computed<boolean>(() => props.vehicleEvents.length > 0);
 </script>

@@ -32,6 +32,16 @@ export type VehicleEventTimelineDay = {
 };
 
 /**
+ * Inclusive ISO `[from, to]` clamp applied by an active year / period filter.
+ * A `null` side is open-ended. Only days inside the window are emitted, while
+ * `dayIndex` / `dayCount` stay relative to the full event.
+ */
+export type VehicleEventTimelineWindow = {
+    from: string | null;
+    to: string | null;
+};
+
+/**
  * Above this inclusive span (one leap year) a closed event is treated as a
  * data-entry anomaly: it is collapsed to a single entry instead of being
  * unfolded into hundreds of dots.
@@ -62,10 +72,28 @@ function utcMsToIso(ms: number): string {
  * first. A closed N-day event appears on each of its N days ("jour X/N"); an
  * ongoing event appears once on its start day; several events the same day are
  * grouped under that day (sorted stably by id). Pure, to ease unit testing.
+ *
+ * When `window` is set (active year / period filter), only the days inside the
+ * inclusive `[from, to]` window are emitted, so an event spilling outside the
+ * window shows only its in-window days. `dayIndex` / `dayCount` stay relative
+ * to the full event (e.g. day 9/29). An ongoing or collapsed single-entry event
+ * that started before the window is surfaced on the window start so it stays
+ * visible for the filtered period.
  */
 export function buildVehicleEventsTimeline(
     events: ReadonlyArray<VehicleEvent>,
+    window: VehicleEventTimelineWindow | null = null,
 ): VehicleEventTimelineDay[] {
+    const from = window?.from ?? null;
+    const to = window?.to ?? null;
+
+    const inWindow = (iso: string): boolean =>
+        (from === null || iso >= from) && (to === null || iso <= to);
+
+    /** Clamp a single-entry event's day to the window start when it began earlier. */
+    const clampToWindowStart = (iso: string): string =>
+        from !== null && iso < from ? from : iso;
+
     const byDate = new Map<string, VehicleEventTimelineEntry[]>();
 
     const push = (date: string, entry: VehicleEventTimelineEntry): void => {
@@ -80,13 +108,17 @@ export function buildVehicleEventsTimeline(
 
     for (const event of events) {
         if (event.endDate === null) {
-            push(event.startDate, {
-                event,
-                dayIndex: 1,
-                dayCount: null,
-                isOngoing: true,
-                collapsed: false,
-            });
+            const day = clampToWindowStart(event.startDate);
+
+            if (inWindow(day)) {
+                push(day, {
+                    event,
+                    dayIndex: 1,
+                    dayCount: null,
+                    isOngoing: true,
+                    collapsed: false,
+                });
+            }
 
             continue;
         }
@@ -99,19 +131,29 @@ export function buildVehicleEventsTimeline(
             // Anomaly guard: a closed event spanning more than a year is shown
             // once on its start day (its full period is rendered via the
             // `collapsed` flag) instead of unfolding into hundreds of dots.
-            push(event.startDate, {
-                event,
-                dayIndex: 1,
-                dayCount,
-                isOngoing: false,
-                collapsed: true,
-            });
+            const day = clampToWindowStart(event.startDate);
+
+            if (inWindow(day)) {
+                push(day, {
+                    event,
+                    dayIndex: 1,
+                    dayCount,
+                    isOngoing: false,
+                    collapsed: true,
+                });
+            }
 
             continue;
         }
 
         for (let i = 0; i < dayCount; i++) {
-            push(utcMsToIso(startMs + i * MS_PER_DAY), {
+            const iso = utcMsToIso(startMs + i * MS_PER_DAY);
+
+            if (!inWindow(iso)) {
+                continue;
+            }
+
+            push(iso, {
                 event,
                 dayIndex: i + 1,
                 dayCount,
@@ -158,10 +200,12 @@ export function formatVehicleEventDaySpan(entry: VehicleEventTimelineEntry): str
 
 /**
  * Reactive wrapper around {@link buildVehicleEventsTimeline} for the
- * "Événements" tab timeline.
+ * "Événements" tab timeline. `window` clamps the displayed days to the active
+ * year / period filter (null = no clamp, full history).
  */
 export function useVehicleEventsTimeline(
     events: MaybeRefOrGetter<ReadonlyArray<VehicleEvent>>,
+    window: MaybeRefOrGetter<VehicleEventTimelineWindow | null> = null,
 ): ComputedRef<VehicleEventTimelineDay[]> {
-    return computed(() => buildVehicleEventsTimeline(toValue(events)));
+    return computed(() => buildVehicleEventsTimeline(toValue(events), toValue(window)));
 }

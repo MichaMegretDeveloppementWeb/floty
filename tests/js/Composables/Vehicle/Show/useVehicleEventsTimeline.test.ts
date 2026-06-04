@@ -88,6 +88,37 @@ describe('buildVehicleEventsTimeline', () => {
     it('retourne une liste vide quand il n\'y a aucun événement', () => {
         expect(buildVehicleEventsTimeline([])).toEqual([]);
     });
+
+    it('ne montre que les jours dans la fenêtre (clamp), jour X/N relatif à l\'événement complet', () => {
+        // Événement 02/03 → 30/03 (29 jours), fenêtre 10/03 → 22/03.
+        const event = makeEvent({ id: 1, startDate: '2026-03-02', endDate: '2026-03-30' });
+
+        const days = buildVehicleEventsTimeline([event], { from: '2026-03-10', to: '2026-03-22' });
+
+        // 13 jours affichés (10 au 22 inclus), du plus récent au plus ancien.
+        expect(days).toHaveLength(13);
+        expect(days[0]!.date).toBe('2026-03-22');
+        expect(days[12]!.date).toBe('2026-03-10');
+        // Position conservée dans l'événement complet : 22/03 = jour 21/29, 10/03 = jour 9/29.
+        expect(days[0]!.entries[0]).toMatchObject({ dayIndex: 21, dayCount: 29 });
+        expect(days[12]!.entries[0]).toMatchObject({ dayIndex: 9, dayCount: 29 });
+    });
+
+    it('clampe un événement en cours commencé avant la fenêtre sur le début de fenêtre', () => {
+        const event = makeEvent({ id: 1, startDate: '2026-03-02', endDate: null });
+
+        const days = buildVehicleEventsTimeline([event], { from: '2026-03-10', to: '2026-03-22' });
+
+        expect(days).toHaveLength(1);
+        expect(days[0]!.date).toBe('2026-03-10');
+        expect(days[0]!.entries[0]).toMatchObject({ isOngoing: true, dayCount: null });
+    });
+
+    it('sans fenêtre, affiche tous les jours (rétrocompatibilité)', () => {
+        const event = makeEvent({ id: 1, startDate: '2026-03-02', endDate: '2026-03-04' });
+
+        expect(buildVehicleEventsTimeline([event])).toHaveLength(3);
+    });
 });
 
 describe('formatVehicleEventDaySpan', () => {
