@@ -127,14 +127,14 @@ final readonly class DeclarationFiscalEngine
         }
 
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+        $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
 
         $aggregator = $this->aggregatorFactory->buildFor($year, $optOutContractIds);
         $rowsByVehicle = $aggregator->companyAnnualTaxBreakdownByVehicle(
             $companyId,
             $vehiclesById,
             $contractsByPair,
-            $unavailabilitiesByVehicleId,
+            $vehicleEventsByVehicleId,
             $year,
         );
 

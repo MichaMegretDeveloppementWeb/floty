@@ -11,9 +11,9 @@ use App\Models\Contract;
 use App\Models\ContractDocument;
 use App\Models\Driver;
 use App\Models\Invoice;
-use App\Models\Unavailability;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -97,7 +97,7 @@ final class UxRedirectHandlersTest extends TestCase
     #[Test]
     public function model_not_found_unavailability_redirige_vers_vehicles(): void
     {
-        $response = $this->renderModelNotFound(Unavailability::class);
+        $response = $this->renderModelNotFound(VehicleEvent::class);
 
         $response->assertRedirect(route('user.vehicles.index'));
         self::assertStringContainsString('indisponibilité', (string) session('toast-error'));

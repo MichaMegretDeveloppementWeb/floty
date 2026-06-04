@@ -121,14 +121,14 @@ final class DashboardStatsService
             ? new Collection
             : $this->vehicles->findByIdsIndexed($vehicleIdList);
 
-        $unavailabilitiesByVehicleId = $vehicleIdList === []
+        $vehicleEventsByVehicleId = $vehicleIdList === []
             ? []
-            : $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
+            : $this->contracts->loadVehicleEventsByVehicle($vehicleIdList);
 
         return new DashboardScopeContext(
             contractsByYear: $contractsByYear,
             vehiclesById: $vehiclesById,
-            unavailabilitiesByVehicleId: $unavailabilitiesByVehicleId,
+            vehicleEventsByVehicleId: $vehicleEventsByVehicleId,
         );
     }
 
@@ -420,10 +420,10 @@ final class DashboardStatsService
                 // `$context->vehiclesById` is safe (the extras are
                 // ignored).
                 $vehiclesById = $context->vehiclesById;
-                $unavailabilitiesByVehicleId = $context->unavailabilitiesByVehicleId;
+                $vehicleEventsByVehicleId = $context->vehicleEventsByVehicleId;
             } else {
                 $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
-                $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
+                $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIdList);
             }
 
             // Prewarm only the vehicles actually present in the pivot
@@ -434,7 +434,7 @@ final class DashboardStatsService
             return $this->aggregator->fleetAnnualTax(
                 $vehiclesById,
                 $contractsByPair,
-                $unavailabilitiesByVehicleId,
+                $vehicleEventsByVehicleId,
                 $year,
             );
         } catch (FiscalCalculationException) {

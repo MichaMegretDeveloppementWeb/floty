@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Services\Planning;
 
-use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\User\Billing\ContractBillingBreakdownData;
 use App\Data\User\Company\CompanyOptionData;
 use App\Data\User\Fiscal\FiscalBreakdownData;
@@ -46,7 +46,7 @@ final class WeekDetailService
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly ContractQueryService $contractQuery,
-        private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
+        private readonly VehicleEventReadRepositoryInterface $vehicleEventRepo,
         private readonly FiscalCalculator $calculator,
         private readonly FiscalYearContext $yearContext,
         private readonly BillingBreakdownService $billingBreakdown,
@@ -81,7 +81,7 @@ final class WeekDetailService
         // « État de la semaine » grid · load the vehicle's
         // unavailabilities crossing the week window once and filter
         // per day in PHP (ADR-0019).
-        $weekUnavailabilities = $this->unavailabilityRepo
+        $weekVehicleEvents = $this->vehicleEventRepo
             ->findForVehicle($vehicleId)
             ->filter(static fn ($u): bool => $u->start_date->lessThanOrEqualTo($end)
                 && ($u->end_date === null || $u->end_date->greaterThanOrEqualTo($start)));
@@ -95,7 +95,7 @@ final class WeekDetailService
                     && $iso <= $c->end_date->toDateString(),
             );
 
-            $hasUnavailabilityOnDay = $weekUnavailabilities->contains(
+            $hasVehicleEventOnDay = $weekVehicleEvents->contains(
                 static fn ($u): bool => $u->start_date->toDateString() <= $iso
                     && ($u->end_date === null || $u->end_date->toDateString() >= $iso),
             );
@@ -114,7 +114,7 @@ final class WeekDetailService
                         ),
                     )
                     : null,
-                hasUnavailability: $hasUnavailabilityOnDay,
+                hasVehicleEvent: $hasVehicleEventOnDay,
             );
             $cursor->addDay();
         }
@@ -173,7 +173,7 @@ final class WeekDetailService
                     date: $slot->date,
                     dayLabel: $slot->dayLabel,
                     contract: null,
-                    hasUnavailability: $slot->hasUnavailability,
+                    hasVehicleEvent: $slot->hasVehicleEvent,
                     isOccupiedByOther: true,
                 );
             },
@@ -249,12 +249,12 @@ final class WeekDetailService
         }
 
         $vehicle = $this->vehicles->findOrFailWithFiscal($input->vehicleId);
-        $unavailabilities = $this->unavailabilityRepo->findForVehicle($input->vehicleId)->all();
+        $vehicleEvents = $this->vehicleEventRepo->findForVehicle($input->vehicleId)->all();
 
         $breakdown = $this->calculator->calculate(
             $vehicle,
             $syntheticContract !== null ? [$syntheticContract] : [],
-            $unavailabilities,
+            $vehicleEvents,
             $year,
         );
 

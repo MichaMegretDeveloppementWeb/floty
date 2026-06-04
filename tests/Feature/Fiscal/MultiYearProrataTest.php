@@ -105,7 +105,7 @@ final class MultiYearProrataTest extends TestCase
         $result = $this->calculator->calculate(
             vehicle: $vehicle,
             contractsForPair: [$contract],
-            vehicleUnavailabilities: [],
+            vehicleEvents: [],
             fiscalYear: 2024,
         );
 
@@ -132,7 +132,7 @@ final class MultiYearProrataTest extends TestCase
         $result = $this->calculator->calculate(
             vehicle: $vehicle,
             contractsForPair: [$contract],
-            vehicleUnavailabilities: [],
+            vehicleEvents: [],
             fiscalYear: 2025,
         );
 
@@ -159,7 +159,7 @@ final class MultiYearProrataTest extends TestCase
         $result = $this->calculator->calculate(
             vehicle: $vehicle,
             contractsForPair: [$contract],
-            vehicleUnavailabilities: [],
+            vehicleEvents: [],
             fiscalYear: 2024,
         );
 
@@ -181,7 +181,7 @@ final class MultiYearProrataTest extends TestCase
         $result = $this->calculator->calculate(
             vehicle: $vehicle,
             contractsForPair: [$contract],
-            vehicleUnavailabilities: [],
+            vehicleEvents: [],
             fiscalYear: 2025,
         );
 

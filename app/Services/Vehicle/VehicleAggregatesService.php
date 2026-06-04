@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Vehicle;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
-use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
 use App\Data\User\Vehicle\VehicleFiscalCharacteristicsData;
@@ -19,8 +19,8 @@ use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Fiscal\SegmentBoundaryCause;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\FleetFiscalAggregator;
@@ -48,7 +48,7 @@ final class VehicleAggregatesService
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
-        private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
+        private readonly VehicleEventReadRepositoryInterface $vehicleEventRepo,
         private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly FiscalYearContext $yearContext,
@@ -78,9 +78,9 @@ final class VehicleAggregatesService
     public function usageStatsForYear(int $vehicleId, int $year): VehicleUsageStatsData
     {
         $vehicle = $this->vehicles->findByIdWithFiscalHistory($vehicleId);
-        $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
+        $vehicleEventModels = $this->vehicleEventRepo->findForVehicle($vehicle->id);
 
-        return $this->buildUsageStats($vehicle, $year, $unavailabilityModels);
+        return $this->buildUsageStats($vehicle, $year, $vehicleEventModels);
     }
 
     /**
@@ -108,15 +108,15 @@ final class VehicleAggregatesService
      * unavailabilities in bulk to share with other calculations; both
      * are passed in to avoid reloading (saves two SQL queries).
      *
-     * @param  Collection<int, Unavailability>  $unavailabilityModels
+     * @param  Collection<int, VehicleEvent>  $vehicleEventModels
      */
-    public function buildUsageStats(Vehicle $vehicle, int $year, Collection $unavailabilityModels): VehicleUsageStatsData
+    public function buildUsageStats(Vehicle $vehicle, int $year, Collection $vehicleEventModels): VehicleUsageStatsData
     {
         $daysInYear = $this->yearContext->daysInYear($year);
         $contractsByPair = $this->contracts->loadContractsByPairForVehicle($vehicle->id, $year);
-        $vehicleUnavailabilities = $unavailabilityModels->all();
+        $vehicleEvents = $vehicleEventModels->all();
         $weeklyMap = $this->contracts->loadVehicleWeeklyBreakdown($vehicle->id, $year);
-        $unavailabilityDaysByWeek = $this->computeUnavailabilityDaysByWeek($unavailabilityModels, $year);
+        $vehicleEventDaysByWeek = $this->computeVehicleEventDaysByWeek($vehicleEventModels, $year);
 
         // Wrap fiscal computation so a year outside the rule registry
         // does not break the page · timeline and raw days remain
@@ -126,7 +126,7 @@ final class VehicleAggregatesService
             $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
                 $vehicle,
                 $contractsByPair,
-                $vehicleUnavailabilities,
+                $vehicleEvents,
                 $year,
             );
             $fullYearBreakdown = $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
@@ -180,7 +180,7 @@ final class VehicleAggregatesService
                 ? round($fullYearBreakdown->total / $daysInYear, 2, PHP_ROUND_HALF_UP)
                 : 0.0,
             companies: $companies,
-            weeklyBreakdown: $this->buildWeeklyBreakdown($weeklyMap, $unavailabilityDaysByWeek, $companiesById, $year),
+            weeklyBreakdown: $this->buildWeeklyBreakdown($weeklyMap, $vehicleEventDaysByWeek, $companiesById, $year),
             fullYearTaxBreakdown: $fullYearBreakdown,
         );
     }
@@ -291,8 +291,8 @@ final class VehicleAggregatesService
      * visual timeline. Empty weeks are materialised with empty
      * segments and zero totalDays.
      *
-     * Unavailability days are split into
-     * `reductiveUnavailabilityDays` (R-2024-008) and
+     * VehicleEvent days are split into
+     * `reductiveVehicleEventDays` (R-2024-008) and
      * `nonReductiveUnavailabilityDays`; the timeline overlays them
      * differently (pink vs slate). ADR-0019 allows
      * unavailability/contract cohabitation, so we no longer clamp to
@@ -300,13 +300,13 @@ final class VehicleAggregatesService
      * contract covers the whole week.
      *
      * @param  array<int, array<int, int>>  $weeklyMap  weekNumber → companyId → days
-     * @param  array<int, array{reductive: int, nonReductive: int}>  $unavailabilityDaysByWeek
+     * @param  array<int, array{reductive: int, nonReductive: int}>  $vehicleEventDaysByWeek
      * @param  Collection<int, Company>  $companiesById
      * @return list<VehicleWeekUsageData>
      */
     private function buildWeeklyBreakdown(
         array $weeklyMap,
-        array $unavailabilityDaysByWeek,
+        array $vehicleEventDaysByWeek,
         Collection $companiesById,
         int $year,
     ): array {
@@ -334,14 +334,14 @@ final class VehicleAggregatesService
                 static fn (VehicleWeekSegmentData $a, VehicleWeekSegmentData $b): int => $a->companyId <=> $b->companyId,
             );
 
-            $weekUnavailability = $unavailabilityDaysByWeek[$week] ?? ['reductive' => 0, 'nonReductive' => 0];
+            $weekVehicleEvent = $vehicleEventDaysByWeek[$week] ?? ['reductive' => 0, 'nonReductive' => 0];
 
             $rows[] = new VehicleWeekUsageData(
                 weekNumber: $week,
                 segments: $segments,
                 totalDays: $totalDays,
-                reductiveUnavailabilityDays: $weekUnavailability['reductive'],
-                nonReductiveUnavailabilityDays: $weekUnavailability['nonReductive'],
+                reductiveVehicleEventDays: $weekVehicleEvent['reductive'],
+                nonReductiveUnavailabilityDays: $weekVehicleEvent['nonReductive'],
             );
         }
 
@@ -355,17 +355,17 @@ final class VehicleAggregatesService
      * fiscally reductive type taking priority (the most informative
      * signal for the UI).
      *
-     * @param  Collection<int, Unavailability>  $unavailabilityModels
+     * @param  Collection<int, VehicleEvent>  $vehicleEventModels
      * @return array<int, array{reductive: int, nonReductive: int}> weekNumber → totals per type
      */
-    private function computeUnavailabilityDaysByWeek(Collection $unavailabilityModels, int $year): array
+    private function computeVehicleEventDaysByWeek(Collection $vehicleEventModels, int $year): array
     {
         $yearStart = Carbon::create($year, 1, 1)->startOfDay();
         $yearEnd = Carbon::create($year, 12, 31)->endOfDay();
 
         /** @var array<int, array<string, 'reductive'|'nonReductive'>> $byWeekDays */
         $byWeekDays = [];
-        foreach ($unavailabilityModels as $row) {
+        foreach ($vehicleEventModels as $row) {
             if ($row->start_date->greaterThan($yearEnd)) {
                 continue;
             }

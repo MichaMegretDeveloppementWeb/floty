@@ -9,7 +9,6 @@ use App\Enums\Fiscal\RuleSection;
 use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
-use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -19,6 +18,7 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\PricingRule;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
@@ -28,8 +28,8 @@ use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
 use App\Fiscal\Year2024\Year2024Boot;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Carbon\CarbonImmutable;
@@ -43,7 +43,7 @@ use Tests\TestCase;
  * dans une même année (audit confiance 7/10 → 9/10).
  *
  * Les patterns helpers (`makeVehicle`, `vfcCommonFields`, `syntheticContract`,
- * `syntheticUnavailability`) sont alignés sur
+ * `syntheticVehicleEvent`) sont alignés sur
  * {@see FiscalSegmentedExecutorTest} pour cohérence du style.
  */
 final class MultiVfcEdgeCasesTest extends TestCase
@@ -180,11 +180,11 @@ final class MultiVfcEdgeCasesTest extends TestCase
             switchDate: '2024-06-16',
         );
         $contracts = [$this->syntheticContract($vehicle, '2024-06-01', '2024-06-28', ContractType::Lcd)];
-        $unavailabilities = [$this->syntheticUnavailability(
+        $vehicleEvents = [$this->syntheticVehicleEvent(
             $vehicle,
             '2024-09-01',
             '2024-09-05',
-            UnavailabilityType::PoundPublic,
+            VehicleEventType::PoundPublic,
         )];
 
         $context = new PipelineContext(
@@ -192,7 +192,7 @@ final class MultiVfcEdgeCasesTest extends TestCase
             fiscalYear: 2024,
             daysInYear: $this->yearContext->daysInYear(2024),
             contractsForPair: $contracts,
-            vehicleUnavailabilitiesInYear: $unavailabilities,
+            vehicleUnavailabilitiesInYear: $vehicleEvents,
         );
         $result = $this->executor->execute($context);
 
@@ -443,14 +443,14 @@ final class MultiVfcEdgeCasesTest extends TestCase
         return $contract;
     }
 
-    private function syntheticUnavailability(
+    private function syntheticVehicleEvent(
         Vehicle $vehicle,
         string $start,
         string $end,
-        UnavailabilityType $type,
-    ): Unavailability {
-        $unavailability = new Unavailability;
-        $unavailability->setRawAttributes([
+        VehicleEventType $type,
+    ): VehicleEvent {
+        $vehicleEvent = new VehicleEvent;
+        $vehicleEvent->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'start_date' => $start,
             'end_date' => $end,
@@ -459,7 +459,7 @@ final class MultiVfcEdgeCasesTest extends TestCase
             'note' => null,
         ], true);
 
-        return $unavailability;
+        return $vehicleEvent;
     }
 
     private static int $plateCounter = 0;

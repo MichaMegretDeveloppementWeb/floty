@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\Vehicle;
 
-use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia;
@@ -116,9 +116,9 @@ final class ExitVehicleControllerTest extends TestCase
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create(['exit_date' => null]);
 
-        Unavailability::factory()->create([
+        VehicleEvent::factory()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => UnavailabilityType::Maintenance,
+            'type' => VehicleEventType::Maintenance,
             'has_fiscal_impact' => false,
             'start_date' => '2025-06-10',
             'end_date' => '2025-07-05',

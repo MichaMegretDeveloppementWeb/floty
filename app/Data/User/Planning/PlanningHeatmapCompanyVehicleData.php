@@ -34,7 +34,7 @@ final class PlanningHeatmapCompanyVehicleData extends Data
     /**
      * @param  list<int>  $weeksGlobal  52 ints (0-7); global density across all companies (cell colour).
      * @param  list<int>  $weeksForCompany  52 ints (0-7); density for the selected company (cell number).
-     * @param  list<int>  $weeksWithUnavailability  ISO week numbers (1-52) carrying at least one unavailability day.
+     * @param  list<int>  $weeksWithVehicleEvent  ISO week numbers (1-52) carrying at least one unavailability day.
      * @param  ?int  $dailyRateCents  Daily rate for the current year (`vehicle_yearly_pricings`); null when no rate is set.
      * @param  ?int  $weeklyRateCents  Weekly rate; null when absent.
      * @param  ?int  $monthlyRateCents  Monthly rate; null when absent.
@@ -53,7 +53,7 @@ final class PlanningHeatmapCompanyVehicleData extends Data
         public array $weeksForCompany,
         public int $daysTotalForCompany,
         public ?string $exitDate,
-        public array $weeksWithUnavailability,
+        public array $weeksWithVehicleEvent,
         public ?int $dailyRateCents,
         public ?int $weeklyRateCents,
         public ?int $monthlyRateCents,

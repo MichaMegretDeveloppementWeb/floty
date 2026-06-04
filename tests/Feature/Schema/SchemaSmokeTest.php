@@ -6,7 +6,6 @@ namespace Tests\Feature\Schema;
 
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
-use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -16,13 +15,14 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\FiscalRule;
-use App\Models\Unavailability;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -31,7 +31,7 @@ use Tests\TestCase;
 
 /**
  * Smoke test du schéma global Floty V1. Crée une chaîne complète d'entités
- * (Company, Driver, Vehicle, VFC, Contract, Unavailability, FiscalRule) et
+ * (Company, Driver, Vehicle, VFC, Contract, VehicleEvent, FiscalRule) et
  * vérifie persistance, casts enum, relations, SoftDeletes et le trigger
  * anti-chevauchement de `vehicle_fiscal_characteristics`.
  */
@@ -99,9 +99,9 @@ final class SchemaSmokeTest extends TestCase
         ]);
         $contract->drivers()->attach($driver->id);
 
-        $unavailability = Unavailability::create([
+        $vehicleEvent = VehicleEvent::create([
             'vehicle_id' => $vehicle->id,
-            'type' => UnavailabilityType::PoundPublic,
+            'type' => VehicleEventType::PoundPublic,
             'has_fiscal_impact' => true,
             'start_date' => '2024-06-01',
             'end_date' => '2024-06-10',
@@ -146,13 +146,13 @@ final class SchemaSmokeTest extends TestCase
         $this->assertSame($vehicle->id, $contract->vehicle->id);
         $this->assertSame($company->id, $contract->company->id);
         $this->assertTrue($contract->fresh()->drivers->contains('id', $driver->id));
-        $this->assertSame($vehicle->id, $unavailability->vehicle->id);
+        $this->assertSame($vehicle->id, $vehicleEvent->vehicle->id);
 
         // Relations inverses
         $this->assertCount(1, $company->fresh()->drivers);
         $this->assertCount(1, $vehicle->fresh()->fiscalCharacteristics);
         $this->assertCount(1, $vehicle->fresh()->contracts);
-        $this->assertCount(1, $vehicle->fresh()->unavailabilities);
+        $this->assertCount(1, $vehicle->fresh()->vehicleEvents);
 
         $this->assertNotNull($user->fresh());
     }

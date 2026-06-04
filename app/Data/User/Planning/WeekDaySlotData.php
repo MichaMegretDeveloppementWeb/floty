@@ -13,7 +13,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
  *   - `contract` is `null` when the day is free OR the day belongs to
  *     another company in company-locked mode (in which case
  *     `isOccupiedByOther` is `true`).
- *   - `hasUnavailability` is `true` when at least one unavailability
+ *   - `hasVehicleEvent` is `true` when at least one unavailability
  *     covers this day; feeds the red border of the slot.
  *   - `isOccupiedByOther` is `true` when the drawer is open on a
  *     company view and the covering contract belongs to another company;
@@ -26,7 +26,7 @@ final class WeekDaySlotData extends Data
         public string $date,
         public string $dayLabel,
         public ?WeekDayContractData $contract,
-        public bool $hasUnavailability,
+        public bool $hasVehicleEvent,
         public bool $isOccupiedByOther = false,
     ) {}
 }

@@ -24,7 +24,7 @@ final class PlanningHeatmapVehicleData extends Data
 {
     /**
      * @param  list<int>  $weeks  52 ints (0-7); used days per week.
-     * @param  list<int>  $weeksWithUnavailability  ISO week numbers (1-52) carrying at least one unavailability day; feeds the red border (ADR-0019 § 2 D5).
+     * @param  list<int>  $weeksWithVehicleEvent  ISO week numbers (1-52) carrying at least one unavailability day; feeds the red border (ADR-0019 § 2 D5).
      * @param  ?int  $dailyRateCents  Daily rate for the current year (`vehicle_yearly_pricings`); null when no rate is set.
      * @param  ?int  $weeklyRateCents  Weekly rate; null when absent.
      * @param  ?int  $monthlyRateCents  Monthly rate; null when absent.
@@ -42,7 +42,7 @@ final class PlanningHeatmapVehicleData extends Data
         public array $weeks,
         public int $daysTotal,
         public ?string $exitDate,
-        public array $weeksWithUnavailability,
+        public array $weeksWithVehicleEvent,
         public ?int $dailyRateCents,
         public ?int $weeklyRateCents,
         public ?int $monthlyRateCents,

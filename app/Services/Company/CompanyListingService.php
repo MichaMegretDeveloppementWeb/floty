@@ -92,7 +92,7 @@ final class CompanyListingService
      * the initial render.
      *
      * One-shot bulk prefetch (`contractsByPair`, `vehiclesById`,
-     * `unavailabilitiesByVehicleId`), then iterate the page. The
+     * `vehicleEventsByVehicleId`), then iterate the page. The
      * fiscal pipeline `companyAnnualTax` and the rental calculator
      * run per company.
      *
@@ -114,7 +114,7 @@ final class CompanyListingService
         }
         $vehicleIdList = array_keys($vehicleIds);
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIdList);
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIdList);
+        $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIdList);
 
         $result = [];
         foreach ($companyIds as $companyId) {
@@ -123,7 +123,7 @@ final class CompanyListingService
                     $companyId,
                     $vehiclesById,
                     $contractsByPair,
-                    $unavailabilitiesByVehicleId,
+                    $vehicleEventsByVehicleId,
                     $year,
                 );
             } catch (FiscalCalculationException) {

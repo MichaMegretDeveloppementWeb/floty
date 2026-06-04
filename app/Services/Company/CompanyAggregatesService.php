@@ -116,7 +116,7 @@ final class CompanyAggregatesService
         }
 
         $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+        $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
 
         // Wrap fiscal pipeline · tolerates years without registered
         // fiscal rules.
@@ -126,7 +126,7 @@ final class CompanyAggregatesService
                 $companyId,
                 $vehiclesById,
                 $contractsByPair,
-                $unavailabilitiesByVehicleId,
+                $vehicleEventsByVehicleId,
                 $year,
             );
             foreach ($rawRows as $rawRow) {

@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Log;
  * `is_obsolete` flag flips. The historical PDF stays on disk.
  *
  * Called by `DeclarationInvalidationDetector`, which resolves which
- * declarations are impacted by a Contract / VFC / Unavailability
+ * declarations are impacted by a Contract / VFC / VehicleEvent
  * mutation.
  */
 final readonly class MarkDeclarationAsObsoleteAction

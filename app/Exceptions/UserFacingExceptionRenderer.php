@@ -13,8 +13,8 @@ use App\Models\FiscalRule;
 use App\Models\Invoice;
 use App\Models\InvoiceLine;
 use App\Models\RentalDiscount;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -45,7 +45,7 @@ final class UserFacingExceptionRenderer
         Invoice::class => ['route' => 'user.invoices.index', 'label' => 'cette facture'],
         InvoiceLine::class => ['route' => 'user.invoices.index', 'label' => 'cette ligne de facture'],
         RentalDiscount::class => ['route' => 'user.rental-discounts.index', 'label' => 'cette réduction commerciale'],
-        Unavailability::class => ['route' => 'user.vehicles.index', 'label' => 'cette indisponibilité'],
+        VehicleEvent::class => ['route' => 'user.vehicles.index', 'label' => 'cette indisponibilité'],
         VehicleYearlyPricing::class => ['route' => 'user.vehicles.index', 'label' => 'ce tarif'],
         VehicleFiscalCharacteristics::class => ['route' => 'user.vehicles.index', 'label' => 'cette caractéristique fiscale'],
         ContractDocument::class => ['route' => 'user.contracts.index', 'label' => 'ce document'],

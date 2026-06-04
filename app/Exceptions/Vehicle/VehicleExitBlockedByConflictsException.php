@@ -18,14 +18,14 @@ final class VehicleExitBlockedByConflictsException extends BaseAppException
     public static function withImpact(VehicleExitImpactData $impact): self
     {
         $contractsCount = count($impact->conflictingContracts);
-        $unavailabilitiesCount = count($impact->conflictingUnavailabilities);
-        $total = $contractsCount + $unavailabilitiesCount;
+        $vehicleEventsCount = count($impact->conflictingUnavailabilities);
+        $total = $contractsCount + $vehicleEventsCount;
 
         $userMessage = sprintf(
             'Impossible de retirer ce véhicule : %d élément(s) actif(s) débordent la date proposée (%d location(s), %d indisponibilité(s)). Veuillez les résoudre avant de retirer le véhicule.',
             $total,
             $contractsCount,
-            $unavailabilitiesCount,
+            $vehicleEventsCount,
         );
 
         $exception = new self(
@@ -33,7 +33,7 @@ final class VehicleExitBlockedByConflictsException extends BaseAppException
                 'Vehicle exit blocked by %d conflicting elements (%d contracts, %d unavailabilities)',
                 $total,
                 $contractsCount,
-                $unavailabilitiesCount,
+                $vehicleEventsCount,
             ),
             userMessage: $userMessage,
         );

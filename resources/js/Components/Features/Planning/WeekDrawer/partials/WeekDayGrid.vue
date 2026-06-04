@@ -36,9 +36,9 @@ function isSelected(date: string, selected: string[]): boolean {
                           : isSelected(slot.date, selectedDates)
                             ? 'bg-blue-600 text-white'
                             : 'border border-dashed border-slate-200',
-                    slot.hasUnavailability && 'ring-1 ring-rose-500 ring-inset',
+                    slot.hasVehicleEvent && 'ring-1 ring-rose-500 ring-inset',
                 ]"
-                :aria-label="slot.hasUnavailability ? `${slot.dayLabel} : indisponibilité présente` : undefined"
+                :aria-label="slot.hasVehicleEvent ? `${slot.dayLabel} : indisponibilité présente` : undefined"
             >
                 <span
                     :class="[

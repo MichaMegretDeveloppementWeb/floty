@@ -89,7 +89,7 @@ const {
 /* Reductive unavailability (R-2024-008): rose hatch, fiscal alert.
    Non-reductive: slate hatch, neutral operational info.
    Both overlays are absolute so they can coexist with the contract bar (ADR-0019). */
-.unavailability-segment-reductive {
+.vehicle-event-segment-reductive {
     background-color: rgb(254 205 211 / 0.7); /* rose-200 transparent */
     background-image: repeating-linear-gradient(
         135deg,
@@ -100,7 +100,7 @@ const {
     );
 }
 
-.unavailability-segment-non-reductive {
+.vehicle-event-segment-non-reductive {
     background-color: rgb(226 232 240 / 0.7); /* slate-200 transparent */
     background-image: repeating-linear-gradient(
         135deg,
@@ -158,7 +158,7 @@ const {
                                     :class="[
                                         'relative flex h-10 w-[16px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
                                         week.totalDays === 0
-                                            && week.reductiveUnavailabilityDays === 0
+                                            && week.reductiveVehicleEventDays === 0
                                             && week.nonReductiveUnavailabilityDays === 0
                                             ? 'bg-slate-100'
                                             : '',
@@ -171,15 +171,15 @@ const {
                                         :style="{ height: heightFor(segment) }"
                                     />
                                     <div
-                                        v-if="week.reductiveUnavailabilityDays > 0"
-                                        class="unavailability-segment-reductive pointer-events-none absolute inset-x-0 top-0"
-                                        :style="{ height: heightForDays(week.reductiveUnavailabilityDays) }"
+                                        v-if="week.reductiveVehicleEventDays > 0"
+                                        class="vehicle-event-segment-reductive pointer-events-none absolute inset-x-0 top-0"
+                                        :style="{ height: heightForDays(week.reductiveVehicleEventDays) }"
                                     />
                                     <div
                                         v-if="week.nonReductiveUnavailabilityDays > 0"
-                                        class="unavailability-segment-non-reductive pointer-events-none absolute inset-x-0"
+                                        class="vehicle-event-segment-non-reductive pointer-events-none absolute inset-x-0"
                                         :style="{
-                                            top: heightForDays(week.reductiveUnavailabilityDays),
+                                            top: heightForDays(week.reductiveVehicleEventDays),
                                             height: heightForDays(week.nonReductiveUnavailabilityDays),
                                         }"
                                     />
@@ -191,7 +191,7 @@ const {
                                     </p>
                                     <p
                                         v-if="week.segments.length === 0
-                                            && week.reductiveUnavailabilityDays === 0
+                                            && week.reductiveVehicleEventDays === 0
                                             && week.nonReductiveUnavailabilityDays === 0"
                                         class="text-slate-300"
                                     >
@@ -214,7 +214,7 @@ const {
                                             <span class="text-slate-300">{{ segment.days }}j</span>
                                         </li>
                                         <li
-                                            v-if="week.reductiveUnavailabilityDays > 0"
+                                            v-if="week.reductiveVehicleEventDays > 0"
                                             class="flex items-center gap-2"
                                         >
                                             <span
@@ -222,7 +222,7 @@ const {
                                                 aria-hidden="true"
                                             />
                                             <span class="font-medium">Indispo réductrice</span>
-                                            <span class="text-slate-300">{{ week.reductiveUnavailabilityDays }}j</span>
+                                            <span class="text-slate-300">{{ week.reductiveVehicleEventDays }}j</span>
                                         </li>
                                         <li
                                             v-if="week.nonReductiveUnavailabilityDays > 0"

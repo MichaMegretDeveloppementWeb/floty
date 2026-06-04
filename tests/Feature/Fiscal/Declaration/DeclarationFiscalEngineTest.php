@@ -541,14 +541,14 @@ final class DeclarationFiscalEngineTest extends TestCase
             ->loadContractsByPair($year);
         $vehiclesById = $this->app->make(VehicleReadRepositoryInterface::class)
             ->findByIdsIndexed([$vehicle->id]);
-        $unavailabilities = $this->app->make(ContractQueryService::class)
-            ->loadUnavailabilitiesByVehicle([$vehicle->id]);
+        $vehicleEvents = $this->app->make(ContractQueryService::class)
+            ->loadVehicleEventsByVehicle([$vehicle->id]);
 
         return $this->standardAggregator->companyAnnualTax(
             $this->company->id,
             $vehiclesById,
             $contracts,
-            $unavailabilities,
+            $vehicleEvents,
             $year,
         );
     }

@@ -6,7 +6,6 @@ namespace Tests\Unit\Fiscal\Pipeline;
 
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Enums\Contract\ContractType;
-use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -16,13 +15,14 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -159,11 +159,11 @@ final class FiscalSegmentedExecutorTest extends TestCase
             switchDate: '2024-06-16',
         );
         $contracts = [$this->syntheticContract($vehicle, '2024-01-01', '2024-12-31', ContractType::Lld)];
-        $unavailabilities = [$this->syntheticUnavailability(
+        $vehicleEvents = [$this->syntheticVehicleEvent(
             $vehicle,
             '2024-03-05',
             '2024-03-14',
-            UnavailabilityType::PoundPublic,
+            VehicleEventType::PoundPublic,
         )];
 
         $context = new PipelineContext(
@@ -171,7 +171,7 @@ final class FiscalSegmentedExecutorTest extends TestCase
             fiscalYear: 2024,
             daysInYear: $this->yearContext->daysInYear(2024),
             contractsForPair: $contracts,
-            vehicleUnavailabilitiesInYear: $unavailabilities,
+            vehicleUnavailabilitiesInYear: $vehicleEvents,
         );
         $result = $this->executor->execute($context);
 
@@ -464,14 +464,14 @@ final class FiscalSegmentedExecutorTest extends TestCase
         ];
     }
 
-    private function syntheticUnavailability(
+    private function syntheticVehicleEvent(
         Vehicle $vehicle,
         string $start,
         string $end,
-        UnavailabilityType $type,
-    ): Unavailability {
-        $unavailability = new Unavailability;
-        $unavailability->setRawAttributes([
+        VehicleEventType $type,
+    ): VehicleEvent {
+        $vehicleEvent = new VehicleEvent;
+        $vehicleEvent->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'start_date' => $start,
             'end_date' => $end,
@@ -480,7 +480,7 @@ final class FiscalSegmentedExecutorTest extends TestCase
             'note' => null,
         ], true);
 
-        return $unavailability;
+        return $vehicleEvent;
     }
 
     private function syntheticContract(Vehicle $vehicle, string $start, string $end, ContractType $type): Contract

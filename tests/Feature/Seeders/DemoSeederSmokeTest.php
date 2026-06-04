@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Seeders;
 
-use App\Enums\Unavailability\UnavailabilityType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use Database\Seeders\DemoSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -119,7 +119,7 @@ final class DemoSeederSmokeTest extends TestCase
     public function au_moins_une_indispo_reductrice_cohabite_avec_un_contrat(): void
     {
         $hasReductiveCohabitation = false;
-        foreach (Unavailability::query()->get() as $u) {
+        foreach (VehicleEvent::query()->get() as $u) {
             if (! $u->type->isFiscallyReductive()) {
                 continue;
             }
@@ -149,7 +149,7 @@ final class DemoSeederSmokeTest extends TestCase
         // mais le seeder doit la produire pour pouvoir tester l'invariant
         // visuellement.
         $hasNonReductiveCohabitation = false;
-        foreach (Unavailability::query()->get() as $u) {
+        foreach (VehicleEvent::query()->get() as $u) {
             if ($u->type->isFiscallyReductive()) {
                 continue;
             }
@@ -180,7 +180,7 @@ final class DemoSeederSmokeTest extends TestCase
         // 03-15. Exerce simultanément les 3 mécaniques. Garde-fou contre
         // un futur seeder qui retirerait par erreur ce cas pédagogique.
         $hasMixedCase = false;
-        foreach (Unavailability::query()->where('type', UnavailabilityType::CiSuspension)->get() as $u) {
+        foreach (VehicleEvent::query()->where('type', VehicleEventType::CiSuspension)->get() as $u) {
             $vehicle = Vehicle::query()->find($u->vehicle_id);
             if ($vehicle === null) {
                 continue;

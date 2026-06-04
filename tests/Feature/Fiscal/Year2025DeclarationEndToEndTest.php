@@ -16,8 +16,8 @@ use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -183,7 +183,7 @@ final class Year2025DeclarationEndToEndTest extends TestCase
         $v1 = $this->makeVehicle(co2Wltp: 100, category: PollutantCategory::Category1);
         $this->makeContract($v1, '2025-01-01', '2025-12-31', ContractType::Lld);
 
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $v1->id,
             'start_date' => '2025-03-01',
             'end_date' => '2025-03-30',

@@ -10,8 +10,8 @@ use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Pipeline\PipelineResult;
 use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Services\Shared\Fiscal\FiscalYearContext;
 
 /**
@@ -36,12 +36,12 @@ final readonly class FiscalCalculator
 
     /**
      * @param  list<Contract>  $contractsForPair  Active contracts for the pair within the year
-     * @param  list<Unavailability>  $vehicleUnavailabilities  Vehicle unavailabilities within the year (R-2024-008)
+     * @param  list<VehicleEvent>  $vehicleEvents  Vehicle unavailabilities within the year (R-2024-008)
      */
     public function calculate(
         Vehicle $vehicle,
         array $contractsForPair,
-        array $vehicleUnavailabilities,
+        array $vehicleEvents,
         int $fiscalYear,
     ): FiscalBreakdown {
         $context = new PipelineContext(
@@ -49,7 +49,7 @@ final readonly class FiscalCalculator
             fiscalYear: $fiscalYear,
             daysInYear: $this->yearContext->daysInYear($fiscalYear),
             contractsForPair: $contractsForPair,
-            vehicleUnavailabilitiesInYear: $vehicleUnavailabilities,
+            vehicleUnavailabilitiesInYear: $vehicleEvents,
         );
 
         return $this->toBreakdown($this->executor->execute($context));

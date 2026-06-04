@@ -17,8 +17,8 @@ final class VehicleWeekUsageData extends Data
 {
     /**
      * @param  list<VehicleWeekSegmentData>  $segments
-     * @param  int  $reductiveUnavailabilityDays  Unavailability days reducing the
-     *                                            fiscal prorata numerator (R-2024-008).
+     * @param  int  $reductiveVehicleEventDays  VehicleEvent days reducing the
+     *                                          fiscal prorata numerator (R-2024-008).
      * @param  int  $nonReductiveUnavailabilityDays  Operational unavailability days
      *                                               without fiscal impact.
      */
@@ -27,7 +27,7 @@ final class VehicleWeekUsageData extends Data
         #[DataCollectionOf(VehicleWeekSegmentData::class)]
         public array $segments,
         public int $totalDays,
-        public int $reductiveUnavailabilityDays,
+        public int $reductiveVehicleEventDays,
         public int $nonReductiveUnavailabilityDays,
     ) {}
 }

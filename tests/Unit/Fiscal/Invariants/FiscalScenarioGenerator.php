@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Unit\Fiscal\Invariants;
 
 use App\Enums\Contract\ContractType;
-use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -15,9 +14,10 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Support\Carbon;
 use Random\Engine\Mt19937;
@@ -54,14 +54,14 @@ final class FiscalScenarioGenerator
         $vehicle = $this->makeVehicle();
         $vfcs = $this->makeVfcs($vehicle, $year);
         $contracts = $this->makeContracts($vehicle, $year);
-        $unavailabilities = $this->makeUnavailabilities($vehicle, $year);
+        $vehicleEvents = $this->makeUnavailabilities($vehicle, $year);
 
         return new FiscalScenario(
             seed: $this->seed,
             year: $year,
             vehicle: $vehicle->fresh(['fiscalCharacteristics']) ?? $vehicle,
             contracts: $contracts,
-            unavailabilities: $unavailabilities,
+            vehicleEvents: $vehicleEvents,
         );
     }
 
@@ -181,7 +181,7 @@ final class FiscalScenarioGenerator
      * Mélange de types réducteurs et non-réducteurs (l'invariant de
      * neutralité repose sur la présence d'indispos non-réductrices).
      *
-     * @return list<Unavailability>
+     * @return list<VehicleEvent>
      */
     private function makeUnavailabilities(Vehicle $vehicle, int $year): array
     {
@@ -195,15 +195,15 @@ final class FiscalScenarioGenerator
         $daysInYear = (int) $yearStart->diffInDays($yearEnd) + 1;
 
         // Types couvrant le mix réducteur/non-réducteur (cf.
-        // UnavailabilityType::isFiscallyReductive).
+        // VehicleEventType::isFiscallyReductive).
         $types = [
-            UnavailabilityType::Maintenance,    // non-réducteur
-            UnavailabilityType::PoundPublic,    // réducteur
-            UnavailabilityType::Theft,          // réducteur
-            UnavailabilityType::Other,          // non-réducteur
+            VehicleEventType::Maintenance,    // non-réducteur
+            VehicleEventType::PoundPublic,    // réducteur
+            VehicleEventType::Theft,          // réducteur
+            VehicleEventType::Other,          // non-réducteur
         ];
 
-        $unavailabilities = [];
+        $vehicleEvents = [];
         $usedRanges = [];
         for ($i = 0; $i < $count; $i++) {
             // Tente jusqu'à 5 fois de placer une plage non-chevauchante.
@@ -223,7 +223,7 @@ final class FiscalScenarioGenerator
                 if (! $overlaps) {
                     $usedRanges[] = [$start, $end];
                     $type = $types[$this->rng->getInt(0, count($types) - 1)];
-                    $unavailabilities[] = $this->syntheticUnavailability(
+                    $vehicleEvents[] = $this->syntheticVehicleEvent(
                         $vehicle,
                         $start->toDateString(),
                         $end->toDateString(),
@@ -234,7 +234,7 @@ final class FiscalScenarioGenerator
             }
         }
 
-        return $unavailabilities;
+        return $vehicleEvents;
     }
 
     private function syntheticContract(
@@ -258,14 +258,14 @@ final class FiscalScenarioGenerator
         return $contract;
     }
 
-    private function syntheticUnavailability(
+    private function syntheticVehicleEvent(
         Vehicle $vehicle,
         string $start,
         string $end,
-        UnavailabilityType $type,
-    ): Unavailability {
-        $unavailability = new Unavailability;
-        $unavailability->setRawAttributes([
+        VehicleEventType $type,
+    ): VehicleEvent {
+        $vehicleEvent = new VehicleEvent;
+        $vehicleEvent->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'start_date' => $start,
             'end_date' => $end,
@@ -274,7 +274,7 @@ final class FiscalScenarioGenerator
             'note' => null,
         ], true);
 
-        return $unavailability;
+        return $vehicleEvent;
     }
 
     private function nextPlate(): string

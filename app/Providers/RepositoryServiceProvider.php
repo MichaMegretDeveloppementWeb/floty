@@ -25,16 +25,16 @@ use App\Contracts\Repositories\User\Invoice\InvoiceReadRepositoryInterface;
 use App\Contracts\Repositories\User\Invoice\InvoiceWriteRepositoryInterface;
 use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountReadRepositoryInterface;
 use App\Contracts\Repositories\User\RentalDiscount\RentalDiscountWriteRepositoryInterface;
-use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
-use App\Contracts\Repositories\User\Unavailability\UnavailabilityWriteRepositoryInterface;
-use App\Contracts\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentReadRepositoryInterface;
-use App\Contracts\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventWriteRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEventDocument\VehicleEventDocumentReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEventDocument\VehicleEventDocumentWriteRepositoryInterface;
 use App\Repositories\User\Billing\BillingSettingsReadRepository;
 use App\Repositories\User\Billing\BillingSettingsWriteRepository;
 use App\Repositories\User\Company\CompanyReadRepository;
@@ -56,16 +56,16 @@ use App\Repositories\User\Invoice\InvoiceReadRepository;
 use App\Repositories\User\Invoice\InvoiceWriteRepository;
 use App\Repositories\User\RentalDiscount\RentalDiscountReadRepository;
 use App\Repositories\User\RentalDiscount\RentalDiscountWriteRepository;
-use App\Repositories\User\Unavailability\UnavailabilityReadRepository;
-use App\Repositories\User\Unavailability\UnavailabilityWriteRepository;
-use App\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentReadRepository;
-use App\Repositories\User\UnavailabilityDocument\UnavailabilityDocumentWriteRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsWriteRepository;
 use App\Repositories\User\Vehicle\VehicleReadRepository;
 use App\Repositories\User\Vehicle\VehicleWriteRepository;
 use App\Repositories\User\Vehicle\VehicleYearlyPricingReadRepository;
 use App\Repositories\User\Vehicle\VehicleYearlyPricingWriteRepository;
+use App\Repositories\User\VehicleEvent\VehicleEventReadRepository;
+use App\Repositories\User\VehicleEvent\VehicleEventWriteRepository;
+use App\Repositories\User\VehicleEventDocument\VehicleEventDocumentReadRepository;
+use App\Repositories\User\VehicleEventDocument\VehicleEventDocumentWriteRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -124,11 +124,11 @@ final class RepositoryServiceProvider extends ServiceProvider
         FiscalReviewDecisionReadRepositoryInterface::class => FiscalReviewDecisionReadRepository::class,
         FiscalReviewDecisionWriteRepositoryInterface::class => FiscalReviewDecisionWriteRepository::class,
 
-        // Unavailability
-        UnavailabilityReadRepositoryInterface::class => UnavailabilityReadRepository::class,
-        UnavailabilityWriteRepositoryInterface::class => UnavailabilityWriteRepository::class,
-        UnavailabilityDocumentReadRepositoryInterface::class => UnavailabilityDocumentReadRepository::class,
-        UnavailabilityDocumentWriteRepositoryInterface::class => UnavailabilityDocumentWriteRepository::class,
+        // VehicleEvent
+        VehicleEventReadRepositoryInterface::class => VehicleEventReadRepository::class,
+        VehicleEventWriteRepositoryInterface::class => VehicleEventWriteRepository::class,
+        VehicleEventDocumentReadRepositoryInterface::class => VehicleEventDocumentReadRepository::class,
+        VehicleEventDocumentWriteRepositoryInterface::class => VehicleEventDocumentWriteRepository::class,
     ];
 
     /**

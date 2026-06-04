@@ -18,12 +18,12 @@ use App\Http\Controllers\User\RentalDiscount\RentalDiscountController;
 use App\Http\Controllers\User\Search\GlobalSearchController;
 use App\Http\Controllers\User\Settings\BillingSettingsController;
 use App\Http\Controllers\User\Settings\FiscalRiskSettingsController;
-use App\Http\Controllers\User\Unavailability\UnavailabilityController;
-use App\Http\Controllers\User\Unavailability\UnavailabilityDocumentController;
 use App\Http\Controllers\User\Vehicle\VehicleController;
 use App\Http\Controllers\User\Vehicle\VehicleFiscalCharacteristicsController;
 use App\Http\Controllers\User\Vehicle\VehicleRegistryLookupController;
 use App\Http\Controllers\User\Vehicle\VehicleYearlyPricingController;
+use App\Http\Controllers\User\VehicleEvent\VehicleEventController;
+use App\Http\Controllers\User\VehicleEvent\VehicleEventDocumentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -212,32 +212,32 @@ Route::middleware('auth')
             ->middleware('throttle:30,1')
             ->name('invoices.regenerate');
 
-        // Unavailabilities · CRUD operated from the vehicle detail page.
-        Route::post('/unavailabilities', [UnavailabilityController::class, 'store'])
+        // Vehicle events · CRUD operated from the vehicle detail page.
+        Route::post('/vehicle-events', [VehicleEventController::class, 'store'])
             ->middleware('throttle:300,1')
-            ->name('unavailabilities.store');
-        Route::patch('/unavailabilities/{unavailability}', [UnavailabilityController::class, 'update'])
-            ->whereNumber('unavailability')
+            ->name('vehicle-events.store');
+        Route::patch('/vehicle-events/{vehicleEvent}', [VehicleEventController::class, 'update'])
+            ->whereNumber('vehicleEvent')
             ->middleware('throttle:300,1')
-            ->name('unavailabilities.update');
-        Route::delete('/unavailabilities/{unavailability}', [UnavailabilityController::class, 'destroy'])
-            ->whereNumber('unavailability')
+            ->name('vehicle-events.update');
+        Route::delete('/vehicle-events/{vehicleEvent}', [VehicleEventController::class, 'destroy'])
+            ->whereNumber('vehicleEvent')
             ->middleware('throttle:300,1')
-            ->name('unavailabilities.destroy');
+            ->name('vehicle-events.destroy');
 
-        // Unavailability documents · image/PDF justifications (5 max, 5 MB).
+        // Vehicle event documents · image/PDF justifications (5 max, 5 MB).
         // Mirrors the contract documents pattern.
-        Route::post('/unavailabilities/{unavailability}/documents', [UnavailabilityDocumentController::class, 'store'])
-            ->whereNumber('unavailability')
+        Route::post('/vehicle-events/{vehicleEvent}/documents', [VehicleEventDocumentController::class, 'store'])
+            ->whereNumber('vehicleEvent')
             ->middleware('throttle:120,1')
-            ->name('unavailabilities.documents.store');
-        Route::get('/unavailabilities/{unavailability}/documents/{document}', [UnavailabilityDocumentController::class, 'show'])
-            ->whereNumber(['unavailability', 'document'])
-            ->name('unavailabilities.documents.show');
-        Route::delete('/unavailabilities/{unavailability}/documents/{document}', [UnavailabilityDocumentController::class, 'destroy'])
-            ->whereNumber(['unavailability', 'document'])
+            ->name('vehicle-events.documents.store');
+        Route::get('/vehicle-events/{vehicleEvent}/documents/{document}', [VehicleEventDocumentController::class, 'show'])
+            ->whereNumber(['vehicleEvent', 'document'])
+            ->name('vehicle-events.documents.show');
+        Route::delete('/vehicle-events/{vehicleEvent}/documents/{document}', [VehicleEventDocumentController::class, 'destroy'])
+            ->whereNumber(['vehicleEvent', 'document'])
             ->middleware('throttle:300,1')
-            ->name('unavailabilities.documents.destroy');
+            ->name('vehicle-events.documents.destroy');
 
         // Planning · global yearly heatmap view.
         // Drawer endpoints (week / previews) are read-only and called repeatedly

@@ -25,8 +25,8 @@ use App\Fiscal\ValueObjects\AppliedExemption;
 use App\Fiscal\ValueObjects\FiscalSegmentBreakdown;
 use App\Fiscal\ValueObjects\VfcEffectiveSegment;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\FiscalRule\FiscalRuleQueryService;
 use App\Services\Shared\Fiscal\FiscalYearContext;
@@ -47,7 +47,7 @@ use Illuminate\Support\Collection;
  * couple. The aggregator sums `*DueRaw` from `PipelineResult` and
  * rounds at the end (ADR-0006 § 2). The 2024-passing handles `ContractsByPair`
  * (ADR-0014); unavailabilities per vehicle are passed separately
- * (`vehicleId → list<Unavailability>`) to feed R-2024-008.
+ * (`vehicleId → list<VehicleEvent>`) to feed R-2024-008.
  *
  * --------------------------------------------------------------------------
  * Stability notice · NOT refactored under the zero-debt doctrine.
@@ -167,12 +167,12 @@ final class FleetFiscalAggregator
      * preloaded (otherwise the pipeline issues a fresh repository
      * query per call).
      *
-     * @param  list<Unavailability>  $vehicleUnavailabilities  Year unavailabilities of the vehicle
+     * @param  list<VehicleEvent>  $vehicleEvents  Year unavailabilities of the vehicle
      */
     public function vehicleAnnualTax(
         Vehicle $vehicle,
         ContractsByPair $contracts,
-        array $vehicleUnavailabilities,
+        array $vehicleEvents,
         int $year,
     ): float {
         $key = $vehicle->id.'|'.$year;
@@ -180,18 +180,18 @@ final class FleetFiscalAggregator
         return $this->vehicleAnnualTaxCache[$key] ??= $this->computeVehicleAnnualTax(
             $vehicle,
             $contracts,
-            $vehicleUnavailabilities,
+            $vehicleEvents,
             $year,
         );
     }
 
     /**
-     * @param  list<Unavailability>  $vehicleUnavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      */
     private function computeVehicleAnnualTax(
         Vehicle $vehicle,
         ContractsByPair $contracts,
-        array $vehicleUnavailabilities,
+        array $vehicleEvents,
         int $year,
     ): float {
         // Optimised branch when the VFC cache is prewarmed (see
@@ -204,7 +204,7 @@ final class FleetFiscalAggregator
 
         $totalRaw = 0.0;
         foreach ($contracts->pairsForVehicle($vehicle->id) as $pairContracts) {
-            $context = $this->buildContext($vehicle, $pairContracts, $vehicleUnavailabilities, $year);
+            $context = $this->buildContext($vehicle, $pairContracts, $vehicleEvents, $year);
             $result = $cachedSegments !== null
                 ? $this->pipeline->executeWithPreloadedVfcSegments($context, $cachedSegments)
                 : $this->pipeline->execute($context);
@@ -223,13 +223,13 @@ final class FleetFiscalAggregator
      * per taxpayer.
      *
      * @param  Collection<int, Vehicle>  $vehiclesById  Indexed by id
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId
      */
     public function companyAnnualTax(
         int $companyId,
         Collection $vehiclesById,
         ContractsByPair $contracts,
-        array $unavailabilitiesByVehicleId,
+        array $vehicleEventsByVehicleId,
         int $year,
     ): float {
         $key = $companyId.'|'.$year;
@@ -238,20 +238,20 @@ final class FleetFiscalAggregator
             $companyId,
             $vehiclesById,
             $contracts,
-            $unavailabilitiesByVehicleId,
+            $vehicleEventsByVehicleId,
             $year,
         );
     }
 
     /**
      * @param  Collection<int, Vehicle>  $vehiclesById
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId
      */
     private function computeCompanyAnnualTax(
         int $companyId,
         Collection $vehiclesById,
         ContractsByPair $contracts,
-        array $unavailabilitiesByVehicleId,
+        array $vehicleEventsByVehicleId,
         int $year,
     ): float {
         $totalRaw = 0.0;
@@ -264,7 +264,7 @@ final class FleetFiscalAggregator
                 $this->buildContext(
                     $vehicle,
                     $pairContracts,
-                    $unavailabilitiesByVehicleId[$vehicleId] ?? [],
+                    $vehicleEventsByVehicleId[$vehicleId] ?? [],
                     $year,
                 ),
             );
@@ -640,11 +640,11 @@ final class FleetFiscalAggregator
      * Caller must eager-load `$contract->vehicle->fiscalCharacteristics`
      * (see `ContractReadRepository::findByIdWithRelations`).
      *
-     * @param  list<Unavailability>  $vehicleUnavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      */
     public function contractTaxBreakdown(
         Contract $contract,
-        array $vehicleUnavailabilities,
+        array $vehicleEvents,
     ): ContractTaxBreakdownData {
         $vehicle = $contract->vehicle;
         $startYear = $contract->start_date->year;
@@ -654,7 +654,7 @@ final class FleetFiscalAggregator
         $totalRaw = 0.0;
 
         for ($year = $startYear; $year <= $endYear; $year++) {
-            $context = $this->buildContext($vehicle, [$contract], $vehicleUnavailabilities, $year);
+            $context = $this->buildContext($vehicle, [$contract], $vehicleEvents, $year);
             // Optimised branch when the VFC cache is prewarmed (same
             // pattern as in {@see vehicleFullYearTaxBreakdown()}).
             $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
@@ -882,13 +882,13 @@ final class FleetFiscalAggregator
      * pollutants / total separated. One entry per actually attributed
      * company; the consumer sorts (typically by descending days).
      *
-     * @param  list<Unavailability>  $vehicleUnavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      * @return list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
      */
     public function vehicleAnnualTaxBreakdownByCompany(
         Vehicle $vehicle,
         ContractsByPair $contracts,
-        array $vehicleUnavailabilities,
+        array $vehicleEvents,
         int $year,
     ): array {
         $key = $vehicle->id.'|'.$year;
@@ -896,25 +896,25 @@ final class FleetFiscalAggregator
         return $this->vehicleAnnualTaxBreakdownByCompanyCache[$key] ??= $this->computeVehicleAnnualTaxBreakdownByCompany(
             $vehicle,
             $contracts,
-            $vehicleUnavailabilities,
+            $vehicleEvents,
             $year,
         );
     }
 
     /**
-     * @param  list<Unavailability>  $vehicleUnavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      * @return list<array{companyId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float}>
      */
     private function computeVehicleAnnualTaxBreakdownByCompany(
         Vehicle $vehicle,
         ContractsByPair $contracts,
-        array $vehicleUnavailabilities,
+        array $vehicleEvents,
         int $year,
     ): array {
         $rows = [];
         foreach ($contracts->pairsForVehicle($vehicle->id) as $companyId => $pairContracts) {
             $result = $this->pipeline->execute(
-                $this->buildContext($vehicle, $pairContracts, $vehicleUnavailabilities, $year),
+                $this->buildContext($vehicle, $pairContracts, $vehicleEvents, $year),
             );
 
             // Each line represents a taxpayer (a company using this
@@ -949,14 +949,14 @@ final class FleetFiscalAggregator
      * contract line (beyond the historical R-021 hardcode).
      *
      * @param  Collection<int, Vehicle>  $vehiclesById  Indexed by id
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId
      * @return list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float, appliedExemptions: list<AppliedExemption>}>
      */
     public function companyAnnualTaxBreakdownByVehicle(
         int $companyId,
         Collection $vehiclesById,
         ContractsByPair $contracts,
-        array $unavailabilitiesByVehicleId,
+        array $vehicleEventsByVehicleId,
         int $year,
     ): array {
         $key = $companyId.'|'.$year;
@@ -965,21 +965,21 @@ final class FleetFiscalAggregator
             $companyId,
             $vehiclesById,
             $contracts,
-            $unavailabilitiesByVehicleId,
+            $vehicleEventsByVehicleId,
             $year,
         );
     }
 
     /**
      * @param  Collection<int, Vehicle>  $vehiclesById
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId
      * @return list<array{vehicleId: int, days: int, taxCo2: float, taxPollutants: float, taxTotal: float, appliedExemptions: list<AppliedExemption>}>
      */
     private function computeCompanyAnnualTaxBreakdownByVehicle(
         int $companyId,
         Collection $vehiclesById,
         ContractsByPair $contracts,
-        array $unavailabilitiesByVehicleId,
+        array $vehicleEventsByVehicleId,
         int $year,
     ): array {
         $rows = [];
@@ -993,7 +993,7 @@ final class FleetFiscalAggregator
                 $this->buildContext(
                     $vehicle,
                     $pairContracts,
-                    $unavailabilitiesByVehicleId[$vehicleId] ?? [],
+                    $vehicleEventsByVehicleId[$vehicleId] ?? [],
                     $year,
                 ),
             );
@@ -1020,12 +1020,12 @@ final class FleetFiscalAggregator
      * informative aggregate, not a declaratory amount.
      *
      * @param  Collection<int, Vehicle>  $vehiclesById  Indexed by id
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId
      */
     public function fleetAnnualTax(
         Collection $vehiclesById,
         ContractsByPair $contracts,
-        array $unavailabilitiesByVehicleId,
+        array $vehicleEventsByVehicleId,
         int $year,
     ): float {
         $key = (string) $year;
@@ -1033,19 +1033,19 @@ final class FleetFiscalAggregator
         return $this->fleetAnnualTaxCache[$key] ??= $this->computeFleetAnnualTax(
             $vehiclesById,
             $contracts,
-            $unavailabilitiesByVehicleId,
+            $vehicleEventsByVehicleId,
             $year,
         );
     }
 
     /**
      * @param  Collection<int, Vehicle>  $vehiclesById
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId
+     * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId
      */
     private function computeFleetAnnualTax(
         Collection $vehiclesById,
         ContractsByPair $contracts,
-        array $unavailabilitiesByVehicleId,
+        array $vehicleEventsByVehicleId,
         int $year,
     ): float {
         $totalRaw = 0.0;
@@ -1057,7 +1057,7 @@ final class FleetFiscalAggregator
             $context = $this->buildContext(
                 $vehicle,
                 $pair['contracts'],
-                $unavailabilitiesByVehicleId[$pair['vehicleId']] ?? [],
+                $vehicleEventsByVehicleId[$pair['vehicleId']] ?? [],
                 $year,
             );
             $cachedSegments = $this->vfcSegmentsCache[$vehicle->id.'|'.$year] ?? null;
@@ -1072,12 +1072,12 @@ final class FleetFiscalAggregator
 
     /**
      * @param  list<Contract>  $contractsForPair
-     * @param  list<Unavailability>  $vehicleUnavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      */
     private function buildContext(
         Vehicle $vehicle,
         array $contractsForPair,
-        array $vehicleUnavailabilities,
+        array $vehicleEvents,
         int $year,
     ): PipelineContext {
         return new PipelineContext(
@@ -1085,7 +1085,7 @@ final class FleetFiscalAggregator
             fiscalYear: $year,
             daysInYear: $this->yearContext->daysInYear($year),
             contractsForPair: $contractsForPair,
-            vehicleUnavailabilitiesInYear: $vehicleUnavailabilities,
+            vehicleUnavailabilitiesInYear: $vehicleEvents,
         );
     }
 

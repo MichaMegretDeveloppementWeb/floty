@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Tests\Feature\User\Planning;
 
-use App\Enums\Unavailability\UnavailabilityType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -110,7 +110,7 @@ final class PlanningControllerTest extends TestCase
                 'vehicleId',
                 'licensePlate',
                 'days' => [
-                    '*' => ['date', 'dayLabel', 'contract', 'hasUnavailability'],
+                    '*' => ['date', 'dayLabel', 'contract', 'hasVehicleEvent'],
                 ],
                 'companiesOnWeek',
                 'vehicleBusyDates',
@@ -173,9 +173,9 @@ final class PlanningControllerTest extends TestCase
         $end = sprintf('%d-03-09', $year);
         $expectedWeek = (int) Carbon::parse($start)->isoWeek;
 
-        Unavailability::factory()->create([
+        VehicleEvent::factory()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => UnavailabilityType::PoundPublic,
+            'type' => VehicleEventType::PoundPublic,
             'has_fiscal_impact' => true,
             'start_date' => $start,
             'end_date' => $end,
@@ -187,7 +187,7 @@ final class PlanningControllerTest extends TestCase
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Planning/Index/Index')
                 ->has('vehicles', 1)
-                ->where('vehicles.0.weeksWithUnavailability', [$expectedWeek]),
+                ->where('vehicles.0.weeksWithVehicleEvent', [$expectedWeek]),
             );
     }
 
@@ -209,9 +209,9 @@ final class PlanningControllerTest extends TestCase
         $end = sprintf('%d-03-06', $year);
         $weekNumber = (int) Carbon::parse($start)->isoWeek;
 
-        Unavailability::factory()->create([
+        VehicleEvent::factory()->create([
             'vehicle_id' => $vehicle->id,
-            'type' => UnavailabilityType::Maintenance,
+            'type' => VehicleEventType::Maintenance,
             'has_fiscal_impact' => false,
             'start_date' => $start,
             'end_date' => $end,
@@ -225,13 +225,13 @@ final class PlanningControllerTest extends TestCase
         $payload = $response->json();
         $byDate = collect($payload['days'])->keyBy('date');
 
-        $this->assertTrue($byDate->get($start)['hasUnavailability'], "Le jour $start doit porter le flag.");
-        $this->assertTrue($byDate->get($end)['hasUnavailability'], "Le jour $end doit porter le flag.");
+        $this->assertTrue($byDate->get($start)['hasVehicleEvent'], "Le jour $start doit porter le flag.");
+        $this->assertTrue($byDate->get($end)['hasVehicleEvent'], "Le jour $end doit porter le flag.");
         // Les autres jours de la semaine (lundi/mardi avant, jeudi-dimanche après)
         // doivent rester sans flag.
         foreach ($payload['days'] as $day) {
             if ($day['date'] !== $start && $day['date'] !== $end) {
-                $this->assertFalse($day['hasUnavailability'], "Le jour {$day['date']} ne doit pas porter le flag.");
+                $this->assertFalse($day['hasVehicleEvent'], "Le jour {$day['date']} ne doit pas porter le flag.");
             }
         }
     }
@@ -248,7 +248,7 @@ final class PlanningControllerTest extends TestCase
             ->assertOk();
 
         foreach ($response->json('days') as $day) {
-            $this->assertFalse($day['hasUnavailability']);
+            $this->assertFalse($day['hasVehicleEvent']);
         }
     }
 

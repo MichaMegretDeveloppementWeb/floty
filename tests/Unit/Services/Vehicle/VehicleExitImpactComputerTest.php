@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Vehicle;
 
-use App\Enums\Unavailability\UnavailabilityType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Services\Vehicle\VehicleExitImpactComputer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -89,9 +89,9 @@ final class VehicleExitImpactComputerTest extends TestCase
     #[Test]
     public function indispo_qui_deborde_exit_date_remonte_un_conflit(): void
     {
-        $unavailability = Unavailability::factory()->create([
+        $vehicleEvent = VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicleId,
-            'type' => UnavailabilityType::Maintenance,
+            'type' => VehicleEventType::Maintenance,
             'has_fiscal_impact' => false,
             'start_date' => '2025-06-10',
             'end_date' => '2025-07-05',
@@ -101,14 +101,14 @@ final class VehicleExitImpactComputerTest extends TestCase
 
         self::assertTrue($impact->hasConflicts);
         self::assertCount(1, $impact->conflictingUnavailabilities);
-        self::assertSame($unavailability->id, $impact->conflictingUnavailabilities[0]->id);
-        self::assertSame(UnavailabilityType::Maintenance, $impact->conflictingUnavailabilities[0]->type);
+        self::assertSame($vehicleEvent->id, $impact->conflictingUnavailabilities[0]->id);
+        self::assertSame(VehicleEventType::Maintenance, $impact->conflictingUnavailabilities[0]->type);
     }
 
     #[Test]
     public function indispo_en_cours_sans_date_de_fin_compte_comme_conflit(): void
     {
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $this->vehicleId,
             'start_date' => '2025-06-10',
             'end_date' => null,
@@ -126,9 +126,9 @@ final class VehicleExitImpactComputerTest extends TestCase
     {
         $this->createContract('2025-05-01', '2025-07-31');
         $this->createContract('2025-08-01', '2025-09-30');
-        Unavailability::factory()->create([
+        VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicleId,
-            'type' => UnavailabilityType::Maintenance,
+            'type' => VehicleEventType::Maintenance,
             'has_fiscal_impact' => false,
             'start_date' => '2025-07-15',
             'end_date' => '2025-07-20',

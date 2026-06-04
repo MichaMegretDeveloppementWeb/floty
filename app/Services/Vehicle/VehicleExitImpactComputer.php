@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace App\Services\Vehicle;
 
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
-use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\User\Vehicle\ConflictingContractData;
-use App\Data\User\Vehicle\ConflictingUnavailabilityData;
+use App\Data\User\Vehicle\ConflictingVehicleEventData;
 use App\Data\User\Vehicle\VehicleExitImpactData;
 use App\Models\Contract;
-use App\Models\Unavailability;
+use App\Models\VehicleEvent;
 
 /**
  * Computes active contracts and unavailabilities that would overflow a
@@ -20,7 +20,7 @@ final readonly class VehicleExitImpactComputer
 {
     public function __construct(
         private ContractReadRepositoryInterface $contracts,
-        private UnavailabilityReadRepositoryInterface $unavailabilities,
+        private VehicleEventReadRepositoryInterface $vehicleEvents,
     ) {}
 
     /**
@@ -37,7 +37,7 @@ final readonly class VehicleExitImpactComputer
         )->filter(static fn (Contract $c): bool => $c->end_date->greaterThan($exitDate))
             ->values();
 
-        $unavailabilities = $this->unavailabilities->findActiveOverlappingDateForVehicle(
+        $vehicleEvents = $this->vehicleEvents->findActiveOverlappingDateForVehicle(
             $vehicleId,
             $exitDate,
         );
@@ -52,8 +52,8 @@ final readonly class VehicleExitImpactComputer
             ->values()
             ->all();
 
-        $unavailabilityData = $unavailabilities
-            ->map(static fn (Unavailability $u): ConflictingUnavailabilityData => new ConflictingUnavailabilityData(
+        $vehicleEventData = $vehicleEvents
+            ->map(static fn (VehicleEvent $u): ConflictingVehicleEventData => new ConflictingVehicleEventData(
                 id: $u->id,
                 type: $u->type,
                 startDate: $u->start_date->toDateString(),
@@ -63,9 +63,9 @@ final readonly class VehicleExitImpactComputer
             ->all();
 
         return new VehicleExitImpactData(
-            hasConflicts: $contracts->isNotEmpty() || $unavailabilities->isNotEmpty(),
+            hasConflicts: $contracts->isNotEmpty() || $vehicleEvents->isNotEmpty(),
             conflictingContracts: $contractData,
-            conflictingUnavailabilities: $unavailabilityData,
+            conflictingUnavailabilities: $vehicleEventData,
         );
     }
 }

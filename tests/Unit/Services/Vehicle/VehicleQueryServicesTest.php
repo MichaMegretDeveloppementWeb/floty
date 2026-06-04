@@ -10,8 +10,8 @@ use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use App\Services\Vehicle\VehicleAggregatesService;
@@ -222,7 +222,7 @@ final class VehicleQueryServicesTest extends TestCase
             ]);
 
         // Indispo PoundPublic 3 jours sur la même semaine.
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $vehicle->id,
             'start_date' => '2026-05-06',
             'end_date' => '2026-05-08',
@@ -232,7 +232,7 @@ final class VehicleQueryServicesTest extends TestCase
         $week19 = $this->weekRow($stats, 19);
 
         self::assertSame(7, $week19->totalDays);
-        self::assertSame(3, $week19->reductiveUnavailabilityDays);
+        self::assertSame(3, $week19->reductiveVehicleEventDays);
         self::assertSame(0, $week19->nonReductiveUnavailabilityDays);
     }
 
@@ -245,12 +245,12 @@ final class VehicleQueryServicesTest extends TestCase
         // ISO week 19 = lundi 4 mai → dimanche 10 mai 2026.
         // 2 jours réducteurs (PoundPublic) + 4 jours non-réducteurs (Maintenance),
         // sans overlap entre eux pour éviter la priorité.
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $vehicle->id,
             'start_date' => '2026-05-04',
             'end_date' => '2026-05-05',
         ]);
-        Unavailability::factory()->maintenance()->create([
+        VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $vehicle->id,
             'start_date' => '2026-05-06',
             'end_date' => '2026-05-09',
@@ -259,7 +259,7 @@ final class VehicleQueryServicesTest extends TestCase
         $stats = $this->aggregates->usageStatsForYear($vehicle->id, 2026);
         $week19 = $this->weekRow($stats, 19);
 
-        self::assertSame(2, $week19->reductiveUnavailabilityDays);
+        self::assertSame(2, $week19->reductiveVehicleEventDays);
         self::assertSame(4, $week19->nonReductiveUnavailabilityDays);
     }
 
@@ -274,13 +274,13 @@ final class VehicleQueryServicesTest extends TestCase
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
 
         // Maintenance les 4-5 mai (ISO week 19).
-        Unavailability::factory()->maintenance()->create([
+        VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $vehicle->id,
             'start_date' => '2026-05-04',
             'end_date' => '2026-05-05',
         ]);
         // PoundPublic chevauche le 5 mai et ajoute le 6 mai.
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $vehicle->id,
             'start_date' => '2026-05-05',
             'end_date' => '2026-05-06',
@@ -291,7 +291,7 @@ final class VehicleQueryServicesTest extends TestCase
 
         // 4 mai = nonReductive (1j), 5 mai = reductive (priorité), 6 mai = reductive
         // → 2 réductrices + 1 non-réductrice (pas de double comptage du 5 mai).
-        self::assertSame(2, $week19->reductiveUnavailabilityDays);
+        self::assertSame(2, $week19->reductiveVehicleEventDays);
         self::assertSame(1, $week19->nonReductiveUnavailabilityDays);
     }
 

@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Fiscal\Year2025\Exemption;
 
-use App\Enums\Unavailability\UnavailabilityType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\Year2025\Exemption\R2025_008_ReductiveUnavailability;
 use App\Fiscal\Year2025\Exemption\R2025_021_ShortTermRental;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -43,7 +43,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_1_bofip_p190_fourriere_publique_15_jours_reduit_de_15(): void
     {
-        $unavailability = Unavailability::factory()->poundPublic()->create([
+        $vehicleEvent = VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2022-06-01',
             'end_date' => '2022-06-15',
@@ -52,7 +52,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2022,
             contracts: [$this->makeFullYearContract(2022)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         self::assertTrue($verdict->isExempt);
@@ -62,7 +62,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_2_maintenance_5_jours_n_reduit_pas(): void
     {
-        $unavailability = Unavailability::factory()->maintenance()->create([
+        $vehicleEvent = VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2025-04-01',
             'end_date' => '2025-04-05',
@@ -71,7 +71,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$this->makeFullYearContract(2025)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         self::assertFalse($verdict->isExempt);
@@ -80,9 +80,9 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_3_sinistre_reparation_simple_n_reduit_pas(): void
     {
-        $unavailability = Unavailability::factory()->create([
+        $vehicleEvent = VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => UnavailabilityType::AccidentRepair,
+            'type' => VehicleEventType::AccidentRepair,
             'has_fiscal_impact' => false,
             'start_date' => '2025-05-01',
             'end_date' => '2025-05-10',
@@ -91,7 +91,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$this->makeFullYearContract(2025)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         self::assertFalse($verdict->isExempt);
@@ -100,7 +100,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_4_interdiction_circulation_post_sinistre_30_jours_reduit_de_30(): void
     {
-        $unavailability = Unavailability::factory()->accidentNoCirculation()->create([
+        $vehicleEvent = VehicleEvent::factory()->accidentNoCirculation()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2025-03-01',
             'end_date' => '2025-03-30',
@@ -109,7 +109,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$this->makeFullYearContract(2025)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         self::assertTrue($verdict->isExempt);
@@ -122,7 +122,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         // Différence cruciale 2024/2025 : l'année 2025 n'est pas bissextile,
         // donc une suspension du 01/02 au 31/03 = 59 jours (28 + 31), alors
         // qu'en 2024 ce serait 60 jours (29 + 31).
-        $unavailability = Unavailability::factory()->ciSuspension()->create([
+        $vehicleEvent = VehicleEvent::factory()->ciSuspension()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2025-02-01',
             'end_date' => '2025-03-31',
@@ -131,7 +131,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$this->makeFullYearContract(2025)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         self::assertTrue($verdict->isExempt);
@@ -141,9 +141,9 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_6_fourriere_privee_n_reduit_pas(): void
     {
-        $unavailability = Unavailability::factory()->create([
+        $vehicleEvent = VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => UnavailabilityType::PoundPrivate,
+            'type' => VehicleEventType::PoundPrivate,
             'has_fiscal_impact' => false,
             'start_date' => '2025-06-01',
             'end_date' => '2025-06-05',
@@ -152,7 +152,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$this->makeFullYearContract(2025)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         self::assertFalse($verdict->isExempt);
@@ -161,7 +161,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_7_indispo_chevauchant_2_annees_compte_seulement_jours_dans_annee(): void
     {
-        $unavailability = Unavailability::factory()->poundPublic()->create([
+        $vehicleEvent = VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2024-12-20',
             'end_date' => '2025-01-10',
@@ -170,12 +170,12 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict2024 = $this->rule->evaluate($this->makeContext(
             year: 2024,
             contracts: [$this->makeFullYearContract(2024)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
         $verdict2025 = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$this->makeFullYearContract(2025)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         // 12 jours en 2024 (20→31 décembre inclusif), 10 jours en 2025 (1→10 janvier).
@@ -186,7 +186,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_8_indispo_hors_jours_de_contrat_taxable_n_a_pas_d_effet(): void
     {
-        $unavailability = Unavailability::factory()->poundPublic()->create([
+        $vehicleEvent = VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2025-09-01',
             'end_date' => '2025-09-05',
@@ -204,7 +204,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$contract],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         self::assertFalse($verdict->isExempt);
@@ -213,12 +213,12 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_9_cumul_reductif_et_non_reductif_seul_le_reducteur_compte(): void
     {
-        $reductive = Unavailability::factory()->poundPublic()->create([
+        $reductive = VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2025-04-01',
             'end_date' => '2025-04-10',
         ]);
-        $nonReductive = Unavailability::factory()->maintenance()->create([
+        $nonReductive = VehicleEvent::factory()->maintenance()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2025-05-01',
             'end_date' => '2025-05-20',
@@ -227,7 +227,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$this->makeFullYearContract(2025)],
-            unavailabilities: [$reductive, $nonReductive],
+            vehicleEvents: [$reductive, $nonReductive],
         ));
 
         self::assertSame(10, $verdict->exemptDaysCount);
@@ -236,9 +236,9 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
     #[Test]
     public function cas_10_vol_simple_n_reduit_pas(): void
     {
-        $unavailability = Unavailability::factory()->create([
+        $vehicleEvent = VehicleEvent::factory()->create([
             'vehicle_id' => $this->vehicle->id,
-            'type' => UnavailabilityType::Theft,
+            'type' => VehicleEventType::Theft,
             'has_fiscal_impact' => false,
             'start_date' => '2025-07-01',
             'end_date' => '2025-08-14',
@@ -247,7 +247,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$this->makeFullYearContract(2025)],
-            unavailabilities: [$unavailability],
+            vehicleEvents: [$vehicleEvent],
         ));
 
         self::assertFalse($verdict->isExempt);
@@ -260,7 +260,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         // numérateur. Si R-2025-008 les recomptait, on aurait un
         // double-décompte. Vérifier qu'un jour d'indispo réductrice
         // pendant un LCD ne génère aucun verdict réducteur ici.
-        $reductive = Unavailability::factory()->poundPublic()->create([
+        $reductive = VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $this->vehicle->id,
             'start_date' => '2025-04-05',
             'end_date' => '2025-04-08',
@@ -275,7 +275,7 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
         $verdict = $this->rule->evaluate($this->makeContext(
             year: 2025,
             contracts: [$lcd],
-            unavailabilities: [$reductive],
+            vehicleEvents: [$reductive],
         ));
 
         self::assertFalse($verdict->isExempt);
@@ -283,16 +283,16 @@ final class R2025_008_ReductiveUnavailabilityTest extends TestCase
 
     /**
      * @param  list<Contract>  $contracts
-     * @param  list<Unavailability>  $unavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      */
-    private function makeContext(int $year, array $contracts, array $unavailabilities): PipelineContext
+    private function makeContext(int $year, array $contracts, array $vehicleEvents): PipelineContext
     {
         return new PipelineContext(
             vehicle: $this->vehicle,
             fiscalYear: $year,
             daysInYear: $year % 4 === 0 ? 366 : 365,
             contractsForPair: $contracts,
-            vehicleUnavailabilitiesInYear: $unavailabilities,
+            vehicleUnavailabilitiesInYear: $vehicleEvents,
         );
     }
 

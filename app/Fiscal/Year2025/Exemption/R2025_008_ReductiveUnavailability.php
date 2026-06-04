@@ -15,7 +15,7 @@ use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
-use App\Models\Unavailability;
+use App\Models\VehicleEvent;
 use Carbon\CarbonImmutable;
 
 /**
@@ -164,23 +164,23 @@ final readonly class R2025_008_ReductiveUnavailability implements ExemptionRule
     }
 
     /**
-     * @param  list<Unavailability>  $unavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      * @return list<string>
      */
-    private function collectReductiveUnavailableDates(array $unavailabilities, int $year): array
+    private function collectReductiveUnavailableDates(array $vehicleEvents, int $year): array
     {
         $yearStart = CarbonImmutable::create($year, 1, 1);
         $yearEnd = CarbonImmutable::create($year, 12, 31);
         $dates = [];
 
-        foreach ($unavailabilities as $unavailability) {
-            if (! $unavailability->has_fiscal_impact) {
+        foreach ($vehicleEvents as $vehicleEvent) {
+            if (! $vehicleEvent->has_fiscal_impact) {
                 continue;
             }
 
-            $start = $unavailability->start_date->toImmutable();
-            $end = $unavailability->end_date !== null
-                ? $unavailability->end_date->toImmutable()
+            $start = $vehicleEvent->start_date->toImmutable();
+            $end = $vehicleEvent->end_date !== null
+                ? $vehicleEvent->end_date->toImmutable()
                 : $yearEnd;
 
             $rangeStart = $start->isAfter($yearStart) ? $start : $yearStart;

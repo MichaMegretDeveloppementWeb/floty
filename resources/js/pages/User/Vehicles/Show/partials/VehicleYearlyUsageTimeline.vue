@@ -54,7 +54,7 @@ const {
                                 :class="[
                                     'relative flex h-10 w-[16px] flex-col-reverse overflow-hidden border-r border-white last:border-r-0',
                                     week.totalDays === 0
-                                        && week.reductiveUnavailabilityDays === 0
+                                        && week.reductiveVehicleEventDays === 0
                                         && week.nonReductiveUnavailabilityDays === 0
                                         ? 'bg-slate-100'
                                         : '',
@@ -67,9 +67,9 @@ const {
                                     :style="{ height: heightFor(segment) }"
                                 />
                                 <div
-                                    v-if="week.reductiveUnavailabilityDays > 0"
+                                    v-if="week.reductiveVehicleEventDays > 0"
                                     class="pointer-events-none absolute inset-x-0 top-0 bg-rose-50/70"
-                                    :style="{ height: heightForDays(week.reductiveUnavailabilityDays) }"
+                                    :style="{ height: heightForDays(week.reductiveVehicleEventDays) }"
                                 >
                                     <svg
                                         class="h-full w-full text-rose-400"
@@ -89,7 +89,7 @@ const {
                                     v-if="week.nonReductiveUnavailabilityDays > 0"
                                     class="pointer-events-none absolute inset-x-0 bg-slate-200/70"
                                     :style="{
-                                        top: heightForDays(week.reductiveUnavailabilityDays),
+                                        top: heightForDays(week.reductiveVehicleEventDays),
                                         height: heightForDays(week.nonReductiveUnavailabilityDays),
                                     }"
                                 >
@@ -115,7 +115,7 @@ const {
                                 </p>
                                 <p
                                     v-if="week.segments.length === 0
-                                        && week.reductiveUnavailabilityDays === 0
+                                        && week.reductiveVehicleEventDays === 0
                                         && week.nonReductiveUnavailabilityDays === 0"
                                     class="text-slate-300"
                                 >
@@ -142,7 +142,7 @@ const {
                                         </span>
                                     </li>
                                     <li
-                                        v-if="week.reductiveUnavailabilityDays > 0"
+                                        v-if="week.reductiveVehicleEventDays > 0"
                                         class="flex items-center gap-2"
                                     >
                                         <span
@@ -151,7 +151,7 @@ const {
                                         />
                                         <span class="font-medium">Indispo réductrice</span>
                                         <span class="text-slate-300">
-                                            {{ week.reductiveUnavailabilityDays }}j
+                                            {{ week.reductiveVehicleEventDays }}j
                                         </span>
                                     </li>
                                     <li

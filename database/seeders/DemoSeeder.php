@@ -8,7 +8,6 @@ use App\Actions\FiscalDeclaration\GenerateDeclarationAction;
 use App\Enums\Company\CompanyColor;
 use App\Enums\Contract\ContractType;
 use App\Enums\FiscalDeclaration\FiscalDeclarationStatus;
-use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -20,14 +19,15 @@ use App\Enums\Vehicle\UnderlyingCombustionEngineType;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\BillingSettings;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\Driver;
 use App\Models\FiscalDeclaration;
 use App\Models\RentalDiscount;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
 use Illuminate\Database\QueryException;
@@ -1067,14 +1067,14 @@ final class DemoSeeder extends Seeder
      */
     private function seedUnavailabilities(array $vehicles): void
     {
-        Unavailability::query()->forceDelete();
+        VehicleEvent::query()->forceDelete();
 
         // Standalone (out of any contract).
 
         // EJ-010-JJ Kangoo TPMR: 8-day reducing pound period before the first COR contract.
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EJ-010-JJ'],
-            type: UnavailabilityType::PoundPublic,
+            type: VehicleEventType::PoundPublic,
             startDate: '2024-02-12',
             endDate: '2024-02-19',
             description: 'Stationnement gênant signalé par la mairie.',
@@ -1082,9 +1082,9 @@ final class DemoSeeder extends Seeder
 
         // EI-009-II Ford Transit - créneau libre 06-01 → 09-30 (entre BTP et ECO).
         // Interdiction de circuler post-sinistre 12 j, réductrice.
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EI-009-II'],
-            type: UnavailabilityType::AccidentNoCirculation,
+            type: VehicleEventType::AccidentNoCirculation,
             startDate: '2024-07-08',
             endDate: '2024-07-19',
             description: 'Choc latéral, expertise + interdiction préfectorale.',
@@ -1092,9 +1092,9 @@ final class DemoSeeder extends Seeder
 
         // EG-007-GG BMW Série 5 - créneau hors contrats. Suspension CI 25 j,
         // réductrice (max BOFiP § 50).
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EG-007-GG'],
-            type: UnavailabilityType::CiSuspension,
+            type: VehicleEventType::CiSuspension,
             startDate: '2024-08-05',
             endDate: '2024-08-29',
             description: 'Suspension administrative du certificat d\'immatriculation.',
@@ -1102,9 +1102,9 @@ final class DemoSeeder extends Seeder
 
         // EH-008-HH Partner - maintenance courante 4 j, NON réductrice
         // (BOFiP § 50 : entretien courant exclu).
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: UnavailabilityType::Maintenance,
+            type: VehicleEventType::Maintenance,
             startDate: '2024-12-09',
             endDate: '2024-12-12',
             description: 'Révision constructeur + remplacement pneus AV.',
@@ -1113,36 +1113,36 @@ final class DemoSeeder extends Seeder
         // Contract-overlapping unavailabilities.
 
         // EA-001-AA: 11-day CI suspension overlapping the ACM contract: reducing.
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EA-001-AA'],
-            type: UnavailabilityType::CiSuspension,
+            type: VehicleEventType::CiSuspension,
             startDate: '2024-02-15',
             endDate: '2024-02-25',
             description: 'Cohabitation contrat ACM : suspension administrative pour défaut d\'assurance.',
         );
 
         // EB-002-BB: 10-day no-circulation overlap on the long BTP contract.
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EB-002-BB'],
-            type: UnavailabilityType::AccidentNoCirculation,
+            type: VehicleEventType::AccidentNoCirculation,
             startDate: '2024-03-10',
             endDate: '2024-03-19',
             description: 'Cohabitation contrat BTP : choc à l\'arrière, attente expertise.',
         );
 
         // EE-005-EE: mixed case overlapping COR contract AND a VFC switch (PA 8→7).
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EE-005-EE'],
-            type: UnavailabilityType::CiSuspension,
+            type: VehicleEventType::CiSuspension,
             startDate: '2024-03-10',
             endDate: '2024-03-22',
             description: 'Cohabitation contrat COR + bascule VFC : suspension CI 13 j à cheval sur 2 versions PA.',
         );
 
         // EH-008-HH: maintenance overlapping BTP, NON-reducing (regression guard).
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: UnavailabilityType::Maintenance,
+            type: VehicleEventType::Maintenance,
             startDate: '2024-02-12',
             endDate: '2024-02-15',
             description: 'Cohabitation contrat BTP : entretien courant (NE doit PAS réduire la taxe).',
@@ -1151,115 +1151,115 @@ final class DemoSeeder extends Seeder
         // 2025 unavailabilities (~15), including cross-year 2024/2025.
 
         // Cross-year overlap (per-year count check).
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EI-009-II'],
-            type: UnavailabilityType::PoundPublic,
+            type: VehicleEventType::PoundPublic,
             startDate: '2024-12-20',
             endDate: '2025-01-10',
             description: 'Cross-année · 12j en 2024 + 10j en 2025.',
         );
 
         // 15-day public pound on a contracted vehicle.
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EA-001-AA'],
-            type: UnavailabilityType::PoundPublic,
+            type: VehicleEventType::PoundPublic,
             startDate: '2025-04-05',
             endDate: '2025-04-19',
             description: 'Fourrière publique 15j 2025 · réductrice.',
         );
 
         // 59-day CI suspension (BOFiP case).
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EB-002-BB'],
-            type: UnavailabilityType::CiSuspension,
+            type: VehicleEventType::CiSuspension,
             startDate: '2025-02-01',
             endDate: '2025-03-31',
             description: 'Suspension CI 59j non bissextile · cas BOFiP.',
         );
 
         // 30-day no-circulation on an active LCD vehicle (double-count guard).
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EM-013-MM'],
-            type: UnavailabilityType::AccidentNoCirculation,
+            type: VehicleEventType::AccidentNoCirculation,
             startDate: '2025-03-01',
             endDate: '2025-03-30',
             description: 'Interdiction circulation 30j 2025 sur véhicule actif LLD.',
         );
 
         // Non-fiscal maintenance on contracted vehicle (regression guard).
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EF-006-FF'],
-            type: UnavailabilityType::Maintenance,
+            type: VehicleEventType::Maintenance,
             startDate: '2025-06-10',
             endDate: '2025-06-15',
             description: 'Maintenance 5j 2025 · NON réductrice (garde-fou).',
         );
 
         // Fourrière privée (NON réductrice)
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EG-007-GG'],
-            type: UnavailabilityType::PoundPrivate,
+            type: VehicleEventType::PoundPrivate,
             startDate: '2025-05-12',
             endDate: '2025-05-19',
             description: 'Fourrière privée 7j 2025 · NON réductrice.',
         );
 
         // Vol simple (NON réductrice)
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: UnavailabilityType::Theft,
+            type: VehicleEventType::Theft,
             startDate: '2025-08-04',
             endDate: '2025-08-18',
             description: 'Vol simple 14j 2025 · NON réductrice.',
         );
 
         // Contrôle technique 2 jours (NON réductrice)
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EJ-010-JJ'],
-            type: UnavailabilityType::TechnicalInspection,
+            type: VehicleEventType::TechnicalInspection,
             startDate: '2025-09-08',
             endDate: '2025-09-09',
             description: 'Contrôle technique CT 2j 2025.',
         );
 
         // Réparation accident simple (NON réductrice)
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EL-012-LL'],
-            type: UnavailabilityType::AccidentRepair,
+            type: VehicleEventType::AccidentRepair,
             startDate: '2025-07-22',
             endDate: '2025-08-04',
             description: 'Réparation accident 14j 2025 · NON réductrice.',
         );
 
         // Cumul réductrice + non réductrice sur même véhicule en 2025
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EQ-017-QQ'],
-            type: UnavailabilityType::PoundPublic,
+            type: VehicleEventType::PoundPublic,
             startDate: '2025-04-01',
             endDate: '2025-04-15',
             description: 'Réductrice 15j · 1/2 cumul EQ-017-QQ',
         );
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EQ-017-QQ'],
-            type: UnavailabilityType::Maintenance,
+            type: VehicleEventType::Maintenance,
             startDate: '2025-05-10',
             endDate: '2025-05-25',
             description: 'NON réductrice 16j · 2/2 cumul EQ-017-QQ',
         );
 
         // Suspension CI mid-2025 sur véhicule Multi-VFC
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['GK-063-KK'],
-            type: UnavailabilityType::CiSuspension,
+            type: VehicleEventType::CiSuspension,
             startDate: '2025-06-20',
             endDate: '2025-07-08',
             description: 'Suspension CI à cheval bascule VFC E85 01/07/2025.',
         );
 
         // Fourrière publique pendant LCD (anti double-décompte avec R-2025-021)
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EM-013-MM'],
-            type: UnavailabilityType::PoundPublic,
+            type: VehicleEventType::PoundPublic,
             startDate: '2025-01-15',
             endDate: '2025-01-20',
             description: 'Réductrice 6j PENDANT LCD · anti double-décompte R-2025-021.',
@@ -1270,90 +1270,90 @@ final class DemoSeeder extends Seeder
         // ====================================================================
 
         // Cross 2025/2026
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EA-001-AA'],
-            type: UnavailabilityType::PoundPublic,
+            type: VehicleEventType::PoundPublic,
             startDate: '2025-12-15',
             endDate: '2026-01-08',
             description: 'Cross 2025/2026 · 17j en 2025 + 8j en 2026.',
         );
 
         // Fourrière publique 30j à cheval scission polluants 01/03/2026
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EM-013-MM'],
-            type: UnavailabilityType::PoundPublic,
+            type: VehicleEventType::PoundPublic,
             startDate: '2026-02-15',
             endDate: '2026-03-16',
             description: 'Réductrice 30j à cheval scission polluants 01/03/2026.',
         );
 
         // Suspension CI 45j
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EB-002-BB'],
-            type: UnavailabilityType::CiSuspension,
+            type: VehicleEventType::CiSuspension,
             startDate: '2026-05-10',
             endDate: '2026-06-23',
             description: 'Suspension CI 45j 2026.',
         );
 
         // Interdiction circulation 20j sur véhicule LCD cluster (Cluster gaming?)
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EX-024-XX'],
-            type: UnavailabilityType::AccidentNoCirculation,
+            type: VehicleEventType::AccidentNoCirculation,
             startDate: '2026-08-10',
             endDate: '2026-08-29',
             description: 'Interdiction circulation 20j à cheval cluster LCD.',
         );
 
         // Maintenance 5j sur véhicule IDF post LF 2026 art. 60
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EV-022-VV'],
-            type: UnavailabilityType::Maintenance,
+            type: VehicleEventType::Maintenance,
             startDate: '2026-07-10',
             endDate: '2026-07-14',
             description: 'Maintenance 5j · NON réductrice.',
         );
 
         // Vol simple
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EH-008-HH'],
-            type: UnavailabilityType::Theft,
+            type: VehicleEventType::Theft,
             startDate: '2026-04-12',
             endDate: '2026-04-25',
             description: 'Vol simple 14j 2026 · NON réductrice.',
         );
 
         // Suspension CI 59j à cheval 2026 non bissextile
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['EF-006-FF'],
-            type: UnavailabilityType::CiSuspension,
+            type: VehicleEventType::CiSuspension,
             startDate: '2026-02-01',
             endDate: '2026-03-31',
             description: 'Suspension CI 59j 2026 (28+31) non bissextile.',
         );
 
         // Fourrière publique sur véhicule électrique (test calcul · 0 € malgré indispo)
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['FD-030-DD'],
-            type: UnavailabilityType::PoundPublic,
+            type: VehicleEventType::PoundPublic,
             startDate: '2026-06-05',
             endDate: '2026-06-20',
             description: 'Réductrice sur élec · 0€ malgré indispo (exonération R-XXXX-016).',
         );
 
         // CT contrôle technique
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['FA-027-AA'],
-            type: UnavailabilityType::TechnicalInspection,
+            type: VehicleEventType::TechnicalInspection,
             startDate: '2026-09-15',
             endDate: '2026-09-16',
             description: 'CT 2026.',
         );
 
         // Accident réparation sur véhicule E85 (vérifier que abat applique sans interférence)
-        $this->createUnavailability(
+        $this->createVehicleEvent(
             vehicle: $vehicles['FU-047-UU'],
-            type: UnavailabilityType::AccidentRepair,
+            type: VehicleEventType::AccidentRepair,
             startDate: '2026-04-08',
             endDate: '2026-04-22',
             description: 'Réparation accident 15j · NON réductrice + E85 abat actif.',
@@ -1362,9 +1362,9 @@ final class DemoSeeder extends Seeder
         // Edge case Σ'.5 · indispo ONGOING (end_date = NULL · durée indéterminée)
         // sur le véhicule GM-065-MM (currentStatus=Maintenance)
         if (isset($vehicles['GM-065-MM'])) {
-            Unavailability::create([
+            VehicleEvent::create([
                 'vehicle_id' => $vehicles['GM-065-MM']->id,
-                'type' => UnavailabilityType::AccidentRepair,
+                'type' => VehicleEventType::AccidentRepair,
                 'has_fiscal_impact' => false,
                 'start_date' => '2026-03-15',
                 'end_date' => null,
@@ -1373,14 +1373,14 @@ final class DemoSeeder extends Seeder
         }
     }
 
-    private function createUnavailability(
+    private function createVehicleEvent(
         Vehicle $vehicle,
-        UnavailabilityType $type,
+        VehicleEventType $type,
         string $startDate,
         string $endDate,
         ?string $description = null,
     ): void {
-        Unavailability::create([
+        VehicleEvent::create([
             'vehicle_id' => $vehicle->id,
             'type' => $type,
             'has_fiscal_impact' => $type->isFiscallyReductive(),

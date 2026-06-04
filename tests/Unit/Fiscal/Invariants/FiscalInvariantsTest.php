@@ -7,8 +7,8 @@ namespace Tests\Unit\Fiscal\Invariants;
 use App\DTO\Fiscal\FiscalBreakdown;
 use App\Enums\Contract\ContractType;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Services\Fiscal\FiscalCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -78,7 +78,7 @@ final class FiscalInvariantsTest extends TestCase
     {
         $this->forEachScenario(function (FiscalScenario $scenario): void {
             $hasNonReductive = false;
-            foreach ($scenario->unavailabilities as $u) {
+            foreach ($scenario->vehicleEvents as $u) {
                 if (! $u->type->isFiscallyReductive()) {
                     $hasNonReductive = true;
                     break;
@@ -147,7 +147,7 @@ final class FiscalInvariantsTest extends TestCase
             }
 
             $rBase = $this->calc($scenario);
-            $rExtended = $this->calcWithContracts($scenario->vehicle, $extendedContracts, $scenario->unavailabilities, $scenario->year);
+            $rExtended = $this->calcWithContracts($scenario->vehicle, $extendedContracts, $scenario->vehicleEvents, $scenario->year);
 
             self::assertGreaterThanOrEqual(
                 $rBase->totalDue,
@@ -231,25 +231,25 @@ final class FiscalInvariantsTest extends TestCase
         return $this->calcWithContracts(
             $scenario->vehicle,
             $scenario->contracts,
-            $scenario->unavailabilities,
+            $scenario->vehicleEvents,
             $scenario->year,
         );
     }
 
     /**
      * @param  list<Contract>  $contracts
-     * @param  list<Unavailability>  $unavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      */
     private function calcWithContracts(
         Vehicle $vehicle,
         array $contracts,
-        array $unavailabilities,
+        array $vehicleEvents,
         int $year,
     ): FiscalBreakdown {
         return $this->calculator->calculate(
             $vehicle,
             $contracts,
-            $unavailabilities,
+            $vehicleEvents,
             $year,
         );
     }

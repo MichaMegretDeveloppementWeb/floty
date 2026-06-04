@@ -378,12 +378,12 @@ final class CompanyDetailService
         if ($vehicleIds !== []) {
             try {
                 $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
-                $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+                $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
                 $annualTaxDue = $this->aggregator->companyAnnualTax(
                     $companyId,
                     $vehiclesById,
                     $contractsByPair,
-                    $unavailabilitiesByVehicleId,
+                    $vehicleEventsByVehicleId,
                     $year,
                 );
             } catch (FiscalCalculationException) {

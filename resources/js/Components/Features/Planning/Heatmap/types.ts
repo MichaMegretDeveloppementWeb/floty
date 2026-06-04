@@ -20,7 +20,7 @@ export type HeatmapVehicleView = {
     /** Annual tax due (EUR); null until realCosts has responded. */
     summaryTax: number | null;
     exitDate: string | null;
-    weeksWithUnavailability: number[];
+    weeksWithVehicleEvent: number[];
     /** Theoretical full-year tax (EUR); null until fullYearCosts has responded. */
     fullYearTax: number | null;
     /** Daily proration (EUR/day); null until fullYearCosts has responded. */

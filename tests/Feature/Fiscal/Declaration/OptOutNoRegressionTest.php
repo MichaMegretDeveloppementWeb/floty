@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Tests\Feature\Fiscal\Declaration;
 
 use App\Enums\Contract\ContractType;
-use App\Enums\Unavailability\UnavailabilityType;
 use App\Enums\Vehicle\BodyType;
 use App\Enums\Vehicle\EnergySource;
 use App\Enums\Vehicle\EuroStandard;
@@ -15,6 +14,7 @@ use App\Enums\Vehicle\PollutantCategory;
 use App\Enums\Vehicle\ReceptionCategory;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Fiscal\Pipeline\FiscalPipeline;
 use App\Fiscal\Pipeline\FiscalSegmentedExecutor;
 use App\Fiscal\Pipeline\PipelineContext;
@@ -25,8 +25,8 @@ use App\Fiscal\Year2024\Exemption\R2024_021_ShortTermRental;
 use App\Fiscal\Year2024\Exemption\R2024_021_WithOptOuts;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Repositories\User\Vehicle\VehicleFiscalCharacteristicsReadRepository;
 use App\Services\Shared\Fiscal\FiscalYearContext;
@@ -153,16 +153,16 @@ final class OptOutNoRegressionTest extends TestCase
         $lcdContract = $this->lcdContract($vehicle, '2024-06-01', '2024-06-30');
         $lldContract2 = $this->lldContract($vehicle, '2024-07-01', '2024-12-31');
 
-        $unavailability = new Unavailability;
-        $unavailability->setRawAttributes([
+        $vehicleEvent = new VehicleEvent;
+        $vehicleEvent->setRawAttributes([
             'vehicle_id' => $vehicle->id,
             'start_date' => '2024-06-10',
             'end_date' => '2024-06-19',
-            'type' => UnavailabilityType::AccidentNoCirculation->value,
+            'type' => VehicleEventType::AccidentNoCirculation->value,
             'has_fiscal_impact' => true,
             'description' => null,
         ], true);
-        $unavailability->save();
+        $vehicleEvent->save();
 
         $contracts = [$lldContract1, $lcdContract, $lldContract2];
         $context = new PipelineContext(
@@ -170,7 +170,7 @@ final class OptOutNoRegressionTest extends TestCase
             fiscalYear: 2024,
             daysInYear: $this->yearContext->daysInYear(2024),
             contractsForPair: $contracts,
-            vehicleUnavailabilitiesInYear: [$unavailability],
+            vehicleUnavailabilitiesInYear: [$vehicleEvent],
         );
 
         // Cas A · standard sans opt-out

@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Tests\Unit\Services\Fiscal\Declaration;
 
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
-use App\Enums\Unavailability\UnavailabilityType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Models\Company;
 use App\Models\Contract;
 use App\Models\FiscalDeclaration;
-use App\Models\Unavailability;
 use App\Models\User;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\Declaration\DeclarationInvalidationDetector;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -147,13 +147,13 @@ final class DeclarationInvalidationDetectorTest extends TestCase
     {
         $declaration = $this->makeDeclaration(2025);
         $this->makeContract('2025-01-01', '2025-12-31'); // contrat actif sur l'année
-        $unavailability = $this->makeUnavailability(
-            type: UnavailabilityType::Maintenance, // non réductrice
+        $vehicleEvent = $this->makeVehicleEvent(
+            type: VehicleEventType::Maintenance, // non réductrice
             start: '2025-03-01',
             end: '2025-03-15',
         );
 
-        $this->detector->flagForUnavailability($unavailability, InvalidationReasonType::UnavailabilityCreated, $this->user->id);
+        $this->detector->flagForVehicleEvent($vehicleEvent, InvalidationReasonType::VehicleEventCreated, $this->user->id);
 
         self::assertFalse($declaration->fresh()->is_obsolete);
     }
@@ -163,13 +163,13 @@ final class DeclarationInvalidationDetectorTest extends TestCase
     {
         $declaration = $this->makeDeclaration(2025);
         $this->makeContract('2025-01-01', '2025-12-31');
-        $unavailability = $this->makeUnavailability(
-            type: UnavailabilityType::PoundPublic, // réductrice
+        $vehicleEvent = $this->makeVehicleEvent(
+            type: VehicleEventType::PoundPublic, // réductrice
             start: '2025-03-01',
             end: '2025-03-15',
         );
 
-        $this->detector->flagForUnavailability($unavailability, InvalidationReasonType::UnavailabilityCreated, $this->user->id);
+        $this->detector->flagForVehicleEvent($vehicleEvent, InvalidationReasonType::VehicleEventCreated, $this->user->id);
 
         self::assertTrue($declaration->fresh()->is_obsolete);
     }
@@ -336,10 +336,10 @@ final class DeclarationInvalidationDetectorTest extends TestCase
         );
     }
 
-    private function makeUnavailability(UnavailabilityType $type, string $start, string $end): Unavailability
+    private function makeVehicleEvent(VehicleEventType $type, string $start, string $end): VehicleEvent
     {
-        return Unavailability::withoutEvents(
-            fn (): Unavailability => Unavailability::factory()->create([
+        return VehicleEvent::withoutEvents(
+            fn (): VehicleEvent => VehicleEvent::factory()->create([
                 'vehicle_id' => $this->vehicle->id,
                 'type' => $type,
                 'start_date' => $start,

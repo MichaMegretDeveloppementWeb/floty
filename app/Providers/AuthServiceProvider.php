@@ -12,8 +12,8 @@ use App\Models\Driver;
 use App\Models\FiscalDeclaration;
 use App\Models\FiscalRiskSettings;
 use App\Models\Invoice;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Models\VehicleYearlyPricing;
 use App\Policies\BillingSettingsPolicy;
@@ -27,7 +27,7 @@ use App\Policies\FiscalRiskSettingsPolicy;
 use App\Policies\FiscalRulePolicy;
 use App\Policies\InvoicePolicy;
 use App\Policies\PlanningPolicy;
-use App\Policies\UnavailabilityPolicy;
+use App\Policies\VehicleEventPolicy;
 use App\Policies\VehicleFiscalCharacteristicsPolicy;
 use App\Policies\VehiclePolicy;
 use App\Policies\VehicleYearlyPricingPolicy;
@@ -60,7 +60,7 @@ final class AuthServiceProvider extends ServiceProvider
         Driver::class => DriverPolicy::class,
         Vehicle::class => VehiclePolicy::class,
         VehicleFiscalCharacteristics::class => VehicleFiscalCharacteristicsPolicy::class,
-        Unavailability::class => UnavailabilityPolicy::class,
+        VehicleEvent::class => VehicleEventPolicy::class,
     ];
 
     /**

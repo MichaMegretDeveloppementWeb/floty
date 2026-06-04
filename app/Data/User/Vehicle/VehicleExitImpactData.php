@@ -17,13 +17,13 @@ final class VehicleExitImpactData extends Data
 {
     /**
      * @param  list<ConflictingContractData>  $conflictingContracts
-     * @param  list<ConflictingUnavailabilityData>  $conflictingUnavailabilities
+     * @param  list<ConflictingVehicleEventData>  $conflictingUnavailabilities
      */
     public function __construct(
         public bool $hasConflicts,
         #[DataCollectionOf(ConflictingContractData::class)]
         public array $conflictingContracts,
-        #[DataCollectionOf(ConflictingUnavailabilityData::class)]
+        #[DataCollectionOf(ConflictingVehicleEventData::class)]
         public array $conflictingUnavailabilities,
     ) {}
 }

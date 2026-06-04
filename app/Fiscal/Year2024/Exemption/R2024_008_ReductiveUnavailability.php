@@ -8,7 +8,7 @@ use App\Enums\Fiscal\RuleSection;
 use App\Enums\Fiscal\RuleTab;
 use App\Enums\Fiscal\RuleType;
 use App\Enums\Fiscal\TaxType;
-use App\Enums\Unavailability\UnavailabilityType;
+use App\Enums\VehicleEvent\VehicleEventType;
 use App\Fiscal\Contracts\Concerns\AnnualRuleTrait;
 use App\Fiscal\Contracts\Concerns\RuleActiveByDefaultTrait;
 use App\Fiscal\Contracts\ExemptionRule;
@@ -16,7 +16,7 @@ use App\Fiscal\Contracts\LcdQualifier;
 use App\Fiscal\Pipeline\PipelineContext;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\ValueObjects\RulePedagogicalContent;
-use App\Models\Unavailability;
+use App\Models\VehicleEvent;
 use Carbon\CarbonImmutable;
 
 /**
@@ -31,7 +31,7 @@ use Carbon\CarbonImmutable;
  *      {@see R2024_021_ShortTermRental::isShortTermRental()});
  *   2. AND the unavailability type has `has_fiscal_impact = true` ·
  *      one of the three reductive cases defined by
- *      {@see UnavailabilityType::isFiscallyReductive()}:
+ *      {@see VehicleEventType::isFiscallyReductive()}:
  *      `pound_public`, `accident_no_circulation`, `ci_suspension`.
  *
  * Days falling inside an LCD contract are already removed by
@@ -186,25 +186,25 @@ final readonly class R2024_008_ReductiveUnavailability implements ExemptionRule
      * ISO `Y-m-d` dates of the vehicle's reductive unavailabilities,
      * clipped to the fiscal year.
      *
-     * @param  list<Unavailability>  $unavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      * @return list<string>
      */
-    private function collectReductiveUnavailableDates(array $unavailabilities, int $year): array
+    private function collectReductiveUnavailableDates(array $vehicleEvents, int $year): array
     {
         $yearStart = CarbonImmutable::create($year, 1, 1);
         $yearEnd = CarbonImmutable::create($year, 12, 31);
         $dates = [];
 
-        foreach ($unavailabilities as $unavailability) {
-            if (! $unavailability->has_fiscal_impact) {
+        foreach ($vehicleEvents as $vehicleEvent) {
+            if (! $vehicleEvent->has_fiscal_impact) {
                 continue;
             }
 
-            $start = $unavailability->start_date->toImmutable();
+            $start = $vehicleEvent->start_date->toImmutable();
             // end_date is nullable (open-ended unavailability); clamp
             // to year end.
-            $end = $unavailability->end_date !== null
-                ? $unavailability->end_date->toImmutable()
+            $end = $vehicleEvent->end_date !== null
+                ? $vehicleEvent->end_date->toImmutable()
                 : $yearEnd;
 
             $rangeStart = $start->isAfter($yearStart) ? $start : $yearStart;

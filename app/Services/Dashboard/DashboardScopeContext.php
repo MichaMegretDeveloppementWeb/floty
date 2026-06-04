@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Services\Dashboard;
 
 use App\DTO\Fiscal\ContractsByPair;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use Illuminate\Support\Collection;
 
 /**
@@ -28,12 +28,12 @@ final readonly class DashboardScopeContext
     /**
      * @param  array<int, ContractsByPair>  $contractsByYear  Contracts pivot per scope year
      * @param  Collection<int, Vehicle>  $vehiclesById  Indexed vehicles (superset over the scope)
-     * @param  array<int, list<Unavailability>>  $unavailabilitiesByVehicleId  Unavailabilities per vehicle (superset)
+     * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId  Unavailabilities per vehicle (superset)
      */
     public function __construct(
         public array $contractsByYear,
         public Collection $vehiclesById,
-        public array $unavailabilitiesByVehicleId,
+        public array $vehicleEventsByVehicleId,
     ) {}
 
     /**

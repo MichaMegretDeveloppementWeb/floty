@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace App\Services\Vehicle;
 
-use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
-use App\Data\User\Unavailability\UnavailabilityData;
 use App\Data\User\Vehicle\VehicleData;
 use App\Data\User\Vehicle\VehicleYearStatsData;
+use App\Data\User\VehicleEvent\VehicleEventData;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Registry\FiscalRuleRegistry;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
@@ -45,7 +45,7 @@ final class VehicleDetailService
 {
     public function __construct(
         private readonly VehicleReadRepositoryInterface $vehicles,
-        private readonly UnavailabilityReadRepositoryInterface $unavailabilityRepo,
+        private readonly VehicleEventReadRepositoryInterface $vehicleEventRepo,
         private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
         private readonly AvailableYearsResolver $availableYears,
@@ -73,14 +73,14 @@ final class VehicleDetailService
         // `buildUsageStats` and the timeline DTO composition · the
         // previous version triggered the same `findForVehicle` query
         // twice.
-        $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
-        $unavailabilityDtos = $unavailabilityModels
-            ->map(static fn (Unavailability $u): UnavailabilityData => UnavailabilityData::fromModel($u))
+        $vehicleEventModels = $this->vehicleEventRepo->findForVehicle($vehicle->id);
+        $vehicleEventDtos = $vehicleEventModels
+            ->map(static fn (VehicleEvent $u): VehicleEventData => VehicleEventData::fromModel($u))
             ->values()
             ->all();
 
         $kpiYear = $this->availableYears->currentYear();
-        $kpiStats = $this->computeVehicleYearStats($vehicle, $kpiYear, $unavailabilityModels);
+        $kpiStats = $this->computeVehicleYearStats($vehicle, $kpiYear, $vehicleEventModels);
         $kpiFiscalAvailable = in_array(
             $kpiYear,
             $this->fiscalRules->registeredYears(),
@@ -98,8 +98,8 @@ final class VehicleDetailService
 
         return VehicleData::fromModel(
             $vehicle,
-            $this->aggregates->buildUsageStats($vehicle, $initialYear, $unavailabilityModels),
-            $unavailabilityDtos,
+            $this->aggregates->buildUsageStats($vehicle, $initialYear, $vehicleEventModels),
+            $vehicleEventDtos,
             $this->buildBusyDates($vehicle->id, $initialYear),
             kpiYear: $kpiYear,
             kpiStats: $kpiStats,
@@ -123,7 +123,7 @@ final class VehicleDetailService
     public function historyForVehicle(int $id): array
     {
         $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
-        $unavailabilityModels = $this->unavailabilityRepo->findForVehicle($vehicle->id);
+        $vehicleEventModels = $this->vehicleEventRepo->findForVehicle($vehicle->id);
 
         $kpiYear = $this->availableYears->currentYear();
         $registeredYears = $this->fiscalRules->registeredYears();
@@ -135,7 +135,7 @@ final class VehicleDetailService
 
         $history = [];
         foreach ($pastYears as $year) {
-            $history[] = $this->computeVehicleYearStats($vehicle, $year, $unavailabilityModels);
+            $history[] = $this->computeVehicleYearStats($vehicle, $year, $vehicleEventModels);
         }
 
         return $history;
@@ -150,15 +150,15 @@ final class VehicleDetailService
      * `actualTax = 0` and `fullYearTax = 0` rather than crashing the
      * page; the user still sees days and contract count.
      *
-     * @param  Collection<int, Unavailability>  $unavailabilityModels  All-year unavailabilities preloaded.
+     * @param  Collection<int, VehicleEvent>  $vehicleEventModels  All-year unavailabilities preloaded.
      */
     private function computeVehicleYearStats(
         Vehicle $vehicle,
         int $year,
-        Collection $unavailabilityModels,
+        Collection $vehicleEventModels,
     ): VehicleYearStatsData {
         $contractsByPair = $this->contracts->loadContractsByPairForVehicle($vehicle->id, $year);
-        $vehicleUnavailabilities = $unavailabilityModels->all();
+        $vehicleEvents = $vehicleEventModels->all();
 
         $daysUsed = 0;
         $contractsCount = 0;
@@ -175,7 +175,7 @@ final class VehicleDetailService
             $breakdown = $this->aggregator->vehicleAnnualTaxBreakdownByCompany(
                 $vehicle,
                 $contractsByPair,
-                $vehicleUnavailabilities,
+                $vehicleEvents,
                 $year,
             );
             foreach ($breakdown as $row) {

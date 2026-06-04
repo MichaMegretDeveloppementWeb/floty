@@ -10,8 +10,8 @@ use App\Fiscal\ValueObjects\DaysWindow;
 use App\Fiscal\ValueObjects\ExemptionVerdict;
 use App\Fiscal\Year2024\Transversal\R2024_002_DailyProrata;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 
 /**
@@ -37,7 +37,7 @@ final readonly class PipelineContext
 {
     /**
      * @param  list<Contract>  $contractsForPair  Active contracts of the pair over the year
-     * @param  list<Unavailability>  $vehicleUnavailabilitiesInYear  Vehicle unavailabilities over the year
+     * @param  list<VehicleEvent>  $vehicleUnavailabilitiesInYear  Vehicle unavailabilities over the year
      * @param  list<ExemptionVerdict>  $exemptionVerdicts  Verdicts collected at step 4
      * @param  list<string>  $appliedRuleCodes  Trace for the PDF snapshot
      */

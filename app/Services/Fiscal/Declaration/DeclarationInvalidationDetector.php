@@ -11,8 +11,8 @@ use App\Data\User\FiscalDeclaration\InvalidationReasonData;
 use App\Enums\FiscalDeclaration\InvalidationReasonType;
 use App\Models\Contract;
 use App\Models\FiscalDeclaration;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Session;
  * mutations on fiscally-linked entities (ADR-0015 § D8).
  *
  * Single source of truth for the invalidating actions list. Observers
- * (Contract, VFC, Unavailability, Vehicle) delegate here; the detector
+ * (Contract, VFC, VehicleEvent, Vehicle) delegate here; the detector
  * builds a typed `InvalidationReasonData` and runs
  * `MarkDeclarationAsObsoleteAction` for every impacted declaration.
  *
@@ -174,31 +174,31 @@ final readonly class DeclarationInvalidationDetector
      * Invalidates on an unavailability mutation. Short-circuits when
      * neither the current nor the previous state had fiscal impact
      * (`has_fiscal_impact` is the denormalised mirror of
-     * {@see App\Enums\UnavailabilityType::isFiscallyReductive()}).
+     * {@see App\Enums\VehicleEventType::isFiscallyReductive()}).
      */
-    public function flagForUnavailability(
-        Unavailability $unavailability,
+    public function flagForVehicleEvent(
+        VehicleEvent $vehicleEvent,
         InvalidationReasonType $type,
         int $actorUserId,
         ?bool $previousHasFiscalImpact = null,
     ): void {
-        if (! $unavailability->has_fiscal_impact && $previousHasFiscalImpact !== true) {
+        if (! $vehicleEvent->has_fiscal_impact && $previousHasFiscalImpact !== true) {
             return;
         }
 
-        $startCarbon = $unavailability->start_date;
-        $endCarbon = $unavailability->end_date ?? Carbon::now()->endOfYear();
+        $startCarbon = $vehicleEvent->start_date;
+        $endCarbon = $vehicleEvent->end_date ?? Carbon::now()->endOfYear();
         $years = $this->yearsForRange($startCarbon->toDateString(), $endCarbon->toDateString());
 
-        $tuples = $this->contracts->findContractDateRangesForVehicle($unavailability->vehicle_id);
+        $tuples = $this->contracts->findContractDateRangesForVehicle($vehicleEvent->vehicle_id);
 
         $entity = [
             'type' => 'unavailability',
-            'id' => $unavailability->id,
+            'id' => $vehicleEvent->id,
             'label' => sprintf(
                 'Indispo #%d · véhicule %d · %s → %s',
-                $unavailability->id,
-                $unavailability->vehicle_id,
+                $vehicleEvent->id,
+                $vehicleEvent->vehicle_id,
                 $startCarbon->format('d/m/Y'),
                 $endCarbon->format('d/m/Y'),
             ),

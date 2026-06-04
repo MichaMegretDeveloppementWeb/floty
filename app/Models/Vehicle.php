@@ -107,11 +107,11 @@ final class Vehicle extends Model
     /**
      * Unavailabilities on this vehicle.
      *
-     * @return HasMany<Unavailability, $this>
+     * @return HasMany<VehicleEvent, $this>
      */
-    public function unavailabilities(): HasMany
+    public function vehicleEvents(): HasMany
     {
-        return $this->hasMany(Unavailability::class);
+        return $this->hasMany(VehicleEvent::class);
     }
 
     /**

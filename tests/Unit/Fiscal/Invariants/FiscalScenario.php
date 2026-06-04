@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Tests\Unit\Fiscal\Invariants;
 
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 
 /**
  * Scénario fiscal complet généré par {@see FiscalScenarioGenerator}.
@@ -29,14 +29,14 @@ final readonly class FiscalScenario
 {
     /**
      * @param  list<Contract>  $contracts
-     * @param  list<Unavailability>  $unavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      */
     public function __construct(
         public int $seed,
         public int $year,
         public Vehicle $vehicle,
         public array $contracts,
-        public array $unavailabilities,
+        public array $vehicleEvents,
     ) {}
 
     /**
@@ -47,8 +47,8 @@ final readonly class FiscalScenario
     public function withoutNonReductiveUnavailabilities(): self
     {
         $filtered = array_values(array_filter(
-            $this->unavailabilities,
-            static fn (Unavailability $u): bool => $u->type->isFiscallyReductive(),
+            $this->vehicleEvents,
+            static fn (VehicleEvent $u): bool => $u->type->isFiscallyReductive(),
         ));
 
         return new self(
@@ -56,7 +56,7 @@ final readonly class FiscalScenario
             year: $this->year,
             vehicle: $this->vehicle,
             contracts: $this->contracts,
-            unavailabilities: $filtered,
+            vehicleEvents: $filtered,
         );
     }
 }

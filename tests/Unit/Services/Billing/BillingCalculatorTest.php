@@ -8,8 +8,8 @@ use App\Enums\Vehicle\VehicleExitReason;
 use App\Exceptions\Billing\MissingPricingException;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleYearlyPricing;
 use App\Services\Billing\BillingCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -490,7 +490,7 @@ final class BillingCalculatorTest extends TestCase
 
         // Indisponibilité de 5 jours au milieu du mois : ne doit pas
         // diminuer le facturable.
-        Unavailability::factory()->for($vehicle)->maintenance()->create([
+        VehicleEvent::factory()->for($vehicle)->maintenance()->create([
             'start_date' => '2024-03-10',
             'end_date' => '2024-03-14',
         ]);

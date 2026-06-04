@@ -16,8 +16,8 @@ use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -142,7 +142,7 @@ final class Year2025EdgeCasesTest extends TestCase
             acceptsE85: true,
         );
         $this->makeContract($v1, '2025-01-01', '2025-12-31', ContractType::Lld);
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $v1->id,
             'start_date' => '2025-04-01',
             'end_date' => '2025-04-30',
@@ -222,7 +222,7 @@ final class Year2025EdgeCasesTest extends TestCase
         $lld = $this->makeContract($v1, '2025-05-01', '2025-12-31', ContractType::Lld);
         // Indispo fourrière publique chevauchant LCD (12 j pendant LCD)
         // + 18 j post-LCD = 30 j total dont 12 j à ignorer (doublon LCD)
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $v1->id,
             'start_date' => '2025-04-15',
             'end_date' => '2025-05-14',

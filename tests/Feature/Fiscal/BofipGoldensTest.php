@@ -16,8 +16,8 @@ use App\Enums\Vehicle\VehicleStatus;
 use App\Enums\Vehicle\VehicleUserType;
 use App\Models\Company;
 use App\Models\Contract;
-use App\Models\Unavailability;
 use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Models\VehicleFiscalCharacteristics;
 use App\Services\Fiscal\Declaration\DeclarationFiscalEngine;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -196,7 +196,7 @@ final class BofipGoldensTest extends TestCase
         $vehicle = $this->makeVehicleWltp(2025, co2: 100, category: PollutantCategory::Category1);
         $this->makeContract($vehicle, '2025-01-01', '2025-12-31', ContractType::Lld);
         // Indispo fourrière publique 25 jours (cas BOFiP exact)
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $vehicle->id,
             'start_date' => '2025-06-01',
             'end_date' => '2025-06-25',
@@ -290,7 +290,7 @@ final class BofipGoldensTest extends TestCase
         $vehicle = $this->makeVehicleWltp(2025, co2: 100, category: PollutantCategory::Category1);
         $this->makeContract($vehicle, '2025-01-01', '2025-12-31', ContractType::Lld);
         // Fourrière publique 15 jours (cas BOFiP exact)
-        Unavailability::factory()->poundPublic()->create([
+        VehicleEvent::factory()->poundPublic()->create([
             'vehicle_id' => $vehicle->id,
             'start_date' => '2025-05-01',
             'end_date' => '2025-05-15',

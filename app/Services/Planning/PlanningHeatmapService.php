@@ -17,7 +17,7 @@ use App\DTO\Fiscal\ContractsByPair;
 use App\Exceptions\Billing\MissingPricingException;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Company;
-use App\Models\Unavailability;
+use App\Models\VehicleEvent;
 use App\Services\Billing\BillingCalculator;
 use App\Services\Billing\Discount\DiscountApplier;
 use App\Services\Billing\Discount\DiscountResolver;
@@ -65,7 +65,7 @@ final class PlanningHeatmapService
 
         $vehicles = $this->vehicles->findAllForHeatmap($year, $sortDirection);
         $vehicleIds = $vehicles->pluck('id')->all();
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+        $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
         $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
 
         $weeksCount = IsoWeeks::CELLS_PER_YEAR;
@@ -82,7 +82,7 @@ final class PlanningHeatmapService
                 $weeks[] = $weekDensity[$vehicle->id.'|'.$w] ?? 0;
             }
 
-            $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
+            $vehicleEvents = $vehicleEventsByVehicleId[$vehicle->id] ?? [];
             $pricing = $pricingsByVehicleId[$vehicle->id] ?? null;
 
             $vehicleRows[] = new PlanningHeatmapVehicleData(
@@ -98,7 +98,7 @@ final class PlanningHeatmapService
                 weeks: $weeks,
                 daysTotal: array_sum($weeks),
                 exitDate: $vehicle->exit_date?->toDateString(),
-                weeksWithUnavailability: $this->collectWeeksWithUnavailability($vehicleUnavailabilities, $year),
+                weeksWithVehicleEvent: $this->collectWeeksWithVehicleEvent($vehicleEvents, $year),
                 dailyRateCents: $pricing?->daily_rate_cents,
                 weeklyRateCents: $pricing?->weekly_rate_cents,
                 monthlyRateCents: $pricing?->monthly_rate_cents,
@@ -140,7 +140,7 @@ final class PlanningHeatmapService
 
         $vehicles = $this->vehicles->findAllForHeatmap($year, $sortDirection);
         $vehicleIds = $vehicles->pluck('id')->all();
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+        $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
         $pricingsByVehicleId = $this->pricings->findForVehiclesAndYear($vehicleIds, $year);
 
         $weeksCount = IsoWeeks::CELLS_PER_YEAR;
@@ -159,7 +159,7 @@ final class PlanningHeatmapService
                 $weeksForCompany[] = $weekDensityForCompany[$vehicle->id.'|'.$w] ?? 0;
             }
 
-            $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
+            $vehicleEvents = $vehicleEventsByVehicleId[$vehicle->id] ?? [];
             $pricing = $pricingsByVehicleId[$vehicle->id] ?? null;
 
             $vehicleRows[] = new PlanningHeatmapCompanyVehicleData(
@@ -176,7 +176,7 @@ final class PlanningHeatmapService
                 weeksForCompany: $weeksForCompany,
                 daysTotalForCompany: array_sum($weeksForCompany),
                 exitDate: $vehicle->exit_date?->toDateString(),
-                weeksWithUnavailability: $this->collectWeeksWithUnavailability($vehicleUnavailabilities, $year),
+                weeksWithVehicleEvent: $this->collectWeeksWithVehicleEvent($vehicleEvents, $year),
                 dailyRateCents: $pricing?->daily_rate_cents,
                 weeklyRateCents: $pricing?->weekly_rate_cents,
                 monthlyRateCents: $pricing?->monthly_rate_cents,
@@ -272,7 +272,7 @@ final class PlanningHeatmapService
     {
         $vehicles = $this->vehicles->findAllForHeatmap($year);
         $vehicleIds = $vehicles->pluck('id')->all();
-        $unavailabilitiesByVehicleId = $this->contracts->loadUnavailabilitiesByVehicle($vehicleIds);
+        $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
 
         // VFC prewarm batch · single SQL instead of the N+1 inside
         // the `vehicleAnnualTax` loop below.
@@ -301,7 +301,7 @@ final class PlanningHeatmapService
                 continue;
             }
 
-            $vehicleUnavailabilities = $unavailabilitiesByVehicleId[$vehicle->id] ?? [];
+            $vehicleEvents = $vehicleEventsByVehicleId[$vehicle->id] ?? [];
 
             // Tolerates a year without coded fiscal rules · the deferred
             // "realCosts" prop would otherwise throw and leave the heatmap
@@ -311,7 +311,7 @@ final class PlanningHeatmapService
                 $annualTaxDue = $this->aggregator->vehicleAnnualTax(
                     $vehicle,
                     $contractsForCalc,
-                    $vehicleUnavailabilities,
+                    $vehicleEvents,
                     $year,
                 );
             } catch (FiscalCalculationException) {
@@ -433,29 +433,29 @@ final class PlanningHeatmapService
      * (ADR-0019) for instant visibility on unavailability ↔ contract
      * cohabitation.
      *
-     * @param  list<Unavailability>  $unavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      * @return list<int>
      */
-    private function collectWeeksWithUnavailability(array $unavailabilities, int $year): array
+    private function collectWeeksWithVehicleEvent(array $vehicleEvents, int $year): array
     {
         $yearStart = CarbonImmutable::create($year, 1, 1)->startOfDay();
         $yearEnd = CarbonImmutable::create($year, 12, 31)->endOfDay();
 
         $weeks = [];
-        foreach ($unavailabilities as $unavailability) {
-            if ($unavailability->start_date->greaterThan($yearEnd)) {
+        foreach ($vehicleEvents as $vehicleEvent) {
+            if ($vehicleEvent->start_date->greaterThan($yearEnd)) {
                 continue;
             }
-            if ($unavailability->end_date !== null && $unavailability->end_date->lessThan($yearStart)) {
+            if ($vehicleEvent->end_date !== null && $vehicleEvent->end_date->lessThan($yearStart)) {
                 continue;
             }
 
-            $start = $unavailability->start_date->greaterThan($yearStart)
-                ? $unavailability->start_date
+            $start = $vehicleEvent->start_date->greaterThan($yearStart)
+                ? $vehicleEvent->start_date
                 : $yearStart;
-            $end = $unavailability->end_date === null || $unavailability->end_date->greaterThan($yearEnd)
+            $end = $vehicleEvent->end_date === null || $vehicleEvent->end_date->greaterThan($yearEnd)
                 ? $yearEnd
-                : $unavailability->end_date;
+                : $vehicleEvent->end_date;
 
             $cursor = $start;
             while ($cursor->lessThanOrEqualTo($end)) {

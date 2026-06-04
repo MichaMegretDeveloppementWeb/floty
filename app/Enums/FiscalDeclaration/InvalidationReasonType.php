@@ -24,9 +24,9 @@ enum InvalidationReasonType: string
     case VfcUpdated = 'vfc_updated';
     case VfcDeleted = 'vfc_deleted';
 
-    case UnavailabilityCreated = 'unavailability_created';
-    case UnavailabilityUpdated = 'unavailability_updated';
-    case UnavailabilityDeleted = 'unavailability_deleted';
+    case VehicleEventCreated = 'unavailability_created';
+    case VehicleEventUpdated = 'unavailability_updated';
+    case VehicleEventDeleted = 'unavailability_deleted';
 
     // Vehicle.exit_date alters the taxable scope (clipping of post-exit contracts).
     case VehicleUpdated = 'vehicle_updated';

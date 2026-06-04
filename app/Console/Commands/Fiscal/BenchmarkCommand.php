@@ -71,14 +71,14 @@ final class BenchmarkCommand extends Command
                 $vehicleIds[$pair['vehicleId']] = true;
             }
             $vehiclesById = $this->vehicles->findByIdsIndexed(array_keys($vehicleIds));
-            $unavailabilities = $this->contracts->loadUnavailabilitiesByVehicle(array_keys($vehicleIds));
+            $vehicleEvents = $this->contracts->loadVehicleEventsByVehicle(array_keys($vehicleIds));
 
             foreach ($this->companies->findAllOrderedByName() as $company) {
                 $this->aggregator->companyAnnualTaxBreakdownByVehicle(
                     $company->id,
                     $vehiclesById,
                     $contractsByPair,
-                    $unavailabilities,
+                    $vehicleEvents,
                     $year,
                 );
             }
@@ -91,7 +91,7 @@ final class BenchmarkCommand extends Command
                 $vehicleIds[$pair['vehicleId']] = true;
             }
             $vehiclesById = $this->vehicles->findByIdsIndexed(array_keys($vehicleIds));
-            $unavailabilities = $this->contracts->loadUnavailabilitiesByVehicle(array_keys($vehicleIds));
+            $vehicleEvents = $this->contracts->loadVehicleEventsByVehicle(array_keys($vehicleIds));
 
             $firstCompany = $this->companies->findAllOrderedByName()->first();
             if ($firstCompany === null) {
@@ -102,7 +102,7 @@ final class BenchmarkCommand extends Command
                 $firstCompany->id,
                 $vehiclesById,
                 $contractsByPair,
-                $unavailabilities,
+                $vehicleEvents,
                 $year,
             );
         });

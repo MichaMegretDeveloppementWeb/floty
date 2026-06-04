@@ -6,7 +6,7 @@ namespace App\Services\Contract;
 
 use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadRepositoryInterface;
-use App\Contracts\Repositories\User\Unavailability\UnavailabilityReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\Shared\Listing\PaginationMetaData;
 use App\Data\User\Billing\ContractBillingBreakdownData;
 use App\Data\User\Company\CompanyContractsStatsData;
@@ -21,7 +21,7 @@ use App\DTO\Fiscal\ContractsByPair;
 use App\Enums\Contract\ContractType;
 use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Models\Contract;
-use App\Models\Unavailability;
+use App\Models\VehicleEvent;
 use App\Services\Billing\BillingBreakdownService;
 use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Fiscal\Declaration\DeclarationAggregatorFactory;
@@ -41,7 +41,7 @@ final readonly class ContractQueryService
 {
     public function __construct(
         private ContractReadRepositoryInterface $repository,
-        private UnavailabilityReadRepositoryInterface $unavailabilityRepository,
+        private VehicleEventReadRepositoryInterface $vehicleEventRepository,
         private ContractDocumentReadRepositoryInterface $documentRepository,
         private FleetFiscalAggregator $aggregator,
         private BillingBreakdownService $billingBreakdown,
@@ -113,7 +113,7 @@ final readonly class ContractQueryService
             return null;
         }
 
-        $unavailabilities = $this->unavailabilityRepository
+        $vehicleEvents = $this->vehicleEventRepository
             ->findForVehicle($contract->vehicle_id)
             ->all();
 
@@ -123,7 +123,7 @@ final readonly class ContractQueryService
         // whole Show page inaccessible · billing, dates and documents
         // still render. The frontend distinguishes this from a missing VFC.
         try {
-            $nominal = $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
+            $nominal = $this->aggregator->contractTaxBreakdown($contract, $vehicleEvents);
         } catch (FiscalCalculationException) {
             return null;
         }
@@ -135,7 +135,7 @@ final readonly class ContractQueryService
         // Reached only when `$nominal` succeeded · every spanned year is
         // therefore supported, so the LCD opt-out factory never hits its
         // unsupported-year branch.
-        return $this->enrichWithLcdHypothetical($contract, $unavailabilities, $nominal);
+        return $this->enrichWithLcdHypothetical($contract, $vehicleEvents, $nominal);
     }
 
     /**
@@ -148,18 +148,18 @@ final readonly class ContractQueryService
      * (vehicle outside the fiscal perimeter stays at 0 € even
      * requalified). The UI then renders "0 € si requalifié en LLD".
      *
-     * @param  list<Unavailability>  $unavailabilities
+     * @param  list<VehicleEvent>  $vehicleEvents
      */
     private function enrichWithLcdHypothetical(
         Contract $contract,
-        array $unavailabilities,
+        array $vehicleEvents,
         ContractTaxBreakdownData $nominal,
     ): ContractTaxBreakdownData {
         $enrichedYears = [];
 
         foreach ($nominal->years as $year) {
             $optOutAggregator = $this->aggregatorFactory->buildFor($year->year, [$contract->id]);
-            $optOutBreakdown = $optOutAggregator->contractTaxBreakdown($contract, $unavailabilities);
+            $optOutBreakdown = $optOutAggregator->contractTaxBreakdown($contract, $vehicleEvents);
 
             $optOutYear = null;
             foreach ($optOutBreakdown->years as $oy) {
@@ -228,7 +228,7 @@ final readonly class ContractQueryService
             static fn (Contract $c): int => $c->vehicle_id,
             $contracts,
         )));
-        $unavailabilitiesByVehicleId = $this->unavailabilityRepository
+        $vehicleEventsByVehicleId = $this->vehicleEventRepository
             ->findForVehicleIds($vehicleIds);
 
         // Prewarm VFC segments for every traversed year · avoids the
@@ -239,7 +239,7 @@ final readonly class ContractQueryService
             fn (Contract $c): ContractListItemData => $this->enrichContractDto(
                 $c,
                 $rentalByContractId[$c->id] ?? null,
-                $unavailabilitiesByVehicleId[$c->vehicle_id] ?? [],
+                $vehicleEventsByVehicleId[$c->vehicle_id] ?? [],
             ),
             $contracts,
         );
@@ -304,7 +304,7 @@ final readonly class ContractQueryService
             static fn (Contract $c): int => $c->vehicle_id,
             $contracts,
         )));
-        $unavailabilitiesByVehicleId = $this->unavailabilityRepository
+        $vehicleEventsByVehicleId = $this->vehicleEventRepository
             ->findForVehicleIds($vehicleIds);
 
         $rentalByContractId = $this->rentalPrice->forContracts($contracts);
@@ -317,7 +317,7 @@ final readonly class ContractQueryService
             try {
                 $breakdown = $this->aggregator->contractTaxBreakdown(
                     $contract,
-                    $unavailabilitiesByVehicleId[$contract->vehicle_id] ?? [],
+                    $vehicleEventsByVehicleId[$contract->vehicle_id] ?? [],
                 );
                 $totalTax = $breakdown->totalDue;
             } catch (\Throwable) {
@@ -350,7 +350,7 @@ final readonly class ContractQueryService
      * indexes that batched unavailabilities (one query for every
      * distinct vehicle); falls back to a per-vehicle lookup when null.
      *
-     * @param  list<Unavailability>|null  $preComputedVehicleUnavailabilities
+     * @param  list<VehicleEvent>|null  $preComputedVehicleUnavailabilities
      */
     private function enrichContractDto(
         Contract $contract,
@@ -359,12 +359,12 @@ final readonly class ContractQueryService
     ): ContractListItemData {
         $base = ContractListItemData::fromModel($contract);
 
-        $unavailabilities = $preComputedVehicleUnavailabilities
-            ?? $this->unavailabilityRepository->findForVehicle($contract->vehicle_id)->all();
+        $vehicleEvents = $preComputedVehicleUnavailabilities
+            ?? $this->vehicleEventRepository->findForVehicle($contract->vehicle_id)->all();
 
         $totalTax = 0.0;
         try {
-            $breakdown = $this->aggregator->contractTaxBreakdown($contract, $unavailabilities);
+            $breakdown = $this->aggregator->contractTaxBreakdown($contract, $vehicleEvents);
             $totalTax = $breakdown->totalDue;
         } catch (\Throwable) {
             // Year outside the fiscal registry · totalTax left at 0.
@@ -481,7 +481,7 @@ final readonly class ContractQueryService
             static fn (Contract $c): int => $c->vehicle_id,
             $contractsAll,
         )));
-        $unavailabilitiesByVehicleId = $this->unavailabilityRepository
+        $vehicleEventsByVehicleId = $this->vehicleEventRepository
             ->findForVehicleIds($vehicleIds);
 
         $this->prewarmVfcSegmentsForContracts($contractsAll);
@@ -492,7 +492,7 @@ final readonly class ContractQueryService
                 fn (Contract $c): ContractListItemData => $this->enrichContractDto(
                     $c,
                     $rentalByContractId[$c->id] ?? null,
-                    $unavailabilitiesByVehicleId[$c->vehicle_id] ?? [],
+                    $vehicleEventsByVehicleId[$c->vehicle_id] ?? [],
                 ),
             ),
             DataCollection::class,
@@ -586,11 +586,11 @@ final readonly class ContractQueryService
      * default to `[]`).
      *
      * @param  list<int>  $vehicleIds
-     * @return array<int, list<Unavailability>>
+     * @return array<int, list<VehicleEvent>>
      */
-    public function loadUnavailabilitiesByVehicle(array $vehicleIds): array
+    public function loadVehicleEventsByVehicle(array $vehicleIds): array
     {
-        return $this->unavailabilityRepository->findForVehicleIds($vehicleIds);
+        return $this->vehicleEventRepository->findForVehicleIds($vehicleIds);
     }
 
     /**

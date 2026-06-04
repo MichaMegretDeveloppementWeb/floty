@@ -6,7 +6,7 @@ namespace App\Data\User\Vehicle;
 
 use App\Actions\Vehicle\CreateVehicleAction;
 use App\Data\Shared\YearScopeData;
-use App\Data\User\Unavailability\UnavailabilityData;
+use App\Data\User\VehicleEvent\VehicleEventData;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Models\Vehicle;
@@ -16,7 +16,7 @@ use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
  * Full representation of a vehicle for the Show page: identity, active VFC,
- * historical VFC list, usage stats, unavailabilities, busy dates and pricings.
+ * historical VFC list, usage stats, vehicleEvents, busy dates and pricings.
  *
  * `currentFiscalCharacteristics` is nullable for robustness, but a vehicle
  * created via {@see CreateVehicleAction} always has an initial VFC row.
@@ -28,7 +28,7 @@ final class VehicleData extends Data
 {
     /**
      * @param  list<VehicleFiscalCharacteristicsData>  $fiscalCharacteristicsHistory
-     * @param  list<UnavailabilityData>  $unavailabilities
+     * @param  list<VehicleEventData>  $vehicleEvents
      * @param  list<string>  $busyDates  Dates ISO Y-m-d where the vehicle is assigned on the active year.
      * @param  list<VehicleYearlyPricingData>  $yearlyPricings  Rental rates per year, ascending order.
      */
@@ -54,8 +54,8 @@ final class VehicleData extends Data
         #[DataCollectionOf(VehicleFiscalCharacteristicsData::class)]
         public array $fiscalCharacteristicsHistory,
         public VehicleUsageStatsData $usageStats,
-        #[DataCollectionOf(UnavailabilityData::class)]
-        public array $unavailabilities,
+        #[DataCollectionOf(VehicleEventData::class)]
+        public array $vehicleEvents,
         public array $busyDates,
         public int $kpiYear,
         public VehicleYearStatsData $kpiStats,
@@ -70,13 +70,13 @@ final class VehicleData extends Data
      * Hydrate from a Vehicle loaded with its full fiscal history and a
      * pre-computed usage aggregate for the active year.
      *
-     * @param  list<UnavailabilityData>  $unavailabilities
+     * @param  list<VehicleEventData>  $vehicleEvents
      * @param  list<string>  $busyDates
      */
     public static function fromModel(
         Vehicle $vehicle,
         VehicleUsageStatsData $usageStats,
-        array $unavailabilities,
+        array $vehicleEvents,
         array $busyDates,
         int $kpiYear,
         VehicleYearStatsData $kpiStats,
@@ -120,7 +120,7 @@ final class VehicleData extends Data
                 : null,
             fiscalCharacteristicsHistory: $fiscalHistory,
             usageStats: $usageStats,
-            unavailabilities: $unavailabilities,
+            vehicleEvents: $vehicleEvents,
             busyDates: $busyDates,
             kpiYear: $kpiYear,
             kpiStats: $kpiStats,

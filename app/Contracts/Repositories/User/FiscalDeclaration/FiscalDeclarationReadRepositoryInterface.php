@@ -100,7 +100,7 @@ interface FiscalDeclarationReadRepositoryInterface
      * `company:short_code,legal_name` for invalidation toasts.
      *
      * Used by {@see App\Services\Fiscal\Declaration\DeclarationInvalidationDetector}
-     * when propagating Contract / VFC / Vehicle / Unavailability
+     * when propagating Contract / VFC / Vehicle / VehicleEvent
      * mutations to emitted declarations · only Generated are marked
      * obsolete, not Draft/Deferred.
      *
