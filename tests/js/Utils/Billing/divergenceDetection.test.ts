@@ -15,6 +15,10 @@ const baseEntry: Entry = {
     existingInvoiceNumber: '2024-03-0001',
     invoicedDaysUsed: 10,
     invoicedTotalCents: 77_000,
+    grossTotalCents: 77_000,
+    totalDiscountCents: 0,
+    invoicedGrossTotalCents: 77_000,
+    invoicedTotalDiscountCents: 0,
 };
 
 describe('entryHasDivergence', () => {

@@ -1,4 +1,4 @@
-import { CELLS_PER_YEAR, cellOriginForYear } from '@/Utils/Date/isoWeeks';
+import { CELLS_PER_YEAR, cellOriginForYear } from '@/Utils/date/isoWeeks';
 
 /**
  * Pixel-aware month label position in the heatmap grid.

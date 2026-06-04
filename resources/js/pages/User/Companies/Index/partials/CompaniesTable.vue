@@ -6,6 +6,7 @@ import type { DataTableColumn } from '@/types/ui';
 import { formatEur } from '@/Utils/format/formatEur';
 
 type CompanyRow = App.Data.User.Company.CompanyListItemData;
+type CompanyCosts = { annualTaxDue: number; rentalPriceTotal: number | null };
 
 // Server-side sortable columns (mirror of CompanyIndexQueryData::allowedSortKeys()).
 // `daysUsed` and `annualTaxDue` are intentionally excluded because they
@@ -23,14 +24,16 @@ const props = defineProps<{
     sortDirection: 'asc' | 'desc';
     // Deferred map keyed by companyId, undefined while the second-roundtrip
     // is still in flight (cells fall back to a skeleton).
-    costs?: Record<
-        number,
-        { annualTaxDue: number; rentalPriceTotal: number | null }
-    >;
+    costs?: Record<number, CompanyCosts>;
 }>();
 
 const isCostsLoadedFor = (row: CompanyRow): boolean =>
     props.costs?.[row.id] !== undefined;
+
+// Cost entry for a row in the loaded branch. Only call where
+// `isCostsLoadedFor(row)` is guaranteed true (the `v-else` cells below):
+// the entry is present, so the assertions are safe.
+const costsFor = (row: CompanyRow): CompanyCosts => props.costs![row.id]!;
 
 const emit = defineEmits<{
     'header-click': [columnKey: string];
@@ -102,7 +105,7 @@ const emit = defineEmits<{
                 v-else
                 class="font-mono font-medium whitespace-nowrap text-slate-900"
             >
-                {{ formatEur(costs![row.id].annualTaxDue) }}
+                {{ formatEur(costsFor(row).annualTaxDue) }}
             </span>
         </template>
         <template #cell-rentalPriceTotal="{ row }">
@@ -113,10 +116,10 @@ const emit = defineEmits<{
                 aria-label="Calcul en cours"
             />
             <span
-                v-else-if="costs![row.id].rentalPriceTotal !== null"
+                v-else-if="costsFor(row).rentalPriceTotal !== null"
                 class="font-mono whitespace-nowrap tabular-nums text-slate-900"
             >
-                {{ formatEur(costs![row.id].rentalPriceTotal!) }}
+                {{ formatEur(costsFor(row).rentalPriceTotal!) }}
             </span>
             <span
                 v-else

@@ -7,8 +7,8 @@
  * conversion, and the overlap check. The conflict card only appears
  * when overlaps are present (the submit stays silently disabled).
  */
-import { computed } from 'vue';
 import type { useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import VehiclesMultiPicker from '@/Components/Domain/RentalDiscount/VehiclesMultiPicker.vue';
 import type { VehicleOption } from '@/Components/Domain/RentalDiscount/VehiclesMultiPicker.vue';
 import Card from '@/Components/Ui/Card/Card.vue';
@@ -19,10 +19,13 @@ import InputError from '@/Components/Ui/InputError/InputError.vue';
 import NumberInput from '@/Components/Ui/NumberInput/NumberInput.vue';
 import SearchableSelect from '@/Components/Ui/SearchableSelect/SearchableSelect.vue';
 import TextInput from '@/Components/Ui/TextInput/TextInput.vue';
+import type {
+    ConflictItem,
+    RentalDiscountFormPayload,
+} from '@/Composables/RentalDiscount/Form/useRentalDiscountForm';
 import type { DateRange } from '@/Composables/Ui/DateRangePicker/useDateRangePicker';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatPercentFromBasisPoints } from '@/Utils/format/formatPercent';
-import type { ConflictItem } from '@/Composables/RentalDiscount/Form/useRentalDiscountForm';
 
 type CompanyOption = {
     id: number;
@@ -31,19 +34,9 @@ type CompanyOption = {
     color: string;
 };
 
-type FormPayload = {
-    company_id: number | null;
-    start_date: string;
-    end_date: string;
-    discount_basis_points: number;
-    label: string | null;
-    notes: string | null;
-    vehicle_ids: number[];
-};
-
 const props = defineProps<{
     /** Inertia useForm shared with the parent (reactive state + errors). */
-    form: ReturnType<typeof useForm<FormPayload>>;
+    form: ReturnType<typeof useForm<RentalDiscountFormPayload>>;
     companies: readonly CompanyOption[];
     vehicles: readonly VehicleOption[];
     /** Edit mode: companyId becomes read-only (cannot be changed on an existing discount). */
@@ -84,6 +77,15 @@ const ongoingModel = computed<boolean>({
     set: (value: boolean) => emit('update:ongoing', value),
 });
 
+// TextInput's v-model is `string`; the form field is `string | null` (optional
+// libellé). Bridge the two without changing the payload semantics (empty stays '').
+const labelModel = computed<string>({
+    get: () => props.form.label ?? '',
+    set: (value: string) => {
+        props.form.label = value;
+    },
+});
+
 const vehicleIdsModel = computed<number[]>({
     get: () => props.form.vehicle_ids,
     set: (value: number[]) => {
@@ -100,6 +102,7 @@ const companyOptions = computed(() =>
 
 const lockedCompanyLabel = computed<string>(() => {
     const c = props.companies.find((c) => c.id === props.form.company_id);
+
     return c ? `${c.shortCode} · ${c.legalName}` : '';
 });
 </script>
@@ -220,7 +223,7 @@ const lockedCompanyLabel = computed<string>(() => {
                     </FieldLabel>
                     <TextInput
                         id="field-label"
-                        v-model="form.label"
+                        v-model="labelModel"
                         placeholder="Pack fidélité 2026, Engagement annuel..."
                         :maxlength="120"
                     />

@@ -1,4 +1,4 @@
-import { CELLS_PER_YEAR, cellOriginForYear } from '@/Utils/Date/isoWeeks';
+import { CELLS_PER_YEAR, cellOriginForYear } from '@/Utils/date/isoWeeks';
 
 /**
  * One CSS background per heatmap week cell, alternating month parity.
@@ -19,6 +19,7 @@ export function weekBackgroundsForYear(year: number): string[] {
 
     for (let week = 0; week < CELLS_PER_YEAR; week++) {
         const months: number[] = [];
+
         for (let day = 0; day < 7; day++) {
             const date = new Date(origin);
             date.setUTCDate(origin.getUTCDate() + week * 7 + day);
@@ -34,6 +35,7 @@ export function weekBackgroundsForYear(year: number): string[] {
         }
 
         let transitionDayIdx = 0;
+
         for (let i = 1; i < 7; i++) {
             if (months[i] !== firstMonth) {
                 transitionDayIdx = i;

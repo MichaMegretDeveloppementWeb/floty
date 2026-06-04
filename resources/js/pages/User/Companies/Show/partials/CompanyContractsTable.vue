@@ -97,8 +97,14 @@ const emit = defineEmits<{
             </Badge>
         </template>
         <template #cell-totalTax="{ row }">
-            <span class="font-mono whitespace-nowrap tabular-nums text-slate-700">
+            <span
+                v-if="row.totalTax !== null"
+                class="font-mono whitespace-nowrap tabular-nums text-slate-700"
+            >
                 {{ formatEur(row.totalTax) }}
+            </span>
+            <span v-else class="text-slate-300" title="Taxe non calculable">
+                ·
             </span>
         </template>
         <template #cell-rentalPrice="{ row }">

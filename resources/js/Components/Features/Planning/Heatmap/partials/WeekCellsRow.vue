@@ -7,7 +7,7 @@ import {
     textContrastClass,
 } from '@/Components/Features/Planning/Heatmap/utils/density';
 import { isCellAfterExit } from '@/Components/Features/Planning/Heatmap/utils/exitedWeeks';
-import { CELL_WIDTH_PX } from '@/Utils/Date/isoWeeks';
+import { CELL_WIDTH_PX } from '@/Utils/date/isoWeeks';
 import { formatDateFr } from '@/Utils/format/formatDateFr';
 
 const props = defineProps<{
@@ -32,8 +32,8 @@ const exitTooltip = computed<string | null>(() =>
 );
 
 // Red ring on weeks carrying at least one unavailability day.
-const unavailabilityWeekFlags = computed<boolean[]>(() => {
-    const set = new Set(props.vehicleView.weeksWithUnavailability);
+const vehicleEventWeekFlags = computed<boolean[]>(() => {
+    const set = new Set(props.vehicleView.weeksWithVehicleEvent);
 
     return props.vehicleView.weeksForCount.map((_, idx) => set.has(idx + 1));
 });
@@ -41,7 +41,7 @@ const unavailabilityWeekFlags = computed<boolean[]>(() => {
 // Blue inset ring on 1-2 day cells; suppressed when the unavailability ring is shown.
 const lowDensityRingClasses = computed<string[]>(() =>
     props.vehicleView.weeksForCount.map((_, idx) => {
-        if (unavailabilityWeekFlags.value[idx]) {
+        if (vehicleEventWeekFlags.value[idx]) {
             return '';
         }
 
@@ -65,12 +65,12 @@ const lowDensityRingClasses = computed<string[]>(() =>
                 'flex h-7 min-w-0 items-center justify-center rounded-[3px] font-mono text-[9px] transition-opacity duration-[120ms] ease-out hover:opacity-70',
                 exitedWeekFlags[weekIndex] && 'pointer-events-none opacity-30',
                 lowDensityRingClasses[weekIndex],
-                unavailabilityWeekFlags[weekIndex] && 'ring-1 ring-rose-500 ring-inset',
+                vehicleEventWeekFlags[weekIndex] && 'ring-1 ring-rose-500 ring-inset',
             ]"
-            :aria-label="`Semaine ${weekIndex + 1} · ${vehicleView.licensePlate} · ${daysCount} jours utilisés${unavailabilityWeekFlags[weekIndex] ? ' (indisponibilité présente)' : ''}`"
+            :aria-label="`Semaine ${weekIndex + 1} · ${vehicleView.licensePlate} · ${daysCount} jours utilisés${vehicleEventWeekFlags[weekIndex] ? ' (indisponibilité présente)' : ''}`"
             :title="exitedWeekFlags[weekIndex] && exitTooltip
                 ? exitTooltip
-                : `S${weekIndex + 1} · ${daysCount}j / 7${unavailabilityWeekFlags[weekIndex] ? ' · indisponibilité présente' : ''}`"
+                : `S${weekIndex + 1} · ${daysCount}j / 7${vehicleEventWeekFlags[weekIndex] ? ' · indisponibilité présente' : ''}`"
             :disabled="exitedWeekFlags[weekIndex]"
             @click="
                 emit('cell-click', {

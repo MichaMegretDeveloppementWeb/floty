@@ -14,7 +14,7 @@ import {
 } from '@/Components/Features/Planning/Heatmap/utils/monthLabelPositions';
 import { weekBackgroundsForYear } from '@/Components/Features/Planning/Heatmap/utils/weekBackgrounds';
 import SortableHeader from '@/Components/Ui/Table/SortableHeader.vue';
-import { CELLS_PER_YEAR, CELL_WIDTH_PX, GRID_CONTENT_WIDTH_PX } from '@/Utils/Date/isoWeeks';
+import { CELLS_PER_YEAR, CELL_WIDTH_PX, GRID_CONTENT_WIDTH_PX } from '@/Utils/date/isoWeeks';
 import { formatEur } from '@/Utils/format/formatEur';
 import HeatmapLegend from './partials/HeatmapLegend.vue';
 import HeatmapSummary from './partials/HeatmapSummary.vue';
@@ -102,7 +102,7 @@ const vehicleViews = computed<HeatmapVehicleView[]>(() =>
                 summaryDays: v.daysTotalForCompany,
                 summaryTax,
                 exitDate: v.exitDate,
-                weeksWithUnavailability: v.weeksWithUnavailability,
+                weeksWithVehicleEvent: v.weeksWithVehicleEvent,
                 fullYearTax,
                 dailyTaxRate,
                 dailyRateCents: v.dailyRateCents,
@@ -126,7 +126,7 @@ const vehicleViews = computed<HeatmapVehicleView[]>(() =>
             summaryDays: v.daysTotal,
             summaryTax,
             exitDate: v.exitDate,
-            weeksWithUnavailability: v.weeksWithUnavailability,
+            weeksWithVehicleEvent: v.weeksWithVehicleEvent,
             fullYearTax,
             dailyTaxRate,
             dailyRateCents: v.dailyRateCents,

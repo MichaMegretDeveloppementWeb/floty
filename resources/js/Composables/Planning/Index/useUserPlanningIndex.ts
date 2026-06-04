@@ -20,9 +20,11 @@ import { useWeekDetail } from '@/Composables/Planning/useWeekDetail';
  * tripping the global rate limiter when the user created several contracts
  * in quick succession.
  *
- * `preserveScroll: true` on every reload keeps the user anchored on the row
- * they just edited; without it Inertia would reset window scroll to the top,
- * which is disorienting on long heatmaps.
+ * The user stays anchored on the row they just edited: `router.reload()`
+ * already forces `preserveScroll`/`preserveState` internally (those keys are
+ * excluded from `ReloadOptions` precisely because reload always sets them),
+ * so no extra option is needed to avoid the disorienting top-scroll reset on
+ * long heatmaps.
  */
 export function useUserPlanningIndex(): {
     week: ReturnType<typeof useWeekDetail>;
@@ -34,9 +36,8 @@ export function useUserPlanningIndex(): {
         week.close();
         router.reload({
             only: ['vehicles', 'fullYearCosts', 'monthlyRentals'],
-            preserveScroll: true,
         });
-        router.reload({ only: ['realCosts'], preserveScroll: true });
+        router.reload({ only: ['realCosts'] });
     };
 
     return { week, onContractsCreated };

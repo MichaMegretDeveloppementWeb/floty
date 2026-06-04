@@ -8,10 +8,12 @@ import { formatDateFr } from '@/Utils/format/formatDateFr';
 import { formatEur } from '@/Utils/format/formatEur';
 
 type VehicleRow = App.Data.User.Vehicle.VehicleListItemData;
-type VehicleCosts = Record<
-    number,
-    { fullYearTax: number; dailyTaxRate: number; rentalPriceFullYear: number | null }
->;
+type VehicleCostEntry = {
+    fullYearTax: number;
+    dailyTaxRate: number;
+    rentalPriceFullYear: number | null;
+};
+type VehicleCosts = Record<number, VehicleCostEntry>;
 
 // Server-side sortable columns (mirror of VehicleIndexQueryData::allowedSortKeys()).
 // `fullYearTax` and `rentalPriceFullYear` are intentionally excluded
@@ -34,6 +36,11 @@ const emit = defineEmits<{
     'header-click': [columnKey: string];
     'row-click': [row: VehicleRow];
 }>();
+
+// Cost entry for a row. Only call inside the surrounding
+// `v-if="props.costs && props.costs[row.id]"` cells: the entry is
+// guaranteed present there, so the assertions are safe.
+const costsFor = (row: VehicleRow): VehicleCostEntry => props.costs![row.id]!;
 
 function statusPalette(
     status: App.Enums.Vehicle.VehicleStatus,
@@ -120,10 +127,10 @@ function statusPalette(
                 class="flex flex-col items-end leading-tight"
             >
                 <span class="font-mono font-normal whitespace-nowrap text-slate-900">
-                    {{ formatEur(props.costs[row.id].fullYearTax) }}
+                    {{ formatEur(costsFor(row).fullYearTax) }}
                 </span>
                 <span class="text-xs whitespace-nowrap text-slate-400">
-                    {{ formatEur(props.costs[row.id].dailyTaxRate, 2) }} / jour
+                    {{ formatEur(costsFor(row).dailyTaxRate, 2) }} / jour
                 </span>
             </div>
             <div v-else class="flex flex-col items-end gap-1 leading-tight">
@@ -134,10 +141,10 @@ function statusPalette(
         <template #cell-rentalPriceFullYear="{ row }">
             <template v-if="props.costs && props.costs[row.id]">
                 <span
-                    v-if="props.costs[row.id].rentalPriceFullYear !== null"
+                    v-if="costsFor(row).rentalPriceFullYear !== null"
                     class="font-mono font-normal whitespace-nowrap text-slate-900"
                 >
-                    {{ formatEur(props.costs[row.id].rentalPriceFullYear!) }}
+                    {{ formatEur(costsFor(row).rentalPriceFullYear!) }}
                 </span>
                 <span v-else class="text-slate-300" title="Tarif annuel non défini pour ce véhicule">
                     ·

@@ -4,7 +4,7 @@
  * correct sub-cell day even when an ISO week straddles two months.
  */
 
-import { isoWeeksInYear } from '@/Utils/Date/isoWeeks';
+import { isoWeeksInYear } from '@/Utils/date/isoWeeks';
 import { HEATMAP_CELL_WIDTH } from './density';
 
 /**
@@ -64,6 +64,7 @@ export function monthBoundariesInPx(
     const gridTotalPx = weeksCount * cellWidthPx + (weeksCount - 1) * gapPx;
 
     const positions: number[] = [];
+
     for (let m = 0; m <= 12; m++) {
         const targetYear = m === 12 ? year + 1 : year;
         const targetMonth = m === 12 ? 0 : m;
@@ -73,6 +74,7 @@ export function monthBoundariesInPx(
     }
 
     const bands: MonthBand[] = [];
+
     for (let m = 1; m <= 12; m++) {
         bands.push({
             monthIdx: m,

@@ -5,7 +5,7 @@
  * and a contract creation form with live fiscal preview.
  */
 import { computed, ref, watch } from 'vue';
-import { CELLS_PER_YEAR } from '@/Utils/Date/isoWeeks';
+import { CELLS_PER_YEAR } from '@/Utils/date/isoWeeks';
 import CompaniesOnWeekList from './partials/CompaniesOnWeekList.vue';
 import ContractForm from './partials/ContractForm.vue';
 import DrawerHeader from './partials/DrawerHeader.vue';
@@ -64,6 +64,7 @@ const startMonth = computed((): number => {
 
     // Month of Thursday (4th ISO day).
     const thursday = props.week.days[3]?.date;
+
     if (thursday === undefined) {
         return Number(props.week.weekStart.slice(5, 7));
     }

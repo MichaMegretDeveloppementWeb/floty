@@ -20,6 +20,7 @@ import { checkConflicts as checkConflictsRoute } from '@/routes/user/rental-disc
 
 function getXsrfToken(): string {
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
+
     return match ? decodeURIComponent(match[1]!) : '';
 }
 
@@ -59,9 +60,9 @@ export type RentalDiscountFormInitial = {
 
 export function useRentalDiscountForm(
     initial: RentalDiscountFormInitial,
-    onSubmit: (form: ReturnType<typeof useForm>) => void,
+    onSubmit: (form: ReturnType<typeof useForm<RentalDiscountFormPayload>>) => void,
 ): {
-    form: ReturnType<typeof useForm>;
+    form: ReturnType<typeof useForm<RentalDiscountFormPayload>>;
     discountPercent: Ref<number>;
     appliesToAllVehicles: Ref<boolean>;
     range: Ref<DateRange>;
@@ -137,6 +138,7 @@ export function useRentalDiscountForm(
         if (debounceTimer !== null) {
             clearTimeout(debounceTimer);
         }
+
         debounceTimer = setTimeout(() => {
             void runCheckConflicts();
         }, 400);
@@ -150,10 +152,12 @@ export function useRentalDiscountForm(
             || form.start_date > form.end_date
         ) {
             conflicts.value = [];
+
             return;
         }
 
         isCheckingConflicts.value = true;
+
         try {
             // Direct fetch to bypass useApi's automatic error toast: silent failure is acceptable here,
             // the backend submit re-checks anyway (defense in depth).
@@ -174,9 +178,11 @@ export function useRentalDiscountForm(
                     exclude_id: initial.id,
                 }),
             });
+
             if (!response.ok) {
                 return;
             }
+
             const body = (await response.json()) as {
                 hasConflicts: boolean;
                 conflicts: ConflictItem[];
@@ -208,21 +214,27 @@ export function useRentalDiscountForm(
         if (form.processing) {
             return false;
         }
+
         if (hasConflicts.value) {
             return false;
         }
+
         if (form.company_id === null) {
             return false;
         }
+
         if (form.start_date === '' || form.end_date === '') {
             return false;
         }
+
         if (form.start_date > form.end_date) {
             return false;
         }
+
         if (form.discount_basis_points < 1 || form.discount_basis_points > 10_000) {
             return false;
         }
+
         return true;
     });
 

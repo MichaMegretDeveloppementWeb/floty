@@ -1,4 +1,4 @@
-import { CELLS_PER_YEAR, cellOriginForYear } from '@/Utils/Date/isoWeeks';
+import { CELLS_PER_YEAR, cellOriginForYear } from '@/Utils/date/isoWeeks';
 
 /**
  * Span of each month in the heatmap year using the "Thursday-month" ISO
@@ -21,6 +21,7 @@ export function monthSpansForYear(year: number): MonthSpan[] {
         const thursdayYear = thursday.getUTCFullYear();
 
         let month: number;
+
         if (thursdayYear < year) {
             month = 1;
         } else if (thursdayYear > year) {

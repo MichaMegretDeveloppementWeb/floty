@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Data\User\RentalDiscount;
 
+use App\Enums\Company\CompanyColor;
 use App\Models\RentalDiscount;
 use Carbon\CarbonImmutable;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
@@ -28,7 +29,7 @@ final class RentalDiscountData extends Data
         public int $companyId,
         public string $companyShortCode,
         public string $companyLegalName,
-        public string $companyColor,
+        public CompanyColor $companyColor,
         /** ISO Y-m-d. */
         public string $startDate,
         /** ISO Y-m-d. */
@@ -90,7 +91,7 @@ final class RentalDiscountData extends Data
             companyId: $discount->company_id,
             companyShortCode: $discount->company->short_code,
             companyLegalName: $discount->company->legal_name,
-            companyColor: $discount->company->color->value,
+            companyColor: $discount->company->color,
             startDate: $discount->start_date->toDateString(),
             endDate: $discount->end_date->toDateString(),
             discountBasisPoints: $discount->discount_basis_points,
