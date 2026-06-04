@@ -1,0 +1,1 @@
+var e=new Intl.DateTimeFormat(`fr-FR`,{weekday:`short`,day:`numeric`,month:`long`,year:`numeric`,timeZone:`UTC`});function t(t){let n=t.split(`-`);return e.format(new Date(Date.UTC(Number(n[0]),Number(n[1])-1,Number(n[2]))))}export{t};

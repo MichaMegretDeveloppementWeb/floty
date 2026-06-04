@@ -18,7 +18,6 @@ import {
     useVehicleEventFormDocuments,
 } from '@/Composables/VehicleEvent/useVehicleEventFormDocuments';
 import { show as vehiclesShowRoute } from '@/routes/user/vehicles';
-import { vehicleEventCategorySuggestions } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleEvent = App.Data.User.VehicleEvent.VehicleEventData;
 
@@ -56,6 +55,8 @@ const {
     ongoing,
     initialMonth,
     isEditing,
+    isFixedDate,
+    fixedDateLabel,
     isCustom,
     canSubmit,
     selectedIsReductive,
@@ -120,6 +121,7 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                         v-model="form.title"
                         label="Nom de l'événement"
                         placeholder="Ex. Pose covering, prêt à un partenaire..."
+                        :required="true"
                         :error="form.errors.title"
                     />
                     <div class="flex flex-col gap-1.5">
@@ -133,18 +135,10 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                         <input
                             id="vehicle-event-category"
                             v-model="form.category"
-                            list="vehicle-event-categories"
                             maxlength="60"
                             placeholder="Ex. Marketing, logistique..."
                             class="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 focus:outline-none"
                         />
-                        <datalist id="vehicle-event-categories">
-                            <option
-                                v-for="suggestion in vehicleEventCategorySuggestions"
-                                :key="suggestion"
-                                :value="suggestion"
-                            />
-                        </datalist>
                         <InputError v-if="form.errors.category" :message="form.errors.category" />
                     </div>
                     <CheckboxInput
@@ -183,7 +177,16 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicleId }, { query: { t
                     Période
                 </h2>
             </template>
-            <div class="flex flex-col gap-4">
+
+            <div v-if="isFixedDate" class="flex flex-col gap-1.5">
+                <p class="text-sm text-slate-700">
+                    Le <span class="font-medium text-slate-900">{{ fixedDateLabel }}</span>.
+                </p>
+                <InputError v-if="form.errors.start_date" :message="form.errors.start_date" />
+                <InputError v-if="form.errors.end_date" :message="form.errors.end_date" />
+            </div>
+
+            <div v-else class="flex flex-col gap-4">
                 <div class="rounded-lg border border-slate-200 p-3">
                     <DateRangePicker
                         v-model:range="range"

@@ -5,9 +5,12 @@ import type { BadgeTone } from '@/types/ui';
 const props = withDefaults(
     defineProps<{
         tone?: BadgeTone;
+        /** Uppercase the content with wide tracking (default). Set false for sentence-case badges. */
+        uppercase?: boolean;
     }>(),
     {
         tone: 'slate',
+        uppercase: true,
     },
 );
 
@@ -35,7 +38,8 @@ const toneClasses = computed<string>(() => {
 <template>
     <span
         :class="[
-            'inline-flex items-center rounded-sm px-1.5 py-0.5 text-micro font-semibold tracking-wider uppercase',
+            'inline-flex items-center rounded-sm px-1.5 py-0.5 text-micro font-semibold',
+            uppercase ? 'tracking-wider uppercase' : 'tracking-normal',
             toneClasses,
         ]"
     >

@@ -21,9 +21,18 @@ const props = defineProps<{
     vehicleEvent: VehicleEvent;
 }>();
 
-const { deleteModalOpen, periodLabel, openDelete, confirmDelete } = useVehicleEventShow(
-    () => props.vehicleEvent,
-);
+const {
+    deleteModalOpen,
+    isOngoing,
+    startLabel,
+    endLabel,
+    durationLabel,
+    category,
+    fiscalStatus,
+    availabilityStatus,
+    openDelete,
+    confirmDelete,
+} = useVehicleEventShow(() => props.vehicleEvent);
 
 const pageTitle = computed<string>(() => vehicleEventDisplayTitle(props.vehicleEvent));
 </script>
@@ -41,7 +50,13 @@ const pageTitle = computed<string>(() => vehicleEventDisplayTitle(props.vehicleE
 
             <VehicleEventShowBody
                 :vehicle-event="props.vehicleEvent"
-                :period-label="periodLabel"
+                :is-ongoing="isOngoing"
+                :start-label="startLabel"
+                :end-label="endLabel"
+                :duration-label="durationLabel"
+                :category="category"
+                :fiscal-status="fiscalStatus"
+                :availability-status="availabilityStatus"
             />
 
             <ConfirmModal

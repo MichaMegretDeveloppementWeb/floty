@@ -7,6 +7,7 @@ import { edit as editRoute } from '@/routes/user/vehicles/events';
 import {
     vehicleEventDisplayCategory,
     vehicleEventDisplayTitle,
+    vehicleEventTypeLabel,
 } from '@/Utils/labels/vehicleEventEnumLabels';
 
 type VehicleHeader = {
@@ -40,21 +41,24 @@ const backUrl = vehiclesShowRoute.url({ vehicle: props.vehicle.id }, { query: { 
         </Link>
 
         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-6">
-            <div class="flex flex-col gap-1.5">
-                <p class="eyebrow">
-                    Événement · {{ vehicle.brand }} {{ vehicle.model }} ({{ vehicle.licensePlate }})
-                </p>
-                <h1 class="text-2xl font-semibold tracking-tight text-slate-900">
+            <div class="flex flex-col gap-2">
+                <h1 class="text-[34px] font-semibold leading-tight tracking-tight text-slate-900">
                     {{ vehicleEventDisplayTitle(vehicleEvent) }}
                 </h1>
-                <div class="flex flex-wrap items-center gap-2">
-                    <Badge tone="slate">
+                <p
+                    v-if="vehicleEvent.type !== 'other'"
+                    class="text-sm text-slate-500"
+                >
+                    {{ vehicleEventTypeLabel[vehicleEvent.type] }}
+                </p>
+                <div class="mt-1 flex flex-wrap items-center gap-2">
+                    <Badge tone="slate" :uppercase="false">
                         {{ vehicleEventDisplayCategory(vehicleEvent) }}
                     </Badge>
-                    <Badge v-if="vehicleEvent.impliesUnavailability" tone="amber">
+                    <Badge v-if="vehicleEvent.impliesUnavailability" tone="amber" :uppercase="false">
                         Indisponibilité
                     </Badge>
-                    <Badge v-if="vehicleEvent.hasFiscalImpact" tone="rose">
+                    <Badge v-if="vehicleEvent.hasFiscalImpact" tone="rose" :uppercase="false">
                         Réducteur fiscal
                     </Badge>
                 </div>

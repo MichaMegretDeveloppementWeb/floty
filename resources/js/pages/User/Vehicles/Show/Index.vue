@@ -53,6 +53,7 @@ const { activeTab, setTab, loadingTab } = useVehicleTabs();
                 v-else-if="activeTab === 'events'"
                 :vehicle-id="props.vehicle.id"
                 :vehicle-events="props.vehicle.vehicleEvents"
+                :current-year="props.vehicle.kpiYear"
             />
 
             <!--

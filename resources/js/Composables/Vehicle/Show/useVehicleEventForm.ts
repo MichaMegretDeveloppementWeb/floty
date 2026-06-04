@@ -6,6 +6,7 @@ import {
     store as vehicleEventsStoreRoute,
     update as vehicleEventsUpdateRoute,
 } from '@/routes/user/vehicle-events';
+import { formatDayLongFr } from '@/Utils/format/formatDayLongFr';
 import {
     isVehicleEventFiscallyReductive,
     vehicleEventTypeLabel,
@@ -119,6 +120,13 @@ export function useVehicleEventForm(
     ongoing: Ref<boolean>;
     initialMonth: Ref<number>;
     isEditing: ComputedRef<boolean>;
+    /**
+     * True in create mode opened from a specific timeline day (`initialDate` set):
+     * the period section is replaced by a fixed single-day reminder.
+     */
+    isFixedDate: ComputedRef<boolean>;
+    /** Long French label of the fixed day (empty unless `isFixedDate`). */
+    fixedDateLabel: ComputedRef<string>;
     /** True when the custom "other" type is selected (reveals title/category/flag fields). */
     isCustom: ComputedRef<boolean>;
     canSubmit: ComputedRef<boolean>;
@@ -231,6 +239,16 @@ export function useVehicleEventForm(
 
     const isEditing = computed<boolean>(() => props.editing !== null);
 
+    const isFixedDate = computed<boolean>(
+        () => props.editing === null && options.initialDate != null && options.initialDate !== '',
+    );
+
+    const fixedDateLabel = computed<string>(() =>
+        options.initialDate != null && options.initialDate !== ''
+            ? formatDayLongFr(options.initialDate)
+            : '',
+    );
+
     const isCustom = computed<boolean>(() => form.type === 'other');
 
     const canSubmit = computed<boolean>(() => {
@@ -314,6 +332,8 @@ export function useVehicleEventForm(
         ongoing,
         initialMonth,
         isEditing,
+        isFixedDate,
+        fixedDateLabel,
         isCustom,
         canSubmit,
         selectedIsReductive,
