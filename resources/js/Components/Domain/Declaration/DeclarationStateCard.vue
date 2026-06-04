@@ -139,9 +139,9 @@ function handleRegenerate(): void {
                 </span>
             </div>
             <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
-                La préparation a été volontairement reportée. Elle peut être
-                reprise à tout moment depuis l'écran de revue · aucun arbitrage
-                déjà rendu ne sera perdu.
+                La préparation a été volontairement reportée<template v-if="current.deferReason">
+                    : «&nbsp;<span class="font-medium text-slate-900">{{ current.deferReason }}</span>&nbsp;»</template>.
+                Elle peut être reprise à tout moment depuis l'écran de revue.
             </p>
             <div>
                 <Link :href="showDeclarationRoute.url({ declaration: current.id })">
@@ -162,7 +162,8 @@ function handleRegenerate(): void {
                 </span>
             </div>
             <p class="max-w-2xl text-[15px] leading-relaxed text-slate-700">
-                Le brouillon de régénération a été volontairement reporté.
+                Le brouillon de régénération a été volontairement reporté<template v-if="current.deferReason">
+                    : «&nbsp;<span class="font-medium text-slate-900">{{ current.deferReason }}</span>&nbsp;»</template>.
                 La déclaration précédente reste obsolète tant que la nouvelle
                 version n'est pas générée.
                 <template v-if="firstReasonOccurredAt">

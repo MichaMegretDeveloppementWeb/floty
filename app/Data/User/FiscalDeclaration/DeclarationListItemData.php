@@ -59,6 +59,13 @@ final class DeclarationListItemData extends Data
          * cours" (Draft) from "Remplacée par" (Generated).
          */
         public ?FiscalDeclarationStatus $successorStatus = null,
+        /**
+         * Free-text reason captured when the draft was deferred. Only set
+         * while the declaration sits in a `deferred` state (cleared on
+         * revert and on generation). Surfaced inline in the deferred
+         * lifecycle cards.
+         */
+        public ?string $deferReason = null,
     ) {}
 
     public static function fromModel(FiscalDeclaration $declaration): self
@@ -84,6 +91,7 @@ final class DeclarationListItemData extends Data
             predecessorId: $predecessor?->id,
             successorReference: $successor?->reference,
             successorStatus: $successor?->status,
+            deferReason: $declaration->defer_reason,
         );
     }
 

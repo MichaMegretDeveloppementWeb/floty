@@ -132,7 +132,7 @@ final class DeclarationLifecycleResolverTest extends TestCase
             ->forCompany($this->company)
             ->forYear(self::YEAR)
             ->deferred()
-            ->create();
+            ->create(['defer_reason' => 'En attente du retour expert-comptable.']);
 
         $state = $this->resolver->resolveForCompanyYear($this->company->id, self::YEAR);
 
@@ -140,6 +140,9 @@ final class DeclarationLifecycleResolverTest extends TestCase
         self::assertSame($deferred->id, $state->currentDeclaration?->id);
         self::assertSame(0, $state->pendingClustersCount);
         self::assertFalse($state->canGenerate);
+        // The deferral reason is surfaced so the company Fiscality tab can
+        // inline it in the explanatory prose of the deferred card.
+        self::assertSame('En attente du retour expert-comptable.', $state->currentDeclaration->deferReason);
     }
 
     #[Test]
