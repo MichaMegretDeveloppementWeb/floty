@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\User\Company\CompanyController;
 use App\Http\Controllers\User\Contract\ContractController;
 use App\Http\Controllers\User\Contract\ContractDocumentController;
+use App\Http\Controllers\User\Control\ControlDefinitionController;
 use App\Http\Controllers\User\Dashboard\DashboardController;
 use App\Http\Controllers\User\Driver\DriverController;
 use App\Http\Controllers\User\Driver\DriverMembershipController;
@@ -17,6 +18,7 @@ use App\Http\Controllers\User\Planning\PlanningController;
 use App\Http\Controllers\User\RentalDiscount\RentalDiscountController;
 use App\Http\Controllers\User\Search\GlobalSearchController;
 use App\Http\Controllers\User\Settings\BillingSettingsController;
+use App\Http\Controllers\User\Settings\ControlReminderSettingsController;
 use App\Http\Controllers\User\Settings\FiscalRiskSettingsController;
 use App\Http\Controllers\User\Vehicle\VehicleController;
 use App\Http\Controllers\User\Vehicle\VehicleFiscalCharacteristicsController;
@@ -174,6 +176,31 @@ Route::middleware('auth')
         Route::post('/settings/fiscal-risk', [FiscalRiskSettingsController::class, 'update'])
             ->middleware('throttle:120,1')
             ->name('settings.fiscal-risk.update');
+
+        // Settings > Control reminders (Chantier B) · default reminder cycle
+        // and universal default recipients for regulatory controls.
+        Route::get('/settings/control-reminders', [ControlReminderSettingsController::class, 'edit'])
+            ->name('settings.control-reminders.edit');
+        Route::post('/settings/control-reminders', [ControlReminderSettingsController::class, 'update'])
+            ->middleware('throttle:120,1')
+            ->name('settings.control-reminders.update');
+
+        // Regulatory controls (Chantier B) · global catalog of control
+        // definitions applied to the fleet (own domain). Edited inline; the
+        // small bounded set is not paginated.
+        Route::get('/controls', [ControlDefinitionController::class, 'index'])
+            ->name('controls.index');
+        Route::post('/controls', [ControlDefinitionController::class, 'store'])
+            ->middleware('throttle:120,1')
+            ->name('controls.store');
+        Route::patch('/controls/{control}', [ControlDefinitionController::class, 'update'])
+            ->whereNumber('control')
+            ->middleware('throttle:120,1')
+            ->name('controls.update');
+        Route::delete('/controls/{control}', [ControlDefinitionController::class, 'destroy'])
+            ->whereNumber('control')
+            ->middleware('throttle:120,1')
+            ->name('controls.destroy');
 
         // Invoices
         //

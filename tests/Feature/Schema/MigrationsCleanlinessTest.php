@@ -40,6 +40,9 @@ final class MigrationsCleanlinessTest extends TestCase
             'contract_documents',
             'contract_drivers',
             'contracts',
+            'control_definitions',
+            'control_recipient_deltas',
+            'control_reminder_settings',
             'driver_company',
             'drivers',
             // Tables `failed_jobs`, `job_batches`, `jobs` retirées · pas de queue

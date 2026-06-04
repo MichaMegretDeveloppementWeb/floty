@@ -12,6 +12,10 @@ use App\Contracts\Repositories\User\Contract\ContractReadRepositoryInterface;
 use App\Contracts\Repositories\User\Contract\ContractWriteRepositoryInterface;
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentReadRepositoryInterface;
 use App\Contracts\Repositories\User\ContractDocument\ContractDocumentWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlDefinitionReadRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlDefinitionWriteRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlReminderSettingsReadRepositoryInterface;
+use App\Contracts\Repositories\User\Control\ControlReminderSettingsWriteRepositoryInterface;
 use App\Contracts\Repositories\User\Driver\DriverReadRepositoryInterface;
 use App\Contracts\Repositories\User\Driver\DriverWriteRepositoryInterface;
 use App\Contracts\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepositoryInterface;
@@ -43,6 +47,10 @@ use App\Repositories\User\Contract\ContractReadRepository;
 use App\Repositories\User\Contract\ContractWriteRepository;
 use App\Repositories\User\ContractDocument\ContractDocumentReadRepository;
 use App\Repositories\User\ContractDocument\ContractDocumentWriteRepository;
+use App\Repositories\User\Control\ControlDefinitionReadRepository;
+use App\Repositories\User\Control\ControlDefinitionWriteRepository;
+use App\Repositories\User\Control\ControlReminderSettingsReadRepository;
+use App\Repositories\User\Control\ControlReminderSettingsWriteRepository;
 use App\Repositories\User\Driver\DriverReadRepository;
 use App\Repositories\User\Driver\DriverWriteRepository;
 use App\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepository;
@@ -123,6 +131,12 @@ final class RepositoryServiceProvider extends ServiceProvider
         FiscalDeclarationWriteRepositoryInterface::class => FiscalDeclarationWriteRepository::class,
         FiscalReviewDecisionReadRepositoryInterface::class => FiscalReviewDecisionReadRepository::class,
         FiscalReviewDecisionWriteRepositoryInterface::class => FiscalReviewDecisionWriteRepository::class,
+
+        // Controls (Chantier B)
+        ControlReminderSettingsReadRepositoryInterface::class => ControlReminderSettingsReadRepository::class,
+        ControlReminderSettingsWriteRepositoryInterface::class => ControlReminderSettingsWriteRepository::class,
+        ControlDefinitionReadRepositoryInterface::class => ControlDefinitionReadRepository::class,
+        ControlDefinitionWriteRepositoryInterface::class => ControlDefinitionWriteRepository::class,
 
         // VehicleEvent
         VehicleEventReadRepositoryInterface::class => VehicleEventReadRepository::class,

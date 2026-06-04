@@ -1,8 +1,10 @@
 import { usePage } from '@inertiajs/vue3';
 import {
     BadgePercent,
+    BellRing,
     Building2,
     CalendarDays,
+    ClipboardCheck,
     FileCheck2,
     FileText,
     LayoutDashboard,
@@ -18,6 +20,7 @@ import CarIcon from '@/Components/Icons/CarIcon.vue';
 import { dashboard as dashboardRoute } from '@/routes/user';
 import { index as companiesIndexRoute } from '@/routes/user/companies';
 import { index as contractsIndexRoute } from '@/routes/user/contracts';
+import { index as controlsIndexRoute } from '@/routes/user/controls';
 import { index as declarationsIndexRoute } from '@/routes/user/declarations';
 import { index as driversIndexRoute } from '@/routes/user/drivers';
 import { index as fiscalRulesIndexRoute } from '@/routes/user/fiscal-rules';
@@ -26,6 +29,7 @@ import { index as planningIndexRoute } from '@/routes/user/planning';
 import { root as planningCompaniesRootRoute } from '@/routes/user/planning/companies';
 import { index as rentalDiscountsIndexRoute } from '@/routes/user/rental-discounts';
 import { edit as billingSettingsEditRoute } from '@/routes/user/settings/billing';
+import { edit as controlRemindersEditRoute } from '@/routes/user/settings/control-reminders';
 import { edit as fiscalRiskSettingsEditRoute } from '@/routes/user/settings/fiscal-risk';
 import { index as vehiclesIndexRoute } from '@/routes/user/vehicles';
 
@@ -97,6 +101,11 @@ export function useSidebarNav(open: Ref<boolean>): {
                     icon: FileText,
                     href: contractsIndexRoute.url(),
                 },
+                {
+                    label: 'Contrôles',
+                    icon: ClipboardCheck,
+                    href: controlsIndexRoute.url(),
+                },
             ],
         },
         {
@@ -141,6 +150,11 @@ export function useSidebarNav(open: Ref<boolean>): {
                     label: 'Détection de risque',
                     icon: ShieldAlert,
                     href: fiscalRiskSettingsEditRoute.url(),
+                },
+                {
+                    label: 'Rappels de contrôles',
+                    icon: BellRing,
+                    href: controlRemindersEditRoute.url(),
                 },
             ],
         },
