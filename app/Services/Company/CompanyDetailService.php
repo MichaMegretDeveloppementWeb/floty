@@ -20,11 +20,14 @@ use App\Exceptions\Fiscal\FiscalCalculationException;
 use App\Fiscal\Registry\FiscalRuleRegistry;
 use App\Models\Company;
 use App\Models\Pivot\DriverCompany;
+use App\Models\Vehicle;
+use App\Models\VehicleEvent;
 use App\Services\Billing\RentalPriceCalculator;
 use App\Services\Contract\ContractQueryService;
 use App\Services\Fiscal\AvailableYearsResolver;
 use App\Services\Fiscal\FleetFiscalAggregator;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 
 /**
  * Detail service for the Company Show page, extracted from
@@ -162,12 +165,38 @@ final class CompanyDetailService
             );
         }
 
+        // Vehicle universe used by the company across every active year,
+        // loaded once (with current VFC) + unavailabilities once, then
+        // shared with computeYearStats and computeActivityForYear for all
+        // years. Replaces a per-year findByIdsIndexed + loadVehicleEvents
+        // (the same overlapping vehicles were re-queried once per year and
+        // a second time for the activity top-3).
+        $companyVehicleIds = [];
+        foreach ($availableYears as $year) {
+            $pair = $contractsByYear[$year] ?? null;
+            if ($pair === null) {
+                continue;
+            }
+            foreach ($pair->pairsForCompany($companyId) as $vehicleId => $_) {
+                $companyVehicleIds[$vehicleId] = true;
+            }
+        }
+        $vehicleIdList = array_keys($companyVehicleIds);
+        $vehiclesById = $vehicleIdList === []
+            ? new Collection
+            : $this->vehicles->findByIdsIndexed($vehicleIdList);
+        $vehicleEventsByVehicleId = $vehicleIdList === []
+            ? []
+            : $this->contracts->loadVehicleEventsByVehicle($vehicleIdList);
+
         $allYearStats = [];
         foreach ($availableYears as $year) {
             $allYearStats[$year] = $this->computeYearStats(
                 $companyId,
                 $year,
                 $contractsByYear[$year] ?? null,
+                $vehiclesById,
+                $vehicleEventsByVehicleId,
             );
         }
 
@@ -246,6 +275,7 @@ final class CompanyDetailService
                     $companyId,
                     $year,
                     $contractsByYear[$year] ?? null,
+                    $vehiclesById,
                 ),
                 $availableYears,
             ),
@@ -263,12 +293,17 @@ final class CompanyDetailService
      *
      * `$preloadedPair` lets {@see detail()} feed the pivot resolved in
      * bulk via `loadContractsByPairForYearRange()`, saving N
-     * `loadContractsByPair($year)` calls.
+     * `loadContractsByPair($year)` calls. `$vehiclesById` is the shared
+     * company vehicle universe (loaded once by {@see detail()}), so the
+     * top-3 lookup needs no per-year query.
+     *
+     * @param  Collection<int, Vehicle>  $vehiclesById
      */
     private function computeActivityForYear(
         int $companyId,
         int $year,
-        ?ContractsByPair $preloadedPair = null,
+        ?ContractsByPair $preloadedPair,
+        Collection $vehiclesById,
     ): CompanyActivityYearData {
         $contractsByPair = $preloadedPair ?? $this->contracts->loadContractsByPair($year);
 
@@ -301,8 +336,7 @@ final class CompanyDetailService
         arsort($daysPerVehicle);
         $topVehicleIds = array_slice(array_keys($daysPerVehicle), 0, 3, preserve_keys: true);
 
-        $vehiclesById = $this->vehicles->findByIdsIndexed($topVehicleIds);
-
+        // Top-3 resolved from the shared company vehicle universe · no query.
         $totalVehicleDays = (int) array_sum($daysPerVehicle);
 
         $topVehicles = [];
@@ -349,14 +383,21 @@ final class CompanyDetailService
     }
 
     /**
-     * Yearly KPIs for one company. Loads the year contracts (cross-fleet
-     * via aggregator) then filters on the `(vehicleId, $companyId)` pair
-     * on the `ContractsByPair` side.
+     * Yearly KPIs for one company. Filters the preloaded year contracts
+     * on the `(vehicleId, $companyId)` pair. `$vehiclesById` and
+     * `$vehicleEventsByVehicleId` are the shared company vehicle universe
+     * loaded once by {@see detail()}, so no per-year vehicle/event query
+     * is issued here.
+     *
+     * @param  Collection<int, Vehicle>  $vehiclesById
+     * @param  array<int, list<VehicleEvent>>  $vehicleEventsByVehicleId
      */
     private function computeYearStats(
         int $companyId,
         int $year,
-        ?ContractsByPair $preloadedPair = null,
+        ?ContractsByPair $preloadedPair,
+        Collection $vehiclesById,
+        array $vehicleEventsByVehicleId,
     ): CompanyYearStatsData {
         $contractsByPair = $preloadedPair ?? $this->contracts->loadContractsByPair($year);
 
@@ -379,10 +420,9 @@ final class CompanyDetailService
         $annualTaxDue = 0.0;
         if ($vehicleIds !== []) {
             try {
-                $vehiclesById = $this->vehicles->findByIdsIndexed($vehicleIds);
-                $vehicleEventsByVehicleId = $this->contracts->loadVehicleEventsByVehicle($vehicleIds);
-                // Charge en un seul SQL les segments VFC de l'année pour tous les
-                // véhicules, au lieu d'une requête VFC par véhicule dans le pipeline.
+                // VFC segments for the year prewarmed in one SQL over the
+                // shared universe (the pipeline then reads the cache,
+                // never re-querying VFC per vehicle).
                 $this->aggregator->prewarmVfcSegmentsForVehicles($vehiclesById, $year);
                 $annualTaxDue = $this->aggregator->companyAnnualTax(
                     $companyId,
