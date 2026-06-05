@@ -346,16 +346,59 @@ final class CompanyControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->component('User/Companies/Show/Index')
-                ->has('company.lifetime', fn (AssertableInertia $stat) => $stat
+                // Heavy overview payload eager on the default (overview) tab.
+                ->has('companyOverview.lifetime', fn (AssertableInertia $stat) => $stat
                     ->where('daysUsed', 0)
                     ->where('contractsCount', 0)
                     ->where('taxesGenerated', 0)
                     ->where('rentTotal', null),
                 )
-                ->has('company.history', 0)
-                ->has('company.activityByYear', 0)
-                ->has('company.availableYears', 0)
-                ->where('company.currentRealYear', (int) Carbon::now()->year),
+                ->has('companyOverview.history', 0)
+                ->has('companyOverview.activityByYear', 0)
+                ->has('companyOverview.availableYears', 0)
+                ->where('company.currentRealYear', (int) Carbon::now()->year)
+                // Tab-gating: the heavy fields left the always-eager base.
+                ->missing('company.kpiStats')
+                ->missing('company.history')
+                ->missing('company.activityByYear'),
+            );
+    }
+
+    #[Test]
+    public function show_overview_payload_present_sur_overview_absent_sur_autre_onglet(): void
+    {
+        // Tab-gating : le payload overview (lourd, pipeline fiscal
+        // multi-années) n'est chargé QUE sur l'onglet overview. Un onglet
+        // non-overview chargé directement ne paie pas ce calcul.
+        $user = User::factory()->create();
+        $company = Company::factory()->create();
+
+        // Onglet overview (défaut) : payload présent.
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('companyOverview.kpiStats')
+                ->has('companyOverview.history'),
+            );
+
+        // Onglet fiscal chargé direct : companyOverview absent (Inertia
+        // optional non résolu), companyFiscal présent.
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}?tab=fiscal")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->missing('companyOverview')
+                ->has('companyFiscal'),
+            );
+
+        // Onglet facturation chargé direct : companyOverview absent.
+        $this->actingAs($user)
+            ->get("/app/companies/{$company->id}?tab=billing")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->missing('companyOverview')
+                ->has('companyBilling'),
             );
     }
 
@@ -387,13 +430,13 @@ final class CompanyControllerTest extends TestCase
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('company.availableYears', [2024])
-                ->has('company.activityByYear', 1)
-                ->where('company.activityByYear.0.year', 2024)
-                ->where('company.activityByYear.0.daysByMonth.2', 5) // mars
-                ->where('company.activityByYear.0.daysByMonth.6', 3) // juillet
-                ->where('company.activityByYear.0.daysByMonth.0', 0) // janvier vide
-                ->where('company.activityByYear.0.daysByMonth.11', 0), // décembre vide
+                ->where('companyOverview.availableYears', [2024])
+                ->has('companyOverview.activityByYear', 1)
+                ->where('companyOverview.activityByYear.0.year', 2024)
+                ->where('companyOverview.activityByYear.0.daysByMonth.2', 5) // mars
+                ->where('companyOverview.activityByYear.0.daysByMonth.6', 3) // juillet
+                ->where('companyOverview.activityByYear.0.daysByMonth.0', 0) // janvier vide
+                ->where('companyOverview.activityByYear.0.daysByMonth.11', 0), // décembre vide
             );
     }
 
@@ -435,13 +478,13 @@ final class CompanyControllerTest extends TestCase
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('company.activityByYear.0.topVehicles', 3) // tronqué à 3
-                ->where('company.activityByYear.0.topVehicles.0.licensePlate', 'AAA-001-AA')
-                ->where('company.activityByYear.0.topVehicles.0.daysUsed', 30)
-                ->where('company.activityByYear.0.topVehicles.1.licensePlate', 'BBB-002-BB')
-                ->where('company.activityByYear.0.topVehicles.1.daysUsed', 20)
-                ->where('company.activityByYear.0.topVehicles.2.licensePlate', 'CCC-003-CC')
-                ->where('company.activityByYear.0.topVehicles.2.daysUsed', 10),
+                ->has('companyOverview.activityByYear.0.topVehicles', 3) // tronqué à 3
+                ->where('companyOverview.activityByYear.0.topVehicles.0.licensePlate', 'AAA-001-AA')
+                ->where('companyOverview.activityByYear.0.topVehicles.0.daysUsed', 30)
+                ->where('companyOverview.activityByYear.0.topVehicles.1.licensePlate', 'BBB-002-BB')
+                ->where('companyOverview.activityByYear.0.topVehicles.1.daysUsed', 20)
+                ->where('companyOverview.activityByYear.0.topVehicles.2.licensePlate', 'CCC-003-CC')
+                ->where('companyOverview.activityByYear.0.topVehicles.2.daysUsed', 10),
             );
     }
 
@@ -455,8 +498,8 @@ final class CompanyControllerTest extends TestCase
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('company.kpiYear', (int) Carbon::now()->year)
-                ->has('company.kpiStats', fn (AssertableInertia $stats) => $stats
+                ->where('companyOverview.kpiYear', (int) Carbon::now()->year)
+                ->has('companyOverview.kpiStats', fn (AssertableInertia $stats) => $stats
                     ->where('year', (int) Carbon::now()->year)
                     ->where('daysUsed', 0)
                     ->where('contractsCount', 0)
@@ -482,7 +525,7 @@ final class CompanyControllerTest extends TestCase
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('company.kpiFiscalAvailable', false),
+                ->where('companyOverview.kpiFiscalAvailable', false),
             );
 
         Carbon::setTestNow();
@@ -525,15 +568,15 @@ final class CompanyControllerTest extends TestCase
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('company.history', count($expectedYears))
-                ->where('company.history.0.year', 2024)
-                ->where('company.history.0.daysUsed', 10)
+                ->has('companyOverview.history', count($expectedYears))
+                ->where('companyOverview.history.0.year', 2024)
+                ->where('companyOverview.history.0.daysUsed', 10)
                 // Année juste avant l'année courante : neutre (0j).
-                ->where('company.history.'.(count($expectedYears) - 1).'.year', $currentYear - 1)
-                ->where('company.history.'.(count($expectedYears) - 1).'.daysUsed', $currentYear - 1 === 2024 ? 10 : 0)
+                ->where('companyOverview.history.'.(count($expectedYears) - 1).'.year', $currentYear - 1)
+                ->where('companyOverview.history.'.(count($expectedYears) - 1).'.daysUsed', $currentYear - 1 === 2024 ? 10 : 0)
                 // KPIs reflètent l'année courante avec le contrat (10 jours)
-                ->where('company.kpiYear', $currentYear)
-                ->where('company.kpiStats.daysUsed', 10),
+                ->where('companyOverview.kpiYear', $currentYear)
+                ->where('companyOverview.kpiStats.daysUsed', 10),
             );
     }
 
@@ -547,7 +590,7 @@ final class CompanyControllerTest extends TestCase
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('company.yearScope', fn (AssertableInertia $scope) => $scope
+                ->has('companyOverview.yearScope', fn (AssertableInertia $scope) => $scope
                     ->has('currentYear')
                     ->has('minYear')
                     ->has('availableYears'),
@@ -1063,11 +1106,11 @@ final class CompanyControllerTest extends TestCase
             ->get("/app/companies/{$company->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('company.history', count($expectedYears))
-                ->where('company.history.0.year', 2024)
-                ->where('company.history.0.daysUsed', 15)
+                ->has('companyOverview.history', count($expectedYears))
+                ->where('companyOverview.history.0.year', 2024)
+                ->where('companyOverview.history.0.daysUsed', 15)
                 // 2025 (si dans la plage) doit être présente, neutre.
-                ->where('company.lifetime.contractsCount', 1),
+                ->where('companyOverview.lifetime.contractsCount', 1),
             );
     }
 

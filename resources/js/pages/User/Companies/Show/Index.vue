@@ -28,6 +28,7 @@ const props = defineProps<{
     pendingInvoices: App.Data.User.Billing.PendingInvoiceYearData[];
 
     // Lazy: populated after the matching tab is first visited.
+    companyOverview?: App.Data.User.Company.CompanyOverviewData;
     options?: { drivers: DriverOption[] };
     contracts?: App.Data.User.Contract.PaginatedContractListData;
     contractsStats?: App.Data.User.Company.CompanyContractsStatsData;
@@ -87,20 +88,27 @@ function handleGotoBillingYear(year: number): void {
                 @change="setTab"
             />
 
-            <CompanyOverviewTab
-                v-if="activeTab === 'overview'"
-                :company="props.company"
-                :pending-declarations="props.pendingDeclarations"
-                :pending-invoices="props.pendingInvoices"
-                @goto-fiscal-year="handleGotoFiscalYear"
-                @goto-billing-year="handleGotoBillingYear"
-            />
-
             <!--
-                `loadingTab !== '<key>'` forces a fresh remount during a
-                partial reload, otherwise inner year selectors keep their
-                stale initial bindings after new props land.
+                Overview is tab-gated like the others: its heavy payload
+                (`companyOverview`) is eager on a direct `?tab=overview`
+                load (no skeleton flash) and lazy-loaded on first visit
+                from another tab. `loadingTab !== '<key>'` forces a fresh
+                remount during a partial reload, otherwise inner year
+                selectors keep their stale initial bindings.
             -->
+            <template v-if="activeTab === 'overview'">
+                <CompanyOverviewTab
+                    v-if="props.companyOverview && loadingTab !== 'overview'"
+                    :company="props.company"
+                    :overview="props.companyOverview"
+                    :pending-declarations="props.pendingDeclarations"
+                    :pending-invoices="props.pendingInvoices"
+                    @goto-fiscal-year="handleGotoFiscalYear"
+                    @goto-billing-year="handleGotoBillingYear"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
+
             <template v-else-if="activeTab === 'contracts'">
                 <CompanyContractsTab
                     v-if="props.contracts && props.contractsStats && loadingTab !== 'contracts'"

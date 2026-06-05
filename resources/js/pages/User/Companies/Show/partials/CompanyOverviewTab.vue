@@ -14,6 +14,7 @@ import PendingActionsAlert from './overview/PendingActionsAlert.vue';
 
 const props = defineProps<{
     company: App.Data.User.Company.CompanyDetailData;
+    overview: App.Data.User.Company.CompanyOverviewData;
     pendingDeclarations?: App.Data.User.FiscalDeclaration.PendingDeclarationData[];
     pendingInvoices?: App.Data.User.Billing.PendingInvoiceYearData[];
 }>();
@@ -40,9 +41,9 @@ const hasAnyPending = computed<boolean>(
         />
 
         <CompanyKpiCards
-            :kpi-stats="company.kpiStats"
-            :kpi-year="company.kpiYear"
-            :kpi-fiscal-available="company.kpiFiscalAvailable"
+            :kpi-stats="overview.kpiStats"
+            :kpi-year="overview.kpiYear"
+            :kpi-fiscal-available="overview.kpiFiscalAvailable"
         />
 
         <div class="grid grid-cols-1 gap-10 xl:grid-cols-3 xl:gap-12">
@@ -51,10 +52,13 @@ const hasAnyPending = computed<boolean>(
                     <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                         Historique par année
                     </p>
-                    <CompanyYearHistoryCard :history="company.history" unwrapped />
+                    <CompanyYearHistoryCard :history="overview.history" unwrapped />
                 </section>
 
-                <CompanyActivityCard :company="company" />
+                <CompanyActivityCard
+                    :activity-by-year="overview.activityByYear"
+                    :year-scope="overview.yearScope"
+                />
 
                 <!-- Below xl, Contact + Address sit in the main flow; from xl on the aside owns them. -->
                 <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:hidden">

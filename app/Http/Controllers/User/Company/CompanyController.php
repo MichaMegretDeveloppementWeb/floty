@@ -115,13 +115,18 @@ final class CompanyController extends Controller
     {
         Gate::authorize('view', $company);
 
-        // Resolved once and shared with detail() + the two pending
-        // resolvers, which previously each ran findActiveYearsForCompany.
-        $activeYears = $this->contracts->findActiveYearsForCompany($company->id);
-
-        $detail = $this->companyDetail->detail($company, $activeYears);
-
         $activeTab = (string) $request->query('tab', 'overview');
+        $isOverview = $activeTab === 'overview';
+        $companyId = $company->id;
+
+        // Slim base always (header + every tab + Drivers tab list). The
+        // heavy overview payload (multi-year fiscal aggregation) is gated
+        // to the overview tab.
+        $detail = $this->companyDetail->detailBase($company);
+
+        // Resolved once · needed by the (always-eager) pending resolvers
+        // that feed the nav "à faire" badges, and by the overview payload.
+        $activeYears = $this->contracts->findActiveYearsForCompany($companyId);
 
         // Contracts tab: default to the current real year when no explicit
         // period query param is set. Only `year` is forced so the backend
@@ -137,12 +142,19 @@ final class CompanyController extends Controller
 
         // Unified `?year=` shared between the Fiscal and Billing tabs.
         $selectedYear = (int) $request->query('year', (string) $detail->currentRealYear);
-        $companyId = $company->id;
 
         return Inertia::render('User/Companies/Show/Index', [
             'company' => $detail,
+            // Overview-tab-only heavy payload (KPIs, lifetime, history,
+            // activity). Eager only when ?tab=overview, optional otherwise.
+            'companyOverview' => $this->eagerForTab(
+                $isOverview,
+                fn () => $this->companyDetail->overview($company, $activeYears),
+            ),
             'contractsQuery' => $contractsQuery,
             'billingYear' => $selectedYear,
+            // Kept eager (every tab): feed the nav "à faire" badges + the
+            // fiscal/billing year dots, not only the overview card.
             'pendingDeclarations' => $this->pendingDeclarations->pendingForCompany($companyId, $activeYears),
             'pendingInvoices' => $this->pendingInvoices->pendingForCompany($companyId, $activeYears),
             // Continuous year range shared between billing and contracts pills

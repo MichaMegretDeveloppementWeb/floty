@@ -12,6 +12,7 @@ use App\Data\User\Company\CompanyDetailData;
 use App\Data\User\Company\CompanyDriverRowData;
 use App\Data\User\Company\CompanyEditData;
 use App\Data\User\Company\CompanyLifetimeStatsData;
+use App\Data\User\Company\CompanyOverviewData;
 use App\Data\User\Company\CompanyTopVehicleData;
 use App\Data\User\Company\CompanyYearStatsData;
 use App\DTO\Fiscal\ContractsByPair;
@@ -90,26 +91,16 @@ final class CompanyDetailService
     }
 
     /**
-     * Full detail for the Show page · identity hero, lifetime KPIs,
-     * history, per-year activity, drivers list.
-     *
-     * `currentRealYear` lets the history mark the in-progress fiscal
-     * exercise on the frontend without relying on `new Date()`.
-     *
-     * The company is the route-bound model (already loaded) and
-     * `$activeYears` is resolved once by the controller and shared with
-     * the pending-declarations / pending-invoices resolvers, so the
-     * `findActiveYearsForCompany` query runs once per request, not three
-     * times.
-     *
-     * @param  list<int>  $activeYears  Years covered by at least one company contract
+     * Slim always-eager base for the Show page · identity hero + status
+     * flags + drivers list (header on every tab + Drivers tab) + cheap
+     * counters. NO multi-year fiscal aggregation. The company is the
+     * route-bound model (already loaded). `currentRealYear` lets the
+     * Contracts tab derive its default period.
      */
-    public function detail(Company $company, array $activeYears): CompanyDetailData
+    public function detailBase(Company $company): CompanyDetailData
     {
         $companyId = $company->id;
-
-        $today = Carbon::today();
-        $currentRealYear = (int) $today->year;
+        $currentRealYear = (int) Carbon::today()->year;
 
         $company->load(['drivers' => function ($query): void {
             $query->orderByPivot('joined_at');
@@ -150,7 +141,45 @@ final class CompanyDetailService
             }
         }
 
-        $contractsCount = $this->contracts->countContractsForCompany($companyId);
+        return new CompanyDetailData(
+            id: $company->id,
+            legalName: $company->legal_name,
+            shortCode: $company->short_code,
+            color: $company->color,
+            siren: $company->siren,
+            siret: $company->siret,
+            addressLine1: $company->address_line_1,
+            addressLine2: $company->address_line_2,
+            postalCode: $company->postal_code,
+            city: $company->city,
+            country: $company->country,
+            contactName: $company->contact_name,
+            contactEmail: $company->contact_email,
+            contactPhone: $company->contact_phone,
+            isActive: $company->is_active,
+            isOig: $company->is_oig,
+            isIndividualBusiness: $company->is_individual_business,
+            contractsCount: $this->contracts->countContractsForCompany($companyId),
+            activeDriversCount: $activeDriversCount,
+            totalDriversCount: count($driverRows),
+            drivers: $driverRows,
+            currentRealYear: $currentRealYear,
+        );
+    }
+
+    /**
+     * Overview-tab-only payload · the heavy multi-year fiscal aggregation
+     * (current-year KPIs, lifetime totals, historical evolution, per-year
+     * activity). Served eagerly only when `?tab=overview` (tab-gating);
+     * the other tabs do not pay this when loaded directly. `$activeYears`
+     * is resolved once by the controller (shared with the pending
+     * resolvers).
+     *
+     * @param  list<int>  $activeYears  Years covered by at least one company contract
+     */
+    public function overview(Company $company, array $activeYears): CompanyOverviewData
+    {
+        $companyId = $company->id;
         $availableYears = $activeYears;
 
         // Single bulk load over the year range instead of 2×N year-by-year
@@ -168,9 +197,7 @@ final class CompanyDetailService
         // Vehicle universe used by the company across every active year,
         // loaded once (with current VFC) + unavailabilities once, then
         // shared with computeYearStats and computeActivityForYear for all
-        // years. Replaces a per-year findByIdsIndexed + loadVehicleEvents
-        // (the same overlapping vehicles were re-queried once per year and
-        // a second time for the activity top-3).
+        // years (the same overlapping vehicles were re-queried per year).
         $companyVehicleIds = [];
         foreach ($availableYears as $year) {
             $pair = $contractsByYear[$year] ?? null;
@@ -209,69 +236,39 @@ final class CompanyDetailService
 
         $lifetime = new CompanyLifetimeStatsData(
             daysUsed: array_sum(array_map(static fn (CompanyYearStatsData $s): int => $s->daysUsed, $allYearStats)),
-            contractsCount: $contractsCount,
+            contractsCount: $this->contracts->countContractsForCompany($companyId),
             taxesGenerated: round(
                 array_sum(array_map(static fn (CompanyYearStatsData $s): float => $s->annualTaxDue, $allYearStats)),
                 2,
                 PHP_ROUND_HALF_UP,
             ),
             // Rent total exposed as a nullable placeholder until the
-            // billing module is wired in. The UI renders the KPI card
-            // already; the real value lights up once available.
+            // billing module is wired in.
             rentTotal: null,
         );
 
-        // Present · top-of-page KPIs, always on the current calendar
-        // year. If the company has no contract that year, a neutral
-        // CompanyYearStatsData (zeros) is returned so the UI renders
-        // "0 j / 0 contrats / 0 €" without crashing.
+        // Present · top-of-page KPIs, always on the current calendar year.
+        // Neutral zeros when the company has no contract that year.
         $kpiYear = $this->availableYears->currentYear();
         $kpiStats = $allYearStats[$kpiYear] ?? $this->emptyYearStats($kpiYear);
 
         // Distinguishes "no data" (zero KPIs) from "fiscal computation
-        // unavailable" (rules not yet coded for `kpiYear`). Lets the UI
-        // surface a short explicit message on the Taxes KPI only.
+        // unavailable" (rules not yet coded for `kpiYear`).
         $kpiFiscalAvailable = in_array(
             $kpiYear,
             $this->fiscalRules->registeredYears(),
             true,
         );
 
-        // History · every past year in the global scope
-        // `[minYear..kpiYear-1]`, including years where the company has
-        // no contract (neutral zero rows). A zero year on a company
-        // fiche is informative ("this year nothing was used"). Consistent
-        // with the global-bounds doctrine shared across screens. When
-        // the DB is empty globally, `minYear == kpiYear` → empty loop
-        // → UI empty state.
+        // History · every past year in the global scope `[minYear..kpiYear-1]`,
+        // including years with no contract (neutral zero rows).
         $historyMinYear = $this->availableYears->minYear();
         $history = [];
         for ($year = $historyMinYear; $year < $kpiYear; $year++) {
             $history[] = $allYearStats[$year] ?? $this->emptyYearStats($year);
         }
 
-        return new CompanyDetailData(
-            id: $company->id,
-            legalName: $company->legal_name,
-            shortCode: $company->short_code,
-            color: $company->color,
-            siren: $company->siren,
-            siret: $company->siret,
-            addressLine1: $company->address_line_1,
-            addressLine2: $company->address_line_2,
-            postalCode: $company->postal_code,
-            city: $company->city,
-            country: $company->country,
-            contactName: $company->contact_name,
-            contactEmail: $company->contact_email,
-            contactPhone: $company->contact_phone,
-            isActive: $company->is_active,
-            isOig: $company->is_oig,
-            isIndividualBusiness: $company->is_individual_business,
-            contractsCount: $contractsCount,
-            activeDriversCount: $activeDriversCount,
-            totalDriversCount: count($driverRows),
-            drivers: $driverRows,
+        return new CompanyOverviewData(
             lifetime: $lifetime,
             kpiStats: $kpiStats,
             kpiYear: $kpiYear,
@@ -287,7 +284,6 @@ final class CompanyDetailService
                 $availableYears,
             ),
             availableYears: $availableYears,
-            currentRealYear: $currentRealYear,
             yearScope: YearScopeData::fromResolver($this->availableYears),
         );
     }

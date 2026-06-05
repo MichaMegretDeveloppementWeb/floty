@@ -43,14 +43,17 @@ const LEGACY_TAB_ALIASES: Readonly<Record<string, CompanyTabKey>> = {
 
 /**
  * Inertia props to load per tab: keys from `Inertia::optional()` in `CompanyController::show`.
- * An empty list (`overview`) means the tab has no specific prop; its data lives in shared eager props.
+ *
+ * `overview` carries the heavy multi-year fiscal payload (`companyOverview`), eager only on a
+ * direct `?tab=overview` load and lazy-loaded on first visit from another tab (tab-gating).
+ * `pendingDeclarations`/`pendingInvoices` stay eager (nav "à faire" badges) so they are NOT listed here.
  *
  * `billingYear` (eager) is needed in the Fiscal and Facturation reloads to highlight the active pill;
  * without it the client keeps the mount-time value while year-dependent props are fresh,
  * causing a mismatch (e.g. title "Facturation 2024" with pill 2026 highlighted).
  */
 const TAB_PROPS: Readonly<Record<CompanyTabKey, readonly string[]>> = {
-    overview: [],
+    overview: ['companyOverview'],
     contracts: ['contracts', 'contractsStats', 'contractsQuery', 'billingYear'],
     drivers: ['options'],
     fiscal: ['companyFiscal', 'declarationLifecycle', 'billingYear'],

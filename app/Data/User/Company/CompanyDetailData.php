@@ -4,28 +4,26 @@ declare(strict_types=1);
 
 namespace App\Data\User\Company;
 
-use App\Data\Shared\YearScopeData;
 use App\Enums\Company\CompanyColor;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Detailed view of a company. Feeds the Company Show page with three temporal
- * lenses: current-year KPIs (`kpiStats`), historical evolution (`history`)
- * and per-year exploration (`activityByYear`). Identity fields are intemporal.
+ * Slim, always-eager base for the Company Show page · identity hero +
+ * status flags + drivers list (consumed by the header on every tab and
+ * by the Drivers tab) + cheap counters. The heavy multi-year fiscal
+ * aggregation (KPIs, lifetime, history, activity) lives in
+ * {@see CompanyOverviewData}, served only on the overview tab (tab-gating).
  *
- * `yearScope` carries the global available years (ADR-0020). `lifetime` is
- * retained for backwards compatibility with potential consumers.
+ * `currentRealYear` stays here: the Contracts tab derives its default
+ * period from it.
  */
 #[TypeScript]
 final class CompanyDetailData extends Data
 {
     /**
      * @param  list<CompanyDriverRowData>  $drivers
-     * @param  list<CompanyYearStatsData>  $history  One entry per past year with ≥ 1 contract (excludes current year).
-     * @param  list<CompanyActivityYearData>  $activityByYear  Visual detail per historical year.
-     * @param  list<int>  $availableYears  Years with ≥ 1 contract for this company specifically.
      */
     public function __construct(
         public int $id,
@@ -50,16 +48,6 @@ final class CompanyDetailData extends Data
         public int $totalDriversCount,
         #[DataCollectionOf(CompanyDriverRowData::class)]
         public array $drivers,
-        public CompanyLifetimeStatsData $lifetime,
-        public CompanyYearStatsData $kpiStats,
-        public int $kpiYear,
-        public bool $kpiFiscalAvailable,
-        #[DataCollectionOf(CompanyYearStatsData::class)]
-        public array $history,
-        #[DataCollectionOf(CompanyActivityYearData::class)]
-        public array $activityByYear,
-        public array $availableYears,
         public int $currentRealYear,
-        public YearScopeData $yearScope,
     ) {}
 }

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Activity exploration card on the Company overview. Local year
- * selector (no Inertia reload, all years are pre-computed in
- * `company.activityByYear`), with a monthly heatmap and a top-3
+ * selector (no Inertia reload, all years are pre-computed in the
+ * `activityByYear` payload), with a monthly heatmap and a top-3
  * vehicles list.
  */
 import { computed } from 'vue';
@@ -12,17 +12,17 @@ import YearSelector from '@/Components/Ui/YearSelector/YearSelector.vue';
 import { useYearScope } from '@/Composables/Shared/useYearScope';
 import { MONTH_LABELS } from '@/Utils/format/monthLabels';
 
-type Company = App.Data.User.Company.CompanyDetailData;
 type ActivityYear = App.Data.User.Company.CompanyActivityYearData;
 
 const props = defineProps<{
-    company: Company;
+    activityByYear: ActivityYear[];
+    yearScope: App.Data.Shared.YearScopeData;
 }>();
 
 // Local mode: every year is pre-computed in `activityByYear`, so the
 // year change only updates the URL (deep-link / F5 preserved).
 const { selectedYear, selectedYearModel, availableYears } = useYearScope(
-    props.company.yearScope,
+    props.yearScope,
 );
 
 // The picker exposes the global year scope. Years where this company
@@ -44,7 +44,7 @@ function emptyActivity(year: number): ActivityYear {
 
 const byYear = computed<ActivityYear>(
     () =>
-        props.company.activityByYear.find((entry) => entry.year === selectedYear.value)
+        props.activityByYear.find((entry) => entry.year === selectedYear.value)
         ?? emptyActivity(selectedYear.value),
 );
 
