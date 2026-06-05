@@ -264,6 +264,7 @@ function onSubmit(): void {
                             ]"
                         >
                             {{ recipient.name }} · {{ recipient.email }}
+                            <span v-if="recipient.isAlwaysNotify" class="text-slate-400">· prévenu par défaut</span>
                         </span>
                     </button>
                 </div>

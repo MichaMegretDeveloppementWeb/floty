@@ -7,6 +7,7 @@ import { store as storeRoute, update as updateRoute } from '@/routes/user/vehicl
 type EffectiveControl = App.Data.User.Control.Vehicle.EffectiveControlData;
 type ControlReminderSettings = App.Data.User.Control.ControlReminderSettingsData;
 type Recipient = { name: string; email: string };
+type InheritedRecipient = Recipient & { isAlwaysNotify: boolean };
 
 type VehicleControlFormShape = {
     control_definition_id: number | null;
@@ -64,7 +65,7 @@ export function useVehicleControlForm(
     form: InertiaForm<VehicleControlFormShape>;
     isSpecific: ComputedRef<boolean>;
     isEditing: ComputedRef<boolean>;
-    inheritedRecipients: ComputedRef<ReadonlyArray<Recipient>>;
+    inheritedRecipients: ComputedRef<ReadonlyArray<InheritedRecipient>>;
     isInheritedIncluded: (email: string) => boolean;
     toggleInherited: (email: string) => void;
     addOwnRecipient: () => void;
@@ -79,17 +80,41 @@ export function useVehicleControlForm(
 
     const isEditing = computed<boolean>(() => (toValue(getEditing)?.overrideId ?? null) !== null);
 
-    const inheritedRecipients = computed<ReadonlyArray<Recipient>>(() => {
+    const inheritedRecipients = computed<ReadonlyArray<InheritedRecipient>>(() => {
+        const settings = toValue(getReminderSettings);
+        const alwaysEmail = (settings.alwaysNotifyEmail ?? '').trim().toLowerCase();
+        const isAlways = (email: string): boolean => alwaysEmail !== '' && email.trim().toLowerCase() === alwaysEmail;
+
         const editing = toValue(getEditing);
 
         if (editing !== null) {
-            return editing.inheritedRecipients.map((recipient) => ({ name: recipient.name, email: recipient.email }));
+            return editing.inheritedRecipients.map((recipient) => ({
+                name: recipient.name,
+                email: recipient.email,
+                isAlwaysNotify: isAlways(recipient.email),
+            }));
         }
 
-        return toValue(getReminderSettings).defaultRecipients.map((recipient) => ({
-            name: recipient.name,
-            email: recipient.email,
-        }));
+        // New specific control: inherit the general settings (always-notify + defaults).
+        const list: InheritedRecipient[] = [];
+
+        if (alwaysEmail !== '') {
+            list.push({
+                name: settings.alwaysNotifyName ?? alwaysEmail,
+                email: alwaysEmail,
+                isAlwaysNotify: true,
+            });
+        }
+
+        for (const recipient of settings.defaultRecipients) {
+            if (alwaysEmail !== '' && recipient.email.trim().toLowerCase() === alwaysEmail) {
+                continue;
+            }
+
+            list.push({ name: recipient.name, email: recipient.email, isAlwaysNotify: false });
+        }
+
+        return list;
     });
 
     function isInheritedIncluded(email: string): boolean {

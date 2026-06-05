@@ -33,7 +33,6 @@ const {
     form,
     isEditing,
     inheritedRecipients,
-    alwaysNotify,
     isInheritedIncluded,
     toggleInherited,
     addOwnRecipient,
@@ -205,19 +204,6 @@ function onSubmit(): void {
                     <h3 class="text-sm font-semibold text-slate-900">Destinataires</h3>
                 </div>
 
-                <div
-                    v-if="alwaysNotify"
-                    class="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2"
-                >
-                    <span class="min-w-0 truncate text-sm text-slate-700">
-                        {{ alwaysNotify.name }}
-                        <span class="text-slate-400">· {{ alwaysNotify.email }}</span>
-                    </span>
-                    <span class="shrink-0 text-micro font-semibold tracking-wider text-slate-400 uppercase">
-                        Toujours prévenu
-                    </span>
-                </div>
-
                 <div v-if="inheritedRecipients.length > 0" class="flex flex-col gap-2">
                     <p class="text-xs font-medium text-slate-500">
                         Hérités des paramètres généraux · décocher pour retirer de ce contrôle
@@ -256,6 +242,7 @@ function onSubmit(): void {
                             ]"
                         >
                             {{ recipient.name }} · {{ recipient.email }}
+                            <span v-if="recipient.isAlwaysNotify" class="text-slate-400">· prévenu par défaut</span>
                         </span>
                     </button>
                 </div>

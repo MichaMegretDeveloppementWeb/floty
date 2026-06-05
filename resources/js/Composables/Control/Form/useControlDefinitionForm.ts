@@ -7,6 +7,7 @@ import { store as storeRoute, update as updateRoute } from '@/routes/user/contro
 type ControlDefinition = App.Data.User.Control.ControlDefinitionData;
 type ControlReminderSettings = App.Data.User.Control.ControlReminderSettingsData;
 type Recipient = { name: string; email: string };
+type InheritedRecipient = Recipient & { isAlwaysNotify: boolean };
 
 type ControlFormShape = {
     name: string;
@@ -47,12 +48,13 @@ function blankForm(): ControlFormShape {
 }
 
 /**
- * Editor form for a global control definition (Chantier B / B1, domaine B).
+ * Editor form for a global control definition (Chantier B, domaine B).
  * Snake_case `useForm` keys match the server `SnakeCaseMapper`. Recipients are
- * split into the control's own additions (includes) and the inherited level-0
- * defaults it removes (excludes); the "always notify" recipient is shown but
- * not removable in B1. `seed()` re-fills the form when the editor opens, for a
- * control (edit) or blank (create).
+ * split into the control's own additions (includes) and the inherited defaults
+ * it removes (excludes). The inherited list is the "always notify" recipient
+ * (flagged) followed by the level-0 defaults: all are included by default but
+ * removable (unified with the per-vehicle editor). `seed()` re-fills the form
+ * when the editor opens, for a control (edit) or blank (create).
  */
 export function useControlDefinitionForm(
     getEditing: MaybeRefOrGetter<ControlDefinition | null>,
@@ -60,8 +62,7 @@ export function useControlDefinitionForm(
 ): {
     form: InertiaForm<ControlFormShape>;
     isEditing: ComputedRef<boolean>;
-    inheritedRecipients: ComputedRef<ReadonlyArray<Recipient>>;
-    alwaysNotify: ComputedRef<Recipient | null>;
+    inheritedRecipients: ComputedRef<ReadonlyArray<InheritedRecipient>>;
     isInheritedIncluded: (email: string) => boolean;
     toggleInherited: (email: string) => void;
     addOwnRecipient: () => void;
@@ -76,21 +77,28 @@ export function useControlDefinitionForm(
 
     const reminderSettings = computed<ControlReminderSettings>(() => toValue(getReminderSettings));
 
-    const inheritedRecipients = computed<ReadonlyArray<Recipient>>(() =>
-        reminderSettings.value.defaultRecipients.map((recipient) => ({
-            name: recipient.name,
-            email: recipient.email,
-        })),
-    );
+    const inheritedRecipients = computed<ReadonlyArray<InheritedRecipient>>(() => {
+        const settings = reminderSettings.value;
+        const alwaysEmail = (settings.alwaysNotifyEmail ?? '').trim().toLowerCase();
+        const list: InheritedRecipient[] = [];
 
-    const alwaysNotify = computed<Recipient | null>(() => {
-        const email = reminderSettings.value.alwaysNotifyEmail;
-
-        if (email === null || email === '') {
-            return null;
+        if (alwaysEmail !== '') {
+            list.push({
+                name: settings.alwaysNotifyName ?? alwaysEmail,
+                email: alwaysEmail,
+                isAlwaysNotify: true,
+            });
         }
 
-        return { name: reminderSettings.value.alwaysNotifyName ?? email, email };
+        for (const recipient of settings.defaultRecipients) {
+            if (alwaysEmail !== '' && recipient.email.trim().toLowerCase() === alwaysEmail) {
+                continue;
+            }
+
+            list.push({ name: recipient.name, email: recipient.email, isAlwaysNotify: false });
+        }
+
+        return list;
     });
 
     function isInheritedIncluded(email: string): boolean {
@@ -165,7 +173,6 @@ export function useControlDefinitionForm(
         form,
         isEditing,
         inheritedRecipients,
-        alwaysNotify,
         isInheritedIncluded,
         toggleInherited,
         addOwnRecipient,
