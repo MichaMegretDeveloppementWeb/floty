@@ -6,11 +6,11 @@ type Breakdown = App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
 
 /**
  * View + interactions for the "Détail Taxe pleine" sidebar: shortcut `breakdown` over
- * `stats.fullYearTaxBreakdown`, rule indexation by code for O(1) lookup on click,
+ * the passed `fullYearTaxBreakdown`, rule indexation by code for O(1) lookup on click,
  * and rule-inspection modal state (driven by `selectedCode`).
  */
 export function useFullYearTaxBreakdownPanel(props: {
-    stats: App.Data.User.Vehicle.VehicleUsageStatsData;
+    fullYearTaxBreakdown: Breakdown;
 }): {
     breakdown: ComputedRef<Breakdown>;
     selectedCode: Ref<string | null>;
@@ -18,7 +18,7 @@ export function useFullYearTaxBreakdownPanel(props: {
     modalOpen: WritableComputedRef<boolean>;
     openRule: (code: string) => void;
 } {
-    const breakdown = computed<Breakdown>(() => props.stats.fullYearTaxBreakdown);
+    const breakdown = computed<Breakdown>(() => props.fullYearTaxBreakdown);
 
     const rulesByCode = computed<Record<string, Rule>>(() => {
         const map: Record<string, Rule> = {};

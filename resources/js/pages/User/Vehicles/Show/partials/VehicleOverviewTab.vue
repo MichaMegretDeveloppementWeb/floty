@@ -4,49 +4,45 @@
  * card, yearly history and usage + breakdown card. Vehicle events live in
  * their own "Événements" tab; the detailed full-year tax breakdown in the
  * Fiscal tab.
+ *
+ * The heavy overview data (usage timeline, current-year KPI, history)
+ * arrives in the `overview` payload, eager only on the overview tab. The
+ * parent gates this component behind a skeleton until the payload is
+ * present, so `overview` is always defined here.
  */
-import { Deferred } from '@inertiajs/vue3';
-import Skeleton from '@/Components/Ui/Skeleton/Skeleton.vue';
 import CurrentFiscalCharacteristicsCard from './CurrentFiscalCharacteristicsCard.vue';
 import VehicleUsageAndBreakdownCard from './overview/VehicleUsageAndBreakdownCard.vue';
 import VehicleKpiCards from './VehicleKpiCards.vue';
 import VehicleYearHistoryCard from './VehicleYearHistoryCard.vue';
 
-defineProps<{
+const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
     options: App.Data.User.Vehicle.VehicleFormOptionsData;
-    // Deferred: arrives on second round-trip, <Deferred data="history">
-    // shows a skeleton in the meantime.
-    history?: App.Data.User.Vehicle.VehicleYearStatsData[];
+    overview: App.Data.User.Vehicle.VehicleOverviewData;
 }>();
 </script>
 
 <template>
     <div class="flex flex-col gap-6">
         <VehicleKpiCards
-            :kpi-stats="vehicle.kpiStats"
-            :kpi-year="vehicle.kpiYear"
-            :kpi-fiscal-available="vehicle.kpiFiscalAvailable"
+            :kpi-stats="props.overview.kpiStats"
+            :kpi-year="props.vehicle.kpiYear"
+            :kpi-fiscal-available="props.overview.kpiFiscalAvailable"
         />
 
-        <Deferred data="history">
-            <template #fallback>
-                <Skeleton class="h-32 rounded-xl" />
-            </template>
-            <VehicleYearHistoryCard :history="history!" />
-        </Deferred>
+        <VehicleYearHistoryCard :history="props.overview.history" />
 
         <CurrentFiscalCharacteristicsCard
-            :vehicle-id="vehicle.id"
-            :fiscal="vehicle.currentFiscalCharacteristics"
-            :history="vehicle.fiscalCharacteristicsHistory"
-            :options="options"
+            :vehicle-id="props.vehicle.id"
+            :fiscal="props.vehicle.currentFiscalCharacteristics"
+            :history="props.vehicle.fiscalCharacteristicsHistory"
+            :options="props.options"
         />
 
         <VehicleUsageAndBreakdownCard
-            :vehicle-id="vehicle.id"
-            :initial-stats="vehicle.usageStats"
-            :available-years="vehicle.yearScope.availableYears"
+            :vehicle-id="props.vehicle.id"
+            :initial-stats="props.overview.usageStats"
+            :available-years="props.vehicle.yearScope.availableYears"
         />
     </div>
 </template>

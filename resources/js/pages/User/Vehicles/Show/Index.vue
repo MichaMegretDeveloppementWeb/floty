@@ -23,10 +23,8 @@ const props = defineProps<{
     fiscalYear: number;
     fiscalYearScope: App.Data.Shared.YearScopeData;
 
-    // Deferred: arrives on second round-trip, consumed via <Deferred data="history">.
-    history?: App.Data.User.Vehicle.VehicleYearStatsData[];
-
     // Lazy: populated after the matching tab is first visited.
+    vehicleOverview?: App.Data.User.Vehicle.VehicleOverviewData;
     vehicleBilling?: App.Data.User.Billing.MonthlyBillingBreakdownData;
     fiscalYearBreakdown?: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
     vehicleControls?: App.Data.User.Control.Vehicle.VehicleControlsTabData;
@@ -44,12 +42,21 @@ const { activeTab, setTab, loadingTab } = useVehicleTabs();
 
             <VehicleTabsNav :active-tab="activeTab" @change="setTab" />
 
-            <VehicleOverviewTab
-                v-if="activeTab === 'overview'"
-                :vehicle="props.vehicle"
-                :options="props.options"
-                :history="props.history"
-            />
+            <!--
+                Overview is tab-gated: its heavy payload (`vehicleOverview`:
+                usage timeline, KPI, busy dates, history) is eager on a
+                direct `?tab=overview` load and lazy on first visit from
+                another tab.
+            -->
+            <template v-if="activeTab === 'overview'">
+                <VehicleOverviewTab
+                    v-if="props.vehicleOverview && loadingTab !== 'overview'"
+                    :vehicle="props.vehicle"
+                    :options="props.options"
+                    :overview="props.vehicleOverview"
+                />
+                <TabLoadingSkeleton v-else />
+            </template>
 
             <VehicleEventsTimeline
                 v-else-if="activeTab === 'events'"

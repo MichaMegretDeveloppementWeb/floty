@@ -10,18 +10,23 @@ use App\Data\User\VehicleEvent\VehicleEventData;
 use App\Enums\Vehicle\VehicleExitReason;
 use App\Enums\Vehicle\VehicleStatus;
 use App\Models\Vehicle;
+use App\Services\Vehicle\VehicleDetailService;
 use Spatie\LaravelData\Attributes\DataCollectionOf;
 use Spatie\LaravelData\Data;
 use Spatie\TypeScriptTransformer\Attributes\TypeScript;
 
 /**
- * Full representation of a vehicle for the Show page: identity, active VFC,
- * historical VFC list, usage stats, vehicleEvents, busy dates and pricings.
+ * Slim, always-eager base for the Vehicle Show page (header on every tab
+ * + Edit page): identity, active VFC, historical VFC list, vehicleEvents,
+ * year context and pricings.
+ *
+ * The heavy overview-tab data (usage timeline, current-year KPI, busy
+ * dates, history) lives in {@see VehicleOverviewData}, served only on the
+ * overview tab (tab-gating). `kpiYear` stays here (Fiscal tab + events
+ * timeline read it).
  *
  * `currentFiscalCharacteristics` is nullable for robustness, but a vehicle
  * created via {@see CreateVehicleAction} always has an initial VFC row.
- * The historical multi-year `history` prop is served separately via
- * `Inertia::defer` and is not part of this DTO.
  */
 #[TypeScript]
 final class VehicleData extends Data
@@ -29,7 +34,6 @@ final class VehicleData extends Data
     /**
      * @param  list<VehicleFiscalCharacteristicsData>  $fiscalCharacteristicsHistory
      * @param  list<VehicleEventData>  $vehicleEvents
-     * @param  list<string>  $busyDates  Dates ISO Y-m-d where the vehicle is assigned on the active year.
      * @param  list<VehicleYearlyPricingData>  $yearlyPricings  Rental rates per year, ascending order.
      */
     public function __construct(
@@ -53,13 +57,9 @@ final class VehicleData extends Data
         public ?VehicleFiscalCharacteristicsData $currentFiscalCharacteristics,
         #[DataCollectionOf(VehicleFiscalCharacteristicsData::class)]
         public array $fiscalCharacteristicsHistory,
-        public VehicleUsageStatsData $usageStats,
         #[DataCollectionOf(VehicleEventData::class)]
         public array $vehicleEvents,
-        public array $busyDates,
         public int $kpiYear,
-        public VehicleYearStatsData $kpiStats,
-        public bool $kpiFiscalAvailable,
         public int $selectedYear,
         public YearScopeData $yearScope,
         #[DataCollectionOf(VehicleYearlyPricingData::class)]
@@ -67,20 +67,16 @@ final class VehicleData extends Data
     ) {}
 
     /**
-     * Hydrate from a Vehicle loaded with its full fiscal history and a
-     * pre-computed usage aggregate for the active year.
+     * Hydrate the slim base from a Vehicle loaded with its full fiscal
+     * history. The overview payload (usage/KPI/busyDates/history) is built
+     * separately by {@see VehicleDetailService::overviewForVehicle()}.
      *
      * @param  list<VehicleEventData>  $vehicleEvents
-     * @param  list<string>  $busyDates
      */
     public static function fromModel(
         Vehicle $vehicle,
-        VehicleUsageStatsData $usageStats,
         array $vehicleEvents,
-        array $busyDates,
         int $kpiYear,
-        VehicleYearStatsData $kpiStats,
-        bool $kpiFiscalAvailable,
         int $selectedYear,
         YearScopeData $yearScope,
     ): self {
@@ -119,12 +115,8 @@ final class VehicleData extends Data
                 ? VehicleFiscalCharacteristicsData::fromModel($current)
                 : null,
             fiscalCharacteristicsHistory: $fiscalHistory,
-            usageStats: $usageStats,
             vehicleEvents: $vehicleEvents,
-            busyDates: $busyDates,
             kpiYear: $kpiYear,
-            kpiStats: $kpiStats,
-            kpiFiscalAvailable: $kpiFiscalAvailable,
             selectedYear: $selectedYear,
             yearScope: $yearScope,
             yearlyPricings: $yearlyPricings,

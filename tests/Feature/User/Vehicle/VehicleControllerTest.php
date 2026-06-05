@@ -440,6 +440,11 @@ final class VehicleControllerTest extends TestCase
                         ->where('effectiveTo', null)
                         ->etc())
                     ->has('fiscalCharacteristicsHistory', 1)
+                    // Tab-gating: the heavy overview fields left the base DTO.
+                    ->missing('usageStats')
+                    ->missing('kpiStats')
+                    ->etc())
+                ->has('vehicleOverview', fn (AssertableInertia $o) => $o
                     ->has('usageStats', fn (AssertableInertia $s) => $s
                         ->has('fiscalYear')
                         ->has('daysInYear')
@@ -589,7 +594,7 @@ final class VehicleControllerTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
                 ->where('vehicle.kpiYear', (int) Carbon::now()->year)
-                ->has('vehicle.kpiStats', fn (AssertableInertia $s) => $s
+                ->has('vehicleOverview.kpiStats', fn (AssertableInertia $s) => $s
                     ->where('year', (int) Carbon::now()->year)
                     ->where('daysUsed', 0)
                     ->where('contractsCount', 0)
@@ -616,24 +621,20 @@ final class VehicleControllerTest extends TestCase
             ->get("/app/vehicles/{$vehicle->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->where('vehicle.kpiFiscalAvailable', false),
+                ->where('vehicleOverview.kpiFiscalAvailable', false),
             );
 
         Carbon::setTestNow();
     }
 
     #[Test]
-    public function show_history_servi_via_inertia_defer_et_pas_dans_vehicle_dto(): void
+    public function show_history_est_dans_le_payload_overview_pas_dans_vehicle_ni_en_defer(): void
     {
-        // Audit perf 2026-05-16 / 02-vehicle.md P0 #1 · l'historique
-        // annuel est servi via `Inertia::defer` cote Show pour ne pas
-        // bloquer le mount sur N pipelines fiscaux. Ce test prouve que
-        // le defer est correctement cable · `history` n'est PAS dans
-        // la 1ere reponse Inertia (mount initial), il arrive via une
-        // 2e requete asynchrone partial reload declenchee par
-        // <Deferred> cote front. Le contenu de l'historique est teste
-        // separement par `history_for_vehicle_couvre_les_annees_passees`
-        // dans VehicleDetailServiceTest (Unit).
+        // Tab-gating · l'historique annuel (N pipelines fiscaux) fait
+        // partie du payload overview gate, plus du prop base `vehicle` ni
+        // d'un `Inertia::defer` top-level (le defer se declenchait sur
+        // chaque onglet). Le contenu de l'historique est teste separement
+        // par `history_for_vehicle_couvre_les_annees_passees` (Unit).
         $user = User::factory()->create();
         $vehicle = Vehicle::factory()->create();
         VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
@@ -648,9 +649,47 @@ final class VehicleControllerTest extends TestCase
             ->get("/app/vehicles/{$vehicle->id}")
             ->assertOk()
             ->assertInertia(fn (AssertableInertia $page) => $page
-                ->has('vehicle')
+                ->has('vehicleOverview.history')
                 ->missing('vehicle.history')
                 ->missing('history'),
+            );
+    }
+
+    #[Test]
+    public function show_overview_payload_present_sur_overview_absent_sur_autre_onglet(): void
+    {
+        // Tab-gating · le payload overview (usage/KPI/history, lourd) n'est
+        // charge que sur l'onglet overview. Un onglet non-overview charge
+        // directement ne paie pas ce calcul.
+        $user = User::factory()->create();
+        $vehicle = Vehicle::factory()->create();
+        VehicleFiscalCharacteristics::factory()->create(['vehicle_id' => $vehicle->id]);
+
+        // Overview (defaut) : payload present.
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->has('vehicleOverview.kpiStats')
+                ->has('vehicleOverview.usageStats'),
+            );
+
+        // Fiscalite chargee direct : vehicleOverview absent, fiscal present.
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}?tab=fiscal")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->missing('vehicleOverview')
+                ->has('fiscalYearBreakdown'),
+            );
+
+        // Facturation chargee direct : vehicleOverview absent.
+        $this->actingAs($user)
+            ->get("/app/vehicles/{$vehicle->id}?tab=billing")
+            ->assertOk()
+            ->assertInertia(fn (AssertableInertia $page) => $page
+                ->missing('vehicleOverview')
+                ->has('vehicleBilling'),
             );
     }
 

@@ -10,6 +10,7 @@ use App\Actions\Vehicle\ReactivateVehicleAction;
 use App\Actions\Vehicle\UpdateVehicleAction;
 use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\Vehicle\VehicleYearlyPricingReadRepositoryInterface;
+use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Vehicle\ExitVehicleData;
 use App\Data\User\Vehicle\StoreVehicleData;
@@ -49,6 +50,7 @@ final class VehicleController extends Controller
         private readonly VehicleAggregatesService $vehicleAggregates,
         private readonly VehicleListingService $vehicleListing,
         private readonly VehicleReadRepositoryInterface $vehicleRead,
+        private readonly VehicleEventReadRepositoryInterface $vehicleEventRead,
         private readonly VehicleYearlyPricingReadRepositoryInterface $vehiclePricings,
         private readonly CreateVehicleAction $createVehicle,
         private readonly UpdateVehicleAction $updateVehicle,
@@ -110,15 +112,30 @@ final class VehicleController extends Controller
         $vehicleModel = $this->vehicleRead->findByIdWithFiscalHistory($vehicle);
         Gate::authorize('view', $vehicleModel);
 
-        $vehicleData = $this->vehicleDetail->findVehicleData($vehicleModel);
+        // Single events load, threaded to the always-eager base DTO and (when
+        // ?tab=overview) the overview payload, so the two no longer query the
+        // same vehicle_events / documents rows twice within one request.
+        $vehicleEvents = $this->vehicleEventRead->findForVehicle($vehicle);
+
+        $vehicleData = $this->vehicleDetail->findVehicleData($vehicleModel, $vehicleEvents);
 
         // Unified `?year=` shared between the Fiscal and Billing tabs.
         $selectedYear = (int) $request->query('year', (string) $vehicleData->kpiYear);
 
         $activeTab = (string) $request->query('tab', 'overview');
+        $isOverview = $activeTab === 'overview';
 
         return Inertia::render('User/Vehicles/Show/Index', [
             'vehicle' => $vehicleData,
+            // Overview-tab-only payload (usage timeline, current-year KPI,
+            // busy dates, multi-year history). Eager only when
+            // ?tab=overview, Inertia::optional otherwise (tab-gating). The
+            // N fiscal pipelines no longer run on the other tabs nor leak
+            // via the former `history` defer.
+            'vehicleOverview' => $this->eagerForTab(
+                $isOverview,
+                fn () => $this->vehicleDetail->overviewForVehicle($vehicleModel, $vehicleEvents),
+            ),
             'options' => $this->buildFormOptions(),
             'billingYear' => $selectedYear,
             'fiscalYear' => $selectedYear,
@@ -126,9 +143,6 @@ final class VehicleController extends Controller
             // sets) rather than on contract data; a vehicle can be inspected
             // for any registered year even without contracts.
             'fiscalYearScope' => YearScopeData::fromRegistry($this->fiscalRegistry),
-
-            // Annual history runs N fiscal pipelines; defer to keep mount fast.
-            'history' => Inertia::defer(fn () => $this->vehicleDetail->historyForVehicle($vehicleModel)),
 
             'fiscalYearBreakdown' => $this->eagerForTab(
                 $activeTab === 'fiscal',
@@ -262,7 +276,10 @@ final class VehicleController extends Controller
         Gate::authorize('update', $vehicleModel);
 
         return Inertia::render('User/Vehicles/Edit/Index', [
-            'vehicle' => $this->vehicleDetail->findVehicleData($vehicleModel),
+            'vehicle' => $this->vehicleDetail->findVehicleData(
+                $vehicleModel,
+                $this->vehicleEventRead->findForVehicle($vehicle),
+            ),
             'options' => $this->buildFormOptions(),
         ]);
     }

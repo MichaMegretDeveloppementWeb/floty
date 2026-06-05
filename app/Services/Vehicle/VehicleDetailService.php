@@ -7,6 +7,7 @@ namespace App\Services\Vehicle;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Vehicle\VehicleData;
+use App\Data\User\Vehicle\VehicleOverviewData;
 use App\Data\User\Vehicle\VehicleYearStatsData;
 use App\Data\User\VehicleEvent\VehicleEventData;
 use App\Exceptions\Fiscal\FiscalCalculationException;
@@ -58,71 +59,84 @@ final class VehicleDetailService
     ) {}
 
     /**
-     * Full vehicle representation for the Show page · identity +
-     * active VFC + reverse-chronological VFC history + usage stats.
+     * Slim always-eager base for the Show page (header on every tab +
+     * Edit) · identity + active VFC + VFC history + events + year context
+     * + pricings. The vehicle AND its events are loaded once by the caller
+     * and threaded in, so the overview payload reuses the same events
+     * Collection instead of re-querying it. The heavy overview-tab data
+     * (usage/KPI/busyDates/history) is built by {@see overviewForVehicle()},
+     * served only on the overview tab.
      *
-     * The vehicle is loaded once (with fiscal history + yearly pricings)
-     * by the caller (`VehicleController::show` / `::edit`) and threaded
-     * in, so the page's services share a single row instead of each
-     * re-querying it.
+     * @param  Collection<int, VehicleEvent>  $vehicleEventModels
      */
-    public function findVehicleData(Vehicle $vehicle): VehicleData
+    public function findVehicleData(Vehicle $vehicle, Collection $vehicleEventModels): VehicleData
     {
-        // Load the raw Collection once and propagate it to
-        // `buildUsageStats` and the timeline DTO composition · the
-        // previous version triggered the same `findForVehicle` query
-        // twice.
-        $vehicleEventModels = $this->vehicleEventRepo->findForVehicle($vehicle->id);
         $vehicleEventDtos = $vehicleEventModels
             ->map(static fn (VehicleEvent $u): VehicleEventData => VehicleEventData::fromModel($u))
             ->values()
             ->all();
 
         $kpiYear = $this->availableYears->currentYear();
-        $kpiStats = $this->computeVehicleYearStats($vehicle, $kpiYear, $vehicleEventModels);
-        $kpiFiscalAvailable = in_array(
-            $kpiYear,
-            $this->fiscalRules->registeredYears(),
-            true,
-        );
-
-        // History is served via `Inertia::defer` from
-        // VehicleController::show so the mount is not blocked by N
-        // fiscal pipelines. See `historyForVehicle()` below.
-
-        // Exploration · `usageStats` initialised on the current year.
-        // Other years are fetched on demand by the frontend via the
-        // lazy endpoints with client-side cache (`useYearLazy`).
-        $initialYear = $kpiYear;
 
         return VehicleData::fromModel(
             $vehicle,
-            $this->aggregates->buildUsageStats($vehicle, $initialYear, $vehicleEventModels),
             $vehicleEventDtos,
-            $this->buildBusyDates($vehicle->id, $initialYear),
             kpiYear: $kpiYear,
-            kpiStats: $kpiStats,
-            kpiFiscalAvailable: $kpiFiscalAvailable,
-            selectedYear: $initialYear,
+            selectedYear: $kpiYear,
             yearScope: YearScopeData::fromResolver($this->availableYears),
         );
     }
 
     /**
-     * Vehicle history · past fiscal years derived from the rule
-     * registry (not from contracts), ordered DESC (newest first).
-     * Neutral rows included for years with no contract so the user
-     * still sees the theoretical full-year tax. Served via
-     * `Inertia::defer` from Show so the mount is not blocked on N
-     * fiscal pipelines (~100-150 ms cold saved depending on scope
-     * depth).
+     * Overview-tab-only payload · usage timeline + per-company breakdown,
+     * current-year KPI, busy dates (unavailability modal) and multi-year
+     * history. Eager only when `?tab=overview` (tab-gating); the other
+     * tabs do not pay this when loaded directly. The events Collection is
+     * loaded once by the caller and shared with the base DTO and across
+     * the four computations here (incl. history, which previously leaked
+     * onto every tab via `Inertia::defer`).
+     *
+     * @param  Collection<int, VehicleEvent>  $vehicleEventModels
+     */
+    public function overviewForVehicle(Vehicle $vehicle, Collection $vehicleEventModels): VehicleOverviewData
+    {
+        $kpiYear = $this->availableYears->currentYear();
+
+        return new VehicleOverviewData(
+            usageStats: $this->aggregates->buildUsageStats($vehicle, $kpiYear, $vehicleEventModels),
+            kpiStats: $this->computeVehicleYearStats($vehicle, $kpiYear, $vehicleEventModels),
+            kpiFiscalAvailable: in_array($kpiYear, $this->fiscalRules->registeredYears(), true),
+            busyDates: $this->buildBusyDates($vehicle->id, $kpiYear),
+            history: $this->historyForVehicleWithEvents($vehicle, $vehicleEventModels),
+        );
+    }
+
+    /**
+     * Vehicle history · past fiscal years derived from the rule registry
+     * (not from contracts), ordered DESC (newest first). Neutral rows
+     * included for years with no contract so the user still sees the
+     * theoretical full-year tax.
      *
      * @return list<VehicleYearStatsData>
      */
     public function historyForVehicle(Vehicle $vehicle): array
     {
-        $vehicleEventModels = $this->vehicleEventRepo->findForVehicle($vehicle->id);
+        return $this->historyForVehicleWithEvents(
+            $vehicle,
+            $this->vehicleEventRepo->findForVehicle($vehicle->id),
+        );
+    }
 
+    /**
+     * History core from an already-loaded events Collection · lets
+     * {@see overviewForVehicle()} share the single events load with the
+     * usage/KPI computations instead of re-querying.
+     *
+     * @param  Collection<int, VehicleEvent>  $vehicleEventModels
+     * @return list<VehicleYearStatsData>
+     */
+    private function historyForVehicleWithEvents(Vehicle $vehicle, Collection $vehicleEventModels): array
+    {
         $kpiYear = $this->availableYears->currentYear();
         $registeredYears = $this->fiscalRules->registeredYears();
         $pastYears = array_values(array_filter(

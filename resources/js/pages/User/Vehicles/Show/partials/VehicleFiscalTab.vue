@@ -12,7 +12,6 @@ import FullYearTaxBreakdownPanel from './FullYearTaxBreakdownPanel.vue';
 
 type Breakdown = App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
 type Segment = App.Data.User.Vehicle.VehicleFullYearTaxSegmentData;
-type UsageStats = App.Data.User.Vehicle.VehicleUsageStatsData;
 
 const props = defineProps<{
     vehicle: App.Data.User.Vehicle.VehicleData;
@@ -145,14 +144,6 @@ const co2Percent = computed<number>(() => {
 const pollutantsPercent = computed<number>(() => 100 - co2Percent.value);
 
 const hasTax = computed<boolean>(() => props.fiscalYearBreakdown.total > 0);
-
-// The breakdown panel only reads `fiscalYear` and `fullYearTaxBreakdown`,
-// so we synthesise a minimal stats-like object for it.
-const statsLike = computed<UsageStats>(() => ({
-    ...props.vehicle.usageStats,
-    fiscalYear: props.fiscalYear,
-    fullYearTaxBreakdown: props.fiscalYearBreakdown,
-}));
 </script>
 
 <template>
@@ -296,7 +287,11 @@ const statsLike = computed<UsageStats>(() => ({
                 <p class="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
                     Détail du calcul
                 </p>
-                <FullYearTaxBreakdownPanel :stats="statsLike" unwrapped />
+                <FullYearTaxBreakdownPanel
+                    :fiscal-year="props.fiscalYear"
+                    :full-year-tax-breakdown="props.fiscalYearBreakdown"
+                    unwrapped
+                />
             </section>
         </div>
     </div>

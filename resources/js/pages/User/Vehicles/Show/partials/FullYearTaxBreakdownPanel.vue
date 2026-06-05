@@ -23,7 +23,8 @@ type Segment = App.Data.User.Vehicle.VehicleFullYearTaxSegmentData;
 
 const props = withDefaults(
     defineProps<{
-        stats: App.Data.User.Vehicle.VehicleUsageStatsData;
+        fiscalYear: number;
+        fullYearTaxBreakdown: App.Data.User.Vehicle.VehicleFullYearTaxBreakdownData;
         unwrapped?: boolean;
     }>(),
     { unwrapped: false },
@@ -83,7 +84,7 @@ function segmentPeriodLabel(seg: Segment): string {
         <template v-if="!unwrapped" #header>
             <div>
                 <h2 class="text-base font-semibold text-slate-900">
-                    Détail de la Taxe pleine {{ props.stats.fiscalYear }}
+                    Détail de la Taxe pleine {{ props.fiscalYear }}
                 </h2>
                 <p class="mt-0.5 text-xs text-slate-500">
                     Calcul théorique pour 100 % d'utilisation
@@ -198,7 +199,7 @@ function segmentPeriodLabel(seg: Segment): string {
                 <span
                     class="text-xs font-semibold tracking-wider text-slate-700 uppercase"
                 >
-                    Total {{ props.stats.fiscalYear }}
+                    Total {{ props.fiscalYear }}
                 </span>
                 <span class="font-mono text-lg font-semibold text-slate-700">
                     {{ formatEur(breakdown.total) }}

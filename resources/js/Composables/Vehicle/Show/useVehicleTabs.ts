@@ -19,11 +19,15 @@ const DEFAULT_TAB: VehicleTabKey = 'overview';
  * `billingYear` / `fiscalYear` (eager) drive the active pill highlight.
  * Must be included in the partial reload, otherwise the rendered title and the active pill mismatch after a tab switch.
  *
+ * `overview` carries the heavy usage/KPI/history payload (`vehicleOverview`),
+ * eager only on a direct `?tab=overview` load and lazy on first visit from
+ * another tab (tab-gating). The former `history` defer is folded into it.
+ *
  * `events` has no lazy prop: the events list lives in `vehicle.vehicleEvents`,
  * already eager-loaded by VehicleDetailService.
  */
 const TAB_PROPS: Readonly<Record<VehicleTabKey, readonly string[]>> = {
-    overview: [],
+    overview: ['vehicleOverview'],
     events: [],
     fiscal: ['fiscalYearBreakdown', 'fiscalYear', 'billingYear'],
     billing: ['vehicleBilling', 'billingYear', 'fiscalYear'],
