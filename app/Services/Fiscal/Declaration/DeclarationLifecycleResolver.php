@@ -38,8 +38,23 @@ final readonly class DeclarationLifecycleResolver
 
     public function resolveForCompanyYear(int $companyId, int $year): DeclarationLifecycleStateData
     {
-        $current = $this->declarations->findCurrentForCompanyYear($companyId, $year);
+        return $this->resolveFromCurrent(
+            $this->declarations->findCurrentForCompanyYear($companyId, $year),
+            $companyId,
+            $year,
+        );
+    }
 
+    /**
+     * Lifecycle derivation from an already-resolved current declaration
+     * (head of chain) · lets a caller batch the `findCurrentForCompanyYear`
+     * query across several years and feed each result in, instead of one
+     * lookup per year. `$current` null means no declaration exists
+     * (Untouched). Strictly equivalent to {@see resolveForCompanyYear}
+     * when fed `findCurrentForCompanyYear($companyId, $year)`.
+     */
+    public function resolveFromCurrent(?FiscalDeclaration $current, int $companyId, int $year): DeclarationLifecycleStateData
+    {
         if ($current === null) {
             return $this->buildUntouchedState();
         }

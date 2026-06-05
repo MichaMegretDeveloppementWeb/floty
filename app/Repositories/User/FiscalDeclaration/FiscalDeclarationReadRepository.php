@@ -63,6 +63,34 @@ final class FiscalDeclarationReadRepository implements FiscalDeclarationReadRepo
             ->first();
     }
 
+    public function findCurrentForCompanyYears(int $companyId, array $years): array
+    {
+        if ($years === []) {
+            return [];
+        }
+
+        // Same head-of-chain selection as findCurrentForCompanyYear,
+        // batched over several years. `orderByDesc(id)` + first-wins per
+        // year reproduces the per-year `->orderByDesc(id)->first()` head.
+        $rows = FiscalDeclaration::query()
+            ->with(['company:id,short_code,legal_name,color'])
+            ->where('company_id', $companyId)
+            ->whereIn('fiscal_year', $years)
+            ->whereNull('superseded_by_id')
+            ->orderByDesc('id')
+            ->get();
+
+        $byYear = [];
+        foreach ($rows as $row) {
+            $year = (int) $row->fiscal_year;
+            if (! isset($byYear[$year])) {
+                $byYear[$year] = $row;
+            }
+        }
+
+        return $byYear;
+    }
+
     public function findPredecessorOf(int $declarationId): ?FiscalDeclaration
     {
         // Declaration X such that X.superseded_by_id = $declarationId.

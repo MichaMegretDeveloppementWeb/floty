@@ -48,9 +48,18 @@ final readonly class PendingDeclarationsResolver
         $now = CarbonImmutable::now();
         $currentYear = $now->year;
 
+        // Current declaration (head of chain) for every year in one query
+        // instead of one findCurrentForCompanyYear per year inside the
+        // lifecycle resolver.
+        $currentsByYear = $this->declarations->findCurrentForCompanyYears($companyId, $contractYears);
+
         $pending = [];
         foreach ($contractYears as $year) {
-            $lifecycle = $this->lifecycleResolver->resolveForCompanyYear($companyId, $year);
+            $lifecycle = $this->lifecycleResolver->resolveFromCurrent(
+                $currentsByYear[$year] ?? null,
+                $companyId,
+                $year,
+            );
 
             if ($lifecycle->state === DeclarationLifecycleState::GeneratedActive) {
                 continue;

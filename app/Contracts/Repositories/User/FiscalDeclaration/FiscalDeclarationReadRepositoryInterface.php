@@ -45,6 +45,19 @@ interface FiscalDeclarationReadRepositoryInterface
     public function findCurrentForCompanyYear(int $companyId, int $year): ?FiscalDeclaration;
 
     /**
+     * Batched variant of {@see findCurrentForCompanyYear} over several
+     * years · one query for the company's current declarations (head of
+     * chain per year, `superseded_by_id IS NULL`), `company`
+     * eager-loaded, indexed by year. Years without a declaration are
+     * absent from the map. Lets the company-fiche pending-declarations
+     * card resolve every year without a per-year query.
+     *
+     * @param  list<int>  $years
+     * @return array<int, FiscalDeclaration> year → current declaration (head of chain)
+     */
+    public function findCurrentForCompanyYears(int $companyId, array $years): array;
+
+    /**
      * Immediate predecessor in the `superseded_by_id` chain. If
      * `$declaration` is a chained Draft being regenerated, returns the
      * obsolete version it replaces. Useful for `<ReviewContextBanner>`

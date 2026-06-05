@@ -11,6 +11,7 @@ use App\Models\Company;
 use App\Models\FiscalDeclaration;
 use App\Repositories\User\FiscalDeclaration\FiscalDeclarationReadRepository;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -31,6 +32,46 @@ final class FiscalDeclarationReadRepositorySearchTest extends TestCase
         parent::setUp();
         $this->repo = $this->app->make(FiscalDeclarationReadRepository::class);
         $this->company = Company::factory()->create(['short_code' => 'ACM']);
+    }
+
+    #[Test]
+    public function find_current_for_company_years_equivaut_aux_appels_annuels(): void
+    {
+        // 2024 · chaîne obsolète → draft (head = le draft de tête).
+        $obsolete = FiscalDeclaration::factory()
+            ->forCompany($this->company)->forYear(2024)->obsolete()->create();
+        $head2024 = FiscalDeclaration::factory()
+            ->forCompany($this->company)->forYear(2024)->draft()->create();
+        $obsolete->update(['superseded_by_id' => $head2024->id]);
+
+        // 2025 · une déclaration générée (head). 2026 · aucune.
+        $head2025 = FiscalDeclaration::factory()
+            ->forCompany($this->company)->forYear(2025)->generated()->create();
+
+        $years = [2024, 2025, 2026];
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+        $batch = $this->repo->findCurrentForCompanyYears($this->company->id, $years);
+        $batchQueries = count(DB::getQueryLog());
+        DB::disableQueryLog();
+
+        foreach ($years as $year) {
+            $single = $this->repo->findCurrentForCompanyYear($this->company->id, $year);
+            self::assertSame(
+                $single?->id,
+                ($batch[$year] ?? null)?->id,
+                "année {$year} · head de chaîne identique au lookup unitaire",
+            );
+        }
+
+        self::assertSame($head2024->id, $batch[2024]->id, '2024 · head = draft de tête');
+        self::assertSame($head2025->id, $batch[2025]->id);
+        self::assertArrayNotHasKey(2026, $batch, '2026 sans déclaration → absente du map');
+
+        // 1 requête déclarations (+ 1 eager company) quel que soit le
+        // nombre d'années, vs 1 lookup + 1 eager par année.
+        self::assertLessThanOrEqual(2, $batchQueries, 'batch = requêtes constantes, pas de N+1 par année');
     }
 
     #[Test]
