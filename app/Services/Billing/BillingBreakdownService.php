@@ -317,18 +317,14 @@ final class BillingBreakdownService
         $totalCents = 0;
         $hasAnyMissing = false;
 
+        // Batch the 12 months in 2 SQL (year contracts + pricing) instead
+        // of 12x calculateForVehicleAndMonth (one contracts query/month).
+        $monthlyResults = $this->calculator->calculateYearForVehicle($vehicleId, $year);
+
         for ($month = 1; $month <= 12; $month++) {
-            try {
-                $result = $this->calculator->calculateForVehicleAndMonth($vehicleId, $year, $month);
-                $entries[] = new MonthlyBreakdownEntryData(
-                    month: $month,
-                    daysUsed: $result['daysUsed'],
-                    totalCents: $result['totalCents'],
-                    hasMissingPricing: false,
-                );
-                $totalDays += $result['daysUsed'];
-                $totalCents += $result['totalCents'];
-            } catch (MissingPricingException) {
+            $result = $monthlyResults[$month];
+
+            if ($result instanceof MissingPricingException) {
                 $entries[] = new MonthlyBreakdownEntryData(
                     month: $month,
                     daysUsed: 0,
@@ -336,7 +332,18 @@ final class BillingBreakdownService
                     hasMissingPricing: true,
                 );
                 $hasAnyMissing = true;
+
+                continue;
             }
+
+            $entries[] = new MonthlyBreakdownEntryData(
+                month: $month,
+                daysUsed: $result['daysUsed'],
+                totalCents: $result['totalCents'],
+                hasMissingPricing: false,
+            );
+            $totalDays += $result['daysUsed'];
+            $totalCents += $result['totalCents'];
         }
 
         return new MonthlyBillingBreakdownData(

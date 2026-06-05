@@ -13,6 +13,7 @@ use App\Models\VehicleEvent;
 use App\Models\VehicleYearlyPricing;
 use App\Services\Billing\BillingCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -546,6 +547,83 @@ final class BillingCalculatorTest extends TestCase
      *
      * @return array{0: Company, 1: Vehicle}
      */
+    // --- calculateYearForVehicle : batch 12 mois (lot 4) --------------
+
+    #[Test]
+    public function calculate_year_for_vehicle_equivaut_aux_appels_mensuels(): void
+    {
+        // Véhicule loué à 2 entreprises, dont un mois (février) en
+        // cohabitation cross-company → cas le plus discriminant.
+        $vehicle = Vehicle::factory()->create();
+        $this->createPricing($vehicle, 2026, self::DAILY, self::WEEKLY, self::MONTHLY);
+        $a = Company::factory()->create();
+        $b = Company::factory()->create();
+
+        // Contrats séquentiels (le modèle interdit le chevauchement sur
+        // un même véhicule) : février voit A puis B → cross-company / mois.
+        Contract::factory()->forVehicle($vehicle)->forCompany($a)->create([
+            'start_date' => '2026-01-10',
+            'end_date' => '2026-02-10',
+        ]);
+        Contract::factory()->forVehicle($vehicle)->forCompany($b)->create([
+            'start_date' => '2026-02-11',
+            'end_date' => '2026-02-28',
+        ]);
+
+        $batch = $this->calculator->calculateYearForVehicle($vehicle->id, 2026);
+
+        for ($month = 1; $month <= 12; $month++) {
+            $expected = $this->calculator->calculateForVehicleAndMonth($vehicle->id, 2026, $month);
+            self::assertSame($expected, $batch[$month], "mois {$month} · batch === mensuel");
+        }
+    }
+
+    #[Test]
+    public function calculate_year_for_vehicle_signale_le_tarif_manquant_par_mois(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        $company = Company::factory()->create();
+        // Contrat en mars, AUCUN tarif posé.
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2026-03-05',
+            'end_date' => '2026-03-20',
+        ]);
+
+        $batch = $this->calculator->calculateYearForVehicle($vehicle->id, 2026);
+
+        self::assertInstanceOf(MissingPricingException::class, $batch[3], 'mars : contrat sans tarif');
+        self::assertSame(['daysUsed' => 0, 'totalCents' => 0], $batch[1], 'janvier : aucun contrat');
+    }
+
+    #[Test]
+    public function calculate_year_for_vehicle_collapse_les_queries(): void
+    {
+        $vehicle = Vehicle::factory()->create();
+        $this->createPricing($vehicle, 2026, self::DAILY, self::WEEKLY, self::MONTHLY);
+        $company = Company::factory()->create();
+        // Contrats sur plusieurs mois : le batch ne doit pas scaler avec.
+        Contract::factory()->forVehicle($vehicle)->forCompany($company)->create([
+            'start_date' => '2026-01-15',
+            'end_date' => '2026-06-15',
+        ]);
+
+        DB::enableQueryLog();
+        DB::flushQueryLog();
+
+        $this->calculator->calculateYearForVehicle($vehicle->id, 2026);
+
+        $queries = DB::getQueryLog();
+        DB::disableQueryLog();
+
+        // 3 requêtes constantes : contrats + véhicule (eager) + tarif,
+        // quel que soit le nombre de mois couverts (vs 1 contrats/mois).
+        self::assertSame(
+            3,
+            count($queries),
+            'batch billing véhicule = 3 requêtes constantes, pas de N+1 mensuel',
+        );
+    }
+
     private function seedCdcVehicle(): array
     {
         $company = Company::factory()->create();

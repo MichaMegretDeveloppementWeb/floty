@@ -409,10 +409,109 @@ final readonly class BillingCalculator
             ]);
         }
 
+        return $this->sumVehicleMonthRevenue($contracts, $pricing, $monthStart, $monthEnd);
+    }
+
+    /**
+     * Twelve monthly cross-company revenue results for one vehicle over
+     * a year · 1 SQL contracts + 1 SQL pricing, then in-memory month
+     * iteration. Strictly equivalent to twelve successive
+     * {@see calculateForVehicleAndMonth()} calls without the round-trips
+     * (the per-month core {@see sumVehicleMonthRevenue} is shared). A
+     * month that would have thrown returns a `MissingPricingException`
+     * in place of the result array (mirrors {@see calculateYear()}).
+     *
+     * @return array<int, array{daysUsed: int, totalCents: int}|MissingPricingException> Key · month [1..12]
+     */
+    public function calculateYearForVehicle(int $vehicleId, int $year): array
+    {
+        $allContracts = $this->contractRepository->findForVehiclesInYear([$vehicleId], $year);
+
+        $pricing = $allContracts->isEmpty()
+            ? null
+            : $this->pricingRepository->findForVehicleAndYear($vehicleId, $year);
+
+        $results = [];
+        for ($month = 1; $month <= 12; $month++) {
+            $results[$month] = $this->calculateVehicleMonthFromPreloaded(
+                $vehicleId,
+                $year,
+                $month,
+                $allContracts,
+                $pricing,
+            );
+        }
+
+        return $results;
+    }
+
+    /**
+     * In-memory per-month variant for one vehicle, from preloaded
+     * year contracts + pricing. Same shape as
+     * {@see calculateForVehicleAndMonth()}, or a `MissingPricingException`
+     * for a month with contracts but no pricing.
+     *
+     * @param  iterable<int, Contract>  $allContracts  Year-scoped vehicle contracts (vehicle eager-loaded)
+     * @return array{daysUsed: int, totalCents: int}|MissingPricingException
+     */
+    private function calculateVehicleMonthFromPreloaded(
+        int $vehicleId,
+        int $year,
+        int $month,
+        iterable $allContracts,
+        ?VehicleYearlyPricing $pricing,
+    ): array|MissingPricingException {
+        $monthStart = CarbonImmutable::create($year, $month, 1);
+        $monthEnd = $monthStart->endOfMonth();
+
+        $monthContracts = [];
+        foreach ($allContracts as $contract) {
+            if ($contract->start_date->toDateString() > $monthEnd->toDateString()) {
+                continue;
+            }
+            if ($contract->end_date->toDateString() < $monthStart->toDateString()) {
+                continue;
+            }
+            $monthContracts[] = $contract;
+        }
+
+        if ($monthContracts === []) {
+            return ['daysUsed' => 0, 'totalCents' => 0];
+        }
+
+        if ($pricing === null) {
+            // The plate is not eager-loaded on this batched path
+            // (findForVehiclesInYear selects id + exit_date only); the
+            // recap catches this exception without surfacing the message,
+            // so the id-based label is sufficient.
+            return MissingPricingException::forMissingItems([
+                ['vehicleId' => $vehicleId, 'licensePlate' => "#{$vehicleId}", 'year' => $year],
+            ]);
+        }
+
+        return $this->sumVehicleMonthRevenue($monthContracts, $pricing, $monthStart, $monthEnd);
+    }
+
+    /**
+     * Cross-company revenue + days for one vehicle over a single civil
+     * month, from already-resolved month contracts + pricing. Shared
+     * core between {@see calculateForVehicleAndMonth()} (single, queried)
+     * and {@see calculateVehicleMonthFromPreloaded()} (batched) so both
+     * yield strictly identical figures.
+     *
+     * @param  iterable<int, Contract>  $monthContracts
+     * @return array{daysUsed: int, totalCents: int}
+     */
+    private function sumVehicleMonthRevenue(
+        iterable $monthContracts,
+        VehicleYearlyPricing $pricing,
+        CarbonImmutable $monthStart,
+        CarbonImmutable $monthEnd,
+    ): array {
         // Group by company, dedup days, apply OptimalRateBreakdown per
         // (vehicle × company × month) couple, sum the totals.
         $datesByCompany = $this->expandContractsByKey(
-            $contracts,
+            $monthContracts,
             $monthStart,
             $monthEnd,
             static fn (Contract $contract): int => $contract->company_id,
