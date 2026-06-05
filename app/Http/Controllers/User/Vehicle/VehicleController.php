@@ -104,10 +104,13 @@ final class VehicleController extends Controller
      */
     public function show(int $vehicle, Request $request): Response
     {
-        $vehicleModel = $this->vehicleRead->findOrFail($vehicle);
+        // Single load with fiscal history + yearly pricings, threaded to
+        // every page service below. Avoids each service re-querying the
+        // same vehicle row (and its VFC/pricings) within the request.
+        $vehicleModel = $this->vehicleRead->findByIdWithFiscalHistory($vehicle);
         Gate::authorize('view', $vehicleModel);
 
-        $vehicleData = $this->vehicleDetail->findVehicleData($vehicle);
+        $vehicleData = $this->vehicleDetail->findVehicleData($vehicleModel);
 
         // Unified `?year=` shared between the Fiscal and Billing tabs.
         $selectedYear = (int) $request->query('year', (string) $vehicleData->kpiYear);
@@ -125,16 +128,16 @@ final class VehicleController extends Controller
             'fiscalYearScope' => YearScopeData::fromRegistry($this->fiscalRegistry),
 
             // Annual history runs N fiscal pipelines; defer to keep mount fast.
-            'history' => Inertia::defer(fn () => $this->vehicleDetail->historyForVehicle($vehicle)),
+            'history' => Inertia::defer(fn () => $this->vehicleDetail->historyForVehicle($vehicleModel)),
 
             'fiscalYearBreakdown' => $this->eagerForTab(
                 $activeTab === 'fiscal',
-                fn () => $this->vehicleAggregates->fullYearBreakdownForYear($vehicle, $selectedYear),
+                fn () => $this->vehicleAggregates->fullYearBreakdownForYear($vehicleModel, $selectedYear),
             ),
 
             'vehicleBilling' => $this->eagerForTab(
                 $activeTab === 'billing',
-                fn () => $this->vehicleAggregates->billingForYear($vehicle, $selectedYear),
+                fn () => $this->vehicleAggregates->billingForYear($vehicleModel->id, $selectedYear),
             ),
 
             // Per-vehicle regulatory controls (Chantier B / B2). Not year-scoped:
@@ -157,16 +160,16 @@ final class VehicleController extends Controller
     /**
      * Lazy JSON endpoint for the Usage & Repartition card.
      *
-     * Returns a neutral DTO when the vehicle no longer exists rather than
-     * 404-ing the year-change interaction.
+     * 404s (ModelNotFoundException) when the vehicle no longer exists.
      */
     public function usageStats(int $vehicle, Request $request): JsonResponse
     {
         Gate::authorize('viewAny', Vehicle::class);
 
         $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
+        $vehicleModel = $this->vehicleRead->findByIdWithFiscalHistory($vehicle);
 
-        return response()->json($this->vehicleAggregates->usageStatsForYear($vehicle, $year));
+        return response()->json($this->vehicleAggregates->usageStatsForYear($vehicleModel, $year));
     }
 
     /**
@@ -177,8 +180,9 @@ final class VehicleController extends Controller
         Gate::authorize('viewAny', Vehicle::class);
 
         $year = (int) $request->query('year', (string) CarbonImmutable::now()->year);
+        $vehicleModel = $this->vehicleRead->findByIdWithFiscalHistory($vehicle);
 
-        return response()->json($this->vehicleAggregates->fullYearBreakdownForYear($vehicle, $year));
+        return response()->json($this->vehicleAggregates->fullYearBreakdownForYear($vehicleModel, $year));
     }
 
     /**
@@ -254,11 +258,11 @@ final class VehicleController extends Controller
      */
     public function edit(int $vehicle): Response
     {
-        $vehicleModel = $this->vehicleRead->findOrFail($vehicle);
+        $vehicleModel = $this->vehicleRead->findByIdWithFiscalHistory($vehicle);
         Gate::authorize('update', $vehicleModel);
 
         return Inertia::render('User/Vehicles/Edit/Index', [
-            'vehicle' => $this->vehicleDetail->findVehicleData($vehicle),
+            'vehicle' => $this->vehicleDetail->findVehicleData($vehicleModel),
             'options' => $this->buildFormOptions(),
         ]);
     }

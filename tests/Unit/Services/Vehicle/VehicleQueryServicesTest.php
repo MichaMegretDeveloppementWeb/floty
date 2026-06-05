@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Vehicle;
 
+use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Data\User\Vehicle\VehicleUsageStatsData;
 use App\Data\User\Vehicle\VehicleWeekUsageData;
 use App\Enums\Vehicle\VehicleExitReason;
@@ -77,7 +78,7 @@ final class VehicleQueryServicesTest extends TestCase
         $currentYear = (int) Carbon::now()->year;
         $expectedYears = range(2024, $currentYear - 1);
 
-        $history = $this->detail->historyForVehicle($vehicle->id);
+        $history = $this->detail->historyForVehicle($this->loadWithHistory($vehicle));
 
         self::assertCount(count($expectedYears), $history);
         // Ordre DESC : index 0 = currentYear - 1
@@ -228,7 +229,7 @@ final class VehicleQueryServicesTest extends TestCase
             'end_date' => '2026-05-08',
         ]);
 
-        $stats = $this->aggregates->usageStatsForYear($vehicle->id, 2026);
+        $stats = $this->aggregates->usageStatsForYear($this->loadWithHistory($vehicle), 2026);
         $week19 = $this->weekRow($stats, 19);
 
         self::assertSame(7, $week19->totalDays);
@@ -256,7 +257,7 @@ final class VehicleQueryServicesTest extends TestCase
             'end_date' => '2026-05-09',
         ]);
 
-        $stats = $this->aggregates->usageStatsForYear($vehicle->id, 2026);
+        $stats = $this->aggregates->usageStatsForYear($this->loadWithHistory($vehicle), 2026);
         $week19 = $this->weekRow($stats, 19);
 
         self::assertSame(2, $week19->reductiveVehicleEventDays);
@@ -286,13 +287,24 @@ final class VehicleQueryServicesTest extends TestCase
             'end_date' => '2026-05-06',
         ]);
 
-        $stats = $this->aggregates->usageStatsForYear($vehicle->id, 2026);
+        $stats = $this->aggregates->usageStatsForYear($this->loadWithHistory($vehicle), 2026);
         $week19 = $this->weekRow($stats, 19);
 
         // 4 mai = nonReductive (1j), 5 mai = reductive (priorité), 6 mai = reductive
         // → 2 réductrices + 1 non-réductrice (pas de double comptage du 5 mai).
         self::assertSame(2, $week19->reductiveVehicleEventDays);
         self::assertSame(1, $week19->nonReductiveUnavailabilityDays);
+    }
+
+    /**
+     * Loads the vehicle exactly as the controller does before threading
+     * it to the detail/aggregate services (fiscal history + pricings
+     * eager-loaded), so the unit tests exercise the production path.
+     */
+    private function loadWithHistory(Vehicle $vehicle): Vehicle
+    {
+        return $this->app->make(VehicleReadRepositoryInterface::class)
+            ->findByIdWithFiscalHistory($vehicle->id);
     }
 
     private function weekRow(

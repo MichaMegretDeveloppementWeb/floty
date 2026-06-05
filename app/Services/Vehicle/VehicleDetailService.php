@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Services\Vehicle;
 
-use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\Shared\YearScopeData;
 use App\Data\User\Vehicle\VehicleData;
@@ -44,7 +43,6 @@ use Illuminate\Support\Collection;
 final class VehicleDetailService
 {
     public function __construct(
-        private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly VehicleEventReadRepositoryInterface $vehicleEventRepo,
         private readonly ContractQueryService $contracts,
         private readonly FleetFiscalAggregator $aggregator,
@@ -62,13 +60,14 @@ final class VehicleDetailService
     /**
      * Full vehicle representation for the Show page · identity +
      * active VFC + reverse-chronological VFC history + usage stats.
-     * Throws `ModelNotFoundException` (404 rendered by Laravel) when
-     * the id does not exist.
+     *
+     * The vehicle is loaded once (with fiscal history + yearly pricings)
+     * by the caller (`VehicleController::show` / `::edit`) and threaded
+     * in, so the page's services share a single row instead of each
+     * re-querying it.
      */
-    public function findVehicleData(int $id): VehicleData
+    public function findVehicleData(Vehicle $vehicle): VehicleData
     {
-        $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
-
         // Load the raw Collection once and propagate it to
         // `buildUsageStats` and the timeline DTO composition · the
         // previous version triggered the same `findForVehicle` query
@@ -120,9 +119,8 @@ final class VehicleDetailService
      *
      * @return list<VehicleYearStatsData>
      */
-    public function historyForVehicle(int $id): array
+    public function historyForVehicle(Vehicle $vehicle): array
     {
-        $vehicle = $this->vehicles->findByIdWithFiscalHistory($id);
         $vehicleEventModels = $this->vehicleEventRepo->findForVehicle($vehicle->id);
 
         $kpiYear = $this->availableYears->currentYear();

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Services\Vehicle;
 
 use App\Contracts\Repositories\User\Company\CompanyReadRepositoryInterface;
-use App\Contracts\Repositories\User\Vehicle\VehicleReadRepositoryInterface;
 use App\Contracts\Repositories\User\VehicleEvent\VehicleEventReadRepositoryInterface;
 use App\Data\User\Billing\MonthlyBillingBreakdownData;
 use App\Data\User\Vehicle\VehicleCompanyUsageData;
@@ -46,7 +45,6 @@ use Illuminate\Support\Collection;
 final class VehicleAggregatesService
 {
     public function __construct(
-        private readonly VehicleReadRepositoryInterface $vehicles,
         private readonly CompanyReadRepositoryInterface $companies,
         private readonly VehicleEventReadRepositoryInterface $vehicleEventRepo,
         private readonly ContractQueryService $contracts,
@@ -75,9 +73,8 @@ final class VehicleAggregatesService
      * days stay intact, tax figures fall back to 0 with a neutral
      * full-year breakdown.
      */
-    public function usageStatsForYear(int $vehicleId, int $year): VehicleUsageStatsData
+    public function usageStatsForYear(Vehicle $vehicle, int $year): VehicleUsageStatsData
     {
-        $vehicle = $this->vehicles->findByIdWithFiscalHistory($vehicleId);
         $vehicleEventModels = $this->vehicleEventRepo->findForVehicle($vehicle->id);
 
         return $this->buildUsageStats($vehicle, $year, $vehicleEventModels);
@@ -88,10 +85,8 @@ final class VehicleAggregatesService
      * any year. Returns a neutral DTO (tariffs 0 + « rules not
      * implemented » message) when the year has no coded rules.
      */
-    public function fullYearBreakdownForYear(int $vehicleId, int $year): VehicleFullYearTaxBreakdownData
+    public function fullYearBreakdownForYear(Vehicle $vehicle, int $year): VehicleFullYearTaxBreakdownData
     {
-        $vehicle = $this->vehicles->findByIdWithFiscalHistory($vehicleId);
-
         try {
             return $this->aggregator->vehicleFullYearTaxBreakdown($vehicle, $year);
         } catch (FiscalCalculationException) {
